@@ -154,7 +154,7 @@ fn load_process(
         FunctionProcess(ref mut function) => {
             config_function(
                 function,
-                &resolved_url.as_str(),
+                resolved_url.as_str(),
                 parent_route,
                 alias,
                 parent_flow_id,
@@ -223,7 +223,7 @@ fn load_process_refs(
             .map_err(|e| e.to_string())?;
         let process = load_process(
             &flow.route,
-            &process_ref.alias(),
+            process_ref.alias(),
             flow.id,
             flow_count,
             &subprocess_url,

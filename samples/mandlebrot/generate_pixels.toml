@@ -24,7 +24,7 @@ input.start = { once = 0 }
 input.step = { once = 1 }
 
 [[connection]]
-from = "height/diff"
+from = "height"
 to = "y-sequence/end"
 
 [[process]]

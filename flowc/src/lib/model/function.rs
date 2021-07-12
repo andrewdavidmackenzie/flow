@@ -5,7 +5,7 @@ use error_chain::bail;
 use serde_derive::{Deserialize, Serialize};
 
 use flowcore::input::InputInitializer;
-use flowcore::output_connection::OutputConnection;
+use flowcore::output_connection::{OutputConnection, Source};
 
 use crate::compiler::loader::Validate;
 use crate::errors::*;
@@ -44,7 +44,7 @@ pub struct Function {
     /// `source_url` is where this function definition was read from
     #[serde(skip_deserializing, default)]
     source_url: String, // can be a relative path with no scheme etc so can't be a Url
-    /// the `route` in the flow hierachy where this function is located
+    /// the `route` in the flow hierarchy where this function is located
     #[serde(skip_deserializing)]
     route: Route,
     /// Is the function being used part of a library and where is it found
@@ -175,7 +175,7 @@ impl Function {
         &self.source_url
     }
 
-    /// Set the source url where this function is defiend
+    /// Set the source url where this function is defined
     pub fn set_source_url(&mut self, source: &str) {
         self.source_url = source.to_owned();
     }
@@ -273,7 +273,7 @@ impl Default for Function {
             route: Route::default(),
             lib_reference: None,
             output_connections: vec![OutputConnection::new(
-                "".to_string(),
+                Source::default(),
                 0,
                 0,
                 0,
@@ -302,6 +302,7 @@ impl SetRoute for Function {
 #[cfg(test)]
 mod test {
     use flowcore::output_connection::OutputConnection;
+    use flowcore::output_connection::Source::Output;
 
     use crate::compiler::loader::Validate;
     use crate::model::datatype::DataType;
@@ -327,7 +328,7 @@ mod test {
             route: Route::default(),
             lib_reference: None,
             output_connections: vec![OutputConnection::new(
-                "test_function".to_string(),
+                Output("test_function".into()),
                 0,
                 0,
                 0,
@@ -341,7 +342,7 @@ mod test {
             flow_id: 0,
         };
 
-        assert_eq!(fun.validate().is_err(), true);
+        assert!(fun.validate().is_err());
     }
 
     #[test]

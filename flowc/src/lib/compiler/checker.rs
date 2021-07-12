@@ -51,7 +51,7 @@ fn check_for_competing_inputs(tables: &GenerationTables) -> Result<()> {
     for connection in &tables.collapsed_connections {
         // Check for double connection
         if let Some((_output_route, sender_id)) =
-            connector::get_source(&tables.source_routes, &connection.from_io.route())
+            connector::get_source(&tables.sources, connection.from_io.route())
         {
             if let Some(other_sender_id) =
                 used_destinations.insert(connection.to_io.route().clone(), sender_id)
@@ -86,14 +86,14 @@ pub fn check_function_inputs(tables: &mut GenerationTables) -> Result<()> {
         for input in function.get_inputs() {
             match input.get_initializer() {
                 None => {
-                    if !connection_to(tables, &input.route()) {
+                    if !connection_to(tables, input.route()) {
                         bail!("Input at route '{}' is not used", input.route());
                     }
                 }
                 Some(Always(_)) => {
                     // Has a constant initializer and there is another
                     // connections to this input then flag that as an error
-                    if connection_to(tables, &input.route()) {
+                    if connection_to(tables, input.route()) {
                         bail!("Input at route '{}' has a 'constant' initializer and a connection to it",
                                                input.route());
                     }

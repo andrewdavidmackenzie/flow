@@ -11,6 +11,7 @@ use url::Url;
 use flowcore::flow_manifest::{FlowManifest, MetaData, DEFAULT_MANIFEST_FILENAME};
 use flowcore::function::Function as RuntimeFunction;
 use flowcore::input::Input;
+use flowcore::output_connection::Source;
 
 use crate::errors::*;
 use crate::model::connection::Connection;
@@ -28,8 +29,8 @@ use crate::model::route::Route;
 pub struct GenerationTables {
     /// The set of connections between functions in the compiled flow
     pub connections: Vec<Connection>,
-    /// HashMap of routes of outputs of functions and what route they are connected to
-    pub source_routes: HashMap<Route, (Route, usize)>,
+    /// HashMap of sources of values and what route they are connected to
+    pub sources: HashMap<Route, (Source, usize)>,
     /// HashMap from "route of the output of a function" --> (output name, source_function_id)
     pub destination_routes: HashMap<Route, (usize, usize, usize)>,
     /// HashMap from "route of the input of a function" --> (destination_function_id, input number, flow_id)
@@ -47,7 +48,7 @@ impl GenerationTables {
     pub fn new() -> Self {
         GenerationTables {
             connections: Vec::new(),
-            source_routes: HashMap::<Route, (Route, usize)>::new(),
+            sources: HashMap::<Route, (Source, usize)>::new(),
             destination_routes: HashMap::<Route, (usize, usize, usize)>::new(),
             collapsed_connections: Vec::new(),
             functions: Vec::new(),
@@ -153,7 +154,7 @@ fn function_to_runtimefunction(
     };
 
     // make the location of implementation relative to the output directory if it is under it
-    let implementation_location = implementation_location_relative(&function, manifest_url)?;
+    let implementation_location = implementation_location_relative(function, manifest_url)?;
 
     let mut runtime_inputs = vec![];
     for input in function.get_inputs() {
@@ -213,7 +214,8 @@ mod test {
     use url::Url;
 
     use flowcore::input::InputInitializer;
-    use flowcore::output_connection::OutputConnection;
+    use flowcore::output_connection::Source::Output;
+    use flowcore::output_connection::{OutputConnection, Source};
 
     use crate::model::function::Function;
     use crate::model::io::IO;
@@ -239,7 +241,7 @@ mod test {
             Some("flowruntime/stdio/stdout".to_string()),
             vec![
                 OutputConnection::new(
-                    "".to_string(),
+                    Source::default(),
                     1,
                     0,
                     0,
@@ -250,7 +252,7 @@ mod test {
                     String::default(),
                 ),
                 OutputConnection::new(
-                    "sub_route".to_string(),
+                    Output("sub_route".into()),
                     2,
                     0,
                     0,
@@ -276,7 +278,9 @@ mod test {
       'flow_id': 0
     },
     {
-      'subroute': 'sub_route',
+      'source': {
+        'Output': 'sub_route'
+      },
       'function_id': 2,
       'io_number': 0,
       'flow_id': 0
@@ -311,7 +315,7 @@ mod test {
             Route::from("/flow0/stdout"),
             Some("flowruntime/stdio/stdout".to_string()),
             vec![OutputConnection::new(
-                "".to_string(),
+                Source::default(),
                 1,
                 0,
                 0,
@@ -365,7 +369,7 @@ mod test {
             Route::from("/flow0/stdout"),
             Some("flowruntime/stdio/stdout".to_string()),
             vec![OutputConnection::new(
-                "".to_string(),
+                Source::default(),
                 1,
                 0,
                 0,
@@ -552,7 +556,7 @@ mod test {
             Route::from("/flow0/stdout"),
             Some("flowruntime/stdio/stdout".to_string()),
             vec![OutputConnection::new(
-                "".to_string(),
+                Source::default(),
                 1,
                 0,
                 0,
@@ -626,7 +630,7 @@ mod test {
             Route::from("/flow0/stdout"),
             Some("flowruntime/stdio/stdout".to_string()),
             vec![OutputConnection::new(
-                "/0".to_string(),
+                Output("/0".into()),
                 1,
                 0,
                 0,
@@ -646,7 +650,9 @@ mod test {
   'implementation_location': 'lib://flowruntime/stdio/stdout/Stdout',
   'output_connections': [
     {
-      'subroute': '/0',
+      'source': {
+        'Output': '/0'
+      },
       'function_id': 1,
       'io_number': 0,
       'flow_id': 0

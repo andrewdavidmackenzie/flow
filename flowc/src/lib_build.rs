@@ -218,7 +218,7 @@ fn compile_implementations(
                         .chain_err(|| "Could not get parent directory of flow's source_url")?;
 
                     dump_flow::dump_flow(
-                        &flow,
+                        flow,
                         &output_dir.to_path_buf(),
                         provider,
                         options.dump,

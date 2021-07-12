@@ -53,10 +53,10 @@ pub fn write_flow_to_dot(
     let mut contents = String::new();
 
     // Inputs
-    contents.push_str(&add_input_set(&flow.inputs(), flow.route(), false));
+    contents.push_str(&add_input_set(flow.inputs(), flow.route(), false));
 
     // Outputs
-    contents.push_str(&add_output_set(&flow.outputs(), flow.route(), false));
+    contents.push_str(&add_output_set(flow.outputs(), flow.route(), false));
 
     // Process References
     contents.push_str("\n\t// Process References\n");
@@ -99,15 +99,15 @@ pub fn write_flow_to_dot(
     contents.push_str("\n\t// Connections");
     for connection in &flow.connections {
         contents.push_str(&connection_to_dot(
-            &connection,
-            &flow.inputs(),
-            &flow.outputs(),
+            connection,
+            flow.inputs(),
+            flow.outputs(),
         ));
     }
 
     dot_file.write_all(contents.as_bytes())?;
 
-    dot_file.write_all(&digraph_wrapper_end().as_bytes())
+    dot_file.write_all(digraph_wrapper_end().as_bytes())
 }
 
 fn index_from_name<T: Hash>(t: &T, length: usize) -> usize {
@@ -133,8 +133,8 @@ fn connection_to_dot(connection: &Connection, input_set: &IOSet, output_set: &IO
     let (from_node, from_label) =
         node_from_io_route(&from_route, connection.from_io.name(), input_set);
     let (to_node, to_label) = node_from_io_route(
-        &connection.to_io.route(),
-        &connection.to_io.name(),
+        connection.to_io.route(),
+        connection.to_io.name(),
         output_set,
     );
 
@@ -259,8 +259,8 @@ fn function_to_dot(function: &Function, functions: &[Function], _output_dir: &Pa
     for destination in function.get_output_connections() {
         let input_port = INPUT_PORTS[destination.io_number % INPUT_PORTS.len()];
         let destination_function = &functions[destination.function_id];
-        let output_port = output_name_to_port(&destination.subroute);
-        let input_name = destination_function
+        let source_port = output_name_to_port(&destination.source);
+        let destination_name = destination_function
             .get_inputs()
             .get(destination.io_number)
             .unwrap()
@@ -269,11 +269,11 @@ fn function_to_dot(function: &Function, functions: &[Function], _output_dir: &Pa
         function_string.push_str(&format!(
             "r{}:{} -> r{}:{} [taillabel = \"{}\", headlabel = \"{}\"];\n",
             function.get_id(),
-            output_port,
+            source_port,
             destination.function_id,
             input_port,
-            destination.subroute,
-            input_name
+            destination.source,
+            destination_name
         ));
     }
 

@@ -15,20 +15,33 @@ pub fn optimize(tables: &mut GenerationTables) {
 }
 
 fn remove_dead_processes(tables: &mut GenerationTables) -> bool {
-    let mut processes_to_remove = vec!();
-    let mut connections_to_remove = vec!();
+    let mut processes_to_remove = vec![];
+    let mut connections_to_remove = vec![];
 
     for (index, function) in tables.functions.iter().enumerate() {
         if dead_function(&tables.collapsed_connections, function) {
-            debug!("Function #{} '{}' @ '{}' has no connection from it, so it will be removed",
-                   index, function.alias(), function.route());
+            debug!(
+                "Function #{} '{}' @ '{}' has no connection from it, so it will be removed",
+                index,
+                function.alias(),
+                function.route()
+            );
             processes_to_remove.push(index);
 
             let removed_route = function.route();
             // remove connections to and from the process
             for (conn_index, connection) in tables.collapsed_connections.iter().enumerate() {
-                if connection.from_io.route().sub_route_of(removed_route).is_some() ||
-                    connection.to_io.route().sub_route_of(removed_route).is_some() {
+                if connection
+                    .from_io
+                    .route()
+                    .sub_route_of(removed_route)
+                    .is_some()
+                    || connection
+                        .to_io
+                        .route()
+                        .sub_route_of(removed_route)
+                        .is_some()
+                {
                     debug!("Connection for removal {}", connection);
                     connections_to_remove.push(conn_index);
                 }
@@ -41,19 +54,27 @@ fn remove_dead_processes(tables: &mut GenerationTables) -> bool {
     processes_to_remove.reverse();
     for index in processes_to_remove {
         let removed_process = tables.functions.remove(index);
-        debug!("Removed process #{}, with route '{}'", index, removed_process.route());
+        debug!(
+            "Removed process #{}, with route '{}'",
+            index,
+            removed_process.route()
+        );
     }
 
     // Remove the connections marked for removal
     let connection_remove_count = connections_to_remove.len();
     connections_to_remove.reverse(); // start from last index to avoid index changes while working
     for connection_index_to_remove in connections_to_remove {
-        let removed = tables.collapsed_connections.remove(connection_index_to_remove);
+        let removed = tables
+            .collapsed_connections
+            .remove(connection_index_to_remove);
         debug!("Removed connection: {}", removed);
     }
 
-    debug!("Removed {} processes, {} associated connections",
-           process_remove_count, connection_remove_count);
+    debug!(
+        "Removed {} processes, {} associated connections",
+        process_remove_count, connection_remove_count
+    );
 
     (process_remove_count + connection_remove_count) > 0
 }
@@ -67,7 +88,12 @@ fn dead_function(connections: &[Connection], function: &Function) -> bool {
 
 fn connection_from_function(connections: &[Connection], function: &Function) -> bool {
     for connection in connections {
-        if connection.from_io.route().sub_route_of(&function.route()).is_some() {
+        if connection
+            .from_io
+            .route()
+            .sub_route_of(function.route())
+            .is_some()
+        {
             return true;
         }
     }

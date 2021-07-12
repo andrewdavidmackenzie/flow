@@ -88,12 +88,12 @@ fn _dump_flow(
         ))?;
 
     if dump_files {
-        let mut writer = dump_tables::create_output_file(&output_dir, filename, "dump")?;
+        let mut writer = dump_tables::create_output_file(output_dir, filename, "dump")?;
         writer.write_all(format!("\nLevel={}\n{}", level, flow).as_bytes())?;
     }
 
     if dot_files {
-        let mut writer = dump_tables::create_output_file(&output_dir, filename, "dot")?;
+        let mut writer = dump_tables::create_output_file(output_dir, filename, "dot")?;
         info!("\tGenerating {}.dot, Use \"dotty\" to view it", filename);
         dump_dot::write_flow_to_dot(flow, &mut writer, output_dir)?;
     }

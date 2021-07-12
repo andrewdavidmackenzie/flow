@@ -266,7 +266,12 @@ impl Flow {
                         .find_by_route_and_set_initializer(sub_route, initial_value),
                     Direction::FROM => function
                         .get_outputs()
-                        .find_by_route_and_set_initializer(sub_route, &None),
+                        .find_by_route_and_set_initializer(sub_route, &None)
+                        .or_else(|_| {
+                            function
+                                .inputs
+                                .find_by_route_and_set_initializer(sub_route, &None)
+                        }),
                 }
             }
         }
@@ -345,8 +350,7 @@ impl Flow {
                             // TODO here we are only checking compatible data types from the overall FROM IO
                             // not from sub-types in it selected via a sub-route e.g. Array/String --> String
                             // We'd need to make compatible_types more complex and take the from sub-Route
-                            if Connection::compatible_types(&from_io.datatype(), &to_io.datatype())
-                            {
+                            if Connection::compatible_types(from_io.datatype(), to_io.datatype()) {
                                 debug!(
                                     "Connection built from '{}' to '{}' with runtime conversion ''",
                                     from_io.route(),
@@ -373,7 +377,7 @@ impl Flow {
                 }
                 Err(error) => {
                     error!(
-                        "Did not find connection source: '{}' specified in flow '{}'\n\t\t{}",
+                        "Did not find connection source: '{}' specified in flow '{}'\n\t{}",
                         connection.from, self.source_url, error
                     );
                     error_count += 1;

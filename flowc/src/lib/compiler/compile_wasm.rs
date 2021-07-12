@@ -143,7 +143,7 @@ pub fn compile_implementation(
     }
 
     function.set_implementation(
-        &wasm_destination
+        wasm_destination
             .to_str()
             .ok_or("Could not convert path to string")?,
     );
@@ -218,10 +218,10 @@ fn get_paths(function: &Function) -> Result<(PathBuf, PathBuf)> {
     let cwd_url = Url::from_directory_path(cwd)
         .map_err(|_| "Could not form a Url for the current working directory")?;
 
-    let function_source_url = url_from_string(&cwd_url, Some(&function.get_source_url()))
+    let function_source_url = url_from_string(&cwd_url, Some(function.get_source_url()))
         .chain_err(|| "Could not create a url from source url")?;
     let implementation_source_url = function_source_url
-        .join(&function.get_implementation())
+        .join(function.get_implementation())
         .map_err(|_| "Could not convert Url")?;
 
     let implementation_source_path = implementation_source_url
@@ -287,7 +287,7 @@ mod test {
     use std::path::Path;
     use std::time::Duration;
 
-    use flowcore::output_connection::OutputConnection;
+    use flowcore::output_connection::{OutputConnection, Source};
 
     use crate::model::function::Function;
     use crate::model::io::IO;
@@ -345,11 +345,10 @@ mod test {
             panic!("Could not write to file {} during testing", newer.display())
         });
 
-        assert_eq!(
-            out_of_date(&source, &derived)
+        assert!(
+            !out_of_date(&source, &derived)
                 .unwrap_or_else(|_| panic!("Error in 'out__of_date'"))
-                .0,
-            false
+                .0
         );
     }
 
@@ -402,7 +401,7 @@ mod test {
             Route::from("/flow0/stdout"),
             Some("flowruntime/stdio/stdout".to_string()),
             vec![OutputConnection::new(
-                "".to_string(),
+                Source::default(),
                 1,
                 0,
                 0,
