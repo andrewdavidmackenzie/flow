@@ -315,7 +315,7 @@ dependencies = [
 
 [[package]]
 name = "flowc"
-version = "0.34.8"
+version = "0.36.0"
 dependencies = [
  "clap",
  "error-chain 0.12.4",
@@ -337,7 +337,7 @@ dependencies = [
 
 [[package]]
 name = "flowcore"
-version = "0.35.0"
+version = "0.36.0"
 dependencies = [
  "curl",
  "error-chain 0.12.4",
@@ -351,7 +351,7 @@ dependencies = [
 
 [[package]]
 name = "flowr"
-version = "0.34.8"
+version = "0.36.0"
 dependencies = [
  "clap",
  "ctrlc",
@@ -376,7 +376,7 @@ dependencies = [
 
 [[package]]
 name = "flowsamples"
-version = "0.34.10"
+version = "0.36.0"
 dependencies = [
  "glob",
  "serial_test",
@@ -385,7 +385,7 @@ dependencies = [
 
 [[package]]
 name = "flowstdlib"
-version = "0.34.11"
+version = "0.36.0"
 dependencies = [
  "error-chain 0.12.4",
  "flow_impl_derive",

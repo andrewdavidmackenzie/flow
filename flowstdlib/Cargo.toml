@@ -1,6 +1,6 @@
 [package]
 name = "flowstdlib"
-version = "0.34.11"
+version = "0.36.0"
 authors = ["Andrew Mackenzie <andrew@mackenzie-serres.net>"]
 description = "The standard library of functions for 'flow' programs"
 license = "MIT"
@@ -24,7 +24,7 @@ path = "lib.rs"
 
 [dependencies]
 flow_impl_derive = {path = "../flow_impl_derive", version = "0.34.7" }
-flowcore = {path = "../flowcore", version = "0.35.0" }
+flowcore = {path = "../flowcore", version = "0.36.0" }
 simpath = { version = "~2.3", features = ["urls"]}
 url = { version = "2.2", features = ["serde"] }
 serde_json = "1.0"
