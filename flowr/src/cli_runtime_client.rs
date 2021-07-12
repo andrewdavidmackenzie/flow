@@ -103,7 +103,9 @@ impl CliRuntimeClient {
             #[cfg(feature = "metrics")]
             ServerMessage::FlowEnd(metrics) => {
                 debug!("=========================== Flow execution ended ======================================");
-                info!("\nMetrics: \n {}", metrics);
+                if self.display_metrics {
+                    println!("\nMetrics: \n {}", metrics);
+                }
 
                 for (filename, image_buffer) in self.image_buffers.drain() {
                     info!("Flushing ImageBuffer to file: {}", filename);
