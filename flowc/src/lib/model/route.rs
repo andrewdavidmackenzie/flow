@@ -250,7 +250,7 @@ mod test {
         let route = Route::from("");
         let (new_route, _num, trailing_number) = route.without_trailing_array_index();
         assert_eq!(new_route.into_owned(), Route::default());
-        assert_eq!(trailing_number, false);
+        assert!(!trailing_number);
     }
 
     #[test]
@@ -258,7 +258,7 @@ mod test {
         let route = Route::from("/");
         let (new_route, _num, trailing_number) = route.without_trailing_array_index();
         assert_eq!(new_route.into_owned(), Route::from("/"));
-        assert_eq!(trailing_number, false);
+        assert!(!trailing_number);
     }
 
     #[test]
@@ -266,7 +266,7 @@ mod test {
         let route = Route::from("/output1");
         let (new_route, _num, trailing_number) = route.without_trailing_array_index();
         assert_eq!(new_route.into_owned(), Route::from("/output1"));
-        assert_eq!(trailing_number, false);
+        assert!(trailing_number);
     }
 
     #[test]
@@ -275,7 +275,7 @@ mod test {
         let (new_route, num, trailing_number) = route.without_trailing_array_index();
         assert_eq!(new_route.into_owned(), Route::from(""));
         assert_eq!(num, 0);
-        assert_eq!(trailing_number, true);
+        assert!(trailing_number);
     }
 
     #[test]
@@ -284,7 +284,7 @@ mod test {
         let (new_route, num, trailing_number) = route.without_trailing_array_index();
         assert_eq!(new_route.into_owned(), Route::from("/array_output"));
         assert_eq!(num, 0);
-        assert_eq!(trailing_number, true);
+        assert!(trailing_number);
     }
 
     #[test]

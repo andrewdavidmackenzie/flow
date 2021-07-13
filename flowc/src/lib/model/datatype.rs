@@ -7,7 +7,7 @@ use shrinkwraprs::Shrinkwrap;
 
 use crate::errors::*;
 
-const DATATYPES: &[&str] = &["String", "Value", "Number", "Bool", "Map", "Array", "Null"];
+const DATA_TYPES: &[&str] = &["String", "Value", "Number", "Bool", "Map", "Array", "Null"];
 
 /// Datatype is just a string defining what data type is being used
 #[derive(Shrinkwrap, Hash, Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
@@ -38,7 +38,7 @@ impl DataType {
         let type_levels = self.split('/');
 
         for type_level in type_levels {
-            if !DATATYPES.contains(&type_level) {
+            if !DATA_TYPES.contains(&type_level) {
                 bail!("Type '{}' is invalid", &self);
             }
         }
@@ -62,14 +62,8 @@ impl DataType {
     }
 
     /// Get the data type the array holds
-    pub fn within_array(&self) -> Result<Self> {
-        let mut subtype = self.to_string();
-        if !subtype.starts_with("Array/") {
-            bail!("Datatype is not an Array");
-        }
-        // Could do this with a slice of Self, without creating new string
-        subtype.replace_range(0.."Array/".len(), "");
-        Ok(Self::from(subtype.as_str()))
+    pub fn within_array(&self) -> Option<DataType> {
+        self.strip_prefix("Array/").map(DataType::from)
     }
 
     /// Take a json data value and return the type string for it, recursively
@@ -94,7 +88,7 @@ impl DataType {
     /// Take a string description of a DataType and determine how deeply nested in arrays it is
     pub fn array_order(&self) -> Result<i32> {
         if self.is_array() {
-            let array_contents = self.within_array()?;
+            let array_contents = self.within_array().ok_or("DataType is not an Array type")?;
             let sub_order = array_contents.array_order()?;
             Ok(1 + sub_order)
         } else {
@@ -110,13 +104,15 @@ mod test {
     #[test]
     fn valid_data_string_type() {
         let string_type = DataType::from("String");
-        string_type.valid().unwrap();
+        string_type
+            .valid()
+            .expect("'String' DataType should be valid");
     }
 
     #[test]
     fn valid_data_json_type() {
         let json_type = DataType::from("Value");
-        json_type.valid().unwrap();
+        json_type.valid().expect("'Value' DataType should be valid");
     }
 
     #[test]
@@ -134,6 +130,6 @@ mod test {
     #[test]
     fn is_array_false() {
         let string_type = DataType::from("String");
-        assert_eq!(string_type.is_array(), false);
+        assert!(!string_type.is_array());
     }
 }

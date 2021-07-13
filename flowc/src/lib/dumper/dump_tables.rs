@@ -164,7 +164,7 @@ fn dump_table<C: Iterator>(table: C, writer: &mut dyn Write) -> std::io::Result<
 where
     <C as Iterator>::Item: fmt::Display,
 {
-    for function in table.into_iter() {
+    for function in table {
         writer.write_all(format!("{}\n", function).as_bytes())?;
     }
     writer.write_all(b"\n")

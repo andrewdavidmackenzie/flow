@@ -264,7 +264,9 @@ impl Find for IOSet {
                 io.set_initializer(initial_value);
 
                 let mut found = io.clone();
-                found.set_datatype(&io.datatype.within_array()?); // the type within the array
+                found.set_datatype(&io.datatype.within_array().ok_or_else(|| {
+                    std::io::Error::new(std::io::ErrorKind::Other, "DataType is not an Array")
+                })?); // the type within the array
                 let new_route = Route::from(format!("{}/{}", found.route(), index));
                 found.set_route(&new_route, &io.io_type);
                 return Ok(found);
