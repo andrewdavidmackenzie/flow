@@ -110,7 +110,7 @@ impl IO {
     /// Set the input initializer of this IO
     pub fn set_initializer(&mut self, initial_value: &Option<InputInitializer>) {
         // Avoid overwriting a possibly Some() value with a None value
-        if initial_value.is_some() {
+        if initial_value.is_some() && self.initializer.is_none() {
             self.initializer = initial_value.clone();
         }
     }
@@ -215,6 +215,7 @@ pub trait Find {
         name: &Name,
         initial_value: &Option<InputInitializer>,
     ) -> Result<IO>;
+
     /// Find a sub-object (Input) using it's Route and set the input initializer on it
     fn find_by_route_and_set_initializer(
         &mut self,
