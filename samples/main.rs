@@ -96,13 +96,8 @@ fn run_sample(sample_dir: &Path, flowr_path: &str) -> io::Result<()> {
                 })?)
                 .spawn();
 
-            match flowr_child.wait_with_output() {
-                Ok(_) => Ok(()),
-                Err(e) => Err(io::Error::new(
-                    io::ErrorKind::Other,
-                    format!("Error running `flowr`: {}", e),
-                )),
-            }
+            flowr_child.wait_with_output()?;
+            Ok(())
         }
         Err(e) => match e.kind() {
             ErrorKind::NotFound => Err(io::Error::new(

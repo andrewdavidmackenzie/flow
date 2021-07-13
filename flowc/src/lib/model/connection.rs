@@ -214,10 +214,10 @@ mod test {
     fn simple_to_simple_mismatch() {
         let from_io = IO::new("String", "/p1/output");
         let to_io = IO::new("Number", "/p2");
-        assert_eq!(
-            Connection::compatible_types(&from_io.datatype(), &to_io.datatype()),
-            false
-        );
+        assert!(!Connection::compatible_types(
+            &from_io.datatype(),
+            &to_io.datatype()
+        ));
     }
 
     #[test]
@@ -244,10 +244,10 @@ mod test {
     fn simple_to_array_mismatch() {
         let from_io = IO::new("String", "/p1/output");
         let to_io = IO::new("Array/Number", "/p2");
-        assert_eq!(
-            Connection::compatible_types(&from_io.datatype(), &to_io.datatype()),
-            false
-        );
+        assert!(!Connection::compatible_types(
+            &from_io.datatype(),
+            &to_io.datatype()
+        ));
     }
 
     #[test]
