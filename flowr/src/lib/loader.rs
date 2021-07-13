@@ -248,9 +248,8 @@ impl Loader {
         debug!("Resolving implementations");
         // find in a library, or load the supplied implementation - as specified by the source
         for function in flow_manifest.get_functions() {
-            let parts: Vec<_> = function.implementation_location().split(':').collect();
-            match parts[0] {
-                "lib" => {
+            match function.implementation_location().split_once(':') {
+                Some(("lib", _)) => {
                     let implementation_url = Url::parse(function.implementation_location())
                         .chain_err(|| {
                             "Could not create a Url from a lib: implementation location"
