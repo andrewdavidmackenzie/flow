@@ -50,12 +50,10 @@ impl Route {
     ///     (e.g. ("/my-route1/something", "/my-route1")
     pub fn sub_route_of(&self, other: &Route) -> Option<Route> {
         if self == other {
-            Some(Route::from(""))
-        } else if self.as_str().starts_with(&format!("{}/", other.as_str())) {
-            Some(Route::from(&self.as_str()[other.len()..]))
-        } else {
-            None
+            return Some(Route::from(""));
         }
+
+        self.strip_prefix(&format!("{}/", other)).map(Route::from)
     }
 
     /// Insert another Route at the front of this Route
@@ -265,8 +263,8 @@ mod test {
     fn no_trailing_number_no_change() {
         let route = Route::from("/output1");
         let (new_route, _num, trailing_number) = route.without_trailing_array_index();
-        assert_eq!(new_route.into_owned(), Route::from("/output1"));
-        assert!(trailing_number);
+        assert_eq!(new_route.into_owned(), route);
+        assert!(!trailing_number);
     }
 
     #[test]
