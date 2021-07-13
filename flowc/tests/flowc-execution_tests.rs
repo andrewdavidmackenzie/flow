@@ -264,6 +264,7 @@ fn array_input() {
     execute_test("array-input", search_path, false);
 }
 
+#[cfg(feature = "distributed")]
 #[test]
 #[serial]
 fn hello_world_client_server() {
