@@ -10,8 +10,6 @@ const TOML: &dyn Deserializer = &FlowTomlLoader as &dyn Deserializer;
 const YAML: &dyn Deserializer = &FlowYamlLoader as &dyn Deserializer;
 const JSON: &dyn Deserializer = &FlowJsonLoader as &dyn Deserializer;
 
-const ACCEPTED_EXTENSIONS: [&str; 4] = ["toml", "yaml", "json", "yml"];
-
 /// Return a Deserializer based on the file extension of the file referred to from `url` input
 pub fn get_deserializer(url: &Url) -> Result<&'static dyn Deserializer, String> {
     match get_file_extension(url) {
@@ -27,42 +25,17 @@ pub fn get_deserializer(url: &Url) -> Result<&'static dyn Deserializer, String> 
     }
 }
 
-/// Return an array of the file extensions we have deserializers able to deserialize
-pub fn get_accepted_extensions() -> &'static [&'static str] {
-    &ACCEPTED_EXTENSIONS
-}
-
 /// Get the file extension of the resource referred to by `url`
-pub fn get_file_extension(url: &Url) -> Option<&str> {
-    let last_segment = url.path_segments()?.last()?;
-    // Split returns one element if there is no occurrence of pattern in the string,
-    // in which case we want to return None
-    // if there are 2 or more elements returned by split, then at least 1 "." occurred and possible
-    // more. So return the string after the last "." as the extension
-    let splits: Vec<&str> = last_segment.split('.').collect();
-    if splits.len() > 1 {
-        return splits.into_iter().last();
-    }
-    None
+fn get_file_extension(url: &Url) -> Option<&str> {
+    url.path_segments()?.last()?.rsplit_once('.').map(|t| t.1)
 }
 
 #[cfg(test)]
 mod test {
     use url::Url;
 
-    use super::get_accepted_extensions;
     use super::get_deserializer;
     use super::get_file_extension;
-
-    #[test]
-    fn get_accepted_extension_test() {
-        let accepted = get_accepted_extensions();
-
-        assert!(accepted.contains(&"toml"));
-        assert!(accepted.contains(&"json"));
-        assert!(accepted.contains(&"yaml"));
-        assert!(accepted.contains(&"yml"));
-    }
 
     #[test]
     fn no_extension() {
@@ -76,13 +49,20 @@ mod test {
 
     #[test]
     fn valid_file_extension() {
-        get_file_extension(&Url::parse("file::///OK.toml").expect("Could not create Url")).unwrap();
+        assert_eq!(
+            get_file_extension(&Url::parse("file::///filename.toml").expect("Could not parse Url")),
+            Some("toml")
+        );
     }
 
     #[test]
     fn valid_http_extension() {
-        get_file_extension(&Url::parse("http://test.com/OK.toml").expect("Could not create Url"))
-            .unwrap();
+        assert_eq!(
+            get_file_extension(
+                &Url::parse("http://test.com/filename.toml").expect("Could not create Url")
+            ),
+            Some("toml")
+        );
     }
 
     #[test]
@@ -96,13 +76,41 @@ mod test {
 
     #[test]
     fn toml_extension_loader() {
-        get_deserializer(&Url::parse("file:///extension.toml").expect("Could not create Url"))
-            .unwrap();
+        assert_eq!(
+            get_deserializer(&Url::parse("file:///filename.toml").expect("Could not create Url"))
+                .expect("Could not get a deserializer")
+                .name(),
+            "Toml"
+        );
     }
 
     #[test]
     fn yaml_extension_loader() {
-        get_deserializer(&Url::parse("file:///extension.yaml").expect("Could not create Url"))
-            .unwrap();
+        assert_eq!(
+            get_deserializer(&Url::parse("file:///filename.yaml").expect("Could not create Url"))
+                .expect("Could not get a deserializer")
+                .name(),
+            "Yaml"
+        );
+    }
+
+    #[test]
+    fn yml_extension_loader() {
+        assert_eq!(
+            get_deserializer(&Url::parse("file:///filename.yml").expect("Could not create Url"))
+                .expect("Could not get a deserializer")
+                .name(),
+            "Yaml"
+        );
+    }
+
+    #[test]
+    fn json_extension_loader() {
+        assert_eq!(
+            get_deserializer(&Url::parse("file:///filename.json").expect("Could not create Url"))
+                .expect("Could not get a deserializer")
+                .name(),
+            "Json"
+        );
     }
 }
