@@ -142,9 +142,9 @@ fn run() -> Result<()> {
         );
 
         #[cfg(feature = "debugger")]
-        if debugger {
-            CliDebugClient::new(debug_connection).start();
-        }
+        //        if debugger {
+        CliDebugClient::new(debug_connection).start();
+        //        }
 
         let runtime_client = CliRuntimeClient::new(
             flow_args,

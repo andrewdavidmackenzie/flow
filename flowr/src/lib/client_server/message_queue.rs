@@ -14,6 +14,11 @@ pub struct ClientConnection {
     requester: Option<Socket>,
 }
 
+// TODO change the type returned by start to be StartedCOnnection or similar to enforce protocol
+// TODO and put send/receive/clsoe methods on that - and avoid the Option on requestor/responder
+
+// TODO use combinators instead of if then else for returning errors.
+
 impl ClientConnection {
     /// Create a new connection between client and server
     pub fn new(server_connection: &ServerConnection) -> Self {

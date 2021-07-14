@@ -63,6 +63,7 @@ impl CliDebugClient {
        Main debug client loop where events are received, processed and responses sent
     */
     fn debug_client_loop(&mut self) {
+        // loop while? and avoid break?
         loop {
             match self.connection.client_recv::<DebugServerMessage>() {
                 Ok(debug_server_message) => {
