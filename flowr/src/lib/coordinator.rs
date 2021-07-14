@@ -127,8 +127,8 @@ pub struct Coordinator {
 impl Coordinator {
     /// Create a new `coordinator` with `num_threads` executor threads
     fn new(
-        runtime_server_context: ServerConnection,
-        #[cfg(feature = "debugger")] debug_server_context: ServerConnection,
+        runtime_server_connection: ServerConnection,
+        #[cfg(feature = "debugger")] debug_server_connection: ServerConnection,
         num_threads: usize,
     ) -> Self {
         let (job_tx, job_rx) = mpsc::channel();
@@ -143,9 +143,9 @@ impl Coordinator {
         Coordinator {
             job_tx,
             job_rx: output_rx,
-            runtime_server_context: Arc::new(Mutex::new(runtime_server_context)),
+            runtime_server_context: Arc::new(Mutex::new(runtime_server_connection)),
             #[cfg(feature = "debugger")]
-            debugger: Debugger::new(debug_server_context),
+            debugger: Debugger::new(debug_server_connection),
         }
     }
 
@@ -158,16 +158,19 @@ impl Coordinator {
         mode: Mode,
         server_hostname: Option<&str>,
     ) -> Result<(ClientConnection, ClientConnection, ClientConnection)> {
-        let runtime_server_context = ServerConnection::new(server_hostname, 5555);
-        let debug_server_context = ServerConnection::new(server_hostname, 5556);
+        let runtime_server_connection = ServerConnection::new(server_hostname, 5555);
+        let debug_server_connection = ServerConnection::new(server_hostname, 5556);
 
-        let runtime_client_connection = ClientConnection::new(&runtime_server_context);
-        let control_c_connection = ClientConnection::new(&runtime_server_context);
-        let debug_client_connection = ClientConnection::new(&debug_server_context);
+        let runtime_client_connection = ClientConnection::new(&runtime_server_connection);
+        let control_c_connection = ClientConnection::new(&runtime_server_connection);
+        let debug_client_connection = ClientConnection::new(&debug_server_connection);
 
         if mode != Mode::ClientOnly {
-            let mut coordinator =
-                Coordinator::new(runtime_server_context, debug_server_context, num_threads);
+            let mut coordinator = Coordinator::new(
+                runtime_server_connection,
+                debug_server_connection,
+                num_threads,
+            );
 
             if mode == Mode::ServerOnly {
                 info!("Starting 'flowr' server process");
