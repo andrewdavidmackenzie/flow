@@ -1,5 +1,7 @@
 use serde_derive::{Deserialize, Serialize};
 use serde_json::Value;
+#[cfg(feature = "distributed")]
+use zmq::Message;
 
 use flowcore::function::Function;
 use flowcore::input::Input;
@@ -110,4 +112,50 @@ pub enum DebugServerMessage {
     WaitingForCommand(usize),
     /// Invalid - used when deserialization goes wrong
     Invalid,
+}
+
+#[cfg(feature = "distributed")]
+impl From<DebugServerMessage> for Message {
+    fn from(debug_event: DebugServerMessage) -> Self {
+        match serde_json::to_string(&debug_event) {
+            Ok(message_string) => Message::from(&message_string),
+            _ => Message::new(),
+        }
+    }
+}
+
+#[cfg(feature = "distributed")]
+impl From<Message> for DebugServerMessage {
+    fn from(msg: Message) -> Self {
+        match msg.as_str() {
+            Some(message_string) => match serde_json::from_str(message_string) {
+                Ok(message) => message,
+                _ => DebugServerMessage::Invalid,
+            },
+            _ => DebugServerMessage::Invalid,
+        }
+    }
+}
+
+#[cfg(feature = "distributed")]
+impl From<DebugClientMessage> for Message {
+    fn from(msg: DebugClientMessage) -> Self {
+        match serde_json::to_string(&msg) {
+            Ok(message_string) => Message::from(&message_string),
+            _ => Message::new(),
+        }
+    }
+}
+
+#[cfg(feature = "distributed")]
+impl From<Message> for DebugClientMessage {
+    fn from(msg: Message) -> Self {
+        match msg.as_str() {
+            Some(message_string) => match serde_json::from_str(message_string) {
+                Ok(message) => message,
+                _ => DebugClientMessage::Invalid,
+            },
+            _ => DebugClientMessage::Invalid,
+        }
+    }
 }

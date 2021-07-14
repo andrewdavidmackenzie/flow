@@ -7,7 +7,7 @@ use std::path::Path;
 use image::{ImageBuffer, ImageFormat, Rgb, RgbImage};
 use log::{debug, error, info, trace};
 
-use flowrlib::client_server::RuntimeClientConnection;
+use flowrlib::client_server::ClientConnection;
 use flowrlib::coordinator::Submission;
 use flowrlib::errors::*;
 use flowrlib::runtime_messages::ClientMessage::ClientSubmission;
@@ -35,8 +35,8 @@ impl CliRuntimeClient {
     /// Enter a loop where we receive events as a client and respond to them
     pub fn event_loop(
         mut self,
-        mut connection: RuntimeClientConnection,
-        #[cfg(feature = "debugger")] control_c_connection: RuntimeClientConnection,
+        mut connection: ClientConnection,
+        #[cfg(feature = "debugger")] control_c_connection: ClientConnection,
         submission: Submission,
         debugger: bool,
     ) -> Result<()> {
@@ -77,7 +77,7 @@ impl CliRuntimeClient {
     }
 
     #[cfg(feature = "debugger")]
-    fn enter_debugger_on_control_c(mut control_c_connection: RuntimeClientConnection) {
+    fn enter_debugger_on_control_c(mut control_c_connection: ClientConnection) {
         ctrlc::set_handler(move || {
             info!("Control-C captured in client.");
             match control_c_connection.start() {

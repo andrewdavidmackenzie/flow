@@ -99,9 +99,9 @@ fn run() -> Result<()> {
     let lib_search_path = set_lib_search_path(&lib_dirs)?;
 
     let (mode, server_hostname) = if matches.is_present("client") {
-        (Mode::Client, matches.value_of("client"))
+        (Mode::ClientOnly, matches.value_of("client"))
     } else if matches.is_present("server") {
-        (Mode::Server, None)
+        (Mode::ServerOnly, None)
     } else {
         (Mode::ClientAndServer, None) // the default if nothing specified
     };
@@ -131,7 +131,7 @@ fn run() -> Result<()> {
         server_hostname,
     )?;
 
-    if mode != Mode::Server {
+    if mode != Mode::ServerOnly {
         let flow_manifest_url = parse_flow_url(&matches)?;
         let flow_args = get_flow_args(&matches, &flow_manifest_url);
         let submission = Submission::new(
@@ -142,9 +142,9 @@ fn run() -> Result<()> {
         );
 
         #[cfg(feature = "debugger")]
-        let debug_client = CliDebugClient::new(debug_connection);
-        #[cfg(feature = "debugger")]
-        debug_client.start();
+        if debugger {
+            CliDebugClient::new(debug_connection).start();
+        }
 
         let runtime_client = CliRuntimeClient::new(
             flow_args,

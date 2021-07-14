@@ -8,7 +8,7 @@ use url::Url;
 use flowcore::flow_manifest::MetaData;
 use flowcore::lib_manifest::{ImplementationLocator::Native, LibraryManifest};
 
-use crate::client_server::RuntimeServerConnection;
+use crate::client_server::ServerConnection;
 use crate::errors::*;
 
 /// `args` is a module to interact with a programs arguments
@@ -21,9 +21,7 @@ pub mod image;
 pub mod stdio;
 
 /// Return a `LibraryManifest` for the run-time functions
-pub fn get_manifest(
-    server_context: Arc<Mutex<RuntimeServerConnection>>,
-) -> Result<LibraryManifest> {
+pub fn get_manifest(server_context: Arc<Mutex<ServerConnection>>) -> Result<LibraryManifest> {
     let metadata = MetaData {
         name: "flowruntime".into(),
         version: "0.1.0".into(),

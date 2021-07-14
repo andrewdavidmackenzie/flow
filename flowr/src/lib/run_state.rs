@@ -1439,8 +1439,7 @@ mod test {
         use flowcore::output_connection::Source::Output;
         use flowcore::output_connection::{OutputConnection, Source};
 
-        #[cfg(feature = "debugger")]
-        use crate::client_server::DebugServerConnection;
+        use crate::client_server::ServerConnection;
         use crate::coordinator::Submission;
         #[cfg(feature = "debugger")]
         use crate::debugger::Debugger;
@@ -1682,7 +1681,7 @@ mod test {
             #[cfg(feature = "metrics")]
             let mut metrics = Metrics::new(2);
             #[cfg(feature = "debugger")]
-            let debug_server_context = DebugServerConnection::new(None);
+            let debug_server_context = ServerConnection::new(None, 5556);
             #[cfg(feature = "debugger")]
             let mut debugger = Debugger::new(debug_server_context);
 
@@ -1733,7 +1732,7 @@ mod test {
             #[cfg(feature = "metrics")]
             let mut metrics = Metrics::new(2);
             #[cfg(feature = "debugger")]
-            let debug_server_context = DebugServerConnection::new(None);
+            let debug_server_context = ServerConnection::new(None, 5556);
             #[cfg(feature = "debugger")]
             let mut debugger = Debugger::new(debug_server_context);
 
@@ -1798,7 +1797,7 @@ mod test {
             #[cfg(feature = "metrics")]
             let mut metrics = Metrics::new(2);
             #[cfg(feature = "debugger")]
-            let debug_server_context = DebugServerConnection::new(None);
+            let debug_server_context = ServerConnection::new(None, 5556);
             #[cfg(feature = "debugger")]
             let mut debugger = Debugger::new(debug_server_context);
 
@@ -1854,7 +1853,7 @@ mod test {
             #[cfg(feature = "metrics")]
             let mut metrics = Metrics::new(1);
             #[cfg(feature = "debugger")]
-            let debug_server_context = DebugServerConnection::new(None);
+            let debug_server_context = ServerConnection::new(None, 5556);
             #[cfg(feature = "debugger")]
             let mut debugger = Debugger::new(debug_server_context);
             state.init();
@@ -1898,7 +1897,7 @@ mod test {
             #[cfg(feature = "metrics")]
             let mut metrics = Metrics::new(1);
             #[cfg(feature = "debugger")]
-            let debug_server_context = DebugServerConnection::new(None);
+            let debug_server_context = ServerConnection::new(None, 5556);
             #[cfg(feature = "debugger")]
             let mut debugger = Debugger::new(debug_server_context);
             state.init();
@@ -1965,7 +1964,7 @@ mod test {
             #[cfg(feature = "metrics")]
             let mut metrics = Metrics::new(1);
             #[cfg(feature = "debugger")]
-            let debug_server_context = DebugServerConnection::new(None);
+            let debug_server_context = ServerConnection::new(None, 5556);
             #[cfg(feature = "debugger")]
             let mut debugger = Debugger::new(debug_server_context);
 
@@ -2033,7 +2032,7 @@ mod test {
             #[cfg(feature = "metrics")]
             let mut metrics = Metrics::new(1);
             #[cfg(feature = "debugger")]
-            let debug_server_context = DebugServerConnection::new(None);
+            let debug_server_context = ServerConnection::new(None, 5556);
             #[cfg(feature = "debugger")]
             let mut debugger = Debugger::new(debug_server_context);
 
@@ -2095,7 +2094,7 @@ mod test {
             #[cfg(feature = "metrics")]
             let mut metrics = Metrics::new(1);
             #[cfg(feature = "debugger")]
-            let debug_server_context = DebugServerConnection::new(None);
+            let debug_server_context = ServerConnection::new(None, 5556);
             #[cfg(feature = "debugger")]
             let mut debugger = Debugger::new(debug_server_context);
 
@@ -2185,7 +2184,7 @@ mod test {
             #[cfg(feature = "metrics")]
             let mut metrics = Metrics::new(2);
             #[cfg(feature = "debugger")]
-            let debug_server_context = DebugServerConnection::new(None);
+            let debug_server_context = ServerConnection::new(None, 5556);
             #[cfg(feature = "debugger")]
             let mut debugger = Debugger::new(debug_server_context);
 
@@ -2269,7 +2268,7 @@ mod test {
         use flowcore::output_connection::{OutputConnection, Source};
 
         #[cfg(feature = "debugger")]
-        use crate::client_server::DebugServerConnection;
+        use crate::client_server::ServerConnection;
         use crate::coordinator::Submission;
         #[cfg(feature = "debugger")]
         use crate::debugger::Debugger;
@@ -2352,7 +2351,7 @@ mod test {
             );
             let mut state = RunState::new(&test_functions(), submission);
             #[cfg(feature = "debugger")]
-            let debug_server_context = DebugServerConnection::new(None);
+            let debug_server_context = ServerConnection::new(None, 5556);
             #[cfg(feature = "debugger")]
             let mut debugger = Debugger::new(debug_server_context);
 
@@ -2443,7 +2442,7 @@ mod test {
             );
             let mut state = RunState::new(&test_functions(), submission);
             #[cfg(feature = "debugger")]
-            let debug_server_context = DebugServerConnection::new(None);
+            let debug_server_context = ServerConnection::new(None, 5556);
             #[cfg(feature = "debugger")]
             let mut debugger = Debugger::new(debug_server_context);
 
@@ -2474,7 +2473,7 @@ mod test {
             );
             let mut state = RunState::new(&test_functions(), submission);
             #[cfg(feature = "debugger")]
-            let debug_server_context = DebugServerConnection::new(None);
+            let debug_server_context = ServerConnection::new(None, 5556);
             #[cfg(feature = "debugger")]
             let mut debugger = Debugger::new(debug_server_context);
 
@@ -2513,7 +2512,7 @@ mod test {
             );
             let mut state = RunState::new(&test_functions(), submission);
             #[cfg(feature = "debugger")]
-            let debug_server_context = DebugServerConnection::new(None);
+            let debug_server_context = ServerConnection::new(None, 5556);
             #[cfg(feature = "debugger")]
             let mut debugger = Debugger::new(debug_server_context);
 
@@ -2590,7 +2589,7 @@ mod test {
             #[cfg(feature = "metrics")]
             let mut metrics = Metrics::new(1);
             #[cfg(feature = "debugger")]
-            let debug_server_context = DebugServerConnection::new(None);
+            let debug_server_context = ServerConnection::new(None, 5556);
             #[cfg(feature = "debugger")]
             let mut debugger = Debugger::new(debug_server_context);
             state.init();

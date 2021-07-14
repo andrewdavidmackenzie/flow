@@ -4,13 +4,13 @@ use serde_json::Value;
 
 use flowcore::{Implementation, RunAgain, RUN_AGAIN};
 
-use crate::client_server::RuntimeServerConnection;
+use crate::client_server::ServerConnection;
 use crate::runtime_messages::{ClientMessage, ServerMessage};
 
 /// `Implementation` struct for the `file_write` function
 pub struct FileWrite {
     /// It holds a reference to the runtime client in order to get file contents
-    pub server_context: Arc<Mutex<RuntimeServerConnection>>,
+    pub server_context: Arc<Mutex<ServerConnection>>,
 }
 
 impl Implementation for FileWrite {

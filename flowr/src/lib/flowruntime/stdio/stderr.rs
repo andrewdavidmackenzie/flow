@@ -4,13 +4,14 @@ use serde_json::Value;
 
 use flowcore::{Implementation, RunAgain, RUN_AGAIN};
 
-use crate::client_server::RuntimeServerConnection;
-use crate::runtime_messages::ServerMessage;
+use crate::client_server::ServerConnection;
+use crate::errors::*;
+use crate::runtime_messages::{ClientMessage, ServerMessage};
 
 /// `Implementation` struct for the `Stderr` function
 pub struct Stderr {
     /// It holds a reference to the runtime client in order to write output
-    pub server_context: Arc<Mutex<RuntimeServerConnection>>,
+    pub server_context: Arc<Mutex<ServerConnection>>,
 }
 
 impl Implementation for Stderr {
@@ -18,7 +19,7 @@ impl Implementation for Stderr {
         let input = &inputs[0];
 
         if let Ok(mut server) = self.server_context.lock() {
-            let _ = match input {
+            let _: Result<ClientMessage> = match input {
                 Value::Null => server.send_message(ServerMessage::StderrEof),
                 Value::String(string) => {
                     server.send_message(ServerMessage::Stderr(string.to_string()))

@@ -19,7 +19,7 @@ pub struct RuntimeClientConnection {
 
 impl RuntimeClientConnection {
     /// Create a new connection between client and server
-    pub fn new(runtime_server_context: &RuntimeServerConnection) -> Self {
+    pub fn new(runtime_server_context: &ServerConnection) -> Self {
         RuntimeClientConnection {
             channels: runtime_server_context.get_client_channels(),
         }
@@ -101,11 +101,11 @@ impl DebugClientConnection {
     }
 }
 
-/// `RuntimeServerConnection` store information about the server side of the client/server
+/// `ServerConnection` store information about the server side of the client/server
 /// communications between a runtime client and a runtime server and is used each time a message
 /// needs to be sent or received.
 #[derive(Debug)]
-pub struct RuntimeServerConnection {
+pub struct ServerConnection {
     /// A channel to sent events to a client on
     client_event_channel_tx: Sender<ServerMessage>,
     /// The other end of the channel a client can receive events of
@@ -116,13 +116,13 @@ pub struct RuntimeServerConnection {
     client_response_channel_rx: Receiver<ClientMessage>,
 }
 
-impl RuntimeServerConnection {
+impl ServerConnection {
     /// Create a new Server side of theRuntime client/server Connection
     pub fn new(_server_hostname: Option<&str>) -> Self {
         let (client_event_channel_tx, client_event_channel_rx) = mpsc::channel();
         let (client_response_channel_tx, client_response_channel_rx) = mpsc::channel();
 
-        RuntimeServerConnection {
+        ServerConnection {
             client_event_channel_tx,
             client_event_channel_rx: Arc::new(Mutex::new(client_event_channel_rx)),
             client_response_channel_tx,

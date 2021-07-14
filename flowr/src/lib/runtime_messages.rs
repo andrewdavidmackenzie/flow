@@ -1,4 +1,6 @@
 use serde_derive::{Deserialize, Serialize};
+#[cfg(feature = "distributed")]
+use zmq::Message;
 
 use crate::coordinator::Submission;
 #[cfg(feature = "metrics")]
@@ -72,3 +74,49 @@ pub enum ClientMessage {
 unsafe impl Send for ClientMessage {}
 
 unsafe impl Sync for ClientMessage {}
+
+#[cfg(feature = "distributed")]
+impl From<ServerMessage> for Message {
+    fn from(event: ServerMessage) -> Self {
+        match serde_json::to_string(&event) {
+            Ok(message_string) => Message::from(&message_string),
+            _ => Message::new(),
+        }
+    }
+}
+
+#[cfg(feature = "distributed")]
+impl From<Message> for ServerMessage {
+    fn from(msg: Message) -> Self {
+        match msg.as_str() {
+            Some(message_string) => match serde_json::from_str(message_string) {
+                Ok(message) => message,
+                _ => ServerMessage::Invalid,
+            },
+            _ => ServerMessage::Invalid,
+        }
+    }
+}
+
+#[cfg(feature = "distributed")]
+impl From<ClientMessage> for Message {
+    fn from(msg: ClientMessage) -> Self {
+        match serde_json::to_string(&msg) {
+            Ok(message_string) => Message::from(&message_string),
+            _ => Message::new(),
+        }
+    }
+}
+
+#[cfg(feature = "distributed")]
+impl From<Message> for ClientMessage {
+    fn from(msg: Message) -> Self {
+        match msg.as_str() {
+            Some(message_string) => match serde_json::from_str(message_string) {
+                Ok(message) => message,
+                _ => ClientMessage::Invalid,
+            },
+            _ => ClientMessage::Invalid,
+        }
+    }
+}

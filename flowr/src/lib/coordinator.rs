@@ -12,8 +12,7 @@ use flowcore::flow_manifest::FlowManifest;
 use flowcore::lib_provider::{LibProvider, MetaProvider};
 
 #[cfg(feature = "debugger")]
-use crate::client_server::{DebugClientConnection, DebugServerConnection};
-use crate::client_server::{RuntimeClientConnection, RuntimeServerConnection};
+use crate::client_server::{ClientConnection, ServerConnection};
 #[cfg(feature = "debugger")]
 use crate::debugger::Debugger;
 use crate::errors::*;
@@ -32,9 +31,9 @@ use crate::runtime_messages::{ClientMessage, ServerMessage};
 #[derive(PartialEq, Clone, Debug)]
 pub enum Mode {
     /// `flowr` mode where it runs as just a client for a server running in another process
-    Client,
+    ClientOnly,
     /// `flowr` mode where it runs as just a server, clients must run in another process
-    Server,
+    ServerOnly,
     /// `flowr` mode where a single process runs as a client and s server in different threads
     ClientAndServer,
 }
@@ -88,7 +87,7 @@ pub struct Coordinator {
     /// A channel used to receive Jobs back after execution (now including the job's output)
     job_rx: Receiver<Job>,
     /// Get and Send messages to/from the runtime client
-    runtime_server_context: Arc<Mutex<RuntimeServerConnection>>,
+    runtime_server_context: Arc<Mutex<ServerConnection>>,
     #[cfg(feature = "debugger")]
     debugger: Debugger,
 }
@@ -106,8 +105,6 @@ pub struct Coordinator {
 /// use flowrlib::coordinator::{Coordinator, Submission, Mode};
 /// use std::process::exit;
 /// use flowcore::flow_manifest::{FlowManifest, MetaData};
-/// use flowrlib::runtime_messages::ClientMessage as RuntimeResponse;
-/// use flowrlib::runtime_messages::ServerMessage as RuntimeEvent;
 /// use flowrlib::runtime_messages::ClientMessage::ClientSubmission;
 /// use simpath::Simpath;
 /// use url::Url;
@@ -130,8 +127,8 @@ pub struct Coordinator {
 impl Coordinator {
     /// Create a new `coordinator` with `num_threads` executor threads
     fn new(
-        runtime_server_context: RuntimeServerConnection,
-        #[cfg(feature = "debugger")] debug_server_context: DebugServerConnection,
+        runtime_server_context: ServerConnection,
+        #[cfg(feature = "debugger")] debug_server_context: ServerConnection,
         num_threads: usize,
     ) -> Self {
         let (job_tx, job_rx) = mpsc::channel();
@@ -160,23 +157,19 @@ impl Coordinator {
         native: bool,
         mode: Mode,
         server_hostname: Option<&str>,
-    ) -> Result<(
-        RuntimeClientConnection,
-        RuntimeClientConnection,
-        DebugClientConnection,
-    )> {
-        let runtime_server_context = RuntimeServerConnection::new(server_hostname);
-        let debug_server_context = DebugServerConnection::new(server_hostname);
+    ) -> Result<(ClientConnection, ClientConnection, ClientConnection)> {
+        let runtime_server_context = ServerConnection::new(server_hostname, 5555);
+        let debug_server_context = ServerConnection::new(server_hostname, 5556);
 
-        let runtime_client_connection = RuntimeClientConnection::new(&runtime_server_context);
-        let control_c_connection = RuntimeClientConnection::new(&runtime_server_context);
-        let debug_client_connection = DebugClientConnection::new(&debug_server_context);
+        let runtime_client_connection = ClientConnection::new(&runtime_server_context);
+        let control_c_connection = ClientConnection::new(&runtime_server_context);
+        let debug_client_connection = ClientConnection::new(&debug_server_context);
 
-        if mode != Mode::Client {
+        if mode != Mode::ClientOnly {
             let mut coordinator =
                 Coordinator::new(runtime_server_context, debug_server_context, num_threads);
 
-            if mode == Mode::Server {
+            if mode == Mode::ServerOnly {
                 info!("Starting 'flowr' server process");
                 coordinator.submission_loop(lib_search_path, native, mode)?;
                 info!("'flowr' server process has exited");
@@ -203,14 +196,14 @@ impl Coordinator {
         native: bool,
         mode: Mode,
         server_hostname: Option<&str>,
-    ) -> Result<RuntimeClientConnection> {
-        let runtime_server_context = RuntimeServerConnection::new(server_hostname);
-        let runtime_client_connection = RuntimeClientConnection::new(&runtime_server_context);
+    ) -> Result<ClientConnection> {
+        let runtime_server_context = ServerConnection::new(server_hostname);
+        let runtime_client_connection = ClientConnection::new(&runtime_server_context);
 
-        if mode != Mode::Client {
+        if mode != Mode::ClientOnly {
             let mut coordinator = Coordinator::new(runtime_server_context, num_threads);
 
-            if mode == Mode::Server {
+            if mode == Mode::ServerOnly {
                 info!("Starting 'flowr' server on main thread");
                 coordinator.submission_loop(lib_search_path, native, server_only)?;
             } else {
@@ -255,7 +248,7 @@ impl Coordinator {
                         break;
                     }
                 }
-                Err(e) if mode == Mode::Server => {
+                Err(e) if mode == Mode::ServerOnly => {
                     error!(
                         "Error in server process submission loop, waiting for new submissions. {}",
                         e
@@ -338,7 +331,7 @@ impl Coordinator {
             self.runtime_server_context
                 .lock()
                 .map_err(|_| "Could not lock server context")?
-                .send_message(ServerMessage::FlowStart)?;
+                .send_message::<ServerMessage, ClientMessage>(ServerMessage::FlowStart)?;
 
             #[cfg(feature = "debugger")]
             let mut display_next_output;
@@ -501,7 +494,7 @@ impl Coordinator {
         manifest_url: &Url,
         loader: &mut Loader,
         provider: &dyn LibProvider,
-        server_context: Arc<Mutex<RuntimeServerConnection>>,
+        server_context: Arc<Mutex<ServerConnection>>,
         native: bool,
     ) -> Result<FlowManifest> {
         let flowruntimelib_url =
