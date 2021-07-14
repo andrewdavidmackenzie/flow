@@ -14,8 +14,8 @@ pub struct ClientConnection {
     requester: Option<Socket>,
 }
 
-// TODO change the type returned by start to be StartedCOnnection or similar to enforce protocol
-// TODO and put send/receive/clsoe methods on that - and avoid the Option on requestor/responder
+// TODO change the type returned by start to be StartedConnection or similar to enforce protocol
+// TODO and put send/receive/close methods on that - and avoid the Option on requester/responder
 
 // TODO use combinators instead of if then else for returning errors.
 
@@ -45,10 +45,7 @@ impl ClientConnection {
                 .chain_err(|| "Could not connect to server")?;
         }
 
-        info!(
-            "Runtime client connected to Server on {}:{}",
-            self.host, self.port
-        );
+        info!("client connected to Server on {}:{}", self.host, self.port);
 
         Ok(())
     }
