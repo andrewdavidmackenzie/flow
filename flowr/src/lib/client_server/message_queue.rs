@@ -1,3 +1,5 @@
+use std::marker::PhantomData;
+
 /// This is the message-queue implementation of the lib.client_server communications
 use log::info;
 use zmq::Socket;
@@ -7,11 +9,13 @@ use crate::errors::*;
 
 /// `ClientConnection` stores information related to the connection from a runtime client
 /// to the runtime server and is used each time a message is to be sent or received.
-pub struct ClientConnection {
+pub struct ClientConnection<'a, SM, CM> {
     context: zmq::Context,
     host: String,
     port: usize,
     requester: Option<Socket>,
+    phantom: PhantomData<&'a SM>,
+    phantom2: PhantomData<&'a CM>,
 }
 
 // TODO change the type returned by start to be StartedConnection or similar to enforce protocol
@@ -19,14 +23,20 @@ pub struct ClientConnection {
 
 // TODO use combinators instead of if then else for returning errors.
 
-impl ClientConnection {
+impl<'a, SM, CM> ClientConnection<'a, SM, CM>
+where
+    SM: From<Message>,
+    CM: Into<Message>,
+{
     /// Create a new connection between client and server
-    pub fn new(server_connection: &ServerConnection) -> Self {
+    pub fn new(server_connection: &ServerConnection<SM, CM>) -> Self {
         ClientConnection {
             context: zmq::Context::new(),
             host: server_connection.host.clone(),
             port: server_connection.port,
             requester: None,
+            phantom: PhantomData,
+            phantom2: PhantomData,
         }
     }
 
@@ -51,10 +61,7 @@ impl ClientConnection {
     }
 
     /// Receive a ServerMessage from the server
-    pub fn client_recv<SM>(&self) -> Result<SM>
-    where
-        SM: From<Message>,
-    {
+    pub fn client_recv(&self) -> Result<SM> {
         if let Some(ref requester) = self.requester {
             let msg = requester
                 .recv_msg(0)
@@ -66,10 +73,7 @@ impl ClientConnection {
     }
 
     /// Send a ClientMessage to the  Server
-    pub fn client_send<CM>(&self, message: CM) -> Result<()>
-    where
-        CM: Into<Message>,
-    {
+    pub fn client_send(&self, message: CM) -> Result<()> {
         if let Some(ref requester) = self.requester {
             requester
                 .send(message, 0)
@@ -83,23 +87,34 @@ impl ClientConnection {
 /// `ServerConnection` store information about the server side of the client/server
 /// communications between a runtime client and a runtime server and is used each time a message
 /// needs to be sent or received.
-pub struct ServerConnection {
+pub struct ServerConnection<SM, CM> {
     context: zmq::Context,
     host: String,
     port: usize,
     responder: Option<zmq::Socket>,
+    phantom: PhantomData<SM>,
+    phantom2: PhantomData<CM>,
 }
 
 /// Implement a server connection for sending server messages of type <SM> and receiving
 /// back client messages of type <CM>
-impl ServerConnection {
+impl<'a, SM, CM> ServerConnection<SM, CM>
+where
+    SM: Into<Message>,
+    CM: From<Message>,
+{
     /// Create a new Server side of the client/server Connection
     pub fn new(server_hostname: &Option<String>, port: usize) -> Self {
         ServerConnection {
             context: zmq::Context::new(),
-            host: server_hostname.unwrap_or("localhost".into()),
+            host: server_hostname
+                .as_ref()
+                .unwrap_or(&"localhost".to_string())
+                .to_string(),
             port,
             responder: None,
+            phantom: PhantomData,
+            phantom2: PhantomData,
         }
     }
 
@@ -130,10 +145,7 @@ impl ServerConnection {
     }
 
     /// Get a Message sent from the client to the server
-    pub fn get_message<CM>(&self) -> Result<CM>
-    where
-        CM: From<Message>,
-    {
+    pub fn get_message(&self) -> Result<CM> {
         let responder = self
             .responder
             .as_ref()
@@ -145,10 +157,7 @@ impl ServerConnection {
     }
 
     /// Try to get a Message sent from the client to the server but without blocking
-    pub fn get_message_no_wait<CM>(&self) -> Result<CM>
-    where
-        CM: From<Message>,
-    {
+    pub fn get_message_no_wait(&self) -> Result<CM> {
         let responder = self
             .responder
             .as_ref()
@@ -161,11 +170,7 @@ impl ServerConnection {
     }
 
     /// Send a Message from the server to the Client and wait for it's response
-    pub fn send_message<SM, CM>(&mut self, message: SM) -> Result<CM>
-    where
-        SM: Into<Message>,
-        CM: From<Message>,
-    {
+    pub fn send_message(&mut self, message: SM) -> Result<CM> {
         let responder = self
             .responder
             .as_ref()
@@ -179,10 +184,7 @@ impl ServerConnection {
     }
 
     /// Send a Message from the server to the Client but don't wait for it's response
-    pub fn send_message_only<SM>(&mut self, message: SM) -> Result<()>
-    where
-        SM: Into<Message>,
-    {
+    pub fn send_message_only(&mut self, message: SM) -> Result<()> {
         let responder = self
             .responder
             .as_ref()
