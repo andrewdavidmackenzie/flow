@@ -13,6 +13,7 @@ use flowcore::lib_provider::{LibProvider, MetaProvider};
 
 #[cfg(feature = "debugger")]
 use crate::client_server::{ClientConnection, ServerConnection};
+use crate::debug_messages::{DebugClientMessage, DebugServerMessage};
 #[cfg(feature = "debugger")]
 use crate::debugger::Debugger;
 use crate::errors::*;
@@ -87,7 +88,7 @@ pub struct Coordinator {
     /// A channel used to receive Jobs back after execution (now including the job's output)
     job_rx: Receiver<Job>,
     /// Get and Send messages to/from the runtime client
-    runtime_server_context: Arc<Mutex<ServerConnection>>,
+    runtime_server_connection: Arc<Mutex<ServerConnection<ServerMessage, ClientMessage>>>,
     #[cfg(feature = "debugger")]
     debugger: Debugger,
 }
@@ -113,7 +114,7 @@ pub struct Coordinator {
 ///                                                                     Simpath::new("fake path"),
 ///                                                                     true,  /* native */
 ///                                                                     Mode::ClientAndServer,
-///                                                                     None   /* server hostname */)
+///                                                                     &None   /* server hostname */)
 ///                                                 .unwrap();
 ///
 /// let mut submission = Submission::new(&Url::parse("file:///temp/fake.toml").unwrap(),
@@ -127,8 +128,11 @@ pub struct Coordinator {
 impl Coordinator {
     /// Create a new `coordinator` with `num_threads` executor threads
     fn new(
-        runtime_server_connection: ServerConnection,
-        #[cfg(feature = "debugger")] debug_server_connection: ServerConnection,
+        runtime_server_connection: ServerConnection<ServerMessage, ClientMessage>,
+        #[cfg(feature = "debugger")] debug_server_connection: ServerConnection<
+            DebugServerMessage,
+            DebugClientMessage,
+        >,
         num_threads: usize,
     ) -> Self {
         let (job_tx, job_rx) = mpsc::channel();
@@ -143,21 +147,30 @@ impl Coordinator {
         Coordinator {
             job_tx,
             job_rx: output_rx,
-            runtime_server_context: Arc::new(Mutex::new(runtime_server_connection)),
+            runtime_server_connection: Arc::new(Mutex::new(runtime_server_connection)),
             #[cfg(feature = "debugger")]
             debugger: Debugger::new(debug_server_connection),
         }
     }
 
-    /// Start the Coordinator in the appropriate `Mode`
+    /// Start the Coordinator in the appropriate `Mode` and return three `ClientConnection`
+    /// - 1. ClientConnection to runtime server that runtime client should use
+    /// - 2. ClientConnection to runtime server that control-c handler should use to request
+    ///      server to enter the debugger
+    /// - 3. ClientConnection to the debug server that debug client should use
     #[cfg(feature = "debugger")]
-    pub fn server(
+    #[allow(clippy::type_complexity)]
+    pub fn server<'a>(
         num_threads: usize,
         lib_search_path: Simpath,
         native: bool,
         mode: Mode,
-        server_hostname: Option<&str>,
-    ) -> Result<(ClientConnection, ClientConnection, ClientConnection)> {
+        server_hostname: &Option<String>,
+    ) -> Result<(
+        ClientConnection<'a, ServerMessage, ClientMessage>,
+        ClientConnection<'a, ServerMessage, ClientMessage>,
+        ClientConnection<'a, DebugServerMessage, DebugClientMessage>,
+    )> {
         let runtime_server_connection = ServerConnection::new(server_hostname, 5555);
         let debug_server_connection = ServerConnection::new(server_hostname, 5556);
 
@@ -192,13 +205,15 @@ impl Coordinator {
         ))
     }
 
+    /// Start the Coordinator in the appropriate `Mode` and return a `ClientConnection` to the
+    /// runtime server that runtime client should use
     #[cfg(not(feature = "debugger"))]
     pub fn server(
         num_threads: usize,
         lib_search_path: Simpath,
         native: bool,
         mode: Mode,
-        server_hostname: Option<&str>,
+        server_hostname: &Option<String>,
     ) -> Result<ClientConnection> {
         let runtime_server_context = ServerConnection::new(server_hostname);
         let runtime_client_connection = ClientConnection::new(&runtime_server_context);
@@ -242,7 +257,7 @@ impl Coordinator {
                 &submission.manifest_url,
                 &mut loader,
                 &provider,
-                self.runtime_server_context.clone(),
+                self.runtime_server_connection.clone(),
                 native,
             ) {
                 Ok(mut manifest) => {
@@ -273,7 +288,7 @@ impl Coordinator {
 
     fn close_connection(&mut self) -> Result<()> {
         let mut connection = self
-            .runtime_server_context
+            .runtime_server_connection
             .lock()
             .map_err(|e| format!("Could not lock Server Connection: {}", e))?;
 
@@ -286,7 +301,7 @@ impl Coordinator {
     // If the message is `ClientExiting` then return None
     // If the message is any other then loop until we find one of the above
     fn wait_for_submission(&mut self) -> Result<Option<Submission>> {
-        self.runtime_server_context
+        self.runtime_server_connection
             .lock()
             .map_err(|e| format!("Could not lock Server Connection: {}", e))?
             .start()?;
@@ -295,7 +310,7 @@ impl Coordinator {
 
         loop {
             info!("'flowr' server is waiting to receive a 'Submission'");
-            match self.runtime_server_context.lock() {
+            match self.runtime_server_connection.lock() {
                 Ok(guard) => match guard.get_message() {
                     Ok(ClientMessage::ClientSubmission(submission)) => {
                         debug!(
@@ -331,10 +346,10 @@ impl Coordinator {
             #[cfg(feature = "metrics")]
             metrics.reset();
 
-            self.runtime_server_context
+            self.runtime_server_connection
                 .lock()
                 .map_err(|_| "Could not lock server context")?
-                .send_message::<ServerMessage, ClientMessage>(ServerMessage::FlowStart)?;
+                .send_message(ServerMessage::FlowStart)?;
 
             #[cfg(feature = "debugger")]
             let mut display_next_output;
@@ -453,7 +468,7 @@ impl Coordinator {
     #[cfg(feature = "metrics")]
     fn end_flow(&mut self, state: &RunState, mut metrics: Metrics) -> Result<()> {
         metrics.set_jobs_created(state.jobs_created());
-        self.runtime_server_context
+        self.runtime_server_connection
             .lock()
             .map_err(|_| "Could not lock server context")?
             .send_message_only(ServerMessage::FlowEnd(metrics))
@@ -461,7 +476,7 @@ impl Coordinator {
 
     #[cfg(not(feature = "metrics"))]
     fn end_flow(&mut self) -> Result<()> {
-        self.runtime_server_context
+        self.runtime_server_connection
             .lock()
             .map_err(|_| "Could not lock server context")?
             .send_message_only(ServerMessage::FlowEnd)
@@ -476,7 +491,7 @@ impl Coordinator {
     #[cfg(feature = "debugger")]
     fn should_enter_debugger(&mut self) -> Result<bool> {
         let msg = self
-            .runtime_server_context
+            .runtime_server_connection
             .lock()
             .map_err(|_| "Could not lock server context")?
             .get_message();
@@ -497,7 +512,7 @@ impl Coordinator {
         manifest_url: &Url,
         loader: &mut Loader,
         provider: &dyn LibProvider,
-        server_context: Arc<Mutex<ServerConnection>>,
+        server_connection: Arc<Mutex<ServerConnection<ServerMessage, ClientMessage>>>,
         native: bool,
     ) -> Result<FlowManifest> {
         let flowruntimelib_url =
@@ -507,7 +522,7 @@ impl Coordinator {
         loader
             .add_lib(
                 provider,
-                flowruntime::get_manifest(server_context)?,
+                flowruntime::get_manifest(server_connection)?,
                 &flowruntimelib_url,
             )
             .chain_err(|| "Could not add 'flowruntime' library to loader")?;

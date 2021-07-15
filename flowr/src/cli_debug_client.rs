@@ -34,13 +34,15 @@ ENTER | 'c' | 'continue'     - Continue execution until next breakpoint
     defined in the flowrlib library.
 */
 pub struct CliDebugClient {
-    connection: ClientConnection,
+    connection: ClientConnection<'static, DebugServerMessage, DebugClientMessage>,
     editor: Editor<()>,
 }
 
 impl CliDebugClient {
     /// Create a new debug client accepting the debug connection
-    pub fn new(connection: ClientConnection) -> Self {
+    pub fn new(
+        connection: ClientConnection<'static, DebugServerMessage, DebugClientMessage>,
+    ) -> Self {
         CliDebugClient {
             connection,
             editor: Editor::<()>::new(), // `()` can be used when no completer is required
@@ -51,7 +53,7 @@ impl CliDebugClient {
     pub fn start(mut self) {
         let _ = self.connection.start();
 
-        // Avoid error when no previous command history exists
+        // Ignore error on first start-up due to no previous command history existing
         let _ = self.editor.load_history(FLOWR_HISTORY_FILENAME);
 
         let _ = std::thread::spawn(move || {
@@ -65,10 +67,10 @@ impl CliDebugClient {
     fn debug_client_loop(&mut self) {
         // loop while? and avoid break?
         loop {
-            match self.connection.client_recv::<DebugServerMessage>() {
+            match self.connection.client_recv() {
                 Ok(debug_server_message) => {
                     if let Ok(response) = self.process_event(debug_server_message) {
-                        let _ = self.connection.client_send::<DebugClientMessage>(response);
+                        let _ = self.connection.client_send(response);
                     }
                 }
                 Err(err) => {

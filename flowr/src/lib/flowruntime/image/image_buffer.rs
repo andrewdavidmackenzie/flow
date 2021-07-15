@@ -11,7 +11,7 @@ use crate::runtime_messages::{ClientMessage, ServerMessage};
 /// `Implementation` struct for the `image_buffer` function
 pub struct ImageBuffer {
     /// It holds a reference to the runtime client in order to send commands
-    pub server_context: Arc<Mutex<ServerConnection>>,
+    pub server_context: Arc<Mutex<ServerConnection<ServerMessage, ClientMessage>>>,
 }
 
 impl Implementation for ImageBuffer {
@@ -32,13 +32,12 @@ impl Implementation for ImageBuffer {
                 size[0].as_u64(),
                 size[1].as_u64(),
             ) {
-                let _: Result<ClientMessage> =
-                    server.send_message::<ServerMessage, ClientMessage>(ServerMessage::PixelWrite(
-                        (x as u32, y as u32),
-                        (r as u8, g as u8, b as u8),
-                        (w as u32, h as u32),
-                        filename.to_string(),
-                    ));
+                let _: Result<ClientMessage> = server.send_message(ServerMessage::PixelWrite(
+                    (x as u32, y as u32),
+                    (r as u8, g as u8, b as u8),
+                    (w as u32, h as u32),
+                    filename.to_string(),
+                ));
             }
         }
 

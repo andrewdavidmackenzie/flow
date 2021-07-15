@@ -10,7 +10,7 @@ use crate::runtime_messages::{ClientMessage, ServerMessage};
 /// `Implementation` struct for the `readline` function
 pub struct Readline {
     /// It holds a reference to the runtime client in order to read input
-    pub server_context: Arc<Mutex<ServerConnection>>,
+    pub server_context: Arc<Mutex<ServerConnection<ServerMessage, ClientMessage>>>,
 }
 
 impl Implementation for Readline {

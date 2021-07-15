@@ -10,7 +10,7 @@ use crate::runtime_messages::{ClientMessage, ServerMessage};
 /// `Implementation` struct for the `get` function
 pub struct Get {
     /// It holds a reference to the runtime client in order to Get the Args
-    pub server_context: Arc<Mutex<ServerConnection>>,
+    pub server_context: Arc<Mutex<ServerConnection<ServerMessage, ClientMessage>>>,
 }
 
 impl Implementation for Get {

@@ -94,10 +94,10 @@ pub struct ServerConnection {
 /// back client messages of type <CM>
 impl ServerConnection {
     /// Create a new Server side of the client/server Connection
-    pub fn new(server_hostname: Option<&str>, port: usize) -> Self {
+    pub fn new(server_hostname: &Option<String>, port: usize) -> Self {
         ServerConnection {
             context: zmq::Context::new(),
-            host: server_hostname.unwrap_or("localhost").into(),
+            host: server_hostname.unwrap_or("localhost".into()),
             port,
             responder: None,
         }
@@ -114,7 +114,7 @@ impl ServerConnection {
         if let Some(ref responder) = self.responder {
             responder
                 .bind(&format!("tcp://*:{}", self.port))
-                .chain_err(|| "Runtime Server Connection - could not bind on Socket")?;
+                .chain_err(|| "Server Connection - could not bind on Socket")?;
         }
 
         info!(

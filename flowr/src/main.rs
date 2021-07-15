@@ -119,7 +119,7 @@ fn run() -> Result<()> {
         lib_search_path,
         native,
         mode.clone(),
-        server_hostname,
+        &server_hostname.map(|s| s.into()),
     )?;
 
     #[cfg(not(feature = "debugger"))]
@@ -142,9 +142,9 @@ fn run() -> Result<()> {
         );
 
         #[cfg(feature = "debugger")]
-        //        if debugger {
-        CliDebugClient::new(debug_connection).start();
-        //        }
+        if debugger {
+            CliDebugClient::new(debug_connection).start(); // TODO Broken
+        }
 
         let runtime_client = CliRuntimeClient::new(
             flow_args,
