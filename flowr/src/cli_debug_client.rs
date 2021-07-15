@@ -53,6 +53,9 @@ impl CliDebugClient {
     pub fn start(mut self) {
         let _ = self.connection.start();
 
+        // Send an first message to initialize the connection
+        let _ = self.connection.client_send(DebugClientMessage::Ack);
+
         // Ignore error on first start-up due to no previous command history existing
         let _ = self.editor.load_history(FLOWR_HISTORY_FILENAME);
 

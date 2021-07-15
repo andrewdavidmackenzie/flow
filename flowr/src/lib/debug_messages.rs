@@ -24,43 +24,6 @@ pub enum Param {
     Block((Option<usize>, Option<usize>)),
 }
 
-/// A Message sent by the debug_client to the debug server
-#[derive(Serialize, Deserialize)]
-pub enum DebugClientMessage {
-    /// Acknowledge event processed correctly
-    Ack,
-    /// Set a `breakpoint` - with an optional parameter
-    Breakpoint(Option<Param>),
-    /// `continue` execution of the flow
-    Continue,
-    /// `delete` an existing breakpoint - with an optional parameter
-    Delete(Option<Param>),
-    /// An error on the client side
-    Error(String),
-    /// `exit` the debugger and runtime
-    ExitDebugger,
-    /// `inspect` a function
-    InspectFunction(usize),
-    /// Inspect overall state
-    Inspect,
-    /// Inspect an Input (function_id, input_number)
-    InspectInput(usize, usize),
-    /// Inspect an Output (function_id, sub-path)
-    InspectOutput(usize, String),
-    /// Inspect a Block (optional source function_id, optional destination function_id)
-    InspectBlock(Option<usize>, Option<usize>),
-    /// Invalid - used when deserialization goes wrong
-    Invalid,
-    /// `list` existing breakpoints
-    List,
-    /// `reset` flow execution back to the initial state
-    RunReset,
-    /// `step` forward in flow execution by executing one (default) or more `Jobs`
-    Step(Option<Param>),
-    /// `validate` the current state
-    Validate,
-}
-
 /// A Message sent from the debug server to the debug_client
 #[derive(Serialize, Deserialize)]
 pub enum DebugServerMessage {
@@ -112,6 +75,43 @@ pub enum DebugServerMessage {
     WaitingForCommand(usize),
     /// Invalid - used when deserialization goes wrong
     Invalid,
+}
+
+/// A Message sent by the debug_client to the debug server
+#[derive(Serialize, Deserialize)]
+pub enum DebugClientMessage {
+    /// Acknowledge event processed correctly
+    Ack,
+    /// Set a `breakpoint` - with an optional parameter
+    Breakpoint(Option<Param>),
+    /// `continue` execution of the flow
+    Continue,
+    /// `delete` an existing breakpoint - with an optional parameter
+    Delete(Option<Param>),
+    /// An error on the client side
+    Error(String),
+    /// `exit` the debugger and runtime
+    ExitDebugger,
+    /// `inspect` a function
+    InspectFunction(usize),
+    /// Inspect overall state
+    Inspect,
+    /// Inspect an Input (function_id, input_number)
+    InspectInput(usize, usize),
+    /// Inspect an Output (function_id, sub-path)
+    InspectOutput(usize, String),
+    /// Inspect a Block (optional source function_id, optional destination function_id)
+    InspectBlock(Option<usize>, Option<usize>),
+    /// Invalid - used when deserialization goes wrong
+    Invalid,
+    /// `list` existing breakpoints
+    List,
+    /// `reset` flow execution back to the initial state
+    RunReset,
+    /// `step` forward in flow execution by executing one (default) or more `Jobs`
+    Step(Option<Param>),
+    /// `validate` the current state
+    Validate,
 }
 
 #[cfg(feature = "distributed")]
