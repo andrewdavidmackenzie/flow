@@ -268,10 +268,6 @@ impl Loader {
                         function.implementation_location()
                     );
 
-                    // The implementation will have already been loaded when the library was loaded
-                    // TODO move the actual loading of implementation in here so we lazy-load library
-                    // implementations only when they are actually used by functions in the manifest
-
                     // Set the location of the implementation of this function
                     function.set_implementation(implementation.clone()); // Only clone of an Arc, not the object
                 }
