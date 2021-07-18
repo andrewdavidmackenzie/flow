@@ -159,7 +159,6 @@ pub fn dump_functions(
     dump_table(tables.functions.iter(), &mut writer)
 }
 
-// TODO I can't get output of functions as JSON to work with serde
 fn dump_table<C: Iterator>(table: C, writer: &mut dyn Write) -> std::io::Result<()>
 where
     <C as Iterator>::Item: fmt::Display,

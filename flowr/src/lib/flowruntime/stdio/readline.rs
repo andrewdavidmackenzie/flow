@@ -4,13 +4,13 @@ use serde_json::Value;
 
 use flowcore::{Implementation, RunAgain, DONT_RUN_AGAIN, RUN_AGAIN};
 
-use crate::client_server::RuntimeServerConnection;
+use crate::client_server::ServerConnection;
 use crate::runtime_messages::{ClientMessage, ServerMessage};
 
 /// `Implementation` struct for the `readline` function
 pub struct Readline {
     /// It holds a reference to the runtime client in order to read input
-    pub server_context: Arc<Mutex<RuntimeServerConnection>>,
+    pub server_context: Arc<Mutex<ServerConnection<ServerMessage, ClientMessage>>>,
 }
 
 impl Implementation for Readline {

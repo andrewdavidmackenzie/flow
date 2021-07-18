@@ -222,6 +222,14 @@ fn execute_test(test_name: &str, search_path: Simpath, client_server: bool) {
     }
 }
 
+#[cfg(feature = "debugger")]
+#[test]
+#[serial]
+fn debug_print_args() {
+    let search_path = helper::set_lib_search_path_to_project();
+    execute_test("debug-print-args", search_path, false);
+}
+
 #[test]
 #[serial]
 fn print_args() {

@@ -6,16 +6,19 @@ use serde_json::Value;
 
 use flowcore::output_connection::Source::{Input, Output};
 
-use crate::client_server::DebugServerConnection;
+use crate::client_server::ServerConnection;
 use crate::debug_messages::DebugClientMessage;
 use crate::debug_messages::DebugClientMessage::*;
 use crate::debug_messages::DebugServerMessage;
 use crate::debug_messages::DebugServerMessage::*;
 use crate::debug_messages::Param;
+use crate::errors::*;
 use crate::run_state::{Block, Job, RunState};
 
+/// Debugger struct contains all the info necessary to conduct a debugging session, storing
+/// set breakpoints, connections to the debug client etc
 pub struct Debugger {
-    debug_server_connection: DebugServerConnection,
+    debug_server_connection: ServerConnection<DebugServerMessage, DebugClientMessage>,
     input_breakpoints: HashSet<(usize, usize)>,
     block_breakpoints: HashSet<(usize, usize)>,
     /* blocked_id -> blocking_id */
@@ -60,7 +63,9 @@ impl fmt::Display for BlockerNode {
 }
 
 impl Debugger {
-    pub fn new(debug_server_connection: DebugServerConnection) -> Self {
+    pub fn new(
+        debug_server_connection: ServerConnection<DebugServerMessage, DebugClientMessage>,
+    ) -> Self {
         Debugger {
             debug_server_connection,
             input_breakpoints: HashSet::<(usize, usize)>::new(),
@@ -71,6 +76,7 @@ impl Debugger {
         }
     }
 
+    /// Start the debugger - preparing it to be entered later when needed
     pub fn start(&mut self) {
         let _ = self.debug_server_connection.start();
     }
@@ -78,28 +84,21 @@ impl Debugger {
     /// Enter the debugger - which will cause it to wait for a valid debugger command
     /// Return values are (display next output, reset execution, exit_debugger)
     pub fn enter(&mut self, state: &RunState) -> (bool, bool, bool) {
-        let _ = self.debug_server_connection.send_message(EnteringDebugger);
         self.wait_for_command(state)
     }
 
-    /*
-        Called from the flowrlib coordinator to inform the debugger that a job has completed
-        being executed. It is used to inform the debug client of the fact.
-        Return values are (display next output, reset execution)
-    */
+    /// Called from the flowrlib coordinator to inform the debugger that a job has completed
+    /// being executed. It is used to inform the debug client of the fact.
+    /// Return values are (display next output, reset execution)
     pub fn job_completed(&mut self, job: &Job) -> (bool, bool, bool) {
-        let _ = self.debug_server_connection.send_message(JobCompleted(
-            job.job_id,
-            job.function_id,
-            job.result.0.clone(),
-        ));
+        let _: Result<DebugClientMessage> = self.debug_server_connection.send_message(
+            JobCompleted(job.job_id, job.function_id, job.result.0.clone()),
+        );
         (false, false, false)
     }
 
-    /*
-        Check if there is a breakpoint at this job prior to starting executing it.
-        Return values are (display next output, reset execution)
-    */
+    /// Check if there is a breakpoint at this job prior to starting executing it.
+    /// Return values are (display next output, reset execution)
     pub fn check_prior_to_job(
         &mut self,
         state: &RunState,
@@ -107,7 +106,7 @@ impl Debugger {
         function_id: usize,
     ) -> (bool, bool, bool) {
         if self.break_at_job == next_job_id || self.function_breakpoints.contains(&function_id) {
-            let _ = self
+            let _: Result<DebugClientMessage> = self
                 .debug_server_connection
                 .send_message(PriorToSendingJob(next_job_id, function_id));
 
@@ -116,7 +115,7 @@ impl Debugger {
                 state.get(function_id).clone(),
                 state.get_state(function_id),
             ));
-            let _ = self.debug_server_connection.send_message(event);
+            let _: Result<DebugClientMessage> = self.debug_server_connection.send_message(event);
 
             return self.wait_for_command(state);
         }
@@ -124,13 +123,11 @@ impl Debugger {
         (false, false, false)
     }
 
-    /*
-        Called from flowrlib during execution when it is about to create a block on one function
-        due to not being able to send outputs to another function.
-
-        This allows the debugger to check if we have a breakpoint set on that block. If we do
-        then enter the debugger client and wait for a command.
-    */
+    /// Called from flowrlib during execution when it is about to create a block on one function
+    /// due to not being able to send outputs to another function.
+    ///
+    /// This allows the debugger to check if we have a breakpoint set on that block. If we do
+    /// then enter the debugger client and wait for a command.
     pub fn check_on_block_creation(
         &mut self,
         state: &RunState,
@@ -140,7 +137,7 @@ impl Debugger {
             .block_breakpoints
             .contains(&(block.blocked_id, block.blocking_id))
         {
-            let _ = self
+            let _: Result<DebugClientMessage> = self
                 .debug_server_connection
                 .send_message(BlockBreakpoint(block.clone()));
             return self.wait_for_command(state);
@@ -149,12 +146,10 @@ impl Debugger {
         (false, false, false)
     }
 
-    /*
-        Called from flowrlib runtime prior to sending a value to another function,to see if there
-        is a breakpoint on that send.
-
-        If there is, then enter the debug client and wait for a command.
-    */
+    /// Called from flowrlib runtime prior to sending a value to another function,to see if there
+    /// is a breakpoint on that send.
+    ///
+    /// If there is, then enter the debug client and wait for a command.
     pub fn check_prior_to_send(
         &mut self,
         state: &RunState,
@@ -171,58 +166,56 @@ impl Debugger {
                 .input_breakpoints
                 .contains(&(destination_id, input_number))
         {
-            let _ = self.debug_server_connection.send_message(SendingValue(
-                source_process_id,
-                value.clone(),
-                destination_id,
-                input_number,
-            ));
-            let _ = self.debug_server_connection.send_message(DataBreakpoint(
-                source_process_id,
-                output_route.to_string(),
-                value.clone(),
-                destination_id,
-                input_number,
-            ));
+            let _: Result<DebugClientMessage> =
+                self.debug_server_connection.send_message(SendingValue(
+                    source_process_id,
+                    value.clone(),
+                    destination_id,
+                    input_number,
+                ));
+            let _: Result<DebugClientMessage> =
+                self.debug_server_connection.send_message(DataBreakpoint(
+                    source_process_id,
+                    output_route.to_string(),
+                    value.clone(),
+                    destination_id,
+                    input_number,
+                ));
             return self.wait_for_command(state);
         }
 
         (false, false, false)
     }
 
-    /*
-        An error occurred while executing a flow. Let the debug client know, enter the client
-        and wait for a user command.
-
-        This is useful for debugging a flow that has an error. Without setting any explicit
-        breakpoint it will enter the debugger on an error and let the user inspect the flow's
-        state etc.
-    */
+    /// An error occurred while executing a flow. Let the debug client know, enter the client
+    /// and wait for a user command.
+    ///
+    /// This is useful for debugging a flow that has an error. Without setting any explicit
+    /// breakpoint it will enter the debugger on an error and let the user inspect the flow's
+    /// state etc.
     pub fn job_error(&mut self, state: &RunState, job: Job) -> (bool, bool, bool) {
-        let _ = self.debug_server_connection.send_message(JobError(job));
+        let _: Result<DebugClientMessage> =
+            self.debug_server_connection.send_message(JobError(job));
         self.wait_for_command(state)
     }
 
-    /*
-        A panic occurred while executing a flow. Let the debug client know, enter the client
-        and wait for a user command.
-
-        This is useful for debugging a flow that has an error. Without setting any explicit
-        breakpoint it will enter the debugger on an error and let the user inspect the flow's
-        state etc.
-    */
+    /// A panic occurred while executing a flow. Let the debug client know, enter the client
+    /// and wait for a user command.
+    ///
+    /// This is useful for debugging a flow that has an error. Without setting any explicit
+    /// breakpoint it will enter the debugger on an error and let the user inspect the flow's
+    /// state etc.
     pub fn panic(&mut self, state: &RunState, error_message: String) -> (bool, bool, bool) {
-        let _ = self
+        let _: Result<DebugClientMessage> = self
             .debug_server_connection
             .send_message(Panic(error_message, state.jobs_created()));
         self.wait_for_command(state)
     }
 
-    /*
-        Return values are (display next output, reset execution)
-    */
+    /// Return values are (display next output, reset execution)
     pub fn flow_done(&mut self, state: &RunState) -> (bool, bool, bool) {
-        let _ = self.debug_server_connection.send_message(ExecutionEnded);
+        let _: Result<DebugClientMessage> =
+            self.debug_server_connection.send_message(ExecutionEnded);
         self.deadlock_check(state);
         self.wait_for_command(state)
     }
@@ -238,11 +231,14 @@ impl Debugger {
            (display next output, reset execution)
     */
     fn wait_for_command(&mut self, state: &RunState) -> (bool, bool, bool) {
+        // swallow the first DebugClientStarting message to initialize the connection
+        let _ = self.debug_server_connection.get_message();
+
         loop {
-            let _ = self
+            match self
                 .debug_server_connection
-                .send_message(WaitingForCommand(state.jobs_created()));
-            match self.debug_server_connection.get_message() {
+                .send_message(WaitingForCommand(state.jobs_created()))
+            {
                 // *************************      The following are commands that send a response
                 Ok(Breakpoint(param)) => {
                     let event = self.add_breakpoint(state, param);
@@ -275,7 +271,8 @@ impl Debugger {
                         DebugServerMessage::Error(format!("No function with id = {}", function_id))
                     };
 
-                    let _ = self.debug_server_connection.send_message(event);
+                    let _: Result<DebugClientMessage> =
+                        self.debug_server_connection.send_message(event);
                 }
                 Ok(InspectInput(function_id, input_number)) => {
                     let event = if function_id < state.num_functions() {
@@ -292,7 +289,8 @@ impl Debugger {
                     } else {
                         DebugServerMessage::Error(format!("No function with id = {}", function_id))
                     };
-                    let _ = self.debug_server_connection.send_message(event);
+                    let _: Result<DebugClientMessage> =
+                        self.debug_server_connection.send_message(event);
                 }
                 Ok(InspectOutput(function_id, sub_route)) => {
                     let event = if function_id < state.num_functions() {
@@ -319,14 +317,16 @@ impl Debugger {
                     } else {
                         DebugServerMessage::Error(format!("No function with id = {}", function_id))
                     };
-                    let _ = self.debug_server_connection.send_message(event);
+                    let _: Result<DebugClientMessage> =
+                        self.debug_server_connection.send_message(event);
                 }
                 Ok(InspectBlock(from_function_id, to_function_id)) => {
                     let event = Self::inspect_blocks(state, from_function_id, to_function_id);
                     let _ = self.debug_server_connection.send_message(event);
                 }
                 Ok(ExitDebugger) => {
-                    let _ = self.debug_server_connection.send_message(ExitingDebugger);
+                    let _: Result<DebugClientMessage> =
+                        self.debug_server_connection.send_message(ExitingDebugger);
                     return (false, false, true);
                 }
 
@@ -339,10 +339,12 @@ impl Debugger {
                 Ok(RunReset) => {
                     return if state.jobs_created() > 0 {
                         let event = self.reset();
-                        let _ = self.debug_server_connection.send_message(event);
+                        let _: Result<DebugClientMessage> =
+                            self.debug_server_connection.send_message(event);
                         (false, true, false)
                     } else {
-                        let _ = self.debug_server_connection.send_message(ExecutionStarted);
+                        let _: Result<DebugClientMessage> =
+                            self.debug_server_connection.send_message(ExecutionStarted);
                         (false, false, false)
                     }
                 }
@@ -351,6 +353,9 @@ impl Debugger {
                     return (true, false, false);
                 }
                 Ok(Ack) => {}
+                Ok(DebugClientStarting) => {
+                    error!("Unexpected message 'DebugClientStarting' after started")
+                }
                 Ok(DebugClientMessage::Error(_)) => { /* client error */ }
                 Ok(DebugClientMessage::Invalid) => {}
                 Err(e) => error!("Error in Debug server getting command; {}", e),

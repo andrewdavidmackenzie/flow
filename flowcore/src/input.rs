@@ -19,7 +19,7 @@ pub enum InputInitializer {
     Once(Value),
 }
 
-#[derive(Deserialize, Serialize, Clone)]
+#[derive(Deserialize, Serialize, Clone, Debug)]
 /// An `Input` to a `Function`.
 pub struct Input {
     #[serde(
