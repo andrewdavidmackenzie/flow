@@ -51,11 +51,6 @@ impl CliDebugClient {
 
     /// Start running the debug client in a new thread
     pub fn start(mut self) {
-        let _ = self.connection.start();
-
-        // Send an first message to initialize the connection
-        let _ = self.connection.client_send(DebugClientMessage::Ack);
-
         // Ignore error on first start-up due to no previous command history existing
         let _ = self.editor.load_history(FLOWR_HISTORY_FILENAME);
 
@@ -68,6 +63,11 @@ impl CliDebugClient {
        Main debug client loop where events are received, processed and responses sent
     */
     fn debug_client_loop(&mut self) {
+        let _ = self.connection.start();
+
+        // Send an first message to initialize the connection
+        let _ = self.connection.client_send(DebugClientMessage::Ack);
+
         // loop while? and avoid break?
         loop {
             match self.connection.client_recv() {

@@ -15,6 +15,8 @@ use crate::debug_messages::Param;
 use crate::errors::*;
 use crate::run_state::{Block, Job, RunState};
 
+/// Debugger struct contains all the info necessary to conduct a debugging session, storing
+/// set breakpoints, connections to the debug client etc
 pub struct Debugger {
     debug_server_connection: ServerConnection<DebugServerMessage, DebugClientMessage>,
     input_breakpoints: HashSet<(usize, usize)>,
@@ -74,6 +76,7 @@ impl Debugger {
         }
     }
 
+    /// Start the debugger - preparing it to be entered later when needed
     pub fn start(&mut self) {
         let _ = self.debug_server_connection.start();
     }
@@ -86,11 +89,9 @@ impl Debugger {
         self.wait_for_command(state)
     }
 
-    /*
-        Called from the flowrlib coordinator to inform the debugger that a job has completed
-        being executed. It is used to inform the debug client of the fact.
-        Return values are (display next output, reset execution)
-    */
+    /// Called from the flowrlib coordinator to inform the debugger that a job has completed
+    /// being executed. It is used to inform the debug client of the fact.
+    /// Return values are (display next output, reset execution)
     pub fn job_completed(&mut self, job: &Job) -> (bool, bool, bool) {
         let _: Result<DebugClientMessage> = self.debug_server_connection.send_message(
             JobCompleted(job.job_id, job.function_id, job.result.0.clone()),
@@ -98,10 +99,8 @@ impl Debugger {
         (false, false, false)
     }
 
-    /*
-        Check if there is a breakpoint at this job prior to starting executing it.
-        Return values are (display next output, reset execution)
-    */
+    /// Check if there is a breakpoint at this job prior to starting executing it.
+    /// Return values are (display next output, reset execution)
     pub fn check_prior_to_job(
         &mut self,
         state: &RunState,
@@ -126,13 +125,11 @@ impl Debugger {
         (false, false, false)
     }
 
-    /*
-        Called from flowrlib during execution when it is about to create a block on one function
-        due to not being able to send outputs to another function.
-
-        This allows the debugger to check if we have a breakpoint set on that block. If we do
-        then enter the debugger client and wait for a command.
-    */
+    /// Called from flowrlib during execution when it is about to create a block on one function
+    /// due to not being able to send outputs to another function.
+    ///
+    /// This allows the debugger to check if we have a breakpoint set on that block. If we do
+    /// then enter the debugger client and wait for a command.
     pub fn check_on_block_creation(
         &mut self,
         state: &RunState,
@@ -151,12 +148,10 @@ impl Debugger {
         (false, false, false)
     }
 
-    /*
-        Called from flowrlib runtime prior to sending a value to another function,to see if there
-        is a breakpoint on that send.
-
-        If there is, then enter the debug client and wait for a command.
-    */
+    /// Called from flowrlib runtime prior to sending a value to another function,to see if there
+    /// is a breakpoint on that send.
+    ///
+    /// If there is, then enter the debug client and wait for a command.
     pub fn check_prior_to_send(
         &mut self,
         state: &RunState,
@@ -194,28 +189,24 @@ impl Debugger {
         (false, false, false)
     }
 
-    /*
-        An error occurred while executing a flow. Let the debug client know, enter the client
-        and wait for a user command.
-
-        This is useful for debugging a flow that has an error. Without setting any explicit
-        breakpoint it will enter the debugger on an error and let the user inspect the flow's
-        state etc.
-    */
+    /// An error occurred while executing a flow. Let the debug client know, enter the client
+    /// and wait for a user command.
+    ///
+    /// This is useful for debugging a flow that has an error. Without setting any explicit
+    /// breakpoint it will enter the debugger on an error and let the user inspect the flow's
+    /// state etc.
     pub fn job_error(&mut self, state: &RunState, job: Job) -> (bool, bool, bool) {
         let _: Result<DebugClientMessage> =
             self.debug_server_connection.send_message(JobError(job));
         self.wait_for_command(state)
     }
 
-    /*
-        A panic occurred while executing a flow. Let the debug client know, enter the client
-        and wait for a user command.
-
-        This is useful for debugging a flow that has an error. Without setting any explicit
-        breakpoint it will enter the debugger on an error and let the user inspect the flow's
-        state etc.
-    */
+    /// A panic occurred while executing a flow. Let the debug client know, enter the client
+    /// and wait for a user command.
+    ///
+    /// This is useful for debugging a flow that has an error. Without setting any explicit
+    /// breakpoint it will enter the debugger on an error and let the user inspect the flow's
+    /// state etc.
     pub fn panic(&mut self, state: &RunState, error_message: String) -> (bool, bool, bool) {
         let _: Result<DebugClientMessage> = self
             .debug_server_connection
@@ -223,9 +214,7 @@ impl Debugger {
         self.wait_for_command(state)
     }
 
-    /*
-        Return values are (display next output, reset execution)
-    */
+    /// Return values are (display next output, reset execution)
     pub fn flow_done(&mut self, state: &RunState) -> (bool, bool, bool) {
         let _: Result<DebugClientMessage> =
             self.debug_server_connection.send_message(ExecutionEnded);
