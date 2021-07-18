@@ -144,7 +144,7 @@ fn run() -> Result<()> {
         #[cfg(feature = "debugger")]
         if debugger {
             let debug_client = CliDebugClient::new(debug_connection);
-            debug_client.start(); // TODO Broken
+            debug_client.event_loop_thread(); // TODO Broken
         }
 
         let runtime_client = CliRuntimeClient::new(

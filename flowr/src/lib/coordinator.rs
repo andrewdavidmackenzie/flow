@@ -346,11 +346,6 @@ impl Coordinator {
             #[cfg(feature = "metrics")]
             metrics.reset();
 
-            self.runtime_server_connection
-                .lock()
-                .map_err(|_| "Could not lock server context")?
-                .send_message(ServerMessage::FlowStart)?;
-
             #[cfg(feature = "debugger")]
             let mut display_next_output;
             let mut restart;
@@ -363,6 +358,11 @@ impl Coordinator {
                     return Ok(true); // User requested via debugger to exit execution
                 }
             }
+
+            self.runtime_server_connection
+                .lock()
+                .map_err(|_| "Could not lock server context")?
+                .send_message(ServerMessage::FlowStart)?;
 
             'jobs: loop {
                 trace!("{}", state);

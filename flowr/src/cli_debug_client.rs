@@ -49,8 +49,8 @@ impl CliDebugClient {
         }
     }
 
-    /// Start running the debug client in a new thread
-    pub fn start(mut self) {
+    /// Start running the debug client event loop in a new thread
+    pub fn event_loop_thread(mut self) {
         // Ignore error on first start-up due to no previous command history existing
         let _ = self.editor.load_history(FLOWR_HISTORY_FILENAME);
 
