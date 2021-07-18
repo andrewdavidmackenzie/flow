@@ -121,6 +121,8 @@ pub enum DebugClientMessage {
     Breakpoint(Option<Param>),
     /// `continue` execution of the flow
     Continue,
+    /// Debug client is starting
+    DebugClientStarting,
     /// `delete` an existing breakpoint - with an optional parameter
     Delete(Option<Param>),
     /// An error on the client side
@@ -171,6 +173,7 @@ impl fmt::Display for DebugClientMessage {
                 DebugClientMessage::RunReset => "RunReset",
                 DebugClientMessage::Step(_) => "Step",
                 DebugClientMessage::Validate => "Validate",
+                DebugClientMessage::DebugClientStarting => "DebugClientStarting",
             }
         )
     }

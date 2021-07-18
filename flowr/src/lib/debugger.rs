@@ -231,7 +231,7 @@ impl Debugger {
            (display next output, reset execution)
     */
     fn wait_for_command(&mut self, state: &RunState) -> (bool, bool, bool) {
-        // swallow the first ack message to initialize the connection
+        // swallow the first DebugClientStarting message to initialize the connection
         let _ = self.debug_server_connection.get_message();
 
         loop {
@@ -353,6 +353,9 @@ impl Debugger {
                     return (true, false, false);
                 }
                 Ok(Ack) => {}
+                Ok(DebugClientStarting) => {
+                    error!("Unexpected message 'DebugClientStarting' after started")
+                }
                 Ok(DebugClientMessage::Error(_)) => { /* client error */ }
                 Ok(DebugClientMessage::Invalid) => {}
                 Err(e) => error!("Error in Debug server getting command; {}", e),

@@ -66,7 +66,9 @@ impl CliDebugClient {
         let _ = self.connection.start();
 
         // Send an first message to initialize the connection
-        let _ = self.connection.client_send(DebugClientMessage::Ack);
+        let _ = self
+            .connection
+            .client_send(DebugClientMessage::DebugClientStarting);
 
         // loop while? and avoid break?
         loop {
