@@ -10,6 +10,7 @@ use crate::errors::*;
 /// `ClientConnection` stores information related to the connection from a runtime client
 /// to the runtime server and is used each time a message is to be sent or received.
 pub struct ClientConnection<'a, SM, CM> {
+    context: zmq::Context,
     host: String,
     port: usize,
     requester: Option<Socket>,
@@ -30,6 +31,7 @@ where
     /// Create a new connection between client and server
     pub fn new(server_connection: &ServerConnection<SM, CM>) -> Self {
         ClientConnection {
+            context: zmq::Context::new(),
             host: server_connection.host.clone(),
             port: server_connection.port,
             requester: None,
@@ -41,10 +43,8 @@ where
     /// Start the client side of the client/server connection by connecting to TCP Socket
     /// server is listening on.
     pub fn start(&mut self) -> Result<()> {
-        let context = zmq::Context::new();
-
         self.requester = Some(
-            context
+            self.context
                 .socket(zmq::REQ)
                 .chain_err(|| "Runtime client could not connect to server")?,
         );
@@ -88,6 +88,7 @@ where
 /// communications between a runtime client and a runtime server and is used each time a message
 /// needs to be sent or received.
 pub struct ServerConnection<SM, CM> {
+    context: zmq::Context,
     host: String,
     port: usize,
     responder: Option<zmq::Socket>,
@@ -105,6 +106,7 @@ where
     /// Create a new Server side of the client/server Connection
     pub fn new(server_hostname: &Option<String>, port: usize) -> Self {
         ServerConnection {
+            context: zmq::Context::new(),
             host: server_hostname
                 .as_ref()
                 .unwrap_or(&"localhost".to_string())
@@ -118,10 +120,8 @@ where
 
     /// Start the Server side of client/server connection, by creating a Socket and Binding to it
     pub fn start(&mut self) -> Result<()> {
-        let context = zmq::Context::new();
-
         self.responder = Some(
-            context
+            self.context
                 .socket(zmq::REP)
                 .chain_err(|| "Runtime Server Connection - could not create Socket")?,
         );
