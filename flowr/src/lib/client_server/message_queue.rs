@@ -1,7 +1,8 @@
+use std::fmt::Display;
 use std::marker::PhantomData;
 
 /// This is the message-queue implementation of the lib.client_server communications
-use log::info;
+use log::{info, trace};
 use zmq::Socket;
 use zmq::{Message, DONTWAIT};
 
@@ -25,8 +26,8 @@ pub struct ClientConnection<'a, SM, CM> {
 
 impl<'a, SM, CM> ClientConnection<'a, SM, CM>
 where
-    SM: From<Message>,
-    CM: Into<Message>,
+    SM: From<Message> + Display,
+    CM: Into<Message> + Display,
 {
     /// Create a new connection between client and server
     pub fn new(server_connection: &ServerConnection<SM, CM>) -> Self {
@@ -66,7 +67,10 @@ where
             let msg = requester
                 .recv_msg(0)
                 .map_err(|e| format!("Error receiving from Server: {}", e))?;
-            Ok(SM::from(msg))
+
+            let message = SM::from(msg);
+            trace!("Client Received <--- {}", message);
+            Ok(message)
         } else {
             bail!("Client runtime connection has not been started")
         }
@@ -75,6 +79,7 @@ where
     /// Send a ClientMessage to the  Server
     pub fn client_send(&self, message: CM) -> Result<()> {
         if let Some(ref requester) = self.requester {
+            trace!("Client Sent     ---> to {} {}", self.port, message);
             requester
                 .send(message, 0)
                 .chain_err(|| "Error sending to Runtime server")
@@ -100,8 +105,8 @@ pub struct ServerConnection<SM, CM> {
 /// back client messages of type <CM>
 impl<'a, SM, CM> ServerConnection<SM, CM>
 where
-    SM: Into<Message>,
-    CM: From<Message>,
+    SM: Into<Message> + Display,
+    CM: From<Message> + Display,
 {
     /// Create a new Server side of the client/server Connection
     pub fn new(server_hostname: &Option<String>, port: usize) -> Self {
@@ -123,7 +128,7 @@ where
         self.responder = Some(
             self.context
                 .socket(zmq::REP)
-                .chain_err(|| "Runtime Server Connection - could not create Socket")?,
+                .chain_err(|| "Server Connection - could not create Socket")?,
         );
 
         if let Some(ref responder) = self.responder {
@@ -149,11 +154,18 @@ where
         let responder = self
             .responder
             .as_ref()
-            .chain_err(|| "Runtime server connection not started")?;
+            .chain_err(|| "Server connection not started")?;
         let msg = responder
             .recv_msg(0)
-            .map_err(|e| format!("Runtime server error getting message: '{}'", e))?;
-        Ok(CM::from(msg))
+            .map_err(|e| format!("Server error getting message: '{}'", e))?;
+
+        let message = CM::from(msg);
+        trace!(
+            "                ---> Server Received on {} {}",
+            self.port,
+            message
+        );
+        Ok(message)
     }
 
     /// Try to get a Message sent from the client to the server but without blocking
@@ -161,25 +173,23 @@ where
         let responder = self
             .responder
             .as_ref()
-            .chain_err(|| "Runtime server connection not started")?;
+            .chain_err(|| "Server connection not started")?;
         let msg = responder
             .recv_msg(DONTWAIT)
-            .chain_err(|| "Runtime server could not receive message")?;
+            .chain_err(|| "Server could not receive message")?;
 
-        Ok(CM::from(msg))
+        let message = CM::from(msg);
+        trace!(
+            "                ---> Server Received on {} {}",
+            self.port,
+            message
+        );
+        Ok(message)
     }
 
     /// Send a Message from the server to the Client and wait for it's response
     pub fn send_message(&mut self, message: SM) -> Result<CM> {
-        let responder = self
-            .responder
-            .as_ref()
-            .chain_err(|| "Runtime server connection not started")?;
-
-        responder
-            .send(message, 0)
-            .map_err(|e| format!("Runtime server error sending to client: '{}'", e))?;
-
+        self.send_message_only(message)?;
         self.get_message()
     }
 
@@ -188,11 +198,17 @@ where
         let responder = self
             .responder
             .as_ref()
-            .chain_err(|| "Runtime server connection not started")?;
+            .chain_err(|| "Server connection not started")?;
+
+        trace!(
+            "                <--- Server Sent on {}: {}",
+            self.port,
+            message
+        );
 
         responder
             .send(message, 0)
-            .map_err(|e| format!("Runtime server error sending to client: '{}'", e))?;
+            .map_err(|e| format!("Server error sending to client: '{}'", e))?;
 
         Ok(())
     }
@@ -202,10 +218,10 @@ where
         let responder = self
             .responder
             .as_ref()
-            .chain_err(|| "Runtime server connection not started")?;
+            .chain_err(|| "Server connection not started")?;
 
         responder
             .disconnect("")
-            .chain_err(|| "Error trying to disconnect responder")
+            .chain_err(|| "Server error trying to disconnect responder")
     }
 }

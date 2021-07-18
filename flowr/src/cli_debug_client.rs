@@ -249,9 +249,9 @@ impl CliDebugClient {
                 println!("Error occurred executing a Job: \n'{}'", job);
                 return self.get_user_command(job.job_id);
             }
-            EnteringDebugger => {
-                println!("Entering Debugger. Use 'h' or 'help' for help on commands")
-            }
+            EnteringDebugger => println!(
+                "Server is Entering Debugger. Use 'h' or 'help' for help on commands at the prompt"
+            ),
             ExitingDebugger => println!("Debugger is exiting"),
             ExecutionStarted => println!("Running flow"),
             ExecutionEnded => println!("Flow has completed"),

@@ -1,3 +1,5 @@
+use std::fmt;
+
 use serde_derive::{Deserialize, Serialize};
 #[cfg(feature = "distributed")]
 use zmq::Message;
@@ -40,6 +42,33 @@ pub enum ServerMessage {
     Invalid,
 }
 
+impl fmt::Display for ServerMessage {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(
+            f,
+            "ServerMessage {}",
+            match self {
+                ServerMessage::FlowStart => "FlowStart",
+                #[cfg(feature = "metrics")]
+                ServerMessage::FlowEnd(_) => "FlowEnd",
+                #[cfg(not(feature = "metrics"))]
+                ServerMessage::FlowEnd => "FlowEnd",
+                ServerMessage::ServerExiting => "ServerExiting",
+                ServerMessage::Stdout(_) => "Stdout",
+                ServerMessage::Stderr(_) => "Stderr",
+                ServerMessage::GetStdin => "GetStdIn",
+                ServerMessage::GetLine => "GetLine",
+                ServerMessage::GetArgs => "GetArgs",
+                ServerMessage::Write(_, _) => "Write",
+                ServerMessage::PixelWrite(_, _, _, _) => "PixelWrite",
+                ServerMessage::StdoutEof => "StdOutEof",
+                ServerMessage::StderrEof => "StdErrEof",
+                ServerMessage::Invalid => "Invalid",
+            }
+        )
+    }
+}
+
 unsafe impl Send for ServerMessage {}
 
 unsafe impl Sync for ServerMessage {}
@@ -69,6 +98,28 @@ pub enum ClientMessage {
     EnterDebugger,
     /// Invalid - used when deserialization goes wrong
     Invalid,
+}
+
+impl fmt::Display for ClientMessage {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(
+            f,
+            "ClientMessage {}",
+            match self {
+                ClientMessage::Ack => "Ack",
+                ClientMessage::Stdin(_) => "Stdin",
+                ClientMessage::Line(_) => "Line",
+                ClientMessage::Args(_) => "Args",
+                ClientMessage::Error(_) => "Error",
+                ClientMessage::GetStdinEof => "GetStdinEof",
+                ClientMessage::GetLineEof => "GetLineEof",
+                ClientMessage::ClientExiting => "ClientExiting",
+                ClientMessage::ClientSubmission(_) => "ClientSubmission",
+                ClientMessage::EnterDebugger => "EnterDebugger",
+                ClientMessage::Invalid => "Invalid",
+            }
+        )
+    }
 }
 
 unsafe impl Send for ClientMessage {}

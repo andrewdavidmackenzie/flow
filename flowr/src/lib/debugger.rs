@@ -84,8 +84,6 @@ impl Debugger {
     /// Enter the debugger - which will cause it to wait for a valid debugger command
     /// Return values are (display next output, reset execution, exit_debugger)
     pub fn enter(&mut self, state: &RunState) -> (bool, bool, bool) {
-        let _: Result<DebugClientMessage> =
-            self.debug_server_connection.send_message(EnteringDebugger);
         self.wait_for_command(state)
     }
 
@@ -233,11 +231,14 @@ impl Debugger {
            (display next output, reset execution)
     */
     fn wait_for_command(&mut self, state: &RunState) -> (bool, bool, bool) {
+        // swallow the first ack message to initialize the connection
+        let _ = self.debug_server_connection.get_message();
+
         loop {
-            let _: Result<DebugClientMessage> = self
+            match self
                 .debug_server_connection
-                .send_message(WaitingForCommand(state.jobs_created()));
-            match self.debug_server_connection.get_message() {
+                .send_message(WaitingForCommand(state.jobs_created()))
+            {
                 // *************************      The following are commands that send a response
                 Ok(Breakpoint(param)) => {
                     let event = self.add_breakpoint(state, param);

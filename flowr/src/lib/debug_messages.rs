@@ -1,3 +1,5 @@
+use std::fmt;
+
 use serde_derive::{Deserialize, Serialize};
 use serde_json::Value;
 #[cfg(feature = "distributed")]
@@ -77,6 +79,39 @@ pub enum DebugServerMessage {
     Invalid,
 }
 
+impl fmt::Display for DebugServerMessage {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(
+            f,
+            "DebugServerMessage {}",
+            match self {
+                DebugServerMessage::JobCompleted(_, _, _) => "JobCompleted",
+                DebugServerMessage::EnteringDebugger => "EnteringDebugger",
+                DebugServerMessage::ExitingDebugger => "ExitingDebugger",
+                DebugServerMessage::PriorToSendingJob(_, _) => "PriorToSendingJob",
+                DebugServerMessage::BlockBreakpoint(_) => "BlockBreakpoint",
+                DebugServerMessage::DataBreakpoint(_, _, _, _, _) => "DataBreakpoint",
+                DebugServerMessage::Panic(_, _) => "Panic",
+                DebugServerMessage::JobError(_) => "JobError",
+                DebugServerMessage::ExecutionStarted => "ExecutionStarted",
+                DebugServerMessage::ExecutionEnded => "ExecutionEnded",
+                DebugServerMessage::Deadlock(_) => "Deadlock",
+                DebugServerMessage::SendingValue(_, _, _, _) => "SendingValue",
+                DebugServerMessage::Error(_) => "Error",
+                DebugServerMessage::FunctionState(_) => "FunctionState",
+                DebugServerMessage::OverallState(_) => "OverallState",
+                DebugServerMessage::InputState(_) => "InputState",
+                DebugServerMessage::OutputState(_) => "OutputState",
+                DebugServerMessage::BlockState(_) => "BlockState",
+                DebugServerMessage::Message(_) => "Message",
+                DebugServerMessage::Resetting => "Resetting",
+                DebugServerMessage::WaitingForCommand(_) => "WaitingForCommand",
+                DebugServerMessage::Invalid => "Invalid",
+            }
+        )
+    }
+}
+
 /// A Message sent by the debug_client to the debug server
 #[derive(Serialize, Deserialize)]
 pub enum DebugClientMessage {
@@ -112,6 +147,33 @@ pub enum DebugClientMessage {
     Step(Option<Param>),
     /// `validate` the current state
     Validate,
+}
+
+impl fmt::Display for DebugClientMessage {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(
+            f,
+            "DebugClientMessage {}",
+            match self {
+                DebugClientMessage::Ack => "Ack",
+                DebugClientMessage::Breakpoint(_) => "Breakpoint",
+                DebugClientMessage::Continue => "Continue",
+                DebugClientMessage::Delete(_) => "Delete",
+                DebugClientMessage::Error(_) => "Error",
+                DebugClientMessage::ExitDebugger => "ExitDebugger",
+                DebugClientMessage::InspectFunction(_) => "InspectFunction",
+                DebugClientMessage::Inspect => "Inspect",
+                DebugClientMessage::InspectInput(_, _) => "InspectInput",
+                DebugClientMessage::InspectOutput(_, _) => "InspectOutput",
+                DebugClientMessage::InspectBlock(_, _) => "InspectBlock",
+                DebugClientMessage::Invalid => "Invalid",
+                DebugClientMessage::List => "List",
+                DebugClientMessage::RunReset => "RunReset",
+                DebugClientMessage::Step(_) => "Step",
+                DebugClientMessage::Validate => "Validate",
+            }
+        )
+    }
 }
 
 #[cfg(feature = "distributed")]

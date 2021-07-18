@@ -215,11 +215,11 @@ impl Coordinator {
         mode: Mode,
         server_hostname: &Option<String>,
     ) -> Result<ClientConnection> {
-        let runtime_server_context = ServerConnection::new(server_hostname);
-        let runtime_client_connection = ClientConnection::new(&runtime_server_context);
+        let runtime_server_connection = ServerConnection::new(server_hostname, 5555);
+        let runtime_client_connection = ClientConnection::new(&runtime_server_connection);
 
         if mode != Mode::ClientOnly {
-            let mut coordinator = Coordinator::new(runtime_server_context, num_threads);
+            let mut coordinator = Coordinator::new(runtime_server_connection, num_threads);
 
             if mode == Mode::ServerOnly {
                 info!("Starting 'flowr' server on main thread");
