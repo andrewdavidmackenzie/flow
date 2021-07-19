@@ -475,11 +475,10 @@ impl Coordinator {
             .send(ServerMessage::FlowEnd)
     }
 
-    /* TODO - this is not working yet :-(
-
-       See if the runtime client has sent us a message to request us to enter the debugger.
-
-       Absence of a message is returned as an Error.
+    /*
+       See if the runtime client has sent a message to request us to enter the debugger,
+       if so, return Ok(true).
+       A different message or Absence of a message returns Ok(false)
     */
     #[cfg(feature = "debugger")]
     fn should_enter_debugger(&mut self) -> Result<bool> {
@@ -487,10 +486,10 @@ impl Coordinator {
             .runtime_server_connection
             .lock()
             .map_err(|_| "Could not lock server context")?
-            .receive();
+            .receive_no_wait();
         match msg {
             Ok(ClientMessage::EnterDebugger) => {
-                debug!("Got enter debugger message");
+                debug!("Got EnterDebugger message");
                 Ok(true)
             }
             Ok(m) => {
