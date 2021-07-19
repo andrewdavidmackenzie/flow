@@ -1431,6 +1431,7 @@ mod test {
     /********************************* State Transition Tests *********************************/
     mod state_transitions {
         use serde_json::json;
+        use serial_test::serial;
         use url::Url;
 
         use flowcore::function::Function;
@@ -1666,6 +1667,7 @@ mod test {
             assert_eq!(State::Waiting, state.get_state(0), "f_a should be Waiting");
         }
 
+        #[serial]
         #[test]
         fn blocked_to_ready_on_done() {
             let f_a = super::test_function_a_to_b();
@@ -1681,7 +1683,8 @@ mod test {
             #[cfg(feature = "metrics")]
             let mut metrics = Metrics::new(2);
             #[cfg(feature = "debugger")]
-            let debug_server_context = ServerConnection::new(&None, 5556);
+            let debug_server_context =
+                ServerConnection::new(&None, 5556).expect("Could not create connections");
             #[cfg(feature = "debugger")]
             let mut debugger = Debugger::new(debug_server_context);
 
@@ -1718,6 +1721,7 @@ mod test {
         }
 
         #[test]
+        #[serial]
         fn output_not_found() {
             let f_a = super::test_function_a_to_b();
             let f_b = super::test_function_b_init();
@@ -1732,7 +1736,8 @@ mod test {
             #[cfg(feature = "metrics")]
             let mut metrics = Metrics::new(2);
             #[cfg(feature = "debugger")]
-            let debug_server_context = ServerConnection::new(&None, 5556);
+            let debug_server_context =
+                ServerConnection::new(&None, 5556).expect("Could not create connection");
             #[cfg(feature = "debugger")]
             let mut debugger = Debugger::new(debug_server_context);
 
@@ -1783,6 +1788,7 @@ mod test {
         }
 
         #[test]
+        #[serial]
         fn process_error_output() {
             let f_a = super::test_function_a_init();
             let f_b = super::test_function_b_not_init();
@@ -1797,7 +1803,8 @@ mod test {
             #[cfg(feature = "metrics")]
             let mut metrics = Metrics::new(2);
             #[cfg(feature = "debugger")]
-            let debug_server_context = ServerConnection::new(&None, 5556);
+            let debug_server_context =
+                ServerConnection::new(&None, 5556).expect("Could not create connection");
             #[cfg(feature = "debugger")]
             let mut debugger = Debugger::new(debug_server_context);
 
@@ -1829,6 +1836,7 @@ mod test {
         }
 
         #[test]
+        #[serial]
         fn running_to_ready_on_done() {
             let f_a = Function::new(
                 #[cfg(feature = "debugger")]
@@ -1853,7 +1861,8 @@ mod test {
             #[cfg(feature = "metrics")]
             let mut metrics = Metrics::new(1);
             #[cfg(feature = "debugger")]
-            let debug_server_context = ServerConnection::new(&None, 5556);
+            let debug_server_context =
+                ServerConnection::new(&None, 5556).expect("Could not create connection");
             #[cfg(feature = "debugger")]
             let mut debugger = Debugger::new(debug_server_context);
             state.init();
@@ -1884,6 +1893,7 @@ mod test {
 
         // Done: it has one input or more empty, to it can't run
         #[test]
+        #[serial]
         fn running_to_waiting_on_done() {
             let f_a = super::test_function_a_init();
             let functions = vec![f_a];
@@ -1897,7 +1907,8 @@ mod test {
             #[cfg(feature = "metrics")]
             let mut metrics = Metrics::new(1);
             #[cfg(feature = "debugger")]
-            let debug_server_context = ServerConnection::new(&None, 5556);
+            let debug_server_context =
+                ServerConnection::new(&None, 5556).expect("Could not create connection");
             #[cfg(feature = "debugger")]
             let mut debugger = Debugger::new(debug_server_context);
             state.init();
@@ -1928,6 +1939,7 @@ mod test {
 
         // Done: at least one destination input is full, so can't run  running_to_blocked_on_done
         #[test]
+        #[serial]
         fn running_to_blocked_on_done() {
             let out_conn = OutputConnection::new(
                 Source::default(),
@@ -1964,7 +1976,8 @@ mod test {
             #[cfg(feature = "metrics")]
             let mut metrics = Metrics::new(1);
             #[cfg(feature = "debugger")]
-            let debug_server_context = ServerConnection::new(&None, 5556);
+            let debug_server_context =
+                ServerConnection::new(&None, 5556).expect("Could not create connection");
             #[cfg(feature = "debugger")]
             let mut debugger = Debugger::new(debug_server_context);
 
@@ -1996,6 +2009,7 @@ mod test {
         }
 
         #[test]
+        #[serial]
         fn waiting_to_ready_on_input() {
             let f_a = test_function_a_not_init();
             let out_conn = OutputConnection::new(
@@ -2032,7 +2046,8 @@ mod test {
             #[cfg(feature = "metrics")]
             let mut metrics = Metrics::new(1);
             #[cfg(feature = "debugger")]
-            let debug_server_context = ServerConnection::new(&None, 5556);
+            let debug_server_context =
+                ServerConnection::new(&None, 5556).expect("Could not create connection");
             #[cfg(feature = "debugger")]
             let mut debugger = Debugger::new(debug_server_context);
 
@@ -2058,6 +2073,7 @@ mod test {
             fB (#1) has an input with a ConstantInitializer, outputs back to #0 (fA)
         */
         #[test]
+        #[serial]
         fn waiting_to_blocked_on_input() {
             let f_a = super::test_function_a_to_b_not_init();
             let connection_to_f0 = OutputConnection::new(
@@ -2094,7 +2110,8 @@ mod test {
             #[cfg(feature = "metrics")]
             let mut metrics = Metrics::new(1);
             #[cfg(feature = "debugger")]
-            let debug_server_context = ServerConnection::new(&None, 5556);
+            let debug_server_context =
+                ServerConnection::new(&None, 5556).expect("Could not create connection");
             #[cfg(feature = "debugger")]
             let mut debugger = Debugger::new(debug_server_context);
 
@@ -2133,6 +2150,7 @@ mod test {
             (not waiting for an input from elsewhere and no deadlock due to blocking itself occurs
         */
         #[test]
+        #[serial]
         fn not_block_on_self() {
             let connection_to_0 = OutputConnection::new(
                 Source::default(),
@@ -2184,7 +2202,8 @@ mod test {
             #[cfg(feature = "metrics")]
             let mut metrics = Metrics::new(2);
             #[cfg(feature = "debugger")]
-            let debug_server_context = ServerConnection::new(&None, 5556);
+            let debug_server_context =
+                ServerConnection::new(&None, 5556).expect("Could not create connection");
             #[cfg(feature = "debugger")]
             let mut debugger = Debugger::new(debug_server_context);
 
@@ -2261,6 +2280,9 @@ mod test {
     /****************************** Miscellaneous tests **************************/
     mod functional_tests {
         use serde_json::json;
+        // Tests using Debugger (and hence Client/Server connection) need to be executed in parallel
+        // to avoid multiple trying to bind to the same socket at the same time
+        use serial_test::serial;
         use url::Url;
 
         use flowcore::function::Function;
@@ -2342,6 +2364,7 @@ mod test {
         }
 
         #[test]
+        #[serial]
         fn blocked_works() {
             let submission = Submission::new(
                 &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
@@ -2351,7 +2374,8 @@ mod test {
             );
             let mut state = RunState::new(&test_functions(), submission);
             #[cfg(feature = "debugger")]
-            let debug_server_context = ServerConnection::new(&None, 5556);
+            let debug_server_context =
+                ServerConnection::new(&None, 5556).expect("Could not create connection");
             #[cfg(feature = "debugger")]
             let mut debugger = Debugger::new(debug_server_context);
 
@@ -2433,6 +2457,7 @@ mod test {
         }
 
         #[test]
+        #[serial]
         fn blocked_is_not_ready() {
             let submission = Submission::new(
                 &Url::parse("file://temp/fake.toml").expect("Could not create Url"),
@@ -2442,7 +2467,8 @@ mod test {
             );
             let mut state = RunState::new(&test_functions(), submission);
             #[cfg(feature = "debugger")]
-            let debug_server_context = ServerConnection::new(&None, 5556);
+            let debug_server_context =
+                ServerConnection::new(&None, 5556).expect("Could not create connection");
             #[cfg(feature = "debugger")]
             let mut debugger = Debugger::new(debug_server_context);
 
@@ -2464,6 +2490,7 @@ mod test {
         }
 
         #[test]
+        #[serial]
         fn unblocking_makes_ready() {
             let submission = Submission::new(
                 &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
@@ -2473,7 +2500,8 @@ mod test {
             );
             let mut state = RunState::new(&test_functions(), submission);
             #[cfg(feature = "debugger")]
-            let debug_server_context = ServerConnection::new(&None, 5556);
+            let debug_server_context =
+                ServerConnection::new(&None, 5556).expect("Could not create connection");
             #[cfg(feature = "debugger")]
             let mut debugger = Debugger::new(debug_server_context);
 
@@ -2503,6 +2531,7 @@ mod test {
         }
 
         #[test]
+        #[serial]
         fn unblocking_doubly_blocked_functions_not_ready() {
             let submission = Submission::new(
                 &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
@@ -2511,8 +2540,10 @@ mod test {
                 true,
             );
             let mut state = RunState::new(&test_functions(), submission);
+
             #[cfg(feature = "debugger")]
-            let debug_server_context = ServerConnection::new(&None, 5556);
+            let debug_server_context =
+                ServerConnection::new(&None, 5556).expect("Could not create server connection");
             #[cfg(feature = "debugger")]
             let mut debugger = Debugger::new(debug_server_context);
 
@@ -2575,6 +2606,7 @@ mod test {
             some output) can be executed and nothing crashes
         */
         #[test]
+        #[serial]
         fn pure_function_no_destinations() {
             let f_a = super::test_function_a_init();
 
@@ -2589,7 +2621,8 @@ mod test {
             #[cfg(feature = "metrics")]
             let mut metrics = Metrics::new(1);
             #[cfg(feature = "debugger")]
-            let debug_server_context = ServerConnection::new(&None, 5556);
+            let debug_server_context =
+                ServerConnection::new(&None, 5556).expect("Could not create connection");
             #[cfg(feature = "debugger")]
             let mut debugger = Debugger::new(debug_server_context);
             state.init();

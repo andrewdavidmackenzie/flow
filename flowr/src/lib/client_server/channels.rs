@@ -26,21 +26,15 @@ where
     CM: Deserialize<'a>,
 {
     /// Create a new connection between client and server
-    pub fn new(runtime_server_context: &ServerConnection<SM, CM>) -> Self {
-        ClientConnection {
+    pub fn new(runtime_server_context: &ServerConnection<SM, CM>) -> Result<Self> {
+        Ok(ClientConnection {
             channels: runtime_server_context.get_channels(),
             phantom: PhantomData,
-        }
-    }
-
-    /// Start the client side of the client/server connection by connecting to TCP Socket
-    /// server is listening on.
-    pub fn start(&mut self) -> Result<()> {
-        Ok(())
+        })
     }
 
     /// Receive a Message from the runtime Server
-    pub fn client_recv(&self) -> Result<SM> {
+    pub fn receive(&self) -> Result<SM> {
         let guard = self
             .channels
             .0
@@ -52,7 +46,7 @@ where
     }
 
     /// Send a Message from the runtime client to the runtime server
-    pub fn client_send(&self, message: CM) -> Result<()> {
+    pub fn send(&self, message: CM) -> Result<()> {
         self.channels
             .1
             .send(message)
@@ -83,21 +77,16 @@ where
     CM: Deserialize<'a>,
 {
     /// Create a new Server side of the client/server Connection
-    pub fn new(_server_hostname: &Option<String>, _port: usize) -> Self {
+    pub fn new(_server_hostname: &Option<String>, _port: usize) -> Result<Self> {
         let (client_event_channel_tx, client_event_channel_rx) = mpsc::channel();
         let (client_response_channel_tx, client_response_channel_rx) = mpsc::channel();
 
-        ServerConnection {
+        OK(ServerConnection {
             server_tx: client_event_channel_tx,
             client_rx: Arc::new(Mutex::new(client_event_channel_rx)),
             client_tx: client_response_channel_tx,
             server_rx: client_response_channel_rx,
-        }
-    }
-
-    /// Start the Server side of client/server connection, by creating a Socket and Binding to it
-    pub fn start(&self) -> Result<()> {
-        Ok(())
+        })
     }
 
     /// Get the channels a client should use to send to the server
@@ -107,21 +96,21 @@ where
     }
 
     /// Get a Message sent to the client from the server
-    pub fn get_message(&self) -> Result<CM> {
+    pub fn receive(&self) -> Result<CM> {
         self.server_rx
             .recv()
             .chain_err(|| "Error receiving response from client")
     }
 
     /// Try to get a Message sent to the client to the server but without blocking
-    pub fn get_message_no_wait(&self) -> Result<CM> {
+    pub fn receive_no_wait(&self) -> Result<CM> {
         self.server_rx
             .try_recv()
             .chain_err(|| "Error receiving response from client")
     }
 
     /// Send a server Message to the client and wait for it's response
-    pub fn send_message(&mut self, message: SM) -> Result<CM> {
+    pub fn send_and_receive_response(&mut self, message: SM) -> Result<CM> {
         self.server_tx
             .send(message)
             .map_err(|e| format!("Error sending to client: '{}'", e))?;
@@ -130,7 +119,7 @@ where
     }
 
     /// Send a server Message to the client but don't wait for it's response
-    pub fn send_message_only(&mut self, message: SM) -> Result<()> {
+    pub fn send(&mut self, message: SM) -> Result<()> {
         self.server_tx
             .send(message)
             .map_err(|e| format!("Error sending to client: '{}'", e))?;
