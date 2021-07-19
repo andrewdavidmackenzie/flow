@@ -26,23 +26,23 @@ where
     CM: Deserialize<'a>,
 {
     /// Create a new connection between client and server
-    pub fn new(runtime_server_context: &ServerConnection<SM, CM>) -> Result<Self> {
+    pub fn new(runtime_server_connection: &ServerConnection<SM, CM>) -> Result<Self> {
         Ok(ClientConnection {
-            channels: runtime_server_context.get_channels(),
+            channels: runtime_server_connection.get_channels(),
             phantom: PhantomData,
         })
     }
 
-    /// Receive a Message from the runtime Server
+    /// Receive a Message from the server
     pub fn receive(&self) -> Result<SM> {
         let guard = self
             .channels
             .0
             .lock()
-            .map_err(|_| "Could not lock client Event reception channel")?;
+            .map_err(|_| "Could not lock client message reception channel")?;
         guard
             .recv()
-            .chain_err(|| "Error receiving Event from client channel")
+            .chain_err(|| "Error receiving message from client channel")
     }
 
     /// Send a Message from the runtime client to the runtime server
@@ -81,7 +81,7 @@ where
         let (client_event_channel_tx, client_event_channel_rx) = mpsc::channel();
         let (client_response_channel_tx, client_response_channel_rx) = mpsc::channel();
 
-        OK(ServerConnection {
+        Ok(ServerConnection {
             server_tx: client_event_channel_tx,
             client_rx: Arc::new(Mutex::new(client_event_channel_rx)),
             client_tx: client_response_channel_tx,
@@ -115,7 +115,7 @@ where
             .send(message)
             .map_err(|e| format!("Error sending to client: '{}'", e))?;
 
-        self.get_message()
+        self.receive()
     }
 
     /// Send a server Message to the client but don't wait for it's response
