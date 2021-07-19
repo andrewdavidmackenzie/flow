@@ -121,7 +121,7 @@ pub struct Coordinator {
 ///                                     1 /* num_parallel_jobs */,
 ///                                     true /* enter debugger on start */);
 ///
-/// runtime_client_connection.client_send(ClientSubmission(submission)).unwrap();
+/// runtime_client_connection.send(ClientSubmission(submission)).unwrap();
 /// exit(0);
 /// ```
 ///
@@ -171,12 +171,12 @@ impl Coordinator {
         ClientConnection<'a, ServerMessage, ClientMessage>,
         ClientConnection<'a, DebugServerMessage, DebugClientMessage>,
     )> {
-        let runtime_server_connection = ServerConnection::new(server_hostname, 5555);
-        let debug_server_connection = ServerConnection::new(server_hostname, 5556);
+        let runtime_server_connection = ServerConnection::new(server_hostname, 5555)?;
+        let debug_server_connection = ServerConnection::new(server_hostname, 5556)?;
 
-        let runtime_client_connection = ClientConnection::new(&runtime_server_connection);
-        let control_c_connection = ClientConnection::new(&runtime_server_connection);
-        let debug_client_connection = ClientConnection::new(&debug_server_connection);
+        let runtime_client_connection = ClientConnection::new(&runtime_server_connection)?;
+        let control_c_connection = ClientConnection::new(&runtime_server_connection)?;
+        let debug_client_connection = ClientConnection::new(&debug_server_connection)?;
 
         if mode != Mode::ClientOnly {
             let mut coordinator = Coordinator::new(
@@ -292,7 +292,7 @@ impl Coordinator {
             .lock()
             .map_err(|e| format!("Could not lock Server Connection: {}", e))?;
 
-        connection.send_message_only(ServerMessage::ServerExiting)?;
+        connection.send(ServerMessage::ServerExiting)?;
         connection.close()
     }
 
@@ -301,17 +301,10 @@ impl Coordinator {
     // If the message is `ClientExiting` then return None
     // If the message is any other then loop until we find one of the above
     fn wait_for_submission(&mut self) -> Result<Option<Submission>> {
-        self.runtime_server_connection
-            .lock()
-            .map_err(|e| format!("Could not lock Server Connection: {}", e))?
-            .start()?;
-        #[cfg(feature = "debugger")]
-        self.debugger.start();
-
         loop {
             info!("'flowr' server is waiting to receive a 'Submission'");
             match self.runtime_server_connection.lock() {
-                Ok(guard) => match guard.get_message() {
+                Ok(guard) => match guard.receive() {
                     Ok(ClientMessage::ClientSubmission(submission)) => {
                         debug!(
                             "Server received a submission for execution with manifest_url: '{}'",
@@ -362,7 +355,7 @@ impl Coordinator {
             self.runtime_server_connection
                 .lock()
                 .map_err(|_| "Could not lock server context")?
-                .send_message(ServerMessage::FlowStart)?;
+                .send_and_receive_response(ServerMessage::FlowStart)?;
 
             'jobs: loop {
                 trace!("{}", state);
@@ -471,7 +464,7 @@ impl Coordinator {
         self.runtime_server_connection
             .lock()
             .map_err(|_| "Could not lock server context")?
-            .send_message_only(ServerMessage::FlowEnd(metrics))
+            .send(ServerMessage::FlowEnd(metrics))
     }
 
     #[cfg(not(feature = "metrics"))]
@@ -479,7 +472,7 @@ impl Coordinator {
         self.runtime_server_connection
             .lock()
             .map_err(|_| "Could not lock server context")?
-            .send_message_only(ServerMessage::FlowEnd)
+            .send(ServerMessage::FlowEnd)
     }
 
     /* TODO - this is not working yet :-(
@@ -494,7 +487,7 @@ impl Coordinator {
             .runtime_server_connection
             .lock()
             .map_err(|_| "Could not lock server context")?
-            .get_message();
+            .receive();
         match msg {
             Ok(ClientMessage::EnterDebugger) => {
                 debug!("Got enter debugger message");

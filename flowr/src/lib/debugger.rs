@@ -76,11 +76,6 @@ impl Debugger {
         }
     }
 
-    /// Start the debugger - preparing it to be entered later when needed
-    pub fn start(&mut self) {
-        let _ = self.debug_server_connection.start();
-    }
-
     /// Enter the debugger - which will cause it to wait for a valid debugger command
     /// Return values are (display next output, reset execution, exit_debugger)
     pub fn enter(&mut self, state: &RunState) -> (bool, bool, bool) {
@@ -91,9 +86,13 @@ impl Debugger {
     /// being executed. It is used to inform the debug client of the fact.
     /// Return values are (display next output, reset execution)
     pub fn job_completed(&mut self, job: &Job) -> (bool, bool, bool) {
-        let _: Result<DebugClientMessage> = self.debug_server_connection.send_message(
-            JobCompleted(job.job_id, job.function_id, job.result.0.clone()),
-        );
+        let _: Result<DebugClientMessage> =
+            self.debug_server_connection
+                .send_and_receive_response(JobCompleted(
+                    job.job_id,
+                    job.function_id,
+                    job.result.0.clone(),
+                ));
         (false, false, false)
     }
 
@@ -108,14 +107,16 @@ impl Debugger {
         if self.break_at_job == next_job_id || self.function_breakpoints.contains(&function_id) {
             let _: Result<DebugClientMessage> = self
                 .debug_server_connection
-                .send_message(PriorToSendingJob(next_job_id, function_id));
+                .send_and_receive_response(PriorToSendingJob(next_job_id, function_id));
 
             // display the status of the function we stopped prior to executing
             let event = DebugServerMessage::FunctionState((
                 state.get(function_id).clone(),
                 state.get_state(function_id),
             ));
-            let _: Result<DebugClientMessage> = self.debug_server_connection.send_message(event);
+            let _: Result<DebugClientMessage> = self
+                .debug_server_connection
+                .send_and_receive_response(event);
 
             return self.wait_for_command(state);
         }
@@ -139,7 +140,7 @@ impl Debugger {
         {
             let _: Result<DebugClientMessage> = self
                 .debug_server_connection
-                .send_message(BlockBreakpoint(block.clone()));
+                .send_and_receive_response(BlockBreakpoint(block.clone()));
             return self.wait_for_command(state);
         }
 
@@ -166,15 +167,17 @@ impl Debugger {
                 .input_breakpoints
                 .contains(&(destination_id, input_number))
         {
-            let _: Result<DebugClientMessage> =
-                self.debug_server_connection.send_message(SendingValue(
+            let _: Result<DebugClientMessage> = self
+                .debug_server_connection
+                .send_and_receive_response(SendingValue(
                     source_process_id,
                     value.clone(),
                     destination_id,
                     input_number,
                 ));
-            let _: Result<DebugClientMessage> =
-                self.debug_server_connection.send_message(DataBreakpoint(
+            let _: Result<DebugClientMessage> = self
+                .debug_server_connection
+                .send_and_receive_response(DataBreakpoint(
                     source_process_id,
                     output_route.to_string(),
                     value.clone(),
@@ -194,8 +197,9 @@ impl Debugger {
     /// breakpoint it will enter the debugger on an error and let the user inspect the flow's
     /// state etc.
     pub fn job_error(&mut self, state: &RunState, job: Job) -> (bool, bool, bool) {
-        let _: Result<DebugClientMessage> =
-            self.debug_server_connection.send_message(JobError(job));
+        let _: Result<DebugClientMessage> = self
+            .debug_server_connection
+            .send_and_receive_response(JobError(job));
         self.wait_for_command(state)
     }
 
@@ -208,14 +212,15 @@ impl Debugger {
     pub fn panic(&mut self, state: &RunState, error_message: String) -> (bool, bool, bool) {
         let _: Result<DebugClientMessage> = self
             .debug_server_connection
-            .send_message(Panic(error_message, state.jobs_created()));
+            .send_and_receive_response(Panic(error_message, state.jobs_created()));
         self.wait_for_command(state)
     }
 
     /// Return values are (display next output, reset execution)
     pub fn flow_done(&mut self, state: &RunState) -> (bool, bool, bool) {
-        let _: Result<DebugClientMessage> =
-            self.debug_server_connection.send_message(ExecutionEnded);
+        let _: Result<DebugClientMessage> = self
+            .debug_server_connection
+            .send_and_receive_response(ExecutionEnded);
         self.deadlock_check(state);
         self.wait_for_command(state)
     }
@@ -232,34 +237,42 @@ impl Debugger {
     */
     fn wait_for_command(&mut self, state: &RunState) -> (bool, bool, bool) {
         // swallow the first DebugClientStarting message to initialize the connection
-        let _ = self.debug_server_connection.get_message();
+        let _ = self.debug_server_connection.receive();
 
         loop {
             match self
                 .debug_server_connection
-                .send_message(WaitingForCommand(state.jobs_created()))
+                .send_and_receive_response(WaitingForCommand(state.jobs_created()))
             {
                 // *************************      The following are commands that send a response
                 Ok(Breakpoint(param)) => {
                     let event = self.add_breakpoint(state, param);
-                    let _ = self.debug_server_connection.send_message(event);
+                    let _ = self
+                        .debug_server_connection
+                        .send_and_receive_response(event);
                 }
                 Ok(Delete(param)) => {
                     let event = self.delete_breakpoint(param);
-                    let _ = self.debug_server_connection.send_message(event);
+                    let _ = self
+                        .debug_server_connection
+                        .send_and_receive_response(event);
                 }
                 Ok(Validate) => {
                     let event = self.validate(state);
-                    let _ = self.debug_server_connection.send_message(event);
+                    let _ = self
+                        .debug_server_connection
+                        .send_and_receive_response(event);
                 }
                 Ok(List) => {
                     let event = self.list_breakpoints();
-                    let _ = self.debug_server_connection.send_message(event);
+                    let _ = self
+                        .debug_server_connection
+                        .send_and_receive_response(event);
                 }
                 Ok(Inspect) => {
                     let _ = self
                         .debug_server_connection
-                        .send_message(DebugServerMessage::OverallState(state.clone()));
+                        .send_and_receive_response(DebugServerMessage::OverallState(state.clone()));
                 }
                 Ok(InspectFunction(function_id)) => {
                     let event = if function_id < state.num_functions() {
@@ -271,8 +284,9 @@ impl Debugger {
                         DebugServerMessage::Error(format!("No function with id = {}", function_id))
                     };
 
-                    let _: Result<DebugClientMessage> =
-                        self.debug_server_connection.send_message(event);
+                    let _: Result<DebugClientMessage> = self
+                        .debug_server_connection
+                        .send_and_receive_response(event);
                 }
                 Ok(InspectInput(function_id, input_number)) => {
                     let event = if function_id < state.num_functions() {
@@ -289,8 +303,9 @@ impl Debugger {
                     } else {
                         DebugServerMessage::Error(format!("No function with id = {}", function_id))
                     };
-                    let _: Result<DebugClientMessage> =
-                        self.debug_server_connection.send_message(event);
+                    let _: Result<DebugClientMessage> = self
+                        .debug_server_connection
+                        .send_and_receive_response(event);
                 }
                 Ok(InspectOutput(function_id, sub_route)) => {
                     let event = if function_id < state.num_functions() {
@@ -317,16 +332,20 @@ impl Debugger {
                     } else {
                         DebugServerMessage::Error(format!("No function with id = {}", function_id))
                     };
-                    let _: Result<DebugClientMessage> =
-                        self.debug_server_connection.send_message(event);
+                    let _: Result<DebugClientMessage> = self
+                        .debug_server_connection
+                        .send_and_receive_response(event);
                 }
                 Ok(InspectBlock(from_function_id, to_function_id)) => {
                     let event = Self::inspect_blocks(state, from_function_id, to_function_id);
-                    let _ = self.debug_server_connection.send_message(event);
+                    let _ = self
+                        .debug_server_connection
+                        .send_and_receive_response(event);
                 }
                 Ok(ExitDebugger) => {
-                    let _: Result<DebugClientMessage> =
-                        self.debug_server_connection.send_message(ExitingDebugger);
+                    let _: Result<DebugClientMessage> = self
+                        .debug_server_connection
+                        .send_and_receive_response(ExitingDebugger);
                     return (false, false, true);
                 }
 
@@ -339,12 +358,14 @@ impl Debugger {
                 Ok(RunReset) => {
                     return if state.jobs_created() > 0 {
                         let event = self.reset();
-                        let _: Result<DebugClientMessage> =
-                            self.debug_server_connection.send_message(event);
+                        let _: Result<DebugClientMessage> = self
+                            .debug_server_connection
+                            .send_and_receive_response(event);
                         (false, true, false)
                     } else {
-                        let _: Result<DebugClientMessage> =
-                            self.debug_server_connection.send_message(ExecutionStarted);
+                        let _: Result<DebugClientMessage> = self
+                            .debug_server_connection
+                            .send_and_receive_response(ExecutionStarted);
                         (false, false, false)
                     }
                 }
@@ -577,11 +598,9 @@ impl Debugger {
                 self.break_at_job = state.jobs_created() + steps;
             }
             _ => {
-                let _ = self
-                    .debug_server_connection
-                    .send_message(DebugServerMessage::Error(
-                        "Did not understand step command parameter\n".into(),
-                    ));
+                let _ = self.debug_server_connection.send_and_receive_response(
+                    DebugServerMessage::Error("Did not understand step command parameter\n".into()),
+                );
             }
         }
     }

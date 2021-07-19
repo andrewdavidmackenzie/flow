@@ -63,19 +63,17 @@ impl CliDebugClient {
        Main debug client loop where events are received, processed and responses sent
     */
     fn debug_client_loop(&mut self) {
-        let _ = self.connection.start();
-
         // Send an first message to initialize the connection
         let _ = self
             .connection
-            .client_send(DebugClientMessage::DebugClientStarting);
+            .send(DebugClientMessage::DebugClientStarting);
 
         // loop while? and avoid break?
         loop {
-            match self.connection.client_recv() {
+            match self.connection.receive() {
                 Ok(debug_server_message) => {
                     if let Ok(response) = self.process_event(debug_server_message) {
-                        let _ = self.connection.client_send(response);
+                        let _ = self.connection.send(response);
                     }
                 }
                 Err(err) => {

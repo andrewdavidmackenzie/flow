@@ -16,7 +16,7 @@ pub struct Get {
 impl Implementation for Get {
     fn run(&self, mut _inputs: &[Value]) -> (Option<Value>, RunAgain) {
         if let Ok(mut guard) = self.server_context.lock() {
-            return match guard.send_message(ServerMessage::GetArgs) {
+            return match guard.send_and_receive_response(ServerMessage::GetArgs) {
                 Ok(ClientMessage::Args(arg_vec)) => {
                     let mut output_map = serde_json::Map::new();
 

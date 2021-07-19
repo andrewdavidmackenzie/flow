@@ -16,7 +16,7 @@ pub struct Readline {
 impl Implementation for Readline {
     fn run(&self, _inputs: &[Value]) -> (Option<Value>, RunAgain) {
         if let Ok(mut server) = self.server_context.lock() {
-            return match server.send_message(ServerMessage::GetLine) {
+            return match server.send_and_receive_response(ServerMessage::GetLine) {
                 Ok(ClientMessage::Line(contents)) => {
                     let mut output_map = serde_json::Map::new();
                     if let Ok(value) = serde_json::from_str(&contents) {

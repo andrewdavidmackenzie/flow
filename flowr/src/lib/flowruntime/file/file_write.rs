@@ -21,7 +21,7 @@ impl Implementation for FileWrite {
         if let Ok(mut server) = self.server_context.lock() {
             match bytes.as_str() {
                 Some(string) => {
-                    return match server.send_message(ServerMessage::Write(
+                    return match server.send_and_receive_response(ServerMessage::Write(
                         filename.to_string(),
                         string.as_bytes().to_vec(),
                     )) {

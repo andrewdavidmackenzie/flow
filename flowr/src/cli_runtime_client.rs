@@ -35,7 +35,7 @@ impl CliRuntimeClient {
     /// Enter a loop where we receive events as a client and respond to them
     pub fn event_loop(
         mut self,
-        mut connection: ClientConnection<ServerMessage, ClientMessage>,
+        connection: ClientConnection<ServerMessage, ClientMessage>,
         #[cfg(feature = "debugger")] control_c_connection: ClientConnection<
             'static,
             ServerMessage,
@@ -49,15 +49,12 @@ impl CliRuntimeClient {
             Self::enter_debugger_on_control_c(control_c_connection);
         }
 
-        connection.start()?;
-        trace!("Connection from Runtime client to Runtime server started");
-
         debug!("Client sending submission to server");
-        connection.client_send(ClientSubmission(submission))?;
+        connection.send(ClientSubmission(submission))?;
 
         loop {
             debug!("Client waiting for message from server");
-            match connection.client_recv() {
+            match connection.receive() {
                 Ok(event) => {
                     trace!("Runtime client received event from server: {:?}", event);
                     let response = self.process_event(event);
@@ -67,7 +64,7 @@ impl CliRuntimeClient {
                     }
 
                     trace!("Runtime client sending response to server: {:?}", response);
-                    let _ = connection.client_send(response);
+                    let _ = connection.send(response);
                 }
                 Err(e) => {
                     // When debugging a Control-C to break into the debugger will cause client_recv()
@@ -82,18 +79,16 @@ impl CliRuntimeClient {
 
     #[cfg(feature = "debugger")]
     fn enter_debugger_on_control_c(
-        mut control_c_connection: ClientConnection<'static, ServerMessage, ClientMessage>,
+        control_c_connection: ClientConnection<'static, ServerMessage, ClientMessage>,
     ) {
         ctrlc::set_handler(move || {
             info!("Control-C captured in client.");
-            match control_c_connection.start() {
-                Ok(_) => {
-                    match control_c_connection.client_send(ClientMessage::EnterDebugger) {
-                        Ok(_) => debug!("'EnterDebugger' command sent to Server"),
-                        Err(e) => error!("Error sending 'EnterDebugger' command to server on control_c_connection: {}", e)
-                    }
-                }
-                Err(e) => error!("Error starting control_c_connection to Server: {}", e)
+            match control_c_connection.send(ClientMessage::EnterDebugger) {
+                Ok(_) => debug!("'EnterDebugger' command sent to Server"),
+                Err(e) => error!(
+                    "Error sending 'EnterDebugger' command to server on control_c_connection: {}",
+                    e
+                ),
             }
         })
         .expect("Error setting Ctrl-C handler");

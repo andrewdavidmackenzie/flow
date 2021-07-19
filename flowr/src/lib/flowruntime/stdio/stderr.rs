@@ -20,21 +20,21 @@ impl Implementation for Stderr {
 
         if let Ok(mut server) = self.server_context.lock() {
             let _: Result<ClientMessage> = match input {
-                Value::Null => server.send_message(ServerMessage::StderrEof),
+                Value::Null => server.send_and_receive_response(ServerMessage::StderrEof),
                 Value::String(string) => {
-                    server.send_message(ServerMessage::Stderr(string.to_string()))
+                    server.send_and_receive_response(ServerMessage::Stderr(string.to_string()))
                 }
                 Value::Bool(boolean) => {
-                    server.send_message(ServerMessage::Stderr(boolean.to_string()))
+                    server.send_and_receive_response(ServerMessage::Stderr(boolean.to_string()))
                 }
                 Value::Number(number) => {
-                    server.send_message(ServerMessage::Stderr(number.to_string()))
+                    server.send_and_receive_response(ServerMessage::Stderr(number.to_string()))
                 }
                 Value::Array(_array) => {
-                    server.send_message(ServerMessage::Stdout(input.to_string()))
+                    server.send_and_receive_response(ServerMessage::Stdout(input.to_string()))
                 }
                 Value::Object(_obj) => {
-                    server.send_message(ServerMessage::Stdout(input.to_string()))
+                    server.send_and_receive_response(ServerMessage::Stdout(input.to_string()))
                 }
             };
         }
