@@ -5,7 +5,7 @@ use std::io::prelude::*;
 use std::path::Path;
 
 use image::{ImageBuffer, ImageFormat, Rgb, RgbImage};
-use log::{debug, error, info, trace};
+use log::{debug, error, info};
 
 use flowrlib::client_server::ClientConnection;
 use flowrlib::coordinator::Submission;
@@ -53,21 +53,18 @@ impl CliRuntimeClient {
         connection.send(ClientSubmission(submission))?;
 
         loop {
-            debug!("Client waiting for message from server");
             match connection.receive() {
                 Ok(event) => {
-                    trace!("Runtime client received event from server: {:?}", event);
                     let response = self.process_event(event);
                     if response == ClientMessage::ClientExiting {
-                        debug!("Client has decided to exit, so exit it's event loop.");
+                        debug!("Client has decided to exit, so exiting the event loop.");
                         return Ok(());
                     }
 
-                    trace!("Runtime client sending response to server: {:?}", response);
                     let _ = connection.send(response);
                 }
                 Err(e) => {
-                    // When debugging a Control-C to break into the debugger will cause client_recv()
+                    // When debugging a Control-C to break into the debugger will cause receive()
                     // to return an error. Ignore it so we continue to process events from server
                     if !debugger {
                         bail!("Error receiving Event in runtime client: {}", e);

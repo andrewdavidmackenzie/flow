@@ -76,10 +76,10 @@ impl Debugger {
         }
     }
 
-    /// Enter the debugger - which will cause it to wait for a valid debugger command
-    /// Return values are (display next output, reset execution, exit_debugger)
-    pub fn enter(&mut self, state: &RunState) -> (bool, bool, bool) {
-        self.wait_for_command(state)
+    /// Start the debugger - in this case the only thing to do is swallow the first
+    /// DebugClientStarting message to initialize the connection
+    pub fn start(&mut self) {
+        let _ = self.debug_server_connection.receive();
     }
 
     /// Called from the flowrlib coordinator to inform the debugger that a job has completed
@@ -217,7 +217,7 @@ impl Debugger {
     }
 
     /// Return values are (display next output, reset execution)
-    pub fn flow_done(&mut self, state: &RunState) -> (bool, bool, bool) {
+    pub fn execution_ended(&mut self, state: &RunState) -> (bool, bool, bool) {
         let _: Result<DebugClientMessage> = self
             .debug_server_connection
             .send_and_receive_response(ExecutionEnded);
@@ -225,20 +225,15 @@ impl Debugger {
         self.wait_for_command(state)
     }
 
-    /*
-        The execution flow has entered the debugged based on some event.
-
-        Now wait for and process commands from the DebugClient
-           - execute and respond immediately those that require it
-           - some commands will cause the command loop to exit.
-
-        When exiting return a tuple for the Coordinator to determine what to do:
-           (display next output, reset execution)
-    */
-    fn wait_for_command(&mut self, state: &RunState) -> (bool, bool, bool) {
-        // swallow the first DebugClientStarting message to initialize the connection
-        let _ = self.debug_server_connection.receive();
-
+    /// The execution flow has entered the debugged based on some event.
+    ///
+    /// Now wait for and process commands from the DebugClient
+    /// - execute and respond immediately those that require it
+    /// - some commands will cause the command loop to exit.
+    ///
+    /// When exiting return a tuple for the Coordinator to determine what to do:
+    /// (display next output, reset execution)
+    pub fn wait_for_command(&mut self, state: &RunState) -> (bool, bool, bool) {
         loop {
             match self
                 .debug_server_connection
