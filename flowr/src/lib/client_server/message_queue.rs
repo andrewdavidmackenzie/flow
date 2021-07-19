@@ -52,6 +52,8 @@ where
 
     /// Receive a ServerMessage from the server
     pub fn receive(&self) -> Result<SM> {
+        trace!("Client waiting for message from server");
+
         let msg = self
             .requester
             .recv_msg(0)
@@ -122,6 +124,8 @@ where
 
     /// Receive a Message sent from the client to the server
     pub fn receive(&self) -> Result<CM> {
+        trace!("Server waiting for message from client");
+
         let msg = self
             .responder
             .recv_msg(0)

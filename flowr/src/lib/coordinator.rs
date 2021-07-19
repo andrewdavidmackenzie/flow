@@ -333,6 +333,11 @@ impl Coordinator {
         #[cfg(feature = "metrics")]
         let mut metrics = Metrics::new(state.num_functions());
 
+        #[cfg(feature = "debugger")]
+        if state.debug {
+            self.debugger.start();
+        }
+
         // This outer loop is just a way of restarting execution from scratch if the debugger requests it
         'flow_execution: loop {
             state.init();
@@ -346,7 +351,7 @@ impl Coordinator {
             // If debugging then check if we should enter the debugger
             #[cfg(feature = "debugger")]
             if state.debug {
-                let debug_check = self.debugger.enter(&state);
+                let debug_check = self.debugger.wait_for_command(&state);
                 if debug_check.2 {
                     return Ok(true); // User requested via debugger to exit execution
                 }
@@ -361,7 +366,7 @@ impl Coordinator {
                 trace!("{}", state);
                 #[cfg(feature = "debugger")]
                 if state.debug && self.should_enter_debugger()? {
-                    let debug_check = self.debugger.enter(&state);
+                    let debug_check = self.debugger.wait_for_command(&state);
                     if debug_check.2 {
                         return Ok(true); // User requested via debugger to exit execution
                     }
@@ -434,7 +439,7 @@ impl Coordinator {
                 {
                     // If debugging then enter the debugger for a final time before ending flow execution
                     if state.debug {
-                        let debug_check = self.debugger.flow_done(&state);
+                        let debug_check = self.debugger.execution_ended(&state);
                         if debug_check.2 {
                             return Ok(true); // Exit debugger
                         }
