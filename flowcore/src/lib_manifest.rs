@@ -13,7 +13,7 @@ use crate::Implementation;
 /// The default name used for a Library  Manifest file if none is specified
 pub const DEFAULT_LIB_JSON_MANIFEST_FILENAME: &str = "manifest";
 /// The default name used for a Rust Library Manifest if none is specified
-pub const DEFAULT_LIB_RUST_MANIFEST_FILENAME: &str = "flow_manifest";
+pub const DEFAULT_LIB_RUST_MANIFEST_FILENAME: &str = "lib.rs";
 
 /*
     Implementations can be of two types - either a statically linked function referenced

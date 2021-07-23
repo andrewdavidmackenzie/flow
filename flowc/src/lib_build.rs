@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::{Path, PathBuf};
@@ -21,6 +22,39 @@ use flowcore::lib_provider::{LibProvider, MetaProvider};
 
 use crate::errors::*;
 use crate::Options;
+
+const LIB_HEADER: &str = "#![deny(missing_docs)]
+#![warn(clippy::unwrap_used)]
+
+//! This is the `flowstdlib` standard library of functions for `flow`
+
+use std::sync::Arc;
+
+use url::Url;
+
+use errors::*;
+use flowcore::flow_manifest::MetaData;
+use flowcore::lib_manifest::{ImplementationLocator::Native, LibraryManifest};
+
+/// We'll put our errors in an `errors` module, and other modules in this crate will `use errors::*;`
+/// to get access to everything `error_chain` creates.
+pub mod errors;
+";
+
+const GET_MANIFEST_HEADER: &str = "
+/// Return the LibraryManifest for this library
+pub fn get_manifest() -> Result<LibraryManifest> {
+    let metadata = MetaData {
+        name: env!(\"CARGO_PKG_NAME\").into(),
+        version: env!(\"CARGO_PKG_VERSION\").into(),
+        description: env!(\"CARGO_PKG_DESCRIPTION\").into(),
+        authors: env!(\"CARGO_PKG_AUTHORS\")
+            .split(':')
+            .map(|s| s.to_string())
+            .collect(),
+    };
+    let mut manifest = LibraryManifest::new(metadata);\n
+";
 
 /// Build a library from source and generate a manifest for it so it can be used at runtime when
 /// a flow referencing it is loaded and ran
@@ -47,39 +81,40 @@ pub fn build_lib(options: &Options, provider: &dyn LibProvider) -> Result<String
 
     let manifest_json_file = json_manifest_file(&options.output_dir);
     let manifest_rust_file = rust_manifest_file(&options.output_dir);
-    let manifest_exists = manifest_json_file.exists() && manifest_json_file.is_file();
+    let json_manifest_exists = manifest_json_file.exists() && manifest_json_file.is_file();
+    let rust_manifest_exists = manifest_rust_file.exists() && manifest_rust_file.is_file();
 
-    if manifest_exists {
+    if json_manifest_exists && rust_manifest_exists {
         if build_count > 0 {
-            info!("Library manifest exists, but implementations were built, so updating manifest file");
+            info!("Library manifest file(s) exists, but implementations were built, updating manifest file(s)");
             write_lib_json_manifest(&lib_manifest, &manifest_json_file)?;
             write_lib_rust_manifest(&lib_manifest, &manifest_rust_file)?;
         } else {
             let provider = MetaProvider::new(Simpath::new(""));
-            let manifest_file_as_url = Url::from_file_path(&manifest_json_file)
+            let json_manifest_file_as_url = Url::from_file_path(&manifest_json_file)
                 .map_err(|_| "Could not parse Url from file path")?;
-            if let Ok((existing_manifest, _)) =
-                LibraryManifest::load(&provider, &manifest_file_as_url)
+            if let Ok((existing_json_manifest, _)) =
+                LibraryManifest::load(&provider, &json_manifest_file_as_url)
             {
-                if existing_manifest != lib_manifest {
-                    info!("Library manifest exists, but new manifest has changes, so updating manifest file");
+                if existing_json_manifest != lib_manifest {
+                    info!("Library manifest exists, but new manifest has changes, updating manifest file(s)");
                     write_lib_json_manifest(&lib_manifest, &manifest_json_file)?;
                     write_lib_rust_manifest(&lib_manifest, &manifest_rust_file)?;
                 } else {
                     info!(
-                        "Existing manifest at '{}' is up to date",
-                        manifest_file_as_url
+                        "Existing manifest files at '{}' are up to date",
+                        json_manifest_file_as_url
                     );
                 }
             } else {
-                info!("Could not load existing Library manifest to compare, so writing new manifest file");
+                info!("Could not load existing Library manifest to compare, writing new manifest file(s)");
                 write_lib_json_manifest(&lib_manifest, &manifest_json_file)?;
                 write_lib_rust_manifest(&lib_manifest, &manifest_rust_file)?;
             }
         }
     } else {
         // no existing manifest, so just write the one we've built
-        info!("No existing library manifest, so writing one");
+        info!("Library manifest file(s) missing, writing new manifest file(s)");
         write_lib_json_manifest(&lib_manifest, &manifest_json_file)?;
         write_lib_rust_manifest(&lib_manifest, &manifest_rust_file)?;
     }
@@ -129,6 +164,17 @@ fn write_lib_json_manifest(
     Ok(())
 }
 
+// take a name like 'duplicate_rows' and remove underscores and camel case it to 'DuplicateRows'
+fn camel_case(original: &str) -> String {
+    // split into parts by '_' and Uppercase the first character of the (ASCII) Struct name
+    let words: Vec<String> = original
+        .split('_')
+        .map(|w| format!("{}{}", (&w[..1].to_string()).to_uppercase(), &w[1..]))
+        .collect();
+    // recombine
+    words.join("")
+}
+
 /*
     Generate a manifest for the library in rust for static linking
 */
@@ -137,18 +183,77 @@ fn write_lib_rust_manifest(
     lib_manifest: &LibraryManifest,
     rust_manifest_filename: &Path,
 ) -> Result<()> {
-    println!(
-        "Writing {} to {}",
-        lib_manifest.metadata.name,
-        rust_manifest_filename.to_string_lossy()
+    // Create the file we will be writing to
+    let mut manifest_file = File::create(&rust_manifest_filename)
+        .chain_err(|| "Could not create lib rust manifest file")?;
+
+    // generate the fixed header
+    manifest_file
+        .write_all(LIB_HEADER.as_bytes())
+        .chain_err(|| "Could not write library manifest data bytes to created manifest file")?;
+
+    // Create the list of top level modules
+    let mut modules = HashSet::<&str>::new();
+    for module_url in lib_manifest.locators.keys() {
+        let module_name = module_url
+            .path_segments()
+            .chain_err(|| "Could not get path segments")?
+            .into_iter()
+            .next()
+            .chain_err(|| "Could not get first path segment")?;
+
+        modules.insert(module_name);
+    }
+
+    // generate their pub mod statements
+    for module in modules {
+        manifest_file
+            .write_all(format!("\n/// functions from module '{}'", module).as_bytes())
+            .chain_err(|| "Could not write to rust manifest file")?;
+
+        manifest_file
+            .write_all(format!("\npub mod {};\n", module).as_bytes())
+            .chain_err(|| "Could not write to rust manifest file")?;
+    }
+
+    // generate the get_manifest() function header
+    manifest_file
+        .write_all(GET_MANIFEST_HEADER.as_bytes())
+        .chain_err(|| "Could not write library manifest data bytes to created manifest file")?;
+
+    // generate all the manifest entries
+    for reference in lib_manifest.locators.keys() {
+        let parts: Vec<&str> = reference
+            .path_segments()
+            .chain_err(|| "Could not get Location segments")?
+            .collect::<Vec<&str>>();
+
+        let implementation_struct = format!(
+            "{}::{}",
+            parts[0..parts.len() - 1].join("::"),
+            self::camel_case(parts[2])
+        );
+
+        let manifest_entry = format!(
+            "    manifest.locators.insert(
+            Url::parse(\"{}\")?,
+            Native(Arc::new({})),
+        );\n\n",
+            reference, implementation_struct
+        );
+
+        manifest_file
+            .write_all(manifest_entry.as_bytes())
+            .chain_err(|| "Could not write to manifest file")?;
+    }
+
+    // close the get_manifest() function
+    manifest_file.write_all("    Ok(manifest)\n}".as_bytes())?;
+
+    info!(
+        "Generated library Rust manifest at '{}'",
+        rust_manifest_filename.display()
     );
-    // let mut manifest_file = File::create(&rust_manifest_filename).chain_err(|| "Could not create lib rust manifest file")?;
-    //
-    // manifest_file.write_all(serde_json::to_string_pretty(lib_manifest)
-    //     .chain_err(|| "Could not pretty format the library manifest JSON contents")?
-    //     .as_bytes()).chain_err(|| "Could not write library manifest data bytes to created manifest file")?;
-    //
-    // info!("Generated library JSON manifest at '{}'", rust_manifest_filename.display());
 
     Ok(())
 }
