@@ -8,10 +8,12 @@
 
 use std::env;
 use std::process::exit;
+use std::time::Duration;
 
 use clap::{App, AppSettings, Arg, ArgMatches};
 use log::{error, info, warn};
 use simpath::Simpath;
+use simpdiscoverylib::BeaconSender;
 use simplog::simplog::SimpleLogger;
 use url::Url;
 
@@ -27,6 +29,9 @@ use crate::cli_runtime_client::CliRuntimeClient;
 #[cfg(feature = "debugger")]
 mod cli_debug_client;
 mod cli_runtime_client;
+
+const BEACON_PORT: u16 = 9001;
+const FLOW_SERVICE_NAME: &str = "net.mackenzie-serres.flowr.server";
 
 /// We'll put our errors in an `errors` module, and other modules in this crate will
 /// `use crate::errors::*;` to get access to everything `error_chain` creates.
@@ -99,17 +104,17 @@ fn run() -> Result<()> {
     let lib_search_path = set_lib_search_path(&lib_dirs)?;
 
     let (mode, server_hostname) = if matches.is_present("client") {
+        if let Some(hostname) = matches.value_of("client") {
+            info!("'SERVER_HOSTNAME' set to '{}'", hostname);
+        }
         (Mode::ClientOnly, matches.value_of("client"))
     } else if matches.is_present("server") {
+        start_sending_discovery_beacons()?;
         (Mode::ServerOnly, None)
     } else {
         (Mode::ClientAndServer, None) // the default if nothing specified
     };
-
     info!("Starting 'flowr' in {:?} mode", mode);
-    if let Some(hostname) = server_hostname {
-        info!("'SERVER_HOSTNAME' set to '{}'", hostname);
-    }
 
     // Start the coordinator server either on the main thread or as a background thread
     // depending on the value of the "server_only" option
@@ -162,6 +167,26 @@ fn run() -> Result<()> {
         )?;
         #[cfg(not(feature = "debugger"))]
         runtime_client.event_loop(runtime_connection, submission)?;
+    }
+
+    Ok(())
+}
+
+/*
+   Start a background thread that sends out beacons for server discovery by a client every second
+*/
+fn start_sending_discovery_beacons() -> Result<()> {
+    match BeaconSender::new(BEACON_PORT, FLOW_SERVICE_NAME) {
+        Ok(beacon) => {
+            info!(
+                "Discovery beacon announcing service named '{}', on port: {}",
+                FLOW_SERVICE_NAME, BEACON_PORT
+            );
+            std::thread::spawn(move || {
+                let _ = beacon.send_loop(Duration::from_secs(1));
+            });
+        }
+        Err(e) => bail!("Error starting discovery beacon: {}", e.to_string()),
     }
 
     Ok(())
