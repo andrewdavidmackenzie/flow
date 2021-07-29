@@ -13,7 +13,7 @@ use std::time::Duration;
 use clap::{App, AppSettings, Arg, ArgMatches};
 use log::{error, info, warn};
 use simpath::Simpath;
-use simpdiscoverylib::BeaconSender;
+use simpdiscoverylib::{BeaconListener, BeaconSender};
 use simplog::simplog::SimpleLogger;
 use url::Url;
 
@@ -104,10 +104,14 @@ fn run() -> Result<()> {
     let lib_search_path = set_lib_search_path(&lib_dirs)?;
 
     let (mode, server_address) = if matches.is_present("client") {
-        if let Some(address) = matches.value_of("address") {
-            info!("'SERVER_ADDRESS' set to '{}'", address);
-        }
-        (Mode::ClientOnly, matches.value_of("client"))
+        let s_address = match matches.value_of("address") {
+            Some(address) => {
+                info!("'SERVER_ADDRESS' set to '{}'", address);
+                Some(address.to_string())
+            }
+            None => discover_server(),
+        };
+        (Mode::ClientOnly, s_address)
     } else if matches.is_present("server") {
         #[cfg(feature = "distributed")]
         start_sending_discovery_beacons()?;
@@ -125,7 +129,7 @@ fn run() -> Result<()> {
         lib_search_path,
         native,
         mode.clone(),
-        &server_address.map(|s| s.into()),
+        &server_address,
     )?;
 
     #[cfg(not(feature = "debugger"))]
@@ -134,7 +138,7 @@ fn run() -> Result<()> {
         lib_search_path,
         native,
         mode.clone(),
-        server_address,
+        &server_address,
     )?;
 
     if mode != Mode::ServerOnly {
@@ -192,6 +196,16 @@ fn start_sending_discovery_beacons() -> Result<()> {
     }
 
     Ok(())
+}
+
+/*
+    try to discover a server that a client can send a submission to
+*/
+#[cfg(feature = "distributed")]
+fn discover_server() -> Option<String> {
+    let listener = BeaconListener::new(BEACON_PORT, Some(FLOW_SERVICE_NAME.into())).ok()?;
+    let beacon = listener.wait(None).ok()?;
+    Some(beacon.source_ip)
 }
 
 /*
