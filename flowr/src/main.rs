@@ -109,6 +109,7 @@ fn run() -> Result<()> {
         }
         (Mode::ClientOnly, matches.value_of("client"))
     } else if matches.is_present("server") {
+        #[cfg(feature = "distributed")]
         start_sending_discovery_beacons()?;
         (Mode::ServerOnly, None)
     } else {
@@ -175,6 +176,7 @@ fn run() -> Result<()> {
 /*
    Start a background thread that sends out beacons for server discovery by a client every second
 */
+#[cfg(feature = "distributed")]
 fn start_sending_discovery_beacons() -> Result<()> {
     match BeaconSender::new(BEACON_PORT, FLOW_SERVICE_NAME) {
         Ok(beacon) => {
@@ -311,6 +313,7 @@ fn get_matches<'a>() -> ArgMatches<'a> {
             .short("c")
             .long("client")
             .takes_value(true)
+            //            .default_value("auto")
             .value_name("SERVER_HOSTNAME")
             .conflicts_with("server")
             .help("Set the hostname or IP address of the flowr server to connect to"),
