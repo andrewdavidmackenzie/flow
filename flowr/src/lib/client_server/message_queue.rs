@@ -108,10 +108,6 @@ where
             .to_string();
 
         info!("'flowr' server process listening on {}:{}", host, port);
-        info!(
-            "Use 'flowr -c {}:{} $flow_url' to send a job for execution",
-            host, port
-        );
 
         Ok(ServerConnection {
             host,
