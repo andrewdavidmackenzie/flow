@@ -103,9 +103,9 @@ fn run() -> Result<()> {
     };
     let lib_search_path = set_lib_search_path(&lib_dirs)?;
 
-    let (mode, server_hostname) = if matches.is_present("client") {
-        if let Some(hostname) = matches.value_of("client") {
-            info!("'SERVER_HOSTNAME' set to '{}'", hostname);
+    let (mode, server_address) = if matches.is_present("client") {
+        if let Some(address) = matches.value_of("address") {
+            info!("'SERVER_ADDRESS' set to '{}'", address);
         }
         (Mode::ClientOnly, matches.value_of("client"))
     } else if matches.is_present("server") {
@@ -125,7 +125,7 @@ fn run() -> Result<()> {
         lib_search_path,
         native,
         mode.clone(),
-        &server_hostname.map(|s| s.into()),
+        &server_address.map(|s| s.into()),
     )?;
 
     #[cfg(not(feature = "debugger"))]
@@ -134,7 +134,7 @@ fn run() -> Result<()> {
         lib_search_path,
         native,
         mode.clone(),
-        server_hostname,
+        server_address,
     )?;
 
     if mode != Mode::ServerOnly {
@@ -312,11 +312,19 @@ fn get_matches<'a>() -> ArgMatches<'a> {
         Arg::with_name("client")
             .short("c")
             .long("client")
-            .takes_value(true)
-            //            .default_value("auto")
-            .value_name("SERVER_HOSTNAME")
             .conflicts_with("server")
-            .help("Set the hostname or IP address of the flowr server to connect to"),
+            .help("Start flowr as a client to connect to a flowr server"),
+    );
+
+    #[cfg(feature = "distributed")]
+    let app = app.arg(
+        Arg::with_name("address")
+            .short("a")
+            .long("address")
+            .takes_value(true)
+            .value_name("ADDRESS")
+            .conflicts_with("server")
+            .help("The IP address of the flowr server to connect to"),
     );
 
     #[cfg(feature = "debugger")]

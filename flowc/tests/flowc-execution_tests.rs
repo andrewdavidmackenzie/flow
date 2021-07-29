@@ -108,6 +108,7 @@ fn execute_flow(
     if client_server {
         // start another 'flowr' process in client mode
         command_args.push("-c");
+        command_args.push("-a");
         command_args.push("localhost");
     } else {
         // when running client_and_server in same process we want to use native libs
