@@ -77,7 +77,7 @@ pub fn build_lib(options: &Options, provider: &dyn LibProvider) -> Result<String
 
     let build_count =
         compile_implementations(options, &mut lib_manifest, &base_dir, provider, false)
-            .chain_err(|| "Could not build library")?;
+            .chain_err(|| "Could not compile implementations in library")?;
 
     let manifest_json_file = json_manifest_file(&options.output_dir);
     let manifest_rust_file = rust_manifest_file(&options.output_dir);
@@ -145,16 +145,13 @@ fn write_lib_json_manifest(
     lib_manifest: &LibraryManifest,
     json_manifest_filename: &Path,
 ) -> Result<()> {
-    let mut manifest_file = File::create(&json_manifest_filename)
-        .chain_err(|| "Could not create lib json manifest file")?;
+    let mut manifest_file = File::create(&json_manifest_filename)?;
 
-    manifest_file
-        .write_all(
-            serde_json::to_string_pretty(lib_manifest)
-                .chain_err(|| "Could not pretty format the library manifest JSON contents")?
-                .as_bytes(),
-        )
-        .chain_err(|| "Could not write library manifest data bytes to created manifest file")?;
+    manifest_file.write_all(
+        serde_json::to_string_pretty(lib_manifest)
+            .chain_err(|| "Could not pretty format the library manifest JSON contents")?
+            .as_bytes(),
+    )?;
 
     info!(
         "Generated library JSON manifest at '{}'",
@@ -184,13 +181,10 @@ fn write_lib_rust_manifest(
     rust_manifest_filename: &Path,
 ) -> Result<()> {
     // Create the file we will be writing to
-    let mut manifest_file = File::create(&rust_manifest_filename)
-        .chain_err(|| "Could not create lib rust manifest file")?;
+    let mut manifest_file = File::create(&rust_manifest_filename)?;
 
     // generate the fixed header
-    manifest_file
-        .write_all(LIB_HEADER.as_bytes())
-        .chain_err(|| "Could not write library manifest data bytes to created manifest file")?;
+    manifest_file.write_all(LIB_HEADER.as_bytes())?;
 
     // Create the list of top level modules
     let mut modules = HashSet::<&str>::new();
@@ -207,19 +201,13 @@ fn write_lib_rust_manifest(
 
     // generate their pub mod statements
     for module in modules {
-        manifest_file
-            .write_all(format!("\n/// functions from module '{}'", module).as_bytes())
-            .chain_err(|| "Could not write to rust manifest file")?;
+        manifest_file.write_all(format!("\n/// functions from module '{}'", module).as_bytes())?;
 
-        manifest_file
-            .write_all(format!("\npub mod {};\n", module).as_bytes())
-            .chain_err(|| "Could not write to rust manifest file")?;
+        manifest_file.write_all(format!("\npub mod {};\n", module).as_bytes())?;
     }
 
     // generate the get_manifest() function header
-    manifest_file
-        .write_all(GET_MANIFEST_HEADER.as_bytes())
-        .chain_err(|| "Could not write library manifest data bytes to created manifest file")?;
+    manifest_file.write_all(GET_MANIFEST_HEADER.as_bytes())?;
 
     // generate all the manifest entries
     for reference in lib_manifest.locators.keys() {
@@ -242,9 +230,7 @@ fn write_lib_rust_manifest(
             reference, implementation_struct
         );
 
-        manifest_file
-            .write_all(manifest_entry.as_bytes())
-            .chain_err(|| "Could not write to manifest file")?;
+        manifest_file.write_all(manifest_entry.as_bytes())?;
     }
 
     // close the get_manifest() function
