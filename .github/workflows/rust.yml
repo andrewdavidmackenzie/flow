@@ -22,6 +22,8 @@ jobs:
       run: sudo apt-get install libzmq3-dev
     - name: Build-flowc
       run: cargo build -p flowc
+    - name: FlowcCompileFlowstdlib
+      run: cargo run -p flowc -- -l flowstdlib
     - name: Clippy
       run: cargo clippy -- -D warnings
     - name: Build
