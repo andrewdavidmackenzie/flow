@@ -1,22 +1,17 @@
 use std::fmt::Display;
 use std::marker::PhantomData;
+use std::time::Duration;
 
 /// This is the message-queue implementation of the lib.client_server communications
 use log::{info, trace};
+use simpdiscoverylib::{BeaconListener, BeaconSender};
 use zmq::Socket;
 use zmq::{Message, DONTWAIT};
 
 use crate::errors::*;
 
-//use simple_dns::rdata::{RData, A, SRV};
-//use simple_dns::{Name, ResourceRecord, CLASS};
-//use simple_mdns::{OneShotMdnsResolver, SimpleMdnsResponder};
-//use std::net::Ipv4Addr;
-//use simpdiscoverylib::{BeaconListener, BeaconSender};
-//use std::time::Duration;
-
-//const BEACON_PORT: u16 = 9001;
-//const FLOW_SERVICE_NAME: &str = "_flowr._tcp.local";
+const BEACON_PORT: u16 = 9001;
+const FLOW_SERVICE_NAME: &str = "_flowr._tcp.local";
 
 /// `ClientConnection` stores information related to the connection from a runtime client
 /// to the runtime server and is used each time a message is to be sent or received.
@@ -68,30 +63,10 @@ where
     */
     #[cfg(feature = "distributed")]
     fn discover_server() -> Option<String> {
-        // let listener = BeaconListener::new(BEACON_PORT, Some(FLOW_SERVICE_NAME.into())).ok()?;
-        // let beacon = listener.wait(None).ok()?;
-        // info!("'flowr' server discovered at IP: {}", beacon.source_ip);
-        // Some(beacon.source_ip)
-
-        /*
-        let resolver = OneShotMdnsResolver::new().expect("Failed to create resolver");
-        // querying for IP Address
-        let answer = resolver
-            .query_service_address(FLOW_SERVICE_NAME)
-            .expect("Failed to query service address")?;
-
-        info!("{:?}", answer);
-        // IpV4Addr or IpV6Addr, depending on what was returned
-
-        //    let answer = resolver
-        //        .query_service_address_and_port("_flowr._tcp.local")
-        //        .expect("Failed to query service address and port");
-        //    println!("{:?}", answer);
-
-        Some(answer.to_string())
-         */
-
-        Some("localhost".into())
+        let listener = BeaconListener::new(BEACON_PORT, Some(FLOW_SERVICE_NAME.into())).ok()?;
+        let beacon = listener.wait(None).ok()?;
+        info!("'flowr' server discovered at IP: {}", beacon.source_ip);
+        Some(beacon.source_ip)
     }
 
     /// Receive a ServerMessage from the server
@@ -162,61 +137,21 @@ where
     */
     #[cfg(feature = "distributed")]
     fn enable_server_discovery() -> Result<()> {
-        // match BeaconSender::new(BEACON_PORT, FLOW_SERVICE_NAME) {
-        //     Ok(beacon) => {
-        //         info!(
-        //             "Discovery beacon announcing service named '{}', on port: {}",
-        //             FLOW_SERVICE_NAME, BEACON_PORT
-        //         );
-        //         std::thread::spawn(move || {
-        //             let _ = beacon.send_loop(Duration::from_secs(1));
-        //         });
-        //     }
-        //     Err(e) => bail!("Error starting discovery beacon: {}", e.to_string()),
-        // }
-
-        /*
-            use simple_mdns::ServiceDiscovery;
-
-            add_dns_responder();
-
-            let mut discovery = ServiceDiscovery::new(FLOW_SERVICE_NAME, 60).expect("Invalid Service Name");
-            let my_socket_address = "192.168.1.22:8090"
-                .parse()
-                .expect("Failed to parse socket address");
-            discovery.add_socket_address(my_socket_address);
-        */
+        match BeaconSender::new(BEACON_PORT, FLOW_SERVICE_NAME) {
+            Ok(beacon) => {
+                info!(
+                    "Discovery beacon announcing service named '{}', on port: {}",
+                    FLOW_SERVICE_NAME, BEACON_PORT
+                );
+                std::thread::spawn(move || {
+                    let _ = beacon.send_loop(Duration::from_secs(1));
+                });
+            }
+            Err(e) => bail!("Error starting discovery beacon: {}", e.to_string()),
+        }
 
         Ok(())
     }
-
-    /*
-    fn add_dns_responder() {
-        let mut responder = SimpleMdnsResponder::new(10);
-        let srv_name = Name::new_unchecked(FLOW_SERVICE_NAME);
-
-        responder.add_resource(ResourceRecord {
-            class: CLASS::IN,
-            name: srv_name.clone(),
-            ttl: 10,
-            rdata: RData::A(A {
-                address: Ipv4Addr::LOCALHOST.into(),
-            }),
-        });
-
-        responder.add_resource(ResourceRecord {
-            class: CLASS::IN,
-            name: srv_name.clone(),
-            ttl: 10,
-            rdata: RData::SRV(Box::new(SRV {
-                port: 8080,
-                priority: 0,
-                weight: 0,
-                target: srv_name,
-            })),
-        });
-    }
-    */
 
     /// Receive a Message sent from the client to the server
     pub fn receive(&self) -> Result<CM> {
