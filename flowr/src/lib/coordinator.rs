@@ -309,7 +309,10 @@ impl Coordinator {
 
             #[cfg(feature = "debugger")]
             let mut display_next_output;
-            let mut restart;
+            #[cfg(feature = "debugger")]
+            let mut restart: bool;
+            #[cfg(not(feature = "debugger"))]
+            let restart: bool = false;
 
             // If debugging then check if we should enter the debugger
             #[cfg(feature = "debugger")]
@@ -335,21 +338,21 @@ impl Coordinator {
                     }
                 }
 
-                let debug_check = self.send_jobs(
+                let _debug_check = self.send_jobs(
                     &mut state,
                     #[cfg(feature = "metrics")]
                     &mut metrics,
                 );
 
                 #[cfg(feature = "debugger")]
-                if debug_check.2 {
+                if _debug_check.2 {
                     return Ok(true); // User requested via debugger to exit execution
                 }
 
                 #[cfg(feature = "debugger")]
                 {
-                    display_next_output = debug_check.0;
-                    restart = debug_check.1;
+                    display_next_output = _debug_check.0;
+                    restart = _debug_check.1;
 
                     // If debugger request it, exit the inner job loop which will cause us to reset state
                     // and restart execution, in the outer flow_execution loop
@@ -414,6 +417,7 @@ impl Coordinator {
                 // if the debugger has not requested a restart of the flow
                 if !restart {
                     self.end_flow(
+                        #[cfg(feature = "metrics")]
                         &state,
                         #[cfg(feature = "metrics")]
                         metrics,
@@ -559,7 +563,7 @@ impl Coordinator {
         #[cfg(feature = "metrics")] metrics: &mut Metrics,
     ) -> Result<(bool, bool, bool)> {
         #[cfg(not(feature = "debugger"))]
-        let debug_options = (false, false);
+        let debug_options = (false, false, false);
 
         state.start(job);
         #[cfg(feature = "metrics")]
