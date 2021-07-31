@@ -110,7 +110,7 @@ fn run() -> Result<()> {
     info!("Starting 'flowr' in {:?} mode", mode);
 
     if mode == Mode::ServerOnly || mode == Mode::ClientAndServer {
-        Coordinator::start_server(
+        Coordinator::start(
             num_threads(&matches, debugger),
             lib_search_path,
             native,
@@ -147,13 +147,10 @@ fn start_clients(
     );
 
     let runtime_client_connection = ClientConnection::new(server_hostname.clone(), 5555)?;
-    #[cfg(feature = "debugger")]
-    let control_c_connection = ClientConnection::new(server_hostname.clone(), 5555)?;
-    #[cfg(feature = "debugger")]
-    let debug_client_connection = ClientConnection::new(server_hostname, 5556)?;
 
     #[cfg(feature = "debugger")]
     if debugger {
+        let debug_client_connection = ClientConnection::new(server_hostname.clone(), 5556)?;
         let debug_client = CliDebugClient::new(debug_client_connection);
         debug_client.event_loop_thread();
     }
@@ -167,12 +164,12 @@ fn start_clients(
     #[cfg(feature = "debugger")]
     runtime_client.event_loop(
         runtime_client_connection,
-        control_c_connection,
+        #[cfg(feature = "debugger")]
+        ClientConnection::new(server_hostname, 5555)?,
         submission,
+        #[cfg(feature = "debugger")]
         debugger,
     )?;
-    #[cfg(not(feature = "debugger"))]
-    runtime_client.event_loop(runtime_client_connection, submission)?;
 
     Ok(())
 }
