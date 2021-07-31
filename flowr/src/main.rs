@@ -34,6 +34,7 @@ mod cli_runtime_client;
 pub mod errors;
 
 const RUNTIME_SERVICE_NAME: &str = "runtime";
+#[cfg(feature = "debugger")]
 const DEBUG_SERVICE_NAME: &str = "debug";
 
 fn main() {
@@ -89,7 +90,8 @@ fn run() -> Result<()> {
     let matches = get_matches();
 
     SimpleLogger::init(matches.value_of("verbosity"));
-    let debugger = matches.is_present("debugger");
+    #[cfg(feature = "debugger")]
+    let debug_this_flow = matches.is_present("debugger");
     let native = matches.is_present("native");
     let lib_dirs = if matches.is_present("lib_dir") {
         matches
@@ -114,7 +116,11 @@ fn run() -> Result<()> {
 
     if mode == Mode::ServerOnly || mode == Mode::ClientAndServer {
         Coordinator::start(
-            num_threads(&matches, debugger),
+            num_threads(
+                &matches,
+                #[cfg(feature = "debugger")]
+                debug_this_flow,
+            ),
             lib_search_path,
             native,
             mode.clone(),
@@ -128,7 +134,12 @@ fn run() -> Result<()> {
     }
 
     if mode == Mode::ClientOnly || mode == Mode::ClientAndServer {
-        start_clients(matches, debugger, server_address)?;
+        start_clients(
+            matches,
+            #[cfg(feature = "debugger")]
+            debug_this_flow,
+            server_address,
+        )?;
     }
 
     Ok(())
@@ -140,20 +151,20 @@ fn run() -> Result<()> {
 */
 fn start_clients(
     matches: ArgMatches,
-    debugger: bool,
+    #[cfg(feature = "debugger")] debug_this_flow: bool,
     server_hostname: Option<String>,
 ) -> Result<()> {
     let flow_manifest_url = parse_flow_url(&matches)?;
     let flow_args = get_flow_args(&matches, &flow_manifest_url);
     let submission = Submission::new(
         &flow_manifest_url,
-        num_parallel_jobs(&matches, debugger),
+        num_parallel_jobs(&matches, debug_this_flow),
         #[cfg(feature = "debugger")]
-        debugger,
+        debug_this_flow,
     );
 
     #[cfg(feature = "debugger")]
-    if debugger {
+    if debug_this_flow {
         let debug_client_connection =
             ClientConnection::new(DEBUG_SERVICE_NAME, server_hostname.clone(), 5556)?;
         let debug_client = CliDebugClient::new(debug_client_connection);
@@ -172,7 +183,7 @@ fn start_clients(
         ClientConnection::new(RUNTIME_SERVICE_NAME, server_hostname, 5555)?,
         submission,
         #[cfg(feature = "debugger")]
-        debugger,
+        debug_this_flow,
     )?;
 
     Ok(())
@@ -184,8 +195,9 @@ fn start_clients(
 
     If debugger=true, then default to 0 threads, unless overridden by an argument
 */
-fn num_threads(matches: &ArgMatches, debugger: bool) -> usize {
-    if debugger {
+fn num_threads(matches: &ArgMatches, #[cfg(feature = "debugger")] debug_this_flow: bool) -> usize {
+    #[cfg(feature = "debugger")]
+    if debug_this_flow {
         info!("Due to debugger option being set, number of threads has been forced to 1");
         return 1;
     }
