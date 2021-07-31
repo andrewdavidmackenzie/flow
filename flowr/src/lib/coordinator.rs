@@ -11,8 +11,8 @@ use url::Url;
 use flowcore::flow_manifest::FlowManifest;
 use flowcore::lib_provider::{LibProvider, MetaProvider};
 
+use crate::client_server::ServerConnection;
 #[cfg(feature = "debugger")]
-use crate::client_server::{ClientConnection, ServerConnection};
 use crate::debug_messages::{DebugClientMessage, DebugServerMessage};
 #[cfg(feature = "debugger")]
 use crate::debugger::Debugger;
@@ -93,11 +93,12 @@ pub struct Coordinator {
     debugger: Debugger,
 }
 
-/// Create a Submission for a flow to be executed.
-/// Instantiate the Coordinator.
-/// Send the Submission to the Coordinator to be executed
+/// # Example Submission of a flow for execution
 ///
-/// # Examples
+/// Instantiate the Coordinator server that receives the submitted flows to be executed
+/// Create a Submission for the flow to be executed.
+/// Create a client connection to the Coordinator server
+/// Send the Submission to the Coordinator to be executed
 ///
 /// ```no_run
 /// use std::sync::{Arc, Mutex};
@@ -109,18 +110,23 @@ pub struct Coordinator {
 /// use flowrlib::runtime_messages::ClientMessage::ClientSubmission;
 /// use simpath::Simpath;
 /// use url::Url;
+/// use flowrlib::client_server::ClientConnection;
+/// use flowrlib::runtime_messages::{ServerMessage, ClientMessage};
 ///
-/// let (runtime_client_connection, control_c_connection, debug_client_connection) = Coordinator::server(1 /* num_threads */,
-///                                                                     Simpath::new("fake path"),
-///                                                                     true,  /* native */
-///                                                                     Mode::ClientAndServer,
-///                                                                     &None   /* server hostname */)
-///                                                 .unwrap();
+/// let server_hostname = Some("localhost".into());
+///
+/// Coordinator::start(1 /* num_threads */,
+///                     Simpath::new("fake path"),
+///                     true,  /* native */
+///                     Mode::ClientAndServer,
+///                     5555,
+///                     5556)
+///                     .unwrap();
 ///
 /// let mut submission = Submission::new(&Url::parse("file:///temp/fake.toml").unwrap(),
 ///                                     1 /* num_parallel_jobs */,
-///                                     true /* enter debugger on start */);
-///
+///                                     true /* enter debugger on start */);///
+/// let runtime_client_connection: ClientConnection<ServerMessage, ClientMessage> = ClientConnection::new(server_hostname, 5555).unwrap();
 /// runtime_client_connection.send(ClientSubmission(submission)).unwrap();
 /// exit(0);
 /// ```
@@ -153,97 +159,47 @@ impl Coordinator {
         }
     }
 
-    /// Start the Coordinator in the appropriate `Mode` and return three `ClientConnection`
-    /// - 1. ClientConnection to runtime server that runtime client should use
-    /// - 2. ClientConnection to runtime server that control-c handler should use to request
-    ///      server to enter the debugger
-    /// - 3. ClientConnection to the debug server that debug client should use
-    #[cfg(feature = "debugger")]
+    /// Start the Coordinator as a server either in the main thread if this process is in
+    /// ServerOnly mode, or as a background thread if this process is acting as a server and
+    /// client
     #[allow(clippy::type_complexity)]
-    pub fn server<'a>(
+    pub fn start(
         num_threads: usize,
         lib_search_path: Simpath,
         native: bool,
         mode: Mode,
-        server_hostname: &Option<String>,
-    ) -> Result<(
-        ClientConnection<'a, ServerMessage, ClientMessage>,
-        ClientConnection<'a, ServerMessage, ClientMessage>,
-        ClientConnection<'a, DebugServerMessage, DebugClientMessage>,
-    )> {
-        let runtime_server_connection = ServerConnection::new(server_hostname, 5555)?;
-        let debug_server_connection = ServerConnection::new(server_hostname, 5556)?;
+        runtime_port: usize,
+        #[cfg(feature = "debugger")] debug_port: usize,
+    ) -> Result<()> {
+        let mut coordinator = Coordinator::new(
+            ServerConnection::new(runtime_port)?,
+            #[cfg(feature = "debugger")]
+            ServerConnection::new(debug_port)?,
+            num_threads,
+        );
 
-        let runtime_client_connection = ClientConnection::new(&runtime_server_connection)?;
-        let control_c_connection = ClientConnection::new(&runtime_server_connection)?;
-        let debug_client_connection = ClientConnection::new(&debug_server_connection)?;
-
-        if mode != Mode::ClientOnly {
-            let mut coordinator = Coordinator::new(
-                runtime_server_connection,
-                debug_server_connection,
-                num_threads,
-            );
-
-            if mode == Mode::ServerOnly {
-                info!("Starting 'flowr' server process");
-                coordinator.submission_loop(lib_search_path, native, mode)?;
-                info!("'flowr' server process has exited");
-            } else {
-                std::thread::spawn(move || {
-                    info!("Starting 'flowr' server thread");
-                    let _ = coordinator.submission_loop(lib_search_path, native, mode);
-                    info!("'flowr' server thread has exited");
-                });
-            }
+        if mode == Mode::ServerOnly {
+            info!("Starting 'flowr' server process in main thread");
+            coordinator.submission_loop(lib_search_path, native, mode)?;
+            info!("'flowr' server process has exited");
+        } else {
+            std::thread::spawn(move || {
+                info!("Starting 'flowr' server in background thread");
+                let _ = coordinator.submission_loop(lib_search_path, native, mode);
+                info!("'flowr' server thread has exited");
+            });
         }
 
-        Ok((
-            runtime_client_connection,
-            control_c_connection,
-            debug_client_connection,
-        ))
+        Ok(())
     }
 
-    /// Start the Coordinator in the appropriate `Mode` and return a `ClientConnection` to the
-    /// runtime server that runtime client should use
-    #[cfg(not(feature = "debugger"))]
-    pub fn server(
-        num_threads: usize,
-        lib_search_path: Simpath,
-        native: bool,
-        mode: Mode,
-        server_hostname: &Option<String>,
-    ) -> Result<ClientConnection> {
-        let runtime_server_connection = ServerConnection::new(server_hostname, 5555);
-        let runtime_client_connection = ClientConnection::new(&runtime_server_connection);
-
-        if mode != Mode::ClientOnly {
-            let mut coordinator = Coordinator::new(runtime_server_connection, num_threads);
-
-            if mode == Mode::ServerOnly {
-                info!("Starting 'flowr' server on main thread");
-                coordinator.submission_loop(lib_search_path, native, server_only)?;
-            } else {
-                std::thread::spawn(move || {
-                    info!("Starting 'flowr' server as background thread");
-                    if let Err(e) =
-                        coordinator.submission_loop(lib_search_path, native, server_only)
-                    {
-                        error!("Error starting Coordinator in background thread: '{}'", e);
-                    }
-                });
-            }
-        }
-
-        Ok(runtime_client_connection)
-    }
-
-    /// Enter the Coordinator's Submission Loop - this will block the thread it is running on and
-    /// wait for a submission to be sent from a client
-    /// It will loop receiving and processing submissions until it gets a `ClientExiting` response,
-    /// then it will also exit
-    pub fn submission_loop(
+    /*
+       Enter the Coordinator's Submission Loop - this will block the thread it is running on and
+       wait for a submission to be sent from a client
+       It will loop receiving and processing submissions until it gets a `ClientExiting` response,
+       then it will also exit
+    */
+    fn submission_loop(
         &mut self,
         lib_search_path: Simpath,
         native: bool,

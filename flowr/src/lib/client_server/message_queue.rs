@@ -1,12 +1,17 @@
 use std::fmt::Display;
 use std::marker::PhantomData;
+use std::time::Duration;
 
 /// This is the message-queue implementation of the lib.client_server communications
 use log::{info, trace};
+use simpdiscoverylib::{BeaconListener, BeaconSender};
 use zmq::Socket;
 use zmq::{Message, DONTWAIT};
 
 use crate::errors::*;
+
+const BEACON_PORT: u16 = 9001;
+const FLOW_SERVICE_NAME: &str = "_flowr._tcp.local";
 
 /// `ClientConnection` stores information related to the connection from a runtime client
 /// to the runtime server and is used each time a message is to be sent or received.
@@ -23,7 +28,16 @@ where
     CM: Into<Message> + Display,
 {
     /// Create a new connection between client and server
-    pub fn new(server_connection: &ServerConnection<SM, CM>) -> Result<Self> {
+    pub fn new(server_hostname: Option<String>, port: usize) -> Result<Self> {
+        let hostname = server_hostname
+            .or_else(Self::discover_server)
+            .unwrap_or_else(|| "localhost".into());
+
+        info!(
+            "Client will attempt to connect to server at: '{}'",
+            hostname
+        );
+
         let context = zmq::Context::new();
 
         let requester = context
@@ -31,23 +45,28 @@ where
             .chain_err(|| "Runtime client could not connect to server")?;
 
         requester
-            .connect(&format!(
-                "tcp://{}:{}",
-                server_connection.host, server_connection.port
-            ))
+            .connect(&format!("tcp://{}:{}", hostname, port))
             .chain_err(|| "Could not connect to server")?;
 
-        info!(
-            "client connected to Server on {}:{}",
-            server_connection.host, server_connection.port
-        );
+        info!("client connected to Server on {}:{}", hostname, port);
 
         Ok(ClientConnection {
-            port: server_connection.port,
+            port,
             requester,
             phantom: PhantomData,
             phantom2: PhantomData,
         })
+    }
+
+    /*
+        try to discover a server that a client can send a submission to
+    */
+    #[cfg(feature = "distributed")]
+    fn discover_server() -> Option<String> {
+        let listener = BeaconListener::new(BEACON_PORT, Some(FLOW_SERVICE_NAME.into())).ok()?;
+        let beacon = listener.wait(None).ok()?;
+        info!("'flowr' server discovered at IP: {}", beacon.source_ip);
+        Some(beacon.source_ip)
     }
 
     /// Receive a ServerMessage from the server
@@ -77,7 +96,6 @@ where
 /// communications between a runtime client and a runtime server and is used each time a message
 /// needs to be sent or received.
 pub struct ServerConnection<SM, CM> {
-    host: String,
     port: usize,
     responder: zmq::Socket,
     phantom: PhantomData<SM>,
@@ -92,7 +110,7 @@ where
     CM: From<Message> + Display,
 {
     /// Create a new Server side of the client/server Connection
-    pub fn new(server_hostname: &Option<String>, port: usize) -> Result<Self> {
+    pub fn new(port: usize) -> Result<Self> {
         let context = zmq::Context::new();
         let responder = context
             .socket(zmq::REP)
@@ -102,24 +120,37 @@ where
             .bind(&format!("tcp://*:{}", port))
             .chain_err(|| "Server Connection - could not bind on Socket")?;
 
-        let host = server_hostname
-            .as_ref()
-            .unwrap_or(&"localhost".to_string())
-            .to_string();
+        Self::enable_server_discovery()?;
 
-        info!("'flowr' server process listening on {}:{}", host, port);
-        info!(
-            "Use 'flowr -c {}:{} $flow_url' to send a job for execution",
-            host, port
-        );
+        info!("'flowr' server process listening on port {}", port);
 
         Ok(ServerConnection {
-            host,
             port,
             responder,
             phantom: PhantomData,
             phantom2: PhantomData,
         })
+    }
+
+    /*
+       Start a background thread that sends out beacons for server discovery by a client every second
+    */
+    #[cfg(feature = "distributed")]
+    fn enable_server_discovery() -> Result<()> {
+        match BeaconSender::new(BEACON_PORT, FLOW_SERVICE_NAME) {
+            Ok(beacon) => {
+                info!(
+                    "Discovery beacon announcing service named '{}', on port: {}",
+                    FLOW_SERVICE_NAME, BEACON_PORT
+                );
+                std::thread::spawn(move || {
+                    let _ = beacon.send_loop(Duration::from_secs(1));
+                });
+            }
+            Err(e) => bail!("Error starting discovery beacon: {}", e.to_string()),
+        }
+
+        Ok(())
     }
 
     /// Receive a Message sent from the client to the server

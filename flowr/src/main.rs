@@ -17,6 +17,7 @@ use url::Url;
 
 use errors::*;
 use flowcore::url_helper::url_from_string;
+use flowrlib::client_server::ClientConnection;
 use flowrlib::coordinator::{Coordinator, Mode, Submission};
 use flowrlib::info as flowrlib_info;
 
@@ -97,72 +98,78 @@ fn run() -> Result<()> {
         vec![]
     };
     let lib_search_path = set_lib_search_path(&lib_dirs)?;
+    let server_address = matches.value_of("address").map(|s| s.to_string());
 
-    let (mode, server_hostname) = if matches.is_present("client") {
-        (Mode::ClientOnly, matches.value_of("client"))
+    let mode = if matches.is_present("client") {
+        Mode::ClientOnly
     } else if matches.is_present("server") {
-        (Mode::ServerOnly, None)
+        Mode::ServerOnly
     } else {
-        (Mode::ClientAndServer, None) // the default if nothing specified
+        Mode::ClientAndServer
     };
-
     info!("Starting 'flowr' in {:?} mode", mode);
-    if let Some(hostname) = server_hostname {
-        info!("'SERVER_HOSTNAME' set to '{}'", hostname);
-    }
 
-    // Start the coordinator server either on the main thread or as a background thread
-    // depending on the value of the "server_only" option
-    #[cfg(feature = "debugger")]
-    let (runtime_connection, control_c_connection, debug_connection) = Coordinator::server(
-        num_threads(&matches, debugger),
-        lib_search_path,
-        native,
-        mode.clone(),
-        &server_hostname.map(|s| s.into()),
-    )?;
-
-    #[cfg(not(feature = "debugger"))]
-    let runtime_connection = Coordinator::server(
-        num_threads(&matches, debugger),
-        lib_search_path,
-        native,
-        mode.clone(),
-        server_hostname,
-    )?;
-
-    if mode != Mode::ServerOnly {
-        let flow_manifest_url = parse_flow_url(&matches)?;
-        let flow_args = get_flow_args(&matches, &flow_manifest_url);
-        let submission = Submission::new(
-            &flow_manifest_url,
-            num_parallel_jobs(&matches, debugger),
+    if mode == Mode::ServerOnly || mode == Mode::ClientAndServer {
+        Coordinator::start(
+            num_threads(&matches, debugger),
+            lib_search_path,
+            native,
+            mode.clone(),
+            5555,
             #[cfg(feature = "debugger")]
-            debugger,
-        );
-
-        #[cfg(feature = "debugger")]
-        if debugger {
-            let debug_client = CliDebugClient::new(debug_connection);
-            debug_client.event_loop_thread(); // TODO Broken
-        }
-
-        let runtime_client = CliRuntimeClient::new(
-            flow_args,
-            #[cfg(feature = "metrics")]
-            matches.is_present("metrics"),
-        );
-
-        #[cfg(feature = "debugger")]
-        runtime_client.event_loop(
-            runtime_connection,
-            control_c_connection,
-            submission,
-            debugger,
+            5556,
         )?;
-        #[cfg(not(feature = "debugger"))]
-        runtime_client.event_loop(runtime_connection, submission)?;
     }
+
+    if mode == Mode::ClientOnly || mode == Mode::ClientAndServer {
+        start_clients(matches, debugger, server_address)?;
+    }
+
+    Ok(())
+}
+
+/*
+   Start the clients that talks to the server - whether another thread in this same process
+   or to another process.
+*/
+fn start_clients(
+    matches: ArgMatches,
+    debugger: bool,
+    server_hostname: Option<String>,
+) -> Result<()> {
+    let flow_manifest_url = parse_flow_url(&matches)?;
+    let flow_args = get_flow_args(&matches, &flow_manifest_url);
+    let submission = Submission::new(
+        &flow_manifest_url,
+        num_parallel_jobs(&matches, debugger),
+        #[cfg(feature = "debugger")]
+        debugger,
+    );
+
+    let runtime_client_connection = ClientConnection::new(server_hostname.clone(), 5555)?;
+
+    #[cfg(feature = "debugger")]
+    if debugger {
+        let debug_client_connection = ClientConnection::new(server_hostname.clone(), 5556)?;
+        let debug_client = CliDebugClient::new(debug_client_connection);
+        debug_client.event_loop_thread();
+    }
+
+    let runtime_client = CliRuntimeClient::new(
+        flow_args,
+        #[cfg(feature = "metrics")]
+        matches.is_present("metrics"),
+    );
+
+    #[cfg(feature = "debugger")]
+    runtime_client.event_loop(
+        runtime_client_connection,
+        #[cfg(feature = "debugger")]
+        ClientConnection::new(server_hostname, 5556)?,
+        submission,
+        #[cfg(feature = "debugger")]
+        debugger,
+    )?;
 
     Ok(())
 }
@@ -285,10 +292,19 @@ fn get_matches<'a>() -> ArgMatches<'a> {
         Arg::with_name("client")
             .short("c")
             .long("client")
-            .takes_value(true)
-            .value_name("SERVER_HOSTNAME")
             .conflicts_with("server")
-            .help("Set the hostname or IP address of the flowr server to connect to"),
+            .help("Start flowr as a client to connect to a flowr server"),
+    );
+
+    #[cfg(feature = "distributed")]
+    let app = app.arg(
+        Arg::with_name("address")
+            .short("a")
+            .long("address")
+            .takes_value(true)
+            .value_name("ADDRESS")
+            .conflicts_with("server")
+            .help("The IP address of the flowr server to connect to"),
     );
 
     #[cfg(feature = "debugger")]
