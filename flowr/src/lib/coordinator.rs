@@ -119,14 +119,18 @@ pub struct Coordinator {
 ///                     Simpath::new("fake path"),
 ///                     true,  /* native */
 ///                     Mode::ClientAndServer,
+///                     "runtime",
 ///                     5555,
-///                     5556)
+///                     #[cfg(feature = "debugger")] "debug",
+///                     #[cfg(feature = "debugger")] 5556,
+///                     )
 ///                     .unwrap();
 ///
 /// let mut submission = Submission::new(&Url::parse("file:///temp/fake.toml").unwrap(),
 ///                                     1 /* num_parallel_jobs */,
 ///                                     true /* enter debugger on start */);///
-/// let runtime_client_connection: ClientConnection<ServerMessage, ClientMessage> = ClientConnection::new(server_hostname, 5555).unwrap();
+/// let runtime_client_connection: ClientConnection<ServerMessage, ClientMessage> =
+///     ClientConnection::new("runtime", server_hostname, 5555).unwrap();
 /// runtime_client_connection.send(ClientSubmission(submission)).unwrap();
 /// exit(0);
 /// ```
@@ -163,18 +167,21 @@ impl Coordinator {
     /// ServerOnly mode, or as a background thread if this process is acting as a server and
     /// client
     #[allow(clippy::type_complexity)]
+    #[allow(clippy::too_many_arguments)]
     pub fn start(
         num_threads: usize,
         lib_search_path: Simpath,
         native: bool,
         mode: Mode,
+        runtime_service_name: &str,
         runtime_port: usize,
+        #[cfg(feature = "debugger")] debug_service_name: &str,
         #[cfg(feature = "debugger")] debug_port: usize,
     ) -> Result<()> {
         let mut coordinator = Coordinator::new(
-            ServerConnection::new(runtime_port)?,
+            ServerConnection::new(runtime_service_name, runtime_port)?,
             #[cfg(feature = "debugger")]
-            ServerConnection::new(debug_port)?,
+            ServerConnection::new(debug_service_name, debug_port)?,
             num_threads,
         );
 
@@ -302,7 +309,10 @@ impl Coordinator {
 
             #[cfg(feature = "debugger")]
             let mut display_next_output;
-            let mut restart;
+            #[cfg(feature = "debugger")]
+            let mut restart: bool;
+            #[cfg(not(feature = "debugger"))]
+            let restart: bool = false;
 
             // If debugging then check if we should enter the debugger
             #[cfg(feature = "debugger")]
@@ -328,21 +338,21 @@ impl Coordinator {
                     }
                 }
 
-                let debug_check = self.send_jobs(
+                let _debug_check = self.send_jobs(
                     &mut state,
                     #[cfg(feature = "metrics")]
                     &mut metrics,
                 );
 
                 #[cfg(feature = "debugger")]
-                if debug_check.2 {
+                if _debug_check.2 {
                     return Ok(true); // User requested via debugger to exit execution
                 }
 
                 #[cfg(feature = "debugger")]
                 {
-                    display_next_output = debug_check.0;
-                    restart = debug_check.1;
+                    display_next_output = _debug_check.0;
+                    restart = _debug_check.1;
 
                     // If debugger request it, exit the inner job loop which will cause us to reset state
                     // and restart execution, in the outer flow_execution loop
@@ -406,10 +416,12 @@ impl Coordinator {
 
                 // if the debugger has not requested a restart of the flow
                 if !restart {
-                    #[cfg(feature = "metrics")]
-                    self.end_flow(&state, metrics)?;
-                    #[cfg(not(feature = "metrics"))]
-                    self.end_flow()?;
+                    self.end_flow(
+                        #[cfg(feature = "metrics")]
+                        &state,
+                        #[cfg(feature = "metrics")]
+                        metrics,
+                    )?;
                     debug!("{}", state);
                     break 'flow_execution;
                 }
@@ -551,7 +563,7 @@ impl Coordinator {
         #[cfg(feature = "metrics")] metrics: &mut Metrics,
     ) -> Result<(bool, bool, bool)> {
         #[cfg(not(feature = "debugger"))]
-        let debug_options = (false, false);
+        let debug_options = (false, false, false);
 
         state.start(job);
         #[cfg(feature = "metrics")]
