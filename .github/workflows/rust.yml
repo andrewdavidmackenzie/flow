@@ -36,8 +36,7 @@ jobs:
       run: cargo doc --no-deps --target-dir=target/html/code
     - name: Coverage
       run: |
-        make config
         if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
-        cargo install grcov
-        rustup component add llvm-tools-preview
+          cargo install grcov
+          rustup component add llvm-tools-preview
         fi

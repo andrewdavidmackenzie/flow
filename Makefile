@@ -60,3 +60,9 @@ clippy: build-flowc compile-flowstdlib
 .PHONY: test
 test: build-flowc compile-flowstdlib
 	@cargo test
+
+.PHONY: clean
+clean:
+	@cargo clean
+	@find . -name \*.wasm -exec rm {} \;
+	@rm -f flowstdlib/manifest.json flowstdlib/lib.rs
