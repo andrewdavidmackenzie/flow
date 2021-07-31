@@ -8,17 +8,21 @@
 
 use std::env;
 use std::process::exit;
-use std::time::Duration;
 
 use clap::{App, AppSettings, Arg, ArgMatches};
 use log::{error, info, warn};
 use simpath::Simpath;
-use simpdiscoverylib::{BeaconListener, BeaconSender};
+//use simpdiscoverylib::{BeaconListener, BeaconSender};
 use simplog::simplog::SimpleLogger;
 use url::Url;
 
 use errors::*;
 use flowcore::url_helper::url_from_string;
+//use simple_dns::rdata::{RData, A, SRV};
+//use simple_dns::{Name, ResourceRecord, CLASS};
+//use simple_mdns::{OneShotMdnsResolver, SimpleMdnsResponder};
+//use std::net::Ipv4Addr;
+use flowrlib::client_server::ClientConnection;
 use flowrlib::coordinator::{Coordinator, Mode, Submission};
 use flowrlib::info as flowrlib_info;
 
@@ -26,12 +30,14 @@ use flowrlib::info as flowrlib_info;
 use crate::cli_debug_client::CliDebugClient;
 use crate::cli_runtime_client::CliRuntimeClient;
 
+//use std::time::Duration;
+
 #[cfg(feature = "debugger")]
 mod cli_debug_client;
 mod cli_runtime_client;
 
-const BEACON_PORT: u16 = 9001;
-const FLOW_SERVICE_NAME: &str = "net.mackenzie-serres.flowr.server";
+//const BEACON_PORT: u16 = 9001;
+//const FLOW_SERVICE_NAME: &str = "_flowr._tcp.local";
 
 /// We'll put our errors in an `errors` module, and other modules in this crate will
 /// `use crate::errors::*;` to get access to everything `error_chain` creates.
@@ -111,68 +117,88 @@ fn run() -> Result<()> {
             }
             None => discover_server(),
         };
+
+        if s_address.is_none() {
+            bail!(
+                "ClientOnly mode: Server address was not specified as an option and no server \
+            could be discovered."
+            );
+        }
         (Mode::ClientOnly, s_address)
     } else if matches.is_present("server") {
         #[cfg(feature = "distributed")]
-        start_sending_discovery_beacons()?;
+        enable_server_discovery()?;
         (Mode::ServerOnly, None)
     } else {
         (Mode::ClientAndServer, None) // the default if nothing specified
     };
     info!("Starting 'flowr' in {:?} mode", mode);
 
-    // Start the coordinator server either on the main thread or as a background thread
-    // depending on the value of the "server_only" option
-    #[cfg(feature = "debugger")]
-    let (runtime_connection, control_c_connection, debug_connection) = Coordinator::server(
-        num_threads(&matches, debugger),
-        lib_search_path,
-        native,
-        mode.clone(),
-        &server_address,
-    )?;
-
-    #[cfg(not(feature = "debugger"))]
-    let runtime_connection = Coordinator::server(
-        num_threads(&matches, debugger),
-        lib_search_path,
-        native,
-        mode.clone(),
-        &server_address,
-    )?;
+    if mode != Mode::ClientOnly {
+        #[cfg(feature = "debugger")]
+        Coordinator::server(
+            num_threads(&matches, debugger),
+            lib_search_path,
+            native,
+            mode.clone(),
+            &server_address,
+            5555,
+            5556,
+        )?;
+    }
 
     if mode != Mode::ServerOnly {
-        let flow_manifest_url = parse_flow_url(&matches)?;
-        let flow_args = get_flow_args(&matches, &flow_manifest_url);
-        let submission = Submission::new(
-            &flow_manifest_url,
-            num_parallel_jobs(&matches, debugger),
-            #[cfg(feature = "debugger")]
-            debugger,
-        );
-
-        #[cfg(feature = "debugger")]
-        if debugger {
-            let debug_client = CliDebugClient::new(debug_connection);
-            debug_client.event_loop_thread(); // TODO Broken
-        }
-
-        let runtime_client = CliRuntimeClient::new(
-            flow_args,
-            #[cfg(feature = "metrics")]
-            matches.is_present("metrics"),
-        );
-
-        #[cfg(feature = "debugger")]
-        runtime_client.event_loop(
-            runtime_connection,
-            control_c_connection,
-            submission,
-            debugger,
-        )?;
-        #[cfg(not(feature = "debugger"))]
-        runtime_client.event_loop(runtime_connection, submission)?;
+        start_client(matches, debugger, server_address)?;
     }
+
+    Ok(())
+}
+
+/*
+   Start the client that talks to the server - whether another thread in this same process
+   or to another process.
+*/
+fn start_client(
+    matches: ArgMatches,
+    debugger: bool,
+    server_hostname: Option<String>,
+) -> Result<()> {
+    let flow_manifest_url = parse_flow_url(&matches)?;
+    let flow_args = get_flow_args(&matches, &flow_manifest_url);
+    let submission = Submission::new(
+        &flow_manifest_url,
+        num_parallel_jobs(&matches, debugger),
+        #[cfg(feature = "debugger")]
+        debugger,
+    );
+
+    let runtime_client_connection = ClientConnection::new(&server_hostname, 5555)?;
+    #[cfg(feature = "debugger")]
+    let control_c_connection = ClientConnection::new(&server_hostname, 5555)?;
+    #[cfg(feature = "debugger")]
+    let debug_client_connection = ClientConnection::new(&server_hostname, 5556)?;
+
+    #[cfg(feature = "debugger")]
+    if debugger {
+        let debug_client = CliDebugClient::new(debug_client_connection);
+        debug_client.event_loop_thread(); // TODO Broken
+    }
+
+    let runtime_client = CliRuntimeClient::new(
+        flow_args,
+        #[cfg(feature = "metrics")]
+        matches.is_present("metrics"),
+    );
+
+    #[cfg(feature = "debugger")]
+    runtime_client.event_loop(
+        runtime_client_connection,
+        control_c_connection,
+        submission,
+        debugger,
+    )?;
+    #[cfg(not(feature = "debugger"))]
+    runtime_client.event_loop(runtime_connection, submission)?;
 
     Ok(())
 }
@@ -181,31 +207,92 @@ fn run() -> Result<()> {
    Start a background thread that sends out beacons for server discovery by a client every second
 */
 #[cfg(feature = "distributed")]
-fn start_sending_discovery_beacons() -> Result<()> {
-    match BeaconSender::new(BEACON_PORT, FLOW_SERVICE_NAME) {
-        Ok(beacon) => {
-            info!(
-                "Discovery beacon announcing service named '{}', on port: {}",
-                FLOW_SERVICE_NAME, BEACON_PORT
-            );
-            std::thread::spawn(move || {
-                let _ = beacon.send_loop(Duration::from_secs(1));
-            });
-        }
-        Err(e) => bail!("Error starting discovery beacon: {}", e.to_string()),
-    }
+fn enable_server_discovery() -> Result<()> {
+    // match BeaconSender::new(BEACON_PORT, FLOW_SERVICE_NAME) {
+    //     Ok(beacon) => {
+    //         info!(
+    //             "Discovery beacon announcing service named '{}', on port: {}",
+    //             FLOW_SERVICE_NAME, BEACON_PORT
+    //         );
+    //         std::thread::spawn(move || {
+    //             let _ = beacon.send_loop(Duration::from_secs(1));
+    //         });
+    //     }
+    //     Err(e) => bail!("Error starting discovery beacon: {}", e.to_string()),
+    // }
+
+    /*
+        use simple_mdns::ServiceDiscovery;
+
+        add_dns_responder();
+
+        let mut discovery = ServiceDiscovery::new(FLOW_SERVICE_NAME, 60).expect("Invalid Service Name");
+        let my_socket_address = "192.168.1.22:8090"
+            .parse()
+            .expect("Failed to parse socket address");
+        discovery.add_socket_address(my_socket_address);
+    */
 
     Ok(())
 }
+
+/*
+fn add_dns_responder() {
+    let mut responder = SimpleMdnsResponder::new(10);
+    let srv_name = Name::new_unchecked(FLOW_SERVICE_NAME);
+
+    responder.add_resource(ResourceRecord {
+        class: CLASS::IN,
+        name: srv_name.clone(),
+        ttl: 10,
+        rdata: RData::A(A {
+            address: Ipv4Addr::LOCALHOST.into(),
+        }),
+    });
+
+    responder.add_resource(ResourceRecord {
+        class: CLASS::IN,
+        name: srv_name.clone(),
+        ttl: 10,
+        rdata: RData::SRV(Box::new(SRV {
+            port: 8080,
+            priority: 0,
+            weight: 0,
+            target: srv_name,
+        })),
+    });
+}
+*/
 
 /*
     try to discover a server that a client can send a submission to
 */
 #[cfg(feature = "distributed")]
 fn discover_server() -> Option<String> {
-    let listener = BeaconListener::new(BEACON_PORT, Some(FLOW_SERVICE_NAME.into())).ok()?;
-    let beacon = listener.wait(None).ok()?;
-    Some(beacon.source_ip)
+    // let listener = BeaconListener::new(BEACON_PORT, Some(FLOW_SERVICE_NAME.into())).ok()?;
+    // let beacon = listener.wait(None).ok()?;
+    // info!("'flowr' server discovered at IP: {}", beacon.source_ip);
+    // Some(beacon.source_ip)
+
+    /*
+    let resolver = OneShotMdnsResolver::new().expect("Failed to create resolver");
+    // querying for IP Address
+    let answer = resolver
+        .query_service_address(FLOW_SERVICE_NAME)
+        .expect("Failed to query service address")?;
+
+    info!("{:?}", answer);
+    // IpV4Addr or IpV6Addr, depending on what was returned
+
+    //    let answer = resolver
+    //        .query_service_address_and_port("_flowr._tcp.local")
+    //        .expect("Failed to query service address and port");
+    //    println!("{:?}", answer);
+
+    Some(answer.to_string())
+     */
+
+    None
 }
 
 /*
