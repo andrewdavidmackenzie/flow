@@ -14,9 +14,6 @@ jobs:
 
     runs-on: ubuntu-latest
 
-    env:
-      FLOW_LIB_PATH: "env.GITHUB_WORKSPACE,env.GITHUB_WORKSPACE/flowr/src/lib"
-
     steps:
     - uses: actions/checkout@v2
     - name: SetupEnvVars
