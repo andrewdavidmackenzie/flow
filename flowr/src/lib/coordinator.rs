@@ -115,11 +115,10 @@ pub struct Coordinator {
 ///
 /// let server_hostname = Some("localhost".into());
 ///
-/// Coordinator::server(1 /* num_threads */,
+/// Coordinator::start_server(1 /* num_threads */,
 ///                     Simpath::new("fake path"),
 ///                     true,  /* native */
 ///                     Mode::ClientAndServer,
-///                     &server_hostname,
 ///                     5555,
 ///                     5556)
 ///                     .unwrap();
@@ -127,7 +126,7 @@ pub struct Coordinator {
 /// let mut submission = Submission::new(&Url::parse("file:///temp/fake.toml").unwrap(),
 ///                                     1 /* num_parallel_jobs */,
 ///                                     true /* enter debugger on start */);///
-/// let runtime_client_connection: ClientConnection<ServerMessage, ClientMessage> = ClientConnection::new(&server_hostname, 5555).unwrap();
+/// let runtime_client_connection: ClientConnection<ServerMessage, ClientMessage> = ClientConnection::new(server_hostname, 5555).unwrap();
 /// runtime_client_connection.send(ClientSubmission(submission)).unwrap();
 /// exit(0);
 /// ```
@@ -164,23 +163,22 @@ impl Coordinator {
     /// ServerOnly mode, or as a background thread if this process is acting as a server and
     /// client
     #[allow(clippy::type_complexity)]
-    pub fn server(
+    pub fn start_server(
         num_threads: usize,
         lib_search_path: Simpath,
         native: bool,
         mode: Mode,
-        server_hostname: &Option<String>,
         runtime_port: usize,
         debug_port: usize,
     ) -> Result<()> {
         #[cfg(feature = "debugger")]
         let mut coordinator = Coordinator::new(
-            ServerConnection::new(server_hostname, runtime_port)?,
-            ServerConnection::new(server_hostname, debug_port)?,
+            ServerConnection::new(runtime_port)?,
+            ServerConnection::new(debug_port)?,
             num_threads,
         );
         #[cfg(not(feature = "debugger"))]
-        let mut coordinator = Coordinator::new(runtime_server_connection, num_threads);
+        let mut coordinator = Coordinator::new(ServerConnection::new(runtime_port), num_threads);
 
         if mode == Mode::ServerOnly {
             info!("Starting 'flowr' server process in main thread");
