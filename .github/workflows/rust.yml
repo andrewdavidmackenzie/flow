@@ -19,7 +19,9 @@ jobs:
     - name: SetupEnvVars
       run: echo "FLOW_LIB_PATH=$GITHUB_WORKSPACE,$GITHUB_WORKSPACE/flowr/src/lib" >> "$GITHUB_ENV"
     - name: InstallDependencies
-      run: sudo apt-get install libzmq3-dev
+      run: |
+        sudo apt-get install libzmq3-dev
+        rustup target add wasm32-unknown-unknown
     - name: Build-flowc
       run: cargo build -p flowc
     - name: FlowcCompileFlowstdlib
@@ -32,3 +34,10 @@ jobs:
       run: cargo test --verbose
     - name: Docs
       run: cargo doc --no-deps --target-dir=target/html/code
+    - name: Coverage
+      run: |
+        make config
+        if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
+        cargo install grcov
+        rustup component add llvm-tools-preview
+        fi
