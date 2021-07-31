@@ -158,7 +158,11 @@ fn start_clients(
     let flow_args = get_flow_args(&matches, &flow_manifest_url);
     let submission = Submission::new(
         &flow_manifest_url,
-        num_parallel_jobs(&matches, debug_this_flow),
+        num_parallel_jobs(
+            &matches,
+            #[cfg(feature = "debugger")]
+            debug_this_flow,
+        ),
         #[cfg(feature = "debugger")]
         debug_this_flow,
     );
@@ -178,8 +182,8 @@ fn start_clients(
     );
 
     runtime_client.event_loop(
-        ClientConnection::new(RUNTIME_SERVICE_NAME, server_hostname.clone(), 5555)?,
         #[cfg(feature = "debugger")]
+        ClientConnection::new(RUNTIME_SERVICE_NAME, server_hostname.clone(), 5555)?,
         ClientConnection::new(RUNTIME_SERVICE_NAME, server_hostname, 5555)?,
         submission,
         #[cfg(feature = "debugger")]
@@ -224,7 +228,10 @@ fn num_threads(matches: &ArgMatches, #[cfg(feature = "debugger")] debug_this_flo
     Determine the number of parallel jobs to be run in parallel based on a default of 2 times
     the number of cores in the device, or any override from the command line.
 */
-fn num_parallel_jobs(matches: &ArgMatches, debugger: bool) -> usize {
+fn num_parallel_jobs(
+    matches: &ArgMatches,
+    #[cfg(feature = "debugger")] debug_this_flow: bool,
+) -> usize {
     match matches.value_of("jobs") {
         Some(value) => match value.parse::<i32>() {
             Ok(mut jobs) => {
@@ -244,12 +251,13 @@ fn num_parallel_jobs(matches: &ArgMatches, debugger: bool) -> usize {
             }
         },
         None => {
-            if debugger {
+            #[cfg(feature = "debugger")]
+            if debug_this_flow {
                 info!("Due to debugger option being set, max number of parallel jobs has defaulted to 1");
-                1
-            } else {
-                2 * num_cpus::get()
+                return 1;
             }
+
+            2 * num_cpus::get()
         }
     }
 }

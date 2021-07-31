@@ -28,7 +28,7 @@ where
     CM: Deserialize<'a> + Display,
 {
     /// Create a new connection between client and server
-    pub fn new(_server_hostname: &Option<String>, _port: usize) -> Result<Self> {
+    pub fn new(_name: &str, _server_hostname: &Option<String>, _port: usize) -> Result<Self> {
         info!("Client connection (channels transport) created");
 
         Ok(ClientConnection {
@@ -88,7 +88,7 @@ where
     CM: Deserialize<'a> + Display,
 {
     /// Create a new Server side of the client/server Connection
-    pub fn new(_port: usize) -> Result<Self> {
+    pub fn new(_name: &str, _port: usize) -> Result<Self> {
         let (client_event_channel_tx, client_event_channel_rx) = mpsc::channel();
         let (client_response_channel_tx, client_response_channel_rx) = mpsc::channel();
 
