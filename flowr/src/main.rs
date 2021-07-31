@@ -165,7 +165,7 @@ fn start_clients(
     runtime_client.event_loop(
         runtime_client_connection,
         #[cfg(feature = "debugger")]
-        ClientConnection::new(server_hostname, 5555)?,
+        ClientConnection::new(server_hostname, 5556)?,
         submission,
         #[cfg(feature = "debugger")]
         debugger,
