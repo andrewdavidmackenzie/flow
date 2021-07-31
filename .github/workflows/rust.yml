@@ -16,6 +16,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+    - name: InstallDependencies
+      run: sudo apt-get install libzmq3-dev
     - name: Build-flowc
       run: cargo build -p flowc
     - name: Clippy
