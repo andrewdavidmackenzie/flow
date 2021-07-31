@@ -109,18 +109,19 @@ fn run() -> Result<()> {
     };
     info!("Starting 'flowr' in {:?} mode", mode);
 
-    if mode != Mode::ClientOnly {
+    if mode == Mode::ServerOnly || mode == Mode::ClientAndServer {
         Coordinator::start_server(
             num_threads(&matches, debugger),
             lib_search_path,
             native,
             mode.clone(),
             5555,
+            #[cfg(feature = "debugger")]
             5556,
         )?;
     }
 
-    if mode != Mode::ServerOnly {
+    if mode == Mode::ClientOnly || mode == Mode::ClientAndServer {
         start_clients(matches, debugger, server_address)?;
     }
 
