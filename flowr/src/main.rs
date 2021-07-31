@@ -128,14 +128,13 @@ fn run() -> Result<()> {
     } else if matches.is_present("server") {
         #[cfg(feature = "distributed")]
         enable_server_discovery()?;
-        (Mode::ServerOnly, None)
+        (Mode::ServerOnly, default_server_address())
     } else {
-        (Mode::ClientAndServer, None) // the default if nothing specified
+        (Mode::ClientAndServer, default_server_address())
     };
     info!("Starting 'flowr' in {:?} mode", mode);
 
     if mode != Mode::ClientOnly {
-        #[cfg(feature = "debugger")]
         Coordinator::server(
             num_threads(&matches, debugger),
             lib_search_path,
@@ -201,6 +200,10 @@ fn start_client(
     runtime_client.event_loop(runtime_connection, submission)?;
 
     Ok(())
+}
+
+fn default_server_address() -> Option<String> {
+    Some("localhost".into())
 }
 
 /*
@@ -292,7 +295,7 @@ fn discover_server() -> Option<String> {
     Some(answer.to_string())
      */
 
-    None
+    Some("localhost".into())
 }
 
 /*
