@@ -24,7 +24,9 @@ jobs:
     - name: Build-flowc
       run: cargo build -p flowc
     - name: Clippy
-      run: cargo clippy -- -D warnings
+      run: |
+      echo "FLOW_LIB_PATH=env.GITHUB_WORKSPACE,env.GITHUB_WORKSPACE/flowr/src/lib" >> "$GITHUB_ENV"
+      cargo clippy -- -D warnings
     - name: Build
       run: cargo build --verbose
     - name: Run tests
