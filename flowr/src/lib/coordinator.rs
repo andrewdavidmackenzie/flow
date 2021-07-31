@@ -11,8 +11,8 @@ use url::Url;
 use flowcore::flow_manifest::FlowManifest;
 use flowcore::lib_provider::{LibProvider, MetaProvider};
 
+use crate::client_server::ServerConnection;
 #[cfg(feature = "debugger")]
-use crate::client_server::{ClientConnection, ServerConnection};
 use crate::debug_messages::{DebugClientMessage, DebugServerMessage};
 #[cfg(feature = "debugger")]
 use crate::debugger::Debugger;
@@ -153,59 +153,42 @@ impl Coordinator {
         }
     }
 
-    /// Start the Coordinator in the appropriate `Mode` and return three `ClientConnection`
-    /// - 1. ClientConnection to runtime server that runtime client should use
-    /// - 2. ClientConnection to runtime server that control-c handler should use to request
-    ///      server to enter the debugger
-    /// - 3. ClientConnection to the debug server that debug client should use
+    /// Start the Coordinator as a server either in the main thread if this process is in
+    /// ServerOnly mode, or as a background thread if this process is acting as a server and
+    /// client
     #[cfg(feature = "debugger")]
     #[allow(clippy::type_complexity)]
-    pub fn server<'a>(
+    pub fn server(
         num_threads: usize,
         lib_search_path: Simpath,
         native: bool,
         mode: Mode,
         server_hostname: &Option<String>,
-    ) -> Result<(
-        ClientConnection<'a, ServerMessage, ClientMessage>,
-        ClientConnection<'a, ServerMessage, ClientMessage>,
-        ClientConnection<'a, DebugServerMessage, DebugClientMessage>,
-    )> {
-        let runtime_server_connection = ServerConnection::new(server_hostname, 5555)?;
-        let debug_server_connection = ServerConnection::new(server_hostname, 5556)?;
+        runtime_port: usize,
+        debug_port: usize,
+    ) -> Result<()> {
+        let mut coordinator = Coordinator::new(
+            ServerConnection::new(server_hostname, runtime_port)?,
+            ServerConnection::new(server_hostname, debug_port)?,
+            num_threads,
+        );
 
-        let runtime_client_connection = ClientConnection::new(&runtime_server_connection)?;
-        let control_c_connection = ClientConnection::new(&runtime_server_connection)?;
-        let debug_client_connection = ClientConnection::new(&debug_server_connection)?;
-
-        if mode != Mode::ClientOnly {
-            let mut coordinator = Coordinator::new(
-                runtime_server_connection,
-                debug_server_connection,
-                num_threads,
-            );
-
-            if mode == Mode::ServerOnly {
-                info!("Starting 'flowr' server process");
-                coordinator.submission_loop(lib_search_path, native, mode)?;
-                info!("'flowr' server process has exited");
-            } else {
-                std::thread::spawn(move || {
-                    info!("Starting 'flowr' server thread");
-                    let _ = coordinator.submission_loop(lib_search_path, native, mode);
-                    info!("'flowr' server thread has exited");
-                });
-            }
+        if mode == Mode::ServerOnly {
+            info!("Starting 'flowr' server process in main thread");
+            coordinator.submission_loop(lib_search_path, native, mode)?;
+            info!("'flowr' server process has exited");
+        } else {
+            std::thread::spawn(move || {
+                info!("Starting 'flowr' server in background thread");
+                let _ = coordinator.submission_loop(lib_search_path, native, mode);
+                info!("'flowr' server thread has exited");
+            });
         }
 
-        Ok((
-            runtime_client_connection,
-            control_c_connection,
-            debug_client_connection,
-        ))
+        Ok(())
     }
 
-    /// Start the Coordinator in the appropriate `Mode` and return a `ClientConnection` to the
+    /// Start the Coordinator in the appropriate `Mode` and return a `ServerConnection` to the
     /// runtime server that runtime client should use
     #[cfg(not(feature = "debugger"))]
     pub fn server(
@@ -214,29 +197,23 @@ impl Coordinator {
         native: bool,
         mode: Mode,
         server_hostname: &Option<String>,
-    ) -> Result<ClientConnection> {
-        let runtime_server_connection = ServerConnection::new(server_hostname, 5555);
-        let runtime_client_connection = ClientConnection::new(&runtime_server_connection);
+        runtime_port: usize,
+    ) -> Result<()> {
+        let mut coordinator = Coordinator::new(runtime_server_connection, num_threads);
 
-        if mode != Mode::ClientOnly {
-            let mut coordinator = Coordinator::new(runtime_server_connection, num_threads);
-
-            if mode == Mode::ServerOnly {
-                info!("Starting 'flowr' server on main thread");
-                coordinator.submission_loop(lib_search_path, native, server_only)?;
-            } else {
-                std::thread::spawn(move || {
-                    info!("Starting 'flowr' server as background thread");
-                    if let Err(e) =
-                        coordinator.submission_loop(lib_search_path, native, server_only)
-                    {
-                        error!("Error starting Coordinator in background thread: '{}'", e);
-                    }
-                });
-            }
+        if mode == Mode::ServerOnly {
+            info!("Starting 'flowr' server on main thread");
+            coordinator.submission_loop(lib_search_path, native, server_only)?;
+        } else {
+            std::thread::spawn(move || {
+                info!("Starting 'flowr' server as background thread");
+                if let Err(e) = coordinator.submission_loop(lib_search_path, native, server_only) {
+                    error!("Error starting Coordinator in background thread: '{}'", e);
+                }
+            });
         }
 
-        Ok(runtime_client_connection)
+        Ok(())
     }
 
     /// Enter the Coordinator's Submission Loop - this will block the thread it is running on and

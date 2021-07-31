@@ -23,7 +23,10 @@ where
     CM: Into<Message> + Display,
 {
     /// Create a new connection between client and server
-    pub fn new(server_connection: &ServerConnection<SM, CM>) -> Result<Self> {
+    pub fn new(server_hostname: &Option<String>, port: usize) -> Result<Self> {
+        let hostname = server_hostname
+            .as_ref()
+            .ok_or("No server hostname specified")?;
         let context = zmq::Context::new();
 
         let requester = context
@@ -31,19 +34,13 @@ where
             .chain_err(|| "Runtime client could not connect to server")?;
 
         requester
-            .connect(&format!(
-                "tcp://{}:{}",
-                server_connection.host, server_connection.port
-            ))
+            .connect(&format!("tcp://{}:{}", hostname, port))
             .chain_err(|| "Could not connect to server")?;
 
-        info!(
-            "client connected to Server on {}:{}",
-            server_connection.host, server_connection.port
-        );
+        info!("client connected to Server on {}:{}", hostname, port);
 
         Ok(ClientConnection {
-            port: server_connection.port,
+            port,
             requester,
             phantom: PhantomData,
             phantom2: PhantomData,
@@ -77,7 +74,6 @@ where
 /// communications between a runtime client and a runtime server and is used each time a message
 /// needs to be sent or received.
 pub struct ServerConnection<SM, CM> {
-    host: String,
     port: usize,
     responder: zmq::Socket,
     phantom: PhantomData<SM>,
@@ -110,7 +106,6 @@ where
         info!("'flowr' server process listening on {}:{}", host, port);
 
         Ok(ServerConnection {
-            host,
             port,
             responder,
             phantom: PhantomData,

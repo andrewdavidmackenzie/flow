@@ -28,7 +28,7 @@ where
     CM: Deserialize<'a> + Display,
 {
     /// Create a new connection between client and server
-    pub fn new(runtime_server_connection: &ServerConnection<SM, CM>) -> Result<Self> {
+    pub fn new(_server_hostname: &Option<String>, _port: usize) -> Result<Self> {
         info!("Client connection (channels transport) created");
 
         Ok(ClientConnection {
