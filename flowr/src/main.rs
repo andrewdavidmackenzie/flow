@@ -33,6 +33,9 @@ mod cli_runtime_client;
 /// `use crate::errors::*;` to get access to everything `error_chain` creates.
 pub mod errors;
 
+const RUNTIME_SERVICE_NAME: &str = "runtime";
+const DEBUG_SERVICE_NAME: &str = "debug";
+
 fn main() {
     match run() {
         Err(ref e) => {
@@ -115,7 +118,10 @@ fn run() -> Result<()> {
             lib_search_path,
             native,
             mode.clone(),
+            RUNTIME_SERVICE_NAME,
             5555,
+            #[cfg(feature = "debugger")]
+            DEBUG_SERVICE_NAME,
             #[cfg(feature = "debugger")]
             5556,
         )?;
@@ -146,11 +152,10 @@ fn start_clients(
         debugger,
     );
 
-    let runtime_client_connection = ClientConnection::new(server_hostname.clone(), 5555)?;
-
     #[cfg(feature = "debugger")]
     if debugger {
-        let debug_client_connection = ClientConnection::new(server_hostname.clone(), 5556)?;
+        let debug_client_connection =
+            ClientConnection::new(DEBUG_SERVICE_NAME, server_hostname.clone(), 5556)?;
         let debug_client = CliDebugClient::new(debug_client_connection);
         debug_client.event_loop_thread();
     }
@@ -161,11 +166,10 @@ fn start_clients(
         matches.is_present("metrics"),
     );
 
-    #[cfg(feature = "debugger")]
     runtime_client.event_loop(
-        runtime_client_connection,
+        ClientConnection::new(RUNTIME_SERVICE_NAME, server_hostname.clone(), 5555)?,
         #[cfg(feature = "debugger")]
-        ClientConnection::new(server_hostname, 5556)?,
+        ClientConnection::new(RUNTIME_SERVICE_NAME, server_hostname, 5555)?,
         submission,
         #[cfg(feature = "debugger")]
         debugger,

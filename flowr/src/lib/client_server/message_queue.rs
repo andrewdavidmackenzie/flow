@@ -28,9 +28,9 @@ where
     CM: Into<Message> + Display,
 {
     /// Create a new connection between client and server
-    pub fn new(server_hostname: Option<String>, port: usize) -> Result<Self> {
+    pub fn new(name: &str, server_hostname: Option<String>, port: usize) -> Result<Self> {
         let hostname = server_hostname
-            .or_else(Self::discover_server)
+            .or_else(|| Self::discover_service(name))
             .unwrap_or_else(|| "localhost".into());
 
         info!(
@@ -62,8 +62,10 @@ where
         try to discover a server that a client can send a submission to
     */
     #[cfg(feature = "distributed")]
-    fn discover_server() -> Option<String> {
-        let listener = BeaconListener::new(BEACON_PORT, Some(FLOW_SERVICE_NAME.into())).ok()?;
+    fn discover_service(name: &str) -> Option<String> {
+        let listener =
+            BeaconListener::new(BEACON_PORT, Some(format!("{}.{}", name, FLOW_SERVICE_NAME)))
+                .ok()?;
         let beacon = listener.wait(None).ok()?;
         info!("'flowr' server discovered at IP: {}", beacon.source_ip);
         Some(beacon.source_ip)
@@ -110,7 +112,7 @@ where
     CM: From<Message> + Display,
 {
     /// Create a new Server side of the client/server Connection
-    pub fn new(port: usize) -> Result<Self> {
+    pub fn new(name: &str, port: usize) -> Result<Self> {
         let context = zmq::Context::new();
         let responder = context
             .socket(zmq::REP)
@@ -120,7 +122,7 @@ where
             .bind(&format!("tcp://*:{}", port))
             .chain_err(|| "Server Connection - could not bind on Socket")?;
 
-        Self::enable_server_discovery()?;
+        Self::enable_service_discovery(name)?;
 
         info!("'flowr' server process listening on port {}", port);
 
@@ -133,11 +135,10 @@ where
     }
 
     /*
-       Start a background thread that sends out beacons for server discovery by a client every second
+       Start a background thread that sends out beacons for service discovery by a client every second
     */
-    #[cfg(feature = "distributed")]
-    fn enable_server_discovery() -> Result<()> {
-        match BeaconSender::new(BEACON_PORT, FLOW_SERVICE_NAME) {
+    fn enable_service_discovery(name: &str) -> Result<()> {
+        match BeaconSender::new(BEACON_PORT, &format!("{}.{}", name, FLOW_SERVICE_NAME)) {
             Ok(beacon) => {
                 info!(
                     "Discovery beacon announcing service named '{}', on port: {}",
