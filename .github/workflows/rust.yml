@@ -102,4 +102,5 @@ jobs:
       run: |
         # Only deploy the docs on linux builds of master branch with stable rust
         if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
+          echo "Deploying GH pages (not implemented yet)"
         fi
