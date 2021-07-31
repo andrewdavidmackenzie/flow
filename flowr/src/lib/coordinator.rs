@@ -115,7 +115,7 @@ pub struct Coordinator {
 ///
 /// let server_hostname = Some("localhost".into());
 ///
-/// Coordinator::start_server(1 /* num_threads */,
+/// Coordinator::start(1 /* num_threads */,
 ///                     Simpath::new("fake path"),
 ///                     true,  /* native */
 ///                     Mode::ClientAndServer,
@@ -163,7 +163,7 @@ impl Coordinator {
     /// ServerOnly mode, or as a background thread if this process is acting as a server and
     /// client
     #[allow(clippy::type_complexity)]
-    pub fn start_server(
+    pub fn start(
         num_threads: usize,
         lib_search_path: Simpath,
         native: bool,
