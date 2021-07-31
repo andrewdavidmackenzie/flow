@@ -169,16 +169,14 @@ impl Coordinator {
         native: bool,
         mode: Mode,
         runtime_port: usize,
-        debug_port: usize,
+        #[cfg(feature = "debugger")] debug_port: usize,
     ) -> Result<()> {
-        #[cfg(feature = "debugger")]
         let mut coordinator = Coordinator::new(
             ServerConnection::new(runtime_port)?,
+            #[cfg(feature = "debugger")]
             ServerConnection::new(debug_port)?,
             num_threads,
         );
-        #[cfg(not(feature = "debugger"))]
-        let mut coordinator = Coordinator::new(ServerConnection::new(runtime_port), num_threads);
 
         if mode == Mode::ServerOnly {
             info!("Starting 'flowr' server process in main thread");
