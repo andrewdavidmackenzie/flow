@@ -12,16 +12,11 @@ use std::process::exit;
 use clap::{App, AppSettings, Arg, ArgMatches};
 use log::{error, info, warn};
 use simpath::Simpath;
-//use simpdiscoverylib::{BeaconListener, BeaconSender};
 use simplog::simplog::SimpleLogger;
 use url::Url;
 
 use errors::*;
 use flowcore::url_helper::url_from_string;
-//use simple_dns::rdata::{RData, A, SRV};
-//use simple_dns::{Name, ResourceRecord, CLASS};
-//use simple_mdns::{OneShotMdnsResolver, SimpleMdnsResponder};
-//use std::net::Ipv4Addr;
 use flowrlib::client_server::ClientConnection;
 use flowrlib::coordinator::{Coordinator, Mode, Submission};
 use flowrlib::info as flowrlib_info;
@@ -30,14 +25,9 @@ use flowrlib::info as flowrlib_info;
 use crate::cli_debug_client::CliDebugClient;
 use crate::cli_runtime_client::CliRuntimeClient;
 
-//use std::time::Duration;
-
 #[cfg(feature = "debugger")]
 mod cli_debug_client;
 mod cli_runtime_client;
-
-//const BEACON_PORT: u16 = 9001;
-//const FLOW_SERVICE_NAME: &str = "_flowr._tcp.local";
 
 /// We'll put our errors in an `errors` module, and other modules in this crate will
 /// `use crate::errors::*;` to get access to everything `error_chain` creates.
@@ -108,56 +98,40 @@ fn run() -> Result<()> {
         vec![]
     };
     let lib_search_path = set_lib_search_path(&lib_dirs)?;
+    let server_address = matches.value_of("address").map(|s| s.to_string());
 
-    let (mode, server_address) = if matches.is_present("client") {
-        let s_address = match matches.value_of("address") {
-            Some(address) => {
-                info!("'SERVER_ADDRESS' set to '{}'", address);
-                Some(address.to_string())
-            }
-            None => discover_server(),
-        };
-
-        if s_address.is_none() {
-            bail!(
-                "ClientOnly mode: Server address was not specified as an option and no server \
-            could be discovered."
-            );
-        }
-        (Mode::ClientOnly, s_address)
+    let mode = if matches.is_present("client") {
+        Mode::ClientOnly
     } else if matches.is_present("server") {
-        #[cfg(feature = "distributed")]
-        enable_server_discovery()?;
-        (Mode::ServerOnly, default_server_address())
+        Mode::ServerOnly
     } else {
-        (Mode::ClientAndServer, default_server_address())
+        Mode::ClientAndServer
     };
     info!("Starting 'flowr' in {:?} mode", mode);
 
     if mode != Mode::ClientOnly {
-        Coordinator::server(
+        Coordinator::start_server(
             num_threads(&matches, debugger),
             lib_search_path,
             native,
             mode.clone(),
-            &server_address,
             5555,
             5556,
         )?;
     }
 
     if mode != Mode::ServerOnly {
-        start_client(matches, debugger, server_address)?;
+        start_clients(matches, debugger, server_address)?;
     }
 
     Ok(())
 }
 
 /*
-   Start the client that talks to the server - whether another thread in this same process
+   Start the clients that talks to the server - whether another thread in this same process
    or to another process.
 */
-fn start_client(
+fn start_clients(
     matches: ArgMatches,
     debugger: bool,
     server_hostname: Option<String>,
@@ -171,16 +145,16 @@ fn start_client(
         debugger,
     );
 
-    let runtime_client_connection = ClientConnection::new(&server_hostname, 5555)?;
+    let runtime_client_connection = ClientConnection::new(server_hostname.clone(), 5555)?;
     #[cfg(feature = "debugger")]
-    let control_c_connection = ClientConnection::new(&server_hostname, 5555)?;
+    let control_c_connection = ClientConnection::new(server_hostname.clone(), 5555)?;
     #[cfg(feature = "debugger")]
-    let debug_client_connection = ClientConnection::new(&server_hostname, 5556)?;
+    let debug_client_connection = ClientConnection::new(server_hostname, 5556)?;
 
     #[cfg(feature = "debugger")]
     if debugger {
         let debug_client = CliDebugClient::new(debug_client_connection);
-        debug_client.event_loop_thread(); // TODO Broken
+        debug_client.event_loop_thread();
     }
 
     let runtime_client = CliRuntimeClient::new(
@@ -197,105 +171,9 @@ fn start_client(
         debugger,
     )?;
     #[cfg(not(feature = "debugger"))]
-    runtime_client.event_loop(runtime_connection, submission)?;
+    runtime_client.event_loop(runtime_client_connection, submission)?;
 
     Ok(())
-}
-
-fn default_server_address() -> Option<String> {
-    Some("localhost".into())
-}
-
-/*
-   Start a background thread that sends out beacons for server discovery by a client every second
-*/
-#[cfg(feature = "distributed")]
-fn enable_server_discovery() -> Result<()> {
-    // match BeaconSender::new(BEACON_PORT, FLOW_SERVICE_NAME) {
-    //     Ok(beacon) => {
-    //         info!(
-    //             "Discovery beacon announcing service named '{}', on port: {}",
-    //             FLOW_SERVICE_NAME, BEACON_PORT
-    //         );
-    //         std::thread::spawn(move || {
-    //             let _ = beacon.send_loop(Duration::from_secs(1));
-    //         });
-    //     }
-    //     Err(e) => bail!("Error starting discovery beacon: {}", e.to_string()),
-    // }
-
-    /*
-        use simple_mdns::ServiceDiscovery;
-
-        add_dns_responder();
-
-        let mut discovery = ServiceDiscovery::new(FLOW_SERVICE_NAME, 60).expect("Invalid Service Name");
-        let my_socket_address = "192.168.1.22:8090"
-            .parse()
-            .expect("Failed to parse socket address");
-        discovery.add_socket_address(my_socket_address);
-    */
-
-    Ok(())
-}
-
-/*
-fn add_dns_responder() {
-    let mut responder = SimpleMdnsResponder::new(10);
-    let srv_name = Name::new_unchecked(FLOW_SERVICE_NAME);
-
-    responder.add_resource(ResourceRecord {
-        class: CLASS::IN,
-        name: srv_name.clone(),
-        ttl: 10,
-        rdata: RData::A(A {
-            address: Ipv4Addr::LOCALHOST.into(),
-        }),
-    });
-
-    responder.add_resource(ResourceRecord {
-        class: CLASS::IN,
-        name: srv_name.clone(),
-        ttl: 10,
-        rdata: RData::SRV(Box::new(SRV {
-            port: 8080,
-            priority: 0,
-            weight: 0,
-            target: srv_name,
-        })),
-    });
-}
-*/
-
-/*
-    try to discover a server that a client can send a submission to
-*/
-#[cfg(feature = "distributed")]
-fn discover_server() -> Option<String> {
-    // let listener = BeaconListener::new(BEACON_PORT, Some(FLOW_SERVICE_NAME.into())).ok()?;
-    // let beacon = listener.wait(None).ok()?;
-    // info!("'flowr' server discovered at IP: {}", beacon.source_ip);
-    // Some(beacon.source_ip)
-
-    /*
-    let resolver = OneShotMdnsResolver::new().expect("Failed to create resolver");
-    // querying for IP Address
-    let answer = resolver
-        .query_service_address(FLOW_SERVICE_NAME)
-        .expect("Failed to query service address")?;
-
-    info!("{:?}", answer);
-    // IpV4Addr or IpV6Addr, depending on what was returned
-
-    //    let answer = resolver
-    //        .query_service_address_and_port("_flowr._tcp.local")
-    //        .expect("Failed to query service address and port");
-    //    println!("{:?}", answer);
-
-    Some(answer.to_string())
-     */
-
-    Some("localhost".into())
 }
 
 /*
