@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      FLOW_LIB_PATH: $GITHUB_WORKSPACE,$GITHUB_WORKSPACE/flowr/src/lib
+      FLOW_LIB_PATH: env.GITHUB_WORKSPACE,env.GITHUB_WORKSPACE/flowr/src/lib
 
     steps:
     - uses: actions/checkout@v2
