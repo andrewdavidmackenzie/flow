@@ -20,23 +20,86 @@ jobs:
       run: echo "FLOW_LIB_PATH=$GITHUB_WORKSPACE,$GITHUB_WORKSPACE/flowr/src/lib" >> "$GITHUB_ENV"
     - name: InstallDependencies
       run: |
-        sudo apt-get install libzmq3-dev
+        if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
+          sudo apt-get install libzmq3-dev
+          echo "RUSTFLAGS=\"-Zinstrument-coverage\"" >> "$GITHUB_ENV"
+        fi
         rustup target add wasm32-unknown-unknown
-    - name: Build-flowc
-      run: cargo build -p flowc
-    - name: FlowcCompileFlowstdlib
-      run: cargo run -p flowc -- -l flowstdlib
-    - name: Clippy
-      run: cargo clippy -- -D warnings
-    - name: Build
-      run: cargo build --verbose
-    - name: Run tests
-      run: cargo test --verbose
-    - name: Docs
-      run: cargo doc --no-deps --target-dir=target/html/code
-    - name: Coverage
+    - name: PrepareForCoverage
       run: |
         if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
           cargo install grcov
           rustup component add llvm-tools-preview
+        fi
+    - name: Build-flowc
+      run: |
+        if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
+          LLVM_PROFILE_FILE="flow-%p-%m.profraw" cargo build -p flowc
+        else
+          cargo build -p flowc
+        fi
+    - name: FlowcCompileFlowstdlib
+      run: |
+        if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
+          LLVM_PROFILE_FILE="flow-%p-%m.profraw" cargo run -p flowc -- -l flowstdlib
+        else
+          cargo run -p flowc -- -l flowstdlib
+        fi
+    - name: Clippy
+      run: cargo clippy -- -D warnings
+    - name: Build
+      run: |
+        if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
+          LLVM_PROFILE_FILE="flow-%p-%m.profraw" cargo build
+        else
+          cargo build
+        fi
+    - name: Run tests
+      run: |
+        if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
+          LLVM_PROFILE_FILE="flow-%p-%m.profraw" cargo test
+        else
+          cargo test
+        fi
+    - name: UploadCoverage
+      run: |
+        if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
+          grcov . --binary-path target/debug/ -s . -t lcov --branch --ignore-not-existing --ignore "/*" -o lcov.info
+          bash <(curl -s https://codecov.io/bash) -f lcov.info
+          rm -f lcov.info
+        fi
+    - name: Docs
+      run: |
+        if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
+          cargo doc --no-deps --target-dir=target/html/code
+          mdbook build
+          # cleanup things we don't want deployed to gh_pages
+          find target/html -name target -type d | xargs rm -rf {}
+          find target/html -name .idea | xargs rm -rf {}
+          find target/html -name \*.iml | xargs rm -rf {}
+          find target/html -name .git | xargs rm -rf {}
+          find target/html -name Cargo.toml | xargs rm -rf {}
+          find target/html -name manifest.json | xargs rm -rf {}
+          find target/html -name test.err | xargs rm -rf {}
+          find target/html -name test.input | xargs rm -rf {}
+          find target/html -name test.arguments | xargs rm -rf {}
+          find target/html -name test.output | xargs rm -rf {}
+          find target/html -name expected.output | xargs rm -rf {}
+          find target/html -name flow.toml | xargs rm -rf {}
+          find target/html -name \*.rs | xargs rm -rf {}
+          find target/html -name \*.dump | xargs rm -rf {}
+          find target/html -name \*.dot | xargs rm -rf {}
+          find target/html -name \*.wasm | xargs rm -rf {}
+          find target/html -name \*.lock  | xargs rm -rf {}
+          rm -f target/html/Makefile target/html/.crates.toml target/html/.DS_Store target/html/.mdbookignore
+          rm -f target/html/.travis.yml target/html/codecov.yml
+          rm -rf target/html/flowc/tests/test-flows
+          rm -rf target/html/flowc/tests/test-libs
+          rm -rf target/html/code/debug
+          find target/html -depth -type d -empty -delete
+        fi
+    -name: DeployGHPages
+      run: |
+        # Only deploy the docs on linux builds of master branch with stable rust
+        if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
         fi
