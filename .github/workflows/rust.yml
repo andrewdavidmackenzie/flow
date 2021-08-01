@@ -27,7 +27,7 @@ jobs:
     - name: InstallDependencies
       run: |
         if [ "$RUNNER_OS" == "Linux" ]; then
-          sudo apt-get install libzmq3-dev
+          sudo apt-get -y install libzmq3-dev graphviz
           echo RUSTFLAGS="-Zinstrument-coverage" >> "$GITHUB_ENV"
         fi
         rustup target add wasm32-unknown-unknown
