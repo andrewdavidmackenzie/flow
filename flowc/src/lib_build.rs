@@ -3,6 +3,7 @@ use std::fs::File;
 use std::io::prelude::*;
 use std::path::{Path, PathBuf};
 
+use colored::*;
 use glob::glob;
 use log::{debug, info};
 use simpath::Simpath;
@@ -68,8 +69,11 @@ pub fn build_lib(options: &Options, provider: &dyn LibProvider) -> Result<String
 
     let name = metadata.name.clone();
     println!(
-        "   Compiling {} {} ({})",
-        metadata.name, metadata.version, options.url
+        "   {} {} {} ({})",
+        "Compiling".green(),
+        metadata.name,
+        metadata.version,
+        options.url
     );
     let mut lib_manifest = LibraryManifest::new(metadata);
 
@@ -123,7 +127,7 @@ pub fn build_lib(options: &Options, provider: &dyn LibProvider) -> Result<String
         write_lib_rust_manifest(&lib_manifest, &manifest_rust_file)?;
     }
 
-    Ok(format!("    Finished {}", name))
+    Ok(format!("    {} {}", "Finished".green(), name))
 }
 
 fn json_manifest_file(base_dir: &Path) -> PathBuf {
