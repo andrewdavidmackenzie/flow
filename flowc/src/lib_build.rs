@@ -69,7 +69,7 @@ pub fn build_lib(options: &Options, provider: &dyn LibProvider) -> Result<String
 
     let name = metadata.name.clone();
     println!(
-        "   {} {} {} ({})",
+        "   {} {} v{} ({})",
         "Compiling".green(),
         metadata.name,
         metadata.version,
