@@ -30,37 +30,22 @@ jobs:
         if [ "$RUNNER_OS" == "Linux" ]; then
           cargo install grcov
           rustup component add llvm-tools-preview
+          echo LLVM_PROFILE_FILE="flow-%p-%m.profraw" >> "$GITHUB_ENV"
         fi
     - name: Build-flowc
       run: |
-        if [ "$RUNNER_OS" == "Linux" ]; then
-          LLVM_PROFILE_FILE="flow-%p-%m.profraw" cargo build -p flowc
-        else
-          cargo build -p flowc
-        fi
+        cargo build -p flowc
     - name: FlowcCompileFlowstdlib
       run: |
-        if [ "$RUNNER_OS" == "Linux" ]; then
-          LLVM_PROFILE_FILE="flow-%p-%m.profraw" cargo run -p flowc -- -l flowstdlib
-        else
-          cargo run -p flowc -- -l flowstdlib
-        fi
+        cargo run -p flowc -- -l flowstdlib
     - name: Clippy
       run: cargo clippy -- -D warnings
     - name: Build
       run: |
-        if [ "$RUNNER_OS" == "Linux" ]; then
-          LLVM_PROFILE_FILE="flow-%p-%m.profraw" cargo build
-        else
-          cargo build
-        fi
+        cargo build
     - name: Run tests
       run: |
-        if [ "$RUNNER_OS" == "Linux" ]; then
-          LLVM_PROFILE_FILE="flow-%p-%m.profraw" cargo test
-        else
-          cargo test
-        fi
+        cargo test
     - name: UploadCoverage
       run: |
         if [ "$RUNNER_OS" == "Linux" ]; then
