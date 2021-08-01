@@ -66,7 +66,11 @@ pub fn build_lib(options: &Options, provider: &dyn LibProvider) -> Result<String
         )
     })?;
 
-    info!("Building '{}' library", metadata.name);
+    let name = metadata.name.clone();
+    println!(
+        "   Compiling {} {} ({})",
+        metadata.name, metadata.version, options.url
+    );
     let mut lib_manifest = LibraryManifest::new(metadata);
 
     let mut base_dir = options.output_dir.display().to_string();
@@ -119,10 +123,7 @@ pub fn build_lib(options: &Options, provider: &dyn LibProvider) -> Result<String
         write_lib_rust_manifest(&lib_manifest, &manifest_rust_file)?;
     }
 
-    Ok(format!(
-        "Library '{}' built successfully",
-        options.url.to_string()
-    ))
+    Ok(format!("    Finished {}", name))
 }
 
 fn json_manifest_file(base_dir: &Path) -> PathBuf {
