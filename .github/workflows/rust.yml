@@ -20,27 +20,27 @@ jobs:
       run: echo "FLOW_LIB_PATH=$GITHUB_WORKSPACE,$GITHUB_WORKSPACE/flowr/src/lib" >> "$GITHUB_ENV"
     - name: InstallDependencies
       run: |
-        if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
+        if [ "$RUNNER_OS" == "Linux" ]; then
           sudo apt-get install libzmq3-dev
           echo "RUSTFLAGS=\"-Zinstrument-coverage\"" >> "$GITHUB_ENV"
         fi
         rustup target add wasm32-unknown-unknown
     - name: PrepareForCoverage
       run: |
-        if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
+        if [ "$RUNNER_OS" == "Linux" ]; then
           cargo install grcov
           rustup component add llvm-tools-preview
         fi
     - name: Build-flowc
       run: |
-        if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
+        if [ "$RUNNER_OS" == "Linux" ]; then
           LLVM_PROFILE_FILE="flow-%p-%m.profraw" cargo build -p flowc
         else
           cargo build -p flowc
         fi
     - name: FlowcCompileFlowstdlib
       run: |
-        if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
+        if [ "$RUNNER_OS" == "Linux" ]; then
           LLVM_PROFILE_FILE="flow-%p-%m.profraw" cargo run -p flowc -- -l flowstdlib
         else
           cargo run -p flowc -- -l flowstdlib
@@ -49,28 +49,28 @@ jobs:
       run: cargo clippy -- -D warnings
     - name: Build
       run: |
-        if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
+        if [ "$RUNNER_OS" == "Linux" ]; then
           LLVM_PROFILE_FILE="flow-%p-%m.profraw" cargo build
         else
           cargo build
         fi
     - name: Run tests
       run: |
-        if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
+        if [ "$RUNNER_OS" == "Linux" ]; then
           LLVM_PROFILE_FILE="flow-%p-%m.profraw" cargo test
         else
           cargo test
         fi
     - name: UploadCoverage
       run: |
-        if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
+        if [ "$RUNNER_OS" == "Linux" ]; then
           grcov . --binary-path target/debug/ -s . -t lcov --branch --ignore-not-existing --ignore "/*" -o lcov.info
           bash <(curl -s https://codecov.io/bash) -f lcov.info
           rm -f lcov.info
         fi
     - name: Docs
       run: |
-        if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
+        if [ "$RUNNER_OS" == "Linux" ]; then
           cargo doc --no-deps --target-dir=target/html/code
           mdbook build
           # cleanup things we don't want deployed to gh_pages
@@ -100,7 +100,7 @@ jobs:
         fi
     -name: DeployGHPages
       run: |
-        # Only deploy the docs on linux builds of master branch with stable rust
-        if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
+        if [ "$RUNNER_OS" == "Linux" ]; then
+          echo "Only deploy the docs on linux builds of master branch with stable rust"
           echo "Deploying GH pages (not implemented yet)"
         fi
