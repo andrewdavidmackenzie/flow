@@ -28,13 +28,13 @@ jobs:
       run: |
         if [ "$RUNNER_OS" == "Linux" ]; then
           sudo apt-get -y install libzmq3-dev graphviz
-          echo RUSTFLAGS="-Zinstrument-coverage" >> "$GITHUB_ENV"
           # Install dependencies required for coverage
-          cargo install grcov
-          rustup component add llvm-tools-preview
-          echo LLVM_PROFILE_FILE="flow-%p-%m.profraw" >> "$GITHUB_ENV"
+          #cargo install grcov
+          #rustup component add llvm-tools-preview
+          #echo RUSTFLAGS="-Zinstrument-coverage" >> "$GITHUB_ENV"
+          #echo LLVM_PROFILE_FILE="flow-%p-%m.profraw" >> "$GITHUB_ENV"
         fi
-        rustup +nightly target add wasm32-unknown-unknown
+        rustup target add wasm32-unknown-unknown
     - name: Build-flowc
       run: |
         cargo build -p flowc
@@ -51,11 +51,11 @@ jobs:
         cargo test
     - name: UploadCoverage
       run: |
-        if [ "$RUNNER_OS" == "Linux" ]; then
-          grcov . --binary-path target/debug/ -s . -t lcov --branch --ignore-not-existing --ignore "/*" -o lcov.info
-          bash <(curl -s https://codecov.io/bash) -f lcov.info
-          rm -f lcov.info
-        fi
+        #if [ "$RUNNER_OS" == "Linux" ]; then
+        #  grcov . --binary-path target/debug/ -s . -t lcov --branch --ignore-not-existing --ignore "/*" -o lcov.info
+        #  bash <(curl -s https://codecov.io/bash) -f lcov.info
+        #  rm -f lcov.info
+        #fi
     - name: Docs
       run: |
         if [ "$RUNNER_OS" == "Linux" ]; then
