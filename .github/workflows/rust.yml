@@ -28,19 +28,21 @@ jobs:
       run: |
         if [ "$RUNNER_OS" == "Linux" ]; then
           sudo apt-get -y install libzmq3-dev graphviz
-          # Install dependencies required for coverage
-          #cargo install grcov
-          #rustup component add llvm-tools-preview
-          #echo RUSTFLAGS="-Zinstrument-coverage" >> "$GITHUB_ENV"
-          #echo LLVM_PROFILE_FILE="flow-%p-%m.profraw" >> "$GITHUB_ENV"
         fi
         rustup target add wasm32-unknown-unknown
     - name: Build-flowc
-      run: |
-        cargo build -p flowc
+      run: cargo build -p flowc
     - name: FlowcCompileFlowstdlib
+      run: cargo run -p flowc -- -l flowstdlib
+    - name: ConfigureCoverage
       run: |
-        cargo run -p flowc -- -l flowstdlib
+        -
+        if [ "$RUNNER_OS" == "Linux" ]; then
+          cargo install grcov
+          rustup component add llvm-tools-preview
+          echo RUSTFLAGS="-Zinstrument-coverage" >> "$GITHUB_ENV"
+          echo LLVM_PROFILE_FILE="flow-%p-%m.profraw" >> "$GITHUB_ENV"
+        fi
     - name: Clippy
       run: cargo clippy -- -D warnings
     - name: Build
@@ -59,6 +61,7 @@ jobs:
     - name: Docs
       run: |
         if [ "$RUNNER_OS" == "Linux" ]; then
+          cargo install mdbook
           cargo doc --no-deps --target-dir=target/html/code
           mdbook build
           # cleanup things we don't want deployed to gh_pages
