@@ -36,7 +36,6 @@ jobs:
       run: cargo run -p flowc -- -l flowstdlib
     - name: ConfigureCoverage
       run: |
-        -
         if [ "$RUNNER_OS" == "Linux" ]; then
           cargo install grcov
           rustup component add llvm-tools-preview
