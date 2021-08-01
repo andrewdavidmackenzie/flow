@@ -22,7 +22,7 @@ jobs:
       run: |
         if [ "$RUNNER_OS" == "Linux" ]; then
           sudo apt-get install libzmq3-dev
-          echo RUSTFLAGS=-Zinstrument-coverage >> "$GITHUB_ENV"
+          echo RUSTFLAGS="-Zinstrument-coverage" >> "$GITHUB_ENV"
         fi
         rustup target add wasm32-unknown-unknown
     - name: PrepareForCoverage
