@@ -18,6 +18,12 @@ jobs:
     - uses: actions/checkout@v2
     - name: SetupEnvVars
       run: echo "FLOW_LIB_PATH=$GITHUB_WORKSPACE,$GITHUB_WORKSPACE/flowr/src/lib" >> "$GITHUB_ENV"
+    - name: Install latest nightly
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: nightly
+        override: true
+        components: rustfmt, clippy
     - name: InstallDependencies
       run: |
         if [ "$RUNNER_OS" == "Linux" ]; then
