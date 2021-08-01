@@ -61,6 +61,7 @@ jobs:
       run: |
         if [ "$RUNNER_OS" == "Linux" ]; then
           cargo install mdbook
+          cargo install mdbook-linkcheck
           cargo doc --no-deps --target-dir=target/html/code
           mdbook build
           # cleanup things we don't want deployed to gh_pages
