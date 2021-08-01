@@ -98,7 +98,7 @@ jobs:
           rm -rf target/html/code/debug
           find target/html -depth -type d -empty -delete
         fi
-    -name: DeployGHPages
+    - name: DeployGHPages
       run: |
         if [ "$RUNNER_OS" == "Linux" ]; then
           echo "Only deploy the docs on linux builds of master branch with stable rust"
