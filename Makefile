@@ -45,14 +45,24 @@ docs:
 build-flowc:
 	@cargo build -p flowc
 
+.PHONY: compile-flowstdlib
+compile-flowstdlib: build-flowc
+	@cargo run -p flowc -- -l flowstdlib
+
 .PHONY: build
-build: build-flowc
+build: build-flowc compile-flowstdlib
 	@cargo build
 
 .PHONY: clippy
-clippy: build-flowc
+clippy: build-flowc compile-flowstdlib
 	@cargo clippy -- -D warnings
 
 .PHONY: test
-test: build-flowc
+test: build-flowc compile-flowstdlib
 	@cargo test
+
+.PHONY: clean
+clean:
+	@cargo clean
+	@find . -name \*.wasm -exec rm {} \;
+	@rm -f flowstdlib/manifest.json flowstdlib/lib.rs

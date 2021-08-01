@@ -30,7 +30,6 @@ mod errors {
     error_chain! {}
 }
 
-#[doc(hidden)]
 error_chain! {
     foreign_links {
         Provider(::flowcore::errors::Error);

@@ -12,6 +12,7 @@ use std::path::PathBuf;
 use std::process::exit;
 
 use clap::{App, AppSettings, Arg, ArgMatches};
+use colored::*;
 use log::{debug, info, warn};
 use simpath::Simpath;
 use simplog::simplog::SimpleLogger;
@@ -52,7 +53,7 @@ pub struct Options {
 fn main() {
     match run() {
         Err(ref e) => {
-            println!("error: {}", e);
+            println!("{}: {}", "error".red(), e);
 
             for e in e.iter().skip(1) {
                 println!("caused by: {}", e);

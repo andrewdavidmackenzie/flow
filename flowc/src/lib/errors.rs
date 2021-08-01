@@ -4,7 +4,6 @@ pub use error_chain::bail;
 use error_chain::error_chain;
 
 // Specify the errors we will produce and foreign links
-#[doc(hidden)]
 error_chain! {
     types {
         Error, ErrorKind, ResultExt, Result;

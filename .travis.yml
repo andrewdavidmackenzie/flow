@@ -93,6 +93,7 @@ after_success: |
       find target/html -depth -type d -empty -delete
     fi
 
+
 # Only deploy the docs on linux builds of master branch with stable rust
 deploy:
   provider: pages
