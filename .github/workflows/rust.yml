@@ -34,6 +34,8 @@ jobs:
       run: cargo build -p flowc
     - name: FlowcCompileFlowstdlib
       run: cargo run -p flowc -- -l flowstdlib
+    - name: Clippy
+      run: cargo clippy -- -D warnings
     - name: ConfigureCoverage
       run: |
         if [ "$RUNNER_OS" == "Linux" ]; then
@@ -42,8 +44,6 @@ jobs:
           echo RUSTFLAGS="-Zinstrument-coverage" >> "$GITHUB_ENV"
           echo LLVM_PROFILE_FILE="flow-%p-%m.profraw" >> "$GITHUB_ENV"
         fi
-    - name: Clippy
-      run: cargo clippy -- -D warnings
     - name: Build
       run: |
         cargo build
