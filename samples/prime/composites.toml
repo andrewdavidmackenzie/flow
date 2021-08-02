@@ -66,7 +66,7 @@ from = "join"
 to = "subsequence-count/i2"
 
 [[connection]]
-from = "subsequence-count/sum"
+from = "subsequence-count"
 to = "subsequence-count/i1"
 
 # compare the count of subsequences to how many we expect
@@ -79,7 +79,7 @@ from = "divisors/last"
 to = "compare/left"
 
 [[connection]]
-from = "subsequence-count/sum"
+from = "subsequence-count"
 to = "compare/right"
 
 [[connection]]

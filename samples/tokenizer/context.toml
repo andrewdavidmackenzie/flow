@@ -32,7 +32,7 @@ to = "work-counter/i1"
 
 [[connection]] # Loop back the sum to accumulate the pending work count
 name = "pending-work"
-from = "work-counter/sum"
+from = "work-counter"
 to = "work-counter/i2"
 
 [[connection]] # Count the tokens passing thru 'count'
@@ -41,7 +41,7 @@ from = "split/token-count"
 to = "token-counter/i1"
 
 [[connection]] # Loop back to count token total
-from = "token-counter/sum"
+from = "token-counter"
 to = "token-counter/i2"
 
 [[process]] # A Tap to limit output of count until we are done
@@ -49,7 +49,7 @@ source = "lib://flowstdlib/control/tap"
 
 [[connection]] # Pass the token count to the tap
 name = "token-count"
-from = "token-counter/sum"
+from = "token-counter"
 to = "tap/data"
 
 [[process]] # compare pending work to zero
@@ -58,7 +58,7 @@ input.left = { always =  0 }
 
 [[connection]] # compare pending work to zero
 name = "pending-work"
-from = "work-counter/sum"
+from = "work-counter"
 to = "compare/right"
 
 [[connection]] # Open tap when we are done!
