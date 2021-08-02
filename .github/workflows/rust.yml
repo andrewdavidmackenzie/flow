@@ -19,6 +19,14 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
+    - name: Cache Cargo registry
+      uses: actions/cache@v1
+      with:
+        path: ~/.cargo/registry
+        key: ${{ runner.os }}-stable-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-stable-cargo-registry-
+
     - name: SetupEnvVars
       run: echo "FLOW_LIB_PATH=$GITHUB_WORKSPACE,$GITHUB_WORKSPACE/flowr/src/lib" >> "$GITHUB_ENV"
 
