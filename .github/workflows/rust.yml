@@ -18,26 +18,33 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+
     - name: SetupEnvVars
       run: echo "FLOW_LIB_PATH=$GITHUB_WORKSPACE,$GITHUB_WORKSPACE/flowr/src/lib" >> "$GITHUB_ENV"
+
     - name: Install latest nightly
       uses: actions-rs/toolchain@v1
       with:
         toolchain: nightly
         override: true
         components: rustfmt, clippy
+
     - name: InstallDependencies
       run: |
         if [ "$RUNNER_OS" == "Linux" ]; then
           sudo apt-get -y install libzmq3-dev graphviz
         fi
         rustup target add wasm32-unknown-unknown
+
     - name: Build-flowc
       run: cargo build -p flowc
+
     - name: FlowcCompileFlowstdlib
       run: cargo run -p flowc -- -l flowstdlib
+
     - name: Clippy
       run: cargo clippy -- -D warnings
+
     - name: ConfigureCoverage
       run: |
         if [ "$RUNNER_OS" == "Linux" ]; then
@@ -46,12 +53,15 @@ jobs:
           echo RUSTFLAGS="-Zinstrument-coverage" >> "$GITHUB_ENV"
           echo LLVM_PROFILE_FILE="flow-%p-%m.profraw" >> "$GITHUB_ENV"
         fi
+
     - name: Build
       run: |
         cargo build
+
     - name: Run tests
       run: |
         cargo test
+
     - name: UploadCoverage
       run: |
         if [ "$RUNNER_OS" == "Linux" ]; then
@@ -59,6 +69,7 @@ jobs:
           bash <(curl -s https://codecov.io/bash) -f lcov.info
           rm -f lcov.info
         fi
+
     - name: Docs
       run: |
         if [ "$RUNNER_OS" == "Linux" ]; then
@@ -93,6 +104,7 @@ jobs:
           find target/html -depth -type d -empty -delete
           ls target/html
         fi
+
     - name: DeployGHPages
       uses: JamesIves/github-pages-deploy-action@4.1.4
       with:
