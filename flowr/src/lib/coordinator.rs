@@ -82,18 +82,8 @@ impl Submission {
 ///
 /// It accepts Flows to be executed in the form of a Submission struct that has the required
 /// information to execute the flow.
-pub struct Coordinator {
-    /// A channel used to send Jobs out for execution
-    job_tx: Sender<Job>,
-    /// A channel used to receive Jobs back after execution (now including the job's output)
-    job_rx: Receiver<Job>,
-    /// Get and Send messages to/from the runtime client
-    runtime_server_connection: Arc<Mutex<ServerConnection<ServerMessage, ClientMessage>>>,
-    #[cfg(feature = "debugger")]
-    debugger: Debugger,
-}
-
-/// # Example Submission of a flow for execution
+///
+/// # Example Submission of a flow for execution to the Coordinator
 ///
 /// Instantiate the Coordinator server that receives the submitted flows to be executed
 /// Create a Submission for the flow to be executed.
@@ -113,8 +103,6 @@ pub struct Coordinator {
 /// use flowrlib::client_server::ClientConnection;
 /// use flowrlib::runtime_messages::{ServerMessage, ClientMessage};
 ///
-/// let server_hostname = Some("localhost".into());
-///
 /// Coordinator::start(1 /* num_threads */,
 ///                     Simpath::new("fake path"),
 ///                     true,  /* native */
@@ -130,13 +118,23 @@ pub struct Coordinator {
 ///                                     1 /* num_parallel_jobs */,
 ///                                     true /* enter debugger on start */);///
 /// let runtime_client_connection: ClientConnection<ServerMessage, ClientMessage> =
-///     ClientConnection::new("runtime", server_hostname, 5555).unwrap();
+///     ClientConnection::new("runtime", None).unwrap();
 /// runtime_client_connection.send(ClientSubmission(submission)).unwrap();
 /// exit(0);
 /// ```
-///
+pub struct Coordinator {
+    /// A channel used to send Jobs out for execution
+    job_tx: Sender<Job>,
+    /// A channel used to receive Jobs back after execution (now including the job's output)
+    job_rx: Receiver<Job>,
+    /// Get and Send messages to/from the runtime client
+    runtime_server_connection: Arc<Mutex<ServerConnection<ServerMessage, ClientMessage>>>,
+    #[cfg(feature = "debugger")]
+    debugger: Debugger,
+}
+
 impl Coordinator {
-    /// Create a new `coordinator` with `num_threads` executor threads
+    // Create a new `coordinator` with `num_threads` executor threads
     fn new(
         runtime_server_connection: ServerConnection<ServerMessage, ClientMessage>,
         #[cfg(feature = "debugger")] debug_server_connection: ServerConnection<
@@ -174,9 +172,9 @@ impl Coordinator {
         native: bool,
         mode: Mode,
         runtime_service_name: &str,
-        runtime_port: usize,
+        runtime_port: u16,
         #[cfg(feature = "debugger")] debug_service_name: &str,
-        #[cfg(feature = "debugger")] debug_port: usize,
+        #[cfg(feature = "debugger")] debug_port: u16,
     ) -> Result<()> {
         let mut coordinator = Coordinator::new(
             ServerConnection::new(runtime_service_name, runtime_port)?,

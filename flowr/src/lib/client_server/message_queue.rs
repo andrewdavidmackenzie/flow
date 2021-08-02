@@ -16,7 +16,7 @@ const FLOW_SERVICE_NAME: &str = "_flowr._tcp.local";
 /// `ClientConnection` stores information related to the connection from a runtime client
 /// to the runtime server and is used each time a message is to be sent or received.
 pub struct ClientConnection<'a, SM, CM> {
-    port: usize,
+    port: u16,
     requester: Socket,
     phantom: PhantomData<&'a SM>,
     phantom2: PhantomData<&'a CM>,
@@ -28,10 +28,11 @@ where
     CM: Into<Message> + Display,
 {
     /// Create a new connection between client and server
-    pub fn new(name: &str, server_hostname: Option<String>, port: usize) -> Result<Self> {
-        let hostname = server_hostname
-            .or_else(|| Self::discover_service(name))
-            .unwrap_or_else(|| "localhost".into());
+    pub fn new(name: &str, server_hostname_and_port: Option<(String, u16)>) -> Result<Self> {
+        let (hostname, port) = server_hostname_and_port.unwrap_or(
+            Self::discover_service(name)
+                .ok_or("Could not discover service hostname & port and none were specified")?,
+        );
 
         info!(
             "Client will attempt to connect to server at: '{}'",
@@ -62,13 +63,12 @@ where
         try to discover a server that a client can send a submission to
     */
     #[cfg(feature = "distributed")]
-    fn discover_service(name: &str) -> Option<String> {
+    fn discover_service(name: &str) -> Option<(String, u16)> {
         let listener =
-            BeaconListener::new(BEACON_PORT, Some(format!("{}.{}", name, FLOW_SERVICE_NAME)))
-                .ok()?;
+            BeaconListener::new(format!("{}.{}", name, FLOW_SERVICE_NAME).as_bytes()).ok()?;
         let beacon = listener.wait(None).ok()?;
-        info!("'flowr' server discovered at IP: {}", beacon.source_ip);
-        Some(beacon.source_ip)
+        info!("'flowr' server discovered at IP: {}", beacon.service_ip);
+        Some((beacon.service_ip, beacon.service_port))
     }
 
     /// Receive a ServerMessage from the server
@@ -98,7 +98,7 @@ where
 /// communications between a runtime client and a runtime server and is used each time a message
 /// needs to be sent or received.
 pub struct ServerConnection<SM, CM> {
-    port: usize,
+    port: u16,
     responder: zmq::Socket,
     phantom: PhantomData<SM>,
     phantom2: PhantomData<CM>,
@@ -112,7 +112,7 @@ where
     CM: From<Message> + Display,
 {
     /// Create a new Server side of the client/server Connection
-    pub fn new(name: &str, port: usize) -> Result<Self> {
+    pub fn new(name: &str, port: u16) -> Result<Self> {
         let context = zmq::Context::new();
         let responder = context
             .socket(zmq::REP)
@@ -122,7 +122,7 @@ where
             .bind(&format!("tcp://*:{}", port))
             .chain_err(|| "Server Connection - could not bind on Socket")?;
 
-        Self::enable_service_discovery(name)?;
+        Self::enable_service_discovery(name, port)?;
 
         info!("'flowr' server process listening on port {}", port);
 
@@ -137,8 +137,8 @@ where
     /*
        Start a background thread that sends out beacons for service discovery by a client every second
     */
-    fn enable_service_discovery(name: &str) -> Result<()> {
-        match BeaconSender::new(BEACON_PORT, &format!("{}.{}", name, FLOW_SERVICE_NAME)) {
+    fn enable_service_discovery(name: &str, port: u16) -> Result<()> {
+        match BeaconSender::new(port, format!("{}.{}", name, FLOW_SERVICE_NAME).as_bytes()) {
             Ok(beacon) => {
                 info!(
                     "Discovery beacon announcing service named '{}', on port: {}",

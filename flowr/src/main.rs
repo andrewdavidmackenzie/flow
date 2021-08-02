@@ -169,8 +169,9 @@ fn start_clients(
 
     #[cfg(feature = "debugger")]
     if debug_this_flow {
+        let server_hostname_and_port = server_hostname.clone().map(|name| (name, 5556));
         let debug_client_connection =
-            ClientConnection::new(DEBUG_SERVICE_NAME, server_hostname.clone(), 5556)?;
+            ClientConnection::new(DEBUG_SERVICE_NAME, server_hostname_and_port)?;
         let debug_client = CliDebugClient::new(debug_client_connection);
         debug_client.event_loop_thread();
     }
@@ -181,10 +182,11 @@ fn start_clients(
         matches.is_present("metrics"),
     );
 
+    let server_hostname_and_port = server_hostname.map(|name| (name, 5555));
     runtime_client.event_loop(
         #[cfg(feature = "debugger")]
-        ClientConnection::new(RUNTIME_SERVICE_NAME, server_hostname.clone(), 5555)?,
-        ClientConnection::new(RUNTIME_SERVICE_NAME, server_hostname, 5555)?,
+        ClientConnection::new(RUNTIME_SERVICE_NAME, server_hostname_and_port.clone())?,
+        ClientConnection::new(RUNTIME_SERVICE_NAME, server_hostname_and_port)?,
         submission,
         #[cfg(feature = "debugger")]
         debug_this_flow,
