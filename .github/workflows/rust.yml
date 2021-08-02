@@ -66,12 +66,13 @@ jobs:
           cargo install mdbook-linkcheck
           cargo doc --no-deps --target-dir=target/html/code
           mdbook build
-          # cleanup things we don't want deployed to gh_pages
+          ls target/html
           find target/html -name target -type d | xargs rm -rf {}
           find target/html -name .idea | xargs rm -rf {}
           find target/html -name \*.iml | xargs rm -rf {}
           find target/html -name .git | xargs rm -rf {}
           find target/html -name Cargo.toml | xargs rm -rf {}
+          find target/html -name \*.lock | xargs rm -rf {}
           find target/html -name manifest.json | xargs rm -rf {}
           find target/html -name test.err | xargs rm -rf {}
           find target/html -name test.input | xargs rm -rf {}
@@ -90,6 +91,7 @@ jobs:
           rm -rf target/html/flowc/tests/test-libs
           rm -rf target/html/code/debug
           find target/html -depth -type d -empty -delete
+          ls target/html
         fi
     - name: DeployGHPages
       uses: JamesIves/github-pages-deploy-action@4.1.4
