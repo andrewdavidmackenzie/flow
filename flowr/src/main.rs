@@ -18,7 +18,9 @@ use url::Url;
 use errors::*;
 use flowcore::url_helper::url_from_string;
 use flowrlib::client_server::ClientConnection;
-use flowrlib::coordinator::{Coordinator, Mode, Submission};
+use flowrlib::coordinator::{
+    Coordinator, Mode, Submission, DEBUG_SERVICE_NAME, RUNTIME_SERVICE_NAME,
+};
 use flowrlib::info as flowrlib_info;
 
 #[cfg(feature = "debugger")]
@@ -32,10 +34,6 @@ mod cli_runtime_client;
 /// We'll put our errors in an `errors` module, and other modules in this crate will
 /// `use crate::errors::*;` to get access to everything `error_chain` creates.
 pub mod errors;
-
-const RUNTIME_SERVICE_NAME: &str = "runtime";
-#[cfg(feature = "debugger")]
-const DEBUG_SERVICE_NAME: &str = "debug";
 
 fn main() {
     match run() {
@@ -124,12 +122,9 @@ fn run() -> Result<()> {
             lib_search_path,
             native,
             mode.clone(),
-            RUNTIME_SERVICE_NAME,
-            5555,
+            None,
             #[cfg(feature = "debugger")]
-            DEBUG_SERVICE_NAME,
-            #[cfg(feature = "debugger")]
-            5556,
+            None,
         )?;
     }
 
@@ -183,13 +178,21 @@ fn start_clients(
     );
 
     let server_hostname_and_port = server_hostname.map(|name| (name, 5555));
+
+    #[cfg(feature = "debugger")]
+    let control_c = if debug_this_flow {
+        Some(ClientConnection::new(
+            RUNTIME_SERVICE_NAME,
+            server_hostname_and_port.clone(),
+        )?)
+    } else {
+        None
+    };
+
     runtime_client.event_loop(
-        #[cfg(feature = "debugger")]
-        ClientConnection::new(RUNTIME_SERVICE_NAME, server_hostname_and_port.clone())?,
+        control_c,
         ClientConnection::new(RUNTIME_SERVICE_NAME, server_hostname_and_port)?,
         submission,
-        #[cfg(feature = "debugger")]
-        debug_this_flow,
     )?;
 
     Ok(())
