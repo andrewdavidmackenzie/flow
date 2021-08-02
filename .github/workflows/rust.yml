@@ -92,8 +92,7 @@ jobs:
           find target/html -depth -type d -empty -delete
         fi
     - name: DeployGHPages
-      run: |
-        if [ "$RUNNER_OS" == "Linux" ]; then
-          echo "Only deploy the docs on linux builds of master branch with stable rust"
-          echo "Deploying GH pages (not implemented yet)"
-        fi
+      uses: JamesIves/github-pages-deploy-action@4.1.4
+      with:
+        branch: gh-pages
+        folder: target/html
