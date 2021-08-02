@@ -4,13 +4,13 @@ use std::time::Duration;
 
 /// This is the message-queue implementation of the lib.client_server communications
 use log::{info, trace};
+use portpicker::pick_unused_port;
 use simpdiscoverylib::{BeaconListener, BeaconSender};
 use zmq::Socket;
 use zmq::{Message, DONTWAIT};
 
 use crate::errors::*;
 
-const BEACON_PORT: u16 = 9001;
 const FLOW_SERVICE_NAME: &str = "_flowr._tcp.local";
 
 /// `ClientConnection` stores information related to the connection from a runtime client
@@ -29,27 +29,32 @@ where
 {
     /// Create a new connection between client and server
     pub fn new(name: &str, server_hostname_and_port: Option<(String, u16)>) -> Result<Self> {
+        let full_service_name = format!("{}.{}", name, FLOW_SERVICE_NAME);
+
         let (hostname, port) = server_hostname_and_port.unwrap_or(
-            Self::discover_service(name)
+            Self::discover_service(&full_service_name)
                 .ok_or("Could not discover service hostname & port and none were specified")?,
         );
 
         info!(
-            "Client will attempt to connect to server at: '{}'",
-            hostname
+            "Client will attempt to connect to service '{}' at: '{}'",
+            full_service_name, hostname
         );
 
         let context = zmq::Context::new();
 
         let requester = context
             .socket(zmq::REQ)
-            .chain_err(|| "Runtime client could not connect to server")?;
+            .chain_err(|| "Runtime client could not connect to service")?;
 
         requester
             .connect(&format!("tcp://{}:{}", hostname, port))
-            .chain_err(|| "Could not connect to server")?;
+            .chain_err(|| "Could not connect to service")?;
 
-        info!("client connected to Server on {}:{}", hostname, port);
+        info!(
+            "Client connected to service '{}' on {}:{}",
+            full_service_name, hostname, port
+        );
 
         Ok(ClientConnection {
             port,
@@ -64,10 +69,12 @@ where
     */
     #[cfg(feature = "distributed")]
     fn discover_service(name: &str) -> Option<(String, u16)> {
-        let listener =
-            BeaconListener::new(format!("{}.{}", name, FLOW_SERVICE_NAME).as_bytes()).ok()?;
+        let listener = BeaconListener::new(name.as_bytes()).ok()?;
         let beacon = listener.wait(None).ok()?;
-        info!("'flowr' server discovered at IP: {}", beacon.service_ip);
+        info!(
+            "Service '{}' discovered at IP: {}, Port: {}",
+            name, beacon.service_ip, beacon.service_port
+        );
         Some((beacon.service_ip, beacon.service_port))
     }
 
@@ -78,7 +85,7 @@ where
         let msg = self
             .requester
             .recv_msg(0)
-            .map_err(|e| format!("Error receiving from Server: {}", e))?;
+            .map_err(|e| format!("Error receiving from service: {}", e))?;
 
         let message = SM::from(msg);
         trace!("Client Received <--- {}", message);
@@ -90,7 +97,7 @@ where
         trace!("Client Sent     ---> to {} {}", self.port, message);
         self.requester
             .send(message, 0)
-            .chain_err(|| "Error sending to Runtime server")
+            .chain_err(|| "Error sending to service")
     }
 }
 
@@ -112,22 +119,26 @@ where
     CM: From<Message> + Display,
 {
     /// Create a new Server side of the client/server Connection
-    pub fn new(name: &str, port: u16) -> Result<Self> {
+    pub fn new(name: &str, port: Option<u16>) -> Result<Self> {
         let context = zmq::Context::new();
         let responder = context
             .socket(zmq::REP)
             .chain_err(|| "Server Connection - could not create Socket")?;
 
+        let chosen_port = port.unwrap_or(pick_unused_port().chain_err(|| "No ports free")?);
+
         responder
-            .bind(&format!("tcp://*:{}", port))
+            .bind(&format!("tcp://*:{}", chosen_port))
             .chain_err(|| "Server Connection - could not bind on Socket")?;
 
-        Self::enable_service_discovery(name, port)?;
+        let full_service_name = format!("{}.{}", name, FLOW_SERVICE_NAME);
 
-        info!("'flowr' server process listening on port {}", port);
+        Self::enable_service_discovery(&full_service_name, chosen_port)?;
+
+        info!("Service '{}' listening on port {}", name, chosen_port);
 
         Ok(ServerConnection {
-            port,
+            port: chosen_port,
             responder,
             phantom: PhantomData,
             phantom2: PhantomData,
@@ -138,11 +149,11 @@ where
        Start a background thread that sends out beacons for service discovery by a client every second
     */
     fn enable_service_discovery(name: &str, port: u16) -> Result<()> {
-        match BeaconSender::new(port, format!("{}.{}", name, FLOW_SERVICE_NAME).as_bytes()) {
+        match BeaconSender::new(port, name.as_bytes()) {
             Ok(beacon) => {
                 info!(
                     "Discovery beacon announcing service named '{}', on port: {}",
-                    FLOW_SERVICE_NAME, BEACON_PORT
+                    name, port
                 );
                 std::thread::spawn(move || {
                     let _ = beacon.send_loop(Duration::from_secs(1));

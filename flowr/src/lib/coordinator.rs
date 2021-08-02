@@ -25,21 +25,27 @@ use crate::metrics::Metrics;
 use crate::run_state::{Job, RunState};
 use crate::runtime_messages::{ClientMessage, ServerMessage};
 
-/// Coordinator and hence the overall `flowr` process can run in one of these three modes:
-/// - Client - this only acts as a client to submit flows for execution to a server
-/// - Server - run as a server waiting for submissions for execution from a client
-/// - ClientAndServer - this process does both, running client and server in separate threads
+/// `RUNTIME_SERVICE_NAME` is the name of the runtime services and can be used to discover it by name
+pub const RUNTIME_SERVICE_NAME: &str = "runtime";
+/// `DEBUG_SERVICE_NAME` is the name of the runtime services and can be used to discover it by name
+#[cfg(feature = "debugger")]
+pub const DEBUG_SERVICE_NAME: &str = "debug";
+
+/// The `Coordinator` of flow execution can run in one of these three modes:
+/// - `ClientOnly`      - only as a client to submit flows for execution to a server
+/// - `ServerOnly`      - only as a server waiting for submissions for execution from a client
+/// - `ClientAndServer` - as both Client and Server, in separate threads
 #[derive(PartialEq, Clone, Debug)]
 pub enum Mode {
-    /// `flowr` mode where it runs as just a client for a server running in another process
+    /// `Coordinator` mode where it runs as just a client for a server running in another process
     ClientOnly,
-    /// `flowr` mode where it runs as just a server, clients must run in another process
+    /// `Coordinator` mode where it runs as just a server, clients must run in another process
     ServerOnly,
-    /// `flowr` mode where a single process runs as a client and s server in different threads
+    /// `Coordinator` mode where a single process runs as a client and s server in different threads
     ClientAndServer,
 }
 
-/// A Submission is the struct used to send a flow to the Coordinator for execution. It contains
+/// A `Submission` is the struct used to send a flow to the Coordinator for execution. It contains
 /// all the information necessary to execute it:
 #[derive(Serialize, Deserialize, PartialEq, Debug)]
 pub struct Submission {
@@ -75,20 +81,20 @@ impl Submission {
     }
 }
 
-/// The Coordinator is responsible for coordinating the dispatching of jobs (consisting
+/// The `Coordinator` is responsible for coordinating the dispatching of jobs (consisting
 /// of a set of Input values and an Implementation of a Function) for execution,
 /// gathering the resulting Outputs and distributing output values to other connected function's
 /// Inputs.
 ///
-/// It accepts Flows to be executed in the form of a Submission struct that has the required
+/// It accepts Flows to be executed in the form of a `Submission` struct that has the required
 /// information to execute the flow.
 ///
 /// # Example Submission of a flow for execution to the Coordinator
 ///
-/// Instantiate the Coordinator server that receives the submitted flows to be executed
-/// Create a Submission for the flow to be executed.
-/// Create a client connection to the Coordinator server
-/// Send the Submission to the Coordinator to be executed
+/// Instantiate the Coordinator server that receives the submitted flows to be executed, specifying
+/// Create a `Submission` for the flow to be executed.
+/// Create a `ClientConnection` to the `Coordinator` server
+/// Send a `Submission` to the Coordinator to be executed
 ///
 /// ```no_run
 /// use std::sync::{Arc, Mutex};
@@ -107,10 +113,8 @@ impl Submission {
 ///                     Simpath::new("fake path"),
 ///                     true,  /* native */
 ///                     Mode::ClientAndServer,
-///                     "runtime",
-///                     5555,
-///                     #[cfg(feature = "debugger")] "debug",
-///                     #[cfg(feature = "debugger")] 5556,
+///                     None, /* chose first free port for runtime */
+///                     #[cfg(feature = "debugger")] None, /* chose first free port for debug */
 ///                     )
 ///                     .unwrap();
 ///
@@ -161,8 +165,8 @@ impl Coordinator {
         }
     }
 
-    /// Start the Coordinator as a server either in the main thread if this process is in
-    /// ServerOnly mode, or as a background thread if this process is acting as a server and
+    /// Start the `Coordinator` either in the main thread if this process is in
+    /// `ServerOnly` mode, or as a background thread if this process is acting as a server and
     /// client
     #[allow(clippy::type_complexity)]
     #[allow(clippy::too_many_arguments)]
@@ -171,15 +175,13 @@ impl Coordinator {
         lib_search_path: Simpath,
         native: bool,
         mode: Mode,
-        runtime_service_name: &str,
-        runtime_port: u16,
-        #[cfg(feature = "debugger")] debug_service_name: &str,
-        #[cfg(feature = "debugger")] debug_port: u16,
+        runtime_port: Option<u16>,
+        #[cfg(feature = "debugger")] debug_port: Option<u16>,
     ) -> Result<()> {
         let mut coordinator = Coordinator::new(
-            ServerConnection::new(runtime_service_name, runtime_port)?,
+            ServerConnection::new(RUNTIME_SERVICE_NAME, runtime_port)?,
             #[cfg(feature = "debugger")]
-            ServerConnection::new(debug_service_name, debug_port)?,
+            ServerConnection::new(DEBUG_SERVICE_NAME, debug_port)?,
             num_threads,
         );
 

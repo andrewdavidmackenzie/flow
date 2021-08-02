@@ -35,18 +35,15 @@ impl CliRuntimeClient {
     /// Enter a loop where we receive events as a client and respond to them
     pub fn event_loop(
         mut self,
-        #[cfg(feature = "debugger")] control_c_connection: ClientConnection<
-            'static,
-            ServerMessage,
-            ClientMessage,
+        #[cfg(feature = "debugger")] control_c_connection: Option<
+            ClientConnection<'static, ServerMessage, ClientMessage>,
         >,
         connection: ClientConnection<ServerMessage, ClientMessage>,
         submission: Submission,
-        #[cfg(feature = "debugger")] debug_this_flow: bool,
     ) -> Result<()> {
         #[cfg(feature = "debugger")]
-        if debug_this_flow {
-            Self::enter_debugger_on_control_c(control_c_connection);
+        if let Some(control_c) = control_c_connection {
+            Self::enter_debugger_on_control_c(control_c);
         }
 
         debug!("Client sending submission to server");
@@ -64,13 +61,9 @@ impl CliRuntimeClient {
                     let _ = connection.send(response);
                 }
                 Err(e) => {
-                    error!("Error receiving message from server: '{}'", e);
-                    // When debugging a Control-C to break into the debugger will cause receive()
+                    // When debugging, a Control-C to break into the debugger will cause receive()
                     // to return an error. Ignore it so we continue to process events from server
-                    #[cfg(feature = "debugger")]
-                    if !debug_this_flow {
-                        bail!("Error receiving Event in runtime client: {}", e);
-                    }
+                    error!("Error receiving message from server: '{}'", e);
                 }
             }
         }
