@@ -18,26 +18,33 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+
     - name: SetupEnvVars
       run: echo "FLOW_LIB_PATH=$GITHUB_WORKSPACE,$GITHUB_WORKSPACE/flowr/src/lib" >> "$GITHUB_ENV"
+
     - name: Install latest nightly
       uses: actions-rs/toolchain@v1
       with:
         toolchain: nightly
         override: true
         components: rustfmt, clippy
+
     - name: InstallDependencies
       run: |
         if [ "$RUNNER_OS" == "Linux" ]; then
           sudo apt-get -y install libzmq3-dev graphviz
         fi
         rustup target add wasm32-unknown-unknown
+
     - name: Build-flowc
       run: cargo build -p flowc
+
     - name: FlowcCompileFlowstdlib
       run: cargo run -p flowc -- -l flowstdlib
+
     - name: Clippy
       run: cargo clippy -- -D warnings
+
     - name: ConfigureCoverage
       run: |
         if [ "$RUNNER_OS" == "Linux" ]; then
@@ -46,19 +53,23 @@ jobs:
           echo RUSTFLAGS="-Zinstrument-coverage" >> "$GITHUB_ENV"
           echo LLVM_PROFILE_FILE="flow-%p-%m.profraw" >> "$GITHUB_ENV"
         fi
+
     - name: Build
       run: |
         cargo build
+
     - name: Run tests
       run: |
         cargo test
+
     - name: UploadCoverage
       run: |
-        #if [ "$RUNNER_OS" == "Linux" ]; then
-        #  grcov . --binary-path target/debug/ -s . -t lcov --branch --ignore-not-existing --ignore "/*" -o lcov.info
-        #  bash <(curl -s https://codecov.io/bash) -f lcov.info
-        #  rm -f lcov.info
-        #fi
+        if [ "$RUNNER_OS" == "Linux" ]; then
+          grcov . --binary-path target/debug/ -s . -t lcov --branch --ignore-not-existing --ignore "/*" -o lcov.info
+          bash <(curl -s https://codecov.io/bash) -f lcov.info
+          rm -f lcov.info
+        fi
+
     - name: Docs
       run: |
         if [ "$RUNNER_OS" == "Linux" ]; then
@@ -66,12 +77,13 @@ jobs:
           cargo install mdbook-linkcheck
           cargo doc --no-deps --target-dir=target/html/code
           mdbook build
-          # cleanup things we don't want deployed to gh_pages
+          ls target/html
           find target/html -name target -type d | xargs rm -rf {}
           find target/html -name .idea | xargs rm -rf {}
           find target/html -name \*.iml | xargs rm -rf {}
           find target/html -name .git | xargs rm -rf {}
           find target/html -name Cargo.toml | xargs rm -rf {}
+          find target/html -name \*.lock | xargs rm -rf {}
           find target/html -name manifest.json | xargs rm -rf {}
           find target/html -name test.err | xargs rm -rf {}
           find target/html -name test.input | xargs rm -rf {}
@@ -90,10 +102,11 @@ jobs:
           rm -rf target/html/flowc/tests/test-libs
           rm -rf target/html/code/debug
           find target/html -depth -type d -empty -delete
+          ls target/html
         fi
+
     - name: DeployGHPages
-      run: |
-        if [ "$RUNNER_OS" == "Linux" ]; then
-          echo "Only deploy the docs on linux builds of master branch with stable rust"
-          echo "Deploying GH pages (not implemented yet)"
-        fi
+      uses: JamesIves/github-pages-deploy-action@4.1.4
+      with:
+        branch: gh-pages
+        folder: target/html
