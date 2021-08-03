@@ -39,7 +39,7 @@ The output is sent to standard output.
 To run a specific sample only use `cargo run -p flowsamples {sample-name}`
 
 ## Testing the Samples
-You can test all samples by using `cargo test -p flowsamples -- --test-threads 1`,
+You can test all samples by using `cargo test -p flowsamples`,
 it will run each one in turn with the pre-defined arguments and standard input.
 
 It also gathers the standard output, standard error and files generated and checks for correctness 
@@ -51,7 +51,7 @@ and fails if there is a difference.
 difference with the expected file.
 
 ```
-cargo test -p flowsamples -- --test-threads 1 
+cargo test -p flowsamples 
     Finished test [unoptimized + debuginfo] target(s) in 0.11s
      Running target/debug/deps/samples-9e024e2c420db146
 

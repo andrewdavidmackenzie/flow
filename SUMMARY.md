@@ -96,22 +96,22 @@
     
 # Sample flows
 
-- [Samples](samples/README.md)
-- [args](samples/args/DESCRIPTION.md)
-- [arrays](samples/arrays/DESCRIPTION.md)
-- [factorial](samples/factorial/DESCRIPTION.md)
-- [fibonacci](samples/fibonacci/DESCRIPTION.md)
-- [hello-world](samples/hello-world/DESCRIPTION.md)
-- [mandlebrot-world sample](samples/mandlebrot/DESCRIPTION.md)
-- [matrix multiplication](samples/matrix_mult/DESCRIPTION.md)
-- [pipeline](samples/pipeline/DESCRIPTION.md)
-- [prime](samples/prime/DESCRIPTION.md)
-- [primitives](samples/primitives/DESCRIPTION.md)
-- [range](samples/range/DESCRIPTION.md)
-- [range-of-ranges](samples/range-of-ranges/DESCRIPTION.md)
-- [reverse-echo](samples/reverse-echo/DESCRIPTION.md)
-- [router](samples/router/DESCRIPTION.md)
-- [tokenizer](samples/tokenizer/DESCRIPTION.md)
+- [Samples Intro](samples/README.md)
+  - [args](samples/args/DESCRIPTION.md)
+    - [arrays](samples/arrays/DESCRIPTION.md)
+    - [factorial](samples/factorial/DESCRIPTION.md)
+    - [fibonacci](samples/fibonacci/DESCRIPTION.md)
+    - [hello-world](samples/hello-world/DESCRIPTION.md)
+    - [mandlebrot sample](samples/mandlebrot/DESCRIPTION.md)
+    - [matrix multiplication](samples/matrix_mult/DESCRIPTION.md)
+    - [pipeline](samples/pipeline/DESCRIPTION.md)
+    - [prime](samples/prime/DESCRIPTION.md)
+    - [primitives](samples/primitives/DESCRIPTION.md)
+    - [range](samples/range/DESCRIPTION.md)
+    - [range-of-ranges](samples/range-of-ranges/DESCRIPTION.md)
+    - [reverse-echo](samples/reverse-echo/DESCRIPTION.md)
+    - [router](samples/router/DESCRIPTION.md)
+    - [tokenizer](samples/tokenizer/DESCRIPTION.md)
     
 --------------------------------------------------------------------------------
 
