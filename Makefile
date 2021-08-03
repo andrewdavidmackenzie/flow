@@ -5,7 +5,7 @@ BREW := $(shell command -v brew 2> /dev/null)
 export SHELL := /bin/bash
 
 .PHONY: all
-all: clippy build test docs
+all: clippy build test docs trim-docs
 
 .PHONY: config
 config:
@@ -66,3 +66,37 @@ clean:
 	@cargo clean
 	@find . -name \*.wasm -exec rm {} \;
 	@rm -f flowstdlib/manifest.json flowstdlib/lib.rs
+
+.PHONY: trim-docs
+trim-docs:
+	@find target/html -name target -type d | xargs rm -rf {}
+	@find target/html -name .idea | xargs rm -rf {}
+	@find target/html -name .gitignore | xargs rm -rf {}
+	@find target/html -name \*.iml | xargs rm -rf {}
+	@find target/html -name .git | xargs rm -rf {}
+	@find target/html -name \*.toml | xargs rm -rf {}
+	@find target/html -name manifest.json | xargs rm -rf {}
+	@find target/html -name test.err | xargs rm -rf {}
+	@find target/html -name test.input | xargs rm -rf {}
+	@find target/html -name test.arguments | xargs rm -rf {}
+	@find target/html -name test.output | xargs rm -rf {}
+	@find target/html -name test.file | xargs rm -rf {}
+	@find target/html -name expected.file | xargs rm -rf {}
+	@find target/html -name expected.output | xargs rm -rf {}
+	@find target/html -name flow.toml | xargs rm -rf {}
+	@find target/html -name \*.rs | xargs rm -rf {}
+	@find target/html -name \*.dump | xargs rm -rf {}
+	@find target/html -name \*.dot | xargs rm -rf {}
+	@find target/html -name \*.wasm | xargs rm -rf {}
+	@find target/html -name \*.lock  | xargs rm -rf {}
+	@rm -rf target/html/.github
+	@rm -rf target/html/Makefile
+	@rm -rf target/html/.crates.toml
+	@rm -rf target/html/.DS_Store
+	@rm -rf target/html/.mdbookignore
+	@rm -rf target/html/codecov.yml
+	@rm -rf target/html/.travis.yml
+	@rm -rf target/html/flowc/tests/test-flows
+	@rm -rf target/html/flowc/tests/test-libs
+	@rm -rf target/html/code/debug
+	@find target/html -depth -type d -empty -delete
