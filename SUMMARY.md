@@ -1,6 +1,6 @@
 # The `flow` book
 
-![First flow](first.svg)
+[Intro](book_intro.md)
 
 # Introduction to `flow`
 
@@ -44,7 +44,6 @@
 - [The Debugger](docs/debugging/debugger.md)
 
 # The `flowruntime` Runtime
-
 - [The flowruntime functions](flowr/src/lib/flowruntime/README.md)
 - [Arg functions](flowr/src/lib/flowruntime/args/args.md)
     - [Arg get function](flowr/src/lib/flowruntime/args/get.md)
@@ -57,7 +56,6 @@
     - [Standard Error function](flowr/src/lib/flowruntime/stdio/stderr.md)
 
 # The `flowstdlib` Standard Library
-
 - [flowstdlib](flowstdlib/README.md)
 - [control](flowstdlib/control/control.md)
     - [compare_switch](flowstdlib/control/compare_switch/compare_switch.md)
@@ -95,7 +93,6 @@
     - [sqrt](flowstdlib/math/sqrt/sqrt.md)
     
 # Sample flows
-
 - [Samples Intro](samples/README.md)
     - [args](samples/args/DESCRIPTION.md)
     - [arrays](samples/arrays/DESCRIPTION.md)
@@ -116,7 +113,6 @@
 --------------------------------------------------------------------------------
 
 # Developing `flow`
-
 - [Developing flow](docs/developing/overview.md)
 - [Pre-requisites](docs/developing/prereqs.md)
     - [flowcore](flowcore/README.md)
@@ -139,8 +135,7 @@
     - [Developing a sample](samples/README.md)
     - [Continuous Integration Tests](docs/developing/ci.md)
         
-# Internal for the `flow` Project
-
+# Internals of the `flow` Project
 - [Internals of flow](docs/internals/overview.md)
     - [Flow Loading](docs/internals/flow_loading.md)
     - [Flow Compiling](docs/internals/flow_compiling.md)

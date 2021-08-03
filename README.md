@@ -43,19 +43,18 @@ git clone https://github.com/andrewdavidmackenzie/flow.git
 ```
 
 ### Install build tools
-You need `make` and a rust toolchain (rustup, cargo, rustc) to build from source (I suggest using [rustup](https://rustup.rs/))
+You need `make` and a rust toolchain (rustup, cargo, rustc) to build from source 
+(I suggest using [rustup](https://rustup.rs/)).
 
-Some crates need native (development) libraries to build, including `gtk3`, `ssl` etc.
-
-Other build pre-requisites include `mdbook`, `mdbook-linkcheck` and `graphviz` to build the docs.
-
-There is a `make` target to install them all for you that should work on `macos` and `linux` variants using `apt-get` 
-or `yum` package managers (PRs to Makefile are welcome for other linux package managers).
-
-After cloning the repo and in the `flow` directory, install the pre-requisites using:
+Once you have those, you can install the remaining pre-requisites using:
 ```bash
 make config
 ```
+
+These include libraries like `ssl` and tools like `mdbook`, `mdbook-linkcheck` and `graphviz` to build the docs.
+
+The `make config` target should install them all for you. It should work on `macos` and `linux` variants using `apt-get` 
+or `yum` package managers (PRs to Makefile are welcome for other linux package managers).
 
 ### Build and test
 To build and test, including building and testing docs and running the samples and checking their output is correct:
