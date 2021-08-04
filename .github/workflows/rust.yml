@@ -25,9 +25,6 @@ jobs:
           - build: macos
             os: macos-latest
             rust: stable
-          - build: windows
-            os: windows-latest
-            rust: stable
 
     steps:
     - uses: actions/checkout@v2
