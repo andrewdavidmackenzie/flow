@@ -17,23 +17,25 @@ config:
 	@echo "	Installing mdbook and mdbook-linkcheck using cargo"
 	@cargo install mdbook
 	@cargo install mdbook-linkcheck
+	@echo "installing wasm optimization tools"
+	@cargo install wasm-gc wasm-snip
 ifneq ($(BREW),)
 	@echo "Installing Mac OS X specific dependencies using $(BREW)"
-	@brew install --quiet zmq graphviz
+	@brew install --quiet zmq graphviz binaryen
 endif
 ifneq ($(YUM),)
 	@echo "Installing linux specific dependencies using $(YUM)"
 	@echo "To build OpenSSL you need perl installed"
 	@sudo yum install perl
 	@sudo yum install curl-devel elfutils-libelf-devel elfutils-devel openssl-devel binutils-devel || true
-	@sudo yum install zeromq zeromq-devel graphviz || true
+	@sudo yum install zeromq zeromq-devel graphviz binaryen || true
 endif
 ifneq ($(APTGET),)
 	@echo "Installing linux specific dependencies using $(APTGET)"
 	@echo "To build OpenSSL you need perl installed"
 	@sudo apt-get install perl
 	@sudo apt-get -y install libcurl4-openssl-dev libelf-dev libdw-dev libssl-dev binutils-dev || true
-	@sudo apt-get -y install libzmq3-dev graphviz || true
+	@sudo apt-get -y install libzmq3-dev graphviz binaryen || true
 endif
 
 .PHONY: docs
@@ -50,14 +52,18 @@ compile-flowstdlib: build-flowc
 	@cargo run -p flowc -- -l flowstdlib
 	@$(MAKE) --quiet optimize-flowstdlib
 
+.PHONE: optimize-flowstdlib
 optimize-flowstdlib:
+	@echo "  Optimizing the size of WASM files in flowstdlib"
 	@$(foreach file, $(shell find flowstdlib -type f -name '*.wasm'), \
-		echo "  Optimizing $(file)" \
-		wasm-gc $(file) > /dev/null \
-		wasm-snip $(file) > $(file).snipped \
-		mv $(file).snipped $(file) > /dev/null \
-		wasm-gc $(file) > /dev/null \
-		wasm-opt $(file) -O4 --dce -o $(file).opt > /dev/null \
+		echo "  Optimizing $(file)" && \
+		wasm-gc $(file) -o $(file).gc > /dev/null && \
+		mv $(file).gc $(file) > /dev/null && \
+		wasm-snip $(file) -o $(file).snipped > /dev/null && \
+		mv $(file).snipped $(file) > /dev/null && \
+		wasm-gc $(file) -o $(file).gc > /dev/null && \
+		mv $(file).gc $(file) > /dev/null && \
+		wasm-opt $(file) -O4 --dce -o $(file).opt > /dev/null && \
 		mv $(file).opt $(file) > /dev/null \
 	;)
 

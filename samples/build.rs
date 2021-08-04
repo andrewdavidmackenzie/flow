@@ -112,7 +112,7 @@ fn generate_svgs(sample_dir: &Path) -> io::Result<()> {
         };
         let pattern = format!("{}/*.dot", sample_dir.to_str().unwrap());
 
-        for path in glob_with(&pattern, &options).unwrap().flatten() {
+        for path in glob_with(&pattern, options).unwrap().flatten() {
             let dot_child = dot_command
                 .args(vec!["-Tsvg", "-O", path.to_str().unwrap()])
                 .stdin(Stdio::inherit())

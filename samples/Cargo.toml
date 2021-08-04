@@ -22,7 +22,7 @@ path = "main.rs"
 
 [build-dependencies]
 simpath = { version = "~2.3", features = ["urls"]}
-glob = "~0.2"
+glob = "0.3.0"
 
 [dependencies]
 simpath = { version = "~2.3", features = ["urls"]}

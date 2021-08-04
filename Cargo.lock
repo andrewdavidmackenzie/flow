@@ -338,7 +338,7 @@ dependencies = [
  "colored",
  "error-chain 0.12.4",
  "flowcore",
- "glob 0.3.0",
+ "glob",
  "log",
  "serde",
  "serde_derive",
@@ -399,7 +399,7 @@ dependencies = [
 name = "flowsamples"
 version = "0.36.0"
 dependencies = [
- "glob 0.2.11",
+ "glob",
  "serial_test",
  "simpath",
 ]
@@ -411,7 +411,7 @@ dependencies = [
  "error-chain 0.12.4",
  "flow_impl_derive",
  "flowcore",
- "glob 0.2.11",
+ "glob",
  "image",
  "serde_json",
  "simpath",
@@ -460,12 +460,6 @@ name = "gimli"
 version = "0.23.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f6503fe142514ca4799d4c26297c4248239fe8838d827db6bd6065c6ed29a6ce"
-
-[[package]]
-name = "glob"
-version = "0.2.11"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8be18de09a56b60ed0edf84bc9df007e30040691af7acd1c41874faac5895bfb"
 
 [[package]]
 name = "glob"
