@@ -64,6 +64,9 @@ jobs:
     - name: FlowcCompileFlowstdlib
       run: cargo run -p flowc -- -l flowstdlib
 
+    - name: OptimizeFlowstdLibWasm
+      run: make optimize-flowstdlib
+
     - name: Clippy
       run: |
         rustup component add clippy
