@@ -70,7 +70,7 @@ fn generate_svgs(root_dir: &str) -> io::Result<()> {
         };
         let pattern = format!("{}/**/*.dot", root_dir);
 
-        for path in glob_with(&pattern, &options).unwrap().flatten() {
+        for path in glob_with(&pattern, options).unwrap().flatten() {
             let dot_child = dot_command
                 .args(vec!["-Tsvg", "-O", path.to_str().unwrap()])
                 .stdin(Stdio::inherit())
