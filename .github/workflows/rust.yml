@@ -51,6 +51,8 @@ jobs:
       run: |
         if [ "$RUNNER_OS" == "Linux" ]; then
           sudo apt-get -y install libzmq3-dev graphviz
+        else
+          brew install zmq graphviz
         fi
         rustup target add wasm32-unknown-unknown
 
