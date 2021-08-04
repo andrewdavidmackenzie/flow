@@ -49,17 +49,17 @@ jobs:
 
     - name: InstallLinuxDependencies
       if: matrix.os == 'ubuntu-latest'
-      run: sudo apt-get -y install libzmq3-dev graphviz
+      run: sudo apt-get -y install libzmq3-dev graphviz binaryen
 
     - name: InstallMacDependencies
       if: matrix.os == 'macos-latest'
-      run: brew install zmq graphviz
+      run: brew install zmq graphviz binaryen
 
     - name: AddWasmtarget
       run: rustup target add wasm32-unknown-unknown
 
     - name: InstallWasmTools
-      run: cargo install cargo-wasi wasm-gc wasm-snip
+      run: cargo install wasm-gc wasm-snip
 
     - name: Build-flowc
       run: cargo build -p flowc

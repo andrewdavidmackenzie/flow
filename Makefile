@@ -18,24 +18,24 @@ config:
 	@cargo install mdbook
 	@cargo install mdbook-linkcheck
 	@echo "installing wasm optimization tools"
-	@cargo install cargo-wasi wasm-gc wasm-snip
+	@cargo install wasm-gc wasm-snip
 ifneq ($(BREW),)
 	@echo "Installing Mac OS X specific dependencies using $(BREW)"
-	@brew install --quiet zmq graphviz
+	@brew install --quiet zmq graphviz binaryen
 endif
 ifneq ($(YUM),)
 	@echo "Installing linux specific dependencies using $(YUM)"
 	@echo "To build OpenSSL you need perl installed"
 	@sudo yum install perl
 	@sudo yum install curl-devel elfutils-libelf-devel elfutils-devel openssl-devel binutils-devel || true
-	@sudo yum install zeromq zeromq-devel graphviz || true
+	@sudo yum install zeromq zeromq-devel graphviz binaryen || true
 endif
 ifneq ($(APTGET),)
 	@echo "Installing linux specific dependencies using $(APTGET)"
 	@echo "To build OpenSSL you need perl installed"
 	@sudo apt-get install perl
 	@sudo apt-get -y install libcurl4-openssl-dev libelf-dev libdw-dev libssl-dev binutils-dev || true
-	@sudo apt-get -y install libzmq3-dev graphviz || true
+	@sudo apt-get -y install libzmq3-dev graphviz binaryen || true
 endif
 
 .PHONY: docs
