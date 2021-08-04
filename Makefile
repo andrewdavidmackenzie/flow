@@ -53,14 +53,12 @@ compile-flowstdlib: build-flowc
 optimize-flowstdlib:
 	@$(foreach file, $(shell find flowstdlib -type f -name '*.wasm'), \
 		echo "  Optimizing $(file)" \
-		wasm-gc $< -o $<.gc > /dev/null \
-		mv $<.gc $< > /dev/null \
-		wasm-snip $< -o $<.snipped > /dev/null \
-		mv $<.snipped $< > /dev/null \
-		wasm-gc $< -o $<.gc > /dev/null \
-		mv $<.gc $< > /dev/null \
-		wasm-opt $< -O4 --dce -o $<.opt > /dev/null \
-		mv $<.opt $< > /dev/null \
+		wasm-gc $(file) > /dev/null \
+		wasm-snip $(file) > $(file).snipped \
+		mv $(file).snipped $(file) > /dev/null \
+		wasm-gc $(file) > /dev/null \
+		wasm-opt $(file) -O4 --dce -o $(file).opt > /dev/null \
+		mv $(file).opt $(file) > /dev/null \
 	;)
 
 .PHONY: build
