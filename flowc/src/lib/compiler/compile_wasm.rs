@@ -5,7 +5,8 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::process::Stdio;
 
-use log::{debug, error, info, warn};
+use colored::Colorize;
+use log::{debug, error, warn};
 use tempdir::TempDir;
 use url::Url;
 
@@ -98,12 +99,17 @@ pub fn compile_implementation(
                 )
             })?;
 
-            info!("Compiling to WASM '{}'", implementation_path.display());
+            println!(
+                "   {} '{}' to WASM",
+                "Compiling".green(),
+                implementation_path.display()
+            );
+
             run_cargo_build(&cargo_manifest_path, &build_dir)?;
 
             // copy compiled wasm output into place where flow's toml file expects it
             let mut wasm_source = build_dir.clone();
-            wasm_source.push("wasm32-unknown-unknown/debug/");
+            wasm_source.push("wasm32-unknown-unknown/release/");
             wasm_source.push(
                 &wasm_destination
                     .file_name()
@@ -164,7 +170,7 @@ fn run_cargo_build(manifest_path: &Path, target_dir: &Path) -> Result<String> {
     let mut command_args = vec![
         "build",
         "--quiet",
-        // "--verbose",
+        "--release",
         "--lib",
         "--target=wasm32-unknown-unknown",
     ];
