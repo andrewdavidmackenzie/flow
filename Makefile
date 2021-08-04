@@ -17,6 +17,8 @@ config:
 	@echo "	Installing mdbook and mdbook-linkcheck using cargo"
 	@cargo install mdbook
 	@cargo install mdbook-linkcheck
+	@echo "installing wasm optimization tools"
+	@cargo install cargo-wasi wasm-gc wasm-snip
 ifneq ($(BREW),)
 	@echo "Installing Mac OS X specific dependencies using $(BREW)"
 	@brew install --quiet zmq graphviz

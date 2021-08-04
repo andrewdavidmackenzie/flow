@@ -58,6 +58,9 @@ jobs:
     - name: AddWasmtarget
       run: rustup target add wasm32-unknown-unknown
 
+    - name: InstallWasmTools
+      run: cargo install cargo-wasi wasm-gc wasm-snip
+
     - name: Build-flowc
       run: cargo build -p flowc
 
