@@ -21,10 +21,10 @@ jobs:
         include:
           - build: linux
             os: ubuntu-latest
-            rust: stable
+            rust: nightly
           - build: macos
             os: macos-latest
-            rust: stable
+            rust: nightly
 
     steps:
     - uses: actions/checkout@v2
@@ -40,22 +40,15 @@ jobs:
     - name: SetupEnvVars
       run: echo "FLOW_LIB_PATH=$GITHUB_WORKSPACE,$GITHUB_WORKSPACE/flowr/src/lib" >> "$GITHUB_ENV"
 
-    - name: Install latest nightly
-      uses: actions-rs/toolchain@v1
-      with:
-        toolchain: nightly
-        override: true
-        components: rustfmt, clippy
-
     - name: InstallLinuxDependencies
-      if: matrix.os == 'linux'
+      if: matrix.os == 'ubuntu-latest'
       run: sudo apt-get -y install libzmq3-dev graphviz
 
     - name: InstallMacDependencies
-      if: matrix.os == 'macos'
+      if: matrix.os == 'macos-latest'
       run: brew install zmq graphviz
 
-    - name: InstallCommonDependencies
+    - name: AddWasmtarget
       run: rustup target add wasm32-unknown-unknown
 
     - name: Build-flowc
@@ -65,10 +58,12 @@ jobs:
       run: cargo run -p flowc -- -l flowstdlib
 
     - name: Clippy
-      run: cargo clippy -- -D warnings
+      run: |
+        rustup component add clippy
+        cargo clippy -- -D warnings
 
     - name: ConfigureCoverage
-      if: matrix.os == 'linux'
+      if: matrix.os == 'ubuntu-latest'
       run: |
         cargo install grcov
         rustup component add llvm-tools-preview
@@ -76,22 +71,20 @@ jobs:
         echo LLVM_PROFILE_FILE="flow-%p-%m.profraw" >> "$GITHUB_ENV"
 
     - name: Build
-      run: |
-        cargo build
+      run: cargo build
 
     - name: Run tests
-      run: |
-        cargo test
+      run: cargo test
 
     - name: UploadCoverage
-      if: matrix.os == 'linux'
+      if: matrix.os == 'ubuntu-latest'
       run: |
         grcov . --binary-path target/debug/ -s . -t lcov --branch --ignore-not-existing --ignore "/*" -o lcov.info
         bash <(curl -s https://codecov.io/bash) -f lcov.info
         rm -f lcov.info
 
     - name: Docs
-      if: matrix.os == 'linux'
+      if: matrix.os == 'ubuntu-latest'
       run: |
         cargo install mdbook
         cargo install mdbook-linkcheck
@@ -100,7 +93,7 @@ jobs:
 
     - name: DeployGHPages
       uses: JamesIves/github-pages-deploy-action@4.1.4
-      if: matrix.os == 'linux'
+      if: matrix.os == 'ubuntu-latest'
       with:
         branch: gh-pages
         folder: target/html
