@@ -136,13 +136,17 @@
                     <main>
                         <h1 id="flowstdlib"><a class="header" href="#flowstdlib"><code>flowstdlib</code></a></h1>
 <p>See also: <a href="http://andrewdavidmackenzie.github.io/flow/code/doc/flowstdlib/index.html">Code docs</a></p>
-<p><code>flowstdlib</code> is a standard library of functions for <code>flow</code> programs to use.</p>
+<p><code>flowstdlib</code> is a standard library of functions anf flows for <code>flow</code> programs to use.</p>
 <p>The directory containing this library must be part of <code>FLOW_LIB_PATH</code> or specified using an instance of the <code>-L</code> 
-command line option, in order for the compiler to be able to find the library <code>flow</code> and <code>function</code> definitions.</p>
-<p>It is build by using <code>flowc</code> with the <code>-l</code> option.</p>
-<p>It can be compiled and linked natively to a run-time, or each function can be compiled to WebAssembly and loaded 
-from file by the run-time. The directory containing the compiled WebAssembly <code>.wasm</code> files must be reachable 
+command line option to <code>flowc</code>, in order for the compiler to be able to find the library <code>flow</code> and <code>function</code> definitions.</p>
+<p>Libraries like <code>flowstdlib</code> are built using <code>flowc</code> with the <code>-l</code> option.</p>
+<p>It can be compiled and linked natively to a run-time, or each function can be compiled to WebAssembly and loaded
+from file by <code>flowrlib</code> functions. The directory containing the compiled WebAssembly <code>.wasm</code> files must be reachable
 by the run-time in order to load the functions at run-time.</p>
+<p>The <code>flowc</code> compile process generates a <code>manifest.json</code> manifest of the libraries functions and where they 
+implementations (.wasm files) can be found for loading by the runtime. </p>
+<p>It also generates a native <code>lib.rs</code> version of the manifest that can be used when linking the native compilations
+of the implementations into a binary, such as <code>flowr</code>.</p>
 <p>If you are using it as part of the larger <code>flow</code> workspace then you just need the <code>flow</code> project root directory
 in your <code>FLOW_LIB_PATH</code> as described above (or added to the lib search part using the <code>-L &lt;dir&gt;</code> option).</p>
 <p>If you download it using <code>cargo download</code> (or similar) and build separately, then you can get more information on how

@@ -136,7 +136,7 @@
                     <main>
                         <h3 id="standard-input"><a class="header" href="#standard-input">Standard Input</a></h3>
 <p>The <code>flowruntime</code> provides functions to read from STDIN. You can pipe input to the flow by piping
-it to the <code>cargo run</code> or <code>flowc</code> command line used to execute the flow.</p>
+it to the <code>cargo run -p flowc</code> or <code>flowc</code> command line used to execute the flow.</p>
 <p>If not piped in, then the flowruntime will attempt to read STDIN, blocking that function until input 
 (or EOF) is provided. If input is read then it will be passed on by that function at its output.
 The function will indicate to the run-time that it should be run again (to read more lines of STDIN)
@@ -145,7 +145,7 @@ and it will be re-added to the ready list and executed again later.</p>
 and will not be added back to the ready list for re-execution.</p>
 <h3 id="standard-output--standard-error"><a class="header" href="#standard-output--standard-error">Standard Output &amp; Standard Error</a></h3>
 <p>The <code>flowruntime</code> provides functions to send output to STDOUT/STDERR. This output is printed on 
-stdout or stderr of the process that executed the <code>cargo run</code> or <code>flowc</code> command to execute the flow.</p>
+stdout or stderr of the process that executed the <code>cargo run -p flowc</code> or <code>flowc</code> command to execute the flow.</p>
 
                     </main>
 

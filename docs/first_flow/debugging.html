@@ -136,45 +136,49 @@
                     <main>
                         <h2 id="debugging-your-first-flow"><a class="header" href="#debugging-your-first-flow">Debugging your first flow</a></h2>
 <h3 id="command-line-options-to-flowc"><a class="header" href="#command-line-options-to-flowc">Command line options to <code>flowc</code></a></h3>
-<p>When running <code>flowc</code> using <code>cargo run</code> you should add <code>--</code> to mark the end of the options passed to cargo, 
+<p>When running <code>flowc</code> using <code>cargo run -p flowc</code> you should add <code>--</code> to mark the end of the options passed to cargo, 
 and the start of the options passed to <code>flowc</code></p>
 <p>You can see what they are using <code>--help</code> producing output similar to this:</p>
-<pre><code class="language-bash">cargo run -- --help                         
+<pre><code class="language-bash">cargo run -p flowc -- --help                         
     Finished dev [unoptimized + debuginfo] target(s) in 0.12s
      Running 'target/debug/flowc --help'
 flowc 0.8.8
 
 USAGE:
-    flowc [FLAGS] [OPTIONS] [ARGS]
+    flowc [FLAGS] [OPTIONS] [--] [ARGS]
 
 FLAGS:
     -d, --dump        Dump the flow to .dump files after loading it
+    -z, --graphs      Create .dot files for graph generation
     -h, --help        Prints help information
     -l, --lib         Compile a flow library
     -p, --provided    Provided function implementations should NOT be compiled from source
-    -r, --release     Build supplied and library implementations with release profile
-    -s, --skip        Skip manifest generation and running of flow
+    -s, --skip        Skip execution of flow
     -g, --symbols     Generate debug symbols (like process names and full routes)
     -V, --version     Prints version information
 
 OPTIONS:
-    -o, --output &lt;OUTPUT_DIR&gt;            Specify the output directory for generated manifest
-    -v, --verbosity &lt;VERBOSITY_LEVEL&gt;    Set verbosity level for output (trace, debug, info, warn, error (default))
+    -L, --libdir &lt;LIB_DIR|BASE_URL&gt;...    Add a directory or base Url to the Library Search path
+    -o, --output &lt;OUTPUT_DIR&gt;             Specify the output directory for generated manifest
+    -i, --stdin &lt;STDIN_FILENAME&gt;          Read STDIN from the named file
+    -v, --verbosity &lt;VERBOSITY_LEVEL&gt;     Set verbosity level for output (trace, debug, info, warn, error (default))
 
 ARGS:
     &lt;FLOW&gt;            the name of the 'flow' definition file to compile
     &lt;flow_args&gt;...    Arguments that will get passed onto the flow if it is executed
+
 </code></pre>
 <h3 id="command-line-options-to-flowr"><a class="header" href="#command-line-options-to-flowr">Command line options to <code>flowr</code></a></h3>
-<p>By default <code>flowc</code> uses <code>flowr</code> to run the flow once it has compiled it.</p>
+<p>By default <code>flowc</code> uses <code>flowr</code> to run the flow once it has compiled it. Also it defaults to passing the <code>-n/--native</code>
+flag to <code>flowr</code> so that flows are executed using the native implementations of library functions.</p>
 <p>In order to pass command line options on to <code>flowr</code> you separate them from the options to <code>flowc</code> after another <code>--</code> separator.</p>
-<p><code>flowr</code> accepts the same verbosity options as <code>flowc</code>.</p>
+<p><code>flowr</code> accepts the same <code>-v/--verbosity</code> verbosity options as <code>flowc</code>.</p>
 <h3 id="getting-debug-output"><a class="header" href="#getting-debug-output">Getting debug output</a></h3>
 <p>If you want to follow what the run-time is doing in more detail, you can increase the verbosity level (default level is ERROR)
 using the <code>-v/--verbosity</code> option.</p>
 <p>So, if you want to walk through each and every step of the flow's execution, similar to the previous <a href="step-by-step.html">step by step section</a> 
 then you can do so by using <code>-v debug</code> and piping the output to <code>more</code> (as there is a lot of output!):</p>
-<p><code>cargo run -- samples/fibonacci -- -v debug| more</code></p>
+<p><code>cargo run -p flowc -- samples/fibonacci -- -v debug| more</code></p>
 <p>which should produce output similar to this:</p>
 <pre><code class="language-bash">INFO    - 'flowr' version 0.8.8
 INFO    - 'flowrlib' version 0.8.8

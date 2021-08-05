@@ -135,9 +135,17 @@
                 <div id="content" class="content">
                     <main>
                         <h2 id="status"><a class="header" href="#status">Status</a></h2>
-<p>The project is still really under-construction in <a href="https://github.com/andrewdavidmackenzie">the flow repo</a> with myself as the only contributor.</p>
-<p>The 'flowc' compiler works for quite a few samples I have created, but the &quot;description format&quot; and &quot;run-time&quot; still lack some important
-semantics, in particular related to parallelism.</p>
+<p>The semantics of flows, processes, connections etc along with the implementation of the <code>flowc</code> compiler, <code>flowr</code> 
+runner, <code>flowruntime</code> code runtime functions and the <code>flowstdlib</code> library of functions and flows has allowed for the 
+creation of a set of example flows that execute as expected.</p>
+<p>There is pretty good overall test coverage (&gt; 82%) that allows for safer refactoring.</p>
+<p>The docs are reasonably extensive but a bit out of date in places, but I have issues created to cover most of the most
+significant docs improvements needed.</p>
+<p>The project continues to evolve in [the flow repo][https://github.com/andrewdavidmackenzie] with myself as the 
+only contributor.</p>
+<p>I moved some GUI/IDE experimentation into a separate repo that uses the <code>flowclib</code>  and <code>flowrlib</code> libs from here,
+and that is the biggest area needing work in order to showcase <code>flow</code> and make it more visual and easy to follow
+for folks.</p>
 
                     </main>
 

@@ -284,9 +284,17 @@ find solutions to the problems I have struggled to work out on my own - but part
 purpose of this project for me is the intellectual challenge to work them out for myself, as 
 best as I can.</p>
 <div style="break-before: page; page-break-before: always;"></div><h2 id="status"><a class="header" href="#status">Status</a></h2>
-<p>The project is still really under-construction in <a href="https://github.com/andrewdavidmackenzie">the flow repo</a> with myself as the only contributor.</p>
-<p>The 'flowc' compiler works for quite a few samples I have created, but the &quot;description format&quot; and &quot;run-time&quot; still lack some important
-semantics, in particular related to parallelism.</p>
+<p>The semantics of flows, processes, connections etc along with the implementation of the <code>flowc</code> compiler, <code>flowr</code> 
+runner, <code>flowruntime</code> code runtime functions and the <code>flowstdlib</code> library of functions and flows has allowed for the 
+creation of a set of example flows that execute as expected.</p>
+<p>There is pretty good overall test coverage (&gt; 82%) that allows for safer refactoring.</p>
+<p>The docs are reasonably extensive but a bit out of date in places, but I have issues created to cover most of the most
+significant docs improvements needed.</p>
+<p>The project continues to evolve in [the flow repo][https://github.com/andrewdavidmackenzie] with myself as the 
+only contributor.</p>
+<p>I moved some GUI/IDE experimentation into a separate repo that uses the <code>flowclib</code>  and <code>flowrlib</code> libs from here,
+and that is the biggest area needing work in order to showcase <code>flow</code> and make it more visual and easy to follow
+for folks.</p>
 <div style="break-before: page; page-break-before: always;"></div><h2 id="flow-programming"><a class="header" href="#flow-programming">Flow Programming</a></h2>
 <p>Flows are &quot;programmed&quot; by describing a network of &quot;functions&quot; that are connected by &quot;data flows&quot;.</p>
 <p>In flow, there are some specific semantics about how the data flows and function invocation
@@ -319,8 +327,8 @@ to enable encapsulation and flow reuse.</p>
 such as <code>stdout</code>, or other inputs/outputs provided by the flow runtime being used.</p>
 <p>The only interaction with the execution environment in this example is the use of <code>stdout</code>.</p>
 <p><code>stdout</code> (Standard Output) is a function defined in the <code>flowruntime</code>, to which output can be sent for display.</p>
-<p>When executing a flow using <code>flowc</code>, <code>stdout</code> is printed sent to the standard output of 
-the process running <code>flowc</code>, hence is displayed in the terminal when running from the command line.</p>
+<p>When executing a flow using <code>flowc</code>, <code>stdout</code> is sent to the standard output of 
+the process running <code>flowc</code>, hence it is displayed in the terminal if running from the command line.</p>
 <p>Other runtime environments (e.g. The experimental <code>flowide-gtk</code> graphical IDE that you can find in
 a separate project in GitHuib) may display the output in some other way.</p>
 <h3 id="functions"><a class="header" href="#functions">Functions</a></h3>
@@ -341,7 +349,7 @@ not using nested flows or similar.</p>
 then run using <code>flowr</code>.
 <code>flowr</code> is a flow runner and as such supplies implementations for all the <code>flowruntime</code> functions (e.g. <code>stdout</code>).</p>
 <p>The flow produces a fibonacci series:</p>
-<pre><code class="language-shell script">&gt; cargo run -- samples/first
+<pre><code class="language-shell script">&gt; cargo run -p flowc -- samples/fibonacci
    Compiling flowstdlib v0.6.0 (/Users/andrew/workspace/flow/flowstdlib)
     Finished dev [unoptimized + debuginfo] target(s) in 1.75s
      Running `target/debug/flowc samples/first`
@@ -536,45 +544,49 @@ so it is &quot;blocked on output&quot; and not &quot;ready&quot;.</li>
 </blockquote>
 <div style="break-before: page; page-break-before: always;"></div><h2 id="debugging-your-first-flow"><a class="header" href="#debugging-your-first-flow">Debugging your first flow</a></h2>
 <h3 id="command-line-options-to-flowc"><a class="header" href="#command-line-options-to-flowc">Command line options to <code>flowc</code></a></h3>
-<p>When running <code>flowc</code> using <code>cargo run</code> you should add <code>--</code> to mark the end of the options passed to cargo, 
+<p>When running <code>flowc</code> using <code>cargo run -p flowc</code> you should add <code>--</code> to mark the end of the options passed to cargo, 
 and the start of the options passed to <code>flowc</code></p>
 <p>You can see what they are using <code>--help</code> producing output similar to this:</p>
-<pre><code class="language-bash">cargo run -- --help                         
+<pre><code class="language-bash">cargo run -p flowc -- --help                         
     Finished dev [unoptimized + debuginfo] target(s) in 0.12s
      Running 'target/debug/flowc --help'
 flowc 0.8.8
 
 USAGE:
-    flowc [FLAGS] [OPTIONS] [ARGS]
+    flowc [FLAGS] [OPTIONS] [--] [ARGS]
 
 FLAGS:
     -d, --dump        Dump the flow to .dump files after loading it
+    -z, --graphs      Create .dot files for graph generation
     -h, --help        Prints help information
     -l, --lib         Compile a flow library
     -p, --provided    Provided function implementations should NOT be compiled from source
-    -r, --release     Build supplied and library implementations with release profile
-    -s, --skip        Skip manifest generation and running of flow
+    -s, --skip        Skip execution of flow
     -g, --symbols     Generate debug symbols (like process names and full routes)
     -V, --version     Prints version information
 
 OPTIONS:
-    -o, --output &lt;OUTPUT_DIR&gt;            Specify the output directory for generated manifest
-    -v, --verbosity &lt;VERBOSITY_LEVEL&gt;    Set verbosity level for output (trace, debug, info, warn, error (default))
+    -L, --libdir &lt;LIB_DIR|BASE_URL&gt;...    Add a directory or base Url to the Library Search path
+    -o, --output &lt;OUTPUT_DIR&gt;             Specify the output directory for generated manifest
+    -i, --stdin &lt;STDIN_FILENAME&gt;          Read STDIN from the named file
+    -v, --verbosity &lt;VERBOSITY_LEVEL&gt;     Set verbosity level for output (trace, debug, info, warn, error (default))
 
 ARGS:
     &lt;FLOW&gt;            the name of the 'flow' definition file to compile
     &lt;flow_args&gt;...    Arguments that will get passed onto the flow if it is executed
+
 </code></pre>
 <h3 id="command-line-options-to-flowr"><a class="header" href="#command-line-options-to-flowr">Command line options to <code>flowr</code></a></h3>
-<p>By default <code>flowc</code> uses <code>flowr</code> to run the flow once it has compiled it.</p>
+<p>By default <code>flowc</code> uses <code>flowr</code> to run the flow once it has compiled it. Also it defaults to passing the <code>-n/--native</code>
+flag to <code>flowr</code> so that flows are executed using the native implementations of library functions.</p>
 <p>In order to pass command line options on to <code>flowr</code> you separate them from the options to <code>flowc</code> after another <code>--</code> separator.</p>
-<p><code>flowr</code> accepts the same verbosity options as <code>flowc</code>.</p>
+<p><code>flowr</code> accepts the same <code>-v/--verbosity</code> verbosity options as <code>flowc</code>.</p>
 <h3 id="getting-debug-output"><a class="header" href="#getting-debug-output">Getting debug output</a></h3>
 <p>If you want to follow what the run-time is doing in more detail, you can increase the verbosity level (default level is ERROR)
 using the <code>-v/--verbosity</code> option.</p>
 <p>So, if you want to walk through each and every step of the flow's execution, similar to the previous <a href="docs/first_flow/step-by-step.html">step by step section</a> 
 then you can do so by using <code>-v debug</code> and piping the output to <code>more</code> (as there is a lot of output!):</p>
-<p><code>cargo run -- samples/fibonacci -- -v debug| more</code></p>
+<p><code>cargo run -p flowc -- samples/fibonacci -- -v debug| more</code></p>
 <p>which should produce output similar to this:</p>
 <pre><code class="language-bash">INFO    - 'flowr' version 0.8.8
 INFO    - 'flowrlib' version 0.8.8
@@ -933,11 +945,11 @@ the <code>-L</code> command line option.</p>
 followed by an &quot;ERROR&quot; on a panic, that is caused by integer overflow 
 when the next number gets too big (don't worry, that's expected)</p>
 <div style="break-before: page; page-break-before: always;"></div><h2 id="flowc-command-line-arguments"><a class="header" href="#flowc-command-line-arguments"><code>flowc</code> Command Line Arguments</a></h2>
-<p><code>flowc</code> is the flow &quot;compiler&quot;, although that means something different in the case of flows. </p>
+<p><code>flowc</code> is the flow &quot;compiler&quot;, although compiling a flow is very different to a procedural language compile.</p>
 <p>What it and other components do is described in more detail later in the <a href="docs/running/../internals/overview.html">Internals</a> section.</p>
 <p>This section describes command line arguments that can be supplied to <code>flowc</code> and what they are useful for.</p>
 <h3 id="getting-help"><a class="header" href="#getting-help">Getting help</a></h3>
-<p>Use <code>-h, --help</code> (e.g. <code>flowc -h</code> or <code>cargo run flowc -h</code>) to print out help for the usage of <code>flowc</code>. </p>
+<p>Use <code>-h, --help</code> (e.g. <code>flowc -h</code> or <code>cargo run -p flowc -- -h</code>) to print out help for the usage of <code>flowc</code>. </p>
 <p>This will print something like this:</p>
 <pre><code class="language-shell script">flowc 0.4.0
 
@@ -985,8 +997,8 @@ for the flow itself. When it starts executing it can retrieve the value of these
 in the run-time.</p>
 <div style="break-before: page; page-break-before: always;"></div><h3 id="passing-command-line-arguments"><a class="header" href="#passing-command-line-arguments">Passing Command Line Arguments</a></h3>
 <p>Arguments are passed to the flow being executed by <code>flowc</code> by placing them after the flow name in 
-the execution string (either using <code>cargo run</code> or <code>flowc</code> directly). 
-e.g. <code>cargo run -- samples/mandlebrot mandel.png 4000x3000 -1.20,0.35 -1,0.20</code></p>
+the execution string (either using <code>cargo run -p flowc</code> or <code>flowc</code> directly). 
+e.g. <code>cargo run -p flowc -- samples/mandlebrot mandel.png 4000x3000 -1.20,0.35 -1,0.20</code></p>
 <p>The <code>flowruntime</code> provides a function called <code>args</code> that can be included in a flow definition 
 that fetches these arguments, allowing them to then be processed in the flow like any other inputs.</p>
 <p>Include the <code>args</code> function in your flow:</p>
@@ -1015,7 +1027,7 @@ none was found.</p>
 <p>TODO: Document URL format and lack of folder option.</p>
 <div style="break-before: page; page-break-before: always;"></div><h3 id="standard-input"><a class="header" href="#standard-input">Standard Input</a></h3>
 <p>The <code>flowruntime</code> provides functions to read from STDIN. You can pipe input to the flow by piping
-it to the <code>cargo run</code> or <code>flowc</code> command line used to execute the flow.</p>
+it to the <code>cargo run -p flowc</code> or <code>flowc</code> command line used to execute the flow.</p>
 <p>If not piped in, then the flowruntime will attempt to read STDIN, blocking that function until input 
 (or EOF) is provided. If input is read then it will be passed on by that function at its output.
 The function will indicate to the run-time that it should be run again (to read more lines of STDIN)
@@ -1024,7 +1036,7 @@ and it will be re-added to the ready list and executed again later.</p>
 and will not be added back to the ready list for re-execution.</p>
 <h3 id="standard-output--standard-error"><a class="header" href="#standard-output--standard-error">Standard Output &amp; Standard Error</a></h3>
 <p>The <code>flowruntime</code> provides functions to send output to STDOUT/STDERR. This output is printed on 
-stdout or stderr of the process that executed the <code>cargo run</code> or <code>flowc</code> command to execute the flow.</p>
+stdout or stderr of the process that executed the <code>cargo run -p flowc</code> or <code>flowc</code> command to execute the flow.</p>
 <div style="break-before: page; page-break-before: always;"></div><h3 id="exceptions-and-panics"><a class="header" href="#exceptions-and-panics">Exceptions and Panics</a></h3>
 <p>Currently, there are no special provisions for handling or recovering from run-time exceptions.
 The functions are implemented in rust and when they fail they will panic as usual in rust.</p>
@@ -1273,13 +1285,17 @@ source = &quot;lib://flowruntime/stdio/stderr&quot;
 <h4 id="output-4"><a class="header" href="#output-4">Output</a></h4>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="flowstdlib"><a class="header" href="#flowstdlib"><code>flowstdlib</code></a></h1>
 <p>See also: <a href="http://andrewdavidmackenzie.github.io/flow/code/doc/flowstdlib/index.html">Code docs</a></p>
-<p><code>flowstdlib</code> is a standard library of functions for <code>flow</code> programs to use.</p>
+<p><code>flowstdlib</code> is a standard library of functions anf flows for <code>flow</code> programs to use.</p>
 <p>The directory containing this library must be part of <code>FLOW_LIB_PATH</code> or specified using an instance of the <code>-L</code> 
-command line option, in order for the compiler to be able to find the library <code>flow</code> and <code>function</code> definitions.</p>
-<p>It is build by using <code>flowc</code> with the <code>-l</code> option.</p>
-<p>It can be compiled and linked natively to a run-time, or each function can be compiled to WebAssembly and loaded 
-from file by the run-time. The directory containing the compiled WebAssembly <code>.wasm</code> files must be reachable 
+command line option to <code>flowc</code>, in order for the compiler to be able to find the library <code>flow</code> and <code>function</code> definitions.</p>
+<p>Libraries like <code>flowstdlib</code> are built using <code>flowc</code> with the <code>-l</code> option.</p>
+<p>It can be compiled and linked natively to a run-time, or each function can be compiled to WebAssembly and loaded
+from file by <code>flowrlib</code> functions. The directory containing the compiled WebAssembly <code>.wasm</code> files must be reachable
 by the run-time in order to load the functions at run-time.</p>
+<p>The <code>flowc</code> compile process generates a <code>manifest.json</code> manifest of the libraries functions and where they 
+implementations (.wasm files) can be found for loading by the runtime. </p>
+<p>It also generates a native <code>lib.rs</code> version of the manifest that can be used when linking the native compilations
+of the implementations into a binary, such as <code>flowr</code>.</p>
 <p>If you are using it as part of the larger <code>flow</code> workspace then you just need the <code>flow</code> project root directory
 in your <code>FLOW_LIB_PATH</code> as described above (or added to the lib search part using the <code>-L &lt;dir&gt;</code> option).</p>
 <p>If you download it using <code>cargo download</code> (or similar) and build separately, then you can get more information on how
@@ -2755,13 +2771,17 @@ by <code>Function</code> <code>Implementations</code>, providing them the <code>
 and passing those <code>Outputs</code> to other connected <code>Functions</code> in the network of <code>Functions</code>.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="flowstdlib-1"><a class="header" href="#flowstdlib-1"><code>flowstdlib</code></a></h1>
 <p>See also: <a href="http://andrewdavidmackenzie.github.io/flow/code/doc/flowstdlib/index.html">Code docs</a></p>
-<p><code>flowstdlib</code> is a standard library of functions for <code>flow</code> programs to use.</p>
+<p><code>flowstdlib</code> is a standard library of functions anf flows for <code>flow</code> programs to use.</p>
 <p>The directory containing this library must be part of <code>FLOW_LIB_PATH</code> or specified using an instance of the <code>-L</code> 
-command line option, in order for the compiler to be able to find the library <code>flow</code> and <code>function</code> definitions.</p>
-<p>It is build by using <code>flowc</code> with the <code>-l</code> option.</p>
-<p>It can be compiled and linked natively to a run-time, or each function can be compiled to WebAssembly and loaded 
-from file by the run-time. The directory containing the compiled WebAssembly <code>.wasm</code> files must be reachable 
+command line option to <code>flowc</code>, in order for the compiler to be able to find the library <code>flow</code> and <code>function</code> definitions.</p>
+<p>Libraries like <code>flowstdlib</code> are built using <code>flowc</code> with the <code>-l</code> option.</p>
+<p>It can be compiled and linked natively to a run-time, or each function can be compiled to WebAssembly and loaded
+from file by <code>flowrlib</code> functions. The directory containing the compiled WebAssembly <code>.wasm</code> files must be reachable
 by the run-time in order to load the functions at run-time.</p>
+<p>The <code>flowc</code> compile process generates a <code>manifest.json</code> manifest of the libraries functions and where they 
+implementations (.wasm files) can be found for loading by the runtime. </p>
+<p>It also generates a native <code>lib.rs</code> version of the manifest that can be used when linking the native compilations
+of the implementations into a binary, such as <code>flowr</code>.</p>
 <p>If you are using it as part of the larger <code>flow</code> workspace then you just need the <code>flow</code> project root directory
 in your <code>FLOW_LIB_PATH</code> as described above (or added to the lib search part using the <code>-L &lt;dir&gt;</code> option).</p>
 <p>If you download it using <code>cargo download</code> (or similar) and build separately, then you can get more information on how
