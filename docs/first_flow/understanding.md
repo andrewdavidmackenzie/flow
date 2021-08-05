@@ -24,8 +24,8 @@ The only interaction with the execution environment in this example is the use o
 
 `stdout` (Standard Output) is a function defined in the `flowruntime`, to which output can be sent for display.
 
-When executing a flow using `flowc`, `stdout` is printed sent to the standard output of 
-the process running `flowc`, hence is displayed in the terminal when running from the command line.
+When executing a flow using `flowc`, `stdout` is sent to the standard output of 
+the process running `flowc`, hence it is displayed in the terminal if running from the command line.
 
 Other runtime environments (e.g. The experimental `flowide-gtk` graphical IDE that you can find in
 a separate project in GitHuib) may display the output in some other way.

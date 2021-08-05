@@ -17,7 +17,7 @@ then run using `flowr`.
 The flow produces a fibonacci series:
 
 ```shell script
-> cargo run -- samples/first
+> cargo run -p flowc -- samples/fibonacci
    Compiling flowstdlib v0.6.0 (/Users/andrew/workspace/flow/flowstdlib)
     Finished dev [unoptimized + debuginfo] target(s) in 1.75s
      Running `target/debug/flowc samples/first`

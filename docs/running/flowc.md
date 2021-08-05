@@ -1,12 +1,12 @@
 ## `flowc` Command Line Arguments
-`flowc` is the flow "compiler", although that means something different in the case of flows. 
+`flowc` is the flow "compiler", although compiling a flow is very different to a procedural language compile.
 
 What it and other components do is described in more detail later in the [Internals](../internals/overview.md) section.
 
 This section describes command line arguments that can be supplied to `flowc` and what they are useful for.
 
 ### Getting help
-Use `-h, --help` (e.g. `flowc -h` or `cargo run flowc -h`) to print out help for the usage of `flowc`. 
+Use `-h, --help` (e.g. `flowc -h` or `cargo run -p flowc -- -h`) to print out help for the usage of `flowc`. 
 
 This will print something like this:
 ```shell script 
