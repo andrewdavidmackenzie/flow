@@ -1,6 +1,6 @@
 ### Standard Input
 The `flowruntime` provides functions to read from STDIN. You can pipe input to the flow by piping
-it to the `cargo run` or `flowc` command line used to execute the flow.
+it to the `cargo run -p flowc` or `flowc` command line used to execute the flow.
 
 If not piped in, then the flowruntime will attempt to read STDIN, blocking that function until input 
 (or EOF) is provided. If input is read then it will be passed on by that function at its output.
@@ -12,4 +12,4 @@ and will not be added back to the ready list for re-execution.
 
 ### Standard Output & Standard Error
 The `flowruntime` provides functions to send output to STDOUT/STDERR. This output is printed on 
-stdout or stderr of the process that executed the `cargo run` or `flowc` command to execute the flow.
+stdout or stderr of the process that executed the `cargo run -p flowc` or `flowc` command to execute the flow.
