@@ -1,22 +1,19 @@
 use url::Url;
 
 use crate::compiler::loader::Deserializer;
+use crate::model::process::Process;
 
-use super::json_deserializer::FlowJsonLoader;
-use super::toml_deserializer::FlowTomlLoader;
-use super::yaml_deserializer::FlowYamlLoader;
+use super::json_deserializer::JsonDeserializer;
+use super::toml_deserializer::TomlDeserializer;
+use super::yaml_deserializer::YamlDeserializer;
 
-const TOML: &dyn Deserializer = &FlowTomlLoader as &dyn Deserializer;
-const YAML: &dyn Deserializer = &FlowYamlLoader as &dyn Deserializer;
-const JSON: &dyn Deserializer = &FlowJsonLoader as &dyn Deserializer;
-
-/// Return a Deserializer based on the file extension of the file referred to from `url` input
-pub fn get_deserializer(url: &Url) -> Result<&'static dyn Deserializer, String> {
+/// Return a Deserializer based on the file extension of the resource referred to from `url` input
+pub fn get_deserializer(url: &Url) -> Result<&dyn Deserializer<Process>, String> {
     match get_file_extension(url) {
         Some(ext) => match ext {
-            "toml" => Ok(TOML),
-            "yaml" | "yml" => Ok(YAML),
-            "json" => Ok(JSON),
+            "toml" => Ok(&TomlDeserializer),
+            "yaml" | "yml" => Ok(&YamlDeserializer),
+            "json" => Ok(&JsonDeserializer),
             _ => Err(
                 "Unknown file extension so cannot determine which deserializer to use".to_string(),
             ),

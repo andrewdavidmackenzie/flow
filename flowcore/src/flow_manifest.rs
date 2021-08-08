@@ -104,6 +104,7 @@ impl FlowManifest {
         let (resolved_url, _) = provider
             .resolve_url(source, DEFAULT_MANIFEST_FILENAME, &["json"])
             .chain_err(|| "Could not resolve url for manifest while attempting to load manifest")?;
+
         let content = provider
             .get_contents(&resolved_url)
             .chain_err(|| "Could not get contents while attempting to load manifest")?;

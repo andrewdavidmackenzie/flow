@@ -1,14 +1,16 @@
+use serde::Deserialize;
 use url::Url;
 
 use crate::compiler::loader::Deserializer;
 use crate::errors::*;
-use crate::model::process::Process;
 
-pub struct FlowJsonLoader;
+pub struct JsonDeserializer;
 
-// NOTE: Indexes are one-based
-impl Deserializer for FlowJsonLoader {
-    fn deserialize(&self, contents: &str, url: Option<&Url>) -> Result<Process> {
+impl<'a, P> Deserializer<'a, P> for JsonDeserializer
+where
+    P: Deserialize<'a>,
+{
+    fn deserialize(&self, contents: &'a str, url: Option<&Url>) -> Result<P> {
         serde_json::from_str(contents).chain_err(|| {
             format!(
                 "Error deserializing Json from: '{}'",
@@ -17,7 +19,7 @@ impl Deserializer for FlowJsonLoader {
         })
     }
 
-    fn name(&self) -> &'static str {
+    fn name(&self) -> &str {
         "Json"
     }
 }
@@ -25,14 +27,15 @@ impl Deserializer for FlowJsonLoader {
 #[cfg(test)]
 mod test {
     use crate::compiler::loader::Deserializer;
+    use crate::model::process::Process;
 
-    use super::FlowJsonLoader;
+    use super::JsonDeserializer;
 
     #[test]
     fn invalid_json() {
-        let deserializer = FlowJsonLoader {};
+        let json = &JsonDeserializer {} as &dyn Deserializer<Process>;
 
-        if deserializer.deserialize("=", None).is_ok() {
+        if json.deserialize("=", None).is_ok() {
             panic!("Should not have parsed correctly as is invalid JSON");
         };
     }
@@ -53,7 +56,7 @@ mod test {
         }
     ]
 }";
-        let toml = FlowJsonLoader {};
+        let toml = &JsonDeserializer {} as &dyn Deserializer<Process>;
         let flow = toml.deserialize(&flow_description.replace("'", "\""), None);
         assert!(flow.is_ok());
     }
@@ -84,8 +87,8 @@ mod test {
         }
     ]
 }";
-        let toml = FlowJsonLoader {};
-        let flow = toml.deserialize(&flow_description.replace("'", "\""), None);
+        let json = &JsonDeserializer {} as &dyn Deserializer<Process>;
+        let flow = json.deserialize(&flow_description.replace("'", "\""), None);
         assert!(flow.is_ok());
     }
 
@@ -114,8 +117,8 @@ mod test {
         }
     ]
 }";
-        let toml = FlowJsonLoader {};
-        let flow = toml.deserialize(&flow_description.replace("'", "\""), None);
+        let json = &JsonDeserializer {} as &dyn Deserializer<Process>;
+        let flow = json.deserialize(&flow_description.replace("'", "\""), None);
         assert!(flow.is_err());
     }
 }

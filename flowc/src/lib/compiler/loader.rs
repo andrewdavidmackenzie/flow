@@ -1,6 +1,7 @@
 use std::collections::{HashMap, HashSet};
 
 use log::{debug, info, trace};
+use serde::Deserialize;
 use url::Url;
 
 use flowcore::flow_manifest::{Cargo, MetaData};
@@ -21,11 +22,11 @@ use crate::model::route::SetRoute;
 
 /// All deserializers have to implement this trait for content deserialization, plus a method
 /// to return their name to be able to inform the user of which deserializer was used
-pub trait Deserializer {
-    /// Deserialize the supplied `content` that was loaded from `url` into a `Process` definition
-    fn deserialize(&self, contents: &str, url: Option<&Url>) -> Result<Process>;
+pub trait Deserializer<'a, P: Deserialize<'a>> {
+    /// Deserialize the supplied `content` that was loaded from `url` into a `P`
+    fn deserialize(&self, contents: &'a str, url: Option<&Url>) -> Result<P>;
     /// Return the name of the serializer implementing this trait
-    fn name(&self) -> &'static str;
+    fn name(&self) -> &str;
 }
 
 /// Many structs in the model implement the `Validate` method which is used to check the
@@ -129,11 +130,9 @@ fn load_process(
         resolved_url,
         deserializer.name()
     );
+    let content = String::from_utf8(contents).chain_err(|| "Could not read UTF8 contents")?;
     let mut process = deserializer
-        .deserialize(
-            &String::from_utf8(contents).chain_err(|| "Could not read UTF8 contents")?,
-            Some(url),
-        )
+        .deserialize(&content, Some(url))
         .chain_err(|| format!("Could not deserialize process from content in '{}'", url))?;
 
     debug!("Deserialized the flow, now parsing and loading any sub-processes");

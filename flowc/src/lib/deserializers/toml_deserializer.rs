@@ -1,14 +1,16 @@
+use serde::Deserialize;
 use url::Url;
 
 use crate::compiler::loader::Deserializer;
 use crate::errors::*;
-use crate::model::process::Process;
 
-pub struct FlowTomlLoader;
+pub struct TomlDeserializer;
 
-// NOTE: Add one to make indexes one-based
-impl Deserializer for FlowTomlLoader {
-    fn deserialize(&self, contents: &str, url: Option<&Url>) -> Result<Process> {
+impl<'a, P> Deserializer<'a, P> for TomlDeserializer
+where
+    P: Deserialize<'a>,
+{
+    fn deserialize(&self, contents: &'a str, url: Option<&Url>) -> Result<P> {
         toml::from_str(contents).chain_err(|| {
             format!(
                 "Error deserializing Toml from: '{}'",
@@ -17,7 +19,7 @@ impl Deserializer for FlowTomlLoader {
         })
     }
 
-    fn name(&self) -> &'static str {
+    fn name(&self) -> &str {
         "Toml"
     }
 }
@@ -29,15 +31,16 @@ mod test {
     use flowcore::flow_manifest::MetaData;
 
     use crate::compiler::loader::Deserializer;
+    use crate::model::process::Process;
     use crate::model::process::Process::FlowProcess;
 
-    use super::FlowTomlLoader;
+    use super::TomlDeserializer;
 
     #[test]
     fn invalid_toml() {
-        let deserializer = FlowTomlLoader {};
+        let toml = &TomlDeserializer {} as &dyn Deserializer<Process>;
 
-        if deserializer.deserialize("{}}}}f fake data ", None).is_ok() {
+        if toml.deserialize("{}}}}f fake data ", None).is_ok() {
             panic!("Should not have parsed correctly as is invalid TOML");
         };
     }
@@ -61,9 +64,8 @@ mod test {
         to = 'print'
     ";
 
-        let toml = FlowTomlLoader {};
-        let flow = toml.deserialize(flow_description, None);
-        assert!(flow.is_ok());
+        let toml = &TomlDeserializer {} as &dyn Deserializer<Process>;
+        assert!(toml.deserialize(flow_description, None).is_ok());
     }
 
     #[test]
@@ -77,7 +79,7 @@ mod test {
         bar = 'true'
     ";
 
-        let toml = FlowTomlLoader {};
+        let toml = &TomlDeserializer {} as &dyn Deserializer<Process>;
         assert!(toml.deserialize(flow_description, None).is_err());
     }
 
@@ -93,7 +95,7 @@ mod test {
         bar = 'true'
     ";
 
-        let toml = FlowTomlLoader {};
+        let toml = &TomlDeserializer {} as &dyn Deserializer<Process>;
         assert!(toml.deserialize(flow_description, None).is_err());
     }
 
@@ -103,7 +105,7 @@ mod test {
         flow = 'test'
     ";
 
-        let toml = FlowTomlLoader {};
+        let toml = &TomlDeserializer {} as &dyn Deserializer<Process>;
         match toml.deserialize(flow_description, None) {
             Ok(FlowProcess(flow)) => {
                 assert_eq!(flow.metadata.version, String::default());
@@ -146,7 +148,7 @@ description = \"ok\"
 authors = [\"Andrew <andrew@foo.com>\"]
     ";
 
-        let toml = FlowTomlLoader {};
+        let toml = &TomlDeserializer {} as &dyn Deserializer<Process>;
         match toml.deserialize(flow_description, None) {
             Ok(FlowProcess(flow)) => {
                 assert_eq!(flow.metadata.name, "me".to_string());
@@ -171,7 +173,7 @@ flow = 'test'
 version = \"1.1.1\"
     ";
 
-        let toml = FlowTomlLoader {};
+        let toml = &TomlDeserializer {} as &dyn Deserializer<Process>;
         match toml.deserialize(flow_description, None) {
             Ok(FlowProcess(flow)) => {
                 assert_eq!(flow.metadata.name, String::default());
@@ -193,7 +195,7 @@ version = \"1.1.1\"
         source = 'lib://flowstdlib/stdio/stdout.toml'
     ";
 
-        let toml = FlowTomlLoader {};
+        let toml = &TomlDeserializer {} as &dyn Deserializer<Process>;
         assert!(toml.deserialize(flow_description, None).is_ok());
     }
 
@@ -207,7 +209,7 @@ version = \"1.1.1\"
         lib = 'lib://fake/stdio/stdout.toml'
     ";
 
-        let toml = FlowTomlLoader {};
+        let toml = &TomlDeserializer {} as &dyn Deserializer<Process>;
         assert!(toml.deserialize(flow_description, None).is_err());
     }
 
@@ -220,7 +222,7 @@ version = \"1.1.1\"
         alias = 'print'
     ";
 
-        let toml = FlowTomlLoader {};
+        let toml = &TomlDeserializer {} as &dyn Deserializer<Process>;
         assert!(toml.deserialize(flow_description, None).is_err());
     }
 
@@ -231,7 +233,7 @@ version = \"1.1.1\"
         source = 'lib://flowstdlib/stdio/stdout.toml'
     ";
 
-        let toml = FlowTomlLoader {};
+        let toml = &TomlDeserializer {} as &dyn Deserializer<Process>;
         assert!(toml.deserialize(flow_description, None).is_err());
     }
 
@@ -244,7 +246,7 @@ implementation = 'stdout.rs'
 name = 'stdout'
 type = 'String'";
 
-        let toml = FlowTomlLoader {};
+        let toml = &TomlDeserializer {} as &dyn Deserializer<Process>;
         assert!(toml.deserialize(function_definition, None).is_ok());
     }
 
@@ -256,7 +258,7 @@ implementation = 'stdout.rs'
 name = 'stdout'
 type = 'String'";
 
-        let toml = FlowTomlLoader {};
+        let toml = &TomlDeserializer {} as &dyn Deserializer<Process>;
         assert!(toml.deserialize(function_definition, None).is_err());
     }
 
@@ -268,7 +270,7 @@ function = 'stdout'
 name = 'stdout'
 type = 'String'";
 
-        let toml = FlowTomlLoader {};
+        let toml = &TomlDeserializer {} as &dyn Deserializer<Process>;
         assert!(toml.deserialize(function_definition, None).is_err());
     }
 }
