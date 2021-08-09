@@ -160,7 +160,8 @@ mod test {
         to = 'dest'
         ";
 
-        let _connection: Connection = toml::from_str(input_str).unwrap();
+        let connection: Result<Connection, _> = toml::from_str(input_str);
+        assert!(connection.is_ok(), "Could not deserialize Connection");
     }
 
     #[test]
@@ -172,7 +173,10 @@ mod test {
         ";
 
         let connection: Result<Connection, _> = toml::from_str(input_str);
-        assert!(connection.is_err());
+        assert!(
+            connection.is_err(),
+            "Deserialized invalid connection TOML without error, but should not have."
+        );
     }
 
     /******************** Tests for compatible_types ********************/
