@@ -120,6 +120,11 @@ impl Connection {
 
 #[cfg(test)]
 mod test {
+    use url::Url;
+
+    use flowcore::deserializers::deserializer::get_deserializer;
+    use flowcore::errors::*;
+
     use crate::model::datatype::DataType;
     use crate::model::io::IO;
 
@@ -153,14 +158,21 @@ mod test {
         }
     }
 
+    fn toml_from_str(content: &str) -> Result<Connection> {
+        let url = Url::parse("file:///fake.toml").expect("Could not parse URL");
+        let deserializer =
+            get_deserializer::<Connection>(&url).expect("Could not get deserializer");
+        deserializer.deserialize(content, Some(&url))
+    }
+
     #[test]
     fn deserialize_simple() {
         let input_str = "
         from = 'source'
-        to = 'dest'
+        to = 'destination'
         ";
 
-        let connection: Result<Connection, _> = toml::from_str(input_str);
+        let connection: Result<Connection> = toml_from_str(input_str);
         assert!(connection.is_ok(), "Could not deserialize Connection");
     }
 
@@ -172,7 +184,7 @@ mod test {
         type = 'Value'
         ";
 
-        let connection: Result<Connection, _> = toml::from_str(input_str);
+        let connection: Result<Connection> = toml_from_str(input_str);
         assert!(
             connection.is_err(),
             "Deserialized invalid connection TOML without error, but should not have."
@@ -199,8 +211,8 @@ mod test {
         let from_io = IO::new("String", "/p1/output");
         let to_io = IO::new("String", "/p2");
         assert!(Connection::compatible_types(
-            &from_io.datatype(),
-            &to_io.datatype()
+            from_io.datatype(),
+            to_io.datatype()
         ));
     }
 
@@ -209,8 +221,8 @@ mod test {
         let from_io = IO::new("String", "/p1/output/0");
         let to_io = IO::new("String", "/p2");
         assert!(Connection::compatible_types(
-            &from_io.datatype(),
-            &to_io.datatype()
+            from_io.datatype(),
+            to_io.datatype()
         ));
     }
 
@@ -219,8 +231,8 @@ mod test {
         let from_io = IO::new("String", "/p1/output");
         let to_io = IO::new("Number", "/p2");
         assert!(!Connection::compatible_types(
-            &from_io.datatype(),
-            &to_io.datatype()
+            from_io.datatype(),
+            to_io.datatype()
         ));
     }
 
@@ -229,8 +241,8 @@ mod test {
         let from_io = IO::new("String", "/p1/output/0");
         let to_io = IO::new("Array/String", "/p2");
         assert!(Connection::compatible_types(
-            &from_io.datatype(),
-            &to_io.datatype()
+            from_io.datatype(),
+            to_io.datatype()
         ));
     }
 
@@ -239,8 +251,8 @@ mod test {
         let from_io = IO::new("String", "/p1/output");
         let to_io = IO::new("Array/String", "/p2");
         assert!(Connection::compatible_types(
-            &from_io.datatype(),
-            &to_io.datatype()
+            from_io.datatype(),
+            to_io.datatype()
         ));
     }
 
@@ -249,8 +261,8 @@ mod test {
         let from_io = IO::new("String", "/p1/output");
         let to_io = IO::new("Array/Number", "/p2");
         assert!(!Connection::compatible_types(
-            &from_io.datatype(),
-            &to_io.datatype()
+            from_io.datatype(),
+            to_io.datatype()
         ));
     }
 
@@ -259,8 +271,8 @@ mod test {
         let from_io = IO::new("Array", "/p1/output");
         let to_io = IO::new("Array", "/p2");
         assert!(Connection::compatible_types(
-            &from_io.datatype(),
-            &to_io.datatype()
+            from_io.datatype(),
+            to_io.datatype()
         ));
     }
 
@@ -269,8 +281,8 @@ mod test {
         let from_io = IO::new("Array/String", "/p1/output");
         let to_io = IO::new("String", "/p2");
         assert!(Connection::compatible_types(
-            &from_io.datatype(),
-            &to_io.datatype()
+            from_io.datatype(),
+            to_io.datatype()
         ));
     }
 }

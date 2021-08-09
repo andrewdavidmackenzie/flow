@@ -7,6 +7,8 @@ use crate::errors::*;
 
 use super::deserializer::Deserializer;
 
+/// Struct representing a Generic deserializer of content stored in Yaml format
+#[derive(Default)]
 pub struct YamlDeserializer<T>
 where
     T: DeserializeOwned,
@@ -18,6 +20,7 @@ impl<T> YamlDeserializer<T>
 where
     T: DeserializeOwned,
 {
+    /// Create a new YamlDeserializer
     pub fn new() -> Self {
         YamlDeserializer { t: PhantomData }
     }
@@ -43,39 +46,41 @@ where
 
 #[cfg(test)]
 mod test {
+    use serde_derive::{Deserialize, Serialize};
     use serde_yaml::Error;
 
-    use flowcore::flow_manifest::MetaData;
-
-    use crate::model::process::Process;
-    use crate::model::process::Process::FlowProcess;
+    use crate::flow_manifest::MetaData;
 
     use super::super::deserializer::Deserializer;
     use super::YamlDeserializer;
 
+    #[derive(Serialize, Deserialize, Debug, Clone)]
+    pub struct TestStruct {
+        name: String,
+    }
+
     #[test]
     fn invalid_yaml() {
-        let deserializer = YamlDeserializer::<Process>::new();
+        let deserializer = YamlDeserializer::<TestStruct>::new();
 
-        if deserializer.deserialize("{}", None).is_ok() {
-            panic!("Should not have parsed correctly as is invalid JSON");
-        };
+        assert!(
+            deserializer.deserialize("{}", None).is_err(),
+            "Should not have parsed correctly as is invalid Yaml"
+        );
     }
 
     #[test]
     fn flow() {
         let flow_with_name = "
-flow: 'hello-world-simple-toml'
+name: 'hello-world-simple-toml'
 ";
 
-        let deserializer = YamlDeserializer::<Process>::new();
-        match deserializer.deserialize(&flow_with_name.replace("'", "\""), None) {
-            Ok(FlowProcess(flow)) => {
-                assert_eq!(flow.name.to_string(), "hello-world-simple-toml".to_string())
-            }
-            Ok(_) => panic!("Deserialization didn't detect a flow"),
-            Err(e) => panic!("Deserialization error: {:?}", e),
-        }
+        let deserializer = YamlDeserializer::<TestStruct>::new();
+
+        assert!(
+            deserializer.deserialize(flow_with_name, None).is_ok(),
+            "Did not parse correctly but is valid Yaml"
+        );
     }
 
     #[test]
@@ -96,30 +101,6 @@ authors: [\"Andrew <andrew@foo.com>\"]
                 assert_eq!(md.authors, vec!("Andrew <andrew@foo.com>".to_string()));
             }
             Err(e) => panic!("Deserialization error: {:?}", e),
-        }
-    }
-
-    #[test]
-    fn flow_with_partial_metadata() {
-        let flow_description = "
-flow: hello-world-simple-toml
-
-metadata:
-  version: '1.1.1'
-  authors: ['unknown <unknown@unknown.com>']
-";
-
-        let deserializer = YamlDeserializer::<Process>::new();
-        match deserializer.deserialize(&flow_description.replace("'", "\""), None) {
-            Ok(FlowProcess(flow)) => {
-                assert_eq!(flow.metadata.name, String::default());
-                assert_eq!(flow.metadata.version, "1.1.1".to_string());
-                assert_eq!(
-                    flow.metadata.authors,
-                    vec!("unknown <unknown@unknown.com>".to_string())
-                );
-            }
-            _ => panic!("Deserialization didn't detect a flow"),
         }
     }
 }

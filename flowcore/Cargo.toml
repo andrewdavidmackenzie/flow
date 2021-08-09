@@ -19,6 +19,8 @@ path = "src/lib.rs"
 
 [dependencies]
 serde_json = "1.0" # Needed for Implementation trait and must compile for wasm32-unknown-unknown
+serde_yaml = "~0.8"
+toml = "0.5.8"
 
 # All other dependencies below are optional and can be turned off using "default-features false" removing any
 # dependency that won't compile for wasm32

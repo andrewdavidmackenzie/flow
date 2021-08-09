@@ -40,12 +40,20 @@ fn get_file_extension(url: &Url) -> Option<&str> {
 
 #[cfg(test)]
 mod test {
+    use serde_derive::{Deserialize, Serialize};
     use url::Url;
-
-    use crate::model::process::Process;
 
     use super::get_deserializer;
     use super::get_file_extension;
+
+    #[derive(Serialize, Deserialize, Debug, Clone)]
+    #[serde(untagged)]
+    pub enum TestStruct {
+        /// The process is actually a `Flow`
+        FlowProcess(String),
+        /// The process is actually a `Function`
+        FunctionProcess(String),
+    }
 
     #[test]
     fn no_extension() {
@@ -78,7 +86,7 @@ mod test {
     #[test]
     fn invalid_extension() {
         assert!(
-            get_deserializer::<Process>(
+            get_deserializer::<TestStruct>(
                 &Url::parse("file:///extension.wrong").expect("Could not create Url")
             )
             .is_err(),
@@ -89,7 +97,7 @@ mod test {
     #[test]
     fn toml_extension_loader() {
         assert_eq!(
-            get_deserializer::<Process>(
+            get_deserializer::<TestStruct>(
                 &Url::parse("file:///filename.toml").expect("Could not create Url")
             )
             .expect("Could not get a deserializer")
@@ -101,7 +109,7 @@ mod test {
     #[test]
     fn yaml_extension_loader() {
         assert_eq!(
-            get_deserializer::<Process>(
+            get_deserializer::<TestStruct>(
                 &Url::parse("file:///filename.yaml").expect("Could not create Url")
             )
             .expect("Could not get a deserializer")
@@ -113,7 +121,7 @@ mod test {
     #[test]
     fn yml_extension_loader() {
         assert_eq!(
-            get_deserializer::<Process>(
+            get_deserializer::<TestStruct>(
                 &Url::parse("file:///filename.yml").expect("Could not create Url")
             )
             .expect("Could not get a deserializer")
@@ -125,7 +133,7 @@ mod test {
     #[test]
     fn json_extension_loader() {
         assert_eq!(
-            get_deserializer::<Process>(
+            get_deserializer::<TestStruct>(
                 &Url::parse("file:///filename.json").expect("Could not create Url")
             )
             .expect("Could not get a deserializer")

@@ -214,7 +214,10 @@ mod test {
             }";
         let provider = TestProvider { test_content };
 
-        FlowManifest::load(&provider, &Url::parse("http://ibm.com").unwrap())
-            .expect("Could not load manifest");
+        FlowManifest::load(
+            &provider,
+            &Url::parse("http://ibm.com").expect("Could not parse URL"),
+        )
+        .expect("Could not load manifest");
     }
 }
