@@ -167,7 +167,7 @@ fn load_process(
 }
 
 /// load library metadata from the given url using the provider.
-/// Currently it used the `package` table of Cargo.toml as a source but it could
+/// Currently it uses the `package` table of Cargo.toml as a source but it could
 /// easily use another file as along as it has the required fields to satisfy `MetaData` struct
 pub fn load_metadata(url: &Url, provider: &dyn LibProvider) -> Result<MetaData> {
     trace!("Loading Metadata");
