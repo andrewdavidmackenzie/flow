@@ -120,17 +120,17 @@ fn load_process(
         .get_contents(&resolved_url)
         .chain_err(|| format!("Could not get contents of resolved url: '{}'", resolved_url))?;
 
-    let deserializer = get_deserializer(&resolved_url)?;
     if !alias.is_empty() {
         info!("Loading process with alias = '{}'", alias);
     }
 
+    let content = String::from_utf8(contents).chain_err(|| "Could not read UTF8 contents")?;
+    let deserializer = get_deserializer::<Process>(&resolved_url)?;
     debug!(
         "Loading process from url = '{}' with deserializer: '{}'",
         resolved_url,
         deserializer.name()
     );
-    let content = String::from_utf8(contents).chain_err(|| "Could not read UTF8 contents")?;
     let mut process = deserializer
         .deserialize(&content, Some(url))
         .chain_err(|| format!("Could not deserialize process from content in '{}'", url))?;

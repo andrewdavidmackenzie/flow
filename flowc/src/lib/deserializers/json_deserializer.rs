@@ -1,16 +1,32 @@
+use std::marker::PhantomData;
+
 use serde::Deserialize;
 use url::Url;
 
 use crate::compiler::loader::Deserializer;
 use crate::errors::*;
 
-pub struct JsonDeserializer;
-
-impl<'a, P> Deserializer<'a, P> for JsonDeserializer
+pub struct JsonDeserializer<'a, T>
 where
-    P: Deserialize<'a>,
+    T: Deserialize<'a>,
 {
-    fn deserialize(&self, contents: &'a str, url: Option<&Url>) -> Result<P> {
+    t: PhantomData<&'a T>,
+}
+
+impl<'a, T> JsonDeserializer<'a, T>
+where
+    T: Deserialize<'a>,
+{
+    pub fn new() -> Self {
+        JsonDeserializer { t: PhantomData }
+    }
+}
+
+impl<'a, T> Deserializer<'a, T> for JsonDeserializer<'a, T>
+where
+    T: Deserialize<'a>,
+{
+    fn deserialize(&self, contents: &'a str, url: Option<&Url>) -> Result<T> {
         serde_json::from_str(contents).chain_err(|| {
             format!(
                 "Error deserializing Json from: '{}'",
@@ -33,7 +49,7 @@ mod test {
 
     #[test]
     fn invalid_json() {
-        let json = &JsonDeserializer {} as &dyn Deserializer<Process>;
+        let json = JsonDeserializer::<Process>::new();
 
         if json.deserialize("=", None).is_ok() {
             panic!("Should not have parsed correctly as is invalid JSON");
@@ -56,8 +72,9 @@ mod test {
         }
     ]
 }";
-        let toml = &JsonDeserializer {} as &dyn Deserializer<Process>;
-        let flow = toml.deserialize(&flow_description.replace("'", "\""), None);
+
+        let json = JsonDeserializer::<Process>::new();
+        let flow = json.deserialize(&flow_description.replace("'", "\""), None);
         assert!(flow.is_ok());
     }
 
@@ -87,7 +104,8 @@ mod test {
         }
     ]
 }";
-        let json = &JsonDeserializer {} as &dyn Deserializer<Process>;
+
+        let json = JsonDeserializer::<Process>::new();
         let flow = json.deserialize(&flow_description.replace("'", "\""), None);
         assert!(flow.is_ok());
     }
@@ -117,7 +135,8 @@ mod test {
         }
     ]
 }";
-        let json = &JsonDeserializer {} as &dyn Deserializer<Process>;
+
+        let json = JsonDeserializer::<Process>::new();
         let flow = json.deserialize(&flow_description.replace("'", "\""), None);
         assert!(flow.is_err());
     }

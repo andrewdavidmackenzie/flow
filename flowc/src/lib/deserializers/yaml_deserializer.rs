@@ -1,16 +1,32 @@
+use std::marker::PhantomData;
+
 use serde::de::DeserializeOwned;
 use url::Url;
 
 use crate::compiler::loader::Deserializer;
 use crate::errors::*;
 
-pub struct YamlDeserializer;
-
-impl<'a, P> Deserializer<'a, P> for YamlDeserializer
+pub struct YamlDeserializer<T>
 where
-    P: DeserializeOwned,
+    T: DeserializeOwned,
 {
-    fn deserialize(&self, contents: &'a str, url: Option<&Url>) -> Result<P> {
+    t: PhantomData<T>,
+}
+
+impl<T> YamlDeserializer<T>
+where
+    T: DeserializeOwned,
+{
+    pub fn new() -> Self {
+        YamlDeserializer { t: PhantomData }
+    }
+}
+
+impl<'a, T> Deserializer<'a, T> for YamlDeserializer<T>
+where
+    T: DeserializeOwned,
+{
+    fn deserialize(&self, contents: &'a str, url: Option<&Url>) -> Result<T> {
         serde_yaml::from_str(contents).chain_err(|| {
             format!(
                 "Error deserializing Yaml from: '{}'",
@@ -38,7 +54,7 @@ mod test {
 
     #[test]
     fn invalid_yaml() {
-        let deserializer = &YamlDeserializer {} as &dyn Deserializer<Process>;
+        let deserializer = YamlDeserializer::<Process>::new();
 
         if deserializer.deserialize("{}", None).is_ok() {
             panic!("Should not have parsed correctly as is invalid JSON");
@@ -51,8 +67,8 @@ mod test {
 flow: 'hello-world-simple-toml'
 ";
 
-        let yaml = &YamlDeserializer {} as &dyn Deserializer<Process>;
-        match yaml.deserialize(&flow_with_name.replace("'", "\""), None) {
+        let deserializer = YamlDeserializer::<Process>::new();
+        match deserializer.deserialize(&flow_with_name.replace("'", "\""), None) {
             Ok(FlowProcess(flow)) => {
                 assert_eq!(flow.name.to_string(), "hello-world-simple-toml".to_string())
             }
@@ -92,8 +108,8 @@ metadata:
   authors: ['unknown <unknown@unknown.com>']
 ";
 
-        let yaml = &YamlDeserializer {} as &dyn Deserializer<Process>;
-        match yaml.deserialize(&flow_description.replace("'", "\""), None) {
+        let deserializer = YamlDeserializer::<Process>::new();
+        match deserializer.deserialize(&flow_description.replace("'", "\""), None) {
             Ok(FlowProcess(flow)) => {
                 assert_eq!(flow.metadata.name, String::default());
                 assert_eq!(flow.metadata.version, "1.1.1".to_string());
