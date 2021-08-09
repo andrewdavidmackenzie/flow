@@ -96,9 +96,11 @@ impl LibraryManifest {
 
         let url = resolved_url.clone();
         let content = String::from_utf8(manifest_content)
-            .chain_err(|| "Could not deserialize LibraryManifest")?;
+            .chain_err(|| "Could not convert from utf8 to String")?;
         let deserializer = get_deserializer::<LibraryManifest>(&resolved_url)?;
-        let manifest = deserializer.deserialize(&content, Some(&resolved_url))?;
+        let manifest = deserializer
+            .deserialize(&content, Some(&resolved_url))
+            .chain_err(|| format!("Could not create a LibraryManifest from '{}'", resolved_url))?;
 
         Ok((manifest, url))
     }
