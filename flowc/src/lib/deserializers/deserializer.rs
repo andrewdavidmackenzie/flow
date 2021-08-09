@@ -1,14 +1,24 @@
 use serde::de::DeserializeOwned;
+use serde::Deserialize;
 use url::Url;
 
-use crate::compiler::loader::Deserializer;
+use crate::errors::*;
 
 use super::json_deserializer::JsonDeserializer;
 use super::toml_deserializer::TomlDeserializer;
 use super::yaml_deserializer::YamlDeserializer;
 
+/// All deserializers have to implement this trait for content deserialization, plus a method
+/// to return their name to be able to inform the user of which deserializer was used
+pub trait Deserializer<'a, T: Deserialize<'a>> {
+    /// Deserialize the supplied `content` that was loaded from `url` into a `P`
+    fn deserialize(&self, contents: &'a str, url: Option<&Url>) -> Result<T>;
+    /// Return the name of the serializer implementing this trait
+    fn name(&self) -> &str;
+}
+
 /// Return a Deserializer based on the file extension of the resource referred to from `url` input
-pub fn get_deserializer<'a, T>(url: &'a Url) -> Result<Box<dyn Deserializer<'a, T> + 'a>, String>
+pub fn get_deserializer<'a, T>(url: &'a Url) -> Result<Box<dyn Deserializer<'a, T> + 'a>>
 where
     T: DeserializeOwned + 'static,
 {
@@ -17,11 +27,9 @@ where
             "toml" => Ok(Box::new(TomlDeserializer::new())),
             "yaml" | "yml" => Ok(Box::new(YamlDeserializer::new())),
             "json" => Ok(Box::new(JsonDeserializer::new())),
-            _ => Err(
-                "Unknown file extension so cannot determine which deserializer to use".to_string(),
-            ),
+            _ => bail!("Unknown file extension so cannot determine which deserializer to use"),
         },
-        None => Err("No file extension so cannot determine which deserializer to use".to_string()),
+        None => bail!("No file extension so cannot determine which deserializer to use"),
     }
 }
 

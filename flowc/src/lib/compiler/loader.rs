@@ -1,14 +1,13 @@
 use std::collections::{HashMap, HashSet};
 
 use log::{debug, info, trace};
-use serde::Deserialize;
 use url::Url;
 
 use flowcore::flow_manifest::{Cargo, MetaData};
 use flowcore::input::InputInitializer;
 use flowcore::lib_provider::LibProvider;
 
-use crate::deserializers::deserializer_helper::get_deserializer;
+use crate::deserializers::deserializer::get_deserializer;
 use crate::errors::*;
 use crate::model::flow::Flow;
 use crate::model::function::Function;
@@ -19,15 +18,6 @@ use crate::model::process::Process::FlowProcess;
 use crate::model::process::Process::FunctionProcess;
 use crate::model::route::Route;
 use crate::model::route::SetRoute;
-
-/// All deserializers have to implement this trait for content deserialization, plus a method
-/// to return their name to be able to inform the user of which deserializer was used
-pub trait Deserializer<'a, P: Deserialize<'a>> {
-    /// Deserialize the supplied `content` that was loaded from `url` into a `P`
-    fn deserialize(&self, contents: &'a str, url: Option<&Url>) -> Result<P>;
-    /// Return the name of the serializer implementing this trait
-    fn name(&self) -> &str;
-}
 
 /// Many structs in the model implement the `Validate` method which is used to check the
 /// description deserialized from file obeys some additional constraints that cannot be expressed

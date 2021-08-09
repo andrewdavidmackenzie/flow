@@ -3,8 +3,9 @@ use std::marker::PhantomData;
 use serde::Deserialize;
 use url::Url;
 
-use crate::compiler::loader::Deserializer;
 use crate::errors::*;
+
+use super::deserializer::Deserializer;
 
 pub struct TomlDeserializer<'a, T>
 where
@@ -46,10 +47,10 @@ mod test {
 
     use flowcore::flow_manifest::MetaData;
 
-    use crate::compiler::loader::Deserializer;
     use crate::model::process::Process;
     use crate::model::process::Process::FlowProcess;
 
+    use super::super::deserializer::Deserializer;
     use super::TomlDeserializer;
 
     #[test]
