@@ -8,7 +8,7 @@ There is pretty good overall test coverage (> 82%) that allows for safer refacto
 The docs are reasonably extensive but a bit out of date in places, but I have issues created to cover most of the most
 significant docs improvements needed.
 
-The project continues to evolve in [the flow repo][https://github.com/andrewdavidmackenzie] with myself as the 
+The project continues to evolve in [the flow repo](https://github.com/andrewdavidmackenzie) with myself as the 
 only contributor.
 
 I moved some GUI/IDE experimentation into a separate repo that uses the `flowclib`  and `flowrlib` libs from here,
