@@ -5,6 +5,7 @@ use log::debug;
 use serde_derive::{Deserialize, Serialize};
 use url::Url;
 
+use crate::deserializers::deserializer::get_deserializer;
 use crate::errors::*;
 use crate::flow_manifest::MetaData;
 use crate::lib_provider::LibProvider;
@@ -93,13 +94,13 @@ impl LibraryManifest {
             )
         })?;
 
-        let manifest = serde_json::from_str(
-            &String::from_utf8(manifest_content)
-                .chain_err(|| "Could not deserialize LibraryManifest to JSON")?,
-        )
-        .chain_err(|| format!("Could not load LibraryManifest from '{}'", resolved_url))?;
+        let url = resolved_url.clone();
+        let content = String::from_utf8(manifest_content)
+            .chain_err(|| "Could not deserialize LibraryManifest")?;
+        let deserializer = get_deserializer::<LibraryManifest>(&resolved_url)?;
+        let manifest = deserializer.deserialize(&content, Some(&resolved_url))?;
 
-        Ok((manifest, resolved_url))
+        Ok((manifest, url))
     }
 
     /// Add a function's implementation locator (location of wasm file) to the library manifest
@@ -294,7 +295,7 @@ mod test {
   \"source_urls\": []
 }";
         let provider = &TestProvider { test_content } as &dyn LibProvider;
-        let url = Url::parse("file:://test/fake").expect("Could not create Url");
+        let url = Url::parse("file:://test/fake.json").expect("Could not create Url");
         let (lib_manifest, _lib_manifest_url) =
             LibraryManifest::load(provider, &url).expect("Could not load manifest");
         assert_eq!(lib_manifest.locators.len(), 1);
