@@ -6,8 +6,6 @@
 
 /// Compiler that reads flow definitions into memory and flattens and connects the model
 pub mod compiler;
-/// A set of serializers to read flow models from various text formats based on file extension
-pub mod deserializers;
 /// Dumper can output a human readable version of the model and compiler tables to help debug
 /// compiler problems
 pub mod dumper;

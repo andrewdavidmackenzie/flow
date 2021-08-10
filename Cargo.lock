@@ -343,13 +343,11 @@ dependencies = [
  "serde",
  "serde_derive",
  "serde_json",
- "serde_yaml",
  "serial_test",
  "shrinkwraprs",
  "simpath",
  "simplog",
  "tempdir",
- "toml 0.5.8",
  "url",
 ]
 
@@ -363,7 +361,9 @@ dependencies = [
  "serde",
  "serde_derive",
  "serde_json",
+ "serde_yaml",
  "simpath",
+ "toml 0.5.8",
  "url",
 ]
 

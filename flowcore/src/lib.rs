@@ -11,6 +11,13 @@ use serde_json::Value;
 /// `content` are the content providers for files and http/https
 mod content;
 #[cfg(feature = "code")]
+/// A set of serializers to read flow models from various text formats based on file extension
+pub mod deserializers;
+/// We'll put our errors in an `errors` module, and other modules in this crate will `use errors::*;`
+/// to get access to everything `error_chain` creates.
+#[cfg(feature = "code")]
+pub mod errors;
+#[cfg(feature = "code")]
 /// `manifest` is the struct that specifies the manifest of functions in a flow
 pub mod flow_manifest;
 #[cfg(feature = "code")]
@@ -31,11 +38,6 @@ pub mod output_connection;
 #[cfg(feature = "code")]
 /// Utility functions related to Urls
 pub mod url_helper;
-
-/// We'll put our errors in an `errors` module, and other modules in this crate will `use errors::*;`
-/// to get access to everything `error_chain` creates.
-#[cfg(feature = "code")]
-pub mod errors;
 
 /// Implementations should return a value of type `RunAgain` to indicate if it should be
 /// executed more times in the future.

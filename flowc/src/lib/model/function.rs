@@ -301,6 +301,10 @@ impl SetRoute for Function {
 
 #[cfg(test)]
 mod test {
+    use url::Url;
+
+    use flowcore::deserializers::deserializer::get_deserializer;
+    use flowcore::errors::*;
     use flowcore::output_connection::OutputConnection;
     use flowcore::output_connection::Source::Output;
 
@@ -345,13 +349,19 @@ mod test {
         assert!(fun.validate().is_err());
     }
 
+    fn toml_from_str(content: &str) -> Result<Function> {
+        let url = Url::parse("file:///fake.toml").expect("Could not parse URL");
+        let deserializer = get_deserializer::<Function>(&url).expect("Could not get deserializer");
+        deserializer.deserialize(content, Some(&url))
+    }
+
     #[test]
     fn deserialize_missing_name() {
         let function_str = "
         type = 'Value'
         ";
 
-        let r_f: Result<Function, _> = toml::from_str(function_str);
+        let r_f: Result<Function> = toml_from_str(function_str);
         assert!(r_f.is_err());
     }
 
@@ -361,7 +371,7 @@ mod test {
         name = 'test_function'
         ";
 
-        let function: Result<Function, _> = toml::from_str(function_str);
+        let function: Result<Function> = toml_from_str(function_str);
         assert!(function.is_err());
     }
 
@@ -373,7 +383,7 @@ mod test {
         ";
 
         let function: Function =
-            toml::from_str(function_str).expect("Couldn't read function from toml");
+            toml_from_str(function_str).expect("Couldn't read function from toml");
         assert!(function.validate().is_err());
     }
 
@@ -386,7 +396,7 @@ mod test {
         foo = 'true'
         ";
 
-        let function: Result<Function, _> = toml::from_str(function_str);
+        let function: Result<Function> = toml_from_str(function_str);
         assert!(function.is_err());
     }
 
@@ -400,7 +410,7 @@ mod test {
         ";
 
         let function: Function =
-            toml::from_str(function_str).expect("Couldn't read function from toml");
+            toml_from_str(function_str).expect("Couldn't read function from toml");
         function.validate().expect("Function did not validate");
         assert!(!function.outputs.is_empty());
         let output = &function.outputs[0];
@@ -420,7 +430,7 @@ mod test {
         ";
 
         let function: Function =
-            toml::from_str(function_str).expect("Could not deserialize function from toml");
+            toml_from_str(function_str).expect("Could not deserialize function from toml");
         function.validate().expect("Function does not validate");
         assert!(!function.outputs.is_empty());
         let output = &function.outputs[0];
@@ -443,7 +453,7 @@ mod test {
         ";
 
         let function: Function =
-            toml::from_str(function_str).expect("Couldn't read function from toml");
+            toml_from_str(function_str).expect("Couldn't read function from toml");
         function.validate().expect("Function didn't validate");
         assert!(!function.outputs.is_empty());
         let outputs = function.outputs;
@@ -472,7 +482,7 @@ mod test {
 
         // Setup
         let mut function: Function =
-            toml::from_str(function_str).expect("Couldn't read function from toml");
+            toml_from_str(function_str).expect("Couldn't read function from toml");
         function.alias = Name::from("test_alias");
 
         // Test
@@ -503,7 +513,7 @@ mod test {
 
         // Setup
         let mut function: Function =
-            toml::from_str(function_str).expect("Couldn't read function from toml");
+            toml_from_str(function_str).expect("Couldn't read function from toml");
         function.alias = Name::from("test_alias");
         function.set_routes_from_parent(&Route::from("/flow"));
 

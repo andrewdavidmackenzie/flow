@@ -2,6 +2,7 @@ APTGET := $(shell command -v apt-get 2> /dev/null)
 ZMQ := $(shell brew ls --versions zmq 2> /dev/null)
 YUM := $(shell command -v yum 2> /dev/null)
 BREW := $(shell command -v brew 2> /dev/null)
+ONLINE := $(shell ping -c 1 https://raw.githubusercontent.com 2> /dev/null)
 export SHELL := /bin/bash
 
 .PHONY: all

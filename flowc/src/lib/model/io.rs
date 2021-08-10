@@ -283,6 +283,11 @@ impl Find for IOSet {
 
 #[cfg(test)]
 mod test {
+    use url::Url;
+
+    use flowcore::deserializers::deserializer::get_deserializer;
+    use flowcore::errors::*;
+
     use crate::compiler::loader::Validate;
     use crate::model::datatype::DataType;
     use crate::model::io::{IOSet, IOType};
@@ -292,9 +297,15 @@ mod test {
 
     use super::IO;
 
+    fn toml_from_str(content: &str) -> Result<IO> {
+        let url = Url::parse("file:///fake.toml").expect("Could not parse URL");
+        let deserializer = get_deserializer::<IO>(&url).expect("Could not get deserializer");
+        deserializer.deserialize(content, Some(&url))
+    }
+
     #[test]
     fn deserialize_empty_string() {
-        let output: IO = match toml::from_str("") {
+        let output: IO = match toml_from_str("") {
             Ok(x) => x,
             Err(_) => panic!("TOML does not parse"),
         };
@@ -309,7 +320,7 @@ mod test {
         type = 'String'
         ";
 
-        let output: IO = match toml::from_str(input_str) {
+        let output: IO = match toml_from_str(input_str) {
             Ok(x) => x,
             Err(_) => panic!("TOML does not parse"),
         };
@@ -322,7 +333,7 @@ mod test {
         type = 'Unknown'
         ";
 
-        let output: IO = match toml::from_str(input_str) {
+        let output: IO = match toml_from_str(input_str) {
             Ok(x) => x,
             Err(_) => panic!("TOML does not parse"),
         };
@@ -336,7 +347,7 @@ mod test {
         type = 'String'
         ";
 
-        let output: IO = match toml::from_str(input_str) {
+        let output: IO = match toml_from_str(input_str) {
             Ok(x) => x,
             Err(_) => panic!("TOML does not parse"),
         };
@@ -351,7 +362,7 @@ mod test {
         type = 'String'
         ";
 
-        let input: IO = match toml::from_str(input_str) {
+        let input: IO = match toml_from_str(input_str) {
             Ok(x) => x,
             Err(_) => panic!("TOML does not parse"),
         };
@@ -365,7 +376,7 @@ mod test {
         type = 'String'
         ";
 
-        let input: IO = match toml::from_str(input_str) {
+        let input: IO = match toml_from_str(input_str) {
             Ok(x) => x,
             Err(_) => panic!("TOML does not parse"),
         };
@@ -380,7 +391,7 @@ mod test {
         type = 'Value'
         ";
 
-        let input: IO = match toml::from_str(input_str) {
+        let input: IO = match toml_from_str(input_str) {
             Ok(x) => x,
             Err(_) => panic!("TOML does not parse"),
         };
@@ -395,7 +406,7 @@ mod test {
         type = 'Value'
         ";
 
-        let input: Result<IO, _> = toml::from_str(input_str);
+        let input: Result<IO> = toml_from_str(input_str);
         assert!(input.is_err());
     }
 

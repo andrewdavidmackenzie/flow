@@ -245,6 +245,7 @@ mod test {
     }
 
     #[test]
+    #[cfg(feature = "online_tests")]
     fn resolve_web_path() {
         let mut search_path = Simpath::new("web_path");
         // `flowstdlib` can be found under the root of the project at `tree/master/flowstdlib` on github

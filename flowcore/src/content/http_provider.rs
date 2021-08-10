@@ -117,7 +117,8 @@ mod test {
     use super::HttpProvider;
 
     #[test]
-    fn resolve() {
+    #[cfg(feature = "online_tests")]
+    fn resolve_web() {
         let provider = HttpProvider {};
         let folder_url = Url::parse("https://raw.githubusercontent.com/andrewdavidmackenzie/flow/master/samples/hello-world/context.toml")
             .expect("Could not form Url");
@@ -128,7 +129,8 @@ mod test {
     }
 
     #[test]
-    fn resolve_default() {
+    #[cfg(feature = "online_tests")]
+    fn resolve_default_web() {
         let provider = HttpProvider {};
         let folder_url = Url::parse("https://raw.githubusercontent.com/andrewdavidmackenzie/flow/master/samples/hello-world")
             .expect("Could not form Url");
@@ -141,6 +143,7 @@ mod test {
     }
 
     #[test]
+    #[cfg(feature = "online_tests")]
     fn get_github_sample() {
         let provider: &dyn Provider = &HttpProvider;
         let url = Url::parse("https://raw.githubusercontent.com/andrewdavidmackenzie/flow/master/samples/hello-world/context.toml")

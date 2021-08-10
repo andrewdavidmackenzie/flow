@@ -3,6 +3,7 @@ use std::collections::HashSet;
 use serde_derive::{Deserialize, Serialize};
 use url::Url;
 
+use crate::deserializers::deserializer::get_deserializer;
 use crate::errors::*;
 use crate::function::Function;
 use crate::lib_provider::LibProvider;
@@ -104,17 +105,20 @@ impl FlowManifest {
         let (resolved_url, _) = provider
             .resolve_url(source, DEFAULT_MANIFEST_FILENAME, &["json"])
             .chain_err(|| "Could not resolve url for manifest while attempting to load manifest")?;
-        let content = provider
+
+        let contents = provider
             .get_contents(&resolved_url)
             .chain_err(|| "Could not get contents while attempting to load manifest")?;
 
-        // TODO for now json only
-        let manifest = serde_json::from_str(
-            &String::from_utf8(content).chain_err(|| "Could not convert from utf8 to String")?,
-        )
-        .chain_err(|| format!("Could not create a manifest from '{}'", source))?;
+        let url = resolved_url.clone();
+        let content =
+            String::from_utf8(contents).chain_err(|| "Could not convert from utf8 to String")?;
+        let deserializer = get_deserializer::<FlowManifest>(&resolved_url)?;
+        let manifest = deserializer
+            .deserialize(&content, Some(&resolved_url))
+            .chain_err(|| format!("Could not create a FlowManifest from '{}'", source))?;
 
-        Ok((manifest, resolved_url))
+        Ok((manifest, url))
     }
 }
 
@@ -213,7 +217,10 @@ mod test {
             }";
         let provider = TestProvider { test_content };
 
-        FlowManifest::load(&provider, &Url::parse("http://ibm.com").unwrap())
-            .expect("Could not load manifest");
+        FlowManifest::load(
+            &provider,
+            &Url::parse("http://ibm.com/fake.json").expect("Could not parse URL"),
+        )
+        .expect("Could not load manifest");
     }
 }

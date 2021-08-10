@@ -3,11 +3,11 @@ use std::collections::{HashMap, HashSet};
 use log::{debug, info, trace};
 use url::Url;
 
+use flowcore::deserializers::deserializer::get_deserializer;
 use flowcore::flow_manifest::{Cargo, MetaData};
 use flowcore::input::InputInitializer;
 use flowcore::lib_provider::LibProvider;
 
-use crate::deserializers::deserializer_helper::get_deserializer;
 use crate::errors::*;
 use crate::model::flow::Flow;
 use crate::model::function::Function;
@@ -18,15 +18,6 @@ use crate::model::process::Process::FlowProcess;
 use crate::model::process::Process::FunctionProcess;
 use crate::model::route::Route;
 use crate::model::route::SetRoute;
-
-/// All deserializers have to implement this trait for content deserialization, plus a method
-/// to return their name to be able to inform the user of which deserializer was used
-pub trait Deserializer {
-    /// Deserialize the supplied `content` that was loaded from `url` into a `Process` definition
-    fn deserialize(&self, contents: &str, url: Option<&Url>) -> Result<Process>;
-    /// Return the name of the serializer implementing this trait
-    fn name(&self) -> &'static str;
-}
 
 /// Many structs in the model implement the `Validate` method which is used to check the
 /// description deserialized from file obeys some additional constraints that cannot be expressed
@@ -119,21 +110,19 @@ fn load_process(
         .get_contents(&resolved_url)
         .chain_err(|| format!("Could not get contents of resolved url: '{}'", resolved_url))?;
 
-    let deserializer = get_deserializer(&resolved_url)?;
     if !alias.is_empty() {
         info!("Loading process with alias = '{}'", alias);
     }
 
+    let content = String::from_utf8(contents).chain_err(|| "Could not read UTF8 contents")?;
+    let deserializer = get_deserializer::<Process>(&resolved_url)?;
     debug!(
         "Loading process from url = '{}' with deserializer: '{}'",
         resolved_url,
         deserializer.name()
     );
     let mut process = deserializer
-        .deserialize(
-            &String::from_utf8(contents).chain_err(|| "Could not read UTF8 contents")?,
-            Some(url),
-        )
+        .deserialize(&content, Some(url))
         .chain_err(|| format!("Could not deserialize process from content in '{}'", url))?;
 
     debug!("Deserialized the flow, now parsing and loading any sub-processes");
@@ -168,7 +157,7 @@ fn load_process(
 }
 
 /// load library metadata from the given url using the provider.
-/// Currently it used the `package` table of Cargo.toml as a source but it could
+/// Currently it uses the `package` table of Cargo.toml as a source but it could
 /// easily use another file as along as it has the required fields to satisfy `MetaData` struct
 pub fn load_metadata(url: &Url, provider: &dyn LibProvider) -> Result<MetaData> {
     trace!("Loading Metadata");
@@ -180,10 +169,11 @@ pub fn load_metadata(url: &Url, provider: &dyn LibProvider) -> Result<MetaData> 
     let contents = provider
         .get_contents(&resolved_url)
         .chain_err(|| format!("Could not get contents of resolved url: '{}'", resolved_url))?;
+    let content = String::from_utf8(contents).chain_err(|| "Could not read UTF8 contents")?;
 
-    let cargo: Cargo =
-        toml::from_str(&String::from_utf8(contents).chain_err(|| "Could not read UTF8 contents")?)
-            .chain_err(|| format!("Error deserializing Toml from: '{:?}'", resolved_url))?;
+    let deserializer = get_deserializer::<Cargo>(&resolved_url)?;
+
+    let cargo: Cargo = deserializer.deserialize(&content, Some(&resolved_url))?;
 
     Ok(cargo.package)
 }
@@ -272,13 +262,25 @@ fn config_function(
 
 #[cfg(test)]
 mod test {
+    use url::Url;
+
+    use flowcore::deserializers::deserializer::get_deserializer;
     use flowcore::flow_manifest::{Cargo, MetaData};
 
     #[test]
     fn deserialize_library() {
-        let contents = include_str!("../../../tests/test_libs/Cargo.toml");
-        let cargo: Cargo = toml::from_str(contents)
-            .expect("Could not parse Cargo.toml in deserialize_library test");
+        let cargo_toml = r###"[package]
+name = "Flow Standard Library"
+version = "0.11.0"
+authors = ["Andrew Mackenzie <andrew@mackenzie-serres.net>"]
+description = "The standard library for 'flow' programs compiled with the 'flowc' compiler"
+
+exclude = "../..""###;
+        let url = Url::parse("file:///fake.toml").expect("Could not parse URL");
+        let deserializer = get_deserializer::<Cargo>(&url).expect("Could not get deserializer");
+        let cargo: Cargo = deserializer
+            .deserialize(cargo_toml, Some(&url))
+            .expect("Could not deserialize");
         let _: MetaData = cargo.package;
     }
 }

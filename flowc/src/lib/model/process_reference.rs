@@ -10,7 +10,7 @@ use crate::errors::*;
 use crate::model::name::HasName;
 use crate::model::name::Name;
 
-/// A `Processreference` is the struct used in a `Flow` to refer to a sub-process (Function or nested
+/// A `ProcessReference` is the struct used in a `Flow` to refer to a sub-process (Function or nested
 /// Flow) it contains
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
@@ -66,10 +66,20 @@ impl fmt::Display for ProcessReference {
 #[cfg(test)]
 mod test {
     use serde_json::json;
+    use url::Url;
 
+    use flowcore::deserializers::deserializer::get_deserializer;
+    use flowcore::errors::*;
     use flowcore::input::InputInitializer::{Always, Once};
 
     use super::ProcessReference;
+
+    fn toml_from_str(content: &str) -> Result<ProcessReference> {
+        let url = Url::parse("file:///fake.toml").expect("Could not parse URL");
+        let deserializer =
+            get_deserializer::<ProcessReference>(&url).expect("Could not get deserializer");
+        deserializer.deserialize(content, Some(&url))
+    }
 
     #[test]
     fn deserialize_simple() {
@@ -79,7 +89,7 @@ mod test {
         ";
 
         let _reference: ProcessReference =
-            toml::from_str(input_str).expect("Could not deserialize ProcessReference from toml");
+            toml_from_str(input_str).expect("Could not deserialize ProcessReference from toml");
     }
 
     #[test]
@@ -91,7 +101,7 @@ mod test {
         ";
 
         let reference: ProcessReference =
-            toml::from_str(input_str).expect("Could not deserialize ProcessReference from toml");
+            toml_from_str(input_str).expect("Could not deserialize ProcessReference from toml");
         assert_eq!(
             reference.initializations.len(),
             1,
@@ -116,7 +126,7 @@ mod test {
         ";
 
         let reference: ProcessReference =
-            toml::from_str(input_str).expect("Could not deserialize ProcessReference from toml");
+            toml_from_str(input_str).expect("Could not deserialize ProcessReference from toml");
         assert_eq!(
             reference.initializations.len(),
             1,
@@ -139,7 +149,7 @@ mod test {
         ";
 
         let reference: ProcessReference =
-            toml::from_str(input_str).expect("Could not deserialize ProcessReference from toml");
+            toml_from_str(input_str).expect("Could not deserialize ProcessReference from toml");
         assert_eq!(
             reference.initializations.len(),
             1,
@@ -163,7 +173,7 @@ mod test {
         ";
 
         let reference: ProcessReference =
-            toml::from_str(input_str).expect("Could not deserialize ProcessReference from toml");
+            toml_from_str(input_str).expect("Could not deserialize ProcessReference from toml");
         assert_eq!(
             reference.initializations.len(),
             2,
@@ -190,7 +200,7 @@ mod test {
         foo = 'extra token'
         ";
 
-        let reference: Result<ProcessReference, _> = toml::from_str(input_str);
+        let reference: Result<ProcessReference> = toml_from_str(input_str);
         assert!(reference.is_err());
     }
 }
