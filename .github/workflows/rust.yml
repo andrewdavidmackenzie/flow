@@ -64,8 +64,8 @@ jobs:
     - name: Build-flowc
       run: cargo build -p flowc
 
-    - name: FlowcCompileFlowstdlib
-      run: cargo run -p flowc -- -l flowstdlib
+    - name: BuildFlowstdlib
+      run: cargo build -p flowstdlib
 
     - name: OptimizeFlowstdLibWasm
       run: make optimize-flowstdlib

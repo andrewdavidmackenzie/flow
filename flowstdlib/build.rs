@@ -6,10 +6,6 @@ use std::process::{Command, Stdio};
 use glob::{glob_with, MatchOptions};
 use simpath::{FileType, FoundType, Simpath};
 
-use lib_path::check_flow_lib_path;
-
-mod lib_path;
-
 // Build script to compile the flowstdlib WASM files and generate manifest - using flowc
 fn main() -> io::Result<()> {
     let flowc = get_flowc()?;
@@ -25,8 +21,6 @@ fn main() -> io::Result<()> {
         .stderr(Stdio::inherit())
         .spawn()
         .unwrap();
-
-    check_flow_lib_path();
 
     generate_svgs(env!("CARGO_MANIFEST_DIR"))?;
 

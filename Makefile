@@ -50,7 +50,7 @@ build-flowc:
 
 .PHONY: compile-flowstdlib
 compile-flowstdlib: build-flowc
-	@cargo run -p flowc -- -l flowstdlib
+	@cargo build -p flowstdlib
 	@$(MAKE) --quiet optimize-flowstdlib
 
 .PHONE: optimize-flowstdlib
