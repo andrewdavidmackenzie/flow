@@ -1,6 +1,6 @@
 [workspace]
-members = ["flowc", "flowr", "flowcore", "flow_impl_derive", "flowstdlib", "samples"]
-default-members = ["flowc", "flowr", "flowcore", "flow_impl_derive", "flowstdlib", "samples"]
+members = ["flowc", "flowstdlib", "flowr", "flowcore", "flow_impl_derive", "samples"]
+default-members = ["flowc", "flowstdlib", "flowr", "flowcore", "flow_impl_derive", "samples"]
 
 [profile.dev]
 split-debuginfo = "unpacked"

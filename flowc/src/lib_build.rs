@@ -324,6 +324,10 @@ fn compile_implementations(
                         options.graphs,
                     )
                     .chain_err(|| "Failed to dump flow's definition")?;
+
+                    if options.graphs {
+                        dump_flow::generate_svgs(&options.output_dir.to_string_lossy())?;
+                    }
                 }
             }
             Err(_) => debug!("Skipping file '{}'", url),

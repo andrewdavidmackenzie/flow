@@ -13,5 +13,6 @@ error_chain! {
         Io(std::io::Error);
         Url(url::ParseError);
         Provider(flowcore::errors::Error);
+        Glob(glob::PatternError);
     }
 }

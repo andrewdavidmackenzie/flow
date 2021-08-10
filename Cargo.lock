@@ -411,7 +411,6 @@ dependencies = [
  "error-chain 0.12.4",
  "flow_impl_derive",
  "flowcore",
- "glob",
  "image",
  "serde_json",
  "simpath",

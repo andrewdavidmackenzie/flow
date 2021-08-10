@@ -154,7 +154,7 @@ fn get_matches<'a>() -> ArgMatches<'a> {
             Arg::with_name("graphs")
                 .short("z")
                 .long("graphs")
-                .help("Create .dot files for graph generation"),
+                .help("Create .dot files for graphs, and generate SVGs with 'dot'"),
         )
         .arg(
             Arg::with_name("provided")
