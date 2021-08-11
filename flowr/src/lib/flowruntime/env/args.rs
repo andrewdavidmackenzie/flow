@@ -7,20 +7,20 @@ use flowcore::{Implementation, RunAgain, DONT_RUN_AGAIN};
 use crate::client_server::ServerConnection;
 use crate::runtime_messages::{ClientMessage, ServerMessage};
 
-/// `Implementation` struct for the `get` function
-pub struct Get {
-    /// It holds a reference to the runtime client in order to Get the Args
+/// `Implementation` struct for the `args` function
+pub struct Args {
+    /// It holds a reference to the runtime client in order to get the Args
     pub server_context: Arc<Mutex<ServerConnection<ServerMessage, ClientMessage>>>,
 }
 
-impl Implementation for Get {
+impl Implementation for Args {
     fn run(&self, mut _inputs: &[Value]) -> (Option<Value>, RunAgain) {
         if let Ok(mut guard) = self.server_context.lock() {
             return match guard.send_and_receive_response(ServerMessage::GetArgs) {
                 Ok(ClientMessage::Args(arg_vec)) => {
                     let mut output_map = serde_json::Map::new();
 
-                    // Construct an array of args parsed into Json Values
+                    // Construct an array of env parsed into Json Values
                     let mut json_arg_vec: Vec<Value> = Vec::new();
                     for arg in &arg_vec {
                         if let Ok(json) = serde_json::from_str(arg) {
@@ -32,7 +32,7 @@ impl Implementation for Get {
                     // And add the array of Value at the "/json" route
                     let _ = output_map.insert("json".into(), Value::Array(json_arg_vec));
 
-                    // Add the array of (unparsed) text values of the args at "/text" route
+                    // Add the array of (unparsed) text values of the env at "/text" route
                     output_map.insert("string".into(), json!(arg_vec));
 
                     (Some(Value::Object(output_map)), DONT_RUN_AGAIN)

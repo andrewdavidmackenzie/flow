@@ -49,8 +49,4 @@ input.divisor = {always =  2}
 
 [[connection]]
 from = "divide4/result"
-to = "print"
-
-[[process]]
-alias = "print"
-source = "lib://flowruntime/stdio/stdout"
+to = "flowruntime/stdio/stdout"

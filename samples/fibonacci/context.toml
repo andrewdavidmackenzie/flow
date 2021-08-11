@@ -16,12 +16,9 @@ to = "add/i2"
 
 [[connection]]
 from = "add"
-to = "stdout"
+to = "flowruntime/stdio/stdout"
 
 # Loop back the input value #2 from this calculation, to be the input to input #1 on the next iteration
 [[connection]]
 from = "add/i2"
 to = "add/i1"
-
-[[process]]
-source = "lib://flowruntime/stdio/stdout"

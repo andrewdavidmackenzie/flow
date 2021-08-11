@@ -117,13 +117,18 @@ fn load_process(
     let content = String::from_utf8(contents).chain_err(|| "Could not read UTF8 contents")?;
     let deserializer = get_deserializer::<Process>(&resolved_url)?;
     debug!(
-        "Loading process from url = '{}' with deserializer: '{}'",
+        "Loading Process from url = '{}' with deserializer: '{}'",
         resolved_url,
         deserializer.name()
     );
     let mut process = deserializer
-        .deserialize(&content, Some(url))
-        .chain_err(|| format!("Could not deserialize process from content in '{}'", url))?;
+        .deserialize(&content, Some(&resolved_url))
+        .chain_err(|| {
+            format!(
+                "Could not deserialize Process from content in '{}'",
+                resolved_url
+            )
+        })?;
 
     debug!("Deserialized the flow, now parsing and loading any sub-processes");
     match process {
@@ -138,7 +143,7 @@ fn load_process(
             )?;
             *flow_count += 1;
             load_process_refs(flow, flow_count, provider, source_urls)?;
-            flow.build_connections()?;
+            flow.build_connections(provider)?;
         }
         FunctionProcess(ref mut function) => {
             config_function(

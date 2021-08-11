@@ -34,8 +34,7 @@ mod helper;
 #[test]
 fn args() {
     let meta_provider = MetaProvider::new(helper::set_lib_search_path_to_project());
-    let path =
-        helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/args/args.toml");
+    let path = helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/env/env.toml");
     let process = loader::load(&path, &meta_provider, &mut HashSet::<(Url, Url)>::new()).unwrap();
     if let FlowProcess(ref flow) = process {
         let _tables = compile::compile(flow).unwrap();
@@ -86,7 +85,7 @@ fn same_name_input_and_output() {
     if let FlowProcess(ref flow) = process {
         let tables = compile::compile(flow).unwrap();
         // If done correctly there should only be two connections
-        // args -> buffer, and buffer -> print
+        // env -> buffer, and buffer -> print
         assert_eq!(4, tables.collapsed_connections.len());
     } else {
         panic!("Process loaded was not a flow");
@@ -176,7 +175,7 @@ fn dead_process_removed() {
     let process = loader::load(&path, &meta_provider, &mut HashSet::<(Url, Url)>::new()).unwrap();
     if let FlowProcess(ref flow) = process {
         let tables = compile::compile(flow).unwrap();
-        // Dead value should be removed - currently can't assume that args function can be removed
+        // Dead value should be removed - currently can't assume that env function can be removed
         assert_eq!(
             tables.functions.len(),
             1,

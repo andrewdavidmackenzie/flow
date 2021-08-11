@@ -13,8 +13,8 @@ Here is a summary of the project components, their purpose and a link to their `
 * [flowr](../../flowr/README.md) - The `flowr` flow runner binary that can be used to run and debug flows compiled 
   with a flow compiler such as `flowc`.
     * [flowrlib](../../flowr/src/lib/README.md) - The flow runner library that loads and executes compiled flows.
-    * [flowruntime](../../flowr/src/lib/flowruntime/README.md) - A set of core functions provided by any flow runtime 
-      for all flows to interact with the environment and perform IO
+        * [flowruntime](../../flowr/src/lib/flowruntime/README.md) - A set of core functions provided by the flow runtime 
+          for all flows to interact with the environment and perform IO.
 * [flowstdlib](../../flowstdlib/README.md) - the flow "standard library" which contains a set of functions that can be 
   used by flows being defined by the user
 * [samples](../../samples/README.md) - A set of sample flows

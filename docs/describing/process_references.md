@@ -41,9 +41,9 @@ The process is in a library that is available to your current installation.
 In order for flow to find the function at compile time it uses the 
 environment variable `FLOW_LIB_PATH`, that is a `PATH` style variable with zero or
 more directory entries or URLs separated by the `","` character
-* e.g. `source = "lib://flowruntime/stdio/stdin"`
-    * Library name = `flowrlib`
-    * Function path within the library = `stdio/stdin`
+* e.g. `source = "lib://flowstdlib/math/add"`
+    * Library name = `flowstdlib`
+    * Function path within the library = `math/add`
     
 All the directories in the path are searched for a top-level sub-directory that 
 matches the library name.
@@ -57,21 +57,21 @@ For example, if I define `FLOW_LIB_PATH` thus:
 And my flow references a process thus:
 ```toml
 [[process]]
-alias = "stdin"
-source = "lib://flowruntime/stdio/stdin"
+alias = "sum"
+source = "lib://flowstdlib/math/add"
 ```
 
-Then the directory `/Users/me/workspace/flow/flowrlib` is looked for.
+Then the directory `/Users/me/workspace/flow/flowstdlib` is looked for.
 
 If that directory and hence the library is found, then the Function path within the library
 `stdio/stdin` is used to create the full path to the Function definition file 
-`/Users/me/workspace/flow/flowrlib/stdio/stdin`.
+`/Users/me/workspace/flow/flowstdlib/math/add`.
 
 If that file exists and can be read, the process defined there is used and 
 included in the flow.
 
 ### Initializing an IO in a reference
-An IO of a reference propcess may be initialized with a value, in one of two ways:
+An IO of a reference process may be initialized with a value, in one of two ways:
 * `once` - the value is inserted into the IO on startup only and there after it will remain empty if a value is not 
 sent to it from a Process
 * `always` - the value will be inserted into the IO each time it is empty, of there is not a value already

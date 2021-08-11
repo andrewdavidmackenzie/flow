@@ -1,15 +1,11 @@
 flow = "parent"
 
 [[process]]
-alias = "args"
-source = "lib://flowruntime/args/get"
-
-[[process]]
 alias = "child"
 source = "same-name-child"
 
 [[connection]]
-from = "args/string/1"
+from = "flowruntime/env/args/string/1"
 to = "child/message"
 
 [[process]]
@@ -20,14 +16,10 @@ source = "same-name-child"
 from = "args/string/1"
 to = "child2/message"
 
-[[process]]
-alias = "print"
-source = "lib://flowruntime/stdio/stdout"
-
 [[connection]]
 from = "child2/message"
-to = "print"
+to = "flowruntime/stdio/stdout"
 
 [[connection]]
 from = "child/message"
-to = "print"
+to = "flowruntime/stdio/stdout"

@@ -1,8 +1,5 @@
 flow = "router"
 
-[[process]]
-source = "lib://flowruntime/stdio/readline"
-
 [[connection]]
 from = "readline/json"
 to = "accumulate_triples/values"
@@ -93,14 +90,10 @@ to = "A_tracker/other_distance"
 
 ######## Print out the shortest route and it's length to each point 'A' - and the last one is the destination
 
-[[process]]
-alias = "print"
-source = "lib://flowruntime/stdio/stdout"
-
 [[connection]]
 from = "A_tracker/route"
-to = "print"
+to = "flowruntime/stdio/stdout"
 
 [[connection]]
 from = "A_tracker/distance"
-to = "print"
+to = "flowruntime/stdio/stdout"

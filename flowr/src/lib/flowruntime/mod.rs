@@ -12,8 +12,8 @@ use crate::client_server::ServerConnection;
 use crate::errors::*;
 use crate::runtime_messages::{ClientMessage, ServerMessage};
 
-/// `args` is a module to interact with a programs arguments
-pub mod args;
+/// `env` is a module to interact with a programs arguments
+pub mod env;
 /// `file` is a module to interact with the file system
 pub mod file;
 /// `image` is a module to interact with images
@@ -34,10 +34,10 @@ pub fn get_manifest(
     let mut manifest = LibraryManifest::new(metadata);
 
     manifest.locators.insert(
-        Url::parse("lib://flowruntime/args/get/get")
+        Url::parse("lib://flowruntime/env/args/args")
             .chain_err(|| "Could not parse url")
             .chain_err(|| "Could not parse url")?,
-        Native(Arc::new(args::get::Get {
+        Native(Arc::new(env::args::Args {
             server_context: server_context.clone(),
         })),
     );

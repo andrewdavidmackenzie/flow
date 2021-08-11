@@ -1,8 +1,5 @@
 flow = "tokenizer"
 
-[[process]] # Read a single line of inputs text into a stringn
-source = "lib://flowruntime/stdio/readline"
-
 [[process]] # Split a string on the space (" ") separator
 source = "lib://flowstdlib/data/split"
 input.separator = { always =  " " }
@@ -66,10 +63,7 @@ name = "done"
 from = "compare/equal"
 to = "tap/control"
 
-[[process]] # stdout for showing text
-source = "lib://flowruntime/stdio/stdout"
-
 [[connection]] # output the last token count when done
 name = "last-token-count"
 from = "tap"
-to = "stdout"
+to = "flowruntime/stdio/stdout"

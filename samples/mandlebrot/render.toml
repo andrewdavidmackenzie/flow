@@ -69,10 +69,6 @@ source = "render_pixel/render_pixel"
 from = "p2p"
 to = "p2v/pixel_point"
 
-# An image buffer to accumulate the results
-[[process]]
-source = "lib://flowruntime/image/image_buffer"
-
 # connect up the image buffer with filename and size - buffering them for each pixel
 [[process]]
 alias = "filename_buffer"

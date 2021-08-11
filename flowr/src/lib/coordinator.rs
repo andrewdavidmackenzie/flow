@@ -483,14 +483,14 @@ impl Coordinator {
         let flowruntimelib_url =
             Url::parse("lib://flowruntime").chain_err(|| "Could not parse flowruntime lib url")?;
 
-        // Load this run-time's library of native (statically linked) implementations
+        // Load the flowruntime functions - native (statically linked) implementations
         loader
             .add_lib(
                 provider,
                 flowruntime::get_manifest(server_connection)?,
                 &flowruntimelib_url,
             )
-            .chain_err(|| "Could not add 'flowruntime' library to loader")?;
+            .chain_err(|| "Could not add 'flowruntime' functions to loader")?;
 
         // If the "native" feature is enabled and command line options request it
         // then load the native version of flowstdlib

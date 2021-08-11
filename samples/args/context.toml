@@ -1,12 +1,6 @@
 flow = "arg-print"
 
-[[process]]
-source = "lib://flowruntime/args/get"
-
-[[process]]
-source = "lib://flowruntime/stdio/stdout"
-
 [[connection]]
 name = "print-flow-name"
-from = "get/json/2"
-to = "stdout"
+from = "args/json/2"
+to = "flowruntime/stdio/stdout"

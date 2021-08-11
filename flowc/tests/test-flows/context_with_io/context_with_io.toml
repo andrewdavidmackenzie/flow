@@ -6,14 +6,6 @@ name = "illegal"
 [[output]]
 name = "illegal"
 
-[[process]]
-alias = "args"
-source = "lib://flowruntime/args/get"
-
-[[process]]
-alias = "print"
-source = "lib://flowruntime/stdio/stdout"
-
 [[connection]]
-from = "args/string/1"
-to = "print"
+from = "flowruntime/env/args/string/1"
+to = "flowruntime/stdio/stdout"

@@ -1,16 +1,16 @@
-## Args (//flowruntime/args/get)
+## Args (//flowruntime/env/args)
 Get the arguments the flow was executed with
 
 ### Definition
 ```toml
-{{#include get.toml}}
+{{#include args.toml}}
 ```
 
-### Include using
+### Reference using
 ```toml
-[[process]]
-alias = "get"
-source = "lib://flowruntime/args/get"
+[[connection]]
+from = "flowruntime/env/args"
+to = "flowruntime/stdio/stdout"
 ```
 
 ### Inputs

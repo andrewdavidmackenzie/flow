@@ -20,7 +20,7 @@ use crate::wasm;
 #[derive(Default)]
 pub struct Loader {
     /// HashMap of libraries that have already had their manifests read. The key is the library
-    /// reference Url (e.g. lib:://flowruntime) and the entry is a tuple of the LibraryManifest
+    /// reference Url (e.g. lib:://flowstdlib) and the entry is a tuple of the LibraryManifest
     /// and the resolved Url of where the manifest was read from
     loaded_libraries_manifests: HashMap<Url, (LibraryManifest, Url)>,
     loaded_lib_implementations: HashMap<Url, Arc<dyn Implementation>>,

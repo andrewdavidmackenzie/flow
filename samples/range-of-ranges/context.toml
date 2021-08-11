@@ -33,12 +33,7 @@ input.start = { once = 0 }
 from = "limit-sequence/sequence"
 to = "sequence-of-sequences/end"
 
-# We will be printing out the sequence-of-sequences of numbers
-[[process]]
-alias = "print"
-source = "lib://flowruntime/stdio/stdout"
-
 # Connect the sequence-of-sequences to the print function
 [[connection]]
 from = "sequence-of-sequences/sequence"
-to = "print"
+to = "flowruntime/stdio/stdout"

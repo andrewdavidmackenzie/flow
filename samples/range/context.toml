@@ -1,10 +1,7 @@
 flow = "range"
 
-[[process]]
-source = "lib://flowruntime/args/get"
-
 [[connection]]
-from = "get/json/1"
+from = "args/json/1"
 to = "sequence/end"
 
 [[process]]
@@ -15,7 +12,7 @@ input.step = {once =  1}
 
 [[connection]]
 from = "sequence/sequence"
-to = "stdout"
+to = "flowruntime/stdio/stdout"
 
 # Output a string to show we're done when the series ends
 [[process]]
@@ -28,8 +25,4 @@ to = "join/control"
 
 [[connection]]
 from = "join"
-to = "stdout"
-
-# Output
-[[process]]
-source = "lib://flowruntime/stdio/stdout"
+to = "flowruntime/stdio/stdout"

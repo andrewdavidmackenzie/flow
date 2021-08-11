@@ -114,7 +114,7 @@ fn execute_flow(
         command_args.push("-n");
     }
 
-    // Append the file path to the manifest to run to the command line args
+    // Append the file path to the manifest to run to the command line env
     command_args.push(filepath.to_str().unwrap());
 
     // Append the flow arguments to the end of the command line
@@ -160,7 +160,7 @@ fn execute_flow(
 }
 
 fn test_args(test_dir: &Path, test_name: &str) -> Vec<String> {
-    let test_args = format!("{}.args", test_name);
+    let test_args = format!("{}.env", test_name);
     let mut args_file = test_dir.to_path_buf();
     args_file.push(test_args);
     let f = File::open(&args_file).unwrap();
@@ -227,14 +227,14 @@ fn execute_test(test_name: &str, search_path: Simpath, client_server: bool) {
 #[serial]
 fn debug_print_args() {
     let search_path = helper::set_lib_search_path_to_project();
-    execute_test("debug-print-args", search_path, false);
+    execute_test("debug-print-env", search_path, false);
 }
 
 #[test]
 #[serial]
 fn print_args() {
     let search_path = helper::set_lib_search_path_to_project();
-    execute_test("print-args", search_path, false);
+    execute_test("print-env", search_path, false);
 }
 
 #[test]
@@ -255,7 +255,7 @@ fn line_echo() {
 #[serial]
 fn args() {
     let search_path = helper::set_lib_search_path_to_project();
-    execute_test("args", search_path, false);
+    execute_test("env", search_path, false);
 }
 
 #[test]

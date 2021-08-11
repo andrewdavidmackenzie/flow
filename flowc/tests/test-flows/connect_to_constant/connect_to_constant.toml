@@ -1,11 +1,7 @@
 flow = "connect-to-constant"
 
-[[process]]
-alias = "args"
-source = "lib://flowruntime/args/get"
-
 [[connection]]
-from = "args/string/1"
+from = "flowruntime/env/args/string/1"
 to = "to_json"
 
 [[process]]
@@ -15,8 +11,4 @@ input.default = { always = 1}
 
 [[connection]]
 from = "to_json"
-to = "print"
-
-[[process]]
-alias = "print"
-source = "lib://flowruntime/stdio/stdout"
+to = "flowruntime/stdio/stdout"

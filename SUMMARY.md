@@ -45,8 +45,8 @@
 
 # The `flowruntime` Runtime
 - [The flowruntime functions](flowr/src/lib/flowruntime/README.md)
-- [Arg functions](flowr/src/lib/flowruntime/args/args.md)
-    - [Arg get function](flowr/src/lib/flowruntime/args/get.md)
+- [Arg functions](flowr/src/lib/flowruntime/env/env.md)
+    - [Arg get function](flowr/src/lib/flowruntime/env/args.md)
 - [File functions](flowr/src/lib/flowruntime/file/file.md)
     - [File Write function](flowr/src/lib/flowruntime/file/file_write.md)
 - [Standard IO functions](flowr/src/lib/flowruntime/stdio/stdio.md)

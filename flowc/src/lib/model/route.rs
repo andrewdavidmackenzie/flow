@@ -23,8 +23,8 @@ pub enum RouteType {
     Output(Name),
     /// The route is internal to a Process
     Internal(Name, Route),
-    /// The route is invalid (needed for errors during deserialization)
-    Invalid(String),
+    /// A route from/to a `flowruntime` function
+    FlowRunTime(Route),
 }
 
 /// `Route` is used to locate Processes (Flows or Functions), their IOs and sub-elements of a
@@ -75,18 +75,21 @@ impl Route {
     }
 
     /// Return the type of this Route
-    pub fn route_type(&self) -> RouteType {
+    pub fn route_type(&self) -> Result<RouteType> {
         let segments: Vec<&str> = self.split('/').collect();
 
         match segments[0] {
-            "input" => RouteType::Input(segments[1].into(), segments[2..].join("/").into()),
-            "output" => RouteType::Output(segments[1].into()),
-            "" => RouteType::Invalid(
-                "'input' or 'output' or valid process name must be specified in route".into(),
-            ),
-            process_name => {
-                RouteType::Internal(process_name.into(), segments[1..].join("/").into())
-            }
+            "input" => Ok(RouteType::Input(
+                segments[1].into(),
+                segments[2..].join("/").into(),
+            )),
+            "output" => Ok(RouteType::Output(segments[1].into())),
+            "flowruntime" => Ok(RouteType::FlowRunTime(self.clone())),
+            "" => bail!("'{}' is not a valid Route", self),
+            process_name => Ok(RouteType::Internal(
+                process_name.into(),
+                segments[1..].join("/").into(),
+            )),
         }
     }
 
@@ -128,9 +131,7 @@ impl AsRef<str> for Route {
 
 impl Validate for Route {
     fn validate(&self) -> Result<()> {
-        if let RouteType::Invalid(error) = self.route_type() {
-            bail!("{}", error);
-        }
+        self.route_type()?;
 
         if self.parse::<usize>().is_ok() {
             bail!("Route '{}' is invalid - cannot be an integer", self);

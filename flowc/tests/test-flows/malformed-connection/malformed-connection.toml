@@ -1,13 +1,5 @@
 flow = "echo args"
 
-[[process]]
-alias = "args"
-source = "lib://flowruntime/args/get"
-
-[[process]]
-alias = "print"
-source = "lib://flowruntime/stdio/stdout"
-
 [[connection]]
 from = "blabla"
-to = "print"
+to = "flowruntime/stdio/stdout"

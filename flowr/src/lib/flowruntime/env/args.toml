@@ -1,5 +1,5 @@
-function = "get"
-implementation = "get.rs"
+function = "args"
+implementation = "args.rs"
 impure = true
 
 [[output]]

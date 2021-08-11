@@ -4,9 +4,6 @@ flow = "subflow"
 name = "out"
 type = "String"
 
-[[process]]
-source = "lib://flowruntime/stdio/stdin"
-
 [[connection]]
-from = "stdin/string"
+from = "flowruntime/stdio/stdin/string"
 to = "output/out"

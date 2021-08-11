@@ -41,10 +41,6 @@ to = "add/i1"
 from = "second-sequence/sequence"
 to = "add/i2"
 
-[[process]]
-alias = "print"
-source = "lib://flowruntime/stdio/stdout"
-
 [[connection]]
 from = "add"
-to = "print"
+to = "flowruntime/stdio/stdout"

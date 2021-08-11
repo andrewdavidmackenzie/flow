@@ -1,9 +1,6 @@
 flow = "matrix_mult"
 
 [[process]]
-source = "lib://flowruntime/stdio/readline"
-
-[[process]]
 alias = "select_0"
 source = "lib://flowstdlib/control/index_f"
 input.select_index = { always = 0 }
@@ -33,10 +30,6 @@ to = "multiply/a"
 from = "select_1/selected_value"
 to = "multiply/b"
 
-[[process]]
-alias = "print"
-source = "lib://flowruntime/stdio/stdout"
-
 [[connection]]
 from = "multiply/product"
-to = "print"
+to = "flowruntime/stdio/stdout"

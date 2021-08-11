@@ -1,10 +1,6 @@
 flow = "prime"
 
 # Read the limit from the command line
-[[process]]
-alias = "args"
-source = "lib://flowruntime/args/get"
-
 [[connection]]
 from = "args/json/1"
 to = "candidates/end"
@@ -67,10 +63,5 @@ to = "remove/array"
 
 [[connection]]
 from = "remove"
-to = "print"
-
-####### Output
-[[process]]
-alias = "print"
-source = "lib://flowruntime/stdio/stdout"
+to = "flowruntime/stdio/stdout"
 

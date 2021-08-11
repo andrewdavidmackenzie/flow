@@ -7,8 +7,10 @@ use log::{debug, error};
 use serde_derive::{Deserialize, Serialize};
 use url::Url;
 
+use flowcore::deserializers::deserializer::get_deserializer;
 use flowcore::flow_manifest::MetaData;
 use flowcore::input::InputInitializer;
+use flowcore::lib_provider::LibProvider;
 
 use crate::compiler::loader::Validate;
 use crate::errors::Error;
@@ -17,14 +19,14 @@ use crate::model::connection::Connection;
 use crate::model::connection::Direction;
 use crate::model::connection::Direction::FROM;
 use crate::model::connection::Direction::TO;
+use crate::model::function::Function;
 use crate::model::io::Find;
 use crate::model::io::IOSet;
 use crate::model::io::{IOType, IO};
 use crate::model::name::HasName;
 use crate::model::name::Name;
 use crate::model::process::Process;
-use crate::model::process::Process::FlowProcess;
-use crate::model::process::Process::FunctionProcess;
+use crate::model::process::Process::{FlowProcess, FunctionProcess};
 use crate::model::process_reference::ProcessReference;
 use crate::model::route::HasRoute;
 use crate::model::route::SetIORoutes;
@@ -70,6 +72,9 @@ pub struct Flow {
     /// `subprocesses` are the loaded definition of the processes reference (used) within this flow
     #[serde(skip)]
     pub subprocesses: HashMap<Name, Process>,
+    /// Runtime functions that have already been parsed and loaded - as they were referenced
+    #[serde(skip)]
+    pub runtime_functions: HashMap<Route, Function>,
     /// `lib_references` is the set of library references used in this flow
     #[serde(skip)]
     pub lib_references: HashSet<Url>,
@@ -135,9 +140,10 @@ impl Default for Flow {
             inputs: vec![],
             outputs: vec![],
             connections: vec![],
-            subprocesses: HashMap::new(),
-            lib_references: HashSet::new(),
             metadata: MetaData::default(),
+            subprocesses: HashMap::new(),
+            runtime_functions: HashMap::new(),
+            lib_references: HashSet::new(),
         }
     }
 }
@@ -219,6 +225,76 @@ impl Flow {
         }
     }
 
+    fn load_runtime_function(&mut self, url: &Url, provider: &dyn LibProvider) -> Result<Function> {
+        let (resolved_url, _) = provider
+            .resolve_url(url, "function", &["toml"])
+            .chain_err(|| format!("Could not resolve the url: '{}'", url))?;
+        debug!("Source URL '{}' resolved to: '{}'", url, resolved_url);
+
+        let contents = provider
+            .get_contents(&resolved_url)
+            .chain_err(|| format!("Could not get contents of resolved url: '{}'", resolved_url))?;
+
+        let content = String::from_utf8(contents).chain_err(|| "Could not read UTF8 contents")?;
+        let deserializer = get_deserializer::<Function>(&resolved_url)?;
+        debug!(
+            "Loading process from url = '{}' with deserializer: '{}'",
+            resolved_url,
+            deserializer.name()
+        );
+
+        deserializer
+            .deserialize(&content, Some(&resolved_url))
+            .chain_err(|| {
+                format!(
+                    "Could not deserialize Function from content in '{}'",
+                    resolved_url
+                )
+            })
+    }
+
+    fn insert_runtime_function(
+        &mut self,
+        route: &Route,
+        provider: &dyn LibProvider,
+    ) -> Result<Option<&mut Function>> {
+        let url = Url::parse(&format!("lib://{}", route))?;
+
+        let function = self.load_runtime_function(&url, provider)?;
+        self.runtime_functions.insert(route.clone(), function);
+
+        Ok(self.runtime_functions.get_mut(route))
+    }
+
+    fn get_io_runtime_function(
+        &mut self,
+        direction: Direction,
+        route: &Route,
+        initial_value: &Option<InputInitializer>,
+        provider: &dyn LibProvider,
+    ) -> Result<IO> {
+        let mut loaded_function = self.runtime_functions.get_mut(route);
+        if loaded_function.is_none() {
+            loaded_function = self.insert_runtime_function(route, provider)?;
+        }
+
+        let function = loaded_function.ok_or("Could not load function")?;
+
+        match direction {
+            Direction::TO => function
+                .inputs
+                .find_by_route_and_set_initializer(route, initial_value),
+            Direction::FROM => function
+                .get_outputs()
+                .find_by_route_and_set_initializer(route, &None)
+                .or_else(|_| {
+                    function
+                        .inputs
+                        .find_by_route_and_set_initializer(route, &None)
+                }),
+        }
+    }
+
     fn get_io_subprocess(
         &mut self,
         subprocess_alias: &Name,
@@ -285,9 +361,10 @@ impl Flow {
         direction: Direction,
         route: &Route,
         initial_value: &Option<InputInitializer>,
+        provider: &dyn LibProvider,
     ) -> Result<IO> {
         debug!("Looking for connection {:?} '{}'", direction, route);
-        match (&direction, route.route_type()) {
+        match (&direction, route.route_type()?) {
             (&Direction::FROM, RouteType::Input(input_name, sub_route)) => {
                 // make sure the sub-route of the input is added to the source of the connection
                 let mut from = self
@@ -303,6 +380,9 @@ impl Flow {
             (_, RouteType::Internal(process_name, sub_route)) => {
                 self.get_io_subprocess(&process_name, direction, &sub_route, initial_value)
             }
+            (_, RouteType::FlowRunTime(_)) => {
+                self.get_io_runtime_function(direction, route, initial_value, provider)
+            }
             (&Direction::FROM, RouteType::Output(output_name)) => {
                 bail!("Invalid connection FROM an output named: '{}'", output_name)
             }
@@ -313,7 +393,6 @@ impl Flow {
                     sub_route
                 )
             }
-            (_, RouteType::Invalid(error)) => bail!(error),
         }
     }
 
@@ -328,7 +407,7 @@ impl Flow {
     /// "function_name/io_name"
     ///
     /// Propagate any initializers on a flow input into the input (subflow or function) it is connected to
-    pub fn build_connections(&mut self) -> Result<()> {
+    pub fn build_connections(&mut self, provider: &dyn LibProvider) -> Result<()> {
         if self.connections.is_empty() {
             return Ok(());
         }
@@ -341,10 +420,15 @@ impl Flow {
         let mut connections = take(&mut self.connections);
 
         for connection in connections.iter_mut() {
-            match self.get_route_and_type(FROM, &connection.from, &None) {
+            match self.get_route_and_type(FROM, &connection.from, &None, provider) {
                 Ok(from_io) => {
                     debug!("Found connection source:\n{:#?}", from_io);
-                    match self.get_route_and_type(TO, &connection.to, from_io.get_initializer()) {
+                    match self.get_route_and_type(
+                        TO,
+                        &connection.to,
+                        from_io.get_initializer(),
+                        provider,
+                    ) {
                         Ok(to_io) => {
                             debug!("Found connection destination:\n{:#?}", to_io);
                             // TODO here we are only checking compatible data types from the overall FROM IO

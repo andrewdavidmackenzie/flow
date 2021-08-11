@@ -13,11 +13,6 @@ name = "size"
 name = "bounds"
 type = "Array/Array/Number"
 
-# Args
-[[process]]
-alias = "args"
-source = "lib://flowruntime/args/get"
-
 ############# filename
 [[connection]]
 from = "args/string/1"

@@ -181,7 +181,7 @@ impl CliRuntimeClient {
                 ClientMessage::Ack
             }
             ServerMessage::GetArgs => {
-                // Response gets serialized and sent over channel/network so needs to args be owned
+                // Response gets serialized and sent over channel/network so needs to env be owned
                 ClientMessage::Args(self.args.clone())
             }
             ServerMessage::StderrEof => ClientMessage::Ack,

@@ -215,7 +215,7 @@ mod test {
     #[test]
     #[serial]
     fn test_args() {
-        test_run_sample("args", &super::get_flowr().unwrap());
+        test_run_sample("env", &super::get_flowr().unwrap());
     }
 
     #[test]

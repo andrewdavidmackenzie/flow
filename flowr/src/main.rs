@@ -377,7 +377,7 @@ fn parse_flow_url(matches: &ArgMatches) -> Result<Url> {
 }
 
 /*
-    Set environment variable with the args this will not be unique, but it will be used very
+    Set environment variable with the env this will not be unique, but it will be used very
     soon and removed
 */
 fn get_flow_args(matches: &ArgMatches, flow_manifest_url: &Url) -> Vec<String> {

@@ -19,9 +19,9 @@ impl Implementation for FileWrite {
         let bytes = &inputs[1];
 
         if let Ok(mut server) = self.server_context.lock() {
-            match bytes.as_str() {
+            return match bytes.as_str() {
                 Some(string) => {
-                    return match server.send_and_receive_response(ServerMessage::Write(
+                    match server.send_and_receive_response(ServerMessage::Write(
                         filename.to_string(),
                         string.as_bytes().to_vec(),
                     )) {
@@ -29,8 +29,8 @@ impl Implementation for FileWrite {
                         _ => (None, RUN_AGAIN),
                     }
                 }
-                None => return (None, RUN_AGAIN),
-            }
+                None => (None, RUN_AGAIN),
+            };
         }
 
         (None, RUN_AGAIN)

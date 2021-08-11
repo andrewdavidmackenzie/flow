@@ -1,9 +1,5 @@
 flow = "two_connections"
 
-[[process]]
-alias = "args"
-source = "lib://flowruntime/args/get"
-
 [[connection]]
 from = "args/string/1"
 to = "to_json"
@@ -18,8 +14,4 @@ source = "lib://flowstdlib/fmt/to_json"
 
 [[connection]]
 from = "to_json"
-to = "print"
-
-[[process]]
-alias = "print"
-source = "lib://flowstdlib/stdio/stdout/stdout"
+to = "flowruntime/stdio/stdout"

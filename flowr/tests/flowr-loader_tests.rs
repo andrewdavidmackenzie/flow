@@ -96,7 +96,7 @@ fn get_manifest() -> LibraryManifest {
     let mut manifest = LibraryManifest::new(metadata);
 
     manifest.locators.insert(
-        Url::parse("lib://flowruntime/args/get/get").expect("Could not create Url"),
+        Url::parse("lib://flowruntime/env/get/get").expect("Could not create Url"),
         Native(Arc::new(Fake {})),
     );
     manifest.locators.insert(

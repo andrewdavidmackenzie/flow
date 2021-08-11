@@ -36,8 +36,4 @@ input.i2 = {always =  1}
 
 [[connection]]
 from = "add"
-to = "print"
-
-[[process]]
-alias = "print"
-source = "lib://flowruntime/stdio/stdout"
+to = "flowruntime/stdio/stdout"

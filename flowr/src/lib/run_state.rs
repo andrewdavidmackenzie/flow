@@ -179,7 +179,7 @@ impl fmt::Display for Block {
 /// It may make sense for some functions to only be ran once, or to stop being executed repeatedly
 /// at some point. So each implementation when ran returns a "run again" flag to indicate this.
 /// An example of functions that may decide to stop running are:
-/// - args: produces arguments from the command line execution of a flow once at start-up
+/// - env: produces arguments from the command line execution of a flow once at start-up
 /// - readline: read a line of input from standard input, until End-of-file (EOF) is detected.
 ///   If this was not done, then the flow would never stop running as the readline function would
 ///   always be re-run and waiting for more input, but none would ever be received after EOF.

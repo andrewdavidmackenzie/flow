@@ -1,10 +1,5 @@
 flow = "factorial"
 
-# Read 'n' from the command line
-[[process]]
-alias = "args"
-source = "lib://flowruntime/args/get"
-
 [[connection]]
 from = "args/json/1"
 to = "multiply/i2"
@@ -68,10 +63,6 @@ to = "result-tap/control"
 from = "multiply"
 to = "result-tap/data"
 
-[[process]]
-alias = "print"
-source = "lib://flowruntime/stdio/stdout"
-
 [[connection]]
 from = "result-tap"
-to = "print"
+to = "flowruntime/stdio/stdout"

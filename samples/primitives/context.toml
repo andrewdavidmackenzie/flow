@@ -44,10 +44,6 @@ to = "compare/left"
 from = "compare/gt"
 to = "print"
 
-[[process]]
-alias = "print"
-source = "lib://flowruntime/stdio/stdout"
-
 [[connection]]
 from = "tap"
-to = "print"
+to = "flowruntime/stdio/stdout"

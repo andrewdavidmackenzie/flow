@@ -9,10 +9,6 @@ alias = "store"
 source = "lib://flowstdlib/fmt/to_json"
 input.default = {always =  "2"}
 
-[[process]]
-alias = "print"
-source = "lib://flowruntime/stdio/stdout"
-
 [[connection]]
 from = "store"
-to = "print"
+to = "flowruntime/stdio/stdout"
