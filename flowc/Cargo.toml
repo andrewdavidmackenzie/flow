@@ -10,10 +10,6 @@ repository = "https://github.com/andrewdavidmackenzie/flow/"
 readme = "README.md"
 edition = "2018"
 
-[[bin]]
-name = "flowc"
-path = "src/main.rs"
-
 [lib]
 name = "flowclib"
 path = "src/lib/lib.rs"
