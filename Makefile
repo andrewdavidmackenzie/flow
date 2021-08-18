@@ -55,17 +55,16 @@ compile-flowstdlib: build-flowc
 
 .PHONE: optimize-flowstdlib
 optimize-flowstdlib:
-	@echo "  Optimizing the size of WASM files in flowstdlib"
-	@$(foreach file, $(shell find flowstdlib -type f -name '*.wasm'), \
+	$(foreach file, $(shell find flowstdlib -type f -name '*.wasm'), \
 		echo "  Optimizing $(file)" && \
-		wasm-gc $(file) -o $(file).gc > /dev/null && \
-		mv $(file).gc $(file) > /dev/null && \
-		wasm-snip $(file) -o $(file).snipped > /dev/null && \
-		mv $(file).snipped $(file) > /dev/null && \
-		wasm-gc $(file) -o $(file).gc > /dev/null && \
-		mv $(file).gc $(file) > /dev/null && \
-		wasm-opt $(file) -O4 --dce -o $(file).opt > /dev/null && \
-		mv $(file).opt $(file) > /dev/null \
+		wasm-gc $(file) -o $(file).gc && \
+		mv $(file).gc $(file) && \
+		wasm-snip $(file) -o $(file).snipped && \
+		mv $(file).snipped $(file) && \
+		wasm-gc $(file) -o $(file).gc && \
+		mv $(file).gc $(file) && \
+		wasm-opt $(file) -O4 --dce -o $(file).opt && \
+		mv $(file).opt $(file) \
 	;)
 
 .PHONY: build

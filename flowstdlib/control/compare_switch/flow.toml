@@ -12,12 +12,13 @@ path = "compare_switch.rs"
 [profile.release]
 debug = false
 lto = true
-opt-level = 's'
+codegen-units = 1
+opt-level = 's' # Optimize for size
+panic = 'abort' # About unwinding code
 
 [dependencies]
 flowcore = {version = "=0.34.8", default-features = false}
 flow_impl_derive = "=0.34.7"
-
 serde_json = "1.0"
 
 [workspace]
