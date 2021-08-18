@@ -12,16 +12,15 @@ path = "render_pixel.rs"
 [profile.release]
 debug = false
 lto = true
-opt-level = 's'
+codegen-units = 1
+opt-level = 's' # Optimize for size
+panic = 'abort' # About unwinding code
 
 [dependencies]
 flowcore = {version = "=0.34.8", default-features = false}
 flow_impl_derive = "=0.34.7"
 num = "0.3.0"
 serde_json = "1.0"
-
-[dev-dependencies]
-wasm-bindgen-test = "0.3.0"
 
 [workspace]
 exclude = ["../../../", ".."]

@@ -68,7 +68,6 @@ impl Implementation for RenderPixel {
 mod test {
     use flowcore::Implementation;
     use serde_json::{json, Value};
-    use wasm_bindgen_test::*;
 
     // bounds = inputs[0]
     //      upper_left = bounds[0];
@@ -76,7 +75,6 @@ mod test {
     // pixel = inputs[1]
     // size = inputs[2]
     #[test]
-    #[wasm_bindgen_test]
     fn pixel() {
         let pixel_point = json!([[50, 50], [0.5, 0.5]]);
 

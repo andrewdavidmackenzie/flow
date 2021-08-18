@@ -51,22 +51,6 @@ build-flowc:
 .PHONY: compile-flowstdlib
 compile-flowstdlib: build-flowc
 	@cargo build -p flowstdlib
-	@$(MAKE) --quiet optimize-flowstdlib
-
-.PHONE: optimize-flowstdlib
-optimize-flowstdlib:
-	@echo "  Optimizing the size of WASM files in flowstdlib"
-	@$(foreach file, $(shell find flowstdlib -type f -name '*.wasm'), \
-		echo "  Optimizing $(file)" && \
-		wasm-gc $(file) -o $(file).gc > /dev/null && \
-		mv $(file).gc $(file) > /dev/null && \
-		wasm-snip $(file) -o $(file).snipped > /dev/null && \
-		mv $(file).snipped $(file) > /dev/null && \
-		wasm-gc $(file) -o $(file).gc > /dev/null && \
-		mv $(file).gc $(file) > /dev/null && \
-		wasm-opt $(file) -O4 --dce -o $(file).opt > /dev/null && \
-		mv $(file).opt $(file) > /dev/null \
-	;)
 
 .PHONY: build
 build: build-flowc compile-flowstdlib

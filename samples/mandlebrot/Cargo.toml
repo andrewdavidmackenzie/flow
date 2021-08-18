@@ -19,8 +19,5 @@ rayon = "*"
 tempdir = "*"
 dir-diff = "*"
 
-[dev-dependencies]
-wasm-bindgen-test = "0.3.0"
-
 [workspace]
 exclude = ["../.."]

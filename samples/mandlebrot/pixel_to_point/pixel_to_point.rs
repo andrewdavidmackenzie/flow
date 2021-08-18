@@ -78,7 +78,6 @@ mod test {
     //      lower_right = bounds[1];
     // pixel = inputs[1]
     // size = inputs[2]
-    #[wasm_bindgen_test]
     #[test]
     fn pixel() {
         // Create input vector

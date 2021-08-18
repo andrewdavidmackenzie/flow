@@ -125,7 +125,6 @@ fn load_process(
         .deserialize(&content, Some(url))
         .chain_err(|| format!("Could not deserialize process from content in '{}'", url))?;
 
-    debug!("Deserialized the flow, now parsing and loading any sub-processes");
     match process {
         FlowProcess(ref mut flow) => {
             config_flow(
@@ -137,6 +136,7 @@ fn load_process(
                 initializations,
             )?;
             *flow_count += 1;
+            debug!("Deserialized the Flow, now loading any sub-processes");
             load_process_refs(flow, flow_count, provider, source_urls)?;
             flow.build_connections()?;
         }
