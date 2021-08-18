@@ -6,7 +6,7 @@ ONLINE := $(shell ping -c 1 https://raw.githubusercontent.com 2> /dev/null)
 export SHELL := /bin/bash
 
 .PHONY: all
-all: clippy build test docs trim-docs
+all: clippy test docs trim-docs
 
 .PHONY: config
 config:
