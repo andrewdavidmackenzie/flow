@@ -22,8 +22,5 @@ flow_impl_derive = "=0.34.7"
 num = "0.3.0"
 serde_json = "1.0"
 
-[dev-dependencies]
-wasm-bindgen-test = "0.3.0"
-
 [workspace]
 exclude = ["../../../", ".."]
