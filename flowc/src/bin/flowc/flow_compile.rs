@@ -50,6 +50,22 @@ fn check_root(flow: &Flow) -> bool {
     runnable
 }
 
+// For any function that provides an implementation - compile the source to wasm and modify the
+// implementation to indicate it is the wasm file
+fn compile_supplied_implementations(
+    tables: &mut GenerationTables,
+    skip_building: bool,
+    source_urls: &mut HashSet<(Url, Url)>,
+) -> Result<String> {
+    for function in &mut tables.functions {
+        if function.get_lib_reference().is_none() {
+            compile_wasm::compile_implementation(function, skip_building, source_urls)?;
+        }
+    }
+
+    Ok("All supplied implementations compiled successfully".into())
+}
+
 /*
     Compile a flow, maybe run it
 */
@@ -64,7 +80,7 @@ pub fn compile_and_execute_flow(options: &Options, provider: &dyn LibProvider) -
             let mut tables = compile::compile(&flow)
                 .chain_err(|| format!("Could not compile flow from '{}'", options.url))?;
 
-            compile_wasm::compile_supplied_implementations(
+            compile_supplied_implementations(
                 &mut tables,
                 options.provided_implementations,
                 &mut source_urls,
