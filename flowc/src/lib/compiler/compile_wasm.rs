@@ -1,3 +1,4 @@
+#[cfg(feature = "debugger")]
 use std::collections::HashSet;
 use std::env;
 use std::fs;
@@ -21,11 +22,12 @@ use crate::model::function::Function;
 pub fn compile_implementation(
     function: &mut Function,
     skip_building: bool,
-    source_urls: &mut HashSet<(Url, Url)>,
+    #[cfg(feature = "debugger")] source_urls: &mut HashSet<(Url, Url)>,
 ) -> Result<(PathBuf, bool)> {
     let mut built = false;
 
     let (implementation_path, wasm_destination) = get_paths(function)?;
+    #[cfg(feature = "debugger")]
     source_urls.insert((
         Url::from_file_path(&implementation_path)
             .map_err(|_| "Could not create Url from file path")?,

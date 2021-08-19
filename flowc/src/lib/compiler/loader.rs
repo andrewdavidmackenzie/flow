@@ -1,4 +1,6 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
+#[cfg(feature = "debugger")]
+use std::collections::HashSet;
 
 use log::{debug, info, trace};
 use url::Url;
@@ -70,7 +72,7 @@ pub trait Validate {
 pub fn load(
     url: &Url,
     provider: &dyn LibProvider,
-    source_urls: &mut HashSet<(Url, Url)>,
+    #[cfg(feature = "debugger")] source_urls: &mut HashSet<(Url, Url)>,
 ) -> Result<Process> {
     trace!("load()");
     load_process(
@@ -81,6 +83,7 @@ pub fn load(
         url,
         provider,
         &HashMap::new(),
+        #[cfg(feature = "debugger")]
         source_urls,
     )
 }
@@ -94,7 +97,7 @@ fn load_process(
     url: &Url,
     provider: &dyn LibProvider,
     initializations: &HashMap<String, InputInitializer>,
-    source_urls: &mut HashSet<(Url, Url)>,
+    #[cfg(feature = "debugger")] source_urls: &mut HashSet<(Url, Url)>,
 ) -> Result<Process> {
     trace!("load_process()");
 
@@ -104,6 +107,7 @@ fn load_process(
     debug!("Source URL '{}' resolved to: '{}'", url, resolved_url);
 
     // Track the source file involved and what it resolved to
+    #[cfg(feature = "debugger")]
     source_urls.insert((url.clone(), resolved_url.clone()));
 
     let contents = provider
@@ -137,7 +141,13 @@ fn load_process(
             )?;
             *flow_count += 1;
             debug!("Deserialized the Flow, now loading any sub-processes");
-            load_process_refs(flow, flow_count, provider, source_urls)?;
+            load_process_refs(
+                flow,
+                flow_count,
+                provider,
+                #[cfg(feature = "debugger")]
+                source_urls,
+            )?;
             flow.build_connections()?;
         }
         FunctionProcess(ref mut function) => {
@@ -204,7 +214,7 @@ fn load_process_refs(
     flow: &mut Flow,
     flow_count: &mut usize,
     provider: &dyn LibProvider,
-    source_urls: &mut HashSet<(Url, Url)>,
+    #[cfg(feature = "debugger")] source_urls: &mut HashSet<(Url, Url)>,
 ) -> Result<()> {
     for process_ref in &mut flow.process_refs {
         let subprocess_url = flow
@@ -219,6 +229,7 @@ fn load_process_refs(
             &subprocess_url,
             provider,
             &process_ref.initializations,
+            #[cfg(feature = "debugger")]
             source_urls,
         )?;
         process_ref.set_alias(process.name());

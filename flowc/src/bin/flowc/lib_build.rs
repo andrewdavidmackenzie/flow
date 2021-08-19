@@ -279,11 +279,17 @@ fn compile_implementations(
         })?;
         debug!("Trying to load library process from '{}'", url);
 
-        match load(&url, provider, &mut lib_manifest.source_urls) {
+        match load(
+            &url,
+            provider,
+            #[cfg(feature = "debugger")]
+            &mut lib_manifest.source_urls,
+        ) {
             Ok(FunctionProcess(ref mut function)) => {
                 let (wasm_abs_path, built) = compile_wasm::compile_implementation(
                     function,
                     skip_building,
+                    #[cfg(feature = "debugger")]
                     &mut lib_manifest.source_urls,
                 )
                 .chain_err(|| "Could not compile supplied implementation to wasm")?;

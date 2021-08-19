@@ -1,3 +1,4 @@
+#[cfg(feature = "debugger")]
 use std::collections::HashSet;
 use std::env;
 use std::path::Path;
@@ -7,6 +8,7 @@ use std::process::Stdio;
 use log::{debug, error, info};
 use simpath::Simpath;
 use simpath::{FileType, FoundType};
+#[cfg(feature = "debugger")]
 use url::Url;
 
 use flowclib::compiler::compile;
@@ -55,11 +57,16 @@ fn check_root(flow: &Flow) -> bool {
 fn compile_supplied_implementations(
     tables: &mut GenerationTables,
     skip_building: bool,
-    source_urls: &mut HashSet<(Url, Url)>,
+    #[cfg(feature = "debugger")] source_urls: &mut HashSet<(Url, Url)>,
 ) -> Result<String> {
     for function in &mut tables.functions {
         if function.get_lib_reference().is_none() {
-            compile_wasm::compile_implementation(function, skip_building, source_urls)?;
+            compile_wasm::compile_implementation(
+                function,
+                skip_building,
+                #[cfg(feature = "debugger")]
+                source_urls,
+            )?;
         }
     }
 
@@ -71,9 +78,15 @@ fn compile_supplied_implementations(
 */
 pub fn compile_and_execute_flow(options: &Options, provider: &dyn LibProvider) -> Result<String> {
     info!("==== Compiler phase: Loading flow");
+    #[cfg(feature = "debugger")]
     let mut source_urls = HashSet::<(Url, Url)>::new();
-    let context = loader::load(&options.url, provider, &mut source_urls)
-        .chain_err(|| format!("Could not load flow from '{}'", options.url))?;
+    let context = loader::load(
+        &options.url,
+        provider,
+        #[cfg(feature = "debugger")]
+        &mut source_urls,
+    )
+    .chain_err(|| format!("Could not load flow from '{}'", options.url))?;
 
     match context {
         FlowProcess(flow) => {
@@ -83,6 +96,7 @@ pub fn compile_and_execute_flow(options: &Options, provider: &dyn LibProvider) -
             compile_supplied_implementations(
                 &mut tables,
                 options.provided_implementations,
+                #[cfg(feature = "debugger")]
                 &mut source_urls,
             )
             .chain_err(|| "Could not compile supplied implementation to wasm")?;
@@ -103,6 +117,7 @@ pub fn compile_and_execute_flow(options: &Options, provider: &dyn LibProvider) -
                 options.debug_symbols,
                 &options.output_dir,
                 &tables,
+                #[cfg(feature = "debugger")]
                 source_urls,
             )
             .chain_err(|| "Failed to write manifest")?;
