@@ -85,7 +85,9 @@ pub fn set_lib_search_path(search_path_additions: &[String]) -> Result<Simpath> 
     let mut lib_search_path = Simpath::new_with_separator("FLOW_LIB_PATH", ',');
 
     if env::var("FLOW_LIB_PATH").is_err() && search_path_additions.is_empty() {
-        warn!("'FLOW_LIB_PATH' is not set and no LIB_DIRS supplied, so it is possible libraries referenced will not be found");
+        warn!(
+            "'FLOW_LIB_PATH' env var not set and no LIB_DIRS options supplied. Library references may not be found."
+        );
     }
 
     for addition in search_path_additions {

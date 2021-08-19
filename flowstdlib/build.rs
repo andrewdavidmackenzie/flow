@@ -10,7 +10,7 @@ fn main() -> io::Result<()> {
     let flowc = get_flowc()?;
 
     let mut command = Command::new(flowc);
-    // Options for flowc: -g for debug symbols, -z to dump graphs, -l for a library build
+    // Options for flowc: -v info to give output, -g for debug symbols, -z to dump graphs, -l for a library build
     let command_args = vec!["-v", "info", "-g", "-z", "-l", env!("CARGO_MANIFEST_DIR")];
 
     command

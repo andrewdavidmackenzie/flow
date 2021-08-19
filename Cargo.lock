@@ -399,7 +399,6 @@ dependencies = [
 name = "flowsamples"
 version = "0.36.0"
 dependencies = [
- "glob",
  "serial_test",
  "simpath",
 ]

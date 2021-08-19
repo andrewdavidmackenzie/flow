@@ -3,7 +3,6 @@ use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::{fs, io};
 
-use glob::{glob_with, MatchOptions};
 use simpath::{FileType, FoundType, Simpath};
 
 #[allow(clippy::collapsible_if)]
@@ -24,7 +23,7 @@ fn main() -> io::Result<()> {
     let flowc = get_flowc()?;
 
     println!(
-        "Using 'flowc' compiler found at: `{}`",
+        "Using 'flowc' flow compiler found at: `{}`\n",
         flowc.to_str().unwrap()
     );
 
@@ -33,7 +32,7 @@ fn main() -> io::Result<()> {
         let e = entry?;
         if e.file_type()?.is_dir() {
             println!(
-                "\nBuilding sample in directory: `{}`",
+                "Building sample with 'flowc': {}",
                 e.path().to_str().unwrap()
             );
             if compile_sample(&e.path(), &flowc).is_err() {
@@ -70,8 +69,8 @@ fn get_flowc() -> io::Result<PathBuf> {
 
 fn compile_sample(sample_dir: &Path, flowc: &Path) -> io::Result<()> {
     let mut command = Command::new(flowc);
-    // -g for debug symbols, -z to dump graphs, -s to skip running and only compile the flow
-    let command_args = vec!["-g", "-z", "-s", sample_dir.to_str().unwrap()];
+    // -g for debug symbols, -z to dump graphs, -v warn to show warnings, -s to skip running and only compile the flow
+    let command_args = vec!["-g", "-z", "-v", "warn", "-s", sample_dir.to_str().unwrap()];
 
     let flowc_child = command
         .args(command_args)
@@ -83,57 +82,13 @@ fn compile_sample(sample_dir: &Path, flowc: &Path) -> io::Result<()> {
     let flowc_output = flowc_child.wait_with_output()?;
 
     match flowc_output.status.code() {
-        Some(0) => {}
+        Some(0) | None => {}
         Some(_) => {
             return Err(io::Error::new(
                 io::ErrorKind::Other,
                 "`flowc` exited with non-zero status code",
             ))
         }
-        _ => {}
-    }
-
-    generate_svgs(sample_dir)?;
-
-    Ok(())
-}
-
-/*
-   Generate SVG files from the .dot files created by flowc
-*/
-fn generate_svgs(sample_dir: &Path) -> io::Result<()> {
-    if let Ok(FoundType::File(dot)) = Simpath::new("PATH").find_type("dot", FileType::File) {
-        println!("Generating .dot.svg files from .dot files, using 'dot' command from $PATH");
-
-        let mut dot_command = Command::new(dot);
-        let options = MatchOptions {
-            case_sensitive: false,
-            ..Default::default()
-        };
-        let pattern = format!("{}/*.dot", sample_dir.to_str().unwrap());
-
-        for path in glob_with(&pattern, options).unwrap().flatten() {
-            let dot_child = dot_command
-                .args(vec!["-Tsvg", "-O", path.to_str().unwrap()])
-                .stdin(Stdio::inherit())
-                .stdout(Stdio::inherit())
-                .stderr(Stdio::inherit())
-                .spawn()?;
-
-            let dot_output = dot_child.wait_with_output()?;
-            match dot_output.status.code() {
-                Some(0) => {}
-                Some(_) => {
-                    return Err(io::Error::new(
-                        io::ErrorKind::Other,
-                        "`dot` exited with non-zero status code",
-                    ))
-                }
-                _ => {}
-            }
-        }
-    } else {
-        println!("Could not find 'dot' command in $PATH so SVG generation skipped");
     }
 
     Ok(())
