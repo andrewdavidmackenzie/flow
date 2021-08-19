@@ -630,10 +630,6 @@ impl RunState {
 
                 // if the function can run again, then:
                 // - refill inputs from any possible initializers
-                // If inputs full, due to:
-                // - initializers
-                // - loopback connection
-                // then make ready again
                 if function_can_run_again {
                     self.refill_inputs(job.function_id, job.flow_id, loopback_value_sent);
                 }

@@ -61,9 +61,14 @@ mod test {
 
         let (result, _) = indexer.run(&inputs);
 
-        let output_map = result.unwrap();
+        let output_map = result.expect("No output map");
 
-        assert_eq!(output_map.pointer("/selected_value").unwrap(), &json!(42));
+        assert_eq!(
+            output_map
+                .pointer("/selected_value")
+                .expect("Could not select route"),
+            &json!(42)
+        );
     }
 
     #[test]
@@ -79,7 +84,7 @@ mod test {
 
         let (result, _) = indexer.run(&inputs);
 
-        let output_map = result.unwrap();
+        let output_map = result.expect("No output map");
 
         assert_eq!(output_map.pointer("/selected_value"), None);
     }
@@ -97,9 +102,14 @@ mod test {
 
         let (result, _) = indexer.run(&inputs);
 
-        let output_map = result.unwrap();
+        let output_map = result.expect("No output map");
 
-        assert_eq!(output_map.pointer("/selected_value").unwrap(), &json!(42));
+        assert_eq!(
+            output_map
+                .pointer("/selected_value")
+                .expect("Could not select route"),
+            &json!(42)
+        );
     }
 
     #[test]
@@ -115,7 +125,7 @@ mod test {
 
         let (result, _) = indexer.run(&inputs);
 
-        let output_map = result.unwrap();
+        let output_map = result.expect("No output map");
 
         assert_eq!(output_map.pointer("/selected_value"), None);
     }
@@ -133,9 +143,14 @@ mod test {
 
         let (result, _) = indexer.run(&inputs);
 
-        let output_map = result.unwrap();
+        let output_map = result.expect("No output map");
 
-        assert_eq!(output_map.pointer("/selected_value").unwrap(), &json!(42));
+        assert_eq!(
+            output_map
+                .pointer("/selected_value")
+                .expect("Could not select route"),
+            &json!(42)
+        );
     }
 
     #[test]
@@ -151,7 +166,7 @@ mod test {
 
         let (result, _) = indexer.run(&inputs);
 
-        let output_map = result.unwrap();
+        let output_map = result.expect("No output map");
 
         assert_eq!(output_map.pointer("/selected_value"), None);
     }
