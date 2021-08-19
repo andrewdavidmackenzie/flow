@@ -23,7 +23,7 @@ fn main() -> io::Result<()> {
     let flowc = get_flowc()?;
 
     println!(
-        "Using 'flowc' compiler found at: `{}`",
+        "Using 'flowc' flow compiler found at: `{}`\n",
         flowc.to_str().unwrap()
     );
 
@@ -32,7 +32,7 @@ fn main() -> io::Result<()> {
         let e = entry?;
         if e.file_type()?.is_dir() {
             println!(
-                "\nBuilding sample in directory: `{}`",
+                "Building sample with 'flowc': {}",
                 e.path().to_str().unwrap()
             );
             if compile_sample(&e.path(), &flowc).is_err() {
@@ -69,8 +69,8 @@ fn get_flowc() -> io::Result<PathBuf> {
 
 fn compile_sample(sample_dir: &Path, flowc: &Path) -> io::Result<()> {
     let mut command = Command::new(flowc);
-    // -g for debug symbols, -z to dump graphs, -s to skip running and only compile the flow
-    let command_args = vec!["-g", "-z", "-s", sample_dir.to_str().unwrap()];
+    // -g for debug symbols, -z to dump graphs, -v warn to show warnings, -s to skip running and only compile the flow
+    let command_args = vec!["-g", "-z", "-v", "warn", "-s", sample_dir.to_str().unwrap()];
 
     let flowc_child = command
         .args(command_args)
@@ -82,14 +82,13 @@ fn compile_sample(sample_dir: &Path, flowc: &Path) -> io::Result<()> {
     let flowc_output = flowc_child.wait_with_output()?;
 
     match flowc_output.status.code() {
-        Some(0) => {}
+        Some(0) | None => {}
         Some(_) => {
             return Err(io::Error::new(
                 io::ErrorKind::Other,
                 "`flowc` exited with non-zero status code",
             ))
         }
-        _ => {}
     }
 
     Ok(())
