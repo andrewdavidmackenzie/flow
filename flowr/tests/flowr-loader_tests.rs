@@ -2,7 +2,7 @@ use std::env;
 use std::fs::File;
 use std::io::Write;
 use std::io::{self, Read};
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::sync::Arc;
 
 use serde_json::Value;
@@ -123,7 +123,7 @@ fn get_manifest() -> LibraryManifest {
     manifest
 }
 
-fn write_manifest(manifest: &FlowManifest, filename: &PathBuf) -> Result<(), String> {
+fn write_manifest(manifest: &FlowManifest, filename: &Path) -> Result<(), String> {
     let mut manifest_file =
         File::create(&filename).map_err(|_| "Could not create lib manifest file")?;
 
