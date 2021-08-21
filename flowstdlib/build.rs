@@ -7,6 +7,10 @@ use simpath::{FileType, FoundType, Simpath};
 
 // Build script to compile the flowstdlib library (compile WASM files and generate manifest) using flowc
 fn main() -> io::Result<()> {
+    let root = env!("CARGO_MANIFEST_DIR");
+    // Tell Cargo that if any file changes it should rerun this build script
+    println!("cargo:rerun-if-changed={}", root);
+
     let flowc = get_flowc()?;
 
     let mut command = Command::new(flowc);
