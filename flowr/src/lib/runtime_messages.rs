@@ -30,6 +30,8 @@ pub enum ServerMessage {
     GetLine,
     /// A Request to get the arguments for the flow
     GetArgs,
+    /// A Request to read bytes from a file
+    Read(String),
     /// A Request to write a series of bytes to a file
     Write(String, Vec<u8>),
     /// A Request to write a pixel to an ImageBuffer
@@ -59,6 +61,7 @@ impl fmt::Display for ServerMessage {
                 ServerMessage::GetStdin => "GetStdIn",
                 ServerMessage::GetLine => "GetLine",
                 ServerMessage::GetArgs => "GetArgs",
+                ServerMessage::Read(_) => "Read",
                 ServerMessage::Write(_, _) => "Write",
                 ServerMessage::PixelWrite(_, _, _, _) => "PixelWrite",
                 ServerMessage::StdoutEof => "StdOutEof",
@@ -98,6 +101,8 @@ pub enum ClientMessage {
     EnterDebugger,
     /// Invalid - used when deserialization goes wrong
     Invalid,
+    /// Contents read from a file
+    FileContents(Vec<u8>),
 }
 
 impl fmt::Display for ClientMessage {
@@ -117,6 +122,7 @@ impl fmt::Display for ClientMessage {
                 ClientMessage::ClientSubmission(_) => "ClientSubmission",
                 ClientMessage::EnterDebugger => "EnterDebugger",
                 ClientMessage::Invalid => "Invalid",
+                ClientMessage::FileContents(_) => "FileContents",
             }
         )
     }
