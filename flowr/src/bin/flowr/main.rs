@@ -112,29 +112,59 @@ fn run() -> Result<()> {
     };
     info!("Starting 'flowr' in {:?} mode", mode);
 
-    if mode == Mode::ServerOnly || mode == Mode::ClientAndServer {
-        Coordinator::start(
-            num_threads(
-                &matches,
+    let num_threads = num_threads(
+        &matches,
+        #[cfg(feature = "debugger")]
+        debug_this_flow,
+    );
+
+    match mode {
+        Mode::ServerOnly => {
+            info!("Starting 'flowr' server process in main thread");
+            Coordinator::start(
+                num_threads,
+                lib_search_path,
+                native,
+                None,
+                #[cfg(feature = "debugger")]
+                None,
+            )?;
+            info!("'flowr' server process has exited");
+        }
+        Mode::ClientOnly => {
+            start_clients(
+                matches,
                 #[cfg(feature = "debugger")]
                 debug_this_flow,
-            ),
-            lib_search_path,
-            native,
-            mode.clone(),
-            None,
-            #[cfg(feature = "debugger")]
-            None,
-        )?;
-    }
+                server_address,
+            )?;
+        }
+        Mode::ClientAndServer => {
+            std::thread::spawn(move || {
+                info!("Starting 'flowr' server in background thread");
+                if let Err(e) = Coordinator::start(
+                    num_threads,
+                    lib_search_path,
+                    native,
+                    None,
+                    #[cfg(feature = "debugger")]
+                    None,
+                ) {
+                    error!(
+                        "Failed to start server in background thread: {}",
+                        e.to_string()
+                    );
+                }
+                info!("'flowr' server thread has exited");
+            });
 
-    if mode == Mode::ClientOnly || mode == Mode::ClientAndServer {
-        start_clients(
-            matches,
-            #[cfg(feature = "debugger")]
-            debug_this_flow,
-            server_address,
-        )?;
+            start_clients(
+                matches,
+                #[cfg(feature = "debugger")]
+                debug_this_flow,
+                server_address,
+            )?;
+        }
     }
 
     Ok(())

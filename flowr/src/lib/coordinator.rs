@@ -112,7 +112,6 @@ impl Submission {
 /// Coordinator::start(1 /* num_threads */,
 ///                     Simpath::new("fake path"),
 ///                     true,  /* native */
-///                     Mode::ClientAndServer,
 ///                     None, /* chose first free port for runtime */
 ///                     #[cfg(feature = "debugger")] None, /* chose first free port for debug */
 ///                     )
@@ -165,16 +164,12 @@ impl Coordinator {
         }
     }
 
-    /// Start the `Coordinator` either in the main thread if this process is in
-    /// `ServerOnly` mode, or as a background thread if this process is acting as a server and
-    /// client
-    #[allow(clippy::type_complexity)]
-    #[allow(clippy::too_many_arguments)]
+    /// Start the `Coordinator` either in the main thread if this process is in `ServerOnly` mode,
+    /// or as a background thread if this process is acting as a server and client
     pub fn start(
         num_threads: usize,
         lib_search_path: Simpath,
         native: bool,
-        mode: Mode,
         runtime_port: Option<u16>,
         #[cfg(feature = "debugger")] debug_port: Option<u16>,
     ) -> Result<()> {
@@ -185,19 +180,7 @@ impl Coordinator {
             num_threads,
         );
 
-        if mode == Mode::ServerOnly {
-            info!("Starting 'flowr' server process in main thread");
-            coordinator.submission_loop(lib_search_path, native, mode)?;
-            info!("'flowr' server process has exited");
-        } else {
-            std::thread::spawn(move || {
-                info!("Starting 'flowr' server in background thread");
-                let _ = coordinator.submission_loop(lib_search_path, native, mode);
-                info!("'flowr' server thread has exited");
-            });
-        }
-
-        Ok(())
+        coordinator.submission_loop(lib_search_path, native)
     }
 
     /*
@@ -206,12 +189,7 @@ impl Coordinator {
        It will loop receiving and processing submissions until it gets a `ClientExiting` response,
        then it will also exit
     */
-    fn submission_loop(
-        &mut self,
-        lib_search_path: Simpath,
-        native: bool,
-        mode: Mode,
-    ) -> Result<()> {
+    fn submission_loop(&mut self, lib_search_path: Simpath, native: bool) -> Result<()> {
         let mut loader = Loader::new();
         let provider = MetaProvider::new(lib_search_path);
 
@@ -229,24 +207,17 @@ impl Coordinator {
                         break;
                     }
                 }
-                Err(e) if mode == Mode::ServerOnly => {
+                Err(e) => {
                     error!(
                         "Error in server process submission loop, waiting for new submissions. {}",
                         e
                     )
                 }
-                Err(e) => {
-                    error!("{}", e);
-                    error!("Error in server thread, exiting.");
-                    break;
-                }
             }
         }
 
         debug!("Server has exited submission loop and will close connection");
-        self.close_connection()?;
-
-        Ok(())
+        self.close_connection()
     }
 
     fn close_connection(&mut self) -> Result<()> {
