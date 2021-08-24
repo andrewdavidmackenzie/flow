@@ -52,7 +52,7 @@ impl CliRuntimeClient {
         loop {
             match connection.receive() {
                 Ok(event) => {
-                    let response = self.process_event(event);
+                    let response = self.process_server_message(event);
                     if response == ClientMessage::ClientExiting {
                         debug!("Client has decided to exit, so exiting the event loop.");
                         return Ok(());
@@ -87,8 +87,8 @@ impl CliRuntimeClient {
     }
 
     #[allow(clippy::many_single_char_names)]
-    pub fn process_event(&mut self, event: ServerMessage) -> ClientMessage {
-        match event {
+    pub fn process_server_message(&mut self, message: ServerMessage) -> ClientMessage {
+        match message {
             ServerMessage::FlowStart => {
                 debug!("===========================    Starting flow execution =============================");
                 ClientMessage::Ack
@@ -157,6 +157,19 @@ impl CliRuntimeClient {
                     _ => ClientMessage::Error("Could not read Readline".into()),
                 }
             }
+            ServerMessage::Read(filename) => match File::open(&filename) {
+                Ok(mut f) => {
+                    let mut buffer = Vec::new();
+                    match f.read_to_end(&mut buffer) {
+                        Ok(_) => ClientMessage::FileContents(buffer),
+                        Err(_) => ClientMessage::Error(format!(
+                            "Could not read content from '{:?}'",
+                            filename
+                        )),
+                    }
+                }
+                Err(_) => ClientMessage::Error(format!("Could not open file '{:?}'", filename)),
+            },
             ServerMessage::Write(filename, bytes) => match File::create(&filename) {
                 Ok(mut file) => match file.write_all(bytes.as_slice()) {
                     Ok(_) => ClientMessage::Ack,
@@ -193,6 +206,8 @@ impl CliRuntimeClient {
 #[cfg(test)]
 mod test {
     use std::fs;
+    use std::fs::File;
+    use std::io::prelude::*;
 
     use tempdir::TempDir;
 
@@ -210,12 +225,42 @@ mod test {
             false,
         );
 
-        match client.process_event(ServerMessage::GetArgs) {
+        match client.process_server_message(ServerMessage::GetArgs) {
             ClientMessage::Args(args) => assert_eq!(
                 vec!("file:///test_flow.toml".to_string(), "1".to_string()),
                 args
             ),
             _ => panic!("Didn't get Args response as expected"),
+        }
+    }
+
+    #[test]
+    fn test_file_reading() {
+        let test_contents = "The quick brown fox jumped over the lazy dog";
+
+        let temp = tempdir::TempDir::new("flow")
+            .expect("Couldn't get TempDir")
+            .into_path();
+        let file_path = temp.join("test_read");
+        {
+            let mut file = File::create(&file_path).expect("Could not create test file");
+            file.write_all(test_contents.as_bytes())
+                .expect("Could not write to test file");
+        }
+        let mut client = CliRuntimeClient::new(
+            vec!["file:///test_flow.toml".to_string()],
+            #[cfg(feature = "metrics")]
+            false,
+        );
+
+        match client.process_server_message(ServerMessage::Read(
+            file_path
+                .to_str()
+                .expect("Couldn't get filename")
+                .to_string(),
+        )) {
+            ClientMessage::FileContents(contents) => assert_eq!(contents, test_contents.as_bytes()),
+            _ => panic!("Didn't get Write response as expected"),
         }
     }
 
@@ -232,7 +277,7 @@ mod test {
             false,
         );
 
-        if client.process_event(ServerMessage::Write(
+        if client.process_server_message(ServerMessage::Write(
             file.to_str().expect("Couldn't get filename").to_string(),
             b"Hello".to_vec(),
         )) != ClientMessage::Ack
@@ -248,7 +293,9 @@ mod test {
             #[cfg(feature = "metrics")]
             false,
         );
-        if client.process_event(ServerMessage::Stdout("Hello".into())) != ClientMessage::Ack {
+        if client.process_server_message(ServerMessage::Stdout("Hello".into()))
+            != ClientMessage::Ack
+        {
             panic!("Didn't get Stdout response as expected")
         }
     }
@@ -260,7 +307,9 @@ mod test {
             #[cfg(feature = "metrics")]
             false,
         );
-        if client.process_event(ServerMessage::Stderr("Hello".into())) != ClientMessage::Ack {
+        if client.process_server_message(ServerMessage::Stderr("Hello".into()))
+            != ClientMessage::Ack
+        {
             panic!("Didn't get Stderr response as expected")
         }
     }
@@ -281,16 +330,16 @@ mod test {
         let _ = fs::remove_file(&path);
         assert!(!path.exists());
 
-        client.process_event(ServerMessage::FlowStart);
+        client.process_server_message(ServerMessage::FlowStart);
         let pixel =
             ServerMessage::PixelWrite((0, 0), (255, 200, 20), (10, 10), path.display().to_string());
-        if client.process_event(pixel) != ClientMessage::Ack {
+        if client.process_server_message(pixel) != ClientMessage::Ack {
             panic!("Didn't get pixel write response as expected")
         }
         #[cfg(feature = "metrics")]
-        client.process_event(ServerMessage::FlowEnd(Metrics::new(1)));
+        client.process_server_message(ServerMessage::FlowEnd(Metrics::new(1)));
         #[cfg(not(feature = "metrics"))]
-        client.process_event(ServerMessage::FlowEnd);
+        client.process_server_message(ServerMessage::FlowEnd);
 
         assert!(path.exists(), "Image file was not created");
     }
@@ -304,7 +353,7 @@ mod test {
         );
 
         assert_eq!(
-            client.process_event(ServerMessage::ServerExiting),
+            client.process_server_message(ServerMessage::ServerExiting),
             ClientMessage::ClientExiting
         );
     }
