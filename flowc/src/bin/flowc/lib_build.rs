@@ -19,7 +19,7 @@ use flowcore::lib_manifest::LibraryManifest;
 use flowcore::lib_manifest::{
     DEFAULT_LIB_JSON_MANIFEST_FILENAME, DEFAULT_LIB_RUST_MANIFEST_FILENAME,
 };
-use flowcore::lib_provider::{LibProvider, MetaProvider};
+use flowcore::lib_provider::{MetaProvider, Provider};
 
 use crate::errors::*;
 use crate::Options;
@@ -59,7 +59,7 @@ pub fn get_manifest() -> Result<LibraryManifest> {
 
 /// Build a library from source and generate a manifest for it so it can be used at runtime when
 /// a flow referencing it is loaded and ran
-pub fn build_lib(options: &Options, provider: &dyn LibProvider) -> Result<String> {
+pub fn build_lib(options: &Options, provider: &dyn Provider) -> Result<String> {
     let metadata = loader::load_metadata(&options.url, provider).chain_err(|| {
         format!(
             "Could not load Library metadata from '{}'",
@@ -258,7 +258,7 @@ fn compile_implementations(
     options: &Options,
     lib_manifest: &mut LibraryManifest,
     base_dir: &str,
-    provider: &dyn LibProvider,
+    provider: &dyn Provider,
     skip_building: bool,
 ) -> Result<i32> {
     let mut build_count = 0;

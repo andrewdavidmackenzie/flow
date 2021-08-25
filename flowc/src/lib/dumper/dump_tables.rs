@@ -20,7 +20,6 @@ use crate::model::route::HasRoute;
 /// use flowcore::lib_provider::{Provider, MetaProvider};
 /// use flowcore::errors::Result;
 /// use flowclib::model::process::Process::FlowProcess;
-/// use flowcore::lib_provider::LibProvider;
 /// use std::collections::HashSet;
 /// use simpath::Simpath;
 ///
@@ -127,7 +126,6 @@ fn functions_to_dot(
 /// use flowcore::lib_provider::{Provider, MetaProvider};
 /// use flowcore::errors::Result;
 /// use flowclib::model::process::Process::FlowProcess;
-/// use flowcore::lib_provider::LibProvider;
 /// use std::collections::HashSet;
 /// use simpath::Simpath;
 ///

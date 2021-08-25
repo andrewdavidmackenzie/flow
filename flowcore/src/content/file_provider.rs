@@ -14,7 +14,12 @@ use crate::lib_provider::Provider;
 pub struct FileProvider;
 
 impl Provider for FileProvider {
-    fn resolve_url(&self, url: &Url, default_filename: &str, extensions: &[&str]) -> Result<Url> {
+    fn resolve_url(
+        &self,
+        url: &Url,
+        default_filename: &str,
+        extensions: &[&str],
+    ) -> Result<(Url, Option<String>)> {
         let path = url
             .to_file_path()
             .map_err(|_| format!("Could not convert '{}' to a file path", url))?;
@@ -32,7 +37,7 @@ impl Provider for FileProvider {
                     if let Ok(file_found_url) =
                         FileProvider::find_file(&path, default_filename, extensions)
                     {
-                        return Ok(file_found_url);
+                        return Ok((file_found_url, None));
                     }
 
                     trace!(
@@ -42,22 +47,22 @@ impl Provider for FileProvider {
                     if let Some(dir_os_name) = path.file_name() {
                         let dir_name = dir_os_name.to_string_lossy();
                         if let Ok(file_found_url) = Self::find_file(&path, &dir_name, extensions) {
-                            return Ok(file_found_url);
+                            return Ok((file_found_url, None));
                         }
                     }
 
                     bail!("No default or same named file found in directory")
                 } else if md.is_file() {
-                    Ok(url.clone())
+                    Ok((url.clone(), None))
                 } else {
                     let file_found_url = Self::file_by_extensions(&path, extensions)?;
-                    Ok(file_found_url)
+                    Ok((file_found_url, None))
                 }
             }
             _ => {
                 // doesn't exist
                 let file_found_url = Self::file_by_extensions(&path, extensions)?;
-                Ok(file_found_url)
+                Ok((file_found_url, None))
             }
         }
     }

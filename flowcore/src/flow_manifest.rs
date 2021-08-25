@@ -6,7 +6,7 @@ use url::Url;
 use crate::deserializers::deserializer::get_deserializer;
 use crate::errors::*;
 use crate::function::Function;
-use crate::lib_provider::LibProvider;
+use crate::lib_provider::Provider;
 
 /// The default name used for a flow Manifest file if none is specified
 pub const DEFAULT_MANIFEST_FILENAME: &str = "manifest";
@@ -105,7 +105,7 @@ impl FlowManifest {
     }
 
     /// Load, or Deserialize, a manifest from a `source` Url using `provider`
-    pub fn load(provider: &dyn LibProvider, source: &Url) -> Result<(FlowManifest, Url)> {
+    pub fn load(provider: &dyn Provider, source: &Url) -> Result<(FlowManifest, Url)> {
         let (resolved_url, _) = provider
             .resolve_url(source, DEFAULT_MANIFEST_FILENAME, &["json"])
             .chain_err(|| "Could not resolve url for manifest while attempting to load manifest")?;
@@ -133,7 +133,7 @@ mod test {
     use crate::errors::Result;
     use crate::function::Function;
     use crate::input::Input;
-    use crate::lib_provider::LibProvider;
+    use crate::lib_provider::Provider;
 
     use super::{FlowManifest, MetaData};
 
@@ -150,7 +150,7 @@ mod test {
         test_content: &'static str,
     }
 
-    impl LibProvider for TestProvider {
+    impl Provider for TestProvider {
         fn resolve_url(
             &self,
             source: &Url,

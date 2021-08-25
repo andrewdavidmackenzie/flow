@@ -20,7 +20,7 @@ use flowclib::generator::generate;
 use flowclib::generator::generate::GenerationTables;
 use flowclib::model::flow::Flow;
 use flowclib::model::process::Process::FlowProcess;
-use flowcore::lib_provider::LibProvider;
+use flowcore::lib_provider::Provider;
 
 use crate::errors::*;
 use crate::Options;
@@ -76,7 +76,7 @@ fn compile_supplied_implementations(
 /*
     Compile a flow, maybe run it
 */
-pub fn compile_and_execute_flow(options: &Options, provider: &dyn LibProvider) -> Result<String> {
+pub fn compile_and_execute_flow(options: &Options, provider: &dyn Provider) -> Result<String> {
     info!("==== Compiler phase: Loading flow");
     #[cfg(feature = "debugger")]
     let mut source_urls = HashSet::<(Url, Url)>::new();
@@ -135,7 +135,7 @@ pub fn compile_and_execute_flow(options: &Options, provider: &dyn LibProvider) -
 
 fn dump(
     flow: &Flow,
-    provider: &dyn LibProvider,
+    provider: &dyn Provider,
     tables: &GenerationTables,
     options: &Options,
 ) -> Result<String> {

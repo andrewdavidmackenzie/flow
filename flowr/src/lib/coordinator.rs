@@ -8,7 +8,7 @@ use serde_derive::{Deserialize, Serialize};
 use simpath::Simpath;
 use url::Url;
 
-use flowcore::lib_provider::{LibProvider, MetaProvider};
+use flowcore::lib_provider::{MetaProvider, Provider};
 
 use crate::client_server::ServerConnection;
 #[cfg(feature = "debugger")]
@@ -443,7 +443,7 @@ impl Coordinator {
 
     fn load_native_libs(
         loader: &mut Loader,
-        provider: &dyn LibProvider,
+        provider: &dyn Provider,
         server_connection: Arc<Mutex<ServerConnection<ServerMessage, ClientMessage>>>,
         native: bool,
     ) -> Result<()> {
