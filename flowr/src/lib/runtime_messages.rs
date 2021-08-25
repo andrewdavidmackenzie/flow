@@ -1,6 +1,7 @@
 use std::fmt;
 
 use serde_derive::{Deserialize, Serialize};
+use url::Url;
 #[cfg(feature = "distributed")]
 use zmq::Message;
 
@@ -31,7 +32,7 @@ pub enum ServerMessage {
     /// A Request to get the arguments for the flow
     GetArgs,
     /// A Request to read bytes from a file
-    Read(String),
+    Read(Url),
     /// A Request to write a series of bytes to a file
     Write(String, Vec<u8>),
     /// A Request to write a pixel to an ImageBuffer
@@ -102,7 +103,7 @@ pub enum ClientMessage {
     /// Invalid - used when deserialization goes wrong
     Invalid,
     /// Contents read from a file
-    FileContents(Vec<u8>),
+    FileContents(Url, Vec<u8>),
 }
 
 impl fmt::Display for ClientMessage {
@@ -122,7 +123,7 @@ impl fmt::Display for ClientMessage {
                 ClientMessage::ClientSubmission(_) => "ClientSubmission",
                 ClientMessage::EnterDebugger => "EnterDebugger",
                 ClientMessage::Invalid => "Invalid",
-                ClientMessage::FileContents(_) => "FileContents",
+                ClientMessage::FileContents(_, _) => "FileContents",
             }
         )
     }
