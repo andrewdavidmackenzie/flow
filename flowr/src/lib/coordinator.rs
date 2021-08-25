@@ -8,7 +8,6 @@ use serde_derive::{Deserialize, Serialize};
 use simpath::Simpath;
 use url::Url;
 
-use flowcore::flow_manifest::FlowManifest;
 use flowcore::lib_provider::{LibProvider, MetaProvider};
 
 use crate::client_server::ServerConnection;
@@ -164,8 +163,8 @@ impl Coordinator {
         }
     }
 
-    /// Start the `Coordinator` either in the main thread if this process is in `ServerOnly` mode,
-    /// or as a background thread if this process is acting as a server and client
+    /// Create a new `Coordinator` and then enter it's `submission_loop()` accepting and executing
+    /// flows submitted for execution.
     pub fn start(
         num_threads: usize,
         lib_search_path: Simpath,
@@ -192,27 +191,25 @@ impl Coordinator {
     fn submission_loop(&mut self, lib_search_path: Simpath, native: bool) -> Result<()> {
         let mut loader = Loader::new();
         let provider = MetaProvider::new(lib_search_path);
+        Self::load_native_libs(
+            &mut loader,
+            &provider,
+            self.runtime_server_connection.clone(),
+            native,
+        )?;
 
         while let Some(submission) = self.wait_for_submission()? {
-            match Self::load_from_manifest(
-                &submission.manifest_url,
-                &mut loader,
-                &provider,
-                self.runtime_server_connection.clone(),
-                native,
-            ) {
+            match loader.load_flow(&provider, &submission.manifest_url) {
                 Ok(mut manifest) => {
                     let state = RunState::new(manifest.get_functions(), submission);
                     if self.execute_flow(state)? {
                         break;
                     }
                 }
-                Err(e) => {
-                    error!(
-                        "Error in server process submission loop, waiting for new submissions. {}",
-                        e
-                    )
-                }
+                Err(e) => error!(
+                    "Could not load the flow from manifest url: '{}'\n    {}",
+                    submission.manifest_url, e
+                ),
             }
         }
 
@@ -444,13 +441,12 @@ impl Coordinator {
         }
     }
 
-    fn load_from_manifest(
-        manifest_url: &Url,
+    fn load_native_libs(
         loader: &mut Loader,
         provider: &dyn LibProvider,
         server_connection: Arc<Mutex<ServerConnection<ServerMessage, ClientMessage>>>,
         native: bool,
-    ) -> Result<FlowManifest> {
+    ) -> Result<()> {
         let flowruntimelib_url =
             Url::parse("lib://flowruntime").chain_err(|| "Could not parse flowruntime lib url")?;
 
@@ -477,17 +473,7 @@ impl Coordinator {
                 .chain_err(|| "Could not add 'flowstdlib' library to loader")?;
         }
 
-        // Load the flow to run from the manifest
-        let manifest = loader
-            .load_flow_manifest(provider, manifest_url)
-            .chain_err(|| {
-                format!(
-                    "Could not load the flow from manifest url: '{}'",
-                    manifest_url
-                )
-            })?;
-
-        Ok(manifest)
+        Ok(())
     }
 
     // Send as many jobs as possible for parallel execution.

@@ -183,7 +183,7 @@ fn load_manifest_from_file() {
             &Url::parse("lib://flowstdlib").expect("Could not create Url"),
         )
         .unwrap();
-    let _ = loader.load_flow_manifest(&provider, &manifest_url).unwrap();
+    let _ = loader.load_flow(&provider, &manifest_url).unwrap();
 
     assert!(!loader.get_lib_implementations().is_empty());
 }

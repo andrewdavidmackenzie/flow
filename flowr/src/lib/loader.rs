@@ -42,7 +42,7 @@ impl Loader {
         &self.loaded_lib_implementations
     }
 
-    /// Load all the processes defined in a manifest, and then find all the
+    /// Load all the functions defined in a manifest, and then find all the
     /// implementations required for function execution later.
     ///
     /// A flow is dynamically loaded, so none of the implementations it brings can be static,
@@ -57,7 +57,7 @@ impl Loader {
     /// loaded previously. They maybe Native or Wasm implementations, but the Wasm ones will
     /// have been wrapped in a Native "WasmExecutor" implementation to make it appear native.
     /// Thus, all library implementations found will be Native.
-    pub fn load_flow_manifest(
+    pub fn load_flow(
         &mut self,
         provider: &dyn LibProvider,
         flow_manifest_url: &Url,
