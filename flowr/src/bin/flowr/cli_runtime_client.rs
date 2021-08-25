@@ -8,9 +8,7 @@ use image::{ImageBuffer, ImageFormat, Rgb, RgbImage};
 use log::{debug, error, info};
 
 use flowrlib::client_server::ClientConnection;
-use flowrlib::coordinator::Submission;
 use flowrlib::errors::*;
-use flowrlib::runtime_messages::ClientMessage::ClientSubmission;
 use flowrlib::runtime_messages::{ClientMessage, ServerMessage};
 
 #[derive(Debug, Clone)]
@@ -39,15 +37,11 @@ impl CliRuntimeClient {
             ClientConnection<'static, ServerMessage, ClientMessage>,
         >,
         connection: ClientConnection<ServerMessage, ClientMessage>,
-        submission: Submission,
     ) -> Result<()> {
         #[cfg(feature = "debugger")]
         if let Some(control_c) = control_c_connection {
             Self::enter_debugger_on_control_c(control_c);
         }
-
-        debug!("Client sending submission to server");
-        connection.send(ClientSubmission(submission))?;
 
         loop {
             match connection.receive() {

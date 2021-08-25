@@ -230,10 +230,9 @@ impl Coordinator {
         connection.close()
     }
 
-    // Loop waiting for a message from the client.
-    // If the message is a `ClientSubmission` with a submission, then return Some(submission)
-    // If the message is `ClientExiting` then return None
-    // If the message is any other then loop until we find one of the above
+    // Loop waiting for one of the following two messages from the client:
+    //  - `ClientSubmission` with a submission, then return Ok(Some(submission))
+    //  - `ClientExiting` then return Ok(None)
     fn wait_for_submission(&mut self) -> Result<Option<Submission>> {
         loop {
             info!("'flowr' server is waiting to receive a 'Submission'");
@@ -258,6 +257,7 @@ impl Coordinator {
         }
     }
 
+    //noinspection RsReassignImmutable
     //noinspection RsTypeCheck
     // Execute a flow by looping while there are jobs to be processed in an inner loop.
     // There is an outer loop for the case when you are using the debugger, to allow entering

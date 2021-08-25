@@ -22,6 +22,7 @@ use flowrlib::coordinator::{
     Coordinator, Mode, Submission, DEBUG_SERVICE_NAME, RUNTIME_SERVICE_NAME,
 };
 use flowrlib::info as flowrlib_info;
+use flowrlib::runtime_messages::ClientMessage::ClientSubmission;
 
 #[cfg(feature = "debugger")]
 use crate::cli_debug_client::CliDebugClient;
@@ -219,11 +220,12 @@ fn start_clients(
         None
     };
 
-    runtime_client.event_loop(
-        control_c,
-        ClientConnection::new(RUNTIME_SERVICE_NAME, server_hostname_and_port)?,
-        submission,
-    )?;
+    let connection = ClientConnection::new(RUNTIME_SERVICE_NAME, server_hostname_and_port)?;
+
+    info!("Client sending submission to server");
+    connection.send(ClientSubmission(submission))?;
+
+    runtime_client.event_loop(control_c, connection)?;
 
     Ok(())
 }
