@@ -2,7 +2,6 @@ use std::fmt;
 use std::path::PathBuf;
 
 use serde_derive::{Deserialize, Serialize};
-use url::Url;
 #[cfg(feature = "distributed")]
 use zmq::Message;
 
@@ -33,7 +32,7 @@ pub enum ServerMessage {
     /// A Request to get the arguments for the flow
     GetArgs,
     /// A Request to read bytes from a file
-    Read(Url),
+    Read(PathBuf),
     /// Request File Metadata on a file on the client
     GetFileMetaData(PathBuf),
     /// A Request to write a series of bytes to a file
@@ -117,7 +116,7 @@ pub enum ClientMessage {
     /// Invalid - used when deserialization goes wrong
     Invalid,
     /// Contents read from a file
-    FileContents(Url, Vec<u8>),
+    FileContents(PathBuf, Vec<u8>),
     /// MetaData for a file on the client
     FileMetaDate(PathBuf, FileMetaData),
 }

@@ -73,7 +73,10 @@ impl Provider for ClientProvider {
     fn get_contents(&self, url: &Url) -> Result<Vec<u8>> {
         match self.runtime_server_connection.lock() {
             Ok(mut guard) => {
-                match guard.send_and_receive_response(ServerMessage::Read(url.clone())) {
+                let path = url
+                    .to_file_path()
+                    .map_err(|_| format!("Could not convert '{}' to a file path", url))?;
+                match guard.send_and_receive_response(ServerMessage::Read(path)) {
                     Ok(ClientMessage::FileContents(_, contents)) => Ok(contents),
                     _ => bail!("Error while reading file on client"),
                 }

@@ -147,21 +147,18 @@ impl CliRuntimeClient {
                     _ => ClientMessage::Error("Could not read Readline".into()),
                 }
             }
-            ServerMessage::Read(url) => match url.to_file_path() {
-                Ok(file_path) => match File::open(&file_path) {
-                    Ok(mut f) => {
-                        let mut buffer = Vec::new();
-                        match f.read_to_end(&mut buffer) {
-                            Ok(_) => ClientMessage::FileContents(url, buffer),
-                            Err(_) => ClientMessage::Error(format!(
-                                "Could not read content from '{:?}'",
-                                url
-                            )),
-                        }
+            ServerMessage::Read(file_path) => match File::open(&file_path) {
+                Ok(mut f) => {
+                    let mut buffer = Vec::new();
+                    match f.read_to_end(&mut buffer) {
+                        Ok(_) => ClientMessage::FileContents(file_path, buffer),
+                        Err(_) => ClientMessage::Error(format!(
+                            "Could not read content from '{:?}'",
+                            file_path
+                        )),
                     }
-                    Err(_) => ClientMessage::Error(format!("Could not open file '{:?}'", url)),
-                },
-                Err(_) => ClientMessage::Error(format!("Could not read content from '{:?}'", url)),
+                }
+                Err(_) => ClientMessage::Error(format!("Could not open file '{:?}'", file_path)),
             },
             ServerMessage::GetFileMetaData(path) => match std::fs::metadata(&path) {
                 Ok(md) => ClientMessage::FileMetaDate(
