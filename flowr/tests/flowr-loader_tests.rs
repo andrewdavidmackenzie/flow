@@ -172,18 +172,21 @@ fn load_manifest_from_file() {
     let manifest_file = temp_dir.join("manifest.json");
     let _ = write_manifest(&manifest, &manifest_file).unwrap();
     let manifest_url = Url::from_directory_path(manifest_file).unwrap();
-    let provider = MetaProvider::new(set_lib_search_path());
+    let server_provider = MetaProvider::new(set_lib_search_path());
+    let client_provider = MetaProvider::new(set_lib_search_path());
 
     let mut loader = Loader::new();
     // Load the "native" version of the flowstdlib first
     loader
         .add_lib(
-            &provider,
+            &server_provider,
             flowstdlib::get_manifest().expect("Couldn't get manifest"),
             &Url::parse("lib://flowstdlib").expect("Could not create Url"),
         )
         .unwrap();
-    let _ = loader.load_flow(&provider, &manifest_url).unwrap();
+    let _ = loader
+        .load_flow(&server_provider, &client_provider, &manifest_url)
+        .unwrap();
 
     assert!(!loader.get_lib_implementations().is_empty());
 }

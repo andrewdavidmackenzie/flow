@@ -42,7 +42,7 @@ pub struct MetaProvider {
 /// use url::Url;
 /// use flowcore::lib_provider::{Provider, MetaProvider};
 /// let lib_search_path = Simpath::new_with_separator("FLOW_LIB_PATH", ',');
-/// let meta_provider = &MetaProvider::new(lib_search_path) as &dyn Provider;
+/// let meta_provider = &mut MetaProvider::new(lib_search_path) as &dyn Provider;
 /// let url = Url::parse("file://directory").unwrap();
 /// match meta_provider.resolve_url(&url, "default", &["toml"]) {
 ///     Ok((resolved_url, lib_ref)) => {

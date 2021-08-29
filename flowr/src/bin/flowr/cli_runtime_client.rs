@@ -9,7 +9,7 @@ use log::{debug, error, info};
 
 use flowrlib::client_server::ClientConnection;
 use flowrlib::errors::*;
-use flowrlib::runtime_messages::{ClientMessage, ServerMessage};
+use flowrlib::runtime_messages::{ClientMessage, FileMetaData, ServerMessage};
 
 #[derive(Debug, Clone)]
 pub struct CliRuntimeClient {
@@ -162,6 +162,18 @@ impl CliRuntimeClient {
                     Err(_) => ClientMessage::Error(format!("Could not open file '{:?}'", url)),
                 },
                 Err(_) => ClientMessage::Error(format!("Could not read content from '{:?}'", url)),
+            },
+            ServerMessage::GetFileMetaData(path) => match std::fs::metadata(&path) {
+                Ok(md) => ClientMessage::FileMetaDate(
+                    path,
+                    FileMetaData {
+                        is_file: md.is_file(),
+                        is_dir: md.is_dir(),
+                    },
+                ),
+                Err(_) => {
+                    ClientMessage::Error(format!("Could not read file metadata from '{:?}'", path))
+                }
             },
             ServerMessage::Write(filename, bytes) => match File::create(&filename) {
                 Ok(mut file) => match file.write_all(bytes.as_slice()) {

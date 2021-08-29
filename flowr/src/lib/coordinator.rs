@@ -10,6 +10,7 @@ use url::Url;
 
 use flowcore::lib_provider::{MetaProvider, Provider};
 
+use crate::client_provider::ClientProvider;
 use crate::client_server::ServerConnection;
 #[cfg(feature = "debugger")]
 use crate::debug_messages::{DebugClientMessage, DebugServerMessage};
@@ -190,16 +191,17 @@ impl Coordinator {
     */
     fn submission_loop(&mut self, lib_search_path: Simpath, native: bool) -> Result<()> {
         let mut loader = Loader::new();
-        let provider = MetaProvider::new(lib_search_path);
+        let server_provider = MetaProvider::new(lib_search_path);
+        let client_provider = ClientProvider::new(self.runtime_server_connection.clone());
         Self::load_native_libs(
             &mut loader,
-            &provider,
+            &server_provider,
             self.runtime_server_connection.clone(),
             native,
         )?;
 
         while let Some(submission) = self.wait_for_submission()? {
-            match loader.load_flow(&provider, &submission.manifest_url) {
+            match loader.load_flow(&server_provider, &client_provider, &submission.manifest_url) {
                 Ok(mut manifest) => {
                     let state = RunState::new(manifest.get_functions(), submission);
                     if self.execute_flow(state)? {

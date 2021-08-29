@@ -59,18 +59,21 @@ impl Loader {
     /// Thus, all library implementations found will be Native.
     pub fn load_flow(
         &mut self,
-        provider: &dyn Provider,
+        server_provider: &dyn Provider,
+        client_provider: &dyn Provider,
         flow_manifest_url: &Url,
     ) -> Result<FlowManifest> {
         debug!("Loading flow manifest from '{}'", flow_manifest_url);
-        let (mut flow_manifest, resolved_url) = FlowManifest::load(provider, flow_manifest_url)
-            .chain_err(|| format!("Error while loading manifest from: '{}'", flow_manifest_url))?;
+        let (mut flow_manifest, resolved_url) =
+            FlowManifest::load(server_provider, flow_manifest_url).chain_err(|| {
+                format!("Error while loading manifest from: '{}'", flow_manifest_url)
+            })?;
 
-        self.load_library_implementations(provider, &flow_manifest)
+        self.load_library_implementations(server_provider, &flow_manifest)
             .chain_err(|| "Could not load library implementations for fow")?;
 
         // Find the implementations for all functions in this flow
-        self.resolve_implementations(&mut flow_manifest, &resolved_url, provider)
+        self.resolve_implementations(&mut flow_manifest, &resolved_url, client_provider)
             .chain_err(|| "Could not resolve implementations required for flow execution")?;
 
         Ok(flow_manifest)
