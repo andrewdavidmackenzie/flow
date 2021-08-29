@@ -212,7 +212,6 @@ mod test {
     use std::io::prelude::*;
 
     use tempdir::TempDir;
-    use url::Url;
 
     #[cfg(feature = "metrics")]
     use flowrlib::metrics::Metrics;
@@ -255,11 +254,10 @@ mod test {
             #[cfg(feature = "metrics")]
             false,
         );
-        let file_url = Url::from_file_path(file_path).expect("Could not create file path to Url");
 
-        match client.process_server_message(ServerMessage::Read(file_url.clone())) {
-            ClientMessage::FileContents(url_read, contents) => {
-                assert_eq!(url_read, file_url);
+        match client.process_server_message(ServerMessage::Read(file_path.clone())) {
+            ClientMessage::FileContents(path_read, contents) => {
+                assert_eq!(path_read, file_path);
                 assert_eq!(contents, test_contents)
             }
             _ => panic!("Didn't get Write response as expected"),
