@@ -225,8 +225,7 @@ impl Coordinator {
             .lock()
             .map_err(|e| format!("Could not lock Server Connection: {}", e))?;
 
-        connection.send(ServerMessage::ServerExiting)?;
-        connection.close()
+        connection.send(ServerMessage::ServerExiting)
     }
 
     // Loop waiting for one of the following two messages from the client:

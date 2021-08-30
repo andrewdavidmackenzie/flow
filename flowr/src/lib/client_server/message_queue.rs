@@ -219,11 +219,4 @@ where
 
         Ok(())
     }
-
-    /// Close the Server side of the Runtime client/server Connection
-    pub fn close(&mut self) -> Result<()> {
-        self.responder
-            .disconnect("")
-            .chain_err(|| "Server error trying to disconnect responder")
-    }
 }
