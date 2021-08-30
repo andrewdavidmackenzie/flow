@@ -17,22 +17,27 @@ impl Handler for Collector {
 }
 
 impl Provider for HttpProvider {
-    fn resolve_url(&self, url: &Url, default_filename: &str, extensions: &[&str]) -> Result<Url> {
+    fn resolve_url(
+        &self,
+        url: &Url,
+        default_filename: &str,
+        extensions: &[&str],
+    ) -> Result<(Url, Option<String>)> {
         // Try the url directly first
         if Self::resource_exists(url).is_ok() {
-            return Ok(url.clone());
+            return Ok((url.clone(), None));
         }
 
         // Try the url with possible extensions next
         if let Ok(found) = Self::resource_by_extensions(url, extensions) {
-            return Ok(found);
+            return Ok((found, None));
         }
 
         // Attempting to find default file under this path, with any of the valid extensions
         let default_filename_url = Url::parse(&format!("{}/{}", url.to_string(), default_filename))
             .chain_err(|| "Could not append default_filename to url")?;
         if let Ok(found) = Self::resource_by_extensions(&default_filename_url, extensions) {
-            return Ok(found);
+            return Ok((found, None));
         }
 
         // Attempt to find file with same name as final segment under that path, with any extension
@@ -43,7 +48,7 @@ impl Provider for HttpProvider {
         let filename_url = Url::parse(&format!("{}/{}", url.to_string(), file_name))
             .chain_err(|| "Could not append filename after directory in Url")?;
         if let Ok(found) = Self::resource_by_extensions(&filename_url, extensions) {
-            return Ok(found);
+            return Ok((found, None));
         }
 
         bail!("Could not resolve the Url: '{}'", url)

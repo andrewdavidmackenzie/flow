@@ -50,3 +50,6 @@ pub mod errors;
 /// 'metrics' defines a struct for tracking metrics gathered during flow execution
 #[cfg(feature = "metrics")]
 pub mod metrics;
+
+/// `client_provider` is a special content provider that makes requests to the client to fetch files
+mod client_provider;

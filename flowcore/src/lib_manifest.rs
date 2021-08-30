@@ -8,7 +8,7 @@ use url::Url;
 use crate::deserializers::deserializer::get_deserializer;
 use crate::errors::*;
 use crate::flow_manifest::MetaData;
-use crate::lib_provider::LibProvider;
+use crate::lib_provider::Provider;
 use crate::Implementation;
 
 /// The default name used for a Library  Manifest file if none is specified
@@ -70,10 +70,7 @@ impl LibraryManifest {
     }
 
     /// `load` a `LibraryManifest` from the `source` url, using the `provider` to fetch contents
-    pub fn load(
-        provider: &dyn LibProvider,
-        lib_manifest_url: &Url,
-    ) -> Result<(LibraryManifest, Url)> {
+    pub fn load(provider: &dyn Provider, lib_manifest_url: &Url) -> Result<(LibraryManifest, Url)> {
         let (resolved_url, _) = provider
             .resolve_url(
                 lib_manifest_url,
@@ -173,7 +170,7 @@ mod test {
     use crate::lib_manifest::{
         ImplementationLocator, ImplementationLocator::Wasm, LibraryManifest,
     };
-    use crate::lib_provider::LibProvider;
+    use crate::lib_provider::Provider;
     use crate::Implementation;
 
     pub struct TestProvider {
@@ -198,7 +195,7 @@ mod test {
         }
     }
 
-    impl LibProvider for TestProvider {
+    impl Provider for TestProvider {
         fn resolve_url(
             &self,
             source: &Url,
@@ -296,7 +293,7 @@ mod test {
   },
   \"source_urls\": []
 }";
-        let provider = &TestProvider { test_content } as &dyn LibProvider;
+        let provider = &TestProvider { test_content } as &dyn Provider;
         let url = Url::parse("file:://test/fake.json").expect("Could not create Url");
         let (lib_manifest, _lib_manifest_url) =
             LibraryManifest::load(provider, &url).expect("Could not load manifest");

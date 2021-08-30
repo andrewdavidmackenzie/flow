@@ -13,21 +13,6 @@ pub trait Provider {
     /// using some provider specific logic. This may involve looking for default files in a
     /// directory (a file provider) or a server path (an http provider), or it may involve
     /// translating a library URL into a real on where content can be found.
-    fn resolve_url(&self, url: &Url, default_file: &str, extensions: &[&str]) -> Result<Url>;
-
-    /// Fetches content from a URL. It resolves the URL internally before attempting to
-    /// fetch actual content
-    fn get_contents(&self, url: &Url) -> Result<Vec<u8>>;
-}
-
-/// A content provider is responsible with interfacing with the environment and doing IO
-/// or what is required to supply content related with flows - isolating other libraries
-/// from the File SSystem or IO. It must implement the `Provider` trait
-pub trait LibProvider {
-    /// Take a URL and uses it to determine a url where actual content can be read from
-    /// using some provider specific logic. This may involve looking for default files in a
-    /// directory (a file provider) or a server path (an http provider), or it may involve
-    /// translating a library URL into a real on where content can be found.
     fn resolve_url(
         &self,
         url: &Url,
@@ -55,9 +40,9 @@ pub struct MetaProvider {
 /// ```
 /// use simpath::Simpath;
 /// use url::Url;
-/// use flowcore::lib_provider::{LibProvider, MetaProvider};
+/// use flowcore::lib_provider::{Provider, MetaProvider};
 /// let lib_search_path = Simpath::new_with_separator("FLOW_LIB_PATH", ',');
-/// let meta_provider = &MetaProvider::new(lib_search_path) as &dyn LibProvider;
+/// let meta_provider = &mut MetaProvider::new(lib_search_path) as &dyn Provider;
 /// let url = Url::parse("file://directory").unwrap();
 /// match meta_provider.resolve_url(&url, "default", &["toml"]) {
 ///     Ok((resolved_url, lib_ref)) => {
@@ -131,7 +116,7 @@ impl MetaProvider {
     }
 }
 
-impl LibProvider for MetaProvider {
+impl Provider for MetaProvider {
     /// Takes a Url with a scheme of "http", "https", "file", or "lib" and determine where the content
     /// should be loaded from.
     ///
@@ -153,7 +138,7 @@ impl LibProvider for MetaProvider {
         };
 
         let provider = self.get_provider(content_url.scheme())?;
-        let resolved_url = provider.resolve_url(&content_url, default_filename, extensions)?;
+        let (resolved_url, _) = provider.resolve_url(&content_url, default_filename, extensions)?;
 
         Ok((resolved_url, lib_reference))
     }
@@ -175,7 +160,7 @@ mod test {
     use simpath::Simpath;
     use url::Url;
 
-    use super::{LibProvider, MetaProvider};
+    use super::{MetaProvider, Provider};
 
     #[test]
     fn get_invalid_provider() {
@@ -233,7 +218,7 @@ mod test {
             root_str.display().to_string()
         ))
         .expect("Could not create expected url");
-        let provider = &MetaProvider::new(set_lib_search_path()) as &dyn LibProvider;
+        let provider = &MetaProvider::new(set_lib_search_path()) as &dyn Provider;
         let lib_url = Url::parse("lib://flowstdlib/control/tap").expect("Couldn't form Url");
         match provider.resolve_url(&lib_url, "", &["toml"]) {
             Ok((url, lib_ref)) => {

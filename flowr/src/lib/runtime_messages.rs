@@ -1,4 +1,5 @@
 use std::fmt;
+use std::path::PathBuf;
 
 use serde_derive::{Deserialize, Serialize};
 #[cfg(feature = "distributed")]
@@ -31,7 +32,9 @@ pub enum ServerMessage {
     /// A Request to get the arguments for the flow
     GetArgs,
     /// A Request to read bytes from a file
-    Read(String),
+    Read(PathBuf),
+    /// Request File Metadata on a file on the client
+    GetFileMetaData(PathBuf),
     /// A Request to write a series of bytes to a file
     Write(String, Vec<u8>),
     /// A Request to write a pixel to an ImageBuffer
@@ -62,6 +65,7 @@ impl fmt::Display for ServerMessage {
                 ServerMessage::GetLine => "GetLine",
                 ServerMessage::GetArgs => "GetArgs",
                 ServerMessage::Read(_) => "Read",
+                ServerMessage::GetFileMetaData(_) => "GetFileMetaData",
                 ServerMessage::Write(_, _) => "Write",
                 ServerMessage::PixelWrite(_, _, _, _) => "PixelWrite",
                 ServerMessage::StdoutEof => "StdOutEof",
@@ -75,6 +79,16 @@ impl fmt::Display for ServerMessage {
 unsafe impl Send for ServerMessage {}
 
 unsafe impl Sync for ServerMessage {}
+
+/// A simple struct with File MetaData for passing from Client to Server - std::fs::MetaData
+/// Doesn't Serialize/Deserialize etc.
+#[derive(Serialize, Deserialize, PartialEq, Debug)]
+pub struct FileMetaData {
+    /// Was the Path inspected a file or not
+    pub is_file: bool,
+    /// Was the Path inspected a directory or not
+    pub is_dir: bool,
+}
 
 /// A Message from the a runtime_client to the runtime server
 #[derive(Serialize, Deserialize, PartialEq, Debug)]
@@ -102,7 +116,9 @@ pub enum ClientMessage {
     /// Invalid - used when deserialization goes wrong
     Invalid,
     /// Contents read from a file
-    FileContents(Vec<u8>),
+    FileContents(PathBuf, Vec<u8>),
+    /// MetaData for a file on the client
+    FileMetaDate(PathBuf, FileMetaData),
 }
 
 impl fmt::Display for ClientMessage {
@@ -122,7 +138,8 @@ impl fmt::Display for ClientMessage {
                 ClientMessage::ClientSubmission(_) => "ClientSubmission",
                 ClientMessage::EnterDebugger => "EnterDebugger",
                 ClientMessage::Invalid => "Invalid",
-                ClientMessage::FileContents(_) => "FileContents",
+                ClientMessage::FileContents(_, _) => "FileContents",
+                ClientMessage::FileMetaDate(_, _) => "FileMetaDate",
             }
         )
     }

@@ -8,9 +8,9 @@ use serde_derive::{Deserialize, Serialize};
 use simpath::Simpath;
 use url::Url;
 
-use flowcore::flow_manifest::FlowManifest;
-use flowcore::lib_provider::{LibProvider, MetaProvider};
+use flowcore::lib_provider::{MetaProvider, Provider};
 
+use crate::client_provider::ClientProvider;
 use crate::client_server::ServerConnection;
 #[cfg(feature = "debugger")]
 use crate::debug_messages::{DebugClientMessage, DebugServerMessage};
@@ -112,7 +112,6 @@ impl Submission {
 /// Coordinator::start(1 /* num_threads */,
 ///                     Simpath::new("fake path"),
 ///                     true,  /* native */
-///                     Mode::ClientAndServer,
 ///                     None, /* chose first free port for runtime */
 ///                     #[cfg(feature = "debugger")] None, /* chose first free port for debug */
 ///                     )
@@ -165,16 +164,12 @@ impl Coordinator {
         }
     }
 
-    /// Start the `Coordinator` either in the main thread if this process is in
-    /// `ServerOnly` mode, or as a background thread if this process is acting as a server and
-    /// client
-    #[allow(clippy::type_complexity)]
-    #[allow(clippy::too_many_arguments)]
+    /// Create a new `Coordinator` and then enter it's `submission_loop()` accepting and executing
+    /// flows submitted for execution.
     pub fn start(
         num_threads: usize,
         lib_search_path: Simpath,
         native: bool,
-        mode: Mode,
         runtime_port: Option<u16>,
         #[cfg(feature = "debugger")] debug_port: Option<u16>,
     ) -> Result<()> {
@@ -185,19 +180,7 @@ impl Coordinator {
             num_threads,
         );
 
-        if mode == Mode::ServerOnly {
-            info!("Starting 'flowr' server process in main thread");
-            coordinator.submission_loop(lib_search_path, native, mode)?;
-            info!("'flowr' server process has exited");
-        } else {
-            std::thread::spawn(move || {
-                info!("Starting 'flowr' server in background thread");
-                let _ = coordinator.submission_loop(lib_search_path, native, mode);
-                info!("'flowr' server thread has exited");
-            });
-        }
-
-        Ok(())
+        coordinator.submission_loop(lib_search_path, native)
     }
 
     /*
@@ -206,47 +189,34 @@ impl Coordinator {
        It will loop receiving and processing submissions until it gets a `ClientExiting` response,
        then it will also exit
     */
-    fn submission_loop(
-        &mut self,
-        lib_search_path: Simpath,
-        native: bool,
-        mode: Mode,
-    ) -> Result<()> {
+    fn submission_loop(&mut self, lib_search_path: Simpath, native: bool) -> Result<()> {
         let mut loader = Loader::new();
-        let provider = MetaProvider::new(lib_search_path);
+        let server_provider = MetaProvider::new(lib_search_path);
+        let client_provider = ClientProvider::new(self.runtime_server_connection.clone());
+        Self::load_native_libs(
+            &mut loader,
+            &server_provider,
+            self.runtime_server_connection.clone(),
+            native,
+        )?;
 
         while let Some(submission) = self.wait_for_submission()? {
-            match Self::load_from_manifest(
-                &submission.manifest_url,
-                &mut loader,
-                &provider,
-                self.runtime_server_connection.clone(),
-                native,
-            ) {
+            match loader.load_flow(&server_provider, &client_provider, &submission.manifest_url) {
                 Ok(mut manifest) => {
                     let state = RunState::new(manifest.get_functions(), submission);
                     if self.execute_flow(state)? {
                         break;
                     }
                 }
-                Err(e) if mode == Mode::ServerOnly => {
-                    error!(
-                        "Error in server process submission loop, waiting for new submissions. {}",
-                        e
-                    )
-                }
-                Err(e) => {
-                    error!("{}", e);
-                    error!("Error in server thread, exiting.");
-                    break;
-                }
+                Err(e) => error!(
+                    "Could not load the flow from manifest url: '{}'\n    {}",
+                    submission.manifest_url, e
+                ),
             }
         }
 
         debug!("Server has exited submission loop and will close connection");
-        self.close_connection()?;
-
-        Ok(())
+        self.close_connection()
     }
 
     fn close_connection(&mut self) -> Result<()> {
@@ -259,10 +229,9 @@ impl Coordinator {
         connection.close()
     }
 
-    // Loop waiting for a message from the client.
-    // If the message is a `ClientSubmission` with a submission, then return Some(submission)
-    // If the message is `ClientExiting` then return None
-    // If the message is any other then loop until we find one of the above
+    // Loop waiting for one of the following two messages from the client:
+    //  - `ClientSubmission` with a submission, then return Ok(Some(submission))
+    //  - `ClientExiting` then return Ok(None)
     fn wait_for_submission(&mut self) -> Result<Option<Submission>> {
         loop {
             info!("'flowr' server is waiting to receive a 'Submission'");
@@ -287,6 +256,7 @@ impl Coordinator {
         }
     }
 
+    //noinspection RsReassignImmutable
     //noinspection RsTypeCheck
     // Execute a flow by looping while there are jobs to be processed in an inner loop.
     // There is an outer loop for the case when you are using the debugger, to allow entering
@@ -473,13 +443,12 @@ impl Coordinator {
         }
     }
 
-    fn load_from_manifest(
-        manifest_url: &Url,
+    fn load_native_libs(
         loader: &mut Loader,
-        provider: &dyn LibProvider,
+        provider: &dyn Provider,
         server_connection: Arc<Mutex<ServerConnection<ServerMessage, ClientMessage>>>,
         native: bool,
-    ) -> Result<FlowManifest> {
+    ) -> Result<()> {
         let flowruntimelib_url =
             Url::parse("lib://flowruntime").chain_err(|| "Could not parse flowruntime lib url")?;
 
@@ -506,17 +475,7 @@ impl Coordinator {
                 .chain_err(|| "Could not add 'flowstdlib' library to loader")?;
         }
 
-        // Load the flow to run from the manifest
-        let manifest = loader
-            .load_flow_manifest(provider, manifest_url)
-            .chain_err(|| {
-                format!(
-                    "Could not load the flow from manifest url: '{}'",
-                    manifest_url
-                )
-            })?;
-
-        Ok(manifest)
+        Ok(())
     }
 
     // Send as many jobs as possible for parallel execution.

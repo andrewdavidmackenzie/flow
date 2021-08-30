@@ -10,7 +10,7 @@ use wasmi::{
     RuntimeValue, Signature, ValueType,
 };
 
-use flowcore::lib_provider::LibProvider;
+use flowcore::lib_provider::Provider;
 use flowcore::{Implementation, RunAgain};
 
 use crate::errors::*;
@@ -129,7 +129,7 @@ impl Implementation for WasmExecutor {
 }
 
 /// load a Wasm module from the specified Url.
-pub fn load(provider: &dyn LibProvider, source_url: &Url) -> Result<WasmExecutor> {
+pub fn load(provider: &dyn Provider, source_url: &Url) -> Result<WasmExecutor> {
     let (resolved_url, _) = provider
         .resolve_url(source_url, DEFAULT_WASM_FILENAME, &["wasm"])
         .chain_err(|| "Could not resolve url for manifest while attempting to load manifest")?;

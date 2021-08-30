@@ -8,10 +8,8 @@ use image::{ImageBuffer, ImageFormat, Rgb, RgbImage};
 use log::{debug, error, info};
 
 use flowrlib::client_server::ClientConnection;
-use flowrlib::coordinator::Submission;
 use flowrlib::errors::*;
-use flowrlib::runtime_messages::ClientMessage::ClientSubmission;
-use flowrlib::runtime_messages::{ClientMessage, ServerMessage};
+use flowrlib::runtime_messages::{ClientMessage, FileMetaData, ServerMessage};
 
 #[derive(Debug, Clone)]
 pub struct CliRuntimeClient {
@@ -39,15 +37,11 @@ impl CliRuntimeClient {
             ClientConnection<'static, ServerMessage, ClientMessage>,
         >,
         connection: ClientConnection<ServerMessage, ClientMessage>,
-        submission: Submission,
     ) -> Result<()> {
         #[cfg(feature = "debugger")]
         if let Some(control_c) = control_c_connection {
             Self::enter_debugger_on_control_c(control_c);
         }
-
-        debug!("Client sending submission to server");
-        connection.send(ClientSubmission(submission))?;
 
         loop {
             match connection.receive() {
@@ -86,13 +80,18 @@ impl CliRuntimeClient {
         .expect("Error setting Ctrl-C handler");
     }
 
+    fn flush_image_buffers(&mut self) {
+        for (filename, image_buffer) in self.image_buffers.drain() {
+            info!("Flushing ImageBuffer to file: {}", filename);
+            if let Err(e) = image_buffer.save_with_format(Path::new(&filename), ImageFormat::Png) {
+                error!("Error saving ImageBuffer '{}': '{}'", filename, e);
+            }
+        }
+    }
+
     #[allow(clippy::many_single_char_names)]
     pub fn process_server_message(&mut self, message: ServerMessage) -> ClientMessage {
         match message {
-            ServerMessage::FlowStart => {
-                debug!("===========================    Starting flow execution =============================");
-                ClientMessage::Ack
-            }
             #[cfg(feature = "metrics")]
             ServerMessage::FlowEnd(metrics) => {
                 debug!("=========================== Flow execution ended ======================================");
@@ -100,31 +99,22 @@ impl CliRuntimeClient {
                     println!("\nMetrics: \n {}", metrics);
                 }
 
-                for (filename, image_buffer) in self.image_buffers.drain() {
-                    info!("Flushing ImageBuffer to file: {}", filename);
-                    if let Err(e) =
-                        image_buffer.save_with_format(Path::new(&filename), ImageFormat::Png)
-                    {
-                        error!("Error saving ImageBuffer '{}': '{}'", filename, e);
-                    }
-                }
+                self.flush_image_buffers();
                 ClientMessage::ClientExiting
             }
-            ServerMessage::ServerExiting => {
-                debug!("Server is exiting");
-                ClientMessage::ClientExiting
-            }
+
             #[cfg(not(feature = "metrics"))]
             ServerMessage::FlowEnd => {
                 debug!("=========================== Flow execution ended ======================================");
-                for (filename, image_buffer) in self.image_buffers.drain() {
-                    info!("Flushing ImageBuffer to file: {}", filename);
-                    if let Err(e) =
-                        image_buffer.save_with_format(Path::new(&filename), ImageFormat::Png)
-                    {
-                        error!("Error saving ImageBuffer '{}': '{}'", filename, e);
-                    }
-                }
+                self.flush_image_buffers();
+                ClientMessage::ClientExiting
+            }
+            ServerMessage::FlowStart => {
+                debug!("===========================    Starting flow execution =============================");
+                ClientMessage::Ack
+            }
+            ServerMessage::ServerExiting => {
+                debug!("Server is exiting");
                 ClientMessage::ClientExiting
             }
             ServerMessage::StdoutEof => ClientMessage::Ack,
@@ -157,18 +147,30 @@ impl CliRuntimeClient {
                     _ => ClientMessage::Error("Could not read Readline".into()),
                 }
             }
-            ServerMessage::Read(filename) => match File::open(&filename) {
+            ServerMessage::Read(file_path) => match File::open(&file_path) {
                 Ok(mut f) => {
                     let mut buffer = Vec::new();
                     match f.read_to_end(&mut buffer) {
-                        Ok(_) => ClientMessage::FileContents(buffer),
+                        Ok(_) => ClientMessage::FileContents(file_path, buffer),
                         Err(_) => ClientMessage::Error(format!(
                             "Could not read content from '{:?}'",
-                            filename
+                            file_path
                         )),
                     }
                 }
-                Err(_) => ClientMessage::Error(format!("Could not open file '{:?}'", filename)),
+                Err(_) => ClientMessage::Error(format!("Could not open file '{:?}'", file_path)),
+            },
+            ServerMessage::GetFileMetaData(path) => match std::fs::metadata(&path) {
+                Ok(md) => ClientMessage::FileMetaDate(
+                    path,
+                    FileMetaData {
+                        is_file: md.is_file(),
+                        is_dir: md.is_dir(),
+                    },
+                ),
+                Err(_) => {
+                    ClientMessage::Error(format!("Could not read file metadata from '{:?}'", path))
+                }
             },
             ServerMessage::Write(filename, bytes) => match File::create(&filename) {
                 Ok(mut file) => match file.write_all(bytes.as_slice()) {
@@ -236,7 +238,7 @@ mod test {
 
     #[test]
     fn test_file_reading() {
-        let test_contents = "The quick brown fox jumped over the lazy dog";
+        let test_contents = b"The quick brown fox jumped over the lazy dog";
 
         let temp = tempdir::TempDir::new("flow")
             .expect("Couldn't get TempDir")
@@ -244,7 +246,7 @@ mod test {
         let file_path = temp.join("test_read");
         {
             let mut file = File::create(&file_path).expect("Could not create test file");
-            file.write_all(test_contents.as_bytes())
+            file.write_all(test_contents)
                 .expect("Could not write to test file");
         }
         let mut client = CliRuntimeClient::new(
@@ -253,13 +255,11 @@ mod test {
             false,
         );
 
-        match client.process_server_message(ServerMessage::Read(
-            file_path
-                .to_str()
-                .expect("Couldn't get filename")
-                .to_string(),
-        )) {
-            ClientMessage::FileContents(contents) => assert_eq!(contents, test_contents.as_bytes()),
+        match client.process_server_message(ServerMessage::Read(file_path.clone())) {
+            ClientMessage::FileContents(path_read, contents) => {
+                assert_eq!(path_read, file_path);
+                assert_eq!(contents, test_contents)
+            }
             _ => panic!("Didn't get Write response as expected"),
         }
     }
@@ -336,10 +336,11 @@ mod test {
         if client.process_server_message(pixel) != ClientMessage::Ack {
             panic!("Didn't get pixel write response as expected")
         }
-        #[cfg(feature = "metrics")]
-        client.process_server_message(ServerMessage::FlowEnd(Metrics::new(1)));
+
         #[cfg(not(feature = "metrics"))]
         client.process_server_message(ServerMessage::FlowEnd);
+        #[cfg(feature = "metrics")]
+        client.process_server_message(ServerMessage::FlowEnd(Metrics::new(1)));
 
         assert!(path.exists(), "Image file was not created");
     }

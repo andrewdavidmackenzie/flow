@@ -8,7 +8,7 @@ use url::Url;
 use flowcore::deserializers::deserializer::get_deserializer;
 use flowcore::flow_manifest::{Cargo, MetaData};
 use flowcore::input::InputInitializer;
-use flowcore::lib_provider::LibProvider;
+use flowcore::lib_provider::Provider;
 
 use crate::errors::*;
 use crate::model::flow::Flow;
@@ -36,7 +36,7 @@ pub trait Validate {
 ///
 /// # Example
 /// ```
-/// use flowcore::lib_provider::LibProvider;
+/// use flowcore::lib_provider::Provider;
 /// use flowcore::errors::Result;
 /// use std::env;
 /// use url::Url;
@@ -48,7 +48,7 @@ pub trait Validate {
 ///
 /// // A Provider must implement the `Provider` trait, with the methods to `resolve` a URL and to
 /// // `get` the contents for parsing.
-/// impl LibProvider for DummyProvider {
+/// impl Provider for DummyProvider {
 ///     fn resolve_url(&self, url: &Url, default_filename: &str, _ext: &[&str]) -> Result<(Url, Option<String>)> {
 ///        // Just fake the url resolution in this example
 ///        Ok((url.clone(), None))
@@ -71,7 +71,7 @@ pub trait Validate {
 /// ```
 pub fn load(
     url: &Url,
-    provider: &dyn LibProvider,
+    provider: &dyn Provider,
     #[cfg(feature = "debugger")] source_urls: &mut HashSet<(Url, Url)>,
 ) -> Result<Process> {
     trace!("load()");
@@ -95,7 +95,7 @@ fn load_process(
     parent_flow_id: usize,
     flow_count: &mut usize,
     url: &Url,
-    provider: &dyn LibProvider,
+    provider: &dyn Provider,
     initializations: &HashMap<String, InputInitializer>,
     #[cfg(feature = "debugger")] source_urls: &mut HashSet<(Url, Url)>,
 ) -> Result<Process> {
@@ -169,7 +169,7 @@ fn load_process(
 /// load library metadata from the given url using the provider.
 /// Currently it uses the `package` table of Cargo.toml as a source but it could
 /// easily use another file as along as it has the required fields to satisfy `MetaData` struct
-pub fn load_metadata(url: &Url, provider: &dyn LibProvider) -> Result<MetaData> {
+pub fn load_metadata(url: &Url, provider: &dyn Provider) -> Result<MetaData> {
     trace!("Loading Metadata");
     let (resolved_url, _) = provider
         .resolve_url(url, "Cargo", &["toml"])
@@ -213,7 +213,7 @@ fn config_flow(
 fn load_process_refs(
     flow: &mut Flow,
     flow_count: &mut usize,
-    provider: &dyn LibProvider,
+    provider: &dyn Provider,
     #[cfg(feature = "debugger")] source_urls: &mut HashSet<(Url, Url)>,
 ) -> Result<()> {
     for process_ref in &mut flow.process_refs {

@@ -6,7 +6,7 @@ use glob::{glob_with, MatchOptions};
 use log::info;
 use simpath::{FileType, FoundType, Simpath};
 
-use flowcore::lib_provider::LibProvider;
+use flowcore::lib_provider::Provider;
 
 use crate::dumper::dump_dot;
 use crate::errors::*;
@@ -22,7 +22,7 @@ use super::dump_tables;
 /// ```
 /// use std::env;
 /// use url::Url;
-/// use flowcore::lib_provider::{LibProvider, MetaProvider};
+/// use flowcore::lib_provider::{Provider, MetaProvider};
 /// use flowcore::errors::Result;
 /// use flowclib::model::process::Process::FlowProcess;
 /// use tempdir::TempDir;
@@ -50,7 +50,7 @@ use super::dump_tables;
 pub fn dump_flow(
     flow: &Flow,
     output_dir: &Path,
-    provider: &dyn LibProvider,
+    provider: &dyn Provider,
     dump_files: bool,
     dot_files: bool,
 ) -> Result<()> {
@@ -105,7 +105,7 @@ fn _dump_flow(
     flow: &Flow,
     level: usize,
     output_dir: &Path,
-    provider: &dyn LibProvider,
+    provider: &dyn Provider,
     dump_files: bool,
     dot_files: bool,
 ) -> Result<()> {

@@ -8,7 +8,7 @@ use flowcore::flow_manifest::FlowManifest;
 use flowcore::lib_manifest::{
     ImplementationLocator::Native, ImplementationLocator::Wasm, LibraryManifest,
 };
-use flowcore::lib_provider::LibProvider;
+use flowcore::lib_provider::Provider;
 use flowcore::Implementation;
 
 use crate::errors::*;
@@ -42,7 +42,7 @@ impl Loader {
         &self.loaded_lib_implementations
     }
 
-    /// Load all the processes defined in a manifest, and then find all the
+    /// Load all the functions defined in a manifest, and then find all the
     /// implementations required for function execution later.
     ///
     /// A flow is dynamically loaded, so none of the implementations it brings can be static,
@@ -57,20 +57,23 @@ impl Loader {
     /// loaded previously. They maybe Native or Wasm implementations, but the Wasm ones will
     /// have been wrapped in a Native "WasmExecutor" implementation to make it appear native.
     /// Thus, all library implementations found will be Native.
-    pub fn load_flow_manifest(
+    pub fn load_flow(
         &mut self,
-        provider: &dyn LibProvider,
+        server_provider: &dyn Provider,
+        client_provider: &dyn Provider,
         flow_manifest_url: &Url,
     ) -> Result<FlowManifest> {
         debug!("Loading flow manifest from '{}'", flow_manifest_url);
-        let (mut flow_manifest, resolved_url) = FlowManifest::load(provider, flow_manifest_url)
-            .chain_err(|| format!("Error while loading manifest from: '{}'", flow_manifest_url))?;
+        let (mut flow_manifest, resolved_url) =
+            FlowManifest::load(server_provider, flow_manifest_url).chain_err(|| {
+                format!("Error while loading manifest from: '{}'", flow_manifest_url)
+            })?;
 
-        self.load_library_implementations(provider, &flow_manifest)
+        self.load_library_implementations(server_provider, &flow_manifest)
             .chain_err(|| "Could not load library implementations for fow")?;
 
         // Find the implementations for all functions in this flow
-        self.resolve_implementations(&mut flow_manifest, &resolved_url, provider)
+        self.resolve_implementations(&mut flow_manifest, &resolved_url, client_provider)
             .chain_err(|| "Could not resolve implementations required for flow execution")?;
 
         Ok(flow_manifest)
@@ -79,7 +82,7 @@ impl Loader {
     /// Load the library manifest if not already loaded
     fn load_manifest_if_needed(
         &mut self,
-        provider: &dyn LibProvider,
+        provider: &dyn Provider,
         lib_root_url: &Url,
     ) -> Result<()> {
         if self.loaded_libraries_manifests.get(lib_root_url).is_none() {
@@ -96,7 +99,7 @@ impl Loader {
 
     fn get_manifest_tuple(
         &mut self,
-        provider: &dyn LibProvider,
+        provider: &dyn Provider,
         lib_root_url: &Url,
     ) -> Result<(LibraryManifest, Url)> {
         self.load_manifest_if_needed(provider, lib_root_url)?;
@@ -117,7 +120,7 @@ impl Loader {
     /// Load libraries implementations referenced in the flow manifest
     fn load_library_implementations(
         &mut self,
-        provider: &dyn LibProvider,
+        provider: &dyn Provider,
         manifest: &FlowManifest,
     ) -> Result<()> {
         for library_implementation_reference in manifest.get_lib_references() {
@@ -143,7 +146,7 @@ impl Loader {
     /// in the library, they can be found.
     pub fn add_lib(
         &mut self,
-        provider: &dyn LibProvider,
+        provider: &dyn Provider,
         lib_manifest: LibraryManifest,
         lib_manifest_url: &Url,
     ) -> Result<()> {
@@ -195,7 +198,7 @@ impl Loader {
     /// Add a library implementation to the table for this run-time, for use in execution
     pub fn add_lib_implementation(
         &mut self,
-        provider: &dyn LibProvider,
+        provider: &dyn Provider,
         implementation_reference: &Url,
         lib_manifest_tuple: &(LibraryManifest, Url),
     ) -> Result<()> {
@@ -243,7 +246,7 @@ impl Loader {
         &mut self,
         flow_manifest: &mut FlowManifest,
         manifest_url: &Url,
-        provider: &dyn LibProvider,
+        provider: &dyn Provider,
     ) -> Result<()> {
         debug!("Resolving implementations");
         // find in a library, or load the supplied implementation - as specified by the source
