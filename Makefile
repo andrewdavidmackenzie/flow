@@ -5,6 +5,12 @@ BREW := $(shell command -v brew 2> /dev/null)
 ONLINE := $(shell ping -c 1 https://raw.githubusercontent.com 2> /dev/null)
 export SHELL := /bin/bash
 
+ifeq ($(ONLINE),true)
+features := --features "online_tests"
+else
+features :=
+endif
+
 .PHONY: all
 all: clippy build test docs trim-docs
 
@@ -62,7 +68,7 @@ clippy: build-flowc compile-flowstdlib
 
 .PHONY: test
 test: build-flowc compile-flowstdlib
-	@cargo test
+	@cargo test $(features)
 
 .PHONY: clean
 clean:
