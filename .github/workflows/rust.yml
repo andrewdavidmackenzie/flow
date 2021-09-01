@@ -80,6 +80,9 @@ jobs:
         echo RUSTFLAGS="-Zinstrument-coverage" >> "$GITHUB_ENV"
         echo LLVM_PROFILE_FILE="flow-%p-%m.profraw" >> "$GITHUB_ENV"
 
+    - name: Build
+      run: cargo build
+
     - name: Run tests
       run: cargo test --features "online_tests"
 
