@@ -125,12 +125,12 @@ mod test {
     #[cfg(feature = "online_tests")]
     fn resolve_web() {
         let provider = HttpProvider {};
-        let folder_url = Url::parse("https://raw.githubusercontent.com/andrewdavidmackenzie/flow/master/samples/hello-world/context.toml")
+        let expected_url = Url::parse("https://raw.githubusercontent.com/andrewdavidmackenzie/flow/master/samples/hello-world/context.toml")
             .expect("Could not form Url");
         let full_url = provider
-            .resolve_url(&folder_url, "context", &[&"toml"])
+            .resolve_url(&expected_url, "context", &["toml"])
             .expect("Could not resolve url");
-        assert_eq!(folder_url.as_str(), full_url.as_str());
+        assert_eq!(expected_url.as_str(), full_url.0.as_str());
     }
 
     #[test]
@@ -142,9 +142,9 @@ mod test {
         let expected_url = Url::parse("https://raw.githubusercontent.com/andrewdavidmackenzie/flow/master/samples/hello-world/context.toml")
             .expect("Could not form Url");
         let full_url = provider
-            .resolve_url(&folder_url, "context", &[&"toml"])
+            .resolve_url(&folder_url, "context", &["toml"])
             .expect("Could not resolve url");
-        assert_eq!(full_url.as_str(), expected_url.as_str());
+        assert_eq!(expected_url.as_str(), full_url.0.as_str());
     }
 
     #[test]
