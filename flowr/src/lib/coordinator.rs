@@ -255,8 +255,6 @@ impl Coordinator {
         }
     }
 
-    //noinspection RsReassignImmutable
-    //noinspection RsTypeCheck
     // Execute a flow by looping while there are jobs to be processed in an inner loop.
     // There is an outer loop for the case when you are using the debugger, to allow entering
     // the debugger when the flow ends and at any point resetting all the state and starting

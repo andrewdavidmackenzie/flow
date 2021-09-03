@@ -10,12 +10,12 @@ use crate::runtime_messages::{ClientMessage, ServerMessage};
 /// `Implementation` struct for the `Stdin` function
 pub struct Stdin {
     /// It holds a reference to the runtime client in order to read input
-    pub server_context: Arc<Mutex<ServerConnection<ServerMessage, ClientMessage>>>,
+    pub server_connection: Arc<Mutex<ServerConnection<ServerMessage, ClientMessage>>>,
 }
 
 impl Implementation for Stdin {
     fn run(&self, _inputs: &[Value]) -> (Option<Value>, RunAgain) {
-        if let Ok(mut server) = self.server_context.lock() {
+        if let Ok(mut server) = self.server_connection.lock() {
             return match server.send_and_receive_response(ServerMessage::GetStdin) {
                 Ok(ClientMessage::Stdin(contents)) => {
                     let mut output_map = serde_json::Map::new();

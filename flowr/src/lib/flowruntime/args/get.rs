@@ -10,12 +10,12 @@ use crate::runtime_messages::{ClientMessage, ServerMessage};
 /// `Implementation` struct for the `get` function
 pub struct Get {
     /// It holds a reference to the runtime client in order to Get the Args
-    pub server_context: Arc<Mutex<ServerConnection<ServerMessage, ClientMessage>>>,
+    pub server_connection: Arc<Mutex<ServerConnection<ServerMessage, ClientMessage>>>,
 }
 
 impl Implementation for Get {
     fn run(&self, mut _inputs: &[Value]) -> (Option<Value>, RunAgain) {
-        if let Ok(mut guard) = self.server_context.lock() {
+        if let Ok(mut guard) = self.server_connection.lock() {
             return match guard.send_and_receive_response(ServerMessage::GetArgs) {
                 Ok(ClientMessage::Args(arg_vec)) => {
                     let mut output_map = serde_json::Map::new();

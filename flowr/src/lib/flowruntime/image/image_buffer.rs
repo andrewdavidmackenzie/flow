@@ -11,7 +11,7 @@ use crate::runtime_messages::{ClientMessage, ServerMessage};
 /// `Implementation` struct for the `image_buffer` function
 pub struct ImageBuffer {
     /// It holds a reference to the runtime client in order to send commands
-    pub server_context: Arc<Mutex<ServerConnection<ServerMessage, ClientMessage>>>,
+    pub server_connection: Arc<Mutex<ServerConnection<ServerMessage, ClientMessage>>>,
 }
 
 impl Implementation for ImageBuffer {
@@ -21,7 +21,7 @@ impl Implementation for ImageBuffer {
             inputs[1].as_array(),
             inputs[2].as_array(),
             &inputs[3],
-            self.server_context.lock(),
+            self.server_connection.lock(),
         ) {
             if let (Some(x), Some(y), Some(r), Some(g), Some(b), Some(w), Some(h)) = (
                 pixel[0].as_u64(),

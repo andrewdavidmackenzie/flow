@@ -23,7 +23,7 @@ pub mod stdio;
 
 /// Return a `LibraryManifest` for the run-time functions
 pub fn get_manifest(
-    server_context: Arc<Mutex<ServerConnection<ServerMessage, ClientMessage>>>,
+    server_connection: Arc<Mutex<ServerConnection<ServerMessage, ClientMessage>>>,
 ) -> Result<LibraryManifest> {
     let metadata = MetaData {
         name: "flowruntime".into(),
@@ -38,45 +38,45 @@ pub fn get_manifest(
             .chain_err(|| "Could not parse url")
             .chain_err(|| "Could not parse url")?,
         Native(Arc::new(args::get::Get {
-            server_context: server_context.clone(),
+            server_connection: server_connection.clone(),
         })),
     );
     manifest.locators.insert(
         Url::parse("lib://flowruntime/file/file_write/file_write")
             .chain_err(|| "Could not parse url")?,
         Native(Arc::new(file::file_write::FileWrite {
-            server_context: server_context.clone(),
+            server_connection: server_connection.clone(),
         })),
     );
     manifest.locators.insert(
         Url::parse("lib://flowruntime/image/image_buffer/image_buffer")
             .chain_err(|| "Could not parse url")?,
         Native(Arc::new(image::image_buffer::ImageBuffer {
-            server_context: server_context.clone(),
+            server_connection: server_connection.clone(),
         })),
     );
     manifest.locators.insert(
         Url::parse("lib://flowruntime/stdio/readline/readline")
             .chain_err(|| "Could not parse url")?,
         Native(Arc::new(stdio::readline::Readline {
-            server_context: server_context.clone(),
+            server_connection: server_connection.clone(),
         })),
     );
     manifest.locators.insert(
         Url::parse("lib://flowruntime/stdio/stdin/stdin").chain_err(|| "Could not parse url")?,
         Native(Arc::new(stdio::stdin::Stdin {
-            server_context: server_context.clone(),
+            server_connection: server_connection.clone(),
         })),
     );
     manifest.locators.insert(
         Url::parse("lib://flowruntime/stdio/stdout/stdout").chain_err(|| "Could not parse url")?,
         Native(Arc::new(stdio::stdout::Stdout {
-            server_context: server_context.clone(),
+            server_connection: server_connection.clone(),
         })),
     );
     manifest.locators.insert(
         Url::parse("lib://flowruntime/stdio/stderr/stderr").chain_err(|| "Could not parse url")?,
-        Native(Arc::new(stdio::stderr::Stderr { server_context })),
+        Native(Arc::new(stdio::stderr::Stderr { server_connection })),
     );
 
     Ok(manifest)
