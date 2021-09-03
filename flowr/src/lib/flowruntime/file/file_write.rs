@@ -10,7 +10,7 @@ use crate::runtime_messages::{ClientMessage, ServerMessage};
 /// `Implementation` struct for the `file_write` function
 pub struct FileWrite {
     /// It holds a reference to the runtime client in order to get file contents
-    pub server_context: Arc<Mutex<ServerConnection<ServerMessage, ClientMessage>>>,
+    pub server_connection: Arc<Mutex<ServerConnection<ServerMessage, ClientMessage>>>,
 }
 
 impl Implementation for FileWrite {
@@ -18,7 +18,7 @@ impl Implementation for FileWrite {
         let filename = &inputs[0];
         let bytes = &inputs[1];
 
-        if let Ok(mut server) = self.server_context.lock() {
+        if let Ok(mut server) = self.server_connection.lock() {
             match bytes.as_str() {
                 Some(string) => {
                     return match server.send_and_receive_response(ServerMessage::Write(

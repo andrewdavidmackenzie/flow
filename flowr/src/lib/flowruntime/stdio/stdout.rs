@@ -11,7 +11,7 @@ use crate::runtime_messages::{ClientMessage, ServerMessage};
 /// `Implementation` struct for the `Stdout` function
 pub struct Stdout {
     /// It holds a reference to the runtime client in order to write output
-    pub server_context: Arc<Mutex<ServerConnection<ServerMessage, ClientMessage>>>,
+    pub server_connection: Arc<Mutex<ServerConnection<ServerMessage, ClientMessage>>>,
 }
 
 impl Implementation for Stdout {
@@ -19,7 +19,7 @@ impl Implementation for Stdout {
         let input = &inputs[0];
 
         // Gain sole access to send to the client to avoid mixing output from other functions
-        if let Ok(mut server) = self.server_context.lock() {
+        if let Ok(mut server) = self.server_connection.lock() {
             let _: Result<ClientMessage> = match input {
                 Value::Null => server.send_and_receive_response(ServerMessage::StdoutEof),
                 Value::String(string) => {
