@@ -3,7 +3,7 @@ use std::fs::File;
 use std::io::prelude::*;
 use std::path::Path;
 
-use log::{debug, trace};
+use log::debug;
 use url::Url;
 
 use crate::errors::*;
@@ -29,21 +29,12 @@ impl Provider for FileProvider {
         match md_result {
             Ok(md) => {
                 if md.is_dir() {
-                    trace!(
-                        "'{}' is a directory, so attempting to find default file named '{}' in it",
-                        path.display(),
-                        default_filename
-                    );
                     if let Ok(file_found_url) =
                         FileProvider::find_file(&path, default_filename, extensions)
                     {
                         return Ok((file_found_url, None));
                     }
 
-                    trace!(
-                        "'{}' is a directory, so attempting to find file with same name inside it",
-                        path.display()
-                    );
                     if let Some(dir_os_name) = path.file_name() {
                         let dir_name = dir_os_name.to_string_lossy();
                         if let Ok(file_found_url) = Self::find_file(&path, &dir_name, extensions) {
@@ -123,43 +114,130 @@ impl FileProvider {
 
 #[cfg(test)]
 mod test {
-    use std::ffi::OsStr;
-    use std::path::Path;
+    mod file_provider {
+        use std::ffi::OsStr;
+        use std::path::Path;
 
-    use url::Url;
+        use super::super::FileProvider;
 
-    use crate::lib_provider::Provider;
-
-    use super::FileProvider;
-
-    #[test]
-    fn get_default_sample() {
-        let root = Path::new(env!("CARGO_MANIFEST_DIR"))
-            .parent()
-            .expect("Could not get CARGO_MANIFEST_DIR");
-        let path = root.join("samples/hello-world");
-        match FileProvider::find_file(&path, "context", &["toml"]) {
-            Ok(path_string) => {
-                let path = path_string
-                    .to_file_path()
-                    .expect("Could not convert Url to File Path");
-                assert_eq!(Some(OsStr::new("context.toml")), path.file_name());
+        #[test]
+        fn get_default_sample() {
+            let root = Path::new(env!("CARGO_MANIFEST_DIR"))
+                .parent()
+                .expect("Could not get CARGO_MANIFEST_DIR");
+            let path = root.join("samples/hello-world");
+            match FileProvider::find_file(&path, "context", &["toml"]) {
+                Ok(path_string) => {
+                    let path = path_string
+                        .to_file_path()
+                        .expect("Could not convert Url to File Path");
+                    assert_eq!(Some(OsStr::new("context.toml")), path.file_name());
+                }
+                _ => panic!("Could not find_file 'context.toml'"),
             }
-            _ => panic!("Could not find_file 'context.toml'"),
         }
     }
 
-    #[test]
-    fn resolve_url_file_not_found() {
-        let provider: &dyn Provider = &FileProvider;
-        let url = Url::parse("file://directory").expect("Could not create Url");
-        let _ = provider.resolve_url(&url, "default", &["toml"]);
-    }
+    mod provider_trait {
+        use std::path::Path;
 
-    #[test]
-    fn get_contents_file_not_found() {
-        let provider: &dyn Provider = &FileProvider;
-        let url = Url::parse("file:///no-such-file").expect("Could not create Url");
-        assert!(provider.get_contents(&url).is_err());
+        use url::Url;
+
+        use crate::lib_provider::Provider;
+
+        use super::super::FileProvider;
+
+        #[test]
+        fn get_default_sample_full_path() {
+            let root = Path::new(env!("CARGO_MANIFEST_DIR"))
+                .parent()
+                .expect("Could not get CARGO_MANIFEST_DIR");
+            let path = root.join("samples/hello-world/context.toml");
+            let url = Url::from_file_path(path).expect("Could not create Url from path");
+            let provider: &dyn Provider = &FileProvider;
+            let resolved_url = provider
+                .resolve_url(&url, "context", &["toml"])
+                .expect("Could not resolve url");
+            assert_eq!(resolved_url.0, url);
+
+            let _ = provider
+                .get_contents(&resolved_url.0)
+                .expect("Could not fetch contents");
+        }
+
+        #[test]
+        fn get_default_sample_full_path_without_extension() {
+            let root = Path::new(env!("CARGO_MANIFEST_DIR"))
+                .parent()
+                .expect("Could not get CARGO_MANIFEST_DIR");
+            let path = root.join("samples/hello-world/context");
+            let url = Url::from_file_path(path).expect("Could not create Url from path");
+            let provider: &dyn Provider = &FileProvider;
+            let resolved_url = provider
+                .resolve_url(&url, "context", &["toml"])
+                .expect("Could not resolve url");
+            assert_eq!(
+                resolved_url.0,
+                url.join("context.toml").expect("Could not join")
+            );
+
+            let _ = provider
+                .get_contents(&resolved_url.0)
+                .expect("Could not fetch contents");
+        }
+
+        #[test]
+        fn get_default_sample_rom_dir() {
+            let root = Path::new(env!("CARGO_MANIFEST_DIR"))
+                .parent()
+                .expect("Could not get CARGO_MANIFEST_DIR");
+            let path = root.join("samples/hello-world");
+            let url = Url::from_file_path(path.clone()).expect("Could not create Url from path");
+            let provider: &dyn Provider = &FileProvider;
+            let resolved_url = provider
+                .resolve_url(&url, "context", &["toml"])
+                .expect("Could not resolve url");
+            let expected_url = Url::from_file_path(path.join("context.toml"))
+                .expect("Could not create Url from path");
+            assert_eq!(resolved_url.0, expected_url);
+
+            let _ = provider
+                .get_contents(&resolved_url.0)
+                .expect("Could not fetch contents");
+        }
+
+        #[test]
+        fn get_by_last_path_segment() {
+            let root = Path::new(env!("CARGO_MANIFEST_DIR"))
+                .parent()
+                .expect("Could not get CARGO_MANIFEST_DIR");
+            let path = root.join("flowstdlib/control/compare_switch");
+            let url = Url::from_file_path(path.clone()).expect("Could not create Url from path");
+            let provider: &dyn Provider = &FileProvider;
+            let resolved_url = provider
+                .resolve_url(&url, "context", &["toml"])
+                .expect("Could not resolve url");
+            let expected_url = Url::from_file_path(path.join("compare_switch.toml"))
+                .expect("Could not create Url from path");
+            assert_eq!(resolved_url.0, expected_url);
+
+            let _ = provider
+                .get_contents(&resolved_url.0)
+                .expect("Could not fetch contents");
+        }
+
+        #[test]
+        fn resolve_url_file_not_found() {
+            let provider: &dyn Provider = &FileProvider;
+            let url = Url::parse("file://directory").expect("Could not create Url");
+            let _ = provider.resolve_url(&url, "default", &["toml"]);
+        }
+
+        #[test]
+        fn get_contents_file_not_found() {
+            let provider: &dyn Provider = &FileProvider;
+            let url = Url::parse("file:///no-such-file").expect("Could not create Url");
+            assert!(provider.get_contents(&url).is_err());
+        }
     }
 }

@@ -33,7 +33,7 @@ jobs:
       uses: actions/cache@v1
       with:
         path: ~/.cargo/registry
-        key: ${{ runner.os }}-stable-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+        key: ${{ runner.os }}-stable-cargo-registry-cache-${{ hashFiles('**/Cargo.lock') }}
         restore-keys: |
           ${{ runner.os }}-stable-cargo-registry-
 
@@ -84,7 +84,7 @@ jobs:
       run: cargo build
 
     - name: Run tests
-      run: cargo test
+      run: cargo test --features "online_tests"
 
     - name: UploadCoverage
       if: matrix.os == 'ubuntu-latest'

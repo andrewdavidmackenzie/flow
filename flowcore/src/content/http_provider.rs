@@ -40,7 +40,7 @@ impl Provider for HttpProvider {
             return Ok((found, None));
         }
 
-        // Attempt to find file with same name as final segment under that path, with any extension
+        // Attempt to find file with same name as the final segment of the path, with any valid extension
         let mut segments = url.path_segments().ok_or("Could not get path segments")?;
         let file_name = segments
             .next_back()
@@ -114,6 +114,7 @@ impl HttpProvider {
 }
 
 #[cfg(test)]
+#[cfg(feature = "online_tests")]
 mod test {
     use url::Url;
 
@@ -122,19 +123,43 @@ mod test {
     use super::HttpProvider;
 
     #[test]
-    #[cfg(feature = "online_tests")]
     fn resolve_web() {
         let provider = HttpProvider {};
-        let folder_url = Url::parse("https://raw.githubusercontent.com/andrewdavidmackenzie/flow/master/samples/hello-world/context.toml")
+        let expected_url = Url::parse("https://raw.githubusercontent.com/andrewdavidmackenzie/flow/master/samples/hello-world/context.toml")
             .expect("Could not form Url");
         let full_url = provider
-            .resolve_url(&folder_url, "context", &[&"toml"])
+            .resolve_url(&expected_url, "context", &["toml"])
             .expect("Could not resolve url");
-        assert_eq!(folder_url.as_str(), full_url.as_str());
+        assert_eq!(expected_url.as_str(), full_url.0.as_str());
     }
 
     #[test]
-    #[cfg(feature = "online_tests")]
+    fn resolve_by_extension() {
+        let provider = HttpProvider {};
+        let input_url = Url::parse("https://raw.githubusercontent.com/andrewdavidmackenzie/flow/master/samples/hello-world/context")
+            .expect("Could not form Url");
+        let expected_url = Url::parse("https://raw.githubusercontent.com/andrewdavidmackenzie/flow/master/samples/hello-world/context.toml")
+            .expect("Could not form Url");
+        let full_url = provider
+            .resolve_url(&input_url, "context", &["toml"])
+            .expect("Could not resolve url");
+        assert_eq!(expected_url.as_str(), full_url.0.as_str());
+    }
+
+    #[test]
+    fn resolve_by_last_path_segment() {
+        let provider = HttpProvider {};
+        let input_url = Url::parse("https://raw.githubusercontent.com/andrewdavidmackenzie/flow/master/flowstdlib/control/compare_switch")
+            .expect("Could not form Url");
+        let expected_url = Url::parse("https://raw.githubusercontent.com/andrewdavidmackenzie/flow/master/flowstdlib/control/compare_switch/compare_switch.toml")
+            .expect("Could not form Url");
+        let full_url = provider
+            .resolve_url(&input_url, "context", &["toml"])
+            .expect("Could not resolve url");
+        assert_eq!(expected_url.as_str(), full_url.0.as_str());
+    }
+
+    #[test]
     fn resolve_default_web() {
         let provider = HttpProvider {};
         let folder_url = Url::parse("https://raw.githubusercontent.com/andrewdavidmackenzie/flow/master/samples/hello-world")
@@ -142,13 +167,12 @@ mod test {
         let expected_url = Url::parse("https://raw.githubusercontent.com/andrewdavidmackenzie/flow/master/samples/hello-world/context.toml")
             .expect("Could not form Url");
         let full_url = provider
-            .resolve_url(&folder_url, "context", &[&"toml"])
+            .resolve_url(&folder_url, "context", &["toml"])
             .expect("Could not resolve url");
-        assert_eq!(full_url.as_str(), expected_url.as_str());
+        assert_eq!(expected_url.as_str(), full_url.0.as_str());
     }
 
     #[test]
-    #[cfg(feature = "online_tests")]
     fn get_github_sample() {
         let provider: &dyn Provider = &HttpProvider;
         let url = Url::parse("https://raw.githubusercontent.com/andrewdavidmackenzie/flow/master/samples/hello-world/context.toml")

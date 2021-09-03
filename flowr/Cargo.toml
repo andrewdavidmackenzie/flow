@@ -21,6 +21,7 @@ native = []   # Load native implementations of functions in libraries when possi
 metrics = []  # feature for tracking of metrics during execution
 checks = []   # feature to perform extra checks during flow execution
 distributed = ["zmq", "simpdiscover", "portpicker"] # Allow distributed multi-process client and server operation
+online_tests = []
 
 [dependencies]
 flowcore = {path = "../flowcore", version = "0.36.0"}
