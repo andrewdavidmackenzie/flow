@@ -406,11 +406,17 @@ impl Flow {
 
 #[cfg(test)]
 mod test {
+    use crate::compiler::loader::Validate;
     use crate::model::name::{HasName, Name};
 
     #[test]
     fn test_display() {
         println!("{}", super::Flow::default());
+    }
+
+    #[test]
+    fn test_validate() {
+        assert!(super::Flow::default().validate().is_ok());
     }
 
     #[test]
