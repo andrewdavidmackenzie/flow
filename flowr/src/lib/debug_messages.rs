@@ -9,7 +9,9 @@ use flowcore::function::Function;
 use flowcore::input::Input;
 use flowcore::output_connection::OutputConnection;
 
-use crate::run_state::{Block, Job, RunState, State};
+use crate::block::Block;
+use crate::job::Job;
+use crate::run_state::{RunState, State};
 
 /// Types of `Params` used in communications between the debugger and the debug_client
 #[derive(Serialize, Deserialize, PartialEq)]
