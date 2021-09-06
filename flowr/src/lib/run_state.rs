@@ -1111,12 +1111,16 @@ mod test {
 
     use serde_json::json;
     use serde_json::Value;
+    use url::Url;
 
     use flowcore::function::Function;
     use flowcore::input::Input;
     use flowcore::input::InputInitializer::Once;
     use flowcore::output_connection::{OutputConnection, Source};
     use flowcore::Implementation;
+
+    use crate::coordinator::Submission;
+    use crate::run_state::RunState;
 
     use super::Job;
 
@@ -1279,7 +1283,43 @@ mod test {
         }
     }
 
+    #[test]
+    fn display_run_state_test() {
+        let f_a = test_function_a_to_b();
+        let f_b = test_function_b_not_init();
+        let functions = vec![f_a, f_b];
+        let submission = Submission::new(
+            &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
+            1,
+            true,
+        );
+        let state = RunState::new(&functions, submission);
+        #[cfg(any(feature = "debugger", feature = "metrics"))]
+        assert_eq!(state.num_functions(), 2);
+
+        println!("Run state: {}", state);
+    }
+
+    #[should_panic]
+    #[test]
+    fn run_time_error_test() {
+        let submission = Submission::new(
+            &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
+            1,
+            true,
+        );
+        let state = RunState::new(&[], submission);
+
+        #[cfg(any(feature = "debugger", feature = "metrics"))]
+        assert_eq!(state.num_functions(), 0);
+
+        state.runtime_error(0, "test error", "test_file.rs", 42);
+    }
+
     mod general_run_state_tests {
+        use std::collections::HashSet;
+
+        use multimap::MultiMap;
         #[cfg(any(feature = "debugger", feature = "metrics"))]
         use url::Url;
 
@@ -1317,6 +1357,61 @@ mod test {
             let mut state = RunState::new(&[], submission);
             state.init();
             assert_eq!(0, state.jobs_created(), "At init jobs() should be 0");
+            assert_eq!(0, state.number_jobs_ready());
+        }
+
+        #[cfg(feature = "debugger")]
+        #[test]
+        fn zero_blocks_at_init() {
+            let submission = Submission::new(
+                &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
+                1,
+                #[cfg(feature = "debugger")]
+                true,
+            );
+            let mut state = RunState::new(&[], submission);
+            state.init();
+            assert_eq!(
+                &HashSet::new(),
+                state.get_blocks(),
+                "At init get_blocks() should be empty"
+            );
+        }
+
+        #[cfg(feature = "debugger")]
+        #[test]
+        fn zero_running_at_init() {
+            let submission = Submission::new(
+                &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
+                1,
+                #[cfg(feature = "debugger")]
+                true,
+            );
+            let mut state = RunState::new(&[], submission);
+            state.init();
+            assert_eq!(
+                &MultiMap::new(),
+                state.get_running(),
+                "At init get_running() should be empty"
+            );
+        }
+
+        #[cfg(feature = "debugger")]
+        #[test]
+        fn zero_blocked_at_init() {
+            let submission = Submission::new(
+                &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
+                1,
+                #[cfg(feature = "debugger")]
+                true,
+            );
+            let mut state = RunState::new(&[], submission);
+            state.init();
+            assert_eq!(
+                &HashSet::new(),
+                state.get_blocked(),
+                "At init get_blocked() should be empty"
+            );
         }
     }
 
@@ -1363,6 +1458,7 @@ mod test {
 
             // Test
             assert_eq!(State::Ready, state.get_state(0), "f_a should be Ready");
+            assert_eq!(1, state.number_jobs_ready());
             assert_eq!(
                 State::Waiting,
                 state.get_state(1),
