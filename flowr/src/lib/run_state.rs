@@ -1110,16 +1110,12 @@ mod test {
 
     use serde_json::json;
     use serde_json::Value;
-    use url::Url;
 
     use flowcore::function::Function;
     use flowcore::input::Input;
     use flowcore::input::InputInitializer::Once;
     use flowcore::output_connection::{OutputConnection, Source};
     use flowcore::Implementation;
-
-    use crate::coordinator::Submission;
-    use crate::run_state::RunState;
 
     use super::Job;
 
@@ -1282,39 +1278,6 @@ mod test {
         }
     }
 
-    #[test]
-    fn display_run_state_test() {
-        let f_a = test_function_a_to_b();
-        let f_b = test_function_b_not_init();
-        let functions = vec![f_a, f_b];
-        let submission = Submission::new(
-            &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
-            1,
-            true,
-        );
-        let state = RunState::new(&functions, submission);
-        #[cfg(any(feature = "debugger", feature = "metrics"))]
-        assert_eq!(state.num_functions(), 2);
-
-        println!("Run state: {}", state);
-    }
-
-    #[should_panic]
-    #[test]
-    fn run_time_error_test() {
-        let submission = Submission::new(
-            &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
-            1,
-            true,
-        );
-        let state = RunState::new(&[], submission);
-
-        #[cfg(any(feature = "debugger", feature = "metrics"))]
-        assert_eq!(state.num_functions(), 0);
-
-        state.runtime_error(0, "test error", "test_file.rs", 42);
-    }
-
     mod general_run_state_tests {
         use std::collections::HashSet;
 
@@ -1328,9 +1291,8 @@ mod test {
         #[cfg(any(feature = "debugger", feature = "metrics"))]
         use super::super::RunState;
 
-        #[cfg(feature = "debugger")]
         #[test]
-        fn run_state_can_display() {
+        fn display_run_state_test() {
             let f_a = super::test_function_a_to_b();
             let f_b = super::test_function_b_not_init();
             let functions = vec![f_a, f_b];
@@ -1340,8 +1302,28 @@ mod test {
                 true,
             );
             let mut state = RunState::new(&functions, submission);
-
             state.init();
+
+            #[cfg(any(feature = "debugger", feature = "metrics"))]
+            assert_eq!(state.num_functions(), 2);
+
+            println!("Run state: {}", state);
+        }
+
+        #[should_panic]
+        #[test]
+        fn run_time_error_test() {
+            let submission = Submission::new(
+                &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
+                1,
+                true,
+            );
+            let state = RunState::new(&[], submission);
+
+            #[cfg(any(feature = "debugger", feature = "metrics"))]
+            assert_eq!(state.num_functions(), 0);
+
+            state.runtime_error(0, "test error", "test_file.rs", 42);
         }
 
         #[cfg(feature = "metrics")]
