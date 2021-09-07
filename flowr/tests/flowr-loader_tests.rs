@@ -54,11 +54,11 @@ fn create_manifest(functions: Vec<Function>) -> FlowManifest {
     };
 
     let mut manifest = FlowManifest::new(metadata);
-    manifest.add_lib_reference(
-        &Url::parse("lib://flowruntime/stdio/stdout/stdout").expect("Could not create Url"),
-    );
 
     for function in functions {
+        manifest.add_lib_reference(
+            &Url::parse(function.implementation_location()).expect("Could not create Url"),
+        );
         manifest.add_function(function);
     }
 
@@ -138,17 +138,20 @@ fn write_manifest(manifest: &FlowManifest, filename: &Path) -> Result<(), String
     Ok(())
 }
 
+// Setup a lib search path so that they can find the flowruntime library that is in
+// flowr/src/lib/flowruntime
 fn set_lib_search_path() -> Simpath {
     let mut lib_search_path = Simpath::new("lib_search_path");
-    let root_str = Path::new(env!("CARGO_MANIFEST_DIR"))
+    let flowr_path_str = Path::new(env!("CARGO_MANIFEST_DIR"))
         .parent()
-        .expect("Could not get project root dir");
+        .expect("Could not get project root dir")
+        .join("flowr/src/lib");
+    println!("flowr_path_str: {:?}", flowr_path_str);
     lib_search_path.add_directory(
-        root_str
+        flowr_path_str
             .to_str()
-            .expect("Could not get root path as string"),
+            .expect("Could not get flowruntime parent directory path as string"),
     );
-    println!("{}", lib_search_path);
     lib_search_path
 }
 
@@ -177,12 +180,16 @@ fn load_manifest_from_file() {
 
     let mut loader = Loader::new();
     loader
-        .add_lib(&server_provider, get_manifest(), &cwd_as_url())
-        .unwrap();
+        .add_lib(
+            &server_provider,
+            get_manifest(),
+            &Url::parse("lib://flowruntime").expect("Could not parse lib url"),
+        )
+        .expect("Could not add flowruntime library to loader");
 
     let _ = loader
         .load_flow(&server_provider, &client_provider, &manifest_url)
-        .unwrap();
+        .expect("Loader could not load flow");
 
     assert!(!loader.get_lib_implementations().is_empty());
 }
@@ -236,7 +243,7 @@ fn unresolved_lib_functions_test() {
     // Load library functions provided
     loader
         .add_lib(&provider, get_manifest(), &cwd_as_url())
-        .unwrap();
+        .expect("Could not add flowruntime library to loader");
 
     assert!(loader
         .resolve_implementations(&mut manifest, &manifest_url, &provider)
