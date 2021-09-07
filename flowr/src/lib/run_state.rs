@@ -526,8 +526,7 @@ impl RunState {
                     }
                 }
 
-                // if the function can run again, then:
-                // - refill inputs from any possible initializers
+                // if the function can run again, then refill inputs from any possible initializers
                 if function_can_run_again {
                     self.refill_inputs(job.function_id, job.flow_id, loopback_value_sent);
                 }

@@ -50,6 +50,10 @@ impl fmt::Display for Job {
 
 #[cfg(test)]
 mod test {
+    use std::collections::HashMap;
+
+    use serde_json::json;
+
     use flowcore::function::Function;
 
     #[test]
@@ -65,5 +69,54 @@ mod test {
             error: None,
         };
         println!("Job: {}", job);
+    }
+
+    #[test]
+    fn get_entire_output_value() {
+        let job = super::Job {
+            job_id: 0,
+            function_id: 1,
+            flow_id: 0,
+            input_set: vec![],
+            connections: vec![],
+            implementation: Function::default_implementation(),
+            result: (Some(json!(42)), false),
+            error: None,
+        };
+
+        assert_eq!(
+            &json!(42),
+            job.result
+                .0
+                .expect("No output value when one was expected")
+                .pointer("")
+                .expect("Could not get value using json pointer")
+        );
+    }
+
+    #[test]
+    fn get_sub_array_from_output_value() {
+        let mut map = HashMap::new();
+        map.insert("array", vec![1, 2, 3]);
+        let value = json!(map);
+        let job = super::Job {
+            job_id: 0,
+            function_id: 1,
+            flow_id: 0,
+            input_set: vec![],
+            connections: vec![],
+            implementation: Function::default_implementation(),
+            result: (Some(json!(value)), false),
+            error: None,
+        };
+
+        assert_eq!(
+            &json!(3),
+            job.result
+                .0
+                .expect("No output value when one was expected")
+                .pointer("/array/2")
+                .expect("Could not get value using json pointer")
+        );
     }
 }
