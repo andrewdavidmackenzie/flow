@@ -55,7 +55,7 @@ fn create_manifest(functions: Vec<Function>) -> FlowManifest {
 
     let mut manifest = FlowManifest::new(metadata);
     manifest.add_lib_reference(
-        &Url::parse("lib://flowstdlib/control/join/join").expect("Could not create Url"),
+        &Url::parse("lib://flowruntime/stdio/stdout/stdout").expect("Could not create Url"),
     );
 
     for function in functions {
