@@ -1,7 +1,6 @@
 use std::collections::VecDeque;
 use std::collections::{HashMap, HashSet};
 use std::fmt;
-use std::sync::Arc;
 use std::time::Duration;
 
 use log::{debug, error, info, trace};
@@ -12,11 +11,12 @@ use serde_json::{json, Value};
 use flowcore::function::Function;
 use flowcore::output_connection::OutputConnection;
 use flowcore::output_connection::Source::{Input, Output};
-use flowcore::Implementation;
 
+use crate::block::Block;
 use crate::coordinator::Submission;
 #[cfg(feature = "debugger")]
 use crate::debugger::Debugger;
+use crate::job::Job;
 #[cfg(feature = "metrics")]
 use crate::metrics::Metrics;
 
@@ -32,108 +32,6 @@ pub enum State {
     Waiting,
     /// function is currently running
     Running,
-}
-
-/// A `Job` contains the information necessary to manage the execution of a function in the
-/// flow on a set of input values, and then where to send the outputs that maybe produces.
-#[derive(Clone, Serialize, Deserialize)]
-pub struct Job {
-    /// Each `Job` has a unique id that increments as jobs are executed
-    pub job_id: usize,
-    /// The `id` of the function in the `RunState`'s list of functions that will execute this job
-    pub function_id: usize,
-    /// The `id` of the nested flow (from context on down) there the function executing the job is
-    pub flow_id: usize,
-    /// The set of input values to be used by the function when executing this job
-    pub input_set: Vec<Value>,
-    /// The set of destinations (other function's inputs) where the output produced by the function
-    /// should be sent
-    pub connections: Vec<OutputConnection>,
-    /// The implementation to be used in executing the job
-    #[serde(skip)]
-    #[serde(default = "Function::default_implementation")]
-    pub implementation: Arc<dyn Implementation>,
-    /// The result of the execution with optional output Value and if the function should be run
-    /// again in the future
-    pub result: (Option<Value>, bool),
-    /// Optional error produced by the execution of the job
-    pub error: Option<String>,
-}
-
-impl fmt::Display for Job {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        writeln!(
-            f,
-            "Job Id: {}, Function Id: {}, Flow Id: {}",
-            self.job_id, self.function_id, self.flow_id
-        )?;
-        writeln!(f, "Inputs: {:?}", self.input_set)?;
-        writeln!(f, "Connections: {:?}", self.connections)?;
-        writeln!(f, "Result: {:?}", self.result)?;
-        write!(f, "Error: {:?}", self.error)
-    }
-}
-
-/// blocks: (blocking_id, blocking_io_number, blocked_id, blocked_flow_id) a blocks between functions
-#[derive(PartialEq, Clone, Hash, Eq, Serialize, Deserialize)]
-pub struct Block {
-    /// The id of the flow where the blocking function reside
-    pub blocking_flow_id: usize,
-    /// The id of the blocking function (destination with input unable to be sent to)
-    pub blocking_id: usize,
-    /// The number of the io in the blocking function that is full and causing the block
-    pub blocking_io_number: usize,
-    /// The id of the function that would like to send to the blocking function but cannot because
-    /// the input is full
-    pub blocked_id: usize,
-    /// The id of the flow where the blocked function resides
-    pub blocked_flow_id: usize,
-}
-
-impl Block {
-    fn new(
-        blocking_flow_id: usize,
-        blocking_id: usize,
-        blocking_io_number: usize,
-        blocked_id: usize,
-        blocked_flow_id: usize,
-    ) -> Self {
-        Block {
-            blocking_flow_id,
-            blocking_id,
-            blocking_io_number,
-            blocked_id,
-            blocked_flow_id,
-        }
-    }
-}
-
-impl fmt::Debug for Block {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(
-            f,
-            "#{}({}) --> #{}({}):{}",
-            self.blocked_id,
-            self.blocked_flow_id,
-            self.blocking_id,
-            self.blocking_flow_id,
-            self.blocking_io_number
-        )
-    }
-}
-
-impl fmt::Display for Block {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(
-            f,
-            "#{}({}) --> #{}({}):{}",
-            self.blocked_id,
-            self.blocked_flow_id,
-            self.blocking_id,
-            self.blocking_flow_id,
-            self.blocking_io_number
-        )
-    }
 }
 
 /// `RunState` is a structure that maintains the state of all the functions in the currently
@@ -628,8 +526,7 @@ impl RunState {
                     }
                 }
 
-                // if the function can run again, then:
-                // - refill inputs from any possible initializers
+                // if the function can run again, then refill inputs from any possible initializers
                 if function_can_run_again {
                     self.refill_inputs(job.function_id, job.flow_id, loopback_value_sent);
                 }
@@ -1213,12 +1110,16 @@ mod test {
 
     use serde_json::json;
     use serde_json::Value;
+    use url::Url;
 
     use flowcore::function::Function;
     use flowcore::input::Input;
     use flowcore::input::InputInitializer::Once;
     use flowcore::output_connection::{OutputConnection, Source};
     use flowcore::Implementation;
+
+    use crate::coordinator::Submission;
+    use crate::run_state::RunState;
 
     use super::Job;
 
@@ -1381,7 +1282,43 @@ mod test {
         }
     }
 
+    #[test]
+    fn display_run_state_test() {
+        let f_a = test_function_a_to_b();
+        let f_b = test_function_b_not_init();
+        let functions = vec![f_a, f_b];
+        let submission = Submission::new(
+            &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
+            1,
+            true,
+        );
+        let state = RunState::new(&functions, submission);
+        #[cfg(any(feature = "debugger", feature = "metrics"))]
+        assert_eq!(state.num_functions(), 2);
+
+        println!("Run state: {}", state);
+    }
+
+    #[should_panic]
+    #[test]
+    fn run_time_error_test() {
+        let submission = Submission::new(
+            &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
+            1,
+            true,
+        );
+        let state = RunState::new(&[], submission);
+
+        #[cfg(any(feature = "debugger", feature = "metrics"))]
+        assert_eq!(state.num_functions(), 0);
+
+        state.runtime_error(0, "test error", "test_file.rs", 42);
+    }
+
     mod general_run_state_tests {
+        use std::collections::HashSet;
+
+        use multimap::MultiMap;
         #[cfg(any(feature = "debugger", feature = "metrics"))]
         use url::Url;
 
@@ -1419,6 +1356,61 @@ mod test {
             let mut state = RunState::new(&[], submission);
             state.init();
             assert_eq!(0, state.jobs_created(), "At init jobs() should be 0");
+            assert_eq!(0, state.number_jobs_ready());
+        }
+
+        #[cfg(feature = "debugger")]
+        #[test]
+        fn zero_blocks_at_init() {
+            let submission = Submission::new(
+                &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
+                1,
+                #[cfg(feature = "debugger")]
+                true,
+            );
+            let mut state = RunState::new(&[], submission);
+            state.init();
+            assert_eq!(
+                &HashSet::new(),
+                state.get_blocks(),
+                "At init get_blocks() should be empty"
+            );
+        }
+
+        #[cfg(feature = "debugger")]
+        #[test]
+        fn zero_running_at_init() {
+            let submission = Submission::new(
+                &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
+                1,
+                #[cfg(feature = "debugger")]
+                true,
+            );
+            let mut state = RunState::new(&[], submission);
+            state.init();
+            assert_eq!(
+                &MultiMap::new(),
+                state.get_running(),
+                "At init get_running() should be empty"
+            );
+        }
+
+        #[cfg(feature = "debugger")]
+        #[test]
+        fn zero_blocked_at_init() {
+            let submission = Submission::new(
+                &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
+                1,
+                #[cfg(feature = "debugger")]
+                true,
+            );
+            let mut state = RunState::new(&[], submission);
+            state.init();
+            assert_eq!(
+                &HashSet::new(),
+                state.get_blocked(),
+                "At init get_blocked() should be empty"
+            );
         }
     }
 
@@ -1465,6 +1457,7 @@ mod test {
 
             // Test
             assert_eq!(State::Ready, state.get_state(0), "f_a should be Ready");
+            assert_eq!(1, state.number_jobs_ready());
             assert_eq!(
                 State::Waiting,
                 state.get_state(1),
@@ -2648,20 +2641,6 @@ mod test {
                 &mut debugger,
             );
             assert_eq!(State::Waiting, state.get_state(0), "f_a should be Waiting");
-        }
-    }
-
-    mod block {
-        #[test]
-        fn display_block_test() {
-            let block = super::super::Block::new(1, 2, 0, 1, 0);
-            println!("Block: {}", block);
-        }
-
-        #[test]
-        fn debug_block_test() {
-            let block = super::super::Block::new(1, 2, 0, 1, 0);
-            println!("Block: {:?}", block);
         }
     }
 

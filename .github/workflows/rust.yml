@@ -84,7 +84,7 @@ jobs:
       run: cargo build
 
     - name: Run tests
-      run: cargo test --features "online_tests"
+      run: RUST_LOG=trace cargo test --features "online_tests"
 
     - name: UploadCoverage
       if: matrix.os == 'ubuntu-latest'

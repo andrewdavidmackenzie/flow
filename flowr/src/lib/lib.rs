@@ -51,5 +51,7 @@ pub mod errors;
 #[cfg(feature = "metrics")]
 pub mod metrics;
 
+mod block;
 /// `client_provider` is a special content provider that makes requests to the client to fetch files
 mod client_provider;
+mod job;

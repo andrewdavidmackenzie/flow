@@ -6,6 +6,7 @@ use serde_json::Value;
 
 use flowcore::output_connection::Source::{Input, Output};
 
+use crate::block::Block;
 use crate::client_server::ServerConnection;
 use crate::debug_messages::DebugClientMessage;
 use crate::debug_messages::DebugClientMessage::*;
@@ -13,7 +14,8 @@ use crate::debug_messages::DebugServerMessage;
 use crate::debug_messages::DebugServerMessage::*;
 use crate::debug_messages::Param;
 use crate::errors::*;
-use crate::run_state::{Block, Job, RunState};
+use crate::job::Job;
+use crate::run_state::RunState;
 
 /// Debugger struct contains all the info necessary to conduct a debugging session, storing
 /// set breakpoints, connections to the debug client etc

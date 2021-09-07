@@ -19,10 +19,11 @@ use crate::debugger::Debugger;
 use crate::errors::*;
 use crate::execution;
 use crate::flowruntime;
+use crate::job::Job;
 use crate::loader::Loader;
 #[cfg(feature = "metrics")]
 use crate::metrics::Metrics;
-use crate::run_state::{Job, RunState};
+use crate::run_state::RunState;
 use crate::runtime_messages::{ClientMessage, ServerMessage};
 
 /// `RUNTIME_SERVICE_NAME` is the name of the runtime services and can be used to discover it by name
