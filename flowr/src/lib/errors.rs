@@ -13,7 +13,6 @@ error_chain! {
         Serde(serde_json::error::Error);
         Recv(std::sync::mpsc::RecvError);
         Url(url::ParseError);
-        FlowStdLib(flowstdlib::errors::Error);
         FlowrCore(flowcore::errors::Error);
     }
 }
