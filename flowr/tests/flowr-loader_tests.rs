@@ -157,7 +157,7 @@ fn load_manifest_from_file() {
     let f_a = Function::new(
         "fA",
         "/fA",
-        "lib://flowstdlib/control/join/join",
+        "lib://flowruntime/stdio/stdout/stdout",
         vec![],
         0,
         0,
@@ -176,14 +176,10 @@ fn load_manifest_from_file() {
     let client_provider = MetaProvider::new(set_lib_search_path());
 
     let mut loader = Loader::new();
-    // Load the "native" version of the flowstdlib first
     loader
-        .add_lib(
-            &server_provider,
-            flowstdlib::get_manifest().expect("Couldn't get manifest"),
-            &Url::parse("lib://flowstdlib").expect("Could not create Url"),
-        )
+        .add_lib(&server_provider, get_manifest(), &cwd_as_url())
         .unwrap();
+
     let _ = loader
         .load_flow(&server_provider, &client_provider, &manifest_url)
         .unwrap();
