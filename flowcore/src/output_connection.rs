@@ -35,10 +35,10 @@ pub struct OutputConnection {
     pub flow_id: usize,
     /// `array_order` defines how many levels of arrays of non-array values does the destination accept
     #[serde(
-        default = "default_array_level_serde",
-        skip_serializing_if = "is_default_array_level_serde"
+        default = "default_array_order",
+        skip_serializing_if = "is_default_array_order"
     )]
-    pub array_level_serde: i32,
+    pub destination_array_order: i32,
     /// `generic` defines if the input accepts generic "Value"s
     #[serde(default = "default_generic", skip_serializing_if = "is_not_generic")]
     pub generic: bool,
@@ -63,12 +63,12 @@ impl Default for Source {
     }
 }
 
-fn default_array_level_serde() -> i32 {
+fn default_array_order() -> i32 {
     0
 }
 
 #[allow(clippy::trivially_copy_pass_by_ref)] // As this is imposed on us by serde
-fn is_default_array_level_serde(order: &i32) -> bool {
+fn is_default_array_order(order: &i32) -> bool {
     *order == 0
 }
 
@@ -99,7 +99,7 @@ impl OutputConnection {
             function_id,
             io_number,
             flow_id,
-            array_level_serde,
+            destination_array_order: array_level_serde,
             generic,
             route,
             #[cfg(feature = "debugger")]
@@ -144,17 +144,17 @@ impl fmt::Display for OutputConnection {
 mod test {
     #[test]
     fn default_array_order_test() {
-        assert_eq!(super::default_array_level_serde(), 0)
+        assert_eq!(super::default_array_order(), 0)
     }
 
     #[test]
     fn is_default_array_order_test() {
-        assert!(super::is_default_array_level_serde(&0));
+        assert!(super::is_default_array_order(&0));
     }
 
     #[test]
     fn is_not_default_array_order_test() {
-        assert!(!super::is_default_array_level_serde(&1));
+        assert!(!super::is_default_array_order(&1));
     }
 
     #[test]

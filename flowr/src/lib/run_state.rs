@@ -567,7 +567,7 @@ impl RunState {
             function.send(destination.io_number, value);
         } else {
             match (
-                (Self::array_order(value) - destination.array_level_serde),
+                (Self::array_order(value) - destination.destination_array_order),
                 value,
             ) {
                 (0, _) => function.send(destination.io_number, value),
