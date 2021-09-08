@@ -88,12 +88,13 @@ impl Implementation for Fake {
 
 fn get_manifest() -> LibraryManifest {
     let metadata = MetaData {
-        name: "".to_string(),
+        name: "flowruntime".to_string(),
         description: "".into(),
         version: "0.1.0".into(),
         authors: vec!["".into()],
     };
-    let mut manifest = LibraryManifest::new(metadata);
+    let lib_url = Url::parse("lib://flowruntime").expect("Couldn't create lib url");
+    let mut manifest = LibraryManifest::new(lib_url, metadata);
 
     manifest.locators.insert(
         Url::parse("lib://flowruntime/args/get/get").expect("Could not create Url"),

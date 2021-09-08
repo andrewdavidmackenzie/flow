@@ -31,7 +31,8 @@ pub fn get_manifest(
         description: "Flow Runtime functions".into(),
         authors: vec!["Andrew Mackenzie".to_string()],
     };
-    let mut manifest = LibraryManifest::new(metadata);
+    let lib_url = Url::parse("lib://flowruntime")?;
+    let mut manifest = LibraryManifest::new(lib_url, metadata);
 
     manifest.locators.insert(
         Url::parse("lib://flowruntime/args/get/get")
