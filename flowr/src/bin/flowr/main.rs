@@ -91,6 +91,7 @@ fn run() -> Result<()> {
     SimpleLogger::init(matches.value_of("verbosity"));
     #[cfg(feature = "debugger")]
     let debug_this_flow = matches.is_present("debugger");
+    #[cfg(feature = "native")]
     let native = matches.is_present("native");
     let lib_dirs = if matches.is_present("lib_dir") {
         matches
@@ -125,6 +126,7 @@ fn run() -> Result<()> {
             Coordinator::start(
                 num_threads,
                 lib_search_path,
+                #[cfg(feature = "native")]
                 native,
                 None,
                 #[cfg(feature = "debugger")]
@@ -146,6 +148,7 @@ fn run() -> Result<()> {
                 if let Err(e) = Coordinator::start(
                     num_threads,
                     lib_search_path,
+                    #[cfg(feature = "native")]
                     native,
                     None,
                     #[cfg(feature = "debugger")]
