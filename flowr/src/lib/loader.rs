@@ -70,7 +70,7 @@ impl Loader {
             })?;
 
         self.load_library_implementations(server_provider, &flow_manifest)
-            .chain_err(|| "Could not load library implementations for fow")?;
+            .chain_err(|| "Could not load library implementations for flow")?;
 
         // Find the implementations for all functions in this flow
         self.resolve_implementations(&mut flow_manifest, &resolved_url, client_provider)

@@ -54,7 +54,8 @@ pub fn get_manifest() -> Result<LibraryManifest> {
             .map(|s| s.to_string())
             .collect(),
     };
-    let mut manifest = LibraryManifest::new(metadata);\n
+    let lib_url = Url::parse(&format!(\"lib://{}\", metadata.name))?;
+    let mut manifest = LibraryManifest::new(lib_url, metadata);\n
 ";
 
 /// Build a library from source and generate a manifest for it so it can be used at runtime when
@@ -75,7 +76,8 @@ pub fn build_lib(options: &Options, provider: &dyn Provider) -> Result<String> {
         metadata.version,
         options.url
     );
-    let mut lib_manifest = LibraryManifest::new(metadata);
+    let lib_url = Url::parse(&format!("lib://{}", metadata.name))?;
+    let mut lib_manifest = LibraryManifest::new(lib_url, metadata);
 
     let mut base_dir = options.output_dir.display().to_string();
     // ensure basedir always ends in '/'
