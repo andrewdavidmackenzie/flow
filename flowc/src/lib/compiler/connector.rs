@@ -417,13 +417,11 @@ mod test {
 
             // Create a vector of test cases and expected responses
             //                 Input:Test Route    Outputs: Subroute,       Function ID
-            let mut test_cases: Vec<(&str, Route, Option<(Source, usize)>)> = vec![];
-
-            test_cases.push((
+            let mut test_cases: Vec<(&str, Route, Option<(Source, usize)>)> = vec![(
                 "the default IO",
                 Route::from("/context/f1"),
                 Some((Source::default(), 0)),
-            ));
+            )];
             test_cases.push((
                 "array element selected from the default output",
                 Route::from("/context/f1/1"),

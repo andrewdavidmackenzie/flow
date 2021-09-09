@@ -327,7 +327,7 @@ impl Flow {
     /// "flow_name/io_name"
     /// "function_name/io_name"
     ///
-    /// Propagate any initializers on a flow input into the input (subflow or function) it is connected to
+    /// Propagate any initializers on a flow output to the input (subflow or function) it is connected to
     pub fn build_connections(&mut self) -> Result<()> {
         if self.connections.is_empty() {
             return Ok(());
@@ -347,10 +347,11 @@ impl Flow {
                     match self.get_route_and_type(TO, &connection.to, from_io.get_initializer()) {
                         Ok(to_io) => {
                             debug!("Found connection destination:\n{:#?}", to_io);
-                            // TODO here we are only checking compatible data types from the overall FROM IO
-                            // not from sub-types in it selected via a sub-route e.g. Array/String --> String
-                            // We'd need to make compatible_types more complex and take the from sub-Route
-                            if Connection::compatible_types(from_io.datatype(), to_io.datatype()) {
+                            if Connection::compatible_types(
+                                from_io.datatype(),
+                                to_io.datatype(),
+                                &connection.from,
+                            ) {
                                 debug!(
                                     "Connection built from '{}' to '{}' with runtime conversion ''",
                                     from_io.route(),

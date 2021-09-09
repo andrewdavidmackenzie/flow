@@ -78,7 +78,9 @@ impl Validate for Connection {
 impl Connection {
     /// Determine if the type of the source of a connection and the type of the destination are
     /// compatible, what type of conversion maybe required and if a Connection can be formed
-    pub fn compatible_types(from: &DataType, to: &DataType) -> bool {
+    /// TODO calculate the real from type based on the subroute of the output used by
+    /// the connection from_route
+    pub fn compatible_types(from: &DataType, to: &DataType, _from_route: &Route) -> bool {
         if from == to {
             return true;
         }
@@ -127,6 +129,7 @@ mod test {
 
     use crate::model::datatype::DataType;
     use crate::model::io::IO;
+    use crate::model::route::Route;
 
     use super::Connection;
 
@@ -153,7 +156,8 @@ mod test {
         for test in valid_types.iter() {
             assert!(Connection::compatible_types(
                 &DataType::from(test.0),
-                &DataType::from(test.1)
+                &DataType::from(test.1),
+                &Route::default()
             ));
         }
     }
@@ -212,7 +216,8 @@ mod test {
         let to_io = IO::new("String", "/p2");
         assert!(Connection::compatible_types(
             from_io.datatype(),
-            to_io.datatype()
+            to_io.datatype(),
+            &Route::default()
         ));
     }
 
@@ -222,7 +227,8 @@ mod test {
         let to_io = IO::new("String", "/p2");
         assert!(Connection::compatible_types(
             from_io.datatype(),
-            to_io.datatype()
+            to_io.datatype(),
+            &Route::default()
         ));
     }
 
@@ -232,7 +238,8 @@ mod test {
         let to_io = IO::new("Number", "/p2");
         assert!(!Connection::compatible_types(
             from_io.datatype(),
-            to_io.datatype()
+            to_io.datatype(),
+            &Route::default()
         ));
     }
 
@@ -242,7 +249,8 @@ mod test {
         let to_io = IO::new("Array/String", "/p2");
         assert!(Connection::compatible_types(
             from_io.datatype(),
-            to_io.datatype()
+            to_io.datatype(),
+            &Route::default()
         ));
     }
 
@@ -252,7 +260,8 @@ mod test {
         let to_io = IO::new("Array/String", "/p2");
         assert!(Connection::compatible_types(
             from_io.datatype(),
-            to_io.datatype()
+            to_io.datatype(),
+            &Route::default()
         ));
     }
 
@@ -262,7 +271,8 @@ mod test {
         let to_io = IO::new("Array/Number", "/p2");
         assert!(!Connection::compatible_types(
             from_io.datatype(),
-            to_io.datatype()
+            to_io.datatype(),
+            &Route::default()
         ));
     }
 
@@ -272,7 +282,8 @@ mod test {
         let to_io = IO::new("Array", "/p2");
         assert!(Connection::compatible_types(
             from_io.datatype(),
-            to_io.datatype()
+            to_io.datatype(),
+            &Route::default()
         ));
     }
 
@@ -282,7 +293,8 @@ mod test {
         let to_io = IO::new("String", "/p2");
         assert!(Connection::compatible_types(
             from_io.datatype(),
-            to_io.datatype()
+            to_io.datatype(),
+            &Route::default()
         ));
     }
 }
