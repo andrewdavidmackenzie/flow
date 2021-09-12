@@ -17,14 +17,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        build: [ linux, macos ]
-        include:
-          - build: linux
-            os: ubuntu-latest
-            rust: nightly
-          - build: macos
-            os: macos-latest
-            rust: nightly
+          os: [ ubuntu-latest, macos-11 ]
+          rust: [ nightly ]
 
     steps:
     - uses: actions/checkout@v2
