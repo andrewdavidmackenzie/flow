@@ -39,16 +39,14 @@ enum BlockType {
 #[derive(Debug, Clone)]
 struct BlockerNode {
     function_id: usize,
-    io_number: usize,
     block_type: BlockType,
     blockers: Vec<BlockerNode>,
 }
 
 impl BlockerNode {
-    fn new(process_id: usize, io_number: usize, block_type: BlockType) -> Self {
+    fn new(process_id: usize, block_type: BlockType) -> Self {
         BlockerNode {
             function_id: process_id,
-            io_number,
             block_type,
             blockers: vec![],
         }
@@ -611,13 +609,13 @@ impl Debugger {
         let mut blockers: Vec<BlockerNode> = state
             .get_output_blockers(process_id)
             .iter()
-            .map(|(id, io)| BlockerNode::new(*id, *io, BlockType::OutputBlocked))
+            .map(|(id, _)| BlockerNode::new(*id, BlockType::OutputBlocked))
             .collect();
 
         let input_blockers: Vec<BlockerNode> = state
             .get_input_blockers(process_id)
             .iter()
-            .map(|(id, io)| BlockerNode::new(*id, *io, BlockType::UnreadySender))
+            .map(|(id, _)| BlockerNode::new(*id, BlockType::UnreadySender))
             .collect();
 
         blockers.extend(input_blockers);
@@ -677,7 +675,7 @@ impl Debugger {
 
         for blocked_process_id in state.get_blocked() {
             // start a clean tree with a new root node for each blocked process
-            let mut root_node = BlockerNode::new(*blocked_process_id, 0, BlockType::OutputBlocked);
+            let mut root_node = BlockerNode::new(*blocked_process_id, BlockType::OutputBlocked);
             let mut visited_nodes = vec![];
 
             let deadlock_set = self.traverse_blocker_tree(
