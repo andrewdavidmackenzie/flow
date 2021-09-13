@@ -12,7 +12,7 @@ use crate::model::route::Route;
 
 /// `Connection` defines a connection between the output of one function or flow to the input
 /// of another function or flow and maybe optionally named for legibility/debugging.
-#[derive(Deserialize, Serialize, Debug, Clone)]
+#[derive(Deserialize, Serialize, Default, Debug, Clone)]
 #[serde(deny_unknown_fields)]
 pub struct Connection {
     /// Optional name given to a connection for legibility and debugging
@@ -67,7 +67,7 @@ impl fmt::Display for Connection {
 }
 
 impl Validate for Connection {
-    // Called before everything is loaded and connected up to check all looks good
+    // TODO maybe validate some of the combinations here that are checked in build_connections here?
     fn validate(&self) -> Result<()> {
         self.name.validate()?;
         self.from.validate()?;

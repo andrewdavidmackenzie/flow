@@ -414,7 +414,12 @@ impl Flow {
 #[cfg(test)]
 mod test {
     use crate::compiler::loader::Validate;
+    use crate::model::connection::Connection;
+    use crate::model::flow::Flow;
+    use crate::model::function::Function;
+    use crate::model::io::IO;
     use crate::model::name::{HasName, Name};
+    use crate::model::process::Process;
 
     #[test]
     fn test_display() {
@@ -436,5 +441,45 @@ mod test {
     fn test_alias() {
         let flow = super::Flow::default();
         assert_eq!(flow.alias(), &Name::default());
+    }
+
+    // Create a test flow we can use in connection building testing
+    fn test_flow() -> Flow {
+        let mut flow = Flow {
+            name: "test_flow".into(),
+            ..Default::default()
+        };
+
+        let process_1 = Process::FunctionProcess(Function {
+            name: "process_1".into(),
+            id: 0,
+            outputs: vec![IO::new("String", "")],
+            ..Default::default()
+        });
+
+        let process_2 = Process::FunctionProcess(Function {
+            name: "process_2".into(),
+            id: 1,
+            inputs: vec![IO::new("String", "")],
+            ..Default::default()
+        });
+
+        let _ = flow.subprocesses.insert("process_1".into(), process_1);
+        let _ = flow.subprocesses.insert("process_2".into(), process_2);
+
+        flow
+    }
+
+    #[test]
+    fn build_compatibe_connection() {
+        let mut flow = test_flow();
+
+        let mut connection = Connection {
+            from: "process_1".into(),
+            to: "process_2".into(),
+            ..Default::default()
+        };
+
+        assert!(flow.build_connection(&mut connection).is_ok());
     }
 }
