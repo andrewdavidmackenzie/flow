@@ -317,6 +317,56 @@ impl Flow {
         }
     }
 
+    fn build_connection(&mut self, connection: &mut Connection) -> Result<()> {
+        match self.get_route_and_type(FROM, &connection.from, &None) {
+            Ok(from_io) => {
+                debug!("Found connection source:\n{:#?}", from_io);
+                match self.get_route_and_type(TO, &connection.to, from_io.get_initializer()) {
+                    Ok(to_io) => {
+                        debug!("Found connection destination:\n{:#?}", to_io);
+                        if Connection::compatible_types(
+                            from_io.datatype(),
+                            to_io.datatype(),
+                            &connection.from,
+                        ) {
+                            debug!(
+                                "Connection built from '{}' to '{}' with runtime conversion ''",
+                                from_io.route(),
+                                to_io.route()
+                            );
+                            connection.from_io = from_io;
+                            connection.to_io = to_io;
+                            Ok(())
+                        } else {
+                            bail!(
+                                "In flow '{}' cannot connect types:\nfrom\n{:#?}\nto\n{:#?}",
+                                self.source_url,
+                                from_io,
+                                to_io
+                            );
+                        }
+                    }
+                    Err(error) => {
+                        bail!(
+                            "Did not find connection destination: '{}' in flow '{}'\n\t\t{}",
+                            connection.to,
+                            self.source_url,
+                            error
+                        );
+                    }
+                }
+            }
+            Err(error) => {
+                bail!(
+                    "Did not find connection source: '{}' specified in flow '{}'\n\t{}",
+                    connection.from,
+                    self.source_url,
+                    error
+                );
+            }
+        }
+    }
+
     /// Change the names of connections to be routes to the alias used in this flow,
     /// in the process ensuring they exist, that direction is correct and types match
     ///
@@ -341,48 +391,9 @@ impl Flow {
         let mut connections = take(&mut self.connections);
 
         for connection in connections.iter_mut() {
-            match self.get_route_and_type(FROM, &connection.from, &None) {
-                Ok(from_io) => {
-                    debug!("Found connection source:\n{:#?}", from_io);
-                    match self.get_route_and_type(TO, &connection.to, from_io.get_initializer()) {
-                        Ok(to_io) => {
-                            debug!("Found connection destination:\n{:#?}", to_io);
-                            if Connection::compatible_types(
-                                from_io.datatype(),
-                                to_io.datatype(),
-                                &connection.from,
-                            ) {
-                                debug!(
-                                    "Connection built from '{}' to '{}' with runtime conversion ''",
-                                    from_io.route(),
-                                    to_io.route()
-                                );
-                                connection.from_io = from_io;
-                                connection.to_io = to_io;
-                            } else {
-                                error!(
-                                    "In flow '{}' cannot connect types:\nfrom\n{:#?}\nto\n{:#?}",
-                                    self.source_url, from_io, to_io
-                                );
-                                error_count += 1;
-                            }
-                        }
-                        Err(error) => {
-                            error!(
-                                "Did not find connection destination: '{}' in flow '{}'\n\t\t{}",
-                                connection.to, self.source_url, error
-                            );
-                            error_count += 1;
-                        }
-                    }
-                }
-                Err(error) => {
-                    error!(
-                        "Did not find connection source: '{}' specified in flow '{}'\n\t{}",
-                        connection.from, self.source_url, error
-                    );
-                    error_count += 1;
-                }
+            if let Err(e) = self.build_connection(connection) {
+                error_count += 1;
+                error!("{}", e);
             }
         }
 
