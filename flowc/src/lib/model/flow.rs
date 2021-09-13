@@ -317,6 +317,14 @@ impl Flow {
         }
     }
 
+    // Connection to/from Formats:
+    // "input/input_name"
+    // "output/output_name"
+    //
+    // "flow_name/io_name"
+    // "function_name/io_name"
+    //
+    // Propagate any initializers on a flow output to the input (subflow or function) it is connected to
     fn build_connection(&mut self, connection: &mut Connection) -> Result<()> {
         match self.get_route_and_type(FROM, &connection.from, &None) {
             Ok(from_io) => {
@@ -367,17 +375,8 @@ impl Flow {
         }
     }
 
-    /// Change the names of connections to be routes to the alias used in this flow,
-    /// in the process ensuring they exist, that direction is correct and types match
-    ///
-    /// Connection to/from Formats:
-    /// "input/input_name"
-    /// "output/output_name"
-    ///
-    /// "flow_name/io_name"
-    /// "function_name/io_name"
-    ///
-    /// Propagate any initializers on a flow output to the input (subflow or function) it is connected to
+    /// Iterate over all the connections defined in the flow, and attempt to connect the source
+    /// and destination, checking the types are compatible
     pub fn build_connections(&mut self) -> Result<()> {
         debug!("Building connections for flow '{}'", self.name);
 
