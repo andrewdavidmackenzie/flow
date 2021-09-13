@@ -379,10 +379,6 @@ impl Flow {
     ///
     /// Propagate any initializers on a flow output to the input (subflow or function) it is connected to
     pub fn build_connections(&mut self) -> Result<()> {
-        if self.connections.is_empty() {
-            return Ok(());
-        }
-
         debug!("Building connections for flow '{}'", self.name);
 
         let mut error_count = 0;
