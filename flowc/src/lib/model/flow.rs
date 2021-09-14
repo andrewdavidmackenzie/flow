@@ -413,6 +413,13 @@ impl Flow {
 
 #[cfg(test)]
 mod test {
+    use std::collections::HashMap;
+
+    use serde_json::json;
+
+    use flowcore::input::InputInitializer::Always;
+    use flowcore::input::InputInitializer::Once;
+
     use crate::compiler::loader::Validate;
     use crate::model::connection::Connection;
     use crate::model::flow::Flow;
@@ -421,61 +428,6 @@ mod test {
     use crate::model::name::{HasName, Name};
     use crate::model::process::Process;
     use crate::model::route::{HasRoute, Route, SetRoute};
-
-    #[test]
-    fn test_name() {
-        let flow = super::Flow::default();
-        assert_eq!(flow.name(), &Name::default());
-    }
-
-    #[test]
-    fn test_alias() {
-        let flow = super::Flow::default();
-        assert_eq!(flow.alias(), &Name::default());
-    }
-
-    #[test]
-    fn test_set_alias() {
-        let mut flow = super::Flow::default();
-        flow.set_alias(&Name::from("test flow"));
-        assert_eq!(flow.alias(), &Name::from("test flow"));
-    }
-
-    #[test]
-    fn test_set_empty_alias() {
-        let mut flow = super::Flow::default();
-        flow.set_alias(&Name::from(""));
-        assert_eq!(flow.alias(), &Name::from(""));
-    }
-
-    #[test]
-    fn test_route() {
-        let flow = super::Flow::default();
-        assert_eq!(flow.route(), &Route::default());
-    }
-
-    #[test]
-    fn test_route_mut() {
-        let mut flow = super::Flow::default();
-        let route = flow.route_mut();
-        assert_eq!(route, &Route::default());
-        *route = Route::from("/context");
-        assert_eq!(route, &Route::from("/context"));
-    }
-
-    #[test]
-    fn test_set_empty_parent_route() {
-        let mut flow = test_flow();
-        flow.set_routes_from_parent(&Route::from(""));
-        assert_eq!(flow.route(), &Route::from("/test_flow"));
-    }
-
-    #[test]
-    fn test_set_parent_route() {
-        let mut flow = test_flow();
-        flow.set_routes_from_parent(&Route::from("/context"));
-        assert_eq!(flow.route(), &Route::from("/context/test_flow"));
-    }
 
     // Create a test flow we can use in connection building testing
     fn test_flow() -> Flow {
@@ -536,6 +488,61 @@ mod test {
     }
 
     #[test]
+    fn test_name() {
+        let flow = super::Flow::default();
+        assert_eq!(flow.name(), &Name::default());
+    }
+
+    #[test]
+    fn test_alias() {
+        let flow = super::Flow::default();
+        assert_eq!(flow.alias(), &Name::default());
+    }
+
+    #[test]
+    fn test_set_alias() {
+        let mut flow = super::Flow::default();
+        flow.set_alias(&Name::from("test flow"));
+        assert_eq!(flow.alias(), &Name::from("test flow"));
+    }
+
+    #[test]
+    fn test_set_empty_alias() {
+        let mut flow = super::Flow::default();
+        flow.set_alias(&Name::from(""));
+        assert_eq!(flow.alias(), &Name::from(""));
+    }
+
+    #[test]
+    fn test_route() {
+        let flow = super::Flow::default();
+        assert_eq!(flow.route(), &Route::default());
+    }
+
+    #[test]
+    fn test_route_mut() {
+        let mut flow = super::Flow::default();
+        let route = flow.route_mut();
+        assert_eq!(route, &Route::default());
+        *route = Route::from("/context");
+        assert_eq!(route, &Route::from("/context"));
+    }
+
+    #[test]
+    fn test_set_empty_parent_route() {
+        let mut flow = test_flow();
+        flow.set_routes_from_parent(&Route::from(""));
+        assert_eq!(flow.route(), &Route::from("/test_flow"));
+    }
+
+    #[test]
+    fn test_set_parent_route() {
+        let mut flow = test_flow();
+        flow.set_routes_from_parent(&Route::from("/context"));
+        assert_eq!(flow.route(), &Route::from("/context/test_flow"));
+    }
+
+    #[test]
     fn validate_flow() {
         let mut flow = test_flow();
         let connection = Connection {
@@ -569,6 +576,35 @@ mod test {
     }
 
     #[test]
+    fn test_inputs_initializers() {
+        let mut flow = test_flow();
+        let mut initializers = HashMap::new();
+        initializers.insert("string".into(), Always(json!("Hello")));
+        initializers.insert("number".into(), Once(json!(42)));
+        flow.set_initial_values(&initializers);
+
+        assert_eq!(
+            flow.inputs()
+                .get(0)
+                .expect("Could not get input")
+                .get_initializer()
+                .as_ref()
+                .expect("Could not get initializer"),
+            &Always(json!("Hello"))
+        );
+
+        assert_eq!(
+            flow.inputs()
+                .get(1)
+                .expect("Could not get input")
+                .get_initializer()
+                .as_ref()
+                .expect("Could not get initializer"),
+            &Once(json!(42))
+        );
+    }
+
+    #[test]
     fn display_flow() {
         let mut flow = test_flow();
         let connection = Connection {
@@ -578,10 +614,6 @@ mod test {
         };
         flow.connections = vec![connection];
         println!("flow: {}", flow);
-    }
-
-    mod get_route_and_type_tests {
-        // Test invalid Connection also?
     }
 
     mod build_connection_tests {
@@ -716,6 +748,46 @@ mod test {
             };
 
             assert!(flow.build_connection(&mut connection).is_err());
+        }
+
+        #[test]
+        fn build_all_flow_connections() {
+            let mut flow = test_flow();
+
+            let connection1 = Connection {
+                from: "input/string".into(), // String
+                to: "output/string".into(),  // String
+                ..Default::default()
+            };
+
+            let connection2 = Connection {
+                from: "input/string".into(), // String
+                to: "process_1".into(),      // String
+                ..Default::default()
+            };
+
+            let connection3 = Connection {
+                from: "process_1".into(),   // String
+                to: "output/string".into(), // String
+                ..Default::default()
+            };
+
+            flow.connections = vec![connection1, connection2, connection3];
+            assert!(flow.build_connections().is_ok());
+        }
+
+        #[test]
+        fn fail_build_flow_connections() {
+            let mut flow = test_flow();
+
+            let connection1 = Connection {
+                from: "input/number".into(), // Number
+                to: "process_1".into(),      // String
+                ..Default::default()
+            };
+
+            flow.connections = vec![connection1];
+            assert!(flow.build_connections().is_err());
         }
     }
 }
