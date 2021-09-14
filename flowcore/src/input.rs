@@ -7,7 +7,7 @@ use serde_json::Value;
 
 use crate::errors::*;
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, PartialEq, Deserialize)]
 #[serde(rename_all = "lowercase")]
 /// An `Input` can be initialized in one of two ways with an `InputInitializer`
 pub enum InputInitializer {

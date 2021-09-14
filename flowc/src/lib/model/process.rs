@@ -15,12 +15,6 @@ pub enum Process {
     FunctionProcess(Function),
 }
 
-impl Default for Process {
-    fn default() -> Process {
-        Process::FlowProcess(Flow::default())
-    }
-}
-
 impl HasName for Process {
     fn name(&self) -> &Name {
         match self {

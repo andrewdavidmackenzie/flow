@@ -24,39 +24,39 @@ use crate::model::route::SetRoute;
 pub struct Function {
     /// `name` of the function
     #[serde(rename = "function")]
-    name: Name,
+    pub(crate) name: Name,
     /// Is this an impure function that interacts with the runtime environment?
     #[serde(default)]
-    impure: bool,
+    pub(crate) impure: bool,
     /// String name of the file where the actual implementation should be read from
-    implementation: String,
+    pub(crate) implementation: String,
     /// The set of inputs this function has
     #[serde(default, rename = "input")]
-    pub inputs: IOSet,
+    pub(crate) inputs: IOSet,
     /// The set of outputs this function generates when executed
     #[serde(default, rename = "output")]
-    outputs: IOSet,
+    pub(crate) outputs: IOSet,
 
     /// As a function can be used multiple times in a single flow, the repeated instances must
     /// be referred to using an alias to disambiguate which instance is being referred to
     #[serde(skip_deserializing)]
-    alias: Name,
+    pub(crate) alias: Name,
     /// `source_url` is where this function definition was read from
     #[serde(skip_deserializing, default)]
-    source_url: String, // can be a relative path with no scheme etc so can't be a Url
+    pub(crate) source_url: String, // can be a relative path with no scheme etc so can't be a Url
     /// the `route` in the flow hierarchy where this function is located
     #[serde(skip_deserializing)]
-    route: Route,
+    pub(crate) route: Route,
     /// Is the function being used part of a library and where is it found
     #[serde(skip_deserializing)]
-    lib_reference: Option<String>,
+    pub(crate) lib_reference: Option<String>,
 
     #[serde(skip_deserializing)]
-    output_connections: Vec<OutputConnection>,
+    pub(crate) output_connections: Vec<OutputConnection>,
     #[serde(skip_deserializing)]
-    id: usize,
+    pub(crate) id: usize,
     #[serde(skip_deserializing)]
-    flow_id: usize,
+    pub(crate) flow_id: usize,
 }
 
 impl HasName for Function {
