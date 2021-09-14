@@ -414,21 +414,13 @@ impl Flow {
 #[cfg(test)]
 mod test {
     use crate::compiler::loader::Validate;
+    use crate::model::connection::Connection;
     use crate::model::flow::Flow;
     use crate::model::function::Function;
     use crate::model::io::IO;
     use crate::model::name::{HasName, Name};
     use crate::model::process::Process;
-
-    #[test]
-    fn test_display() {
-        println!("{}", super::Flow::default());
-    }
-
-    #[test]
-    fn test_validate() {
-        assert!(super::Flow::default().validate().is_ok());
-    }
+    use crate::model::route::{HasRoute, Route, SetRoute};
 
     #[test]
     fn test_name() {
@@ -442,10 +434,54 @@ mod test {
         assert_eq!(flow.alias(), &Name::default());
     }
 
+    #[test]
+    fn test_set_alias() {
+        let mut flow = super::Flow::default();
+        flow.set_alias(&Name::from("test flow"));
+        assert_eq!(flow.alias(), &Name::from("test flow"));
+    }
+
+    #[test]
+    fn test_set_empty_alias() {
+        let mut flow = super::Flow::default();
+        flow.set_alias(&Name::from(""));
+        assert_eq!(flow.alias(), &Name::from(""));
+    }
+
+    #[test]
+    fn test_route() {
+        let flow = super::Flow::default();
+        assert_eq!(flow.route(), &Route::default());
+    }
+
+    #[test]
+    fn test_route_mut() {
+        let mut flow = super::Flow::default();
+        let route = flow.route_mut();
+        assert_eq!(route, &Route::default());
+        *route = Route::from("/context");
+        assert_eq!(route, &Route::from("/context"));
+    }
+
+    #[test]
+    fn test_set_empty_parent_route() {
+        let mut flow = test_flow();
+        flow.set_routes_from_parent(&Route::from(""));
+        assert_eq!(flow.route(), &Route::from("/test_flow"));
+    }
+
+    #[test]
+    fn test_set_parent_route() {
+        let mut flow = test_flow();
+        flow.set_routes_from_parent(&Route::from("/context"));
+        assert_eq!(flow.route(), &Route::from("/context/test_flow"));
+    }
+
     // Create a test flow we can use in connection building testing
     fn test_flow() -> Flow {
         let mut flow = Flow {
             name: "test_flow".into(),
+            alias: "test_flow".into(),
             inputs: vec![
                 IO {
                     datatype: "String".into(),
@@ -497,6 +533,51 @@ mod test {
         let _ = flow.subprocesses.insert("process_2".into(), process_2);
 
         flow
+    }
+
+    #[test]
+    fn validate_flow() {
+        let mut flow = test_flow();
+        let connection = Connection {
+            from: "process_1".into(), // String
+            to: "process_2".into(),   // String
+            ..Default::default()
+        };
+        flow.connections = vec![connection];
+        assert!(flow.validate().is_ok());
+    }
+
+    #[test]
+    fn check_outputs() {
+        let flow = test_flow();
+        assert_eq!(flow.outputs().len(), 2);
+    }
+
+    #[test]
+    fn check_inputs() {
+        let flow = test_flow();
+        assert_eq!(flow.inputs().len(), 2);
+    }
+
+    #[test]
+    fn check_inputs_mut() {
+        let mut flow = test_flow();
+        let inputs = flow.inputs_mut();
+        assert_eq!(inputs.len(), 2);
+        *inputs = vec![];
+        assert_eq!(inputs.len(), 0);
+    }
+
+    #[test]
+    fn display_flow() {
+        let mut flow = test_flow();
+        let connection = Connection {
+            from: "process_1".into(), // String
+            to: "process_2".into(),   // String
+            ..Default::default()
+        };
+        flow.connections = vec![connection];
+        println!("flow: {}", flow);
     }
 
     mod get_route_and_type_tests {
