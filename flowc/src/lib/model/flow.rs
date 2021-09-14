@@ -414,7 +414,6 @@ impl Flow {
 #[cfg(test)]
 mod test {
     use crate::compiler::loader::Validate;
-    use crate::model::connection::Connection;
     use crate::model::flow::Flow;
     use crate::model::function::Function;
     use crate::model::io::IO;
@@ -447,12 +446,41 @@ mod test {
     fn test_flow() -> Flow {
         let mut flow = Flow {
             name: "test_flow".into(),
+            inputs: vec![
+                IO {
+                    datatype: "String".into(),
+                    route: "string".into(),
+                    name: "string".into(),
+                    ..Default::default()
+                },
+                IO {
+                    datatype: "Number".into(),
+                    route: "number".into(),
+                    name: "number".into(),
+                    ..Default::default()
+                },
+            ],
+            outputs: vec![
+                IO {
+                    datatype: "String".into(),
+                    route: "string".into(),
+                    name: "string".into(),
+                    ..Default::default()
+                },
+                IO {
+                    datatype: "Number".into(),
+                    route: "number".into(),
+                    name: "number".into(),
+                    ..Default::default()
+                },
+            ],
             ..Default::default()
         };
 
         let process_1 = Process::FunctionProcess(Function {
             name: "process_1".into(),
             id: 0,
+            inputs: vec![IO::new("String", "")],
             outputs: vec![IO::new("String", "")],
             ..Default::default()
         });
@@ -461,6 +489,7 @@ mod test {
             name: "process_2".into(),
             id: 1,
             inputs: vec![IO::new("String", "")],
+            outputs: vec![IO::new("Number", "")],
             ..Default::default()
         });
 
@@ -470,16 +499,142 @@ mod test {
         flow
     }
 
-    #[test]
-    fn build_compatibe_connection() {
-        let mut flow = test_flow();
+    mod get_route_and_type_tests {
+        // Test invalid Connection also?
+    }
 
-        let mut connection = Connection {
-            from: "process_1".into(),
-            to: "process_2".into(),
-            ..Default::default()
-        };
+    mod build_connection_tests {
+        use crate::model::connection::Connection;
+        use crate::model::flow::test::test_flow;
 
-        assert!(flow.build_connection(&mut connection).is_ok());
+        #[test]
+        fn build_compatible_internal_connection() {
+            let mut flow = test_flow();
+
+            let mut connection = Connection {
+                from: "process_1".into(), // String
+                to: "process_2".into(),   // String
+                ..Default::default()
+            };
+
+            assert!(flow.build_connection(&mut connection).is_ok());
+        }
+
+        #[test]
+        fn build_incompatible_internal_connection() {
+            let mut flow = test_flow();
+
+            let mut connection = Connection {
+                from: "process_2".into(), // Number
+                to: "process_1".into(),   // String
+                ..Default::default()
+            };
+
+            assert!(flow.build_connection(&mut connection).is_err());
+        }
+
+        #[test]
+        fn build_from_flow_input_to_sub_process() {
+            let mut flow = test_flow();
+
+            let mut connection = Connection {
+                from: "input/string".into(), // String
+                to: "process_1".into(),      // String
+                ..Default::default()
+            };
+
+            assert!(flow.build_connection(&mut connection).is_ok());
+        }
+
+        #[test]
+        fn build_from_sub_process_flow_output() {
+            let mut flow = test_flow();
+
+            let mut connection = Connection {
+                from: "process_1".into(),   // String
+                to: "output/string".into(), // String
+                ..Default::default()
+            };
+
+            assert!(flow.build_connection(&mut connection).is_ok());
+        }
+
+        #[test]
+        fn build_from_flow_input_to_flow_output() {
+            let mut flow = test_flow();
+
+            let mut connection = Connection {
+                from: "input/string".into(), // String
+                to: "output/string".into(),  // String
+                ..Default::default()
+            };
+
+            assert!(flow.build_connection(&mut connection).is_ok());
+        }
+
+        #[test]
+        fn build_incompatible_from_flow_input_to_sub_process() {
+            let mut flow = test_flow();
+
+            let mut connection = Connection {
+                from: "input/number".into(), // Number
+                to: "process_1".into(),      // String
+                ..Default::default()
+            };
+
+            assert!(flow.build_connection(&mut connection).is_err());
+        }
+
+        #[test]
+        fn build_incompatible_from_sub_process_flow_output() {
+            let mut flow = test_flow();
+
+            let mut connection = Connection {
+                from: "process_1".into(),   // String
+                to: "output/number".into(), // Number
+                ..Default::default()
+            };
+
+            assert!(flow.build_connection(&mut connection).is_err());
+        }
+
+        #[test]
+        fn build_incompatible_from_flow_input_to_flow_output() {
+            let mut flow = test_flow();
+
+            let mut connection = Connection {
+                from: "input/string".into(), // String
+                to: "output/number".into(),  // Number
+                ..Default::default()
+            };
+
+            assert!(flow.build_connection(&mut connection).is_err());
+        }
+
+        #[test]
+        fn fail_build_from_flow_input_to_flow_input() {
+            let mut flow = test_flow();
+
+            let mut connection = Connection {
+                from: "input/string".into(), // String
+                to: "input/number".into(),   // Number
+                ..Default::default()
+            };
+
+            assert!(flow.build_connection(&mut connection).is_err());
+        }
+
+        #[test]
+        fn fail_build_from_flow_output_to_flow_output() {
+            let mut flow = test_flow();
+
+            let mut connection = Connection {
+                from: "output/string".into(), // String
+                to: "output/number".into(),   // Number
+                ..Default::default()
+            };
+
+            assert!(flow.build_connection(&mut connection).is_err());
+        }
     }
 }
