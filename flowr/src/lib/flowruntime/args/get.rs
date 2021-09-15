@@ -32,7 +32,7 @@ impl Implementation for Get {
                     // And add the array of Value at the "/json" route
                     let _ = output_map.insert("json".into(), Value::Array(json_arg_vec));
 
-                    // Add the array of (unparsed) text values of the args at "/text" route
+                    // Add the array of (unparsed) text values of the args at "/string" route
                     output_map.insert("string".into(), json!(arg_vec));
 
                     (Some(Value::Object(output_map)), DONT_RUN_AGAIN)
@@ -41,5 +41,35 @@ impl Implementation for Get {
             };
         }
         (None, DONT_RUN_AGAIN)
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use std::sync::{Arc, Mutex};
+
+    use flowcore::{Implementation, RUN_AGAIN};
+
+    use crate::client_server::ServerConnection;
+
+    use super::Get;
+
+    #[test]
+    fn gets_args() {
+        let getter = &Get {
+            server_connection: Arc::new(Mutex::new(
+                ServerConnection::new("test server", None)
+                    .expect("Could not create server connection"),
+            )),
+        } as &dyn Implementation;
+        let (value, run_again) = getter.run(&[]);
+
+        assert_eq!(run_again, RUN_AGAIN);
+        let value = value.expect("Could not get returned args");
+        let map = value
+            .as_object()
+            .expect("Could not get map of output values");
+        assert!(map.contains_key("json"));
+        assert!(map.contains_key("string"));
     }
 }
