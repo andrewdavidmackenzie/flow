@@ -48,14 +48,14 @@ impl Implementation for Get {
 mod test {
     use std::sync::{Arc, Mutex};
 
-    use flowcore::{Implementation, RUN_AGAIN};
+    use flowcore::{Implementation, DONT_RUN_AGAIN};
 
     use crate::client_server::ServerConnection;
 
     use super::Get;
 
     #[test]
-    fn gets_args() {
+    fn gets_args_no_client() {
         let getter = &Get {
             server_connection: Arc::new(Mutex::new(
                 ServerConnection::new("test server", None)
@@ -64,12 +64,17 @@ mod test {
         } as &dyn Implementation;
         let (value, run_again) = getter.run(&[]);
 
-        assert_eq!(run_again, RUN_AGAIN);
-        let value = value.expect("Could not get returned args");
-        let map = value
-            .as_object()
-            .expect("Could not get map of output values");
-        assert!(map.contains_key("json"));
-        assert!(map.contains_key("string"));
+        assert_eq!(run_again, DONT_RUN_AGAIN);
+        assert_eq!(value, None);
     }
+
+    /*
+           let value = value.expect("Could not get returned args");
+       let map = value
+           .as_object()
+           .expect("Could not get map of output values");
+       assert!(map.contains_key("json"));
+       assert!(map.contains_key("string"));
+
+    */
 }
