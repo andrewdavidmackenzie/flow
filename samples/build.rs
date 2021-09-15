@@ -16,14 +16,14 @@ fn main() -> io::Result<()> {
     println!("`flowsample` version {}", env!("CARGO_PKG_VERSION"));
     println!(
         "Current Working Directory: `{}`",
-        std::env::current_dir().unwrap().display()
+        std::env::current_dir().expect("Could not read the Current Working Directory").display()
     );
     println!("Samples Root Directory: `{}`", env!("CARGO_MANIFEST_DIR"));
 
     let flowc = get_flowc()?;
 
     println!(
-        "Using 'flowc' flow compiler found at: `{}`\n",
+        "Using 'flowc' flow compiler found at: `{}`",
         flowc.to_str().unwrap()
     );
 
@@ -32,7 +32,7 @@ fn main() -> io::Result<()> {
         let e = entry?;
         if e.file_type()?.is_dir() {
             println!(
-                "Building sample with 'flowc': {}",
+                "Building sample '{}'",
                 e.path().to_str().unwrap()
             );
             if compile_sample(&e.path(), &flowc).is_err() {

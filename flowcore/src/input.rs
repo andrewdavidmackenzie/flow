@@ -167,7 +167,7 @@ mod test {
         let mut input = Input::new(&None);
         input.push(json!(10));
         assert_ne!(input.count(), 0);
-        let _value = input.take().unwrap();
+        let _value = input.take().expect("Could not take the input value as expected");
         assert_eq!(input.count(), 0);
     }
 
