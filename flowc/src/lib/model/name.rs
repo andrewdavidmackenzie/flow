@@ -95,6 +95,6 @@ mod test {
     #[test]
     fn validates_when_has_value() {
         let name: Name = Name::from("test");
-        name.validate().unwrap();
+        name.validate().expect("Name did not validate as expected");
     }
 }
