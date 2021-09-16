@@ -224,8 +224,10 @@ where
 #[cfg(test)]
 mod test {
     use std::fmt;
+    use std::time::Duration;
 
     use serde_derive::{Deserialize, Serialize};
+    use serial_test::serial;
     use zmq::Message;
 
     use crate::client_server::{ClientConnection, ServerConnection};
@@ -315,6 +317,7 @@ mod test {
     }
 
     #[test]
+    #[serial]
     fn hello_world() {
         let mut server = ServerConnection::<ServerMessage, ClientMessage>::new("test", None)
             .expect("Could not create ServerConnection");
@@ -330,6 +333,43 @@ mod test {
         assert_eq!(
             server
                 .receive()
+                .expect("Could not receive message at server"),
+            ClientMessage::Hello
+        );
+
+        // Respond from the server
+        server
+            .send(ServerMessage::World)
+            .expect("Could not send server message");
+
+        // Receive it and check it on the client
+        assert_eq!(
+            client
+                .receive()
+                .expect("Could not receive message at client"),
+            ServerMessage::World
+        );
+    }
+
+    #[test]
+    #[serial]
+    fn receive_no_wait() {
+        let mut server = ServerConnection::<ServerMessage, ClientMessage>::new("test", None)
+            .expect("Could not create ServerConnection");
+        let client = ClientConnection::<ServerMessage, ClientMessage>::new("test", None)
+            .expect("Could not create ClientConnection");
+
+        // Open the connection by sending the first message from the client
+        client
+            .send(ClientMessage::Hello)
+            .expect("Could not send initial 'Hello' message");
+
+        std::thread::sleep(Duration::from_millis(1));
+
+        // Receive and check it on the server
+        assert_eq!(
+            server
+                .receive_no_wait()
                 .expect("Could not receive message at server"),
             ClientMessage::Hello
         );
