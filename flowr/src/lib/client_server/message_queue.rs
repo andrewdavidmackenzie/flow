@@ -220,3 +220,131 @@ where
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod test {
+    use std::fmt;
+
+    use serde_derive::{Deserialize, Serialize};
+    use zmq::Message;
+
+    use crate::client_server::{ClientConnection, ServerConnection};
+
+    #[derive(Serialize, Deserialize, PartialEq, Debug)]
+    enum ServerMessage {
+        World,
+        Invalid,
+    }
+
+    impl fmt::Display for ServerMessage {
+        fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+            write!(
+                f,
+                "ServerMessage {}",
+                match self {
+                    ServerMessage::World => "World",
+                    ServerMessage::Invalid => "Invalid",
+                }
+            )
+        }
+    }
+
+    #[derive(Serialize, Deserialize, PartialEq, Debug)]
+    enum ClientMessage {
+        Hello,
+        Invalid,
+    }
+
+    impl fmt::Display for ClientMessage {
+        fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+            write!(
+                f,
+                "ClientMessage {}",
+                match self {
+                    ClientMessage::Hello => "Hello",
+                    ClientMessage::Invalid => "Invalid",
+                }
+            )
+        }
+    }
+
+    #[cfg(feature = "distributed")]
+    impl From<ServerMessage> for Message {
+        fn from(event: ServerMessage) -> Self {
+            match serde_json::to_string(&event) {
+                Ok(message_string) => Message::from(&message_string),
+                _ => Message::new(),
+            }
+        }
+    }
+
+    #[cfg(feature = "distributed")]
+    impl From<Message> for ServerMessage {
+        fn from(msg: Message) -> Self {
+            match msg.as_str() {
+                Some(message_string) => match serde_json::from_str(message_string) {
+                    Ok(message) => message,
+                    _ => ServerMessage::Invalid,
+                },
+                _ => ServerMessage::Invalid,
+            }
+        }
+    }
+
+    #[cfg(feature = "distributed")]
+    impl From<ClientMessage> for Message {
+        fn from(msg: ClientMessage) -> Self {
+            match serde_json::to_string(&msg) {
+                Ok(message_string) => Message::from(&message_string),
+                _ => Message::new(),
+            }
+        }
+    }
+
+    #[cfg(feature = "distributed")]
+    impl From<Message> for ClientMessage {
+        fn from(msg: Message) -> Self {
+            match msg.as_str() {
+                Some(message_string) => match serde_json::from_str(message_string) {
+                    Ok(message) => message,
+                    _ => ClientMessage::Invalid,
+                },
+                _ => ClientMessage::Invalid,
+            }
+        }
+    }
+
+    #[test]
+    fn hello_world() {
+        let mut server = ServerConnection::<ServerMessage, ClientMessage>::new("test", None)
+            .expect("Could not create ServerConnection");
+        let client = ClientConnection::<ServerMessage, ClientMessage>::new("test", None)
+            .expect("Could not create ClientConnection");
+
+        // Open the connection by sending the first message from the client
+        client
+            .send(ClientMessage::Hello)
+            .expect("Could not send initial 'Hello' message");
+
+        // Receive and check it on the server
+        assert_eq!(
+            server
+                .receive()
+                .expect("Could not receive message at server"),
+            ClientMessage::Hello
+        );
+
+        // Respond from the server
+        server
+            .send(ServerMessage::World)
+            .expect("Could not send server message");
+
+        // Receive it and check it on the client
+        assert_eq!(
+            client
+                .receive()
+                .expect("Could not receive message at client"),
+            ServerMessage::World
+        );
+    }
+}
