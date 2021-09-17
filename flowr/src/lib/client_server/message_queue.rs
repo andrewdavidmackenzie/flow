@@ -317,7 +317,7 @@ mod test {
     }
 
     #[test]
-    #[serial]
+    #[serial(client_server)]
     fn hello_world() {
         let mut server = ServerConnection::<ServerMessage, ClientMessage>::new("test", None)
             .expect("Could not create ServerConnection");
@@ -352,7 +352,7 @@ mod test {
     }
 
     #[test]
-    #[serial]
+    #[serial(client_server)]
     fn receive_no_wait() {
         let mut server = ServerConnection::<ServerMessage, ClientMessage>::new("test", None)
             .expect("Could not create ServerConnection");
@@ -364,7 +364,7 @@ mod test {
             .send(ClientMessage::Hello)
             .expect("Could not send initial 'Hello' message");
 
-        std::thread::sleep(Duration::from_millis(1));
+        std::thread::sleep(Duration::from_millis(10));
 
         // Receive and check it on the server
         assert_eq!(
