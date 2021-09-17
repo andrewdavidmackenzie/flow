@@ -29,7 +29,7 @@ impl Implementation for Get {
                             json_arg_vec.push(serde_json::Value::String(arg.into()))
                         }
                     }
-                    // And add the array of Value at the "/json" route
+                    // Add the json Array of args at the "/json" output route
                     let _ = output_map.insert("json".into(), Value::Array(json_arg_vec));
 
                     // Add the array of (unparsed) text values of the args at "/string" route
@@ -48,19 +48,19 @@ impl Implementation for Get {
 mod test {
     use std::sync::{Arc, Mutex};
 
+    use serde_json::json;
     use serial_test::serial;
 
     use flowcore::{Implementation, DONT_RUN_AGAIN};
 
+    use crate::client_server::ClientConnection;
     use crate::client_server::ServerConnection;
     use crate::coordinator::RUNTIME_SERVICE_NAME;
+    use crate::runtime_messages::ClientMessage::Args;
+    use crate::runtime_messages::ServerMessage::GetArgs;
+    use crate::runtime_messages::{ClientMessage, ServerMessage};
 
     use super::Get;
-
-    // use crate::client_server::ClientConnection;
-    //    use crate::runtime_messages::ClientMessage::Args;
-    //    use crate::runtime_messages::ServerMessage::GetArgs;
-    //  use crate::runtime_messages::{ClientMessage, ServerMessage};
 
     #[test]
     #[serial(client_server)]
@@ -77,8 +77,15 @@ mod test {
         assert_eq!(value, None);
     }
 
-    /*
-    fn wait_for_then_send(wait_for_message: ServerMessage, then_send: ClientMessage) {
+    fn wait_for_then_send(
+        wait_for_message: ServerMessage,
+        then_send: ClientMessage,
+    ) -> Arc<Mutex<ServerConnection<ServerMessage, ClientMessage>>> {
+        let server_connection = Arc::new(Mutex::new(
+            ServerConnection::new(RUNTIME_SERVICE_NAME, None)
+                .expect("Could not create server connection"),
+        ));
+
         let client_connection =
             ClientConnection::<ServerMessage, ClientMessage>::new(RUNTIME_SERVICE_NAME, None)
                 .expect("Could not create ClientConnection");
@@ -101,30 +108,6 @@ mod test {
                 _ => panic!("Error receiving ServerMessage"),
             }
         });
-    }
-
-    fn server_connection() -> Arc<Mutex<ServerConnection<ServerMessage, ClientMessage>>> {
-        Arc::new(Mutex::new(
-            ServerConnection::new(RUNTIME_SERVICE_NAME, None)
-                .expect("Could not create server connection"),
-        ))
-    }
-
-    #[test]
-    #[serial(client_server)]
-    fn gets_args() {
-        let server_connection = server_connection();
-
-        let getter = &Get {
-            server_connection: server_connection.clone(),
-        } as &dyn Implementation;
-
-        let args = vec!["flow_name", "arg1", "arg2"]
-            .iter()
-            .map(|s| s.to_string())
-            .collect();
-
-        wait_for_then_send(GetArgs, Args(args));
 
         // Get the initial Ack sent from client to open the connection
         let guard = server_connection
@@ -134,14 +117,31 @@ mod test {
             .receive()
             .expect("Could not receive initial Ack message from client");
 
+        server_connection.clone()
+    }
+
+    #[test]
+    #[serial(client_server)]
+    fn gets_args() {
+        let args: Vec<String> = vec!["flow_name", "arg1", "arg2"]
+            .iter()
+            .map(|s| s.to_string())
+            .collect();
+
+        let server_connection = wait_for_then_send(GetArgs, Args(args.clone()));
+
+        let getter = &Get { server_connection } as &dyn Implementation;
+
         let (value, run_again) = getter.run(&[]);
 
         assert_eq!(run_again, DONT_RUN_AGAIN);
 
         let val = value.expect("Could not get value returned from implementation");
         let map = val.as_object().expect("Could not get map of output values");
-        assert!(map.contains_key("json"));
         assert!(map.contains_key("string"));
+        assert_eq!(
+            map.get("json").expect("Could not get json args"),
+            &json!(args)
+        );
     }
-     */
 }
