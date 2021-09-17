@@ -64,9 +64,7 @@ where
         })
     }
 
-    /*
-        try to discover a server that a client can send a submission to
-    */
+    // Try to discover a server that a client can send a submission to
     #[cfg(feature = "distributed")]
     fn discover_service(name: &str) -> Option<(String, u16)> {
         let listener = BeaconListener::new(name.as_bytes()).ok()?;
@@ -235,7 +233,6 @@ mod test {
     #[derive(Serialize, Deserialize, PartialEq, Debug)]
     enum ServerMessage {
         World,
-        Invalid,
     }
 
     impl fmt::Display for ServerMessage {
@@ -245,7 +242,6 @@ mod test {
                 "ServerMessage {}",
                 match self {
                     ServerMessage::World => "World",
-                    ServerMessage::Invalid => "Invalid",
                 }
             )
         }
@@ -254,65 +250,43 @@ mod test {
     #[derive(Serialize, Deserialize, PartialEq, Debug)]
     enum ClientMessage {
         Hello,
-        Invalid,
     }
 
     impl fmt::Display for ClientMessage {
         fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-            write!(
-                f,
-                "ClientMessage {}",
-                match self {
-                    ClientMessage::Hello => "Hello",
-                    ClientMessage::Invalid => "Invalid",
-                }
-            )
+            write!(f, "ClientMessage Hello",)
         }
     }
 
     #[cfg(feature = "distributed")]
     impl From<ServerMessage> for Message {
         fn from(event: ServerMessage) -> Self {
-            match serde_json::to_string(&event) {
-                Ok(message_string) => Message::from(&message_string),
-                _ => Message::new(),
-            }
+            Message::from(&serde_json::to_string(&event).expect("Could not serialize message"))
         }
     }
 
     #[cfg(feature = "distributed")]
     impl From<Message> for ServerMessage {
         fn from(msg: Message) -> Self {
-            match msg.as_str() {
-                Some(message_string) => match serde_json::from_str(message_string) {
-                    Ok(message) => message,
-                    _ => ServerMessage::Invalid,
-                },
-                _ => ServerMessage::Invalid,
-            }
+            serde_json::from_str(msg.as_str().expect("Could not convert message to &str"))
+                .expect("Could not deserialize message")
         }
     }
 
     #[cfg(feature = "distributed")]
     impl From<ClientMessage> for Message {
         fn from(msg: ClientMessage) -> Self {
-            match serde_json::to_string(&msg) {
-                Ok(message_string) => Message::from(&message_string),
-                _ => Message::new(),
-            }
+            Message::from(
+                &serde_json::to_string(&msg).expect("Could not convert message to string"),
+            )
         }
     }
 
     #[cfg(feature = "distributed")]
     impl From<Message> for ClientMessage {
         fn from(msg: Message) -> Self {
-            match msg.as_str() {
-                Some(message_string) => match serde_json::from_str(message_string) {
-                    Ok(message) => message,
-                    _ => ClientMessage::Invalid,
-                },
-                _ => ClientMessage::Invalid,
-            }
+            serde_json::from_str(msg.as_str().expect("Could not convert message to str"))
+                .expect("Could not deserialize message")
         }
     }
 
@@ -330,12 +304,11 @@ mod test {
             .expect("Could not send initial 'Hello' message");
 
         // Receive and check it on the server
-        assert_eq!(
-            server
-                .receive()
-                .expect("Could not receive message at server"),
-            ClientMessage::Hello
-        );
+        let client_message = server
+            .receive()
+            .expect("Could not receive message at server");
+        println!("Client Message = {}", client_message);
+        assert_eq!(client_message, ClientMessage::Hello);
 
         // Respond from the server
         server
@@ -343,12 +316,11 @@ mod test {
             .expect("Could not send server message");
 
         // Receive it and check it on the client
-        assert_eq!(
-            client
-                .receive()
-                .expect("Could not receive message at client"),
-            ServerMessage::World
-        );
+        let server_message = client
+            .receive()
+            .expect("Could not receive message at client");
+        println!("Server Message = {}", server_message);
+        assert_eq!(server_message, ServerMessage::World);
     }
 
     #[test]
