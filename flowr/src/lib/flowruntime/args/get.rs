@@ -52,13 +52,15 @@ mod test {
 
     use flowcore::{Implementation, DONT_RUN_AGAIN};
 
-    use crate::client_server::{ClientConnection, ServerConnection};
+    use crate::client_server::ServerConnection;
     use crate::coordinator::RUNTIME_SERVICE_NAME;
-    //    use crate::runtime_messages::ClientMessage::Args;
-    //    use crate::runtime_messages::ServerMessage::GetArgs;
-    use crate::runtime_messages::{ClientMessage, ServerMessage};
 
     use super::Get;
+
+    // use crate::client_server::ClientConnection;
+    //    use crate::runtime_messages::ClientMessage::Args;
+    //    use crate::runtime_messages::ServerMessage::GetArgs;
+    //  use crate::runtime_messages::{ClientMessage, ServerMessage};
 
     #[test]
     #[serial(client_server)]
@@ -75,6 +77,7 @@ mod test {
         assert_eq!(value, None);
     }
 
+    /*
     fn wait_for_then_send(wait_for_message: ServerMessage, then_send: ClientMessage) {
         let client_connection =
             ClientConnection::<ServerMessage, ClientMessage>::new(RUNTIME_SERVICE_NAME, None)
@@ -100,7 +103,6 @@ mod test {
         });
     }
 
-    /*
     fn server_connection() -> Arc<Mutex<ServerConnection<ServerMessage, ClientMessage>>> {
         Arc::new(Mutex::new(
             ServerConnection::new(RUNTIME_SERVICE_NAME, None)
