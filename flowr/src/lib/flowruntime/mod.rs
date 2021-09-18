@@ -20,6 +20,8 @@ pub mod file;
 pub mod image;
 /// `stdio` is a module to interact with standard IO
 pub mod stdio;
+// Test helper functions
+pub(crate) mod test_helper;
 
 /// Return a `LibraryManifest` for the run-time functions
 pub fn get_manifest(
