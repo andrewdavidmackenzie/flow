@@ -20,21 +20,15 @@ impl Implementation for FileWrite {
             let bytes = &inputs[1];
 
             if let Ok(mut server) = self.server_connection.lock() {
-                return match bytes.as_array() {
-                    Some(byte_array) => {
-                        let bytes = byte_array
-                            .iter()
-                            .map(|byte_value| byte_value.as_u64().unwrap_or(0) as u8)
-                            .collect();
-                        match server.send_and_receive_response(ServerMessage::Write(
-                            filename.as_str().unwrap_or("").to_string(),
-                            bytes,
-                        )) {
-                            Ok(ClientMessage::Ack) => (None, RUN_AGAIN),
-                            _ => (None, RUN_AGAIN),
-                        }
-                    }
-                    None => (None, RUN_AGAIN),
+                if let Some(byte_array) = bytes.as_array() {
+                    let bytes = byte_array
+                        .iter()
+                        .map(|byte_value| byte_value.as_u64().unwrap_or(0) as u8)
+                        .collect();
+                    let _ = server.send_and_receive_response(ServerMessage::Write(
+                        filename.as_str().unwrap_or("").to_string(),
+                        bytes,
+                    ));
                 };
             }
         }
@@ -54,6 +48,20 @@ mod test {
 
     use super::super::super::test_helper::test::wait_for_then_send;
     use super::FileWrite;
+
+    #[test]
+    #[serial(client_server)]
+    fn write_file_invalid() {
+        let file_path = "/fake/write_test";
+        let file_contents = "test text".as_bytes().to_vec();
+        let inputs = [json!(file_path)]; // No contents parameter
+        let file_write_message = ServerMessage::Write(file_path.to_string(), file_contents);
+        let server_connection = wait_for_then_send(file_write_message, ClientMessage::Ack);
+        let writer = &FileWrite { server_connection } as &dyn Implementation;
+        let (value, run_again) = writer.run(&inputs);
+        assert_eq!(run_again, RUN_AGAIN);
+        assert_eq!(value, None);
+    }
 
     #[test]
     #[serial(client_server)]
