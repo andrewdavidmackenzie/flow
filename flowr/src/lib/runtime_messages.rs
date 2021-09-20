@@ -10,7 +10,7 @@ use crate::coordinator::Submission;
 use crate::metrics::Metrics;
 
 /// An Message sent from the runtime server to a runtime_client
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, PartialEq, Debug)]
 pub enum ServerMessage {
     /// A flow has started executing
     FlowStart,

@@ -195,10 +195,7 @@ impl CliRuntimeClient {
                 image.put_pixel(x, y, Rgb([r, g, b]));
                 ClientMessage::Ack
             }
-            ServerMessage::GetArgs => {
-                // Response gets serialized and sent over channel/network so needs to args be owned
-                ClientMessage::Args(self.args.clone())
-            }
+            ServerMessage::GetArgs => ClientMessage::Args(self.args.clone()),
             ServerMessage::StderrEof => ClientMessage::Ack,
             ServerMessage::Invalid => ClientMessage::Ack,
         }

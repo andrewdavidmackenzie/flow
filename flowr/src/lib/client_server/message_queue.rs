@@ -64,9 +64,7 @@ where
         })
     }
 
-    /*
-        try to discover a server that a client can send a submission to
-    */
+    // Try to discover a server that a client can send a submission to
     #[cfg(feature = "distributed")]
     fn discover_service(name: &str) -> Option<(String, u16)> {
         let listener = BeaconListener::new(name.as_bytes()).ok()?;
@@ -218,5 +216,147 @@ where
             .map_err(|e| format!("Server error sending to client: '{}'", e))?;
 
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use std::fmt;
+    use std::time::Duration;
+
+    use serde_derive::{Deserialize, Serialize};
+    use serial_test::serial;
+    use zmq::Message;
+
+    use crate::client_server::{ClientConnection, ServerConnection};
+
+    #[derive(Serialize, Deserialize, PartialEq, Debug)]
+    enum ServerMessage {
+        World,
+    }
+
+    impl fmt::Display for ServerMessage {
+        fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+            write!(
+                f,
+                "ServerMessage {}",
+                match self {
+                    ServerMessage::World => "World",
+                }
+            )
+        }
+    }
+
+    #[derive(Serialize, Deserialize, PartialEq, Debug)]
+    enum ClientMessage {
+        Hello,
+    }
+
+    impl fmt::Display for ClientMessage {
+        fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+            write!(f, "ClientMessage Hello",)
+        }
+    }
+
+    #[cfg(feature = "distributed")]
+    impl From<ServerMessage> for Message {
+        fn from(event: ServerMessage) -> Self {
+            Message::from(&serde_json::to_string(&event).expect("Could not serialize message"))
+        }
+    }
+
+    #[cfg(feature = "distributed")]
+    impl From<Message> for ServerMessage {
+        fn from(msg: Message) -> Self {
+            serde_json::from_str(msg.as_str().expect("Could not convert message to &str"))
+                .expect("Could not deserialize message")
+        }
+    }
+
+    #[cfg(feature = "distributed")]
+    impl From<ClientMessage> for Message {
+        fn from(msg: ClientMessage) -> Self {
+            Message::from(
+                &serde_json::to_string(&msg).expect("Could not convert message to string"),
+            )
+        }
+    }
+
+    #[cfg(feature = "distributed")]
+    impl From<Message> for ClientMessage {
+        fn from(msg: Message) -> Self {
+            serde_json::from_str(msg.as_str().expect("Could not convert message to str"))
+                .expect("Could not deserialize message")
+        }
+    }
+
+    #[test]
+    #[serial(client_server)]
+    fn hello_world() {
+        let mut server = ServerConnection::<ServerMessage, ClientMessage>::new("test", None)
+            .expect("Could not create ServerConnection");
+        let client = ClientConnection::<ServerMessage, ClientMessage>::new("test", None)
+            .expect("Could not create ClientConnection");
+
+        // Open the connection by sending the first message from the client
+        client
+            .send(ClientMessage::Hello)
+            .expect("Could not send initial 'Hello' message");
+
+        // Receive and check it on the server
+        let client_message = server
+            .receive()
+            .expect("Could not receive message at server");
+        println!("Client Message = {}", client_message);
+        assert_eq!(client_message, ClientMessage::Hello);
+
+        // Respond from the server
+        server
+            .send(ServerMessage::World)
+            .expect("Could not send server message");
+
+        // Receive it and check it on the client
+        let server_message = client
+            .receive()
+            .expect("Could not receive message at client");
+        println!("Server Message = {}", server_message);
+        assert_eq!(server_message, ServerMessage::World);
+    }
+
+    #[test]
+    #[serial(client_server)]
+    fn receive_no_wait() {
+        let mut server = ServerConnection::<ServerMessage, ClientMessage>::new("test", None)
+            .expect("Could not create ServerConnection");
+        let client = ClientConnection::<ServerMessage, ClientMessage>::new("test", None)
+            .expect("Could not create ClientConnection");
+
+        // Open the connection by sending the first message from the client
+        client
+            .send(ClientMessage::Hello)
+            .expect("Could not send initial 'Hello' message");
+
+        std::thread::sleep(Duration::from_millis(10));
+
+        // Receive and check it on the server
+        assert_eq!(
+            server
+                .receive_no_wait()
+                .expect("Could not receive message at server"),
+            ClientMessage::Hello
+        );
+
+        // Respond from the server
+        server
+            .send(ServerMessage::World)
+            .expect("Could not send server message");
+
+        // Receive it and check it on the client
+        assert_eq!(
+            client
+                .receive()
+                .expect("Could not receive message at client"),
+            ServerMessage::World
+        );
     }
 }
