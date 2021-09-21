@@ -1,42 +1,51 @@
 #![deny(missing_docs)]
 #![warn(clippy::unwrap_used)]
 
-//! `flowcore` defines some core structs and traits used by other flow libraries and implementations
+//! `flowcore` defines core structs and traits used by other flow libraries and implementations
 
 use std::panic::{RefUnwindSafe, UnwindSafe};
 
 use serde_json::Value;
 
+/// `content` module contains the content providers for files and http/https
 #[cfg(feature = "code")]
-/// `content` are the content providers for files and http/https
 mod content;
-#[cfg(feature = "code")]
+
 /// A set of serializers to read flow models from various text formats based on file extension
+#[cfg(feature = "code")]
 pub mod deserializers;
+
 /// We'll put our errors in an `errors` module, and other modules in this crate will `use errors::*;`
 /// to get access to everything `error_chain` creates.
 #[cfg(feature = "code")]
 pub mod errors;
+
+/// `flow_manifest` is the struct that specifies the manifest of functions in a flow
 #[cfg(feature = "code")]
-/// `manifest` is the struct that specifies the manifest of functions in a flow
 pub mod flow_manifest;
-#[cfg(feature = "code")]
+
 /// `function` defines functions that form part of a flow
+#[cfg(feature = "code")]
 pub mod function;
-#[cfg(feature = "code")]
+
 /// `input` defines the struct for inputs to functions in a flow
+#[cfg(feature = "code")]
 pub mod input;
-#[cfg(feature = "code")]
+
 /// `lib_manifest` defines the structs for specifying a Library's manifest and methods to load it
+#[cfg(feature = "code")]
 pub mod lib_manifest;
-#[cfg(feature = "code")]
+
 /// `lib_provider` is used to resolve library references of the type "lib://" using lib search path
+#[cfg(feature = "code")]
 pub mod lib_provider;
-#[cfg(feature = "code")]
+
 /// `output_connection` defines a struct for a function's output connection
-pub mod output_connection;
 #[cfg(feature = "code")]
+pub mod output_connection;
+
 /// Utility functions related to Urls
+#[cfg(feature = "code")]
 pub mod url_helper;
 
 /// Implementations should return a value of type `RunAgain` to indicate if it should be
@@ -65,7 +74,7 @@ pub const DONT_RUN_AGAIN: RunAgain = false;
 /// pub struct Compare;
 ///
 /// /*
-///     A compare operator that takes two numbers and outputs the comparisons between them
+///     A compare implementation that takes two numbers and outputs the comparisons between them
 /// */
 /// impl Implementation for Compare {
 ///     fn run(&self, mut inputs: &[Value]) -> (Option<Value>, RunAgain) {
