@@ -139,33 +139,6 @@ fn optimize_wasm_file_size(wasm_path: &Path) -> Result<()> {
     )
 }
 
-fn create_cargo_project(implementation_path: &Path) -> Result<PathBuf> {
-    let mut manifest_path = implementation_path.to_path_buf();
-
-    // check that a flow.toml file exists for compilation in the implementation directory
-    manifest_path.set_file_name("flow.toml");
-    if !manifest_path.exists() {
-        bail!(
-            "No flow.toml file could be found at '{}'",
-            manifest_path.display()
-        );
-    }
-
-    let mut cargo_manifest_path = manifest_path.clone();
-    cargo_manifest_path.set_file_name("Cargo.toml");
-
-    // Copy 'flow.toml' to 'Cargo.toml' so that 'cargo' will compile it
-    info!(
-        "Copying {} to {}",
-        manifest_path.display(),
-        cargo_manifest_path.display()
-    );
-
-    fs::copy(&manifest_path, &cargo_manifest_path)?;
-
-    Ok(cargo_manifest_path)
-}
-
 /*
     Run the cargo build to compile wasm from function source
 */
@@ -176,7 +149,8 @@ fn run_cargo_build(implementation_path: &Path, wasm_destination: &Path) -> Resul
         implementation_path.display()
     );
 
-    let cargo_manifest_path = create_cargo_project(implementation_path)?;
+    let mut cargo_manifest_path = implementation_path.to_path_buf();
+    cargo_manifest_path.set_file_name("Cargo.toml");
 
     println!(
         "   {} {} to WASM",
@@ -216,14 +190,6 @@ fn run_cargo_build(implementation_path: &Path, wasm_destination: &Path) -> Resul
         .stderr(Stdio::piped())
         .output()
         .chain_err(|| "Error while attempting to spawn cargo to compile WASM")?;
-
-    // remove the Cargo.toml file we created in the source directory
-    fs::remove_file(&cargo_manifest_path).chain_err(|| {
-        format!(
-            "Could not remove copied file '{}'",
-            cargo_manifest_path.display()
-        )
-    })?;
 
     match output.status.code() {
         Some(0) | None => {
