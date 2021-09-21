@@ -354,23 +354,6 @@ mod test {
     }
 
     #[test]
-    fn copy_valid_flow_toml() {
-        let temp_dir = TempDir::new("flow-tests").expect("Could not get temp dir");
-        let mut temp_file_path = temp_dir.path().join("flow.toml");
-        File::create(&temp_file_path).expect("Could not create test file");
-        let _ = super::create_cargo_project(temp_file_path.as_path());
-        temp_file_path.set_file_name("Cargo.toml");
-        assert!(temp_file_path.exists());
-    }
-
-    #[test]
-    fn copy_invalid_flow_toml() {
-        let temp_dir = TempDir::new("flow-tests").expect("Could not get temp dir");
-        let temp_file_path = temp_dir.path().join("flow.toml");
-        assert!(super::create_cargo_project(temp_file_path.as_path()).is_err());
-    }
-
-    #[test]
     fn out_of_date_test() {
         let output_dir = tempdir::TempDir::new("flow")
             .unwrap_or_else(|_| panic!("Could not create TempDir during testing"))
