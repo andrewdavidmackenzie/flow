@@ -530,6 +530,32 @@ mod test {
 
     #[test]
     #[serial(stdio_wasm_compile)]
+    fn test_compile_implementation_skip_missing() {
+        let mut function = test_function();
+
+        let expected_output_wasm = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .parent()
+            .expect("Error getting Manifest Dir")
+            .join("flowc/tests/test-functions/stdio/stdout.wasm");
+        let _ = fs::remove_file(&expected_output_wasm);
+
+        #[cfg(feature = "debugger")]
+        let mut source_urls = HashSet::<(Url, Url)>::new();
+
+        let (wasm_destination, built) = super::compile_implementation(
+            &mut function,
+            true,
+            #[cfg(feature = "debugger")]
+            &mut source_urls,
+        )
+        .expect("compile_implementation() failed");
+
+        assert!(!built);
+        assert_eq!(wasm_destination, expected_output_wasm);
+    }
+
+    #[test]
+    #[serial(stdio_wasm_compile)]
     fn test_compile_implementation() {
         let mut function = test_function();
 
@@ -538,6 +564,7 @@ mod test {
             .expect("Error getting Manifest Dir")
             .join("flowc/tests/test-functions/stdio/stdout.wasm");
         let _ = fs::remove_file(&expected_output_wasm);
+
         #[cfg(feature = "debugger")]
         let mut source_urls = HashSet::<(Url, Url)>::new();
 
