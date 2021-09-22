@@ -71,7 +71,6 @@ mod test {
     use flowcore::Implementation;
     use num::Complex;
     use serde_json::{json, Value};
-    use wasm_bindgen_test::*;
 
     // bounds = inputs[0]
     //      upper_left = bounds[0];
@@ -98,8 +97,8 @@ mod test {
 
         assert_eq!(50, pixel[0]);
         assert_eq!(50, pixel[1]);
-        assert_eq!(0.5, point[0]);
-        assert_eq!(0.5, point[1]);
+        assert!((0.5 - point[0].as_f64().unwrap()).abs() < f64::EPSILON);
+        assert!((0.5 - point[1].as_f64().unwrap()).abs() < f64::EPSILON);
     }
 
     #[test]

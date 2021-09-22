@@ -143,14 +143,75 @@ fn optimize_wasm_file_size(wasm_path: &Path) -> Result<()> {
     Run the cargo build to compile wasm from function source
 */
 fn run_cargo_build(implementation_path: &Path, wasm_destination: &Path) -> Result<()> {
+    let mut cargo_manifest_path = implementation_path.to_path_buf();
+    cargo_manifest_path.set_file_name("Cargo.toml");
+    let manifest = format!("--manifest-path={}", &cargo_manifest_path.display());
+    let command = "cargo";
+
+    let build_dir = TempDir::new("flow")
+        .chain_err(|| "Error creating new TempDir for compiling in")?
+        .into_path();
+    let target_dir = format!("--target-dir={}", &build_dir.display());
+
+    ////// TEST
+    debug!(
+        "Testing source project at '{}' for wasm",
+        cargo_manifest_path.display()
+    );
+
+    debug!("Build directory: '{}'", build_dir.display());
+
+    let mut test_args = vec!["test", "--quiet"];
+    test_args.push(&manifest);
+    test_args.push(&target_dir);
+
+    debug!(
+        "Testing with command = '{}', args = {:?}",
+        command, test_args
+    );
+
+    println!(
+        "   {} {} WASM Project",
+        "Testing".green(),
+        implementation_path.display()
+    );
+
+    let output = Command::new(&command)
+        .args(&test_args)
+        .stdin(Stdio::inherit())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .output()
+        .chain_err(|| "Error while attempting to spawn cargo to test WASM Project")?;
+
+    match output.status.code() {
+        Some(0) | None => {}
+        Some(code) => {
+            println!(
+                "{}\n{}",
+                "Process STDOUT:".green(),
+                String::from_utf8_lossy(&output.stdout).green()
+            );
+            println!(
+                "{}\n{}",
+                "Process STDERR:".red(),
+                String::from_utf8_lossy(&output.stderr).red()
+            );
+            bail!(
+                "cargo exited with status code: {}\nCommand Line: {} {:?}",
+                code,
+                command,
+                test_args
+            )
+        }
+    }
+
+    ///// BUILD
     debug!(
         "Building wasm '{}' from source '{}'",
         wasm_destination.display(),
         implementation_path.display()
     );
-
-    let mut cargo_manifest_path = implementation_path.to_path_buf();
-    cargo_manifest_path.set_file_name("Cargo.toml");
 
     println!(
         "   {} {} to WASM",
@@ -158,13 +219,6 @@ fn run_cargo_build(implementation_path: &Path, wasm_destination: &Path) -> Resul
         implementation_path.display()
     );
 
-    let build_dir = TempDir::new("flow")
-        .chain_err(|| "Error creating new TempDir for compiling in")?
-        .into_path();
-
-    debug!("Building into directory '{}'", build_dir.display());
-
-    let command = "cargo";
     let mut command_args = vec![
         "build",
         "--quiet",
@@ -172,9 +226,7 @@ fn run_cargo_build(implementation_path: &Path, wasm_destination: &Path) -> Resul
         "--lib",
         "--target=wasm32-unknown-unknown",
     ];
-    let manifest = format!("--manifest-path={}", &cargo_manifest_path.display());
     command_args.push(&manifest);
-    let target_dir = format!("--target-dir={}", &build_dir.display());
     command_args.push(&target_dir);
 
     debug!(
@@ -220,12 +272,14 @@ fn run_cargo_build(implementation_path: &Path, wasm_destination: &Path) -> Resul
         }
         Some(code) => {
             println!(
-                "Process STDOUT:\n{}",
-                String::from_utf8_lossy(&output.stdout)
+                "{}\n{}",
+                "Process STDOUT:".green(),
+                String::from_utf8_lossy(&output.stdout).green()
             );
-            eprintln!(
-                "Process STDERR:\n{}",
-                String::from_utf8_lossy(&output.stderr)
+            println!(
+                "{}\n{}",
+                "Process STDERR:".red(),
+                String::from_utf8_lossy(&output.stderr).red()
             );
             bail!(
                 "cargo exited with status code: {}\nCommand Line: {} {:?}",
