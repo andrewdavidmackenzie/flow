@@ -91,8 +91,11 @@ fn run() -> Result<()> {
     SimpleLogger::init(matches.value_of("verbosity"));
     #[cfg(feature = "debugger")]
     let debug_this_flow = matches.is_present("debugger");
-    #[cfg(feature = "native")]
     let native = matches.is_present("native");
+    #[cfg(not(feature = "native"))]
+    if native {
+        warn!("\"--native\" or \"-n\" flag ignored as not compiled with \"native\" feature");
+    }
     let lib_dirs = if matches.is_present("lib_dir") {
         matches
             .values_of("lib_dir")
@@ -387,13 +390,12 @@ fn get_matches<'a>() -> ArgMatches<'a> {
             .help("Calculate metrics during flow execution and print them out when done"),
     );
 
-    #[cfg(feature = "native")]
     let app = app.arg(
         Arg::with_name("native")
             .short("n")
             .long("native")
             .conflicts_with("client")
-            .help("Use native libraries when possible"),
+            .help("Use native libraries when compiled with \"native\" feature"),
     );
 
     app.get_matches()
