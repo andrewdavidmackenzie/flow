@@ -1,12 +1,9 @@
-use std::collections::HashSet;
-
 use error_chain::bail;
 
 use flowcore::input::InputInitializer::Always;
 
 use crate::errors::*;
 use crate::generator::generate::GenerationTables;
-use crate::model::connection::Connection;
 use crate::model::route::HasRoute;
 use crate::model::route::Route;
 
@@ -16,22 +13,7 @@ use crate::model::route::Route;
 pub fn check_connections(tables: &mut GenerationTables) -> Result<()> {
     check_for_competing_inputs(tables)?;
 
-    remove_duplicates(&mut tables.collapsed_connections);
-
     Ok(())
-}
-
-/*
-    Remove duplicate connections from a list
-*/
-fn remove_duplicates(connections: &mut Vec<Connection>) {
-    let mut uniques = HashSet::<String>::new();
-
-    // keep unique connections - dump duplicates
-    connections.retain(|conn| {
-        let unique_key = format!("{}->{}", conn.from_io.route(), conn.to_io.route());
-        uniques.insert(unique_key)
-    });
 }
 
 /*
@@ -98,42 +80,4 @@ fn connection_to(tables: &GenerationTables, input: &Route) -> bool {
         }
     }
     false
-}
-
-#[cfg(test)]
-mod test {
-    use crate::model::connection::Connection;
-    use crate::model::io::IO;
-
-    use super::remove_duplicates;
-
-    /*
-        Test that when two functions are connected doubly, the connection gets reduced to a single one
-    */
-    #[test]
-    fn remove_duplicated_connection() {
-        let first = Connection {
-            name: "first".into(),
-            from: "/r1".into(),
-            to: "/r2".into(),
-            from_io: IO::new("String", "/r1"),
-            to_io: IO::new("String", "/r2"),
-            level: 0,
-        };
-
-        let second = Connection {
-            name: "second".into(),
-            from: "/r1".into(),
-            to: "/r2".into(),
-            from_io: IO::new("String", "/r1"),
-            to_io: IO::new("String", "/r2"),
-            level: 0,
-        };
-
-        let mut connections = vec![first, second];
-
-        assert_eq!(connections.len(), 2);
-        remove_duplicates(&mut connections);
-        assert_eq!(connections.len(), 1);
-    }
 }

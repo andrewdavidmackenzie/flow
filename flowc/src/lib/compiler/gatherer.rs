@@ -7,10 +7,8 @@ use crate::model::function::Function;
 use crate::model::process::Process::FlowProcess;
 use crate::model::process::Process::FunctionProcess;
 
-/*
-    This module is responsible for parsing the flow tree and gathering information into a set of
-    flat tables that the compiler can use for code generation.
-*/
+/// This module is responsible for parsing the flow tree and gathering information into a set of
+/// flat tables that the compiler can use for code generation.
 pub fn gather_functions_and_connections(
     flow: &Flow,
     tables: &mut GenerationTables,
