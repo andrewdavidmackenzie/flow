@@ -1,11 +1,9 @@
-use std::collections::HashMap;
 use std::collections::HashSet;
 
 use error_chain::bail;
 
 use flowcore::input::InputInitializer::Always;
 
-use crate::compiler::connector;
 use crate::errors::*;
 use crate::generator::generate::GenerationTables;
 use crate::model::connection::Connection;
@@ -42,31 +40,7 @@ fn remove_duplicates(connections: &mut Vec<Connection>) {
     - a function connects to an input that has a constant initializer
 */
 fn check_for_competing_inputs(tables: &GenerationTables) -> Result<()> {
-    // HashMap where key is the Route of the input being sent to
-    //               value is  a tuple of (sender_id, static_sender)
-    // Use to determine when sending to a route if the same function is already sending to it
-    // or if there is a different static sender sending to it
-    let mut used_destinations = HashMap::<Route, usize>::new();
-
     for connection in &tables.collapsed_connections {
-        // Check for double connection
-        if let Some((_output_route, sender_id)) =
-            connector::get_source(&tables.sources, connection.from_io.route())
-        {
-            if let Some(other_sender_id) =
-                used_destinations.insert(connection.to_io.route().clone(), sender_id)
-            {
-                // The same function is already sending to this route!
-                if other_sender_id == sender_id {
-                    bail!(
-                        "The function #{} has multiple outputs sending to the route '{}'",
-                        sender_id,
-                        connection.to_io.route()
-                    );
-                }
-            }
-        }
-
         // check for ConstantInitializer at destination
         if let Some(Always(_)) = connection.to_io.get_initializer() {
             bail!(

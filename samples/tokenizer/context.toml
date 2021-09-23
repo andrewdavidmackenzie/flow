@@ -6,7 +6,6 @@ source = "lib://flowruntime/stdio/readline"
 [[process]] # Split a string on the space (" ") separator
 source = "lib://flowstdlib/data/split"
 input.separator = { always =  " " }
-#input.string = { once =  "the quick brown fox jumped over the lazy dog" }
 
 [[connection]] # Take the input string and pass it to splitter
 from = "readline/string"

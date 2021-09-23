@@ -136,22 +136,6 @@ fn same_name_flow_ids() {
 }
 
 #[test]
-fn double_connection() {
-    let meta_provider = MetaProvider::new(helper::set_lib_search_path_to_project());
-    let path = helper::absolute_file_url_from_relative_path(
-        "flowc/tests/test-flows/double-connection/double-connection.toml",
-    );
-    let process = loader::load(&path, &meta_provider, &mut HashSet::<(Url, Url)>::new()).unwrap();
-    if let FlowProcess(ref flow) = process {
-        if compile::compile(flow).is_ok() {
-            panic!("Process should not have loaded due to double connection");
-        }
-    } else {
-        panic!("Process loaded was not a flow");
-    }
-}
-
-#[test]
 fn connection_to_input_with_constant_initializer() {
     let meta_provider = MetaProvider::new(helper::set_lib_search_path_to_project());
     let path = helper::absolute_file_url_from_relative_path(
@@ -254,25 +238,6 @@ fn compiler_detects_unused_input() {
         assert!(
             compile::compile(flow).is_err(),
             "Should not compile due to unused input"
-        );
-    } else {
-        panic!("Process loaded was not a flow");
-    }
-}
-
-#[test]
-fn compile_double_connection() {
-    let meta_provider = MetaProvider::new(helper::set_lib_search_path_to_project());
-    let process = loader::load(
-        &helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/double/double.toml"),
-        &meta_provider,
-        &mut HashSet::<(Url, Url)>::new(),
-    )
-    .unwrap();
-    if let FlowProcess(ref flow) = process {
-        assert!(
-            compile::compile(flow).is_err(),
-            "Should not compile due to a double connection to an input"
         );
     } else {
         panic!("Process loaded was not a flow");
