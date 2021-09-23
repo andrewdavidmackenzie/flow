@@ -20,22 +20,21 @@ path = "src/lib.rs"
 [features]
 default = ["code"]  # by default include code not just the trait definition
 debugger = ["code"] # feature to add the debugger, depends on code feature
-# Enable the "code" feature to compile the crate with dependencies for code not just trait
-# It brings in the following optional dependencies, some of which do not compile for wasm32
-code = ["serde", "serde_derive", "url", "error-chain", "log"]
+# The "code" feature requires the following dependencies
+code = ["serde", "serde_derive", "url", "error-chain", "log", "curl", "simpath", "toml", "serde_yaml"]
 online_tests = []
 
 [dependencies]
-serde_json = "1.0" # Needed for Implementation trait and must compile for wasm32-unknown-unknown
-serde_yaml = "~0.8"
-toml = "0.5.8"
+# The only dependency needed for the `Implementation` trait
+serde_json = { version = "1.0", default-features = false, features = ["alloc"] }
 
-# All other dependencies below are optional and can be turned off using "default-features false" removing any
-# dependency that won't compile for wasm32
+# All other dependencies below are optional and only used when the "code" feature requires them
 serde = { version = "~1.0.27", optional = true }
 serde_derive = { version = "~1.0.27", optional = true }
 url = { version = "2.2", features = ["serde"], optional = true }
 error-chain = {version = "0.12.2", optional = true}
 log = {version = "0.4.6", optional = true}
-curl = "~0.4"
-simpath = { version = "~2.3", features = ["urls"]}
+curl = {version = "~0.4", optional = true }
+simpath = { version = "~2.3", features = ["urls"], optional = true }
+toml = { version = "0.5.8", optional = true }
+serde_yaml = { version = "~0.8", optional = true }

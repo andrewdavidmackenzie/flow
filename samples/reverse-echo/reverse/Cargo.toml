@@ -10,16 +10,17 @@ crate-type = ["cdylib"]
 path = "reverse.rs"
 
 [profile.release]
-debug = false
+debug = true
 lto = true
 codegen-units = 1
 opt-level = 's' # Optimize for size
 panic = 'abort' # About unwinding code
 
 [dependencies]
-flowcore = {version = "=0.34.8", default-features = false}
-flow_impl_derive = "=0.34.7"
-serde_json = {version = "1.0" }
+# flowcore - no "code" feature, only used for trait definition
+flowcore = { version = "=0.36.0", path = "../../../flowcore", default-features = false }
+flow_impl_derive = { version = "=0.34.7", path = "../../../flow_impl_derive" }
+serde_json = { version = "1.0", default-features = false }
 
 [workspace]
 exclude = ["../../../"]

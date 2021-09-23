@@ -3,11 +3,11 @@ use std::collections::HashSet;
 use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::process::Command;
 use std::process::Stdio;
+use std::process::{Command, Output};
 
 use colored::Colorize;
-use log::{debug, error, info};
+use log::{debug, info, warn};
 use simpath::{FileType, FoundType, Simpath};
 use tempdir::TempDir;
 use url::Url;
@@ -27,6 +27,7 @@ pub fn compile_implementation(
     let mut built = false;
 
     let (implementation_path, wasm_destination) = get_paths(function)?;
+
     #[cfg(feature = "debugger")]
     source_urls.insert((
         Url::from_file_path(&implementation_path)
@@ -40,9 +41,8 @@ pub fn compile_implementation(
     if missing || out_of_date {
         if skip_building {
             if missing {
-                let message = format!("Implementation at '{}' is missing so the flow cannot be executed.\nEither build manually or have 'flowc' build it by not using the '-p' option", wasm_destination.display());
-                error!("{}", message);
-                bail!(message);
+                let message = format!("Implementation at '{}' is missing and you have selected to skip building, so flows relaying on this implementation will not execute correctly.\nYou can build it using 'flowc', using the '-p' option", wasm_destination.display());
+                warn!("{}", message);
             }
             if out_of_date {
                 info!(
@@ -139,72 +139,98 @@ fn optimize_wasm_file_size(wasm_path: &Path) -> Result<()> {
     )
 }
 
-fn create_cargo_project(implementation_path: &Path) -> Result<PathBuf> {
-    let mut manifest_path = implementation_path.to_path_buf();
-
-    // check that a flow.toml file exists for compilation in the implementation directory
-    manifest_path.set_file_name("flow.toml");
-    if !manifest_path.exists() {
-        bail!(
-            "No flow.toml file could be found at '{}'",
-            manifest_path.display()
-        );
+/*
+   Check the command Output for an error and print details if it failed
+*/
+fn check_cargo_error(command: &str, args: Vec<&str>, output: Output) -> Result<()> {
+    match output.status.code() {
+        Some(0) | None => Ok(()),
+        Some(code) => {
+            println!(
+                "{}\n{}",
+                "Process STDOUT:".green(),
+                String::from_utf8_lossy(&output.stdout).green()
+            );
+            println!(
+                "{}\n{}",
+                "Process STDERR:".red(),
+                String::from_utf8_lossy(&output.stderr).red()
+            );
+            bail!(
+                "cargo exited with status code: {}\nCommand Line: {} {:?}",
+                code,
+                command,
+                args
+            )
+        }
     }
+}
 
-    let mut cargo_manifest_path = manifest_path.clone();
-    cargo_manifest_path.set_file_name("Cargo.toml");
+fn cargo_test(manifest_path: PathBuf, build_dir: PathBuf) -> Result<()> {
+    let command = "cargo";
 
-    // Copy 'flow.toml' to 'Cargo.toml' so that 'cargo' will compile it
-    info!(
-        "Copying {} to {}",
-        manifest_path.display(),
-        cargo_manifest_path.display()
+    debug!("Build directory: '{}'", build_dir.display());
+
+    let manifest_arg = format!("--manifest-path={}", manifest_path.display());
+    let target_dir_arg = format!("--target-dir={}", build_dir.display());
+    let test_args = vec!["test", "--quiet", &manifest_arg, &target_dir_arg];
+
+    println!(
+        "   {} {} WASM Project",
+        "Testing".green(),
+        manifest_path.display()
     );
 
-    fs::copy(&manifest_path, &cargo_manifest_path)?;
+    debug!("Running command = '{}', args = {:?}", command, test_args);
 
-    Ok(cargo_manifest_path)
+    let output = Command::new(&command)
+        .args(&test_args)
+        .stdin(Stdio::inherit())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .output()
+        .chain_err(|| "Error while attempting to spawn cargo to test WASM Project")?;
+
+    check_cargo_error(command, test_args, output)
 }
 
 /*
-    Run the cargo build to compile wasm from function source
+   Run the cargo command that builds the WASM output file
 */
-fn run_cargo_build(implementation_path: &Path, wasm_destination: &Path) -> Result<()> {
+fn cargo_build(
+    manifest_path: PathBuf,
+    build_dir: PathBuf,
+    implementation_path: &Path,
+    wasm_destination: &Path,
+) -> Result<()> {
+    let command = "cargo";
+    let manifest = format!("--manifest-path={}", manifest_path.display());
+    let target_dir = format!("--target-dir={}", build_dir.display());
+
+    println!(
+        "   {} {} WASM project",
+        "Compiling".green(),
+        manifest_path.display()
+    );
+
     debug!(
-        "Building wasm '{}' from source '{}'",
+        "Building WASM '{}' from source '{}'",
         wasm_destination.display(),
         implementation_path.display()
     );
 
-    let cargo_manifest_path = create_cargo_project(implementation_path)?;
-
-    println!(
-        "   {} {} to WASM",
-        "Compiling".green(),
-        implementation_path.display()
-    );
-
-    let build_dir = TempDir::new("flow")
-        .chain_err(|| "Error creating new TempDir for compiling in")?
-        .into_path();
-
-    debug!("Building into directory '{}'", build_dir.display());
-
-    let command = "cargo";
-    let mut command_args = vec![
+    let command_args = vec![
         "build",
         "--quiet",
         "--release",
         "--lib",
         "--target=wasm32-unknown-unknown",
+        &manifest,
+        &target_dir,
     ];
-    let manifest = format!("--manifest-path={}", &cargo_manifest_path.display());
-    command_args.push(&manifest);
-    let target_dir = format!("--target-dir={}", &build_dir.display());
-    command_args.push(&target_dir);
 
     debug!(
-        "Building with command = '{}', command_args = {:?}",
+        "Running command = '{}', command_args = {:?}",
         command, command_args
     );
 
@@ -217,58 +243,49 @@ fn run_cargo_build(implementation_path: &Path, wasm_destination: &Path) -> Resul
         .output()
         .chain_err(|| "Error while attempting to spawn cargo to compile WASM")?;
 
-    // remove the Cargo.toml file we created in the source directory
-    fs::remove_file(&cargo_manifest_path).chain_err(|| {
+    check_cargo_error(command, command_args, output)?;
+
+    // no error occurred, so move the built files to final destination and clean-up
+    let mut wasm_filename = implementation_path.to_path_buf();
+    wasm_filename.set_extension("wasm");
+    let mut wasm_build_location = build_dir.clone();
+    wasm_build_location.push("wasm32-unknown-unknown/release/");
+    wasm_build_location.push(
+        wasm_filename
+            .file_name()
+            .ok_or("Could not convert filename to str")?,
+    );
+    optimize_wasm_file_size(&wasm_build_location)?;
+
+    // copy compiled wasm output into place where flow's toml file expects it
+    fs::copy(&wasm_build_location, &wasm_destination)
+        .chain_err(|| "Could not copy WASM to destination")?;
+
+    // clean up temp dir
+    fs::remove_dir_all(&build_dir).chain_err(|| {
         format!(
-            "Could not remove copied file '{}'",
-            cargo_manifest_path.display()
+            "Could not remove temporary build directory '{}'",
+            build_dir.display()
         )
-    })?;
+    })
+}
+/*
+    Run the cargo build to compile wasm from function source
+*/
+fn run_cargo_build(implementation_path: &Path, wasm_destination: &Path) -> Result<()> {
+    let mut cargo_manifest_path = implementation_path.to_path_buf();
+    cargo_manifest_path.set_file_name("Cargo.toml");
+    let build_dir = TempDir::new("flow")
+        .chain_err(|| "Error creating new TempDir for compiling in")?
+        .into_path();
 
-    match output.status.code() {
-        Some(0) | None => {
-            let mut wasm_filename = implementation_path.to_path_buf();
-            wasm_filename.set_extension("wasm");
-            let mut wasm_build_location = build_dir.clone();
-            wasm_build_location.push("wasm32-unknown-unknown/release/");
-            wasm_build_location.push(
-                wasm_filename
-                    .file_name()
-                    .ok_or("Could not convert filename to str")?,
-            );
-            optimize_wasm_file_size(&wasm_build_location)?;
-
-            // copy compiled wasm output into place where flow's toml file expects it
-            fs::copy(&wasm_build_location, &wasm_destination)
-                .chain_err(|| "Could not copy WASM to destination")?;
-
-            // clean up temp dir
-            fs::remove_dir_all(&build_dir).chain_err(|| {
-                format!(
-                    "Could not remove temporary build directory '{}'",
-                    build_dir.display()
-                )
-            })?;
-
-            Ok(())
-        }
-        Some(code) => {
-            error!(
-                "Process STDOUT:\n{}",
-                String::from_utf8_lossy(&output.stdout)
-            );
-            error!(
-                "Process STDERR:\n{}",
-                String::from_utf8_lossy(&output.stderr)
-            );
-            bail!(
-                "cargo exited with status code: {}\nCommand Line: {} {:?}",
-                code,
-                command,
-                command_args
-            )
-        }
-    }
+    cargo_test(cargo_manifest_path.clone(), build_dir.clone())?;
+    cargo_build(
+        cargo_manifest_path,
+        build_dir,
+        implementation_path,
+        wasm_destination,
+    )
 }
 
 /*
@@ -282,9 +299,7 @@ fn get_paths(function: &Function) -> Result<(PathBuf, PathBuf)> {
 
     let function_source_url = url_from_string(&cwd_url, Some(function.get_source_url()))
         .chain_err(|| "Could not create a url from source url")?;
-    let implementation_source_url = function_source_url
-        .join(function.get_implementation())
-        .map_err(|_| "Could not convert Url")?;
+    let implementation_source_url = function_source_url.join(function.get_implementation())?;
 
     let implementation_source_path = implementation_source_url
         .to_file_path()
@@ -329,14 +344,12 @@ fn get_paths(function: &Function) -> Result<(PathBuf, PathBuf)> {
 fn out_of_date(source: &Path, derived: &Path) -> Result<(bool, bool)> {
     let source_last_modified = fs::metadata(source)
         .chain_err(|| format!("Could not get metadata for file: '{}'", source.display()))?
-        .modified()
-        .chain_err(|| "Could not get modified time from file metadata")?;
+        .modified()?;
 
     if derived.exists() {
         let derived_last_modified = fs::metadata(derived)
             .chain_err(|| format!("Could not get metadata for file: '{}'", derived.display()))?
-            .modified()
-            .chain_err(|| "Could not get modified time from file metadata")?;
+            .modified()?;
         Ok(((source_last_modified > derived_last_modified), false))
     } else {
         Ok((true, true))
@@ -345,11 +358,19 @@ fn out_of_date(source: &Path, derived: &Path) -> Result<(bool, bool)> {
 
 #[cfg(test)]
 mod test {
+    #[cfg(feature = "debugger")]
+    use std::collections::HashSet;
+    use std::fs;
     use std::fs::{remove_file, write, File};
     use std::path::Path;
     use std::time::Duration;
 
+    use serial_test::serial;
     use tempdir::TempDir;
+    #[cfg(feature = "debugger")]
+    // use std::path::PathBuf;
+    #[cfg(feature = "debugger")]
+    use url::Url;
 
     use flowcore::output_connection::{OutputConnection, Source};
 
@@ -388,47 +409,26 @@ mod test {
     }
 
     #[test]
-    fn copy_valid_flow_toml() {
-        let temp_dir = TempDir::new("flow-tests").expect("Could not get temp dir");
-        let mut temp_file_path = temp_dir.path().join("flow.toml");
-        File::create(&temp_file_path).expect("Could not create test file");
-        let _ = super::create_cargo_project(temp_file_path.as_path());
-        temp_file_path.set_file_name("Cargo.toml");
-        assert!(temp_file_path.exists());
-    }
-
-    #[test]
-    fn copy_invalid_flow_toml() {
-        let temp_dir = TempDir::new("flow-tests").expect("Could not get temp dir");
-        let temp_file_path = temp_dir.path().join("flow.toml");
-        assert!(super::create_cargo_project(temp_file_path.as_path()).is_err());
-    }
-
-    #[test]
     fn out_of_date_test() {
         let output_dir = tempdir::TempDir::new("flow")
-            .unwrap_or_else(|_| panic!("Could not create TempDir during testing"))
+            .expect("Could not create TempDir during testing")
             .into_path();
 
         // make older file
         let older = output_dir.join("older");
         let derived = older.clone();
-        write(&older, "older").unwrap_or_else(|_| {
-            panic!("Could not write to file {} during testing", older.display())
-        });
+        write(&older, "older").expect("Could not write to file during testing");
 
         std::thread::sleep(Duration::from_secs(1));
 
         // make second/newer file
         let newer = output_dir.join("newer");
         let source = newer.clone();
-        write(&newer, "newer").unwrap_or_else(|_| {
-            panic!("Could not write to file {} during testing", newer.display())
-        });
+        write(&newer, "newer").expect("Could not write to file during testing");
 
         assert!(
             out_of_date(&source, &derived)
-                .unwrap_or_else(|_| panic!("Error in 'out__of_date'"))
+                .expect("Error in 'out__of_date'")
                 .0
         );
     }
@@ -442,20 +442,16 @@ mod test {
         // make older file
         let older = output_dir.join("older");
         let source = older.clone();
-        write(&older, "older").unwrap_or_else(|_| {
-            panic!("Could not write to file {} during testing", older.display())
-        });
+        write(&older, "older").expect("Could not write to file {} during testing");
 
         // make second/newer file
         let newer = output_dir.join("newer");
         let derived = newer.clone();
-        write(&newer, "newer").unwrap_or_else(|_| {
-            panic!("Could not write to file {} during testing", newer.display())
-        });
+        write(&newer, "newer").expect("Could not write to file {} during testing");
 
         assert!(
             !out_of_date(&source, &derived)
-                .unwrap_or_else(|_| panic!("Error in 'out__of_date'"))
+                .expect("Error in 'out__of_date'")
                 .0
         );
     }
@@ -469,22 +465,18 @@ mod test {
         // make older file
         let older = output_dir.join("older");
         let source = older.clone();
-        write(&older, "older").unwrap_or_else(|_| {
-            panic!("Could not write to file {} during testing", older.display())
-        });
+        write(&older, "older").expect("Could not write to file {} during testing");
 
         // make second/newer file
         let newer = output_dir.join("newer");
-        write(&newer, "newer").unwrap_or_else(|_| {
-            panic!("Could not write to file {} during testing", newer.display())
-        });
+        write(&newer, "newer").expect("Could not write to file {} during testing");
 
         let derived = newer.clone();
         remove_file(newer).unwrap_or_else(|_| panic!("Error in 'remove_file' during testing"));
 
         assert!(
             out_of_date(&source, &derived)
-                .unwrap_or_else(|_| panic!("Error in 'out__of_date'"))
+                .expect("Error in 'out__of_date'")
                 .1
         );
     }
@@ -504,10 +496,10 @@ mod test {
                     .expect("Error getting Manifest Dir")
                     .display()
                     .to_string(),
-                "flowr/src/lib/flowruntime/stdio/stdout"
+                "flowc/tests/test-functions/stdio/stdout"
             ),
             Route::from("/flow0/stdout"),
-            Some("flowruntime/stdio/stdout".to_string()),
+            Some("tests/test-functions/stdio/stdout".to_string()),
             vec![OutputConnection::new(
                 Source::default(),
                 1,
@@ -539,7 +531,7 @@ mod test {
                     .expect("Error getting Manifest Dir")
                     .display()
                     .to_string(),
-                "flowr/src/lib/flowruntime/stdio/stdout.rs"
+                "flowc/tests/test-functions/stdio/stdout.rs"
             ),
             impl_source_path
                 .to_str()
@@ -553,11 +545,134 @@ mod test {
                     .expect("Error getting Manifest Dir")
                     .display()
                     .to_string(),
-                "flowr/src/lib/flowruntime/stdio/stdout.wasm"
+                "flowc/tests/test-functions/stdio/stdout.wasm"
             ),
             impl_wasm_path
                 .to_str()
                 .expect("Error converting path to str")
         );
+    }
+
+    #[test]
+    #[serial(stdio_wasm_compile)]
+    fn test_compile_implementation_skip() {
+        let mut function = test_function();
+
+        #[cfg(feature = "debugger")]
+        let mut source_urls = HashSet::<(Url, Url)>::new();
+
+        let (wasm_destination, built) = super::compile_implementation(
+            &mut function,
+            true,
+            #[cfg(feature = "debugger")]
+            &mut source_urls,
+        )
+        .expect("compile_implementation() failed");
+
+        assert!(!built);
+        assert_eq!(
+            Path::new(env!("CARGO_MANIFEST_DIR"))
+                .parent()
+                .expect("Error getting Manifest Dir")
+                .join("flowc/tests/test-functions/stdio/stdout.wasm"),
+            wasm_destination
+        );
+    }
+
+    #[test]
+    #[serial(stdio_wasm_compile)]
+    fn test_compile_implementation_skip_missing() {
+        let mut function = test_function();
+
+        let expected_output_wasm = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .parent()
+            .expect("Error getting Manifest Dir")
+            .join("flowc/tests/test-functions/stdio/stdout.wasm");
+        let _ = fs::remove_file(&expected_output_wasm);
+
+        #[cfg(feature = "debugger")]
+        let mut source_urls = HashSet::<(Url, Url)>::new();
+
+        let (wasm_destination, built) = super::compile_implementation(
+            &mut function,
+            true,
+            #[cfg(feature = "debugger")]
+            &mut source_urls,
+        )
+        .expect("compile_implementation() failed");
+
+        assert!(!built);
+        assert_eq!(wasm_destination, expected_output_wasm);
+    }
+
+    #[test]
+    #[serial(stdio_wasm_compile)]
+    fn test_compile_implementation() {
+        let mut function = test_function();
+
+        let expected_output_wasm = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .parent()
+            .expect("Error getting Manifest Dir")
+            .join("flowc/tests/test-functions/stdio/stdout.wasm");
+        let _ = fs::remove_file(&expected_output_wasm);
+
+        #[cfg(feature = "debugger")]
+        let mut source_urls = HashSet::<(Url, Url)>::new();
+
+        let (wasm_destination, built) = super::compile_implementation(
+            &mut function,
+            false,
+            #[cfg(feature = "debugger")]
+            &mut source_urls,
+        )
+        .expect("compile_implementation() failed");
+
+        assert!(built);
+        assert_eq!(wasm_destination, expected_output_wasm);
+    }
+
+    #[test]
+    #[serial(stdio_wasm_compile)]
+    fn test_compile_implementation_not_needed() {
+        let mut function = test_function();
+
+        let expected_output_wasm = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .parent()
+            .expect("Error getting Manifest Dir")
+            .join("flowc/tests/test-functions/stdio/stdout.wasm");
+        let _ = fs::remove_file(&expected_output_wasm);
+        write(&expected_output_wasm, b"file touched during testing")
+            .expect("Could not write to file during testing");
+        #[cfg(feature = "debugger")]
+        let mut source_urls = HashSet::<(Url, Url)>::new();
+
+        let (wasm_destination, built) = super::compile_implementation(
+            &mut function,
+            false,
+            #[cfg(feature = "debugger")]
+            &mut source_urls,
+        )
+        .expect("compile_implementation() failed");
+
+        assert!(!built); // destination newer than source so should not have been built
+        assert_eq!(wasm_destination, expected_output_wasm);
+    }
+
+    #[test]
+    #[serial(stdio_wasm_compile)]
+    fn test_compile_implementation_invalid_paths() {
+        let mut function = test_function();
+        function.implementation = "does_not_exist".into();
+
+        #[cfg(feature = "debugger")]
+        let mut source_urls = HashSet::<(Url, Url)>::new();
+
+        assert!(super::compile_implementation(
+            &mut function,
+            true,
+            #[cfg(feature = "debugger")]
+            &mut source_urls,
+        )
+        .is_err());
     }
 }
