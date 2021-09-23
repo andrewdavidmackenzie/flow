@@ -3,8 +3,8 @@ use std::collections::HashSet;
 use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::process::Command;
 use std::process::Stdio;
+use std::process::{Command, Output};
 
 use colored::Colorize;
 use log::{debug, info, warn};
@@ -140,52 +140,11 @@ fn optimize_wasm_file_size(wasm_path: &Path) -> Result<()> {
 }
 
 /*
-    Run the cargo build to compile wasm from function source
+   Check the command Output for an error and print details if it failed
 */
-fn run_cargo_build(implementation_path: &Path, wasm_destination: &Path) -> Result<()> {
-    let mut cargo_manifest_path = implementation_path.to_path_buf();
-    cargo_manifest_path.set_file_name("Cargo.toml");
-    let manifest = format!("--manifest-path={}", &cargo_manifest_path.display());
-    let command = "cargo";
-
-    let build_dir = TempDir::new("flow")
-        .chain_err(|| "Error creating new TempDir for compiling in")?
-        .into_path();
-    let target_dir = format!("--target-dir={}", &build_dir.display());
-
-    ////// TEST
-    debug!(
-        "Testing source project at '{}' for wasm",
-        cargo_manifest_path.display()
-    );
-
-    debug!("Build directory: '{}'", build_dir.display());
-
-    let mut test_args = vec!["test", "--quiet"];
-    test_args.push(&manifest);
-    test_args.push(&target_dir);
-
-    debug!(
-        "Testing with command = '{}', args = {:?}",
-        command, test_args
-    );
-
-    println!(
-        "   {} {} WASM Project",
-        "Testing".green(),
-        implementation_path.display()
-    );
-
-    let output = Command::new(&command)
-        .args(&test_args)
-        .stdin(Stdio::inherit())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .output()
-        .chain_err(|| "Error while attempting to spawn cargo to test WASM Project")?;
-
+fn check_cargo_error(command: &str, args: Vec<&str>, output: Output) -> Result<()> {
     match output.status.code() {
-        Some(0) | None => {}
+        Some(0) | None => Ok(()),
         Some(code) => {
             println!(
                 "{}\n{}",
@@ -201,36 +160,77 @@ fn run_cargo_build(implementation_path: &Path, wasm_destination: &Path) -> Resul
                 "cargo exited with status code: {}\nCommand Line: {} {:?}",
                 code,
                 command,
-                test_args
+                args
             )
         }
     }
+}
 
-    ///// BUILD
+fn cargo_test(manifest_path: PathBuf, build_dir: PathBuf) -> Result<()> {
+    let command = "cargo";
+
+    debug!("Build directory: '{}'", build_dir.display());
+
+    let manifest_arg = format!("--manifest-path={}", manifest_path.display());
+    let target_dir_arg = format!("--target-dir={}", build_dir.display());
+    let test_args = vec!["test", "--quiet", &manifest_arg, &target_dir_arg];
+
+    println!(
+        "   {} {} WASM Project",
+        "Testing".green(),
+        manifest_path.display()
+    );
+
+    debug!("Running command = '{}', args = {:?}", command, test_args);
+
+    let output = Command::new(&command)
+        .args(&test_args)
+        .stdin(Stdio::inherit())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .output()
+        .chain_err(|| "Error while attempting to spawn cargo to test WASM Project")?;
+
+    check_cargo_error(command, test_args, output)
+}
+
+/*
+   Run the cargo command that builds the WASM output file
+*/
+fn cargo_build(
+    manifest_path: PathBuf,
+    build_dir: PathBuf,
+    implementation_path: &Path,
+    wasm_destination: &Path,
+) -> Result<()> {
+    let command = "cargo";
+    let manifest = format!("--manifest-path={}", manifest_path.display());
+    let target_dir = format!("--target-dir={}", build_dir.display());
+
+    println!(
+        "   {} {} WASM project",
+        "Compiling".green(),
+        manifest_path.display()
+    );
+
     debug!(
-        "Building wasm '{}' from source '{}'",
+        "Building WASM '{}' from source '{}'",
         wasm_destination.display(),
         implementation_path.display()
     );
 
-    println!(
-        "   {} {} to WASM",
-        "Compiling".green(),
-        implementation_path.display()
-    );
-
-    let mut command_args = vec![
+    let command_args = vec![
         "build",
         "--quiet",
         "--release",
         "--lib",
         "--target=wasm32-unknown-unknown",
+        &manifest,
+        &target_dir,
     ];
-    command_args.push(&manifest);
-    command_args.push(&target_dir);
 
     debug!(
-        "Building with command = '{}', command_args = {:?}",
+        "Running command = '{}', command_args = {:?}",
         command, command_args
     );
 
@@ -243,52 +243,49 @@ fn run_cargo_build(implementation_path: &Path, wasm_destination: &Path) -> Resul
         .output()
         .chain_err(|| "Error while attempting to spawn cargo to compile WASM")?;
 
-    match output.status.code() {
-        Some(0) | None => {
-            let mut wasm_filename = implementation_path.to_path_buf();
-            wasm_filename.set_extension("wasm");
-            let mut wasm_build_location = build_dir.clone();
-            wasm_build_location.push("wasm32-unknown-unknown/release/");
-            wasm_build_location.push(
-                wasm_filename
-                    .file_name()
-                    .ok_or("Could not convert filename to str")?,
-            );
-            optimize_wasm_file_size(&wasm_build_location)?;
+    check_cargo_error(command, command_args, output)?;
 
-            // copy compiled wasm output into place where flow's toml file expects it
-            fs::copy(&wasm_build_location, &wasm_destination)
-                .chain_err(|| "Could not copy WASM to destination")?;
+    // no error occurred, so move the built files to final destination and clean-up
+    let mut wasm_filename = implementation_path.to_path_buf();
+    wasm_filename.set_extension("wasm");
+    let mut wasm_build_location = build_dir.clone();
+    wasm_build_location.push("wasm32-unknown-unknown/release/");
+    wasm_build_location.push(
+        wasm_filename
+            .file_name()
+            .ok_or("Could not convert filename to str")?,
+    );
+    optimize_wasm_file_size(&wasm_build_location)?;
 
-            // clean up temp dir
-            fs::remove_dir_all(&build_dir).chain_err(|| {
-                format!(
-                    "Could not remove temporary build directory '{}'",
-                    build_dir.display()
-                )
-            })?;
+    // copy compiled wasm output into place where flow's toml file expects it
+    fs::copy(&wasm_build_location, &wasm_destination)
+        .chain_err(|| "Could not copy WASM to destination")?;
 
-            Ok(())
-        }
-        Some(code) => {
-            println!(
-                "{}\n{}",
-                "Process STDOUT:".green(),
-                String::from_utf8_lossy(&output.stdout).green()
-            );
-            println!(
-                "{}\n{}",
-                "Process STDERR:".red(),
-                String::from_utf8_lossy(&output.stderr).red()
-            );
-            bail!(
-                "cargo exited with status code: {}\nCommand Line: {} {:?}",
-                code,
-                command,
-                command_args
-            )
-        }
-    }
+    // clean up temp dir
+    fs::remove_dir_all(&build_dir).chain_err(|| {
+        format!(
+            "Could not remove temporary build directory '{}'",
+            build_dir.display()
+        )
+    })
+}
+/*
+    Run the cargo build to compile wasm from function source
+*/
+fn run_cargo_build(implementation_path: &Path, wasm_destination: &Path) -> Result<()> {
+    let mut cargo_manifest_path = implementation_path.to_path_buf();
+    cargo_manifest_path.set_file_name("Cargo.toml");
+    let build_dir = TempDir::new("flow")
+        .chain_err(|| "Error creating new TempDir for compiling in")?
+        .into_path();
+
+    cargo_test(cargo_manifest_path.clone(), build_dir.clone())?;
+    cargo_build(
+        cargo_manifest_path,
+        build_dir,
+        implementation_path,
+        wasm_destination,
+    )
 }
 
 /*
