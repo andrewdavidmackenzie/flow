@@ -555,6 +555,18 @@ mod test {
     }
 
     #[test]
+    fn duplicate_connection() {
+        let mut flow = test_flow();
+        let connection = Connection {
+            from: "process_1".into(), // String
+            to: "process_2".into(),   // String
+            ..Default::default()
+        };
+        flow.connections = vec![connection.clone(), connection];
+        assert!(flow.validate().is_ok());
+    }
+
+    #[test]
     fn check_outputs() {
         let flow = test_flow();
         assert_eq!(flow.outputs().len(), 2);

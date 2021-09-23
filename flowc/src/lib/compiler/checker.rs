@@ -1,14 +1,9 @@
-use std::collections::HashMap;
-use std::collections::HashSet;
-
 use error_chain::bail;
 
 use flowcore::input::InputInitializer::Always;
 
-use crate::compiler::connector;
 use crate::errors::*;
 use crate::generator::generate::GenerationTables;
-use crate::model::connection::Connection;
 use crate::model::route::HasRoute;
 use crate::model::route::Route;
 
@@ -18,22 +13,7 @@ use crate::model::route::Route;
 pub fn check_connections(tables: &mut GenerationTables) -> Result<()> {
     check_for_competing_inputs(tables)?;
 
-    remove_duplicates(&mut tables.collapsed_connections);
-
     Ok(())
-}
-
-/*
-    Remove duplicate connections from a list
-*/
-fn remove_duplicates(connections: &mut Vec<Connection>) {
-    let mut uniques = HashSet::<String>::new();
-
-    // keep unique connections - dump duplicates
-    connections.retain(|conn| {
-        let unique_key = format!("{}->{}", conn.from_io.route(), conn.to_io.route());
-        uniques.insert(unique_key)
-    });
 }
 
 /*
@@ -42,31 +22,7 @@ fn remove_duplicates(connections: &mut Vec<Connection>) {
     - a function connects to an input that has a constant initializer
 */
 fn check_for_competing_inputs(tables: &GenerationTables) -> Result<()> {
-    // HashMap where key is the Route of the input being sent to
-    //               value is  a tuple of (sender_id, static_sender)
-    // Use to determine when sending to a route if the same function is already sending to it
-    // or if there is a different static sender sending to it
-    let mut used_destinations = HashMap::<Route, usize>::new();
-
     for connection in &tables.collapsed_connections {
-        // Check for double connection
-        if let Some((_output_route, sender_id)) =
-            connector::get_source(&tables.sources, connection.from_io.route())
-        {
-            if let Some(other_sender_id) =
-                used_destinations.insert(connection.to_io.route().clone(), sender_id)
-            {
-                // The same function is already sending to this route!
-                if other_sender_id == sender_id {
-                    bail!(
-                        "The function #{} has multiple outputs sending to the route '{}'",
-                        sender_id,
-                        connection.to_io.route()
-                    );
-                }
-            }
-        }
-
         // check for ConstantInitializer at destination
         if let Some(Always(_)) = connection.to_io.get_initializer() {
             bail!(
@@ -124,42 +80,4 @@ fn connection_to(tables: &GenerationTables, input: &Route) -> bool {
         }
     }
     false
-}
-
-#[cfg(test)]
-mod test {
-    use crate::model::connection::Connection;
-    use crate::model::io::IO;
-
-    use super::remove_duplicates;
-
-    /*
-        Test that when two functions are connected doubly, the connection gets reduced to a single one
-    */
-    #[test]
-    fn remove_duplicated_connection() {
-        let first = Connection {
-            name: "first".into(),
-            from: "/r1".into(),
-            to: "/r2".into(),
-            from_io: IO::new("String", "/r1"),
-            to_io: IO::new("String", "/r2"),
-            level: 0,
-        };
-
-        let second = Connection {
-            name: "second".into(),
-            from: "/r1".into(),
-            to: "/r2".into(),
-            from_io: IO::new("String", "/r1"),
-            to_io: IO::new("String", "/r2"),
-            level: 0,
-        };
-
-        let mut connections = vec![first, second];
-
-        assert_eq!(connections.len(), 2);
-        remove_duplicates(&mut connections);
-        assert_eq!(connections.len(), 1);
-    }
 }

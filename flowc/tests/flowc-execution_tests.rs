@@ -272,6 +272,20 @@ fn array_input() {
     execute_test("array-input", search_path, false);
 }
 
+#[test]
+#[serial]
+fn double_connection() {
+    let search_path = helper::set_lib_search_path_to_project();
+    execute_test("double-connection", search_path, false);
+}
+
+#[test]
+#[serial]
+fn duplicate_connection() {
+    let search_path = helper::set_lib_search_path_to_project();
+    execute_test("duplicate-connection", search_path, false);
+}
+
 #[cfg(feature = "distributed")]
 #[test]
 #[serial]
