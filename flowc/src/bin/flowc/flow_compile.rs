@@ -215,11 +215,18 @@ fn execute_flow(filepath: &Path, options: &Options) -> Result<String> {
 
     let command = find_executable_path(&get_executable_name())?;
     let mut command_args = vec![filepath.display().to_string()];
+
+    // If the user didn't already specify the "-n" (native libraries) option for execution of
+    // "flowr" then add it - to execute flows using the libraries natively linked to "flow"
     if !options.flow_args.contains(&"-n".to_string()) {
         command_args.push("-n".to_string());
     }
-    command_args.append(&mut options.flow_args.to_vec());
-    debug!("Running flow using '{} {:?}'", &command, &command_args);
+
+    if !options.flow_args.is_empty() {
+        command_args.push("--".to_string());
+        command_args.append(&mut options.flow_args.to_vec());
+    }
+    println!("Running flow using '{} {:?}'", &command, &command_args);
 
     let mut flowr = Command::new(&command);
     flowr

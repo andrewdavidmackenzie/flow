@@ -112,7 +112,7 @@ impl Submission {
 ///
 /// Coordinator::start(1 /* num_threads */,
 ///                     Simpath::new("fake path"),
-///                     true,  /* native */
+///                     #[cfg(feature = "native")] true,  /* native */
 ///                     None, /* chose first free port for runtime */
 ///                     #[cfg(feature = "debugger")] None, /* chose first free port for debug */
 ///                     )
