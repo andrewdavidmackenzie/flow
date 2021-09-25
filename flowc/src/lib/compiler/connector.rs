@@ -359,7 +359,7 @@ pub fn collapse_connections(original_connections: &[Connection]) -> Vec<Connecti
                         .set_route(&from_route, &IOType::FunctionIO);
                     collapsed_connection.from = from_route;
                     // collapsed_connection.to_io.set_route(&destination_io.route(), &IOType::FunctionIO);
-                    collapsed_connection.to = destination_io.route().to_owned();
+                    //                    collapsed_connection.to = destination_io.route().to_owned(); // TODO WIP
                     collapsed_connection.to_io = destination_io;
                     debug!("\tIndirect connection {}", collapsed_connection);
                     collapsed_connections.push(collapsed_connection);
@@ -489,8 +489,8 @@ mod test {
         fn test_connection() -> Connection {
             Connection {
                 name: Name::from("left"),
-                from: Route::from("/f1/a"),
-                to: Route::from("/f2/a"),
+                from: "/f1/a".into(),
+                to: vec!["/f2/a".into()],
                 from_io: IO::new("String", "/f1/a"),
                 to_io: IO::new("String", "/f2/a"),
                 level: 0,
@@ -511,8 +511,8 @@ mod test {
         fn collapse_a_connection() {
             let mut left_side = Connection {
                 name: Name::from("left"),
-                from: Route::from("/function1"),
-                to: Route::from("/flow2/a"),
+                from: "/function1".into(),
+                to: vec!["/flow2/a".into()],
                 from_io: IO::new("String", "/function1"),
                 to_io: IO::new("String", "/flow2/a"),
                 level: 0,
@@ -523,8 +523,8 @@ mod test {
             // This one goes to a flow but then nowhere, so should be dropped
             let mut extra_one = Connection {
                 name: Name::from("unused"),
-                from: Route::from("/flow2/a"),
-                to: Route::from("/flow2/f4/a"),
+                from: "/flow2/a".into(),
+                to: vec!["/flow2/f4/a".into()],
                 from_io: IO::new("String", "/flow2/a"),
                 to_io: IO::new("String", "/flow2/f4/a"),
                 level: 1,
@@ -534,8 +534,8 @@ mod test {
 
             let mut right_side = Connection {
                 name: Name::from("right"),
-                from: Route::from("/flow2/a"),
-                to: Route::from("/flow2/function3"),
+                from: "/flow2/a".into(),
+                to: vec!["/flow2/function3".into()],
                 from_io: IO::new("String", "/flow2/a"),
                 to_io: IO::new("String", "/flow2/function3"),
                 level: 1,
@@ -561,8 +561,8 @@ mod test {
         fn collapse_two_connections_from_flow_boundary() {
             let mut left_side = Connection {
                 name: Name::from("left"),
-                from: Route::from("/f1"),
-                to: Route::from("/f2/a"),
+                from: "/f1".into(),
+                to: vec!["/f2/a".into()],
                 from_io: IO::new("String", "/f1"),
                 to_io: IO::new("String", "/f2/a"),
                 level: 0,
@@ -572,8 +572,8 @@ mod test {
 
             let mut right_side_one = Connection {
                 name: Name::from("right1"),
-                from: Route::from("/f2/a"),
-                to: Route::from("/f2/value1"),
+                from: "/f2/a".into(),
+                to: vec!["/f2/value1".into()],
                 from_io: IO::new("String", "/f2/a"),
                 to_io: IO::new("String", "/f2/value1"),
                 level: 1,
@@ -583,8 +583,8 @@ mod test {
 
             let mut right_side_two = Connection {
                 name: Name::from("right2"),
-                from: Route::from("/f2/a"),
-                to: Route::from("/f2/value2"),
+                from: "/f2/a".into(),
+                to: vec!["/f2/value2".into()],
                 from_io: IO::new("String", "/f2/a"),
                 to_io: IO::new("String", "/f2/value2"),
                 level: 1,
@@ -607,8 +607,8 @@ mod test {
         fn collapse_connection_into_sub_flow() {
             let mut first_level = Connection {
                 name: Name::from("value-to-f1:a at context level"),
-                from: Route::from("/value"),
-                to: Route::from("/flow1/a"),
+                from: "/value".into(),
+                to: vec!["/flow1/a".into()],
                 from_io: IO::new("String", "/value"),
                 to_io: IO::new("String", "/flow1/a"),
                 level: 0,
@@ -618,8 +618,8 @@ mod test {
 
             let mut second_level = Connection {
                 name: Name::from("subflow_connection"),
-                from: Route::from("/flow1/a"),
-                to: Route::from("/flow1/flow2/a"),
+                from: "/flow1/a".into(),
+                to: vec!["/flow1/flow2/a".into()],
                 from_io: IO::new("String", "/flow1/a"),
                 to_io: IO::new("String", "/flow1/flow2/a"),
                 level: 1,
@@ -629,8 +629,8 @@ mod test {
 
             let mut third_level = Connection {
                 name: Name::from("sub_subflow_connection"),
-                from: Route::from("/flow1/flow2/a"),
-                to: Route::from("/flow1/flow2/func/in"),
+                from: "/flow1/flow2/a".into(),
+                to: vec!["/flow1/flow2/func/in".into()],
                 from_io: IO::new("String", "/flow1/flow2/a"),
                 to_io: IO::new("String", "/flow1/flow2/func/in"),
                 level: 2,
@@ -655,8 +655,8 @@ mod test {
 
             let other = Connection {
                 name: Name::from("right"),
-                from: Route::from("/f3/a"),
-                to: Route::from("/f4/a"),
+                from: "/f3/a".into(),
+                to: vec!["/f4/a".into()],
                 from_io: IO::new("String", "/f3/a"),
                 to_io: IO::new("String", "/f4/a"),
                 level: 0,

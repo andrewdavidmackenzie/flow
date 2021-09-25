@@ -18,3 +18,5 @@ pub mod process_reference;
 /// `route` defines a location in the hierarchy of a flow and can locate a flow, a function, or one of
 /// its inputs or outputs
 pub mod route;
+/// A custom deserializer for a String or a Sequence of Strings
+mod route_array_serde;

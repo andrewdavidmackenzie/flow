@@ -20,9 +20,9 @@ pub struct Connection {
     pub name: Name,
     /// `from` defines the origin of the connection
     pub from: Route,
-    /// `to` define the destination of this connection
-    pub to: Route,
-
+    /// `to` defines the destination(s) of this connection
+    #[serde(deserialize_with = "super::route_array_serde::route_or_route_array")]
+    pub to: Vec<Route>,
     /// `from_io` is used during the compilation process and refers to a found output for the connection
     // TODO make these references, not clones
     #[serde(skip)]
@@ -71,7 +71,10 @@ impl Validate for Connection {
     fn validate(&self) -> Result<()> {
         self.name.validate()?;
         self.from.validate()?;
-        self.to.validate()
+        for destination in &self.to {
+            destination.validate()?;
+        }
+        Ok(())
     }
 }
 
@@ -139,7 +142,7 @@ mod test {
     }
 
     #[test]
-    fn deserialize_simple() {
+    fn single_destination_deserialization() {
         let input_str = "
         from = 'source'
         to = 'destination'
@@ -150,10 +153,21 @@ mod test {
     }
 
     #[test]
+    fn multiple_destination_deserialization() {
+        let input_str = "
+        from = 'source'
+        to = ['destination', 'destination2']
+        ";
+
+        let connection: Result<Connection> = toml_from_str(input_str);
+        assert!(connection.is_ok(), "Could not deserialize Connection");
+    }
+
+    #[test]
     fn display_connection() {
         let connection1 = Connection {
-            from: "input/number".into(), // Number
-            to: "process_1".into(),      // String
+            from: "input/number".into(),  // Number
+            to: vec!["process_1".into()], // String
             ..Default::default()
         };
 
@@ -163,8 +177,8 @@ mod test {
     #[test]
     fn validate_connection() {
         let connection1 = Connection {
-            from: "input/number".into(), // Number
-            to: "process_1".into(),      // String
+            from: "input/number".into(),  // Number
+            to: vec!["process_1".into()], // String
             ..Default::default()
         };
 

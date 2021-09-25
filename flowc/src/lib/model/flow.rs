@@ -329,7 +329,8 @@ impl Flow {
         match self.get_route_and_type(FROM, &connection.from, &None) {
             Ok(from_io) => {
                 debug!("Found connection source:\n{:#?}", from_io);
-                match self.get_route_and_type(TO, &connection.to, from_io.get_initializer()) {
+                match self.get_route_and_type(TO, &connection.to[0], from_io.get_initializer()) {
+                    // TODO WIP ^^^^
                     Ok(to_io) => {
                         debug!("Found connection destination:\n{:#?}", to_io);
                         if Connection::compatible_types(
@@ -357,7 +358,7 @@ impl Flow {
                     Err(error) => {
                         bail!(
                             "Did not find connection destination: '{}' in flow '{}'\n\t\t{}",
-                            connection.to,
+                            connection.to[0], // TODO WIP
                             self.source_url,
                             error
                         );
@@ -546,8 +547,8 @@ mod test {
     fn validate_flow() {
         let mut flow = test_flow();
         let connection = Connection {
-            from: "process_1".into(), // String
-            to: "process_2".into(),   // String
+            from: "process_1".into(),     // String
+            to: vec!["process_2".into()], // String
             ..Default::default()
         };
         flow.connections = vec![connection];
@@ -558,8 +559,8 @@ mod test {
     fn duplicate_connection() {
         let mut flow = test_flow();
         let connection = Connection {
-            from: "process_1".into(), // String
-            to: "process_2".into(),   // String
+            from: "process_1".into(),     // String
+            to: vec!["process_2".into()], // String
             ..Default::default()
         };
         flow.connections = vec![connection.clone(), connection];
@@ -620,8 +621,8 @@ mod test {
     fn display_flow() {
         let mut flow = test_flow();
         let connection = Connection {
-            from: "process_1".into(), // String
-            to: "process_2".into(),   // String
+            from: "process_1".into(),     // String
+            to: vec!["process_2".into()], // String
             ..Default::default()
         };
         flow.connections = vec![connection];
@@ -637,8 +638,8 @@ mod test {
             let mut flow = test_flow();
 
             let mut connection = Connection {
-                from: "process_1".into(), // String
-                to: "process_2".into(),   // String
+                from: "process_1".into(),     // String
+                to: vec!["process_2".into()], // String
                 ..Default::default()
             };
 
@@ -650,8 +651,8 @@ mod test {
             let mut flow = test_flow();
 
             let mut connection = Connection {
-                from: "process_2".into(), // Number
-                to: "process_1".into(),   // String
+                from: "process_2".into(),     // Number
+                to: vec!["process_1".into()], // String
                 ..Default::default()
             };
 
@@ -663,8 +664,8 @@ mod test {
             let mut flow = test_flow();
 
             let mut connection = Connection {
-                from: "input/string".into(), // String
-                to: "process_1".into(),      // String
+                from: "input/string".into(),  // String
+                to: vec!["process_1".into()], // String
                 ..Default::default()
             };
 
@@ -676,8 +677,8 @@ mod test {
             let mut flow = test_flow();
 
             let mut connection = Connection {
-                from: "process_1".into(),   // String
-                to: "output/string".into(), // String
+                from: "process_1".into(),         // String
+                to: vec!["output/string".into()], // String
                 ..Default::default()
             };
 
@@ -689,8 +690,8 @@ mod test {
             let mut flow = test_flow();
 
             let mut connection = Connection {
-                from: "input/string".into(), // String
-                to: "output/string".into(),  // String
+                from: "input/string".into(),      // String
+                to: vec!["output/string".into()], // String
                 ..Default::default()
             };
 
@@ -702,8 +703,8 @@ mod test {
             let mut flow = test_flow();
 
             let mut connection = Connection {
-                from: "input/number".into(), // Number
-                to: "process_1".into(),      // String
+                from: "input/number".into(),  // Number
+                to: vec!["process_1".into()], // String
                 ..Default::default()
             };
 
@@ -715,8 +716,8 @@ mod test {
             let mut flow = test_flow();
 
             let mut connection = Connection {
-                from: "process_1".into(),   // String
-                to: "output/number".into(), // Number
+                from: "process_1".into(),         // String
+                to: vec!["output/number".into()], // Number
                 ..Default::default()
             };
 
@@ -728,8 +729,8 @@ mod test {
             let mut flow = test_flow();
 
             let mut connection = Connection {
-                from: "input/string".into(), // String
-                to: "output/number".into(),  // Number
+                from: "input/string".into(),      // String
+                to: vec!["output/number".into()], // Number
                 ..Default::default()
             };
 
@@ -741,8 +742,8 @@ mod test {
             let mut flow = test_flow();
 
             let mut connection = Connection {
-                from: "input/string".into(), // String
-                to: "input/number".into(),   // Number
+                from: "input/string".into(),     // String
+                to: vec!["input/number".into()], // Number
                 ..Default::default()
             };
 
@@ -754,8 +755,8 @@ mod test {
             let mut flow = test_flow();
 
             let mut connection = Connection {
-                from: "output/string".into(), // String
-                to: "output/number".into(),   // Number
+                from: "output/string".into(),     // String
+                to: vec!["output/number".into()], // Number
                 ..Default::default()
             };
 
@@ -767,20 +768,20 @@ mod test {
             let mut flow = test_flow();
 
             let connection1 = Connection {
-                from: "input/string".into(), // String
-                to: "output/string".into(),  // String
+                from: "input/string".into(),      // String
+                to: vec!["output/string".into()], // String
                 ..Default::default()
             };
 
             let connection2 = Connection {
-                from: "input/string".into(), // String
-                to: "process_1".into(),      // String
+                from: "input/string".into(),  // String
+                to: vec!["process_1".into()], // String
                 ..Default::default()
             };
 
             let connection3 = Connection {
-                from: "process_1".into(),   // String
-                to: "output/string".into(), // String
+                from: "process_1".into(),         // String
+                to: vec!["output/string".into()], // String
                 ..Default::default()
             };
 
@@ -793,8 +794,8 @@ mod test {
             let mut flow = test_flow();
 
             let connection1 = Connection {
-                from: "input/number".into(), // Number
-                to: "process_1".into(),      // String
+                from: "input/number".into(),  // Number
+                to: vec!["process_1".into()], // String
                 ..Default::default()
             };
 
