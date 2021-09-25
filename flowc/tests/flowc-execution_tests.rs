@@ -286,6 +286,13 @@ fn duplicate_connection() {
     execute_test("duplicate-connection", search_path, false);
 }
 
+#[test]
+#[serial]
+fn two_destinations() {
+    let search_path = helper::set_lib_search_path_to_project();
+    execute_test("two-destinations", search_path, false);
+}
+
 #[cfg(feature = "distributed")]
 #[test]
 #[serial]
