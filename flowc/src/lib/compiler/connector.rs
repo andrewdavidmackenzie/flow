@@ -49,7 +49,7 @@ pub fn prepare_function_connections(tables: &mut GenerationTables) -> Result<()>
                         connection.to_io().datatype().is_generic(),
                         connection.to_io().route().to_string(),
                         #[cfg(feature = "debugger")]
-                        connection.name.to_string(),
+                        connection.name().to_string(),
                     );
                     source_function.add_output_route(output_conn);
                 }
@@ -362,9 +362,6 @@ pub fn collapse_connections(original_connections: &[Connection]) -> Vec<Connecti
                     collapsed_connection
                         .from_io_mut()
                         .set_route(&from_route, &IOType::FunctionIO);
-                    collapsed_connection.from = from_route;
-                    // collapsed_connection.to_io.set_route(&destination_io.route(), &IOType::FunctionIO);
-                    //                    collapsed_connection.to = destination_io.route().to_owned(); // TODO WIP
                     *collapsed_connection.to_io_mut() = destination_io;
                     debug!("\tIndirect connection {}", collapsed_connection);
                     collapsed_connections.push(collapsed_connection);
@@ -492,8 +489,10 @@ mod test {
 
         #[test]
         fn collapse_drops_a_useless_connections() {
-            let mut unused = Connection::new("/f1/a", "/f2/a", 0);
-            unused.connect(IO::new("String", "/f1/a"), IO::new("String", "/f2/a"));
+            let mut unused = Connection::new("/f1/a", "/f2/a");
+            unused
+                .connect(IO::new("String", "/f1/a"), IO::new("String", "/f2/a"), 1)
+                .expect("Could not connect IOs");
             unused.to_io_mut().set_io_type(IOType::FlowInput);
 
             let connections = vec![unused];
@@ -503,28 +502,37 @@ mod test {
 
         #[test]
         fn collapse_a_connection() {
-            let mut left_side = Connection::new("/function1", "/flow2/a", 0);
-            left_side.connect(
-                IO::new("String", "/function1"),
-                IO::new("String", "/flow2/a"),
-            );
+            let mut left_side = Connection::new("/function1", "/flow2/a");
+            left_side
+                .connect(
+                    IO::new("String", "/function1"),
+                    IO::new("String", "/flow2/a"),
+                    0,
+                )
+                .expect("Could not connect IOs");
             left_side.from_io_mut().set_io_type(IOType::FunctionIO);
             left_side.to_io_mut().set_io_type(IOType::FlowInput);
 
             // This one goes to a flow but then nowhere, so should be dropped
-            let mut extra_one = Connection::new("/flow2/a", "/flow2/f4/a", 1);
-            extra_one.connect(
-                IO::new("String", "/flow2/a"),
-                IO::new("String", "/flow2/f4/a"),
-            );
+            let mut extra_one = Connection::new("/flow2/a", "/flow2/f4/a");
+            extra_one
+                .connect(
+                    IO::new("String", "/flow2/a"),
+                    IO::new("String", "/flow2/f4/a"),
+                    1,
+                )
+                .expect("Could not connect IOs");
             extra_one.from_io_mut().set_io_type(IOType::FlowInput);
             extra_one.to_io_mut().set_io_type(IOType::FlowInput); // /flow2/f4 doesn't exist
 
-            let mut right_side = Connection::new("/flow2/a", "/flow2/function3", 1);
-            right_side.connect(
-                IO::new("String", "/flow2/a"),
-                IO::new("String", "/flow2/function3"),
-            );
+            let mut right_side = Connection::new("/flow2/a", "/flow2/function3");
+            right_side
+                .connect(
+                    IO::new("String", "/flow2/a"),
+                    IO::new("String", "/flow2/function3"),
+                    1,
+                )
+                .expect("Could not connect IOs");
             right_side.from_io_mut().set_io_type(IOType::FlowInput);
             right_side.to_io_mut().set_io_type(IOType::FunctionIO);
 
@@ -547,18 +555,32 @@ mod test {
         */
         #[test]
         fn collapse_two_connections_from_flow_boundary() {
-            let mut left_side = Connection::new("/f1", "/f2/a", 0);
-            left_side.connect(IO::new("String", "/f1"), IO::new("String", "/f2/a"));
+            let mut left_side = Connection::new("/f1", "/f2/a");
+            left_side
+                .connect(IO::new("String", "/f1"), IO::new("String", "/f2/a"), 0)
+                .expect("Could not connect IOs");
             left_side.from_io_mut().set_io_type(IOType::FunctionIO);
             left_side.to_io_mut().set_io_type(IOType::FlowInput);
 
-            let mut right_side_one = Connection::new("/f2/a", "/f2/value1", 1);
-            right_side_one.connect(IO::new("String", "/f2/a"), IO::new("String", "/f2/value1"));
+            let mut right_side_one = Connection::new("/f2/a", "/f2/value1");
+            right_side_one
+                .connect(
+                    IO::new("String", "/f2/a"),
+                    IO::new("String", "/f2/value1"),
+                    1,
+                )
+                .expect("Could not connect IOs");
             right_side_one.from_io_mut().set_io_type(IOType::FlowInput);
             right_side_one.to_io_mut().set_io_type(IOType::FunctionIO);
 
-            let mut right_side_two = Connection::new("/f2/a", "/f2/value2", 1);
-            right_side_two.connect(IO::new("String", "/f2/a"), IO::new("String", "/f2/value2"));
+            let mut right_side_two = Connection::new("/f2/a", "/f2/value2");
+            right_side_two
+                .connect(
+                    IO::new("String", "/f2/a"),
+                    IO::new("String", "/f2/value2"),
+                    1,
+                )
+                .expect("Could not connect IOs");
             right_side_two.from_io_mut().set_io_type(IOType::FlowInput);
             right_side_two.to_io_mut().set_io_type(IOType::FunctionIO);
 
@@ -575,24 +597,36 @@ mod test {
 
         #[test]
         fn collapse_connection_into_sub_flow() {
-            let mut first_level = Connection::new("/value", "/flow1/a", 0);
-            first_level.connect(IO::new("String", "/value"), IO::new("String", "/flow1/a"));
+            let mut first_level = Connection::new("/value", "/flow1/a");
+            first_level
+                .connect(
+                    IO::new("String", "/value"),
+                    IO::new("String", "/flow1/a"),
+                    0,
+                )
+                .expect("Could not connect IOs");
             first_level.from_io_mut().set_io_type(IOType::FunctionIO);
             first_level.to_io_mut().set_io_type(IOType::FlowInput);
 
-            let mut second_level = Connection::new("/flow1/a", "/flow1/flow2/a", 1);
-            second_level.connect(
-                IO::new("String", "/flow1/a"),
-                IO::new("String", "/flow1/flow2/a"),
-            );
+            let mut second_level = Connection::new("/flow1/a", "/flow1/flow2/a");
+            second_level
+                .connect(
+                    IO::new("String", "/flow1/a"),
+                    IO::new("String", "/flow1/flow2/a"),
+                    1,
+                )
+                .expect("Could not connect IOs");
             second_level.from_io_mut().set_io_type(IOType::FlowInput);
             second_level.to_io_mut().set_io_type(IOType::FlowInput);
 
-            let mut third_level = Connection::new("/flow1/flow2/a", "/flow1/flow2/func/in", 2);
-            third_level.connect(
-                IO::new("String", "/flow1/flow2/a"),
-                IO::new("String", "/flow1/flow2/func/in"),
-            );
+            let mut third_level = Connection::new("/flow1/flow2/a", "/flow1/flow2/func/in");
+            third_level
+                .connect(
+                    IO::new("String", "/flow1/flow2/a"),
+                    IO::new("String", "/flow1/flow2/func/in"),
+                    2,
+                )
+                .expect("Could not connect IOs");
             third_level.from_io_mut().set_io_type(IOType::FlowInput);
             third_level.to_io_mut().set_io_type(IOType::FunctionIO);
 
@@ -609,11 +643,14 @@ mod test {
 
         #[test]
         fn does_not_collapse_a_non_connection() {
-            let mut one = Connection::new("/f1/a", "/f2/a", 0);
-            one.connect(IO::new("String", "/f1/a"), IO::new("String", "/f2/a"));
+            let mut one = Connection::new("/f1/a", "/f2/a");
+            one.connect(IO::new("String", "/f1/a"), IO::new("String", "/f2/a"), 1)
+                .expect("Could not connect IOs");
 
-            let mut other = Connection::new("/f3/a", "/f4/a", 0);
-            other.connect(IO::new("String", "/f3/a"), IO::new("String", "/f4/a"));
+            let mut other = Connection::new("/f3/a", "/f4/a");
+            other
+                .connect(IO::new("String", "/f3/a"), IO::new("String", "/f4/a"), 1)
+                .expect("Could not connect IOs");
             let connections = vec![one, other];
             let collapsed = collapse_connections(&connections);
             assert_eq!(collapsed.len(), 2);

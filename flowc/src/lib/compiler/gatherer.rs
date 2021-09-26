@@ -9,23 +9,16 @@ use crate::model::process::Process::FunctionProcess;
 
 /// This module is responsible for parsing the flow tree and gathering information into a set of
 /// flat tables that the compiler can use for code generation.
-pub fn gather_functions_and_connections(
-    flow: &Flow,
-    tables: &mut GenerationTables,
-    level: usize,
-) -> Result<()> {
+pub fn gather_functions_and_connections(flow: &Flow, tables: &mut GenerationTables) -> Result<()> {
     // Add Connections from this flow hierarchy to the connections table
     let mut connections = flow.connections.clone();
-    for con in &mut connections {
-        con.level = level;
-    }
     tables.connections.append(&mut connections);
 
     // Do the same for all subprocesses referenced from this one
     for subprocess in &flow.subprocesses {
         match subprocess.1 {
             FlowProcess(ref flow) => {
-                gather_functions_and_connections(flow, tables, level + 1)?; // recurse
+                gather_functions_and_connections(flow, tables)?; // recurse
             }
             FunctionProcess(ref function) => {
                 // Add Functions from this flow to the table of functions

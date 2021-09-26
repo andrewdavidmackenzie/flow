@@ -85,6 +85,7 @@ pub fn load(
         &HashMap::new(),
         #[cfg(feature = "debugger")]
         source_urls,
+        0,
     )
 }
 
@@ -98,6 +99,7 @@ fn load_process(
     provider: &dyn Provider,
     initializations: &HashMap<String, InputInitializer>,
     #[cfg(feature = "debugger")] source_urls: &mut HashSet<(Url, Url)>,
+    level: usize,
 ) -> Result<Process> {
     trace!("load_process()");
 
@@ -147,8 +149,9 @@ fn load_process(
                 provider,
                 #[cfg(feature = "debugger")]
                 source_urls,
+                level,
             )?;
-            flow.build_connections()?;
+            flow.build_connections(level)?;
         }
         FunctionProcess(ref mut function) => {
             config_function(
@@ -215,6 +218,7 @@ fn load_process_refs(
     flow_count: &mut usize,
     provider: &dyn Provider,
     #[cfg(feature = "debugger")] source_urls: &mut HashSet<(Url, Url)>,
+    level: usize,
 ) -> Result<()> {
     for process_ref in &mut flow.process_refs {
         let subprocess_url = flow
@@ -231,6 +235,7 @@ fn load_process_refs(
             &process_ref.initializations,
             #[cfg(feature = "debugger")]
             source_urls,
+            level + 1,
         )?;
         process_ref.set_alias(process.name());
 
