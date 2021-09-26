@@ -44,4 +44,55 @@ pub fn index_functions(functions: &mut Vec<Function>) {
     }
 }
 
-// TODO WIP add tests
+#[cfg(test)]
+mod test {
+    use crate::model::function::Function;
+    use crate::model::io::IO;
+    use crate::model::name::Name;
+    use crate::model::route::Route;
+    use flowcore::output_connection::{OutputConnection, Source};
+
+    #[test]
+    fn empty_index_test() {
+        super::index_functions(&mut vec![]);
+    }
+
+    #[test]
+    fn index_test() {
+        let function = Function::new(
+            Name::from("Stdout"),
+            false,
+            "lib://flowruntime/stdio/stdout".to_string(),
+            Name::from("print"),
+            vec![],
+            vec![IO::new("String", Route::default())],
+            "file:///fake/file",
+            Route::from("/flow0/stdout"),
+            Some("flowruntime/stdio/stdout".to_string()),
+            vec![OutputConnection::new(
+                Source::default(),
+                1,
+                0,
+                0,
+                0,
+                false,
+                String::default(),
+                #[cfg(feature = "debugger")]
+                String::default(),
+            )],
+            99,
+            0,
+        );
+
+        let mut functions = vec![function.clone(), function];
+        super::index_functions(&mut functions);
+        assert_eq!(
+            functions.get(0).expect("Could not get function").get_id(),
+            0
+        );
+        assert_eq!(
+            functions.get(1).expect("Could not get function").get_id(),
+            1
+        );
+    }
+}

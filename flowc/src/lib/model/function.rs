@@ -80,6 +80,7 @@ impl HasRoute for Function {
 impl Function {
     /// Create a new function - used mainly for testing as Functions are usually deserialized
     #[allow(clippy::too_many_arguments)]
+    #[cfg(test)]
     pub fn new(
         name: Name,
         impure: bool,
