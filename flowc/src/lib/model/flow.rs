@@ -435,32 +435,12 @@ mod test {
             name: "test_flow".into(),
             alias: "test_flow".into(),
             inputs: vec![
-                IO {
-                    datatype: "String".into(),
-                    route: "string".into(),
-                    name: "string".into(),
-                    ..Default::default()
-                },
-                IO {
-                    datatype: "Number".into(),
-                    route: "number".into(),
-                    name: "number".into(),
-                    ..Default::default()
-                },
+                IO::new_named("String", "string", "string"),
+                IO::new_named("Number", "number", "number"),
             ],
             outputs: vec![
-                IO {
-                    datatype: "String".into(),
-                    route: "string".into(),
-                    name: "string".into(),
-                    ..Default::default()
-                },
-                IO {
-                    datatype: "Number".into(),
-                    route: "number".into(),
-                    name: "number".into(),
-                    ..Default::default()
-                },
+                IO::new_named("String", "string", "string"),
+                IO::new_named("Number", "number", "number"),
             ],
             ..Default::default()
         };

@@ -12,14 +12,12 @@ use flowcore::lib_provider::Provider;
 
 use crate::errors::*;
 use crate::model::flow::Flow;
-use crate::model::function::Function;
 use crate::model::name::HasName;
 use crate::model::name::Name;
 use crate::model::process::Process;
 use crate::model::process::Process::FlowProcess;
 use crate::model::process::Process::FunctionProcess;
 use crate::model::route::Route;
-use crate::model::route::SetRoute;
 
 /// Many structs in the model implement the `Validate` method which is used to check the
 /// description deserialized from file obeys some additional constraints that cannot be expressed
@@ -153,8 +151,7 @@ fn load_process(
             flow.build_connections(level)?;
         }
         FunctionProcess(ref mut function) => {
-            config_function(
-                function,
+            function.config(
                 resolved_url.as_str(),
                 parent_route,
                 alias,
@@ -235,25 +232,6 @@ fn load_process_refs(
     }
 
     Ok(())
-}
-
-#[allow(clippy::too_many_arguments)]
-fn config_function(
-    function: &mut Function,
-    source_url: &str,
-    parent_route: &Route,
-    alias: &Name,
-    flow_id: usize,
-    lib_ref: Option<String>,
-    initializations: &HashMap<String, InputInitializer>,
-) -> Result<()> {
-    function.set_flow_id(flow_id);
-    function.set_alias(alias);
-    function.set_source_url(source_url);
-    function.set_lib_reference(lib_ref);
-    function.set_routes_from_parent(parent_route);
-    function.set_initial_values(initializations);
-    function.validate()
 }
 
 #[cfg(test)]
