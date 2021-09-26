@@ -10,7 +10,7 @@ use flowcore::output_connection::{OutputConnection, Source};
 use crate::compiler::loader::Validate;
 use crate::errors::*;
 use crate::model::io::IOSet;
-use crate::model::io::{IOType, IO};
+use crate::model::io::IOType;
 use crate::model::name::HasName;
 use crate::model::name::Name;
 use crate::model::route::HasRoute;
@@ -268,7 +268,7 @@ impl Default for Function {
             implementation: "".to_owned(),
             alias: Name::default(),
             inputs: vec![],
-            outputs: vec![IO::new("Value", Route::default())],
+            outputs: vec![],
             source_url: String::default(),
             route: Route::default(),
             lib_reference: None,

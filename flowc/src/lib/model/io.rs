@@ -54,6 +54,7 @@ pub struct IO {
 
 impl IO {
     /// Create a new IO with a specific datatype and at a specific route
+    #[cfg(test)]
     pub fn new<D: Into<DataType>, R: Into<Route>>(datatype: D, route: R) -> Self {
         IO {
             datatype: datatype.into(),
