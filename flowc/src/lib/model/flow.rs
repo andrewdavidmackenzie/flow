@@ -73,6 +73,9 @@ pub struct Flow {
     /// `lib_references` is the set of library references used in this flow
     #[serde(skip)]
     pub lib_references: HashSet<Url>,
+    /// Track at what level in the flow hierarchy this flow exists
+    #[serde(skip)]
+    pub level: usize,
 }
 
 impl Validate for Flow {
@@ -138,6 +141,7 @@ impl Default for Flow {
             subprocesses: HashMap::new(),
             lib_references: HashSet::new(),
             metadata: MetaData::default(),
+            level: 0,
         }
     }
 }
@@ -329,8 +333,9 @@ impl Flow {
         match self.get_route_and_type(FROM, &connection.from, &None) {
             Ok(from_io) => {
                 debug!("Found connection source:\n{:#?}", from_io);
-                match self.get_route_and_type(TO, &connection.to[0], from_io.get_initializer()) {
-                    // TODO WIP ^^^^
+                let to_route = &connection.to[0];
+                match self.get_route_and_type(TO, to_route, from_io.get_initializer()) {
+                    // TODO WIP ^^^^ try using to_io.route() instead
                     Ok(to_io) => {
                         debug!("Found connection destination:\n{:#?}", to_io);
                         if Connection::compatible_types(
@@ -343,8 +348,7 @@ impl Flow {
                                 from_io.route(),
                                 to_io.route()
                             );
-                            connection.from_io = from_io;
-                            connection.to_io = to_io;
+                            connection.connect(from_io, to_io);
                             Ok(())
                         } else {
                             bail!(
@@ -358,7 +362,7 @@ impl Flow {
                     Err(error) => {
                         bail!(
                             "Did not find connection destination: '{}' in flow '{}'\n\t\t{}",
-                            connection.to[0], // TODO WIP
+                            to_route,
                             self.source_url,
                             error
                         );
@@ -546,11 +550,7 @@ mod test {
     #[test]
     fn validate_flow() {
         let mut flow = test_flow();
-        let connection = Connection {
-            from: "process_1".into(),     // String
-            to: vec!["process_2".into()], // String
-            ..Default::default()
-        };
+        let connection = Connection::new("process_1", "process_2", 0);
         flow.connections = vec![connection];
         assert!(flow.validate().is_ok());
     }
@@ -558,11 +558,7 @@ mod test {
     #[test]
     fn duplicate_connection() {
         let mut flow = test_flow();
-        let connection = Connection {
-            from: "process_1".into(),     // String
-            to: vec!["process_2".into()], // String
-            ..Default::default()
-        };
+        let connection = Connection::new("process_1", "process_2", 0);
         flow.connections = vec![connection.clone(), connection];
         assert!(flow.validate().is_ok());
     }
@@ -620,11 +616,7 @@ mod test {
     #[test]
     fn display_flow() {
         let mut flow = test_flow();
-        let connection = Connection {
-            from: "process_1".into(),     // String
-            to: vec!["process_2".into()], // String
-            ..Default::default()
-        };
+        let connection = Connection::new("process_1", "process_2", 0);
         flow.connections = vec![connection];
         println!("flow: {}", flow);
     }
@@ -636,130 +628,70 @@ mod test {
         #[test]
         fn build_compatible_internal_connection() {
             let mut flow = test_flow();
-
-            let mut connection = Connection {
-                from: "process_1".into(),     // String
-                to: vec!["process_2".into()], // String
-                ..Default::default()
-            };
-
+            let mut connection = Connection::new("process_1", "process_2", 0);
             assert!(flow.build_connection(&mut connection).is_ok());
         }
 
         #[test]
         fn build_incompatible_internal_connection() {
             let mut flow = test_flow();
-
-            let mut connection = Connection {
-                from: "process_2".into(),     // Number
-                to: vec!["process_1".into()], // String
-                ..Default::default()
-            };
-
+            let mut connection = Connection::new("process_2", "process_1", 0);
             assert!(flow.build_connection(&mut connection).is_err());
         }
 
         #[test]
         fn build_from_flow_input_to_sub_process() {
             let mut flow = test_flow();
-
-            let mut connection = Connection {
-                from: "input/string".into(),  // String
-                to: vec!["process_1".into()], // String
-                ..Default::default()
-            };
-
+            let mut connection = Connection::new("input/string", "process_1", 0);
             assert!(flow.build_connection(&mut connection).is_ok());
         }
 
         #[test]
         fn build_from_sub_process_flow_output() {
             let mut flow = test_flow();
-
-            let mut connection = Connection {
-                from: "process_1".into(),         // String
-                to: vec!["output/string".into()], // String
-                ..Default::default()
-            };
-
+            let mut connection = Connection::new("process_1", "output/string", 0);
             assert!(flow.build_connection(&mut connection).is_ok());
         }
 
         #[test]
         fn build_from_flow_input_to_flow_output() {
             let mut flow = test_flow();
-
-            let mut connection = Connection {
-                from: "input/string".into(),      // String
-                to: vec!["output/string".into()], // String
-                ..Default::default()
-            };
-
+            let mut connection = Connection::new("input/string", "output/string", 0);
             assert!(flow.build_connection(&mut connection).is_ok());
         }
 
         #[test]
         fn build_incompatible_from_flow_input_to_sub_process() {
             let mut flow = test_flow();
-
-            let mut connection = Connection {
-                from: "input/number".into(),  // Number
-                to: vec!["process_1".into()], // String
-                ..Default::default()
-            };
-
+            let mut connection = Connection::new("input/number", "process_1", 0);
             assert!(flow.build_connection(&mut connection).is_err());
         }
 
         #[test]
         fn build_incompatible_from_sub_process_flow_output() {
             let mut flow = test_flow();
-
-            let mut connection = Connection {
-                from: "process_1".into(),         // String
-                to: vec!["output/number".into()], // Number
-                ..Default::default()
-            };
-
+            let mut connection = Connection::new("process_1", "output/number", 0);
             assert!(flow.build_connection(&mut connection).is_err());
         }
 
         #[test]
         fn build_incompatible_from_flow_input_to_flow_output() {
             let mut flow = test_flow();
-
-            let mut connection = Connection {
-                from: "input/string".into(),      // String
-                to: vec!["output/number".into()], // Number
-                ..Default::default()
-            };
-
+            let mut connection = Connection::new("input/string", "output/number", 0);
             assert!(flow.build_connection(&mut connection).is_err());
         }
 
         #[test]
         fn fail_build_from_flow_input_to_flow_input() {
             let mut flow = test_flow();
-
-            let mut connection = Connection {
-                from: "input/string".into(),     // String
-                to: vec!["input/number".into()], // Number
-                ..Default::default()
-            };
-
+            let mut connection = Connection::new("input/string", "input/number", 0);
             assert!(flow.build_connection(&mut connection).is_err());
         }
 
         #[test]
         fn fail_build_from_flow_output_to_flow_output() {
             let mut flow = test_flow();
-
-            let mut connection = Connection {
-                from: "output/string".into(),     // String
-                to: vec!["output/number".into()], // Number
-                ..Default::default()
-            };
-
+            let mut connection = Connection::new("output/string", "output/number", 0);
             assert!(flow.build_connection(&mut connection).is_err());
         }
 
@@ -767,23 +699,9 @@ mod test {
         fn build_all_flow_connections() {
             let mut flow = test_flow();
 
-            let connection1 = Connection {
-                from: "input/string".into(),      // String
-                to: vec!["output/string".into()], // String
-                ..Default::default()
-            };
-
-            let connection2 = Connection {
-                from: "input/string".into(),  // String
-                to: vec!["process_1".into()], // String
-                ..Default::default()
-            };
-
-            let connection3 = Connection {
-                from: "process_1".into(),         // String
-                to: vec!["output/string".into()], // String
-                ..Default::default()
-            };
+            let connection1 = Connection::new("input/string", "output/string", 0);
+            let connection2 = Connection::new("input/string", "process_1", 0);
+            let connection3 = Connection::new("process_1", "output/string", 0);
 
             flow.connections = vec![connection1, connection2, connection3];
             assert!(flow.build_connections().is_ok());
@@ -792,13 +710,7 @@ mod test {
         #[test]
         fn fail_build_flow_connections() {
             let mut flow = test_flow();
-
-            let connection1 = Connection {
-                from: "input/number".into(),  // Number
-                to: vec!["process_1".into()], // String
-                ..Default::default()
-            };
-
+            let connection1 = Connection::new("input/number", "process_1", 0);
             flow.connections = vec![connection1];
             assert!(flow.build_connections().is_err());
         }

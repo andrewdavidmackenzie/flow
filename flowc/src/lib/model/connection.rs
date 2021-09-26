@@ -26,10 +26,10 @@ pub struct Connection {
     /// `from_io` is used during the compilation process and refers to a found output for the connection
     // TODO make these references, not clones
     #[serde(skip)]
-    pub from_io: IO,
+    from_io: IO,
     /// `to_io` is used during the compilation process and refers to a found input for the connection
     #[serde(skip)]
-    pub to_io: IO,
+    to_io: IO,
     /// `level` defines at what level in the flow hierarchy of nested flows this connections belongs
     #[serde(skip)]
     pub level: usize,
@@ -79,6 +79,51 @@ impl Validate for Connection {
 }
 
 impl Connection {
+    /// Create a new Route with `from_route` as the source `Route` and `to_route` as the destination
+    #[cfg(test)]
+    pub fn new<R>(from_route: R, to_route: R, level: usize) -> Self
+    where
+        R: Into<Route>,
+    {
+        Connection {
+            from: from_route.into(),
+            to: vec![to_route.into()],
+            level,
+            ..Default::default()
+        }
+    }
+
+    /// Connect the `from_io` to the `to_io`
+    pub fn connect(&mut self, from_io: IO, to_io: IO) {
+        self.from_io = from_io;
+        self.to_io = to_io;
+    }
+
+    /// Return a reference to the from_io
+    pub fn from_io(&self) -> &IO {
+        &self.from_io
+    }
+
+    /// Return a mutable reference to the from_io
+    pub fn from_io_mut(&mut self) -> &mut IO {
+        &mut self.from_io
+    }
+
+    /// Return a reference to the to_io
+    pub fn to_io(&self) -> &IO {
+        &self.to_io
+    }
+
+    /// Return a mutable reference to the to_io
+    pub fn to_io_mut(&mut self) -> &mut IO {
+        &mut self.to_io
+    }
+
+    /// Get at what level in the flow hierarchy this connection exists (source)
+    pub fn level(&self) -> usize {
+        self.level
+    }
+
     /// Determine if the type of the source of a connection and the type of the destination are
     /// compatible, what type of conversion maybe required and if a Connection can be formed
     /// TODO calculate the real from type based on the subroute of the output used by
@@ -165,23 +210,13 @@ mod test {
 
     #[test]
     fn display_connection() {
-        let connection1 = Connection {
-            from: "input/number".into(),  // Number
-            to: vec!["process_1".into()], // String
-            ..Default::default()
-        };
-
+        let connection1 = Connection::new("input/number", "process_1", 0);
         println!("Connection: {}", connection1);
     }
 
     #[test]
     fn validate_connection() {
-        let connection1 = Connection {
-            from: "input/number".into(),  // Number
-            to: vec!["process_1".into()], // String
-            ..Default::default()
-        };
-
+        let connection1 = Connection::new("input/number", "process_1", 0);
         assert!(connection1.validate().is_ok());
     }
 

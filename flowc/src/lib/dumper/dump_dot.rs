@@ -128,26 +128,26 @@ fn output_name_to_port<T: Hash>(t: &T) -> &str {
 #[allow(clippy::ptr_arg)]
 fn connection_to_dot(connection: &Connection, input_set: &IOSet, output_set: &IOSet) -> String {
     let (from_route, number, array_index) =
-        connection.from_io.route().without_trailing_array_index();
+        connection.from_io().route().without_trailing_array_index();
 
     let (from_node, from_label) =
-        node_from_io_route(&from_route, connection.from_io.name(), input_set);
+        node_from_io_route(&from_route, connection.from_io().name(), input_set);
     let (to_node, to_label) = node_from_io_route(
-        connection.to_io.route(),
-        connection.to_io.name(),
+        connection.to_io().route(),
+        connection.to_io().name(),
         output_set,
     );
 
-    let from_port = if connection.from_io.flow_io() {
+    let from_port = if connection.from_io().flow_io() {
         "s"
     } else {
-        output_name_to_port(connection.from_io.name())
+        output_name_to_port(connection.from_io().name())
     };
 
-    let to_port = if connection.to_io.flow_io() {
+    let to_port = if connection.to_io().flow_io() {
         "n"
     } else {
-        input_name_to_port(connection.to_io.name())
+        input_name_to_port(connection.to_io().name())
     };
 
     if array_index {

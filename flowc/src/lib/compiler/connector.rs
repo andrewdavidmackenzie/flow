@@ -26,15 +26,16 @@ use crate::model::route::Route;
 pub fn prepare_function_connections(tables: &mut GenerationTables) -> Result<()> {
     debug!("Setting output routes on processes");
     for connection in &tables.collapsed_connections {
-        if let Some((source, source_id)) = get_source(&tables.sources, connection.from_io.route()) {
+        if let Some((source, source_id)) = get_source(&tables.sources, connection.from_io().route())
+        {
             if let Some(&(destination_function_id, destination_input_index, destination_flow_id)) =
-                tables.destination_routes.get(connection.to_io.route())
+                tables.destination_routes.get(connection.to_io().route())
             {
                 if let Some(source_function) = tables.functions.get_mut(source_id) {
                     debug!(
                         "Connection: from '{}' to '{}'",
-                        &connection.from_io.route(),
-                        &connection.to_io.route()
+                        &connection.from_io().route(),
+                        &connection.to_io().route()
                     );
                     debug!("  Source output route = '{}' --> Destination: Process ID = {},  Input number = {}",
                            source, destination_function_id, destination_input_index);
@@ -44,9 +45,9 @@ pub fn prepare_function_connections(tables: &mut GenerationTables) -> Result<()>
                         destination_function_id,
                         destination_input_index,
                         destination_flow_id,
-                        connection.to_io.datatype().array_order()?,
-                        connection.to_io.datatype().is_generic(),
-                        connection.to_io.route().to_string(),
+                        connection.to_io().datatype().array_order()?,
+                        connection.to_io().datatype().is_generic(),
+                        connection.to_io().route().to_string(),
                         #[cfg(feature = "debugger")]
                         connection.name.to_string(),
                     );
@@ -54,7 +55,7 @@ pub fn prepare_function_connections(tables: &mut GenerationTables) -> Result<()>
                 }
 
                 // TODO when connection uses references to real IOs then we maybe able to remove this
-                if connection.to_io.get_initializer().is_some() {
+                if connection.to_io().get_initializer().is_some() {
                     if let Some(destination_function) =
                         tables.functions.get_mut(destination_function_id)
                     {
@@ -63,22 +64,22 @@ pub fn prepare_function_connections(tables: &mut GenerationTables) -> Result<()>
                             .get_mut(destination_input_index)
                             .unwrap();
                         if destination_input.get_initializer().is_none() {
-                            destination_input.set_initializer(connection.to_io.get_initializer());
+                            destination_input.set_initializer(connection.to_io().get_initializer());
                             debug!("Set initializer on destination function '{}' input at '{}' from connection",
-                                       destination_function.name(), connection.to_io.route());
+                                       destination_function.name(), connection.to_io().route());
                         }
                     }
                 }
             } else {
                 bail!(
                     "Connection destination for route '{}' was not found",
-                    connection.to_io.route()
+                    connection.to_io().route()
                 );
             }
         } else {
             bail!(
                 "Connection source for route '{}' was not found",
-                connection.from_io.route()
+                connection.from_io().route()
             );
         }
     }
@@ -243,8 +244,12 @@ fn find_function_destinations(
 
     let mut found = false;
     for next_connection in connections {
-        if let Some(subroute) = next_connection.from_io.route().sub_route_of(from_io_route) {
-            let next_level = match *next_connection.from_io.io_type() {
+        if let Some(subroute) = next_connection
+            .from_io()
+            .route()
+            .sub_route_of(from_io_route)
+        {
+            let next_level = match *next_connection.from_io().io_type() {
                 // Can't escape the context!
                 IOType::FlowOutput if from_level > 0 => from_level - 1,
                 IOType::FlowOutput if from_level == 0 => usize::MAX,
@@ -252,19 +257,19 @@ fn find_function_destinations(
                 _ => from_level,
             };
 
-            if next_connection.level == next_level {
+            if next_connection.level() == next_level {
                 // Add any subroute from this connection to the origin subroute accumulated so far
                 let accumulated_source_subroute = prev_subroute.clone().extend(&subroute).clone();
 
-                match *next_connection.to_io.io_type() {
+                match *next_connection.to_io().io_type() {
                     IOType::FunctionIO => {
                         debug!(
                             "\t\tFound destination function input at '{}'",
-                            next_connection.to_io.route()
+                            next_connection.to_io().route()
                         );
                         // Found a destination that is a function, add it to the list
                         destinations
-                            .push((accumulated_source_subroute, next_connection.to_io.clone()));
+                            .push((accumulated_source_subroute, next_connection.to_io().clone()));
                         found = true;
                     }
                     IOType::FlowInput => {
@@ -274,8 +279,8 @@ fn find_function_destinations(
                         );
                         let new_destinations = &mut find_function_destinations(
                             accumulated_source_subroute,
-                            next_connection.to_io.route(),
-                            next_connection.level,
+                            next_connection.to_io().route(),
+                            next_connection.level(),
                             connections,
                         );
                         // TODO accumulate the source subroute that builds up as we go
@@ -288,8 +293,8 @@ fn find_function_destinations(
                         );
                         let new_destinations = &mut find_function_destinations(
                             accumulated_source_subroute,
-                            next_connection.to_io.route(),
-                            next_connection.level,
+                            next_connection.to_io().route(),
+                            next_connection.level(),
                             connections,
                         );
                         // TODO accumulate the source subroute that builds up as we go
@@ -325,42 +330,42 @@ pub fn collapse_connections(original_connections: &[Connection]) -> Vec<Connecti
     for connection in original_connections {
         // All collapsed connections must start and end at a Function, so we only build
         // them starting at ones that begin at a Function's IO
-        if *connection.from_io.io_type() == IOType::FunctionIO {
+        if *connection.from_io().io_type() == IOType::FunctionIO {
             debug!(
                 "Trying to create connection from function output at '{}' (level={})",
-                connection.from_io.route(),
-                connection.level
+                connection.from_io().route(),
+                connection.level()
             );
-            if *connection.to_io.io_type() == IOType::FunctionIO {
+            if *connection.to_io().io_type() == IOType::FunctionIO {
                 debug!(
                     "\tFound direct connection to function input at '{}'",
-                    connection.to_io.route()
+                    connection.to_io().route()
                 );
                 collapsed_connections.push(connection.clone());
             } else {
                 // If the connection enters or leaves this flow, then follow it to all destinations at function inputs
                 for (source_subroute, destination_io) in find_function_destinations(
                     Route::from(""),
-                    connection.to_io.route(),
-                    connection.level,
+                    connection.to_io().route(),
+                    connection.level(),
                     original_connections,
                 ) {
                     let mut collapsed_connection = connection.clone();
                     // append the subroute from the origin function IO - to select from with in that IO
                     // as prescribed by the connections along the way
                     let from_route = connection
-                        .from_io
+                        .from_io()
                         .route()
                         .clone()
                         .extend(&source_subroute)
                         .clone();
                     collapsed_connection
-                        .from_io
+                        .from_io_mut()
                         .set_route(&from_route, &IOType::FunctionIO);
                     collapsed_connection.from = from_route;
                     // collapsed_connection.to_io.set_route(&destination_io.route(), &IOType::FunctionIO);
                     //                    collapsed_connection.to = destination_io.route().to_owned(); // TODO WIP
-                    collapsed_connection.to_io = destination_io;
+                    *collapsed_connection.to_io_mut() = destination_io;
                     debug!("\tIndirect connection {}", collapsed_connection);
                     collapsed_connections.push(collapsed_connection);
                 }
@@ -480,27 +485,16 @@ mod test {
     mod collapse_tests {
         use crate::model::connection::Connection;
         use crate::model::io::{IOType, IO};
-        use crate::model::name::Name;
         use crate::model::route::HasRoute;
         use crate::model::route::Route;
 
         use super::super::collapse_connections;
 
-        fn test_connection() -> Connection {
-            Connection {
-                name: Name::from("left"),
-                from: "/f1/a".into(),
-                to: vec!["/f2/a".into()],
-                from_io: IO::new("String", "/f1/a"),
-                to_io: IO::new("String", "/f2/a"),
-                level: 0,
-            }
-        }
-
         #[test]
         fn collapse_drops_a_useless_connections() {
-            let mut unused = test_connection();
-            unused.to_io.set_io_type(IOType::FlowInput);
+            let mut unused = Connection::new("/f1/a", "/f2/a", 0);
+            unused.connect(IO::new("String", "/f1/a"), IO::new("String", "/f2/a"));
+            unused.to_io_mut().set_io_type(IOType::FlowInput);
 
             let connections = vec![unused];
             let collapsed = collapse_connections(&connections);
@@ -509,46 +503,40 @@ mod test {
 
         #[test]
         fn collapse_a_connection() {
-            let mut left_side = Connection {
-                name: Name::from("left"),
-                from: "/function1".into(),
-                to: vec!["/flow2/a".into()],
-                from_io: IO::new("String", "/function1"),
-                to_io: IO::new("String", "/flow2/a"),
-                level: 0,
-            };
-            left_side.from_io.set_io_type(IOType::FunctionIO);
-            left_side.to_io.set_io_type(IOType::FlowInput);
+            let mut left_side = Connection::new("/function1", "/flow2/a", 0);
+            left_side.connect(
+                IO::new("String", "/function1"),
+                IO::new("String", "/flow2/a"),
+            );
+            left_side.from_io_mut().set_io_type(IOType::FunctionIO);
+            left_side.to_io_mut().set_io_type(IOType::FlowInput);
 
             // This one goes to a flow but then nowhere, so should be dropped
-            let mut extra_one = Connection {
-                name: Name::from("unused"),
-                from: "/flow2/a".into(),
-                to: vec!["/flow2/f4/a".into()],
-                from_io: IO::new("String", "/flow2/a"),
-                to_io: IO::new("String", "/flow2/f4/a"),
-                level: 1,
-            };
-            extra_one.from_io.set_io_type(IOType::FlowInput);
-            extra_one.to_io.set_io_type(IOType::FlowInput); // /flow2/f4 doesn't exist
+            let mut extra_one = Connection::new("/flow2/a", "/flow2/f4/a", 1);
+            extra_one.connect(
+                IO::new("String", "/flow2/a"),
+                IO::new("String", "/flow2/f4/a"),
+            );
+            extra_one.from_io_mut().set_io_type(IOType::FlowInput);
+            extra_one.to_io_mut().set_io_type(IOType::FlowInput); // /flow2/f4 doesn't exist
 
-            let mut right_side = Connection {
-                name: Name::from("right"),
-                from: "/flow2/a".into(),
-                to: vec!["/flow2/function3".into()],
-                from_io: IO::new("String", "/flow2/a"),
-                to_io: IO::new("String", "/flow2/function3"),
-                level: 1,
-            };
-            right_side.from_io.set_io_type(IOType::FlowInput);
-            right_side.to_io.set_io_type(IOType::FunctionIO);
+            let mut right_side = Connection::new("/flow2/a", "/flow2/function3", 1);
+            right_side.connect(
+                IO::new("String", "/flow2/a"),
+                IO::new("String", "/flow2/function3"),
+            );
+            right_side.from_io_mut().set_io_type(IOType::FlowInput);
+            right_side.to_io_mut().set_io_type(IOType::FunctionIO);
 
             let connections = vec![left_side, extra_one, right_side];
 
             let collapsed = collapse_connections(&connections);
             assert_eq!(collapsed.len(), 1);
-            assert_eq!(*collapsed[0].from_io.route(), Route::from("/function1"));
-            assert_eq!(*collapsed[0].to_io.route(), Route::from("/flow2/function3"));
+            assert_eq!(*collapsed[0].from_io().route(), Route::from("/function1"));
+            assert_eq!(
+                *collapsed[0].to_io().route(),
+                Route::from("/flow2/function3")
+            );
         }
 
         /*
@@ -559,109 +547,73 @@ mod test {
         */
         #[test]
         fn collapse_two_connections_from_flow_boundary() {
-            let mut left_side = Connection {
-                name: Name::from("left"),
-                from: "/f1".into(),
-                to: vec!["/f2/a".into()],
-                from_io: IO::new("String", "/f1"),
-                to_io: IO::new("String", "/f2/a"),
-                level: 0,
-            };
-            left_side.from_io.set_io_type(IOType::FunctionIO);
-            left_side.to_io.set_io_type(IOType::FlowInput);
+            let mut left_side = Connection::new("/f1", "/f2/a", 0);
+            left_side.connect(IO::new("String", "/f1"), IO::new("String", "/f2/a"));
+            left_side.from_io_mut().set_io_type(IOType::FunctionIO);
+            left_side.to_io_mut().set_io_type(IOType::FlowInput);
 
-            let mut right_side_one = Connection {
-                name: Name::from("right1"),
-                from: "/f2/a".into(),
-                to: vec!["/f2/value1".into()],
-                from_io: IO::new("String", "/f2/a"),
-                to_io: IO::new("String", "/f2/value1"),
-                level: 1,
-            };
-            right_side_one.from_io.set_io_type(IOType::FlowInput);
-            right_side_one.to_io.set_io_type(IOType::FunctionIO);
+            let mut right_side_one = Connection::new("/f2/a", "/f2/value1", 1);
+            right_side_one.connect(IO::new("String", "/f2/a"), IO::new("String", "/f2/value1"));
+            right_side_one.from_io_mut().set_io_type(IOType::FlowInput);
+            right_side_one.to_io_mut().set_io_type(IOType::FunctionIO);
 
-            let mut right_side_two = Connection {
-                name: Name::from("right2"),
-                from: "/f2/a".into(),
-                to: vec!["/f2/value2".into()],
-                from_io: IO::new("String", "/f2/a"),
-                to_io: IO::new("String", "/f2/value2"),
-                level: 1,
-            };
-            right_side_two.from_io.set_io_type(IOType::FlowInput);
-            right_side_two.to_io.set_io_type(IOType::FunctionIO);
+            let mut right_side_two = Connection::new("/f2/a", "/f2/value2", 1);
+            right_side_two.connect(IO::new("String", "/f2/a"), IO::new("String", "/f2/value2"));
+            right_side_two.from_io_mut().set_io_type(IOType::FlowInput);
+            right_side_two.to_io_mut().set_io_type(IOType::FunctionIO);
 
             let connections = vec![left_side, right_side_one, right_side_two];
             assert_eq!(3, connections.len());
 
             let collapsed = collapse_connections(&connections);
             assert_eq!(2, collapsed.len());
-            assert_eq!(Route::from("/f1"), *collapsed[0].from_io.route());
-            assert_eq!(Route::from("/f2/value1"), *collapsed[0].to_io.route());
-            assert_eq!(Route::from("/f1"), *collapsed[1].from_io.route());
-            assert_eq!(Route::from("/f2/value2"), *collapsed[1].to_io.route());
+            assert_eq!(Route::from("/f1"), *collapsed[0].from_io().route());
+            assert_eq!(Route::from("/f2/value1"), *collapsed[0].to_io().route());
+            assert_eq!(Route::from("/f1"), *collapsed[1].from_io().route());
+            assert_eq!(Route::from("/f2/value2"), *collapsed[1].to_io().route());
         }
 
         #[test]
         fn collapse_connection_into_sub_flow() {
-            let mut first_level = Connection {
-                name: Name::from("value-to-f1:a at context level"),
-                from: "/value".into(),
-                to: vec!["/flow1/a".into()],
-                from_io: IO::new("String", "/value"),
-                to_io: IO::new("String", "/flow1/a"),
-                level: 0,
-            };
-            first_level.from_io.set_io_type(IOType::FunctionIO);
-            first_level.to_io.set_io_type(IOType::FlowInput);
+            let mut first_level = Connection::new("/value", "/flow1/a", 0);
+            first_level.connect(IO::new("String", "/value"), IO::new("String", "/flow1/a"));
+            first_level.from_io_mut().set_io_type(IOType::FunctionIO);
+            first_level.to_io_mut().set_io_type(IOType::FlowInput);
 
-            let mut second_level = Connection {
-                name: Name::from("subflow_connection"),
-                from: "/flow1/a".into(),
-                to: vec!["/flow1/flow2/a".into()],
-                from_io: IO::new("String", "/flow1/a"),
-                to_io: IO::new("String", "/flow1/flow2/a"),
-                level: 1,
-            };
-            second_level.from_io.set_io_type(IOType::FlowInput);
-            second_level.to_io.set_io_type(IOType::FlowInput);
+            let mut second_level = Connection::new("/flow1/a", "/flow1/flow2/a", 1);
+            second_level.connect(
+                IO::new("String", "/flow1/a"),
+                IO::new("String", "/flow1/flow2/a"),
+            );
+            second_level.from_io_mut().set_io_type(IOType::FlowInput);
+            second_level.to_io_mut().set_io_type(IOType::FlowInput);
 
-            let mut third_level = Connection {
-                name: Name::from("sub_subflow_connection"),
-                from: "/flow1/flow2/a".into(),
-                to: vec!["/flow1/flow2/func/in".into()],
-                from_io: IO::new("String", "/flow1/flow2/a"),
-                to_io: IO::new("String", "/flow1/flow2/func/in"),
-                level: 2,
-            };
-            third_level.from_io.set_io_type(IOType::FlowInput);
-            third_level.to_io.set_io_type(IOType::FunctionIO);
+            let mut third_level = Connection::new("/flow1/flow2/a", "/flow1/flow2/func/in", 2);
+            third_level.connect(
+                IO::new("String", "/flow1/flow2/a"),
+                IO::new("String", "/flow1/flow2/func/in"),
+            );
+            third_level.from_io_mut().set_io_type(IOType::FlowInput);
+            third_level.to_io_mut().set_io_type(IOType::FunctionIO);
 
             let connections = vec![first_level, second_level, third_level];
 
             let collapsed = collapse_connections(&connections);
             assert_eq!(1, collapsed.len());
-            assert_eq!(Route::from("/value"), *collapsed[0].from_io.route());
+            assert_eq!(Route::from("/value"), *collapsed[0].from_io().route());
             assert_eq!(
                 Route::from("/flow1/flow2/func/in"),
-                *collapsed[0].to_io.route()
+                *collapsed[0].to_io().route()
             );
         }
 
         #[test]
         fn does_not_collapse_a_non_connection() {
-            let one = test_connection();
+            let mut one = Connection::new("/f1/a", "/f2/a", 0);
+            one.connect(IO::new("String", "/f1/a"), IO::new("String", "/f2/a"));
 
-            let other = Connection {
-                name: Name::from("right"),
-                from: "/f3/a".into(),
-                to: vec!["/f4/a".into()],
-                from_io: IO::new("String", "/f3/a"),
-                to_io: IO::new("String", "/f4/a"),
-                level: 0,
-            };
-
+            let mut other = Connection::new("/f3/a", "/f4/a", 0);
+            other.connect(IO::new("String", "/f3/a"), IO::new("String", "/f4/a"));
             let connections = vec![one, other];
             let collapsed = collapse_connections(&connections);
             assert_eq!(collapsed.len(), 2);

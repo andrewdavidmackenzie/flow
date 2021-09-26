@@ -24,11 +24,11 @@ pub fn check_connections(tables: &mut GenerationTables) -> Result<()> {
 fn check_for_competing_inputs(tables: &GenerationTables) -> Result<()> {
     for connection in &tables.collapsed_connections {
         // check for ConstantInitializer at destination
-        if let Some(Always(_)) = connection.to_io.get_initializer() {
+        if let Some(Always(_)) = connection.to_io().get_initializer() {
             bail!(
                 "Connection from '{}' to input at '{}' that also has a `always` initializer",
-                connection.from_io.route(),
-                connection.to_io.route()
+                connection.from_io().route(),
+                connection.to_io().route()
             );
         }
     }
@@ -75,7 +75,7 @@ pub fn check_side_effects(tables: &mut GenerationTables) -> Result<()> {
 
 fn connection_to(tables: &GenerationTables, input: &Route) -> bool {
     for connection in &tables.collapsed_connections {
-        if connection.to_io.route() == input {
+        if connection.to_io().route() == input {
             return true;
         }
     }
