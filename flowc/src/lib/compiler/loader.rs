@@ -133,8 +133,7 @@ fn load_process(
 
     match process {
         FlowProcess(ref mut flow) => {
-            config_flow(
-                flow,
+            flow.config(
                 &resolved_url,
                 parent_route,
                 alias,
@@ -189,25 +188,6 @@ pub fn load_metadata(url: &Url, provider: &dyn Provider) -> Result<MetaData> {
     let cargo: Cargo = deserializer.deserialize(&content, Some(&resolved_url))?;
 
     Ok(cargo.package)
-}
-
-/*
-    Configure a flow with additional information after it is deserialized from file
-*/
-fn config_flow(
-    flow: &mut Flow,
-    source_url: &Url,
-    parent_route: &Route,
-    alias_from_reference: &Name,
-    id: usize,
-    initializations: &HashMap<String, InputInitializer>,
-) -> Result<()> {
-    flow.id = id;
-    flow.set_alias(alias_from_reference);
-    flow.source_url = source_url.to_owned();
-    flow.set_initial_values(initializations);
-    flow.set_routes_from_parent(parent_route);
-    flow.validate()
 }
 
 /*

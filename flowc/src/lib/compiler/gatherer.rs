@@ -43,3 +43,5 @@ pub fn index_functions(functions: &mut Vec<Function>) {
         function.set_id(index);
     }
 }
+
+// TODO WIP add tests

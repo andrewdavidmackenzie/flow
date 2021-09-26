@@ -14,15 +14,13 @@ use crate::model::name::HasName;
 use crate::model::route::HasRoute;
 use crate::model::route::Route;
 
-/*
-    Go through all connections, finding:
-      - source process (process id and output route connection is from)
-      - destination process (process id and input number the connection is to)
-
-    Then add an output route to the source process's output routes vector
-    (according to each function's output route in the original description plus each connection from
-     that route, which could be to multiple destinations)
-*/
+/// Go through all connections, finding:
+/// - source process (process id and output route connection is from)
+/// - destination process (process id and input number the connection is to)
+///
+/// Then add an output route to the source process's output routes vector
+/// (according to each function's output route in the original description plus each connection from
+/// that route, which could be to multiple destinations)
 pub fn prepare_function_connections(tables: &mut GenerationTables) -> Result<()> {
     debug!("Setting output routes on processes");
     for connection in &tables.collapsed_connections {
@@ -89,6 +87,101 @@ pub fn prepare_function_connections(tables: &mut GenerationTables) -> Result<()>
     Ok(())
 }
 
+/// Construct two look-up tables that can be used to find the index of a function in the functions table,
+/// and the index of it's input - using the input route or it's output route
+pub fn create_routes_table(tables: &mut GenerationTables) {
+    for function in &mut tables.functions {
+        // Add inputs to functions to the table as a possible source of connections from a
+        // job that completed using this function
+        for (input_number, input) in function.get_inputs().iter().enumerate() {
+            tables.sources.insert(
+                input.route().clone(),
+                (Input(input_number), function.get_id()),
+            );
+        }
+
+        // Add any output routes it has to the source routes table
+        for output in function.get_outputs() {
+            tables.sources.insert(
+                output.route().clone(),
+                (Output(output.name().to_string()), function.get_id()),
+            );
+        }
+
+        // Add any inputs it has to the destination routes table
+        for (input_index, input) in function.get_inputs().iter().enumerate() {
+            tables.destination_routes.insert(
+                input.route().clone(),
+                (function.get_id(), input_index, function.get_flow_id()),
+            );
+        }
+    }
+}
+
+/// Take the original table of connections as gathered from the flow hierarchy, and for each one
+/// follow it through any intermediate connections (sub-flow boundaries) to arrive at the final
+/// destination. Then create a new direct connection from source to destination and add that
+/// to the table of "collapsed" connections which will be used to configure the outputs of the
+/// functions.
+pub fn collapse_connections(original_connections: &[Connection]) -> Vec<Connection> {
+    let mut collapsed_connections: Vec<Connection> = Vec::new();
+
+    debug!(
+        "Working on collapsing {} flow connections",
+        original_connections.len()
+    );
+
+    for connection in original_connections {
+        // All collapsed connections must start and end at a Function, so we only build
+        // them starting at ones that begin at a Function's IO
+        if *connection.from_io().io_type() == IOType::FunctionIO {
+            debug!(
+                "Trying to create connection from function output at '{}' (level={})",
+                connection.from_io().route(),
+                connection.level()
+            );
+            if *connection.to_io().io_type() == IOType::FunctionIO {
+                debug!(
+                    "\tFound direct connection to function input at '{}'",
+                    connection.to_io().route()
+                );
+                collapsed_connections.push(connection.clone());
+            } else {
+                // If the connection enters or leaves this flow, then follow it to all destinations at function inputs
+                for (source_subroute, destination_io) in find_function_destinations(
+                    Route::from(""),
+                    connection.to_io().route(),
+                    connection.level(),
+                    original_connections,
+                ) {
+                    let mut collapsed_connection = connection.clone();
+                    // append the subroute from the origin function IO - to select from with in that IO
+                    // as prescribed by the connections along the way
+                    let from_route = connection
+                        .from_io()
+                        .route()
+                        .clone()
+                        .extend(&source_subroute)
+                        .clone();
+                    collapsed_connection
+                        .from_io_mut()
+                        .set_route(&from_route, &IOType::FunctionIO);
+                    *collapsed_connection.to_io_mut() = destination_io;
+                    debug!("\tIndirect connection {}", collapsed_connection);
+                    collapsed_connections.push(collapsed_connection);
+                }
+            }
+        }
+    }
+
+    debug!(
+        "Connections between functions: {}",
+        collapsed_connections.len()
+    );
+
+    collapsed_connections
+}
+
 /*
     Find a Function's IO using a route to it or subroute of it
     Return an Option:
@@ -98,7 +191,7 @@ pub fn prepare_function_connections(tables: &mut GenerationTables) -> Result<()>
         - The function's index in the compiler's tables
     -  (removing the array index first to find outputs that are arrays, but then adding it back into the subroute) TODO change
 */
-pub fn get_source(
+fn get_source(
     source_routes: &HashMap<Route, (Source, usize)>,
     from_route: &Route,
 ) -> Option<(Source, usize)> {
@@ -138,39 +231,6 @@ pub fn get_source(
     }
 
     None
-}
-
-/*
-    Construct two look-up tables that can be used to find the index of a function in the functions table,
-    and the index of it's input - using the input route or it's output route
-*/
-pub fn create_routes_table(tables: &mut GenerationTables) {
-    for function in &mut tables.functions {
-        // Add inputs to functions to the table as a possible source of connections from a
-        // job that completed using this function
-        for (input_number, input) in function.get_inputs().iter().enumerate() {
-            tables.sources.insert(
-                input.route().clone(),
-                (Input(input_number), function.get_id()),
-            );
-        }
-
-        // Add any output routes it has to the source routes table
-        for output in function.get_outputs() {
-            tables.sources.insert(
-                output.route().clone(),
-                (Output(output.name().to_string()), function.get_id()),
-            );
-        }
-
-        // Add any inputs it has to the destination routes table
-        for (input_index, input) in function.get_inputs().iter().enumerate() {
-            tables.destination_routes.insert(
-                input.route().clone(),
-                (function.get_id(), input_index, function.get_flow_id()),
-            );
-        }
-    }
 }
 
 /*
@@ -310,72 +370,6 @@ fn find_function_destinations(
     }
 
     destinations
-}
-
-/*
-    Take the original table of connections as gathered from the flow hierarchy, and for each one
-    follow it through any intermediate connections (sub-flow boundaries) to arrive at the final
-    destination. Then create a new direct connection from source to destination and add that
-    to the table of "collapsed" connections which will be used to configure the outputs of the
-    functions.
-*/
-pub fn collapse_connections(original_connections: &[Connection]) -> Vec<Connection> {
-    let mut collapsed_connections: Vec<Connection> = Vec::new();
-
-    debug!(
-        "Working on collapsing {} flow connections",
-        original_connections.len()
-    );
-
-    for connection in original_connections {
-        // All collapsed connections must start and end at a Function, so we only build
-        // them starting at ones that begin at a Function's IO
-        if *connection.from_io().io_type() == IOType::FunctionIO {
-            debug!(
-                "Trying to create connection from function output at '{}' (level={})",
-                connection.from_io().route(),
-                connection.level()
-            );
-            if *connection.to_io().io_type() == IOType::FunctionIO {
-                debug!(
-                    "\tFound direct connection to function input at '{}'",
-                    connection.to_io().route()
-                );
-                collapsed_connections.push(connection.clone());
-            } else {
-                // If the connection enters or leaves this flow, then follow it to all destinations at function inputs
-                for (source_subroute, destination_io) in find_function_destinations(
-                    Route::from(""),
-                    connection.to_io().route(),
-                    connection.level(),
-                    original_connections,
-                ) {
-                    let mut collapsed_connection = connection.clone();
-                    // append the subroute from the origin function IO - to select from with in that IO
-                    // as prescribed by the connections along the way
-                    let from_route = connection
-                        .from_io()
-                        .route()
-                        .clone()
-                        .extend(&source_subroute)
-                        .clone();
-                    collapsed_connection
-                        .from_io_mut()
-                        .set_route(&from_route, &IOType::FunctionIO);
-                    *collapsed_connection.to_io_mut() = destination_io;
-                    debug!("\tIndirect connection {}", collapsed_connection);
-                    collapsed_connections.push(collapsed_connection);
-                }
-            }
-        }
-    }
-
-    debug!(
-        "Connections between functions: {}",
-        collapsed_connections.len()
-    );
-
-    collapsed_connections
 }
 
 #[cfg(test)]

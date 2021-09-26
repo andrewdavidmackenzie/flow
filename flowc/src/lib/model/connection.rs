@@ -127,8 +127,8 @@ impl Connection {
     }
 
     /// Return the `to` Route specified in this connection
-    pub(crate) fn to(&self) -> &Route {
-        &self.to[0]
+    pub(crate) fn to(&self) -> &Vec<Route> {
+        &self.to
     }
 
     /// Return a mutable reference to the from_io

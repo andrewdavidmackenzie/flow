@@ -1,6 +1,6 @@
 use std::collections::{HashMap, HashSet};
 use std::fmt;
-use std::mem::{replace, take};
+use std::mem::take;
 
 use error_chain::bail;
 use log::{debug, error};
@@ -206,7 +206,7 @@ impl Flow {
     }
 
     /// Set the initial values on the IOs in an IOSet using a set of Input Initializers
-    pub fn set_initial_values(&mut self, initializers: &HashMap<String, InputInitializer>) {
+    fn set_initial_values(&mut self, initializers: &HashMap<String, InputInitializer>) {
         for initializer in initializers {
             // initializer.0 is io name, initializer.1 is the initial value to set it to
             for (index, input) in self.inputs.iter_mut().enumerate() {
@@ -217,6 +217,23 @@ impl Flow {
                 }
             }
         }
+    }
+
+    /// Configure a flow with additional information after it is deserialized from file
+    pub fn config(
+        &mut self,
+        source_url: &Url,
+        parent_route: &Route,
+        alias_from_reference: &Name,
+        id: usize,
+        initializations: &HashMap<String, InputInitializer>,
+    ) -> Result<()> {
+        self.id = id;
+        self.set_alias(alias_from_reference);
+        self.source_url = source_url.to_owned();
+        self.set_initial_values(initializations);
+        self.set_routes_from_parent(parent_route);
+        self.validate()
     }
 
     fn get_io_subprocess(
@@ -280,7 +297,7 @@ impl Flow {
     // TODO consider finding the object first using it's type and name (flow, subflow, value, function)
     // Then from the object find the IO (by name or route, probably route) in common code, maybe using IOSet directly?
     /// Find the IO of a function using the route and the Direction of the connection TO/FROM it
-    pub fn get_route_and_type(
+    fn get_route_and_type(
         &mut self,
         direction: Direction,
         route: &Route,
@@ -328,20 +345,23 @@ impl Flow {
         match self.get_route_and_type(FROM, connection.from(), &None) {
             Ok(from_io) => {
                 debug!("Found connection source:\n{:#?}", from_io);
-                // TODO WIP iterate over destinations here?
-                let to_route = &connection.to();
-                match self.get_route_and_type(TO, to_route, from_io.get_initializer()) {
-                    Ok(to_io) => {
-                        debug!("Found connection destination:\n{:#?}", to_io);
-                        connection.connect(from_io, to_io, level)
-                    }
-                    Err(error) => {
-                        bail!(
-                            "Did not find connection destination: '{}' in flow '{}'\n\t\t{}",
-                            to_route,
-                            self.source_url,
-                            error
-                        );
+                // Iterate over all the destinations for this connection
+                for to_route in connection.to() {
+                    match self.get_route_and_type(TO, to_route, from_io.get_initializer()) {
+                        Ok(to_io) => {
+                            debug!("Found connection destination:\n{:#?}", to_io);
+                            let mut new_connection = connection.clone();
+                            new_connection.connect(from_io.clone(), to_io, level)?;
+                            self.connections.push(new_connection);
+                        }
+                        Err(error) => {
+                            bail!(
+                                "Did not find connection destination: '{}' in flow '{}'\n\t\t{}",
+                                to_route,
+                                self.source_url,
+                                error
+                            );
+                        }
                     }
                 }
             }
@@ -354,6 +374,8 @@ impl Flow {
                 );
             }
         }
+
+        Ok(())
     }
 
     /// Iterate over all the connections defined in the flow, and attempt to connect the source
@@ -372,9 +394,6 @@ impl Flow {
                 error!("{}", e);
             }
         }
-
-        // put connections back into self
-        let _ = replace(&mut self.connections, connections);
 
         if error_count == 0 {
             debug!(

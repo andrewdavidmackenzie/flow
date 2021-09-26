@@ -9,11 +9,7 @@ source = "lib://flowruntime/stdio/stdout"
 
 [[connection]]
 from = "args/json/1"
-to = "stdout"
-
-[[connection]]
-from = "args/json/1"
-to = "add/i1"
+to = ["stdout", "add/i1"]
 
 [[process]]
 source = "lib://flowstdlib/math/add"
