@@ -1,5 +1,6 @@
 use std::fmt;
 
+use log::debug;
 use serde_derive::{Deserialize, Serialize};
 
 use crate::compiler::loader::Validate;
@@ -17,22 +18,22 @@ use crate::model::route::Route;
 pub struct Connection {
     /// Optional name given to a connection for legibility and debugging
     #[serde(default, skip_serializing_if = "String::is_empty")]
-    pub name: Name,
+    name: Name,
     /// `from` defines the origin of the connection
-    pub from: Route,
+    from: Route,
     /// `to` defines the destination(s) of this connection
     #[serde(deserialize_with = "super::route_array_serde::route_or_route_array")]
-    pub to: Vec<Route>,
+    to: Vec<Route>,
     /// `from_io` is used during the compilation process and refers to a found output for the connection
     // TODO make these references, not clones
     #[serde(skip)]
-    pub from_io: IO,
+    from_io: IO,
     /// `to_io` is used during the compilation process and refers to a found input for the connection
     #[serde(skip)]
-    pub to_io: IO,
+    to_io: IO,
     /// `level` defines at what level in the flow hierarchy of nested flows this connections belongs
     #[serde(skip)]
-    pub level: usize,
+    level: usize,
 }
 
 /// `Direction` defines whether a `Connection` is coming from an IO or to an IO
@@ -79,11 +80,82 @@ impl Validate for Connection {
 }
 
 impl Connection {
+    /// Create a new Route with `from_route` as the source `Route` and `to_route` as the destination
+    #[cfg(test)]
+    pub fn new<R>(from_route: R, to_route: R) -> Self
+    where
+        R: Into<Route>,
+    {
+        Connection {
+            from: from_route.into(),
+            to: vec![to_route.into()],
+            ..Default::default()
+        }
+    }
+
+    /// Return the name
+    #[cfg(feature = "debugger")]
+    pub fn name(&self) -> &Name {
+        &self.name
+    }
+
+    /// Connect the `from_io` to the `to_io`
+    pub fn connect(&mut self, from_io: IO, to_io: IO, level: usize) -> Result<()> {
+        if Self::compatible_types(from_io.datatype(), to_io.datatype(), &self.from) {
+            debug!(
+                "Connection built from '{}' to '{}'",
+                from_io.route(),
+                to_io.route()
+            );
+            self.from_io = from_io;
+            self.to_io = to_io;
+            self.level = level;
+            Ok(())
+        } else {
+            bail!("Cannot connect types: from {:#?} to\n{:#?}", from_io, to_io);
+        }
+    }
+
+    /// Return the `from` Route specified in this connection
+    pub(crate) fn from(&self) -> &Route {
+        &self.from
+    }
+
+    /// Return a reference to the from_io
+    pub fn from_io(&self) -> &IO {
+        &self.from_io
+    }
+
+    /// Return the `to` Route specified in this connection
+    pub(crate) fn to(&self) -> &Vec<Route> {
+        &self.to
+    }
+
+    /// Return a mutable reference to the from_io
+    pub fn from_io_mut(&mut self) -> &mut IO {
+        &mut self.from_io
+    }
+
+    /// Return a reference to the to_io
+    pub fn to_io(&self) -> &IO {
+        &self.to_io
+    }
+
+    /// Return a mutable reference to the to_io
+    pub fn to_io_mut(&mut self) -> &mut IO {
+        &mut self.to_io
+    }
+
+    /// Get at what level in the flow hierarchy this connection exists (source)
+    pub fn level(&self) -> usize {
+        self.level
+    }
+
     /// Determine if the type of the source of a connection and the type of the destination are
     /// compatible, what type of conversion maybe required and if a Connection can be formed
     /// TODO calculate the real from type based on the subroute of the output used by
     /// the connection from_route
-    pub fn compatible_types(from: &DataType, to: &DataType, _from_route: &Route) -> bool {
+    fn compatible_types(from: &DataType, to: &DataType, _from_route: &Route) -> bool {
         if from == to {
             return true;
         }
@@ -165,23 +237,13 @@ mod test {
 
     #[test]
     fn display_connection() {
-        let connection1 = Connection {
-            from: "input/number".into(),  // Number
-            to: vec!["process_1".into()], // String
-            ..Default::default()
-        };
-
+        let connection1 = Connection::new("input/number", "process_1");
         println!("Connection: {}", connection1);
     }
 
     #[test]
     fn validate_connection() {
-        let connection1 = Connection {
-            from: "input/number".into(),  // Number
-            to: vec!["process_1".into()], // String
-            ..Default::default()
-        };
-
+        let connection1 = Connection::new("input/number", "process_1");
         assert!(connection1.validate().is_ok());
     }
 
@@ -201,10 +263,11 @@ mod test {
     }
 
     mod type_conversion {
-        use crate::model::connection::Connection;
         use crate::model::datatype::DataType;
         use crate::model::io::IO;
         use crate::model::route::Route;
+
+        use super::super::Connection;
 
         /// # Compatible Types in a Connection
         ///
@@ -222,7 +285,7 @@ mod test {
 
         #[test]
         fn type_conversions() {
-            let valid_types: Vec<(&str, &str)> = vec![
+            let valid_type_conversions: Vec<(&str, &str)> = vec![
                 ("Number", "Value"),
                 ("Value", "Value"),
                 ("Array/Value", "Value"),
@@ -240,7 +303,7 @@ mod test {
                 ("Array/Value", "Array/Number"),
             ];
 
-            for test in valid_types.iter() {
+            for test in valid_type_conversions.iter() {
                 assert!(Connection::compatible_types(
                     &DataType::from(test.0),
                     &DataType::from(test.1),

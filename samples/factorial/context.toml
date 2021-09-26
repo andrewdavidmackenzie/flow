@@ -38,11 +38,7 @@ source = "lib://flowstdlib/control/tap"
 
 [[connection]]
 from = "sub"
-to = "n-tap/data"
-
-[[connection]]
-from = "sub"
-to = "compare/left"
+to = ["n-tap/data", "compare/left"]
 
 [[connection]]
 from = "compare/gt"
@@ -50,11 +46,7 @@ to = "n-tap/control"
 
 [[connection]]
 from = "n-tap"
-to = "multiply/i2"
-
-[[connection]]
-from = "n-tap"
-to = "sub/i1"
+to = ["multiply/i2", "sub/i1"]
 
 [[process]]
 alias = "result-tap"

@@ -12,14 +12,12 @@ use flowcore::lib_provider::Provider;
 
 use crate::errors::*;
 use crate::model::flow::Flow;
-use crate::model::function::Function;
 use crate::model::name::HasName;
 use crate::model::name::Name;
 use crate::model::process::Process;
 use crate::model::process::Process::FlowProcess;
 use crate::model::process::Process::FunctionProcess;
 use crate::model::route::Route;
-use crate::model::route::SetRoute;
 
 /// Many structs in the model implement the `Validate` method which is used to check the
 /// description deserialized from file obeys some additional constraints that cannot be expressed
@@ -85,6 +83,7 @@ pub fn load(
         &HashMap::new(),
         #[cfg(feature = "debugger")]
         source_urls,
+        0,
     )
 }
 
@@ -98,6 +97,7 @@ fn load_process(
     provider: &dyn Provider,
     initializations: &HashMap<String, InputInitializer>,
     #[cfg(feature = "debugger")] source_urls: &mut HashSet<(Url, Url)>,
+    level: usize,
 ) -> Result<Process> {
     trace!("load_process()");
 
@@ -131,8 +131,7 @@ fn load_process(
 
     match process {
         FlowProcess(ref mut flow) => {
-            config_flow(
-                flow,
+            flow.config(
                 &resolved_url,
                 parent_route,
                 alias,
@@ -147,12 +146,12 @@ fn load_process(
                 provider,
                 #[cfg(feature = "debugger")]
                 source_urls,
+                level,
             )?;
-            flow.build_connections()?;
+            flow.build_connections(level)?;
         }
         FunctionProcess(ref mut function) => {
-            config_function(
-                function,
+            function.config(
                 resolved_url.as_str(),
                 parent_route,
                 alias,
@@ -189,25 +188,6 @@ pub fn load_metadata(url: &Url, provider: &dyn Provider) -> Result<MetaData> {
 }
 
 /*
-    Configure a flow with additional information after it is deserialized from file
-*/
-fn config_flow(
-    flow: &mut Flow,
-    source_url: &Url,
-    parent_route: &Route,
-    alias_from_reference: &Name,
-    id: usize,
-    initializations: &HashMap<String, InputInitializer>,
-) -> Result<()> {
-    flow.id = id;
-    flow.set_alias(alias_from_reference);
-    flow.source_url = source_url.to_owned();
-    flow.set_initial_values(initializations);
-    flow.set_routes_from_parent(parent_route);
-    flow.validate()
-}
-
-/*
     Load sub-processes from the process_refs in a flow
 */
 fn load_process_refs(
@@ -215,6 +195,7 @@ fn load_process_refs(
     flow_count: &mut usize,
     provider: &dyn Provider,
     #[cfg(feature = "debugger")] source_urls: &mut HashSet<(Url, Url)>,
+    level: usize,
 ) -> Result<()> {
     for process_ref in &mut flow.process_refs {
         let subprocess_url = flow
@@ -231,6 +212,7 @@ fn load_process_refs(
             &process_ref.initializations,
             #[cfg(feature = "debugger")]
             source_urls,
+            level + 1,
         )?;
         process_ref.set_alias(process.name());
 
@@ -250,25 +232,6 @@ fn load_process_refs(
     }
 
     Ok(())
-}
-
-#[allow(clippy::too_many_arguments)]
-fn config_function(
-    function: &mut Function,
-    source_url: &str,
-    parent_route: &Route,
-    alias: &Name,
-    flow_id: usize,
-    lib_ref: Option<String>,
-    initializations: &HashMap<String, InputInitializer>,
-) -> Result<()> {
-    function.set_flow_id(flow_id);
-    function.set_alias(alias);
-    function.set_source_url(source_url);
-    function.set_lib_reference(lib_ref);
-    function.set_routes_from_parent(parent_route);
-    function.set_initial_values(initializations);
-    function.validate()
 }
 
 #[cfg(test)]

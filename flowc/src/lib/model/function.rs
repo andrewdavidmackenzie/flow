@@ -10,7 +10,7 @@ use flowcore::output_connection::{OutputConnection, Source};
 use crate::compiler::loader::Validate;
 use crate::errors::*;
 use crate::model::io::IOSet;
-use crate::model::io::{IOType, IO};
+use crate::model::io::IOType;
 use crate::model::name::HasName;
 use crate::model::name::Name;
 use crate::model::route::HasRoute;
@@ -80,6 +80,7 @@ impl HasRoute for Function {
 impl Function {
     /// Create a new function - used mainly for testing as Functions are usually deserialized
     #[allow(clippy::too_many_arguments)]
+    #[cfg(test)]
     pub fn new(
         name: Name,
         impure: bool,
@@ -110,6 +111,26 @@ impl Function {
         }
     }
 
+    /// Configure a function with additional information after it is deserialized as part of a flow
+    #[allow(clippy::too_many_arguments)]
+    pub fn config(
+        &mut self,
+        source_url: &str,
+        parent_route: &Route,
+        alias: &Name,
+        flow_id: usize,
+        lib_ref: Option<String>,
+        initializations: &HashMap<String, InputInitializer>,
+    ) -> Result<()> {
+        self.set_flow_id(flow_id);
+        self.set_alias(alias);
+        self.set_source_url(source_url);
+        self.set_lib_reference(lib_ref);
+        self.set_routes_from_parent(parent_route);
+        self.set_initial_values(initializations);
+        self.validate()
+    }
+
     /// Set the id of this function
     pub fn set_id(&mut self, id: usize) {
         self.id = id;
@@ -120,8 +141,8 @@ impl Function {
         self.id
     }
 
-    /// Set the id of the low this function is a part of  
-    pub fn set_flow_id(&mut self, flow_id: usize) {
+    // Set the id of the low this function is a part of
+    fn set_flow_id(&mut self, flow_id: usize) {
         self.flow_id = flow_id;
     }
 
@@ -175,13 +196,13 @@ impl Function {
         &self.source_url
     }
 
-    /// Set the source url where this function is defined
-    pub fn set_source_url(&mut self, source: &str) {
+    // Set the source url where this function is defined
+    fn set_source_url(&mut self, source: &str) {
         self.source_url = source.to_owned();
     }
 
-    /// Set the alias of this function
-    pub fn set_alias(&mut self, alias: &Name) {
+    // Set the alias of this function
+    fn set_alias(&mut self, alias: &Name) {
         if alias.is_empty() {
             self.alias = self.name.clone();
         } else {
@@ -189,8 +210,8 @@ impl Function {
         }
     }
 
-    /// Set the initial values on the IOs in an IOSet using a set of Input Initializers
-    pub fn set_initial_values(&mut self, initializers: &HashMap<String, InputInitializer>) {
+    // Set the initial values on the IOs in an IOSet using a set of Input Initializers
+    fn set_initial_values(&mut self, initializers: &HashMap<String, InputInitializer>) {
         for initializer in initializers {
             // initializer.0 is io name, initializer.1 is the initial value to set it to
             for (index, input) in self.inputs.iter_mut().enumerate() {
@@ -203,8 +224,8 @@ impl Function {
         }
     }
 
-    /// Set the lib reference of this function
-    pub fn set_lib_reference(&mut self, lib_reference: Option<String>) {
+    // Set the lib reference of this function
+    fn set_lib_reference(&mut self, lib_reference: Option<String>) {
         self.lib_reference = lib_reference
     }
 
@@ -268,7 +289,7 @@ impl Default for Function {
             implementation: "".to_owned(),
             alias: Name::default(),
             inputs: vec![],
-            outputs: vec![IO::new("Value", Route::default())],
+            outputs: vec![],
             source_url: String::default(),
             route: Route::default(),
             lib_reference: None,

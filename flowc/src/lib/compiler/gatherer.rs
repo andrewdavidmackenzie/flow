@@ -9,23 +9,16 @@ use crate::model::process::Process::FunctionProcess;
 
 /// This module is responsible for parsing the flow tree and gathering information into a set of
 /// flat tables that the compiler can use for code generation.
-pub fn gather_functions_and_connections(
-    flow: &Flow,
-    tables: &mut GenerationTables,
-    level: usize,
-) -> Result<()> {
+pub fn gather_functions_and_connections(flow: &Flow, tables: &mut GenerationTables) -> Result<()> {
     // Add Connections from this flow hierarchy to the connections table
     let mut connections = flow.connections.clone();
-    for con in &mut connections {
-        con.level = level;
-    }
     tables.connections.append(&mut connections);
 
     // Do the same for all subprocesses referenced from this one
     for subprocess in &flow.subprocesses {
         match subprocess.1 {
             FlowProcess(ref flow) => {
-                gather_functions_and_connections(flow, tables, level + 1)?; // recurse
+                gather_functions_and_connections(flow, tables)?; // recurse
             }
             FunctionProcess(ref function) => {
                 // Add Functions from this flow to the table of functions
@@ -48,5 +41,58 @@ pub fn gather_functions_and_connections(
 pub fn index_functions(functions: &mut Vec<Function>) {
     for (index, function) in functions.iter_mut().enumerate() {
         function.set_id(index);
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use crate::model::function::Function;
+    use crate::model::io::IO;
+    use crate::model::name::Name;
+    use crate::model::route::Route;
+    use flowcore::output_connection::{OutputConnection, Source};
+
+    #[test]
+    fn empty_index_test() {
+        super::index_functions(&mut vec![]);
+    }
+
+    #[test]
+    fn index_test() {
+        let function = Function::new(
+            Name::from("Stdout"),
+            false,
+            "lib://flowruntime/stdio/stdout".to_string(),
+            Name::from("print"),
+            vec![],
+            vec![IO::new("String", Route::default())],
+            "file:///fake/file",
+            Route::from("/flow0/stdout"),
+            Some("flowruntime/stdio/stdout".to_string()),
+            vec![OutputConnection::new(
+                Source::default(),
+                1,
+                0,
+                0,
+                0,
+                false,
+                String::default(),
+                #[cfg(feature = "debugger")]
+                String::default(),
+            )],
+            99,
+            0,
+        );
+
+        let mut functions = vec![function.clone(), function];
+        super::index_functions(&mut functions);
+        assert_eq!(
+            functions.get(0).expect("Could not get function").get_id(),
+            0
+        );
+        assert_eq!(
+            functions.get(1).expect("Could not get function").get_id(),
+            1
+        );
     }
 }
