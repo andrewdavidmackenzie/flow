@@ -1,17 +1,15 @@
+use flowcore::lib_provider::Provider;
+use flowcore::{Implementation, RunAgain};
+use log::{error, info, trace};
+use serde_json::Value;
 use std::cmp::max;
 use std::sync::Arc;
 use std::sync::Mutex;
-
-use log::{error, info, trace};
-use serde_json::Value;
 use url::Url;
 use wasmi::{
     ExternVal, ImportsBuilder, MemoryRef, Module, ModuleInstance, ModuleRef, NopExternals,
     RuntimeValue, Signature, ValueType,
 };
-
-use flowcore::lib_provider::Provider;
-use flowcore::{Implementation, RunAgain};
 
 use crate::errors::*;
 
@@ -27,7 +25,7 @@ pub struct WasmExecutor {
 }
 
 impl WasmExecutor {
-    pub fn new(module_ref: ModuleRef, memory: MemoryRef, source_url: &Url) -> Self {
+    fn new(module_ref: ModuleRef, memory: MemoryRef, source_url: &Url) -> Self {
         WasmExecutor {
             module: Arc::new(Mutex::new(module_ref)),
             memory: Arc::new(Mutex::new(memory)),
