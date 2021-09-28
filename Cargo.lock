@@ -590,6 +590,7 @@ dependencies = [
 name = "flowr"
 version = "0.36.0"
 dependencies = [
+ "anyhow",
  "clap",
  "ctrlc",
  "error-chain 0.12.4",

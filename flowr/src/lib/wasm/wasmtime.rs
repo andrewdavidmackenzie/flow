@@ -1,12 +1,11 @@
+use anyhow::Result as AnyhowResult;
 use flowcore::lib_provider::Provider;
 use flowcore::{Implementation, RunAgain};
 use log::{error, info, trace};
 use serde_json::Value;
-use std::cmp::max;
-use std::sync::Arc;
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 use url::Url;
-use wasmtime::{Engine, Func};
+use wasmtime::*;
 
 use crate::errors::*;
 
@@ -16,7 +15,8 @@ const MAX_RESULT_SIZE: i32 = 1024;
 
 #[derive(Debug)]
 pub struct WasmExecutor {
-    store: Store,
+    store: Arc<Mutex<Store<()>>>,
+    memory: Memory,
     instance: Instance,
     implementation: Func,
     alloc: Func,
@@ -25,14 +25,16 @@ pub struct WasmExecutor {
 
 impl WasmExecutor {
     pub fn new(
-        store: Store,
+        store: Store<()>,
+        memory: Memory,
         instance: Instance,
         implementation: Func,
         alloc: Func,
         source_url: &Url,
     ) -> Self {
         WasmExecutor {
-            store,
+            store: Arc::new(Mutex::new(store)),
+            memory,
             instance,
             implementation,
             alloc,
@@ -40,22 +42,78 @@ impl WasmExecutor {
         }
     }
 
-    // Allocate memory for array of bytes inside the wasm module and copy the array of bytes into it
-    fn send_byte_array(&self, bytes: &[u8]) -> u32 {
-        let alloc_size = max(bytes.len() as i32, MAX_RESULT_SIZE);
-        let result = self.alloc.call(
-            &self.store,
-            &[RuntimeValue::I32(alloc_size)],
-            &mut NopExternals,
-        );
-
-        match result {
-            Ok(Some(RuntimeValue::I32(pointer))) => match memory.set(pointer as u32, bytes) {
-                Ok(_) => pointer as u32,
-                _ => 0_u32,
-            },
-            _ => 0_u32,
+    // Serialize the inputs into JSON and then write them into the linear memory for WASM to read
+    // Return the offset of the data in linear memory and the data size in bytes
+    fn send_inputs(&self, inputs: &[Value], store: &mut Store<()>) -> Result<(i32, i32)> {
+        let input_data = serde_json::to_vec(&inputs)?;
+        let value_array = self
+            .alloc(MAX_RESULT_SIZE, store)
+            .map_err(|_| "Could not call WASM alloc() function")?;
+        match value_array[0] {
+            Val::I32(offset) => {
+                self.memory
+                    .write(store, offset as usize, &input_data)
+                    .map_err(|_| "Could not write to WASM Linear Memory")?;
+                Ok((offset as i32, input_data.len() as i32))
+            }
+            _ => bail!("Unexpected return type from WASM alloc() function"),
         }
+    }
+
+    fn alloc(&self, length: i32, store: &mut Store<()>) -> AnyhowResult<Box<[Val]>> {
+        self.alloc.call(store, &[Val::I32(length)])
+    }
+
+    fn call(&self, offset: i32, length: i32, store: &mut Store<()>) -> AnyhowResult<Box<[Val]>> {
+        self.implementation
+            .call(store, &[Val::I32(offset), Val::I32(length)])
+    }
+
+    fn get_result(
+        &self,
+        result: AnyhowResult<Box<[Val]>>,
+        offset: usize,
+        store: &mut Store<()>,
+    ) -> (Option<Value>, RunAgain) {
+        return match result {
+            Ok(value) => match *value {
+                [Val::I32(result_length)] => {
+                    trace!("Return length from wasm function of {}", result_length);
+                    if result_length > MAX_RESULT_SIZE {
+                        error!(
+                            "Return length from wasm function of {} exceed maximum allowed",
+                            result_length
+                        );
+                        return (None, true);
+                    }
+
+                    let mut buffer = Vec::<u8>::with_capacity(MAX_RESULT_SIZE as usize);
+                    if self.memory.read(store, offset, &mut buffer).is_err() {
+                        error!("could not read return value from WASM linear memory");
+                        return (None, true);
+                    }
+
+                    match serde_json::from_slice(&buffer) {
+                        Ok((result, run_again)) => (result, run_again),
+                        _ => {
+                            error!("could not deserialize json response from WASM");
+                            (None, true)
+                        }
+                    }
+                }
+                _ => {
+                    error!("Unexpected return type from WASM implementation.call()");
+                    (None, true)
+                }
+            },
+            Err(err) => {
+                error!(
+                    "Error returned by WASM implementation.call() on '{}': {:?}",
+                    self.source_url, err
+                );
+                (None, true)
+            }
+        };
     }
 }
 
@@ -72,25 +130,27 @@ pub fn load(provider: &dyn Provider, source_url: &Url) -> Result<WasmExecutor> {
     })?;
 
     let engine = Engine::default();
+    let module = Module::new(&engine, content).map_err(|_| "Could not create WASM Module")?;
+    let mut store: Store<()> = Store::default();
+    let instance =
+        Instance::new(&mut store, &module, &[]).map_err(|_| "Could not create WASM Instance")?;
+    let memory = instance
+        .get_memory(&mut store, "memory")
+        .ok_or("Could not get WASM linear memory")?;
+    let implementation = instance
+        .get_func(&mut store, "run_wasm")
+        .ok_or("Could not get the WASM instance() function")?;
 
-    let module = Module::new(&engine, content).chain_err(|| {
-        format!(
-            "Could not create Wasm Module from content in '{}'",
-            resolved_url
-        )
-    })?;
-
-    let mut store = Store::new(&engine, ());
-
-    let instance = Instance::new(&store, &module, &[])?;
-
-    let implementation = instance.get_func(&mut store, "run_wasm")?;
-    let alloc = instance.get_func(&mut store, "alloc")?;
+    // TODO get types function
+    let alloc = instance
+        .get_func(&mut store, "alloc")
+        .ok_or("Could not get the WASM alloc() function")?;
 
     info!("Loaded wasm module from: '{}'", source_url);
 
     Ok(WasmExecutor::new(
         store,
+        memory,
         instance,
         implementation,
         alloc,
@@ -104,69 +164,14 @@ unsafe impl Sync for WasmExecutor {}
 
 impl Implementation for WasmExecutor {
     fn run(&self, inputs: &[Value]) -> (Option<Value>, RunAgain) {
-        // setup module memory with the serde serialization of `inputs: Vec<Vec<Value>>`
-        if let Ok(input_data) = serde_json::to_vec(&inputs) {
-            // Allocate a string for the input data inside wasm module
-            let input_data_wasm_ptr = self.send_byte_array(&input_data);
-
-            let result = self.implementation.call(
-                &self.store,
-                &[
-                    RuntimeValue::I32(input_data_wasm_ptr as i32),
-                    RuntimeValue::I32(input_data.len() as i32),
-                ],
-                &mut NopExternals,
-            );
-
-            return match result {
-                Ok(Some(value)) => match value {
-                    RuntimeValue::I32(result_length) => {
-                        trace!("Return length from wasm function of {}", result_length);
-                        if result_length > MAX_RESULT_SIZE {
-                            error!(
-                                "Return length from wasm function of {} exceed maximum allowed",
-                                result_length
-                            );
-                            (None, true)
-                        } else if let Ok(result_data) =
-                            memory_ref.get(input_data_wasm_ptr, result_length as usize)
-                        {
-                            if let Ok((result, run_again)) =
-                                serde_json::from_slice(result_data.as_slice())
-                            {
-                                (result, run_again)
-                            } else {
-                                (None, true)
-                            }
-                        } else {
-                            error!("could not get() memory_reference");
-                            (None, true)
-                        }
-                    }
-                    _ => {
-                        error!("Unexpected return value from wasm function on invoke_export()");
-                        (None, true)
-                    }
-                },
-                Ok(None) => {
-                    error!(
-                        "None value returned by Wasm implementation.call(): {:?}",
-                        self.source_url
-                    );
-                    error!("Inputs:\n{:?}", inputs);
-                    (None, true)
-                }
-                Err(err) => {
-                    error!(
-                        "Error returned by Wasm implementation.call() on '{}': {:?}",
-                        self.source_url, err
-                    );
-                    error!("Inputs:\n{:?}", inputs);
-                    (None, true)
-                }
-            };
+        if let Ok(mut store) = self.store.lock() {
+            if let Ok((offset, length)) = self.send_inputs(inputs, &mut store) {
+                let result = self.call(offset, length, &mut store);
+                return self.get_result(result, offset as usize, &mut store);
+            }
         }
 
+        error!("Could not lock WASM store");
         (None, true)
     }
 }
