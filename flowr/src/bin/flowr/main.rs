@@ -39,10 +39,10 @@ pub mod errors;
 fn main() {
     match run() {
         Err(ref e) => {
-            error!("{}", e);
+            eprintln!("{}", e);
 
             for e in e.iter().skip(1) {
-                error!("caused by: {}", e);
+                eprintln!("caused by: {}", e);
             }
 
             // The backtrace is not always generated. Try to run this example
@@ -51,6 +51,7 @@ fn main() {
                 error!("backtrace: {:?}", backtrace);
             }
 
+            eprintln!("Exiting with status code = 1");
             exit(1);
         }
         Ok(_) => exit(0),
