@@ -68,7 +68,11 @@ where
     #[cfg(feature = "distributed")]
     fn discover_service(name: &str) -> Option<(String, u16)> {
         let listener = BeaconListener::new(name.as_bytes()).ok()?;
-        let beacon = listener.wait(None).ok()?;
+        info!(
+            "Client is waiting for a Service Discovery beacon for '{}'",
+            name
+        );
+        let beacon = listener.wait(Some(Duration::from_secs(10))).ok()?;
         info!(
             "Service '{}' discovered at IP: {}, Port: {}",
             name, beacon.service_ip, beacon.service_port
