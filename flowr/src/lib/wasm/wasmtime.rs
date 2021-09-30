@@ -1,7 +1,8 @@
 use anyhow::Result as AnyhowResult;
 use flowcore::lib_provider::Provider;
 use flowcore::{Implementation, RunAgain};
-use log::{error, info, trace};
+use log::info;
+use log::{error, trace};
 use serde_json::Value;
 use std::sync::{Arc, Mutex};
 use url::Url;
@@ -17,7 +18,6 @@ const MAX_RESULT_SIZE: i32 = 1024;
 pub struct WasmExecutor {
     store: Arc<Mutex<Store<()>>>,
     memory: Memory,
-    instance: Instance,
     implementation: Func,
     alloc: Func,
     source_url: Url,
@@ -27,7 +27,6 @@ impl WasmExecutor {
     pub fn new(
         store: Store<()>,
         memory: Memory,
-        instance: Instance,
         implementation: Func,
         alloc: Func,
         source_url: &Url,
@@ -35,7 +34,6 @@ impl WasmExecutor {
         WasmExecutor {
             store: Arc::new(Mutex::new(store)),
             memory,
-            instance,
             implementation,
             alloc,
             source_url: source_url.clone(),
@@ -87,16 +85,20 @@ impl WasmExecutor {
                         return (None, true);
                     }
 
-                    let mut buffer = Vec::<u8>::with_capacity(MAX_RESULT_SIZE as usize);
-                    if self.memory.read(store, offset, &mut buffer).is_err() {
+                    let mut buffer = vec![0u8; result_length as usize];
+                    if self
+                        .memory
+                        .read(store, offset, buffer.as_mut_slice())
+                        .is_err()
+                    {
                         error!("could not read return value from WASM linear memory");
                         return (None, true);
                     }
 
                     match serde_json::from_slice(&buffer) {
                         Ok((result, run_again)) => (result, run_again),
-                        _ => {
-                            error!("could not deserialize json response from WASM");
+                        Err(e) => {
+                            error!("could not deserialize json response from WASM: {}", e);
                             (None, true)
                         }
                     }
@@ -129,11 +131,11 @@ pub fn load(provider: &dyn Provider, source_url: &Url) -> Result<WasmExecutor> {
         )
     })?;
 
-    let engine = Engine::default();
-    let module = Module::new(&engine, content).map_err(|_| "Could not create WASM Module")?;
     let mut store: Store<()> = Store::default();
-    let instance =
-        Instance::new(&mut store, &module, &[]).map_err(|_| "Could not create WASM Instance")?;
+    let module = Module::new(store.engine(), content)
+        .map_err(|e| format!("Could not create WASM Module: {}", e))?;
+    let instance = Instance::new(&mut store, &module, &[])
+        .map_err(|e| format!("Could not create WASM Instance: {}", e))?;
     let memory = instance
         .get_memory(&mut store, "memory")
         .ok_or("Could not get WASM linear memory")?;
@@ -141,7 +143,7 @@ pub fn load(provider: &dyn Provider, source_url: &Url) -> Result<WasmExecutor> {
         .get_func(&mut store, "run_wasm")
         .ok_or("Could not get the WASM instance() function")?;
 
-    // TODO get types function
+    // TODO get typed function
     let alloc = instance
         .get_func(&mut store, "alloc")
         .ok_or("Could not get the WASM alloc() function")?;
@@ -151,7 +153,6 @@ pub fn load(provider: &dyn Provider, source_url: &Url) -> Result<WasmExecutor> {
     Ok(WasmExecutor::new(
         store,
         memory,
-        instance,
         implementation,
         alloc,
         source_url,
