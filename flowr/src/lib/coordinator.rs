@@ -255,7 +255,7 @@ impl Coordinator {
                     }
                     Ok(ClientMessage::ClientExiting) => return Ok(None),
                     Ok(r) => error!("Server did not expect response from client: '{:?}'", r),
-                    Err(e) => error!("Server error while waiting for submission: '{}'", e),
+                    Err(e) => bail!("Server error while waiting for submission: '{}'", e),
                 },
                 _ => {
                     error!("Server could not lock context");

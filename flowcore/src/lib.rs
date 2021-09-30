@@ -3,8 +3,6 @@
 
 //! `flowcore` defines core structs and traits used by other flow libraries and implementations
 
-use std::panic::{RefUnwindSafe, UnwindSafe};
-
 use serde_json::Value;
 
 /// `content` module contains the content providers for files and http/https
@@ -93,7 +91,7 @@ pub const DONT_RUN_AGAIN: RunAgain = false;
 ///     }
 /// }
 /// ```
-pub trait Implementation: RefUnwindSafe + UnwindSafe + Sync + Send {
+pub trait Implementation: Sync + Send {
     /// The `run` method is used to execute the implementation
     fn run(&self, inputs: &[Value]) -> (Option<Value>, RunAgain);
 }

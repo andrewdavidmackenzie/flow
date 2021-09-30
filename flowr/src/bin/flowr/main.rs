@@ -39,10 +39,10 @@ pub mod errors;
 fn main() {
     match run() {
         Err(ref e) => {
-            error!("{}", e);
+            eprintln!("{}", e);
 
             for e in e.iter().skip(1) {
-                error!("caused by: {}", e);
+                eprintln!("caused by: {}", e);
             }
 
             // The backtrace is not always generated. Try to run this example
@@ -51,6 +51,7 @@ fn main() {
                 error!("backtrace: {:?}", backtrace);
             }
 
+            eprintln!("Exiting with status code = 1");
             exit(1);
         }
         Ok(_) => exit(0),
@@ -148,7 +149,7 @@ fn run() -> Result<()> {
         Mode::ClientAndServer => {
             std::thread::spawn(move || {
                 info!("Starting 'flowr' server in background thread");
-                if let Err(e) = Coordinator::start(
+                let _ = Coordinator::start(
                     num_threads,
                     lib_search_path,
                     #[cfg(feature = "native")]
@@ -156,12 +157,7 @@ fn run() -> Result<()> {
                     None,
                     #[cfg(feature = "debugger")]
                     None,
-                ) {
-                    error!(
-                        "Failed to start server in background thread: {}",
-                        e.to_string()
-                    );
-                }
+                );
                 info!("'flowr' server thread has exited");
             });
 
