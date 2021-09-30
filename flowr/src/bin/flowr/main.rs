@@ -149,7 +149,7 @@ fn run() -> Result<()> {
         Mode::ClientAndServer => {
             std::thread::spawn(move || {
                 info!("Starting 'flowr' server in background thread");
-                if let Err(e) = Coordinator::start(
+                let _ = Coordinator::start(
                     num_threads,
                     lib_search_path,
                     #[cfg(feature = "native")]
@@ -157,12 +157,7 @@ fn run() -> Result<()> {
                     None,
                     #[cfg(feature = "debugger")]
                     None,
-                ) {
-                    error!(
-                        "Failed to start server in background thread: {}",
-                        e.to_string()
-                    );
-                }
+                );
                 info!("'flowr' server thread has exited");
             });
 
