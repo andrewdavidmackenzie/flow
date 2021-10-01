@@ -13,6 +13,9 @@ edition = "2018"
 # Files to exclude from packaging and publishing
 exclude = [".gitignore", "Cargo.lock"]
 
+[badges]
+maintenance = { status = "actively-developed" }
+
 [lib]
 name = "flowcore"
 path = "src/lib.rs"

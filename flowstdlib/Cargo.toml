@@ -14,6 +14,9 @@ build = "build.rs"
 # Files to exclude from packaging and publishing
 exclude = [".gitignore", "Cargo.lock"]
 
+[badges]
+maintenance = { status = "actively-developed" }
+
 [[bin]]
 name = "flowstdlib"
 path = "main.rs"
