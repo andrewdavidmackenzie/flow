@@ -63,15 +63,19 @@ To build and test, including building and testing docs and running the samples a
 make
 ```
 
+**NOTE**
+The first time you build, it will take a long time. This is due to a large number of function implementations 
+in the `flowstdlib` standard library each being compiled to WASM as individual projects. After the first build,
+dependencies are tracked by the `flowc` compiler and implementations are only re-compiled when required.
+
 ## Run your first 'flow'
 Run the 'fibonacci' sample flow using:
 
-```cargo run -- samples/fibonacci```
+```cargo run -p flowc -- samples/fibonacci```
 
 You should get a fibonacci series of numbers output to the terminal.
 
-The [first flow](docs/first_flow/first_flow.md) section of the guide explains what that sample does and walks you 
-through it.
+The [first flow](docs/first_flow/first_flow.md) section of the guide walks you through it.
 
 ## Make docs or guide changes
 After a PR is merged, and the build of `master` succeeds, the guide is rebuilt and the resulting html is deployed for 
@@ -83,6 +87,11 @@ The Project is structured into a number of rust crates that form part of a rust 
 Currently two binaries are built: `flowc` the flow compiler and `flowr` the flow runner. 
  
 See the [Project Components and Structure section](docs/introduction/structure.md) of the Guide for more details.
+
+## Contributing
+I organize all issues in a [Github Project](https://github.com/andrewdavidmackenzie/flow/projects/2)
+and chose things to work on from the "Next" column. I have only marked a couple of issues with "help wanted" label
+but I can do more if there is interest. If in doubt reach out to me by email, or github issue.
 
 ## Sister Projects
 
@@ -99,5 +108,5 @@ to use. I have tried Iced and other emerging rust-native GUI toolkits, but they 
 Currently I'm experimenting with flutter and react native, and FLTK looks relatively easy to use, has rust
 native bindings for the UI, but doesn't look so modern and is not so well known.
 
-Once I get a solution I like, I may well bring it back into this repo, although build-times in travis-ci 
-maybe a problem again if this repo includes too much.
+Once I get a solution I like, I may well bring it back into this repo, although build-times for so many crates
+may become a problem again if this repo includes too much.
