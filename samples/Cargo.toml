@@ -16,6 +16,9 @@ build = "build.rs"
 exclude = ["**/*.dump", "**/*.err", "**/*.dot", "**/*.svg", "failed.output", "Cargo.lock",
            ".gitignore"]
 
+[badges]
+maintenance = { status = "actively-developed" }
+
 [[bin]]
 name = "flowsamples"
 path = "main.rs"
