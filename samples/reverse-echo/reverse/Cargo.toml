@@ -18,9 +18,9 @@ panic = 'abort' # About unwinding code
 
 [dependencies]
 # flowcore - no "code" feature, only used for trait definition
-flowcore = { version = "=0.36.0", path = "../../../flowcore", default-features = false }
-flow_impl_derive = { version = "=0.34.7", path = "../../../flow_impl_derive" }
+flowcore = { version = "0.40", path = "../../../flowcore", default-features = false }
+flow_impl_derive = { version = "0.40", path = "../../../flow_impl_derive" }
 serde_json = { version = "1.0", default-features = false }
 
 [workspace]
-exclude = ["../../../"]
+exclude = ["../../.."]
