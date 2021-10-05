@@ -3,7 +3,7 @@ use std::path::Path;
 use std::process::{Command, Stdio};
 
 use glob::{glob_with, MatchOptions};
-use log::info;
+use log::{debug, info};
 use simpath::{FileType, FoundType, Simpath};
 
 use flowcore::lib_provider::Provider;
@@ -58,7 +58,9 @@ pub fn dump_flow(
         "=== Dumper: Dumping flow hierarchy to '{}'",
         output_dir.display()
     );
-    _dump_flow(flow, 0, output_dir, provider, dump_files, dot_files)
+    _dump_flow(flow, 0, output_dir, provider, dump_files, dot_files)?;
+    info!("Dump complete");
+    Ok(())
 }
 
 /// Generate SVG files from any .dot file found below the `root_dir` using the `dot` graphviz
@@ -128,11 +130,13 @@ fn _dump_flow(
         ))?;
 
     if dump_files {
+        debug!("Dumping tables to {}", filename);
         let mut writer = dump_tables::create_output_file(output_dir, filename, "dump")?;
         writer.write_all(format!("\nLevel={}\n{}", level, flow).as_bytes())?;
     }
 
     if dot_files {
+        debug!("Dumping dot file to {}", filename);
         let mut writer = dump_tables::create_output_file(output_dir, filename, "dot")?;
         info!("\tGenerating {}.dot, Use \"dotty\" to view it", filename);
         dump_dot::write_flow_to_dot(flow, &mut writer, output_dir)?;

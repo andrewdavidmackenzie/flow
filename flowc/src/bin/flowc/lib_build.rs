@@ -24,24 +24,6 @@ use flowcore::lib_provider::{MetaProvider, Provider};
 use crate::errors::*;
 use crate::Options;
 
-const LIB_HEADER: &str = "#![deny(missing_docs)]
-#![warn(clippy::unwrap_used)]
-
-//! This is the `flowstdlib` standard library of functions for `flow`
-
-use std::sync::Arc;
-
-use url::Url;
-
-use errors::*;
-use flowcore::flow_manifest::MetaData;
-use flowcore::lib_manifest::{ImplementationLocator::Native, LibraryManifest};
-
-/// We'll put our errors in an `errors` module, and other modules in this crate will `use errors::*;`
-/// to get access to everything `error_chain` creates.
-pub mod errors;
-";
-
 const GET_MANIFEST_HEADER: &str = "
 /// Return the LibraryManifest for this library
 pub fn get_manifest() -> Result<LibraryManifest> {
@@ -189,9 +171,6 @@ fn write_lib_rust_manifest(
 ) -> Result<()> {
     // Create the file we will be writing to
     let mut manifest_file = File::create(&rust_manifest_filename)?;
-
-    // generate the fixed header
-    manifest_file.write_all(LIB_HEADER.as_bytes())?;
 
     // Create the list of top level modules
     let mut modules = HashSet::<&str>::new();
