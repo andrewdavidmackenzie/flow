@@ -104,7 +104,9 @@ fn load_process(
     let (resolved_url, lib_ref) = provider
         .resolve_url(url, "context", &["toml"])
         .chain_err(|| format!("Could not resolve the url: '{}'", url))?;
-    debug!("Source URL '{}' resolved to: '{}'", url, resolved_url);
+    if &resolved_url != url {
+        debug!("Source URL '{}' resolved to: '{}'", url, resolved_url);
+    }
 
     // Track the source file involved and what it resolved to
     #[cfg(feature = "debugger")]
@@ -174,7 +176,10 @@ pub fn load_metadata(url: &Url, provider: &dyn Provider) -> Result<MetaData> {
         .resolve_url(url, "Cargo", &["toml"])
         .chain_err(|| format!("Could not resolve the url: '{}'", url))?;
 
-    debug!("Source URL '{}' resolved to: '{}'", url, resolved_url);
+    if &resolved_url != url {
+        debug!("Source URL '{}' resolved to: '{}'", url, resolved_url);
+    }
+
     let contents = provider
         .get_contents(&resolved_url)
         .chain_err(|| format!("Could not get contents of resolved url: '{}'", resolved_url))?;
