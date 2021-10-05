@@ -50,33 +50,29 @@ docs:
 	@cargo doc --no-deps --target-dir=target/html/code
 	@mdbook build
 
-.PHONY: build-flowc
-build-flowc:
-	@cargo build -p flowc
+.PHONY: install-flowc
+install-flowc:
+	@cargo install --path flowc
 
 .PHONY: compile-flowstdlib
-compile-flowstdlib: build-flowc
+compile-flowstdlib: install-flowc
 	@cargo build -p flowstdlib
 
 .PHONY: build
-build: build-flowc compile-flowstdlib
+build: install-flowc compile-flowstdlib
 	@cargo build
 
 .PHONY: clippy
-clippy: build-flowc compile-flowstdlib
+clippy: install-flowc compile-flowstdlib
 	@cargo clippy -- -D warnings
 
 .PHONY: test
-test: build-flowc compile-flowstdlib
+test: install-flowc compile-flowstdlib
 	@cargo test $(features)
 
 .PHONY: clean
 clean:
 	@cargo clean
-	@find . -name \*.wasm -exec rm {} \;
-	@find . -name \*.dot -exec rm {} \;
-	@find . -name \*.dot.svg -exec rm {} \;
-	@rm -f flowstdlib/manifest.json flowstdlib/manifest.rs
 
 .PHONY: trim-docs
 trim-docs:
