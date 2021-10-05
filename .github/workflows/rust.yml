@@ -55,10 +55,10 @@ jobs:
     - name: InstallWasmTools
       run: cargo install wasm-gc wasm-snip
 
-    - name: Build-flowc
-      run: cargo build -p flowc
+    - name: Build-and-install-flowc
+      run: cargo install --path flowc
 
-    - name: BuildFlowstdlib
+    - name: Build-flowstdlib
       run: cargo build -p flowstdlib
 
     - name: Clippy
