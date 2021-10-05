@@ -1,51 +1,25 @@
 use std::io;
-use std::path::Path;
-use std::path::PathBuf;
-use std::process::{Command, Stdio};
-
-use simpath::{FileType, FoundType, Simpath};
+use std::process::Command;
 
 // Build script to compile the flowstdlib library (compile WASM files and generate manifest) using flowc
 fn main() -> io::Result<()> {
-    let root = env!("CARGO_MANIFEST_DIR");
+    let manifest_dir = env!("CARGO_MANIFEST_DIR");
     // Tell Cargo that if any file changes it should rerun this build script
-    println!("cargo:rerun-if-changed={}", root);
+    println!("cargo:rerun-if-changed={}", manifest_dir);
 
-    let flowc = get_flowc()?;
+    let mut command = Command::new("flowc");
+    // Options for flowc:   -v info to give output,
+    //                      -g for debug symbols, -z to dump graphs
+    //                      -o to generate files in $out_dir
+    //                      -l $dir to build library found in $manifest_dir
+    // TODO fic -z graph dumping
+    //    let out_dir = std::env::var("OUT_DIR")
+    //        .map_err(|e| io::Error::new(io::ErrorKind::Other, e.to_string()))?;
+    // "-o", &out_dir,
+    let command_args = vec!["-v", "info", "-g", "-l", manifest_dir];
+    println!("Running command: flowc {:?}", command_args);
 
-    let mut command = Command::new(flowc);
-    // Options for flowc: -v info to give output, -g for debug symbols, -z to dump graphs, -l for a library build
-    let command_args = vec!["-v", "info", "-g", "-z", "-l", env!("CARGO_MANIFEST_DIR")];
-
-    command
-        .args(command_args)
-        .stdin(Stdio::inherit())
-        .stdout(Stdio::inherit())
-        .stderr(Stdio::inherit())
-        .spawn()?;
+    let _ = command.args(command_args).output()?;
 
     Ok(())
-}
-
-fn get_flowc() -> io::Result<PathBuf> {
-    let root = Path::new(env!("CARGO_MANIFEST_DIR")).parent().unwrap();
-
-    let dev = root.join("target/debug/flowc");
-    if dev.exists() {
-        return Ok(dev);
-    }
-
-    let dev = root.join("target/release/flowc");
-    if dev.exists() {
-        return Ok(dev);
-    }
-
-    if let Ok(FoundType::File(flowc)) = Simpath::new("PATH").find_type("flowc", FileType::File) {
-        return Ok(flowc);
-    }
-
-    Err(io::Error::new(
-        io::ErrorKind::Other,
-        "`flowc` could not be found in `$PATH` or `target/`",
-    ))
 }
