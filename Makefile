@@ -74,7 +74,9 @@ test: build-flowc compile-flowstdlib
 clean:
 	@cargo clean
 	@find . -name \*.wasm -exec rm {} \;
-	@rm -f flowstdlib/manifest.json flowstdlib/lib.rs
+	@find . -name \*.dot -exec rm {} \;
+	@find . -name \*.dot.svg -exec rm {} \;
+	@rm -f flowstdlib/manifest.json flowstdlib/manifest.rs
 
 .PHONY: trim-docs
 trim-docs:
