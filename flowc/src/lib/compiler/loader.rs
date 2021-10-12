@@ -108,10 +108,6 @@ fn load_process(
         debug!("Source URL '{}' resolved to: '{}'", url, resolved_url);
     }
 
-    // Track the source file involved and what it resolved to
-    #[cfg(feature = "debugger")]
-    source_urls.insert((url.clone(), resolved_url.clone()));
-
     let contents = provider
         .get_contents(&resolved_url)
         .chain_err(|| format!("Could not get contents of resolved url: '{}'", resolved_url))?;
@@ -130,6 +126,10 @@ fn load_process(
     let mut process = deserializer
         .deserialize(&content, Some(url))
         .chain_err(|| format!("Could not deserialize process from content in '{}'", url))?;
+
+    // Track the source file involved and what it resolved to
+    #[cfg(feature = "debugger")]
+    source_urls.insert((url.clone(), resolved_url.clone()));
 
     match process {
         FlowProcess(ref mut flow) => {
