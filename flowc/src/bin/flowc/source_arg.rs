@@ -1,23 +1,24 @@
-use std::fs;
 use std::path::PathBuf;
+use std::{env, fs};
 
 use tempdir::TempDir;
 use url::Url;
 
 use crate::errors::*;
 
-/*
-    Determine the output directory to use for generation on the local file system as a
-    function of the url of the source flow, and the optional argument to specify the output
-    directory to use.
-    The flow source location can be http url, or file url
-*/
+/// Determine the output directory to use for generation on the local file system as a
+/// function of the url of the source flow, and the optional argument to specify the output
+/// directory to use.
+/// The flow source location can be http url, or file url
 pub fn get_output_dir(url: &Url, option: Option<&str>) -> Result<PathBuf> {
     let mut output_dir;
 
     // Allow the optional command line argument to force output_dir
     if let Some(dir) = option {
         output_dir = PathBuf::from(dir);
+        if output_dir.is_relative() {
+            output_dir = env::current_dir()?.join(output_dir);
+        }
     } else {
         match url.scheme() {
             // If loading flow from a local file, then generate in the same directory
