@@ -1,5 +1,5 @@
 function = "to_json"
-implementation = "to_json.rs"
+source = "to_json.rs"
 
 [[input]]
 type = "String" # The String to convert

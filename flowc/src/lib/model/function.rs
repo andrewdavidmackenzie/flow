@@ -28,8 +28,8 @@ pub struct Function {
     /// Is this an impure function that interacts with the runtime environment?
     #[serde(default)]
     pub(crate) impure: bool,
-    /// String name of the file where the actual implementation should be read from
-    pub(crate) implementation: String,
+    /// Name of the source file for the function implementation
+    pub(crate) source: String,
     /// The set of inputs this function has
     #[serde(default, rename = "input")]
     pub(crate) inputs: IOSet,
@@ -98,7 +98,7 @@ impl Function {
         Function {
             name,
             impure,
-            implementation,
+            source: implementation,
             alias,
             inputs,
             outputs,
@@ -183,12 +183,12 @@ impl Function {
 
     /// Get a reference to the implementation of this function
     pub fn get_implementation(&self) -> &str {
-        &self.implementation
+        &self.source
     }
 
     /// Set the implementation of this function
     pub fn set_implementation(&mut self, implementation: &str) {
-        self.implementation = implementation.to_owned();
+        self.source = implementation.to_owned();
     }
 
     /// Get the source url where this function was defined
@@ -286,7 +286,7 @@ impl Default for Function {
         Function {
             name: Name::default(),
             impure: false,
-            implementation: "".to_owned(),
+            source: "".to_owned(),
             alias: Name::default(),
             inputs: vec![],
             outputs: vec![],
@@ -345,7 +345,7 @@ mod test {
         let fun = Function {
             name: Name::from("test_function"),
             impure: false,
-            implementation: "".to_owned(),
+            source: "".to_owned(),
             alias: Name::from("test_function"),
             source_url: String::default(),
             inputs: vec![],  // No inputs!
@@ -400,7 +400,7 @@ mod test {
     fn deserialize_no_inputs_or_outputs() {
         let function_str = "
         function = 'test_function'
-        implementation = 'test.rs'
+        source = 'test.rs'
         ";
 
         let function: Function =
@@ -412,7 +412,7 @@ mod test {
     fn deserialize_extra_field_fails() {
         let function_str = "
         function = 'test_function'
-        implementation = 'test.rs'
+        source = 'test.rs'
         [[output]]
         foo = 'true'
         ";
@@ -425,7 +425,7 @@ mod test {
     fn deserialize_default_output() {
         let function_str = "
         function = 'test_function'
-        implementation = 'test.rs'
+        source = 'test.rs'
         [[output]]
         type = 'String'
         ";
@@ -443,7 +443,7 @@ mod test {
     fn deserialize_output_specified() {
         let function_str = "
         function = 'test_function'
-        implementation = 'test.rs'
+        source = 'test.rs'
 
         [[output]]
         name = 'sub_output'
@@ -463,7 +463,7 @@ mod test {
     fn deserialize_two_outputs_specified() {
         let function_str = "
         function = 'test_function'
-        implementation = 'test.rs'
+        source = 'test.rs'
 
         [[output]]
         name = 'sub_output'
@@ -491,7 +491,7 @@ mod test {
     fn set_routes() {
         let function_str = "
         function = 'test_function'
-        implementation = 'test.rs'
+        source = 'test.rs'
 
         [[output]]
         name = 'sub_output'
@@ -526,7 +526,7 @@ mod test {
         // Create a function where the output is an Array of String
         let function_str = "
         function = 'test_function'
-        implementation = 'test.rs'
+        source = 'test.rs'
 
         [[output]]
         type = 'Array/String'

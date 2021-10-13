@@ -1,5 +1,5 @@
 function = "duplicate"
-implementation = "duplicate.rs"
+source = "duplicate.rs"
 
 [[input]]
 name = "value" # - the value to duplicate

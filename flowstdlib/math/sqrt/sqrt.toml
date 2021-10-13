@@ -1,5 +1,5 @@
 function = "sqrt"
-implementation = "sqrt.rs"
+source = "sqrt.rs"
 
 [[input]]
 type = "Number"

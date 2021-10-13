@@ -662,7 +662,7 @@ mod test {
     #[serial(stdio_wasm_compile)]
     fn test_compile_implementation_invalid_paths() {
         let mut function = test_function();
-        function.implementation = "does_not_exist".into();
+        function.source = "does_not_exist".into();
 
         #[cfg(feature = "debugger")]
         let mut source_urls = HashSet::<(Url, Url)>::new();

@@ -1,5 +1,5 @@
 function = "tap"
-implementation = "tap.rs"
+source = "tap.rs"
 
 [[input]]
 name = "data" # - the data flow we wish to control the flow if

@@ -1,5 +1,5 @@
 function = "index"
-implementation = "index.rs"
+source = "index.rs"
 
 [[input]]
 name = "value" # - the stream of input values to select from

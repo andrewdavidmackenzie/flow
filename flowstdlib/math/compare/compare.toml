@@ -1,5 +1,5 @@
 function = "compare"
-implementation = "compare.rs"
+source = "compare.rs"
 
 [[input]]
 name = "left" # - left hand input

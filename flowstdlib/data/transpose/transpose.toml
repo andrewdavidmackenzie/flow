@@ -1,5 +1,5 @@
 function = "transpose"
-implementation = "transpose.rs"
+source = "transpose.rs"
 
 [[input]]
 type = "Array/Array/Number"

@@ -1,5 +1,5 @@
 function = "subtract"
-implementation = "subtract.rs"
+source = "subtract.rs"
 
 [[input]]
 name = "i1" # - first input of type `Number`

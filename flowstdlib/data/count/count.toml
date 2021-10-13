@@ -1,5 +1,5 @@
 function = "count"
-implementation = "count.rs"
+source = "count.rs"
 
 [[input]]
 name = "data" # the value to count and pass on

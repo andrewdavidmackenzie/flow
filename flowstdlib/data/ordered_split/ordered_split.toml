@@ -1,5 +1,5 @@
 function = "ordered_split"
-implementation = "ordered_split.rs"
+source = "ordered_split.rs"
 
 [[input]]
 name = "string" # - the String to split

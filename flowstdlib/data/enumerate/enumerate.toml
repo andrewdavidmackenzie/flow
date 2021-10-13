@@ -1,5 +1,5 @@
 function = "enumerate"
-implementation = "enumerate.rs"
+source = "enumerate.rs"
 
 [[input]]
 type = "Array/Number"          # e.g. ["a", "b"]

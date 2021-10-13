@@ -1,5 +1,5 @@
 function = "add"
-implementation = "add.rs"
+source = "add.rs"
 
 [[input]]
 name = "i1" # - first input of type `Number`

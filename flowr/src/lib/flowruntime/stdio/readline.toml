@@ -1,5 +1,5 @@
 function = "readline"
-implementation = "readline.rs"
+source = "readline.rs"
 impure = true
 
 [[output]]

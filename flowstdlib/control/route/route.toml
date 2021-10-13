@@ -1,5 +1,5 @@
 function = "route"
-implementation = "route.rs"
+source = "route.rs"
 
 [[input]]
 name = "data" # - the data flow we wish to control the flow if

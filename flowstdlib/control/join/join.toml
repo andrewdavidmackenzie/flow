@@ -1,5 +1,5 @@
 function = "join"
-implementation = "join.rs"
+source = "join.rs"
 
 [[input]]
 name = "data" # - the data we wish to control the flow of

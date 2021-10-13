@@ -1,5 +1,5 @@
 function = "compare_switch"
-implementation = "compare_switch.rs"
+source = "compare_switch.rs"
 
 [[input]]
 name = "left" # - left hand input

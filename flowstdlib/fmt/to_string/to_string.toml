@@ -1,5 +1,5 @@
 function = "to_string"
-implementation = "to_string.rs"
+source = "to_string.rs"
 
 [[input]]
 type = "Value"

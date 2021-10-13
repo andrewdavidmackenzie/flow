@@ -1,5 +1,5 @@
 function = "image_buffer"
-implementation = "image_buffer.rs"
+source = "image_buffer.rs"
 impure = true
 
 [[input]]

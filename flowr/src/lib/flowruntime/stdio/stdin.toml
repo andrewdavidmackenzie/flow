@@ -1,5 +1,5 @@
 function = "stdin"
-implementation = "stdin.rs"
+source = "stdin.rs"
 impure = true
 
 [[output]]

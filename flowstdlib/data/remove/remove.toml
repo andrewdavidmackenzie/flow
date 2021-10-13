@@ -1,5 +1,5 @@
 function = "remove"
-implementation = "remove.rs"
+source = "remove.rs"
 
 [[input]]
 name = "value" # - The value to remove from the array

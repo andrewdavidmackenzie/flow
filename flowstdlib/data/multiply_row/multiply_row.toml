@@ -1,5 +1,5 @@
 function = "multiply_row"
-implementation = "multiply_row.rs"
+source = "multiply_row.rs"
 
 [[input]]
 name = "a"

@@ -1,5 +1,5 @@
 function = "get"
-implementation = "get.rs"
+source = "get.rs"
 impure = true
 
 [[output]]

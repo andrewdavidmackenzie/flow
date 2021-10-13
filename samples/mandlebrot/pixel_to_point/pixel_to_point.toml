@@ -1,5 +1,5 @@
 function = "pixel_to_point"
-implementation = "pixel_to_point.rs"
+source = "pixel_to_point.rs"
 
 [[input]]
 name = "bounds"

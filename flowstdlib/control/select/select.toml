@@ -1,5 +1,5 @@
 function = "select"
-implementation = "select.rs"
+source = "select.rs"
 
 [[input]]
 name = "i1"

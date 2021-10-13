@@ -1,5 +1,5 @@
 function = "reverse"
-implementation = "reverse.rs"
+source = "reverse.rs"
 
 [[input]]
 type = "String" # The String to reverse

@@ -1,5 +1,5 @@
 function = "split"
-implementation = "split.rs"
+source = "split.rs"
 
 [[input]]
 name = "string" # - the String to split

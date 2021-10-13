@@ -1,5 +1,5 @@
 function = "duplicate_rows"
-implementation = "duplicate_rows.rs"
+source = "duplicate_rows.rs"
 
 [[input]]
 type = "Array/Array/Number" # Input matrix

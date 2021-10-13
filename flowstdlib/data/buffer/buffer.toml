@@ -1,5 +1,5 @@
 function = "buffer"
-implementation = "buffer.rs"
+source = "buffer.rs"
 
 [[input]]
 type = "Value" # - the value to buffer

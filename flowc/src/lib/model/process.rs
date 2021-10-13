@@ -264,7 +264,7 @@ version = \"1.1.1\"
     fn function_parses() {
         let function_definition = "\
 function = 'stdout'
-implementation = 'stdout.rs'
+source = 'stdout.rs'
 [[input]]
 name = 'stdout'
 type = 'String'";
@@ -275,7 +275,7 @@ type = 'String'";
     #[test]
     fn function_lacks_name() {
         let function_definition = "\
-implementation = 'stdout.rs'
+source = 'stdout.rs'
 [[input]]
 name = 'stdout'
 type = 'String'";

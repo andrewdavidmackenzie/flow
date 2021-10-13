@@ -1,5 +1,5 @@
 function = "append"
-implementation = "append.rs"
+source = "append.rs"
 
 [[input]]
 name = "s1"

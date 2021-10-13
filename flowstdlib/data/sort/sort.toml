@@ -1,5 +1,5 @@
 function = "sort"
-implementation = "sort.rs"
+source = "sort.rs"
 
 [[input]]
 type = "Array/Number"
