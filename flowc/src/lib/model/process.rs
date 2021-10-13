@@ -7,6 +7,7 @@ use crate::model::route::{HasRoute, Route};
 
 /// Process is an enum that may contain a Flow or a Function
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[allow(clippy::large_enum_variant)]
 #[serde(untagged)]
 pub enum Process {
     /// The process is actually a `Flow`
