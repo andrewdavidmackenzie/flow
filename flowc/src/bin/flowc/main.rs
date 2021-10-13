@@ -38,7 +38,7 @@ pub mod errors;
 /// to be used to configure execution
 pub struct Options {
     lib: bool,
-    url: Url,
+    source_url: Url,
     flow_args: Vec<String>,
     dump: bool,
     graphs: bool,
@@ -113,8 +113,12 @@ fn run() -> Result<String> {
     if options.lib {
         build_lib(&options, provider).chain_err(|| "Could not build library")
     } else {
-        compile_and_execute_flow(&options, provider)
-            .chain_err(|| format!("Could not compile and execute the flow '{}'", &options.url))
+        compile_and_execute_flow(&options, provider).chain_err(|| {
+            format!(
+                "Could not compile and execute the flow '{}'",
+                &options.source_url
+            )
+        })
     }
 }
 
@@ -251,7 +255,7 @@ fn parse_args(matches: ArgMatches) -> Result<Options> {
 
     Ok(Options {
         lib: matches.is_present("lib"),
-        url,
+        source_url: url,
         flow_args,
         dump: matches.is_present("dump"),
         graphs: matches.is_present("graphs"),

@@ -81,17 +81,17 @@ pub fn compile_and_execute_flow(options: &Options, provider: &dyn Provider) -> R
     #[cfg(feature = "debugger")]
     let mut source_urls = HashSet::<(Url, Url)>::new();
     let context = loader::load(
-        &options.url,
+        &options.source_url,
         provider,
         #[cfg(feature = "debugger")]
         &mut source_urls,
     )
-    .chain_err(|| format!("Could not load flow from '{}'", options.url))?;
+    .chain_err(|| format!("Could not load flow from '{}'", options.source_url))?;
 
     match context {
         FlowProcess(flow) => {
             let mut tables = compile::compile(&flow)
-                .chain_err(|| format!("Could not compile flow from '{}'", options.url))?;
+                .chain_err(|| format!("Could not compile flow from '{}'", options.source_url))?;
 
             compile_supplied_implementations(
                 &mut tables,

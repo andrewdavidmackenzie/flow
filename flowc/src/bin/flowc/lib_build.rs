@@ -43,12 +43,7 @@ pub fn get_manifest() -> Result<LibraryManifest> {
 /// Build a library from source and generate a manifest for it so it can be used at runtime when
 /// a flow referencing it is loaded and ran
 pub fn build_lib(options: &Options, provider: &dyn Provider) -> Result<String> {
-    let metadata = loader::load_metadata(&options.url, provider).chain_err(|| {
-        format!(
-            "Could not load Library metadata from '{}'",
-            options.output_dir.display()
-        )
-    })?;
+    let metadata = loader::load_metadata(&options.source_url, provider)?;
 
     let name = metadata.name.clone();
     println!(
@@ -56,20 +51,13 @@ pub fn build_lib(options: &Options, provider: &dyn Provider) -> Result<String> {
         "Compiling".green(),
         metadata.name,
         metadata.version,
-        options.url
+        options.source_url
     );
     let lib_url = Url::parse(&format!("lib://{}", metadata.name))?;
     let mut lib_manifest = LibraryManifest::new(lib_url, metadata);
 
-    let mut base_dir = options.output_dir.display().to_string();
-    // ensure basedir always ends in '/'
-    if !base_dir.ends_with('/') {
-        base_dir = format!("{}/", base_dir);
-    }
-
-    let build_count =
-        compile_implementations(options, &mut lib_manifest, &base_dir, provider, false)
-            .chain_err(|| "Could not compile implementations in library")?;
+    let build_count = compile_implementations(options, &mut lib_manifest, provider, false)
+        .chain_err(|| "Could not compile implementations in library")?;
 
     let manifest_json_file = json_manifest_file(&options.output_dir);
     let manifest_rust_file = rust_manifest_file(&options.output_dir);
@@ -83,8 +71,13 @@ pub fn build_lib(options: &Options, provider: &dyn Provider) -> Result<String> {
             write_lib_rust_manifest(&lib_manifest, &manifest_rust_file)?;
         } else {
             let provider = MetaProvider::new(Simpath::new(""));
-            let json_manifest_file_as_url = Url::from_file_path(&manifest_json_file)
-                .map_err(|_| "Could not parse Url from file path")?;
+            let json_manifest_file_as_url =
+                Url::from_file_path(&manifest_json_file).map_err(|_| {
+                    format!(
+                        "Could not parse Url from file path: {}",
+                        manifest_json_file.display()
+                    )
+                })?;
             if let Ok((existing_json_manifest, _)) =
                 LibraryManifest::load(&provider, &json_manifest_file_as_url)
             {
@@ -238,12 +231,16 @@ fn write_lib_rust_manifest(
 fn compile_implementations(
     options: &Options,
     lib_manifest: &mut LibraryManifest,
-    base_dir: &str,
     provider: &dyn Provider,
     skip_building: bool,
 ) -> Result<i32> {
+    let source_dir = options
+        .source_url
+        .to_file_path()
+        .map_err(|_| "Could not convert Url to File path")?;
+
     let mut build_count = 0;
-    let search_pattern = format!("{}**/*.toml", base_dir);
+    let search_pattern = format!("{}/**/*.toml", source_dir.to_string_lossy());
 
     debug!(
         "Searching for process definitions using search pattern: '{}'",
@@ -279,13 +276,9 @@ fn compile_implementations(
                     .chain_err(|| "Could not get parent directory of wasm path")?;
                 lib_manifest
                     .add_locator(
-                        base_dir,
-                        wasm_abs_path
-                            .to_str()
-                            .chain_err(|| "Could not convert wasm_path to str")?,
-                        wasm_dir
-                            .to_str()
-                            .chain_err(|| "Could not convert wasm_dir to str")?,
+                        &options.output_dir.to_string_lossy(),
+                        &wasm_abs_path.to_string_lossy(),
+                        &wasm_dir.to_string_lossy(),
                         function.name() as &str,
                     )
                     .chain_err(|| "Could not add entry to library manifest")?;
