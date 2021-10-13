@@ -5,7 +5,7 @@ use error_chain::bail;
 use serde_derive::{Deserialize, Serialize};
 
 use flowcore::input::InputInitializer;
-use flowcore::output_connection::{OutputConnection, Source};
+use flowcore::output_connection::OutputConnection;
 
 use crate::compiler::loader::Validate;
 use crate::errors::*;
@@ -19,7 +19,7 @@ use crate::model::route::SetIORoutes;
 use crate::model::route::SetRoute;
 
 /// Function defines a Function that implements some processing in the flow hierarchy
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, Default)]
 #[serde(deny_unknown_fields)]
 pub struct Function {
     /// `name` of the function
@@ -30,6 +30,12 @@ pub struct Function {
     pub(crate) impure: bool,
     /// Name of the source file for the function implementation
     pub(crate) source: String,
+    /// Name of any docs file associated with this Function
+    #[serde(default)]
+    pub(crate) docs: String,
+    /// Name of the build script file used to build Function's implementation from source
+    #[serde(default)]
+    pub(crate) build_script: String,
     /// The set of inputs this function has
     #[serde(default, rename = "input")]
     pub(crate) inputs: IOSet,
@@ -108,6 +114,7 @@ impl Function {
             output_connections,
             id,
             flow_id,
+            ..Default::default()
         }
     }
 
@@ -281,35 +288,6 @@ impl fmt::Display for Function {
     }
 }
 
-impl Default for Function {
-    fn default() -> Function {
-        Function {
-            name: Name::default(),
-            impure: false,
-            source: "".to_owned(),
-            alias: Name::default(),
-            inputs: vec![],
-            outputs: vec![],
-            source_url: String::default(),
-            route: Route::default(),
-            lib_reference: None,
-            output_connections: vec![OutputConnection::new(
-                Source::default(),
-                0,
-                0,
-                0,
-                0,
-                false,
-                String::default(),
-                #[cfg(feature = "debugger")]
-                String::default(),
-            )],
-            id: 0,
-            flow_id: 0,
-        }
-    }
-}
-
 impl SetRoute for Function {
     fn set_routes_from_parent(&mut self, parent_route: &Route) {
         self.route = Route::from(format!("{}/{}", parent_route, self.alias));
@@ -344,14 +322,8 @@ mod test {
     fn function_with_no_io_not_valid() {
         let fun = Function {
             name: Name::from("test_function"),
-            impure: false,
-            source: "".to_owned(),
             alias: Name::from("test_function"),
             source_url: String::default(),
-            inputs: vec![],  // No inputs!
-            outputs: vec![], // No output!
-            route: Route::default(),
-            lib_reference: None,
             output_connections: vec![OutputConnection::new(
                 Output("test_function".into()),
                 0,
@@ -363,8 +335,7 @@ mod test {
                 #[cfg(feature = "debugger")]
                 String::default(),
             )],
-            id: 0,
-            flow_id: 0,
+            ..Default::default()
         };
 
         assert!(fun.validate().is_err());
