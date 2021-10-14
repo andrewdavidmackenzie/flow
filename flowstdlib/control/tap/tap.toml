@@ -1,5 +1,7 @@
 function = "tap"
 source = "tap.rs"
+docs = "tap.md"
+build_script = "Cargo.toml"
 
 [[input]]
 name = "data" # - the data flow we wish to control the flow if

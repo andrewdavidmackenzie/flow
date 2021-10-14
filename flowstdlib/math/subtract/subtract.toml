@@ -1,5 +1,7 @@
 function = "subtract"
 source = "subtract.rs"
+docs = "subtract.md"
+build_script = "Cargo.toml"
 
 [[input]]
 name = "i1" # - first input of type `Number`

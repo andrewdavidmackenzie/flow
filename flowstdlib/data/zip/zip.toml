@@ -1,5 +1,7 @@
 function = "zip"
 source = "zip.rs"
+docs = "zip.md"
+build_script = "Cargo.toml"
 
 [[input]]
 name = "left" # - the 'left' array

@@ -1,5 +1,6 @@
 function = "image_buffer"
 source = "image_buffer.rs"
+docs = "image_buffer.md"
 impure = true
 
 [[input]]

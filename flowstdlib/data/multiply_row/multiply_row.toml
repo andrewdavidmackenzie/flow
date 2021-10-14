@@ -1,5 +1,7 @@
 function = "multiply_row"
 source = "multiply_row.rs"
+docs = "multiply_row.md"
+build_script = "Cargo.toml"
 
 [[input]]
 name = "a"

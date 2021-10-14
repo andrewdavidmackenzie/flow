@@ -1,5 +1,7 @@
 function = "join"
 source = "join.rs"
+docs = "join.md"
+build_script = "Cargo.toml"
 
 [[input]]
 name = "data" # - the data we wish to control the flow of

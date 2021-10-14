@@ -1,5 +1,7 @@
 function = "info"
 source = "info.rs"
+docs = "info.md"
+build_script = "Cargo.toml"
 
 [[input]] # - Input value
 

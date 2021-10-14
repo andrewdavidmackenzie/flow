@@ -1,5 +1,6 @@
 function = "readline"
 source = "readline.rs"
+docs = "readline.md"
 impure = true
 
 [[output]]

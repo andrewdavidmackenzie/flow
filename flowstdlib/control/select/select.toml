@@ -1,5 +1,7 @@
 function = "select"
 source = "select.rs"
+docs = "select.md"
+build_script = "Cargo.toml"
 
 [[input]]
 name = "i1"

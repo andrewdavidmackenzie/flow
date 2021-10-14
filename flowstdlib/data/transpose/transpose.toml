@@ -1,5 +1,7 @@
 function = "transpose"
 source = "transpose.rs"
+docs = "transpose.md"
+build_script = "Cargo.toml"
 
 [[input]]
 type = "Array/Array/Number"
