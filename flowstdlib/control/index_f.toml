@@ -1,5 +1,8 @@
 flow = "index_f"
-# A wrapper flow to simplify the use of the index function for standard use cases
+docs = "index_f.md"
+
+[metadata]
+description = "A wrapper flow to simplify the use of the index function for standard use cases"
 
 [[input]]
 name = "value"
