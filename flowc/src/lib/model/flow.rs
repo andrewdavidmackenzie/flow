@@ -53,6 +53,9 @@ pub struct Flow {
     /// `metadata` about flow author, versions etc
     #[serde(default)]
     pub metadata: MetaData,
+    /// Name of any docs file associated with this Flow
+    #[serde(default)]
+    pub(crate) docs: String,
 
     /// When the same process is used multiple times within a single flow, to disambiguate
     /// between them each one must be given an alias that is used to refer to it
@@ -126,10 +129,10 @@ impl fmt::Display for Flow {
 impl Default for Flow {
     fn default() -> Flow {
         Flow {
+            source_url: Flow::default_url(),
             name: Name::default(),
             id: 0,
             alias: Name::default(),
-            source_url: Flow::default_url(),
             route: Route::default(),
             process_refs: vec![],
             inputs: vec![],
@@ -138,6 +141,7 @@ impl Default for Flow {
             subprocesses: HashMap::new(),
             lib_references: HashSet::new(),
             metadata: MetaData::default(),
+            docs: String::default(),
         }
     }
 }
