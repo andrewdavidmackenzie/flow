@@ -138,7 +138,9 @@
 <p>Multiply one input by another</p>
 <h3 id="definition"><a class="header" href="#definition">Definition</a></h3>
 <pre><code class="language-toml">function = &quot;multiply&quot;
-implementation = &quot;multiply.rs&quot;
+source = &quot;multiply.rs&quot;
+docs = &quot;multiply.md&quot;
+build_script = &quot;Cargo.toml&quot;
 
 [[input]]
 name = &quot;i1&quot; # - one number, of type `Number`

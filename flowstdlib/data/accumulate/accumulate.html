@@ -138,7 +138,9 @@
 <p>Accumulate input values into an array upto the limit specified</p>
 <h3 id="definition"><a class="header" href="#definition">Definition</a></h3>
 <pre><code class="language-toml">function = &quot;accumulate&quot;
-implementation = &quot;accumulate.rs&quot;
+source = &quot;accumulate.rs&quot;
+docs = &quot;accumulate.md&quot;
+build_script = &quot;Cargo.toml&quot;
 
 [[input]]
 name = &quot;values&quot; # - The stream of input values to accumulate into an array

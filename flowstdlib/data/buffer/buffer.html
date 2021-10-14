@@ -139,7 +139,9 @@
 run, effectively buffering it until the downstream processs can accept it.</p>
 <h3 id="definition"><a class="header" href="#definition">Definition</a></h3>
 <pre><code class="language-toml">function = &quot;buffer&quot;
-implementation = &quot;buffer.rs&quot;
+source = &quot;buffer.rs&quot;
+docs = &quot;buffer.md&quot;
+build_script = &quot;Cargo.toml&quot;
 
 [[input]]
 type = &quot;Value&quot; # - the value to buffer

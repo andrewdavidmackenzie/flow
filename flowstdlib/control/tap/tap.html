@@ -138,7 +138,9 @@
 <p>Control the flow of data (flow or disappear it) based on a boolean control value.</p>
 <h3 id="definition"><a class="header" href="#definition">Definition</a></h3>
 <pre><code class="language-toml">function = &quot;tap&quot;
-implementation = &quot;tap.rs&quot;
+source = &quot;tap.rs&quot;
+docs = &quot;tap.md&quot;
+build_script = &quot;Cargo.toml&quot;
 
 [[input]]
 name = &quot;data&quot; # - the data flow we wish to control the flow if

@@ -138,7 +138,9 @@
 <p>Subtract one input from another to produce a new output</p>
 <h3 id="definition"><a class="header" href="#definition">Definition</a></h3>
 <pre><code class="language-toml">function = &quot;subtract&quot;
-implementation = &quot;subtract.rs&quot;
+source = &quot;subtract.rs&quot;
+docs = &quot;subtract.md&quot;
+build_script = &quot;Cargo.toml&quot;
 
 [[input]]
 name = &quot;i1&quot; # - first input of type `Number`

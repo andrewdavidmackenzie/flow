@@ -1120,7 +1120,8 @@ in order to interact with <code>stdio</code> or the file system.</p>
 <p>Get the arguments the flow was executed with</p>
 <h3 id="definition"><a class="header" href="#definition">Definition</a></h3>
 <pre><code class="language-toml">function = &quot;get&quot;
-implementation = &quot;get.rs&quot;
+source = &quot;get.rs&quot;
+docs = &quot;get.md&quot;
 impure = true
 
 [[output]]
@@ -1151,7 +1152,8 @@ source = &quot;lib://flowruntime/args/get&quot;
 <p>Writes <code>bytes</code> of data supplied to the file named <code>filename</code>, creating it if necessary.</p>
 <h3 id="definition-1"><a class="header" href="#definition-1">Definition</a></h3>
 <pre><code class="language-toml">function = &quot;file_write&quot;
-implementation = &quot;file_write.rs&quot;
+source = &quot;file_write.rs&quot;
+docs = &quot;file_write.md&quot;
 impure = true
 
 [[input]]
@@ -1192,7 +1194,8 @@ but leading and trailing whitespace are trimmed before being output.</p>
 again.</p>
 <h3 id="definition-2"><a class="header" href="#definition-2">Definition</a></h3>
 <pre><code class="language-toml">function = &quot;readline&quot;
-implementation = &quot;readline.rs&quot;
+source = &quot;readline.rs&quot;
+docs = &quot;readline.md&quot;
 impure = true
 
 [[output]]
@@ -1219,7 +1222,8 @@ source = &quot;lib://flowruntime/stdio/readline&quot;
 again. If you wish to get the value of a line (i.e. after ENTER is pressed, then use <a href="flowr/src/lib/flowruntime/stdio/readline.html">readline</a>)</p>
 <h3 id="definition-3"><a class="header" href="#definition-3">Definition</a></h3>
 <pre><code class="language-toml">function = &quot;stdin&quot;
-implementation = &quot;stdin.rs&quot;
+source = &quot;stdin.rs&quot;
+docs = &quot;stdin.md&quot;
 impure = true
 
 [[output]]
@@ -1246,7 +1250,8 @@ source = &quot;lib://flowruntime/stdio/stdin&quot;
 is output on a separate line.</p>
 <h3 id="definition-4"><a class="header" href="#definition-4">Definition</a></h3>
 <pre><code class="language-toml">function = &quot;stdout&quot;
-implementation = &quot;stdout.rs&quot;
+source = &quot;stdout.rs&quot;
+docs = &quot;stdout.md&quot;
 impure = true
 
 [[input]]
@@ -1267,7 +1272,8 @@ source = &quot;lib://flowruntime/stdio/stdout&quot;
 is output on a separate line.</p>
 <h3 id="definition-5"><a class="header" href="#definition-5">Definition</a></h3>
 <pre><code class="language-toml">function = &quot;stderr&quot;
-implementation = &quot;stderr.rs&quot;
+source = &quot;stderr.rs&quot;
+docs = &quot;stderr.md&quot;
 impure = true
 
 [[input]]
@@ -1309,7 +1315,9 @@ directly using <code>&gt; flowstdlib</code> and it will print the same usage hin
 corresponding to is equal, greater than, greater than or equal, less than or less than or equal.</p>
 <h3 id="definition-6"><a class="header" href="#definition-6">Definition</a></h3>
 <pre><code class="language-toml">function = &quot;compare_switch&quot;
-implementation = &quot;compare_switch.rs&quot;
+source = &quot;compare_switch.rs&quot;
+docs = &quot;compare_switch.md&quot;
+build_script = &quot;Cargo.toml&quot;
 
 [[input]]
 name = &quot;left&quot; # - left hand input
@@ -1363,7 +1371,9 @@ source = &quot;lib://flowstdlib/control/compare_switch&quot;
 <p>Pass thru a value based on the index of an item in the stream of values</p>
 <h3 id="definition-7"><a class="header" href="#definition-7">Definition</a></h3>
 <pre><code class="language-toml">function = &quot;index&quot;
-implementation = &quot;index.rs&quot;
+source = &quot;index.rs&quot;
+docs = &quot;index.md&quot;
+build_script = &quot;Cargo.toml&quot;
 
 [[input]]
 name = &quot;value&quot; # - the stream of input values to select from
@@ -1453,7 +1463,9 @@ source = &quot;lib://flowstdlib/control/index_f&quot;
 <p>Control the flow of a piece of data by waiting for a second value to be available</p>
 <h3 id="definition-9"><a class="header" href="#definition-9">Definition</a></h3>
 <pre><code class="language-toml">function = &quot;join&quot;
-implementation = &quot;join.rs&quot;
+source = &quot;join.rs&quot;
+docs = &quot;join.md&quot;
+build_script = &quot;Cargo.toml&quot;
 
 [[input]]
 name = &quot;data&quot; # - the data we wish to control the flow of
@@ -1474,7 +1486,9 @@ source = &quot;lib://flowstdlib/control/join&quot;
 <p>Route data to one or another based on a boolean control value.</p>
 <h3 id="definition-10"><a class="header" href="#definition-10">Definition</a></h3>
 <pre><code class="language-toml">function = &quot;route&quot;
-implementation = &quot;route.rs&quot;
+source = &quot;route.rs&quot;
+docs = &quot;route.md&quot;
+build_script = &quot;Cargo.toml&quot;
 
 [[input]]
 name = &quot;data&quot; # - the data flow we wish to control the flow if
@@ -1500,7 +1514,9 @@ source = &quot;lib://flowstdlib/control/route&quot;
 <p>Select which data to outputbased on a boolean control value.</p>
 <h3 id="definition-11"><a class="header" href="#definition-11">Definition</a></h3>
 <pre><code class="language-toml">function = &quot;select&quot;
-implementation = &quot;select.rs&quot;
+source = &quot;select.rs&quot;
+docs = &quot;select.md&quot;
+build_script = &quot;Cargo.toml&quot;
 
 [[input]]
 name = &quot;i1&quot;
@@ -1530,7 +1546,9 @@ source = &quot;lib://flowstdlib/control/select&quot;
 <p>Control the flow of data (flow or disappear it) based on a boolean control value.</p>
 <h3 id="definition-12"><a class="header" href="#definition-12">Definition</a></h3>
 <pre><code class="language-toml">function = &quot;tap&quot;
-implementation = &quot;tap.rs&quot;
+source = &quot;tap.rs&quot;
+docs = &quot;tap.md&quot;
+build_script = &quot;Cargo.toml&quot;
 
 [[input]]
 name = &quot;data&quot; # - the data flow we wish to control the flow if
@@ -1553,7 +1571,9 @@ source = &quot;lib://flowstdlib/control/tap&quot;
 <p>Accumulate input values into an array upto the limit specified</p>
 <h3 id="definition-13"><a class="header" href="#definition-13">Definition</a></h3>
 <pre><code class="language-toml">function = &quot;accumulate&quot;
-implementation = &quot;accumulate.rs&quot;
+source = &quot;accumulate.rs&quot;
+docs = &quot;accumulate.md&quot;
+build_script = &quot;Cargo.toml&quot;
 
 [[input]]
 name = &quot;values&quot; # - The stream of input values to accumulate into an array
@@ -1587,7 +1607,9 @@ source = &quot;lib://flowstdlib/data/accumulate&quot;
 <p>Append two strings</p>
 <h3 id="definition-14"><a class="header" href="#definition-14">Definition</a></h3>
 <pre><code class="language-toml">function = &quot;append&quot;
-implementation = &quot;append.rs&quot;
+source = &quot;append.rs&quot;
+docs = &quot;append.md&quot;
+build_script = &quot;Cargo.toml&quot;
 
 [[input]]
 name = &quot;s1&quot;
@@ -1609,7 +1631,9 @@ source = &quot;lib://flowstdlib/data/append&quot;
 run, effectively buffering it until the downstream processs can accept it.</p>
 <h3 id="definition-15"><a class="header" href="#definition-15">Definition</a></h3>
 <pre><code class="language-toml">function = &quot;buffer&quot;
-implementation = &quot;buffer.rs&quot;
+source = &quot;buffer.rs&quot;
+docs = &quot;buffer.md&quot;
+build_script = &quot;Cargo.toml&quot;
 
 [[input]]
 type = &quot;Value&quot; # - the value to buffer
@@ -1626,7 +1650,9 @@ source = &quot;lib://flowstdlib/data/buffer&quot;
 received on 'count' input and outputs new count on 'count' output</p>
 <h3 id="definition-16"><a class="header" href="#definition-16">Definition</a></h3>
 <pre><code class="language-toml">function = &quot;count&quot;
-implementation = &quot;count.rs&quot;
+source = &quot;count.rs&quot;
+docs = &quot;count.md&quot;
+build_script = &quot;Cargo.toml&quot;
 
 [[input]]
 name = &quot;data&quot; # the value to count and pass on
@@ -1652,7 +1678,9 @@ source = &quot;lib://flowstdlib/data/count&quot;
 <p>Takes a value on it's input and sends the same value <code>factor</code> times in an array output</p>
 <h3 id="definition-17"><a class="header" href="#definition-17">Definition</a></h3>
 <pre><code class="language-toml">function = &quot;duplicate&quot;
-implementation = &quot;duplicate.rs&quot;
+source = &quot;duplicate.rs&quot;
+docs = &quot;duplicate.md&quot;
+build_script = &quot;Cargo.toml&quot;
 
 [[input]]
 name = &quot;value&quot; # - the value to duplicate
@@ -1673,7 +1701,9 @@ source = &quot;lib://flowstdlib/data/duplicate&quot;
 <p>Duplicate the rows of a matrix</p>
 <h3 id="definition-18"><a class="header" href="#definition-18">Definition</a></h3>
 <pre><code class="language-toml">function = &quot;duplicate_rows&quot;
-implementation = &quot;duplicate_rows.rs&quot;
+source = &quot;duplicate_rows.rs&quot;
+docs = &quot;duplicate_rows.md&quot;
+build_script = &quot;Cargo.toml&quot;
 
 [[input]]
 type = &quot;Array/Array/Number&quot; # Input matrix
@@ -1693,7 +1723,9 @@ source = &quot;lib://flowstdlib/data/duplicate_rows&quot;
 <p>Output info about the input value</p>
 <h3 id="definition-19"><a class="header" href="#definition-19">Definition</a></h3>
 <pre><code class="language-toml">function = &quot;info&quot;
-implementation = &quot;info.rs&quot;
+source = &quot;info.rs&quot;
+docs = &quot;info.md&quot;
+build_script = &quot;Cargo.toml&quot;
 
 [[input]] # - Input value
 
@@ -1717,7 +1749,9 @@ source = &quot;lib://flowstdlib/data/info&quot;
 <p>Multiply two matrix rows to a product</p>
 <h3 id="definition-20"><a class="header" href="#definition-20">Definition</a></h3>
 <pre><code class="language-toml">function = &quot;multiply_row&quot;
-implementation = &quot;multiply_row.rs&quot;
+source = &quot;multiply_row.rs&quot;
+docs = &quot;multiply_row.md&quot;
+build_script = &quot;Cargo.toml&quot;
 
 [[input]]
 name = &quot;a&quot;
@@ -1738,7 +1772,9 @@ source = &quot;lib://flowstdlib/data/multiply_row&quot;
 <p>Remove a value from a vector of values</p>
 <h3 id="definition-21"><a class="header" href="#definition-21">Definition</a></h3>
 <pre><code class="language-toml">function = &quot;remove&quot;
-implementation = &quot;remove.rs&quot;
+source = &quot;remove.rs&quot;
+docs = &quot;remove.md&quot;
+build_script = &quot;Cargo.toml&quot;
 
 [[input]]
 name = &quot;value&quot; # - The value to remove from the array
@@ -1758,7 +1794,9 @@ source = &quot;lib://flowstdlib/data/remove&quot;
 <p>Sort an Array of Numbers</p>
 <h3 id="definition-22"><a class="header" href="#definition-22">Definition</a></h3>
 <pre><code class="language-toml">function = &quot;sort&quot;
-implementation = &quot;sort.rs&quot;
+source = &quot;sort.rs&quot;
+docs = &quot;sort.md&quot;
+build_script = &quot;Cargo.toml&quot;
 
 [[input]]
 type = &quot;Array/Number&quot;
@@ -1792,7 +1830,9 @@ each of those is output as a token.</p>
 they appear in the string.</p>
 <h3 id="definition-23"><a class="header" href="#definition-23">Definition</a></h3>
 <pre><code class="language-toml">function = &quot;split&quot;
-implementation = &quot;split.rs&quot;
+source = &quot;split.rs&quot;
+docs = &quot;split.md&quot;
+build_script = &quot;Cargo.toml&quot;
 
 [[input]]
 name = &quot;string&quot; # - the String to split
@@ -1834,7 +1874,9 @@ source = &quot;lib://flowstdlib/data/split&quot;
 <p>Transpose a matricies rows and columns</p>
 <h3 id="definition-24"><a class="header" href="#definition-24">Definition</a></h3>
 <pre><code class="language-toml">function = &quot;transpose&quot;
-implementation = &quot;transpose.rs&quot;
+source = &quot;transpose.rs&quot;
+docs = &quot;transpose.md&quot;
+build_script = &quot;Cargo.toml&quot;
 
 [[input]]
 type = &quot;Array/Array/Number&quot;
@@ -1850,7 +1892,9 @@ source = &quot;lib://flowstdlib/data/transpose&quot;
 <p>Takes two arrays of values and produce an array of tuples of pairs of values from each input array.</p>
 <h3 id="definition-25"><a class="header" href="#definition-25">Definition</a></h3>
 <pre><code class="language-toml">function = &quot;zip&quot;
-implementation = &quot;zip.rs&quot;
+source = &quot;zip.rs&quot;
+docs = &quot;zip.md&quot;
+build_script = &quot;Cargo.toml&quot;
 
 [[input]]
 name = &quot;left&quot; # - the 'left' array
@@ -1874,7 +1918,9 @@ source = &quot;lib://flowstdlib/data/zip&quot;
 <p>Reverse a String</p>
 <h3 id="definition-26"><a class="header" href="#definition-26">Definition</a></h3>
 <pre><code class="language-toml">function = &quot;reverse&quot;
-implementation = &quot;reverse.rs&quot;
+source = &quot;reverse.rs&quot;
+docs = &quot;reverse.md&quot;
+build_script = &quot;Cargo.toml&quot;
 
 [[input]]
 type = &quot;String&quot; # The String to reverse
@@ -1895,7 +1941,9 @@ source = &quot;lib://flowstdlib/fmt/reverse&quot;
 <p>Convert a String to Json</p>
 <h3 id="definition-27"><a class="header" href="#definition-27">Definition</a></h3>
 <pre><code class="language-toml">function = &quot;to_json&quot;
-implementation = &quot;to_json.rs&quot;
+source = &quot;to_json.rs&quot;
+docs = &quot;to_json.md&quot;
+build_script = &quot;Cargo.toml&quot;
 
 [[input]]
 type = &quot;String&quot; # The String to convert
@@ -1911,7 +1959,9 @@ source = &quot;lib://flowstdlib/fmt/to_json&quot;
 <p>Convert an input type to a String</p>
 <h3 id="definition-28"><a class="header" href="#definition-28">Definition</a></h3>
 <pre><code class="language-toml">function = &quot;to_string&quot;
-implementation = &quot;to_string.rs&quot;
+source = &quot;to_string.rs&quot;
+docs = &quot;to_string.md&quot;
+build_script = &quot;Cargo.toml&quot;
 
 [[input]]
 type = &quot;Value&quot;
@@ -1929,7 +1979,9 @@ source = &quot;lib://flowstdlib/fmt/to_string&quot;
 <p>Add two inputs to produce a new output</p>
 <h3 id="definition-29"><a class="header" href="#definition-29">Definition</a></h3>
 <pre><code class="language-toml">function = &quot;add&quot;
-implementation = &quot;add.rs&quot;
+source = &quot;add.rs&quot;
+docs = &quot;add.md&quot;
+build_script = &quot;Cargo.toml&quot;
 
 [[input]]
 name = &quot;i1&quot; # - first input of type `Number`
@@ -1951,7 +2003,9 @@ source = &quot;lib://flowstdlib/math/add&quot;
 is equal, greater than, greater than or equal, less than or less than or equal.</p>
 <h3 id="definition-30"><a class="header" href="#definition-30">Definition</a></h3>
 <pre><code class="language-toml">function = &quot;compare&quot;
-implementation = &quot;compare.rs&quot;
+source = &quot;compare.rs&quot;
+docs = &quot;compare.md&quot;
+build_script = &quot;Cargo.toml&quot;
 
 [[input]]
 name = &quot;left&quot; # - left hand input
@@ -1989,7 +2043,9 @@ source = &quot;lib://flowstdlib/math/compare&quot;
 <p>Divide one input by another, producing outputs for the dividend, divisor, result and the remainder </p>
 <h3 id="definition-31"><a class="header" href="#definition-31">Definition</a></h3>
 <pre><code class="language-toml">function = &quot;divide&quot;
-implementation = &quot;divide.rs&quot;
+source = &quot;divide.rs&quot;
+docs = &quot;divide.md&quot;
+build_script = &quot;Cargo.toml&quot;
 
 [[input]]
 name = &quot;dividend&quot; # - the number to be divided, of type `Number`
@@ -2023,7 +2079,9 @@ source = &quot;lib://flowstdlib/math/divide&quot;
 <p>Multiply one input by another</p>
 <h3 id="definition-32"><a class="header" href="#definition-32">Definition</a></h3>
 <pre><code class="language-toml">function = &quot;multiply&quot;
-implementation = &quot;multiply.rs&quot;
+source = &quot;multiply.rs&quot;
+docs = &quot;multiply.md&quot;
+build_script = &quot;Cargo.toml&quot;
 
 [[input]]
 name = &quot;i1&quot; # - one number, of type `Number`
@@ -2135,7 +2193,9 @@ source = &quot;lib://flowstdlib/math/sequence&quot;
 <p>Subtract one input from another to produce a new output</p>
 <h3 id="definition-34"><a class="header" href="#definition-34">Definition</a></h3>
 <pre><code class="language-toml">function = &quot;subtract&quot;
-implementation = &quot;subtract.rs&quot;
+source = &quot;subtract.rs&quot;
+docs = &quot;subtract.md&quot;
+build_script = &quot;Cargo.toml&quot;
 
 [[input]]
 name = &quot;i1&quot; # - first input of type `Number`
@@ -2156,7 +2216,9 @@ source = &quot;lib://flowstdlib/math/subtract&quot;
 <p>Calculate the square root of a number</p>
 <h3 id="definition-35"><a class="header" href="#definition-35">Definition</a></h3>
 <pre><code class="language-toml">function = &quot;sqrt&quot;
-implementation = &quot;sqrt.rs&quot;
+source = &quot;sqrt.rs&quot;
+docs = &quot;sqrt.md&quot;
+build_script = &quot;Cargo.toml&quot;
 
 [[input]]
 type = &quot;Number&quot;

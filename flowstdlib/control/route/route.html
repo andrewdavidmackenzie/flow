@@ -138,7 +138,9 @@
 <p>Route data to one or another based on a boolean control value.</p>
 <h3 id="definition"><a class="header" href="#definition">Definition</a></h3>
 <pre><code class="language-toml">function = &quot;route&quot;
-implementation = &quot;route.rs&quot;
+source = &quot;route.rs&quot;
+docs = &quot;route.md&quot;
+build_script = &quot;Cargo.toml&quot;
 
 [[input]]
 name = &quot;data&quot; # - the data flow we wish to control the flow if
