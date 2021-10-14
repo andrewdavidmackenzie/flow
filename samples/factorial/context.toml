@@ -1,4 +1,5 @@
 flow = "factorial"
+docs = "DESCRIPTION.md"
 
 # Read 'n' from the command line
 [[process]]

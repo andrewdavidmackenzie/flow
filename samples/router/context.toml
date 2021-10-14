@@ -1,4 +1,5 @@
 flow = "router"
+docs = "DESCRIPTION.md"
 
 [[process]]
 source = "lib://flowruntime/stdio/readline"

@@ -1,4 +1,5 @@
 flow = "arrays"
+docs = "DESCRIPTION.md"
 
 [metadata]
 version = "0.11.0"

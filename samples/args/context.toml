@@ -1,4 +1,5 @@
 flow = "arg-print"
+docs = "DESCRIPTION.md"
 
 [[process]]
 source = "lib://flowruntime/args/get"

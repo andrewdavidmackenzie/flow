@@ -1,4 +1,5 @@
 flow = "mandlebrot"
+docs = "DESCRIPTION.md"
 
 [[process]]
 source = "parse_args"
