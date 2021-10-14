@@ -1,5 +1,7 @@
 function = "duplicate_rows"
-implementation = "duplicate_rows.rs"
+source = "duplicate_rows.rs"
+docs = "duplicate_rows.md"
+build_script = "Cargo.toml"
 
 [[input]]
 type = "Array/Array/Number" # Input matrix

@@ -1,5 +1,7 @@
 function = "index"
-implementation = "index.rs"
+source = "index.rs"
+docs = "index.md"
+build_script = "Cargo.toml"
 
 [[input]]
 name = "value" # - the stream of input values to select from

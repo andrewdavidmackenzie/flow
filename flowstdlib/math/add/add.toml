@@ -1,5 +1,7 @@
 function = "add"
-implementation = "add.rs"
+source = "add.rs"
+docs = "add.md"
+build_script = "Cargo.toml"
 
 [[input]]
 name = "i1" # - first input of type `Number`

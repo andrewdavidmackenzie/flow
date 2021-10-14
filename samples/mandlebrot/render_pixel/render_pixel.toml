@@ -1,5 +1,5 @@
 function = "render_pixel"
-implementation = "render_pixel.rs"
+source = "render_pixel.rs"
 
 [[input]]
 name = "pixel_point"

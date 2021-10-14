@@ -1,5 +1,7 @@
 function = "append"
-implementation = "append.rs"
+source = "append.rs"
+docs = "append.md"
+build_script = "Cargo.toml"
 
 [[input]]
 name = "s1"

@@ -1,5 +1,7 @@
 function = "compare_switch"
-implementation = "compare_switch.rs"
+source = "compare_switch.rs"
+docs = "compare_switch.md"
+build_script = "Cargo.toml"
 
 [[input]]
 name = "left" # - left hand input

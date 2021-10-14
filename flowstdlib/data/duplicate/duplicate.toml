@@ -1,5 +1,7 @@
 function = "duplicate"
-implementation = "duplicate.rs"
+source = "duplicate.rs"
+docs = "duplicate.md"
+build_script = "Cargo.toml"
 
 [[input]]
 name = "value" # - the value to duplicate

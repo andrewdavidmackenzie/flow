@@ -1,5 +1,7 @@
 function = "enumerate"
-implementation = "enumerate.rs"
+source = "enumerate.rs"
+docs = "enumerate.md"
+build_script = "Cargo.toml"
 
 [[input]]
 type = "Array/Number"          # e.g. ["a", "b"]

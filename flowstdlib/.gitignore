@@ -1,6 +1,1 @@
-# These files for submodules are copied from 'flow.toml' in the same folder and should not be checked in
 **/Cargo.lock
-manifest.json
-manifest.rs
-**/*.dot
-**/*.dot.svg

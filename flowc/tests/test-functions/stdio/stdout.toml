@@ -1,5 +1,5 @@
 function = "stdout"
-implementation = "stdout.rs"
+source = "stdout.rs"
 impure = true
 
 [[input]]

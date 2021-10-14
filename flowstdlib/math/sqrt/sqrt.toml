@@ -1,5 +1,7 @@
 function = "sqrt"
-implementation = "sqrt.rs"
+source = "sqrt.rs"
+docs = "sqrt.md"
+build_script = "Cargo.toml"
 
 [[input]]
 type = "Number"

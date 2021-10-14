@@ -1,5 +1,7 @@
 function = "multiply"
-implementation = "multiply.rs"
+source = "multiply.rs"
+docs = "multiply.md"
+build_script = "Cargo.toml"
 
 [[input]]
 name = "i1" # - one number, of type `Number`

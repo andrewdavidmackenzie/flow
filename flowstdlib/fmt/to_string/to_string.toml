@@ -1,5 +1,7 @@
 function = "to_string"
-implementation = "to_string.rs"
+source = "to_string.rs"
+docs = "to_string.md"
+build_script = "Cargo.toml"
 
 [[input]]
 type = "Value"

@@ -1,5 +1,6 @@
 function = "get"
-implementation = "get.rs"
+source = "get.rs"
+docs = "get.md"
 impure = true
 
 [[output]]

@@ -1,5 +1,7 @@
 function = "compare"
-implementation = "compare.rs"
+source = "compare.rs"
+docs = "compare.md"
+build_script = "Cargo.toml"
 
 [[input]]
 name = "left" # - left hand input

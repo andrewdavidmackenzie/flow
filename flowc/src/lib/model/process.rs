@@ -7,6 +7,7 @@ use crate::model::route::{HasRoute, Route};
 
 /// Process is an enum that may contain a Flow or a Function
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[allow(clippy::large_enum_variant)]
 #[serde(untagged)]
 pub enum Process {
     /// The process is actually a `Flow`
@@ -263,7 +264,7 @@ version = \"1.1.1\"
     fn function_parses() {
         let function_definition = "\
 function = 'stdout'
-implementation = 'stdout.rs'
+source = 'stdout.rs'
 [[input]]
 name = 'stdout'
 type = 'String'";
@@ -274,7 +275,7 @@ type = 'String'";
     #[test]
     fn function_lacks_name() {
         let function_definition = "\
-implementation = 'stdout.rs'
+source = 'stdout.rs'
 [[input]]
 name = 'stdout'
 type = 'String'";

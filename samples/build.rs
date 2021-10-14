@@ -1,9 +1,7 @@
 //! Build script to compile the flow samples in the crate
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::process::{Command, Stdio};
 use std::{fs, io};
-
-use simpath::{FileType, FoundType, Simpath};
 
 #[allow(clippy::collapsible_if)]
 fn main() -> io::Result<()> {
@@ -16,26 +14,18 @@ fn main() -> io::Result<()> {
     println!("`flowsample` version {}", env!("CARGO_PKG_VERSION"));
     println!(
         "Current Working Directory: `{}`",
-        std::env::current_dir().expect("Could not read the Current Working Directory").display()
+        std::env::current_dir()
+            .expect("Could not read the Current Working Directory")
+            .display()
     );
     println!("Samples Root Directory: `{}`", env!("CARGO_MANIFEST_DIR"));
-
-    let flowc = get_flowc()?;
-
-    println!(
-        "Using 'flowc' flow compiler found at: `{}`",
-        flowc.to_str().unwrap()
-    );
 
     // find all sample sub-folders
     for entry in fs::read_dir(samples_root)? {
         let e = entry?;
         if e.file_type()?.is_dir() {
-            println!(
-                "Building sample '{}'",
-                e.path().to_str().unwrap()
-            );
-            if compile_sample(&e.path(), &flowc).is_err() {
+            println!("Building sample '{}'", e.path().to_str().unwrap());
+            if compile_sample(&e.path()).is_err() {
                 std::process::exit(1);
             }
         }
@@ -44,31 +34,8 @@ fn main() -> io::Result<()> {
     Ok(())
 }
 
-fn get_flowc() -> io::Result<PathBuf> {
-    let root = Path::new(env!("CARGO_MANIFEST_DIR")).parent().unwrap();
-
-    let dev = root.join("target/debug/flowc");
-    if dev.exists() {
-        return Ok(dev);
-    }
-
-    let dev = root.join("target/release/flowc");
-    if dev.exists() {
-        return Ok(dev);
-    }
-
-    if let Ok(FoundType::File(flowc)) = Simpath::new("PATH").find_type("flowc", FileType::File) {
-        return Ok(flowc);
-    }
-
-    Err(io::Error::new(
-        io::ErrorKind::Other,
-        "`flowc` could not be found in `$PATH` or `target/`",
-    ))
-}
-
-fn compile_sample(sample_dir: &Path, flowc: &Path) -> io::Result<()> {
-    let mut command = Command::new(flowc);
+fn compile_sample(sample_dir: &Path) -> io::Result<()> {
+    let mut command = Command::new("flowc");
     // -g for debug symbols, -z to dump graphs, -v warn to show warnings, -s to skip running and only compile the flow
     let command_args = vec!["-g", "-z", "-v", "warn", "-s", sample_dir.to_str().unwrap()];
 

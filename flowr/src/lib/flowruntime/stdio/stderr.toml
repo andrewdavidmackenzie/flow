@@ -1,5 +1,6 @@
 function = "stderr"
-implementation = "stderr.rs"
+source = "stderr.rs"
+docs = "stderr.md"
 impure = true
 
 [[input]]

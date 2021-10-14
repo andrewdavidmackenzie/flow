@@ -1,5 +1,7 @@
 function = "split"
-implementation = "split.rs"
+source = "split.rs"
+docs = "split.md"
+build_script = "Cargo.toml"
 
 [[input]]
 name = "string" # - the String to split

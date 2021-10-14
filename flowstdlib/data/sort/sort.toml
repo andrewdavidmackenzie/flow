@@ -1,5 +1,7 @@
 function = "sort"
-implementation = "sort.rs"
+source = "sort.rs"
+docs = "sort.md"
+build_script = "Cargo.toml"
 
 [[input]]
 type = "Array/Number"

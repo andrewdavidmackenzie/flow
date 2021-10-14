@@ -1,5 +1,7 @@
 function = "reverse"
-implementation = "reverse.rs"
+source = "reverse.rs"
+docs = "reverse.md"
+build_script = "Cargo.toml"
 
 [[input]]
 type = "String" # The String to reverse
