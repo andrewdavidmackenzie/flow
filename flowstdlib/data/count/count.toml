@@ -1,7 +1,7 @@
 function = "count"
 source = "count.rs"
 docs = "count.md"
-build_script = "Cargo.toml"
+type = "rust"
 
 [[input]]
 name = "data" # the value to count and pass on

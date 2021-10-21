@@ -1,7 +1,7 @@
 function = "ordered_split"
 source = "ordered_split.rs"
 docs = "ordered_split.md"
-build_script = "Cargo.toml"
+type = "rust"
 
 [[input]]
 name = "string" # - the String to split

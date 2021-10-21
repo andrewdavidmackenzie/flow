@@ -33,9 +33,9 @@ pub struct Function {
     /// Name of any docs file associated with this Function
     #[serde(default)]
     pub(crate) docs: String,
-    /// Name of the build script file used to build Function's implementation from source
-    #[serde(default)]
-    pub(crate) build_script: String,
+    /// Type of build used to compile Function's implementation to WASM from source
+    #[serde(default, rename = "type")]
+    pub(crate) build_type: String,
     /// The set of inputs this function has
     #[serde(default, rename = "input")]
     pub(crate) inputs: IOSet,

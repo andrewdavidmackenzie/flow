@@ -1,7 +1,7 @@
 function = "append"
 source = "append.rs"
 docs = "append.md"
-build_script = "Cargo.toml"
+type = "rust"
 
 [[input]]
 name = "s1"
