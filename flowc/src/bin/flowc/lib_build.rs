@@ -24,7 +24,7 @@ pub fn build_lib(options: &Options, provider: &dyn Provider) -> Result<String> {
 
     let name = metadata.name.clone();
     println!(
-        "   {} {} v{} ({})",
+        "   {} {} v{} ({}) with 'flowc'",
         "Compiling".green(),
         metadata.name,
         metadata.version,
@@ -145,7 +145,7 @@ fn compile_implementations(
                     .chain_err(|| "Could not get parent directory of wasm path")?;
                 lib_manifest
                     .add_locator(
-                        &options.output_dir.to_string_lossy(),
+                        &source_dir.to_string_lossy(),
                         &wasm_abs_path.to_string_lossy(),
                         &wasm_dir.to_string_lossy(),
                         function.name() as &str,
