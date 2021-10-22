@@ -11,14 +11,12 @@ use simpath::{FileType, FoundType, Simpath};
 use tempdir::TempDir;
 use url::Url;
 
-use flowcore::url_helper::url_from_string;
-
 use crate::compiler::cargo_build;
 use crate::errors::*;
 use crate::model::function::Function;
 
-/// Compile a function provided in rust to wasm and modify implementation to point to new file
-/// Checks the timestamp of source and wasm files and only recompiles if wasm file is out of date
+/// Compile a function's implementation to wasm and modify implementation to point to the wasm file
+/// Checks the timestamps of the source and wasm files and only recompiles if wasm file is out of date
 pub fn compile_implementation(
     function: &mut Function,
     skip_building: bool,
@@ -155,32 +153,15 @@ fn get_paths(function: &Function) -> Result<(PathBuf, PathBuf)> {
     let cwd_url = Url::from_directory_path(cwd)
         .map_err(|_| "Could not form a Url for the current working directory")?;
 
-    let function_source_url = url_from_string(&cwd_url, Some(function.get_source_url()))
+    let function_source_url = cwd_url
+        .join(function.get_source_url())
         .chain_err(|| "Could not create a url from source url")?;
+
     let implementation_source_url = function_source_url.join(function.get_implementation())?;
 
     let implementation_source_path = implementation_source_url
         .to_file_path()
         .map_err(|_| "Could not convert source url to file path")?;
-    if implementation_source_path
-        .extension()
-        .ok_or("No file extension on source file")?
-        .to_str()
-        .ok_or("Could not convert file extension to String")?
-        != "rs"
-    {
-        bail!(
-            "Source file at '{}' does not have a '.rs' extension",
-            implementation_source_path.display()
-        );
-    }
-
-    if !implementation_source_path.exists() {
-        bail!(
-            "Source file at '{}' does not exist",
-            implementation_source_path.display()
-        );
-    }
 
     let mut implementation_wasm_path = implementation_source_path.clone();
     implementation_wasm_path.set_extension("wasm");

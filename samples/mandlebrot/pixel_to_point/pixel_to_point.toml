@@ -1,5 +1,6 @@
 function = "pixel_to_point"
 source = "pixel_to_point.rs"
+type = "rust"
 
 [[input]]
 name = "bounds"
