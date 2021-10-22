@@ -1,5 +1,6 @@
 function = "stdout"
 source = "stdout.rs"
+type = "rust"
 impure = true
 
 [[input]]

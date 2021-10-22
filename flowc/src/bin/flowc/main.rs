@@ -22,17 +22,19 @@ use errors::*;
 use flowclib::info;
 use flowcore::lib_provider::MetaProvider;
 use flowcore::url_helper::url_from_string;
+use lib_build::build_lib;
 
 use crate::flow_compile::compile_and_execute_flow;
-use crate::lib_build::build_lib;
-
-mod flow_compile;
-mod lib_build;
-mod source_arg;
 
 /// We'll put our errors in an `errors` module, and other modules in this crate will
 /// `use crate::errors::*;` to get access to everything `error_chain` creates.
 pub mod errors;
+
+/// `lib_build` module is used to compile a flow library from source
+pub mod lib_build;
+
+mod flow_compile;
+mod source_arg;
 
 /// `Options` struct gathers information from the parsing of the command line options
 /// to be used to configure execution

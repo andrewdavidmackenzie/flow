@@ -1,49 +1,26 @@
-use std::collections::HashSet;
-use std::fs::File;
-use std::io::prelude::*;
-use std::path::{Path, PathBuf};
-
 use colored::*;
 use glob::glob;
 use log::{debug, info};
 use simpath::Simpath;
 use url::Url;
 
-use flowclib::compiler::compile_wasm;
-use flowclib::compiler::loader;
 use flowclib::compiler::loader::load;
+use flowclib::compiler::loader::LibType::RustLib;
+use flowclib::compiler::{compile_wasm, rust_manifest};
+use flowclib::compiler::{json_manifest, loader};
 use flowclib::dumper::dump_flow;
 use flowclib::model::name::HasName;
 use flowclib::model::process::Process::{FlowProcess, FunctionProcess};
 use flowcore::lib_manifest::LibraryManifest;
-use flowcore::lib_manifest::{
-    DEFAULT_LIB_JSON_MANIFEST_FILENAME, DEFAULT_LIB_RUST_MANIFEST_FILENAME,
-};
 use flowcore::lib_provider::{MetaProvider, Provider};
 
 use crate::errors::*;
 use crate::Options;
 
-const GET_MANIFEST_HEADER: &str = "
-/// Return the LibraryManifest for this library
-pub fn get_manifest() -> Result<LibraryManifest> {
-    let metadata = MetaData {
-        name: env!(\"CARGO_PKG_NAME\").into(),
-        version: env!(\"CARGO_PKG_VERSION\").into(),
-        description: env!(\"CARGO_PKG_DESCRIPTION\").into(),
-        authors: env!(\"CARGO_PKG_AUTHORS\")
-            .split(':')
-            .map(|s| s.to_string())
-            .collect(),
-    };
-    let lib_url = Url::parse(&format!(\"lib://{}\", metadata.name))?;
-    let mut manifest = LibraryManifest::new(lib_url, metadata);\n
-";
-
 /// Build a library from source and generate a manifest for it so it can be used at runtime when
 /// a flow referencing it is loaded and ran
 pub fn build_lib(options: &Options, provider: &dyn Provider) -> Result<String> {
-    let metadata = loader::load_metadata(&options.source_url, provider)?;
+    let (metadata, lib_type) = loader::load_metadata(&options.source_url, provider)?;
 
     let name = metadata.name.clone();
     println!(
@@ -59,16 +36,19 @@ pub fn build_lib(options: &Options, provider: &dyn Provider) -> Result<String> {
     let build_count = compile_implementations(options, &mut lib_manifest, provider, false)
         .chain_err(|| "Could not compile implementations in library")?;
 
-    let manifest_json_file = json_manifest_file(&options.output_dir);
-    let manifest_rust_file = rust_manifest_file(&options.output_dir);
+    let manifest_json_file = json_manifest::manifest_filename(&options.output_dir);
     let json_manifest_exists = manifest_json_file.exists() && manifest_json_file.is_file();
-    let rust_manifest_exists = manifest_rust_file.exists() && manifest_rust_file.is_file();
 
-    if json_manifest_exists && rust_manifest_exists {
+    let manifest_rust_file = rust_manifest::manifest_filename(&options.output_dir);
+    let rust_manifest_exists = if lib_type == RustLib {
+        manifest_rust_file.exists() && manifest_rust_file.is_file()
+    } else {
+        true // we don't care if the rust manifest exists if the lib type is not a rust lib
+    };
+
+    let (message, write_manifests) = if json_manifest_exists && rust_manifest_exists {
         if build_count > 0 {
-            info!("Library manifest file(s) exists, but implementations were built, updating manifest file(s)");
-            write_lib_json_manifest(&lib_manifest, &manifest_json_file)?;
-            write_lib_rust_manifest(&lib_manifest, &manifest_rust_file)?;
+            ("Library manifest file(s) exists, but implementations were built, writing new file(s)", true)
         } else {
             let provider = MetaProvider::new(Simpath::new(""));
             let json_manifest_file_as_url =
@@ -82,145 +62,31 @@ pub fn build_lib(options: &Options, provider: &dyn Provider) -> Result<String> {
                 LibraryManifest::load(&provider, &json_manifest_file_as_url)
             {
                 if existing_json_manifest != lib_manifest {
-                    info!("Library manifest exists, but new manifest has changes, updating manifest file(s)");
-                    write_lib_json_manifest(&lib_manifest, &manifest_json_file)?;
-                    write_lib_rust_manifest(&lib_manifest, &manifest_rust_file)?;
+                    ("Library manifest exists, but new manifest has changes, writing new manifest file(s)", true)
                 } else {
-                    info!(
-                        "Existing manifest files at '{}' are up to date",
-                        json_manifest_file_as_url
-                    );
+                    ("Existing manifest files are up to date", false)
                 }
             } else {
-                info!("Could not load existing Library manifest to compare, writing new manifest file(s)");
-                write_lib_json_manifest(&lib_manifest, &manifest_json_file)?;
-                write_lib_rust_manifest(&lib_manifest, &manifest_rust_file)?;
+                ("Could not load existing Library manifest to compare, writing new manifest file(s)", true)
             }
         }
     } else {
-        // no existing manifest, so just write the one we've built
-        info!("Library manifest file(s) missing, writing new manifest file(s)");
-        write_lib_json_manifest(&lib_manifest, &manifest_json_file)?;
-        write_lib_rust_manifest(&lib_manifest, &manifest_rust_file)?;
+        (
+            "Library manifest file(s) missing, writing new manifest file(s)",
+            true,
+        )
+    };
+
+    info!("{}", message);
+
+    if write_manifests {
+        json_manifest::write(&lib_manifest, &manifest_json_file)?;
+        if lib_type == RustLib {
+            rust_manifest::write(&lib_manifest, &manifest_rust_file)?;
+        }
     }
 
     Ok(format!("    {} {}", "Finished".green(), name))
-}
-
-fn json_manifest_file(base_dir: &Path) -> PathBuf {
-    let mut filename = base_dir.to_path_buf();
-    filename.push(DEFAULT_LIB_JSON_MANIFEST_FILENAME.to_string());
-    filename.set_extension("json");
-    filename
-}
-
-fn rust_manifest_file(base_dir: &Path) -> PathBuf {
-    let mut filename = base_dir.to_path_buf();
-    filename.push(DEFAULT_LIB_RUST_MANIFEST_FILENAME.to_string());
-    filename
-}
-
-/*
-    Generate a manifest for the library in JSON that can be used to load it using 'flowr'
-*/
-fn write_lib_json_manifest(
-    lib_manifest: &LibraryManifest,
-    json_manifest_filename: &Path,
-) -> Result<()> {
-    let mut manifest_file = File::create(&json_manifest_filename)?;
-
-    manifest_file.write_all(
-        serde_json::to_string_pretty(lib_manifest)
-            .chain_err(|| "Could not pretty format the library manifest JSON contents")?
-            .as_bytes(),
-    )?;
-
-    info!(
-        "Generated library JSON manifest at '{}'",
-        json_manifest_filename.display()
-    );
-
-    Ok(())
-}
-
-// take a name like 'duplicate_rows' and remove underscores and camel case it to 'DuplicateRows'
-fn camel_case(original: &str) -> String {
-    // split into parts by '_' and Uppercase the first character of the (ASCII) Struct name
-    let words: Vec<String> = original
-        .split('_')
-        .map(|w| format!("{}{}", (&w[..1].to_string()).to_uppercase(), &w[1..]))
-        .collect();
-    // recombine
-    words.join("")
-}
-
-/*
-    Generate a manifest for the library in rust for static linking
-*/
-#[allow(clippy::unnecessary_wraps)]
-fn write_lib_rust_manifest(
-    lib_manifest: &LibraryManifest,
-    rust_manifest_filename: &Path,
-) -> Result<()> {
-    // Create the file we will be writing to
-    let mut manifest_file = File::create(&rust_manifest_filename)?;
-
-    // Create the list of top level modules
-    let mut modules = HashSet::<&str>::new();
-    for module_url in lib_manifest.locators.keys() {
-        let module_name = module_url
-            .path_segments()
-            .chain_err(|| "Could not get path segments")?
-            .into_iter()
-            .next()
-            .chain_err(|| "Could not get first path segment")?;
-
-        modules.insert(module_name);
-    }
-
-    // generate their pub mod statements
-    for module in modules {
-        manifest_file.write_all(format!("\n/// functions from module '{}'", module).as_bytes())?;
-
-        manifest_file.write_all(format!("\npub mod {};\n", module).as_bytes())?;
-    }
-
-    // generate the get_manifest() function header
-    manifest_file.write_all(GET_MANIFEST_HEADER.as_bytes())?;
-
-    // generate all the manifest entries
-    for reference in lib_manifest.locators.keys() {
-        let parts: Vec<&str> = reference
-            .path_segments()
-            .chain_err(|| "Could not get Location segments")?
-            .collect::<Vec<&str>>();
-
-        let implementation_struct = format!(
-            "{}::{}",
-            parts[0..parts.len() - 1].join("::"),
-            self::camel_case(parts[2])
-        );
-
-        let manifest_entry = format!(
-            "    manifest.locators.insert(
-            Url::parse(\"{}\")?,
-            Native(Arc::new({})),
-        );\n\n",
-            reference, implementation_struct
-        );
-
-        manifest_file.write_all(manifest_entry.as_bytes())?;
-    }
-
-    // close the get_manifest() function
-    manifest_file.write_all("    Ok(manifest)\n}".as_bytes())?;
-
-    info!(
-        "Generated library Rust manifest at '{}'",
-        rust_manifest_filename.display()
-    );
-
-    Ok(())
 }
 
 /*
@@ -240,6 +106,8 @@ fn compile_implementations(
         .map_err(|_| "Could not convert Url to File path")?;
 
     let mut build_count = 0;
+    // Function implementations are described in .toml format and can be at multiple levels in
+    // a library's directory structure.
     let search_pattern = format!("{}/**/*.toml", source_dir.to_string_lossy());
 
     debug!(
@@ -257,6 +125,7 @@ fn compile_implementations(
         })?;
         debug!("Trying to load library process from '{}'", url);
 
+        // Load the `FunctionProcess` definition from the found `.toml` file
         match load(
             &url,
             provider,
