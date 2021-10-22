@@ -41,6 +41,8 @@ pub fn compile(flow: &Flow) -> Result<GenerationTables> {
 mod test {
     use std::collections::HashMap;
 
+    use url::Url;
+
     use crate::compiler::compile::compile;
     use crate::model::flow::Flow;
     use crate::model::function::Function;
@@ -62,7 +64,7 @@ mod test {
             Name::from("test-function"),
             vec![IO::new("String", "/print")],
             vec![],
-            "lib://flowruntime/stdio/stdout.toml",
+            Url::parse("lib://flowruntime/stdio/stdout.toml").expect("Could not parse Url"),
             Route::from("/print"),
             Some("lib://flowruntime/stdio/stdout.toml".to_string()),
             vec![],
@@ -72,14 +74,17 @@ mod test {
 
         let function_ref = ProcessReference {
             alias: function.alias().to_owned(),
-            source: "lib://flowruntime/stdio/stdout.toml".to_string(),
+            source: function.source_url.to_string(),
             initializations: HashMap::new(),
         };
+
+        let _test_flow = Flow::default();
 
         let flow = Flow {
             alias: Name::from("context"),
             name: Name::from("test-flow"),
             process_refs: vec![function_ref],
+            source_url: Flow::default_url(),
             ..Default::default()
         };
 

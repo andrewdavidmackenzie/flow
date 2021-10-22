@@ -1,6 +1,5 @@
 #[cfg(feature = "debugger")]
 use std::collections::HashSet;
-use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -149,20 +148,14 @@ fn optimize_wasm_file_size(wasm_path: &Path) -> Result<()> {
    and where to output the compiled wasm
 */
 fn get_paths(function: &Function) -> Result<(PathBuf, PathBuf)> {
-    let cwd = env::current_dir().chain_err(|| "Could not get current working directory value")?;
-    let cwd_url = Url::from_directory_path(cwd)
-        .map_err(|_| "Could not form a Url for the current working directory")?;
-
-    let function_source_url = cwd_url
-        .join(function.get_source_url())
-        .chain_err(|| "Could not create a url from source url")?;
-
+    let function_source_url = function.get_source_url();
     let implementation_source_url = function_source_url.join(function.get_implementation())?;
 
     let implementation_source_path = implementation_source_url
         .to_file_path()
         .map_err(|_| "Could not convert source url to file path")?;
 
+    // TODO make this the relative path from the lib root, but under out_dir
     let mut implementation_wasm_path = implementation_source_path.clone();
     implementation_wasm_path.set_extension("wasm");
 
@@ -328,15 +321,12 @@ mod test {
             "print".into(),
             vec![],
             vec![IO::new("String", Route::default())],
-            &format!(
-                "{}/{}",
-                Path::new(env!("CARGO_MANIFEST_DIR"))
-                    .parent()
-                    .expect("Error getting Manifest Dir")
-                    .display()
-                    .to_string(),
-                "flowc/tests/test-functions/stdio/stdout"
-            ),
+            Url::parse(&format!(
+                "file://{}/{}",
+                env!("CARGO_MANIFEST_DIR"),
+                "tests/test-functions/stdio/stdout"
+            ))
+            .expect("Could not create source Url"),
             Route::from("/flow0/stdout"),
             Some("tests/test-functions/stdio/stdout".to_string()),
             vec![OutputConnection::new(

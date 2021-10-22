@@ -3,6 +3,7 @@ use std::fmt;
 
 use error_chain::bail;
 use serde_derive::{Deserialize, Serialize};
+use url::Url;
 
 use flowcore::input::InputInitializer;
 use flowcore::output_connection::OutputConnection;
@@ -19,7 +20,7 @@ use crate::model::route::SetIORoutes;
 use crate::model::route::SetRoute;
 
 /// Function defines a Function that implements some processing in the flow hierarchy
-#[derive(Serialize, Deserialize, Debug, Clone, Default)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
 pub struct Function {
     /// `name` of the function
@@ -48,8 +49,8 @@ pub struct Function {
     #[serde(skip_deserializing)]
     pub(crate) alias: Name,
     /// `source_url` is where this function definition was read from
-    #[serde(skip_deserializing, default)]
-    pub(crate) source_url: String, // can be a relative path with no scheme etc so can't be a Url
+    #[serde(skip_deserializing, default = "Function::default_url")]
+    pub(crate) source_url: Url,
     /// the `route` in the flow hierarchy where this function is located
     #[serde(skip_deserializing)]
     pub(crate) route: Route,
@@ -63,6 +64,27 @@ pub struct Function {
     pub(crate) id: usize,
     #[serde(skip_deserializing)]
     pub(crate) flow_id: usize,
+}
+
+impl Default for Function {
+    fn default() -> Self {
+        Function {
+            name: Default::default(),
+            impure: false,
+            source: "".to_string(),
+            docs: "".to_string(),
+            build_type: "".to_string(),
+            inputs: vec![],
+            outputs: vec![],
+            alias: Default::default(),
+            source_url: Function::default_url(),
+            route: Default::default(),
+            lib_reference: None,
+            output_connections: vec![],
+            id: 0,
+            flow_id: 0,
+        }
+    }
 }
 
 impl HasName for Function {
@@ -84,6 +106,11 @@ impl HasRoute for Function {
 }
 
 impl Function {
+    fn default_url() -> Url {
+        #[allow(clippy::unwrap_used)]
+        Url::parse("file://").unwrap()
+    }
+
     /// Create a new function - used mainly for testing as Functions are usually deserialized
     #[allow(clippy::too_many_arguments)]
     #[cfg(test)]
@@ -94,7 +121,7 @@ impl Function {
         alias: Name,
         inputs: IOSet,
         outputs: IOSet,
-        source_url: &str,
+        source_url: Url,
         route: Route,
         lib_reference: Option<String>,
         output_connections: Vec<OutputConnection>,
@@ -105,16 +132,17 @@ impl Function {
             name,
             impure,
             source: implementation,
+            docs: String::default(),
             alias,
             inputs,
             outputs,
-            source_url: source_url.to_owned(),
+            source_url,
             route,
             lib_reference,
             output_connections,
             id,
             flow_id,
-            ..Default::default()
+            build_type: String::default(),
         }
     }
 
@@ -122,7 +150,7 @@ impl Function {
     #[allow(clippy::too_many_arguments)]
     pub fn config(
         &mut self,
-        source_url: &str,
+        source_url: &Url,
         parent_route: &Route,
         alias: &Name,
         flow_id: usize,
@@ -199,13 +227,13 @@ impl Function {
     }
 
     /// Get the source url where this function was defined
-    pub fn get_source_url(&self) -> &str {
+    pub fn get_source_url(&self) -> &Url {
         &self.source_url
     }
 
     // Set the source url where this function is defined
-    fn set_source_url(&mut self, source: &str) {
-        self.source_url = source.to_owned();
+    fn set_source_url(&mut self, source: &Url) {
+        self.source_url = source.clone();
     }
 
     // Set the alias of this function
@@ -323,7 +351,6 @@ mod test {
         let fun = Function {
             name: Name::from("test_function"),
             alias: Name::from("test_function"),
-            source_url: String::default(),
             output_connections: vec![OutputConnection::new(
                 Output("test_function".into()),
                 0,

@@ -22,7 +22,7 @@ pub struct ProcessReference {
     pub alias: Name,
     /// Relative or absolute source of the referenced process
     pub source: String,
-    /// WHen a process is references, each reference can set different initial values on the inputs
+    /// When a process is references, each reference can set different initial values on the inputs
     /// of the referenced process.
     #[serde(default, rename = "input")]
     pub initializations: HashMap<String, InputInitializer>,

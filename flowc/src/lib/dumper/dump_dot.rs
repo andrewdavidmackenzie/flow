@@ -220,7 +220,7 @@ fn fn_to_dot(function: &Function, output_dir: &Path) -> Result<String> {
         format!("\\n({})", function.name())
     };
 
-    let relative_path = absolute_to_relative(function.get_source_url(), output_dir)?;
+    let relative_path = absolute_to_relative(&function.get_source_url().to_string(), output_dir)?;
 
     // modify path to point to the .html page that's built from .md to document the function
     let md_path = relative_path.replace("toml", "html");
@@ -240,7 +240,10 @@ fn function_to_dot(function: &Function, functions: &[Function], _output_dir: &Pa
     let mut function_string = String::new();
 
     // modify path to point to the .html page that's built from .md to document the function
-    let md_path = function.get_source_url().replace("toml", "html");
+    let md_path = function
+        .get_source_url()
+        .to_string()
+        .replace("toml", "html");
 
     function_string.push_str(&format!(
         "r{}[style=filled, fillcolor=coral, URL=\"{}\", label=\"{} (#{})\"];\n",

@@ -128,20 +128,21 @@ impl fmt::Display for Flow {
 
 impl Default for Flow {
     fn default() -> Flow {
+        #[allow(clippy::unwrap_used)]
         Flow {
-            source_url: Flow::default_url(),
-            name: Name::default(),
-            id: 0,
-            alias: Name::default(),
-            route: Route::default(),
-            process_refs: vec![],
+            name: Default::default(),
             inputs: vec![],
             outputs: vec![],
+            process_refs: vec![],
             connections: vec![],
-            subprocesses: HashMap::new(),
-            lib_references: HashSet::new(),
-            metadata: MetaData::default(),
-            docs: String::default(),
+            metadata: Default::default(),
+            docs: "".to_string(),
+            alias: Default::default(),
+            id: 0,
+            source_url: Url::parse("file://").unwrap(),
+            route: Default::default(),
+            subprocesses: Default::default(),
+            lib_references: Default::default(),
         }
     }
 }
@@ -180,7 +181,8 @@ impl SetRoute for Flow {
 }
 
 impl Flow {
-    fn default_url() -> Url {
+    /// Return a default value for a Url as part of a flow
+    pub fn default_url() -> Url {
         #[allow(clippy::unwrap_used)]
         Url::parse("file://").unwrap()
     }
@@ -446,6 +448,7 @@ mod test {
                 IO::new_named("String", "string", "string"),
                 IO::new_named("Number", "number", "number"),
             ],
+            source_url: super::Flow::default_url(),
             ..Default::default()
         };
 
