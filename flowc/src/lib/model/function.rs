@@ -54,10 +54,12 @@ pub struct Function {
     /// the `route` in the flow hierarchy where this function is located
     #[serde(skip_deserializing)]
     pub(crate) route: Route,
+    /// Implementation is the relative path from the lib root to the compiled wasm implementation
+    #[serde(skip_deserializing)]
+    pub(crate) implementation: String,
     /// Is the function being used part of a library and where is it found
     #[serde(skip_deserializing)]
     pub(crate) lib_reference: Option<String>,
-
     #[serde(skip_deserializing)]
     pub(crate) output_connections: Vec<OutputConnection>,
     #[serde(skip_deserializing)]
@@ -79,6 +81,7 @@ impl Default for Function {
             alias: Default::default(),
             source_url: Function::default_url(),
             route: Default::default(),
+            implementation: "".to_string(),
             lib_reference: None,
             output_connections: vec![],
             id: 0,
@@ -117,7 +120,7 @@ impl Function {
     pub fn new(
         name: Name,
         impure: bool,
-        implementation: String,
+        source: String,
         alias: Name,
         inputs: IOSet,
         outputs: IOSet,
@@ -131,13 +134,14 @@ impl Function {
         Function {
             name,
             impure,
-            source: implementation,
+            source,
             docs: String::default(),
             alias,
             inputs,
             outputs,
             source_url,
             route,
+            implementation: String::default(),
             lib_reference,
             output_connections,
             id,
@@ -218,15 +222,26 @@ impl Function {
 
     /// Get a reference to the implementation of this function
     pub fn get_implementation(&self) -> &str {
+        &self.implementation
+    }
+
+    /// Set the implementation location of this function
+    pub fn set_implementation(&mut self, implementation: &str) {
+        self.implementation = implementation.to_owned();
+    }
+
+    /// Set the source field of the function
+    #[cfg(test)]
+    pub(crate) fn set_source(&mut self, source: &str) {
+        self.source = source.to_owned()
+    }
+
+    /// Get the name of the source file relative to the function definition
+    pub(crate) fn get_source(&self) -> &str {
         &self.source
     }
 
-    /// Set the implementation of this function
-    pub fn set_implementation(&mut self, implementation: &str) {
-        self.source = implementation.to_owned();
-    }
-
-    /// Get the source url where this function was defined
+    /// Get the source url for the file where this function was defined
     pub fn get_source_url(&self) -> &Url {
         &self.source_url
     }

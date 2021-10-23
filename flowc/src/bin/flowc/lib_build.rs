@@ -100,7 +100,7 @@ fn compile_implementations(
     provider: &dyn Provider,
     skip_building: bool,
 ) -> Result<i32> {
-    let source_dir = options
+    let lib_root = options
         .source_url
         .to_file_path()
         .map_err(|_| "Could not convert Url to File path")?;
@@ -108,7 +108,7 @@ fn compile_implementations(
     let mut build_count = 0;
     // Function implementations are described in .toml format and can be at multiple levels in
     // a library's directory structure.
-    let search_pattern = format!("{}/**/*.toml", source_dir.to_string_lossy());
+    let search_pattern = format!("{}/**/*.toml", lib_root.to_string_lossy());
 
     debug!(
         "Searching for process definitions using search pattern: '{}'",
@@ -145,7 +145,7 @@ fn compile_implementations(
                     .chain_err(|| "Could not get parent directory of wasm path")?;
                 lib_manifest
                     .add_locator(
-                        &source_dir.to_string_lossy(),
+                        &lib_root.to_string_lossy(),
                         &wasm_abs_path.to_string_lossy(),
                         &wasm_dir.to_string_lossy(),
                         function.name() as &str,

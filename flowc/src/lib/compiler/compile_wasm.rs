@@ -148,8 +148,7 @@ fn optimize_wasm_file_size(wasm_path: &Path) -> Result<()> {
    and where to output the compiled wasm
 */
 fn get_paths(function: &Function) -> Result<(PathBuf, PathBuf)> {
-    let function_source_url = function.get_source_url();
-    let implementation_source_url = function_source_url.join(function.get_implementation())?;
+    let implementation_source_url = function.get_source_url().join(function.get_source())?;
 
     let implementation_source_path = implementation_source_url
         .to_file_path()
@@ -492,7 +491,7 @@ mod test {
     #[serial(stdio_wasm_compile)]
     fn test_compile_implementation_invalid_paths() {
         let mut function = test_function();
-        function.source = "does_not_exist".into();
+        function.set_source("does_not_exist");
 
         #[cfg(feature = "debugger")]
         let mut source_urls = HashSet::<(Url, Url)>::new();
