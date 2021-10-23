@@ -68,7 +68,7 @@ fn cargo_test(manifest_path: PathBuf, build_dir: PathBuf) -> Result<()> {
 */
 fn cargo_build(
     manifest_path: PathBuf,
-    build_dir: PathBuf,
+    build_dir: &Path,
     implementation_path: &Path,
     wasm_destination: &Path,
 ) -> Result<()> {
@@ -114,10 +114,11 @@ fn cargo_build(
 
     check_cargo_error(command, command_args, output)?;
 
+    // TODO this could be removed/reduced when cargo --out-dir option is stable
     // no error occurred, so move the built files to final destination and clean-up
     let mut wasm_filename = implementation_path.to_path_buf();
     wasm_filename.set_extension("wasm");
-    let mut wasm_build_location = build_dir.clone();
+    let mut wasm_build_location = build_dir.to_path_buf();
     wasm_build_location.push("wasm32-unknown-unknown/release/");
     wasm_build_location.push(
         wasm_filename
@@ -125,17 +126,11 @@ fn cargo_build(
             .ok_or("Could not convert filename to str")?,
     );
 
-    // copy compiled wasm output into place where flow's toml file expects it
-    fs::copy(&wasm_build_location, &wasm_destination)
+    // move compiled wasm output into destination location
+    fs::rename(&wasm_build_location, &wasm_destination)
         .chain_err(|| "Could not copy WASM to destination")?;
 
-    // clean up temp dir
-    fs::remove_dir_all(&build_dir).chain_err(|| {
-        format!(
-            "Could not remove temporary build directory '{}'",
-            build_dir.display()
-        )
-    })
+    Ok(())
 }
 
 /// Run the cargo build to compile wasm from function source
@@ -149,8 +144,16 @@ pub fn run(implementation_path: &Path, wasm_destination: &Path) -> Result<()> {
     cargo_test(cargo_manifest_path.clone(), build_dir.clone())?;
     cargo_build(
         cargo_manifest_path,
-        build_dir,
+        &build_dir,
         implementation_path,
         wasm_destination,
-    )
+    )?;
+
+    // clean up temp dir
+    fs::remove_dir_all(&build_dir).chain_err(|| {
+        format!(
+            "Could not remove temporary build directory '{}'",
+            build_dir.display()
+        )
+    })
 }
