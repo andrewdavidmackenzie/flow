@@ -23,7 +23,10 @@ pub const DEFAULT_LIB_RUST_MANIFEST_FILENAME: &str = "manifest.rs";
 */
 #[derive(Deserialize, Serialize, Clone)]
 #[serde(untagged)]
-/// Used to describe where an implementation can be found, depending on if native or wasm
+/// `ImplementationLocator` enum is used to describe where an implementation can be found.
+/// Implementations can be of two types:
+/// - `Native` - A statically linked function referenced via a function reference
+/// - `Wasm`   - A WASM bytecode file that is referenced via a string pointing to the .wasm file location
 pub enum ImplementationLocator {
     #[serde(skip_deserializing, skip_serializing)]
     /// A `Native` implementation is a reference to a trait object and linked with the library
@@ -105,31 +108,27 @@ impl LibraryManifest {
         Ok((manifest, url))
     }
 
-    /// Add a function's implementation locator (location of wasm file) to the library manifest
-    /// It will be stored relative to the root of the manifest so that the library is location
-    /// independent
+    /// Add a function's implementation locator (location of wasm file) to the `LibraryManifest`
+    /// The WASM file's path is relative to the library root so that the library is location independent
     pub fn add_locator(
         &mut self,
-        base_dir: &str,
-        wasm_abs_path: &str,
-        wasm_dir: &str,
+        wasm_relative_path: &str,
+        relative_dir: &str,
         function_name: &str,
     ) -> Result<()> {
-        let relative_dir = wasm_dir.replace(base_dir, "");
         let lib_reference = Url::parse(&format!(
             "lib://{}{}/{}",
             self.metadata.name, relative_dir, function_name
         ))
         .chain_err(|| "Could not form library Url to add to the manifest")?;
 
-        let implementation_relative_location = wasm_abs_path.replace(base_dir, "");
         debug!(
             "Adding implementation to manifest: \n'{}'  --> '{}'",
-            lib_reference, implementation_relative_location
+            lib_reference, wasm_relative_path
         );
         self.locators.insert(
             lib_reference,
-            ImplementationLocator::Wasm(implementation_relative_location),
+            ImplementationLocator::Wasm(wasm_relative_path.to_owned()),
         );
 
         Ok(())
@@ -330,7 +329,7 @@ mod test {
             test_meta_data(),
         );
         library
-            .add_locator("/fake", "/bin/my.wasm", "/bin", "my function")
+            .add_locator("/bin/my.wasm", "/bin", "my function")
             .expect("Could not add to manifest");
         assert_eq!(
             library.locators.len(),
@@ -360,7 +359,7 @@ mod test {
             test_meta_data(),
         );
         library1
-            .add_locator("/fake", "/bin/my.wasm", "/bin", "my function")
+            .add_locator("/bin/my.wasm", "/bin", "my-function")
             .expect("Could not add to manifest");
 
         let library2 = LibraryManifest::new(
@@ -378,7 +377,7 @@ mod test {
             test_meta_data(),
         );
         library1
-            .add_locator("/fake", "/bin/fake.wasm", "/bin", "my fake function")
+            .add_locator("/bin/fake.wasm", "/bin", "my fake function")
             .expect("Could not add to manifest");
 
         let mut library2 = LibraryManifest::new(
@@ -386,7 +385,7 @@ mod test {
             test_meta_data(),
         );
         library2
-            .add_locator("/different", "/bin/my.wasm", "/bin", "my function")
+            .add_locator("/bin/my.wasm", "/bin", "my function")
             .expect("Could not add to manifest");
 
         assert!(library1 != library2);
@@ -399,7 +398,7 @@ mod test {
             test_meta_data(),
         );
         library1
-            .add_locator("/fake", "/bin/my.wasm", "/bin", "my function")
+            .add_locator("/bin/my.wasm", "/bin", "my function")
             .expect("Could not add to manifest");
 
         let mut library2 = LibraryManifest::new(
@@ -407,7 +406,7 @@ mod test {
             test_meta_data(),
         );
         library2
-            .add_locator("/fake", "/bin/my.wasm", "/bin", "my function")
+            .add_locator("/bin/my.wasm", "/bin", "my function")
             .expect("Could not add to manifest");
 
         assert!(library1 == library2);

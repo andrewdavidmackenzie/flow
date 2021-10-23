@@ -17,13 +17,14 @@ use crate::model::function::Function;
 /// Compile a function's implementation to wasm and modify implementation to point to the wasm file
 /// Checks the timestamps of the source and wasm files and only recompiles if wasm file is out of date
 pub fn compile_implementation(
+    out_dir: Option<&PathBuf>,
     function: &mut Function,
     skip_building: bool,
     #[cfg(feature = "debugger")] source_urls: &mut HashSet<(Url, Url)>,
 ) -> Result<(PathBuf, bool)> {
     let mut built = false;
 
-    let (source_path, wasm_destination) = get_paths(function)?;
+    let (source_path, wasm_destination) = get_paths(out_dir, function)?;
 
     #[cfg(feature = "debugger")]
     source_urls.insert((
@@ -145,9 +146,11 @@ fn optimize_wasm_file_size(wasm_path: &Path) -> Result<()> {
 
 /*
    Calculate the paths to the source file of the implementation of the function to be compiled
-   and where to output the compiled wasm
+   and where to output the compiled wasm.
+
+   out_dir optionally overrides the destination directory where the wasm should end up
 */
-fn get_paths(function: &Function) -> Result<(PathBuf, PathBuf)> {
+fn get_paths(_out_dir: Option<&PathBuf>, function: &Function) -> Result<(PathBuf, PathBuf)> {
     let implementation_source_url = function.get_source_url().join(function.get_source())?;
 
     let implementation_source_path = implementation_source_url
@@ -349,7 +352,7 @@ mod test {
         let function = test_function();
 
         let (impl_source_path, impl_wasm_path) =
-            get_paths(&function).expect("Error in 'get_paths'");
+            get_paths(None, &function).expect("Error in 'get_paths'");
 
         assert_eq!(
             format!(
@@ -390,6 +393,7 @@ mod test {
         let mut source_urls = HashSet::<(Url, Url)>::new();
 
         let (wasm_destination, built) = super::compile_implementation(
+            None,
             &mut function,
             true,
             #[cfg(feature = "debugger")]
@@ -422,6 +426,7 @@ mod test {
         let mut source_urls = HashSet::<(Url, Url)>::new();
 
         let (wasm_destination, built) = super::compile_implementation(
+            None,
             &mut function,
             true,
             #[cfg(feature = "debugger")]
@@ -449,6 +454,7 @@ mod test {
         let mut source_urls = HashSet::<(Url, Url)>::new();
 
         let (wasm_destination, built) = super::compile_implementation(
+            None,
             &mut function,
             false,
             #[cfg(feature = "debugger")]
@@ -476,6 +482,7 @@ mod test {
         let mut source_urls = HashSet::<(Url, Url)>::new();
 
         let (wasm_destination, built) = super::compile_implementation(
+            None,
             &mut function,
             false,
             #[cfg(feature = "debugger")]
@@ -497,6 +504,7 @@ mod test {
         let mut source_urls = HashSet::<(Url, Url)>::new();
 
         assert!(super::compile_implementation(
+            None,
             &mut function,
             true,
             #[cfg(feature = "debugger")]

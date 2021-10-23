@@ -62,6 +62,7 @@ fn compile_supplied_implementations(
     for function in &mut tables.functions {
         if function.get_lib_reference().is_none() {
             compile_wasm::compile_implementation(
+                None,
                 function,
                 skip_building,
                 #[cfg(feature = "debugger")]

@@ -69,7 +69,7 @@ fn cargo_test(manifest_path: PathBuf, build_dir: PathBuf) -> Result<()> {
 fn cargo_build(
     manifest_path: PathBuf,
     build_dir: &Path,
-    implementation_path: &Path,
+    implementation_source_path: &Path,
     wasm_destination: &Path,
 ) -> Result<()> {
     let command = "cargo";
@@ -85,7 +85,7 @@ fn cargo_build(
     debug!(
         "Building WASM '{}' from source '{}'",
         wasm_destination.display(),
-        implementation_path.display()
+        implementation_source_path.display()
     );
 
     let command_args = vec![
@@ -116,7 +116,7 @@ fn cargo_build(
 
     // TODO this could be removed/reduced when cargo --out-dir option is stable
     // no error occurred, so move the built files to final destination and clean-up
-    let mut wasm_filename = implementation_path.to_path_buf();
+    let mut wasm_filename = implementation_source_path.to_path_buf();
     wasm_filename.set_extension("wasm");
     let mut wasm_build_location = build_dir.to_path_buf();
     wasm_build_location.push("wasm32-unknown-unknown/release/");
@@ -134,8 +134,8 @@ fn cargo_build(
 }
 
 /// Run the cargo build to compile wasm from function source
-pub fn run(implementation_path: &Path, wasm_destination: &Path) -> Result<()> {
-    let mut cargo_manifest_path = implementation_path.to_path_buf();
+pub fn run(implementation_source_path: &Path, wasm_destination: &Path) -> Result<()> {
+    let mut cargo_manifest_path = implementation_source_path.to_path_buf();
     cargo_manifest_path.set_file_name("Cargo.toml");
     let build_dir = TempDir::new("flow")
         .chain_err(|| "Error creating new TempDir for compiling in")?
@@ -145,7 +145,7 @@ pub fn run(implementation_path: &Path, wasm_destination: &Path) -> Result<()> {
     cargo_build(
         cargo_manifest_path,
         &build_dir,
-        implementation_path,
+        implementation_source_path,
         wasm_destination,
     )?;
 

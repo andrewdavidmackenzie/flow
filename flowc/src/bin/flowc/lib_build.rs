@@ -100,15 +100,19 @@ fn compile_implementations(
     provider: &dyn Provider,
     skip_building: bool,
 ) -> Result<i32> {
-    let lib_root = options
+    let lib_root_path = options
         .source_url
         .to_file_path()
         .map_err(|_| "Could not convert Url to File path")?;
 
+    let lib_root = lib_root_path
+        .to_str()
+        .ok_or("Could not convert Cow to &str")?;
+
     let mut build_count = 0;
     // Function implementations are described in .toml format and can be at multiple levels in
     // a library's directory structure.
-    let search_pattern = format!("{}/**/*.toml", lib_root.to_string_lossy());
+    let search_pattern = format!("{}/**/*.toml", lib_root);
 
     debug!(
         "Searching for process definitions using search pattern: '{}'",
@@ -133,7 +137,9 @@ fn compile_implementations(
             &mut lib_manifest.source_urls,
         ) {
             Ok(FunctionProcess(ref mut function)) => {
+                // TODO move some of this abs/relative nonsense out of get_paths and in here
                 let (wasm_abs_path, built) = compile_wasm::compile_implementation(
+                    Some(&options.output_dir),
                     function,
                     skip_building,
                     #[cfg(feature = "debugger")]
@@ -143,13 +149,13 @@ fn compile_implementations(
                 let wasm_dir = wasm_abs_path
                     .parent()
                     .chain_err(|| "Could not get parent directory of wasm path")?;
+
+                let wasm_relative_path = wasm_abs_path.to_string_lossy().replace(lib_root, "");
+                let relative_dir = wasm_dir.to_string_lossy().replace(lib_root, "");
+                // TODO lib root
+
                 lib_manifest
-                    .add_locator(
-                        &lib_root.to_string_lossy(),
-                        &wasm_abs_path.to_string_lossy(),
-                        &wasm_dir.to_string_lossy(),
-                        function.name() as &str,
-                    )
+                    .add_locator(&wasm_relative_path, &relative_dir, function.name() as &str)
                     .chain_err(|| "Could not add entry to library manifest")?;
                 if built {
                     build_count += 1;
