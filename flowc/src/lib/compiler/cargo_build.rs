@@ -137,6 +137,8 @@ fn cargo_build(
 pub fn run(implementation_source_path: &Path, wasm_destination: &Path) -> Result<()> {
     let mut cargo_manifest_path = implementation_source_path.to_path_buf();
     cargo_manifest_path.set_file_name("Cargo.toml");
+
+    // Create a temp directory for building in
     let build_dir = TempDir::new("flow")
         .chain_err(|| "Error creating new TempDir for compiling in")?
         .into_path();

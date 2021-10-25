@@ -340,7 +340,7 @@ fn add_input_set(input_set: &IOSet, to: &Route, connect_subflow: bool) -> String
                 string.push_str(&format!(
                     "\t\"{}\" -> \"{}\":n [style=invis, headtooltip=\"{}\"];\n",
                     input.route(),
-                    to.to_string(),
+                    to,
                     input.name()
                 ));
             }
@@ -371,7 +371,7 @@ fn add_output_set(output_set: &IOSet, from: &Route, connect_subflow: bool) -> St
                 let output_port = output_name_to_port(output.name());
                 string.push_str(&format!(
                     "\t\"{}\":{} -> \"{}\"[style=invis, headtooltip=\"{}\"];\n",
-                    from.to_string(),
+                    from,
                     output_port,
                     output.route(),
                     output.name()

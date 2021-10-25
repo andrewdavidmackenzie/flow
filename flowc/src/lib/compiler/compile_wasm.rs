@@ -111,7 +111,7 @@ fn run_optional_command(wasm_path: &Path, command: &str, mut args: Vec<String>) 
             Some(0) | None => fs::rename(&temp_file_path, &wasm_path)?,
             Some(_) => bail!(format!(
                 "{} exited with non-zero status code",
-                command_path.to_string_lossy().to_string()
+                command_path.to_string_lossy()
             )),
         }
 
