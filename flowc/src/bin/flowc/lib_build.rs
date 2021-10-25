@@ -163,17 +163,9 @@ fn compile_implementations(
             }
             Ok(FlowProcess(ref mut flow)) => {
                 if options.dump || options.graphs {
-                    // Dump the dot file alongside the definition file
-                    let source_path = flow.source_url.to_file_path().map_err(|_| {
-                        "Could not convert flow's source_url Url to a Path".to_string()
-                    })?;
-                    let output_dir = source_path
-                        .parent()
-                        .chain_err(|| "Could not get parent directory of flow's source_url")?;
-
                     dump_flow::dump_flow(
                         flow,
-                        &output_dir.to_path_buf(),
+                        &options.output_dir,
                         provider,
                         options.dump,
                         options.graphs,
@@ -181,7 +173,7 @@ fn compile_implementations(
                     .chain_err(|| "Failed to dump flow's definition")?;
 
                     if options.graphs {
-                        dump_flow::generate_svgs(&options.output_dir.to_string_lossy())?;
+                        dump_flow::generate_svgs(&options.output_dir)?;
                     }
                 }
             }

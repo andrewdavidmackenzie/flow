@@ -151,7 +151,7 @@ fn dump(
         .chain_err(|| "Failed to dump flow's definition")?;
 
         if options.graphs {
-            dump_flow::generate_svgs(&options.output_dir.to_string_lossy())?;
+            dump_flow::generate_svgs(&options.output_dir)?;
         }
 
         if options.dump {
