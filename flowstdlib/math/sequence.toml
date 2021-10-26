@@ -1,4 +1,5 @@
 flow = "sequence"
+docs = "sequence.md"
 
 # The number the sequence should start at
 [[input]]

@@ -1,7 +1,7 @@
 function = "remove"
 source = "remove.rs"
 docs = "remove.md"
-build_script = "Cargo.toml"
+type = "rust"
 
 [[input]]
 name = "value" # - The value to remove from the array

@@ -1,6 +1,6 @@
 function = "reverse"
 source = "reverse.rs"
-build_script = "Cargo.toml"
+type = "rust"
 
 [[input]]
 type = "String"

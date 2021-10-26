@@ -34,7 +34,7 @@ impl Provider for HttpProvider {
         }
 
         // Attempting to find default file under this path, with any of the valid extensions
-        let default_filename_url = Url::parse(&format!("{}/{}", url.to_string(), default_filename))
+        let default_filename_url = Url::parse(&format!("{}/{}", url, default_filename))
             .chain_err(|| "Could not append default_filename to url")?;
         if let Ok(found) = Self::resource_by_extensions(&default_filename_url, extensions) {
             return Ok((found, None));
@@ -45,7 +45,7 @@ impl Provider for HttpProvider {
         let file_name = segments
             .next_back()
             .ok_or("Could not get last path segment")?;
-        let filename_url = Url::parse(&format!("{}/{}", url.to_string(), file_name))
+        let filename_url = Url::parse(&format!("{}/{}", url, file_name))
             .chain_err(|| "Could not append filename after directory in Url")?;
         if let Ok(found) = Self::resource_by_extensions(&filename_url, extensions) {
             return Ok((found, None));

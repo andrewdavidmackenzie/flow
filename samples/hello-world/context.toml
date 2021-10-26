@@ -1,4 +1,5 @@
 flow = "hello-world"
+docs = "DESCRIPTION.md"
 
 [[process]]
 alias = "print"

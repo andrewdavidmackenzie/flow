@@ -1,4 +1,5 @@
 flow = "primitives"
+docs = "DESCRIPTION.md"
 
 # 1 plus 2 = 3
 [[process]]

@@ -1,7 +1,7 @@
 function = "route"
 source = "route.rs"
 docs = "route.md"
-build_script = "Cargo.toml"
+type = "rust"
 
 [[input]]
 name = "data" # - the data flow we wish to control the flow if

@@ -111,7 +111,7 @@ impl CliDebugClient {
                         command,
                         Some(Param::Output((
                             source_process_id,
-                            format!("/{}", sub_parts[1].to_string()),
+                            format!("/{}", sub_parts[1]),
                         ))),
                     );
                 }

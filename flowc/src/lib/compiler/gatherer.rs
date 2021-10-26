@@ -46,11 +46,14 @@ pub fn index_functions(functions: &mut Vec<Function>) {
 
 #[cfg(test)]
 mod test {
+    use url::Url;
+
+    use flowcore::output_connection::{OutputConnection, Source};
+
     use crate::model::function::Function;
     use crate::model::io::IO;
     use crate::model::name::Name;
     use crate::model::route::Route;
-    use flowcore::output_connection::{OutputConnection, Source};
 
     #[test]
     fn empty_index_test() {
@@ -66,7 +69,7 @@ mod test {
             Name::from("print"),
             vec![],
             vec![IO::new("String", Route::default())],
-            "file:///fake/file",
+            Url::parse("file:///fake/file").expect("Could not parse Url"),
             Route::from("/flow0/stdout"),
             Some("flowruntime/stdio/stdout".to_string()),
             vec![OutputConnection::new(

@@ -1,4 +1,5 @@
 flow = "my-first-flow"
+docs = "DESCRIPTION.md"
 
 [metadata]
 version = "1.0.0"

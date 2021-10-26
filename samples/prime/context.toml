@@ -1,4 +1,5 @@
 flow = "prime"
+docs = "DESCRIPTION.md"
 
 # Read the limit from the command line
 [[process]]

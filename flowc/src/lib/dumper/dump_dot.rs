@@ -220,7 +220,7 @@ fn fn_to_dot(function: &Function, output_dir: &Path) -> Result<String> {
         format!("\\n({})", function.name())
     };
 
-    let relative_path = absolute_to_relative(function.get_source_url(), output_dir)?;
+    let relative_path = absolute_to_relative(&function.get_source_url().to_string(), output_dir)?;
 
     // modify path to point to the .html page that's built from .md to document the function
     let md_path = relative_path.replace("toml", "html");
@@ -240,7 +240,10 @@ fn function_to_dot(function: &Function, functions: &[Function], _output_dir: &Pa
     let mut function_string = String::new();
 
     // modify path to point to the .html page that's built from .md to document the function
-    let md_path = function.get_source_url().replace("toml", "html");
+    let md_path = function
+        .get_source_url()
+        .to_string()
+        .replace("toml", "html");
 
     function_string.push_str(&format!(
         "r{}[style=filled, fillcolor=coral, URL=\"{}\", label=\"{} (#{})\"];\n",
@@ -337,7 +340,7 @@ fn add_input_set(input_set: &IOSet, to: &Route, connect_subflow: bool) -> String
                 string.push_str(&format!(
                     "\t\"{}\" -> \"{}\":n [style=invis, headtooltip=\"{}\"];\n",
                     input.route(),
-                    to.to_string(),
+                    to,
                     input.name()
                 ));
             }
@@ -368,7 +371,7 @@ fn add_output_set(output_set: &IOSet, from: &Route, connect_subflow: bool) -> St
                 let output_port = output_name_to_port(output.name());
                 string.push_str(&format!(
                     "\t\"{}\":{} -> \"{}\"[style=invis, headtooltip=\"{}\"];\n",
-                    from.to_string(),
+                    from,
                     output_port,
                     output.route(),
                     output.name()

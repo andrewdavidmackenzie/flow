@@ -65,7 +65,7 @@ pub fn dump_flow(
 
 /// Generate SVG files from any .dot file found below the `root_dir` using the `dot` graphviz
 /// executable, if it is found on the system within the `$PATH` variable of the user
-pub fn generate_svgs(root_dir: &str) -> Result<()> {
+pub fn generate_svgs(root_dir: &Path) -> Result<()> {
     if let Ok(FoundType::File(dot)) = Simpath::new("PATH").find_type("dot", FileType::File) {
         println!("Generating .dot.svg files from .dot files, using 'dot' command from $PATH");
 
@@ -75,7 +75,7 @@ pub fn generate_svgs(root_dir: &str) -> Result<()> {
             ..Default::default()
         };
 
-        let pattern = format!("{}/**/*.dot", root_dir);
+        let pattern = format!("{}/**/*.dot", root_dir.to_string_lossy());
 
         for path in glob_with(&pattern, options)?.flatten() {
             let dot_child = dot_command

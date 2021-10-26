@@ -19,6 +19,13 @@ use crate::model::process::Process::FlowProcess;
 use crate::model::process::Process::FunctionProcess;
 use crate::model::route::Route;
 
+/// `LibType` describes what format the Flow Library is written in
+#[derive(PartialEq)]
+pub enum LibType {
+    /// `RustLib` indicates that the library is written in rust with a Cargo.toml to compile it natively
+    RustLib,
+}
+
 /// Many structs in the model implement the `Validate` method which is used to check the
 /// description deserialized from file obeys some additional constraints that cannot be expressed
 /// in the struct definition in `serde`
@@ -154,7 +161,7 @@ fn load_process(
         }
         FunctionProcess(ref mut function) => {
             function.config(
-                resolved_url.as_str(),
+                &resolved_url,
                 parent_route,
                 alias,
                 parent_flow_id,
@@ -170,7 +177,7 @@ fn load_process(
 /// load library metadata from the given url using the provider.
 /// Currently it uses the `package` table of Cargo.toml as a source but it could
 /// easily use another file as along as it has the required fields to satisfy `MetaData` struct
-pub fn load_metadata(url: &Url, provider: &dyn Provider) -> Result<MetaData> {
+pub fn load_metadata(url: &Url, provider: &dyn Provider) -> Result<(MetaData, LibType)> {
     trace!("Loading Metadata");
     let (resolved_url, _) = provider
         .resolve_url(url, "Cargo", &["toml"])
@@ -189,7 +196,7 @@ pub fn load_metadata(url: &Url, provider: &dyn Provider) -> Result<MetaData> {
 
     let cargo: Cargo = deserializer.deserialize(&content, Some(&resolved_url))?;
 
-    Ok(cargo.package)
+    Ok((cargo.package, LibType::RustLib))
 }
 
 /*

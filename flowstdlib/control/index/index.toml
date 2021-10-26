@@ -1,7 +1,7 @@
 function = "index"
 source = "index.rs"
 docs = "index.md"
-build_script = "Cargo.toml"
+type = "rust"
 
 [[input]]
 name = "value" # - the stream of input values to select from

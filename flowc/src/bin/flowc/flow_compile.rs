@@ -62,6 +62,7 @@ fn compile_supplied_implementations(
     for function in &mut tables.functions {
         if function.get_lib_reference().is_none() {
             compile_wasm::compile_implementation(
+                None,
                 function,
                 skip_building,
                 #[cfg(feature = "debugger")]
@@ -150,7 +151,7 @@ fn dump(
         .chain_err(|| "Failed to dump flow's definition")?;
 
         if options.graphs {
-            dump_flow::generate_svgs(&options.output_dir.to_string_lossy())?;
+            dump_flow::generate_svgs(&options.output_dir)?;
         }
 
         if options.dump {

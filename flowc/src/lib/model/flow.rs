@@ -53,6 +53,9 @@ pub struct Flow {
     /// `metadata` about flow author, versions etc
     #[serde(default)]
     pub metadata: MetaData,
+    /// Name of any docs file associated with this Flow
+    #[serde(default)]
+    pub(crate) docs: String,
 
     /// When the same process is used multiple times within a single flow, to disambiguate
     /// between them each one must be given an alias that is used to refer to it
@@ -125,19 +128,21 @@ impl fmt::Display for Flow {
 
 impl Default for Flow {
     fn default() -> Flow {
+        #[allow(clippy::unwrap_used)]
         Flow {
-            name: Name::default(),
-            id: 0,
-            alias: Name::default(),
-            source_url: Flow::default_url(),
-            route: Route::default(),
-            process_refs: vec![],
+            name: Default::default(),
             inputs: vec![],
             outputs: vec![],
+            process_refs: vec![],
             connections: vec![],
-            subprocesses: HashMap::new(),
-            lib_references: HashSet::new(),
-            metadata: MetaData::default(),
+            metadata: Default::default(),
+            docs: "".to_string(),
+            alias: Default::default(),
+            id: 0,
+            source_url: Url::parse("file://").unwrap(),
+            route: Default::default(),
+            subprocesses: Default::default(),
+            lib_references: Default::default(),
         }
     }
 }
@@ -176,7 +181,8 @@ impl SetRoute for Flow {
 }
 
 impl Flow {
-    fn default_url() -> Url {
+    /// Return a default value for a Url as part of a flow
+    pub fn default_url() -> Url {
         #[allow(clippy::unwrap_used)]
         Url::parse("file://").unwrap()
     }
@@ -442,6 +448,7 @@ mod test {
                 IO::new_named("String", "string", "string"),
                 IO::new_named("Number", "number", "number"),
             ],
+            source_url: super::Flow::default_url(),
             ..Default::default()
         };
 

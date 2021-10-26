@@ -3,6 +3,7 @@ use std::fmt;
 
 use error_chain::bail;
 use serde_derive::{Deserialize, Serialize};
+use url::Url;
 
 use flowcore::input::InputInitializer;
 use flowcore::output_connection::OutputConnection;
@@ -19,7 +20,7 @@ use crate::model::route::SetIORoutes;
 use crate::model::route::SetRoute;
 
 /// Function defines a Function that implements some processing in the flow hierarchy
-#[derive(Serialize, Deserialize, Debug, Clone, Default)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
 pub struct Function {
     /// `name` of the function
@@ -33,9 +34,9 @@ pub struct Function {
     /// Name of any docs file associated with this Function
     #[serde(default)]
     pub(crate) docs: String,
-    /// Name of the build script file used to build Function's implementation from source
-    #[serde(default)]
-    pub(crate) build_script: String,
+    /// Type of build used to compile Function's implementation to WASM from source
+    #[serde(default, rename = "type")]
+    pub(crate) build_type: String,
     /// The set of inputs this function has
     #[serde(default, rename = "input")]
     pub(crate) inputs: IOSet,
@@ -48,21 +49,45 @@ pub struct Function {
     #[serde(skip_deserializing)]
     pub(crate) alias: Name,
     /// `source_url` is where this function definition was read from
-    #[serde(skip_deserializing, default)]
-    pub(crate) source_url: String, // can be a relative path with no scheme etc so can't be a Url
+    #[serde(skip_deserializing, default = "Function::default_url")]
+    pub(crate) source_url: Url,
     /// the `route` in the flow hierarchy where this function is located
     #[serde(skip_deserializing)]
     pub(crate) route: Route,
+    /// Implementation is the relative path from the lib root to the compiled wasm implementation
+    #[serde(skip_deserializing)]
+    pub(crate) implementation: String,
     /// Is the function being used part of a library and where is it found
     #[serde(skip_deserializing)]
     pub(crate) lib_reference: Option<String>,
-
     #[serde(skip_deserializing)]
     pub(crate) output_connections: Vec<OutputConnection>,
     #[serde(skip_deserializing)]
     pub(crate) id: usize,
     #[serde(skip_deserializing)]
     pub(crate) flow_id: usize,
+}
+
+impl Default for Function {
+    fn default() -> Self {
+        Function {
+            name: Default::default(),
+            impure: false,
+            source: "".to_string(),
+            docs: "".to_string(),
+            build_type: "".to_string(),
+            inputs: vec![],
+            outputs: vec![],
+            alias: Default::default(),
+            source_url: Function::default_url(),
+            route: Default::default(),
+            implementation: "".to_string(),
+            lib_reference: None,
+            output_connections: vec![],
+            id: 0,
+            flow_id: 0,
+        }
+    }
 }
 
 impl HasName for Function {
@@ -84,17 +109,22 @@ impl HasRoute for Function {
 }
 
 impl Function {
+    fn default_url() -> Url {
+        #[allow(clippy::unwrap_used)]
+        Url::parse("file://").unwrap()
+    }
+
     /// Create a new function - used mainly for testing as Functions are usually deserialized
     #[allow(clippy::too_many_arguments)]
     #[cfg(test)]
     pub fn new(
         name: Name,
         impure: bool,
-        implementation: String,
+        source: String,
         alias: Name,
         inputs: IOSet,
         outputs: IOSet,
-        source_url: &str,
+        source_url: Url,
         route: Route,
         lib_reference: Option<String>,
         output_connections: Vec<OutputConnection>,
@@ -104,17 +134,19 @@ impl Function {
         Function {
             name,
             impure,
-            source: implementation,
+            source,
+            docs: String::default(),
             alias,
             inputs,
             outputs,
-            source_url: source_url.to_owned(),
+            source_url,
             route,
+            implementation: String::default(),
             lib_reference,
             output_connections,
             id,
             flow_id,
-            ..Default::default()
+            build_type: String::default(),
         }
     }
 
@@ -122,7 +154,7 @@ impl Function {
     #[allow(clippy::too_many_arguments)]
     pub fn config(
         &mut self,
-        source_url: &str,
+        source_url: &Url,
         parent_route: &Route,
         alias: &Name,
         flow_id: usize,
@@ -190,22 +222,33 @@ impl Function {
 
     /// Get a reference to the implementation of this function
     pub fn get_implementation(&self) -> &str {
+        &self.implementation
+    }
+
+    /// Set the implementation location of this function
+    pub fn set_implementation(&mut self, implementation: &str) {
+        self.implementation = implementation.to_owned();
+    }
+
+    /// Set the source field of the function
+    #[cfg(test)]
+    pub(crate) fn set_source(&mut self, source: &str) {
+        self.source = source.to_owned()
+    }
+
+    /// Get the name of the source file relative to the function definition
+    pub(crate) fn get_source(&self) -> &str {
         &self.source
     }
 
-    /// Set the implementation of this function
-    pub fn set_implementation(&mut self, implementation: &str) {
-        self.source = implementation.to_owned();
-    }
-
-    /// Get the source url where this function was defined
-    pub fn get_source_url(&self) -> &str {
+    /// Get the source url for the file where this function was defined
+    pub fn get_source_url(&self) -> &Url {
         &self.source_url
     }
 
     // Set the source url where this function is defined
-    fn set_source_url(&mut self, source: &str) {
-        self.source_url = source.to_owned();
+    fn set_source_url(&mut self, source: &Url) {
+        self.source_url = source.clone();
     }
 
     // Set the alias of this function
@@ -323,7 +366,6 @@ mod test {
         let fun = Function {
             name: Name::from("test_function"),
             alias: Name::from("test_function"),
-            source_url: String::default(),
             output_connections: vec![OutputConnection::new(
                 Output("test_function".into()),
                 0,

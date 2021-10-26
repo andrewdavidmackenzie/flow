@@ -1,4 +1,5 @@
 flow = "tokenizer"
+docs = "DESCRIPTION.md"
 
 [[process]] # Read a single line of inputs text into a stringn
 source = "lib://flowruntime/stdio/readline"

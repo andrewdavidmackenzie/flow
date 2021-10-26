@@ -1,7 +1,7 @@
 function = "enumerate"
 source = "enumerate.rs"
 docs = "enumerate.md"
-build_script = "Cargo.toml"
+type = "rust"
 
 [[input]]
 type = "Array/Number"          # e.g. ["a", "b"]

@@ -1,7 +1,7 @@
 function = "to_json"
 source = "to_json.rs"
 docs = "to_json.md"
-build_script = "Cargo.toml"
+type = "rust"
 
 [[input]]
 type = "String" # The String to convert

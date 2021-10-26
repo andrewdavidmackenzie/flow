@@ -1,4 +1,5 @@
 flow = "matrix_mult"
+docs = "DESCRIPTION.md"
 
 [[process]]
 source = "lib://flowruntime/stdio/readline"

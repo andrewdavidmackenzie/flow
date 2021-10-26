@@ -1,42 +1,39 @@
 #[cfg(feature = "debugger")]
 use std::collections::HashSet;
-use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::process::Command;
 use std::process::Stdio;
-use std::process::{Command, Output};
 
-use colored::Colorize;
 use log::{debug, info, warn};
 use simpath::{FileType, FoundType, Simpath};
 use tempdir::TempDir;
 use url::Url;
 
-use flowcore::url_helper::url_from_string;
-
+use crate::compiler::cargo_build;
 use crate::errors::*;
 use crate::model::function::Function;
 
-/// Compile a function provided in rust to wasm and modify implementation to point to new file
-/// Checks the timestamp of source and wasm files and only recompiles if wasm file is out of date
+/// Compile a function's implementation to wasm and modify implementation to point to the wasm file
+/// Checks the timestamps of the source and wasm files and only recompiles if wasm file is out of date
 pub fn compile_implementation(
+    out_dir: Option<&PathBuf>,
     function: &mut Function,
     skip_building: bool,
     #[cfg(feature = "debugger")] source_urls: &mut HashSet<(Url, Url)>,
 ) -> Result<(PathBuf, bool)> {
     let mut built = false;
 
-    let (implementation_path, wasm_destination) = get_paths(function)?;
+    let (source_path, wasm_destination) = get_paths(out_dir, function)?;
 
     #[cfg(feature = "debugger")]
     source_urls.insert((
-        Url::from_file_path(&implementation_path)
-            .map_err(|_| "Could not create Url from file path")?,
+        Url::from_file_path(&source_path).map_err(|_| "Could not create Url from file path")?,
         Url::from_file_path(&wasm_destination)
             .map_err(|_| "Could not create Url from file path")?,
     ));
 
-    let (missing, out_of_date) = out_of_date(&implementation_path, &wasm_destination)?;
+    let (missing, out_of_date) = out_of_date(&source_path, &wasm_destination)?;
 
     if missing || out_of_date {
         if skip_building {
@@ -48,19 +45,27 @@ pub fn compile_implementation(
                 info!(
                     "Implementation at '{}' is out of date with source at '{}'",
                     wasm_destination.display(),
-                    implementation_path.display()
+                    source_path.display()
                 );
             }
         } else {
-            run_cargo_build(&implementation_path, &wasm_destination)?;
+            match function.build_type.as_str() {
+                "rust" => cargo_build::run(&source_path, &wasm_destination)?,
+                _ => bail!(
+                    "Unknown build type '{}' for function at '{}'",
+                    function.build_type,
+                    function.source_url
+                ),
+            }
 
+            optimize_wasm_file_size(&wasm_destination)?;
             built = true;
         }
     } else {
         debug!(
             "wasm at '{}' is up-to-date with source at '{}'",
             wasm_destination.display(),
-            implementation_path.display()
+            source_path.display()
         );
     }
 
@@ -106,7 +111,7 @@ fn run_optional_command(wasm_path: &Path, command: &str, mut args: Vec<String>) 
             Some(0) | None => fs::rename(&temp_file_path, &wasm_path)?,
             Some(_) => bail!(format!(
                 "{} exited with non-zero status code",
-                command_path.to_string_lossy().to_string()
+                command_path.to_string_lossy()
             )),
         }
 
@@ -140,190 +145,19 @@ fn optimize_wasm_file_size(wasm_path: &Path) -> Result<()> {
 }
 
 /*
-   Check the command Output for an error and print details if it failed
-*/
-fn check_cargo_error(command: &str, args: Vec<&str>, output: Output) -> Result<()> {
-    match output.status.code() {
-        Some(0) | None => Ok(()),
-        Some(code) => {
-            println!(
-                "{}\n{}",
-                "Process STDOUT:".green(),
-                String::from_utf8_lossy(&output.stdout).green()
-            );
-            println!(
-                "{}\n{}",
-                "Process STDERR:".red(),
-                String::from_utf8_lossy(&output.stderr).red()
-            );
-            bail!(
-                "cargo exited with status code: {}\nCommand Line: {} {:?}",
-                code,
-                command,
-                args
-            )
-        }
-    }
-}
-
-fn cargo_test(manifest_path: PathBuf, build_dir: PathBuf) -> Result<()> {
-    let command = "cargo";
-
-    debug!("Build directory: '{}'", build_dir.display());
-
-    let manifest_arg = format!("--manifest-path={}", manifest_path.display());
-    let target_dir_arg = format!("--target-dir={}", build_dir.display());
-    let test_args = vec!["test", "--quiet", &manifest_arg, &target_dir_arg];
-
-    println!(
-        "   {} {} WASM Project",
-        "Testing".green(),
-        manifest_path.display()
-    );
-
-    debug!("Running command = '{}', args = {:?}", command, test_args);
-
-    let output = Command::new(&command)
-        .args(&test_args)
-        .stdin(Stdio::inherit())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .output()
-        .chain_err(|| "Error while attempting to spawn cargo to test WASM Project")?;
-
-    check_cargo_error(command, test_args, output)
-}
-
-/*
-   Run the cargo command that builds the WASM output file
-*/
-fn cargo_build(
-    manifest_path: PathBuf,
-    build_dir: PathBuf,
-    implementation_path: &Path,
-    wasm_destination: &Path,
-) -> Result<()> {
-    let command = "cargo";
-    let manifest = format!("--manifest-path={}", manifest_path.display());
-    let target_dir = format!("--target-dir={}", build_dir.display());
-
-    println!(
-        "   {} {} WASM project",
-        "Compiling".green(),
-        manifest_path.display()
-    );
-
-    debug!(
-        "Building WASM '{}' from source '{}'",
-        wasm_destination.display(),
-        implementation_path.display()
-    );
-
-    let command_args = vec![
-        "build",
-        "--quiet",
-        "--release",
-        "--lib",
-        "--target=wasm32-unknown-unknown",
-        &manifest,
-        &target_dir,
-    ];
-
-    debug!(
-        "Running command = '{}', command_args = {:?}",
-        command, command_args
-    );
-
-    let output = Command::new(&command)
-        .env_remove("RUSTFLAGS") // remove flags for coverage, incompatible with wasm build
-        .args(&command_args)
-        .stdin(Stdio::inherit())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .output()
-        .chain_err(|| "Error while attempting to spawn cargo to compile WASM")?;
-
-    check_cargo_error(command, command_args, output)?;
-
-    // no error occurred, so move the built files to final destination and clean-up
-    let mut wasm_filename = implementation_path.to_path_buf();
-    wasm_filename.set_extension("wasm");
-    let mut wasm_build_location = build_dir.clone();
-    wasm_build_location.push("wasm32-unknown-unknown/release/");
-    wasm_build_location.push(
-        wasm_filename
-            .file_name()
-            .ok_or("Could not convert filename to str")?,
-    );
-    optimize_wasm_file_size(&wasm_build_location)?;
-
-    // copy compiled wasm output into place where flow's toml file expects it
-    fs::copy(&wasm_build_location, &wasm_destination)
-        .chain_err(|| "Could not copy WASM to destination")?;
-
-    // clean up temp dir
-    fs::remove_dir_all(&build_dir).chain_err(|| {
-        format!(
-            "Could not remove temporary build directory '{}'",
-            build_dir.display()
-        )
-    })
-}
-/*
-    Run the cargo build to compile wasm from function source
-*/
-fn run_cargo_build(implementation_path: &Path, wasm_destination: &Path) -> Result<()> {
-    let mut cargo_manifest_path = implementation_path.to_path_buf();
-    cargo_manifest_path.set_file_name("Cargo.toml");
-    let build_dir = TempDir::new("flow")
-        .chain_err(|| "Error creating new TempDir for compiling in")?
-        .into_path();
-
-    cargo_test(cargo_manifest_path.clone(), build_dir.clone())?;
-    cargo_build(
-        cargo_manifest_path,
-        build_dir,
-        implementation_path,
-        wasm_destination,
-    )
-}
-
-/*
    Calculate the paths to the source file of the implementation of the function to be compiled
-   and where to output the compiled wasm
-*/
-fn get_paths(function: &Function) -> Result<(PathBuf, PathBuf)> {
-    let cwd = env::current_dir().chain_err(|| "Could not get current working directory value")?;
-    let cwd_url = Url::from_directory_path(cwd)
-        .map_err(|_| "Could not form a Url for the current working directory")?;
+   and where to output the compiled wasm.
 
-    let function_source_url = url_from_string(&cwd_url, Some(function.get_source_url()))
-        .chain_err(|| "Could not create a url from source url")?;
-    let implementation_source_url = function_source_url.join(function.get_implementation())?;
+   out_dir optionally overrides the destination directory where the wasm should end up
+*/
+fn get_paths(_out_dir: Option<&PathBuf>, function: &Function) -> Result<(PathBuf, PathBuf)> {
+    let implementation_source_url = function.get_source_url().join(function.get_source())?;
 
     let implementation_source_path = implementation_source_url
         .to_file_path()
         .map_err(|_| "Could not convert source url to file path")?;
-    if implementation_source_path
-        .extension()
-        .ok_or("No file extension on source file")?
-        .to_str()
-        .ok_or("Could not convert file extension to String")?
-        != "rs"
-    {
-        bail!(
-            "Source file at '{}' does not have a '.rs' extension",
-            implementation_source_path.display()
-        );
-    }
 
-    if !implementation_source_path.exists() {
-        bail!(
-            "Source file at '{}' does not exist",
-            implementation_source_path.display()
-        );
-    }
-
+    // TODO make this the relative path from the lib root, but under out_dir
     let mut implementation_wasm_path = implementation_source_path.clone();
     implementation_wasm_path.set_extension("wasm");
 
@@ -489,15 +323,12 @@ mod test {
             "print".into(),
             vec![],
             vec![IO::new("String", Route::default())],
-            &format!(
-                "{}/{}",
-                Path::new(env!("CARGO_MANIFEST_DIR"))
-                    .parent()
-                    .expect("Error getting Manifest Dir")
-                    .display()
-                    .to_string(),
-                "flowc/tests/test-functions/stdio/stdout"
-            ),
+            Url::parse(&format!(
+                "file://{}/{}",
+                env!("CARGO_MANIFEST_DIR"),
+                "tests/test-functions/stdio/stdout"
+            ))
+            .expect("Could not create source Url"),
             Route::from("/flow0/stdout"),
             Some("tests/test-functions/stdio/stdout".to_string()),
             vec![OutputConnection::new(
@@ -521,7 +352,7 @@ mod test {
         let function = test_function();
 
         let (impl_source_path, impl_wasm_path) =
-            get_paths(&function).expect("Error in 'get_paths'");
+            get_paths(None, &function).expect("Error in 'get_paths'");
 
         assert_eq!(
             format!(
@@ -562,6 +393,7 @@ mod test {
         let mut source_urls = HashSet::<(Url, Url)>::new();
 
         let (wasm_destination, built) = super::compile_implementation(
+            None,
             &mut function,
             true,
             #[cfg(feature = "debugger")]
@@ -594,6 +426,7 @@ mod test {
         let mut source_urls = HashSet::<(Url, Url)>::new();
 
         let (wasm_destination, built) = super::compile_implementation(
+            None,
             &mut function,
             true,
             #[cfg(feature = "debugger")]
@@ -609,6 +442,7 @@ mod test {
     #[serial(stdio_wasm_compile)]
     fn test_compile_implementation() {
         let mut function = test_function();
+        function.build_type = "rust".into();
 
         let expected_output_wasm = Path::new(env!("CARGO_MANIFEST_DIR"))
             .parent()
@@ -620,6 +454,7 @@ mod test {
         let mut source_urls = HashSet::<(Url, Url)>::new();
 
         let (wasm_destination, built) = super::compile_implementation(
+            None,
             &mut function,
             false,
             #[cfg(feature = "debugger")]
@@ -647,6 +482,7 @@ mod test {
         let mut source_urls = HashSet::<(Url, Url)>::new();
 
         let (wasm_destination, built) = super::compile_implementation(
+            None,
             &mut function,
             false,
             #[cfg(feature = "debugger")]
@@ -662,12 +498,13 @@ mod test {
     #[serial(stdio_wasm_compile)]
     fn test_compile_implementation_invalid_paths() {
         let mut function = test_function();
-        function.source = "does_not_exist".into();
+        function.set_source("does_not_exist");
 
         #[cfg(feature = "debugger")]
         let mut source_urls = HashSet::<(Url, Url)>::new();
 
         assert!(super::compile_implementation(
+            None,
             &mut function,
             true,
             #[cfg(feature = "debugger")]

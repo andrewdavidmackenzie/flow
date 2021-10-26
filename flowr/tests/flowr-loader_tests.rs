@@ -250,7 +250,3 @@ fn unresolved_lib_functions_test() {
         .resolve_implementations(&mut manifest, &manifest_url, &provider)
         .is_err());
 }
-
-// TODO add a wasm provided implementation loading test
-
-// TODO add a wasm and native execution test
