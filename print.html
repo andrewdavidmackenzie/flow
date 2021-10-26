@@ -1317,7 +1317,7 @@ corresponding to is equal, greater than, greater than or equal, less than or les
 <pre><code class="language-toml">function = &quot;compare_switch&quot;
 source = &quot;compare_switch.rs&quot;
 docs = &quot;compare_switch.md&quot;
-build_script = &quot;Cargo.toml&quot;
+type = &quot;rust&quot;
 
 [[input]]
 name = &quot;left&quot; # - left hand input
@@ -1373,7 +1373,7 @@ source = &quot;lib://flowstdlib/control/compare_switch&quot;
 <pre><code class="language-toml">function = &quot;index&quot;
 source = &quot;index.rs&quot;
 docs = &quot;index.md&quot;
-build_script = &quot;Cargo.toml&quot;
+type = &quot;rust&quot;
 
 [[input]]
 name = &quot;value&quot; # - the stream of input values to select from
@@ -1412,7 +1412,10 @@ source = &quot;lib://flowstdlib/control/index&quot;
 used initializers to some inputs. </p>
 <h3 id="definition-8"><a class="header" href="#definition-8">Definition</a></h3>
 <pre><code class="language-toml">flow = &quot;index_f&quot;
-# A wrapper flow to simplify the use of the index function for standard use cases
+docs = &quot;index_f.md&quot;
+
+[metadata]
+description = &quot;A wrapper flow to simplify the use of the index function for standard use cases&quot;
 
 [[input]]
 name = &quot;value&quot;
@@ -1465,7 +1468,7 @@ source = &quot;lib://flowstdlib/control/index_f&quot;
 <pre><code class="language-toml">function = &quot;join&quot;
 source = &quot;join.rs&quot;
 docs = &quot;join.md&quot;
-build_script = &quot;Cargo.toml&quot;
+type = &quot;rust&quot;
 
 [[input]]
 name = &quot;data&quot; # - the data we wish to control the flow of
@@ -1488,7 +1491,7 @@ source = &quot;lib://flowstdlib/control/join&quot;
 <pre><code class="language-toml">function = &quot;route&quot;
 source = &quot;route.rs&quot;
 docs = &quot;route.md&quot;
-build_script = &quot;Cargo.toml&quot;
+type = &quot;rust&quot;
 
 [[input]]
 name = &quot;data&quot; # - the data flow we wish to control the flow if
@@ -1516,7 +1519,7 @@ source = &quot;lib://flowstdlib/control/route&quot;
 <pre><code class="language-toml">function = &quot;select&quot;
 source = &quot;select.rs&quot;
 docs = &quot;select.md&quot;
-build_script = &quot;Cargo.toml&quot;
+type = &quot;rust&quot;
 
 [[input]]
 name = &quot;i1&quot;
@@ -1548,7 +1551,7 @@ source = &quot;lib://flowstdlib/control/select&quot;
 <pre><code class="language-toml">function = &quot;tap&quot;
 source = &quot;tap.rs&quot;
 docs = &quot;tap.md&quot;
-build_script = &quot;Cargo.toml&quot;
+type = &quot;rust&quot;
 
 [[input]]
 name = &quot;data&quot; # - the data flow we wish to control the flow if
@@ -1573,7 +1576,7 @@ source = &quot;lib://flowstdlib/control/tap&quot;
 <pre><code class="language-toml">function = &quot;accumulate&quot;
 source = &quot;accumulate.rs&quot;
 docs = &quot;accumulate.md&quot;
-build_script = &quot;Cargo.toml&quot;
+type = &quot;rust&quot;
 
 [[input]]
 name = &quot;values&quot; # - The stream of input values to accumulate into an array
@@ -1609,7 +1612,7 @@ source = &quot;lib://flowstdlib/data/accumulate&quot;
 <pre><code class="language-toml">function = &quot;append&quot;
 source = &quot;append.rs&quot;
 docs = &quot;append.md&quot;
-build_script = &quot;Cargo.toml&quot;
+type = &quot;rust&quot;
 
 [[input]]
 name = &quot;s1&quot;
@@ -1633,7 +1636,7 @@ run, effectively buffering it until the downstream processs can accept it.</p>
 <pre><code class="language-toml">function = &quot;buffer&quot;
 source = &quot;buffer.rs&quot;
 docs = &quot;buffer.md&quot;
-build_script = &quot;Cargo.toml&quot;
+type = &quot;rust&quot;
 
 [[input]]
 type = &quot;Value&quot; # - the value to buffer
@@ -1652,7 +1655,7 @@ received on 'count' input and outputs new count on 'count' output</p>
 <pre><code class="language-toml">function = &quot;count&quot;
 source = &quot;count.rs&quot;
 docs = &quot;count.md&quot;
-build_script = &quot;Cargo.toml&quot;
+type = &quot;rust&quot;
 
 [[input]]
 name = &quot;data&quot; # the value to count and pass on
@@ -1680,7 +1683,7 @@ source = &quot;lib://flowstdlib/data/count&quot;
 <pre><code class="language-toml">function = &quot;duplicate&quot;
 source = &quot;duplicate.rs&quot;
 docs = &quot;duplicate.md&quot;
-build_script = &quot;Cargo.toml&quot;
+type = &quot;rust&quot;
 
 [[input]]
 name = &quot;value&quot; # - the value to duplicate
@@ -1703,7 +1706,7 @@ source = &quot;lib://flowstdlib/data/duplicate&quot;
 <pre><code class="language-toml">function = &quot;duplicate_rows&quot;
 source = &quot;duplicate_rows.rs&quot;
 docs = &quot;duplicate_rows.md&quot;
-build_script = &quot;Cargo.toml&quot;
+type = &quot;rust&quot;
 
 [[input]]
 type = &quot;Array/Array/Number&quot; # Input matrix
@@ -1725,7 +1728,7 @@ source = &quot;lib://flowstdlib/data/duplicate_rows&quot;
 <pre><code class="language-toml">function = &quot;info&quot;
 source = &quot;info.rs&quot;
 docs = &quot;info.md&quot;
-build_script = &quot;Cargo.toml&quot;
+type = &quot;rust&quot;
 
 [[input]] # - Input value
 
@@ -1751,7 +1754,7 @@ source = &quot;lib://flowstdlib/data/info&quot;
 <pre><code class="language-toml">function = &quot;multiply_row&quot;
 source = &quot;multiply_row.rs&quot;
 docs = &quot;multiply_row.md&quot;
-build_script = &quot;Cargo.toml&quot;
+type = &quot;rust&quot;
 
 [[input]]
 name = &quot;a&quot;
@@ -1774,7 +1777,7 @@ source = &quot;lib://flowstdlib/data/multiply_row&quot;
 <pre><code class="language-toml">function = &quot;remove&quot;
 source = &quot;remove.rs&quot;
 docs = &quot;remove.md&quot;
-build_script = &quot;Cargo.toml&quot;
+type = &quot;rust&quot;
 
 [[input]]
 name = &quot;value&quot; # - The value to remove from the array
@@ -1796,7 +1799,7 @@ source = &quot;lib://flowstdlib/data/remove&quot;
 <pre><code class="language-toml">function = &quot;sort&quot;
 source = &quot;sort.rs&quot;
 docs = &quot;sort.md&quot;
-build_script = &quot;Cargo.toml&quot;
+type = &quot;rust&quot;
 
 [[input]]
 type = &quot;Array/Number&quot;
@@ -1832,7 +1835,7 @@ they appear in the string.</p>
 <pre><code class="language-toml">function = &quot;split&quot;
 source = &quot;split.rs&quot;
 docs = &quot;split.md&quot;
-build_script = &quot;Cargo.toml&quot;
+type = &quot;rust&quot;
 
 [[input]]
 name = &quot;string&quot; # - the String to split
@@ -1876,7 +1879,7 @@ source = &quot;lib://flowstdlib/data/split&quot;
 <pre><code class="language-toml">function = &quot;transpose&quot;
 source = &quot;transpose.rs&quot;
 docs = &quot;transpose.md&quot;
-build_script = &quot;Cargo.toml&quot;
+type = &quot;rust&quot;
 
 [[input]]
 type = &quot;Array/Array/Number&quot;
@@ -1894,7 +1897,7 @@ source = &quot;lib://flowstdlib/data/transpose&quot;
 <pre><code class="language-toml">function = &quot;zip&quot;
 source = &quot;zip.rs&quot;
 docs = &quot;zip.md&quot;
-build_script = &quot;Cargo.toml&quot;
+type = &quot;rust&quot;
 
 [[input]]
 name = &quot;left&quot; # - the 'left' array
@@ -1920,7 +1923,7 @@ source = &quot;lib://flowstdlib/data/zip&quot;
 <pre><code class="language-toml">function = &quot;reverse&quot;
 source = &quot;reverse.rs&quot;
 docs = &quot;reverse.md&quot;
-build_script = &quot;Cargo.toml&quot;
+type = &quot;rust&quot;
 
 [[input]]
 type = &quot;String&quot; # The String to reverse
@@ -1943,7 +1946,7 @@ source = &quot;lib://flowstdlib/fmt/reverse&quot;
 <pre><code class="language-toml">function = &quot;to_json&quot;
 source = &quot;to_json.rs&quot;
 docs = &quot;to_json.md&quot;
-build_script = &quot;Cargo.toml&quot;
+type = &quot;rust&quot;
 
 [[input]]
 type = &quot;String&quot; # The String to convert
@@ -1961,7 +1964,7 @@ source = &quot;lib://flowstdlib/fmt/to_json&quot;
 <pre><code class="language-toml">function = &quot;to_string&quot;
 source = &quot;to_string.rs&quot;
 docs = &quot;to_string.md&quot;
-build_script = &quot;Cargo.toml&quot;
+type = &quot;rust&quot;
 
 [[input]]
 type = &quot;Value&quot;
@@ -1981,7 +1984,7 @@ source = &quot;lib://flowstdlib/fmt/to_string&quot;
 <pre><code class="language-toml">function = &quot;add&quot;
 source = &quot;add.rs&quot;
 docs = &quot;add.md&quot;
-build_script = &quot;Cargo.toml&quot;
+type = &quot;rust&quot;
 
 [[input]]
 name = &quot;i1&quot; # - first input of type `Number`
@@ -2005,7 +2008,7 @@ is equal, greater than, greater than or equal, less than or less than or equal.<
 <pre><code class="language-toml">function = &quot;compare&quot;
 source = &quot;compare.rs&quot;
 docs = &quot;compare.md&quot;
-build_script = &quot;Cargo.toml&quot;
+type = &quot;rust&quot;
 
 [[input]]
 name = &quot;left&quot; # - left hand input
@@ -2045,7 +2048,7 @@ source = &quot;lib://flowstdlib/math/compare&quot;
 <pre><code class="language-toml">function = &quot;divide&quot;
 source = &quot;divide.rs&quot;
 docs = &quot;divide.md&quot;
-build_script = &quot;Cargo.toml&quot;
+type = &quot;rust&quot;
 
 [[input]]
 name = &quot;dividend&quot; # - the number to be divided, of type `Number`
@@ -2081,7 +2084,7 @@ source = &quot;lib://flowstdlib/math/divide&quot;
 <pre><code class="language-toml">function = &quot;multiply&quot;
 source = &quot;multiply.rs&quot;
 docs = &quot;multiply.md&quot;
-build_script = &quot;Cargo.toml&quot;
+type = &quot;rust&quot;
 
 [[input]]
 name = &quot;i1&quot; # - one number, of type `Number`
@@ -2102,6 +2105,7 @@ source = &quot;lib://flowstdlib/math/multiply&quot;
 <p>Generate a sequence of numbers</p>
 <h3 id="definition-33"><a class="header" href="#definition-33">Definition</a></h3>
 <pre><code class="language-toml">flow = &quot;sequence&quot;
+docs = &quot;sequence.md&quot;
 
 # The number the sequence should start at
 [[input]]
@@ -2195,7 +2199,7 @@ source = &quot;lib://flowstdlib/math/sequence&quot;
 <pre><code class="language-toml">function = &quot;subtract&quot;
 source = &quot;subtract.rs&quot;
 docs = &quot;subtract.md&quot;
-build_script = &quot;Cargo.toml&quot;
+type = &quot;rust&quot;
 
 [[input]]
 name = &quot;i1&quot; # - first input of type `Number`
@@ -2218,7 +2222,7 @@ source = &quot;lib://flowstdlib/math/subtract&quot;
 <pre><code class="language-toml">function = &quot;sqrt&quot;
 source = &quot;sqrt.rs&quot;
 docs = &quot;sqrt.md&quot;
-build_script = &quot;Cargo.toml&quot;
+type = &quot;rust&quot;
 
 [[input]]
 type = &quot;Number&quot;
