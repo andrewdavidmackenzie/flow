@@ -105,6 +105,32 @@ pub fn build_lib(options: &Options, provider: &dyn Provider) -> Result<String> {
 }
 
 /*
+   Copy the source files for function or flow into the target directory
+*/
+fn copy_sources_to_target_dir(toml_path: &Path, target_dir: &Path, docs: &str) -> Result<()> {
+    // copy the definition toml to target directory
+    fs::copy(
+        &toml_path,
+        &target_dir.join(
+            toml_path
+                .file_name()
+                .ok_or("Could not get Toml file filename")?,
+        ),
+    )?;
+
+    // Copy any docs files to target directory
+    if !docs.is_empty() {
+        let docs_path = toml_path.with_file_name(docs);
+        fs::copy(
+            &docs_path,
+            &target_dir.join(docs_path.file_name().ok_or("Could not get docs filename")?),
+        )?;
+    }
+
+    Ok(())
+}
+
+/*
     Find all process definitions under the base_dir and if they provide an implementation, check if
     the wasm file is up-to-date with the source and if not compile it, and add them all to the
     manifest struct
@@ -173,25 +199,7 @@ fn compile_implementations(
                     .strip_prefix(output_dir)
                     .map_err(|_| "Could not calculate wasm_relative_path")?;
 
-                // copy Function definition toml to target directory
-                fs::copy(
-                    &toml_path,
-                    &target_dir.join(
-                        toml_path
-                            .file_name()
-                            .ok_or("Could not get Toml file filename")?,
-                    ),
-                )?;
-
-                // Copy any docs files to target directory
-                if !function.get_docs().is_empty() {
-                    let docs_path = toml_path.with_file_name(function.get_docs());
-                    fs::copy(
-                        &docs_path,
-                        &target_dir
-                            .join(docs_path.file_name().ok_or("Could not get docs filename")?),
-                    )?;
-                }
+                copy_sources_to_target_dir(&toml_path, &target_dir, function.get_docs())?;
 
                 lib_manifest
                     .add_locator(
@@ -214,25 +222,7 @@ fn compile_implementations(
                     }
                 }
 
-                // copy Flow definition toml to output directory
-                fs::copy(
-                    &toml_path,
-                    &target_dir.join(
-                        toml_path
-                            .file_name()
-                            .ok_or("Could not get Flow toml filename")?,
-                    ),
-                )?;
-
-                // Copy any docs files to target directory
-                if !flow.get_docs().is_empty() {
-                    let docs_path = toml_path.with_file_name(flow.get_docs());
-                    fs::copy(
-                        &docs_path,
-                        &target_dir
-                            .join(docs_path.file_name().ok_or("Could not get docs filename")?),
-                    )?;
-                }
+                copy_sources_to_target_dir(&toml_path, &target_dir, flow.get_docs())?;
             }
             Err(_) => debug!("Skipping file '{}'", url),
         }
