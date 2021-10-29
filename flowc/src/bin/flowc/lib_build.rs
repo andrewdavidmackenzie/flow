@@ -185,7 +185,6 @@ fn compile_implementations(
             &mut lib_manifest.source_urls,
         ) {
             Ok(FunctionProcess(ref mut function)) => {
-                // TODO move some of this abs/relative nonsense out of get_paths and in here
                 let (wasm_abs_path, built) = compile_wasm::compile_implementation(
                     &target_dir,
                     function,
