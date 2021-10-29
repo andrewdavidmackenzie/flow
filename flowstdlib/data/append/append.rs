@@ -1,7 +1,6 @@
-use serde_json::{json, Value};
-
 use flow_impl_derive::FlowImpl;
 use flowcore::{Implementation, RunAgain, RUN_AGAIN};
+use serde_json::{json, Value};
 
 #[derive(FlowImpl)]
 /// Append two strings
@@ -25,9 +24,8 @@ impl Implementation for Append {
 
 #[cfg(test)]
 mod test {
-    use serde_json::json;
-
     use flowcore::Implementation;
+    use serde_json::json;
 
     #[test]
     fn append_one_empty_string() {
@@ -70,6 +68,6 @@ mod test {
         let appender = super::Append {};
         let (result, run_again) = appender.run(&[s1, s2]);
         assert!(result.is_none());
-        assert_eq!(run_again, true);
+        assert!(run_again);
     }
 }

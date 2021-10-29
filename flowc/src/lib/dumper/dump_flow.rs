@@ -49,16 +49,16 @@ use super::dump_tables;
 /// ```
 pub fn dump_flow(
     flow: &Flow,
-    output_dir: &Path,
+    target_dir: &Path,
     provider: &dyn Provider,
     dump_files: bool,
     dot_files: bool,
 ) -> Result<()> {
     info!(
         "=== Dumper: Dumping flow hierarchy to '{}'",
-        output_dir.display()
+        target_dir.display()
     );
-    _dump_flow(flow, 0, output_dir, provider, dump_files, dot_files)?;
+    _dump_flow(flow, 0, target_dir, provider, dump_files, dot_files)?;
     info!("Dump complete");
     Ok(())
 }
@@ -106,7 +106,7 @@ pub fn generate_svgs(root_dir: &Path) -> Result<()> {
 fn _dump_flow(
     flow: &Flow,
     level: usize,
-    output_dir: &Path,
+    target_dir: &Path,
     provider: &dyn Provider,
     dump_files: bool,
     dot_files: bool,
@@ -131,15 +131,15 @@ fn _dump_flow(
 
     if dump_files {
         debug!("Dumping tables to {}", filename);
-        let mut writer = dump_tables::create_output_file(output_dir, filename, "dump")?;
+        let mut writer = dump_tables::create_output_file(target_dir, filename, "dump")?;
         writer.write_all(format!("\nLevel={}\n{}", level, flow).as_bytes())?;
     }
 
     if dot_files {
         debug!("Dumping dot file to {}", filename);
-        let mut writer = dump_tables::create_output_file(output_dir, filename, "dot")?;
+        let mut writer = dump_tables::create_output_file(target_dir, filename, "dot")?;
         info!("\tGenerating {}.dot, Use \"dotty\" to view it", filename);
-        dump_dot::write_flow_to_dot(flow, &mut writer, output_dir)?;
+        dump_dot::write_flow_to_dot(flow, &mut writer, target_dir)?;
     }
 
     // Dump sub-flows
@@ -148,7 +148,7 @@ fn _dump_flow(
             _dump_flow(
                 subflow,
                 level + 1,
-                output_dir,
+                target_dir,
                 provider,
                 dump_files,
                 dot_files,

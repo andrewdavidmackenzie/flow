@@ -71,9 +71,7 @@ test: install-flowc compile-flowstdlib
 	@cargo test $(features)
 
 .PHONY: clean
-clean: # TODO can remove the wasm and manifest cleans when done with this PR
-	@rm -f flowstdlib/manifest.*
-	@find . -name \*.wasm -exec rm -f {} \;
+clean:
 	@cargo clean
 
 .PHONY: trim-docs
@@ -85,6 +83,7 @@ trim-docs:
 	@find target/html -name .git | xargs rm -rf {}
 	@find target/html -name \*.toml | xargs rm -rf {}
 	@find target/html -name manifest.json | xargs rm -rf {}
+	@find target/html -name manifest.rs | xargs rm -rf {}
 	@find target/html -name test.err | xargs rm -rf {}
 	@find target/html -name test.input | xargs rm -rf {}
 	@find target/html -name test.arguments | xargs rm -rf {}

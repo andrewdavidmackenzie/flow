@@ -17,14 +17,14 @@ use crate::model::function::Function;
 /// Compile a function's implementation to wasm and modify implementation to point to the wasm file
 /// Checks the timestamps of the source and wasm files and only recompiles if wasm file is out of date
 pub fn compile_implementation(
-    out_dir: Option<&PathBuf>,
+    target_dir: &Path,
     function: &mut Function,
     skip_building: bool,
     #[cfg(feature = "debugger")] source_urls: &mut HashSet<(Url, Url)>,
 ) -> Result<(PathBuf, bool)> {
     let mut built = false;
 
-    let (source_path, wasm_destination) = get_paths(out_dir, function)?;
+    let (source_path, wasm_destination) = get_paths(target_dir, function)?;
 
     #[cfg(feature = "debugger")]
     source_urls.insert((
@@ -150,18 +150,17 @@ fn optimize_wasm_file_size(wasm_path: &Path) -> Result<()> {
 
    out_dir optionally overrides the destination directory where the wasm should end up
 */
-fn get_paths(_out_dir: Option<&PathBuf>, function: &Function) -> Result<(PathBuf, PathBuf)> {
-    let implementation_source_url = function.get_source_url().join(function.get_source())?;
+fn get_paths(target_dir: &Path, function: &Function) -> Result<(PathBuf, PathBuf)> {
+    let source_url = function.get_source_url().join(function.get_source())?;
 
-    let implementation_source_path = implementation_source_url
+    let source_path = source_url
         .to_file_path()
         .map_err(|_| "Could not convert source url to file path")?;
 
-    // TODO make this the relative path from the lib root, but under out_dir
-    let mut implementation_wasm_path = implementation_source_path.clone();
-    implementation_wasm_path.set_extension("wasm");
+    let mut wasm_path = target_dir.join(function.get_source());
+    wasm_path.set_extension("wasm");
 
-    Ok((implementation_source_path, implementation_wasm_path))
+    Ok((source_path, wasm_path))
 }
 
 /*
@@ -351,8 +350,13 @@ mod test {
     fn paths_test() {
         let function = test_function();
 
+        let target_dir = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .parent()
+            .expect("Could not get parent")
+            .join("flowc/tests/test-functions/stdio");
+
         let (impl_source_path, impl_wasm_path) =
-            get_paths(None, &function).expect("Error in 'get_paths'");
+            get_paths(&target_dir, &function).expect("Error in 'get_paths'");
 
         assert_eq!(
             format!(
@@ -392,8 +396,17 @@ mod test {
         #[cfg(feature = "debugger")]
         let mut source_urls = HashSet::<(Url, Url)>::new();
 
+        // Compile into the same source dir
+        let target_dir = function
+            .get_source_url()
+            .to_file_path()
+            .expect("Could not get file path for function source")
+            .parent()
+            .expect("Couldn't get directory where function defined")
+            .to_path_buf();
+
         let (wasm_destination, built) = super::compile_implementation(
-            None,
+            &target_dir,
             &mut function,
             true,
             #[cfg(feature = "debugger")]
@@ -425,8 +438,17 @@ mod test {
         #[cfg(feature = "debugger")]
         let mut source_urls = HashSet::<(Url, Url)>::new();
 
+        // Compile into the same source dir
+        let target_dir = function
+            .get_source_url()
+            .to_file_path()
+            .expect("Could not get file path for function source")
+            .parent()
+            .expect("Couldn't get directory where function defined")
+            .to_path_buf();
+
         let (wasm_destination, built) = super::compile_implementation(
-            None,
+            &target_dir,
             &mut function,
             true,
             #[cfg(feature = "debugger")]
@@ -453,8 +475,17 @@ mod test {
         #[cfg(feature = "debugger")]
         let mut source_urls = HashSet::<(Url, Url)>::new();
 
+        // Compile into the same source dir
+        let target_dir = function
+            .get_source_url()
+            .to_file_path()
+            .expect("Could not get file path for function source")
+            .parent()
+            .expect("Couldn't get directory where function defined")
+            .to_path_buf();
+
         let (wasm_destination, built) = super::compile_implementation(
-            None,
+            &target_dir,
             &mut function,
             false,
             #[cfg(feature = "debugger")]
@@ -481,8 +512,17 @@ mod test {
         #[cfg(feature = "debugger")]
         let mut source_urls = HashSet::<(Url, Url)>::new();
 
+        // Compile into the same source dir
+        let target_dir = function
+            .get_source_url()
+            .to_file_path()
+            .expect("Could not get file path for function source")
+            .parent()
+            .expect("Couldn't get directory where function defined")
+            .to_path_buf();
+
         let (wasm_destination, built) = super::compile_implementation(
-            None,
+            &target_dir,
             &mut function,
             false,
             #[cfg(feature = "debugger")]
@@ -503,8 +543,17 @@ mod test {
         #[cfg(feature = "debugger")]
         let mut source_urls = HashSet::<(Url, Url)>::new();
 
+        // Compile into the same source dir
+        let target_dir = function
+            .get_source_url()
+            .to_file_path()
+            .expect("Could not get file path for function source")
+            .parent()
+            .expect("Couldn't get directory where function defined")
+            .to_path_buf();
+
         assert!(super::compile_implementation(
-            None,
+            &target_dir,
             &mut function,
             true,
             #[cfg(feature = "debugger")]

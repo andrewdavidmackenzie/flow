@@ -55,14 +55,24 @@ fn check_root(flow: &Flow) -> bool {
 // For any function that provides an implementation - compile the source to wasm and modify the
 // implementation to indicate it is the wasm file
 fn compile_supplied_implementations(
+    _out_dir: &Path,
     tables: &mut GenerationTables,
     skip_building: bool,
     #[cfg(feature = "debugger")] source_urls: &mut HashSet<(Url, Url)>,
 ) -> Result<String> {
     for function in &mut tables.functions {
         if function.get_lib_reference().is_none() {
+            // calculate directory where we want compiled implementation to be left
+            let source_dir = function
+                .get_source_url()
+                .to_file_path()
+                .map_err(|_| "Could not get file path for function source")?
+                .parent()
+                .ok_or("Couldn't get directory where function defined")?
+                .to_path_buf();
+
             compile_wasm::compile_implementation(
-                None,
+                &source_dir,
                 function,
                 skip_building,
                 #[cfg(feature = "debugger")]
@@ -95,6 +105,7 @@ pub fn compile_and_execute_flow(options: &Options, provider: &dyn Provider) -> R
                 .chain_err(|| format!("Could not compile flow from '{}'", options.source_url))?;
 
             compile_supplied_implementations(
+                &options.output_dir,
                 &mut tables,
                 options.provided_implementations,
                 #[cfg(feature = "debugger")]

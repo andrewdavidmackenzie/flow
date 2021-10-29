@@ -28,7 +28,7 @@ pub fn get_manifest() -> Result<LibraryManifest> {
 
 /// Generate a manifest for the library in rust format for static linking into a runtime binary
 #[allow(clippy::unnecessary_wraps)]
-pub fn write(lib_manifest: &LibraryManifest, filename: &Path) -> Result<()> {
+pub fn write(lib_root: &Path, lib_manifest: &LibraryManifest, filename: &Path) -> Result<()> {
     // Create the file we will be writing to
     let mut manifest_file = File::create(&filename)?;
 
@@ -45,10 +45,12 @@ pub fn write(lib_manifest: &LibraryManifest, filename: &Path) -> Result<()> {
         modules.insert(module_name);
     }
 
-    // generate their pub mod statements
+    // generate their pub mod statements, specifying a path in the original source directory
     for module in modules {
         manifest_file.write_all(format!("\n/// functions from module '{}'", module).as_bytes())?;
-
+        manifest_file.write_all(
+            format!("\n#[path=\"{}/{}/mod.rs\"]", lib_root.display(), module).as_bytes(),
+        )?;
         manifest_file.write_all(format!("\npub mod {};\n", module).as_bytes())?;
     }
 

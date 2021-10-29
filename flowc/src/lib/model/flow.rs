@@ -196,6 +196,11 @@ impl Flow {
         }
     }
 
+    /// Get the name of any associated docs file
+    pub fn get_docs(&self) -> &str {
+        &self.docs
+    }
+
     /// Get a reference to the set of inputs this flow defines
     pub fn inputs(&self) -> &IOSet {
         &self.inputs

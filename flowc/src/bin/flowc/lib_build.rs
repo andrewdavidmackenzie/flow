@@ -1,10 +1,12 @@
+use std::fs;
+use std::path::Path;
+
 use colored::*;
 use glob::glob;
 use log::{debug, info};
 use simpath::Simpath;
 use url::Url;
 
-use flowclib::compiler::loader::load;
 use flowclib::compiler::loader::LibType::RustLib;
 use flowclib::compiler::{compile_wasm, rust_manifest};
 use flowclib::compiler::{json_manifest, loader};
@@ -33,8 +35,21 @@ pub fn build_lib(options: &Options, provider: &dyn Provider) -> Result<String> {
     let lib_url = Url::parse(&format!("lib://{}", metadata.name))?;
     let mut lib_manifest = LibraryManifest::new(lib_url, metadata);
 
-    let build_count = compile_implementations(options, &mut lib_manifest, provider, false)
-        .chain_err(|| "Could not compile implementations in library")?;
+    let lib_root_path = options
+        .source_url
+        .to_file_path()
+        .map_err(|_| "Could not convert Url to File path")?;
+
+    let build_count = compile_implementations(
+        &lib_root_path,
+        &options.output_dir,
+        options.dump,
+        options.graphs,
+        &mut lib_manifest,
+        provider,
+        false,
+    )
+    .chain_err(|| "Could not compile implementations in library")?;
 
     let manifest_json_file = json_manifest::manifest_filename(&options.output_dir);
     let json_manifest_exists = manifest_json_file.exists() && manifest_json_file.is_file();
@@ -82,7 +97,7 @@ pub fn build_lib(options: &Options, provider: &dyn Provider) -> Result<String> {
     if write_manifests {
         json_manifest::write(&lib_manifest, &manifest_json_file)?;
         if lib_type == RustLib {
-            rust_manifest::write(&lib_manifest, &manifest_rust_file)?;
+            rust_manifest::write(&lib_root_path, &lib_manifest, &manifest_rust_file)?;
         }
     }
 
@@ -95,24 +110,18 @@ pub fn build_lib(options: &Options, provider: &dyn Provider) -> Result<String> {
     manifest struct
 */
 fn compile_implementations(
-    options: &Options,
+    lib_root_path: &Path,
+    output_dir: &Path,
+    dump: bool,
+    graphs: bool,
     lib_manifest: &mut LibraryManifest,
     provider: &dyn Provider,
     skip_building: bool,
 ) -> Result<i32> {
-    let lib_root_path = options
-        .source_url
-        .to_file_path()
-        .map_err(|_| "Could not convert Url to File path")?;
-
-    let lib_root = lib_root_path
-        .to_str()
-        .ok_or("Could not convert Cow to &str")?;
-
     let mut build_count = 0;
     // Function implementations are described in .toml format and can be at multiple levels in
     // a library's directory structure.
-    let search_pattern = format!("{}/**/*.toml", lib_root);
+    let search_pattern = format!("{}/**/*.toml", &lib_root_path.display());
 
     debug!(
         "Searching for process definitions using search pattern: '{}'",
@@ -129,8 +138,21 @@ fn compile_implementations(
         })?;
         debug!("Trying to load library process from '{}'", url);
 
-        // Load the `FunctionProcess` definition from the found `.toml` file
-        match load(
+        // calculate the path of the files directory, relative to lib_root
+        let relative_dir = toml_path
+            .parent()
+            .ok_or("Could not get toml path parent dir")?
+            .strip_prefix(&lib_root_path)
+            .map_err(|_| "Could not calculate relative_dir")?;
+        // calculate the target directory for generating output using the relative path from the
+        // lib_root appended to the root of the output directory
+        let target_dir = output_dir.join(relative_dir);
+        if !target_dir.exists() {
+            fs::create_dir_all(&target_dir)?;
+        }
+
+        // Load the `FunctionProcess` or `FlowProcess` definition from the found `.toml` file
+        match loader::load(
             &url,
             provider,
             #[cfg(feature = "debugger")]
@@ -139,42 +161,77 @@ fn compile_implementations(
             Ok(FunctionProcess(ref mut function)) => {
                 // TODO move some of this abs/relative nonsense out of get_paths and in here
                 let (wasm_abs_path, built) = compile_wasm::compile_implementation(
-                    Some(&options.output_dir),
+                    &target_dir,
                     function,
                     skip_building,
                     #[cfg(feature = "debugger")]
                     &mut lib_manifest.source_urls,
                 )
                 .chain_err(|| "Could not compile supplied implementation to wasm")?;
-                let wasm_dir = wasm_abs_path
-                    .parent()
-                    .chain_err(|| "Could not get parent directory of wasm path")?;
 
-                let wasm_relative_path = wasm_abs_path.to_string_lossy().replace(lib_root, "");
-                let relative_dir = wasm_dir.to_string_lossy().replace(lib_root, "");
-                // TODO lib root
+                let wasm_relative_path = wasm_abs_path
+                    .strip_prefix(output_dir)
+                    .map_err(|_| "Could not calculate wasm_relative_path")?;
+
+                // copy Function definition toml to target directory
+                fs::copy(
+                    &toml_path,
+                    &target_dir.join(
+                        toml_path
+                            .file_name()
+                            .ok_or("Could not get Toml file filename")?,
+                    ),
+                )?;
+
+                // Copy any docs files to target directory
+                if !function.get_docs().is_empty() {
+                    let docs_path = toml_path.with_file_name(function.get_docs());
+                    fs::copy(
+                        &docs_path,
+                        &target_dir
+                            .join(docs_path.file_name().ok_or("Could not get docs filename")?),
+                    )?;
+                }
 
                 lib_manifest
-                    .add_locator(&wasm_relative_path, &relative_dir, function.name() as &str)
+                    .add_locator(
+                        &wasm_relative_path.to_string_lossy(),
+                        &relative_dir.to_string_lossy(),
+                        function.name() as &str,
+                    )
                     .chain_err(|| "Could not add entry to library manifest")?;
                 if built {
                     build_count += 1;
                 }
             }
             Ok(FlowProcess(ref mut flow)) => {
-                if options.dump || options.graphs {
-                    dump_flow::dump_flow(
-                        flow,
-                        &options.output_dir,
-                        provider,
-                        options.dump,
-                        options.graphs,
-                    )
-                    .chain_err(|| "Failed to dump flow's definition")?;
+                if dump || graphs {
+                    dump_flow::dump_flow(flow, &target_dir, provider, dump, graphs)
+                        .chain_err(|| "Failed to dump flow's definition")?;
 
-                    if options.graphs {
-                        dump_flow::generate_svgs(&options.output_dir)?;
+                    if graphs {
+                        dump_flow::generate_svgs(output_dir)?;
                     }
+                }
+
+                // copy Flow definition toml to output directory
+                fs::copy(
+                    &toml_path,
+                    &target_dir.join(
+                        toml_path
+                            .file_name()
+                            .ok_or("Could not get Flow toml filename")?,
+                    ),
+                )?;
+
+                // Copy any docs files to target directory
+                if !flow.get_docs().is_empty() {
+                    let docs_path = toml_path.with_file_name(flow.get_docs());
+                    fs::copy(
+                        &docs_path,
+                        &target_dir
+                            .join(docs_path.file_name().ok_or("Could not get docs filename")?),
+                    )?;
                 }
             }
             Err(_) => debug!("Skipping file '{}'", url),
