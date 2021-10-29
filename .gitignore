@@ -1,12 +1,7 @@
 **/.idea
 **/target
 **/*.iml
-**/*.dot
-**/*.dot.svg
-**/*.dump
 **/*.log
-**/manifest.json
 .crates.toml
-**/*.wasm
 **/*.rs.bk
 **/*.profraw

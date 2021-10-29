@@ -1,8 +1,7 @@
-use serde_json::value::Value::Number;
-use serde_json::Value;
-
 use flow_impl_derive::FlowImpl;
 use flowcore::{Implementation, RunAgain, RUN_AGAIN};
+use serde_json::value::Value::Number;
+use serde_json::Value;
 
 #[derive(FlowImpl)]
 /// Compare two input values and output a map of booleans depending on if the comparison
@@ -57,9 +56,8 @@ impl Implementation for Compare {
 
 #[cfg(test)]
 mod test {
-    use serde_json::{json, Value};
-
     use flowcore::Implementation;
+    use serde_json::{json, Value};
 
     use super::Compare;
 
@@ -143,7 +141,7 @@ mod test {
         for test in &get_tests() {
             let (output, again) = comparer.run(&get_inputs(test));
 
-            assert_eq!(true, again);
+            assert!(again);
 
             let outputs = output.unwrap();
 
@@ -163,7 +161,7 @@ mod test {
         let comparer = Compare {};
 
         let (output, again) = comparer.run(&[json!("hello"), json!(1.0)]);
-        assert_eq!(true, again);
+        assert!(again);
         assert_eq!(
             None, output,
             "Should not be able to compare different types"

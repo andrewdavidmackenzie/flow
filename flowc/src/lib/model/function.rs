@@ -180,6 +180,11 @@ impl Function {
         self.id
     }
 
+    /// Get the name of any associated docs file
+    pub fn get_docs(&self) -> &str {
+        &self.docs
+    }
+
     // Set the id of the low this function is a part of
     fn set_flow_id(&mut self, flow_id: usize) {
         self.flow_id = flow_id;

@@ -1,6 +1,8 @@
 **/manifest.json
 **/failed.output
-*.wasm
+**/*.wasm
+**/*.dot
+**/*.dump
 test.output
 test.err
 test.file
