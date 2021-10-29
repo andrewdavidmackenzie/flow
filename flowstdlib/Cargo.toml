@@ -2,7 +2,7 @@
 name = "flowstdlib"
 version = "0.40.0"
 authors = ["Andrew Mackenzie <andrew@mackenzie-serres.net>"]
-description = "The standard library of functions for 'flow' programs"
+description = "The standard library of functions and flows for 'flow' programs"
 license = "MIT"
 documentation = "https://github.com/andrewdavidmackenzie/flow/README.md"
 homepage = "http://andrewdavidmackenzie.github.io/flow/"
