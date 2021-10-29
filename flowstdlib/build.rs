@@ -22,7 +22,6 @@ fn main() -> io::Result<()> {
     //                      -l $dir to build library found in $manifest_dir
 
     let command_args = vec!["-v", "info", "-g", "-z", "-o", &out_dir, "-l", lib_root_dir];
-    //let command_args = vec!["-v", "info", "-g", "-z", "-l", lib_root_dir];
     println!("Running command: flowc {:?}", command_args);
 
     let flowc_child = command
