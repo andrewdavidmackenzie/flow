@@ -34,11 +34,6 @@ jobs:
     - name: SetupEnvVars
       run: echo "FLOW_LIB_PATH=$GITHUB_WORKSPACE,$GITHUB_WORKSPACE/flowr/src/lib" >> "$GITHUB_ENV"
 
-    - name: Install stable toolchain
-      uses: actions-rs/toolchain@v1
-      with:
-        components: clippy
-
     - name: InstallLinuxDependencies
       if: matrix.os == 'ubuntu-latest'
       run: sudo apt-get -y install libzmq3-dev binaryen
@@ -59,7 +54,6 @@ jobs:
     - name: Build-flowstdlib
       run: cargo build -p flowstdlib
 
-        # TODO Is component adding needed with the Install step at the start specifying clippy as a component?
     - name: Clippy
       run: |
         rustup component add clippy
