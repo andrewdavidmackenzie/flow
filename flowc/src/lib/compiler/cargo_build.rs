@@ -38,7 +38,7 @@ fn check_cargo_error(command: &str, args: Vec<&str>, output: Output) -> Result<(
 fn cargo_test(manifest_path: PathBuf, build_dir: PathBuf) -> Result<()> {
     let command = "cargo";
 
-    debug!("Build directory: '{}'", build_dir.display());
+    debug!("\t Cargo build directory: '{}'", build_dir.display());
 
     let manifest_arg = format!("--manifest-path={}", manifest_path.display());
     let target_dir_arg = format!("--target-dir={}", build_dir.display());
@@ -50,7 +50,7 @@ fn cargo_test(manifest_path: PathBuf, build_dir: PathBuf) -> Result<()> {
         manifest_path.display()
     );
 
-    debug!("Running command = '{}', args = {:?}", command, test_args);
+    debug!("\tRunning command = '{}', args = {:?}", command, test_args);
 
     let output = Command::new(&command)
         .args(&test_args)
@@ -83,7 +83,7 @@ fn cargo_build(
     );
 
     debug!(
-        "Building WASM '{}' from source '{}'",
+        "\tBuilding WASM '{}' from source '{}'",
         wasm_destination.display(),
         implementation_source_path.display()
     );
@@ -99,7 +99,7 @@ fn cargo_build(
     ];
 
     debug!(
-        "Running command = '{}', command_args = {:?}",
+        "\tRunning command = '{}', command_args = {:?}",
         command, command_args
     );
 
@@ -127,10 +127,13 @@ fn cargo_build(
     );
 
     // move compiled wasm output into destination location
+    debug!(
+        "\tMoving built wasm file from '{}' to '{}'",
+        &wasm_build_location.display(),
+        &wasm_destination.display()
+    );
     fs::rename(&wasm_build_location, &wasm_destination)
-        .chain_err(|| "Could not copy WASM to destination")?;
-
-    Ok(())
+        .chain_err(|| "Could not copy WASM to destination")
 }
 
 /// Run the cargo build to compile wasm from function source
