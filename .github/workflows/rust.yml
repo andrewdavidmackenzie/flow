@@ -18,7 +18,7 @@ jobs:
     strategy:
       matrix:
           os: [ ubuntu-latest, macos-latest ]
-          rust: [ nightly ]
+          rust: [ stable ]
 
     steps:
     - uses: actions/checkout@v2
@@ -34,11 +34,9 @@ jobs:
     - name: SetupEnvVars
       run: echo "FLOW_LIB_PATH=$GITHUB_WORKSPACE,$GITHUB_WORKSPACE/flowr/src/lib" >> "$GITHUB_ENV"
 
-    - name: Install latest nightly
+    - name: Install stable toolchain
       uses: actions-rs/toolchain@v1
       with:
-        toolchain: nightly
-        override: true
         components: clippy
 
     - name: InstallLinuxDependencies
@@ -61,6 +59,7 @@ jobs:
     - name: Build-flowstdlib
       run: cargo build -p flowstdlib
 
+        # TODO Is component adding needed with the Install step at the start specifying clippy as a component?
     - name: Clippy
       run: |
         rustup component add clippy
