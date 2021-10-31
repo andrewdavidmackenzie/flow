@@ -83,6 +83,7 @@ test: install-flowc compile-flowstdlib
 .PHONY: clean
 clean:
 	@cargo clean
+	@find . -name "*.wasm" | xargs rm -f
 
 .PHONY: trim-docs
 trim-docs:
