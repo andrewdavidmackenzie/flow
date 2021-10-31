@@ -123,7 +123,7 @@ impl LibraryManifest {
         .chain_err(|| "Could not form library Url to add to the manifest")?;
 
         debug!(
-            "Adding implementation to manifest: \n'{}'  --> '{}'",
+            "Adding implementation locator to lib manifest: \n'{}' -> '{}'",
             lib_reference, wasm_relative_path
         );
         self.locators.insert(
