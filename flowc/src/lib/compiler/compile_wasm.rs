@@ -197,10 +197,10 @@ fn out_of_date(source: &Path, derived: &Path) -> Result<(bool, bool)> {
 mod test {
     #[cfg(feature = "debugger")]
     use std::collections::HashSet;
-    use std::fs;
     use std::fs::{remove_file, write, File};
     use std::path::Path;
     use std::time::Duration;
+    use std::{env, fs};
 
     use serial_test::serial;
     use tempdir::TempDir;
@@ -354,10 +354,10 @@ mod test {
     fn paths_test() {
         let function = test_function();
 
-        let target_dir = Path::new(env!("CARGO_MANIFEST_DIR"))
-            .parent()
-            .expect("Could not get parent")
-            .join("flowc/tests/test-functions/stdio");
+        let target_dir = tempdir::TempDir::new("flow")
+            .expect("Could not create TempDir during testing")
+            .into_path();
+        let expected_output_wasm = target_dir.join("stdout.wasm");
 
         let (impl_source_path, impl_wasm_path) =
             get_paths(&target_dir, &function).expect("Error in 'get_paths'");
@@ -376,20 +376,7 @@ mod test {
                 .to_str()
                 .expect("Error converting path to str")
         );
-        assert_eq!(
-            format!(
-                "{}/{}",
-                Path::new(env!("CARGO_MANIFEST_DIR"))
-                    .parent()
-                    .expect("Error getting Manifest Dir")
-                    .display()
-                    .to_string(),
-                "flowc/tests/test-functions/stdio/stdout.wasm"
-            ),
-            impl_wasm_path
-                .to_str()
-                .expect("Error converting path to str")
-        );
+        assert_eq!(expected_output_wasm, impl_wasm_path);
     }
 
     #[test]
@@ -400,14 +387,10 @@ mod test {
         #[cfg(feature = "debugger")]
         let mut source_urls = HashSet::<(Url, Url)>::new();
 
-        // Compile into the same source dir
-        let target_dir = function
-            .get_source_url()
-            .to_file_path()
-            .expect("Could not get file path for function source")
-            .parent()
-            .expect("Couldn't get directory where function defined")
-            .to_path_buf();
+        let target_dir = tempdir::TempDir::new("flow")
+            .expect("Could not create TempDir during testing")
+            .into_path();
+        let expected_output_wasm = target_dir.join("stdout.wasm");
 
         let (wasm_destination, built) = super::compile_implementation(
             &target_dir,
@@ -419,13 +402,7 @@ mod test {
         .expect("compile_implementation() failed");
 
         assert!(!built);
-        assert_eq!(
-            Path::new(env!("CARGO_MANIFEST_DIR"))
-                .parent()
-                .expect("Error getting Manifest Dir")
-                .join("flowc/tests/test-functions/stdio/stdout.wasm"),
-            wasm_destination
-        );
+        assert_eq!(expected_output_wasm, wasm_destination);
     }
 
     #[test]
@@ -433,23 +410,14 @@ mod test {
     fn test_compile_implementation_skip_missing() {
         let mut function = test_function();
 
-        let expected_output_wasm = Path::new(env!("CARGO_MANIFEST_DIR"))
-            .parent()
-            .expect("Error getting Manifest Dir")
-            .join("flowc/tests/test-functions/stdio/stdout.wasm");
+        let target_dir = tempdir::TempDir::new("flow")
+            .expect("Could not create TempDir during testing")
+            .into_path();
+        let expected_output_wasm = target_dir.join("stdout.wasm");
         let _ = fs::remove_file(&expected_output_wasm);
 
         #[cfg(feature = "debugger")]
         let mut source_urls = HashSet::<(Url, Url)>::new();
-
-        // Compile into the same source dir
-        let target_dir = function
-            .get_source_url()
-            .to_file_path()
-            .expect("Could not get file path for function source")
-            .parent()
-            .expect("Couldn't get directory where function defined")
-            .to_path_buf();
 
         let (wasm_destination, built) = super::compile_implementation(
             &target_dir,
@@ -470,23 +438,14 @@ mod test {
         let mut function = test_function();
         function.build_type = "rust".into();
 
-        let expected_output_wasm = Path::new(env!("CARGO_MANIFEST_DIR"))
-            .parent()
-            .expect("Error getting Manifest Dir")
-            .join("flowc/tests/test-functions/stdio/stdout.wasm");
+        let target_dir = tempdir::TempDir::new("flow")
+            .expect("Could not create TempDir during testing")
+            .into_path();
+        let expected_output_wasm = target_dir.join("stdout.wasm");
         let _ = fs::remove_file(&expected_output_wasm);
 
         #[cfg(feature = "debugger")]
         let mut source_urls = HashSet::<(Url, Url)>::new();
-
-        // Compile into the same source dir
-        let target_dir = function
-            .get_source_url()
-            .to_file_path()
-            .expect("Could not get file path for function source")
-            .parent()
-            .expect("Couldn't get directory where function defined")
-            .to_path_buf();
 
         let (wasm_destination, built) = super::compile_implementation(
             &target_dir,
@@ -506,24 +465,16 @@ mod test {
     fn test_compile_implementation_not_needed() {
         let mut function = test_function();
 
-        let expected_output_wasm = Path::new(env!("CARGO_MANIFEST_DIR"))
-            .parent()
-            .expect("Error getting Manifest Dir")
-            .join("flowc/tests/test-functions/stdio/stdout.wasm");
+        let target_dir = tempdir::TempDir::new("flow")
+            .expect("Could not create TempDir during testing")
+            .into_path();
+        let expected_output_wasm = target_dir.join("stdout.wasm");
+
         let _ = fs::remove_file(&expected_output_wasm);
         write(&expected_output_wasm, b"file touched during testing")
             .expect("Could not write to file during testing");
         #[cfg(feature = "debugger")]
         let mut source_urls = HashSet::<(Url, Url)>::new();
-
-        // Compile into the same source dir
-        let target_dir = function
-            .get_source_url()
-            .to_file_path()
-            .expect("Could not get file path for function source")
-            .parent()
-            .expect("Couldn't get directory where function defined")
-            .to_path_buf();
 
         let (wasm_destination, built) = super::compile_implementation(
             &target_dir,
@@ -547,14 +498,9 @@ mod test {
         #[cfg(feature = "debugger")]
         let mut source_urls = HashSet::<(Url, Url)>::new();
 
-        // Compile into the same source dir
-        let target_dir = function
-            .get_source_url()
-            .to_file_path()
-            .expect("Could not get file path for function source")
-            .parent()
-            .expect("Couldn't get directory where function defined")
-            .to_path_buf();
+        let target_dir = tempdir::TempDir::new("flow")
+            .expect("Could not create TempDir during testing")
+            .into_path();
 
         assert!(super::compile_implementation(
             &target_dir,
