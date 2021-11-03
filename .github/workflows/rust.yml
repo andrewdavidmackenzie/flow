@@ -17,9 +17,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-          os: [ macos-latest ]
-#          os: [ ubuntu-latest, macos-latest ]
-          rust: [ nightly ] # for support of -Z and coverage measurement
+          os: [ ubuntu-latest, macos-latest ]
+          rust: [ nightly ]
 
     steps:
     - uses: actions/checkout@v2
