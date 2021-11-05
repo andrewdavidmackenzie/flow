@@ -195,7 +195,6 @@ fn get(test_dir: &Path, file_name: &str) -> String {
 }
 
 fn execute_test(test_name: &str, search_path: Simpath, client_server: bool) {
-    // helper::set_lib_search_path()
     let mut root_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     root_dir.pop();
     let test_dir = root_dir.join(&format!("flowc/tests/test-flows/{}", test_name));

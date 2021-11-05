@@ -17,8 +17,6 @@ pub fn set_lib_search_path_to_project() -> Simpath {
     let runtime_parent = root_str.join("flowr/src/lib");
     lib_search_path.add_directory(runtime_parent.to_str().unwrap());
 
-    println!("{}", lib_search_path);
-
     lib_search_path
 }
 
