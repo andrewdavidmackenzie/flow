@@ -694,9 +694,9 @@ dependencies = [
 
 [[package]]
 name = "io-lifetimes"
-version = "0.3.2"
+version = "0.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6a872628aad062e2232a7e9fd7345677fc8246719518d15d150611067b78a877"
+checksum = "278e90d6f8a6c76a8334b336e306efa3c5f2b604048cbfd486d6f49878e3af14"
 dependencies = [
  "rustc_version",
  "winapi",
