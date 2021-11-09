@@ -20,23 +20,15 @@ pub struct WasmExecutor {
     memory: Memory,
     implementation: Func,
     alloc: Func,
-    source_url: Url,
 }
 
 impl WasmExecutor {
-    pub fn new(
-        store: Store<()>,
-        memory: Memory,
-        implementation: Func,
-        alloc: Func,
-        source_url: &Url,
-    ) -> Self {
+    pub fn new(store: Store<()>, memory: Memory, implementation: Func, alloc: Func) -> Self {
         WasmExecutor {
             store: Arc::new(Mutex::new(store)),
             memory,
             implementation,
             alloc,
-            source_url: source_url.clone(),
         }
     }
 
@@ -147,13 +139,7 @@ pub fn load(provider: &dyn Provider, source_url: &Url) -> Result<WasmExecutor> {
 
     info!("Loaded wasm module from: '{}'", source_url);
 
-    Ok(WasmExecutor::new(
-        store,
-        memory,
-        implementation,
-        alloc,
-        source_url,
-    ))
+    Ok(WasmExecutor::new(store, memory, implementation, alloc))
 }
 
 unsafe impl Send for WasmExecutor {}
