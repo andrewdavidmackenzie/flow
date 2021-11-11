@@ -91,7 +91,6 @@ fn cargo_build(
 
     let command_args = vec![
         "build",
-        "--quiet",
         "--release",
         "--lib",
         "--target=wasm32-unknown-unknown",
