@@ -76,6 +76,10 @@ build: install-flowc compile-flowstdlib
 clippy: install-flowc compile-flowstdlib
 	@cargo clippy -- -D warnings
 
+.PHONY: clippy-nightly
+clippy-nightly: install-flowc compile-flowstdlib
+	@cargo +nightly clippy -- -D warnings
+
 .PHONY: test
 test: install-flowc compile-flowstdlib
 	@cargo test $(features)
