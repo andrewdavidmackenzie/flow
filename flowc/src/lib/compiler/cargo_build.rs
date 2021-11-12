@@ -141,10 +141,17 @@ pub fn run(implementation_source_path: &Path, wasm_destination: &Path) -> Result
     let mut cargo_manifest_path = implementation_source_path.to_path_buf();
     cargo_manifest_path.set_file_name("Cargo.toml");
 
-    // Create a temp directory for building in
-    let build_dir = TempDir::new("flow")
-        .chain_err(|| "Error creating new TempDir for compiling in")?
-        .into_path();
+    // Create a temp directory for building in. To avoid the corner case where the TempDir
+    // maybe on another FS from the destination (preventing renaming) I create it under the
+    // destination directory - but it will be cleaned up when `build_dir` goes out of scope
+    let build_dir = TempDir::new_in(
+        wasm_destination
+            .parent()
+            .ok_or("Could not create temp dir for WASM building")?,
+        "flow",
+    )
+    .chain_err(|| "Error creating new TempDir for compiling in")?
+    .into_path();
 
     cargo_test(cargo_manifest_path.clone(), build_dir.clone())?;
     cargo_build(
