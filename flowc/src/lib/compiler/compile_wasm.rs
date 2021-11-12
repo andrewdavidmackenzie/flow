@@ -88,7 +88,12 @@ fn run_optional_command(wasm_path: &Path, command: &str, mut args: Vec<String>) 
     if let Ok(FoundType::File(command_path)) =
         Simpath::new("PATH").find_type(command, FileType::File)
     {
-        let tmp_dir = TempDir::new("wasm-opt")?;
+        let tmp_dir = TempDir::new_in(
+            wasm_path
+                .parent()
+                .ok_or("Could not create temp dir for running optional command")?,
+            "wasm-opt",
+        )?;
         let temp_file_path = tmp_dir
             .path()
             .join(wasm_path.file_name().ok_or("Could not get wasm filename")?);
