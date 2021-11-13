@@ -39,19 +39,17 @@ pub mod errors;
 fn main() {
     match run() {
         Err(ref e) => {
-            eprintln!("{}", e);
+            error!("{}", e);
 
             for e in e.iter().skip(1) {
-                eprintln!("caused by: {}", e);
+                error!("caused by: {}", e);
             }
 
-            // The backtrace is not always generated. Try to run this example
-            // with `RUST_BACKTRACE=1`.
             if let Some(backtrace) = e.backtrace() {
                 error!("backtrace: {:?}", backtrace);
             }
 
-            eprintln!("Exiting with status code = 1");
+            error!("Exiting with status code = 1");
             exit(1);
         }
         Ok(_) => exit(0),

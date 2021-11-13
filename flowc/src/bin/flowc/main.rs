@@ -117,7 +117,7 @@ fn run() -> Result<String> {
     } else {
         compile_and_execute_flow(&options, provider).chain_err(|| {
             format!(
-                "Could not compile and execute the flow '{}'",
+                "flowc could not compile and execute the flow '{}'",
                 &options.source_url
             )
         })
