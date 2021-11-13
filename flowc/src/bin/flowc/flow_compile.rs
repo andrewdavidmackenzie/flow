@@ -277,14 +277,17 @@ fn execute_flow(filepath: &Path, options: &Options) -> Result<String> {
         Some(code) => {
             error!("Execution of 'flowr' failed");
             error!(
-                "Process STDOUT:\n{}",
+                "flowr STDOUT:\n{}",
                 String::from_utf8_lossy(&flowr_output.stdout)
             );
             error!(
-                "Process STDERR:\n{}",
+                "flowr STDERR:\n{}",
                 String::from_utf8_lossy(&flowr_output.stderr)
             );
-            bail!("Exited with status code: {}", code)
+            bail!(
+                "Execution of flowr failed. Exited with status code: {}",
+                code
+            )
         }
         None => Ok("No return code - ignoring".to_string()),
     }
