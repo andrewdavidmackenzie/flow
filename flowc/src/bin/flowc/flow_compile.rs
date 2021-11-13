@@ -238,7 +238,7 @@ fn execute_flow(filepath: &Path, options: &Options) -> Result<String> {
         command_args.push("--".to_string());
         command_args.append(&mut options.flow_args.to_vec());
     }
-    println!("Running flow using '{} {:?}'", &command, &command_args);
+    info!("Running flow using '{} {:?}'", &command, &command_args);
 
     let mut flowr = Command::new(&command);
     flowr
