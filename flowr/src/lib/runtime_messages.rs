@@ -10,7 +10,7 @@ use crate::coordinator::Submission;
 use crate::metrics::Metrics;
 
 /// An Message sent from the runtime server to a runtime_client
-#[derive(Serialize, Deserialize, PartialEq, Debug)]
+#[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
 pub enum ServerMessage {
     /// A flow has started executing
     FlowStart,
@@ -82,7 +82,7 @@ unsafe impl Sync for ServerMessage {}
 
 /// A simple struct with File MetaData for passing from Client to Server - std::fs::MetaData
 /// Doesn't Serialize/Deserialize etc.
-#[derive(Serialize, Deserialize, PartialEq, Debug)]
+#[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
 pub struct FileMetaData {
     /// Was the Path inspected a file or not
     pub is_file: bool,
@@ -91,7 +91,7 @@ pub struct FileMetaData {
 }
 
 /// A Message from the a runtime_client to the runtime server
-#[derive(Serialize, Deserialize, PartialEq, Debug)]
+#[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
 pub enum ClientMessage {
     /// Simple acknowledgement
     Ack,

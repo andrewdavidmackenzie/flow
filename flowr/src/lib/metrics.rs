@@ -6,7 +6,7 @@ use log::debug;
 use serde_derive::{Deserialize, Serialize};
 
 /// `Metrics` stacks a number of statistics on flow execution while being executed
-#[derive(Serialize, Deserialize, PartialEq, Debug)]
+#[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
 pub struct Metrics {
     num_functions: usize,
     jobs_created: usize,
