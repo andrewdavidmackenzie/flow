@@ -48,7 +48,7 @@ pub enum Mode {
 
 /// A `Submission` is the struct used to send a flow to the Coordinator for execution. It contains
 /// all the information necessary to execute it:
-#[derive(Serialize, Deserialize, PartialEq, Debug)]
+#[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
 pub struct Submission {
     /// The URL where the manifest of the flow to execute can be found
     manifest_url: Url,
@@ -171,13 +171,16 @@ impl Coordinator {
         num_threads: usize,
         lib_search_path: Simpath,
         #[cfg(feature = "native")] native: bool,
-        runtime_port: Option<u16>,
-        #[cfg(feature = "debugger")] debug_port: Option<u16>,
+        runtime_server_connection: ServerConnection<ServerMessage, ClientMessage>,
+        #[cfg(feature = "debugger")] debug_server_connection: ServerConnection<
+            DebugServerMessage,
+            DebugClientMessage,
+        >,
     ) -> Result<()> {
         let mut coordinator = Coordinator::new(
-            ServerConnection::new(RUNTIME_SERVICE_NAME, runtime_port)?,
+            runtime_server_connection,
             #[cfg(feature = "debugger")]
-            ServerConnection::new(DEBUG_SERVICE_NAME, debug_port)?,
+            debug_server_connection,
             num_threads,
         );
 

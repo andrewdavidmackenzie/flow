@@ -2,7 +2,7 @@
 pub mod test {
     use std::sync::{Arc, Mutex};
 
-    use crate::client_server::{ClientConnection, ServerConnection};
+    use crate::client_server::{ClientConnection, ServerConnection, ServerInfo};
     use crate::coordinator::RUNTIME_SERVICE_NAME;
     use crate::runtime_messages::{ClientMessage, ServerMessage};
 
@@ -15,9 +15,10 @@ pub mod test {
                 .expect("Could not create server connection"),
         ));
 
-        let client_connection =
-            ClientConnection::<ServerMessage, ClientMessage>::new(RUNTIME_SERVICE_NAME, None)
-                .expect("Could not create ClientConnection");
+        let server_info = ServerInfo::new(None, RUNTIME_SERVICE_NAME);
+
+        let client_connection = ClientConnection::<ServerMessage, ClientMessage>::new(server_info)
+            .expect("Could not create ClientConnection");
 
         client_connection
             .send(ClientMessage::Ack)
