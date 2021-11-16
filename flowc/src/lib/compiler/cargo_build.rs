@@ -42,7 +42,7 @@ fn cargo_test(manifest_path: PathBuf, build_dir: PathBuf) -> Result<()> {
 
     let manifest_arg = format!("--manifest-path={}", manifest_path.display());
     let target_dir_arg = format!("--target-dir={}", build_dir.display());
-    let test_args = vec!["test", "--quiet", &manifest_arg, &target_dir_arg];
+    let test_args = vec!["test", &manifest_arg, &target_dir_arg];
 
     println!(
         "   {} {} WASM Project",
