@@ -1,6 +1,7 @@
 APTGET := $(shell command -v apt-get 2> /dev/null)
 ZMQ := $(shell brew ls --versions zmq 2> /dev/null)
 YUM := $(shell command -v yum 2> /dev/null)
+DNF := $(shell command -v dnf 2> /dev/null)
 BREW := $(shell command -v brew 2> /dev/null)
 ONLINE := $(shell ping -c 1 https://raw.githubusercontent.com 2> /dev/null)
 export SHELL := /bin/bash
@@ -18,6 +19,8 @@ all: clippy build test docs trim-docs
 config:
 	@echo "Installing clippy command using rustup"
 	@export PATH="$$PATH:~/.cargo/bin"
+	@echo "Installing nightly with rustup for clippy nightly and coverage measurement"
+	@rustup install nightly
 	@rustup --quiet component add clippy
 	@echo "Installing wasm32 target using rustup"
 	@rustup --quiet target add wasm32-unknown-unknown
@@ -30,11 +33,18 @@ ifneq ($(BREW),)
 	@echo "Installing Mac OS X specific dependencies using $(BREW)"
 	@brew install --quiet zmq graphviz binaryen
 endif
+ifneq ($(DNF),)
+	@echo "Installing linux specific dependencies using $(DNF)"
+	@echo "To build OpenSSL you need perl installed"
+	@sudo dnf install perl
+	@sudo dnf install curl-devel elfutils-libelf-devel elfutils-devel openssl openssl-devel binutils-devel || true
+	@sudo dnf install zeromq zeromq-devel graphviz binaryen || true
+endif
 ifneq ($(YUM),)
 	@echo "Installing linux specific dependencies using $(YUM)"
 	@echo "To build OpenSSL you need perl installed"
 	@sudo yum install perl
-	@sudo yum install curl-devel elfutils-libelf-devel elfutils-devel openssl-devel binutils-devel || true
+	@sudo yum install curl-devel elfutils-libelf-devel elfutils-devel openssl openssl-devel binutils-devel || true
 	@sudo yum install zeromq zeromq-devel graphviz binaryen || true
 endif
 ifneq ($(APTGET),)
