@@ -53,7 +53,6 @@ fn cargo_test(manifest_path: PathBuf, build_dir: PathBuf) -> Result<()> {
     debug!("\tRunning command = '{}', args = {:?}", command, test_args);
 
     let output = Command::new(&command)
-        .env_remove("RUSTFLAGS") // remove flags for coverage, incompatible with wasm build
         .args(&test_args)
         .stdin(Stdio::inherit())
         .stdout(Stdio::piped())
