@@ -88,6 +88,8 @@ fn run_optional_command(wasm_path: &Path, command: &str, mut args: Vec<String>) 
     if let Ok(FoundType::File(command_path)) =
         Simpath::new("PATH").find_type(command, FileType::File)
     {
+        // Create a temp directory for building in. Use `new_in` to make sure it is in the same FS as the destination so
+        // that fs::rename later works. It will be cleaned-up when `build_dir` goes out of scope.
         let tmp_dir = TempDir::new_in(
             wasm_path
                 .parent()

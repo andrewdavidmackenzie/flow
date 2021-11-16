@@ -53,7 +53,6 @@ fn cargo_test(manifest_path: PathBuf, build_dir: PathBuf) -> Result<()> {
     debug!("\tRunning command = '{}', args = {:?}", command, test_args);
 
     let output = Command::new(&command)
-        .env_remove("RUSTFLAGS") // remove flags for coverage, incompatible with wasm build
         .args(&test_args)
         .stdin(Stdio::inherit())
         .stdout(Stdio::piped())
@@ -133,7 +132,7 @@ fn cargo_build(
         &wasm_destination.display()
     );
     fs::rename(&wasm_build_location, &wasm_destination)
-        .chain_err(|| "Could not copy WASM to destination")
+        .chain_err(|| "Could not move WASM to destination")
 }
 
 /// Run the cargo build to compile wasm from function source
