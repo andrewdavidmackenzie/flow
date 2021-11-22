@@ -19,7 +19,7 @@ path = "src/lib/lib.rs"
 
 [features]
 #default = ["debugger", "native", "metrics", "checks", "distributed", "wasmtime_runtime"]
-default = ["debugger", "native", "metrics", "checks", "wasmtime_runtime"]
+default = ["native", "metrics", "checks", "wasmtime_runtime"]
 debugger = ["flowcore/debugger", "rustyline"] # feature to add the debugger, requires flowcore crate to have feature enabled also
 native = ["flowstdlib"]   # Load native implementations of functions in libraries when possible
 metrics = []  # feature for tracking of metrics during execution

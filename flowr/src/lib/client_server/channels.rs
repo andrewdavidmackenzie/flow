@@ -1,13 +1,13 @@
 use log::{info, trace};
-use serde::ser::Serialize;
 use serde::Deserialize;
+use serde::ser::Serialize;
 /// This is the channel-based implementation of the lib.client_server communications
 use std::fmt::Debug;
 use std::fmt::Display;
 use std::marker::PhantomData;
+use std::sync::{Arc, Mutex};
 use std::sync::mpsc;
 use std::sync::mpsc::{Receiver, Sender};
-use std::sync::{Arc, Mutex};
 
 use crate::errors::*;
 
@@ -31,7 +31,7 @@ where
     CM: Deserialize<'a>,
 {
     channels: (Arc<Mutex<Receiver<SM>>>, Sender<CM>),
-    phantom: PhantomData<&'a SM>,
+    phantom: PhantomData<&'a CM>,
 }
 
 impl<'a, SM, CM> ClientConnection<'a, SM, CM>
