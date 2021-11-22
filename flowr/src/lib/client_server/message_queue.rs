@@ -6,8 +6,8 @@ use std::time::Duration;
 use log::{info, trace};
 use portpicker::pick_unused_port;
 use simpdiscoverylib::{BeaconListener, BeaconSender};
+use zmq::{DONTWAIT, Message};
 use zmq::Socket;
-use zmq::{Message, DONTWAIT};
 
 use crate::errors::*;
 
@@ -39,14 +39,14 @@ impl<'a, SM, CM> ServerInfo<'a, SM, CM> {
 }
 /// `ClientConnection` stores information related to the connection from a runtime client
 /// to the runtime server and is used each time a message is to be sent or received.
-pub struct ClientConnection<'a, SM, CM> {
+pub struct ClientConnection<SM, CM> {
     port: u16,
     requester: Socket,
-    phantom: PhantomData<&'a SM>,
-    phantom2: PhantomData<&'a CM>,
+    phantom: PhantomData<SM>,
+    phantom2: PhantomData<CM>,
 }
 
-impl<'a, SM, CM> ClientConnection<'a, SM, CM>
+impl<SM, CM> ClientConnection<SM, CM>
 where
     SM: From<Message> + Display,
     CM: Into<Message> + Display,

@@ -18,13 +18,16 @@ use url::Url;
 use errors::*;
 use flowcore::url_helper::url_from_string;
 use flowrlib::client_server::{ClientConnection, ServerConnection, ServerInfo};
+use flowrlib::coordinator::{Coordinator, RUNTIME_SERVICE_NAME, Submission};
+#[cfg(feature = "debugger")]
+use flowrlib::coordinator::DEBUG_SERVICE_NAME;
 #[cfg(feature = "distributed")]
 use flowrlib::coordinator::Mode;
-use flowrlib::coordinator::{Coordinator, Submission, DEBUG_SERVICE_NAME, RUNTIME_SERVICE_NAME};
+#[cfg(feature = "debugger")]
 use flowrlib::debug_messages::{DebugClientMessage, DebugServerMessage};
 use flowrlib::info as flowrlib_info;
-use flowrlib::runtime_messages::ClientMessage::ClientSubmission;
 use flowrlib::runtime_messages::{ClientMessage, ServerMessage};
+use flowrlib::runtime_messages::ClientMessage::ClientSubmission;
 
 #[cfg(feature = "debugger")]
 use crate::cli_debug_client::CliDebugClient;
@@ -148,6 +151,7 @@ fn run() -> Result<()> {
         lib_search_path,
         native,
         matches,
+        #[cfg(feature = "debugger")]
         debug_this_flow,
     )?;
 
@@ -187,6 +191,7 @@ fn client_and_server(
     lib_search_path: Simpath,
     native: bool,
     matches: ArgMatches,
+    #[cfg(feature = "debugger")]
     debug_this_flow: bool,
 ) -> Result<()> {
     let runtime_server_connection = ServerConnection::new(RUNTIME_SERVICE_NAME, None)?;
@@ -265,7 +270,12 @@ fn client(
     matches: ArgMatches,
     #[cfg(feature = "debugger")] debug_this_flow: bool,
     runtime_server_info: ServerInfo<ServerMessage, ClientMessage>,
-    #[cfg(feature = "debugger")] debug_server_info: ServerInfo<
+    #[cfg(all(feature = "debugger", not(feature = "distributed")))] debug_server_info: ServerInfo<
+        'static,
+        DebugServerMessage,
+        DebugClientMessage,
+    >,
+    #[cfg(all(feature = "debugger", feature = "distributed"))] debug_server_info: ServerInfo<
         DebugServerMessage,
         DebugClientMessage,
     >,
@@ -310,7 +320,10 @@ fn client(
     info!("Client sending submission to server");
     runtime_connection.send(ClientSubmission(submission))?;
 
+    #[cfg(feature = "debugger")]
     runtime_client.event_loop(control_c, runtime_connection)?;
+    #[cfg(not(feature = "debugger"))]
+    runtime_client.event_loop(runtime_connection)?;
 
     Ok(())
 }
