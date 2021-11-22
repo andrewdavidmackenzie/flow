@@ -93,7 +93,7 @@ fn run_optional_command(wasm_path: &Path, command: &str, mut args: Vec<String>) 
         let tmp_dir = TempDir::new_in(
             wasm_path
                 .parent()
-                .ok_or("Could not create temp dir for running optional command")?,
+                .ok_or("Could not get destination directory to create TempDir in")?,
             "wasm-opt",
         )?;
         let temp_file_path = tmp_dir
