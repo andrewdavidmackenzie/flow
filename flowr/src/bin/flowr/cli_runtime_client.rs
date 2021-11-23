@@ -33,12 +33,9 @@ impl CliRuntimeClient {
     /// Enter a loop where we receive events as a client and respond to them
     pub fn event_loop(
         mut self,
-        #[cfg(all(feature = "debugger", not(feature = "distributed")))] control_c_connection: Option<
+        #[cfg(feature = "debugger")] control_c_connection: Option<
             ClientConnection<'static, ServerMessage, ClientMessage>,
         >,
-        #[cfg(all(feature = "debugger", feature = "distributed"))] control_c_connection: Option<
-                ClientConnection<ServerMessage, ClientMessage>,
-            >,
         connection: ClientConnection<ServerMessage, ClientMessage>,
     ) -> Result<()> {
         #[cfg(feature = "debugger")]
@@ -68,8 +65,7 @@ impl CliRuntimeClient {
 
     #[cfg(feature = "debugger")]
     fn enter_debugger_on_control_c(
-        #[cfg(all(feature = "debugger", not(feature = "distributed")))] control_c_connection: ClientConnection<'static, ServerMessage, ClientMessage>,
-        #[cfg(all(feature = "debugger", feature = "distributed"))] control_c_connection: ClientConnection<ServerMessage, ClientMessage>,
+        #[cfg(feature = "debugger")] control_c_connection: ClientConnection<'static, ServerMessage, ClientMessage>,
     ) {
         ctrlc::set_handler(move || {
             info!("Control-C captured in client.");

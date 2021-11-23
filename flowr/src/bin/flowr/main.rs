@@ -141,6 +141,7 @@ fn run() -> Result<()> {
             lib_search_path,
             native,
             matches,
+            #[cfg(feature = "debugger")]
             debug_this_flow,
         )?,
     }
@@ -159,7 +160,9 @@ fn run() -> Result<()> {
 }
 
 /*
-   Only start a server - by running a Coordinator in the calling thread
+   Only start a server - by running a Coordinator in the calling thread.
+
+   Client and Server can only run and be started separately using the "distributed" feature
 */
 #[cfg(feature = "distributed")]
 fn server_only(num_threads: usize, lib_search_path: Simpath, native: bool) -> Result<()> {
@@ -202,16 +205,6 @@ fn client_and_server(
     #[cfg(feature = "debugger")]
     let debug_server_info = debug_server_connection.get_server_info();
 
-    // TODO moved here before starting thread
-    client(
-        matches,
-        #[cfg(feature = "debugger")]
-        debug_this_flow,
-        runtime_server_info,
-        #[cfg(feature = "debugger")]
-        debug_server_info,
-    )?;
-
     std::thread::spawn(move || {
         info!("Starting 'flowr' server in background thread");
         let _ = Coordinator::start(
@@ -226,6 +219,15 @@ fn client_and_server(
         info!("'flowr' server thread has exited");
     });
 
+    client(
+        matches,
+        #[cfg(feature = "debugger")]
+            debug_this_flow,
+        runtime_server_info,
+        #[cfg(feature = "debugger")]
+            debug_server_info,
+    )?;
+
     Ok(())
 }
 
@@ -233,6 +235,8 @@ fn client_and_server(
    Start only a client in the calling thread. Since we are *only* starting a client in this
    process, we don't have server information, so we create a set of ServerInfo from command
    line options for the server address and known service names and ports.
+
+    Client and Server can only run and be started separately using the "distributed" feature
 */
 #[cfg(feature = "distributed")]
 fn client_only(
@@ -257,8 +261,10 @@ fn client_only(
 
     client(
         matches,
+        #[cfg(feature = "debugger")]
         debug_this_flow,
         runtime_server_info,
+        #[cfg(feature = "debugger")]
         debug_server_info,
     )
 }
@@ -270,12 +276,12 @@ fn client(
     matches: ArgMatches,
     #[cfg(feature = "debugger")] debug_this_flow: bool,
     runtime_server_info: ServerInfo<ServerMessage, ClientMessage>,
-    #[cfg(all(feature = "debugger", not(feature = "distributed")))] debug_server_info: ServerInfo<
+    #[cfg(all(feature = "debugger", not(feature="distributed")))] debug_server_info: ServerInfo<
         'static,
         DebugServerMessage,
         DebugClientMessage,
     >,
-    #[cfg(all(feature = "debugger", feature = "distributed"))] debug_server_info: ServerInfo<
+    #[cfg(all(feature = "debugger", feature="distributed"))] debug_server_info: ServerInfo<
         DebugServerMessage,
         DebugClientMessage,
     >,
