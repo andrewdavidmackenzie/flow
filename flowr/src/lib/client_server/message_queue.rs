@@ -15,20 +15,20 @@ const FLOW_SERVICE_NAME: &str = "_flowr._tcp.local";
 
 /// Structure that holds information about the Server to help clients connect to it
 #[derive(Clone)]
-pub struct ServerInfo<'a, SM, CM> {
+pub struct ServerInfo<SM, CM> {
     /// Optional tuple of Server hostname and port to connect to
     pub hostname_and_port: Option<(String, u16)>,
     /// Name of the server service name to connect to
     pub name: String,
     /// Phantom data makes sure we use the generic type for SM
-    pub phantom: PhantomData<&'a SM>,
+    pub phantom: PhantomData<SM>,
     /// Phantom data makes sure we use the generic type for CM
-    pub phantom2: PhantomData<&'a CM>,
+    pub phantom2: PhantomData<CM>,
 }
 
-impl<'a, SM, CM> ServerInfo<'a, SM, CM> {
+impl<SM, CM> ServerInfo<SM, CM> {
     /// Create a new ServerInfo struct
-    pub fn new(hostname_and_port: Option<(String, u16)>, name: &'a str) -> Self {
+    pub fn new(hostname_and_port: Option<(String, u16)>, name: &str) -> Self {
         ServerInfo {
             hostname_and_port,
             name: name.into(),
@@ -39,14 +39,14 @@ impl<'a, SM, CM> ServerInfo<'a, SM, CM> {
 }
 /// `ClientConnection` stores information related to the connection from a runtime client
 /// to the runtime server and is used each time a message is to be sent or received.
-pub struct ClientConnection<SM, CM> {
+pub struct ClientConnection<'a, SM, CM> {
     port: u16,
     requester: Socket,
-    phantom: PhantomData<SM>,
+    phantom: PhantomData<&'a SM>,
     phantom2: PhantomData<CM>,
 }
 
-impl<SM, CM> ClientConnection<SM, CM>
+impl<'a, SM, CM> ClientConnection<'a, SM, CM>
 where
     SM: From<Message> + Display,
     CM: Into<Message> + Display,

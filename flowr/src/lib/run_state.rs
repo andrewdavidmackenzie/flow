@@ -1,5 +1,5 @@
-use std::collections::VecDeque;
 use std::collections::{HashMap, HashSet};
+use std::collections::VecDeque;
 use std::fmt;
 use std::time::Duration;
 
@@ -1112,10 +1112,10 @@ mod test {
     use serde_json::Value;
 
     use flowcore::function::Function;
+    use flowcore::Implementation;
     use flowcore::input::Input;
     use flowcore::input::InputInitializer::Once;
     use flowcore::output_connection::{OutputConnection, Source};
-    use flowcore::Implementation;
 
     use super::Job;
 
@@ -1141,14 +1141,11 @@ mod test {
             0,
             false,
             "/fB".to_string(),
-            #[cfg(feature = "debugger")]
             String::default(),
         );
 
         Function::new(
-            #[cfg(feature = "debugger")]
             "fA",
-            #[cfg(feature = "debugger")]
             "/fA",
             "file://fake/test",
             vec![Input::new(&None)],
@@ -1168,13 +1165,10 @@ mod test {
             0,
             false,
             "/fB".to_string(),
-            #[cfg(feature = "debugger")]
             String::default(),
         );
         Function::new(
-            #[cfg(feature = "debugger")]
             "fA",
-            #[cfg(feature = "debugger")]
             "/fA",
             "file://fake/test",
             vec![Input::new(&Some(Once(json!(1))))],
@@ -1187,9 +1181,7 @@ mod test {
 
     fn test_function_a_init() -> Function {
         Function::new(
-            #[cfg(feature = "debugger")]
             "fA",
-            #[cfg(feature = "debugger")]
             "/fA",
             "file://fake/test",
             vec![Input::new(&Some(Once(json!(1))))],
@@ -1202,9 +1194,7 @@ mod test {
 
     fn test_function_b_not_init() -> Function {
         Function::new(
-            #[cfg(feature = "debugger")]
             "fB",
-            #[cfg(feature = "debugger")]
             "/fB",
             "file://fake/test",
             vec![Input::new(&None)],
@@ -1217,9 +1207,7 @@ mod test {
 
     fn test_function_b_init() -> Function {
         Function::new(
-            #[cfg(feature = "debugger")]
             "fB",
-            #[cfg(feature = "debugger")]
             "/fB",
             "file://fake/test",
             vec![Input::new(&Some(Once(json!(1))))],
@@ -1239,7 +1227,6 @@ mod test {
             0,
             false,
             String::default(),
-            #[cfg(feature = "debugger")]
             String::default(),
         );
         Job {
@@ -1263,7 +1250,6 @@ mod test {
             0,
             false,
             String::default(),
-            #[cfg(feature = "debugger")]
             String::default(),
         );
         Job {
@@ -1279,8 +1265,10 @@ mod test {
     }
 
     mod general_run_state_tests {
+        #[cfg(feature = "debugger")]
         use std::collections::HashSet;
 
+        #[cfg(feature = "debugger")]
         use multimap::MultiMap;
         #[cfg(any(feature = "debugger", feature = "metrics"))]
         use url::Url;
@@ -1299,6 +1287,7 @@ mod test {
             let submission = Submission::new(
                 &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
                 1,
+                #[cfg(feature = "debugger")]
                 true,
             );
             let mut state = RunState::new(&functions, submission);
@@ -1316,6 +1305,7 @@ mod test {
             let submission = Submission::new(
                 &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
                 1,
+                #[cfg(feature = "debugger")]
                 true,
             );
             let state = RunState::new(&[], submission);
@@ -1405,8 +1395,8 @@ mod test {
         use flowcore::function::Function;
         use flowcore::input::Input;
         use flowcore::input::InputInitializer::{Always, Once};
-        use flowcore::output_connection::Source::Output;
         use flowcore::output_connection::{OutputConnection, Source};
+        use flowcore::output_connection::Source::Output;
 
         #[cfg(feature = "debugger")]
         use crate::client_server::ServerConnection;
@@ -1558,9 +1548,7 @@ mod test {
 
         fn test_function_a_not_init() -> Function {
             Function::new(
-                #[cfg(feature = "debugger")]
                 "fA",
-                #[cfg(feature = "debugger")]
                 "/fA",
                 "file://fake/test",
                 vec![Input::new(&None)],
@@ -1740,7 +1728,6 @@ mod test {
                 0,
                 false,
                 String::default(),
-                #[cfg(feature = "debugger")]
                 String::default(),
             );
             output.connections = vec![no_such_out_conn];
@@ -1809,9 +1796,7 @@ mod test {
         #[serial]
         fn running_to_ready_on_done() {
             let f_a = Function::new(
-                #[cfg(feature = "debugger")]
                 "fA",
-                #[cfg(feature = "debugger")]
                 "/fA",
                 "file://fake/test",
                 vec![Input::new(&Some(Always(json!(1))))],
@@ -1919,13 +1904,10 @@ mod test {
                 0,
                 false,
                 String::default(),
-                #[cfg(feature = "debugger")]
                 String::default(),
             );
             let f_a = Function::new(
-                #[cfg(feature = "debugger")]
                 "fA",
-                #[cfg(feature = "debugger")]
                 "/fA",
                 "file://fake/test",
                 vec![Input::new(&Some(Always(json!(1))))],
@@ -1990,13 +1972,10 @@ mod test {
                 0,
                 false,
                 String::default(),
-                #[cfg(feature = "debugger")]
                 String::default(),
             );
             let f_b = Function::new(
-                #[cfg(feature = "debugger")]
                 "fB",
-                #[cfg(feature = "debugger")]
                 "/fB",
                 "file://fake/test",
                 vec![Input::new(&None)],
@@ -2054,13 +2033,10 @@ mod test {
                 0,
                 false,
                 String::default(),
-                #[cfg(feature = "debugger")]
                 String::default(),
             );
             let f_b = Function::new(
-                #[cfg(feature = "debugger")]
                 "fB",
-                #[cfg(feature = "debugger")]
                 "/fB",
                 "file://fake/test",
                 vec![Input::new(&Some(Always(json!(1))))],
@@ -2130,7 +2106,6 @@ mod test {
                 0,
                 false,
                 String::default(),
-                #[cfg(feature = "debugger")]
                 String::default(),
             );
             let connection_to_1 = OutputConnection::new(
@@ -2141,14 +2116,11 @@ mod test {
                 0,
                 false,
                 String::default(),
-                #[cfg(feature = "debugger")]
                 String::default(),
             );
 
             let f_a = Function::new(
-                #[cfg(feature = "debugger")]
                 "fA",
-                #[cfg(feature = "debugger")]
                 "/fA",
                 "file://fake/test",
                 vec![Input::new(&Some(Once(json!(1))))],
@@ -2280,7 +2252,6 @@ mod test {
                 0,
                 false,
                 String::default(),
-                #[cfg(feature = "debugger")]
                 String::default(),
             );
             let out_conn2 = OutputConnection::new(
@@ -2291,13 +2262,10 @@ mod test {
                 0,
                 false,
                 String::default(),
-                #[cfg(feature = "debugger")]
                 String::default(),
             );
             let p0 = Function::new(
-                #[cfg(feature = "debugger")]
                 "p0",
-                #[cfg(feature = "debugger")]
                 "/p0",
                 "file://fake/test/p0",
                 vec![], // input array
@@ -2307,9 +2275,7 @@ mod test {
                 false,
             ); // implementation
             let p1 = Function::new(
-                #[cfg(feature = "debugger")]
                 "p1",
-                #[cfg(feature = "debugger")]
                 "/p1",
                 "file://fake/test/p1",
                 vec![Input::new(&None)], // inputs array
@@ -2319,9 +2285,7 @@ mod test {
                 false,
             );
             let p2 = Function::new(
-                #[cfg(feature = "debugger")]
                 "p2",
-                #[cfg(feature = "debugger")]
                 "/p2",
                 "file://fake/test/p2",
                 vec![Input::new(&None)], // inputs array
@@ -2661,9 +2625,7 @@ mod test {
 
         fn test_function() -> Function {
             Function::new(
-                #[cfg(feature = "debugger")]
                 "test",
-                #[cfg(feature = "debugger")]
                 "/test",
                 "file://fake/test",
                 vec![Input::new(&None)],
@@ -2781,7 +2743,6 @@ mod test {
                     test_case.destination_array_order,
                     test_case.destination_is_generic,
                     String::default(),
-                    #[cfg(feature = "debugger")]
                     String::default(),
                 );
 
