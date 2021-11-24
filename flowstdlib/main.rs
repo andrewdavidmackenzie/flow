@@ -36,7 +36,7 @@ fn check_flow_lib_path(parent: &Path) {
             let lib_path = Simpath::new_with_separator("FLOW_LIB_PATH", ',');
             if !lib_path.contains(&parent.display().to_string()) {
                 println!("'FLOW_LIB_PATH' is set to '{}'. \nIt does not contain the parent directory of this 'flowstdlib' directory.\n\
-                        For flowc or flowr to find 'flowstdlib' add {} to FLOW_LIB_PATH or use the '-L {}' option.",
+                        For flowc or flowr to find 'flowstdlib' add '{}' to FLOW_LIB_PATH or use the '-L {}' option.",
                          value, parent.display(), parent.display());
             } else {
                 println!("'FLOW_LIB_PATH' is set to '{}' and contains the parent directory of this 'flowstdlib' directory.\n\
