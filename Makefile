@@ -64,24 +64,24 @@ docs:
 install-flowc:
 	@cargo install --path flowc
 
-.PHONY: compile-flowstdlib
-compile-flowstdlib: install-flowc
+.PHONY: flowstdlib
+flowstdlib: install-flowc
 	@cargo build -p flowstdlib
 
 .PHONY: build
-build: install-flowc compile-flowstdlib
+build: install-flowc flowstdlib
 	@cargo build
 
 .PHONY: clippy
-clippy: install-flowc compile-flowstdlib
+clippy: install-flowc flowstdlib
 	@cargo clippy -- -D warnings
 
 .PHONY: clippy-nightly
-clippy-nightly: install-flowc compile-flowstdlib
+clippy-nightly: install-flowc flowstdlib
 	@cargo +nightly clippy -- -D warnings
 
 .PHONY: test
-test: install-flowc compile-flowstdlib
+test: install-flowc flowstdlib
 	@cargo test $(features)
 
 .PHONY: clean
