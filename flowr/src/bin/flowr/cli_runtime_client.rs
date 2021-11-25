@@ -33,10 +33,9 @@ impl CliRuntimeClient {
     /// Enter a loop where we receive events as a client and respond to them
     pub fn event_loop(
         mut self,
-        #[cfg(feature = "debugger")] control_c_connection: Option<
-            ClientConnection<'static, ServerMessage, ClientMessage>,
-        >,
         connection: ClientConnection<ServerMessage, ClientMessage>,
+        #[cfg(feature = "debugger")] control_c_connection: Option<
+            ClientConnection<'static, ServerMessage, ClientMessage>>,
     ) -> Result<()> {
         #[cfg(feature = "debugger")]
         if let Some(control_c) = control_c_connection {

@@ -219,13 +219,21 @@ fn client_and_server(
         info!("'flowr' server thread has exited");
     });
 
+    #[cfg(feature = "debugger")]
+        let control_c_client_connection = if debug_this_flow {
+        Some(ClientConnection::new(runtime_server_info.clone())?)
+    } else {
+        None
+    };
+
+    let runtime_client_connection = ClientConnection::new(runtime_server_info)?;
+
     client(
         matches,
-        #[cfg(feature = "debugger")]
-            debug_this_flow,
-        runtime_server_info,
-        #[cfg(feature = "debugger")]
-            debug_server_info,
+        runtime_client_connection,
+        #[cfg(feature = "debugger")] control_c_client_connection,
+        #[cfg(feature = "debugger")] debug_this_flow,
+        #[cfg(feature = "debugger")] debug_server_info,
     )?;
 
     Ok(())
@@ -259,13 +267,21 @@ fn client_only(
         DEBUG_SERVICE_NAME,
     );
 
+    #[cfg(feature = "debugger")]
+        let control_c_client_connection = if debug_this_flow {
+        Some(ClientConnection::new(runtime_server_info.clone())?)
+    } else {
+        None
+    };
+
+    let runtime_client_connection = ClientConnection::new(runtime_server_info)?;
+
     client(
         matches,
-        #[cfg(feature = "debugger")]
-        debug_this_flow,
-        runtime_server_info,
-        #[cfg(feature = "debugger")]
-        debug_server_info,
+        runtime_client_connection,
+        #[cfg(feature = "debugger")] control_c_client_connection,
+        #[cfg(feature = "debugger")] debug_this_flow,
+        #[cfg(feature = "debugger")] debug_server_info,
     )
 }
 
@@ -274,8 +290,10 @@ fn client_only(
 */
 fn client(
     matches: ArgMatches,
+    runtime_client_connection: ClientConnection<ServerMessage, ClientMessage>,
+    #[cfg(feature = "debugger")]
+    control_c_client_connection: Option<ClientConnection<'static, ServerMessage, ClientMessage>>,
     #[cfg(feature = "debugger")] debug_this_flow: bool,
-    runtime_server_info: ServerInfo<ServerMessage, ClientMessage>,
     #[cfg(all(feature = "debugger", not(feature="distributed")))] debug_server_info: ServerInfo<
         'static,
         DebugServerMessage,
@@ -288,13 +306,13 @@ fn client(
 ) -> Result<()> {
     let flow_manifest_url = parse_flow_url(&matches)?;
     let flow_args = get_flow_args(&matches, &flow_manifest_url);
+    let max_parallel_jobs = num_parallel_jobs(
+        &matches,
+        #[cfg(feature = "debugger")] debug_this_flow,
+    );
     let submission = Submission::new(
         &flow_manifest_url,
-        num_parallel_jobs(
-            &matches,
-            #[cfg(feature = "debugger")]
-            debug_this_flow,
-        ),
+        max_parallel_jobs,
         #[cfg(feature = "debugger")]
         debug_this_flow,
     );
@@ -314,22 +332,13 @@ fn client(
         matches.is_present("metrics"),
     );
 
-    #[cfg(feature = "debugger")]
-    let control_c = if debug_this_flow {
-        Some(ClientConnection::new(runtime_server_info.clone())?)
-    } else {
-        None
-    };
-
-    let runtime_connection = ClientConnection::new(runtime_server_info)?;
-
     info!("Client sending submission to server");
-    runtime_connection.send(ClientSubmission(submission))?;
+    runtime_client_connection.send(ClientSubmission(submission))?;
 
     #[cfg(feature = "debugger")]
-    runtime_client.event_loop(control_c, runtime_connection)?;
+     runtime_client.event_loop(runtime_client_connection, control_c_client_connection)?;
     #[cfg(not(feature = "debugger"))]
-    runtime_client.event_loop(runtime_connection)?;
+    runtime_client.event_loop(runtime_client_connection)?;
 
     Ok(())
 }

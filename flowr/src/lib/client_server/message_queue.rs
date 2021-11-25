@@ -37,6 +37,7 @@ impl<SM, CM> ServerInfo<SM, CM> {
         }
     }
 }
+
 /// `ClientConnection` stores information related to the connection from a runtime client
 /// to the runtime server and is used each time a message is to be sent or received.
 pub struct ClientConnection<'a, SM, CM> {
