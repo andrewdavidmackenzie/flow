@@ -1,6 +1,6 @@
+use std::sync::{Arc, Mutex};
 use std::sync::mpsc;
 use std::sync::mpsc::{Receiver, Sender};
-use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use log::{debug, error, info, trace};
@@ -101,28 +101,33 @@ impl Submission {
 /// use std::sync::{Arc, Mutex};
 /// use std::io;
 /// use std::io::Write;
-/// use flowrlib::coordinator::{Coordinator, Submission, Mode};
+/// use flowrlib::coordinator::{Coordinator, Submission, Mode, RUNTIME_SERVICE_NAME, DEBUG_SERVICE_NAME};
 /// use std::process::exit;
 /// use flowcore::flow_manifest::{FlowManifest, MetaData};
 /// use flowrlib::runtime_messages::ClientMessage::ClientSubmission;
 /// use simpath::Simpath;
 /// use url::Url;
-/// use flowrlib::client_server::ClientConnection;
+/// use flowrlib::client_server::{ClientConnection, ServerConnection, ServerInfo};
 /// use flowrlib::runtime_messages::{ServerMessage, ClientMessage};
 ///
-/// Coordinator::start(1 /* num_threads */,
-///                     Simpath::new("fake path"),
-///                     #[cfg(feature = "native")] true,  /* native */
-///                     None, /* chose first free port for runtime */
-///                     #[cfg(feature = "debugger")] None, /* chose first free port for debug */
-///                     )
-///                     .unwrap();
+/// let runtime_server_connection = ServerConnection::new(RUNTIME_SERVICE_NAME, None).unwrap();
+/// let debug_server_connection = ServerConnection::new(DEBUG_SERVICE_NAME, None).unwrap();
+/// let runtime_server_info = runtime_server_connection.get_server_info();
+///
+///     std::thread::spawn(move || {
+///         let _ = Coordinator::start(
+///             1,
+///             Simpath::new("fake path"),
+///             #[cfg(feature = "native")] true,
+///             runtime_server_connection,
+///             #[cfg(feature = "debugger")] debug_server_connection,
+///         );
+///     });
 ///
 /// let mut submission = Submission::new(&Url::parse("file:///temp/fake.toml").unwrap(),
 ///                                     1 /* num_parallel_jobs */,
-///                                     true /* enter debugger on start */);///
-/// let runtime_client_connection: ClientConnection<ServerMessage, ClientMessage> =
-///     ClientConnection::new("runtime", None).unwrap();
+///                                     true /* enter debugger on start */);
+/// let runtime_client_connection = ClientConnection::new(runtime_server_info).unwrap();
 /// runtime_client_connection.send(ClientSubmission(submission)).unwrap();
 /// exit(0);
 /// ```
