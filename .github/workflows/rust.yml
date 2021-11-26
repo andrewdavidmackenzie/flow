@@ -18,7 +18,6 @@ jobs:
     strategy:
       matrix:
           os: [ macos-latest, ubuntu-latest ]
-          rust: [ nightly ]
 
     steps:
     - uses: actions/checkout@v2
@@ -33,13 +32,6 @@ jobs:
 
     - name: SetupEnvVars
       run: echo "FLOW_LIB_PATH=$GITHUB_WORKSPACE,$GITHUB_WORKSPACE/flowr/src/lib" >> "$GITHUB_ENV"
-
-    - name: Install latest nightly
-      uses: actions-rs/toolchain@v1
-      with:
-        toolchain: nightly
-        override: true
-        components: clippy
 
     - name: InstallLinuxDependencies
       if: matrix.os == 'ubuntu-latest'
