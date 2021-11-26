@@ -31,7 +31,7 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-stable-cargo-registry-
 
-    - name: SetupEnvVars
+    - name: SetupFlowLibPath
       run: echo "FLOW_LIB_PATH=$GITHUB_WORKSPACE,$GITHUB_WORKSPACE/flowr/src/lib" >> "$GITHUB_ENV"
 
 #    - name: Install latest nightly
@@ -40,8 +40,6 @@ jobs:
 #        toolchain: nightly
 #        override: true
 #        components: clippy
-    - name: MakeCoveragePossibleInStable
-      run: echo RUSTC_BOOTSTRAP=1 >> "$GITHUB_ENV"
 
     - name: InstallLinuxDependencies
       if: matrix.os == 'ubuntu-latest'
@@ -60,9 +58,6 @@ jobs:
     - name: Build-and-install-flowc
       run: cargo install --path flowc
 
-    - name: Build-flowstdlib
-      run: cargo build -p flowstdlib
-
     - name: Clippy
       run: |
         rustup component add clippy
@@ -71,6 +66,7 @@ jobs:
     - name: ConfigureCoverage
       if: matrix.os == 'ubuntu-latest'
       run: |
+        echo RUSTC_BOOTSTRAP=1 >> "$GITHUB_ENV" # Enables -Z in stable
         cargo install grcov
         rustup component add llvm-tools-preview
         echo RUSTFLAGS="-Zinstrument-coverage" >> "$GITHUB_ENV"
