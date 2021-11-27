@@ -57,19 +57,23 @@ endif
 
 .PHONY: docs
 docs:
+	@echo "docs<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
 	@cargo doc --no-deps --target-dir=target/html/code
 	@mdbook build
 
 .PHONY: install-flowc
 install-flowc:
+	@echo "install-flowc<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
 	@cargo install --path flowc
 
 .PHONY: build
 build: install-flowc
+	@echo "build<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
 	@cargo build
 
 .PHONY: clippy
 clippy: install-flowc
+	@echo "clippy<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
 	@cargo clippy -- -D warnings
 
 .PHONY: clippy-nightly
@@ -78,10 +82,12 @@ clippy-nightly: install-flowc
 
 .PHONY: test
 test: install-flowc
+	@echo "test<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
 	@cargo test $(features)
 
 .PHONY: clean
 clean:
+	@echo "clean<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
 	@cargo clean
 	@find . -name "*.wasm" | xargs rm -f
 
