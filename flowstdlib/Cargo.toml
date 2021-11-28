@@ -25,6 +25,10 @@ path = "main.rs"
 name = "flowstdlib"
 path = "lib.rs"
 
+[features]
+default = []
+wasm = []
+
 [dependencies]
 flow_impl_derive = {path = "../flow_impl_derive", version = "0.40.0" }
 flowcore = {path = "../flowcore", version = "0.40.0" }

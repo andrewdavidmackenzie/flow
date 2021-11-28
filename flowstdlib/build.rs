@@ -22,7 +22,14 @@ fn main() -> io::Result<()> {
     //                      -o to generate files in $out_dir
     //                      -l $dir to build library found in $manifest_dir
 
-    let command_args = vec!["-v", "info", "-n", "-g", "-z", "-o", &out_dir, "-l", lib_root_dir];
+
+    // If the "wasm" is activated, then no "-n" will be set and flowc will also compile implementations to wasm.
+    #[cfg(feature = "wasm")]
+    let command_args = vec!["-v", "info", "-g", "-z", "-o", &out_dir, "-l", lib_root_dir];
+    // If the "wasm" feature is NOT activated, then set "-n" (native only) flag so flowc will not compile to wasm
+    #[cfg(not(feature = "wasm"))]
+    let command_args = vec!["-v", "info", "-g", "-z", "-o", &out_dir, "-l", lib_root_dir, "-n"];
+
     println!("\tRunning command: flowc {:?}", command_args);
 
     let flowc_child = command
