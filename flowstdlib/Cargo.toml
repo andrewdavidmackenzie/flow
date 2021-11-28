@@ -20,14 +20,10 @@ maintenance = { status = "actively-developed" }
 [[bin]]
 name = "flowstdlib"
 path = "main.rs"
-test = false
-doctest = false
 
 [lib]
 name = "flowstdlib"
 path = "lib.rs"
-test = false
-doctest = false
 
 [dependencies]
 flow_impl_derive = {path = "../flow_impl_derive", version = "0.40.0" }
