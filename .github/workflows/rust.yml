@@ -72,8 +72,10 @@ jobs:
 #        echo RUSTFLAGS="-Zinstrument-coverage" >> "$GITHUB_ENV"
 #        echo LLVM_PROFILE_FILE="flow-%p-%m.profraw" >> "$GITHUB_ENV"
 
-    - name: Build
-      run: cargo build
+    - name: Build workspace
+      run: |
+        cargo build -p flowstdlib --features "wasm"
+        cargo build
 
     - name: Run tests
       run: |

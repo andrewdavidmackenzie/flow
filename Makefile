@@ -69,7 +69,9 @@ install-flowc:
 .PHONY: build
 build: install-flowc
 	@echo "build<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
+	@cargo build -p flowstdlib --features "wasm"
 	@cargo build
+
 
 .PHONY: clippy
 clippy: install-flowc
@@ -89,7 +91,7 @@ test: install-flowc
 clean:
 	@echo "clean<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
 	@cargo clean
-	@find . -name "*.wasm" | xargs rm -f
+	@find samples -name "*.wasm" | xargs rm -f
 
 .PHONY: trim-docs
 trim-docs:
