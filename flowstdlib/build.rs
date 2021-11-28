@@ -16,12 +16,13 @@ fn main() -> io::Result<()> {
 
     let mut command = Command::new("flowc");
     // Options for flowc:   -v info to give output,
+    //                      -n only build native implementations and skip WASM compile
     //                      -g for debug symbols
     //                      -z to dump graphs
     //                      -o to generate files in $out_dir
     //                      -l $dir to build library found in $manifest_dir
 
-    let command_args = vec!["-v", "info", "-g", "-z", "-o", &out_dir, "-l", lib_root_dir];
+    let command_args = vec!["-v", "info", "-n", "-g", "-z", "-o", &out_dir, "-l", lib_root_dir];
     println!("\tRunning command: flowc {:?}", command_args);
 
     let flowc_child = command
