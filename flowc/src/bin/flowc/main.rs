@@ -50,6 +50,7 @@ pub struct Options {
     output_dir: PathBuf,
     stdin_file: Option<String>,
     lib_dirs: Vec<String>,
+    native_only: bool,
 }
 
 fn main() {
@@ -142,6 +143,13 @@ fn get_matches<'a>() -> ArgMatches<'a> {
                 .short("l")
                 .long("lib")
                 .help("Compile a flow library"),
+        )
+        .arg(
+            Arg::with_name("native")
+                .short("n")
+                .long("native")
+                .help("Only compile native library implementations (not wasm)")
+                .requires("lib"),
         )
         .arg(
             Arg::with_name("lib_dir")
@@ -267,5 +275,6 @@ fn parse_args(matches: ArgMatches) -> Result<Options> {
         output_dir,
         stdin_file: matches.value_of("stdin").map(String::from),
         lib_dirs,
+        native_only: matches.is_present("native")
     })
 }

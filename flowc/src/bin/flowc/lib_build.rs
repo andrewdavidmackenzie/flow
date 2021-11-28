@@ -7,9 +7,9 @@ use log::{debug, info};
 use simpath::Simpath;
 use url::Url;
 
-use flowclib::compiler::loader::LibType::RustLib;
 use flowclib::compiler::{compile_wasm, rust_manifest};
 use flowclib::compiler::{json_manifest, loader};
+use flowclib::compiler::loader::LibType::RustLib;
 use flowclib::dumper::dump_flow;
 use flowclib::model::name::HasName;
 use flowclib::model::process::Process::{FlowProcess, FunctionProcess};
@@ -47,7 +47,7 @@ pub fn build_lib(options: &Options, provider: &dyn Provider) -> Result<String> {
         options.graphs,
         &mut lib_manifest,
         provider,
-        false,
+        options.native_only,
     )
     .chain_err(|| "Could not compile implementations in library")?;
 
@@ -142,7 +142,7 @@ fn compile_implementations(
     graphs: bool,
     lib_manifest: &mut LibraryManifest,
     provider: &dyn Provider,
-    skip_building: bool,
+    native_only: bool,
 ) -> Result<i32> {
     let mut build_count = 0;
     // Function implementations are described in .toml format and can be at multiple levels in
@@ -188,7 +188,7 @@ fn compile_implementations(
                 let (wasm_abs_path, built) = compile_wasm::compile_implementation(
                     &target_dir,
                     function,
-                    skip_building,
+                    native_only,
                     #[cfg(feature = "debugger")]
                     &mut lib_manifest.source_urls,
                 )

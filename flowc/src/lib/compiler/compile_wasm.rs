@@ -19,7 +19,7 @@ use crate::model::function::Function;
 pub fn compile_implementation(
     target_dir: &Path,
     function: &mut Function,
-    skip_building: bool,
+    native_only: bool,
     #[cfg(feature = "debugger")] source_urls: &mut HashSet<(Url, Url)>,
 ) -> Result<(PathBuf, bool)> {
     let mut built = false;
@@ -36,7 +36,7 @@ pub fn compile_implementation(
     let (missing, out_of_date) = out_of_date(&source_path, &wasm_destination)?;
 
     if missing || out_of_date {
-        if skip_building {
+        if native_only {
             if missing {
                 let message = format!("Implementation at '{}' is missing and you have selected to skip building, so flows relaying on this implementation will not execute correctly.\nYou can build it using 'flowc', using the '-p' option", wasm_destination.display());
                 warn!("{}", message);
@@ -198,12 +198,12 @@ fn out_of_date(source: &Path, derived: &Path) -> Result<(bool, bool)> {
 
 #[cfg(test)]
 mod test {
+    use std::{env, fs};
     #[cfg(feature = "debugger")]
-    use std::collections::HashSet;
-    use std::fs::{remove_file, write, File};
+        use std::collections::HashSet;
+    use std::fs::{File, remove_file, write};
     use std::path::Path;
     use std::time::Duration;
-    use std::{env, fs};
 
     use serial_test::serial;
     use tempdir::TempDir;
@@ -218,8 +218,8 @@ mod test {
     use crate::model::io::IO;
     use crate::model::route::Route;
 
-    use super::out_of_date;
     use super::{get_paths, run_optional_command};
+    use super::out_of_date;
 
     #[test]
     fn test_run_optional_non_existent() {
