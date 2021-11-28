@@ -57,34 +57,41 @@ endif
 
 .PHONY: docs
 docs:
+	@echo "docs<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
 	@cargo doc --no-deps --target-dir=target/html/code
 	@mdbook build
 
 .PHONY: install-flowc
 install-flowc:
+	@echo "install-flowc<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
 	@cargo install --path flowc
 
-.PHONY: compile-flowstdlib
-compile-flowstdlib: install-flowc
-	@cargo build -p flowstdlib
-
 .PHONY: build
-build: install-flowc compile-flowstdlib
+build: install-flowc
+	@echo "build<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
+	@cargo build -p flowstdlib --features "wasm"
 	@cargo build
 
+
 .PHONY: clippy
-clippy: install-flowc compile-flowstdlib
+clippy: install-flowc
+	@echo "clippy<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
+	@cargo clippy -- -D warnings
+
+.PHONY: clippy-nightly
+clippy-nightly: install-flowc
 	@cargo +nightly clippy -- -D warnings
 
 .PHONY: test
-test: install-flowc compile-flowstdlib
+test: install-flowc
+	@echo "test<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
 	@cargo test $(features)
 
 .PHONY: clean
-clean: # TODO can remove the wasm and manifest cleans when done with this PR
-	@rm -f flowstdlib/manifest.*
-	@find . -name \*.wasm -exec rm -f {} \;
+clean:
+	@echo "clean<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
 	@cargo clean
+	@find samples -name "*.wasm" | xargs rm -f
 
 .PHONY: trim-docs
 trim-docs:
@@ -95,6 +102,7 @@ trim-docs:
 	@find target/html -name .git | xargs rm -rf {}
 	@find target/html -name \*.toml | xargs rm -rf {}
 	@find target/html -name manifest.json | xargs rm -rf {}
+	@find target/html -name manifest.rs | xargs rm -rf {}
 	@find target/html -name test.err | xargs rm -rf {}
 	@find target/html -name test.input | xargs rm -rf {}
 	@find target/html -name test.arguments | xargs rm -rf {}

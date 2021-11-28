@@ -17,11 +17,16 @@ use url::Url;
 
 use errors::*;
 use flowcore::url_helper::url_from_string;
-use flowrlib::client_server::ClientConnection;
-use flowrlib::coordinator::{
-    Coordinator, Mode, Submission, DEBUG_SERVICE_NAME, RUNTIME_SERVICE_NAME,
-};
+use flowrlib::client_server::{ClientConnection, ServerConnection, ServerInfo};
+use flowrlib::coordinator::{Coordinator, RUNTIME_SERVICE_NAME, Submission};
+#[cfg(feature = "debugger")]
+use flowrlib::coordinator::DEBUG_SERVICE_NAME;
+#[cfg(feature = "distributed")]
+use flowrlib::coordinator::Mode;
+#[cfg(feature = "debugger")]
+use flowrlib::debug_messages::{DebugClientMessage, DebugServerMessage};
 use flowrlib::info as flowrlib_info;
+use flowrlib::runtime_messages::{ClientMessage, ServerMessage};
 use flowrlib::runtime_messages::ClientMessage::ClientSubmission;
 
 #[cfg(feature = "debugger")]
@@ -39,19 +44,17 @@ pub mod errors;
 fn main() {
     match run() {
         Err(ref e) => {
-            eprintln!("{}", e);
+            error!("{}", e);
 
             for e in e.iter().skip(1) {
-                eprintln!("caused by: {}", e);
+                error!("caused by: {}", e);
             }
 
-            // The backtrace is not always generated. Try to run this example
-            // with `RUST_BACKTRACE=1`.
             if let Some(backtrace) = e.backtrace() {
                 error!("backtrace: {:?}", backtrace);
             }
 
-            eprintln!("Exiting with status code = 1");
+            error!("Exiting with status code = 1");
             exit(1);
         }
         Ok(_) => exit(0),
@@ -107,8 +110,8 @@ fn run() -> Result<()> {
         vec![]
     };
     let lib_search_path = set_lib_search_path(&lib_dirs)?;
-    let server_address = matches.value_of("address").map(|s| s.to_string());
 
+    #[cfg(feature = "distributed")]
     let mode = if matches.is_present("client") {
         Mode::ClientOnly
     } else if matches.is_present("server") {
@@ -116,6 +119,7 @@ fn run() -> Result<()> {
     } else {
         Mode::ClientAndServer
     };
+    #[cfg(feature = "distributed")]
     info!("Starting 'flowr' in {:?} mode", mode);
 
     let num_threads = num_threads(
@@ -124,84 +128,202 @@ fn run() -> Result<()> {
         debug_this_flow,
     );
 
+    #[cfg(feature = "distributed")]
     match mode {
-        Mode::ServerOnly => {
-            info!("Starting 'flowr' server process in main thread");
-            Coordinator::start(
-                num_threads,
-                lib_search_path,
-                #[cfg(feature = "native")]
-                native,
-                None,
-                #[cfg(feature = "debugger")]
-                None,
-            )?;
-            info!("'flowr' server process has exited");
-        }
-        Mode::ClientOnly => {
-            start_clients(
-                matches,
-                #[cfg(feature = "debugger")]
-                debug_this_flow,
-                server_address,
-            )?;
-        }
-        Mode::ClientAndServer => {
-            std::thread::spawn(move || {
-                info!("Starting 'flowr' server in background thread");
-                let _ = Coordinator::start(
-                    num_threads,
-                    lib_search_path,
-                    #[cfg(feature = "native")]
-                    native,
-                    None,
-                    #[cfg(feature = "debugger")]
-                    None,
-                );
-                info!("'flowr' server thread has exited");
-            });
-
-            start_clients(
-                matches,
-                #[cfg(feature = "debugger")]
-                debug_this_flow,
-                server_address,
-            )?;
-        }
+        Mode::ServerOnly => server_only(num_threads, lib_search_path, native)?,
+        Mode::ClientOnly => client_only(
+            matches,
+            #[cfg(feature = "debugger")]
+            debug_this_flow,
+        )?,
+        Mode::ClientAndServer => client_and_server(
+            num_threads,
+            lib_search_path,
+            native,
+            matches,
+            #[cfg(feature = "debugger")]
+            debug_this_flow,
+        )?,
     }
+
+    #[cfg(not(feature = "distributed"))]
+    client_and_server(
+        num_threads,
+        lib_search_path,
+        native,
+        matches,
+        #[cfg(feature = "debugger")]
+        debug_this_flow,
+    )?;
 
     Ok(())
 }
 
 /*
-   Start the clients that talks to the server - whether another thread in this same process
-   or to another process.
+   Only start a server - by running a Coordinator in the calling thread.
+
+   Client and Server can only run and be started separately using the "distributed" feature
 */
-fn start_clients(
+#[cfg(feature = "distributed")]
+fn server_only(num_threads: usize, lib_search_path: Simpath, native: bool) -> Result<()> {
+    let runtime_server_connection = ServerConnection::new(RUNTIME_SERVICE_NAME, None)?;
+    #[cfg(feature = "debugger")]
+    let debug_server_connection = ServerConnection::new(DEBUG_SERVICE_NAME, None)?;
+
+    info!("Starting 'flowr' server process in main thread");
+    Coordinator::start(
+        num_threads,
+        lib_search_path,
+        #[cfg(feature = "native")]
+        native,
+        runtime_server_connection,
+        #[cfg(feature = "debugger")]
+        debug_server_connection,
+    )?;
+    info!("'flowr' server process has exited");
+
+    Ok(())
+}
+
+/*
+   Start a Server by running a Coordinator in a background thread, then start clients in the
+   calling thread
+*/
+fn client_and_server(
+    num_threads: usize,
+    lib_search_path: Simpath,
+    native: bool,
+    matches: ArgMatches,
+    #[cfg(feature = "debugger")]
+    debug_this_flow: bool,
+) -> Result<()> {
+    let runtime_server_connection = ServerConnection::new(RUNTIME_SERVICE_NAME, None)?;
+    #[cfg(feature = "debugger")]
+    let debug_server_connection = ServerConnection::new(DEBUG_SERVICE_NAME, None)?;
+
+    let runtime_server_info = runtime_server_connection.get_server_info();
+    #[cfg(feature = "debugger")]
+    let debug_server_info = debug_server_connection.get_server_info();
+
+    std::thread::spawn(move || {
+        info!("Starting 'flowr' server in background thread");
+        let _ = Coordinator::start(
+            num_threads,
+            lib_search_path,
+            #[cfg(feature = "native")]
+            native,
+            runtime_server_connection,
+            #[cfg(feature = "debugger")]
+            debug_server_connection,
+        );
+        info!("'flowr' server thread has exited");
+    });
+
+    #[cfg(feature = "debugger")]
+        let control_c_client_connection = if debug_this_flow {
+        Some(ClientConnection::new(runtime_server_info.clone())?)
+    } else {
+        None
+    };
+
+    let runtime_client_connection = ClientConnection::new(runtime_server_info)?;
+
+    client(
+        matches,
+        runtime_client_connection,
+        #[cfg(feature = "debugger")] control_c_client_connection,
+        #[cfg(feature = "debugger")] debug_this_flow,
+        #[cfg(feature = "debugger")] debug_server_info,
+    )?;
+
+    Ok(())
+}
+
+/*
+   Start only a client in the calling thread. Since we are *only* starting a client in this
+   process, we don't have server information, so we create a set of ServerInfo from command
+   line options for the server address and known service names and ports.
+
+    Client and Server can only run and be started separately using the "distributed" feature
+*/
+#[cfg(feature = "distributed")]
+fn client_only(
     matches: ArgMatches,
     #[cfg(feature = "debugger")] debug_this_flow: bool,
-    server_hostname: Option<String>,
+) -> Result<()> {
+    let runtime_server_info = ServerInfo::new(
+        matches
+            .value_of("address")
+            .map(|s| s.to_string())
+            .map(|name| (name, 5555)),
+        RUNTIME_SERVICE_NAME,
+    );
+    #[cfg(feature = "debugger")]
+    let debug_server_info = ServerInfo::new(
+        matches
+            .value_of("address")
+            .map(|s| s.to_string())
+            .map(|name| (name, 5556)),
+        DEBUG_SERVICE_NAME,
+    );
+
+    #[cfg(feature = "debugger")]
+        let control_c_client_connection = if debug_this_flow {
+        Some(ClientConnection::new(runtime_server_info.clone())?)
+    } else {
+        None
+    };
+
+    let runtime_client_connection = ClientConnection::new(runtime_server_info)?;
+
+    client(
+        matches,
+        runtime_client_connection,
+        #[cfg(feature = "debugger")] control_c_client_connection,
+        #[cfg(feature = "debugger")] debug_this_flow,
+        #[cfg(feature = "debugger")] debug_server_info,
+    )
+}
+
+/*
+   Start the clients that talks to the server thread or process
+*/
+fn client(
+    matches: ArgMatches,
+    runtime_client_connection: ClientConnection<ServerMessage, ClientMessage>,
+    #[cfg(feature = "debugger")]
+    control_c_client_connection: Option<ClientConnection<'static, ServerMessage, ClientMessage>>,
+    #[cfg(feature = "debugger")] debug_this_flow: bool,
+    #[cfg(all(feature = "debugger", not(feature="distributed")))] debug_server_info: ServerInfo<
+        'static,
+        DebugServerMessage,
+        DebugClientMessage,
+    >,
+    #[cfg(all(feature = "debugger", feature="distributed"))] debug_server_info: ServerInfo<
+        DebugServerMessage,
+        DebugClientMessage,
+    >,
 ) -> Result<()> {
     let flow_manifest_url = parse_flow_url(&matches)?;
     let flow_args = get_flow_args(&matches, &flow_manifest_url);
+    let max_parallel_jobs = num_parallel_jobs(
+        &matches,
+        #[cfg(feature = "debugger")] debug_this_flow,
+    );
     let submission = Submission::new(
         &flow_manifest_url,
-        num_parallel_jobs(
-            &matches,
-            #[cfg(feature = "debugger")]
-            debug_this_flow,
-        ),
+        max_parallel_jobs,
         #[cfg(feature = "debugger")]
         debug_this_flow,
     );
 
     #[cfg(feature = "debugger")]
     if debug_this_flow {
-        let server_hostname_and_port = server_hostname.clone().map(|name| (name, 5556));
-        let debug_client_connection =
-            ClientConnection::new(DEBUG_SERVICE_NAME, server_hostname_and_port)?;
+        let debug_client_connection = ClientConnection::new(debug_server_info)?;
         let debug_client = CliDebugClient::new(debug_client_connection);
-        debug_client.event_loop_thread();
+        let _ = std::thread::spawn(move || {
+            debug_client.debug_client_loop();
+        });
     }
 
     let runtime_client = CliRuntimeClient::new(
@@ -210,24 +332,13 @@ fn start_clients(
         matches.is_present("metrics"),
     );
 
-    let server_hostname_and_port = server_hostname.map(|name| (name, 5555));
+    info!("Client sending submission to server");
+    runtime_client_connection.send(ClientSubmission(submission))?;
 
     #[cfg(feature = "debugger")]
-    let control_c = if debug_this_flow {
-        Some(ClientConnection::new(
-            RUNTIME_SERVICE_NAME,
-            server_hostname_and_port.clone(),
-        )?)
-    } else {
-        None
-    };
-
-    let connection = ClientConnection::new(RUNTIME_SERVICE_NAME, server_hostname_and_port)?;
-
-    info!("Client sending submission to server");
-    connection.send(ClientSubmission(submission))?;
-
-    runtime_client.event_loop(control_c, connection)?;
+     runtime_client.event_loop(runtime_client_connection, control_c_client_connection)?;
+    #[cfg(not(feature = "debugger"))]
+    runtime_client.event_loop(runtime_client_connection)?;
 
     Ok(())
 }

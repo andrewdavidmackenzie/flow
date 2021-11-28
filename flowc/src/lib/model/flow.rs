@@ -3,7 +3,7 @@ use std::fmt;
 use std::mem::take;
 
 use error_chain::bail;
-use log::{debug, error};
+use log::{debug, error, trace};
 use serde_derive::{Deserialize, Serialize};
 use url::Url;
 
@@ -196,6 +196,11 @@ impl Flow {
         }
     }
 
+    /// Get the name of any associated docs file
+    pub fn get_docs(&self) -> &str {
+        &self.docs
+    }
+
     /// Get a reference to the set of inputs this flow defines
     pub fn inputs(&self) -> &IOSet {
         &self.inputs
@@ -350,12 +355,12 @@ impl Flow {
     fn build_connection(&mut self, connection: &mut Connection, level: usize) -> Result<()> {
         match self.get_route_and_type(FROM, connection.from(), &None) {
             Ok(from_io) => {
-                debug!("Found connection source:\n{:#?}", from_io);
+                trace!("Found connection source:\n{:#?}", from_io);
                 // Iterate over all the destinations for this connection
                 for to_route in connection.to() {
                     match self.get_route_and_type(TO, to_route, from_io.get_initializer()) {
                         Ok(to_io) => {
-                            debug!("Found connection destination:\n{:#?}", to_io);
+                            trace!("Found connection destination:\n{:#?}", to_io);
                             let mut new_connection = connection.clone();
                             new_connection.connect(from_io.clone(), to_io, level)?;
                             self.connections.push(new_connection);

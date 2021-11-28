@@ -15,9 +15,11 @@ pub mod test {
                 .expect("Could not create server connection"),
         ));
 
-        let client_connection =
-            ClientConnection::<ServerMessage, ClientMessage>::new(RUNTIME_SERVICE_NAME, None)
-                .expect("Could not create ClientConnection");
+        let server_info = server_connection.lock()
+            .expect("Could not get access to server connection").get_server_info();
+
+        let client_connection = ClientConnection::<ServerMessage, ClientMessage>::new(server_info)
+            .expect("Could not create ClientConnection");
 
         client_connection
             .send(ClientMessage::Ack)

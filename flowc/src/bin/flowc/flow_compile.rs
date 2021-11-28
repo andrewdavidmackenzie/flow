@@ -55,14 +55,24 @@ fn check_root(flow: &Flow) -> bool {
 // For any function that provides an implementation - compile the source to wasm and modify the
 // implementation to indicate it is the wasm file
 fn compile_supplied_implementations(
+    _out_dir: &Path,
     tables: &mut GenerationTables,
     skip_building: bool,
     #[cfg(feature = "debugger")] source_urls: &mut HashSet<(Url, Url)>,
 ) -> Result<String> {
     for function in &mut tables.functions {
         if function.get_lib_reference().is_none() {
+            // calculate directory where we want compiled implementation to be left
+            let source_dir = function
+                .get_source_url()
+                .to_file_path()
+                .map_err(|_| "Could not get file path for function source")?
+                .parent()
+                .ok_or("Couldn't get directory where function defined")?
+                .to_path_buf();
+
             compile_wasm::compile_implementation(
-                None,
+                &source_dir,
                 function,
                 skip_building,
                 #[cfg(feature = "debugger")]
@@ -95,6 +105,7 @@ pub fn compile_and_execute_flow(options: &Options, provider: &dyn Provider) -> R
                 .chain_err(|| format!("Could not compile flow from '{}'", options.source_url))?;
 
             compile_supplied_implementations(
+                &options.output_dir,
                 &mut tables,
                 options.provided_implementations,
                 #[cfg(feature = "debugger")]
@@ -227,7 +238,7 @@ fn execute_flow(filepath: &Path, options: &Options) -> Result<String> {
         command_args.push("--".to_string());
         command_args.append(&mut options.flow_args.to_vec());
     }
-    println!("Running flow using '{} {:?}'", &command, &command_args);
+    info!("Running flow using '{} {:?}'", &command, &command_args);
 
     let mut flowr = Command::new(&command);
     flowr
@@ -266,14 +277,17 @@ fn execute_flow(filepath: &Path, options: &Options) -> Result<String> {
         Some(code) => {
             error!("Execution of 'flowr' failed");
             error!(
-                "Process STDOUT:\n{}",
+                "flowr STDOUT:\n{}",
                 String::from_utf8_lossy(&flowr_output.stdout)
             );
             error!(
-                "Process STDERR:\n{}",
+                "flowr STDERR:\n{}",
                 String::from_utf8_lossy(&flowr_output.stderr)
             );
-            bail!("Exited with status code: {}", code)
+            bail!(
+                "Execution of flowr failed. Exited with status code: {}",
+                code
+            )
         }
         None => Ok("No return code - ignoring".to_string()),
     }

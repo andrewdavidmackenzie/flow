@@ -15,5 +15,5 @@ use flowcore::lib_manifest::{ImplementationLocator::Native, LibraryManifest};
 /// to get access to everything `error_chain` creates.
 pub mod errors;
 
-//include!(concat!(env!("OUT_DIR"), "/manifest.rs"));
-include!("manifest.rs");
+// Include the generated library manifest in rust format
+include!(concat!(env!("OUT_DIR"), "/manifest.rs"));

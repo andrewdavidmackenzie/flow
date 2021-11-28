@@ -195,7 +195,6 @@ fn get(test_dir: &Path, file_name: &str) -> String {
 }
 
 fn execute_test(test_name: &str, search_path: Simpath, client_server: bool) {
-    // helper::set_lib_search_path()
     let mut root_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     root_dir.pop();
     let test_dir = root_dir.join(&format!("flowc/tests/test-flows/{}", test_name));
@@ -210,15 +209,11 @@ fn execute_test(test_name: &str, search_path: Simpath, client_server: bool) {
         let (actual_stdout, actual_stderr) =
             execute_flow(manifest_path, test_args, input, client_server);
         let expected_output = get(&test_dir, &format!("{}.expected", test_name));
+        assert!(actual_stderr.is_empty(), "{}", actual_stderr);
         assert_eq!(
             expected_output, actual_stdout,
             "Flow output did not match that in .expected file"
         );
-        assert!(
-            actual_stderr.is_empty(),
-            "There was stderr output during test: \n{}",
-            actual_stderr
-        )
     }
 }
 

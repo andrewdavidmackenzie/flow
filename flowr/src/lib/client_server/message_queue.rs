@@ -6,12 +6,37 @@ use std::time::Duration;
 use log::{info, trace};
 use portpicker::pick_unused_port;
 use simpdiscoverylib::{BeaconListener, BeaconSender};
+use zmq::{DONTWAIT, Message};
 use zmq::Socket;
-use zmq::{Message, DONTWAIT};
 
 use crate::errors::*;
 
 const FLOW_SERVICE_NAME: &str = "_flowr._tcp.local";
+
+/// Structure that holds information about the Server to help clients connect to it
+#[derive(Clone)]
+pub struct ServerInfo<SM, CM> {
+    /// Optional tuple of Server hostname and port to connect to
+    pub hostname_and_port: Option<(String, u16)>,
+    /// Name of the server service name to connect to
+    pub name: String,
+    /// Phantom data makes sure we use the generic type for SM
+    pub phantom: PhantomData<SM>,
+    /// Phantom data makes sure we use the generic type for CM
+    pub phantom2: PhantomData<CM>,
+}
+
+impl<SM, CM> ServerInfo<SM, CM> {
+    /// Create a new ServerInfo struct
+    pub fn new(hostname_and_port: Option<(String, u16)>, name: &str) -> Self {
+        ServerInfo {
+            hostname_and_port,
+            name: name.into(),
+            phantom: PhantomData,
+            phantom2: PhantomData,
+        }
+    }
+}
 
 /// `ClientConnection` stores information related to the connection from a runtime client
 /// to the runtime server and is used each time a message is to be sent or received.
@@ -19,7 +44,7 @@ pub struct ClientConnection<'a, SM, CM> {
     port: u16,
     requester: Socket,
     phantom: PhantomData<&'a SM>,
-    phantom2: PhantomData<&'a CM>,
+    phantom2: PhantomData<CM>,
 }
 
 impl<'a, SM, CM> ClientConnection<'a, SM, CM>
@@ -28,10 +53,10 @@ where
     CM: Into<Message> + Display,
 {
     /// Create a new connection between client and server
-    pub fn new(name: &str, server_hostname_and_port: Option<(String, u16)>) -> Result<Self> {
-        let full_service_name = format!("{}.{}", name, FLOW_SERVICE_NAME);
+    pub fn new(server_info: ServerInfo<SM, CM>) -> Result<Self> {
+        let full_service_name = format!("{}.{}", server_info.name, FLOW_SERVICE_NAME);
 
-        let (hostname, port) = server_hostname_and_port.unwrap_or(
+        let (hostname, port) = server_info.hostname_and_port.unwrap_or(
             Self::discover_service(&full_service_name)
                 .ok_or("Could not discover service hostname & port and none were specified")?,
         );
@@ -107,6 +132,7 @@ where
 /// communications between a runtime client and a runtime server and is used each time a message
 /// needs to be sent or received.
 pub struct ServerConnection<SM, CM> {
+    name: &'static str,
     port: u16,
     responder: zmq::Socket,
     phantom: PhantomData<SM>,
@@ -119,9 +145,10 @@ impl<'a, SM, CM> ServerConnection<SM, CM>
 where
     SM: Into<Message> + Display,
     CM: From<Message> + Display,
+    zmq::Message: std::convert::From<CM>,
 {
     /// Create a new Server side of the client/server Connection
-    pub fn new(name: &str, port: Option<u16>) -> Result<Self> {
+    pub fn new(name: &'static str, port: Option<u16>) -> Result<Self> {
         let context = zmq::Context::new();
         let responder = context
             .socket(zmq::REP)
@@ -140,11 +167,22 @@ where
         info!("Service '{}' listening on port {}", name, chosen_port);
 
         Ok(ServerConnection {
+            name,
             port: chosen_port,
             responder,
             phantom: PhantomData,
             phantom2: PhantomData,
         })
+    }
+
+    /// Get the `ServerInfo` struct that clients use to connect to the server
+    pub fn get_server_info(&self) -> ServerInfo<SM, CM> {
+        ServerInfo {
+            hostname_and_port: Some(("localhost".into(), self.port)),
+            name: self.name.into(),
+            phantom: PhantomData,
+            phantom2: PhantomData,
+        }
     }
 
     /*
@@ -232,7 +270,7 @@ mod test {
     use serial_test::serial;
     use zmq::Message;
 
-    use crate::client_server::{ClientConnection, ServerConnection};
+    use crate::client_server::{ClientConnection, ServerConnection, ServerInfo};
 
     #[derive(Serialize, Deserialize, PartialEq, Debug)]
     enum ServerMessage {
@@ -299,7 +337,8 @@ mod test {
     fn hello_world() {
         let mut server = ServerConnection::<ServerMessage, ClientMessage>::new("test", None)
             .expect("Could not create ServerConnection");
-        let client = ClientConnection::<ServerMessage, ClientMessage>::new("test", None)
+        let server_info = ServerInfo::new(None, "test");
+        let client = ClientConnection::<ServerMessage, ClientMessage>::new(server_info)
             .expect("Could not create ClientConnection");
 
         // Open the connection by sending the first message from the client
@@ -332,7 +371,8 @@ mod test {
     fn receive_no_wait() {
         let mut server = ServerConnection::<ServerMessage, ClientMessage>::new("test", None)
             .expect("Could not create ServerConnection");
-        let client = ClientConnection::<ServerMessage, ClientMessage>::new("test", None)
+        let server_info = ServerInfo::new(None, "test");
+        let client = ClientConnection::<ServerMessage, ClientMessage>::new(server_info)
             .expect("Could not create ClientConnection");
 
         // Open the connection by sending the first message from the client

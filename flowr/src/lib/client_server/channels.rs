@@ -1,15 +1,27 @@
 use log::{info, trace};
-use serde::ser::Serialize;
 use serde::Deserialize;
+use serde::ser::Serialize;
 /// This is the channel-based implementation of the lib.client_server communications
 use std::fmt::Debug;
 use std::fmt::Display;
 use std::marker::PhantomData;
+use std::sync::{Arc, Mutex};
 use std::sync::mpsc;
 use std::sync::mpsc::{Receiver, Sender};
-use std::sync::{Arc, Mutex};
 
 use crate::errors::*;
+
+/// Struct with the information to allow a client to be able to connect to a server
+#[derive(Clone)]
+pub struct ServerInfo<'a, SM, CM>
+where
+    SM: Serialize,
+    CM: Deserialize<'a>,
+{
+    channels: (Arc<Mutex<Receiver<SM>>>, Sender<CM>),
+    phantom: PhantomData<&'a SM>,
+    phantom2: PhantomData<&'a CM>,
+}
 
 /// `ClientConnection` stores information related to the connection from a runtime client
 /// to the runtime server and is used each time a message is to be sent or received.
@@ -19,7 +31,7 @@ where
     CM: Deserialize<'a>,
 {
     channels: (Arc<Mutex<Receiver<SM>>>, Sender<CM>),
-    phantom: PhantomData<&'a SM>,
+    phantom: PhantomData<&'a CM>,
 }
 
 impl<'a, SM, CM> ClientConnection<'a, SM, CM>
@@ -28,11 +40,11 @@ where
     CM: Deserialize<'a> + Display,
 {
     /// Create a new connection between client and server
-    pub fn new(_name: &str, _server_hostname: &Option<String>, _port: usize) -> Result<Self> {
+    pub fn new(server_info: ServerInfo<'a, SM, CM>) -> Result<Self> {
         info!("Client connection (channels transport) created");
 
         Ok(ClientConnection {
-            channels: runtime_server_connection.get_channels(),
+            channels: server_info.channels,
             phantom: PhantomData,
         })
     }
@@ -88,7 +100,7 @@ where
     CM: Deserialize<'a> + Display,
 {
     /// Create a new Server side of the client/server Connection
-    pub fn new(_name: &str, _port: usize) -> Result<Self> {
+    pub fn new(_name: &str, _port: Option<u16>) -> Result<Self> {
         let (client_event_channel_tx, client_event_channel_rx) = mpsc::channel();
         let (client_response_channel_tx, client_response_channel_rx) = mpsc::channel();
 
@@ -101,10 +113,14 @@ where
         })
     }
 
-    /// Get the channels a client should use to send to the server
-    fn get_channels(&self) -> (Arc<Mutex<Receiver<SM>>>, Sender<CM>) {
+    /// Get the ServerInfo struct that clients use to connect to the server
+    pub fn get_server_info(&self) -> ServerInfo<'a, SM, CM> {
         // Clone of Arc and Sender is OK
-        (self.client_rx.clone(), self.client_tx.clone())
+        ServerInfo {
+            channels: (self.client_rx.clone(), self.client_tx.clone()),
+            phantom: PhantomData,
+            phantom2: PhantomData,
+        }
     }
 
     /// Get a Message sent to the client from the server

@@ -38,7 +38,7 @@ fn check_cargo_error(command: &str, args: Vec<&str>, output: Output) -> Result<(
 fn cargo_test(manifest_path: PathBuf, build_dir: PathBuf) -> Result<()> {
     let command = "cargo";
 
-    debug!("Build directory: '{}'", build_dir.display());
+    debug!("\t Cargo build directory: '{}'", build_dir.display());
 
     let manifest_arg = format!("--manifest-path={}", manifest_path.display());
     let target_dir_arg = format!("--target-dir={}", build_dir.display());
@@ -50,7 +50,7 @@ fn cargo_test(manifest_path: PathBuf, build_dir: PathBuf) -> Result<()> {
         manifest_path.display()
     );
 
-    debug!("Running command = '{}', args = {:?}", command, test_args);
+    debug!("\tRunning command = '{}', args = {:?}", command, test_args);
 
     let output = Command::new(&command)
         .args(&test_args)
@@ -83,7 +83,7 @@ fn cargo_build(
     );
 
     debug!(
-        "Building WASM '{}' from source '{}'",
+        "\tBuilding WASM '{}' from source '{}'",
         wasm_destination.display(),
         implementation_source_path.display()
     );
@@ -98,7 +98,7 @@ fn cargo_build(
     ];
 
     debug!(
-        "Running command = '{}', command_args = {:?}",
+        "\tRunning command = '{}', command_args = {:?}",
         command, command_args
     );
 
@@ -126,10 +126,13 @@ fn cargo_build(
     );
 
     // move compiled wasm output into destination location
+    debug!(
+        "\tMoving built wasm file from '{}' to '{}'",
+        &wasm_build_location.display(),
+        &wasm_destination.display()
+    );
     fs::rename(&wasm_build_location, &wasm_destination)
-        .chain_err(|| "Could not copy WASM to destination")?;
-
-    Ok(())
+        .chain_err(|| "Could not move WASM to destination")
 }
 
 /// Run the cargo build to compile wasm from function source
@@ -137,11 +140,17 @@ pub fn run(implementation_source_path: &Path, wasm_destination: &Path) -> Result
     let mut cargo_manifest_path = implementation_source_path.to_path_buf();
     cargo_manifest_path.set_file_name("Cargo.toml");
 
-    // Create a temp directory for building in. Use `new_in` to make sure it is in the same FS as the destination so
-    // that fs::rename later works. It will be cleaned-up when `build_dir` goes out of scope.
-    let build_dir = TempDir::new_in(wasm_destination.parent().ok_or("Could not get directory of wasm destination to create TempDir in")?, "flow")
-        .chain_err(|| "Error creating new TempDir for compiling in")?
-        .into_path();
+    // Create a temp directory for building in. To avoid the corner case where the TempDir
+    // maybe on another FS from the destination (preventing renaming) I create it under the
+    // destination directory - but it will be cleaned up when `build_dir` goes out of scope
+    let build_dir = TempDir::new_in(
+        wasm_destination
+            .parent()
+            .ok_or("Could not create temp dir for WASM building")?,
+        "flow",
+    )
+    .chain_err(|| "Error creating new TempDir for compiling in")?
+    .into_path();
 
     cargo_test(cargo_manifest_path.clone(), build_dir.clone())?;
     cargo_build(

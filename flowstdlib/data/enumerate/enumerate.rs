@@ -1,7 +1,6 @@
-use serde_json::{json, Value};
-
 use flow_impl_derive::FlowImpl;
 use flowcore::{Implementation, RunAgain, RUN_AGAIN};
+use serde_json::{json, Value};
 
 #[derive(FlowImpl)]
 /// Enumerate the elements of an Array
@@ -24,17 +23,16 @@ impl Implementation for Enumerate {
 
 #[cfg(test)]
 mod test {
+    use flowcore::Implementation;
     use serde_json::json;
     use serde_json::{Number, Value};
-
-    use flowcore::Implementation;
 
     #[test]
     fn enumerate() {
         let array = json!(["a", "b"]);
 
         let enumerator = super::Enumerate {};
-        let (result, _) = enumerator.run(&vec![array]);
+        let (result, _) = enumerator.run(&[array]);
 
         let output = result.unwrap();
         let enumerated_array = output.as_array().unwrap();
@@ -61,7 +59,7 @@ mod test {
         let array = json!([]);
 
         let enumerator = super::Enumerate {};
-        let (result, _) = enumerator.run(&vec![array]);
+        let (result, _) = enumerator.run(&[array]);
 
         let output = result.unwrap();
         let enumerated_array = output.as_array().unwrap();

@@ -1,7 +1,6 @@
-use serde_json::Value;
-
 use flow_impl_derive::FlowImpl;
-use flowcore::{Implementation, RUN_AGAIN, RunAgain};
+use flowcore::{Implementation, RunAgain, RUN_AGAIN};
+use serde_json::Value;
 
 #[derive(FlowImpl)]
 /// Takes a value on it's input and sends the same value on it's output when it can
@@ -17,10 +16,9 @@ impl Implementation for Buffer {
 
 #[cfg(test)]
 mod test {
+    use flowcore::Implementation;
     use serde_json::json;
     use serde_json::Value;
-
-    use flowcore::Implementation;
 
     use super::Buffer;
 
@@ -39,9 +37,6 @@ mod test {
 
         let buffer = Buffer {};
         let runs_again = buffer.run(&[value]).1;
-        assert_eq!(
-            runs_again, true,
-            "Buffer should always be available to run again"
-        );
+        assert!(runs_again, "Buffer should always be available to run again");
     }
 }

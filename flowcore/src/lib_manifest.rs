@@ -117,13 +117,13 @@ impl LibraryManifest {
         function_name: &str,
     ) -> Result<()> {
         let lib_reference = Url::parse(&format!(
-            "lib://{}{}/{}",
+            "lib://{}/{}/{}",
             self.metadata.name, relative_dir, function_name
         ))
         .chain_err(|| "Could not form library Url to add to the manifest")?;
 
         debug!(
-            "Adding implementation to manifest: \n'{}'  --> '{}'",
+            "Adding implementation locator to lib manifest: \n'{}' -> '{}'",
             lib_reference, wasm_relative_path
         );
         self.locators.insert(
