@@ -20,18 +20,24 @@ use crate::job::Job;
 #[cfg(feature = "metrics")]
 use crate::metrics::Metrics;
 
-/// `State` represents the four states it is possible for a function in the flow to be in
+/// `State` represents the possible states it is possible for a function to be in
 #[cfg(any(feature = "checks", feature = "debugger", test))]
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub enum State {
-    /// function has inputs and is ready to run
+    /// Ready     - Function will be in Ready state when all of it's inputs are full and there are no inputs
+    ///           it sends to that are full (unless that input is it's own)
     Ready,
-    /// function cannot run as output is blocked by another function
+    /// Blocked   - Function is in Blocked state when there is at least one input it sends to that is full
+    ///           (unless that input is it's own, as then it will be emptied when the function runs)
     Blocked,
-    /// function is waiting for inputs to arrive before it can run
+    /// Waiting   - Function is in Blocked state when at least one of it's inputs is not full
     Waiting,
-    /// function is currently running
+    /// Running   - Function is in Running state when it has been picked from the Ready list for execution
+    ///           using the next() function
     Running,
+    /// Completed - Function has indicated that it no longer wants to be run, so it's execution
+    ///           has completed.
+    Completed,
 }
 
 /// `RunState` is a structure that maintains the state of all the functions in the currently
@@ -74,24 +80,13 @@ pub enum State {
 ///
 /// One-time Execution or Stopping repetitive execution
 /// ===================================================
-/// It may make sense for some functions to only be ran once, or to stop being executed repeatedly
-/// at some point. So each implementation when ran returns a "run again" flag to indicate this.
+/// A function may need to only run once, or to stop being executed repeatedly at some point. 
+/// So each implementation when ran returns a "run again" flag to indicate this.
 /// An example of functions that may decide to stop running are:
 /// - args: produces arguments from the command line execution of a flow once at start-up
 /// - readline: read a line of input from standard input, until End-of-file (EOF) is detected.
 ///   If this was not done, then the flow would never stop running as the readline function would
 ///   always be re-run and waiting for more input, but none would ever be received after EOF.
-///
-/// States
-/// ======
-/// Init    - Prior to the initialization process Functions will be in the init state
-/// Ready   - Function will be in Ready state when all of it's inputs are full and there are no inputs
-///           it sends to that are full (unless that input is it's own)
-/// Blocked - Function is in Blocked state when there is at least one input it sends to that is full
-///           (unless that input is it's own, as then it will be emptied when the function runs)
-/// Waiting - Function is in Blocked state when at least one of it's inputs is not full
-/// Running - Function is in Running state when it has been picked from the Ready list for execution
-///           using the next() function
 ///
 /// Unused Functions
 /// ================
@@ -118,6 +113,12 @@ pub enum State {
 /// connected to it's output and other inputs until no more can be removed.
 /// This run-time does not do that, in order to keep things simple and start-up time to a minimum.
 /// It relies on the compiler having done that previously.
+///
+/// Initializers
+/// ============
+/// There are two types of initializers on inputs:
+/// * "Once" - the input is filled with the specified value once at start-up.
+/// * "Constant" - after the functions runs the input refilled with the same value.
 ///
 /// Runtime Rules
 /// =============
@@ -151,16 +152,12 @@ pub enum State {
 /// Running Waiting   Output: it has one input or more empty, to it can't run     running_to_waiting_on_done
 /// Running Blocked   Output: a destination input is full, so can't run           running_to_blocked_on_done
 ///
-/// Constant Initializers
-/// =====================
-/// A function input may have a "ConstantInitializer" on it to continually re-fill the input.
-/// After the functions runs this is run and the input refilled.
-///
-/// Loops
-/// =====
-/// A function may send to itself.
-/// A function sending to itself will not create any blocks, and will not be marked as blocked
-/// due to the loop, and thus such deadlocks avoided.
+/// Iteration and Recursion
+/// =======================
+/// A function may send values to itself using a loop-back connector, in order to perform something 
+/// similar to iteration or recursion, in procedural programming.
+/// A function sending a value to itself will not create any blocks, and will not be marked as blocked
+/// due to the loop, and thus avoid deadlocks.
 ///
 /// Blocks on other senders due to Constant Initializers and Loops
 /// ==============================================================
@@ -191,6 +188,8 @@ pub struct RunState {
     ready: VecDeque<usize>,
     /// running: MultiMap<function_id, job_id> - a list of functions and jobs ids that are running
     running: MultiMap<usize, usize>,
+    /// completed: functions that have run to completion and won't run again
+    completed: HashSet<usize>,
     /// number of jobs sent for execution to date
     jobs_created: usize,
     /// limit on the number of jobs allowed to be pending to complete (i.e. running in parallel)
@@ -217,6 +216,7 @@ impl RunState {
             blocks: HashSet::<Block>::new(),
             ready: VecDeque::<usize>::new(),
             running: MultiMap::<usize, usize>::new(),
+            completed: HashSet::<usize>::new(),
             jobs_created: 0,
             max_pending_jobs: submission.max_parallel_jobs,
             #[cfg(feature = "debugger")]
@@ -227,7 +227,8 @@ impl RunState {
         }
     }
 
-    /// Reset all values back to initial ones to enable debugging from scratch
+    /// Reset all values back to initial ones to enable debugging to restart from the initial
+    /// state
     #[cfg(feature = "debugger")]
     fn reset(&mut self) {
         debug!("Resetting RunState");
@@ -238,6 +239,7 @@ impl RunState {
         self.blocks.clear();
         self.ready.clear();
         self.running.clear();
+        self.completed.clear();
         self.jobs_created = 0;
         self.busy_flows.clear();
         self.pending_unblocks.clear();
@@ -350,7 +352,10 @@ impl RunState {
             State::Blocked
         } else if self.running.contains_key(&function_id) {
             State::Running
-        } else {
+        } else if self.completed.contains(&function_id) {
+            State::Completed
+        }
+        else {
             State::Waiting
         }
     }
@@ -367,6 +372,12 @@ impl RunState {
         &self.running
     }
 
+    /// Get the list of completed function ids
+    #[cfg(feature = "debugger")]
+    pub fn get_completed(&self) -> &HashSet<usize> {
+        &self.completed
+    }
+        
     /// Get a reference to the function with `id`
     pub fn get(&self, id: usize) -> &Function {
         &self.functions[id]
@@ -529,6 +540,8 @@ impl RunState {
                 // if the function can run again, then refill inputs from any possible initializers
                 if function_can_run_again {
                     self.refill_inputs(job.function_id, job.flow_id, loopback_value_sent);
+                } else {
+                    self.mark_as_completed(job.function_id);
                 }
 
                 self.remove_from_busy(job.function_id);
@@ -863,6 +876,11 @@ impl RunState {
         }
     }
 
+    /// Mark a function (via its ID) as having run to completion 
+    fn mark_as_completed(&mut self, function_id: usize) {
+        self.completed.insert(function_id);
+    }
+
     /// Remove ONE entry of <flow_id, function_id> from the busy_flows multi-map
     fn remove_from_busy(&mut self, blocker_function_id: usize) {
         let mut count = 0;
@@ -960,11 +978,11 @@ impl RunState {
         panic!();
     }
 
-    /// Check a number of "invariants" i.e. unbreakable rules about the state, and go into debugger
-    /// if one is found to be broken, with a message explaining it
+    /// Check a number of "invariants" i.e. unbreakable rules about the state.
+    /// If one is found to be broken, report a runtime error explaining it, which may
+    /// trigger entry into the debugger.
     #[cfg(feature = "checks")]
     fn check_invariants(&mut self, job_id: usize) {
-        // check invariants of each functions
         for function in &self.functions {
             match self.get_state(function.id()) {
                 State::Ready => {
@@ -1008,7 +1026,24 @@ impl RunState {
                         );
                     }
                 }
-                State::Waiting => {}
+                State::Waiting => {},
+                State::Completed => {
+                    // If completed, should not be in any of the other states
+                    if self.ready.contains(&function.id()) ||
+                    self.blocked.contains(&function.id()) ||
+                    self.running.contains_key(&function.id())
+                    {
+                        return self.runtime_error(
+                            job_id,
+                            &format!(
+                                "Function #{} has Completed, but also appears as Ready or Blocked or Running",
+                                function.id(),
+                            ),
+                            file!(),
+                            line!(),
+                        );
+                    }
+                },
             }
 
             // State::Running is because functions with initializers auto-refill when sent to run
@@ -1094,13 +1129,14 @@ impl RunState {
 impl fmt::Display for RunState {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         writeln!(f, "RunState:")?;
-        writeln!(f, "     Jobs Created: {}", self.jobs_created)?;
-        writeln!(f, "Functions Blocked: {:?}", self.blocked)?;
-        writeln!(f, "           Blocks: {:?}", self.blocks)?;
-        writeln!(f, "  Functions Ready: {:?}", self.ready)?;
-        writeln!(f, "Functions Running: {:?}", self.running)?;
-        writeln!(f, "       Flows Busy: {:?}", self.busy_flows)?;
-        write!(f, " Pending Unblocks: {:?}", self.pending_unblocks)
+        writeln!(f, "       Jobs Created: {}", self.jobs_created)?;
+        writeln!(f, ". Functions Blocked: {:?}", self.blocked)?;
+        writeln!(f, "             Blocks: {:?}", self.blocks)?;
+        writeln!(f, "    Functions Ready: {:?}", self.ready)?;
+        writeln!(f, "  Functions Running: {:?}", self.running)?;
+        writeln!(f, "Functions Completed: {:?}", self.completed)?;
+        writeln!(f, "         Flows Busy: {:?}", self.busy_flows)?;
+        write!(f, "     Pending Unblocks: {:?}", self.pending_unblocks)
     }
 }
 

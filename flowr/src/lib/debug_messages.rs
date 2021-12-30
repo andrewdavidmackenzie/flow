@@ -29,6 +29,7 @@ pub enum Param {
 }
 
 /// A Message sent from the debug server to the debug_client
+#[allow(clippy::large_enum_variant)]
 #[derive(Serialize, Deserialize)]
 pub enum DebugServerMessage {
     /// A `Job` ran to completion by a function - includes:  job_id, function_id
