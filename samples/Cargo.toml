@@ -8,7 +8,7 @@ license = "MIT"
 documentation = "https://github.com/andrewdavidmackenzie/flow/samples/README.md"
 homepage = "http://andrewdavidmackenzie.github.io/flow/"
 repository = "https://github.com/andrewdavidmackenzie/flow/"
-edition = "2018"
+edition = "2021"
 
 build = "build.rs"
 
