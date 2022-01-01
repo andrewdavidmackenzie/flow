@@ -2,13 +2,13 @@
 name = "flowc"
 version = "0.40.0"
 authors = ["Andrew Mackenzie <andrew@mackenzie-serres.net>"]
-description = "A compiler and library for compiling 'flow' programs"
+description = "A compiler for 'flow' programs"
 license = "MIT"
 documentation = "https://github.com/andrewdavidmackenzie/flow/README.md"
 homepage = "http://andrewdavidmackenzie.github.io/flow/"
 repository = "https://github.com/andrewdavidmackenzie/flow/"
 readme = "README.md"
-edition = "2018"
+edition = "2021"
 
 [badges]
 maintenance = { status = "actively-developed" }
