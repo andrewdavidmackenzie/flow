@@ -7,7 +7,7 @@ use shrinkwraprs::Shrinkwrap;
 
 use crate::errors::*;
 
-const DATA_TYPES: &[&str] = &["String", "Value", "Number", "Bool", "Map", "Array", "Null"];
+const DATA_TYPES: &[&str] = &["Value", "String", "Number", "Bool", "Map", "Array", "Null"];
 
 /// Datatype is just a string defining what data type is being used
 #[derive(Shrinkwrap, Hash, Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
@@ -26,9 +26,9 @@ impl fmt::Display for DataType {
 }
 
 /// Trait that is used on multiple objects to get their data type
-pub trait HasDataType {
+pub trait HasDataTypes {
     /// Return a reference to the datatype of the object implementing this trait
-    fn datatype(&self) -> &DataType;
+    fn datatypes(&self) -> &Vec<DataType>;
 }
 
 impl DataType {
@@ -62,8 +62,11 @@ impl DataType {
     }
 
     /// Get the data type the array holds
-    pub fn within_array(&self) -> Option<DataType> {
-        self.strip_prefix("Array/").map(DataType::from)
+    pub fn within_array(&self) -> Result<DataType> {
+        self.strip_prefix("Array/").map(DataType::from).ok_or_else(|| 
+            {
+                Error::from("DataType is now an Array of Types")
+            })
     }
 
     /// Take a json data value and return the type string for it, recursively
@@ -88,7 +91,7 @@ impl DataType {
     /// Take a string description of a DataType and determine how deeply nested in arrays it is
     pub fn array_order(&self) -> Result<i32> {
         if self.is_array() {
-            let array_contents = self.within_array().ok_or("DataType is not an Array type")?;
+            let array_contents = self.within_array()?;
             let sub_order = array_contents.array_order()?;
             Ok(1 + sub_order)
         } else {

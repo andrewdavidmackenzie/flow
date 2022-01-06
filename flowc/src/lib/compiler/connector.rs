@@ -43,8 +43,8 @@ pub fn prepare_function_connections(tables: &mut GenerationTables) -> Result<()>
                         destination_function_id,
                         destination_input_index,
                         destination_flow_id,
-                        connection.to_io().datatype().array_order()?,
-                        connection.to_io().datatype().is_generic(),
+                        connection.to_io().datatypes()[0].array_order()?, // TODO
+                        connection.to_io().datatypes()[0].is_generic(), // TODO
                         connection.to_io().route().to_string(),
                         #[cfg(feature = "debugger")]
                         connection.name().to_string(),

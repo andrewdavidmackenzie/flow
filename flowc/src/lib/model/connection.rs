@@ -101,19 +101,21 @@ impl Connection {
 
     /// Connect the `from_io` to the `to_io`
     pub fn connect(&mut self, from_io: IO, to_io: IO, level: usize) -> Result<()> {
-        if Self::compatible_types(from_io.datatype(), to_io.datatype(), &self.from) {
-            debug!(
-                "Connection built from '{}' to '{}'",
-                from_io.route(),
-                to_io.route()
-            );
-            self.from_io = from_io;
-            self.to_io = to_io;
-            self.level = level;
-            Ok(())
-        } else {
-            bail!("Cannot connect types: from {:#?} to\n{:#?}", from_io, to_io);
+        for to_datatype in to_io.datatypes() {
+            if Self::compatible_types(&from_io.datatypes()[0], to_datatype, &self.from) {
+                debug!(
+                    "Connection built from '{}' to '{}'",
+                    from_io.route(),
+                    to_io.route()
+                );
+                self.from_io = from_io;
+                self.to_io = to_io;
+                self.level = level;
+                return Ok(());
+            }
         }
+
+        bail!("Cannot connect types: from {:#?} to\n{:#?}", from_io, to_io);
     }
 
     /// Return the `from` Route specified in this connection
