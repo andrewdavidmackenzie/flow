@@ -417,5 +417,104 @@ mod test {
                 &Route::default()
             ));
         }
+
+        #[test]
+        fn multiple_output_type_to_single_input_type() {
+            let from_io = IO::new(vec!("String".into(), "Number".into()), "/p1/output");
+            let to_io = IO::new(vec!("String".into()), "/p2");
+            assert!(!Connection::compatible_types(
+                from_io.datatypes(),
+                to_io.datatypes(),
+                &Route::default()
+            ));
+        }
+
+        #[test]
+        fn multiple_output_type_to_value_input_type() {
+            let from_io = IO::new(vec!("String".into(), "Number".into()), "/p1/output");
+            let to_io = IO::new(vec!("Value".into()), "/p2");
+            assert!(Connection::compatible_types(
+                from_io.datatypes(),
+                to_io.datatypes(),
+                &Route::default()
+            ));
+        }
+
+        #[test]
+        fn multiple_output_type_to_matching_input_types() {
+            let from_io = IO::new(vec!("String".into(), "Number".into()), "/p1/output");
+            let to_io = IO::new(vec!("String".into(), "Number".into()), "/p2");
+            assert!(Connection::compatible_types(
+                from_io.datatypes(),
+                to_io.datatypes(),
+                &Route::default()
+            ));
+        }
+
+        #[test]
+        fn single_output_type_to_superset_input_types() {
+            let from_io = IO::new(vec!("String".into()), "/p1/output");
+            let to_io = IO::new(vec!("String".into(), "Number".into()), "/p2");
+            assert!(Connection::compatible_types(
+                from_io.datatypes(),
+                to_io.datatypes(),
+                &Route::default()
+            ));
+        }
+
+        #[test]
+        fn multiple_output_type_to_superset_input_types() {
+            let from_io = IO::new(vec!("String".into(), "Number".into()), "/p1/output");
+            let to_io = IO::new(vec!("String".into(), "Number".into(), "Array".into()), "/p2");
+            assert!(Connection::compatible_types(
+                from_io.datatypes(),
+                to_io.datatypes(),
+                &Route::default()
+            ));
+        }
+
+        #[test]
+        fn multiple_output_type_to_non_matching_input_types() {
+            let from_io = IO::new(vec!("String".into(), "Number".into()), "/p1/output");
+            let to_io = IO::new(vec!("String".into(), "Array".into()), "/p2");
+            assert!(!Connection::compatible_types(
+                from_io.datatypes(),
+                to_io.datatypes(),
+                &Route::default()
+            ));
+        }
+
+        #[test]
+        fn single_output_type_to_non_matching_input_types() {
+            let from_io = IO::new(vec!("String".into()), "/p1/output");
+            let to_io = IO::new(vec!("Array".into(), "Number".into()), "/p2");
+            assert!(!Connection::compatible_types(
+                from_io.datatypes(),
+                to_io.datatypes(),
+                &Route::default()
+            ));
+        }
+
+        #[test]
+        fn multiple_output_type_to_value_input_types() {
+            let from_io = IO::new(vec!("String".into(), "Number".into()), "/p1/output");
+            let to_io = IO::new(vec!("Array".into(), "Value".into()), "/p2");
+            assert!(Connection::compatible_types(
+                from_io.datatypes(),
+                to_io.datatypes(),
+                &Route::default()
+            ));
+        }
+
+        #[test]
+        fn single_output_type_to_value_input_types() {
+            let from_io = IO::new(vec!("String".into()), "/p1/output");
+            let to_io = IO::new(vec!("Array".into(), "Value".into()), "/p2");
+            assert!(Connection::compatible_types(
+                from_io.datatypes(),
+                to_io.datatypes(),
+                &Route::default()
+            ));
+        }
     }
 }
