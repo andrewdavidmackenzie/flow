@@ -155,6 +155,10 @@ impl Connection {
     /// ALL of the output_types must have a compatible input type, to guarantee that any
     /// of the valid types produced can be handled by the destination
     fn compatible_types(from: &[DataType], to: &[DataType], _from_route: &Route) -> bool {
+        if from.is_empty() || to.is_empty() {
+            return false;
+        }
+
         for output_type in from {
             let mut compatible_destination_type = false;
             for input_type in to {
@@ -511,6 +515,39 @@ mod test {
             let from_io = IO::new(vec!("String".into()), "/p1/output");
             let to_io = IO::new(vec!("Array".into(), "Value".into()), "/p2");
             assert!(Connection::compatible_types(
+                from_io.datatypes(),
+                to_io.datatypes(),
+                &Route::default()
+            ));
+        }
+
+        #[test]
+        fn null_output_type_to_valid_input_types() {
+            let from_io = IO::new(vec!(), "/p1/output");
+            let to_io = IO::new(vec!("Value".into()), "/p2");
+            assert!(!Connection::compatible_types(
+                from_io.datatypes(),
+                to_io.datatypes(),
+                &Route::default()
+            ));
+        }
+
+        #[test]
+        fn valid_output_type_to_null_input_types() {
+            let from_io = IO::new(vec!("Value".into()), "/p1/output");
+            let to_io = IO::new(vec!(), "/p2");
+            assert!(!Connection::compatible_types(
+                from_io.datatypes(),
+                to_io.datatypes(),
+                &Route::default()
+            ));
+        }
+
+        #[test]
+        fn null_output_type_to_null_input_types() {
+            let from_io = IO::new(vec!(), "/p1/output");
+            let to_io = IO::new(vec!(), "/p2");
+            assert!(!Connection::compatible_types(
                 from_io.datatypes(),
                 to_io.datatypes(),
                 &Route::default()
