@@ -328,7 +328,7 @@ mod test {
             "stdout.rs".to_string(),
             "print".into(),
             vec![],
-            vec![IO::new("String", Route::default())],
+            vec![IO::new(vec!("String".into()), Route::default())],
             Url::parse(&format!(
                 "file://{}/{}",
                 env!("CARGO_MANIFEST_DIR"),

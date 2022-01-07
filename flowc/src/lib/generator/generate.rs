@@ -8,7 +8,7 @@ use log::info;
 use serde_derive::Serialize;
 use url::Url;
 
-use flowcore::flow_manifest::{FlowManifest, MetaData, DEFAULT_MANIFEST_FILENAME};
+use flowcore::flow_manifest::{DEFAULT_MANIFEST_FILENAME, FlowManifest, MetaData};
 use flowcore::function::Function as RuntimeFunction;
 use flowcore::input::Input;
 use flowcore::output_connection::Source;
@@ -222,8 +222,8 @@ mod test {
     use url::Url;
 
     use flowcore::input::InputInitializer;
-    use flowcore::output_connection::Source::Output;
     use flowcore::output_connection::{OutputConnection, Source};
+    use flowcore::output_connection::Source::Output;
 
     use crate::model::function::Function;
     use crate::model::io::IO;
@@ -241,8 +241,8 @@ mod test {
             Name::from("print"),
             vec![],
             vec![
-                IO::new("Value", Route::default()),
-                IO::new("String", Route::default()),
+                IO::new(vec!("Value".into()), Route::default()),
+                IO::new(vec!("String".into()), Route::default()),
             ],
             Url::parse("file:///fake/file").expect("Could not parse Url"),
             Route::from("/flow0/stdout"),
@@ -318,7 +318,7 @@ mod test {
             "lib://flowruntime/stdio/stdout".to_string(),
             Name::from("print"),
             vec![],
-            vec![IO::new("String", Route::default())],
+            vec![IO::new(vec!("String".into()), Route::default())],
             Url::parse("file:///fake/file").expect("Could not parse Url"),
             Route::from("/flow0/stdout"),
             Some("flowruntime/stdio/stdout".to_string()),
@@ -372,7 +372,7 @@ mod test {
             "lib://flowruntime/stdio/stdout".to_string(),
             Name::from("print"),
             vec![],
-            vec![IO::new("String", Route::default())],
+            vec![IO::new(vec!("String".into()), Route::default())],
             Url::parse("file:///fake/file").expect("Could not parse Url"),
             Route::from("/flow0/stdout"),
             Some("flowruntime/stdio/stdout".to_string()),
@@ -421,7 +421,7 @@ mod test {
 
     #[test]
     fn function_with_initialized_input_generation() {
-        let mut io = IO::new("String", Route::default());
+        let mut io = IO::new(vec!("String".into()), Route::default());
         io.set_initializer(&Some(InputInitializer::Once(json!(1))));
 
         let function = Function::new(
@@ -467,7 +467,7 @@ mod test {
 
     #[test]
     fn function_with_constant_input_generation() {
-        let mut io = IO::new("String", Route::default());
+        let mut io = IO::new(vec!("String".into()), Route::default());
         io.set_initializer(&Some(InputInitializer::Always(json!(1))));
 
         let function = Function::new(
@@ -513,7 +513,7 @@ mod test {
 
     #[test]
     fn function_with_array_input_generation() {
-        let io = IO::new("Array/String", Route::default());
+        let io = IO::new(vec!("Array/String".into()), Route::default());
 
         let function = Function::new(
             Name::from("Stdout"),
@@ -559,7 +559,7 @@ mod test {
             "lib://flowruntime/stdio/stdout".to_string(),
             Name::from("print"),
             vec![],
-            vec![IO::new("String", Route::default())],
+            vec![IO::new(vec!("String".into()), Route::default())],
             Url::parse("file:///fake/file").expect("Could not parse Url"),
             Route::from("/flow0/stdout"),
             Some("flowruntime/stdio/stdout".to_string()),
@@ -633,7 +633,7 @@ mod test {
             "lib://flowruntime/stdio/stdout".to_string(),
             Name::from("print"),
             vec![],
-            vec![IO::new("Array", Route::default())],
+            vec![IO::new(vec!("Array".into()), Route::default())],
             Url::parse("file:///fake/file").expect("Could not parse Url"),
             Route::from("/flow0/stdout"),
             Some("flowruntime/stdio/stdout".to_string()),

@@ -11,25 +11,25 @@ use flowcore::flow_manifest::MetaData;
 use flowcore::input::InputInitializer;
 
 use crate::compiler::loader::Validate;
-use crate::errors::Error;
 use crate::errors::*;
+use crate::errors::Error;
 use crate::model::connection::Connection;
 use crate::model::connection::Direction;
 use crate::model::connection::Direction::FROM;
 use crate::model::connection::Direction::TO;
+use crate::model::io::{IO, IOType};
 use crate::model::io::Find;
 use crate::model::io::IOSet;
-use crate::model::io::{IOType, IO};
 use crate::model::name::HasName;
 use crate::model::name::Name;
 use crate::model::process::Process;
 use crate::model::process::Process::FlowProcess;
 use crate::model::process::Process::FunctionProcess;
 use crate::model::process_reference::ProcessReference;
+use crate::model::route::{Route, RouteType};
 use crate::model::route::HasRoute;
 use crate::model::route::SetIORoutes;
 use crate::model::route::SetRoute;
-use crate::model::route::{Route, RouteType};
 
 /// `Flow` defines a parent or child flow in the nested flow hierarchy
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -446,12 +446,12 @@ mod test {
             name: "test_flow".into(),
             alias: "test_flow".into(),
             inputs: vec![
-                IO::new_named("String", "string", "string"),
-                IO::new_named("Number", "number", "number"),
+                IO::new_named(vec!("String".into()), "string", "string"),
+                IO::new_named(vec!("Number".into()), "number", "number"),
             ],
             outputs: vec![
-                IO::new_named("String", "string", "string"),
-                IO::new_named("Number", "number", "number"),
+                IO::new_named(vec!("String".into()), "string", "string"),
+                IO::new_named(vec!("Number".into()), "number", "number"),
             ],
             source_url: super::Flow::default_url(),
             ..Default::default()
@@ -460,16 +460,16 @@ mod test {
         let process_1 = Process::FunctionProcess(Function {
             name: "process_1".into(),
             id: 0,
-            inputs: vec![IO::new("String", "")],
-            outputs: vec![IO::new("String", "")],
+            inputs: vec![IO::new(vec!("String".into()), "")],
+            outputs: vec![IO::new(vec!("String".into()), "")],
             ..Default::default()
         });
 
         let process_2 = Process::FunctionProcess(Function {
             name: "process_2".into(),
             id: 1,
-            inputs: vec![IO::new("String", "")],
-            outputs: vec![IO::new("Number", "")],
+            inputs: vec![IO::new(vec!("String".into()), "")],
+            outputs: vec![IO::new(vec!("Number".into()), "")],
             ..Default::default()
         });
 

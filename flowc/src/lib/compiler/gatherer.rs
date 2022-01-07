@@ -68,7 +68,7 @@ mod test {
             "lib://flowruntime/stdio/stdout".to_string(),
             Name::from("print"),
             vec![],
-            vec![IO::new("String", Route::default())],
+            vec![IO::new(vec!("String".into()), Route::default())],
             Url::parse("file:///fake/file").expect("Could not parse Url"),
             Route::from("/flow0/stdout"),
             Some("flowruntime/stdio/stdout".to_string()),
