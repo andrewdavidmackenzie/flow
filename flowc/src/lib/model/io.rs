@@ -158,6 +158,9 @@ fn default_io_type() -> IOType {
 
 impl Validate for IO {
     fn validate(&self) -> Result<()> {
+        if self.datatypes.is_empty() {
+            bail!("There must be one or more valid data types specified on an IO");
+        }
         for datatype in self.datatypes() {
             datatype.valid()?;
         }
@@ -482,5 +485,17 @@ mod test {
         };
         let ioset = vec![io0, io1] as IOSet;
         assert!(ioset.validate().is_err());
+    }
+
+    #[test]
+    fn no_datatypes_not_allowed() {
+        let io = IO {
+            name: Name::from("io_name"),
+            datatypes: vec!(),
+            io_type: IOType::FunctionIO,
+            initializer: None,
+            ..Default::default()
+        };
+        assert!(io.validate().is_err());
     }
 }
