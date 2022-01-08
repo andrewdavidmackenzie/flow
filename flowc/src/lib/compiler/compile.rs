@@ -52,9 +52,9 @@ mod test {
     use crate::model::route::Route;
 
     /*
-        Test an error is thrown if a flow has no side effects, and that unconnected functions
-        are removed by the optimizer
-    */
+            Test an error is thrown if a flow has no side effects, and that unconnected functions
+            are removed by the optimizer
+        */
     #[test]
     fn no_side_effects() {
         let function = Function::new(
@@ -62,7 +62,7 @@ mod test {
             false,
             "lib://flowruntime/stdio/stdout.toml".to_owned(),
             Name::from("test-function"),
-            vec![IO::new("String", "/print")],
+            vec![IO::new(vec!("String".into()), "/print")],
             vec![],
             Url::parse("lib://flowruntime/stdio/stdout.toml").expect("Could not parse Url"),
             Route::from("/print"),

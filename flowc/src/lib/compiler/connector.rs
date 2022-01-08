@@ -3,13 +3,13 @@ use std::collections::HashMap;
 use error_chain::bail;
 use log::debug;
 
-use flowcore::output_connection::Source::{Input, Output};
 use flowcore::output_connection::{OutputConnection, Source};
+use flowcore::output_connection::Source::{Input, Output};
 
 use crate::errors::*;
 use crate::generator::generate::GenerationTables;
 use crate::model::connection::Connection;
-use crate::model::io::{IOType, IO};
+use crate::model::io::{IO, IOType};
 use crate::model::name::HasName;
 use crate::model::route::HasRoute;
 use crate::model::route::Route;
@@ -43,8 +43,8 @@ pub fn prepare_function_connections(tables: &mut GenerationTables) -> Result<()>
                         destination_function_id,
                         destination_input_index,
                         destination_flow_id,
-                        connection.to_io().datatype().array_order()?,
-                        connection.to_io().datatype().is_generic(),
+                        connection.to_io().datatypes()[0].array_order()?, // TODO
+                        connection.to_io().datatypes()[0].is_generic(), // TODO
                         connection.to_io().route().to_string(),
                         #[cfg(feature = "debugger")]
                         connection.name().to_string(),
@@ -385,15 +385,15 @@ mod test {
         use super::super::get_source;
 
         /*
-            Create a HashTable of routes for use in tests.
-            Each entry (K, V) is:
-            - Key   - the route to a function's IO
-            - Value - a tuple of
-                        - sub-route (or IO name) from the function to be used at runtime
-                        - the id number of the function in the functions table, to select it at runtime
+                    Create a HashTable of routes for use in tests.
+                    Each entry (K, V) is:
+                    - Key   - the route to a function's IO
+                    - Value - a tuple of
+                                - sub-route (or IO name) from the function to be used at runtime
+                                - the id number of the function in the functions table, to select it at runtime
 
-            Plus a vector of test cases with the Route to search for and the expected function_id and output sub-route
-        */
+                    Plus a vector of test cases with the Route to search for and the expected function_id and output sub-route
+                */
         #[allow(clippy::type_complexity)]
         fn test_source_routes() -> (
             HashMap<Route, (Source, usize)>,
@@ -475,7 +475,7 @@ mod test {
 
     mod collapse_tests {
         use crate::model::connection::Connection;
-        use crate::model::io::{IOType, IO};
+        use crate::model::io::{IO, IOType};
         use crate::model::route::HasRoute;
         use crate::model::route::Route;
 
@@ -485,7 +485,8 @@ mod test {
         fn collapse_drops_a_useless_connections() {
             let mut unused = Connection::new("/f1/a", "/f2/a");
             unused
-                .connect(IO::new("String", "/f1/a"), IO::new("String", "/f2/a"), 1)
+                .connect(IO::new(vec!("String".into()), "/f1/a"),
+                         IO::new(vec!("String".into()), "/f2/a"), 1)
                 .expect("Could not connect IOs");
             unused.to_io_mut().set_io_type(IOType::FlowInput);
 
@@ -499,8 +500,8 @@ mod test {
             let mut left_side = Connection::new("/function1", "/flow2/a");
             left_side
                 .connect(
-                    IO::new("String", "/function1"),
-                    IO::new("String", "/flow2/a"),
+                    IO::new(vec!("String".into()), "/function1"),
+                    IO::new(vec!("String".into()), "/flow2/a"),
                     0,
                 )
                 .expect("Could not connect IOs");
@@ -511,8 +512,8 @@ mod test {
             let mut extra_one = Connection::new("/flow2/a", "/flow2/f4/a");
             extra_one
                 .connect(
-                    IO::new("String", "/flow2/a"),
-                    IO::new("String", "/flow2/f4/a"),
+                    IO::new(vec!("String".into()), "/flow2/a"),
+                    IO::new(vec!("String".into()), "/flow2/f4/a"),
                     1,
                 )
                 .expect("Could not connect IOs");
@@ -522,8 +523,8 @@ mod test {
             let mut right_side = Connection::new("/flow2/a", "/flow2/function3");
             right_side
                 .connect(
-                    IO::new("String", "/flow2/a"),
-                    IO::new("String", "/flow2/function3"),
+                    IO::new(vec!("String".into()), "/flow2/a"),
+                    IO::new(vec!("String".into()), "/flow2/function3"),
                     1,
                 )
                 .expect("Could not connect IOs");
@@ -551,7 +552,8 @@ mod test {
         fn collapse_two_connections_from_flow_boundary() {
             let mut left_side = Connection::new("/f1", "/f2/a");
             left_side
-                .connect(IO::new("String", "/f1"), IO::new("String", "/f2/a"), 0)
+                .connect(IO::new(vec!("String".into()), "/f1"),
+                         IO::new(vec!("String".into()), "/f2/a"), 0)
                 .expect("Could not connect IOs");
             left_side.from_io_mut().set_io_type(IOType::FunctionIO);
             left_side.to_io_mut().set_io_type(IOType::FlowInput);
@@ -559,8 +561,8 @@ mod test {
             let mut right_side_one = Connection::new("/f2/a", "/f2/value1");
             right_side_one
                 .connect(
-                    IO::new("String", "/f2/a"),
-                    IO::new("String", "/f2/value1"),
+                    IO::new(vec!("String".into()), "/f2/a"),
+                    IO::new(vec!("String".into()), "/f2/value1"),
                     1,
                 )
                 .expect("Could not connect IOs");
@@ -570,8 +572,8 @@ mod test {
             let mut right_side_two = Connection::new("/f2/a", "/f2/value2");
             right_side_two
                 .connect(
-                    IO::new("String", "/f2/a"),
-                    IO::new("String", "/f2/value2"),
+                    IO::new(vec!("String".into()), "/f2/a"),
+                    IO::new(vec!("String".into()), "/f2/value2"),
                     1,
                 )
                 .expect("Could not connect IOs");
@@ -594,8 +596,8 @@ mod test {
             let mut first_level = Connection::new("/value", "/flow1/a");
             first_level
                 .connect(
-                    IO::new("String", "/value"),
-                    IO::new("String", "/flow1/a"),
+                    IO::new(vec!("String".into()), "/value"),
+                    IO::new(vec!("String".into()), "/flow1/a"),
                     0,
                 )
                 .expect("Could not connect IOs");
@@ -605,8 +607,8 @@ mod test {
             let mut second_level = Connection::new("/flow1/a", "/flow1/flow2/a");
             second_level
                 .connect(
-                    IO::new("String", "/flow1/a"),
-                    IO::new("String", "/flow1/flow2/a"),
+                    IO::new(vec!("String".into()), "/flow1/a"),
+                    IO::new(vec!("String".into()), "/flow1/flow2/a"),
                     1,
                 )
                 .expect("Could not connect IOs");
@@ -616,8 +618,8 @@ mod test {
             let mut third_level = Connection::new("/flow1/flow2/a", "/flow1/flow2/func/in");
             third_level
                 .connect(
-                    IO::new("String", "/flow1/flow2/a"),
-                    IO::new("String", "/flow1/flow2/func/in"),
+                    IO::new(vec!("String".into()), "/flow1/flow2/a"),
+                    IO::new(vec!("String".into()), "/flow1/flow2/func/in"),
                     2,
                 )
                 .expect("Could not connect IOs");
@@ -638,12 +640,14 @@ mod test {
         #[test]
         fn does_not_collapse_a_non_connection() {
             let mut one = Connection::new("/f1/a", "/f2/a");
-            one.connect(IO::new("String", "/f1/a"), IO::new("String", "/f2/a"), 1)
+            one.connect(IO::new(vec!("String".into()), "/f1/a"),
+                        IO::new(vec!("String".into()), "/f2/a"), 1)
                 .expect("Could not connect IOs");
 
             let mut other = Connection::new("/f3/a", "/f4/a");
             other
-                .connect(IO::new("String", "/f3/a"), IO::new("String", "/f4/a"), 1)
+                .connect(IO::new(vec!("String".into()), "/f3/a"),
+                         IO::new(vec!("String".into()), "/f4/a"), 1)
                 .expect("Could not connect IOs");
             let connections = vec![one, other];
             let collapsed = collapse_connections(&connections);

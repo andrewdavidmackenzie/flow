@@ -454,7 +454,8 @@ mod test {
         assert!(!function.outputs.is_empty());
         let output = &function.outputs[0];
         assert_eq!(*output.name(), Name::default());
-        assert_eq!(output.datatype(), &DataType::from("String"));
+        assert_eq!(output.datatypes().len(), 1);
+        assert_eq!(output.datatypes()[0], DataType::from("String"));
     }
 
     #[test]
@@ -474,7 +475,8 @@ mod test {
         assert!(!function.outputs.is_empty());
         let output = &function.outputs[0];
         assert_eq!(*output.name(), Name::from("sub_output"));
-        assert_eq!(output.datatype(), &DataType::from("String"));
+        assert_eq!(output.datatypes().len(), 1);
+        assert_eq!(output.datatypes()[0], DataType::from("String"));
     }
 
     #[test]
@@ -499,10 +501,12 @@ mod test {
         assert_eq!(outputs.len(), 2);
         let output0 = &outputs[0];
         assert_eq!(*output0.name(), Name::from("sub_output"));
-        assert_eq!(output0.datatype(), &DataType::from("String"));
+        assert_eq!(output0.datatypes().len(), 1);
+        assert_eq!(output0.datatypes()[0], DataType::from("String"));
         let output1 = &outputs[1];
         assert_eq!(*output1.name(), Name::from("other_output"));
-        assert_eq!(output1.datatype(), &DataType::from("Number"));
+        assert_eq!(output1.datatypes().len(), 1);
+        assert_eq!(output1.datatypes()[0], DataType::from("Number"));
     }
 
     #[test]
