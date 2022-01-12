@@ -49,7 +49,7 @@ pub fn write(lib_root: &Path, lib_manifest: &LibraryManifest, filename: &Path) -
     for module in modules {
         manifest_file.write_all(format!("\n/// functions from module '{}'", module).as_bytes())?;
         manifest_file.write_all(
-            format!("\n#[path=\"{}/{}/context\"]", lib_root.display(), module).as_bytes(),
+            format!("\n#[path=\"{}/{}/mod.rs\"]", lib_root.display(), module).as_bytes(),
         )?;
         manifest_file.write_all(format!("\npub mod {};\n", module).as_bytes())?;
     }
