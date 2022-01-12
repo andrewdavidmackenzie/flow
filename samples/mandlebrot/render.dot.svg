@@ -161,7 +161,7 @@
 <!-- /mandlebrot/render/image_buffer -->
 <g id="node9" class="node">
 <title>/mandlebrot/render/image_buffer</title>
-<g id="a_node9"><a xlink:href="../../flowr/src/lib/flowruntime/image/image_buffer.html" xlink:title="image_buffer">
+<g id="a_node9"><a xlink:href="../../flowr/src/lib/context/image/image_buffer.html" xlink:title="image_buffer">
 <ellipse fill="coral" stroke="black" cx="540.86" cy="-18" rx="71.49" ry="18"/>
 <text text-anchor="middle" x="540.86" y="-14.3" font-family="Times,serif" font-size="14.00">image_buffer</text>
 </a>

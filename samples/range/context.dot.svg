@@ -13,7 +13,7 @@
 <!-- /range/get -->
 <g id="node1" class="node">
 <title>/range/get</title>
-<g id="a_node1"><a xlink:href="../../flowr/src/lib/flowruntime/args/get.html" xlink:title="get">
+<g id="a_node1"><a xlink:href="../../flowr/src/lib/context/args/get.html" xlink:title="get">
 <ellipse fill="coral" stroke="black" cx="57.25" cy="-359" rx="27" ry="18"/>
 <text text-anchor="middle" x="57.25" y="-355.3" font-family="Times,serif" font-size="14.00">get</text>
 </a>
@@ -56,7 +56,7 @@
 <!-- /range/stdout -->
 <g id="node5" class="node">
 <title>/range/stdout</title>
-<g id="a_node5"><a xlink:href="../../flowr/src/lib/flowruntime/stdio/stdout.html" xlink:title="stdout">
+<g id="a_node5"><a xlink:href="../../flowr/src/lib/context/stdio/stdout.html" xlink:title="stdout">
 <ellipse fill="coral" stroke="black" cx="137.25" cy="-18" rx="40.09" ry="18"/>
 <text text-anchor="middle" x="137.25" y="-14.3" font-family="Times,serif" font-size="14.00">stdout</text>
 </a>

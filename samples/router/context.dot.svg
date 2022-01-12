@@ -13,7 +13,7 @@
 <!-- /router/readline -->
 <g id="node1" class="node">
 <title>/router/readline</title>
-<g id="a_node1"><a xlink:href="../../flowr/src/lib/flowruntime/stdio/readline.html" xlink:title="readline">
+<g id="a_node1"><a xlink:href="../../flowr/src/lib/context/stdio/readline.html" xlink:title="readline">
 <ellipse fill="coral" stroke="black" cx="48.75" cy="-499.74" rx="48.99" ry="18"/>
 <text text-anchor="middle" x="48.75" y="-496.04" font-family="Times,serif" font-size="14.00">readline</text>
 </a>
@@ -154,7 +154,7 @@
 <!-- /router/print -->
 <g id="node7" class="node">
 <title>/router/print</title>
-<g id="a_node7"><a xlink:href="../../flowr/src/lib/flowruntime/stdio/stdout.html" xlink:title="print\n(stdout)">
+<g id="a_node7"><a xlink:href="../../flowr/src/lib/context/stdio/stdout.html" xlink:title="print\n(stdout)">
 <ellipse fill="coral" stroke="black" cx="290.75" cy="-87" rx="51.74" ry="26.74"/>
 <text text-anchor="middle" x="290.75" y="-90.8" font-family="Times,serif" font-size="14.00">print</text>
 <text text-anchor="middle" x="290.75" y="-75.8" font-family="Times,serif" font-size="14.00">(stdout)</text>

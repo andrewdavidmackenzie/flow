@@ -88,7 +88,7 @@
 <!-- /primitives/print -->
 <g id="node10" class="node">
 <title>/primitives/print</title>
-<g id="a_node10"><a xlink:href="../../flowr/src/lib/flowruntime/stdio/stdout.html" xlink:title="print\n(stdout)">
+<g id="a_node10"><a xlink:href="../../flowr/src/lib/context/stdio/stdout.html" xlink:title="print\n(stdout)">
 <ellipse fill="coral" stroke="black" cx="525.84" cy="-26.87" rx="51.74" ry="26.74"/>
 <text text-anchor="middle" x="525.84" y="-30.67" font-family="Times,serif" font-size="14.00">print</text>
 <text text-anchor="middle" x="525.84" y="-15.67" font-family="Times,serif" font-size="14.00">(stdout)</text>

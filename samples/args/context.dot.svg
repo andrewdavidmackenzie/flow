@@ -13,7 +13,7 @@
 <!-- /arg&#45;print/get -->
 <g id="node1" class="node">
 <title>/arg&#45;print/get</title>
-<g id="a_node1"><a xlink:href="../../flowr/src/lib/flowruntime/args/get.html" xlink:title="get">
+<g id="a_node1"><a xlink:href="../../flowr/src/lib/context/args/get.html" xlink:title="get">
 <ellipse fill="coral" stroke="black" cx="27" cy="-90" rx="27" ry="18"/>
 <text text-anchor="middle" x="27" y="-86.3" font-family="Times,serif" font-size="14.00">get</text>
 </a>
@@ -22,7 +22,7 @@
 <!-- /arg&#45;print/stdout -->
 <g id="node2" class="node">
 <title>/arg&#45;print/stdout</title>
-<g id="a_node2"><a xlink:href="../../flowr/src/lib/flowruntime/stdio/stdout.html" xlink:title="stdout">
+<g id="a_node2"><a xlink:href="../../flowr/src/lib/context/stdio/stdout.html" xlink:title="stdout">
 <ellipse fill="coral" stroke="black" cx="95" cy="-18" rx="40.09" ry="18"/>
 <text text-anchor="middle" x="95" y="-14.3" font-family="Times,serif" font-size="14.00">stdout</text>
 </a>

@@ -13,7 +13,7 @@
 <!-- /prime/args -->
 <g id="node1" class="node">
 <title>/prime/args</title>
-<g id="a_node1"><a xlink:href="../../flowr/src/lib/flowruntime/args/get.html" xlink:title="args\n(get)">
+<g id="a_node1"><a xlink:href="../../flowr/src/lib/context/args/get.html" xlink:title="args\n(get)">
 <ellipse fill="coral" stroke="black" cx="90.85" cy="-605.35" rx="35.21" ry="26.74"/>
 <text text-anchor="middle" x="90.85" y="-609.15" font-family="Times,serif" font-size="14.00">args</text>
 <text text-anchor="middle" x="90.85" y="-594.15" font-family="Times,serif" font-size="14.00">(get)</text>
@@ -139,7 +139,7 @@
 <!-- /prime/print -->
 <g id="node7" class="node">
 <title>/prime/print</title>
-<g id="a_node7"><a xlink:href="../../flowr/src/lib/flowruntime/stdio/stdout.html" xlink:title="print\n(stdout)">
+<g id="a_node7"><a xlink:href="../../flowr/src/lib/context/stdio/stdout.html" xlink:title="print\n(stdout)">
 <ellipse fill="coral" stroke="black" cx="506.85" cy="-26.87" rx="51.74" ry="26.74"/>
 <text text-anchor="middle" x="506.85" y="-30.67" font-family="Times,serif" font-size="14.00">print</text>
 <text text-anchor="middle" x="506.85" y="-15.67" font-family="Times,serif" font-size="14.00">(stdout)</text>

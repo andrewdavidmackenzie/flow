@@ -13,7 +13,7 @@
 <!-- /factorial/args -->
 <g id="node1" class="node">
 <title>/factorial/args</title>
-<g id="a_node1"><a xlink:href="../../flowr/src/lib/flowruntime/args/get.html" xlink:title="args\n(get)">
+<g id="a_node1"><a xlink:href="../../flowr/src/lib/context/args/get.html" xlink:title="args\n(get)">
 <ellipse fill="coral" stroke="black" cx="443.49" cy="-577.83" rx="35.21" ry="26.74"/>
 <text text-anchor="middle" x="443.49" y="-581.63" font-family="Times,serif" font-size="14.00">args</text>
 <text text-anchor="middle" x="443.49" y="-566.63" font-family="Times,serif" font-size="14.00">(get)</text>
@@ -169,7 +169,7 @@
 <!-- /factorial/print -->
 <g id="node10" class="node">
 <title>/factorial/print</title>
-<g id="a_node10"><a xlink:href="../../flowr/src/lib/flowruntime/stdio/stdout.html" xlink:title="print\n(stdout)">
+<g id="a_node10"><a xlink:href="../../flowr/src/lib/context/stdio/stdout.html" xlink:title="print\n(stdout)">
 <ellipse fill="coral" stroke="black" cx="489.49" cy="-26.87" rx="51.74" ry="26.74"/>
 <text text-anchor="middle" x="489.49" y="-30.67" font-family="Times,serif" font-size="14.00">print</text>
 <text text-anchor="middle" x="489.49" y="-15.67" font-family="Times,serif" font-size="14.00">(stdout)</text>
