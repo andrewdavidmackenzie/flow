@@ -4,7 +4,7 @@ flow = "subflow"
 name = "array_input"
 
 [[process]]
-source = "lib://flowruntime/stdio/stdout"
+source = "lib://context/stdio/stdout"
 
 [[connection]]
 from = "input/array_input/1"

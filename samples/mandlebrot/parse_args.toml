@@ -16,7 +16,7 @@ type = "Array/Array/Number"
 # Args
 [[process]]
 alias = "args"
-source = "lib://flowruntime/args/get"
+source = "lib://context/args/get"
 
 ############# filename
 [[connection]]

@@ -1,4 +1,4 @@
-## Write (//flowruntime/file/write)
+## Write (//context/file/write)
 Writes `bytes` of data supplied to the file named `filename`, creating it if necessary.
 
 ### Definition
@@ -10,7 +10,7 @@ Writes `bytes` of data supplied to the file named `filename`, creating it if nec
 ```toml
 [[process]]
 alias = "write"
-source = "lib://flowruntime/file/write"
+source = "lib://context/file/write"
 ```
 
 ### Inputs

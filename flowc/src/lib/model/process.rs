@@ -111,7 +111,7 @@ metadata:
 
         [[process]]
         alias = 'print'
-        source = 'lib://flowruntime/stdio/stdout.toml'
+        source = 'lib://context/stdio/stdout.toml'
 
         [[connection]]
         from = 'message'
@@ -301,7 +301,7 @@ type = 'String'";
     'process': [
         {
             'alias': 'print',
-            'source': 'lib://flowruntime/stdio/stdout.toml',
+            'source': 'lib://context/stdio/stdout.toml',
             'input': {
                 'default': {
                     'once': 'hello'
@@ -331,7 +331,7 @@ type = 'String'";
         },
         {
             'alias': 'print',
-            'source': 'lib://flowruntime/stdio/stdout.toml'
+            'source': 'lib://context/stdio/stdout.toml'
         }
     ],
     'connection': [
@@ -362,7 +362,7 @@ type = 'String'";
         },
         {
             'alias': 'print',
-            'source': 'lib://flowruntime/stdio/stdout.toml'
+            'source': 'lib://context/stdio/stdout.toml'
         }
     ],
     'connection': [

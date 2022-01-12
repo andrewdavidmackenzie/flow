@@ -2,7 +2,7 @@ use std::sync::{Arc, Mutex};
 
 use serde_json::{json, Value};
 
-use flowcore::{Implementation, RunAgain, DONT_RUN_AGAIN};
+use flowcore::{DONT_RUN_AGAIN, Implementation, RunAgain};
 
 use crate::client_server::ServerConnection;
 use crate::runtime_messages::{ClientMessage, ServerMessage};
@@ -51,15 +51,15 @@ mod test {
     use serde_json::json;
     use serial_test::serial;
 
-    use flowcore::{Implementation, DONT_RUN_AGAIN};
+    use flowcore::{DONT_RUN_AGAIN, Implementation};
 
     use crate::client_server::ServerConnection;
     use crate::coordinator::RUNTIME_SERVICE_NAME;
     use crate::runtime_messages::ClientMessage::Args;
     use crate::runtime_messages::ServerMessage::GetArgs;
 
-    use super::super::super::test_helper::test::wait_for_then_send;
     use super::Get;
+    use super::super::super::test_helper::test::wait_for_then_send;
 
     #[test]
     #[serial(client_server)]

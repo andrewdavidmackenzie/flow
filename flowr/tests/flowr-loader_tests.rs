@@ -1,7 +1,7 @@
 use std::env;
 use std::fs::File;
-use std::io::Write;
 use std::io::{self, Read};
+use std::io::Write;
 use std::path::Path;
 use std::sync::Arc;
 
@@ -10,11 +10,11 @@ use simpath::Simpath;
 use tempdir::TempDir;
 use url::Url;
 
+use flowcore::{DONT_RUN_AGAIN, Implementation, RunAgain};
 use flowcore::flow_manifest::{FlowManifest, MetaData};
 use flowcore::function::Function;
 use flowcore::lib_manifest::{ImplementationLocator::Native, LibraryManifest};
 use flowcore::lib_provider::MetaProvider;
-use flowcore::{Implementation, RunAgain, DONT_RUN_AGAIN};
 use flowrlib::loader::Loader;
 
 /// flowrlib integration tests
@@ -88,36 +88,36 @@ impl Implementation for Fake {
 
 fn get_manifest() -> LibraryManifest {
     let metadata = MetaData {
-        name: "flowruntime".to_string(),
+        name: "context".to_string(),
         description: "".into(),
         version: "0.1.0".into(),
         authors: vec!["".into()],
     };
-    let lib_url = Url::parse("lib://flowruntime").expect("Couldn't create lib url");
+    let lib_url = Url::parse("lib://context").expect("Couldn't create lib url");
     let mut manifest = LibraryManifest::new(lib_url, metadata);
 
     manifest.locators.insert(
-        Url::parse("lib://flowruntime/args/get/get").expect("Could not create Url"),
+        Url::parse("lib://context/args/get/get").expect("Could not create Url"),
         Native(Arc::new(Fake {})),
     );
     manifest.locators.insert(
-        Url::parse("lib://flowruntime/file/file_write/file_write").expect("Could not create Url"),
+        Url::parse("lib://context/file/file_write/file_write").expect("Could not create Url"),
         Native(Arc::new(Fake {})),
     );
     manifest.locators.insert(
-        Url::parse("lib://flowruntime/stdio/readline/readline").expect("Could not create Url"),
+        Url::parse("lib://context/stdio/readline/readline").expect("Could not create Url"),
         Native(Arc::new(Fake {})),
     );
     manifest.locators.insert(
-        Url::parse("lib://flowruntime/stdio/stdin/stdin").expect("Could not create Url"),
+        Url::parse("lib://context/stdio/stdin/stdin").expect("Could not create Url"),
         Native(Arc::new(Fake {})),
     );
     manifest.locators.insert(
-        Url::parse("lib://flowruntime/stdio/stdout/stdout").expect("Could not create Url"),
+        Url::parse("lib://context/stdio/stdout/stdout").expect("Could not create Url"),
         Native(Arc::new(Fake {})),
     );
     manifest.locators.insert(
-        Url::parse("lib://flowruntime/stdio/stderr/stderr").expect("Could not create Url"),
+        Url::parse("lib://context/stdio/stderr/stderr").expect("Could not create Url"),
         Native(Arc::new(Fake {})),
     );
 
@@ -139,8 +139,8 @@ fn write_manifest(manifest: &FlowManifest, filename: &Path) -> Result<(), String
     Ok(())
 }
 
-// Setup a lib search path so that they can find the flowruntime library that is in
-// flowr/src/lib/flowruntime
+// Setup a lib search path so that they can find the context library that is in
+// flowr/src/lib/context
 fn set_lib_search_path() -> Simpath {
     let mut lib_search_path = Simpath::new("lib_search_path");
     let flowr_path_str = Path::new(env!("CARGO_MANIFEST_DIR"))
@@ -151,7 +151,7 @@ fn set_lib_search_path() -> Simpath {
     lib_search_path.add_directory(
         flowr_path_str
             .to_str()
-            .expect("Could not get flowruntime parent directory path as string"),
+            .expect("Could not get context parent directory path as string"),
     );
     lib_search_path
 }
@@ -161,7 +161,7 @@ fn load_manifest_from_file() {
     let f_a = Function::new(
         "fA",
         "/fA",
-        "lib://flowruntime/stdio/stdout/stdout",
+        "lib://context/stdio/stdout/stdout",
         vec![],
         0,
         0,
@@ -184,9 +184,9 @@ fn load_manifest_from_file() {
         .add_lib(
             &server_provider,
             get_manifest(),
-            &Url::parse("lib://flowruntime").expect("Could not parse lib url"),
+            &Url::parse("lib://context").expect("Could not parse lib url"),
         )
-        .expect("Could not add flowruntime library to loader");
+        .expect("Could not add context library to loader");
 
     let _ = loader
         .load_flow(&server_provider, &client_provider, &manifest_url)
@@ -200,7 +200,7 @@ fn resolve_lib_implementation_test() {
     let f_a = Function::new(
         "fA",
         "/fA",
-        "lib://flowruntime/stdio/stdin/stdin",
+        "lib://context/stdio/stdin/stdin",
         vec![],
         0,
         0,
@@ -228,7 +228,7 @@ fn unresolved_lib_functions_test() {
     let f_a = Function::new(
         "fA",
         "/fA",
-        "lib://flowruntime/stdio/stdin/foo",
+        "lib://context/stdio/stdin/foo",
         vec![],
         0,
         0,
@@ -244,7 +244,7 @@ fn unresolved_lib_functions_test() {
     // Load library functions provided
     loader
         .add_lib(&provider, get_manifest(), &cwd_as_url())
-        .expect("Could not add flowruntime library to loader");
+        .expect("Could not add context library to loader");
 
     assert!(loader
         .resolve_implementations(&mut manifest, &manifest_url, &provider)

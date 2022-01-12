@@ -3,7 +3,7 @@
   "process": [
     {
       "alias": "print",
-      "source": "lib://flowruntime/stdio/stdout.toml",
+      "source": "lib://context/stdio/stdout.toml",
       "input": {
         "default": {
           "once": "hello"

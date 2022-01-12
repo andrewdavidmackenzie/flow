@@ -213,7 +213,7 @@ mod test {
                     \"route\": \"/print\",
                     \"id\": 0,
                     \"flow_id\": 0,
-                    \"implementation_location\": \"lib://flowruntime/stdio/stdout/Stdout\",
+                    \"implementation_location\": \"lib://context/stdio/stdout/Stdout\",
                     \"inputs\": [ {} ]
                 }
              ],

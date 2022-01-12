@@ -2,7 +2,7 @@ flow = "reverse-echo"
 docs = "DESCRIPTION.md"
 
 [[process]]
-source = "lib://flowruntime/stdio/readline"
+source = "lib://context/stdio/readline"
 
 [[process]]
 alias = "reverse"
@@ -10,7 +10,7 @@ source = "reverse/reverse"
 
 [[process]]
 alias = "print"
-source = "lib://flowruntime/stdio/stdout"
+source = "lib://context/stdio/stdout"
 
 [[connection]]
 name = "normal"

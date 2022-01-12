@@ -6,7 +6,7 @@ input.a = { once = "OK" }
 
 [[process]]
 alias = "print"
-source = "lib://flowruntime/stdio/stdout"
+source = "lib://context/stdio/stdout"
 
 [[connection]]
 from = "subflow_short_circuit/output"

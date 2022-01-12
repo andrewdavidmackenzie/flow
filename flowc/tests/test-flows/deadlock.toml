@@ -43,7 +43,7 @@ to = "add/i2"
 
 [[process]]
 alias = "print"
-source = "lib://flowruntime/stdio/stdout"
+source = "lib://context/stdio/stdout"
 
 [[connection]]
 from = "add"

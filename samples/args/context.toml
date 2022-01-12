@@ -2,10 +2,10 @@ flow = "arg-print"
 docs = "DESCRIPTION.md"
 
 [[process]]
-source = "lib://flowruntime/args/get"
+source = "lib://context/args/get"
 
 [[process]]
-source = "lib://flowruntime/stdio/stdout"
+source = "lib://context/stdio/stdout"
 
 [[connection]]
 name = "print-flow-name"

@@ -1,4 +1,4 @@
-## ImageBuffer (//flowruntime/image/image_buffer)
+## ImageBuffer (//context/image/image_buffer)
 Write `pixels` to an image buffer
 
 ### Definition
@@ -10,7 +10,7 @@ Write `pixels` to an image buffer
 ```toml
 [[process]]
 alias = "buffer"
-source = "lib://flowruntime/file/image_buffer"
+source = "lib://context/file/image_buffer"
 ```
 
 ### Inputs
