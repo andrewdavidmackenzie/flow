@@ -13,7 +13,7 @@ The top-level sections are:
 * [Defining flows](docs/describing/definition_overview.md)
 * [Running flows](docs/running/running.md)
 * [Debugging Flows](docs/debugging/debugger.md)
-* [The Flow Runtime](flowr/src/lib/flowruntime/README.md)
+* [The Flow Runtime](flowr/src/lib/context/README.md)
 * [The Flow Standard Library](flowstdlib/README.md)
 * [Sample flows](samples/README.md)
 * [Developing Flow](docs/developing/overview.md)

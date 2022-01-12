@@ -86,7 +86,7 @@ impl MetaProvider {
     ///   Then return:
     ///    - a string representation of the Url (file: or http: or https:) where the file can be found
     ///    - a string that is a reference to that module in the library, such as:
-    ///        "flowruntime/stdio/stdout/stdout"
+    ///        "context/stdio/stdout/stdout"
     fn resolve_lib_url(&self, url: &Url) -> Result<(Url, Option<String>)> {
         let lib_name = url
             .host_str()

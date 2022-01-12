@@ -13,7 +13,7 @@ pub fn set_lib_search_path_to_project() -> Simpath {
         .expect("Could not get project root dir");
     lib_search_path.add_directory(root_str.to_str().unwrap());
 
-    // Add the parent directory of 'flowruntime' which is in flowr/src/lib so it can be found
+    // Add the parent directory of 'context' which is in flowr/src/lib so it can be found
     let runtime_parent = root_str.join("flowr/src/lib");
     lib_search_path.add_directory(runtime_parent.to_str().unwrap());
 

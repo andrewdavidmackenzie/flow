@@ -9,7 +9,7 @@ input.step = {once =  1}
 
 [[process]]
 alias = "print"
-source = "lib://flowruntime/stdio/stdout"
+source = "lib://context/stdio/stdout"
 
 [[connection]]
 from = "count/sequence"

@@ -5,11 +5,11 @@ use log::{debug, info, trace};
 use url::Url;
 
 use flowcore::flow_manifest::FlowManifest;
+use flowcore::Implementation;
 use flowcore::lib_manifest::{
     ImplementationLocator::Native, ImplementationLocator::Wasm, LibraryManifest,
 };
 use flowcore::lib_provider::Provider;
-use flowcore::Implementation;
 
 use crate::errors::*;
 use crate::wasm;
@@ -20,7 +20,7 @@ use crate::wasm;
 #[derive(Default)]
 pub struct Loader {
     /// HashMap of libraries that have already had their manifests read. The key is the library
-    /// reference Url (e.g. lib:://flowruntime) and the entry is a tuple of the LibraryManifest
+    /// reference Url (e.g. lib:://context) and the entry is a tuple of the LibraryManifest
     /// and the resolved Url of where the manifest was read from
     loaded_libraries_manifests: HashMap<Url, (LibraryManifest, Url)>,
     loaded_lib_implementations: HashMap<Url, Arc<dyn Implementation>>,

@@ -11,5 +11,5 @@ It handles the execution of `Functions` forming a `Flow` according to the define
 `flowr` binary. For more details consult it's [README.md](src/lib/README.md)
 
 ## Flowruntime
-`flowruntime` implements the [flowruntime functions](src/lib/flowruntime/README.md) that
+`flowruntime` implements the [flowruntime functions](src/lib/context/README.md) that
 all runtimes for executing flows must provide.

@@ -59,8 +59,8 @@ which should produce output similar to this:
 ```bash
 INFO    - 'flowr' version 0.8.8
 INFO    - 'flowrlib' version 0.8.8
-DEBUG   - Loading library 'flowruntime' from 'native'
-INFO    - Library 'flowruntime' loaded.
+DEBUG   - Loading library 'context' from 'native'
+INFO    - Library 'context' loaded.
 DEBUG   - Loading library 'flowstdlib' from 'native'
 INFO    - Library 'flowstdlib' loaded.
 INFO    - Starting 4 executor threads

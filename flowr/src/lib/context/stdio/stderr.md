@@ -1,4 +1,4 @@
-## Stderr (//flowruntime/stdio/stderr)
+## Stderr (//context/stdio/stderr)
 Output text to the STDERR of the process invoking the flow. If an array is passed then each element
 is output on a separate line.
 
@@ -11,7 +11,7 @@ is output on a separate line.
 ```toml
 [[process]]
 alias = "stderr"
-source = "lib://flowruntime/stdio/stderr"
+source = "lib://context/stdio/stderr"
 ```
 
 ### Input

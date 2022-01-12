@@ -11,9 +11,9 @@
 
 /// `coordinator` is the module that coordinates the execution of flows submitted to it
 pub mod coordinator;
-/// `flowruntime` module implements the executor/server side of the runtime functions and appears
+/// `context` module implements the executor/server side of the runtime functions and appears
 /// to user code like a library
-mod flowruntime;
+mod context;
 /// `info` offers methods to get information about this library
 pub mod info;
 /// `loader` is responsible for loading a flow from it's manifest and loading libraries it uses

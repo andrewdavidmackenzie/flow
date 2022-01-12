@@ -6,7 +6,7 @@ flow = "names"
 source = "subflow"
 
 [[process]] # Function process_ref
-source = "lib://flowruntime/stdio/stdout"
+source = "lib://context/stdio/stdout"
 
 [[connection]]
 from = "subflow/out"

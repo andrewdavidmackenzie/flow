@@ -2,7 +2,7 @@ flow = "parent"
 
 [[process]]
 alias = "args"
-source = "lib://flowruntime/args/get"
+source = "lib://context/args/get"
 
 [[process]]
 alias = "child"
@@ -22,7 +22,7 @@ to = "child2/message"
 
 [[process]]
 alias = "print"
-source = "lib://flowruntime/stdio/stdout"
+source = "lib://context/stdio/stdout"
 
 [[connection]]
 from = "child2/message"

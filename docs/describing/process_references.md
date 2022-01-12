@@ -41,7 +41,7 @@ The process is in a library that is available to your current installation.
 In order for flow to find the function at compile time it uses the 
 environment variable `FLOW_LIB_PATH`, that is a `PATH` style variable with zero or
 more directory entries or URLs separated by the `","` character
-* e.g. `source = "lib://flowruntime/stdio/stdin"`
+* e.g. `source = "lib://context/stdio/stdin"`
     * Library name = `flowrlib`
     * Function path within the library = `stdio/stdin`
     
@@ -58,7 +58,7 @@ And my flow references a process thus:
 ```toml
 [[process]]
 alias = "stdin"
-source = "lib://flowruntime/stdio/stdin"
+source = "lib://context/stdio/stdin"
 ```
 
 Then the directory `/Users/me/workspace/flow/flowrlib` is looked for.
@@ -84,7 +84,7 @@ Eamples:
 ```toml
 [[process]]
 alias = "print"
-source = "lib://flowruntime/stdio/stdout"
+source = "lib://context/stdio/stdout"
 input.default = {once = "Hello World!"}
 ```
 

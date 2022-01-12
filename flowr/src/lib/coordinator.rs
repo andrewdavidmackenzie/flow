@@ -12,13 +12,13 @@ use flowcore::lib_provider::{MetaProvider, Provider};
 
 use crate::client_provider::ClientProvider;
 use crate::client_server::ServerConnection;
+use crate::context;
 #[cfg(feature = "debugger")]
 use crate::debug_messages::{DebugClientMessage, DebugServerMessage};
 #[cfg(feature = "debugger")]
 use crate::debugger::Debugger;
 use crate::errors::*;
 use crate::execution;
-use crate::flowruntime;
 use crate::job::Job;
 use crate::loader::Loader;
 #[cfg(feature = "metrics")]
@@ -465,16 +465,16 @@ impl Coordinator {
         #[cfg(feature = "native")] native: bool,
     ) -> Result<()> {
         let flowruntimelib_url =
-            Url::parse("lib://flowruntime").chain_err(|| "Could not parse flowruntime lib url")?;
+            Url::parse("lib://context").chain_err(|| "Could not parse context lib url")?;
 
         // Load this run-time's library of native (statically linked) implementations
         loader
             .add_lib(
                 provider,
-                flowruntime::get_manifest(server_connection)?,
+                context::get_manifest(server_connection)?,
                 &flowruntimelib_url,
             )
-            .chain_err(|| "Could not add 'flowruntime' library to loader")?;
+            .chain_err(|| "Could not add 'context' library to loader")?;
 
         // If the "native" feature is enabled and command line options request it
         // then load the native version of flowstdlib

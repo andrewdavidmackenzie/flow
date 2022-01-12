@@ -1,10 +1,10 @@
 flow = "echo inputs"
 
 [[process]]
-source = "lib://flowruntime/stdio/stdin"
+source = "lib://context/stdio/stdin"
 
 [[process]]
-source = "lib://flowruntime/stdio/stdout"
+source = "lib://context/stdio/stdout"
 
 [[connection]]
 name = "echo"

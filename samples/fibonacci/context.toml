@@ -25,4 +25,4 @@ from = "add/i2"
 to = "add/i1"
 
 [[process]]
-source = "lib://flowruntime/stdio/stdout"
+source = "lib://context/stdio/stdout"

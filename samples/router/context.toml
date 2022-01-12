@@ -2,7 +2,7 @@ flow = "router"
 docs = "DESCRIPTION.md"
 
 [[process]]
-source = "lib://flowruntime/stdio/readline"
+source = "lib://context/stdio/readline"
 
 [[connection]]
 from = "readline/json"
@@ -96,7 +96,7 @@ to = "A_tracker/other_distance"
 
 [[process]]
 alias = "print"
-source = "lib://flowruntime/stdio/stdout"
+source = "lib://context/stdio/stdout"
 
 [[connection]]
 from = "A_tracker/route"

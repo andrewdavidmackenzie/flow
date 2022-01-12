@@ -2,7 +2,7 @@ flow = "range"
 docs = "DESCRIPTION.md"
 
 [[process]]
-source = "lib://flowruntime/args/get"
+source = "lib://context/args/get"
 
 [[connection]]
 from = "get/json/1"
@@ -33,4 +33,4 @@ to = "stdout"
 
 # Output
 [[process]]
-source = "lib://flowruntime/stdio/stdout"
+source = "lib://context/stdio/stdout"

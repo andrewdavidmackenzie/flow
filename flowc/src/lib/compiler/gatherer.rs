@@ -65,13 +65,13 @@ mod test {
         let function = Function::new(
             Name::from("Stdout"),
             false,
-            "lib://flowruntime/stdio/stdout".to_string(),
+            "lib://context/stdio/stdout".to_string(),
             Name::from("print"),
             vec![],
             vec![IO::new(vec!("String".into()), Route::default())],
             Url::parse("file:///fake/file").expect("Could not parse Url"),
             Route::from("/flow0/stdout"),
-            Some("flowruntime/stdio/stdout".to_string()),
+            Some("context/stdio/stdout".to_string()),
             vec![OutputConnection::new(
                 Source::default(),
                 1,

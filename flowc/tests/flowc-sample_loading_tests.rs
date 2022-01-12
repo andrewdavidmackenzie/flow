@@ -53,12 +53,12 @@ fn load_fibonacci_from_directory() {
 pub fn set_lib_search_path_flowstdlib_on_web() -> Simpath {
     let mut lib_search_path = Simpath::new("lib_search_path");
 
-    // Add the parent directory of 'flowruntime' which is in flowr/src/lib so `lib://flowruntime/*` references
+    // Add the parent directory of 'context' which is in flowr/src/lib so `lib://context/*` references
     // can be found
     // let root_str = Path::new(env!("CARGO_MANIFEST_DIR")).parent().expect("Could not get project root dir");
     // let runtime_parent = root_str.join("flowr/src/lib");
     // lib_search_path.add_directory(runtime_parent.to_str().unwrap());
-    lib_search_path.add_url(&Url::parse("https://raw.githubusercontent.com/andrewdavidmackenzie/flow/master/flowr/src/lib/flowruntime")
+    lib_search_path.add_url(&Url::parse("https://raw.githubusercontent.com/andrewdavidmackenzie/flow/master/flowr/src/lib/context")
         .expect("Could not parse the url for Simpath"));
 
     // Add the url of 'flowstdlib' on the web, so `lib://flowstdlib/*` references can be found
