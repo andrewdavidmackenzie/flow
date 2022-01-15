@@ -1,4 +1,4 @@
-flow = "child"
+flow = "same-name-child"
 
 [[input]]
 type = "String"
@@ -8,14 +8,6 @@ name = "message"
 type = "String"
 name = "message"
 
-[[process]]
-alias = "intermediate"
-source = "lib://flowstdlib/fmt/to_string"
-
 [[connection]]
 from = "input/message"
-to = "intermediate"
-
-[[connection]]
-from = "intermediate"
 to = "output/message"

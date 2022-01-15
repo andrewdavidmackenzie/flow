@@ -86,8 +86,7 @@ fn same_name_input_and_output() {
     if let FlowProcess(ref flow) = process {
         let tables = compile::compile(flow).unwrap();
         // If done correctly there should only be two connections
-        // args -> buffer, and buffer -> print
-        assert_eq!(4, tables.collapsed_connections.len());
+        assert_eq!(2, tables.collapsed_connections.len());
     } else {
         panic!("Process loaded was not a flow");
     }
