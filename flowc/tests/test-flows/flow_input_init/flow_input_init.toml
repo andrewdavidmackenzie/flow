@@ -2,7 +2,7 @@ flow = "flow_input_init"
 
 [[process]]
 alias = "sub_flow"
-source = "subflow.toml"
+source = "sub_flow.toml"
 input.input = {once =  42}
 
 [[process]]

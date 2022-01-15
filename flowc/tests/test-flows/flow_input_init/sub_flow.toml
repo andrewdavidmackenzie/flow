@@ -9,5 +9,5 @@ name = "output"
 type = "Value"
 
 [[connection]]
-from = "input"
-to = "output"
+from = "input/input"
+to = "output/output"

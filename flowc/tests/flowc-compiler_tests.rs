@@ -274,7 +274,7 @@ fn flow_input_propagated_back_out() {
     let meta_provider = MetaProvider::new(helper::set_lib_search_path_to_project());
     // Relative path from project root to the test file
     let url = helper::absolute_file_url_from_relative_path(
-        "flowc/tests/test-flows/subflow_input_init/subflow_input_init.toml",
+        "flowc/tests/test-flows/flow_input_init/flow_input_init.toml",
     );
 
     match loader::load(&url, &meta_provider, &mut HashSet::<(Url, Url)>::new()) {
