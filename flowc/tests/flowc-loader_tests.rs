@@ -105,63 +105,6 @@ fn root_flow_takes_name_from_file() {
     }
 }
 
-/*
-    This tests that an initializer on an input to a flow process is passed onto function processes
-    inside the flow, via a connection from the flow input to the function input
-*/
-#[test]
-fn flow_input_initialized_and_propagated_to_function() {
-    let meta_provider = MetaProvider::new(helper::set_lib_search_path_to_project());
-    // Relative path from project root to the test file
-    let url = helper::absolute_file_url_from_relative_path(
-        "flowc/tests/test-flows/subflow_function_input_init/subflow_function_input_init.toml",
-    );
-
-    match loader::load(&url, &meta_provider, &mut HashSet::<(Url, Url)>::new()) {
-        Ok(FlowProcess(mut flow)) => match flow.subprocesses.get_mut(&Name::from("sequence")) {
-            Some(FlowProcess(sub_flow)) => {
-                assert_eq!(
-                    Name::from("sequence"),
-                    *sub_flow.alias(),
-                    "Flow alias is not 'sequence' as expected"
-                );
-                match sub_flow.subprocesses.get_mut(&Name::from("compare")) {
-                    Some(FunctionProcess(ref tap_function)) => {
-                        assert_eq!(
-                            Name::from("compare"),
-                            *tap_function.alias(),
-                            "Function alias is not 'compare' as expected"
-                        );
-                        let in_input = tap_function.get_inputs().get(0).unwrap();
-                        assert_eq!(
-                            Name::from("left"),
-                            *in_input.alias(),
-                            "Input's name is not 'left' as expected"
-                        );
-                        assert_eq!(
-                            Route::from("/subflow_function_input_init/sequence/compare/left"),
-                            *in_input.route(),
-                            "Input's route is not as expected"
-                        );
-                        let initial_value = in_input.get_initializer();
-                        match initial_value {
-                            Some(Once(one_time)) => assert_eq!(one_time, 10),
-                            _ => panic!("Initializer should have been a Once initializer"),
-                        }
-                    }
-                    _ => panic!("The expected function sub-process of 'pass-if-lte' was not found"),
-                }
-            }
-            _ => panic!("The expected function 'sequence' sub-process was not found"),
-        },
-        Ok(_) => panic!("Didn't find a Flow as expected"),
-        Err(err) => panic!(
-            "Didn't load a flow process as expected. {}",
-            err.to_string()
-        ),
-    }
-}
-
 #[test]
 fn load_library() {
     let meta_provider = MetaProvider::new(helper::set_lib_search_path_to_project());

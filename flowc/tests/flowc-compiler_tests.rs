@@ -289,36 +289,3 @@ fn initialized_output_propagated() {
         ),
     }
 }
-
-/*
-    This tests that an initializer on an input to a flow process is passed onto a function in
-    a sub-flow of that via a connection from the flow input to the function input
-*/
-#[test]
-fn flow_input_initialized_and_propagated_to_function_in_subflow() {
-    let meta_provider = MetaProvider::new(helper::set_lib_search_path_to_project());
-    // Relative path from project root to the test file
-    let url = helper::absolute_file_url_from_relative_path(
-        "flowc/tests/test-flows/subflow_function_input_init/subflow_function_input_init.toml",
-    );
-
-    match loader::load(&url, &meta_provider, &mut HashSet::<(Url, Url)>::new()) {
-        Ok(FlowProcess(context)) => {
-            let tables = compile::compile(&context).unwrap();
-
-            match tables.functions.iter().find(|&f| f.route() == &Route::from("/subflow_function_input_init/sequence/compare")) {
-                Some(compare_switch_function) => {
-                        let in_input = compare_switch_function.get_inputs().get(1).unwrap();
-                        assert_eq!(Name::from("right"), *in_input.alias(), "Input's name is not 'right' as expected");
-                        let initial_value = in_input.get_initializer();
-                        match initial_value {
-                            Some(Once(one_time)) => assert_eq!(one_time, 1), // PASS
-                            _ => panic!("Initializer should have been a Once initializer, was {:?}", initial_value)
-                        }
-                }
-                None => panic!("Could not find function at route '/subflow_function_input_init/sequence/compare'")
-            }
-        }
-        _ => panic!("Couldn't load the flow from test file at '{}'", url),
-    }
-}
