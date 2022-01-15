@@ -152,58 +152,22 @@ fn connection_to_input_with_constant_initializer() {
 }
 
 #[test]
-fn dead_process_removed() {
+fn no_side_effects() {
     let meta_provider = MetaProvider::new(helper::set_lib_search_path_to_project());
-    let path = helper::absolute_file_url_from_relative_path(
-        "flowc/tests/test-flows/dead-process/dead-process.toml",
-    );
-    let process = loader::load(&path, &meta_provider, &mut HashSet::<(Url, Url)>::new()).unwrap();
-    if let FlowProcess(ref flow) = process {
-        let tables = compile::compile(flow).unwrap();
-        // Dead value should be removed - currently can't assume that args function can be removed
-        assert_eq!(
-            tables.functions.len(),
-            1,
-            "Incorrect number of functions after optimization"
-        );
-        assert_eq!(
-            tables.functions.get(0).unwrap().get_id(),
-            0,
-            "Function indexes do not start at 0"
-        );
-        // And the connection to it also
-        assert_eq!(
-            tables.collapsed_connections.len(),
-            0,
-            "Incorrect number of connections after optimization"
-        );
-    } else {
-        panic!("Process loaded was not a flow");
-    }
-}
-
-#[test]
-fn dead_process_and_connected_process_removed() {
-    let meta_provider = MetaProvider::new(helper::set_lib_search_path_to_project());
-    let path = helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/dead-process-and-connected-process/dead-process-and-connected-process.toml");
-    let process = loader::load(&path, &meta_provider, &mut HashSet::<(Url, Url)>::new()).unwrap();
-    if let FlowProcess(ref flow) = process {
-        match compile::compile(&flow) {
-            Ok(_tables) => panic!("Flow should not compile when it has no side-effects"),
-            Err(e) => assert_eq!("Flow has no side-effects", e.description()),
+    let path = helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/no_side_effects/no_side_effects.toml");
+    match loader::load(&path, &meta_provider, &mut HashSet::<(Url, Url)>::new()) {
+        Ok(process) => {
+            match process {
+                FlowProcess(ref flow) => {
+                    match compile::compile(flow) {
+                        Ok(_tables) => panic!("Flow should not compile when it has no side-effects"),
+                        Err(e) => assert_eq!("Flow has no side-effects", e.description()),
+                    }
+                }
+                _ => panic!("Did not load a FlowProcess as expected")
+            }
         }
-        // assert!(
-        //     tables.functions.is_empty(),
-        //     "Incorrect number of functions after optimization"
-        // );
-        // // And the connection are all gone also
-        // assert_eq!(
-        //     tables.collapsed_connections.len(),
-        //     0,
-        //     "Incorrect number of connections after optimization"
-        // );
-    } else {
-        panic!("Process loaded was not a flow");
+        Err(e) => panic!("Could not load the test flow as expected: {}", e)
     }
 }
 
