@@ -65,7 +65,9 @@ pub fn check_function_inputs(tables: &mut GenerationTables) -> Result<()> {
 /// Check that some impure function producing a side effect is called or return an error
 pub fn check_side_effects(tables: &mut GenerationTables) -> Result<()> {
     for function in &tables.functions {
-        if function.is_impure() {
+        // Until we separate impure inputs and side-effects we will assume that if a function
+        // is impure and has inputs then it has side-effects
+        if function.is_impure() && !function.inputs.is_empty() {
             return Ok(());
         }
     }

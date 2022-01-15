@@ -1,4 +1,4 @@
-flow = "parent"
+flow = "same-name-parent"
 
 [[process]]
 alias = "args"

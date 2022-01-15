@@ -1,7 +1,7 @@
-flow = "subflow_short_circuit"
+flow = "sub_flow"
 
 [[input]]
-name = "a"
+name = "input"
 type = "Value"
 
 [[output]]
@@ -9,5 +9,5 @@ name = "output"
 type = "Value"
 
 [[connection]]
-from = "input/a"
+from = "input/input"
 to = "output/output"

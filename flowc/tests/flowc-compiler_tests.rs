@@ -86,8 +86,7 @@ fn same_name_input_and_output() {
     if let FlowProcess(ref flow) = process {
         let tables = compile::compile(flow).unwrap();
         // If done correctly there should only be two connections
-        // args -> buffer, and buffer -> print
-        assert_eq!(4, tables.collapsed_connections.len());
+        assert_eq!(2, tables.collapsed_connections.len());
     } else {
         panic!("Process loaded was not a flow");
     }
@@ -114,22 +113,6 @@ fn same_name_flow_ids() {
             0,
             "print function in context should have flow_id = 0"
         );
-
-        // buffer function in first child flow should have flow_id = 1
-        let buffer_function = tables
-            .functions
-            .iter()
-            .find(|f| f.route() == &Route::from("/parent/child/intermediate"))
-            .unwrap();
-        assert_eq!(buffer_function.get_flow_id(), 1);
-
-        // buffer function in second child flow should have flow_id = 2
-        let buffer2_function = tables
-            .functions
-            .iter()
-            .find(|f| f.route() == &Route::from("/parent/child2/intermediate"))
-            .unwrap();
-        assert_eq!(buffer2_function.get_flow_id(), 2);
     } else {
         panic!("Process loaded was not a flow");
     }
@@ -152,58 +135,22 @@ fn connection_to_input_with_constant_initializer() {
 }
 
 #[test]
-fn dead_process_removed() {
+fn no_side_effects() {
     let meta_provider = MetaProvider::new(helper::set_lib_search_path_to_project());
-    let path = helper::absolute_file_url_from_relative_path(
-        "flowc/tests/test-flows/dead-process/dead-process.toml",
-    );
-    let process = loader::load(&path, &meta_provider, &mut HashSet::<(Url, Url)>::new()).unwrap();
-    if let FlowProcess(ref flow) = process {
-        let tables = compile::compile(flow).unwrap();
-        // Dead value should be removed - currently can't assume that args function can be removed
-        assert_eq!(
-            tables.functions.len(),
-            1,
-            "Incorrect number of functions after optimization"
-        );
-        assert_eq!(
-            tables.functions.get(0).unwrap().get_id(),
-            0,
-            "Function indexes do not start at 0"
-        );
-        // And the connection to it also
-        assert_eq!(
-            tables.collapsed_connections.len(),
-            0,
-            "Incorrect number of connections after optimization"
-        );
-    } else {
-        panic!("Process loaded was not a flow");
-    }
-}
-
-#[test]
-fn dead_process_and_connected_process_removed() {
-    let meta_provider = MetaProvider::new(helper::set_lib_search_path_to_project());
-    let path = helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/dead-process-and-connected-process/dead-process-and-connected-process.toml");
-    let process = loader::load(&path, &meta_provider, &mut HashSet::<(Url, Url)>::new()).unwrap();
-    if let FlowProcess(ref flow) = process {
-        match compile::compile(&flow) {
-            Ok(_tables) => panic!("Flow should not compile when it has no side-effects"),
-            Err(e) => assert_eq!("Flow has no side-effects", e.description()),
+    let path = helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/no_side_effects/no_side_effects.toml");
+    match loader::load(&path, &meta_provider, &mut HashSet::<(Url, Url)>::new()) {
+        Ok(process) => {
+            match process {
+                FlowProcess(ref flow) => {
+                    match compile::compile(flow) {
+                        Ok(_tables) => panic!("Flow should not compile when it has no side-effects"),
+                        Err(e) => assert_eq!("Flow has no side-effects", e.description()),
+                    }
+                }
+                _ => panic!("Did not load a FlowProcess as expected")
+            }
         }
-        // assert!(
-        //     tables.functions.is_empty(),
-        //     "Incorrect number of functions after optimization"
-        // );
-        // // And the connection are all gone also
-        // assert_eq!(
-        //     tables.collapsed_connections.len(),
-        //     0,
-        //     "Incorrect number of connections after optimization"
-        // );
-    } else {
-        panic!("Process loaded was not a flow");
+        Err(e) => panic!("Could not load the test flow as expected: {}", e)
     }
 }
 
@@ -274,7 +221,7 @@ fn flow_input_propagated_back_out() {
     let meta_provider = MetaProvider::new(helper::set_lib_search_path_to_project());
     // Relative path from project root to the test file
     let url = helper::absolute_file_url_from_relative_path(
-        "flowc/tests/test-flows/subflow_input_init/subflow_input_init.toml",
+        "flowc/tests/test-flows/flow_input_init/flow_input_init.toml",
     );
 
     match loader::load(&url, &meta_provider, &mut HashSet::<(Url, Url)>::new()) {
@@ -340,38 +287,5 @@ fn initialized_output_propagated() {
             "Couldn't load the flow from test file at '{}'.\n{}",
             url, error
         ),
-    }
-}
-
-/*
-    This tests that an initializer on an input to a flow process is passed onto a function in
-    a sub-flow of that via a connection from the flow input to the function input
-*/
-#[test]
-fn flow_input_initialized_and_propagated_to_function_in_subflow() {
-    let meta_provider = MetaProvider::new(helper::set_lib_search_path_to_project());
-    // Relative path from project root to the test file
-    let url = helper::absolute_file_url_from_relative_path(
-        "flowc/tests/test-flows/subflow_function_input_init/subflow_function_input_init.toml",
-    );
-
-    match loader::load(&url, &meta_provider, &mut HashSet::<(Url, Url)>::new()) {
-        Ok(FlowProcess(context)) => {
-            let tables = compile::compile(&context).unwrap();
-
-            match tables.functions.iter().find(|&f| f.route() == &Route::from("/subflow_function_input_init/sequence/compare")) {
-                Some(compare_switch_function) => {
-                        let in_input = compare_switch_function.get_inputs().get(1).unwrap();
-                        assert_eq!(Name::from("right"), *in_input.alias(), "Input's name is not 'right' as expected");
-                        let initial_value = in_input.get_initializer();
-                        match initial_value {
-                            Some(Once(one_time)) => assert_eq!(one_time, 1), // PASS
-                            _ => panic!("Initializer should have been a Once initializer, was {:?}", initial_value)
-                        }
-                }
-                None => panic!("Could not find function at route '/subflow_function_input_init/sequence/compare'")
-            }
-        }
-        _ => panic!("Couldn't load the flow from test file at '{}'", url),
     }
 }

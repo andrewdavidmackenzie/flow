@@ -9,5 +9,5 @@ the first one (after the flow's source URL) out on standard output
 Features Used
 ===
 * Context Flow
-* Library Functions used (`args` from `flowruntime` and `stdout` from `flowstdlib`)
+* Library Functions used (`args` and `stdout` from `context`)
 * Connections between functions
