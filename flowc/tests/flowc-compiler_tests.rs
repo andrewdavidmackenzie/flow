@@ -113,22 +113,6 @@ fn same_name_flow_ids() {
             0,
             "print function in context should have flow_id = 0"
         );
-
-        // buffer function in first child flow should have flow_id = 1
-        let buffer_function = tables
-            .functions
-            .iter()
-            .find(|f| f.route() == &Route::from("/parent/child/intermediate"))
-            .unwrap();
-        assert_eq!(buffer_function.get_flow_id(), 1);
-
-        // buffer function in second child flow should have flow_id = 2
-        let buffer2_function = tables
-            .functions
-            .iter()
-            .find(|f| f.route() == &Route::from("/parent/child2/intermediate"))
-            .unwrap();
-        assert_eq!(buffer2_function.get_flow_id(), 2);
     } else {
         panic!("Process loaded was not a flow");
     }
