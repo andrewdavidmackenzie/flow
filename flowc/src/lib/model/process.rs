@@ -105,16 +105,15 @@ metadata:
         flow = 'hello-world-simple-toml'
 
         [[process]]
-        alias = 'message'
-        source = 'lib://flowstdlib/data/buffer.toml'
-        input.default = {once = 'hello'}
+        alias = 'input'
+        source = 'lib://context/stdio/stdin.toml'
 
         [[process]]
         alias = 'print'
         source = 'lib://context/stdio/stdout.toml'
 
         [[connection]]
-        from = 'message'
+        from = 'input'
         to = 'print'
     ";
 
@@ -219,7 +218,7 @@ version = \"1.1.1\"
 
         [[process]]
         alias = 'print'
-        source = 'lib://flowstdlib/stdio/stdout.toml'
+        source = 'lib://context/stdio/stdout.toml'
     ";
 
         assert!(toml_from_str(flow_description).is_ok());
@@ -254,7 +253,7 @@ version = \"1.1.1\"
     fn load_fails_if_no_alias() {
         let flow_description = "\
         [[process]]
-        source = 'lib://flowstdlib/stdio/stdout.toml'
+        source = 'lib://context/stdio/stdout.toml'
     ";
 
         assert!(toml_from_str(flow_description).is_err());
@@ -321,13 +320,8 @@ type = 'String'";
     'flow': 'hello-world-simple-toml',
     'process': [
         {
-            'alias': 'message',
-            'source': 'lib://flowstdlib/data/buffer.toml',
-            'input': {
-                'default': {
-                    'once': 'hello'
-                }
-            }
+            'alias': 'input',
+            'source': 'lib://context/stdio/stdin.toml'
         },
         {
             'alias': 'print',
@@ -336,7 +330,7 @@ type = 'String'";
     ],
     'connection': [
         {
-            'from': 'message',
+            'from': 'input/string',
             'to': 'print'
         }
     ]
@@ -353,12 +347,7 @@ type = 'String'";
     'process': [
         {
             'alias': 'message',
-            'source': 'lib://flowstdlib/data/buffer.toml',
-            'input': {
-                'default': {
-                    'once': 'hello'
-                }
-            }
+            'source': 'lib://context/stdio/stdin.toml'
         },
         {
             'alias': 'print',
