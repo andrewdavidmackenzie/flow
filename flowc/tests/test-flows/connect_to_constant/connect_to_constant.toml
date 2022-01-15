@@ -1,4 +1,4 @@
-flow = "connect-to-constant"
+flow = "connect_to_constant"
 
 [[process]]
 alias = "args"

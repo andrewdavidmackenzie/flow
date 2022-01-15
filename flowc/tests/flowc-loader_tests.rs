@@ -114,16 +114,16 @@ fn flow_input_initialized_and_propagated_to_function() {
     let meta_provider = MetaProvider::new(helper::set_lib_search_path_to_project());
     // Relative path from project root to the test file
     let url = helper::absolute_file_url_from_relative_path(
-        "flowc/tests/test-flows/flow_input_init/flow_input_init.toml",
+        "flowc/tests/test-flows/subflow_function_input_init/subflow_function_input_init.toml",
     );
 
     match loader::load(&url, &meta_provider, &mut HashSet::<(Url, Url)>::new()) {
-        Ok(FlowProcess(mut flow)) => match flow.subprocesses.get_mut(&Name::from("count")) {
+        Ok(FlowProcess(mut flow)) => match flow.subprocesses.get_mut(&Name::from("sequence")) {
             Some(FlowProcess(sub_flow)) => {
                 assert_eq!(
-                    Name::from("count"),
+                    Name::from("sequence"),
                     *sub_flow.alias(),
-                    "Flow alias is not 'count' as expected"
+                    "Flow alias is not 'sequence' as expected"
                 );
                 match sub_flow.subprocesses.get_mut(&Name::from("compare")) {
                     Some(FunctionProcess(ref tap_function)) => {
@@ -139,7 +139,7 @@ fn flow_input_initialized_and_propagated_to_function() {
                             "Input's name is not 'left' as expected"
                         );
                         assert_eq!(
-                            Route::from("/flow_input_init/count/compare/left"),
+                            Route::from("/subflow_function_input_init/sequence/compare/left"),
                             *in_input.route(),
                             "Input's route is not as expected"
                         );
@@ -152,7 +152,7 @@ fn flow_input_initialized_and_propagated_to_function() {
                     _ => panic!("The expected function sub-process of 'pass-if-lte' was not found"),
                 }
             }
-            _ => panic!("The expected function 'print' sub-process was not found"),
+            _ => panic!("The expected function 'sequence' sub-process was not found"),
         },
         Ok(_) => panic!("Didn't find a Flow as expected"),
         Err(err) => panic!(
