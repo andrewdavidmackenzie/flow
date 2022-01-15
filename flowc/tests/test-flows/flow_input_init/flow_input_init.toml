@@ -1,16 +1,14 @@
 flow = "flow_input_init"
 
 [[process]]
-alias = "count"
-source = "lib://flowstdlib/math/sequence"
-input.start = {once =  1}
-input.end = {once =  10}
-input.step = {once =  1}
+alias = "sub_flow"
+source = "subflow.toml"
+input.input = {once =  42}
 
 [[process]]
 alias = "print"
 source = "lib://context/stdio/stdout"
 
 [[connection]]
-from = "count/sequence"
+from = "sub_flow/output"
 to = "print"

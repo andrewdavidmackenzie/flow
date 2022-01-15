@@ -9,5 +9,5 @@ Features Used
 ===
 * Context Flow
 * A String value that is initialized at start-up
-* Library Functions used (`stdout` from `flowstdlib`)
+* Context Functions used (`stdout` from `context`)
 * A connection between the value and the function

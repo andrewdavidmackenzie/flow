@@ -3,8 +3,8 @@ extern crate error_chain;
 
 use std::collections::HashSet;
 use std::fs::File;
-use std::io::prelude::*;
 use std::io::{BufRead, BufReader, Write};
+use std::io::prelude::*;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::process::Stdio;
@@ -285,7 +285,7 @@ fn duplicate_connection() {
 #[serial]
 fn two_destinations() {
     let search_path = helper::set_lib_search_path_to_project();
-    execute_test("two-destinations", search_path, false);
+    execute_test("two_destinations", search_path, false);
 }
 
 #[cfg(feature = "distributed")]

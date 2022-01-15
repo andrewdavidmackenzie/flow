@@ -22,4 +22,4 @@ to = "print"
 
 [[process]]
 alias = "print"
-source = "lib://flowstdlib/stdio/stdout/stdout"
+source = "lib://context/stdio/stdout/stdout"

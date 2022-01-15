@@ -1,0 +1,13 @@
+flow = "sub_flow"
+
+[[input]]
+name = "input"
+type = "Value"
+
+[[output]]
+name = "output"
+type = "Value"
+
+[[connection]]
+from = "input"
+to = "output"

@@ -7,14 +7,10 @@ source = "lib://context/args/get"
 [[process]]
 source = "lib://context/stdio/stdout"
 
+[[process]]
+source = "lib://context/file/file_write"
+input.bytes = { once = [1, 2] }
+
 [[connection]]
 from = "args/json/1"
-to = ["stdout", "add/i1"]
-
-[[process]]
-source = "lib://flowstdlib/math/add"
-input.i2 = {once = 1}
-
-[[connection]]
-from = "add"
-to = "stdout"
+to = ["stdout", "file_write/filename"]
