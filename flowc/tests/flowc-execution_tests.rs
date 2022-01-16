@@ -11,6 +11,7 @@ use std::process::Stdio;
 
 use serial_test::serial;
 use simpath::Simpath;
+use tempdir::TempDir;
 use url::Url;
 
 use flowclib::compiler::{compile, loader};
@@ -201,9 +202,9 @@ fn execute_test(test_name: &str, search_path: Simpath, client_server: bool) {
 
     if let FlowProcess(ref flow) = load_flow(&test_dir, test_name, search_path) {
         let tables = compile::compile(flow).unwrap();
-        let out_dir = test_dir.clone();
-        let manifest_path = write_manifest(flow, true, out_dir, test_name, &tables).unwrap();
-
+        let dir =
+            TempDir::new("flow").unwrap();
+        let manifest_path = write_manifest(flow, true, dir.into_path(), test_name, &tables).unwrap();
         let test_args = test_args(&test_dir, test_name);
         let input = get(&test_dir, &format!("{}.stdin", test_name));
         let (actual_stdout, actual_stderr) =
