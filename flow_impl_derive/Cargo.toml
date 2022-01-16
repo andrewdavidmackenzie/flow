@@ -1,6 +1,6 @@
 [package]
 name = "flow_impl_derive"
-version = "0.40.0"
+version = "0.40.1"
 description = "Definition of a derive macro for FlowImpl"
 license = "MIT"
 documentation = "https://github.com/andrewdavidmackenzie/flow/flow_impl_derive/README.md"

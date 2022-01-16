@@ -444,7 +444,7 @@ dependencies = [
 
 [[package]]
 name = "flow_impl_derive"
-version = "0.40.0"
+version = "0.40.1"
 dependencies = [
  "quote",
  "syn",
@@ -452,7 +452,7 @@ dependencies = [
 
 [[package]]
 name = "flowc"
-version = "0.40.0"
+version = "0.40.1"
 dependencies = [
  "clap",
  "colored",
@@ -473,7 +473,7 @@ dependencies = [
 
 [[package]]
 name = "flowcore"
-version = "0.40.0"
+version = "0.40.1"
 dependencies = [
  "curl",
  "error-chain 0.12.4",
@@ -489,7 +489,7 @@ dependencies = [
 
 [[package]]
 name = "flowr"
-version = "0.40.0"
+version = "0.40.1"
 dependencies = [
  "anyhow",
  "clap",
@@ -519,7 +519,7 @@ dependencies = [
 
 [[package]]
 name = "flowsamples"
-version = "0.40.0"
+version = "0.40.1"
 dependencies = [
  "serial_test",
  "simpath",
@@ -527,7 +527,7 @@ dependencies = [
 
 [[package]]
 name = "flowstdlib"
-version = "0.40.0"
+version = "0.40.1"
 dependencies = [
  "error-chain 0.12.4",
  "flow_impl_derive",
