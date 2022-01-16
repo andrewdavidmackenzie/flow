@@ -203,7 +203,7 @@ fn execute_test(test_name: &str, search_path: Simpath, client_server: bool) {
     if let FlowProcess(ref flow) = load_flow(&test_dir, test_name, search_path) {
         let tables = compile::compile(flow).unwrap();
         let dir =
-            TempDir::new("flow").chain_err(|| "Error creating new TempDir".to_string()).unwrap();
+            TempDir::new("flow").unwrap();
         let manifest_path = write_manifest(flow, true, dir.into_path(), test_name, &tables).unwrap();
         let test_args = test_args(&test_dir, test_name);
         let input = get(&test_dir, &format!("{}.stdin", test_name));
