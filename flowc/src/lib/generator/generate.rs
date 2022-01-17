@@ -111,7 +111,7 @@ pub fn write_flow_manifest(
     #[cfg(feature = "debugger")] source_urls: HashSet<(Url, Url)>,
 ) -> Result<PathBuf> {
     let mut filename = destination.to_path_buf();
-    filename.push(DEFAULT_MANIFEST_FILENAME.to_string());
+    filename.push(DEFAULT_MANIFEST_FILENAME);
     filename.set_extension("json");
     let mut manifest_file =
         File::create(&filename).chain_err(|| "Could not create manifest file")?;
