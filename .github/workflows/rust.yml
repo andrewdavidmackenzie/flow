@@ -34,12 +34,12 @@ jobs:
     - name: SetupFlowLibPath
       run: echo "FLOW_LIB_PATH=$GITHUB_WORKSPACE,$GITHUB_WORKSPACE/flowr/src/lib" >> "$GITHUB_ENV"
 
-#    - name: Install latest nightly
-#      uses: actions-rs/toolchain@v1
-#      with:
-#        toolchain: nightly
-#        override: true
-#        components: clippy
+    - name: Install latest nightly
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: nightly
+        override: true
+        components: clippy
 
     - name: InstallLinuxDependencies
       if: matrix.os == 'ubuntu-latest'
@@ -63,14 +63,14 @@ jobs:
         rustup component add clippy
         cargo clippy -- -D warnings
 
-#    - name: ConfigureCoverage
-#      if: matrix.os == 'ubuntu-latest'
-#      run: |
-#        echo RUSTC_BOOTSTRAP=1 >> "$GITHUB_ENV" # Enables -Z in stable
-#        cargo install grcov
-#        rustup component add llvm-tools-preview
-#        echo RUSTFLAGS="-Zinstrument-coverage" >> "$GITHUB_ENV"
-#        echo LLVM_PROFILE_FILE="flow-%p-%m.profraw" >> "$GITHUB_ENV"
+    - name: ConfigureCoverage
+      if: matrix.os == 'ubuntu-latest'
+      run: |
+        echo RUSTC_BOOTSTRAP=1 >> "$GITHUB_ENV" # Enables -Z in stable
+        cargo install grcov
+        rustup component add llvm-tools-preview
+        echo RUSTFLAGS="-Zinstrument-coverage" >> "$GITHUB_ENV"
+        echo LLVM_PROFILE_FILE="flow-%p-%m.profraw" >> "$GITHUB_ENV"
 
     - name: Build workspace
       run: |
@@ -82,12 +82,12 @@ jobs:
         RUST_LOG=trace cargo test --features "online_tests"
         cargo test -p flowstdlib
 
-#    - name: UploadCoverage
-#      if: matrix.os == 'ubuntu-latest'
-#      run: |
-#        grcov . --binary-path target/debug/ -s . -t lcov --branch --ignore-not-existing --ignore "/*" -o lcov.info
-#        bash <(curl -s https://codecov.io/bash) -f lcov.info
-#        rm -f lcov.info
+    - name: UploadCoverage
+      if: matrix.os == 'ubuntu-latest'
+      run: |
+        grcov . --binary-path target/debug/ -s . -t lcov --branch --ignore-not-existing --ignore "/*" -o lcov.info
+        bash <(curl -s https://codecov.io/bash) -f lcov.info
+        rm -f lcov.info
 
     - name: Docs
       if: matrix.os == 'ubuntu-latest'

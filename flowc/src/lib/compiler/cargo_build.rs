@@ -26,10 +26,10 @@ fn check_cargo_error(command: &str, args: Vec<&str>, output: Output) -> Result<(
                 String::from_utf8_lossy(&output.stderr).red()
             );
             bail!(
-                "cargo exited with status code: {}\nCommand Line: {} {:?}",
+                "cargo exited with status code: {}\nCommand Line: {} {}",
                 code,
                 command,
-                args
+                args.join(" ")
             )
         }
     }
@@ -103,11 +103,13 @@ fn cargo_build(
     );
 
     let output = Command::new(&command)
-        .env_remove("RUSTFLAGS") // remove flags for coverage, incompatible with wasm build
         .args(&command_args)
         .stdin(Stdio::inherit())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
+        .env_remove("RUSTFLAGS") // remove flags for coverage, incompatible with wasm build
+        .env_remove("CARGO_BUILD_RUSTFLAGS") // remove flags for coverage, incompatible with wasm build
+        .env_remove("CARGO_ENCODED_RUSTFLAGS") // remove flags for coverage, incompatible with wasm build
         .output()
         .chain_err(|| "Error while attempting to spawn cargo to compile WASM")?;
 
