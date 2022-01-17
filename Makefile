@@ -72,10 +72,15 @@ build: install-flowc
 	@cargo build -p flowstdlib --features "wasm"
 	@cargo build
 
+
 .PHONY: clippy
 clippy: install-flowc
 	@echo "clippy<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
 	@cargo clippy -- -D warnings
+
+.PHONY: clippy-nightly
+clippy-nightly: install-flowc
+	@cargo +nightly clippy -- -D warnings
 
 .PHONY: test
 test: install-flowc
