@@ -220,7 +220,7 @@ fn fn_to_dot(function: &Function, output_dir: &Path) -> Result<String> {
         format!("\\n({})", function.name())
     };
 
-    let relative_path = absolute_to_relative(&function.get_source_url().to_string(), output_dir)?;
+    let relative_path = absolute_to_relative(function.get_source_url().as_ref(), output_dir)?;
 
     // modify path to point to the .html page that's built from .md to document the function
     let md_path = relative_path.replace("toml", "html");
@@ -230,7 +230,7 @@ fn fn_to_dot(function: &Function, output_dir: &Path) -> Result<String> {
                                  function.alias(),
                                  name));
 
-    dot_string.push_str(&input_initializers(function, &function.route().to_string()));
+    dot_string.push_str(&input_initializers(function, function.route().as_ref()));
 
     Ok(dot_string)
 }

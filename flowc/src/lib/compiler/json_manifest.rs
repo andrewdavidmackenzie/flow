@@ -4,8 +4,8 @@ use std::path::{Path, PathBuf};
 
 use log::info;
 
-use flowcore::lib_manifest::LibraryManifest;
 use flowcore::lib_manifest::DEFAULT_LIB_JSON_MANIFEST_FILENAME;
+use flowcore::lib_manifest::LibraryManifest;
 
 use crate::errors::*;
 
@@ -31,7 +31,7 @@ pub fn write(lib_manifest: &LibraryManifest, json_manifest_filename: &Path) -> R
 /// generated inside it
 pub fn manifest_filename(base_dir: &Path) -> PathBuf {
     let mut filename = base_dir.to_path_buf();
-    filename.push(DEFAULT_LIB_JSON_MANIFEST_FILENAME.to_string());
+    filename.push(DEFAULT_LIB_JSON_MANIFEST_FILENAME);
     filename.set_extension("json");
     filename
 }

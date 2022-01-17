@@ -107,6 +107,6 @@ fn camel_case(original: &str) -> String {
 /// generated inside it
 pub fn manifest_filename(base_dir: &Path) -> PathBuf {
     let mut filename = base_dir.to_path_buf();
-    filename.push(DEFAULT_LIB_RUST_MANIFEST_FILENAME.to_string());
+    filename.push(DEFAULT_LIB_RUST_MANIFEST_FILENAME);
     filename
 }
