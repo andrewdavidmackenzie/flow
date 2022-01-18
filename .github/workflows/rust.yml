@@ -55,14 +55,6 @@ jobs:
     - name: InstallWasmTools
       run: cargo install wasm-gc wasm-snip
 
-    - name: Build-and-install-flowc
-      run: cargo install --path flowc
-
-    - name: Clippy
-      run: |
-        rustup component add clippy
-        cargo clippy -- -D warnings
-
     - name: ConfigureCoverage
       if: matrix.os == 'ubuntu-latest'
       run: |
@@ -72,15 +64,34 @@ jobs:
         echo RUSTFLAGS="-Zinstrument-coverage" >> "$GITHUB_ENV"
         echo LLVM_PROFILE_FILE="flow-%p-%m.profraw" >> "$GITHUB_ENV"
 
-    - name: Build workspace
+    - name: install-flowc
+      run: cargo install --path flowc
+
+    - name: clippy
+      run: cargo clippy -- -D warnings
+
+    - name: build
       run: |
         cargo build -p flowstdlib --features "wasm"
         cargo build
 
-    - name: Run tests
+    - name: test
       run: |
-        RUST_LOG=trace cargo test --features "online_tests"
-        cargo test -p flowstdlib
+        cargo test --features "online_tests"
+
+    - name: docs
+      if: matrix.os == 'ubuntu-latest'
+      run: |
+        sudo apt-get -y install graphviz
+        cargo install mdbook
+        cargo install mdbook-linkcheck
+        cargo doc --no-deps --target-dir=target/html/code
+        mdbook build
+
+    - name: trim-docs
+      if: matrix.os == 'ubuntu-latest'
+      run: |
+        make trim-docs
 
     - name: UploadCoverage
       if: matrix.os == 'ubuntu-latest'
@@ -88,15 +99,6 @@ jobs:
         grcov . --binary-path target/debug/ -s . -t lcov --branch --ignore-not-existing --ignore "/*" -o lcov.info
         bash <(curl -s https://codecov.io/bash) -f lcov.info
         rm -f lcov.info
-
-    - name: Docs
-      if: matrix.os == 'ubuntu-latest'
-      run: |
-        sudo apt-get -y install graphviz
-        cargo install mdbook
-        cargo install mdbook-linkcheck
-        make docs
-        make trim-docs
 
     - name: DeployDocsToGHPages
       uses: JamesIves/github-pages-deploy-action@4.1.4
