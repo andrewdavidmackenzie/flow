@@ -164,7 +164,7 @@ fn compile_implementations(
         })?;
         debug!("Trying to load library process from '{}'", url);
 
-        // calculate the path of the files directory, relative to lib_root
+        // calculate the path of the file's directory, relative to lib_root
         let relative_dir = toml_path
             .parent()
             .ok_or("Could not get toml path parent dir")?
