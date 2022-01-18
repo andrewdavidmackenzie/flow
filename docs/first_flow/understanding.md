@@ -31,7 +31,7 @@ Other runtime environments (e.g. The experimental `flowide-gtk` graphical IDE th
 a separate project in GitHuib) may display the output in some other way.
 
 ### Functions
-This flow uses two functions: `stdout` from `flowruntime` as described above, plus `add` from the flow library
+This flow uses two functions: `stdout` from `context` as described above, plus `add` from the flow library
 called `flowstdlib` to add two integers together.
 
 ### Connections

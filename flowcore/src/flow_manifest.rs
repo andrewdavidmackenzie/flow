@@ -205,7 +205,7 @@ mod test {
                 },
             \"manifest_dir\": \"fake dir\",
             \"lib_references\": [
-                \"lib://flowstdlib\"
+                \"lib://context\"
              ],
             \"functions\": [
                 {
