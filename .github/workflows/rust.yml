@@ -71,13 +71,10 @@ jobs:
       run: cargo clippy -- -D warnings
 
     - name: build
-      run: |
-        cargo build -p flowstdlib --features "wasm"
-        cargo build
+      run: cargo build --features "wasm"
 
     - name: test
-      run: |
-        cargo test --features "online_tests"
+      run: cargo test --features "online_tests","wasm"
 
     - name: docs
       if: matrix.os == 'ubuntu-latest'
@@ -90,8 +87,7 @@ jobs:
 
     - name: trim-docs
       if: matrix.os == 'ubuntu-latest'
-      run: |
-        make trim-docs
+      run: make trim-docs
 
     - name: UploadCoverage
       if: matrix.os == 'ubuntu-latest'
