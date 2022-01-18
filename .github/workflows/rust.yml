@@ -68,9 +68,7 @@ jobs:
       run: cargo install --path flowc
 
     - name: clippy
-      run: |
-#        rustup component add clippy
-        cargo clippy -- -D warnings
+      run: cargo clippy -- -D warnings
 
     - name: build
       run: |
