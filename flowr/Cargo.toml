@@ -18,10 +18,8 @@ name = "flowrlib"
 path = "src/lib/lib.rs"
 
 [features]
-default = ["debugger", "native", "metrics", "checks", "distributed", "wasmtime_runtime"]
-#default = ["debugger", "native", "metrics", "checks", "wasmtime_runtime"]
+default = ["debugger", "flowstdlib", "metrics", "checks", "distributed", "wasmtime_runtime"]
 debugger = ["flowcore/debugger", "rustyline"] # feature to add the debugger, requires flowcore crate to have feature enabled also
-native = ["flowstdlib"]   # Load native implementations of functions in libraries when possible
 metrics = []  # feature for tracking of metrics during execution
 checks = []   # feature to perform extra checks during flow execution
 distributed = ["zmq", "simpdiscover", "portpicker"] # Allow distributed multi-process client and server operation

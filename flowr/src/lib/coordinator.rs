@@ -118,7 +118,7 @@ impl Submission {
 ///         let _ = Coordinator::start(
 ///             1,
 ///             Simpath::new("fake path"),
-///             #[cfg(feature = "native")] true,
+///             true,
 ///             runtime_server_connection,
 ///             #[cfg(feature = "debugger")] debug_server_connection,
 ///         );
@@ -175,7 +175,7 @@ impl Coordinator {
     pub fn start(
         num_threads: usize,
         lib_search_path: Simpath,
-        #[cfg(feature = "native")] native: bool,
+        native: bool,
         runtime_server_connection: ServerConnection<ServerMessage, ClientMessage>,
         #[cfg(feature = "debugger")] debug_server_connection: ServerConnection<
             DebugServerMessage,
@@ -191,7 +191,6 @@ impl Coordinator {
 
         coordinator.submission_loop(
             lib_search_path,
-            #[cfg(feature = "native")]
             native,
         )
     }
@@ -205,7 +204,7 @@ impl Coordinator {
     fn submission_loop(
         &mut self,
         lib_search_path: Simpath,
-        #[cfg(feature = "native")] native: bool,
+        native: bool,
     ) -> Result<()> {
         let mut loader = Loader::new();
         let server_provider = MetaProvider::new(lib_search_path);
@@ -214,7 +213,6 @@ impl Coordinator {
             &mut loader,
             &server_provider,
             self.runtime_server_connection.clone(),
-            #[cfg(feature = "native")]
             native,
         )?;
 
@@ -462,7 +460,7 @@ impl Coordinator {
         loader: &mut Loader,
         provider: &dyn Provider,
         server_connection: Arc<Mutex<ServerConnection<ServerMessage, ClientMessage>>>,
-        #[cfg(feature = "native")] native: bool,
+        native: bool,
     ) -> Result<()> {
         let flowruntimelib_url =
             Url::parse("lib://context").chain_err(|| "Could not parse context lib url")?;
@@ -476,9 +474,9 @@ impl Coordinator {
             )
             .chain_err(|| "Could not add 'context' library to loader")?;
 
-        // If the "native" feature is enabled and command line options request it
-        // then load the native version of flowstdlib
-        #[cfg(feature = "native")]
+        // If the "flowstdlib" optional dependency is used and the command line options request
+        // a native implementation of libs, then load the native version of it
+        #[cfg(feature = "flowstdlib")]
         if native {
             let flowstdlib_url = Url::parse("lib://flowstdlib")
                 .chain_err(|| "Could not parse flowstdlib lib url")?;

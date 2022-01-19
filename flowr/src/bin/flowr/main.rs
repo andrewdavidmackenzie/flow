@@ -96,10 +96,6 @@ fn run() -> Result<()> {
     #[cfg(feature = "debugger")]
     let debug_this_flow = matches.is_present("debugger");
     let native = matches.is_present("native");
-    #[cfg(not(feature = "native"))]
-    if native {
-        warn!("\"--native\" or \"-n\" flag ignored as not compiled with \"native\" feature");
-    }
     let lib_dirs = if matches.is_present("lib_dir") {
         matches
             .values_of("lib_dir")
@@ -174,7 +170,6 @@ fn server_only(num_threads: usize, lib_search_path: Simpath, native: bool) -> Re
     Coordinator::start(
         num_threads,
         lib_search_path,
-        #[cfg(feature = "native")]
         native,
         runtime_server_connection,
         #[cfg(feature = "debugger")]
@@ -210,7 +205,6 @@ fn client_and_server(
         let _ = Coordinator::start(
             num_threads,
             lib_search_path,
-            #[cfg(feature = "native")]
             native,
             runtime_server_connection,
             #[cfg(feature = "debugger")]
