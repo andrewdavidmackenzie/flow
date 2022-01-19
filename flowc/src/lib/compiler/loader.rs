@@ -161,6 +161,7 @@ fn load_process(
         }
         FunctionProcess(ref mut function) => {
             function.config(
+                url,
                 &resolved_url,
                 parent_route,
                 alias,
