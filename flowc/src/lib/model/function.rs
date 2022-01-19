@@ -26,7 +26,7 @@ pub struct Function {
     /// `name` of the function
     #[serde(rename = "function")]
     pub(crate) name: Name,
-    /// Is this an impure function that interacts with the runtime environment?
+    /// Is this an impure function that interacts with the environment
     #[serde(default)]
     pub(crate) impure: bool,
     /// Name of the source file for the function implementation
@@ -154,6 +154,7 @@ impl Function {
     #[allow(clippy::too_many_arguments)]
     pub fn config(
         &mut self,
+        original_url: &Url,
         source_url: &Url,
         parent_route: &Route,
         alias: &Name,
@@ -167,6 +168,7 @@ impl Function {
         self.set_lib_reference(lib_ref);
         self.set_routes_from_parent(parent_route);
         self.set_initial_values(initializations);
+        self.check_impurity(original_url)?;
         self.validate()
     }
 
@@ -198,6 +200,20 @@ impl Function {
     /// Return true if this function is impure or not
     pub fn is_impure(&self) -> bool {
         self.impure
+    }
+
+    /*
+        A function can only be impure if it is provided by 'context'
+    */
+    fn check_impurity(&self, url: &Url) -> Result<()> {
+        if self.impure {
+            let host = url.host().ok_or("Could not identify host of impure function")?;
+            if host.to_string() != "context" {
+                bail!("Only functions provided by 'context' can be impure ('{}')", url);
+            }
+        }
+
+        Ok(())
     }
 
     /// Get a reference to the set of inputs of this function
@@ -437,6 +453,25 @@ mod test {
 
         let function: Result<Function> = toml_from_str(function_str);
         assert!(function.is_err());
+    }
+
+    #[test]
+    fn impure_not_allowed() {
+        let function_str = "
+        function = 'disallowed_impure'
+        source = 'disallowed_impure.rs'
+        docs = 'disallowed_impure.md'
+        type = 'rust'
+        impure = true
+
+        [[input]]
+        name = 'left'
+        type = 'Number'
+        ";
+
+        let function = toml_from_str(function_str)
+            .expect("Couldn't load function from toml");
+        assert!(function.check_impurity(function.get_source_url()).is_err());
     }
 
     #[test]
