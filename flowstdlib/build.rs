@@ -30,8 +30,6 @@ fn main() -> io::Result<()> {
     #[cfg(not(feature = "wasm"))]
     let command_args = vec!["-v", "info", "-g", "-z", "-o", &out_dir, "-l", lib_root_dir, "-n"];
 
-    println!("\tRunning command: flowc {}", command_args.join(" "));
-
     let flowc_child = command
         .args(command_args)
         .stdin(Stdio::inherit())
