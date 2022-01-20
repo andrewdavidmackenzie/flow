@@ -7,9 +7,9 @@ ONLINE := $(shell ping -c 1 https://raw.githubusercontent.com 2> /dev/null)
 export SHELL := /bin/bash
 
 ifeq ($(ONLINE),true)
-features := --features "online_tests"
+features := --features "wasm" "online_tests"
 else
-features :=
+features := --features "wasm"
 endif
 
 .PHONY: all
@@ -68,27 +68,28 @@ install-flowc:
 
 .PHONY: clippy
 clippy: install-flowc
-	@echo "clippy<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
+	@echo "clippy<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
 	@cargo clippy -- -D warnings
 
 .PHONY: build
 build: install-flowc
 	@echo "build<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
-	@cargo build --features "wasm"
+	@cargo build $(features)
 
 .PHONY: test
 test: install-flowc
-	@echo "test<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
+	@echo "test<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
 	@cargo test $(features)
 
 .PHONY: docs
 docs:
-	@echo "docs<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
+	@echo "docs<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
 	@cargo doc --no-deps --target-dir=target/html/code
 	@mdbook build
 
 .PHONY: trim-docs
 trim-docs:
+	@echo "trim-docs<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
 	@find target/html -name target -type d | xargs rm -rf {}
 	@find target/html -name .idea | xargs rm -rf {}
 	@find target/html -name .gitignore | xargs rm -rf {}
