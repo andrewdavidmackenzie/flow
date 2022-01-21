@@ -4,10 +4,7 @@ use std::process::{Command, Stdio};
 
 // Build script to compile the flowstdlib library (compile WASM files and generate manifest) using flowc
 fn main() -> io::Result<()> {
-    let cwd = env::current_dir()?;
-    let lib_root_dir = cwd
-        .to_str()
-        .ok_or_else(|| io::Error::new(io::ErrorKind::Other, "Couldn't get CWD"))?;
+    let lib_root_dir = env!("CARGO_MANIFEST_DIR");
     let out_dir =
         env::var("OUT_DIR").map_err(|e| io::Error::new(io::ErrorKind::Other, e.to_string()))?;
 
