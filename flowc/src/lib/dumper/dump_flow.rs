@@ -59,7 +59,6 @@ pub fn dump_flow(
         target_dir.display()
     );
     _dump_flow(flow, 0, target_dir, provider, dump_files, dot_files)?;
-    info!("Dump complete");
     Ok(())
 }
 
