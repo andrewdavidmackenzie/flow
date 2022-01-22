@@ -82,10 +82,9 @@ pub fn generate_svgs(root_dir: &Path) -> Result<()> {
                 .args(vec!["-Tsvg", "-O", &path.to_string_lossy()])
                 .stdin(Stdio::inherit())
                 .stdout(Stdio::inherit())
-                .stderr(Stdio::inherit())
-                .spawn()?;
+                .stderr(Stdio::inherit());
 
-            let dot_output = dot_child.wait_with_output()?;
+            let dot_output = dot_child.output()?;
             match dot_output.status.code() {
                 Some(0) => {}
                 Some(_) => bail!("`dot` exited with non-zero status code"),
