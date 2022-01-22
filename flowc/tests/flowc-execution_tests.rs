@@ -124,7 +124,7 @@ fn execute_flow(
     }
 
     // spawn the 'flowr' child process
-    let mut child = command
+    let mut runner = command
         .args(command_args)
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
@@ -133,11 +133,11 @@ fn execute_flow(
         .unwrap();
 
     // send it stdin from the "${testname}.stdin" file
-    write!(child.stdin.unwrap(), "{}", input).unwrap();
+    write!(runner.stdin.unwrap(), "{}", input).unwrap();
 
     // read it's stdout
     let mut output = String::new();
-    if let Some(ref mut stdout) = child.stdout {
+    if let Some(ref mut stdout) = runner.stdout {
         for line in BufReader::new(stdout).lines() {
             output.push_str(&format!("{}\n", &line.unwrap()));
         }
@@ -145,7 +145,7 @@ fn execute_flow(
 
     // read it's stderr
     let mut err = String::new();
-    if let Some(ref mut stderr) = child.stderr {
+    if let Some(ref mut stderr) = runner.stderr {
         for line in BufReader::new(stderr).lines() {
             err.push_str(&format!("{}\n", &line.unwrap()));
         }
