@@ -12,14 +12,14 @@ fn main() -> io::Result<()> {
     println!("cargo:rerun-if-changed={}", lib_root_dir);
 
     let mut command = Command::new("flowc");
-    // Options for flowc:   -v info to give output,
-    //                      -n only build native implementations and skip WASM compile
-    //                      -g for debug symbols
-    //                      -z to dump graphs
-    //                      -o to generate files in $out_dir
-    //                      -l $dir to build library found in $manifest_dir
+    // Options for flowc:   -v info : to log output at INFO level,
+    //                      -n      : only build native implementations and not compile WASM files
+    //                      -g      : to generate debug symbols in some output filfes (e.g. manifest.json)
+    //                      -z      : to dump 'dot' graphs for documentation
+    //                      -o      : generate files in $out_dir instead of current working directory
+    //                      -l $dir : build the flow library found in $dir
 
-    // If the "wasm" is activated, then don't set "-n" and flowc will compile implementations to wasm.
+    // If the "wasm" feature is activated, then don't set "-n" and flowc will compile implementations to wasm.
     #[cfg(feature = "wasm")]
     let command_args = vec!["-v", "info", "-g", "-z", "-o", &out_dir, "-l", lib_root_dir];
     // If the "wasm" feature is NOT activated, then set "-n" (native only) flag so flowc will not compile to wasm
