@@ -24,11 +24,6 @@ config:
 	@rustup --quiet component add clippy
 	@echo "Installing wasm32 target using rustup"
 	@rustup --quiet target add wasm32-unknown-unknown
-	@echo "	Installing mdbook and mdbook-linkcheck using cargo"
-	@cargo install mdbook
-	@cargo install mdbook-linkcheck
-	@echo "installing wasm optimization tools"
-	@cargo install wasm-gc wasm-snip
 ifneq ($(BREW),)
 	@echo "Installing Mac OS X specific dependencies using $(BREW)"
 	@brew install --quiet zmq graphviz binaryen
@@ -54,6 +49,11 @@ ifneq ($(APTGET),)
 	@sudo apt-get -y install libcurl4-openssl-dev libelf-dev libdw-dev libssl-dev binutils-dev || true
 	@sudo apt-get -y install libzmq3-dev graphviz binaryen || true
 endif
+	@echo "	Installing mdbook and mdbook-linkcheck using cargo"
+	@cargo install mdbook
+	@cargo install mdbook-linkcheck
+	@echo "installing wasm optimization tools"
+	@cargo install wasm-gc wasm-snip
 
 .PHONY: clean
 clean:
