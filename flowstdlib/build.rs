@@ -14,17 +14,19 @@ fn main() -> io::Result<()> {
     let mut command = Command::new("flowc");
     // Options for flowc:   -v info : to log output at INFO level,
     //                      -n      : only build native implementations and not compile WASM files
-    //                      -g      : to generate debug symbols in some output filfes (e.g. manifest.json)
+    //                      -g      : to generate debug symbols in some output files (e.g. manifest.json)
     //                      -z      : to dump 'dot' graphs for documentation
     //                      -o      : generate files in $out_dir instead of current working directory
     //                      -l $dir : build the flow library found in $dir
 
     // If the "wasm" feature is activated, then don't set "-n" and flowc will compile implementations to wasm.
     #[cfg(feature = "wasm")]
-    let command_args = vec!["-v", "info", "-g", "-z", "-o", &out_dir, "-l", lib_root_dir];
+    let command_args = vec!["-v", "info", "-g", "-z", "-l", lib_root_dir, "-o", &out_dir];
     // If the "wasm" feature is NOT activated, then set "-n" (native only) flag so flowc will not compile to wasm
     #[cfg(not(feature = "wasm"))]
-    let command_args = vec!["-v", "info", "-g", "-z", "-o", &out_dir, "-l", lib_root_dir, "-n"];
+    let command_args = vec!["-v", "info", "-g", "-z", "-l", lib_root_dir, "-o", &out_dir, "-n"];
+
+//    println!("cargo:warning=running command 'flowc {}'",command_args.join(" "));
 
     let flowc_command = command
         .args(command_args)
