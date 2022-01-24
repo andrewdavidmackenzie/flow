@@ -2,6 +2,5 @@
 **/target
 **/*.iml
 **/*.log
-.crates.toml
 **/*.rs.bk
 **/*.profraw

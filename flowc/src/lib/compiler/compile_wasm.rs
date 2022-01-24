@@ -109,10 +109,9 @@ fn run_optional_command(wasm_path: &Path, command: &str, mut args: Vec<String>) 
             .args(command_args)
             .stdin(Stdio::inherit())
             .stdout(Stdio::inherit())
-            .stderr(Stdio::inherit())
-            .spawn()?;
+            .stderr(Stdio::inherit());
 
-        let output = child.wait_with_output()?;
+        let output = child.output()?;
 
         match output.status.code() {
             Some(0) | None => fs::rename(&temp_file_path, &wasm_path)?,

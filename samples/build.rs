@@ -1,7 +1,7 @@
 //! Build script to compile the flow samples in the crate
+use std::{fs, io};
 use std::path::Path;
 use std::process::{Command, Stdio};
-use std::{fs, io};
 
 #[allow(clippy::collapsible_if)]
 fn main() -> io::Result<()> {
@@ -39,14 +39,13 @@ fn compile_sample(sample_dir: &Path) -> io::Result<()> {
     // -g for debug symbols, -z to dump graphs, -v warn to show warnings, -s to skip running and only compile the flow
     let command_args = vec!["-g", "-z", "-v", "warn", "-s", sample_dir.to_str().unwrap()];
 
-    let flowc_child = command
+    let flowc_command = command
         .args(command_args)
         .stdin(Stdio::inherit())
         .stdout(Stdio::inherit())
-        .stderr(Stdio::inherit())
-        .spawn()?;
+        .stderr(Stdio::inherit());
 
-    let flowc_output = flowc_child.wait_with_output()?;
+    let flowc_output = flowc_command.output()?;
 
     match flowc_output.status.code() {
         Some(0) | None => {}

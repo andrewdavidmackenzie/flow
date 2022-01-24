@@ -59,7 +59,6 @@ pub fn dump_flow(
         target_dir.display()
     );
     _dump_flow(flow, 0, target_dir, provider, dump_files, dot_files)?;
-    info!("Dump complete");
     Ok(())
 }
 
@@ -82,10 +81,9 @@ pub fn generate_svgs(root_dir: &Path) -> Result<()> {
                 .args(vec!["-Tsvg", "-O", &path.to_string_lossy()])
                 .stdin(Stdio::inherit())
                 .stdout(Stdio::inherit())
-                .stderr(Stdio::inherit())
-                .spawn()?;
+                .stderr(Stdio::inherit());
 
-            let dot_output = dot_child.wait_with_output()?;
+            let dot_output = dot_child.output()?;
             match dot_output.status.code() {
                 Some(0) => {}
                 Some(_) => bail!("`dot` exited with non-zero status code"),
