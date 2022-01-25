@@ -19,11 +19,8 @@ pub mod info;
 /// `loader` is responsible for loading a flow from it's manifest and loading libraries it uses
 pub mod loader;
 
-/// `client_server` module contains a number of implementations of the communications between the
-/// runtime client, debug client and the runtime server and debug server.
-#[allow(unused_attributes)]
-#[cfg_attr(feature = "distributed", path = "client_server/message_queue.rs")]
-#[cfg_attr(not(feature = "distributed"), path = "client_server/channels.rs")]
+/// message_queue implementation of the communications between the runtime client, debug client and
+/// the runtime server and debug server.
 pub mod client_server;
 
 /// 'debug' defines structs passed between the Server and the Client regarding debug events

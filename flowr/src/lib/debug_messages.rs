@@ -2,7 +2,6 @@ use std::fmt;
 
 use serde_derive::{Deserialize, Serialize};
 use serde_json::Value;
-#[cfg(feature = "distributed")]
 use zmq::Message;
 
 use flowcore::function::Function;
@@ -182,7 +181,6 @@ impl fmt::Display for DebugClientMessage {
     }
 }
 
-#[cfg(feature = "distributed")]
 impl From<DebugServerMessage> for Message {
     fn from(debug_event: DebugServerMessage) -> Self {
         match serde_json::to_string(&debug_event) {
@@ -192,7 +190,6 @@ impl From<DebugServerMessage> for Message {
     }
 }
 
-#[cfg(feature = "distributed")]
 impl From<Message> for DebugServerMessage {
     fn from(msg: Message) -> Self {
         match msg.as_str() {
@@ -205,7 +202,6 @@ impl From<Message> for DebugServerMessage {
     }
 }
 
-#[cfg(feature = "distributed")]
 impl From<DebugClientMessage> for Message {
     fn from(msg: DebugClientMessage) -> Self {
         match serde_json::to_string(&msg) {
@@ -215,7 +211,6 @@ impl From<DebugClientMessage> for Message {
     }
 }
 
-#[cfg(feature = "distributed")]
 impl From<Message> for DebugClientMessage {
     fn from(msg: Message) -> Self {
         match msg.as_str() {

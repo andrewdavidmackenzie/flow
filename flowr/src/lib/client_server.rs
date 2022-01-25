@@ -90,7 +90,6 @@ where
     }
 
     // Try to discover a server that a client can send a submission to
-    #[cfg(feature = "distributed")]
     fn discover_service(name: &str) -> Option<(String, u16)> {
         let listener = BeaconListener::new(name.as_bytes()).ok()?;
         info!(
@@ -300,14 +299,12 @@ mod test {
         }
     }
 
-    #[cfg(feature = "distributed")]
     impl From<ServerMessage> for Message {
         fn from(event: ServerMessage) -> Self {
             Message::from(&serde_json::to_string(&event).expect("Could not serialize message"))
         }
     }
 
-    #[cfg(feature = "distributed")]
     impl From<Message> for ServerMessage {
         fn from(msg: Message) -> Self {
             serde_json::from_str(msg.as_str().expect("Could not convert message to &str"))
@@ -315,7 +312,6 @@ mod test {
         }
     }
 
-    #[cfg(feature = "distributed")]
     impl From<ClientMessage> for Message {
         fn from(msg: ClientMessage) -> Self {
             Message::from(
@@ -324,7 +320,6 @@ mod test {
         }
     }
 
-    #[cfg(feature = "distributed")]
     impl From<Message> for ClientMessage {
         fn from(msg: Message) -> Self {
             serde_json::from_str(msg.as_str().expect("Could not convert message to str"))
