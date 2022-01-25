@@ -35,7 +35,7 @@ impl CliRuntimeClient {
         mut self,
         connection: ClientConnection<ServerMessage, ClientMessage>,
         #[cfg(feature = "debugger")] control_c_connection: Option<
-            ClientConnection<'static, ServerMessage, ClientMessage>>,
+            ClientConnection<ServerMessage, ClientMessage>>,
     ) -> Result<()> {
         #[cfg(feature = "debugger")]
         if let Some(control_c) = control_c_connection {
@@ -64,7 +64,7 @@ impl CliRuntimeClient {
 
     #[cfg(feature = "debugger")]
     fn enter_debugger_on_control_c(
-        #[cfg(feature = "debugger")] control_c_connection: ClientConnection<'static, ServerMessage, ClientMessage>,
+        #[cfg(feature = "debugger")] control_c_connection: ClientConnection<ServerMessage, ClientMessage>,
     ) {
         ctrlc::set_handler(move || {
             info!("Control-C captured in client.");

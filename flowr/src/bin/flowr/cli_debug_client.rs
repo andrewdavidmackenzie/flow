@@ -33,14 +33,14 @@ ENTER | 'c' | 'continue'     - Continue execution until next breakpoint
     A simple CLI (i.e. stdin and stdout) debug client that implements the DebugClient trait
     defined in the flowrlib library.
 */
-pub struct CliDebugClient<'a> {
-    connection: ClientConnection<'a, DebugServerMessage, DebugClientMessage>,
+pub struct CliDebugClient {
+    connection: ClientConnection<DebugServerMessage, DebugClientMessage>,
     editor: Editor<()>,
 }
 
-impl<'a> CliDebugClient<'a> {
+impl CliDebugClient {
     /// Create a new debug client accepting the debug connection
-    pub fn new(connection: ClientConnection<'a, DebugServerMessage, DebugClientMessage>) -> Self {
+    pub fn new(connection: ClientConnection<DebugServerMessage, DebugClientMessage>) -> Self {
         CliDebugClient {
             connection,
             editor: Editor::<()>::new(), // `()` can be used when no completer is required

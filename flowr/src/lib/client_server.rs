@@ -15,45 +15,39 @@ const FLOW_SERVICE_NAME: &str = "_flowr._tcp.local";
 
 /// Structure that holds information about the Server to help clients connect to it
 #[derive(Clone)]
-pub struct ServerInfo<SM, CM> {
+pub struct ServerInfo {
     /// Optional tuple of Server hostname and port to connect to
     pub hostname_and_port: Option<(String, u16)>,
     /// Name of the server service name to connect to
     pub name: String,
-    /// Phantom data makes sure we use the generic type for SM
-    pub phantom: PhantomData<SM>,
-    /// Phantom data makes sure we use the generic type for CM
-    pub phantom2: PhantomData<CM>,
 }
 
-impl<SM, CM> ServerInfo<SM, CM> {
+impl ServerInfo {
     /// Create a new ServerInfo struct
     pub fn new(hostname_and_port: Option<(String, u16)>, name: &str) -> Self {
         ServerInfo {
             hostname_and_port,
             name: name.into(),
-            phantom: PhantomData,
-            phantom2: PhantomData,
         }
     }
 }
 
 /// `ClientConnection` stores information related to the connection from a runtime client
 /// to the runtime server and is used each time a message is to be sent or received.
-pub struct ClientConnection<'a, SM, CM> {
+pub struct ClientConnection<SM, CM> {
     port: u16,
     requester: Socket,
-    phantom: PhantomData<&'a SM>,
+    phantom: PhantomData<SM>,
     phantom2: PhantomData<CM>,
 }
 
-impl<'a, SM, CM> ClientConnection<'a, SM, CM>
+impl<SM, CM> ClientConnection<SM, CM>
 where
     SM: From<Message> + Display,
     CM: Into<Message> + Display,
 {
     /// Create a new connection between client and server
-    pub fn new(server_info: ServerInfo<SM, CM>) -> Result<Self> {
+    pub fn new(server_info: ServerInfo) -> Result<Self> {
         let full_service_name = format!("{}.{}", server_info.name, FLOW_SERVICE_NAME);
 
         let (hostname, port) = server_info.hostname_and_port.unwrap_or(
@@ -175,12 +169,10 @@ where
     }
 
     /// Get the `ServerInfo` struct that clients use to connect to the server
-    pub fn get_server_info(&self) -> ServerInfo<SM, CM> {
+    pub fn get_server_info(&self) -> ServerInfo {
         ServerInfo {
             hostname_and_port: Some(("localhost".into(), self.port)),
             name: self.name.into(),
-            phantom: PhantomData,
-            phantom2: PhantomData,
         }
     }
 

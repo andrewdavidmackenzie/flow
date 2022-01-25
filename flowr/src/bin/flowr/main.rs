@@ -22,8 +22,6 @@ use flowrlib::coordinator::{Coordinator, RUNTIME_SERVICE_NAME, Submission};
 #[cfg(feature = "debugger")]
 use flowrlib::coordinator::DEBUG_SERVICE_NAME;
 use flowrlib::coordinator::Mode;
-#[cfg(feature = "debugger")]
-use flowrlib::debug_messages::{DebugClientMessage, DebugServerMessage};
 use flowrlib::info as flowrlib_info;
 use flowrlib::runtime_messages::{ClientMessage, ServerMessage};
 use flowrlib::runtime_messages::ClientMessage::ClientSubmission;
@@ -266,12 +264,9 @@ fn client(
     matches: ArgMatches,
     runtime_client_connection: ClientConnection<ServerMessage, ClientMessage>,
     #[cfg(feature = "debugger")]
-    control_c_client_connection: Option<ClientConnection<'static, ServerMessage, ClientMessage>>,
+    control_c_client_connection: Option<ClientConnection<ServerMessage, ClientMessage>>,
     #[cfg(feature = "debugger")] debug_this_flow: bool,
-    #[cfg(feature = "debugger")] debug_server_info: ServerInfo<
-        DebugServerMessage,
-        DebugClientMessage,
-    >,
+    #[cfg(feature = "debugger")] debug_server_info: ServerInfo,
 ) -> Result<()> {
     let flow_manifest_url = parse_flow_url(&matches)?;
     let flow_args = get_flow_args(&matches, &flow_manifest_url);
