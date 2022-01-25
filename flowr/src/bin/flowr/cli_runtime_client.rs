@@ -33,9 +33,8 @@ impl CliRuntimeClient {
     /// Enter a loop where we receive events as a client and respond to them
     pub fn event_loop(
         mut self,
-        connection: ClientConnection<ServerMessage, ClientMessage>,
-        #[cfg(feature = "debugger")] control_c_connection: Option<
-            ClientConnection<ServerMessage, ClientMessage>>,
+        connection: ClientConnection,
+        #[cfg(feature = "debugger")] control_c_connection: Option<ClientConnection>,
     ) -> Result<()> {
         #[cfg(feature = "debugger")]
         if let Some(control_c) = control_c_connection {
@@ -64,7 +63,7 @@ impl CliRuntimeClient {
 
     #[cfg(feature = "debugger")]
     fn enter_debugger_on_control_c(
-        #[cfg(feature = "debugger")] control_c_connection: ClientConnection<ServerMessage, ClientMessage>,
+        #[cfg(feature = "debugger")] control_c_connection: ClientConnection,
     ) {
         ctrlc::set_handler(move || {
             info!("Control-C captured in client.");

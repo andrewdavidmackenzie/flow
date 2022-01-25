@@ -23,7 +23,6 @@ use flowrlib::coordinator::{Coordinator, RUNTIME_SERVICE_NAME, Submission};
 use flowrlib::coordinator::DEBUG_SERVICE_NAME;
 use flowrlib::coordinator::Mode;
 use flowrlib::info as flowrlib_info;
-use flowrlib::runtime_messages::{ClientMessage, ServerMessage};
 use flowrlib::runtime_messages::ClientMessage::ClientSubmission;
 
 #[cfg(feature = "debugger")]
@@ -262,9 +261,9 @@ fn client_only(
 */
 fn client(
     matches: ArgMatches,
-    runtime_client_connection: ClientConnection<ServerMessage, ClientMessage>,
+    runtime_client_connection: ClientConnection,
     #[cfg(feature = "debugger")]
-    control_c_client_connection: Option<ClientConnection<ServerMessage, ClientMessage>>,
+    control_c_client_connection: Option<ClientConnection>,
     #[cfg(feature = "debugger")] debug_this_flow: bool,
     #[cfg(feature = "debugger")] debug_server_info: ServerInfo,
 ) -> Result<()> {

@@ -34,18 +34,12 @@ impl ServerInfo {
 
 /// `ClientConnection` stores information related to the connection from a runtime client
 /// to the runtime server and is used each time a message is to be sent or received.
-pub struct ClientConnection<SM, CM> {
+pub struct ClientConnection {
     port: u16,
     requester: Socket,
-    phantom: PhantomData<SM>,
-    phantom2: PhantomData<CM>,
 }
 
-impl<SM, CM> ClientConnection<SM, CM>
-where
-    SM: From<Message> + Display,
-    CM: Into<Message> + Display,
-{
+impl ClientConnection {
     /// Create a new connection between client and server
     pub fn new(server_info: ServerInfo) -> Result<Self> {
         let full_service_name = format!("{}.{}", server_info.name, FLOW_SERVICE_NAME);
@@ -78,8 +72,6 @@ where
         Ok(ClientConnection {
             port,
             requester,
-            phantom: PhantomData,
-            phantom2: PhantomData,
         })
     }
 
@@ -99,7 +91,7 @@ where
     }
 
     /// Receive a ServerMessage from the server
-    pub fn receive(&self) -> Result<SM> {
+    pub fn receive<SM: From<Message> + Display>(&self) -> Result<SM> {
         trace!("Client waiting for message from server");
 
         let msg = self
@@ -113,7 +105,7 @@ where
     }
 
     /// Send a ClientMessage to the Server
-    pub fn send(&self, message: CM) -> Result<()> {
+    pub fn send<CM: Into<Message> + Display>(&self, message: CM) -> Result<()> {
         trace!("Client Sent     ---> to {} {}", self.port, message);
         self.requester
             .send(message, 0)
@@ -325,7 +317,7 @@ mod test {
         let mut server = ServerConnection::<ServerMessage, ClientMessage>::new("test", None)
             .expect("Could not create ServerConnection");
         let server_info = ServerInfo::new(None, "test");
-        let client = ClientConnection::<ServerMessage, ClientMessage>::new(server_info)
+        let client = ClientConnection::new(server_info)
             .expect("Could not create ClientConnection");
 
         // Open the connection by sending the first message from the client
@@ -347,7 +339,7 @@ mod test {
 
         // Receive it and check it on the client
         let server_message = client
-            .receive()
+            .receive::<ServerMessage>()
             .expect("Could not receive message at client");
         println!("Server Message = {}", server_message);
         assert_eq!(server_message, ServerMessage::World);
@@ -359,7 +351,7 @@ mod test {
         let mut server = ServerConnection::<ServerMessage, ClientMessage>::new("test", None)
             .expect("Could not create ServerConnection");
         let server_info = ServerInfo::new(None, "test");
-        let client = ClientConnection::<ServerMessage, ClientMessage>::new(server_info)
+        let client = ClientConnection::new(server_info)
             .expect("Could not create ClientConnection");
 
         // Open the connection by sending the first message from the client
@@ -385,7 +377,7 @@ mod test {
         // Receive it and check it on the client
         assert_eq!(
             client
-                .receive()
+                .receive::<ServerMessage>()
                 .expect("Could not receive message at client"),
             ServerMessage::World
         );

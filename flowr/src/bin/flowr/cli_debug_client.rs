@@ -34,13 +34,13 @@ ENTER | 'c' | 'continue'     - Continue execution until next breakpoint
     defined in the flowrlib library.
 */
 pub struct CliDebugClient {
-    connection: ClientConnection<DebugServerMessage, DebugClientMessage>,
+    connection: ClientConnection,
     editor: Editor<()>,
 }
 
 impl CliDebugClient {
     /// Create a new debug client accepting the debug connection
-    pub fn new(connection: ClientConnection<DebugServerMessage, DebugClientMessage>) -> Self {
+    pub fn new(connection: ClientConnection) -> Self {
         CliDebugClient {
             connection,
             editor: Editor::<()>::new(), // `()` can be used when no completer is required
