@@ -59,7 +59,7 @@ fn write_manifest(
         Url::from_file_path(&filename).map_err(|_| "Could not create filename url")?;
 
     let manifest = generate::create_manifest(
-        &flow,
+        flow,
         debug_symbols,
         &out_dir_path,
         tables,
@@ -290,7 +290,7 @@ fn two_destinations() {
 }
 
 #[test]
-#[serial(client_server)]
+#[serial]
 fn hello_world_client_server() {
     let search_path = helper::set_lib_search_path_to_project();
     execute_test("hello-world", search_path, true);
