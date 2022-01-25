@@ -1,5 +1,4 @@
 use std::fmt::Display;
-use std::marker::PhantomData;
 use std::time::Duration;
 
 /// This is the message-queue implementation of the lib.client_server communications
@@ -116,22 +115,15 @@ impl ClientConnection {
 /// `ServerConnection` store information about the server side of the client/server
 /// communications between a runtime client and a runtime server and is used each time a message
 /// needs to be sent or received.
-pub struct ServerConnection<SM, CM> {
+pub struct ServerConnection {
     name: &'static str,
     port: u16,
     responder: zmq::Socket,
-    phantom: PhantomData<SM>,
-    phantom2: PhantomData<CM>,
 }
 
 /// Implement a server connection for sending server messages of type <SM> and receiving
 /// back client messages of type <CM>
-impl<'a, SM, CM> ServerConnection<SM, CM>
-where
-    SM: Into<Message> + Display,
-    CM: From<Message> + Display,
-    zmq::Message: std::convert::From<CM>,
-{
+impl ServerConnection {
     /// Create a new Server side of the client/server Connection
     pub fn new(name: &'static str, port: Option<u16>) -> Result<Self> {
         let context = zmq::Context::new();
@@ -154,9 +146,7 @@ where
         Ok(ServerConnection {
             name,
             port: chosen_port,
-            responder,
-            phantom: PhantomData,
-            phantom2: PhantomData,
+            responder
         })
     }
 
@@ -189,7 +179,10 @@ where
     }
 
     /// Receive a Message sent from the client to the server
-    pub fn receive(&self) -> Result<CM> {
+    pub fn receive<CM>(&self) -> Result<CM>
+    where
+        CM: From<Message> + Display,
+        zmq::Message: std::convert::From<CM> {
         trace!("Server waiting for message from client");
 
         let msg = self
@@ -207,7 +200,10 @@ where
     }
 
     /// Try to Receive a Message sent from the client to the server but without blocking
-    pub fn receive_no_wait(&self) -> Result<CM> {
+    pub fn receive_no_wait<CM>(&self) -> Result<CM>
+    where
+        CM: From<Message> + Display,
+        zmq::Message: std::convert::From<CM> {
         let msg = self
             .responder
             .recv_msg(DONTWAIT)
@@ -223,13 +219,19 @@ where
     }
 
     /// Send a Message from the server to the Client and wait for it's response
-    pub fn send_and_receive_response(&mut self, message: SM) -> Result<CM> {
+    pub fn send_and_receive_response<SM, CM>(&mut self, message: SM) -> Result<CM>
+    where
+        SM: Into<Message> + Display,
+        CM: From<Message> + Display,
+        zmq::Message: std::convert::From<CM> {
         self.send(message)?;
         self.receive()
     }
 
     /// Send a Message from the server to the Client but don't wait for it's response
-    pub fn send(&mut self, message: SM) -> Result<()> {
+    pub fn send<SM>(&mut self, message: SM) -> Result<()>
+    where
+        SM: Into<Message> + Display {
         trace!(
             "                <--- Server Sent on {}: {}",
             self.port,
@@ -314,7 +316,7 @@ mod test {
     #[test]
     #[serial(client_server)]
     fn hello_world() {
-        let mut server = ServerConnection::<ServerMessage, ClientMessage>::new("test", None)
+        let mut server = ServerConnection::new("test", None)
             .expect("Could not create ServerConnection");
         let server_info = ServerInfo::new(None, "test");
         let client = ClientConnection::new(server_info)
@@ -327,7 +329,7 @@ mod test {
 
         // Receive and check it on the server
         let client_message = server
-            .receive()
+            .receive::<ClientMessage>()
             .expect("Could not receive message at server");
         println!("Client Message = {}", client_message);
         assert_eq!(client_message, ClientMessage::Hello);
@@ -348,7 +350,7 @@ mod test {
     #[test]
     #[serial(client_server)]
     fn receive_no_wait() {
-        let mut server = ServerConnection::<ServerMessage, ClientMessage>::new("test", None)
+        let mut server = ServerConnection::new("test", None)
             .expect("Could not create ServerConnection");
         let server_info = ServerInfo::new(None, "test");
         let client = ClientConnection::new(server_info)
@@ -364,7 +366,7 @@ mod test {
         // Receive and check it on the server
         assert_eq!(
             server
-                .receive_no_wait()
+                .receive_no_wait::<ClientMessage>()
                 .expect("Could not receive message at server"),
             ClientMessage::Hello
         );

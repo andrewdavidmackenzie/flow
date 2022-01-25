@@ -11,7 +11,7 @@ use crate::runtime_messages::{ClientMessage, ServerMessage};
 /// `Implementation` struct for the `image_buffer` function
 pub struct ImageBuffer {
     /// It holds a reference to the runtime client in order to send commands
-    pub server_connection: Arc<Mutex<ServerConnection<ServerMessage, ClientMessage>>>,
+    pub server_connection: Arc<Mutex<ServerConnection>>,
 }
 
 impl Implementation for ImageBuffer {

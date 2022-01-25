@@ -10,7 +10,6 @@ use flowcore::lib_manifest::{ImplementationLocator::Native, LibraryManifest};
 
 use crate::client_server::ServerConnection;
 use crate::errors::*;
-use crate::runtime_messages::{ClientMessage, ServerMessage};
 
 /// `args` is a module to interact with a programs arguments
 pub mod args;
@@ -25,7 +24,7 @@ pub(crate) mod test_helper;
 
 /// Return a `LibraryManifest` for the run-time functions
 pub fn get_manifest(
-    server_connection: Arc<Mutex<ServerConnection<ServerMessage, ClientMessage>>>,
+    server_connection: Arc<Mutex<ServerConnection>>,
 ) -> Result<LibraryManifest> {
     let metadata = MetaData {
         name: "context".into(),

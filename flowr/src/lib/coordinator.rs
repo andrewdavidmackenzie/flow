@@ -14,8 +14,6 @@ use crate::client_provider::ClientProvider;
 use crate::client_server::ServerConnection;
 use crate::context;
 #[cfg(feature = "debugger")]
-use crate::debug_messages::{DebugClientMessage, DebugServerMessage};
-#[cfg(feature = "debugger")]
 use crate::debugger::Debugger;
 use crate::errors::*;
 use crate::execution;
@@ -137,7 +135,7 @@ pub struct Coordinator {
     /// A channel used to receive Jobs back after execution (now including the job's output)
     job_rx: Receiver<Job>,
     /// Get and Send messages to/from the runtime client
-    runtime_server_connection: Arc<Mutex<ServerConnection<ServerMessage, ClientMessage>>>,
+    runtime_server_connection: Arc<Mutex<ServerConnection>>,
     #[cfg(feature = "debugger")]
     debugger: Debugger,
 }
@@ -145,11 +143,8 @@ pub struct Coordinator {
 impl Coordinator {
     // Create a new `coordinator` with `num_threads` executor threads
     fn new(
-        runtime_server_connection: ServerConnection<ServerMessage, ClientMessage>,
-        #[cfg(feature = "debugger")] debug_server_connection: ServerConnection<
-            DebugServerMessage,
-            DebugClientMessage,
-        >,
+        runtime_server_connection: ServerConnection,
+        #[cfg(feature = "debugger")] debug_server_connection: ServerConnection,
         num_threads: usize,
     ) -> Self {
         let (job_tx, job_rx) = mpsc::channel();
@@ -176,11 +171,8 @@ impl Coordinator {
         num_threads: usize,
         lib_search_path: Simpath,
         native: bool,
-        runtime_server_connection: ServerConnection<ServerMessage, ClientMessage>,
-        #[cfg(feature = "debugger")] debug_server_connection: ServerConnection<
-            DebugServerMessage,
-            DebugClientMessage,
-        >,
+        runtime_server_connection: ServerConnection,
+        #[cfg(feature = "debugger")] debug_server_connection: ServerConnection,
     ) -> Result<()> {
         let mut coordinator = Coordinator::new(
             runtime_server_connection,
@@ -309,7 +301,7 @@ impl Coordinator {
             self.runtime_server_connection
                 .lock()
                 .map_err(|_| "Could not lock server context")?
-                .send_and_receive_response(ServerMessage::FlowStart)?;
+                .send_and_receive_response::<ServerMessage, ClientMessage>(ServerMessage::FlowStart)?;
 
             'jobs: loop {
                 trace!("{}", state);
@@ -459,7 +451,7 @@ impl Coordinator {
     fn load_native_libs(
         loader: &mut Loader,
         provider: &dyn Provider,
-        server_connection: Arc<Mutex<ServerConnection<ServerMessage, ClientMessage>>>,
+        server_connection: Arc<Mutex<ServerConnection>>,
         native: bool,
     ) -> Result<()> {
         let flowruntimelib_url =
