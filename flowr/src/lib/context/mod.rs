@@ -1,5 +1,5 @@
-//! `context` is a crate that defines a set of functions for a flow program to interact with the
-//! host system, such as files, stdio etc.
+//! `context` module defines a set of functions for a flow program to interact with the host system,
+//! such as file io, stdio etc.
 
 use std::sync::{Arc, Mutex};
 
