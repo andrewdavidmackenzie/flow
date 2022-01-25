@@ -289,9 +289,8 @@ fn two_destinations() {
     execute_test("two_destinations", search_path, false);
 }
 
-#[ignore]
 #[test]
-#[serial]
+#[serial(client_server)]
 fn hello_world_client_server() {
     let search_path = helper::set_lib_search_path_to_project();
     execute_test("hello-world", search_path, true);
