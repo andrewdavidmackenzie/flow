@@ -77,7 +77,10 @@ jobs:
         cargo install mdbook-linkcheck
         cargo doc --no-deps --target-dir=target/html/code
         mdbook build
-        make trim-docs
+
+    - name: trim-docs
+      if: matrix.os == 'ubuntu-latest'
+      run: make trim-docs
 
     - name: UploadCoverage
       if: matrix.os == 'ubuntu-latest'
