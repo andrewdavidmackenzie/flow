@@ -13,7 +13,7 @@ features := --features "wasm"
 endif
 
 .PHONY: all
-all: clippy build test docs trim-docs
+all: clippy build test docs
 
 .PHONY: config
 config:
@@ -86,10 +86,6 @@ docs:
 	@echo "docs<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
 	@cargo doc --no-deps --target-dir=target/html/code
 	@mdbook build
-
-.PHONY: trim-docs
-trim-docs:
-	@echo "trim-docs<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
 	@find target/html -name .git | xargs rm -rf {}
 	@find target/html -name .github | xargs rm -rf {}
 	@find target/html -name .gitignore | xargs rm -rf {}
