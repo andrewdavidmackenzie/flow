@@ -5,14 +5,20 @@ use std::time::Duration;
 use log::{info, trace};
 use portpicker::pick_unused_port;
 use simpdiscoverylib::{BeaconListener, BeaconSender};
-use zmq::{DONTWAIT, Message};
-use zmq::Socket;
+use zmq::{Message, Socket};
 
 use crate::errors::*;
+
+/// WAIT for a message to arrive when performing a receive()
+pub const WAIT:i32 = 0;
+/// Do NOT WAIT for a message to arrive when performing a receive()
+pub static DONT_WAIT:i32 = zmq::DONTWAIT;
 
 /// Structure that holds information about the Server to help clients connect to it
 #[derive(Clone)]
 pub struct ServerInfo {
+    /// The communication protocol being used
+    protocol: String,
     /// Optional tuple of Server hostname and port to connect to
     hostname_and_port: Option<(String, u16)>,
     /// Name of the service name to connect to on the server
@@ -21,8 +27,9 @@ pub struct ServerInfo {
 
 impl ServerInfo {
     /// Create a new ServerInfo struct
-    pub fn new(hostname_and_port: Option<(String, u16)>, service_name: &str) -> Self {
+    pub fn new(protocol: String, hostname_and_port: Option<(String, u16)>, service_name: &str) -> Self {
         ServerInfo {
+            protocol,
             hostname_and_port,
             service_name: service_name.into(),
         }
@@ -37,15 +44,14 @@ pub struct ClientConnection {
 
 impl ClientConnection {
     /// Create a new connection between client and server
-    pub fn new(server_info: ServerInfo) -> Result<Self> {
-        let (hostname, port) = server_info.hostname_and_port.unwrap_or(
-            Self::discover_service(&server_info.service_name)
-                .ok_or("Could not discover service hostname & port and none were specified")?,
+    pub fn new(server_info: &mut ServerInfo) -> Result<Self> {
+        let (hostname, port) = server_info.hostname_and_port.clone().unwrap_or(
+            Self::discover_service(&server_info.service_name)?
         );
 
         info!(
-            "Client will attempt to connect to service '{}' at: '{}'",
-            server_info.service_name, hostname
+            "Client will attempt to connect to service '{}' at: '{}:{}'",
+            server_info.service_name, hostname, port
         );
 
         let context = zmq::Context::new();
@@ -55,7 +61,7 @@ impl ClientConnection {
             .chain_err(|| "Runtime client could not connect to service")?;
 
         requester
-            .connect(&format!("tcp://{}:{}", hostname, port))
+            .connect(&format!("{}://{}:{}", server_info.protocol, hostname, port))
             .chain_err(|| "Could not connect to service")?;
 
         info!(
@@ -63,24 +69,23 @@ impl ClientConnection {
             server_info.service_name, hostname, port
         );
 
+        server_info.hostname_and_port = Some((hostname, port));
+
         Ok(ClientConnection {
             requester,
         })
     }
 
-    // Try to discover a server that a client can send a submission to
-    fn discover_service(name: &str) -> Option<(String, u16)> {
-        let listener = BeaconListener::new(name.as_bytes()).ok()?;
-        info!(
-            "Client is waiting for a Service Discovery beacon for '{}'",
-            name
-        );
-        let beacon = listener.wait(Some(Duration::from_secs(10))).ok()?;
+    // Try to discover a server offering a particular service by name
+    fn discover_service(name: &str) -> Result<(String, u16)> {
+        let listener = BeaconListener::new(name.as_bytes())?;
+        info!("Client is waiting for a Service Discovery beacon for service with name '{}'", name);
+        let beacon = listener.wait(Some(Duration::from_secs(10)))?;
         info!(
             "Service '{}' discovered at IP: {}, Port: {}",
             name, beacon.service_ip, beacon.service_port
         );
-        Some((beacon.service_ip, beacon.service_port))
+        Ok((beacon.service_ip, beacon.service_port))
     }
 
     /// Receive a ServerMessage from the server
@@ -110,44 +115,43 @@ impl ClientConnection {
 /// communications between a runtime client and a runtime server and is used each time a message
 /// needs to be sent or received.
 pub struct ServerConnection {
-    name: &'static str,
-    port: u16,
+    server_info: ServerInfo,
     responder: zmq::Socket,
 }
 
-/// Implement a server connection for sending server messages of type <SM> and receiving
-/// back client messages of type <CM>
+/// Implement a `ServerConnection` for sending and receiving messages between client and server
 impl ServerConnection {
     /// Create a new Server side of the client/server Connection
-    pub fn new(service_name: &'static str, port: Option<u16>) -> Result<Self> {
+    pub fn new(protocol: &str, service_name: &'static str, port: Option<u16>) -> Result<Self> {
         let context = zmq::Context::new();
         let responder = context
             .socket(zmq::REP)
             .chain_err(|| "Server Connection - could not create Socket")?;
 
         let chosen_port = port.unwrap_or(pick_unused_port().chain_err(|| "No ports free")?);
+        let listening_address = "*".into();
 
         responder
-            .bind(&format!("tcp://*:{}", chosen_port))
-            .chain_err(|| "Server Connection - could not bind on Socket")?;
+            .bind(&format!("{}://{}:{}", protocol, listening_address, chosen_port))
+            .chain_err(|| "Server Connection - could not bind on TCO Socket")?;
 
         Self::enable_service_discovery(service_name, chosen_port)?;
 
-        info!("Service '{}' listening on port {}", service_name, chosen_port);
+        info!("Service '{}' listening at {}", service_name, chosen_port);
 
         Ok(ServerConnection {
-            name: service_name,
-            port: chosen_port,
+            server_info: ServerInfo {
+                            protocol: protocol.into(),
+                            hostname_and_port: Some((listening_address, chosen_port)),
+                            service_name: service_name.into(),
+                        },
             responder
         })
     }
 
     /// Get the `ServerInfo` struct that clients use to connect to the server
-    pub fn get_server_info(&self) -> ServerInfo {
-        ServerInfo {
-            hostname_and_port: Some(("localhost".into(), self.port)),
-            service_name: self.name.into(),
-        }
+    pub fn get_server_info(&self) -> &ServerInfo {
+        &self.server_info
     }
 
     /*
@@ -171,7 +175,7 @@ impl ServerConnection {
     }
 
     /// Receive a Message sent from the client to the server
-    pub fn receive<CM>(&self) -> Result<CM>
+    pub fn receive<CM>(&self, flags: i32) -> Result<CM>
     where
         CM: From<Message> + Display,
         zmq::Message: std::convert::From<CM> {
@@ -179,32 +183,13 @@ impl ServerConnection {
 
         let msg = self
             .responder
-            .recv_msg(0)
+            .recv_msg(flags)
             .map_err(|e| format!("Server error getting message: '{}'", e))?;
 
         let message = CM::from(msg);
         trace!(
-            "                ---> Server Received on {} {}",
-            self.port,
-            message
-        );
-        Ok(message)
-    }
-
-    /// Try to Receive a Message sent from the client to the server but without blocking
-    pub fn receive_no_wait<CM>(&self) -> Result<CM>
-    where
-        CM: From<Message> + Display,
-        zmq::Message: std::convert::From<CM> {
-        let msg = self
-            .responder
-            .recv_msg(DONTWAIT)
-            .chain_err(|| "Server could not receive message")?;
-
-        let message = CM::from(msg);
-        trace!(
-            "                ---> Server Received on {} {}",
-            self.port,
+            "                ---> Server Received on {:?} {}",
+            self.server_info.hostname_and_port,
             message
         );
         Ok(message)
@@ -217,7 +202,7 @@ impl ServerConnection {
         CM: From<Message> + Display,
         zmq::Message: std::convert::From<CM> {
         self.send(message)?;
-        self.receive()
+        self.receive(WAIT)
     }
 
     /// Send a Message from the server to the Client but don't wait for it's response
@@ -225,8 +210,8 @@ impl ServerConnection {
     where
         SM: Into<Message> + Display {
         trace!(
-            "                <--- Server Sent on {}: {}",
-            self.port,
+            "                <--- Server Sent on {:?}: {}",
+            self.server_info.hostname_and_port,
             message
         );
 
@@ -247,7 +232,7 @@ mod test {
     use serial_test::serial;
     use zmq::Message;
 
-    use crate::client_server::{ClientConnection, ServerConnection, ServerInfo};
+    use crate::client_server::{ClientConnection, DONT_WAIT, ServerConnection, ServerInfo, WAIT};
 
     #[derive(Serialize, Deserialize, PartialEq, Debug)]
     enum ServerMessage {
@@ -308,10 +293,10 @@ mod test {
     #[test]
     #[serial(client_server)]
     fn hello_world() {
-        let mut server = ServerConnection::new("test", None)
+        let mut server = ServerConnection::new("tcp", "test", None)
             .expect("Could not create ServerConnection");
-        let server_info = ServerInfo::new(None, "test");
-        let client = ClientConnection::new(server_info)
+        let mut server_info = ServerInfo::new("tcp".into(), None, "test");
+        let client = ClientConnection::new(&mut server_info)
             .expect("Could not create ClientConnection");
 
         // Open the connection by sending the first message from the client
@@ -321,7 +306,7 @@ mod test {
 
         // Receive and check it on the server
         let client_message = server
-            .receive::<ClientMessage>()
+            .receive::<ClientMessage>(WAIT)
             .expect("Could not receive message at server");
         println!("Client Message = {}", client_message);
         assert_eq!(client_message, ClientMessage::Hello);
@@ -342,10 +327,10 @@ mod test {
     #[test]
     #[serial(client_server)]
     fn receive_no_wait() {
-        let mut server = ServerConnection::new("test", None)
+        let mut server = ServerConnection::new("tcp", "test", None)
             .expect("Could not create ServerConnection");
-        let server_info = ServerInfo::new(None, "test");
-        let client = ClientConnection::new(server_info)
+        let mut server_info = ServerInfo::new("tcp".into(), None, "test");
+        let client = ClientConnection::new(&mut server_info)
             .expect("Could not create ClientConnection");
 
         // Open the connection by sending the first message from the client
@@ -358,7 +343,7 @@ mod test {
         // Receive and check it on the server
         assert_eq!(
             server
-                .receive_no_wait::<ClientMessage>()
+                .receive::<ClientMessage>(DONT_WAIT)
                 .expect("Could not receive message at server"),
             ClientMessage::Hello
         );

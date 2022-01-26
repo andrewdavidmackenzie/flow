@@ -11,7 +11,7 @@ use url::Url;
 use flowcore::lib_provider::{MetaProvider, Provider};
 
 use crate::client_provider::ClientProvider;
-use crate::client_server::ServerConnection;
+use crate::client_server::{DONT_WAIT, ServerConnection, WAIT};
 use crate::context;
 #[cfg(feature = "debugger")]
 use crate::debugger::Debugger;
@@ -243,7 +243,7 @@ impl Coordinator {
         loop {
             info!("'flowr' server is waiting to receive a 'Submission'");
             match self.runtime_server_connection.lock() {
-                Ok(guard) => match guard.receive() {
+                Ok(guard) => match guard.receive(WAIT) {
                     Ok(ClientMessage::ClientSubmission(submission)) => {
                         debug!(
                             "Server received a submission for execution with manifest_url: '{}'",
@@ -434,7 +434,7 @@ impl Coordinator {
             .runtime_server_connection
             .lock()
             .map_err(|_| "Could not lock server context")?
-            .receive_no_wait();
+            .receive(DONT_WAIT);
         match msg {
             Ok(ClientMessage::EnterDebugger) => {
                 debug!("Got EnterDebugger message");

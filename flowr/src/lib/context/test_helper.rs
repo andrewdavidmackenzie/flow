@@ -2,7 +2,7 @@
 pub mod test {
     use std::sync::{Arc, Mutex};
 
-    use crate::client_server::{ClientConnection, ServerConnection};
+    use crate::client_server::{ClientConnection, ServerConnection, WAIT};
     use crate::coordinator::RUNTIME_SERVICE_NAME;
     use crate::runtime_messages::{ClientMessage, ServerMessage};
 
@@ -11,14 +11,14 @@ pub mod test {
         then_send: ClientMessage,
     ) -> Arc<Mutex<ServerConnection>> {
         let server_connection = Arc::new(Mutex::new(
-            ServerConnection::new(RUNTIME_SERVICE_NAME, None)
+            ServerConnection::new("tcp", RUNTIME_SERVICE_NAME, None)
                 .expect("Could not create server connection"),
         ));
 
-        let server_info = server_connection.lock()
-            .expect("Could not get access to server connection").get_server_info();
-
-        let client_connection = ClientConnection::new(server_info)
+        let connection = server_connection.lock()
+            .expect("Could not get access to server connection");
+        let mut server_info = connection.get_server_info().clone();
+        let client_connection = ClientConnection::new(&mut server_info)
             .expect("Could not create ClientConnection");
 
         client_connection
@@ -45,7 +45,7 @@ pub mod test {
             .lock()
             .expect("Could not get a lock on the server connection");
         guard
-            .receive::<ClientMessage>()
+            .receive::<ClientMessage>(WAIT)
             .expect("Could not receive initial Ack message from client");
 
         server_connection.clone()
