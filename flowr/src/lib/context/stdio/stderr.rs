@@ -11,7 +11,7 @@ use crate::runtime_messages::{ClientMessage, ServerMessage};
 /// `Implementation` struct for the `Stderr` function
 pub struct Stderr {
     /// It holds a reference to the runtime client in order to write output
-    pub server_connection: Arc<Mutex<ServerConnection<ServerMessage, ClientMessage>>>,
+    pub server_connection: Arc<Mutex<ServerConnection>>,
 }
 
 impl Implementation for Stderr {

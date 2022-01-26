@@ -16,11 +16,12 @@ use crate::debug_messages::Param;
 use crate::errors::*;
 use crate::job::Job;
 use crate::run_state::RunState;
+use crate::runtime_messages::ClientMessage;
 
 /// Debugger struct contains all the info necessary to conduct a debugging session, storing
 /// set breakpoints, connections to the debug client etc
 pub struct Debugger {
-    debug_server_connection: ServerConnection<DebugServerMessage, DebugClientMessage>,
+    debug_server_connection: ServerConnection,
     input_breakpoints: HashSet<(usize, usize)>,
     block_breakpoints: HashSet<(usize, usize)>,
     /* blocked_id -> blocking_id */
@@ -64,7 +65,7 @@ impl fmt::Display for BlockerNode {
 
 impl Debugger {
     pub fn new(
-        debug_server_connection: ServerConnection<DebugServerMessage, DebugClientMessage>,
+        debug_server_connection: ServerConnection,
     ) -> Self {
         Debugger {
             debug_server_connection,
@@ -79,7 +80,7 @@ impl Debugger {
     /// Start the debugger - in this case the only thing to do is swallow the first
     /// DebugClientStarting message to initialize the connection
     pub fn start(&mut self) {
-        let _ = self.debug_server_connection.receive();
+        let _ = self.debug_server_connection.receive::<ClientMessage>();
     }
 
     /// Called from the flowrlib coordinator to inform the debugger that a job has completed
@@ -244,30 +245,30 @@ impl Debugger {
                     let event = self.add_breakpoint(state, param);
                     let _ = self
                         .debug_server_connection
-                        .send_and_receive_response(event);
+                        .send_and_receive_response::<DebugServerMessage, DebugClientMessage>(event);
                 }
                 Ok(Delete(param)) => {
                     let event = self.delete_breakpoint(param);
                     let _ = self
                         .debug_server_connection
-                        .send_and_receive_response(event);
+                        .send_and_receive_response::<DebugServerMessage, DebugClientMessage>(event);
                 }
                 Ok(Validate) => {
                     let event = self.validate(state);
                     let _ = self
                         .debug_server_connection
-                        .send_and_receive_response(event);
+                        .send_and_receive_response::<DebugServerMessage, DebugClientMessage>(event);
                 }
                 Ok(List) => {
                     let event = self.list_breakpoints();
                     let _ = self
                         .debug_server_connection
-                        .send_and_receive_response(event);
+                        .send_and_receive_response::<DebugServerMessage, DebugClientMessage>(event);
                 }
                 Ok(Inspect) => {
                     let _ = self
                         .debug_server_connection
-                        .send_and_receive_response(DebugServerMessage::OverallState(state.clone()));
+                        .send_and_receive_response::<DebugServerMessage, DebugClientMessage>(DebugServerMessage::OverallState(state.clone()));
                 }
                 Ok(InspectFunction(function_id)) => {
                     let event = if function_id < state.num_functions() {
@@ -281,7 +282,7 @@ impl Debugger {
 
                     let _: Result<DebugClientMessage> = self
                         .debug_server_connection
-                        .send_and_receive_response(event);
+                        .send_and_receive_response::<DebugServerMessage, DebugClientMessage>(event);
                 }
                 Ok(InspectInput(function_id, input_number)) => {
                     let event = if function_id < state.num_functions() {
@@ -300,7 +301,7 @@ impl Debugger {
                     };
                     let _: Result<DebugClientMessage> = self
                         .debug_server_connection
-                        .send_and_receive_response(event);
+                        .send_and_receive_response::<DebugServerMessage, DebugClientMessage>(event);
                 }
                 Ok(InspectOutput(function_id, sub_route)) => {
                     let event = if function_id < state.num_functions() {
@@ -335,12 +336,12 @@ impl Debugger {
                     let event = Self::inspect_blocks(state, from_function_id, to_function_id);
                     let _ = self
                         .debug_server_connection
-                        .send_and_receive_response(event);
+                        .send_and_receive_response::<DebugServerMessage, DebugClientMessage>(event);
                 }
                 Ok(ExitDebugger) => {
                     let _: Result<DebugClientMessage> = self
                         .debug_server_connection
-                        .send_and_receive_response(ExitingDebugger);
+                        .send_and_receive_response::<DebugServerMessage, DebugClientMessage>(ExitingDebugger);
                     return (false, false, true);
                 }
 
@@ -355,12 +356,12 @@ impl Debugger {
                         let event = self.reset();
                         let _: Result<DebugClientMessage> = self
                             .debug_server_connection
-                            .send_and_receive_response(event);
+                            .send_and_receive_response::<DebugServerMessage, DebugClientMessage>(event);
                         (false, true, false)
                     } else {
                         let _: Result<DebugClientMessage> = self
                             .debug_server_connection
-                            .send_and_receive_response(ExecutionStarted);
+                            .send_and_receive_response::<DebugServerMessage, DebugClientMessage>(ExecutionStarted);
                         (false, false, false)
                     }
                 }
@@ -593,7 +594,7 @@ impl Debugger {
                 self.break_at_job = state.jobs_created() + steps;
             }
             _ => {
-                let _ = self.debug_server_connection.send_and_receive_response(
+                let _ = self.debug_server_connection.send_and_receive_response::<DebugServerMessage, DebugClientMessage>(
                     DebugServerMessage::Error("Did not understand step command parameter\n".into()),
                 );
             }

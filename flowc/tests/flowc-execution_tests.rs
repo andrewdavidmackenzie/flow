@@ -59,7 +59,7 @@ fn write_manifest(
         Url::from_file_path(&filename).map_err(|_| "Could not create filename url")?;
 
     let manifest = generate::create_manifest(
-        &flow,
+        flow,
         debug_symbols,
         &out_dir_path,
         tables,
@@ -108,8 +108,6 @@ fn execute_flow(
     if client_server {
         // start another 'flowr' process in client mode
         command_args.push("-c");
-        command_args.push("-a");
-        command_args.push("localhost");
     } else {
         // when running client_and_server in same process we want to use native libs
         command_args.push("-n");
@@ -289,7 +287,6 @@ fn two_destinations() {
     execute_test("two_destinations", search_path, false);
 }
 
-#[cfg(feature = "distributed")]
 #[test]
 #[serial]
 fn hello_world_client_server() {

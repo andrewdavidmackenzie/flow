@@ -9,7 +9,7 @@ pub mod test {
     pub fn wait_for_then_send(
         wait_for_message: ServerMessage,
         then_send: ClientMessage,
-    ) -> Arc<Mutex<ServerConnection<ServerMessage, ClientMessage>>> {
+    ) -> Arc<Mutex<ServerConnection>> {
         let server_connection = Arc::new(Mutex::new(
             ServerConnection::new(RUNTIME_SERVICE_NAME, None)
                 .expect("Could not create server connection"),
@@ -18,7 +18,7 @@ pub mod test {
         let server_info = server_connection.lock()
             .expect("Could not get access to server connection").get_server_info();
 
-        let client_connection = ClientConnection::<ServerMessage, ClientMessage>::new(server_info)
+        let client_connection = ClientConnection::new(server_info)
             .expect("Could not create ClientConnection");
 
         client_connection
@@ -26,7 +26,7 @@ pub mod test {
             .expect("Could not send initial 'Ack' message");
 
         std::thread::spawn(move || loop {
-            match client_connection.receive() {
+            match client_connection.receive::<ServerMessage>() {
                 Ok(received_message) => {
                     if received_message == wait_for_message {
                         client_connection
@@ -45,7 +45,7 @@ pub mod test {
             .lock()
             .expect("Could not get a lock on the server connection");
         guard
-            .receive()
+            .receive::<ClientMessage>()
             .expect("Could not receive initial Ack message from client");
 
         server_connection.clone()

@@ -2,7 +2,6 @@ use std::fmt;
 use std::path::PathBuf;
 
 use serde_derive::{Deserialize, Serialize};
-#[cfg(feature = "distributed")]
 use zmq::Message;
 
 use crate::coordinator::Submission;
@@ -149,7 +148,6 @@ unsafe impl Send for ClientMessage {}
 
 unsafe impl Sync for ClientMessage {}
 
-#[cfg(feature = "distributed")]
 impl From<ServerMessage> for Message {
     fn from(event: ServerMessage) -> Self {
         match serde_json::to_string(&event) {
@@ -159,7 +157,6 @@ impl From<ServerMessage> for Message {
     }
 }
 
-#[cfg(feature = "distributed")]
 impl From<Message> for ServerMessage {
     fn from(msg: Message) -> Self {
         match msg.as_str() {
@@ -172,7 +169,6 @@ impl From<Message> for ServerMessage {
     }
 }
 
-#[cfg(feature = "distributed")]
 impl From<ClientMessage> for Message {
     fn from(msg: ClientMessage) -> Self {
         match serde_json::to_string(&msg) {
@@ -182,7 +178,6 @@ impl From<ClientMessage> for Message {
     }
 }
 
-#[cfg(feature = "distributed")]
 impl From<Message> for ClientMessage {
     fn from(msg: Message) -> Self {
         match msg.as_str() {

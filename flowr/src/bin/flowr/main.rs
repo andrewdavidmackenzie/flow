@@ -21,12 +21,8 @@ use flowrlib::client_server::{ClientConnection, ServerConnection, ServerInfo};
 use flowrlib::coordinator::{Coordinator, RUNTIME_SERVICE_NAME, Submission};
 #[cfg(feature = "debugger")]
 use flowrlib::coordinator::DEBUG_SERVICE_NAME;
-#[cfg(feature = "distributed")]
 use flowrlib::coordinator::Mode;
-#[cfg(feature = "debugger")]
-use flowrlib::debug_messages::{DebugClientMessage, DebugServerMessage};
 use flowrlib::info as flowrlib_info;
-use flowrlib::runtime_messages::{ClientMessage, ServerMessage};
 use flowrlib::runtime_messages::ClientMessage::ClientSubmission;
 
 #[cfg(feature = "debugger")]
@@ -107,7 +103,6 @@ fn run() -> Result<()> {
     };
     let lib_search_path = set_lib_search_path(&lib_dirs)?;
 
-    #[cfg(feature = "distributed")]
     let mode = if matches.is_present("client") {
         Mode::ClientOnly
     } else if matches.is_present("server") {
@@ -115,7 +110,6 @@ fn run() -> Result<()> {
     } else {
         Mode::ClientAndServer
     };
-    #[cfg(feature = "distributed")]
     info!("Starting 'flowr' in {:?} mode", mode);
 
     let num_threads = num_threads(
@@ -124,7 +118,6 @@ fn run() -> Result<()> {
         debug_this_flow,
     );
 
-    #[cfg(feature = "distributed")]
     match mode {
         Mode::ServerOnly => server_only(num_threads, lib_search_path, native)?,
         Mode::ClientOnly => client_only(
@@ -142,25 +135,12 @@ fn run() -> Result<()> {
         )?,
     }
 
-    #[cfg(not(feature = "distributed"))]
-    client_and_server(
-        num_threads,
-        lib_search_path,
-        native,
-        matches,
-        #[cfg(feature = "debugger")]
-        debug_this_flow,
-    )?;
-
     Ok(())
 }
 
 /*
    Only start a server - by running a Coordinator in the calling thread.
-
-   Client and Server can only run and be started separately using the "distributed" feature
 */
-#[cfg(feature = "distributed")]
 fn server_only(num_threads: usize, lib_search_path: Simpath, native: bool) -> Result<()> {
     let runtime_server_connection = ServerConnection::new(RUNTIME_SERVICE_NAME, None)?;
     #[cfg(feature = "debugger")]
@@ -237,10 +217,7 @@ fn client_and_server(
    Start only a client in the calling thread. Since we are *only* starting a client in this
    process, we don't have server information, so we create a set of ServerInfo from command
    line options for the server address and known service names and ports.
-
-    Client and Server can only run and be started separately using the "distributed" feature
 */
-#[cfg(feature = "distributed")]
 fn client_only(
     matches: ArgMatches,
     #[cfg(feature = "debugger")] debug_this_flow: bool,
@@ -284,19 +261,11 @@ fn client_only(
 */
 fn client(
     matches: ArgMatches,
-    runtime_client_connection: ClientConnection<ServerMessage, ClientMessage>,
+    runtime_client_connection: ClientConnection,
     #[cfg(feature = "debugger")]
-    control_c_client_connection: Option<ClientConnection<'static, ServerMessage, ClientMessage>>,
+    control_c_client_connection: Option<ClientConnection>,
     #[cfg(feature = "debugger")] debug_this_flow: bool,
-    #[cfg(all(feature = "debugger", not(feature="distributed")))] debug_server_info: ServerInfo<
-        'static,
-        DebugServerMessage,
-        DebugClientMessage,
-    >,
-    #[cfg(all(feature = "debugger", feature="distributed"))] debug_server_info: ServerInfo<
-        DebugServerMessage,
-        DebugClientMessage,
-    >,
+    #[cfg(feature = "debugger")] debug_server_info: ServerInfo,
 ) -> Result<()> {
     let flow_manifest_url = parse_flow_url(&matches)?;
     let flow_args = get_flow_args(&matches, &flow_manifest_url);
@@ -447,7 +416,6 @@ fn get_matches<'a>() -> ArgMatches<'a> {
             .multiple(true)
             .help("A list of arguments to pass to the flow when executed."));
 
-    #[cfg(feature = "distributed")]
     let app = app.arg(
         Arg::with_name("server")
             .short("s")
@@ -455,7 +423,6 @@ fn get_matches<'a>() -> ArgMatches<'a> {
             .help("Launch as flowr server"),
     );
 
-    #[cfg(feature = "distributed")]
     let app = app.arg(
         Arg::with_name("client")
             .short("c")
@@ -464,7 +431,6 @@ fn get_matches<'a>() -> ArgMatches<'a> {
             .help("Start flowr as a client to connect to a flowr server"),
     );
 
-    #[cfg(feature = "distributed")]
     let app = app.arg(
         Arg::with_name("address")
             .short("a")

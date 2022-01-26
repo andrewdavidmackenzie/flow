@@ -1,5 +1,4 @@
 use std::fmt::Display;
-use std::marker::PhantomData;
 use std::time::Duration;
 
 /// This is the message-queue implementation of the lib.client_server communications
@@ -15,45 +14,33 @@ const FLOW_SERVICE_NAME: &str = "_flowr._tcp.local";
 
 /// Structure that holds information about the Server to help clients connect to it
 #[derive(Clone)]
-pub struct ServerInfo<SM, CM> {
+pub struct ServerInfo {
     /// Optional tuple of Server hostname and port to connect to
     pub hostname_and_port: Option<(String, u16)>,
     /// Name of the server service name to connect to
     pub name: String,
-    /// Phantom data makes sure we use the generic type for SM
-    pub phantom: PhantomData<SM>,
-    /// Phantom data makes sure we use the generic type for CM
-    pub phantom2: PhantomData<CM>,
 }
 
-impl<SM, CM> ServerInfo<SM, CM> {
+impl ServerInfo {
     /// Create a new ServerInfo struct
     pub fn new(hostname_and_port: Option<(String, u16)>, name: &str) -> Self {
         ServerInfo {
             hostname_and_port,
             name: name.into(),
-            phantom: PhantomData,
-            phantom2: PhantomData,
         }
     }
 }
 
 /// `ClientConnection` stores information related to the connection from a runtime client
 /// to the runtime server and is used each time a message is to be sent or received.
-pub struct ClientConnection<'a, SM, CM> {
+pub struct ClientConnection {
     port: u16,
     requester: Socket,
-    phantom: PhantomData<&'a SM>,
-    phantom2: PhantomData<CM>,
 }
 
-impl<'a, SM, CM> ClientConnection<'a, SM, CM>
-where
-    SM: From<Message> + Display,
-    CM: Into<Message> + Display,
-{
+impl ClientConnection {
     /// Create a new connection between client and server
-    pub fn new(server_info: ServerInfo<SM, CM>) -> Result<Self> {
+    pub fn new(server_info: ServerInfo) -> Result<Self> {
         let full_service_name = format!("{}.{}", server_info.name, FLOW_SERVICE_NAME);
 
         let (hostname, port) = server_info.hostname_and_port.unwrap_or(
@@ -84,13 +71,10 @@ where
         Ok(ClientConnection {
             port,
             requester,
-            phantom: PhantomData,
-            phantom2: PhantomData,
         })
     }
 
     // Try to discover a server that a client can send a submission to
-    #[cfg(feature = "distributed")]
     fn discover_service(name: &str) -> Option<(String, u16)> {
         let listener = BeaconListener::new(name.as_bytes()).ok()?;
         info!(
@@ -106,7 +90,7 @@ where
     }
 
     /// Receive a ServerMessage from the server
-    pub fn receive(&self) -> Result<SM> {
+    pub fn receive<SM: From<Message> + Display>(&self) -> Result<SM> {
         trace!("Client waiting for message from server");
 
         let msg = self
@@ -120,7 +104,7 @@ where
     }
 
     /// Send a ClientMessage to the Server
-    pub fn send(&self, message: CM) -> Result<()> {
+    pub fn send<CM: Into<Message> + Display>(&self, message: CM) -> Result<()> {
         trace!("Client Sent     ---> to {} {}", self.port, message);
         self.requester
             .send(message, 0)
@@ -131,22 +115,15 @@ where
 /// `ServerConnection` store information about the server side of the client/server
 /// communications between a runtime client and a runtime server and is used each time a message
 /// needs to be sent or received.
-pub struct ServerConnection<SM, CM> {
+pub struct ServerConnection {
     name: &'static str,
     port: u16,
     responder: zmq::Socket,
-    phantom: PhantomData<SM>,
-    phantom2: PhantomData<CM>,
 }
 
 /// Implement a server connection for sending server messages of type <SM> and receiving
 /// back client messages of type <CM>
-impl<'a, SM, CM> ServerConnection<SM, CM>
-where
-    SM: Into<Message> + Display,
-    CM: From<Message> + Display,
-    zmq::Message: std::convert::From<CM>,
-{
+impl ServerConnection {
     /// Create a new Server side of the client/server Connection
     pub fn new(name: &'static str, port: Option<u16>) -> Result<Self> {
         let context = zmq::Context::new();
@@ -169,19 +146,15 @@ where
         Ok(ServerConnection {
             name,
             port: chosen_port,
-            responder,
-            phantom: PhantomData,
-            phantom2: PhantomData,
+            responder
         })
     }
 
     /// Get the `ServerInfo` struct that clients use to connect to the server
-    pub fn get_server_info(&self) -> ServerInfo<SM, CM> {
+    pub fn get_server_info(&self) -> ServerInfo {
         ServerInfo {
             hostname_and_port: Some(("localhost".into(), self.port)),
             name: self.name.into(),
-            phantom: PhantomData,
-            phantom2: PhantomData,
         }
     }
 
@@ -206,7 +179,10 @@ where
     }
 
     /// Receive a Message sent from the client to the server
-    pub fn receive(&self) -> Result<CM> {
+    pub fn receive<CM>(&self) -> Result<CM>
+    where
+        CM: From<Message> + Display,
+        zmq::Message: std::convert::From<CM> {
         trace!("Server waiting for message from client");
 
         let msg = self
@@ -224,7 +200,10 @@ where
     }
 
     /// Try to Receive a Message sent from the client to the server but without blocking
-    pub fn receive_no_wait(&self) -> Result<CM> {
+    pub fn receive_no_wait<CM>(&self) -> Result<CM>
+    where
+        CM: From<Message> + Display,
+        zmq::Message: std::convert::From<CM> {
         let msg = self
             .responder
             .recv_msg(DONTWAIT)
@@ -240,13 +219,19 @@ where
     }
 
     /// Send a Message from the server to the Client and wait for it's response
-    pub fn send_and_receive_response(&mut self, message: SM) -> Result<CM> {
+    pub fn send_and_receive_response<SM, CM>(&mut self, message: SM) -> Result<CM>
+    where
+        SM: Into<Message> + Display,
+        CM: From<Message> + Display,
+        zmq::Message: std::convert::From<CM> {
         self.send(message)?;
         self.receive()
     }
 
     /// Send a Message from the server to the Client but don't wait for it's response
-    pub fn send(&mut self, message: SM) -> Result<()> {
+    pub fn send<SM>(&mut self, message: SM) -> Result<()>
+    where
+        SM: Into<Message> + Display {
         trace!(
             "                <--- Server Sent on {}: {}",
             self.port,
@@ -300,14 +285,12 @@ mod test {
         }
     }
 
-    #[cfg(feature = "distributed")]
     impl From<ServerMessage> for Message {
         fn from(event: ServerMessage) -> Self {
             Message::from(&serde_json::to_string(&event).expect("Could not serialize message"))
         }
     }
 
-    #[cfg(feature = "distributed")]
     impl From<Message> for ServerMessage {
         fn from(msg: Message) -> Self {
             serde_json::from_str(msg.as_str().expect("Could not convert message to &str"))
@@ -315,7 +298,6 @@ mod test {
         }
     }
 
-    #[cfg(feature = "distributed")]
     impl From<ClientMessage> for Message {
         fn from(msg: ClientMessage) -> Self {
             Message::from(
@@ -324,7 +306,6 @@ mod test {
         }
     }
 
-    #[cfg(feature = "distributed")]
     impl From<Message> for ClientMessage {
         fn from(msg: Message) -> Self {
             serde_json::from_str(msg.as_str().expect("Could not convert message to str"))
@@ -335,10 +316,10 @@ mod test {
     #[test]
     #[serial(client_server)]
     fn hello_world() {
-        let mut server = ServerConnection::<ServerMessage, ClientMessage>::new("test", None)
+        let mut server = ServerConnection::new("test", None)
             .expect("Could not create ServerConnection");
         let server_info = ServerInfo::new(None, "test");
-        let client = ClientConnection::<ServerMessage, ClientMessage>::new(server_info)
+        let client = ClientConnection::new(server_info)
             .expect("Could not create ClientConnection");
 
         // Open the connection by sending the first message from the client
@@ -348,7 +329,7 @@ mod test {
 
         // Receive and check it on the server
         let client_message = server
-            .receive()
+            .receive::<ClientMessage>()
             .expect("Could not receive message at server");
         println!("Client Message = {}", client_message);
         assert_eq!(client_message, ClientMessage::Hello);
@@ -360,7 +341,7 @@ mod test {
 
         // Receive it and check it on the client
         let server_message = client
-            .receive()
+            .receive::<ServerMessage>()
             .expect("Could not receive message at client");
         println!("Server Message = {}", server_message);
         assert_eq!(server_message, ServerMessage::World);
@@ -369,10 +350,10 @@ mod test {
     #[test]
     #[serial(client_server)]
     fn receive_no_wait() {
-        let mut server = ServerConnection::<ServerMessage, ClientMessage>::new("test", None)
+        let mut server = ServerConnection::new("test", None)
             .expect("Could not create ServerConnection");
         let server_info = ServerInfo::new(None, "test");
-        let client = ClientConnection::<ServerMessage, ClientMessage>::new(server_info)
+        let client = ClientConnection::new(server_info)
             .expect("Could not create ClientConnection");
 
         // Open the connection by sending the first message from the client
@@ -385,7 +366,7 @@ mod test {
         // Receive and check it on the server
         assert_eq!(
             server
-                .receive_no_wait()
+                .receive_no_wait::<ClientMessage>()
                 .expect("Could not receive message at server"),
             ClientMessage::Hello
         );
@@ -398,7 +379,7 @@ mod test {
         // Receive it and check it on the client
         assert_eq!(
             client
-                .receive()
+                .receive::<ServerMessage>()
                 .expect("Could not receive message at client"),
             ServerMessage::World
         );

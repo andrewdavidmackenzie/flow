@@ -12,7 +12,7 @@ use crate::runtime_messages::{ClientMessage, FileMetaData, ServerMessage};
 
 /// `client_provider` is a special content provider that makes requests to the client to fetch files
 pub struct ClientProvider {
-    runtime_server_connection: Arc<Mutex<ServerConnection<ServerMessage, ClientMessage>>>,
+    runtime_server_connection: Arc<Mutex<ServerConnection>>,
 }
 
 impl Provider for ClientProvider {
@@ -89,7 +89,7 @@ impl Provider for ClientProvider {
 impl ClientProvider {
     /// Create a new client provider, using the provided Server Connection to the client
     pub fn new(
-        runtime_server_connection: Arc<Mutex<ServerConnection<ServerMessage, ClientMessage>>>,
+        runtime_server_connection: Arc<Mutex<ServerConnection>>,
     ) -> Self {
         ClientProvider {
             runtime_server_connection,

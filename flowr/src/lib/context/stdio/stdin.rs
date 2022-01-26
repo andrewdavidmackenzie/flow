@@ -10,7 +10,7 @@ use crate::runtime_messages::{ClientMessage, ServerMessage};
 /// `Implementation` struct for the `Stdin` function
 pub struct Stdin {
     /// It holds a reference to the runtime client in order to read input
-    pub server_connection: Arc<Mutex<ServerConnection<ServerMessage, ClientMessage>>>,
+    pub server_connection: Arc<Mutex<ServerConnection>>,
 }
 
 impl Implementation for Stdin {
