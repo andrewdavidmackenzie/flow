@@ -298,10 +298,10 @@ fn client(
     info!("Client sending submission to server");
     runtime_client_connection.send(ClientSubmission(submission))?;
 
-    #[cfg(feature = "debugger")]
-     runtime_client.event_loop(runtime_client_connection, control_c_client_connection)?;
-    #[cfg(not(feature = "debugger"))]
-    runtime_client.event_loop(runtime_client_connection)?;
+     runtime_client.event_loop(runtime_client_connection,
+            #[cfg(feature = "debugger")]
+                               control_c_client_connection
+     )?;
 
     Ok(())
 }
