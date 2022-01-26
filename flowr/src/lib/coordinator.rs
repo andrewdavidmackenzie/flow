@@ -25,10 +25,10 @@ use crate::run_state::RunState;
 use crate::runtime_messages::{ClientMessage, ServerMessage};
 
 /// `RUNTIME_SERVICE_NAME` is the name of the runtime services and can be used to discover it by name
-pub const RUNTIME_SERVICE_NAME: &str = "runtime";
+pub const RUNTIME_SERVICE_NAME: &str = "runtime._flowr._tcp.local";
 /// `DEBUG_SERVICE_NAME` is the name of the runtime services and can be used to discover it by name
 #[cfg(feature = "debugger")]
-pub const DEBUG_SERVICE_NAME: &str = "debug";
+pub const DEBUG_SERVICE_NAME: &str = "debug._flowr._tcp.local";
 
 /// The `Coordinator` of flow execution can run in one of these three modes:
 /// - `ClientOnly`      - only as a client to submit flows for execution to a server

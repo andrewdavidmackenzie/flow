@@ -10,23 +10,21 @@ use zmq::Socket;
 
 use crate::errors::*;
 
-const FLOW_SERVICE_NAME: &str = "_flowr._tcp.local";
-
 /// Structure that holds information about the Server to help clients connect to it
 #[derive(Clone)]
 pub struct ServerInfo {
     /// Optional tuple of Server hostname and port to connect to
-    pub hostname_and_port: Option<(String, u16)>,
-    /// Name of the server service name to connect to
-    pub name: String,
+    hostname_and_port: Option<(String, u16)>,
+    /// Name of the service name to connect to on the server
+    service_name: String,
 }
 
 impl ServerInfo {
     /// Create a new ServerInfo struct
-    pub fn new(hostname_and_port: Option<(String, u16)>, name: &str) -> Self {
+    pub fn new(hostname_and_port: Option<(String, u16)>, service_name: &str) -> Self {
         ServerInfo {
             hostname_and_port,
-            name: name.into(),
+            service_name: service_name.into(),
         }
     }
 }
@@ -34,23 +32,20 @@ impl ServerInfo {
 /// `ClientConnection` stores information related to the connection from a runtime client
 /// to the runtime server and is used each time a message is to be sent or received.
 pub struct ClientConnection {
-    port: u16,
     requester: Socket,
 }
 
 impl ClientConnection {
     /// Create a new connection between client and server
     pub fn new(server_info: ServerInfo) -> Result<Self> {
-        let full_service_name = format!("{}.{}", server_info.name, FLOW_SERVICE_NAME);
-
         let (hostname, port) = server_info.hostname_and_port.unwrap_or(
-            Self::discover_service(&full_service_name)
+            Self::discover_service(&server_info.service_name)
                 .ok_or("Could not discover service hostname & port and none were specified")?,
         );
 
         info!(
             "Client will attempt to connect to service '{}' at: '{}'",
-            full_service_name, hostname
+            server_info.service_name, hostname
         );
 
         let context = zmq::Context::new();
@@ -65,11 +60,10 @@ impl ClientConnection {
 
         info!(
             "Client connected to service '{}' on {}:{}",
-            full_service_name, hostname, port
+            server_info.service_name, hostname, port
         );
 
         Ok(ClientConnection {
-            port,
             requester,
         })
     }
@@ -105,7 +99,7 @@ impl ClientConnection {
 
     /// Send a ClientMessage to the Server
     pub fn send<CM: Into<Message> + Display>(&self, message: CM) -> Result<()> {
-        trace!("Client Sent     ---> to {} {}", self.port, message);
+        trace!("Client Sent     ---> {}", message);
         self.requester
             .send(message, 0)
             .chain_err(|| "Error sending to service")
@@ -125,7 +119,7 @@ pub struct ServerConnection {
 /// back client messages of type <CM>
 impl ServerConnection {
     /// Create a new Server side of the client/server Connection
-    pub fn new(name: &'static str, port: Option<u16>) -> Result<Self> {
+    pub fn new(service_name: &'static str, port: Option<u16>) -> Result<Self> {
         let context = zmq::Context::new();
         let responder = context
             .socket(zmq::REP)
@@ -137,14 +131,12 @@ impl ServerConnection {
             .bind(&format!("tcp://*:{}", chosen_port))
             .chain_err(|| "Server Connection - could not bind on Socket")?;
 
-        let full_service_name = format!("{}.{}", name, FLOW_SERVICE_NAME);
+        Self::enable_service_discovery(service_name, chosen_port)?;
 
-        Self::enable_service_discovery(&full_service_name, chosen_port)?;
-
-        info!("Service '{}' listening on port {}", name, chosen_port);
+        info!("Service '{}' listening on port {}", service_name, chosen_port);
 
         Ok(ServerConnection {
-            name,
+            name: service_name,
             port: chosen_port,
             responder
         })
@@ -154,7 +146,7 @@ impl ServerConnection {
     pub fn get_server_info(&self) -> ServerInfo {
         ServerInfo {
             hostname_and_port: Some(("localhost".into(), self.port)),
-            name: self.name.into(),
+            service_name: self.name.into(),
         }
     }
 
