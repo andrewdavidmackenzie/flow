@@ -129,10 +129,9 @@ impl ServerConnection {
             .chain_err(|| "Server Connection - could not create Socket")?;
 
         let chosen_port = port.unwrap_or(pick_unused_port().chain_err(|| "No ports free")?);
-        let listening_address = "*".into();
 
         responder
-            .bind(&format!("{}://{}:{}", protocol, listening_address, chosen_port))
+            .bind(&format!("{}://*:{}", protocol, chosen_port))
             .chain_err(|| "Server Connection - could not bind on TCO Socket")?;
 
         Self::enable_service_discovery(service_name, chosen_port)?;
@@ -142,7 +141,7 @@ impl ServerConnection {
         Ok(ServerConnection {
             server_info: ServerInfo {
                             protocol: protocol.into(),
-                            hostname_and_port: Some((listening_address, chosen_port)),
+                            hostname_and_port: Some(("localhost".into(), chosen_port)),
                             service_name: service_name.into(),
                         },
             responder
