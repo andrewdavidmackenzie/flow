@@ -228,6 +228,7 @@ fn client_only(
             .map(|s| s.to_string())
             .map(|name| (name, 5555)),
         RUNTIME_SERVICE_NAME,
+        None,
     );
     #[cfg(feature = "debugger")]
     let mut debug_server_info = ServerInfo::new("tcp".into(),
@@ -236,6 +237,7 @@ fn client_only(
             .map(|s| s.to_string())
             .map(|name| (name, 5556)),
         DEBUG_SERVICE_NAME,
+        None
     );
 
     #[cfg(feature = "debugger")]

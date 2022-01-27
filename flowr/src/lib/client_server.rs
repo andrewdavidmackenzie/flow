@@ -4,7 +4,7 @@ use std::time::Duration;
 /// This is the message-queue implementation of the lib.client_server communications
 use log::{info, trace};
 use portpicker::pick_unused_port;
-use simpdiscoverylib::{BeaconListener, BeaconSender};
+use simpdiscoverylib::BeaconSender;
 use zmq::{Message, Socket};
 
 use crate::errors::*;
@@ -18,20 +18,24 @@ pub static DONT_WAIT:i32 = zmq::DONTWAIT;
 #[derive(Clone)]
 pub struct ServerInfo {
     /// The communication protocol being used
-    protocol: String,
+//    protocol: String,
     /// Optional tuple of Server hostname and port to connect to
     hostname_and_port: Option<(String, u16)>,
     /// Name of the service name to connect to on the server
     service_name: String,
+    /// A context that if present permits inproc communications within the same process
+    context: Option<zmq::Context>
 }
 
 impl ServerInfo {
     /// Create a new ServerInfo struct
-    pub fn new(protocol: String, hostname_and_port: Option<(String, u16)>, service_name: &str) -> Self {
+    pub fn new(_protocol: String, hostname_and_port: Option<(String, u16)>, service_name: &str,
+                context: Option<zmq::Context>) -> Self {
         ServerInfo {
-            protocol,
+//            protocol,
             hostname_and_port,
             service_name: service_name.into(),
+            context
         }
     }
 }
@@ -45,7 +49,7 @@ pub struct ClientConnection {
 impl ClientConnection {
     /// Create a new connection between client and server
     pub fn new(server_info: &mut ServerInfo) -> Result<Self> {
-        let (hostname, port) = server_info.hostname_and_port.clone().unwrap_or(
+/*        let (hostname, port) = server_info.hostname_and_port.clone().unwrap_or(
             Self::discover_service(&server_info.service_name)?
         );
 
@@ -53,23 +57,31 @@ impl ClientConnection {
             "Client will attempt to connect to service '{}' at: '{}:{}'",
             server_info.service_name, hostname, port
         );
+*/
+        if server_info.context.is_none() {
+            server_info.context = Some(zmq::Context::new());
+        }
 
-        let context = zmq::Context::new();
+        let context = server_info.context.clone().ok_or("Could not get ZMQ Context")?;
 
         let requester = context
             .socket(zmq::REQ)
             .chain_err(|| "Runtime client could not connect to service")?;
 
         requester
-            .connect(&format!("{}://{}:{}", server_info.protocol, hostname, port))
+            .connect(&format!("inproc://{}", server_info.service_name))
             .chain_err(|| "Could not connect to service")?;
 
-        info!(
+//        requester
+//            .connect(&format!("{}://{}:{}", server_info.protocol, hostname, port))
+//            .chain_err(|| "Could not connect to service")?;
+
+/*        info!(
             "Client connected to service '{}' on {}:{}",
             server_info.service_name, hostname, port
         );
-
-        server_info.hostname_and_port = Some((hostname, port));
+*/
+//        server_info.hostname_and_port = Some((hostname, port));
 
         Ok(ClientConnection {
             requester,
@@ -77,7 +89,7 @@ impl ClientConnection {
     }
 
     // Try to discover a server offering a particular service by name
-    fn discover_service(name: &str) -> Result<(String, u16)> {
+ /*   fn discover_service(name: &str) -> Result<(String, u16)> {
         let listener = BeaconListener::new(name.as_bytes())?;
         info!("Client is waiting for a Service Discovery beacon for service with name '{}'", name);
         let beacon = listener.wait(Some(Duration::from_secs(10)))?;
@@ -86,7 +98,7 @@ impl ClientConnection {
             name, beacon.service_ip, beacon.service_port
         );
         Ok((beacon.service_ip, beacon.service_port))
-    }
+    }*/
 
     /// Receive a ServerMessage from the server
     pub fn receive<SM: From<Message> + Display>(&self) -> Result<SM> {
@@ -122,7 +134,7 @@ pub struct ServerConnection {
 /// Implement a `ServerConnection` for sending and receiving messages between client and server
 impl ServerConnection {
     /// Create a new Server side of the client/server Connection
-    pub fn new(protocol: &str, service_name: &'static str, port: Option<u16>) -> Result<Self> {
+    pub fn new(_protocol: &str, service_name: &'static str, port: Option<u16>) -> Result<Self> {
         let context = zmq::Context::new();
         let responder = context
             .socket(zmq::REP)
@@ -131,8 +143,12 @@ impl ServerConnection {
         let chosen_port = port.unwrap_or(pick_unused_port().chain_err(|| "No ports free")?);
 
         responder
-            .bind(&format!("{}://*:{}", protocol, chosen_port))
+            .bind(&format!("inproc://{}", service_name))
             .chain_err(|| "Server Connection - could not bind on TCO Socket")?;
+
+//        responder
+//            .bind(&format!("{}://*:{}", protocol, chosen_port))
+//            .chain_err(|| "Server Connection - could not bind on TCO Socket")?;
 
         Self::enable_service_discovery(service_name, chosen_port)?;
 
@@ -140,9 +156,10 @@ impl ServerConnection {
 
         Ok(ServerConnection {
             server_info: ServerInfo {
-                            protocol: protocol.into(),
+                            //protocol: protocol.into(),
                             hostname_and_port: Some(("localhost".into(), chosen_port)),
                             service_name: service_name.into(),
+                            context: Some(context)
                         },
             responder
         })
