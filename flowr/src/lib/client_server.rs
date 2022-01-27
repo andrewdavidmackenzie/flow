@@ -231,7 +231,7 @@ mod test {
     use serial_test::serial;
     use zmq::Message;
 
-    use crate::client_server::{ClientConnection, DONT_WAIT, ServerConnection, ServerInfo, WAIT};
+    use crate::client_server::{ClientConnection, DONT_WAIT, ServerConnection, WAIT};
 
     #[derive(Serialize, Deserialize, PartialEq, Debug)]
     enum ServerMessage {
@@ -294,7 +294,7 @@ mod test {
     fn hello_world() {
         let mut server = ServerConnection::new("tcp", "test", None)
             .expect("Could not create ServerConnection");
-        let mut server_info = ServerInfo::new("tcp".into(), None, "test");
+        let mut server_info = server.get_server_info().clone();
         let client = ClientConnection::new(&mut server_info)
             .expect("Could not create ClientConnection");
 
@@ -328,7 +328,7 @@ mod test {
     fn receive_no_wait() {
         let mut server = ServerConnection::new("tcp", "test", None)
             .expect("Could not create ServerConnection");
-        let mut server_info = ServerInfo::new("tcp".into(), None, "test");
+        let mut server_info = server.get_server_info().clone();
         let client = ClientConnection::new(&mut server_info)
             .expect("Could not create ClientConnection");
 
@@ -339,7 +339,6 @@ mod test {
 
         std::thread::sleep(Duration::from_millis(10));
 
-        // Receive and check it on the server
         assert_eq!(
             server
                 .receive::<ClientMessage>(DONT_WAIT)
