@@ -59,7 +59,8 @@ endif
 clean:
 	@echo "clean<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
 	@cargo clean
-	@find samples -name "*.wasm" | xargs rm -f
+	@find samples -name "*.wasm" | xargs rm -fd
+	@find . -type d -name "target" | xargs rm -rf
 
 .PHONY: install-flowc
 install-flowc:
