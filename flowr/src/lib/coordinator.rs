@@ -108,24 +108,24 @@ impl Submission {
 /// use flowrlib::client_server::{ClientConnection, ServerConnection, ServerInfo};
 /// use flowrlib::runtime_messages::{ServerMessage, ClientMessage};
 ///
-/// let runtime_server_connection = ServerConnection::new(RUNTIME_SERVICE_NAME, None).unwrap();
-/// let debug_server_connection = ServerConnection::new(DEBUG_SERVICE_NAME, None).unwrap();
-/// let runtime_server_info = runtime_server_connection.get_server_info();
+/// let runtime_server_connection = ServerConnection::new("tcp", RUNTIME_SERVICE_NAME, None).unwrap();
+/// let debug_server_connection = ServerConnection::new("tcp", DEBUG_SERVICE_NAME, None).unwrap();
+/// let mut runtime_server_info = runtime_server_connection.get_server_info().clone();///
 ///
-///     std::thread::spawn(move || {
+/// std::thread::spawn(move || {
 ///         let _ = Coordinator::start(
-///             1,
-///             Simpath::new("fake path"),
-///             true,
-///             runtime_server_connection,
-///             #[cfg(feature = "debugger")] debug_server_connection,
-///         );
-///     });
+///         1,
+///         Simpath::new("fake path"),
+///         true,
+///         runtime_server_connection,
+///         #[cfg(feature = "debugger")] debug_server_connection,
+///     );
+/// });
 ///
 /// let mut submission = Submission::new(&Url::parse("file:///temp/fake.toml").unwrap(),
 ///                                     1 /* num_parallel_jobs */,
 ///                                     true /* enter debugger on start */);
-/// let runtime_client_connection = ClientConnection::new(runtime_server_info).unwrap();
+/// let runtime_client_connection = ClientConnection::new(&mut runtime_server_info).unwrap();
 /// runtime_client_connection.send(ClientSubmission(submission)).unwrap();
 /// exit(0);
 /// ```

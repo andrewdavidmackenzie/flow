@@ -290,8 +290,8 @@ mod test {
     }
 
     #[test]
-    #[serial(client_server)]
-    fn hello_world() {
+    #[serial]
+    fn server_receive_wait_get_reply() {
         let mut server = ServerConnection::new("tcp", "test", None)
             .expect("Could not create ServerConnection");
         let mut server_info = server.get_server_info().clone();
@@ -307,7 +307,6 @@ mod test {
         let client_message = server
             .receive::<ClientMessage>(WAIT)
             .expect("Could not receive message at server");
-        println!("Client Message = {}", client_message);
         assert_eq!(client_message, ClientMessage::Hello);
 
         // Respond from the server
@@ -319,13 +318,12 @@ mod test {
         let server_message = client
             .receive::<ServerMessage>()
             .expect("Could not receive message at client");
-        println!("Server Message = {}", server_message);
         assert_eq!(server_message, ServerMessage::World);
     }
 
     #[test]
-    #[serial(client_server)]
-    fn receive_no_wait() {
+    #[serial]
+    fn server_receive_nowait_get_reply() {
         let mut server = ServerConnection::new("tcp", "test", None)
             .expect("Could not create ServerConnection");
         let mut server_info = server.get_server_info().clone();

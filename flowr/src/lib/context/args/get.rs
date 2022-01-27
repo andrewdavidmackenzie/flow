@@ -62,7 +62,7 @@ mod test {
     use super::super::super::test_helper::test::wait_for_then_send;
 
     #[test]
-    #[serial(client_server)]
+    #[serial]
     fn gets_args_no_client() {
         let getter = &Get {
             server_connection: Arc::new(Mutex::new(
@@ -77,7 +77,7 @@ mod test {
     }
 
     #[test]
-    #[serial(client_server)]
+    #[serial]
     fn gets_args() {
         let args: Vec<String> = vec!["flow_name", "arg1", "arg2"]
             .iter()

@@ -25,6 +25,8 @@ pub mod test {
             .send(ClientMessage::Ack)
             .expect("Could not send initial 'Ack' message");
 
+        // background thread that acts as a client that waits for the "wait_for_message" to be sent
+        // to it from the server, and once received it replies with the "then_send" message to the server
         std::thread::spawn(move || loop {
             match client_connection.receive::<ServerMessage>() {
                 Ok(received_message) => {
@@ -41,10 +43,7 @@ pub mod test {
         });
 
         // Get the initial Ack sent from client to open the connection
-        let guard = server_connection
-            .lock()
-            .expect("Could not get a lock on the server connection");
-        guard
+        connection
             .receive::<ClientMessage>(WAIT)
             .expect("Could not receive initial Ack message from client");
 

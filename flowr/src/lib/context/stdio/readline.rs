@@ -52,7 +52,7 @@ mod test {
     use super::super::super::test_helper::test::wait_for_then_send;
 
     #[test]
-    #[serial(client_server)]
+    #[serial]
     fn gets_a_line_of_text() {
         let server_connection = wait_for_then_send(
             ServerMessage::GetLine,
@@ -72,7 +72,7 @@ mod test {
     }
 
     #[test]
-    #[serial(client_server)]
+    #[serial]
     fn gets_json() {
         let server_connection = wait_for_then_send(
             ServerMessage::GetLine,
@@ -92,7 +92,7 @@ mod test {
     }
 
     #[test]
-    #[serial(client_server)]
+    #[serial]
     fn get_eof() {
         let server_connection =
             wait_for_then_send(ServerMessage::GetLine, ClientMessage::GetLineEof);
