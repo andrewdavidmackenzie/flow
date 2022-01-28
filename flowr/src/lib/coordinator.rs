@@ -105,11 +105,11 @@ impl Submission {
 /// use flowrlib::runtime_messages::ClientMessage::ClientSubmission;
 /// use simpath::Simpath;
 /// use url::Url;
-/// use flowrlib::client_server::{ClientConnection, ServerConnection, ServerInfo};
+/// use flowrlib::client_server::{ClientConnection, ServerConnection, ServerInfo, Method};
 /// use flowrlib::runtime_messages::{ServerMessage, ClientMessage};
 ///
-/// let runtime_server_connection = ServerConnection::new("tcp", RUNTIME_SERVICE_NAME, None).unwrap();
-/// let debug_server_connection = ServerConnection::new("tcp", DEBUG_SERVICE_NAME, None).unwrap();
+/// let runtime_server_connection = ServerConnection::new(RUNTIME_SERVICE_NAME, Method::Tcp(None)).unwrap();
+/// let debug_server_connection = ServerConnection::new(DEBUG_SERVICE_NAME, Method::Tcp(None)).unwrap();
 /// let mut runtime_server_info = runtime_server_connection.get_server_info().clone();///
 ///
 /// std::thread::spawn(move || {
@@ -263,6 +263,7 @@ impl Coordinator {
         }
     }
 
+    //noinspection RsReassignImmutable
     // Execute a flow by looping while there are jobs to be processed in an inner loop.
     // There is an outer loop for the case when you are using the debugger, to allow entering
     // the debugger when the flow ends and at any point resetting all the state and starting

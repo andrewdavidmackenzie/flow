@@ -4,7 +4,7 @@ use std::time::Duration;
 /// This is the message-queue implementation of the lib.client_server communications
 use log::{info, trace};
 use portpicker::pick_unused_port;
-use simpdiscoverylib::BeaconSender;
+use simpdiscoverylib::{BeaconListener, BeaconSender};
 use zmq::{Message, Socket};
 
 use crate::errors::*;
@@ -14,28 +14,30 @@ pub const WAIT:i32 = 0;
 /// Do NOT WAIT for a message to arrive when performing a receive()
 pub static DONT_WAIT:i32 = zmq::DONTWAIT;
 
+/// `Method` describes the communication method used between client and server
+#[derive(Clone)]
+pub enum Method {
+    /// InProc ZQM communications over a shared context
+    InProc(Option<zmq::Context>),
+    /// Tcp communications - Optional tuple of Server hostname and port to connect to
+    Tcp(Option<(String, u16)>)
+}
+
 /// Structure that holds information about the Server to help clients connect to it
 #[derive(Clone)]
 pub struct ServerInfo {
-    /// The communication protocol being used
-//    protocol: String,
-    /// Optional tuple of Server hostname and port to connect to
-    hostname_and_port: Option<(String, u16)>,
     /// Name of the service name to connect to on the server
     service_name: String,
-    /// A context that if present permits inproc communications within the same process
-    context: Option<zmq::Context>
+    /// What communication method is used to communicate between client and server
+    method: Method
 }
 
 impl ServerInfo {
     /// Create a new ServerInfo struct
-    pub fn new(_protocol: String, hostname_and_port: Option<(String, u16)>, service_name: &str,
-                context: Option<zmq::Context>) -> Self {
+    pub fn new(service_name: &str, method: Method) -> Self {
         ServerInfo {
-//            protocol,
-            hostname_and_port,
             service_name: service_name.into(),
-            context
+            method
         }
     }
 }
@@ -49,39 +51,46 @@ pub struct ClientConnection {
 impl ClientConnection {
     /// Create a new connection between client and server
     pub fn new(server_info: &mut ServerInfo) -> Result<Self> {
-/*        let (hostname, port) = server_info.hostname_and_port.clone().unwrap_or(
-            Self::discover_service(&server_info.service_name)?
-        );
+        let requester;
 
-        info!(
-            "Client will attempt to connect to service '{}' at: '{}:{}'",
-            server_info.service_name, hostname, port
-        );
-*/
-        if server_info.context.is_none() {
-            server_info.context = Some(zmq::Context::new());
+        match &server_info.method {
+            Method::InProc(Some(context)) => {
+                requester = context
+                    .socket(zmq::REQ)
+                    .chain_err(|| "Runtime client could not connect to service")?;
+                requester
+                    .connect(&format!("inproc://{}", server_info.service_name))
+                    .chain_err(|| "Could not connect to service")?;
+            },
+
+            Method::InProc(None)  => bail!("For InProc communications the Client needs a zmq:Context"),
+
+            Method::Tcp(host_port) => {
+                let host_port = host_port.clone().unwrap_or(
+                    Self::discover_service(&server_info.service_name)?
+                );
+
+                info!(
+                    "Client will attempt to connect to service '{}' at: '{}:{}'",
+                    server_info.service_name, host_port.0, host_port.1
+                );
+
+                let context = zmq::Context::new();
+
+                requester = context
+                    .socket(zmq::REQ)
+                    .chain_err(|| "Runtime client could not connect to service")?;
+
+                requester
+                    .connect(&format!("tcp://{}:{}", host_port.0, host_port.1))
+                    .chain_err(|| "Could not connect to service")?;
+
+                info!("Client connected to service '{}' on {}:{}",
+                            server_info.service_name, host_port.0, host_port.1
+                        );
+                server_info.method = Method::Tcp(Some(host_port));
+            }
         }
-
-        let context = server_info.context.clone().ok_or("Could not get ZMQ Context")?;
-
-        let requester = context
-            .socket(zmq::REQ)
-            .chain_err(|| "Runtime client could not connect to service")?;
-
-        requester
-            .connect(&format!("inproc://{}", server_info.service_name))
-            .chain_err(|| "Could not connect to service")?;
-
-//        requester
-//            .connect(&format!("{}://{}:{}", server_info.protocol, hostname, port))
-//            .chain_err(|| "Could not connect to service")?;
-
-/*        info!(
-            "Client connected to service '{}' on {}:{}",
-            server_info.service_name, hostname, port
-        );
-*/
-//        server_info.hostname_and_port = Some((hostname, port));
 
         Ok(ClientConnection {
             requester,
@@ -89,7 +98,7 @@ impl ClientConnection {
     }
 
     // Try to discover a server offering a particular service by name
- /*   fn discover_service(name: &str) -> Result<(String, u16)> {
+     fn discover_service(name: &str) -> Result<(String, u16)> {
         let listener = BeaconListener::new(name.as_bytes())?;
         info!("Client is waiting for a Service Discovery beacon for service with name '{}'", name);
         let beacon = listener.wait(Some(Duration::from_secs(10)))?;
@@ -98,7 +107,7 @@ impl ClientConnection {
             name, beacon.service_ip, beacon.service_port
         );
         Ok((beacon.service_ip, beacon.service_port))
-    }*/
+    }
 
     /// Receive a ServerMessage from the server
     pub fn receive<SM: From<Message> + Display>(&self) -> Result<SM> {
@@ -134,33 +143,38 @@ pub struct ServerConnection {
 /// Implement a `ServerConnection` for sending and receiving messages between client and server
 impl ServerConnection {
     /// Create a new Server side of the client/server Connection
-    pub fn new(_protocol: &str, service_name: &'static str, port: Option<u16>) -> Result<Self> {
+    pub fn new(service_name: &'static str, mut method: Method) -> Result<Self> {
         let context = zmq::Context::new();
         let responder = context
             .socket(zmq::REP)
             .chain_err(|| "Server Connection - could not create Socket")?;
 
-        let chosen_port = port.unwrap_or(pick_unused_port().chain_err(|| "No ports free")?);
+        match method {
+            Method::InProc(Some(_)) => bail!("Method should not already include context"),
+            Method::InProc(None) => {
+                method = Method::InProc(Some(context));
+                responder
+                    .bind(&format!("inproc://{}", service_name))
+                    .chain_err(|| "Server Connection - could not bind on TCO Socket")?;
+            },
+            Method::Tcp(host) => {
+                let host_port = host.unwrap_or(("*".into(), pick_unused_port().chain_err(|| "No ports free")?));
 
-        responder
-            .bind(&format!("inproc://{}", service_name))
-            .chain_err(|| "Server Connection - could not bind on TCO Socket")?;
+                responder.bind(&format!("tcp://{}:{}", host_port.0, host_port.1))
+                    .chain_err(|| "Server Connection - could not bind on TCO Socket")?;
 
-//        responder
-//            .bind(&format!("{}://*:{}", protocol, chosen_port))
-//            .chain_err(|| "Server Connection - could not bind on TCO Socket")?;
+                Self::enable_service_discovery(service_name, host_port.1)?;
+                info!("Service '{}' listening on {}:{}", service_name, host_port.0, host_port.1);
 
-        Self::enable_service_discovery(service_name, chosen_port)?;
-
-        info!("Service '{}' listening at {}", service_name, chosen_port);
+                method = Method::Tcp(Some(host_port));
+            }
+        }
 
         Ok(ServerConnection {
             server_info: ServerInfo {
-                            //protocol: protocol.into(),
-                            hostname_and_port: Some(("localhost".into(), chosen_port)),
-                            service_name: service_name.into(),
-                            context: Some(context)
-                        },
+                service_name: service_name.into(),
+                method
+            },
             responder
         })
     }
@@ -203,11 +217,7 @@ impl ServerConnection {
             .map_err(|e| format!("Server error getting message: '{}'", e))?;
 
         let message = CM::from(msg);
-        trace!(
-            "                ---> Server Received on {:?} {}",
-            self.server_info.hostname_and_port,
-            message
-        );
+        trace!("                ---> Server Received {}", message);
         Ok(message)
     }
 
@@ -225,11 +235,7 @@ impl ServerConnection {
     pub fn send<SM>(&mut self, message: SM) -> Result<()>
     where
         SM: Into<Message> + Display {
-        trace!(
-            "                <--- Server Sent on {:?}: {}",
-            self.server_info.hostname_and_port,
-            message
-        );
+        trace!("                <--- Server Sent {}", message);
 
         self.responder
             .send(message, 0)
@@ -248,7 +254,7 @@ mod test {
     use serial_test::serial;
     use zmq::Message;
 
-    use crate::client_server::{ClientConnection, DONT_WAIT, ServerConnection, WAIT};
+    use crate::client_server::{ClientConnection, DONT_WAIT, Method, ServerConnection, WAIT};
 
     #[derive(Serialize, Deserialize, PartialEq, Debug)]
     enum ServerMessage {
@@ -309,7 +315,7 @@ mod test {
     #[test]
     #[serial]
     fn server_receive_wait_get_reply() {
-        let mut server = ServerConnection::new("tcp", "test", None)
+        let mut server = ServerConnection::new("test", Method::InProc(None))
             .expect("Could not create ServerConnection");
         let mut server_info = server.get_server_info().clone();
         let client = ClientConnection::new(&mut server_info)
@@ -341,7 +347,7 @@ mod test {
     #[test]
     #[serial]
     fn server_receive_nowait_get_reply() {
-        let mut server = ServerConnection::new("tcp", "test", None)
+        let mut server = ServerConnection::new("test", Method::InProc(None))
             .expect("Could not create ServerConnection");
         let mut server_info = server.get_server_info().clone();
         let client = ClientConnection::new(&mut server_info)

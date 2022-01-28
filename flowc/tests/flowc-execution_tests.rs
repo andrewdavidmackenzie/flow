@@ -287,7 +287,7 @@ fn two_destinations() {
     execute_test("two_destinations", search_path, false);
 }
 
-#[ignore]
+#[cfg(target_os = "linux")]
 #[test]
 #[serial]
 fn hello_world_client_server() {

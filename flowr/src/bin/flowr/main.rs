@@ -17,7 +17,7 @@ use url::Url;
 
 use errors::*;
 use flowcore::url_helper::url_from_string;
-use flowrlib::client_server::{ClientConnection, ServerConnection, ServerInfo};
+use flowrlib::client_server::{ClientConnection, Method, ServerConnection, ServerInfo};
 use flowrlib::coordinator::{Coordinator, RUNTIME_SERVICE_NAME, Submission};
 #[cfg(feature = "debugger")]
 use flowrlib::coordinator::DEBUG_SERVICE_NAME;
@@ -142,9 +142,9 @@ fn run() -> Result<()> {
    Only start a server - by running a Coordinator in the calling thread.
 */
 fn server_only(num_threads: usize, lib_search_path: Simpath, native: bool) -> Result<()> {
-    let runtime_server_connection = ServerConnection::new("tcp", RUNTIME_SERVICE_NAME, None)?;
+    let runtime_server_connection = ServerConnection::new(RUNTIME_SERVICE_NAME, Method::Tcp(None))?;
     #[cfg(feature = "debugger")]
-    let debug_server_connection = ServerConnection::new("tcp", DEBUG_SERVICE_NAME, None)?;
+    let debug_server_connection = ServerConnection::new(DEBUG_SERVICE_NAME, Method::Tcp(None))?;
 
     info!("Starting 'flowr' server process in main thread");
     Coordinator::start(
@@ -172,9 +172,9 @@ fn client_and_server(
     #[cfg(feature = "debugger")]
     debug_this_flow: bool,
 ) -> Result<()> {
-    let runtime_server_connection = ServerConnection::new("tcp",RUNTIME_SERVICE_NAME, None)?;
+    let runtime_server_connection = ServerConnection::new(RUNTIME_SERVICE_NAME, Method::InProc(None))?;
     #[cfg(feature = "debugger")]
-    let debug_server_connection = ServerConnection::new("tcp",DEBUG_SERVICE_NAME, None)?;
+    let debug_server_connection = ServerConnection::new(DEBUG_SERVICE_NAME, Method::InProc(None))?;
 
     let mut runtime_server_info = runtime_server_connection.get_server_info().clone();
     #[cfg(feature = "debugger")]
@@ -222,23 +222,23 @@ fn client_only(
     matches: ArgMatches,
     #[cfg(feature = "debugger")] debug_this_flow: bool,
 ) -> Result<()> {
-    let mut runtime_server_info = ServerInfo::new("tcp".into(),
+    let mut runtime_server_info = ServerInfo::new(
+        RUNTIME_SERVICE_NAME,
+        Method::Tcp(
         matches
             .value_of("address")
             .map(|s| s.to_string())
             .map(|name| (name, 5555)),
-        RUNTIME_SERVICE_NAME,
-        None,
-    );
+    ));
     #[cfg(feature = "debugger")]
-    let mut debug_server_info = ServerInfo::new("tcp".into(),
+    let mut debug_server_info = ServerInfo::new(
+        DEBUG_SERVICE_NAME,
+        Method::Tcp(
         matches
             .value_of("address")
             .map(|s| s.to_string())
             .map(|name| (name, 5556)),
-        DEBUG_SERVICE_NAME,
-        None
-    );
+    ));
 
     #[cfg(feature = "debugger")]
         let control_c_client_connection = if debug_this_flow {

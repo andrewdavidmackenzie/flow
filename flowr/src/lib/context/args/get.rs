@@ -53,7 +53,7 @@ mod test {
 
     use flowcore::{DONT_RUN_AGAIN, Implementation};
 
-    use crate::client_server::ServerConnection;
+    use crate::client_server::{Method, ServerConnection};
     use crate::coordinator::RUNTIME_SERVICE_NAME;
     use crate::runtime_messages::ClientMessage::Args;
     use crate::runtime_messages::ServerMessage::GetArgs;
@@ -66,7 +66,7 @@ mod test {
     fn gets_args_no_client() {
         let getter = &Get {
             server_connection: Arc::new(Mutex::new(
-                ServerConnection::new("tcp", RUNTIME_SERVICE_NAME, None)
+                ServerConnection::new(RUNTIME_SERVICE_NAME, Method::Tcp(None))
                     .expect("Could not create server connection"),
             )),
         } as &dyn Implementation;
