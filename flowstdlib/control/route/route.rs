@@ -1,7 +1,6 @@
-use serde_json::Value;
-
 use flow_impl_derive::FlowImpl;
-use flowcore::{Implementation, RunAgain, RUN_AGAIN};
+use flowcore::{Implementation, RUN_AGAIN, RunAgain};
+use serde_json::Value;
 
 #[derive(FlowImpl)]
 /// Route data to one or another based on a boolean control value.
@@ -22,9 +21,8 @@ impl Implementation for Route {
 
 #[cfg(test)]
 mod test {
-    use serde_json::json;
-
     use flowcore::{Implementation, RUN_AGAIN};
+    use serde_json::json;
 
     #[test]
     fn test_route_true() {
@@ -34,8 +32,8 @@ mod test {
         assert_eq!(run_again, RUN_AGAIN);
 
         assert!(output.is_some());
-        let value = output.unwrap();
-        let map = value.as_object().unwrap();
+        let value = output.expect("Could not get the Value from the output");
+        let map = value.as_object().expect("Could not get the Map json object from the output");
         assert_eq!(map.get("true").expect("No 'true' value in map"), &json!(42));
         assert!(!map.contains_key("false"));
     }
@@ -48,8 +46,8 @@ mod test {
         assert_eq!(run_again, RUN_AGAIN);
 
         assert!(output.is_some());
-        let value = output.unwrap();
-        let map = value.as_object().unwrap();
+        let value = output.expect("Could not get the Value from the output");
+        let map = value.as_object().expect("Could not get the Map json object from the output");
         assert_eq!(
             map.get("false").expect("No 'false' value in map"),
             &json!(42)

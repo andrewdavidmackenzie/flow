@@ -7,7 +7,7 @@ use serde_json::Value;
 use flowcore::output_connection::Source::{Input, Output};
 
 use crate::block::Block;
-use crate::client_server::ServerConnection;
+use crate::client_server::{ServerConnection, WAIT};
 use crate::debug_messages::DebugClientMessage;
 use crate::debug_messages::DebugClientMessage::*;
 use crate::debug_messages::DebugServerMessage;
@@ -80,7 +80,7 @@ impl Debugger {
     /// Start the debugger - in this case the only thing to do is swallow the first
     /// DebugClientStarting message to initialize the connection
     pub fn start(&mut self) {
-        let _ = self.debug_server_connection.receive::<ClientMessage>();
+        let _ = self.debug_server_connection.receive::<ClientMessage>(WAIT);
     }
 
     /// Called from the flowrlib coordinator to inform the debugger that a job has completed

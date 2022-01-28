@@ -1,7 +1,7 @@
 use flow_impl_derive::FlowImpl;
-use flowcore::{Implementation, RunAgain, RUN_AGAIN};
-use serde_json::value::Value::Number;
+use flowcore::{Implementation, RUN_AGAIN, RunAgain};
 use serde_json::Value;
+use serde_json::value::Value::Number;
 
 #[derive(FlowImpl)]
 /// Compare two input values and output a map of booleans depending on if the comparison
@@ -143,16 +143,21 @@ mod test {
 
             assert!(again);
 
-            let outputs = output.unwrap();
+            let outputs = output.expect("Could not get the value from the output");
 
             assert_eq!(
-                outputs.pointer("/equal").unwrap().as_bool().unwrap(),
+                outputs.pointer("/equal").expect("Could not get the /equal from the output")
+                    .as_bool().expect("/equal was not a boolean value"),
                 test.2
             );
-            assert_eq!(outputs.pointer("/lt").unwrap().as_bool().unwrap(), test.3);
-            assert_eq!(outputs.pointer("/gt").unwrap().as_bool().unwrap(), test.4);
-            assert_eq!(outputs.pointer("/lte").unwrap().as_bool().unwrap(), test.5);
-            assert_eq!(outputs.pointer("/gte").unwrap().as_bool().unwrap(), test.6);
+            assert_eq!(outputs.pointer("/lt").expect("Could not get the /lt from the output")
+                           .as_bool().expect("/equal was not a boolean value"), test.3);
+            assert_eq!(outputs.pointer("/gt").expect("Could not get the /gt from the output")
+                           .as_bool().expect("/equal was not a boolean value"), test.4);
+            assert_eq!(outputs.pointer("/lte").expect("Could not get the /lte from the output")
+                           .as_bool().expect("/equal was not a boolean value"), test.5);
+            assert_eq!(outputs.pointer("/gte").expect("Could not get the /gte from the output")
+                           .as_bool().expect("/equal was not a boolean value"), test.6);
         }
     }
 

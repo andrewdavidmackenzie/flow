@@ -17,7 +17,7 @@ use url::Url;
 
 use errors::*;
 use flowcore::url_helper::url_from_string;
-use flowrlib::client_server::{ClientConnection, ServerConnection, ServerInfo};
+use flowrlib::client_server::{ClientConnection, Method, ServerConnection, ServerInfo};
 use flowrlib::coordinator::{Coordinator, RUNTIME_SERVICE_NAME, Submission};
 #[cfg(feature = "debugger")]
 use flowrlib::coordinator::DEBUG_SERVICE_NAME;
@@ -142,9 +142,9 @@ fn run() -> Result<()> {
    Only start a server - by running a Coordinator in the calling thread.
 */
 fn server_only(num_threads: usize, lib_search_path: Simpath, native: bool) -> Result<()> {
-    let runtime_server_connection = ServerConnection::new(RUNTIME_SERVICE_NAME, None)?;
+    let runtime_server_connection = ServerConnection::new(RUNTIME_SERVICE_NAME, Method::Tcp(None))?;
     #[cfg(feature = "debugger")]
-    let debug_server_connection = ServerConnection::new(DEBUG_SERVICE_NAME, None)?;
+    let debug_server_connection = ServerConnection::new(DEBUG_SERVICE_NAME, Method::Tcp(None))?;
 
     info!("Starting 'flowr' server process in main thread");
     Coordinator::start(
@@ -172,13 +172,13 @@ fn client_and_server(
     #[cfg(feature = "debugger")]
     debug_this_flow: bool,
 ) -> Result<()> {
-    let runtime_server_connection = ServerConnection::new(RUNTIME_SERVICE_NAME, None)?;
+    let runtime_server_connection = ServerConnection::new(RUNTIME_SERVICE_NAME, Method::InProc(None))?;
     #[cfg(feature = "debugger")]
-    let debug_server_connection = ServerConnection::new(DEBUG_SERVICE_NAME, None)?;
+    let debug_server_connection = ServerConnection::new(DEBUG_SERVICE_NAME, Method::InProc(None))?;
 
-    let runtime_server_info = runtime_server_connection.get_server_info();
+    let mut runtime_server_info = runtime_server_connection.get_server_info().clone();
     #[cfg(feature = "debugger")]
-    let debug_server_info = debug_server_connection.get_server_info();
+    let mut debug_server_info = debug_server_connection.get_server_info().clone();
 
     std::thread::spawn(move || {
         info!("Starting 'flowr' server in background thread");
@@ -194,20 +194,20 @@ fn client_and_server(
     });
 
     #[cfg(feature = "debugger")]
-        let control_c_client_connection = if debug_this_flow {
-        Some(ClientConnection::new(runtime_server_info.clone())?)
+    let control_c_client_connection = if debug_this_flow {
+        Some(ClientConnection::new(&mut runtime_server_info)?)
     } else {
         None
     };
 
-    let runtime_client_connection = ClientConnection::new(runtime_server_info)?;
+    let runtime_client_connection = ClientConnection::new(&mut runtime_server_info)?;
 
     client(
         matches,
         runtime_client_connection,
         #[cfg(feature = "debugger")] control_c_client_connection,
         #[cfg(feature = "debugger")] debug_this_flow,
-        #[cfg(feature = "debugger")] debug_server_info,
+        #[cfg(feature = "debugger")] &mut debug_server_info,
     )?;
 
     Ok(())
@@ -222,37 +222,39 @@ fn client_only(
     matches: ArgMatches,
     #[cfg(feature = "debugger")] debug_this_flow: bool,
 ) -> Result<()> {
-    let runtime_server_info = ServerInfo::new(
+    let mut runtime_server_info = ServerInfo::new(
+        RUNTIME_SERVICE_NAME,
+        Method::Tcp(
         matches
             .value_of("address")
             .map(|s| s.to_string())
             .map(|name| (name, 5555)),
-        RUNTIME_SERVICE_NAME,
-    );
+    ));
     #[cfg(feature = "debugger")]
-    let debug_server_info = ServerInfo::new(
+    let mut debug_server_info = ServerInfo::new(
+        DEBUG_SERVICE_NAME,
+        Method::Tcp(
         matches
             .value_of("address")
             .map(|s| s.to_string())
             .map(|name| (name, 5556)),
-        DEBUG_SERVICE_NAME,
-    );
+    ));
 
     #[cfg(feature = "debugger")]
         let control_c_client_connection = if debug_this_flow {
-        Some(ClientConnection::new(runtime_server_info.clone())?)
+        Some(ClientConnection::new(&mut runtime_server_info)?)
     } else {
         None
     };
 
-    let runtime_client_connection = ClientConnection::new(runtime_server_info)?;
+    let runtime_client_connection = ClientConnection::new(&mut runtime_server_info)?;
 
     client(
         matches,
         runtime_client_connection,
         #[cfg(feature = "debugger")] control_c_client_connection,
         #[cfg(feature = "debugger")] debug_this_flow,
-        #[cfg(feature = "debugger")] debug_server_info,
+        #[cfg(feature = "debugger")] &mut debug_server_info,
     )
 }
 
@@ -265,7 +267,7 @@ fn client(
     #[cfg(feature = "debugger")]
     control_c_client_connection: Option<ClientConnection>,
     #[cfg(feature = "debugger")] debug_this_flow: bool,
-    #[cfg(feature = "debugger")] debug_server_info: ServerInfo,
+    #[cfg(feature = "debugger")] debug_server_info: &mut ServerInfo,
 ) -> Result<()> {
     let flow_manifest_url = parse_flow_url(&matches)?;
     let flow_args = get_flow_args(&matches, &flow_manifest_url);
@@ -298,10 +300,10 @@ fn client(
     info!("Client sending submission to server");
     runtime_client_connection.send(ClientSubmission(submission))?;
 
-    #[cfg(feature = "debugger")]
-     runtime_client.event_loop(runtime_client_connection, control_c_client_connection)?;
-    #[cfg(not(feature = "debugger"))]
-    runtime_client.event_loop(runtime_client_connection)?;
+     runtime_client.event_loop(runtime_client_connection,
+            #[cfg(feature = "debugger")]
+                               control_c_client_connection
+     )?;
 
     Ok(())
 }

@@ -13,7 +13,6 @@ env:
 
 jobs:
   build:
-
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -61,7 +60,7 @@ jobs:
       run: cargo install --path flowc
 
     - name: clippy
-      run: cargo clippy -- -D warnings
+      run: cargo clippy --tests -- -D warnings
 
     - name: build
       run: cargo build --features "wasm"

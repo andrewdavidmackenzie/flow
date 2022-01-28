@@ -1,7 +1,6 @@
-use serde_json::{json, Value};
-
 use flow_impl_derive::FlowImpl;
-use flowcore::{Implementation, RunAgain, RUN_AGAIN};
+use flowcore::{Implementation, RUN_AGAIN, RunAgain};
+use serde_json::{json, Value};
 
 #[derive(FlowImpl)]
 /// Split a string into (possibly) its parts, based on a separator.
@@ -23,9 +22,8 @@ impl Implementation for OrderedSplit {
 
 #[cfg(test)]
 mod test {
-    use serde_json::json;
-
     use flowcore::Implementation;
+    use serde_json::json;
 
     #[test]
     fn simple() {
@@ -35,8 +33,8 @@ mod test {
         let splitter = super::OrderedSplit {};
         let (result, _) = splitter.run(&[string, separator]);
 
-        let output = result.unwrap();
-        let array = output.as_array().unwrap();
+        let output = result.expect("Could not get the Value from the output");
+        let array = output.as_array().expect("Could not get the Array from the output");
 
         assert_eq!(array.len(), 9);
     }

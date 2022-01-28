@@ -1,7 +1,6 @@
-use serde_json::{json, Value};
-
 use flow_impl_derive::FlowImpl;
-use flowcore::{Implementation, RunAgain, RUN_AGAIN};
+use flowcore::{Implementation, RUN_AGAIN, RunAgain};
+use serde_json::{json, Value};
 
 #[derive(FlowImpl)]
 /// Accumulate input values into an array up to the limit specified
@@ -42,9 +41,8 @@ impl Implementation for Accumulate {
 
 #[cfg(test)]
 mod test {
-    use serde_json::json;
-
     use flowcore::Implementation;
+    use serde_json::json;
 
     #[test]
     fn accumulate_start_and_finish() {
@@ -54,8 +52,8 @@ mod test {
 
         let accumulator = super::Accumulate {};
         let (result, _) = accumulator.run(&[value, partial, chunk_size]);
-        let output = result.unwrap();
-        assert_eq!(output.pointer("/chunk").unwrap(), &json!([1]));
+        let output = result.expect("Could not get the Value from the output");
+        assert_eq!(output.pointer("/chunk").expect("Could not get the /chunk from the output"), &json!([1]));
     }
 
     #[test]
@@ -66,9 +64,9 @@ mod test {
 
         let accumulator = super::Accumulate {};
         let (result, _) = accumulator.run(&[value, partial, chunk_size]);
-        let output = result.unwrap();
+        let output = result.expect("Could not get the Value from the output");
         assert_eq!(output.pointer("/chunk"), None);
-        assert_eq!(output.pointer("/partial").unwrap(), &json!([1]));
+        assert_eq!(output.pointer("/partial").expect("Could not get the /partial from the output"), &json!([1]));
     }
 
     #[test]
@@ -79,7 +77,7 @@ mod test {
 
         let accumulator = super::Accumulate {};
         let (result, _) = accumulator.run(&[value, partial, chunk_size]);
-        let output = result.unwrap();
-        assert_eq!(output.pointer("/chunk").unwrap(), &json!([1, 2]));
+        let output = result.expect("Could not get the Value from the output");
+        assert_eq!(output.pointer("/chunk").expect("Could not get the /chunk from the output"), &json!([1, 2]));
     }
 }

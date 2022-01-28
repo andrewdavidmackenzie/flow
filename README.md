@@ -16,7 +16,7 @@ well as command line binaries (`flowc` and `flowr`) that use the libraries.
 
 As data-flow programming fits very well with a visualization of
 processes operating on data flowing from other processes, a visual programming method
-would be great. But I've only touched the surface of an IDE, disappointed by the current state of
+would be great. But I've only touched the surface of an IDE, disappointed by the current state
 of cross-platform UI programming. That's potentially a great (but massive) project 
 in itself.
  
@@ -84,14 +84,14 @@ viewing [here](http://andrewdavidmackenzie.github.io/flow/)
 ## Project components and structure
 The Project is structured into a number of rust crates that form part of a rust cargo "workspace".
 
-Currently two binaries are built: `flowc` the flow compiler and `flowr` the flow runner. 
+Currently, two binaries are built: `flowc` the flow compiler and `flowr` the flow runner. 
  
 See the [Project Components and Structure section](docs/introduction/structure.md) of the Guide for more details.
 
 ## Contributing
 I organize all issues in a [Github Project](https://github.com/andrewdavidmackenzie/flow/projects/2)
 and chose things to work on from the "Next" column. I have only marked a couple of issues with "help wanted" label
-but I can do more if there is interest. If in doubt reach out to me by email, or github issue.
+but I can do more if there is interest. If in doubt reach out to me by email, or GitHub issue.
 
 ## Sister Projects
 
@@ -105,7 +105,7 @@ to use. I have tried Iced and other emerging rust-native GUI toolkits, but they 
       * [gtk-rs-state](https://github.com/andrewdavidmackenzie/gtk-rs-state) - a small library to help
   do a GTK UI in rust, accessing UI from background threads.
         
-Currently I'm experimenting with flutter and react native, and FLTK looks relatively easy to use, has rust
+Currently, I'm experimenting with flutter and react native, and FLTK looks relatively easy to use, has rust
 native bindings for the UI, but doesn't look so modern and is not so well known.
 
 Once I get a solution I like, I may well bring it back into this repo, although build-times for so many crates

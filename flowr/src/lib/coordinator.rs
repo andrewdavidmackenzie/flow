@@ -11,7 +11,7 @@ use url::Url;
 use flowcore::lib_provider::{MetaProvider, Provider};
 
 use crate::client_provider::ClientProvider;
-use crate::client_server::ServerConnection;
+use crate::client_server::{DONT_WAIT, ServerConnection, WAIT};
 use crate::context;
 #[cfg(feature = "debugger")]
 use crate::debugger::Debugger;
@@ -25,10 +25,10 @@ use crate::run_state::RunState;
 use crate::runtime_messages::{ClientMessage, ServerMessage};
 
 /// `RUNTIME_SERVICE_NAME` is the name of the runtime services and can be used to discover it by name
-pub const RUNTIME_SERVICE_NAME: &str = "runtime";
+pub const RUNTIME_SERVICE_NAME: &str = "runtime._flowr._tcp.local";
 /// `DEBUG_SERVICE_NAME` is the name of the runtime services and can be used to discover it by name
 #[cfg(feature = "debugger")]
-pub const DEBUG_SERVICE_NAME: &str = "debug";
+pub const DEBUG_SERVICE_NAME: &str = "debug._flowr._tcp.local";
 
 /// The `Coordinator` of flow execution can run in one of these three modes:
 /// - `ClientOnly`      - only as a client to submit flows for execution to a server
@@ -105,27 +105,27 @@ impl Submission {
 /// use flowrlib::runtime_messages::ClientMessage::ClientSubmission;
 /// use simpath::Simpath;
 /// use url::Url;
-/// use flowrlib::client_server::{ClientConnection, ServerConnection, ServerInfo};
+/// use flowrlib::client_server::{ClientConnection, ServerConnection, ServerInfo, Method};
 /// use flowrlib::runtime_messages::{ServerMessage, ClientMessage};
 ///
-/// let runtime_server_connection = ServerConnection::new(RUNTIME_SERVICE_NAME, None).unwrap();
-/// let debug_server_connection = ServerConnection::new(DEBUG_SERVICE_NAME, None).unwrap();
-/// let runtime_server_info = runtime_server_connection.get_server_info();
+/// let runtime_server_connection = ServerConnection::new(RUNTIME_SERVICE_NAME, Method::Tcp(None)).unwrap();
+/// let debug_server_connection = ServerConnection::new(DEBUG_SERVICE_NAME, Method::Tcp(None)).unwrap();
+/// let mut runtime_server_info = runtime_server_connection.get_server_info().clone();///
 ///
-///     std::thread::spawn(move || {
+/// std::thread::spawn(move || {
 ///         let _ = Coordinator::start(
-///             1,
-///             Simpath::new("fake path"),
-///             true,
-///             runtime_server_connection,
-///             #[cfg(feature = "debugger")] debug_server_connection,
-///         );
-///     });
+///         1,
+///         Simpath::new("fake path"),
+///         true,
+///         runtime_server_connection,
+///         #[cfg(feature = "debugger")] debug_server_connection,
+///     );
+/// });
 ///
 /// let mut submission = Submission::new(&Url::parse("file:///temp/fake.toml").unwrap(),
 ///                                     1 /* num_parallel_jobs */,
 ///                                     true /* enter debugger on start */);
-/// let runtime_client_connection = ClientConnection::new(runtime_server_info).unwrap();
+/// let runtime_client_connection = ClientConnection::new(&mut runtime_server_info).unwrap();
 /// runtime_client_connection.send(ClientSubmission(submission)).unwrap();
 /// exit(0);
 /// ```
@@ -243,7 +243,7 @@ impl Coordinator {
         loop {
             info!("'flowr' server is waiting to receive a 'Submission'");
             match self.runtime_server_connection.lock() {
-                Ok(guard) => match guard.receive() {
+                Ok(guard) => match guard.receive(WAIT) {
                     Ok(ClientMessage::ClientSubmission(submission)) => {
                         debug!(
                             "Server received a submission for execution with manifest_url: '{}'",
@@ -263,6 +263,7 @@ impl Coordinator {
         }
     }
 
+    //noinspection RsReassignImmutable
     // Execute a flow by looping while there are jobs to be processed in an inner loop.
     // There is an outer loop for the case when you are using the debugger, to allow entering
     // the debugger when the flow ends and at any point resetting all the state and starting
@@ -434,7 +435,7 @@ impl Coordinator {
             .runtime_server_connection
             .lock()
             .map_err(|_| "Could not lock server context")?
-            .receive_no_wait();
+            .receive(DONT_WAIT);
         match msg {
             Ok(ClientMessage::EnterDebugger) => {
                 debug!("Got EnterDebugger message");

@@ -56,7 +56,7 @@ mod test {
     use super::super::super::test_helper::test::wait_for_then_send;
 
     #[test]
-    #[serial(client_server)]
+    #[serial]
     fn invalid_input() {
         let server_connection = wait_for_then_send(ServerMessage::StderrEof, ClientMessage::Ack);
         let stderr = &Stderr { server_connection } as &dyn Implementation;
@@ -67,7 +67,7 @@ mod test {
     }
 
     #[test]
-    #[serial(client_server)]
+    #[serial]
     fn send_null() {
         let server_connection = wait_for_then_send(ServerMessage::StderrEof, ClientMessage::Ack);
         let stderr = &Stderr { server_connection } as &dyn Implementation;
@@ -78,7 +78,7 @@ mod test {
     }
 
     #[test]
-    #[serial(client_server)]
+    #[serial]
     fn send_string() {
         let string = "string of text";
         let value = json!(string);
@@ -92,7 +92,7 @@ mod test {
     }
 
     #[test]
-    #[serial(client_server)]
+    #[serial]
     fn send_bool() {
         let bool = true;
         let value = json!(bool);
@@ -105,7 +105,7 @@ mod test {
         assert_eq!(value, None);
     }
     #[test]
-    #[serial(client_server)]
+    #[serial]
     fn send_number() {
         let number = 42;
         let value = json!(number);
@@ -119,7 +119,7 @@ mod test {
     }
 
     #[test]
-    #[serial(client_server)]
+    #[serial]
     fn send_array() {
         let array = [1, 2, 3];
         let value = json!(array);
@@ -133,7 +133,7 @@ mod test {
     }
 
     #[test]
-    #[serial(client_server)]
+    #[serial]
     fn send_object() {
         let mut map = HashMap::new();
         map.insert("number1", 42);

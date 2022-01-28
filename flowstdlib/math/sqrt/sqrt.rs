@@ -1,8 +1,7 @@
-use serde_json::Value::Number;
-use serde_json::{json, Value};
-
 use flow_impl_derive::FlowImpl;
-use flowcore::{Implementation, RunAgain, RUN_AGAIN};
+use flowcore::{Implementation, RUN_AGAIN, RunAgain};
+use serde_json::{json, Value};
+use serde_json::Value::Number;
 
 #[derive(FlowImpl)]
 /// Calculate the square root of a number
@@ -26,9 +25,8 @@ impl Implementation for Sqrt {
 
 #[cfg(test)]
 mod test {
-    use serde_json::json;
-
     use flowcore::Implementation;
+    use serde_json::json;
 
     use super::Sqrt;
 
@@ -41,6 +39,6 @@ mod test {
         let (root, again) = rooter.run(&[test_81]);
 
         assert!(again);
-        assert_eq!(test_9, root.unwrap());
+        assert_eq!(test_9, root.expect("Could not get the value from the output"));
     }
 }

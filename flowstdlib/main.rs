@@ -58,7 +58,7 @@ mod test {
     fn flow_lib_path() {
         let manifest_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
         std::env::set_var("FLOW_LIB_PATH", manifest_dir);
-        check_flow_lib_path(&manifest_dir);
+        check_flow_lib_path(manifest_dir);
     }
 
     #[test]

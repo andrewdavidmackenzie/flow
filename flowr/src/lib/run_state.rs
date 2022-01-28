@@ -1434,6 +1434,7 @@ mod test {
         use flowcore::output_connection::{OutputConnection, Source};
         use flowcore::output_connection::Source::Output;
 
+        use crate::client_server::Method;
         #[cfg(feature = "debugger")]
         use crate::client_server::ServerConnection;
         use crate::coordinator::Submission;
@@ -1678,7 +1679,7 @@ mod test {
             let mut metrics = Metrics::new(2);
             #[cfg(feature = "debugger")]
             let debug_server_context =
-                ServerConnection::new("debug", None).expect("Could not create connections");
+                ServerConnection::new("debug", Method::Tcp(None)).expect("Could not create connections");
             #[cfg(feature = "debugger")]
             let mut debugger = Debugger::new(debug_server_context);
 
@@ -1731,7 +1732,7 @@ mod test {
             let mut metrics = Metrics::new(2);
             #[cfg(feature = "debugger")]
             let debug_server_context =
-                ServerConnection::new("debug", None).expect("Could not create connection");
+                ServerConnection::new("debug", Method::Tcp(None)).expect("Could not create connection");
             #[cfg(feature = "debugger")]
             let mut debugger = Debugger::new(debug_server_context);
 
@@ -1797,7 +1798,7 @@ mod test {
             let mut metrics = Metrics::new(2);
             #[cfg(feature = "debugger")]
             let debug_server_context =
-                ServerConnection::new("debug", None).expect("Could not create connection");
+                ServerConnection::new("debug", Method::Tcp(None)).expect("Could not create connection");
             #[cfg(feature = "debugger")]
             let mut debugger = Debugger::new(debug_server_context);
 
@@ -1853,7 +1854,7 @@ mod test {
             let mut metrics = Metrics::new(1);
             #[cfg(feature = "debugger")]
             let debug_server_context =
-                ServerConnection::new("debug", None).expect("Could not create connection");
+                ServerConnection::new("debug", Method::Tcp(None)).expect("Could not create connection");
             #[cfg(feature = "debugger")]
             let mut debugger = Debugger::new(debug_server_context);
             state.init();
@@ -1899,7 +1900,7 @@ mod test {
             let mut metrics = Metrics::new(1);
             #[cfg(feature = "debugger")]
             let debug_server_context =
-                ServerConnection::new("debug", None).expect("Could not create connection");
+                ServerConnection::new("debug", Method::Tcp(None)).expect("Could not create connection");
             #[cfg(feature = "debugger")]
             let mut debugger = Debugger::new(debug_server_context);
             state.init();
@@ -1965,7 +1966,7 @@ mod test {
             let mut metrics = Metrics::new(1);
             #[cfg(feature = "debugger")]
             let debug_server_context =
-                ServerConnection::new("debug", None).expect("Could not create connection");
+                ServerConnection::new("debug", Method::Tcp(None)).expect("Could not create connection");
             #[cfg(feature = "debugger")]
             let mut debugger = Debugger::new(debug_server_context);
 
@@ -2032,7 +2033,7 @@ mod test {
             let mut metrics = Metrics::new(1);
             #[cfg(feature = "debugger")]
             let debug_server_context =
-                ServerConnection::new("debug", None).expect("Could not create connection");
+                ServerConnection::new("debug", Method::Tcp(None)).expect("Could not create connection");
             #[cfg(feature = "debugger")]
             let mut debugger = Debugger::new(debug_server_context);
 
@@ -2093,7 +2094,7 @@ mod test {
             let mut metrics = Metrics::new(1);
             #[cfg(feature = "debugger")]
             let debug_server_context =
-                ServerConnection::new("debug", None).expect("Could not create connection");
+                ServerConnection::new("debug", Method::Tcp(None)).expect("Could not create connection");
             #[cfg(feature = "debugger")]
             let mut debugger = Debugger::new(debug_server_context);
 
@@ -2181,7 +2182,7 @@ mod test {
             let mut metrics = Metrics::new(2);
             #[cfg(feature = "debugger")]
             let debug_server_context =
-                ServerConnection::new("debug", None).expect("Could not create connection");
+                ServerConnection::new("debug", Method::Tcp(None)).expect("Could not create connection");
             #[cfg(feature = "debugger")]
             let mut debugger = Debugger::new(debug_server_context);
 
@@ -2267,6 +2268,7 @@ mod test {
         use flowcore::input::Input;
         use flowcore::output_connection::{OutputConnection, Source};
 
+        use crate::client_server::Method;
         #[cfg(feature = "debugger")]
         use crate::client_server::ServerConnection;
         use crate::coordinator::Submission;
@@ -2345,7 +2347,7 @@ mod test {
             let mut state = RunState::new(&test_functions(), submission);
             #[cfg(feature = "debugger")]
             let debug_server_context =
-                ServerConnection::new("debug", None).expect("Could not create connection");
+                ServerConnection::new("debug", Method::Tcp(None)).expect("Could not create connection");
             #[cfg(feature = "debugger")]
             let mut debugger = Debugger::new(debug_server_context);
 
@@ -2438,7 +2440,7 @@ mod test {
             let mut state = RunState::new(&test_functions(), submission);
             #[cfg(feature = "debugger")]
             let debug_server_context =
-                ServerConnection::new("debug", None).expect("Could not create connection");
+                ServerConnection::new("debug", Method::Tcp(None)).expect("Could not create connection");
             #[cfg(feature = "debugger")]
             let mut debugger = Debugger::new(debug_server_context);
 
@@ -2471,7 +2473,7 @@ mod test {
             let mut state = RunState::new(&test_functions(), submission);
             #[cfg(feature = "debugger")]
             let debug_server_context =
-                ServerConnection::new("debug", None).expect("Could not create connection");
+                ServerConnection::new("debug", Method::Tcp(None)).expect("Could not create connection");
             #[cfg(feature = "debugger")]
             let mut debugger = Debugger::new(debug_server_context);
 
@@ -2513,7 +2515,7 @@ mod test {
 
             #[cfg(feature = "debugger")]
             let debug_server_context =
-                ServerConnection::new("debug", None).expect("Could not create server connection");
+                ServerConnection::new("debug", Method::Tcp(None)).expect("Could not create server connection");
             #[cfg(feature = "debugger")]
             let mut debugger = Debugger::new(debug_server_context);
 
@@ -2592,7 +2594,7 @@ mod test {
             let mut metrics = Metrics::new(1);
             #[cfg(feature = "debugger")]
             let debug_server_context =
-                ServerConnection::new("debug", None).expect("Could not create connection");
+                ServerConnection::new("debug", Method::Tcp(None)).expect("Could not create connection");
             #[cfg(feature = "debugger")]
             let mut debugger = Debugger::new(debug_server_context);
             state.init();

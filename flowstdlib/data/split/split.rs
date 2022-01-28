@@ -1,7 +1,6 @@
-use serde_json::{json, Value};
-
 use flow_impl_derive::FlowImpl;
-use flowcore::{Implementation, RunAgain, RUN_AGAIN};
+use flowcore::{Implementation, RUN_AGAIN, RunAgain};
+use serde_json::{json, Value};
 
 #[derive(FlowImpl)]
 /// Split a string into (possibly) two parts and a possible token, based on a separator.
@@ -118,9 +117,8 @@ fn split(input: &str, separator: &str) -> (Option<Vec<String>>, Option<String>) 
 
 #[cfg(test)]
 mod test {
-    use serde_json::json;
-
     use flowcore::Implementation;
+    use serde_json::json;
 
     #[test]
     fn basic_tests() {
@@ -217,17 +215,17 @@ mod test {
                 break;
             }
 
-            let this_input = input_strings.pop().unwrap();
+            let this_input = input_strings.pop().expect("Could not pop value");
             let splitter = super::Split {};
             let (result, _) = splitter.run(&[this_input, separator.clone()]);
 
-            let output = result.unwrap();
+            let output = result.expect("Could not get the Value from the output");
             if let Some(token) = output.pointer("/token") {
                 output_vector.push(token.clone());
             }
 
             if let Some(split_values) = output.pointer("/partial") {
-                for value in split_values.as_array().unwrap().iter() {
+                for value in split_values.as_array().expect("Could not get the Array from the output").iter() {
                     input_strings.push(value.clone());
                 }
             }
@@ -242,11 +240,11 @@ mod test {
         let splitter = super::Split {};
         let (result, _) = splitter.run(&[test.0, separator]);
 
-        let output = result.unwrap();
+        let output = result.expect("Could not get the Value from the output");
         assert!(output.pointer("/token").is_none());
-        assert_eq!(output.pointer("/token-count").unwrap(), &json!(0));
+        assert_eq!(output.pointer("/token-count").expect("Could not get the /token-count from the output"), &json!(0));
         assert!(output.pointer("/partial").is_none());
-        assert_eq!(output.pointer("/delta").unwrap(), &json!(-1));
+        assert_eq!(output.pointer("/delta").expect("Could not get the /delta from the output"), &json!(-1));
     }
 
     #[test]
@@ -257,14 +255,14 @@ mod test {
         let splitter = super::Split {};
         let (result, _) = splitter.run(&[test.0, separator]);
 
-        let output = result.unwrap();
+        let output = result.expect("Could not get the Value from the output");
         assert!(output.pointer("/token").is_none());
-        assert_eq!(output.pointer("/token-count").unwrap(), &json!(0));
+        assert_eq!(output.pointer("/token-count").expect("Could not get the /token-count from the output"), &json!(0));
         assert_eq!(
-            output.pointer("/partial").unwrap(),
+            output.pointer("/partial").expect("Could not get the /partial from the output"),
             &json!(["the quick brown fox jumped", "over the lazy dog"])
         );
-        assert_eq!(output.pointer("/delta").unwrap(), &json!(1));
+        assert_eq!(output.pointer("/delta").expect("Could not get the /delta from the output"), &json!(1));
     }
 
     #[test]
@@ -275,17 +273,17 @@ mod test {
         let splitter = super::Split {};
         let (result, _) = splitter.run(&[test.0, separator]);
 
-        let output = result.unwrap();
+        let output = result.expect("Could not get the Value from the output");
         assert_eq!(
-            output.pointer("/token").unwrap(),
+            output.pointer("/token").expect("Could not get the /token from the output"),
             "fox-jumped-over-the-lazy-dog"
         );
-        assert_eq!(output.pointer("/token-count").unwrap(), &json!(1));
+        assert_eq!(output.pointer("/token-count").expect("Could not get the /token-count from the output"), &json!(1));
         assert_eq!(
-            output.pointer("/partial").unwrap(),
+            output.pointer("/partial").expect("Could not get the /partial from the output"),
             &json!(["the quick brown"])
         );
-        assert_eq!(output.pointer("/delta").unwrap(), &json!(0));
+        assert_eq!(output.pointer("/delta").expect("Could not get the /delta from the output"), &json!(0));
     }
 
     #[test]
@@ -296,10 +294,10 @@ mod test {
         let splitter = super::Split {};
         let (result, _) = splitter.run(&[test.0, separator]);
 
-        let output = result.unwrap();
+        let output = result.expect("Could not get the Value from the output");
         assert!(output.pointer("/partial").is_none());
-        assert_eq!(output.pointer("/token").unwrap(), &json!("the"));
-        assert_eq!(output.pointer("/token-count").unwrap(), &json!(1));
-        assert_eq!(output.pointer("/delta").unwrap(), &json!(-1));
+        assert_eq!(output.pointer("/token").expect("Could not get the /token from the output"), &json!("the"));
+        assert_eq!(output.pointer("/token-count").expect("Could not get the /token-count from the output"), &json!(1));
+        assert_eq!(output.pointer("/delta").expect("Could not get the /delta value from the output"), &json!(-1));
     }
 }

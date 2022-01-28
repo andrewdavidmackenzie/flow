@@ -1,7 +1,6 @@
-use serde_json::Value;
-
 use flow_impl_derive::FlowImpl;
-use flowcore::{Implementation, RunAgain, RUN_AGAIN};
+use flowcore::{Implementation, RUN_AGAIN, RunAgain};
+use serde_json::Value;
 
 #[derive(FlowImpl)]
 /// Compare two input values and output different the right hand value at different output route
@@ -45,9 +44,8 @@ impl Implementation for CompareSwitch {
 
 #[cfg(test)]
 mod test {
-    use serde_json::json;
-
     use flowcore::{Implementation, RUN_AGAIN};
+    use serde_json::json;
 
     use super::CompareSwitch;
 
@@ -63,8 +61,8 @@ mod test {
 
         assert_eq!(run_again, RUN_AGAIN);
         assert!(value.is_some());
-        let value = value.unwrap();
-        let map = value.as_object().unwrap();
+        let value = value.expect("No value was returned");
+        let map = value.as_object().expect("Expected a Map json object");
         assert!(map.contains_key("equal"));
     }
 
@@ -80,8 +78,8 @@ mod test {
 
         assert_eq!(run_again, RUN_AGAIN);
         assert!(value.is_some());
-        let value = value.unwrap();
-        let map = value.as_object().unwrap();
+        let value = value.expect("Could not get the value from the output");
+        let map = value.as_object().expect("Could not get the json object from the output");
         assert!(map.contains_key("equal"));
     }
 
@@ -93,8 +91,8 @@ mod test {
 
         assert_eq!(run_again, RUN_AGAIN);
         assert!(value.is_some());
-        let value = value.unwrap();
-        let map = value.as_object().unwrap();
+        let value = value.expect("Could not get the value from the output");
+        let map = value.as_object().expect("Could not get the Map json object from the output");
         assert_eq!(map.get("left-lt"), Some(&json!(1)));
         assert_eq!(map.get("right-gt"), Some(&json!(2)));
     }
@@ -107,8 +105,8 @@ mod test {
 
         assert_eq!(run_again, RUN_AGAIN);
         assert!(value.is_some());
-        let value = value.unwrap();
-        let map = value.as_object().unwrap();
+        let value = value.expect("Could not get the value from the output");
+        let map = value.as_object().expect("Could not get the Map json object from the output");
         assert_eq!(map.get("left-lt"), Some(&json!(1.0)));
         assert_eq!(map.get("right-gt"), Some(&json!(2.0)));
     }
@@ -121,8 +119,8 @@ mod test {
 
         assert_eq!(run_again, RUN_AGAIN);
         assert!(value.is_some());
-        let value = value.unwrap();
-        let map = value.as_object().unwrap();
+        let value = value.expect("Could not get the value from the output");
+        let map = value.as_object().expect("Could not get the Map json object from the output");
         assert_eq!(map.get("left-gt"), Some(&json!(2)));
         assert_eq!(map.get("right-lt"), Some(&json!(1)));
     }
@@ -135,8 +133,8 @@ mod test {
 
         assert_eq!(run_again, RUN_AGAIN);
         assert!(value.is_some());
-        let value = value.unwrap();
-        let map = value.as_object().unwrap();
+        let value = value.expect("Could not get the value from the output");
+        let map = value.as_object().expect("Could not get the Map json object from the output");
         assert_eq!(map.get("left-gt"), Some(&json!(2.0)));
         assert_eq!(map.get("right-lt"), Some(&json!(1.0)));
     }

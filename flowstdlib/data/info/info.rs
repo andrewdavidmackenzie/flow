@@ -1,7 +1,6 @@
-use serde_json::{json, Value};
-
 use flow_impl_derive::FlowImpl;
-use flowcore::{Implementation, RunAgain, RUN_AGAIN};
+use flowcore::{Implementation, RUN_AGAIN, RunAgain};
+use serde_json::{json, Value};
 
 #[derive(FlowImpl)]
 /// Output info about the input value
@@ -51,21 +50,20 @@ impl Implementation for Info {
 
 #[cfg(test)]
 mod test {
-    use serde_json::json;
-    use serde_json::{Map, Value};
-
     use flowcore::Implementation;
+    use serde_json::{Map, Value};
+    use serde_json::json;
 
     #[test]
     fn info_on_number() {
         let inputs = vec![json!(1)];
         let info = super::Info {};
         let (result, _) = info.run(&inputs);
-        let output_map = result.unwrap();
+        let output_map = result.expect("Could not get the Value from the output");
 
-        assert_eq!(output_map.pointer("/type").unwrap(), &json!("Number"));
-        assert_eq!(output_map.pointer("/rows").unwrap(), &json!(1));
-        assert_eq!(output_map.pointer("/columns").unwrap(), &json!(1));
+        assert_eq!(output_map.pointer("/type").expect("Could not get the /type from the output"), &json!("Number"));
+        assert_eq!(output_map.pointer("/rows").expect("Could not get the /rows from the output"), &json!(1));
+        assert_eq!(output_map.pointer("/columns").expect("Could not get the /columns from the output"), &json!(1));
     }
 
     #[test]
@@ -73,11 +71,11 @@ mod test {
         let inputs = vec![json!(true)];
         let info = super::Info {};
         let (result, _) = info.run(&inputs);
-        let output_map = result.unwrap();
+        let output_map = result.expect("Could not get the Value from the output");
 
-        assert_eq!(output_map.pointer("/type").unwrap(), &json!("Boolean"));
-        assert_eq!(output_map.pointer("/rows").unwrap(), &json!(1));
-        assert_eq!(output_map.pointer("/columns").unwrap(), &json!(1));
+        assert_eq!(output_map.pointer("/type").expect("Could not get the /type from the output"), &json!("Boolean"));
+        assert_eq!(output_map.pointer("/rows").expect("Could not get the /row from the output"), &json!(1));
+        assert_eq!(output_map.pointer("/columns").expect("Could not get the /columns from the output"), &json!(1));
     }
 
     #[test]
@@ -85,11 +83,11 @@ mod test {
         let string = json!("Hello");
         let info = super::Info {};
         let (result, _) = info.run(&[string]);
-        let output_map = result.unwrap();
+        let output_map = result.expect("Could not get the Value from the output");
 
-        assert_eq!(output_map.pointer("/type").unwrap(), &json!("String"));
-        assert_eq!(output_map.pointer("/rows").unwrap(), &json!(1));
-        assert_eq!(output_map.pointer("/columns").unwrap(), &json!(5));
+        assert_eq!(output_map.pointer("/type").expect("Could not get the /type from the output"), &json!("String"));
+        assert_eq!(output_map.pointer("/rows").expect("Could not get the /row from the output"), &json!(1));
+        assert_eq!(output_map.pointer("/columns").expect("Could not get the /columns from the output"), &json!(5));
     }
 
     #[test]
@@ -97,11 +95,11 @@ mod test {
         let inputs = vec![Value::Null];
         let info = super::Info {};
         let (result, _) = info.run(&inputs);
-        let output_map = result.unwrap();
+        let output_map = result.expect("Could not get the Value from the output");
 
-        assert_eq!(output_map.pointer("/type").unwrap(), &json!("Null"));
-        assert_eq!(output_map.pointer("/rows").unwrap(), &json!(0));
-        assert_eq!(output_map.pointer("/columns").unwrap(), &json!(0));
+        assert_eq!(output_map.pointer("/type").expect("Could not get the /type from the output"), &json!("Null"));
+        assert_eq!(output_map.pointer("/rows").expect("Could not get the /rows from the output"), &json!(0));
+        assert_eq!(output_map.pointer("/columns").expect("Could not get the /column from the output"), &json!(0));
     }
 
     #[test]
@@ -109,11 +107,11 @@ mod test {
         let inputs = vec![json!([1, 2, 3])];
         let info = super::Info {};
         let (result, _) = info.run(&inputs);
-        let output_map = result.unwrap();
+        let output_map = result.expect("Could not get the Value from the output");
 
-        assert_eq!(output_map.pointer("/type").unwrap(), &json!("Array/Number"));
-        assert_eq!(output_map.pointer("/rows").unwrap(), &json!(1));
-        assert_eq!(output_map.pointer("/columns").unwrap(), &json!(3));
+        assert_eq!(output_map.pointer("/type").expect("Could not get the /type from the output"), &json!("Array/Number"));
+        assert_eq!(output_map.pointer("/rows").expect("Could not get the /rows from the output"), &json!(1));
+        assert_eq!(output_map.pointer("/columns").expect("Could not get the /column from the output"), &json!(3));
     }
 
     #[test]
@@ -121,14 +119,14 @@ mod test {
         let array_array_numbers = json!([[1, 2, 3], [4, 5, 6]]);
         let info = super::Info {};
         let (result, _) = info.run(&[array_array_numbers]);
-        let output_map = result.unwrap();
+        let output_map = result.expect("Could not get the Value from the output");
 
         assert_eq!(
-            output_map.pointer("/type").unwrap(),
+            output_map.pointer("/type").expect("Could not get the /type from the output"),
             &json!("Array/Array/Number")
         );
-        assert_eq!(output_map.pointer("/rows").unwrap(), &json!(2));
-        assert_eq!(output_map.pointer("/columns").unwrap(), &json!(3));
+        assert_eq!(output_map.pointer("/rows").expect("Could not get the /rows from the output"), &json!(2));
+        assert_eq!(output_map.pointer("/columns").expect("Could not get the /columns from the output"), &json!(3));
     }
 
     #[test]
@@ -139,11 +137,11 @@ mod test {
         let inputs = vec![Value::Object(map)];
         let info = super::Info {};
         let (result, _) = info.run(&inputs);
-        let output_map = result.unwrap();
+        let output_map = result.expect("Could not get the Value from the output");
 
-        assert_eq!(output_map.pointer("/type").unwrap(), &json!("Map/Number"));
-        assert_eq!(output_map.pointer("/rows").unwrap(), &json!(2));
-        assert_eq!(output_map.pointer("/columns").unwrap(), &json!(2));
+        assert_eq!(output_map.pointer("/type").expect("Could not get the /type from the output"), &json!("Map/Number"));
+        assert_eq!(output_map.pointer("/rows").expect("Could not get the /rows from the output"), &json!(2));
+        assert_eq!(output_map.pointer("/columns").expect("Could not get the /columns from the output"), &json!(2));
     }
 
     #[test]
@@ -154,13 +152,13 @@ mod test {
         let inputs = vec![Value::Object(map)];
         let info = super::Info {};
         let (result, _) = info.run(&inputs);
-        let output_map = result.unwrap();
+        let output_map = result.expect("Could not get the Value from the output");
 
         assert_eq!(
-            output_map.pointer("/type").unwrap(),
+            output_map.pointer("/type").expect("Could not get the /type from the output"),
             &json!("Map/Array/Number")
         );
-        assert_eq!(output_map.pointer("/rows").unwrap(), &json!(2));
-        assert_eq!(output_map.pointer("/columns").unwrap(), &json!(2));
+        assert_eq!(output_map.pointer("/rows").expect("Could not get the /rows from the output"), &json!(2));
+        assert_eq!(output_map.pointer("/columns").expect("Could not get the /columns from the output"), &json!(2));
     }
 }

@@ -1,7 +1,6 @@
-use serde_json::Value;
-
 use flow_impl_derive::FlowImpl;
-use flowcore::{Implementation, RunAgain, RUN_AGAIN};
+use flowcore::{Implementation, RUN_AGAIN, RunAgain};
+use serde_json::Value;
 
 #[derive(FlowImpl)]
 /// Transpose a matricies rows and columns
@@ -35,10 +34,9 @@ impl Implementation for Transpose {
 
 #[cfg(test)]
 mod test {
+    use flowcore::Implementation;
     use serde_json::json;
     use serde_json::Value;
-
-    use flowcore::Implementation;
 
     #[test]
     fn transpose_empty() {
@@ -49,7 +47,7 @@ mod test {
         let transposer = super::Transpose {};
         let (result, _) = transposer.run(&inputs);
 
-        let new_matrix = result.unwrap();
+        let new_matrix = result.expect("Could not get the value from the output");
 
         assert_eq!(new_matrix, Value::Array(vec!()));
     }
@@ -64,7 +62,7 @@ mod test {
         let transposer = super::Transpose {};
         let (result, _) = transposer.run(&inputs);
 
-        let new_matrix = result.unwrap();
+        let new_matrix = result.expect("Could not get the value from the output");
         let new_row0 = new_matrix[0].clone();
 
         assert_eq!(new_row0, json!([1]));
@@ -81,7 +79,7 @@ mod test {
         let transposer = super::Transpose {};
         let (result, _) = transposer.run(&inputs);
 
-        let new_matrix = result.unwrap();
+        let new_matrix = result.expect("Could not get the value from the output");
         let new_row0 = new_matrix[0].clone();
         let new_row1 = new_matrix[1].clone();
 
@@ -100,7 +98,7 @@ mod test {
         let transposer = super::Transpose {};
         let (result, _) = transposer.run(&inputs);
 
-        let new_matrix = result.unwrap();
+        let new_matrix = result.expect("Could not get the value from the output");
         let new_row0 = new_matrix[0].clone();
         let new_row1 = new_matrix[1].clone();
         let new_row2 = new_matrix[2].clone();

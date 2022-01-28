@@ -53,7 +53,7 @@ mod test {
 
     use flowcore::{DONT_RUN_AGAIN, Implementation};
 
-    use crate::client_server::ServerConnection;
+    use crate::client_server::{Method, ServerConnection};
     use crate::coordinator::RUNTIME_SERVICE_NAME;
     use crate::runtime_messages::ClientMessage::Args;
     use crate::runtime_messages::ServerMessage::GetArgs;
@@ -62,11 +62,11 @@ mod test {
     use super::super::super::test_helper::test::wait_for_then_send;
 
     #[test]
-    #[serial(client_server)]
+    #[serial]
     fn gets_args_no_client() {
         let getter = &Get {
             server_connection: Arc::new(Mutex::new(
-                ServerConnection::new(RUNTIME_SERVICE_NAME, None)
+                ServerConnection::new(RUNTIME_SERVICE_NAME, Method::Tcp(None))
                     .expect("Could not create server connection"),
             )),
         } as &dyn Implementation;
@@ -77,7 +77,7 @@ mod test {
     }
 
     #[test]
-    #[serial(client_server)]
+    #[serial]
     fn gets_args() {
         let args: Vec<String> = vec!["flow_name", "arg1", "arg2"]
             .iter()

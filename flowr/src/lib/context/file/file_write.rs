@@ -50,7 +50,7 @@ mod test {
     use super::super::super::test_helper::test::wait_for_then_send;
 
     #[test]
-    #[serial(client_server)]
+    #[serial]
     fn write_file_invalid() {
         let file_path = "/fake/write_test";
         let file_contents = "test text".as_bytes().to_vec();
@@ -64,7 +64,7 @@ mod test {
     }
 
     #[test]
-    #[serial(client_server)]
+    #[serial]
     fn write_file() {
         let file_path = "/fake/write_test";
         let file_contents = "test text".as_bytes().to_vec();

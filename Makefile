@@ -59,7 +59,8 @@ endif
 clean:
 	@echo "clean<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
 	@cargo clean
-	@find samples -name "*.wasm" | xargs rm -f
+	@find samples -name "*.wasm" | xargs rm -fd
+	@find . -type d -name "target" | xargs rm -rf
 
 .PHONY: install-flowc
 install-flowc:
@@ -69,7 +70,7 @@ install-flowc:
 .PHONY: clippy
 clippy: install-flowc
 	@echo "clippy<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
-	@cargo clippy -- -D warnings
+	@cargo clippy --tests -- -D warnings
 
 .PHONY: build
 build: install-flowc

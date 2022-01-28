@@ -67,7 +67,7 @@ mod test {
     use super::super::super::test_helper::test::wait_for_then_send;
 
     #[test]
-    #[serial(client_server)]
+    #[serial]
     fn missing_parameters() {
         let pixel = (0, 0);
         let inputs = [json!(pixel)]; // Missing
@@ -81,7 +81,7 @@ mod test {
     }
 
     #[test]
-    #[serial(client_server)]
+    #[serial]
     fn invalid_parameters() {
         let pixel = (0, 0);
         let color = (1, 2, 3);
@@ -104,7 +104,7 @@ mod test {
     }
 
     #[test]
-    #[serial(client_server)]
+    #[serial]
     fn valid() {
         let pixel = (0, 0);
         let color = (1, 2, 3);
