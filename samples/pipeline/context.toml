@@ -6,14 +6,14 @@ version = "0.11.0"
 authors = ["Andrew Mackenzie<andrew@mackenzie-serres.net>"]
 
 [[process]]
-alias = "range"
+alias = "sequence"
 source = "lib://flowstdlib/math/sequence"
 input.start = {once =  1}
 input.end = {once =  20}
 input.step = {once =  1}
 
 [[connection]]
-from = "range/sequence"
+from = "sequence/sequence"
 to = "add1/i1"
 
 [[process]]

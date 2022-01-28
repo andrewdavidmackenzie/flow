@@ -274,8 +274,8 @@ mod test {
 
     #[test]
     #[serial]
-    fn test_range() {
-        test_run_sample("range", &super::get_flowr().unwrap());
+    fn test_sequence() {
+        test_run_sample("sequence", &super::get_flowr().unwrap());
     }
 
     #[test]

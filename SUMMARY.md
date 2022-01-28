@@ -104,7 +104,7 @@
     - [pipeline](samples/pipeline/DESCRIPTION.md)
     - [prime](samples/prime/DESCRIPTION.md)
     - [primitives](samples/primitives/DESCRIPTION.md)
-    - [range](samples/range/DESCRIPTION.md)
+    - [sequence](samples/sequence/DESCRIPTION.md)
     - [range-of-ranges](samples/range-of-ranges/DESCRIPTION.md)
     - [reverse-echo](samples/reverse-echo/DESCRIPTION.md)
     - [router](samples/router/DESCRIPTION.md)

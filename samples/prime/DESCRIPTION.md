@@ -24,7 +24,7 @@ Features Used
 * Connections between functions
 * Library Functions used
     * `Args` to parse arguments
-    * `range` to generate a range of numbers
+    * `sequence` to generate a sequence of numbers
     * `divide` to divide two numbers
     * `compare` function to produce outputs based on comparing two input values
     * `switch` function to stop or pass a data flow based on another one
