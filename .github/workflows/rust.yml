@@ -17,7 +17,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-          os: [ macos-latest, ubuntu-latest ]
+          os: [ macos-latest, ubuntu-18.04 ]
           rust: [ stable ]
 
     steps:
@@ -35,7 +35,7 @@ jobs:
       run: echo "FLOW_LIB_PATH=$GITHUB_WORKSPACE,$GITHUB_WORKSPACE/flowr/src/lib" >> "$GITHUB_ENV"
 
     - name: InstallLinuxDependencies
-      if: matrix.os == 'ubuntu-latest'
+      if: matrix.os == 'ubuntu-18.04'
       run: sudo apt-get -y install libzmq3-dev binaryen
 
     - name: InstallMacDependencies
@@ -49,7 +49,7 @@ jobs:
       run: cargo install wasm-gc wasm-snip
 
     - name: ConfigureCoverage
-      if: matrix.os == 'ubuntu-latest'
+      if: matrix.os == 'ubuntu-18.04'
       run: |
         echo RUSTC_BOOTSTRAP=1 >> "$GITHUB_ENV" # Enables -Z in stable
         cargo install grcov
@@ -70,7 +70,7 @@ jobs:
       run: cargo test --features "online_tests","wasm"
 
     - name: docs
-      if: matrix.os == 'ubuntu-latest'
+      if: matrix.os == 'ubuntu-18.04'
       run: |
         sudo apt-get -y install graphviz
         cargo install mdbook
@@ -80,7 +80,7 @@ jobs:
         make trim-docs
 
     - name: UploadCoverage
-      if: matrix.os == 'ubuntu-latest'
+      if: matrix.os == 'ubuntu-18.04'
       run: |
         grcov . --binary-path target/debug/ -s . -t lcov --branch --ignore-not-existing --ignore "/*" -o lcov.info
         bash <(curl -s https://codecov.io/bash) -f lcov.info
@@ -88,7 +88,7 @@ jobs:
 
     - name: DeployDocsToGHPages
       uses: JamesIves/github-pages-deploy-action@4.1.4
-      if: matrix.os == 'ubuntu-latest' && github.ref == 'refs/heads/master'
+      if: matrix.os == 'ubuntu-18.04' && github.ref == 'refs/heads/master'
       with:
         branch: gh-pages
         folder: target/html
