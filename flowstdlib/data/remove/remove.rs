@@ -1,7 +1,6 @@
-use serde_json::Value;
-
 use flow_impl_derive::FlowImpl;
-use flowcore::{Implementation, RunAgain, RUN_AGAIN};
+use flowcore::{Implementation, RUN_AGAIN, RunAgain};
+use serde_json::Value;
 
 #[derive(FlowImpl)]
 /// Remove a value from a vector of values
@@ -28,9 +27,8 @@ impl Implementation for Remove {
 
 #[cfg(test)]
 mod test {
-    use serde_json::{json, Value};
-
     use flowcore::Implementation;
+    use serde_json::{json, Value};
 
     #[test]
     fn remove_1() {
@@ -40,7 +38,7 @@ mod test {
         let remover = super::Remove {};
         let (result, _) = remover.run(&[value, array]);
 
-        assert_eq!(result.unwrap(), json!([2]));
+        assert_eq!(result.expect("Could not get the Value from the output"), json!([2]));
     }
 
     #[test]
@@ -51,7 +49,7 @@ mod test {
         let remover = super::Remove {};
         let (result, _) = remover.run(&[value, array]);
 
-        assert_eq!(result.unwrap(), json!([1, 3, 4]));
+        assert_eq!(result.expect("Could not get the Value from the output"), json!([1, 3, 4]));
     }
 
     #[test]
@@ -62,7 +60,7 @@ mod test {
         let remover = super::Remove {};
         let (result, _) = remover.run(&[value, array]);
 
-        assert_eq!(result.unwrap(), json!([1, 2]));
+        assert_eq!(result.expect("Could not get the Value from the output"), json!([1, 2]));
     }
 
     #[test]
@@ -73,7 +71,7 @@ mod test {
         let remover = super::Remove {};
         let (result, _) = remover.run(&[value, array]);
 
-        assert_eq!(result.unwrap(), json!([]));
+        assert_eq!(result.expect("Could not get the Value from the output"), json!([]));
     }
 
     #[test]
@@ -84,6 +82,6 @@ mod test {
         let remover = super::Remove {};
         let (result, _) = remover.run(&[value, array]);
 
-        assert_eq!(result.unwrap(), json!([1, 2, 3, 5, 7, 8, 9]));
+        assert_eq!(result.expect("Could not get the Value from the output"), json!([1, 2, 3, 5, 7, 8, 9]));
     }
 }

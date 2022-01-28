@@ -99,8 +99,8 @@ mod test {
         let relative_path_to_file = "src/url";
 
         let url =
-            url_from_string(&root_url, Some(&relative_path_to_file)).expect("Could not form URL");
-        let abs_path = format!("{}/{}", root.display().to_string(), relative_path_to_file);
+            url_from_string(&root_url, Some(relative_path_to_file)).expect("Could not form URL");
+        let abs_path = format!("{}/{}", root.display(), relative_path_to_file);
 
         assert_eq!(url.scheme(), "file");
         assert_eq!(url.path(), abs_path);

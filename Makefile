@@ -70,7 +70,7 @@ install-flowc:
 .PHONY: clippy
 clippy: install-flowc
 	@echo "clippy<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
-	@cargo clippy -- -D warnings
+	@cargo clippy --tests -- -D warnings
 
 .PHONY: build
 build: install-flowc

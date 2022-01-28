@@ -1,7 +1,6 @@
-use serde_json::Value;
-
 use flow_impl_derive::FlowImpl;
-use flowcore::{Implementation, RunAgain, RUN_AGAIN};
+use flowcore::{Implementation, RUN_AGAIN, RunAgain};
+use serde_json::Value;
 
 #[derive(FlowImpl)]
 /// Duplicate the rows of a matrix
@@ -28,10 +27,9 @@ impl Implementation for DuplicateRows {
 
 #[cfg(test)]
 mod test {
-    use serde_json::json;
-    use serde_json::{Number, Value};
-
     use flowcore::Implementation;
+    use serde_json::{Number, Value};
+    use serde_json::json;
 
     #[test]
     fn duplicate_2() {
@@ -44,7 +42,7 @@ mod test {
         let duplicator = super::DuplicateRows {};
         let (result, _) = duplicator.run(&inputs);
 
-        let new_matrix = result.unwrap();
+        let new_matrix = result.expect("Could not get the Value from the output");
         let new_row0 = new_matrix[0].clone();
         let new_row1 = new_matrix[1].clone();
         let new_row2 = new_matrix[2].clone();
@@ -91,7 +89,7 @@ mod test {
         let duplicator = super::DuplicateRows {};
         let (result, _) = duplicator.run(&inputs);
 
-        let new_matrix = result.unwrap();
+        let new_matrix = result.expect("Could not get the Value from the output");
         let new_row0 = new_matrix[0].clone();
         let new_row1 = new_matrix[1].clone();
         let new_row2 = new_matrix[2].clone();

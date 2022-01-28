@@ -1,5 +1,5 @@
-use std::path::PathBuf;
 use std::{env, fs};
+use std::path::PathBuf;
 
 use tempdir::TempDir;
 use url::Url;
@@ -80,7 +80,7 @@ mod test {
     use tempdir::TempDir;
     use url::Url;
 
-    // Tests for get_output_dir, after the url for flow has been determined
+// Tests for get_output_dir, after the url for flow has been determined
 
     #[test]
     fn http_url_no_output_dir_arg() {
@@ -102,7 +102,7 @@ mod test {
             .to_str()
             .expect("Could not convert temp dir to String");
 
-        let dir = super::get_output_dir(url, Some(&out_dir_arg)).expect("Could not get output dir");
+        let dir = super::get_output_dir(url, Some(out_dir_arg)).expect("Could not get output dir");
 
         assert_eq!(
             dir.to_str().expect("Could not convert dir ot String"),
@@ -179,7 +179,7 @@ mod test {
             .expect("Could not convert temp dir name to string");
 
         let dir =
-            super::get_output_dir(&url, Some(&out_dir_arg)).expect("Could not get output dir");
+            super::get_output_dir(&url, Some(out_dir_arg)).expect("Could not get output dir");
 
         assert_eq!(
             dir.to_str().expect("Could not convert dir ot String"),

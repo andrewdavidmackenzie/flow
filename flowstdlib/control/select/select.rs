@@ -1,7 +1,6 @@
-use serde_json::Value;
-
 use flow_impl_derive::FlowImpl;
-use flowcore::{Implementation, RunAgain, RUN_AGAIN};
+use flowcore::{Implementation, RUN_AGAIN, RunAgain};
+use serde_json::Value;
 
 #[derive(FlowImpl)]
 /// Select which data to output, based on a boolean control value.
@@ -29,9 +28,8 @@ impl Implementation for Select {
 
 #[cfg(test)]
 mod test {
-    use serde_json::json;
-
     use flowcore::{Implementation, RUN_AGAIN};
+    use serde_json::json;
 
     #[test]
     fn test_select_first() {
@@ -41,8 +39,8 @@ mod test {
         assert_eq!(run_again, RUN_AGAIN);
 
         assert!(output.is_some());
-        let value = output.unwrap();
-        let map = value.as_object().unwrap();
+        let value = output.expect("Could not get the Value from the output");
+        let map = value.as_object().expect("Could not get the Map json object from the output");
         assert_eq!(
             map.get("select_i1").expect("No 'select_i1' value in map"),
             &json!("A")
@@ -61,8 +59,8 @@ mod test {
         assert_eq!(run_again, RUN_AGAIN);
 
         assert!(output.is_some());
-        let value = output.unwrap();
-        let map = value.as_object().unwrap();
+        let value = output.expect("Could not get the Value from the output");
+        let map = value.as_object().expect("Could not get the Map json object from the output");
         assert_eq!(
             map.get("select_i1").expect("No 'select_i1' value in map"),
             &json!("B")

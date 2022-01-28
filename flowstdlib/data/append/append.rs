@@ -1,5 +1,5 @@
 use flow_impl_derive::FlowImpl;
-use flowcore::{Implementation, RunAgain, RUN_AGAIN};
+use flowcore::{Implementation, RUN_AGAIN, RunAgain};
 use serde_json::{json, Value};
 
 #[derive(FlowImpl)]
@@ -34,7 +34,7 @@ mod test {
 
         let appender = super::Append {};
         let (result, _) = appender.run(&[s1, s2]);
-        let output = result.unwrap();
+        let output = result.expect("Could not get the Value from the output");
         assert_eq!(output, json!("hello"));
     }
 
@@ -45,7 +45,7 @@ mod test {
 
         let appender = super::Append {};
         let (result, _) = appender.run(&[s1, s2]);
-        let output = result.unwrap();
+        let output = result.expect("Could not get the Value from the output");
         assert_eq!(output, json!(""));
     }
 
@@ -56,7 +56,7 @@ mod test {
 
         let appender = super::Append {};
         let (result, _) = appender.run(&[s1, s2]);
-        let output = result.unwrap();
+        let output = result.expect("Could not get the Value from the output");
         assert_eq!(output, json!("hello world"));
     }
 

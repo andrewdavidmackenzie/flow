@@ -1,7 +1,6 @@
-use serde_json::Value;
-
 use flow_impl_derive::FlowImpl;
-use flowcore::{Implementation, RunAgain, RUN_AGAIN};
+use flowcore::{Implementation, RUN_AGAIN, RunAgain};
+use serde_json::Value;
 
 #[derive(FlowImpl)]
 /// Takes a value on it's input and sends the same value `factor` times in an array output
@@ -26,9 +25,8 @@ impl Implementation for Duplicate {
 
 #[cfg(test)]
 mod test {
-    use serde_json::json;
-
     use flowcore::Implementation;
+    use serde_json::json;
 
     use super::Duplicate;
 
@@ -41,7 +39,7 @@ mod test {
         let duplicator = Duplicate {};
         let (output, _) = duplicator.run(&inputs);
 
-        assert_eq!(output.unwrap(), json!([42, 42]));
+        assert_eq!(output.expect("Could not get the Value from the output"), json!([42, 42]));
     }
 
     #[test]
@@ -53,7 +51,7 @@ mod test {
         let duplicator = Duplicate {};
         let (output, _) = duplicator.run(&inputs);
 
-        assert_eq!(output.unwrap(), json!([[1, 2, 3], [1, 2, 3]]));
+        assert_eq!(output.expect("Could not get the Value from the output"), json!([[1, 2, 3], [1, 2, 3]]));
     }
 
     #[test]
@@ -66,7 +64,7 @@ mod test {
         let (output, _) = duplicator.run(&inputs);
 
         assert_eq!(
-            output.unwrap(),
+            output.expect("Could not get the Value from the output"),
             json!([
                 [[1, 2, 3], [4, 5, 6], [7, 8, 9]],
                 [[1, 2, 3], [4, 5, 6], [7, 8, 9]]

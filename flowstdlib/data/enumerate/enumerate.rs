@@ -1,5 +1,5 @@
 use flow_impl_derive::FlowImpl;
-use flowcore::{Implementation, RunAgain, RUN_AGAIN};
+use flowcore::{Implementation, RUN_AGAIN, RunAgain};
 use serde_json::{json, Value};
 
 #[derive(FlowImpl)]
@@ -24,8 +24,8 @@ impl Implementation for Enumerate {
 #[cfg(test)]
 mod test {
     use flowcore::Implementation;
-    use serde_json::json;
     use serde_json::{Number, Value};
+    use serde_json::json;
 
     #[test]
     fn enumerate() {
@@ -34,8 +34,8 @@ mod test {
         let enumerator = super::Enumerate {};
         let (result, _) = enumerator.run(&[array]);
 
-        let output = result.unwrap();
-        let enumerated_array = output.as_array().unwrap();
+        let output = result.expect("Could not get the Value from the output");
+        let enumerated_array = output.as_array().expect("Could not get the Array from the output");
 
         assert_eq!(enumerated_array.len(), 2);
         assert_eq!(
@@ -61,8 +61,8 @@ mod test {
         let enumerator = super::Enumerate {};
         let (result, _) = enumerator.run(&[array]);
 
-        let output = result.unwrap();
-        let enumerated_array = output.as_array().unwrap();
+        let output = result.expect("Could not get the Value from the output");
+        let enumerated_array = output.as_array().expect("Could not get the Value from the output");
 
         assert_eq!(enumerated_array.len(), 0);
     }

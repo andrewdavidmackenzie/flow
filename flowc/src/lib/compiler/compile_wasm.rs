@@ -370,8 +370,7 @@ mod test {
                 Path::new(env!("CARGO_MANIFEST_DIR"))
                     .parent()
                     .expect("Error getting Manifest Dir")
-                    .display()
-                    .to_string(),
+                    .display(),
                 "flowc/tests/test-functions/stdio/stdout.rs"
             ),
             impl_source_path

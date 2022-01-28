@@ -81,9 +81,9 @@ fn execute_flow(
     filepath: PathBuf,
     test_args: Vec<String>,
     input: String,
-    client_server: bool,
+    separate_processes: bool,
 ) -> (String, String) {
-    let server = if client_server {
+    let server = if separate_processes {
         println!("Starting the 'flowr' server");
         let mut server_command = Command::new("cargo");
         let server_command_args = vec!["run", "--quiet", "-p", "flowr", "--", "-n", "-s"];
@@ -105,7 +105,7 @@ fn execute_flow(
     let mut command = Command::new("cargo");
     let mut command_args = vec!["run", "--quiet", "-p", "flowr", "--"];
 
-    if client_server {
+    if separate_processes {
         // start another 'flowr' process in client mode
         command_args.push("-c");
     } else {
@@ -193,7 +193,7 @@ fn get(test_dir: &Path, file_name: &str) -> String {
     String::from_utf8(buffer).unwrap()
 }
 
-fn execute_test(test_name: &str, search_path: Simpath, client_server: bool) {
+fn execute_test(test_name: &str, search_path: Simpath, separate_processes: bool) {
     let mut root_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     root_dir.pop();
     let test_dir = root_dir.join(&format!("flowc/tests/test-flows/{}", test_name));
@@ -206,7 +206,7 @@ fn execute_test(test_name: &str, search_path: Simpath, client_server: bool) {
         let test_args = test_args(&test_dir, test_name);
         let input = get(&test_dir, &format!("{}.stdin", test_name));
         let (actual_stdout, actual_stderr) =
-            execute_flow(manifest_path, test_args, input, client_server);
+            execute_flow(manifest_path, test_args, input, separate_processes);
         let expected_output = get(&test_dir, &format!("{}.expected", test_name));
         assert!(actual_stderr.is_empty(), "{}", actual_stderr);
         assert_eq!(

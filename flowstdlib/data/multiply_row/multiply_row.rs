@@ -1,7 +1,6 @@
-use serde_json::{json, Value};
-
 use flow_impl_derive::FlowImpl;
-use flowcore::{Implementation, RunAgain, RUN_AGAIN};
+use flowcore::{Implementation, RUN_AGAIN, RunAgain};
+use serde_json::{json, Value};
 
 #[derive(FlowImpl)]
 /// Multiply two matrix rows to a product
@@ -28,10 +27,9 @@ impl Implementation for MultiplyRow {
 
 #[cfg(test)]
 mod test {
+    use flowcore::Implementation;
     use serde_json::json;
     use serde_json::Value;
-
-    use flowcore::Implementation;
 
     #[test]
     fn multiply_row() {
@@ -43,7 +41,7 @@ mod test {
         let multiplier = super::MultiplyRow {};
         let (result, _) = multiplier.run(&inputs);
 
-        let product = result.unwrap();
+        let product = result.expect("Could not get the Value from the output");
 
         assert_eq!(product, json!(11));
     }

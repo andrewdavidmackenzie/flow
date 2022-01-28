@@ -1,9 +1,8 @@
+use flow_impl_derive::FlowImpl;
+use flowcore::{Implementation, RUN_AGAIN, RunAgain};
 use serde_json::json;
 use serde_json::Value;
 use serde_json::Value::String as JsonString;
-
-use flow_impl_derive::FlowImpl;
-use flowcore::{Implementation, RunAgain, RUN_AGAIN};
 
 #[derive(FlowImpl)]
 /// Reverse a String
@@ -28,9 +27,8 @@ impl Implementation for Reverse {
 
 #[cfg(test)]
 mod test {
-    use serde_json::json;
-
     use flowcore::{Implementation, RUN_AGAIN};
+    use serde_json::json;
 
     #[test]
     fn test_reverse() {
@@ -40,8 +38,8 @@ mod test {
         assert_eq!(run_again, RUN_AGAIN);
 
         assert!(output.is_some());
-        let value = output.unwrap();
-        let map = value.as_object().unwrap();
+        let value = output.expect("No value was returned in the output");
+        let map = value.as_object().expect("Expected a Map json object");
         assert_eq!(
             map.get("original").expect("No 'original' value in map"),
             &json!("Hello")

@@ -1,5 +1,5 @@
 use flow_impl_derive::FlowImpl;
-use flowcore::{Implementation, RunAgain, RUN_AGAIN};
+use flowcore::{Implementation, RUN_AGAIN, RunAgain};
 use serde_json::Value;
 
 #[derive(FlowImpl)]
@@ -27,7 +27,7 @@ mod test {
         let value: Value = json!(42);
 
         let buffer = Buffer {};
-        let buffered_value = buffer.run(&[value]).0.unwrap();
+        let buffered_value = buffer.run(&[value]).0.expect("Could not get the Value from the output");
         assert_eq!(buffered_value, 42, "Did not return the value passed in");
     }
 

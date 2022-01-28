@@ -1,8 +1,7 @@
+use flow_impl_derive::FlowImpl;
+use flowcore::{Implementation, RUN_AGAIN, RunAgain};
 use serde_json::json;
 use serde_json::Value;
-
-use flow_impl_derive::FlowImpl;
-use flowcore::{Implementation, RunAgain, RUN_AGAIN};
 
 #[derive(FlowImpl)]
 /// Multiply one input by another
@@ -26,9 +25,8 @@ impl Implementation for Multiply {
 
 #[cfg(test)]
 mod test {
-    use serde_json::{json, Value};
-
     use flowcore::Implementation;
+    use serde_json::{json, Value};
 
     use super::Multiply;
 
@@ -43,7 +41,7 @@ mod test {
         let (output, run_again) = multiplier.run(&inputs);
         assert!(run_again);
 
-        let value = output.unwrap();
+        let value = output.expect("Could not get the value from the output");
         assert_eq!(value, Value::Number(serde_json::Number::from(test_data.2)));
     }
 

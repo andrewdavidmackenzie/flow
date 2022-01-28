@@ -215,7 +215,7 @@ mod test {
             .expect("Could not get project root dir");
         let expected_url = Url::parse(&format!(
             "file://{}/flowstdlib/control/tap/tap.toml",
-            root_str.display().to_string()
+            root_str.display()
         ))
         .expect("Could not create expected url");
         let provider = &MetaProvider::new(set_lib_search_path()) as &dyn Provider;
