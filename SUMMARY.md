@@ -105,7 +105,7 @@
     - [prime](samples/prime/DESCRIPTION.md)
     - [primitives](samples/primitives/DESCRIPTION.md)
     - [sequence](samples/sequence/DESCRIPTION.md)
-    - [range-of-ranges](samples/range-of-ranges/DESCRIPTION.md)
+    - [range-of-ranges](samples/sequence-of-sequences/DESCRIPTION.md)
     - [reverse-echo](samples/reverse-echo/DESCRIPTION.md)
     - [router](samples/router/DESCRIPTION.md)
     - [tokenizer](samples/tokenizer/DESCRIPTION.md)

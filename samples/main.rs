@@ -280,8 +280,8 @@ mod test {
 
     #[test]
     #[serial]
-    fn test_range_of_ranges() {
-        test_run_sample("range-of-ranges", &super::get_flowr().unwrap());
+    fn test_sequence_of_sequences() {
+        test_run_sample("sequence-of-sequences", &super::get_flowr().unwrap());
     }
 
     #[test]

@@ -68,7 +68,7 @@ test test::test_pipeline ... ok
 test test::test_prime ... ok
 test test::test_primitives ... ok
 test test::test_sequence ... ok
-test test::test_range_of_ranges ... ok
+test test::test_sequence_of_sequences ... ok
 test test::test_reverse_echo ... ok
 test test::test_router ... ok
 test test::test_tokenizer ... ok
