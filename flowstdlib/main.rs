@@ -83,6 +83,6 @@ mod test {
     #[test]
     fn get_manifest_test() {
         let manifest = flowstdlib::get_manifest().expect("Could not get manifest");
-        assert_eq!(manifest.locators.len(), 30);
+        assert_eq!(manifest.locators.len(), 31);
     }
 }
