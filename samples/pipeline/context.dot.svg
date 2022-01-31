@@ -10,12 +10,12 @@
 <title>pipeline</title>
 <polygon fill="white" stroke="transparent" points="-4,4 -4,-680.7 701.63,-680.7 701.63,4 -4,4"/>
 <text text-anchor="middle" x="348.81" y="-661.5" font-family="Times,serif" font-size="14.00">pipeline</text>
-<!-- /pipeline/range -->
+<!-- /pipeline/sequence -->
 <g id="node1" class="node">
-<title>/pipeline/range</title>
-<g id="a_node1"><a xlink:href="lib://flowstdlib/math/sequence.dot.svg" xlink:title="range">
+<title>/pipeline/sequence</title>
+<g id="a_node1"><a xlink:href="lib://flowstdlib/math/sequence.dot.svg" xlink:title="sequence">
 <ellipse fill="aquamarine" stroke="black" cx="352.29" cy="-581.7" rx="72" ry="72"/>
-<text text-anchor="middle" x="352.29" y="-578" font-family="Times,serif" font-size="14.00">range</text>
+<text text-anchor="middle" x="352.29" y="-578" font-family="Times,serif" font-size="14.00">sequence</text>
 </a>
 </g>
 </g>
@@ -29,9 +29,9 @@
 </a>
 </g>
 </g>
-<!-- /pipeline/range&#45;&gt;/pipeline/add1 -->
+<!-- /pipeline/sequence&#45;&gt;/pipeline/add1 -->
 <g id="edge5" class="edge">
-<title>/pipeline/range:s&#45;&gt;/pipeline/add1:ne</title>
+<title>/pipeline/sequence:s&#45;&gt;/pipeline/add1:ne</title>
 <path fill="none" stroke="black" d="M352.29,-509.7C352.29,-470.12 310.57,-482.66 280.14,-461.4"/>
 <polygon fill="black" stroke="black" points="282.2,-458.57 272.29,-454.83 277.71,-463.93 282.2,-458.57"/>
 <text text-anchor="middle" x="280.61" y="-478.82" font-family="Times,serif" font-size="14.00">sequence</text>
