@@ -20,6 +20,7 @@ include!(concat!(env!("OUT_DIR"), "/manifest.rs"));
 
 #[cfg(test)]
 pub mod test {
+    use std::env;
     use std::fs::File;
     use std::io::{Read, Write};
     use std::path::PathBuf;
@@ -41,7 +42,6 @@ pub mod test {
             .expect("Couldn't spawn flowc to run test flow");
 
         let result = runner.wait().expect("failed to wait on child");
-        assert!(result.success());
 
         // read it's stdout
         let mut output = String::new();
@@ -49,6 +49,9 @@ pub mod test {
             stdout.read_to_string(&mut output).expect("Could not read stdout");
         }
 
+        println!("stdout = {}", output);
+
+        assert!(result.success());
         output
     }
 
@@ -74,6 +77,9 @@ to = \"stdout\"
         let mut flow_file =
             File::create(&flow_filename).expect("Could not create lib manifest file");
         flow_file.write_all(flow.as_bytes()).expect("Could not write data bytes to created flow file");
+
+        let cwd = env::current_dir().expect("Could not get the current working directory");
+        println!("CWD = {}", cwd.display());
 
         let stdout = execute_flow(flow_filename);
 

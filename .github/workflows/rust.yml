@@ -59,6 +59,9 @@ jobs:
     - name: install-flowc
       run: cargo install --path flowc
 
+    - name: install-flowr
+      run: cargo install --path flowr
+
     - name: clippy
       run: cargo clippy --tests -- -D warnings
 
