@@ -17,7 +17,7 @@ impl Implementation for RangeSplit {
 
                         if min == max {
                             // if the two are the same, we are done, output in the sequence
-                            output_map.insert("sequence".into(), json!(min));
+                            output_map.insert("same".into(), json!(min));
                         } else {
                             // split the range_split into two and output for further subdivision
                             let bottom: Vec<i64> = vec!(min, ((max-min)/2) + min);
@@ -29,7 +29,7 @@ impl Implementation for RangeSplit {
                                 output_map.insert("top".into(), json!(top));
                             } else {
                                 // if the two are the same, we are done, output in the sequence
-                                output_map.insert("sequence".into(), json!(max));
+                                output_map.insert("same".into(), json!(max));
                             }
                         }
                         (Some(json!(output_map)), RUN_AGAIN)
@@ -92,7 +92,7 @@ mod test {
             if let Some(top) = result.pointer("/top") {
                 requires_further_splitting.push(top.clone());
             }
-            if let Some(sequence) = result.pointer("/sequence") {
+            if let Some(sequence) = result.pointer("/same") {
                 acquired_set.push(sequence.clone());
             }
         }

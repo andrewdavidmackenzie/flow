@@ -1046,7 +1046,7 @@ impl RunState {
                 },
             }
 
-            // State::Running is because functions with initializers auto-refill when sent to run
+            // State::Running is because functions with initializers auto-refill
             // So they will show as inputs full, but not Ready or Blocked
             let state = self.get_state(function.id());
             if (!function.inputs().is_empty())
@@ -1058,7 +1058,7 @@ impl RunState {
                 return self.runtime_error(
                     job_id,
                     &format!(
-                        "Function #{} inputs are full, but it is not Ready or Blocked",
+                        "Function #{} inputs have data, but it is not Ready or Blocked or Running",
                         function.id()
                     ),
                     file!(),

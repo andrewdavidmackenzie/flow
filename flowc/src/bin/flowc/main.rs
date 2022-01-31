@@ -13,7 +13,7 @@ use std::process::exit;
 
 use clap::{App, AppSettings, Arg, ArgMatches};
 use colored::*;
-use log::{debug, info, warn};
+use log::{debug, error, info, warn};
 use simpath::Simpath;
 use simplog::simplog::SimpleLogger;
 use url::Url;
@@ -56,15 +56,15 @@ pub struct Options {
 fn main() {
     match run() {
         Err(ref e) => {
-            println!("{}: {}", "error".red(), e);
+            error!("{}: {}", "error".red(), e);
 
             for e in e.iter().skip(1) {
-                println!("caused by: {}", e);
+                error!("caused by: {}", e);
             }
 
             // The backtrace is generated if env var `RUST_BACKTRACE` is set to `1` or `full`
             if let Some(backtrace) = e.backtrace() {
-                println!("backtrace: {:?}", backtrace);
+                error!("backtrace: {:?}", backtrace);
             }
 
             exit(1);

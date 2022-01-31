@@ -1,0 +1,34 @@
+flow = "range"
+docs = "range.md"
+
+# The range to generate: [min, max] both are inclusive
+[[input]]
+name = "range"
+type = "Array/Number"
+
+# The series of numbers in the range generated
+[[output]]
+name = "number"
+type = "Number"
+
+[[process]]
+alias = "range_split"
+source = "lib://flowstdlib/math/range_split"
+
+[[connection]]
+from = "input/range"
+to = "range_split/range"
+
+# Send the numbers (ranges that cannot be split further) to the output
+[[connection]]
+from = "range_split/same"
+to = "output/number"
+
+# Feedback the two sub-ranges for further splitting
+[[connection]]
+from = "range_split/bottom"
+to = "range_split/range"
+
+[[connection]]
+from = "range_split/top"
+to = "range_split/range"
