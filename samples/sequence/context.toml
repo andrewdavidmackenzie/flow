@@ -1,4 +1,4 @@
-flow = "range"
+flow = "sequence"
 docs = "DESCRIPTION.md"
 
 [[process]]

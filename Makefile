@@ -62,23 +62,24 @@ clean:
 	@find samples -name "*.wasm" | xargs rm -fd
 	@find . -type d -name "target" | xargs rm -rf
 
-.PHONY: install-flowc
-install-flowc:
-	@echo "install-flowc<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
+.PHONY: install-flow
+install-flow:
+	@echo "install-flow<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
 	@cargo install --path flowc
+	@cargo install --path flowr
 
 .PHONY: clippy
-clippy: install-flowc
+clippy: install-flow
 	@echo "clippy<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
 	@cargo clippy --tests -- -D warnings
 
 .PHONY: build
-build: install-flowc
+build: install-flow
 	@echo "build<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
 	@cargo build $(features)
 
 .PHONY: test
-test: install-flowc
+test: install-flow
 	@echo "test<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
 	@cargo test $(features)
 

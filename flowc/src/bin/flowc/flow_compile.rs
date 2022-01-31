@@ -1,13 +1,10 @@
 #[cfg(feature = "debugger")]
 use std::collections::HashSet;
-use std::env;
 use std::path::Path;
 use std::process::Command;
 use std::process::Stdio;
 
 use log::{debug, error, info};
-use simpath::Simpath;
-use simpath::{FileType, FoundType};
 #[cfg(feature = "debugger")]
 use url::Url;
 
@@ -176,45 +173,6 @@ fn dump(
     Ok("Dumped".into())
 }
 
-#[cfg(not(target_os = "windows"))]
-fn get_executable_name() -> String {
-    "flowr".to_string()
-}
-
-#[cfg(target_os = "windows")]
-fn get_executable_name() -> String {
-    "flowr.exe".to_string()
-}
-
-/*
-    Find the absolute path to the executable to be used to run the flow.
-        - First looking for development directories under the Current Working Directory
-          to facilitate development.
-        - If not found there, then look in the PATH env variable
-*/
-fn find_executable_path(name: &str) -> Result<String> {
-    // See if debug version in development is available
-    let cwd = env::current_dir().chain_err(|| "Could not get the current working directory")?;
-    let file = cwd.join(&format!("./target/debug/{}", name));
-    let abs_path = file.canonicalize();
-    if let Ok(file_exists) = abs_path {
-        return Ok(file_exists.to_string_lossy().to_string());
-    }
-
-    let file = cwd.join(&format!("./target/release/{}", name));
-    let abs_path = file.canonicalize();
-    if let Ok(file_exists) = abs_path {
-        return Ok(file_exists.to_string_lossy().to_string());
-    }
-
-    // Couldn't find the development version under CWD where running, so look in path
-    let bin_search_path = Simpath::new("PATH");
-    match bin_search_path.find_type(name, FileType::File) {
-        Ok(FoundType::File(bin_path)) => Ok(bin_path.to_string_lossy().to_string()),
-        _ => bail!("Could not find executable '{}'", name),
-    }
-}
-
 /*
     Run flow using 'flowr'
     Inherit standard output and input and just let the process run as normal.
@@ -225,7 +183,6 @@ fn find_executable_path(name: &str) -> Result<String> {
 fn execute_flow(filepath: &Path, options: &Options) -> Result<String> {
     info!("Executing flow from manifest in '{}'", filepath.display());
 
-    let command = find_executable_path(&get_executable_name())?;
     let mut command_args = vec![filepath.display().to_string()];
 
     // If the user didn't already specify the "-n" (native libraries) option for execution of
@@ -238,9 +195,9 @@ fn execute_flow(filepath: &Path, options: &Options) -> Result<String> {
         command_args.push("--".to_string());
         command_args.append(&mut options.flow_args.to_vec());
     }
-    info!("Running flow using '{} {:?}'", &command, &command_args);
+    info!("Running flow using 'flowr {:?}'", &command_args);
 
-    let mut flowr = Command::new(&command);
+    let mut flowr = Command::new("flowr");
     flowr
         .args(command_args)
         .stdin(Stdio::inherit())

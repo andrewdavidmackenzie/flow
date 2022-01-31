@@ -11,7 +11,7 @@ from = "args/json/1"
 to = "candidates/end"
 
 ####### All numbers - Sequence
-# Generate the range of numbers from 1..limit of possible primes
+# Generate the sequence of numbers from 1..limit of possible primes
 [[process]]
 alias = "candidates"
 source = "lib://flowstdlib/math/sequence"

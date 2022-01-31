@@ -1,9 +1,9 @@
-range
+sequence
 ==
 
 Description
 ===
-A flow that generates a series of output numbers in a range between two input numbers
+A flow that generates a sequence of output numbers in a range between two input numbers
 
 Context Diagram
 ===
