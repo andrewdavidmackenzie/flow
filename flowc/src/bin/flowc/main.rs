@@ -148,7 +148,7 @@ fn get_matches<'a>() -> ArgMatches<'a> {
             Arg::with_name("native")
                 .short("n")
                 .long("native")
-                .help("Only compile native library implementations (not wasm)")
+                .help("Compile only native (not wasm) implementations when compiling a library")
                 .requires("lib"),
         )
         .arg(
