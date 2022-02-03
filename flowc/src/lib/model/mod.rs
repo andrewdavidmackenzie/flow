@@ -3,7 +3,7 @@ pub mod connection;
 /// `datatype` specifies the type o fdata permitted on a input, output or connection
 pub mod datatype;
 /// `flow` is the definition of an entire flow, including children flows
-pub mod flow;
+pub mod flow_definition;
 /// `function` defines a function in a flow or library
 pub mod function_definition;
 /// `io` is the object used to define a process's inputs or outputs

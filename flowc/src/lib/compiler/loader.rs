@@ -11,7 +11,7 @@ use flowcore::input::InputInitializer;
 use flowcore::lib_provider::Provider;
 
 use crate::errors::*;
-use crate::model::flow::Flow;
+use crate::model::flow_definition::FlowDefinition;
 use crate::model::name::HasName;
 use crate::model::name::Name;
 use crate::model::process::Process;
@@ -204,7 +204,7 @@ pub fn load_metadata(url: &Url, provider: &dyn Provider) -> Result<(MetaData, Li
     Load sub-processes from the process_refs in a flow
 */
 fn load_process_refs(
-    flow: &mut Flow,
+    flow: &mut FlowDefinition,
     flow_count: &mut usize,
     provider: &dyn Provider,
     #[cfg(feature = "debugger")] source_urls: &mut HashSet<(Url, Url)>,

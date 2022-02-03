@@ -15,7 +15,7 @@ use flowclib::dumper::dump_flow;
 use flowclib::dumper::dump_tables;
 use flowclib::generator::generate;
 use flowclib::generator::generate::GenerationTables;
-use flowclib::model::flow::Flow;
+use flowclib::model::flow_definition::FlowDefinition;
 use flowclib::model::process::Process::FlowProcess;
 use flowcore::lib_provider::Provider;
 
@@ -25,7 +25,7 @@ use crate::Options;
 /*
     Check root process fits the rules for a Context and being a runnable flow
 */
-fn check_root(flow: &Flow) -> bool {
+fn check_root(flow: &FlowDefinition) -> bool {
     let mut runnable = true;
 
     if !flow.inputs().is_empty() {
@@ -143,7 +143,7 @@ pub fn compile_and_execute_flow(options: &Options, provider: &dyn Provider) -> R
 }
 
 fn dump(
-    flow: &Flow,
+    flow: &FlowDefinition,
     provider: &dyn Provider,
     tables: &GenerationTables,
     options: &Options,

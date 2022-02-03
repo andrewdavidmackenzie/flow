@@ -3,6 +3,7 @@
 extern crate proc_macro;
 
 use proc_macro::TokenTree::Ident;
+
 use quote::quote;
 
 use crate::proc_macro::TokenStream;
@@ -22,10 +23,9 @@ pub fn flow(attr: TokenStream, item: TokenStream) -> TokenStream {
     impl_flow(&ast)
 }
 
-// Parse the attributes of the macro invokation (a TokenStream) and find the value assigned
-// to the definition 'field'
-// example
-// #[flow(definition = "file.toml")]
+// Parse the attributes of the macro invocation (a TokenStream) and find the value assigned
+// to the definition 'field', an example is
+//      #[flow(definition = "file.toml")]
 fn find_definition_filename(attributes: TokenStream) -> Option<String> {
     let mut iter = attributes.into_iter();
     while let Some(attribute) = iter.next() {

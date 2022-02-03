@@ -10,7 +10,7 @@ use flowcore::input::InputInitializer::{Always, Once};
 use crate::errors::*;
 use crate::generator::generate::GenerationTables;
 use crate::model::connection::Connection;
-use crate::model::flow::Flow;
+use crate::model::flow_definition::FlowDefinition;
 use crate::model::function_definition::FunctionDefinition;
 use crate::model::io::{Find, IOSet};
 use crate::model::name::{HasName, Name};
@@ -44,7 +44,7 @@ fn remove_file_extension(file_path: &str) -> String {
 }
 
 pub fn write_flow_to_dot(
-    flow: &Flow,
+    flow: &FlowDefinition,
     dot_file: &mut dyn Write,
     output_dir: &Path,
 ) -> std::io::Result<()> {
@@ -190,7 +190,7 @@ fn node_from_io_route(route: &Route, name: &Name, io_set: &IOSet) -> (String, St
     }
 }
 
-fn digraph_wrapper_start(flow: &Flow) -> String {
+fn digraph_wrapper_start(flow: &FlowDefinition) -> String {
     let mut wrapper = String::new();
 
     // Create a directed graph named after the flow
@@ -398,7 +398,7 @@ fn output_compiled_function(
 }
 
 pub fn process_refs_to_dot(
-    flow: &Flow,
+    flow: &FlowDefinition,
     tables: &GenerationTables,
     output_dir: &Path,
 ) -> Result<String> {

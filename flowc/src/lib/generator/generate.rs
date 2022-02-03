@@ -15,7 +15,7 @@ use flowcore::runtime_function::RuntimeFunction;
 
 use crate::errors::*;
 use crate::model::connection::Connection;
-use crate::model::flow::Flow;
+use crate::model::flow_definition::FlowDefinition;
 use crate::model::function_definition::FunctionDefinition;
 use crate::model::io::IO;
 use crate::model::name::HasName;
@@ -58,8 +58,8 @@ impl GenerationTables {
     }
 }
 
-impl From<&Flow> for MetaData {
-    fn from(flow: &Flow) -> Self {
+impl From<&FlowDefinition> for MetaData {
+    fn from(flow: &FlowDefinition) -> Self {
         flow.metadata.clone()
     }
 }
@@ -74,7 +74,7 @@ impl From<&IO> for Input {
 /// and associated files relocatable (and maybe packaged into a ZIP etc). So we use manifest_url
 /// as the location other file paths are made relative to.
 pub fn create_manifest(
-    flow: &Flow,
+    flow: &FlowDefinition,
     debug_symbols: bool,
     manifest_url: &Url,
     tables: &GenerationTables,
@@ -104,7 +104,7 @@ pub fn create_manifest(
 // TODO this is tied to being a file:// - generalize this to write to a URL, moving the code
 // TODO into the provider and implementing for file and http
 pub fn write_flow_manifest(
-    flow: Flow,
+    flow: FlowDefinition,
     debug_symbols: bool,
     destination: &Path,
     tables: &GenerationTables,

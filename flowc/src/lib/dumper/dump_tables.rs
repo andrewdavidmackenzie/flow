@@ -7,7 +7,7 @@ use log::info;
 
 use crate::dumper::dump_dot;
 use crate::generator::generate::GenerationTables;
-use crate::model::flow::Flow;
+use crate::model::flow_definition::FlowDefinition;
 use crate::model::route::HasRoute;
 
 /// Dump the compiler tables of a loaded flow in human readable format to a specified
@@ -85,7 +85,7 @@ pub fn create_output_file(
     Create a directed graph named after the flow, adding functions grouped in sub-clusters
 */
 fn functions_to_dot(
-    flow: &Flow,
+    flow: &FlowDefinition,
     tables: &GenerationTables,
     output_dir: &Path,
 ) -> std::io::Result<()> {
@@ -146,7 +146,7 @@ fn functions_to_dot(
 /// }
 /// ```
 pub fn dump_functions(
-    flow: &Flow,
+    flow: &FlowDefinition,
     tables: &GenerationTables,
     output_dir: &Path,
 ) -> std::io::Result<()> {

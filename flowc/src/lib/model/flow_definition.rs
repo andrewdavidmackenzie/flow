@@ -31,10 +31,10 @@ use crate::model::route::HasRoute;
 use crate::model::route::SetIORoutes;
 use crate::model::route::SetRoute;
 
-/// `Flow` defines a parent or child flow in the nested flow hierarchy
+/// `FlowDefinition` defines (at compile time) a parent or child flow in the nested flow hierarchy
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
-pub struct Flow {
+pub struct FlowDefinition {
     /// `name` given to this flow
     #[serde(rename = "flow")]
     pub name: Name,
@@ -65,7 +65,7 @@ pub struct Flow {
     #[serde(skip)]
     pub id: usize,
     /// `source_url` is the url of the file/resource where this flow definition was read from
-    #[serde(skip, default = "Flow::default_url")]
+    #[serde(skip, default = "FlowDefinition::default_url")]
     pub source_url: Url,
     /// `route` defines the location in the hierarchy of flows where this ones resides
     #[serde(skip)]
@@ -78,7 +78,7 @@ pub struct Flow {
     pub lib_references: HashSet<Url>,
 }
 
-impl Validate for Flow {
+impl Validate for FlowDefinition {
     // check the correctness of all the fields in this flow, prior to loading sub-elements
     fn validate(&self) -> Result<()> {
         for input in &self.inputs {
@@ -97,7 +97,7 @@ impl Validate for Flow {
     }
 }
 
-impl fmt::Display for Flow {
+impl fmt::Display for FlowDefinition {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         writeln!(f, "\tname: \t\t\t{}\n\tid: \t\t\t{}\n\talias: \t\t\t{}\n\tsource_url: \t{}\n\troute: \t\t\t{}",
                  self.name, self.id, self.alias, self.source_url, self.route)?;
@@ -126,10 +126,10 @@ impl fmt::Display for Flow {
     }
 }
 
-impl Default for Flow {
-    fn default() -> Flow {
+impl Default for FlowDefinition {
+    fn default() -> FlowDefinition {
         #[allow(clippy::unwrap_used)]
-        Flow {
+        FlowDefinition {
             name: Default::default(),
             inputs: vec![],
             outputs: vec![],
@@ -147,7 +147,7 @@ impl Default for Flow {
     }
 }
 
-impl HasName for Flow {
+impl HasName for FlowDefinition {
     fn name(&self) -> &Name {
         &self.name
     }
@@ -157,7 +157,7 @@ impl HasName for Flow {
     }
 }
 
-impl HasRoute for Flow {
+impl HasRoute for FlowDefinition {
     fn route(&self) -> &Route {
         &self.route
     }
@@ -166,7 +166,7 @@ impl HasRoute for Flow {
     }
 }
 
-impl SetRoute for Flow {
+impl SetRoute for FlowDefinition {
     fn set_routes_from_parent(&mut self, parent_route: &Route) {
         if parent_route.is_empty() {
             self.route = Route::from(format!("/{}", self.alias));
@@ -180,7 +180,7 @@ impl SetRoute for Flow {
     }
 }
 
-impl Flow {
+impl FlowDefinition {
     /// Return a default value for a Url as part of a flow
     pub fn default_url() -> Url {
         #[allow(clippy::unwrap_used)]
@@ -433,7 +433,7 @@ mod test {
 
     use crate::compiler::loader::Validate;
     use crate::model::connection::Connection;
-    use crate::model::flow::Flow;
+    use crate::model::flow_definition::FlowDefinition;
     use crate::model::function_definition::FunctionDefinition;
     use crate::model::io::IO;
     use crate::model::name::{HasName, Name};
@@ -441,8 +441,8 @@ mod test {
     use crate::model::route::{HasRoute, Route, SetRoute};
 
     // Create a test flow we can use in connection building testing
-    fn test_flow() -> Flow {
-        let mut flow = Flow {
+    fn test_flow() -> FlowDefinition {
+        let mut flow = FlowDefinition {
             name: "test_flow".into(),
             alias: "test_flow".into(),
             inputs: vec![
@@ -453,7 +453,7 @@ mod test {
                 IO::new_named(vec!("String".into()), "string", "string"),
                 IO::new_named(vec!("Number".into()), "number", "number"),
             ],
-            source_url: super::Flow::default_url(),
+            source_url: super::FlowDefinition::default_url(),
             ..Default::default()
         };
 
@@ -481,39 +481,39 @@ mod test {
 
     #[test]
     fn test_name() {
-        let flow = super::Flow::default();
+        let flow = super::FlowDefinition::default();
         assert_eq!(flow.name(), &Name::default());
     }
 
     #[test]
     fn test_alias() {
-        let flow = super::Flow::default();
+        let flow = super::FlowDefinition::default();
         assert_eq!(flow.alias(), &Name::default());
     }
 
     #[test]
     fn test_set_alias() {
-        let mut flow = super::Flow::default();
+        let mut flow = super::FlowDefinition::default();
         flow.set_alias(&Name::from("test flow"));
         assert_eq!(flow.alias(), &Name::from("test flow"));
     }
 
     #[test]
     fn test_set_empty_alias() {
-        let mut flow = super::Flow::default();
+        let mut flow = super::FlowDefinition::default();
         flow.set_alias(&Name::from(""));
         assert_eq!(flow.alias(), &Name::from(""));
     }
 
     #[test]
     fn test_route() {
-        let flow = super::Flow::default();
+        let flow = super::FlowDefinition::default();
         assert_eq!(flow.route(), &Route::default());
     }
 
     #[test]
     fn test_route_mut() {
-        let mut flow = super::Flow::default();
+        let mut flow = super::FlowDefinition::default();
         let route = flow.route_mut();
         assert_eq!(route, &Route::default());
         *route = Route::from("/context");
@@ -610,7 +610,7 @@ mod test {
 
     mod build_connection_tests {
         use crate::model::connection::Connection;
-        use crate::model::flow::test::test_flow;
+        use crate::model::flow_definition::test::test_flow;
 
         #[test]
         fn build_compatible_internal_connection() {

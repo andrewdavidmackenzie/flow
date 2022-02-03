@@ -10,7 +10,7 @@ use flowcore::lib_provider::Provider;
 
 use crate::dumper::dump_dot;
 use crate::errors::*;
-use crate::model::flow::Flow;
+use crate::model::flow_definition::FlowDefinition;
 use crate::model::process::Process::FlowProcess;
 
 use super::dump_tables;
@@ -48,7 +48,7 @@ use super::dump_tables;
 /// }
 /// ```
 pub fn dump_flow(
-    flow: &Flow,
+    flow: &FlowDefinition,
     target_dir: &Path,
     provider: &dyn Provider,
     dump_files: bool,
@@ -102,7 +102,7 @@ pub fn generate_svgs(root_dir: &Path) -> Result<()> {
 */
 #[allow(clippy::or_fun_call)]
 fn _dump_flow(
-    flow: &Flow,
+    flow: &FlowDefinition,
     level: usize,
     target_dir: &Path,
     provider: &dyn Provider,

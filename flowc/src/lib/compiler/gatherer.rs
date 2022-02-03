@@ -2,14 +2,14 @@ use std::iter::Extend;
 
 use crate::errors::*;
 use crate::generator::generate::GenerationTables;
-use crate::model::flow::Flow;
+use crate::model::flow_definition::FlowDefinition;
 use crate::model::function_definition::FunctionDefinition;
 use crate::model::process::Process::FlowProcess;
 use crate::model::process::Process::FunctionProcess;
 
 /// This module is responsible for parsing the flow tree and gathering information into a set of
 /// flat tables that the compiler can use for code generation.
-pub fn gather_functions_and_connections(flow: &Flow, tables: &mut GenerationTables) -> Result<()> {
+pub fn gather_functions_and_connections(flow: &FlowDefinition, tables: &mut GenerationTables) -> Result<()> {
     // Add Connections from this flow hierarchy to the connections table
     let mut connections = flow.connections.clone();
     tables.connections.append(&mut connections);

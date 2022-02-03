@@ -1,6 +1,6 @@
 use serde_derive::{Deserialize, Serialize};
 
-use crate::model::flow::Flow;
+use crate::model::flow_definition::FlowDefinition;
 use crate::model::function_definition::FunctionDefinition;
 use crate::model::name::{HasName, Name};
 use crate::model::route::{HasRoute, Route};
@@ -11,7 +11,7 @@ use crate::model::route::{HasRoute, Route};
 #[serde(untagged)]
 pub enum Process {
     /// The process is actually a `Flow`
-    FlowProcess(Flow),
+    FlowProcess(FlowDefinition),
     /// The process is actually a `Function`
     FunctionProcess(FunctionDefinition),
 }
