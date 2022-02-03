@@ -17,10 +17,10 @@ use url::Url;
 use flowclib::compiler::{compile, loader};
 use flowclib::generator::generate;
 use flowclib::generator::generate::GenerationTables;
-use flowclib::model::flow_definition::FlowDefinition;
-use flowclib::model::process::Process;
-use flowclib::model::process::Process::FlowProcess;
 use flowcore::lib_provider::MetaProvider;
+use flowcore::model::flow_definition::FlowDefinition;
+use flowcore::model::process::Process;
+use flowcore::model::process::Process::FlowProcess;
 
 #[path = "helper.rs"]
 mod helper;

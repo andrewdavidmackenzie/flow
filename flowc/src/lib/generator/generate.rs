@@ -10,18 +10,17 @@ use url::Url;
 
 use flowcore::flow_manifest::{DEFAULT_MANIFEST_FILENAME, FlowManifest, MetaData};
 use flowcore::input::Input;
+use flowcore::model::connection::Connection;
+use flowcore::model::flow_definition::FlowDefinition;
+use flowcore::model::function_definition::FunctionDefinition;
+use flowcore::model::name::HasName;
+#[cfg(feature = "debugger")]
+use flowcore::model::route::HasRoute;
+use flowcore::model::route::Route;
+use flowcore::model::runtime_function::RuntimeFunction;
 use flowcore::output_connection::Source;
-use flowcore::runtime_function::RuntimeFunction;
 
 use crate::errors::*;
-use crate::model::connection::Connection;
-use crate::model::flow_definition::FlowDefinition;
-use crate::model::function_definition::FunctionDefinition;
-use crate::model::io::IO;
-use crate::model::name::HasName;
-#[cfg(feature = "debugger")]
-use crate::model::route::HasRoute;
-use crate::model::route::Route;
 
 /// `GenerationTables` are built from the flattened and connected flow model in memory and are
 /// used to generate the flow's manifest ready to be executed.
@@ -55,18 +54,6 @@ impl GenerationTables {
             libs: HashSet::new(),
             source_files: Vec::new(),
         }
-    }
-}
-
-impl From<&FlowDefinition> for MetaData {
-    fn from(flow: &FlowDefinition) -> Self {
-        flow.metadata.clone()
-    }
-}
-
-impl From<&IO> for Input {
-    fn from(io: &IO) -> Self {
-        Input::new(io.get_initializer())
     }
 }
 
@@ -222,13 +209,12 @@ mod test {
     use url::Url;
 
     use flowcore::input::InputInitializer;
+    use flowcore::model::function_definition::FunctionDefinition;
+    use flowcore::model::io::IO;
+    use flowcore::model::name::Name;
+    use flowcore::model::route::Route;
     use flowcore::output_connection::{OutputConnection, Source};
     use flowcore::output_connection::Source::Output;
-
-    use crate::model::function_definition::FunctionDefinition;
-    use crate::model::io::IO;
-    use crate::model::name::Name;
-    use crate::model::route::Route;
 
     use super::function_to_runtimefunction;
 

@@ -6,16 +6,16 @@ use std::path::Path;
 use serde_json::Value;
 
 use flowcore::input::InputInitializer::{Always, Once};
+use flowcore::model::connection::Connection;
+use flowcore::model::flow_definition::FlowDefinition;
+use flowcore::model::function_definition::FunctionDefinition;
+use flowcore::model::io::{Find, IOSet};
+use flowcore::model::name::{HasName, Name};
+use flowcore::model::process::Process::{FlowProcess, FunctionProcess};
+use flowcore::model::route::{HasRoute, Route};
 
 use crate::errors::*;
 use crate::generator::generate::GenerationTables;
-use crate::model::connection::Connection;
-use crate::model::flow_definition::FlowDefinition;
-use crate::model::function_definition::FunctionDefinition;
-use crate::model::io::{Find, IOSet};
-use crate::model::name::{HasName, Name};
-use crate::model::process::Process::{FlowProcess, FunctionProcess};
-use crate::model::route::{HasRoute, Route};
 
 static INPUT_PORTS: &[&str] = &["n", "ne", "nw", "w"];
 static OUTPUT_PORTS: &[&str] = &["s", "se", "sw", "e"];

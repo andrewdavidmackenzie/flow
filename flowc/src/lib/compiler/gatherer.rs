@@ -1,11 +1,12 @@
 use std::iter::Extend;
 
+use flowcore::model::flow_definition::FlowDefinition;
+use flowcore::model::function_definition::FunctionDefinition;
+use flowcore::model::process::Process::FlowProcess;
+use flowcore::model::process::Process::FunctionProcess;
+
 use crate::errors::*;
 use crate::generator::generate::GenerationTables;
-use crate::model::flow_definition::FlowDefinition;
-use crate::model::function_definition::FunctionDefinition;
-use crate::model::process::Process::FlowProcess;
-use crate::model::process::Process::FunctionProcess;
 
 /// This module is responsible for parsing the flow tree and gathering information into a set of
 /// flat tables that the compiler can use for code generation.
@@ -48,12 +49,11 @@ pub fn index_functions(functions: &mut Vec<FunctionDefinition>) {
 mod test {
     use url::Url;
 
+    use flowcore::model::function_definition::FunctionDefinition;
+    use flowcore::model::io::IO;
+    use flowcore::model::name::Name;
+    use flowcore::model::route::Route;
     use flowcore::output_connection::{OutputConnection, Source};
-
-    use crate::model::function_definition::FunctionDefinition;
-    use crate::model::io::IO;
-    use crate::model::name::Name;
-    use crate::model::route::Route;
 
     #[test]
     fn empty_index_test() {

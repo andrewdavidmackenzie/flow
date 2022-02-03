@@ -326,8 +326,8 @@ mod test {
 
     use flowcore::input::Input;
     use flowcore::input::InputInitializer::Once;
+    use flowcore::model::runtime_function::RuntimeFunction;
     use flowcore::output_connection::{OutputConnection, Source};
-    use flowcore::runtime_function::RuntimeFunction;
     use flowrlib::coordinator::Submission;
     use flowrlib::run_state::{RunState, State};
 

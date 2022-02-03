@@ -7,12 +7,10 @@ use log::{debug, error, trace};
 use serde_derive::{Deserialize, Serialize};
 use url::Url;
 
-use flowcore::flow_manifest::MetaData;
-use flowcore::input::InputInitializer;
-
-use crate::compiler::loader::Validate;
 use crate::errors::*;
 use crate::errors::Error;
+use crate::flow_manifest::MetaData;
+use crate::input::InputInitializer;
 use crate::model::connection::Connection;
 use crate::model::connection::Direction;
 use crate::model::connection::Direction::FROM;
@@ -30,6 +28,7 @@ use crate::model::route::{Route, RouteType};
 use crate::model::route::HasRoute;
 use crate::model::route::SetIORoutes;
 use crate::model::route::SetRoute;
+use crate::model::validation::Validate;
 
 /// `FlowDefinition` defines (at compile time) a parent or child flow in the nested flow hierarchy
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -55,7 +54,7 @@ pub struct FlowDefinition {
     pub metadata: MetaData,
     /// Name of any docs file associated with this Flow
     #[serde(default)]
-    pub(crate) docs: String,
+    pub docs: String,
 
     /// When the same process is used multiple times within a single flow, to disambiguate
     /// between them each one must be given an alias that is used to refer to it
@@ -428,10 +427,8 @@ mod test {
 
     use serde_json::json;
 
-    use flowcore::input::InputInitializer::Always;
-    use flowcore::input::InputInitializer::Once;
-
-    use crate::compiler::loader::Validate;
+    use crate::input::InputInitializer::Always;
+    use crate::input::InputInitializer::Once;
     use crate::model::connection::Connection;
     use crate::model::flow_definition::FlowDefinition;
     use crate::model::function_definition::FunctionDefinition;
@@ -439,6 +436,7 @@ mod test {
     use crate::model::name::{HasName, Name};
     use crate::model::process::Process;
     use crate::model::route::{HasRoute, Route, SetRoute};
+    use crate::model::validation::Validate;
 
     // Create a test flow we can use in connection building testing
     fn test_flow() -> FlowDefinition {

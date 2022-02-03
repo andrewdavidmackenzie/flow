@@ -22,9 +22,9 @@ pub mod errors;
 #[cfg(feature = "code")]
 pub mod flow_manifest;
 
-/// `function` defines functions that form part of a flow
+/// `model` module defines a number of core data structures
 #[cfg(feature = "code")]
-pub mod runtime_function;
+pub mod model;
 
 /// `input` defines the struct for inputs to functions in a flow
 #[cfg(feature = "code")]

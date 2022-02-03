@@ -6,7 +6,8 @@ use url::Url;
 use crate::deserializers::deserializer::get_deserializer;
 use crate::errors::*;
 use crate::lib_provider::Provider;
-use crate::runtime_function::RuntimeFunction;
+use crate::model::flow_definition::FlowDefinition;
+use crate::model::runtime_function::RuntimeFunction;
 
 /// The default name used for a flow Manifest file if none is specified
 pub const DEFAULT_MANIFEST_FILENAME: &str = "manifest";
@@ -26,6 +27,12 @@ pub struct MetaData {
     /// The name of the people who authored the flow
     #[serde(default)]
     pub authors: Vec<String>,
+}
+
+impl From<&FlowDefinition> for MetaData {
+    fn from(flow: &FlowDefinition) -> Self {
+        flow.metadata.clone()
+    }
 }
 
 #[derive(Clone, Deserialize, Serialize, PartialEq)]
@@ -133,7 +140,7 @@ mod test {
     use crate::errors::Result;
     use crate::input::Input;
     use crate::lib_provider::Provider;
-    use crate::runtime_function::RuntimeFunction;
+    use crate::model::runtime_function::RuntimeFunction;
 
     use super::{FlowManifest, MetaData};
 

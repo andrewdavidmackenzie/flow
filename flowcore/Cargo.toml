@@ -30,6 +30,7 @@ online_tests = []
 [dependencies]
 # The only dependency needed for the `Implementation` trait
 serde_json = { version = "1.0", default-features = false, features = ["alloc"] }
+shrinkwraprs = "0.3.0"
 
 # All other dependencies below are optional and only used when the "code" feature requires them
 serde = { version = "~1.0.27", optional = true }
@@ -41,3 +42,4 @@ curl = {version = "~0.4", optional = true }
 simpath = { version = "~2.3", features = ["urls"], optional = true }
 toml = { version = "0.5.8", optional = true }
 serde_yaml = { version = "~0.8", optional = true }
+

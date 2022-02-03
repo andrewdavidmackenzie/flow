@@ -14,7 +14,7 @@ use flowcore::{DONT_RUN_AGAIN, Implementation, RunAgain};
 use flowcore::flow_manifest::{FlowManifest, MetaData};
 use flowcore::lib_manifest::{ImplementationLocator::Native, LibraryManifest};
 use flowcore::lib_provider::MetaProvider;
-use flowcore::runtime_function::RuntimeFunction;
+use flowcore::model::runtime_function::RuntimeFunction;
 use flowrlib::loader::Loader;
 
 /// flowrlib integration tests

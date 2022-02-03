@@ -1,11 +1,11 @@
 use error_chain::bail;
 
 use flowcore::input::InputInitializer::Always;
+use flowcore::model::route::HasRoute;
+use flowcore::model::route::Route;
 
 use crate::errors::*;
 use crate::generator::generate::GenerationTables;
-use crate::model::route::HasRoute;
-use crate::model::route::Route;
 
 /*
     Check for a series of potential problems in connections

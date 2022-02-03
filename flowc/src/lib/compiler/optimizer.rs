@@ -1,10 +1,11 @@
 use log::debug;
 
+use flowcore::model::connection::Connection;
+use flowcore::model::function_definition::FunctionDefinition;
+use flowcore::model::name::HasName;
+use flowcore::model::route::HasRoute;
+
 use crate::generator::generate::GenerationTables;
-use crate::model::connection::Connection;
-use crate::model::function_definition::FunctionDefinition;
-use crate::model::name::HasName;
-use crate::model::route::HasRoute;
 
 /*
     Keep removing dead processes (that have no effect) and any connection that goes

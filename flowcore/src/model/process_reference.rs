@@ -3,12 +3,11 @@ use std::fmt;
 
 use serde_derive::{Deserialize, Serialize};
 
-use flowcore::input::InputInitializer;
-
-use crate::compiler::loader::Validate;
 use crate::errors::*;
+use crate::input::InputInitializer;
 use crate::model::name::HasName;
 use crate::model::name::Name;
+use crate::model::validation::Validate;
 
 /// A `ProcessReference` is the struct used in a `Flow` to refer to a sub-process (Function or nested
 /// Flow) it contains
@@ -68,9 +67,9 @@ mod test {
     use serde_json::json;
     use url::Url;
 
-    use flowcore::deserializers::deserializer::get_deserializer;
-    use flowcore::errors::*;
-    use flowcore::input::InputInitializer::{Always, Once};
+    use crate::deserializers::deserializer::get_deserializer;
+    use crate::errors::*;
+    use crate::input::InputInitializer::{Always, Once};
 
     use super::ProcessReference;
 

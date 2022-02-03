@@ -5,11 +5,8 @@ use error_chain::bail;
 use serde_derive::{Deserialize, Serialize};
 use url::Url;
 
-use flowcore::input::InputInitializer;
-use flowcore::output_connection::OutputConnection;
-
-use crate::compiler::loader::Validate;
 use crate::errors::*;
+use crate::input::InputInitializer;
 use crate::model::io::IOSet;
 use crate::model::io::IOType;
 use crate::model::name::HasName;
@@ -18,6 +15,8 @@ use crate::model::route::HasRoute;
 use crate::model::route::Route;
 use crate::model::route::SetIORoutes;
 use crate::model::route::SetRoute;
+use crate::model::validation::Validate;
+use crate::output_connection::OutputConnection;
 
 /// `FunctionDefinition` defines a Function (compile time) that implements some processing in the flow hierarchy
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -25,47 +24,50 @@ use crate::model::route::SetRoute;
 pub struct FunctionDefinition {
     /// `Name` of the function
     #[serde(rename = "function")]
-    pub(crate) name: Name,
+    pub name: Name,
     /// Is this an impure function that interacts with the environment
     #[serde(default)]
-    pub(crate) impure: bool,
+    pub impure: bool,
     /// Name of the source file for the function implementation
-    pub(crate) source: String,
+    pub source: String,
     /// Name of any docs file associated with this Function
     #[serde(default)]
-    pub(crate) docs: String,
+    pub docs: String,
     /// Type of build used to compile Function's implementation to WASM from source
     #[serde(default, rename = "type")]
-    pub(crate) build_type: String,
+    pub build_type: String,
     /// The set of inputs this function has
     #[serde(default, rename = "input")]
-    pub(crate) inputs: IOSet,
+    pub inputs: IOSet,
     /// The set of outputs this function generates when executed
     #[serde(default, rename = "output")]
-    pub(crate) outputs: IOSet,
+    pub outputs: IOSet,
 
     /// As a function can be used multiple times in a single flow, the repeated instances must
     /// be referred to using an alias to disambiguate which instance is being referred to
     #[serde(skip_deserializing)]
-    pub(crate) alias: Name,
+    pub alias: Name,
     /// `source_url` is where this function definition was read from
     #[serde(skip_deserializing, default = "FunctionDefinition::default_url")]
-    pub(crate) source_url: Url,
+    pub source_url: Url,
     /// the `route` in the flow hierarchy where this function is located
     #[serde(skip_deserializing)]
-    pub(crate) route: Route,
+    pub route: Route,
     /// Implementation is the relative path from the lib root to the compiled wasm implementation
     #[serde(skip_deserializing)]
-    pub(crate) implementation: String,
+    pub implementation: String,
     /// Is the function being used part of a library and where is it found
     #[serde(skip_deserializing)]
-    pub(crate) lib_reference: Option<String>,
+    pub lib_reference: Option<String>,
+    /// The output connections from this function to other processes (functions or flows)
     #[serde(skip_deserializing)]
-    pub(crate) output_connections: Vec<OutputConnection>,
+    pub output_connections: Vec<OutputConnection>,
+    /// A unique `id` assigned to the function as the flow is parsed hierarchically
     #[serde(skip_deserializing)]
-    pub(crate) id: usize,
+    pub id: usize,
+    /// the `id` of the `FlowDefinition` that this `FunctionDefinition` lies within in the hierarchy
     #[serde(skip_deserializing)]
-    pub(crate) flow_id: usize,
+    pub flow_id: usize,
 }
 
 impl Default for FunctionDefinition {
@@ -116,7 +118,6 @@ impl FunctionDefinition {
 
     /// Create a new function - used mainly for testing as Functions are usually deserialized
     #[allow(clippy::too_many_arguments)]
-    #[cfg(test)]
     pub fn new(
         name: Name,
         impure: bool,
@@ -252,13 +253,12 @@ impl FunctionDefinition {
     }
 
     /// Set the source field of the function
-    #[cfg(test)]
-    pub(crate) fn set_source(&mut self, source: &str) {
+    pub fn set_source(&mut self, source: &str) {
         self.source = source.to_owned()
     }
 
     /// Get the name of the source file relative to the function definition
-    pub(crate) fn get_source(&self) -> &str {
+    pub fn get_source(&self) -> &str {
         &self.source
     }
 
@@ -366,12 +366,8 @@ impl SetRoute for FunctionDefinition {
 mod test {
     use url::Url;
 
-    use flowcore::deserializers::deserializer::get_deserializer;
-    use flowcore::errors::*;
-    use flowcore::output_connection::OutputConnection;
-    use flowcore::output_connection::Source::Output;
-
-    use crate::compiler::loader::Validate;
+    use crate::deserializers::deserializer::get_deserializer;
+    use crate::errors::*;
     use crate::model::datatype::DataType;
     use crate::model::io::Find;
     use crate::model::name::HasName;
@@ -379,6 +375,9 @@ mod test {
     use crate::model::route::HasRoute;
     use crate::model::route::Route;
     use crate::model::route::SetRoute;
+    use crate::model::validation::Validate;
+    use crate::output_connection::OutputConnection;
+    use crate::output_connection::Source::Output;
 
     use super::FunctionDefinition;
 

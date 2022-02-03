@@ -10,9 +10,10 @@ use simpath::{FileType, FoundType, Simpath};
 use tempdir::TempDir;
 use url::Url;
 
+use flowcore::model::function_definition::FunctionDefinition;
+
 use crate::compiler::cargo_build;
 use crate::errors::*;
-use crate::model::function_definition::FunctionDefinition;
 
 /// Compile a function's implementation to wasm and modify implementation to point to the wasm file
 /// Checks the timestamps of the source and wasm files and only recompiles if wasm file is out of date
@@ -211,11 +212,10 @@ mod test {
     #[cfg(feature = "debugger")]
     use url::Url;
 
+    use flowcore::model::function_definition::FunctionDefinition;
+    use flowcore::model::io::IO;
+    use flowcore::model::route::Route;
     use flowcore::output_connection::{OutputConnection, Source};
-
-    use crate::model::function_definition::FunctionDefinition;
-    use crate::model::io::IO;
-    use crate::model::route::Route;
 
     use super::{get_paths, run_optional_command};
     use super::out_of_date;

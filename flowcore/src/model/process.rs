@@ -52,9 +52,8 @@ impl HasRoute for Process {
 mod test {
     use url::Url;
 
-    use flowcore::deserializers::deserializer::get_deserializer;
-    use flowcore::errors::*;
-
+    use crate::deserializers::deserializer::get_deserializer;
+    use crate::errors::*;
     use crate::model::process::Process;
     use crate::model::process::Process::FlowProcess;
 

@@ -3,16 +3,16 @@ use std::collections::HashMap;
 use error_chain::bail;
 use log::debug;
 
+use flowcore::model::connection::Connection;
+use flowcore::model::io::{IO, IOType};
+use flowcore::model::name::HasName;
+use flowcore::model::route::HasRoute;
+use flowcore::model::route::Route;
 use flowcore::output_connection::{OutputConnection, Source};
 use flowcore::output_connection::Source::{Input, Output};
 
 use crate::errors::*;
 use crate::generator::generate::GenerationTables;
-use crate::model::connection::Connection;
-use crate::model::io::{IO, IOType};
-use crate::model::name::HasName;
-use crate::model::route::HasRoute;
-use crate::model::route::Route;
 
 /// Go through all connections, finding:
 /// - source process (process id and output route connection is from)
@@ -377,23 +377,22 @@ mod test {
     mod get_source_tests {
         use std::collections::HashMap;
 
+        use flowcore::model::route::Route;
         use flowcore::output_connection::Source;
         use flowcore::output_connection::Source::Output;
-
-        use crate::model::route::Route;
 
         use super::super::get_source;
 
         /*
-                    Create a HashTable of routes for use in tests.
-                    Each entry (K, V) is:
-                    - Key   - the route to a function's IO
-                    - Value - a tuple of
-                                - sub-route (or IO name) from the function to be used at runtime
-                                - the id number of the function in the functions table, to select it at runtime
+                            Create a HashTable of routes for use in tests.
+                            Each entry (K, V) is:
+                            - Key   - the route to a function's IO
+                            - Value - a tuple of
+                                        - sub-route (or IO name) from the function to be used at runtime
+                                        - the id number of the function in the functions table, to select it at runtime
 
-                    Plus a vector of test cases with the Route to search for and the expected function_id and output sub-route
-                */
+                            Plus a vector of test cases with the Route to search for and the expected function_id and output sub-route
+                        */
         #[allow(clippy::type_complexity)]
         fn test_source_routes() -> (
             HashMap<Route, (Source, usize)>,
@@ -474,10 +473,10 @@ mod test {
     }
 
     mod collapse_tests {
-        use crate::model::connection::Connection;
-        use crate::model::io::{IO, IOType};
-        use crate::model::route::HasRoute;
-        use crate::model::route::Route;
+        use flowcore::model::connection::Connection;
+        use flowcore::model::io::{IO, IOType};
+        use flowcore::model::route::HasRoute;
+        use flowcore::model::route::Route;
 
         use super::super::collapse_connections;
 

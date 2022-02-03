@@ -5,8 +5,8 @@ use serde_derive::{Deserialize, Serialize};
 use serde_json::Value;
 
 use flowcore::Implementation;
+use flowcore::model::runtime_function::RuntimeFunction;
 use flowcore::output_connection::OutputConnection;
-use flowcore::runtime_function::RuntimeFunction;
 
 /// A `Job` contains the information necessary to manage the execution of a function in the
 /// flow on a set of input values, and then where to send the outputs that maybe produces.
@@ -54,7 +54,7 @@ mod test {
 
     use serde_json::json;
 
-    use flowcore::runtime_function::RuntimeFunction;
+    use flowcore::model::runtime_function::RuntimeFunction;
 
     #[test]
     fn display_job_test() {

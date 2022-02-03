@@ -5,10 +5,11 @@ use std::path::{Path, PathBuf};
 
 use log::info;
 
+use flowcore::model::flow_definition::FlowDefinition;
+use flowcore::model::route::HasRoute;
+
 use crate::dumper::dump_dot;
 use crate::generator::generate::GenerationTables;
-use crate::model::flow_definition::FlowDefinition;
-use crate::model::route::HasRoute;
 
 /// Dump the compiler tables of a loaded flow in human readable format to a specified
 /// output directory.
@@ -19,7 +20,7 @@ use crate::model::route::HasRoute;
 /// use url::Url;
 /// use flowcore::lib_provider::{Provider, MetaProvider};
 /// use flowcore::errors::Result;
-/// use flowclib::model::process::Process::FlowProcess;
+/// use flowcore::model::process::Process::FlowProcess;
 /// use std::collections::HashSet;
 /// use simpath::Simpath;
 ///
@@ -125,7 +126,7 @@ fn functions_to_dot(
 /// use url::Url;
 /// use flowcore::lib_provider::{Provider, MetaProvider};
 /// use flowcore::errors::Result;
-/// use flowclib::model::process::Process::FlowProcess;
+/// use flowcore::model::process::Process::FlowProcess;
 /// use std::collections::HashSet;
 /// use simpath::Simpath;
 ///

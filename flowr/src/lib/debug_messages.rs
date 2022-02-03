@@ -5,8 +5,8 @@ use serde_json::Value;
 use zmq::Message;
 
 use flowcore::input::Input;
+use flowcore::model::runtime_function::RuntimeFunction;
 use flowcore::output_connection::OutputConnection;
-use flowcore::runtime_function::RuntimeFunction;
 
 use crate::block::Block;
 use crate::job::Job;

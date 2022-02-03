@@ -1,8 +1,9 @@
 use log::{info, trace};
 
+use flowcore::model::flow_definition::FlowDefinition;
+
 use crate::errors::*;
 use crate::generator::generate::GenerationTables;
-use crate::model::flow_definition::FlowDefinition;
 
 use super::checker;
 use super::connector;
@@ -43,18 +44,19 @@ mod test {
 
     use url::Url;
 
+    use flowcore::model::flow_definition::FlowDefinition;
+    use flowcore::model::function_definition::FunctionDefinition;
+    use flowcore::model::io::IO;
+    use flowcore::model::name::{HasName, Name};
+    use flowcore::model::process_reference::ProcessReference;
+    use flowcore::model::route::Route;
+
     use crate::compiler::compile::compile;
-    use crate::model::flow_definition::FlowDefinition;
-    use crate::model::function_definition::FunctionDefinition;
-    use crate::model::io::IO;
-    use crate::model::name::{HasName, Name};
-    use crate::model::process_reference::ProcessReference;
-    use crate::model::route::Route;
 
     /*
-                            Test an error is thrown if a flow has no side effects, and that unconnected functions
-                            are removed by the optimizer
-                        */
+                                Test an error is thrown if a flow has no side effects, and that unconnected functions
+                                are removed by the optimizer
+                            */
     #[test]
     fn no_side_effects() {
         let function = FunctionDefinition::new(
