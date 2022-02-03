@@ -1,5 +1,6 @@
 #![deny(missing_docs)]
-//! `flow_macro` is an attribute macro that inserts code to allow a flow "implementation"
+//! `flow_macro` is an attribute macro that inserts code around a `run` function to convert
+//! it into a flow `Implementation` with some helper functions for wasm
 extern crate proc_macro;
 
 use proc_macro::TokenTree::Ident;
@@ -8,25 +9,54 @@ use quote::quote;
 
 use crate::proc_macro::TokenStream;
 
+/*
+use simpath::Simpath;
+use std::path::PathBuf;
+use url::Url;
+use flowcore::deserializers::deserializer::get_deserializer;
+use flowcore::model::function_definition::FunctionDefinition;
+use flowcore::model::process::Process;
+use flowcore::model::process::Process::FunctionProcess;
+use flowcore::lib_provider::{MetaProvider, Provider};
+*/
 #[proc_macro_attribute]
-/// Implement the `Flow` macro
+/// Implement the `Flow` macro, an example of which is:
+///     #[flow(definition = "definition_file.toml")]
 pub fn flow(attr: TokenStream, item: TokenStream) -> TokenStream {
-//    println!("attr: \"{:?}\"", attr);
+    let definition_filename = find_definition_filename(attr).unwrap();
+    println!("filename = {}", definition_filename);
 
-    let _definition_filename = find_definition_filename(attr).unwrap();
-//    println!("filename = {}", definition_filename);
+//    let _function_definition = load_function_definition(definition_filename).unwrap();
 
     // Construct a representation of Rust code as a syntax tree that we can manipulate
     let ast = syn::parse(item).unwrap();
 
-    // Parse tokens and build new token stream with added code
-    impl_flow(&ast)
+    // Build the output token stream with generated code around original supplied code
+    generate_code(&ast)
 }
 
+// Load a FunctionDefinition from the specified filename relative to this file
+/*fn load_function_definition(filename: String) -> Option<FunctionDefinition> {
+    let url = Url::from_file_path(PathBuf::from(filename)).unwrap();
+    println!("url = {}", url);
+    let provider = MetaProvider::new(Simpath::new(""));
+
+    let content = provider.get_contents(&url).unwrap();
+    let content_string = String::from_utf8(content).unwrap();
+
+    let deserializer = get_deserializer::<Process>(&url).unwrap();
+    let process = deserializer.deserialize(&content_string, Some(&url)).unwrap();
+
+    match process {
+        FunctionProcess(function) => Some(function),
+        _ => None
+    }
+}
+*/
 // Parse the attributes of the macro invocation (a TokenStream) and find the value assigned
-// to the definition 'field', an example is
-//      #[flow(definition = "file.toml")]
+// to the definition 'field'
 fn find_definition_filename(attributes: TokenStream) -> Option<String> {
+//    println!("attributes: \"{:?}\"", attributes);
     let mut iter = attributes.into_iter();
     while let Some(attribute) = iter.next() {
         if let Ident(ident) = &attribute {
@@ -41,7 +71,9 @@ fn find_definition_filename(attributes: TokenStream) -> Option<String> {
     None
 }
 
-fn impl_flow(ast: &syn::DeriveInput) -> TokenStream {
+// Generate the code for the implementation struct, including some extra functions to help
+// manage memory and pass parameters to and from wasm from native code
+fn generate_code(ast: &syn::DeriveInput) -> TokenStream {
     let name = &ast.ident;
     let gen = quote! {
         use std::os::raw::c_void;

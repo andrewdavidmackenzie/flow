@@ -2,13 +2,7 @@ use flow_macro::flow;
 use flowcore::{Implementation, RUN_AGAIN, RunAgain};
 use serde_json::Value;
 
-/// Implementation that compares two input values and outputs the right hand and left hand values
-/// on different outputs, depending on the comparison result is:
-/// - equal ("equal")
-/// - greater than ("left-gt", "right-gt")
-/// - greater than or equal ("left-gte", "right-gte")
-/// - less than ("left-lt", "right-lt)
-/// - less than or equal ("left-lte", "right-lte")
+#[doc = include_str!("compare_switch.md")]
 #[flow(definition = "compare_switch.toml")]
 pub struct CompareSwitch;
 
