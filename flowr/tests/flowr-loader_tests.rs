@@ -12,9 +12,9 @@ use url::Url;
 
 use flowcore::{DONT_RUN_AGAIN, Implementation, RunAgain};
 use flowcore::flow_manifest::{FlowManifest, MetaData};
-use flowcore::function::Function;
 use flowcore::lib_manifest::{ImplementationLocator::Native, LibraryManifest};
 use flowcore::lib_provider::MetaProvider;
+use flowcore::runtime_function::RuntimeFunction;
 use flowrlib::loader::Loader;
 
 /// flowrlib integration tests
@@ -45,7 +45,7 @@ fn cwd_as_url() -> Url {
     Url::from_directory_path(env::current_dir().unwrap()).unwrap()
 }
 
-fn create_manifest(functions: Vec<Function>) -> FlowManifest {
+fn create_manifest(functions: Vec<RuntimeFunction>) -> FlowManifest {
     let metadata = MetaData {
         name: "test manifest".into(),
         description: "test manifest".into(),
@@ -158,7 +158,7 @@ fn set_lib_search_path() -> Simpath {
 
 #[test]
 fn load_manifest_from_file() {
-    let f_a = Function::new(
+    let f_a = RuntimeFunction::new(
         "fA",
         "/fA",
         "lib://context/stdio/stdout/stdout",
@@ -197,7 +197,7 @@ fn load_manifest_from_file() {
 
 #[test]
 fn resolve_lib_implementation_test() {
-    let f_a = Function::new(
+    let f_a = RuntimeFunction::new(
         "fA",
         "/fA",
         "lib://context/stdio/stdin/stdin",
@@ -225,7 +225,7 @@ fn resolve_lib_implementation_test() {
 
 #[test]
 fn unresolved_lib_functions_test() {
-    let f_a = Function::new(
+    let f_a = RuntimeFunction::new(
         "fA",
         "/fA",
         "lib://context/stdio/stdin/foo",

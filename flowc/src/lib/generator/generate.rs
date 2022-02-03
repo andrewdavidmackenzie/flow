@@ -9,9 +9,9 @@ use serde_derive::Serialize;
 use url::Url;
 
 use flowcore::flow_manifest::{DEFAULT_MANIFEST_FILENAME, FlowManifest, MetaData};
-use flowcore::function::Function as RuntimeFunction;
 use flowcore::input::Input;
 use flowcore::output_connection::Source;
+use flowcore::runtime_function::RuntimeFunction;
 
 use crate::errors::*;
 use crate::model::connection::Connection;

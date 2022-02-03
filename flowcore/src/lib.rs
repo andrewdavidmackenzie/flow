@@ -24,7 +24,7 @@ pub mod flow_manifest;
 
 /// `function` defines functions that form part of a flow
 #[cfg(feature = "code")]
-pub mod function;
+pub mod runtime_function;
 
 /// `input` defines the struct for inputs to functions in a flow
 #[cfg(feature = "code")]

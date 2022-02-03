@@ -4,9 +4,9 @@ use serde_derive::{Deserialize, Serialize};
 use serde_json::Value;
 use zmq::Message;
 
-use flowcore::function::Function;
 use flowcore::input::Input;
 use flowcore::output_connection::OutputConnection;
+use flowcore::runtime_function::RuntimeFunction;
 
 use crate::block::Block;
 use crate::job::Job;
@@ -62,7 +62,7 @@ pub enum DebugServerMessage {
     /// An error was detected - includes: A string describing the error
     Error(String),
     /// The state of a function
-    FunctionState((Function, State)),
+    FunctionState((RuntimeFunction, State)),
     /// The overall state
     OverallState(RunState),
     /// The state of an Input - optional values on it

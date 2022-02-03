@@ -5,8 +5,8 @@ use url::Url;
 
 use crate::deserializers::deserializer::get_deserializer;
 use crate::errors::*;
-use crate::function::Function;
 use crate::lib_provider::Provider;
+use crate::runtime_function::RuntimeFunction;
 
 /// The default name used for a flow Manifest file if none is specified
 pub const DEFAULT_MANIFEST_FILENAME: &str = "manifest";
@@ -44,7 +44,7 @@ pub struct FlowManifest {
     /// A list of the `lib_references` used by this flow
     lib_references: HashSet<Url>,
     /// A list of descriptors of the `Functions` used in this flow
-    functions: Vec<Function>,
+    functions: Vec<RuntimeFunction>,
     #[cfg(feature = "debugger")]
     /// A list of the source files used to build this `flow`
     source_urls: HashSet<(Url, Url)>,
@@ -56,19 +56,19 @@ impl FlowManifest {
         FlowManifest {
             metadata,
             lib_references: HashSet::<Url>::new(),
-            functions: Vec::<Function>::new(),
+            functions: Vec::<RuntimeFunction>::new(),
             #[cfg(feature = "debugger")]
             source_urls: HashSet::<(Url, Url)>::new(),
         }
     }
 
     /// Add a run-time Function to the manifest for use in serialization
-    pub fn add_function(&mut self, function: Function) {
+    pub fn add_function(&mut self, function: RuntimeFunction) {
         self.functions.push(function);
     }
 
     /// Get the list of functions in this manifest
-    pub fn get_functions(&mut self) -> &mut Vec<Function> {
+    pub fn get_functions(&mut self) -> &mut Vec<RuntimeFunction> {
         &mut self.functions
     }
 
@@ -131,9 +131,9 @@ mod test {
     use url::Url;
 
     use crate::errors::Result;
-    use crate::function::Function;
     use crate::input::Input;
     use crate::lib_provider::Provider;
+    use crate::runtime_function::RuntimeFunction;
 
     use super::{FlowManifest, MetaData};
 
@@ -170,8 +170,8 @@ mod test {
         let _ = FlowManifest::new(test_meta_data());
     }
 
-    fn test_function() -> Function {
-        Function::new(
+    fn test_function() -> RuntimeFunction {
+        RuntimeFunction::new(
             #[cfg(feature = "debugger")]
             "test",
             #[cfg(feature = "debugger")]
