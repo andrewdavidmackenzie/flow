@@ -434,7 +434,7 @@ mod test {
     use crate::compiler::loader::Validate;
     use crate::model::connection::Connection;
     use crate::model::flow::Flow;
-    use crate::model::function::Function;
+    use crate::model::function_definition::FunctionDefinition;
     use crate::model::io::IO;
     use crate::model::name::{HasName, Name};
     use crate::model::process::Process;
@@ -457,7 +457,7 @@ mod test {
             ..Default::default()
         };
 
-        let process_1 = Process::FunctionProcess(Function {
+        let process_1 = Process::FunctionProcess(FunctionDefinition {
             name: "process_1".into(),
             id: 0,
             inputs: vec![IO::new(vec!("String".into()), "")],
@@ -465,7 +465,7 @@ mod test {
             ..Default::default()
         });
 
-        let process_2 = Process::FunctionProcess(Function {
+        let process_2 = Process::FunctionProcess(FunctionDefinition {
             name: "process_2".into(),
             id: 1,
             inputs: vec![IO::new(vec!("String".into()), "")],

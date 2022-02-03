@@ -16,7 +16,7 @@ use flowcore::runtime_function::RuntimeFunction;
 use crate::errors::*;
 use crate::model::connection::Connection;
 use crate::model::flow::Flow;
-use crate::model::function::Function;
+use crate::model::function_definition::FunctionDefinition;
 use crate::model::io::IO;
 use crate::model::name::HasName;
 #[cfg(feature = "debugger")]
@@ -36,7 +36,7 @@ pub struct GenerationTables {
     /// HashMap from "route of the input of a function" --> (destination_function_id, input number, flow_id)
     pub collapsed_connections: Vec<Connection>,
     /// The set of functions left in a flow after it has been flattened, connected and optimized
-    pub functions: Vec<Function>,
+    pub functions: Vec<FunctionDefinition>,
     /// The set of libraries used by a a flow, from their Urls
     pub libs: HashSet<Url>,
     /// The list of source files that were used in the flow definition
@@ -144,7 +144,7 @@ pub fn write_flow_manifest(
 */
 fn function_to_runtimefunction(
     manifest_url: &Url,
-    function: &Function,
+    function: &FunctionDefinition,
     debug_symbols: bool,
 ) -> Result<RuntimeFunction> {
     #[cfg(feature = "debugger")]
@@ -187,7 +187,7 @@ fn function_to_runtimefunction(
     Get the location of the implementation - relative to the Manifest if it is a provided implementation
 */
 // TODO generalize this for Urls, not just files - will require changing the function.get_implementation()
-fn implementation_location_relative(function: &Function, manifest_url: &Url) -> Result<String> {
+fn implementation_location_relative(function: &FunctionDefinition, manifest_url: &Url) -> Result<String> {
     if let Some(ref lib_reference) = function.get_lib_reference() {
         Ok(format!("lib://{}/{}", lib_reference, &function.name()))
     } else {
@@ -225,7 +225,7 @@ mod test {
     use flowcore::output_connection::{OutputConnection, Source};
     use flowcore::output_connection::Source::Output;
 
-    use crate::model::function::Function;
+    use crate::model::function_definition::FunctionDefinition;
     use crate::model::io::IO;
     use crate::model::name::Name;
     use crate::model::route::Route;
@@ -234,7 +234,7 @@ mod test {
 
     #[test]
     fn function_with_sub_route_output_generation() {
-        let function = Function::new(
+        let function = FunctionDefinition::new(
             Name::from("Stdout"),
             false,
             "lib://context/stdio/stdout".to_string(),
@@ -296,7 +296,7 @@ mod test {
   ]
 }";
 
-        let br = Box::new(function) as Box<Function>;
+        let br = Box::new(function) as Box<FunctionDefinition>;
 
         let runtime_process = function_to_runtimefunction(
             &Url::parse("file://test").expect("Couldn't parse test Url"),
@@ -312,7 +312,7 @@ mod test {
 
     #[test]
     fn function_generation() {
-        let function = Function::new(
+        let function = FunctionDefinition::new(
             Name::from("Stdout"),
             false,
             "lib://context/stdio/stdout".to_string(),
@@ -350,7 +350,7 @@ mod test {
   ]
 }";
 
-        let br = Box::new(function) as Box<Function>;
+        let br = Box::new(function) as Box<FunctionDefinition>;
 
         let process = function_to_runtimefunction(
             &Url::parse("file://test").expect("Couldn't parse test Url"),
@@ -366,7 +366,7 @@ mod test {
 
     #[test]
     fn function_generation_with_array_order() {
-        let function = Function::new(
+        let function = FunctionDefinition::new(
             Name::from("Stdout"),
             false,
             "lib://context/stdio/stdout".to_string(),
@@ -405,7 +405,7 @@ mod test {
   ]
 }";
 
-        let br = Box::new(function) as Box<Function>;
+        let br = Box::new(function) as Box<FunctionDefinition>;
 
         let process = function_to_runtimefunction(
             &Url::parse("file://test").expect("Couldn't parse test Url"),
@@ -424,7 +424,7 @@ mod test {
         let mut io = IO::new(vec!("String".into()), Route::default());
         io.set_initializer(&Some(InputInitializer::Once(json!(1))));
 
-        let function = Function::new(
+        let function = FunctionDefinition::new(
             Name::from("Stdout"),
             false,
             "lib://context/stdio/stdout".to_string(),
@@ -452,7 +452,7 @@ mod test {
   ]
 }";
 
-        let br = Box::new(function) as Box<Function>;
+        let br = Box::new(function) as Box<FunctionDefinition>;
         let process = function_to_runtimefunction(
             &Url::parse("file://test").expect("Couldn't parse test Url"),
             &br,
@@ -470,7 +470,7 @@ mod test {
         let mut io = IO::new(vec!("String".into()), Route::default());
         io.set_initializer(&Some(InputInitializer::Always(json!(1))));
 
-        let function = Function::new(
+        let function = FunctionDefinition::new(
             Name::from("Stdout"),
             false,
             "lib://context/stdio/stdout".to_string(),
@@ -498,7 +498,7 @@ mod test {
   ]
 }";
 
-        let br = Box::new(function) as Box<Function>;
+        let br = Box::new(function) as Box<FunctionDefinition>;
         let process = function_to_runtimefunction(
             &Url::parse("file://test").expect("Couldn't parse test Url"),
             &br,
@@ -515,7 +515,7 @@ mod test {
     fn function_with_array_input_generation() {
         let io = IO::new(vec!("Array/String".into()), Route::default());
 
-        let function = Function::new(
+        let function = FunctionDefinition::new(
             Name::from("Stdout"),
             false,
             "lib://context/stdio/stdout".to_string(),
@@ -539,7 +539,7 @@ mod test {
   ]
 }";
 
-        let br = Box::new(function) as Box<Function>;
+        let br = Box::new(function) as Box<FunctionDefinition>;
         let process = function_to_runtimefunction(
             &Url::parse("file://test").expect("Couldn't parse test Url"),
             &br,
@@ -552,8 +552,8 @@ mod test {
         assert_eq!(serialized_process, expected.replace("'", "\""));
     }
 
-    fn test_function() -> Function {
-        Function::new(
+    fn test_function() -> FunctionDefinition {
+        FunctionDefinition::new(
             Name::from("Stdout"),
             false,
             "lib://context/stdio/stdout".to_string(),
@@ -611,7 +611,7 @@ mod test {
     }
   ]
 }";
-        let br = Box::new(function) as Box<Function>;
+        let br = Box::new(function) as Box<FunctionDefinition>;
 
         let process = function_to_runtimefunction(
             &Url::parse("file://test").expect("Couldn't parse test Url"),
@@ -627,7 +627,7 @@ mod test {
 
     #[test]
     fn function_with_array_element_output_generation() {
-        let function = Function::new(
+        let function = FunctionDefinition::new(
             Name::from("Stdout"),
             false,
             "lib://context/stdio/stdout".to_string(),
@@ -668,7 +668,7 @@ mod test {
   ]
 }";
 
-        let br = Box::new(function) as Box<Function>;
+        let br = Box::new(function) as Box<FunctionDefinition>;
 
         let process = function_to_runtimefunction(
             &Url::parse("file://test").expect("Couldn't parse test Url"),

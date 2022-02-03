@@ -11,7 +11,7 @@ use crate::errors::*;
 use crate::generator::generate::GenerationTables;
 use crate::model::connection::Connection;
 use crate::model::flow::Flow;
-use crate::model::function::Function;
+use crate::model::function_definition::FunctionDefinition;
 use crate::model::io::{Find, IOSet};
 use crate::model::name::{HasName, Name};
 use crate::model::process::Process::{FlowProcess, FunctionProcess};
@@ -211,7 +211,7 @@ fn digraph_wrapper_end() -> String {
         .to_string()
 }
 
-fn fn_to_dot(function: &Function, output_dir: &Path) -> Result<String> {
+fn fn_to_dot(function: &FunctionDefinition, output_dir: &Path) -> Result<String> {
     let mut dot_string = String::new();
 
     let name = if function.name() == function.alias() {
@@ -236,7 +236,7 @@ fn fn_to_dot(function: &Function, output_dir: &Path) -> Result<String> {
 }
 
 // Given a Function as used in the code generation - generate a "dot" format string to draw it
-fn function_to_dot(function: &Function, functions: &[Function], _output_dir: &Path) -> String {
+fn function_to_dot(function: &FunctionDefinition, functions: &[FunctionDefinition], _output_dir: &Path) -> String {
     let mut function_string = String::new();
 
     // modify path to point to the .html page that's built from .md to document the function
@@ -283,7 +283,7 @@ fn function_to_dot(function: &Function, functions: &[Function], _output_dir: &Pa
     function_string
 }
 
-fn input_initializers(function: &Function, function_identifier: &str) -> String {
+fn input_initializers(function: &FunctionDefinition, function_identifier: &str) -> String {
     let mut initializers = String::new();
 
     for (input_number, input) in function.get_inputs().iter().enumerate() {

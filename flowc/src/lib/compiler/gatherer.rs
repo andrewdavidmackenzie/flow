@@ -3,7 +3,7 @@ use std::iter::Extend;
 use crate::errors::*;
 use crate::generator::generate::GenerationTables;
 use crate::model::flow::Flow;
-use crate::model::function::Function;
+use crate::model::function_definition::FunctionDefinition;
 use crate::model::process::Process::FlowProcess;
 use crate::model::process::Process::FunctionProcess;
 
@@ -38,7 +38,7 @@ pub fn gather_functions_and_connections(flow: &Flow, tables: &mut GenerationTabl
     Give each function a unique index that will later be used to indicate where outputs get sent
     to, and used in code generation.
 */
-pub fn index_functions(functions: &mut Vec<Function>) {
+pub fn index_functions(functions: &mut Vec<FunctionDefinition>) {
     for (index, function) in functions.iter_mut().enumerate() {
         function.set_id(index);
     }
@@ -50,7 +50,7 @@ mod test {
 
     use flowcore::output_connection::{OutputConnection, Source};
 
-    use crate::model::function::Function;
+    use crate::model::function_definition::FunctionDefinition;
     use crate::model::io::IO;
     use crate::model::name::Name;
     use crate::model::route::Route;
@@ -62,7 +62,7 @@ mod test {
 
     #[test]
     fn index_test() {
-        let function = Function::new(
+        let function = FunctionDefinition::new(
             Name::from("Stdout"),
             false,
             "lib://context/stdio/stdout".to_string(),

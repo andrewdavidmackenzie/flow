@@ -45,19 +45,19 @@ mod test {
 
     use crate::compiler::compile::compile;
     use crate::model::flow::Flow;
-    use crate::model::function::Function;
+    use crate::model::function_definition::FunctionDefinition;
     use crate::model::io::IO;
     use crate::model::name::{HasName, Name};
     use crate::model::process_reference::ProcessReference;
     use crate::model::route::Route;
 
     /*
-                Test an error is thrown if a flow has no side effects, and that unconnected functions
-                are removed by the optimizer
-            */
+                        Test an error is thrown if a flow has no side effects, and that unconnected functions
+                        are removed by the optimizer
+                    */
     #[test]
     fn no_side_effects() {
-        let function = Function::new(
+        let function = FunctionDefinition::new(
             Name::from("Stdout"),
             false,
             "lib://context/stdio/stdout.toml".to_owned(),

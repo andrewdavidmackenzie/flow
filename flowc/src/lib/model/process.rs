@@ -1,7 +1,7 @@
 use serde_derive::{Deserialize, Serialize};
 
 use crate::model::flow::Flow;
-use crate::model::function::Function;
+use crate::model::function_definition::FunctionDefinition;
 use crate::model::name::{HasName, Name};
 use crate::model::route::{HasRoute, Route};
 
@@ -13,7 +13,7 @@ pub enum Process {
     /// The process is actually a `Flow`
     FlowProcess(Flow),
     /// The process is actually a `Function`
-    FunctionProcess(Function),
+    FunctionProcess(FunctionDefinition),
 }
 
 impl HasName for Process {

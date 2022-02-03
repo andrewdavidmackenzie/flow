@@ -5,7 +5,7 @@ pub mod datatype;
 /// `flow` is the definition of an entire flow, including children flows
 pub mod flow;
 /// `function` defines a function in a flow or library
-pub mod function;
+pub mod function_definition;
 /// `io` is the object used to define a process's inputs or outputs
 pub mod io;
 /// `name` is used to name various objects in the flow model

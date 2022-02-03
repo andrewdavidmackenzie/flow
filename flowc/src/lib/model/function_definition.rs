@@ -19,11 +19,11 @@ use crate::model::route::Route;
 use crate::model::route::SetIORoutes;
 use crate::model::route::SetRoute;
 
-/// Function defines a Function that implements some processing in the flow hierarchy
+/// `FunctionDefinition` defines a Function (compile time) that implements some processing in the flow hierarchy
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
-pub struct Function {
-    /// `name` of the function
+pub struct FunctionDefinition {
+    /// `Name` of the function
     #[serde(rename = "function")]
     pub(crate) name: Name,
     /// Is this an impure function that interacts with the environment
@@ -49,7 +49,7 @@ pub struct Function {
     #[serde(skip_deserializing)]
     pub(crate) alias: Name,
     /// `source_url` is where this function definition was read from
-    #[serde(skip_deserializing, default = "Function::default_url")]
+    #[serde(skip_deserializing, default = "FunctionDefinition::default_url")]
     pub(crate) source_url: Url,
     /// the `route` in the flow hierarchy where this function is located
     #[serde(skip_deserializing)]
@@ -68,9 +68,9 @@ pub struct Function {
     pub(crate) flow_id: usize,
 }
 
-impl Default for Function {
+impl Default for FunctionDefinition {
     fn default() -> Self {
-        Function {
+        FunctionDefinition {
             name: Default::default(),
             impure: false,
             source: "".to_string(),
@@ -79,7 +79,7 @@ impl Default for Function {
             inputs: vec![],
             outputs: vec![],
             alias: Default::default(),
-            source_url: Function::default_url(),
+            source_url: FunctionDefinition::default_url(),
             route: Default::default(),
             implementation: "".to_string(),
             lib_reference: None,
@@ -90,7 +90,7 @@ impl Default for Function {
     }
 }
 
-impl HasName for Function {
+impl HasName for FunctionDefinition {
     fn name(&self) -> &Name {
         &self.name
     }
@@ -99,7 +99,7 @@ impl HasName for Function {
     }
 }
 
-impl HasRoute for Function {
+impl HasRoute for FunctionDefinition {
     fn route(&self) -> &Route {
         &self.route
     }
@@ -108,7 +108,7 @@ impl HasRoute for Function {
     }
 }
 
-impl Function {
+impl FunctionDefinition {
     fn default_url() -> Url {
         #[allow(clippy::unwrap_used)]
         Url::parse("file://").unwrap()
@@ -131,7 +131,7 @@ impl Function {
         id: usize,
         flow_id: usize,
     ) -> Self {
-        Function {
+        FunctionDefinition {
             name,
             impure,
             source,
@@ -306,7 +306,7 @@ impl Function {
     }
 }
 
-impl Validate for Function {
+impl Validate for FunctionDefinition {
     fn validate(&self) -> Result<()> {
         self.name.validate()?;
 
@@ -331,7 +331,7 @@ impl Validate for Function {
     }
 }
 
-impl fmt::Display for Function {
+impl fmt::Display for FunctionDefinition {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         writeln!(f, "name: \t\t{}", self.name)?;
         writeln!(f, "alias: \t\t{}", self.alias)?;
@@ -352,7 +352,7 @@ impl fmt::Display for Function {
     }
 }
 
-impl SetRoute for Function {
+impl SetRoute for FunctionDefinition {
     fn set_routes_from_parent(&mut self, parent_route: &Route) {
         self.route = Route::from(format!("{}/{}", parent_route, self.alias));
         self.inputs
@@ -380,11 +380,11 @@ mod test {
     use crate::model::route::Route;
     use crate::model::route::SetRoute;
 
-    use super::Function;
+    use super::FunctionDefinition;
 
     #[test]
     fn function_with_no_io_not_valid() {
-        let fun = Function {
+        let fun = FunctionDefinition {
             name: Name::from("test_function"),
             alias: Name::from("test_function"),
             output_connections: vec![OutputConnection::new(
@@ -404,9 +404,9 @@ mod test {
         assert!(fun.validate().is_err());
     }
 
-    fn toml_from_str(content: &str) -> Result<Function> {
+    fn toml_from_str(content: &str) -> Result<FunctionDefinition> {
         let url = Url::parse("file:///fake.toml").expect("Could not parse URL");
-        let deserializer = get_deserializer::<Function>(&url).expect("Could not get deserializer");
+        let deserializer = get_deserializer::<FunctionDefinition>(&url).expect("Could not get deserializer");
         deserializer.deserialize(content, Some(&url))
     }
 
@@ -416,7 +416,7 @@ mod test {
         type = 'Value'
         ";
 
-        let r_f: Result<Function> = toml_from_str(function_str);
+        let r_f: Result<FunctionDefinition> = toml_from_str(function_str);
         assert!(r_f.is_err());
     }
 
@@ -426,7 +426,7 @@ mod test {
         name = 'test_function'
         ";
 
-        let function: Result<Function> = toml_from_str(function_str);
+        let function: Result<FunctionDefinition> = toml_from_str(function_str);
         assert!(function.is_err());
     }
 
@@ -437,7 +437,7 @@ mod test {
         source = 'test.rs'
         ";
 
-        let function: Function =
+        let function: FunctionDefinition =
             toml_from_str(function_str).expect("Couldn't read function from toml");
         assert!(function.validate().is_err());
     }
@@ -451,7 +451,7 @@ mod test {
         foo = 'true'
         ";
 
-        let function: Result<Function> = toml_from_str(function_str);
+        let function: Result<FunctionDefinition> = toml_from_str(function_str);
         assert!(function.is_err());
     }
 
@@ -483,7 +483,7 @@ mod test {
         type = 'String'
         ";
 
-        let function: Function =
+        let function: FunctionDefinition =
             toml_from_str(function_str).expect("Couldn't read function from toml");
         function.validate().expect("Function did not validate");
         assert!(!function.outputs.is_empty());
@@ -504,7 +504,7 @@ mod test {
         type = 'String'
         ";
 
-        let function: Function =
+        let function: FunctionDefinition =
             toml_from_str(function_str).expect("Could not deserialize function from toml");
         function.validate().expect("Function does not validate");
         assert!(!function.outputs.is_empty());
@@ -528,7 +528,7 @@ mod test {
         type = 'Number'
         ";
 
-        let function: Function =
+        let function: FunctionDefinition =
             toml_from_str(function_str).expect("Couldn't read function from toml");
         function.validate().expect("Function didn't validate");
         assert!(!function.outputs.is_empty());
@@ -559,7 +559,7 @@ mod test {
         ";
 
         // Setup
-        let mut function: Function =
+        let mut function: FunctionDefinition =
             toml_from_str(function_str).expect("Couldn't read function from toml");
         function.alias = Name::from("test_alias");
 
@@ -590,7 +590,7 @@ mod test {
         ";
 
         // Setup
-        let mut function: Function =
+        let mut function: FunctionDefinition =
             toml_from_str(function_str).expect("Couldn't read function from toml");
         function.alias = Name::from("test_alias");
         function.set_routes_from_parent(&Route::from("/flow"));

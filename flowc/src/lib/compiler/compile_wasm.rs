@@ -12,13 +12,13 @@ use url::Url;
 
 use crate::compiler::cargo_build;
 use crate::errors::*;
-use crate::model::function::Function;
+use crate::model::function_definition::FunctionDefinition;
 
 /// Compile a function's implementation to wasm and modify implementation to point to the wasm file
 /// Checks the timestamps of the source and wasm files and only recompiles if wasm file is out of date
 pub fn compile_implementation(
     target_dir: &Path,
-    function: &mut Function,
+    function: &mut FunctionDefinition,
     native_only: bool,
     #[cfg(feature = "debugger")] source_urls: &mut HashSet<(Url, Url)>,
 ) -> Result<(PathBuf, bool)> {
@@ -156,7 +156,7 @@ fn optimize_wasm_file_size(wasm_path: &Path) -> Result<()> {
 
    out_dir optionally overrides the destination directory where the wasm should end up
 */
-fn get_paths(target_dir: &Path, function: &Function) -> Result<(PathBuf, PathBuf)> {
+fn get_paths(target_dir: &Path, function: &FunctionDefinition) -> Result<(PathBuf, PathBuf)> {
     let source_url = function.get_source_url().join(function.get_source())?;
 
     let source_path = source_url
@@ -213,7 +213,7 @@ mod test {
 
     use flowcore::output_connection::{OutputConnection, Source};
 
-    use crate::model::function::Function;
+    use crate::model::function_definition::FunctionDefinition;
     use crate::model::io::IO;
     use crate::model::route::Route;
 
@@ -320,8 +320,8 @@ mod test {
         );
     }
 
-    fn test_function() -> Function {
-        Function::new(
+    fn test_function() -> FunctionDefinition {
+        FunctionDefinition::new(
             "Stdout".into(),
             false,
             "stdout.rs".to_string(),
