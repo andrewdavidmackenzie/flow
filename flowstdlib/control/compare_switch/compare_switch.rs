@@ -1,11 +1,15 @@
-use flow_impl_derive::FlowImpl;
+use flow_macro::flow;
 use flowcore::{Implementation, RUN_AGAIN, RunAgain};
 use serde_json::Value;
 
-#[derive(FlowImpl)]
-/// Compare two input values and output different the right hand value at different output route
-/// corresponding to is equal, greater than, greater than or equal, less than or less than or equal.
-#[derive(Debug)]
+/// Implementation that compares two input values and outputs the right hand and left hand values
+/// on different outputs, depending on the comparison result is:
+/// - equal ("equal")
+/// - greater than ("left-gt", "right-gt")
+/// - greater than or equal ("left-gte", "right-gte")
+/// - less than ("left-lt", "right-lt)
+/// - less than or equal ("left-lte", "right-lte")
+#[flow(definition = "compare_switch.toml")]
 pub struct CompareSwitch;
 
 impl Implementation for CompareSwitch {

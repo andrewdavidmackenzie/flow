@@ -451,6 +451,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "flow_macro"
+version = "0.40.1"
+dependencies = [
+ "flowcore",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "flowc"
 version = "0.40.1"
 dependencies = [
@@ -531,6 +540,7 @@ version = "0.40.1"
 dependencies = [
  "error-chain 0.12.4",
  "flow_impl_derive",
+ "flow_macro",
  "flowcore",
  "image",
  "serde_json",

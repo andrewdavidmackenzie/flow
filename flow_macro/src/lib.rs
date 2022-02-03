@@ -1,26 +1,54 @@
 #![deny(missing_docs)]
-//! `flow_impl_derive` is a derive macro that inserts code to allow a flow "implementation"
-//! to be called when compiled to wasm32
+//! `flow_macro` is an attribute macro that inserts code to allow a flow "implementation"
 extern crate proc_macro;
 
+use proc_macro::TokenTree::Ident;
 use quote::quote;
 
 use crate::proc_macro::TokenStream;
 
-#[proc_macro_derive(FlowImpl, attributes(definition_file))]
-/// Implement the `FlowImpl` derive macro
-pub fn flow_impl_derive(input: TokenStream) -> TokenStream {
-    // Construct a representation of Rust code as a syntax tree that we can manipulate
-    let ast = syn::parse(input).unwrap();
+#[proc_macro_attribute]
+/// Implement the `Flow` macro
+pub fn flow(attr: TokenStream, item: TokenStream) -> TokenStream {
+//    println!("attr: \"{:?}\"", attr);
 
-    // Build the trait implementation
-    impl_flow_impl(&ast)
+    let _definition_filename = find_definition_filename(attr).unwrap();
+//    println!("filename = {}", definition_filename);
+
+    // Construct a representation of Rust code as a syntax tree that we can manipulate
+    let ast = syn::parse(item).unwrap();
+
+    // Parse tokens and build new token stream with added code
+    impl_flow(&ast)
 }
 
-fn impl_flow_impl(ast: &syn::DeriveInput) -> TokenStream {
+// Parse the attributes of the macro invokation (a TokenStream) and find the value assigned
+// to the definition 'field'
+// example
+// #[flow(definition = "file.toml")]
+fn find_definition_filename(attributes: TokenStream) -> Option<String> {
+    let mut iter = attributes.into_iter();
+    while let Some(attribute) = iter.next() {
+        if let Ident(ident) = &attribute {
+            if ident.to_string() == "definition" {
+                let _p = iter.next().unwrap();
+                let f = iter.next().unwrap();
+                return Some(f.to_string());
+            }
+        }
+    }
+
+    None
+}
+
+fn impl_flow(ast: &syn::DeriveInput) -> TokenStream {
     let name = &ast.ident;
     let gen = quote! {
         use std::os::raw::c_void;
+
+        /// This is the struct that will carry the implementation
+        #[derive(Debug)]
+        pub struct #name;
 
         // Allocate a chunk of memory of `size` bytes in wasm module
         #[cfg(target_arch = "wasm32")]
