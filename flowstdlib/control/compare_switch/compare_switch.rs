@@ -2,7 +2,6 @@ use flow_macro::flow;
 use flowcore::{Implementation, RUN_AGAIN, RunAgain};
 use serde_json::Value;
 
-#[doc = include_str!("compare_switch.md")]
 #[flow(definition = "compare_switch.toml")]
 pub struct CompareSwitch;
 

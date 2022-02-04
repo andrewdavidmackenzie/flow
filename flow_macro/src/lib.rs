@@ -9,8 +9,8 @@ use proc_macro::TokenTree::Ident;
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::PathBuf;
-
 use quote::quote;
+use syn::DeriveInput;
 
 use flowcore::model::function_definition::FunctionDefinition;
 
@@ -30,14 +30,14 @@ pub fn flow(attr: TokenStream, item: TokenStream) -> TokenStream {
     file_path.set_file_name(definition_filename);
 //    println!("path = {}", file_path.display());
 
-    let _function_definition = load_function_definition(file_path).unwrap();
-    println!("Function = {:?}", _function_definition);
+    let function_definition = load_function_definition(file_path).unwrap();
+//    println!("Function = {:?}", function_definition);
 
     // Construct a representation of Rust code as a syntax tree that we can manipulate
     let ast = syn::parse(item).unwrap();
 
     // Build the output token stream with generated code around original supplied code
-    generate_code(&ast)
+    generate_code(&ast, &function_definition)
 }
 
 // Load a FunctionDefinition from the file at `path`
@@ -69,12 +69,14 @@ fn find_definition_filename(attributes: TokenStream) -> Option<String> {
 
 // Generate the code for the implementation struct, including some extra functions to help
 // manage memory and pass parameters to and from wasm from native code
-fn generate_code(ast: &syn::DeriveInput) -> TokenStream {
+fn generate_code(ast: &DeriveInput, function_definition: &FunctionDefinition) -> TokenStream {
     let name = &ast.ident;
+    let docs = &function_definition.docs;
+
     let gen = quote! {
         use std::os::raw::c_void;
 
-        /// This is the struct that will carry the implementation
+        #[doc = include_str!(#docs)]
         #[derive(Debug)]
         pub struct #name;
 
