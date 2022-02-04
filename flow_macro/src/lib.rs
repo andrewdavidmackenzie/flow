@@ -12,7 +12,8 @@ use std::path::PathBuf;
 
 use quote::quote;
 
-//use flowcore::model::function_definition::FunctionDefinition;
+use flowcore::model::function_definition::FunctionDefinition;
+
 use crate::proc_macro::TokenStream;
 
 #[proc_macro_attribute]
@@ -30,7 +31,7 @@ pub fn flow(attr: TokenStream, item: TokenStream) -> TokenStream {
 //    println!("path = {}", file_path.display());
 
     let _function_definition = load_function_definition(file_path).unwrap();
-//    println!("Function = {:?}", _function_definition);
+    println!("Function = {:?}", _function_definition);
 
     // Construct a representation of Rust code as a syntax tree that we can manipulate
     let ast = syn::parse(item).unwrap();
@@ -39,18 +40,12 @@ pub fn flow(attr: TokenStream, item: TokenStream) -> TokenStream {
     generate_code(&ast)
 }
 
-// Load a FunctionDefinition from the specified filename relative to this file
-fn load_function_definition(path: PathBuf) -> Option<String> {
+// Load a FunctionDefinition from the file at `path`
+fn load_function_definition(path: PathBuf) -> Result<FunctionDefinition, String> {
     let mut f = File::open(path).unwrap();
     let mut buffer = Vec::new();
     f.read_to_end(&mut buffer).unwrap();
-
-/*
-    if let FunctionProcess(function) = toml::from_str(contents).unwrap() {
-        return Some(function);
-    }
-*/
-    Some(String::from_utf8(buffer).unwrap())
+    toml::from_slice(&buffer).map_err(|e| e.to_string())
 }
 
 // Parse the attributes of the macro invocation (a TokenStream) and find the value assigned

@@ -457,6 +457,7 @@ dependencies = [
  "flowcore",
  "quote",
  "syn",
+ "toml 0.5.8",
 ]
 
 [[package]]

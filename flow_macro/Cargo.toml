@@ -20,3 +20,4 @@ proc-macro = true
 syn = "~1.0"
 quote = "~1.0"
 flowcore = {path = "../flowcore", version = "0.40.1"}
+toml = "0.5.8"
