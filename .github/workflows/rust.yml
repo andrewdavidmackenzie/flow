@@ -33,6 +33,13 @@ jobs:
     - name: SetupFlowLibPath
       run: echo "FLOW_LIB_PATH=$GITHUB_WORKSPACE,$GITHUB_WORKSPACE/flowr/src/lib" >> "$GITHUB_ENV"
 
+    - name: Install latest nightly
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: nightly
+        override: true
+        components: clippy
+
     - name: InstallLinuxDependencies
       if: matrix.os == 'ubuntu-latest'
       run: sudo apt-get -y install libzmq3-dev binaryen
