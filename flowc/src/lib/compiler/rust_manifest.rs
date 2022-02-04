@@ -97,7 +97,7 @@ fn camel_case(original: &str) -> String {
     // split into parts by '_' and Uppercase the first character of the (ASCII) Struct name
     let words: Vec<String> = original
         .split('_')
-        .map(|w| format!("{}{}", (&w[..1].to_string()).to_uppercase(), &w[1..]))
+        .map(|w| format!("{}{}", (w[..1].to_string()).to_uppercase(), &w[1..]))
         .collect();
     // recombine
     words.join("")
