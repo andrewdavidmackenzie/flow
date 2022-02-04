@@ -85,7 +85,7 @@ metadata:
   authors: ['unknown <unknown@unknown.com>']
 ";
 
-        match yaml_from_str(&flow_description.replace("'", "\"")) {
+        match yaml_from_str(&flow_description.replace('\'', "\"")) {
             Ok(FlowProcess(flow)) => {
                 assert_eq!(flow.metadata.name, String::default());
                 assert_eq!(flow.metadata.version, "1.1.1".to_string());
@@ -309,7 +309,7 @@ type = 'String'";
     ]
 }";
 
-        let flow = json_from_str(&flow_description.replace("'", "\""));
+        let flow = json_from_str(&flow_description.replace('\'', "\""));
         assert!(flow.is_ok());
     }
 
@@ -335,7 +335,7 @@ type = 'String'";
     ]
 }";
 
-        let flow = json_from_str(&flow_description.replace("'", "\""));
+        let flow = json_from_str(&flow_description.replace('\'', "\""));
         assert!(flow.is_ok());
     }
 
@@ -360,7 +360,7 @@ type = 'String'";
     ]
 }";
 
-        let flow = json_from_str(&flow_description.replace("'", "\""));
+        let flow = json_from_str(&flow_description.replace('\'', "\""));
         assert!(flow.is_err());
     }
 }

@@ -344,15 +344,15 @@ mod test {
     #[test]
     fn subroute_distinct_route() {
         let route = Route::from("/context/function");
-        assert!(!route.sub_route_of(&Route::from("/context/foo")).is_some())
+        assert!(route.sub_route_of(&Route::from("/context/foo")).is_none())
     }
 
     #[test]
     fn subroute_extended_name_route() {
         let route = Route::from("/context/function_foo");
-        assert!(!route
+        assert!(route
             .sub_route_of(&Route::from("/context/function"))
-            .is_some())
+            .is_none())
     }
 
     #[test]

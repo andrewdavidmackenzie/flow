@@ -1,32 +1,35 @@
 #![deny(missing_docs)]
+#![feature(proc_macro_span)]
 //! `flow_macro` is an attribute macro that inserts code around a `run` function to convert
 //! it into a flow `Implementation` with some helper functions for wasm
 extern crate proc_macro;
 
+use proc_macro::Span;
 use proc_macro::TokenTree::Ident;
+use std::fs::File;
+use std::io::prelude::*;
+use std::path::PathBuf;
 
 use quote::quote;
 
+//use flowcore::model::function_definition::FunctionDefinition;
 use crate::proc_macro::TokenStream;
 
-/*
-use simpath::Simpath;
-use std::path::PathBuf;
-use url::Url;
-use flowcore::deserializers::deserializer::get_deserializer;
-use flowcore::model::function_definition::FunctionDefinition;
-use flowcore::model::process::Process;
-use flowcore::model::process::Process::FunctionProcess;
-use flowcore::lib_provider::{MetaProvider, Provider};
-*/
 #[proc_macro_attribute]
 /// Implement the `Flow` macro, an example of which is:
 ///     #[flow(definition = "definition_file.toml")]
 pub fn flow(attr: TokenStream, item: TokenStream) -> TokenStream {
-    let definition_filename = find_definition_filename(attr).unwrap();
-    println!("filename = {}", definition_filename);
 
-//    let _function_definition = load_function_definition(definition_filename).unwrap();
+    let definition_filename = find_definition_filename(attr).unwrap();
+//    println!("filename = {}", definition_filename);
+
+    let span = Span::call_site();
+    let mut file_path = span.source_file().path().canonicalize().unwrap();
+
+    file_path.set_file_name(definition_filename);
+//    println!("path = {}", file_path.display());
+
+    let _function_definition = load_function_definition(file_path).unwrap();
 
     // Construct a representation of Rust code as a syntax tree that we can manipulate
     let ast = syn::parse(item).unwrap();
@@ -36,34 +39,31 @@ pub fn flow(attr: TokenStream, item: TokenStream) -> TokenStream {
 }
 
 // Load a FunctionDefinition from the specified filename relative to this file
-/*fn load_function_definition(filename: String) -> Option<FunctionDefinition> {
-    let url = Url::from_file_path(PathBuf::from(filename)).unwrap();
-    println!("url = {}", url);
-    let provider = MetaProvider::new(Simpath::new(""));
+fn load_function_definition(path: PathBuf) -> Option<String> {
+    let mut f = File::open(path).unwrap();
+    let mut buffer = Vec::new();
+    f.read_to_end(&mut buffer).unwrap();
 
-    let content = provider.get_contents(&url).unwrap();
-    let content_string = String::from_utf8(content).unwrap();
-
-    let deserializer = get_deserializer::<Process>(&url).unwrap();
-    let process = deserializer.deserialize(&content_string, Some(&url)).unwrap();
-
-    match process {
-        FunctionProcess(function) => Some(function),
-        _ => None
+/*
+    if let FunctionProcess(function) = toml::from_str(contents).unwrap() {
+        return Some(function);
     }
-}
 */
+    Some(String::from_utf8(buffer).unwrap())
+}
+
 // Parse the attributes of the macro invocation (a TokenStream) and find the value assigned
 // to the definition 'field'
+// TODO there must be a better way to parse this and get the rhv of the expression?
 fn find_definition_filename(attributes: TokenStream) -> Option<String> {
 //    println!("attributes: \"{:?}\"", attributes);
     let mut iter = attributes.into_iter();
-    while let Some(attribute) = iter.next() {
-        if let Ident(ident) = &attribute {
+    while let Some(token_tree) = iter.next() {
+        if let Ident(ident) = &token_tree {
             if ident.to_string() == "definition" {
-                let _p = iter.next().unwrap();
-                let f = iter.next().unwrap();
-                return Some(f.to_string());
+                let _equals = iter.next().unwrap();
+                let filename = iter.next().unwrap();
+                return Some(filename.to_string().trim_matches('"').to_string());
             }
         }
     }

@@ -456,9 +456,7 @@ version = "0.40.1"
 dependencies = [
  "flowcore",
  "quote",
- "simpath",
  "syn",
- "url",
 ]
 
 [[package]]

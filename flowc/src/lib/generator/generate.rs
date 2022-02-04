@@ -293,7 +293,7 @@ mod test {
 
         let serialized_process = serde_json::to_string_pretty(&runtime_process)
             .expect("Could not convert function content to json");
-        assert_eq!(serialized_process, expected.replace("'", "\""));
+        assert_eq!(serialized_process, expected.replace('\'', "\""));
     }
 
     #[test]
@@ -347,7 +347,7 @@ mod test {
 
         let serialized_process = serde_json::to_string_pretty(&process)
             .expect("Could not convert function content to json");
-        assert_eq!(serialized_process, expected.replace("'", "\""));
+        assert_eq!(serialized_process, expected.replace('\'', "\""));
     }
 
     #[test]
@@ -402,7 +402,7 @@ mod test {
 
         let serialized_process = serde_json::to_string_pretty(&process)
             .expect("Could not convert function content to json");
-        assert_eq!(serialized_process, expected.replace("'", "\""));
+        assert_eq!(serialized_process, expected.replace('\'', "\""));
     }
 
     #[test]
@@ -448,7 +448,7 @@ mod test {
 
         let serialized_process = serde_json::to_string_pretty(&process)
             .expect("Could not convert function content to json");
-        assert_eq!(expected.replace("'", "\""), serialized_process);
+        assert_eq!(expected.replace('\'', "\""), serialized_process);
     }
 
     #[test]
@@ -494,7 +494,7 @@ mod test {
 
         let serialized_process = serde_json::to_string_pretty(&process)
             .expect("Could not convert function content to json");
-        assert_eq!(expected.replace("'", "\""), serialized_process);
+        assert_eq!(expected.replace('\'', "\""), serialized_process);
     }
 
     #[test]
@@ -535,7 +535,7 @@ mod test {
 
         let serialized_process = serde_json::to_string_pretty(&process)
             .expect("Could not convert function content to json");
-        assert_eq!(serialized_process, expected.replace("'", "\""));
+        assert_eq!(serialized_process, expected.replace('\'', "\""));
     }
 
     fn test_function() -> FunctionDefinition {
@@ -608,7 +608,7 @@ mod test {
 
         let serialized_process = serde_json::to_string_pretty(&process)
             .expect("Could not convert function content to json");
-        assert_eq!(serialized_process, expected.replace("'", "\""));
+        assert_eq!(serialized_process, expected.replace('\'', "\""));
     }
 
     #[test]
@@ -665,6 +665,6 @@ mod test {
 
         let serialized_process = serde_json::to_string_pretty(&process)
             .expect("Could not convert function content to json");
-        assert_eq!(serialized_process, expected.replace("'", "\""));
+        assert_eq!(serialized_process, expected.replace('\'', "\""));
     }
 }
