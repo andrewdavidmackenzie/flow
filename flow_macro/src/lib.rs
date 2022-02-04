@@ -30,6 +30,7 @@ pub fn flow(attr: TokenStream, item: TokenStream) -> TokenStream {
 //    println!("path = {}", file_path.display());
 
     let _function_definition = load_function_definition(file_path).unwrap();
+//    println!("Function = {:?}", _function_definition);
 
     // Construct a representation of Rust code as a syntax tree that we can manipulate
     let ast = syn::parse(item).unwrap();
