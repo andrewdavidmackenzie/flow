@@ -14,7 +14,7 @@ fn type_string(value: &Value) -> String {
         Value::Number(_) => "Number".into(),
         Value::Array(array) => format!("Array/{}", type_string(&array[0])),
         Value::Object(map) => {
-            if let Some(value) = &map.values().cloned().next() {
+            if let Some(value) = &map.values().next().cloned() {
                 format!("Map/{}", type_string(value))
             } else {
                 "Map/Unknown".into()
