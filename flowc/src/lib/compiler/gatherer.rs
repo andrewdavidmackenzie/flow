@@ -39,7 +39,7 @@ pub fn gather_functions_and_connections(flow: &FlowDefinition, tables: &mut Gene
     Give each function a unique index that will later be used to indicate where outputs get sent
     to, and used in code generation.
 */
-pub fn index_functions(functions: &mut Vec<FunctionDefinition>) {
+pub fn index_functions(functions: &mut [FunctionDefinition]) {
     for (index, function) in functions.iter_mut().enumerate() {
         function.set_id(index);
     }
@@ -57,7 +57,7 @@ mod test {
 
     #[test]
     fn empty_index_test() {
-        super::index_functions(&mut vec![]);
+        super::index_functions(&mut[]);
     }
 
     #[test]
