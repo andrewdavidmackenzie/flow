@@ -71,7 +71,6 @@ fn find_definition_filename(attributes: TokenStream) -> String {
 fn generate_code(function_definition: &FunctionDefinition) -> TokenStream {
     let docs = &function_definition.docs;
     let struct_name = format_ident!("{}", FunctionDefinition::camel_case(&function_definition.name.to_string()));
-//    println!("struct name = {}", struct_name);
 
     let gen = quote! {
         use std::os::raw::c_void;

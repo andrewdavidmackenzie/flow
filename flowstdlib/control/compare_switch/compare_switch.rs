@@ -3,7 +3,7 @@ use flowcore::{RUN_AGAIN, RunAgain};
 use serde_json::Value;
 
 #[flow(definition = "compare_switch.toml")]
-pub struct CompareSwitch;
+struct foo {}
 
 impl Implementation for CompareSwitch {
     fn run(&self, inputs: &[Value]) -> (Option<Value>, RunAgain) {
