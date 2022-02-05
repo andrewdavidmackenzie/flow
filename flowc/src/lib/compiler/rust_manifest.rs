@@ -7,6 +7,7 @@ use log::info;
 
 use flowcore::lib_manifest::DEFAULT_LIB_RUST_MANIFEST_FILENAME;
 use flowcore::lib_manifest::LibraryManifest;
+use flowcore::model::function_definition::FunctionDefinition;
 
 use crate::errors::*;
 
@@ -67,7 +68,7 @@ pub fn write(lib_root: &Path, lib_manifest: &LibraryManifest, filename: &Path) -
         let implementation_struct = format!(
             "{}::{}",
             parts[0..parts.len() - 1].join("::"),
-            self::camel_case(parts[2])
+            FunctionDefinition::camel_case(parts[2])
         );
 
         let manifest_entry = format!(
@@ -90,17 +91,6 @@ pub fn write(lib_root: &Path, lib_manifest: &LibraryManifest, filename: &Path) -
     );
 
     Ok(())
-}
-
-// take a name like 'duplicate_rows' and remove underscores and camel case it to 'DuplicateRows'
-fn camel_case(original: &str) -> String {
-    // split into parts by '_' and Uppercase the first character of the (ASCII) Struct name
-    let words: Vec<String> = original
-        .split('_')
-        .map(|w| format!("{}{}", (w[..1].to_string()).to_uppercase(), &w[1..]))
-        .collect();
-    // recombine
-    words.join("")
 }
 
 /// Given an output directory, return a PathBuf to the rust format manifest that should be

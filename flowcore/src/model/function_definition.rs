@@ -304,6 +304,19 @@ impl FunctionDefinition {
     pub fn get_lib_reference(&self) -> &Option<String> {
         &self.lib_reference
     }
+
+    /// Convert a FunctionDefinition filename into the name of the struct used to implement it
+    /// by removing underscores and camel case each word
+    /// Example ''duplicate_rows' -> 'DuplicateRows'
+    pub fn camel_case(original: &str) -> String {
+        // split into parts by '_' and Uppercase the first character of the (ASCII) Struct name
+        let words: Vec<String> = original
+            .split('_')
+            .map(|w| format!("{}{}", (w[..1].to_string()).to_uppercase(), &w[1..]))
+            .collect();
+        // recombine
+        words.join("")
+    }
 }
 
 impl Validate for FunctionDefinition {
