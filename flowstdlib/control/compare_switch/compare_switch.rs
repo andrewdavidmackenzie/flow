@@ -1,5 +1,5 @@
 use flow_macro::flow;
-use flowcore::{Implementation, RUN_AGAIN, RunAgain};
+use flowcore::{RUN_AGAIN, RunAgain};
 use serde_json::Value;
 
 #[flow(definition = "compare_switch.toml")]

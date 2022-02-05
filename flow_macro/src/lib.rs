@@ -75,6 +75,7 @@ fn generate_code(ast: &DeriveInput, function_definition: &FunctionDefinition) ->
 
     let gen = quote! {
         use std::os::raw::c_void;
+        use flowcore::Implementation;
 
         #[doc = include_str!(#docs)]
         #[derive(Debug)]
