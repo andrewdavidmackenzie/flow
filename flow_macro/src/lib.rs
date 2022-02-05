@@ -13,12 +13,10 @@ use quote::{format_ident, quote};
 
 use flowcore::model::function_definition::FunctionDefinition;
 
-use crate::proc_macro::TokenStream;
-
 #[proc_macro_attribute]
 /// Implement the `Flow` macro, an example of which is:
 ///     `#[flow(definition = "definition_file.toml")]`
-pub fn flow(attr: TokenStream, item: TokenStream) -> TokenStream {
+pub fn flow(attr: proc_macro::TokenStream, item: proc_macro::TokenStream) -> proc_macro::TokenStream {
 
     let definition_filename = find_definition_filename(attr);
 
@@ -49,7 +47,7 @@ fn load_function_definition(path: &PathBuf) -> Result<FunctionDefinition, String
 // Parse the attributes of the macro invocation (a TokenStream) and find the value assigned
 // to the definition 'field'
 // TODO there must be a better way to parse this and get the rhv of the expression?
-fn find_definition_filename(attributes: TokenStream) -> String {
+fn find_definition_filename(attributes: proc_macro::TokenStream) -> String {
     let mut iter = attributes.into_iter();
     if let Ident(ident) = iter.next().expect("the 'flow' macro must include ´definition' attribute") {
             match ident.to_string().as_str() {
@@ -68,9 +66,10 @@ fn find_definition_filename(attributes: TokenStream) -> String {
 
 // Generate the code for the implementation struct, including some extra functions to help
 // manage memory and pass parameters to and from wasm from native code
-fn generate_code(_run_function: TokenStream, function_definition: &FunctionDefinition) -> TokenStream {
+fn generate_code(run_function: proc_macro::TokenStream, function_definition: &FunctionDefinition) -> proc_macro::TokenStream {
     let docs_filename = &function_definition.docs;
     let struct_name = format_ident!("{}", FunctionDefinition::camel_case(&function_definition.name.to_string()));
+    let function: proc_macro2::TokenStream = run_function.into();
 
     let wasm_boilerplate = quote! {
         use std::os::raw::c_void;
@@ -109,13 +108,20 @@ fn generate_code(_run_function: TokenStream, function_definition: &FunctionDefin
     };
 
     let gen = quote! {
+        #[allow(unused_imports)]
+
         #wasm_boilerplate
 
         use flowcore::Implementation;
+        use flowcore::{RUN_AGAIN, RunAgain};
 
         #[doc = include_str!(#docs_filename)]
         #[derive(Debug)]
         pub struct #struct_name;
+
+        impl Implementation for #struct_name {
+            #function
+        }
 
     };
     gen.into()

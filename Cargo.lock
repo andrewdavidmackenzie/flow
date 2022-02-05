@@ -455,6 +455,7 @@ name = "flow_macro"
 version = "0.40.1"
 dependencies = [
  "flowcore",
+ "proc-macro2",
  "quote",
  "syn",
  "toml 0.5.8",

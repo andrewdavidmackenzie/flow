@@ -21,3 +21,4 @@ syn = "~1.0"
 quote = "~1.0"
 flowcore = {path = "../flowcore", version = "0.40.1"}
 toml = "0.5.8"
+proc-macro2 = "1.0"

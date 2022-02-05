@@ -1,41 +1,36 @@
 use flow_macro::flow;
-use flowcore::{RUN_AGAIN, RunAgain};
 use serde_json::Value;
 
 #[flow(definition = "compare_switch.toml")]
-struct foo {}
-
-impl Implementation for CompareSwitch {
-    fn run(&self, inputs: &[Value]) -> (Option<Value>, RunAgain) {
-        let left = &inputs[0];
-        let right = &inputs[1];
-        match (left.as_f64(), right.as_f64()) {
-            (Some(lhs), Some(rhs)) => {
-                let mut output_map = serde_json::Map::new();
-                if (rhs - lhs).abs() < f64::EPSILON {
-                    output_map.insert("equal".into(), right.clone());
-                    output_map.insert("right-lte".into(), right.clone());
-                    output_map.insert("left-gte".into(), left.clone());
-                    output_map.insert("right-gte".into(), right.clone());
-                    output_map.insert("left-lte".into(), left.clone());
-                } else if rhs < lhs {
-                    output_map.insert("right-lt".into(), right.clone());
-                    output_map.insert("left-gt".into(), left.clone());
-                    output_map.insert("right-lte".into(), right.clone());
-                    output_map.insert("left-gte".into(), left.clone());
-                } else if rhs > lhs {
-                    output_map.insert("right-gt".into(), right.clone());
-                    output_map.insert("left-lt".into(), left.clone());
-                    output_map.insert("right-gte".into(), right.clone());
-                    output_map.insert("left-lte".into(), left.clone());
-                }
-
-                let output = Value::Object(output_map);
-
-                (Some(output), RUN_AGAIN)
+fn run(&self, inputs: &[Value]) -> (Option<Value>, RunAgain) {
+    let left = &inputs[0];
+    let right = &inputs[1];
+    match (left.as_f64(), right.as_f64()) {
+        (Some(lhs), Some(rhs)) => {
+            let mut output_map = serde_json::Map::new();
+            if (rhs - lhs).abs() < f64::EPSILON {
+                output_map.insert("equal".into(), right.clone());
+                output_map.insert("right-lte".into(), right.clone());
+                output_map.insert("left-gte".into(), left.clone());
+                output_map.insert("right-gte".into(), right.clone());
+                output_map.insert("left-lte".into(), left.clone());
+            } else if rhs < lhs {
+                output_map.insert("right-lt".into(), right.clone());
+                output_map.insert("left-gt".into(), left.clone());
+                output_map.insert("right-lte".into(), right.clone());
+                output_map.insert("left-gte".into(), left.clone());
+            } else if rhs > lhs {
+                output_map.insert("right-gt".into(), right.clone());
+                output_map.insert("left-lt".into(), left.clone());
+                output_map.insert("right-gte".into(), right.clone());
+                output_map.insert("left-lte".into(), left.clone());
             }
-            (_, _) => (None, RUN_AGAIN),
+
+            let output = Value::Object(output_map);
+
+            (Some(output), RUN_AGAIN)
         }
+        (_, _) => (None, RUN_AGAIN),
     }
 }
 
