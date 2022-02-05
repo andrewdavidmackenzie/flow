@@ -9,8 +9,7 @@ use proc_macro::TokenTree::Ident;
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::PathBuf;
-use quote::quote;
-use syn::DeriveInput;
+use quote::{format_ident, quote};
 
 use flowcore::model::function_definition::FunctionDefinition;
 
@@ -19,7 +18,7 @@ use crate::proc_macro::TokenStream;
 #[proc_macro_attribute]
 /// Implement the `Flow` macro, an example of which is:
 ///     `#[flow(definition = "definition_file.toml")]`
-pub fn flow(attr: TokenStream, item: TokenStream) -> TokenStream {
+pub fn flow(attr: TokenStream, _item: TokenStream) -> TokenStream {
 
     let definition_filename = find_definition_filename(attr);
 
@@ -35,12 +34,8 @@ pub fn flow(attr: TokenStream, item: TokenStream) -> TokenStream {
         .unwrap_or_else(|_| panic!("the 'flow' macro could not load the FunctionDefinition from {}",
                          file_path.display()));
 
-    // Construct a representation of Rust code as a syntax tree that we can manipulate
-    let ast = syn::parse(item)
-        .expect("the 'flow' macro could not parse the code following it's invocation");
-
     // Build the output token stream with generated code around original supplied code
-    generate_code(&ast, &function_definition)
+    generate_code(&function_definition)
 }
 
 // Load a FunctionDefinition from the file at `path`
@@ -55,7 +50,6 @@ fn load_function_definition(path: &PathBuf) -> Result<FunctionDefinition, String
 // to the definition 'field'
 // TODO there must be a better way to parse this and get the rhv of the expression?
 fn find_definition_filename(attributes: TokenStream) -> String {
-//    println!("attributes: \"{:?}\"", attributes);
     let mut iter = attributes.into_iter();
     if let Ident(ident) = iter.next().expect("the 'flow' macro must include ´definition' attribute") {
             match ident.to_string().as_str() {
@@ -74,9 +68,10 @@ fn find_definition_filename(attributes: TokenStream) -> String {
 
 // Generate the code for the implementation struct, including some extra functions to help
 // manage memory and pass parameters to and from wasm from native code
-fn generate_code(ast: &DeriveInput, function_definition: &FunctionDefinition) -> TokenStream {
-    let name = &ast.ident;
+fn generate_code(function_definition: &FunctionDefinition) -> TokenStream {
     let docs = &function_definition.docs;
+    let struct_name = format_ident!("{}", FunctionDefinition::camel_case(&function_definition.name.to_string()));
+//    println!("struct name = {}", struct_name);
 
     let gen = quote! {
         use std::os::raw::c_void;
@@ -84,7 +79,7 @@ fn generate_code(ast: &DeriveInput, function_definition: &FunctionDefinition) ->
 
         #[doc = include_str!(#docs)]
         #[derive(Debug)]
-        pub struct #name;
+        pub struct #struct_name;
 
         // Allocate a chunk of memory of `size` bytes in wasm module
         #[cfg(target_arch = "wasm32")]
@@ -108,7 +103,7 @@ fn generate_code(ast: &DeriveInput, function_definition: &FunctionDefinition) ->
             };
 
             let inputs: Vec<Value> = serde_json::from_slice(&input_data).unwrap();
-            let object = #name {};
+            let object = #struct_name {};
             let result = object.run(&inputs);
 
             let return_data = serde_json::to_vec(&result).unwrap();
