@@ -18,7 +18,7 @@ use crate::proc_macro::TokenStream;
 #[proc_macro_attribute]
 /// Implement the `Flow` macro, an example of which is:
 ///     `#[flow(definition = "definition_file.toml")]`
-pub fn flow(attr: TokenStream, _item: TokenStream) -> TokenStream {
+pub fn flow(attr: TokenStream, item: TokenStream) -> TokenStream {
 
     let definition_filename = find_definition_filename(attr);
 
@@ -35,7 +35,7 @@ pub fn flow(attr: TokenStream, _item: TokenStream) -> TokenStream {
                          file_path.display()));
 
     // Build the output token stream with generated code around original supplied code
-    generate_code(&function_definition)
+    generate_code(item, &function_definition)
 }
 
 // Load a FunctionDefinition from the file at `path`
@@ -68,17 +68,12 @@ fn find_definition_filename(attributes: TokenStream) -> String {
 
 // Generate the code for the implementation struct, including some extra functions to help
 // manage memory and pass parameters to and from wasm from native code
-fn generate_code(function_definition: &FunctionDefinition) -> TokenStream {
+fn generate_code(_run_function: TokenStream, function_definition: &FunctionDefinition) -> TokenStream {
     let docs = &function_definition.docs;
     let struct_name = format_ident!("{}", FunctionDefinition::camel_case(&function_definition.name.to_string()));
 
-    let gen = quote! {
+    let wasm_boilerplate = quote! {
         use std::os::raw::c_void;
-        use flowcore::Implementation;
-
-        #[doc = include_str!(#docs)]
-        #[derive(Debug)]
-        pub struct #struct_name;
 
         // Allocate a chunk of memory of `size` bytes in wasm module
         #[cfg(target_arch = "wasm32")]
@@ -111,6 +106,17 @@ fn generate_code(function_definition: &FunctionDefinition) -> TokenStream {
 
             return_data.len() as i32
         }
+    };
+
+    let gen = quote! {
+        #wasm_boilerplate
+
+        use flowcore::Implementation;
+
+        #[doc = include_str!(#docs)]
+        #[derive(Debug)]
+        pub struct #struct_name;
+
     };
     gen.into()
 }
