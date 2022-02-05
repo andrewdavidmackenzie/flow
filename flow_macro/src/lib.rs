@@ -21,7 +21,7 @@ use crate::proc_macro::TokenStream;
 ///     #[flow(definition = "definition_file.toml")]
 pub fn flow(attr: TokenStream, item: TokenStream) -> TokenStream {
 
-    let definition_filename = find_definition_filename(attr).unwrap();
+    let definition_filename = find_definition_filename(attr);
 //    println!("filename = {}", definition_filename);
 
     let span = Span::call_site();
@@ -51,20 +51,21 @@ fn load_function_definition(path: PathBuf) -> Result<FunctionDefinition, String>
 // Parse the attributes of the macro invocation (a TokenStream) and find the value assigned
 // to the definition 'field'
 // TODO there must be a better way to parse this and get the rhv of the expression?
-fn find_definition_filename(attributes: TokenStream) -> Option<String> {
+fn find_definition_filename(attributes: TokenStream) -> String {
 //    println!("attributes: \"{:?}\"", attributes);
     let mut iter = attributes.into_iter();
-    while let Some(token_tree) = iter.next() {
-        if let Ident(ident) = &token_tree {
-            if ident.to_string() == "definition" {
-                let _equals = iter.next().unwrap();
-                let filename = iter.next().unwrap();
-                return Some(filename.to_string().trim_matches('"').to_string());
+    if let Ident(ident) = iter.next().expect("'flow' macro must include ´definition' attribute") {
+            match ident.to_string().as_str() {
+                "definition" => {
+                    let _equals = iter.next().unwrap();
+                    let filename = iter.next().unwrap();
+                    return filename.to_string().trim_matches('"').to_string();
+                }
+                attribute => panic!("Unsupported attribute '{}' in 'flow' macro", attribute)
             }
-        }
     }
 
-    None
+    panic!("'flow' macro must include ´definition' attribute")
 }
 
 // Generate the code for the implementation struct, including some extra functions to help
