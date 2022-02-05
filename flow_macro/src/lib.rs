@@ -1,7 +1,7 @@
 #![deny(missing_docs)]
 #![feature(proc_macro_span)]
-//! `flow_macro` is an attribute macro that inserts code around a `run` function to convert
-//! it into a flow `Implementation` with some helper functions for wasm
+//! `flow_macro` is an attribute macro that inserts code around a `run` function to form a struct
+//! that implements the `Implementation` trait, and adds some helper functions for wasm
 extern crate proc_macro;
 
 use proc_macro::Span;
@@ -69,7 +69,7 @@ fn find_definition_filename(attributes: TokenStream) -> String {
 // Generate the code for the implementation struct, including some extra functions to help
 // manage memory and pass parameters to and from wasm from native code
 fn generate_code(_run_function: TokenStream, function_definition: &FunctionDefinition) -> TokenStream {
-    let docs = &function_definition.docs;
+    let docs_filename = &function_definition.docs;
     let struct_name = format_ident!("{}", FunctionDefinition::camel_case(&function_definition.name.to_string()));
 
     let wasm_boilerplate = quote! {
@@ -113,7 +113,7 @@ fn generate_code(_run_function: TokenStream, function_definition: &FunctionDefin
 
         use flowcore::Implementation;
 
-        #[doc = include_str!(#docs)]
+        #[doc = include_str!(#docs_filename)]
         #[derive(Debug)]
         pub struct #struct_name;
 
