@@ -22,26 +22,29 @@ use crate::proc_macro::TokenStream;
 pub fn flow(attr: TokenStream, item: TokenStream) -> TokenStream {
 
     let definition_filename = find_definition_filename(attr);
-//    println!("filename = {}", definition_filename);
 
+    // Get the full path to the file where the macro was used, and join the relative filename from
+    // the macro's attributes, to find the path to the function's definition file
     let span = Span::call_site();
-    let mut file_path = span.source_file().path().canonicalize().unwrap();
+    let mut file_path = span.source_file().path().canonicalize()
+        .expect("Could not get the full file path of the file where the 'flow' macro was invoked");
 
     file_path.set_file_name(definition_filename);
-//    println!("path = {}", file_path.display());
 
-    let function_definition = load_function_definition(file_path).unwrap();
-//    println!("Function = {:?}", function_definition);
+    let function_definition = load_function_definition(&file_path)
+        .expect(&format!("the 'flow' macro could not load the FunctionDefinition from {}",
+                         file_path.display()));
 
     // Construct a representation of Rust code as a syntax tree that we can manipulate
-    let ast = syn::parse(item).unwrap();
+    let ast = syn::parse(item)
+        .expect("'flow' macro could not parse the code following it's invocation");
 
     // Build the output token stream with generated code around original supplied code
     generate_code(&ast, &function_definition)
 }
 
 // Load a FunctionDefinition from the file at `path`
-fn load_function_definition(path: PathBuf) -> Result<FunctionDefinition, String> {
+fn load_function_definition(path: &PathBuf) -> Result<FunctionDefinition, String> {
     let mut f = File::open(path).unwrap();
     let mut buffer = Vec::new();
     f.read_to_end(&mut buffer).unwrap();
@@ -57,8 +60,8 @@ fn find_definition_filename(attributes: TokenStream) -> String {
     if let Ident(ident) = iter.next().expect("'flow' macro must include ´definition' attribute") {
             match ident.to_string().as_str() {
                 "definition" => {
-                    let _equals = iter.next().unwrap();
-                    let filename = iter.next().unwrap();
+                    let _equals = iter.next().expect("'=' expected after 'definition' attribute in 'flow' macro");
+                    let filename = iter.next().expect("name of definition TOML file expected after '=' in 'flow' macro");
                     return filename.to_string().trim_matches('"').to_string();
                 }
                 attribute => panic!("Unsupported attribute '{}' in 'flow' macro", attribute)
