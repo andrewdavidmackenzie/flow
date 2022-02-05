@@ -18,7 +18,7 @@ use crate::proc_macro::TokenStream;
 
 #[proc_macro_attribute]
 /// Implement the `Flow` macro, an example of which is:
-///     #[flow(definition = "definition_file.toml")]
+///     `#[flow(definition = "definition_file.toml")]`
 pub fn flow(attr: TokenStream, item: TokenStream) -> TokenStream {
 
     let definition_filename = find_definition_filename(attr);
@@ -27,17 +27,17 @@ pub fn flow(attr: TokenStream, item: TokenStream) -> TokenStream {
     // the macro's attributes, to find the path to the function's definition file
     let span = Span::call_site();
     let mut file_path = span.source_file().path().canonicalize()
-        .expect("Could not get the full file path of the file where the 'flow' macro was invoked");
+        .expect("the 'flow' macro could not get the full file path of the file where it was invoked");
 
     file_path.set_file_name(definition_filename);
 
     let function_definition = load_function_definition(&file_path)
-        .expect(&format!("the 'flow' macro could not load the FunctionDefinition from {}",
+        .unwrap_or_else(|_| panic!("the 'flow' macro could not load the FunctionDefinition from {}",
                          file_path.display()));
 
     // Construct a representation of Rust code as a syntax tree that we can manipulate
     let ast = syn::parse(item)
-        .expect("'flow' macro could not parse the code following it's invocation");
+        .expect("the 'flow' macro could not parse the code following it's invocation");
 
     // Build the output token stream with generated code around original supplied code
     generate_code(&ast, &function_definition)
@@ -57,18 +57,19 @@ fn load_function_definition(path: &PathBuf) -> Result<FunctionDefinition, String
 fn find_definition_filename(attributes: TokenStream) -> String {
 //    println!("attributes: \"{:?}\"", attributes);
     let mut iter = attributes.into_iter();
-    if let Ident(ident) = iter.next().expect("'flow' macro must include ´definition' attribute") {
+    if let Ident(ident) = iter.next().expect("the 'flow' macro must include ´definition' attribute") {
             match ident.to_string().as_str() {
                 "definition" => {
-                    let _equals = iter.next().expect("'=' expected after 'definition' attribute in 'flow' macro");
-                    let filename = iter.next().expect("name of definition TOML file expected after '=' in 'flow' macro");
+                    let _equals = iter.next().expect("the 'flow' macro expect '=' after 'definition' attribute");
+                    let filename = iter.next()
+                        .expect("the 'flow' macro expected name of definition TOML file after '=' in 'definition' attribute");
                     return filename.to_string().trim_matches('"').to_string();
                 }
-                attribute => panic!("Unsupported attribute '{}' in 'flow' macro", attribute)
+                attribute => panic!("the 'flow' macro does not support the '{}' attribute", attribute)
             }
     }
 
-    panic!("'flow' macro must include ´definition' attribute")
+    panic!("the 'flow' macro must include the ´definition' attribute")
 }
 
 // Generate the code for the implementation struct, including some extra functions to help
