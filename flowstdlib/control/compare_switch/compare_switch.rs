@@ -1,7 +1,7 @@
-use flow_macro::flow;
+use flow_macro::flow_function;
 use serde_json::Value;
 
-#[flow(definition = "compare_switch.toml")]
+#[flow_function(definition = "compare_switch.toml")]
 fn compare(inputs: &[Value]) -> (Option<Value>, RunAgain) {
     let left = &inputs[0];
     let right = &inputs[1];

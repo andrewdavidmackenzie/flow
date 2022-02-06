@@ -1,7 +1,7 @@
 #![deny(missing_docs)]
 #![feature(proc_macro_span)]
-//! `flow_macro` is an attribute macro that inserts code around a `run` function to form a struct
-//! that implements the `Implementation` trait, and adds some helper functions for wasm
+//! `flow_function` is a `proc_macro_attribute` macro that inserts code around a supplied function
+//! to form a struct that implements the `Implementation` trait, and adds some helper functions for wasm
 extern crate proc_macro;
 
 use proc_macro::{Span, TokenStream};
@@ -15,10 +15,9 @@ use syn::parse_macro_input;
 use flowcore::model::function_definition::FunctionDefinition;
 
 #[proc_macro_attribute]
-/// Implement the `Flow` macro, an example of which is:
-///     `#[flow(definition = "definition_file.toml")]`
+/// Implement the `flow_function` macro, an example of which is:
+///     `#[flow_function(definition = "definition_file.toml")]`
 pub fn flow_function(attr: TokenStream, item: proc_macro::TokenStream) -> TokenStream {
-
     let definition_filename = find_definition_filename(attr);
 
     // Get the full path to the file where the macro was used, and join the relative filename from

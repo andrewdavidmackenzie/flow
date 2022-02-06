@@ -91,6 +91,10 @@ pub const DONT_RUN_AGAIN: RunAgain = false;
 ///     }
 /// }
 /// ```
+///
+/// **Note**: It is recommended to implement this by using the `flow_function` macro from the
+/// `flow_macro` crate to simplify input gathering and to hide the boiler plate code around the
+/// core function implementing the logic.
 pub trait Implementation: Sync + Send {
     /// The `run` method is used to execute the implementation
     fn run(&self, inputs: &[Value]) -> (Option<Value>, RunAgain);

@@ -1,4 +1,4 @@
-use flow_macro::flow;
+use flow_macro::flow_function;
 use num::Complex;
 use serde_json::{json, Value};
 
