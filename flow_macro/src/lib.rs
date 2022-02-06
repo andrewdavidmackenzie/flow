@@ -17,22 +17,24 @@ use flowcore::model::function_definition::FunctionDefinition;
 #[proc_macro_attribute]
 /// Implement the `flow_function` macro, an example of which is:
 ///     `#[flow_function(definition = "definition_file.toml")]`
-pub fn flow_function(attr: TokenStream, item: proc_macro::TokenStream) -> TokenStream {
+pub fn flow_function(attr: TokenStream, implementation: proc_macro::TokenStream) -> TokenStream {
     let definition_filename = find_definition_filename(attr);
 
     // Get the full path to the file where the macro was used, and join the relative filename from
     // the macro's attributes, to find the path to the function's definition file
     let span = Span::call_site();
-    let mut file_path = span.source_file().path().canonicalize()
+    let implementation_file_path = span.source_file().path().canonicalize()
         .expect("the 'flow' macro could not get the full file path of the file where it was invoked");
 
-    file_path.set_file_name(definition_filename);
+    let mut definition_file_path = implementation_file_path.clone();
+    definition_file_path.set_file_name(definition_filename);
 //    print!("file_path = {}", file_path.display());
 
-    let function_definition = load_function_definition(&file_path);
+    let function_definition = load_function_definition(&definition_file_path);
 
     // Build the output token stream with generated code around original supplied code
-    generate_code(item, &function_definition)
+    generate_code(implementation, implementation_file_path,
+                  function_definition, definition_file_path)
 }
 
 // Load a FunctionDefinition from the file at `path`
@@ -72,14 +74,31 @@ fn find_definition_filename(attributes: TokenStream) -> String {
 // Generate the code for the implementation struct, including some extra functions to help
 // manage memory and pass parameters to and from wasm from native code
 fn generate_code(function_implementation: TokenStream,
-                 function_definition: &FunctionDefinition) -> TokenStream {
-    let docs_filename = &function_definition.docs;
-    let struct_name = format_ident!("{}", FunctionDefinition::camel_case(&function_definition.name.to_string()));
-    let function: proc_macro2::TokenStream = function_implementation.clone().into();
-    let function_ast = parse_macro_input!(function_implementation as syn::ItemFn);
-//    println!("implementation ast = {:?}", function_ast);
-    let function_name = &function_ast.sig.ident;
-//    let function_name = format_ident!("compare");
+                 _implementation_file_path: PathBuf,
+                 definition: FunctionDefinition,
+                 _definition_file_path: PathBuf
+                ) -> TokenStream {
+    let implementation: proc_macro2::TokenStream = function_implementation.clone().into();
+    let implementation_ast = parse_macro_input!(function_implementation as syn::ItemFn);
+    let implementation_name = &implementation_ast.sig.ident;
+
+//    let implemented_inputs = &implementation_ast.sig.inputs;
+//    let defined_inputs = &definition.inputs;
+
+    /*
+    if implemented_inputs.len() != defined_inputs.len() {
+        panic!("a 'flow_function' macro check failed:\n\
+            '{}' define {} inputs ({})\n\
+            '{}()' implements {} inputs ({})",
+               definition.name, defined_inputs.len(), definition_file_path.display(),
+               implementation_name, implemented_inputs.len(), implementation_file_path.display());
+    }
+     */
+
+    // Generate the code that wraps the provided function, including a copy of the function itself
+    let docs_filename = &definition.docs;
+    let struct_name = format_ident!("{}", FunctionDefinition::camel_case(&definition.name.to_string()));
+
     let wasm_boilerplate = quote! {
         use std::os::raw::c_void;
 
@@ -128,13 +147,13 @@ fn generate_code(function_implementation: TokenStream,
         #[derive(Debug)]
         pub struct #struct_name;
 
-        #function
+        #implementation
 
         impl Implementation for #struct_name {
             fn run(&self, inputs: &[Value]) -> (Option<Value>, RunAgain) {
                 //     let left = &inputs[0];
                 //     let right = &inputs[1];
-                #function_name(inputs)
+                #implementation_name(inputs)
             }
         }
 
