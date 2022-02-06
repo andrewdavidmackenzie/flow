@@ -17,7 +17,7 @@ maintenance = { status = "actively-developed" }
 proc-macro = true
 
 [dependencies]
-syn = "~1.0"
+syn = { version = "~1.0", features =["full"] } #Full is required for ItemFn in macro parsing
 quote = "~1.0"
 flowcore = {path = "../flowcore", version = "0.40.1"}
 toml = "0.5.8"

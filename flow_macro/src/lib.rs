@@ -4,19 +4,20 @@
 //! that implements the `Implementation` trait, and adds some helper functions for wasm
 extern crate proc_macro;
 
-use proc_macro::Span;
+use proc_macro::{Span, TokenStream};
 use proc_macro::TokenTree::Ident;
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::PathBuf;
 use quote::{format_ident, quote};
+use syn::parse_macro_input;
 
 use flowcore::model::function_definition::FunctionDefinition;
 
 #[proc_macro_attribute]
 /// Implement the `Flow` macro, an example of which is:
 ///     `#[flow(definition = "definition_file.toml")]`
-pub fn flow(attr: proc_macro::TokenStream, item: proc_macro::TokenStream) -> proc_macro::TokenStream {
+pub fn flow(attr: TokenStream, item: proc_macro::TokenStream) -> TokenStream {
 
     let definition_filename = find_definition_filename(attr);
 
@@ -28,26 +29,30 @@ pub fn flow(attr: proc_macro::TokenStream, item: proc_macro::TokenStream) -> pro
 
     file_path.set_file_name(definition_filename);
 
-    let function_definition = load_function_definition(&file_path)
-        .unwrap_or_else(|_| panic!("the 'flow' macro could not load the FunctionDefinition from {}",
-                         file_path.display()));
+    let function_definition = load_function_definition(&file_path);
 
     // Build the output token stream with generated code around original supplied code
     generate_code(item, &function_definition)
 }
 
 // Load a FunctionDefinition from the file at `path`
-fn load_function_definition(path: &PathBuf) -> Result<FunctionDefinition, String> {
-    let mut f = File::open(path).unwrap();
+fn load_function_definition(path: &PathBuf) -> FunctionDefinition {
+    let mut f = File::open(path)
+        .unwrap_or_else(|e| panic!("the 'flow' macro could not open the function definition file '{}'\n{}",
+                                      path.display(), e));
     let mut buffer = Vec::new();
-    f.read_to_end(&mut buffer).unwrap();
-    toml::from_slice(&buffer).map_err(|e| e.to_string())
+    f.read_to_end(&mut buffer)
+        .unwrap_or_else(|e| panic!("the 'flow' macro could not read from the function definition file '{}'\n{}",
+                                   path.display(), e));
+    toml::from_slice(&buffer)
+        .unwrap_or_else(|e| panic!("the 'flow' macro could not deserialize the Toml function definition file
+        '{}'\n{}", path.display(), e))
 }
 
 // Parse the attributes of the macro invocation (a TokenStream) and find the value assigned
 // to the definition 'field'
 // TODO there must be a better way to parse this and get the rhv of the expression?
-fn find_definition_filename(attributes: proc_macro::TokenStream) -> String {
+fn find_definition_filename(attributes: TokenStream) -> String {
     let mut iter = attributes.into_iter();
     if let Ident(ident) = iter.next().expect("the 'flow' macro must include ´definition' attribute") {
             match ident.to_string().as_str() {
@@ -66,11 +71,15 @@ fn find_definition_filename(attributes: proc_macro::TokenStream) -> String {
 
 // Generate the code for the implementation struct, including some extra functions to help
 // manage memory and pass parameters to and from wasm from native code
-fn generate_code(run_function: proc_macro::TokenStream, function_definition: &FunctionDefinition) -> proc_macro::TokenStream {
+fn generate_code(function_implementation: TokenStream,
+                 function_definition: &FunctionDefinition) -> TokenStream {
     let docs_filename = &function_definition.docs;
     let struct_name = format_ident!("{}", FunctionDefinition::camel_case(&function_definition.name.to_string()));
-    let function: proc_macro2::TokenStream = run_function.into();
-
+    let function: proc_macro2::TokenStream = function_implementation.clone().into();
+    let function_ast = parse_macro_input!(function_implementation as syn::ItemFn);
+//    println!("implementation ast = {:?}", function_ast);
+    let function_name = &function_ast.sig.ident;
+//    let function_name = format_ident!("compare");
     let wasm_boilerplate = quote! {
         use std::os::raw::c_void;
 
@@ -119,8 +128,14 @@ fn generate_code(run_function: proc_macro::TokenStream, function_definition: &Fu
         #[derive(Debug)]
         pub struct #struct_name;
 
+        #function
+
         impl Implementation for #struct_name {
-            #function
+            fn run(&self, inputs: &[Value]) -> (Option<Value>, RunAgain) {
+                //     let left = &inputs[0];
+                //     let right = &inputs[1];
+                #function_name(inputs)
+            }
         }
 
     };

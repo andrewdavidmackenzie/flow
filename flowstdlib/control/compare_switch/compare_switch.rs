@@ -2,7 +2,7 @@ use flow_macro::flow;
 use serde_json::Value;
 
 #[flow(definition = "compare_switch.toml")]
-fn run(&self, inputs: &[Value]) -> (Option<Value>, RunAgain) {
+fn compare(inputs: &[Value]) -> (Option<Value>, RunAgain) {
     let left = &inputs[0];
     let right = &inputs[1];
     match (left.as_f64(), right.as_f64()) {
@@ -36,10 +36,9 @@ fn run(&self, inputs: &[Value]) -> (Option<Value>, RunAgain) {
 
 #[cfg(test)]
 mod test {
-    use flowcore::{Implementation, RUN_AGAIN};
+    use flowcore::RUN_AGAIN;
     use serde_json::json;
-
-    use super::CompareSwitch;
+    use super::compare;
 
     #[test]
     fn integer_equals() {
@@ -47,9 +46,7 @@ mod test {
         let right = json!(1);
         let inputs = vec![left, right];
 
-        let comparer = &CompareSwitch {} as &dyn Implementation;
-
-        let (value, run_again) = comparer.run(&inputs);
+        let (value, run_again) = compare(&inputs);
 
         assert_eq!(run_again, RUN_AGAIN);
         assert!(value.is_some());
@@ -64,9 +61,7 @@ mod test {
         let right = json!(1.0);
         let inputs = vec![left, right];
 
-        let comparer = &CompareSwitch {} as &dyn Implementation;
-
-        let (value, run_again) = comparer.run(&inputs);
+        let (value, run_again) = compare(&inputs);
 
         assert_eq!(run_again, RUN_AGAIN);
         assert!(value.is_some());
@@ -78,8 +73,7 @@ mod test {
     #[test]
     fn integer_less_than() {
         let inputs = vec![json!(1), json!(2)];
-        let comparer = &CompareSwitch {} as &dyn Implementation;
-        let (value, run_again) = comparer.run(&inputs);
+        let (value, run_again) = compare(&inputs);
 
         assert_eq!(run_again, RUN_AGAIN);
         assert!(value.is_some());
@@ -92,8 +86,7 @@ mod test {
     #[test]
     fn float_less_than() {
         let inputs = vec![json!(1.0), json!(2.0)];
-        let comparer = &CompareSwitch {} as &dyn Implementation;
-        let (value, run_again) = comparer.run(&inputs);
+        let (value, run_again) = compare(&inputs);
 
         assert_eq!(run_again, RUN_AGAIN);
         assert!(value.is_some());
@@ -106,8 +99,7 @@ mod test {
     #[test]
     fn integer_more_than() {
         let inputs = vec![json!(2), json!(1)];
-        let comparer = &CompareSwitch {} as &dyn Implementation;
-        let (value, run_again) = comparer.run(&inputs);
+        let (value, run_again) = compare(&inputs);
 
         assert_eq!(run_again, RUN_AGAIN);
         assert!(value.is_some());
@@ -120,8 +112,7 @@ mod test {
     #[test]
     fn float_more_than() {
         let inputs = vec![json!(2.0), json!(1.0)];
-        let comparer = &CompareSwitch {} as &dyn Implementation;
-        let (value, run_again) = comparer.run(&inputs);
+        let (value, run_again) = compare(&inputs);
 
         assert_eq!(run_again, RUN_AGAIN);
         assert!(value.is_some());
@@ -134,8 +125,7 @@ mod test {
     #[test]
     fn invalid() {
         let inputs = vec![json!("AAA"), json!(1.0)];
-        let comparer = &CompareSwitch {} as &dyn Implementation;
-        let (value, run_again) = comparer.run(&inputs);
+        let (value, run_again) = compare(&inputs);
 
         assert_eq!(run_again, RUN_AGAIN);
         assert!(value.is_none());
