@@ -17,7 +17,7 @@ use flowcore::model::function_definition::FunctionDefinition;
 #[proc_macro_attribute]
 /// Implement the `Flow` macro, an example of which is:
 ///     `#[flow(definition = "definition_file.toml")]`
-pub fn flow(attr: TokenStream, item: proc_macro::TokenStream) -> TokenStream {
+pub fn flow_function(attr: TokenStream, item: proc_macro::TokenStream) -> TokenStream {
 
     let definition_filename = find_definition_filename(attr);
 
@@ -28,6 +28,7 @@ pub fn flow(attr: TokenStream, item: proc_macro::TokenStream) -> TokenStream {
         .expect("the 'flow' macro could not get the full file path of the file where it was invoked");
 
     file_path.set_file_name(definition_filename);
+//    print!("file_path = {}", file_path.display());
 
     let function_definition = load_function_definition(&file_path);
 

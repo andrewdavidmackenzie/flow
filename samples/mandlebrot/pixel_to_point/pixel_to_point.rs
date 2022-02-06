@@ -1,5 +1,4 @@
-use flow_impl_derive::FlowImpl;
-use flowcore::Implementation;
+use flow_macro::flow;
 use num::Complex;
 use serde_json::{json, Value};
 
@@ -20,57 +19,46 @@ pub fn pixel_to_point(
     }
 }
 
-/// Given the row and column of a pixel in the output image, return the
-/// corresponding point on the complex plane.
-///
-/// `bounds` is a pair giving the width and height of the image in pixels.
-/// `pixel` is a (row, column) pair indicating a particular pixel in that image.
-/// The `upper_left` and `lower_right` parameters are points on the complex
-/// plane designating the area our image covers.
-#[derive(FlowImpl, Debug)]
-pub struct PixelToPoint;
+#[flow_function(definition = "pixel_to_point.toml")]
+fn pixel_run(inputs: &[Value]) -> (Option<Value>, bool) {
+    let bounds = inputs[0].as_array().unwrap();
+    let upper_left = bounds[0].as_array().unwrap();
+    let upper_left_c = Complex {
+        re: upper_left[0].as_f64().unwrap() as f64,
+        im: upper_left[1].as_f64().unwrap() as f64,
+    };
 
-impl Implementation for PixelToPoint {
-    fn run(&self, inputs: &[Value]) -> (Option<Value>, bool) {
-        let bounds = inputs[0].as_array().unwrap();
-        let upper_left = bounds[0].as_array().unwrap();
-        let upper_left_c = Complex {
-            re: upper_left[0].as_f64().unwrap() as f64,
-            im: upper_left[1].as_f64().unwrap() as f64,
-        };
+    let lower_right = bounds[1].as_array().unwrap();
+    let lower_right_c = Complex {
+        re: lower_right[0].as_f64().unwrap() as f64,
+        im: lower_right[1].as_f64().unwrap() as f64,
+    };
 
-        let lower_right = bounds[1].as_array().unwrap();
-        let lower_right_c = Complex {
-            re: lower_right[0].as_f64().unwrap() as f64,
-            im: lower_right[1].as_f64().unwrap() as f64,
-        };
+    let pixel = inputs[1].as_array().unwrap();
+    let x = pixel[0].as_i64().unwrap() as usize;
+    let y = pixel[1].as_i64().unwrap() as usize;
 
-        let pixel = inputs[1].as_array().unwrap();
-        let x = pixel[0].as_i64().unwrap() as usize;
-        let y = pixel[1].as_i64().unwrap() as usize;
+    let size = inputs[2].as_array().unwrap();
+    let width = size[0].as_i64().unwrap() as usize;
+    let height = size[1].as_i64().unwrap() as usize;
 
-        let size = inputs[2].as_array().unwrap();
-        let width = size[0].as_i64().unwrap() as usize;
-        let height = size[1].as_i64().unwrap() as usize;
+    let complex_point = pixel_to_point(
+        (width, height), // size
+        (x, y),          // pixel
+        upper_left_c,
+        lower_right_c,
+    );
 
-        let complex_point = pixel_to_point(
-            (width, height), // size
-            (x, y),          // pixel
-            upper_left_c,
-            lower_right_c,
-        );
+    let result = Some(json!([pixel, [complex_point.re, complex_point.im]]));
 
-        let result = Some(json!([pixel, [complex_point.re, complex_point.im]]));
-
-        (result, true)
-    }
+    (result, true)
 }
 
 #[cfg(test)]
 mod test {
-    use flowcore::Implementation;
     use num::Complex;
     use serde_json::{json, Value};
+    use super::pixel_run;
 
     // bounds = inputs[0]
     //      upper_left = bounds[0];
@@ -86,8 +74,7 @@ mod test {
 
         let inputs: Vec<Value> = vec![bounds, pixel, size];
 
-        let pixelator = super::PixelToPoint {};
-        let (result, _) = pixelator.run(&inputs);
+        let (result, _) = pixel_run(&inputs);
 
         let result_json = result.unwrap();
         let results = result_json.as_array().unwrap();

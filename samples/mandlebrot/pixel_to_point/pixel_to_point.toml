@@ -1,15 +1,19 @@
 function = "pixel_to_point"
 source = "pixel_to_point.rs"
+docs = "pixel_to_point.md"
 type = "rust"
 
+# `bounds` is a pair giving the width and height of the image in pixels.
 [[input]]
 name = "bounds"
 type = "Array/Array/Number"
 
+# `pixel` is a (row, column) pair indicating a particular pixel in that image.
 [[input]]
 name = "pixel"
 type = "Array/Number"
 
+# `size` is the size of the pixel area to translate the complex area into: [width, height]
 [[input]]
 name = "size"
 type = "Array/Number"
