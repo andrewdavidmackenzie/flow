@@ -1,38 +1,31 @@
 use serde_json::Value;
 
-use flow_impl_derive::FlowImpl;
-use flowcore::{Implementation, RunAgain, RUN_AGAIN};
+use flow_macro::flow_function;
 
-#[derive(FlowImpl)]
-/// Control the flow of data (flow or disappear it) based on a boolean control value.
-#[derive(Debug)]
-pub struct Tap;
-
-impl Implementation for Tap {
-    fn run(&self, inputs: &[Value]) -> (Option<Value>, RunAgain) {
-        let mut value = None;
-        let data = &inputs[0];
-        if let Some(control) = &inputs[1].as_bool() {
-            if *control {
-                value = Some(data.clone());
-            }
+#[flow_function]
+fn _tap(inputs: &[Value]) -> (Option<Value>, RunAgain) {
+    let mut value = None;
+    let data = &inputs[0];
+    if let Some(control) = &inputs[1].as_bool() {
+        if *control {
+            value = Some(data.clone());
         }
-
-        (value, RUN_AGAIN)
     }
+
+    (value, RUN_AGAIN)
 }
 
 #[cfg(test)]
 mod test {
     use serde_json::json;
 
-    use flowcore::{Implementation, RUN_AGAIN};
+    use flowcore::{RUN_AGAIN};
+    use super::_tap;
 
     #[test]
     fn test_tap_go() {
-        let tap = &super::Tap {} as &dyn Implementation;
         let inputs = vec![json!("A"), json!(true)];
-        let (output, run_again) = tap.run(&inputs);
+        let (output, run_again) = _tap(&inputs);
         assert_eq!(run_again, RUN_AGAIN);
 
         assert!(output.is_some());
@@ -42,9 +35,8 @@ mod test {
 
     #[test]
     fn test_tap_no_go() {
-        let tap = &super::Tap {} as &dyn Implementation;
         let inputs = vec![json!("A"), json!(false)];
-        let (output, run_again) = tap.run(&inputs);
+        let (output, run_again) = _tap(&inputs);
         assert_eq!(run_again, RUN_AGAIN);
         assert!(output.is_none());
     }

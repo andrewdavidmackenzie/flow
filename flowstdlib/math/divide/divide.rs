@@ -1,49 +1,38 @@
 use serde_json::{json, Value};
 
-use flow_impl_derive::FlowImpl;
-use flowcore::{Implementation, RunAgain, RUN_AGAIN};
+use flow_macro::flow_function;
 
-#[derive(FlowImpl)]
-/// Divide one input by another, producing outputs for the dividend, divisor, result and the remainder
-#[derive(Debug)]
-pub struct Divide;
+#[flow_function]
+fn _divide(inputs: &[Value]) -> (Option<Value>, RunAgain) {
+    let mut output_map = serde_json::Map::new();
 
-impl Implementation for Divide {
-    fn run(&self, inputs: &[Value]) -> (Option<Value>, RunAgain) {
-        let mut output_map = serde_json::Map::new();
-
-        if let Some(dividend) = inputs[0].as_f64() {
-            if let Some(divisor) = inputs[1].as_f64() {
-                output_map.insert("dividend".into(), json!(dividend));
-                output_map.insert("divisor".into(), json!(divisor));
-                output_map.insert("result".into(), json!(dividend / divisor));
-                output_map.insert("remainder".into(), json!(dividend % divisor));
-            }
+    if let Some(dividend) = inputs[0].as_f64() {
+        if let Some(divisor) = inputs[1].as_f64() {
+            output_map.insert("dividend".into(), json!(dividend));
+            output_map.insert("divisor".into(), json!(divisor));
+            output_map.insert("result".into(), json!(dividend / divisor));
+            output_map.insert("remainder".into(), json!(dividend % divisor));
         }
-
-        let output = Value::Object(output_map);
-
-        (Some(output), RUN_AGAIN)
     }
+
+    let output = Value::Object(output_map);
+
+    (Some(output), RUN_AGAIN)
 }
 
 #[cfg(test)]
 mod test {
     use serde_json::{json, Value};
 
-    use flowcore::Implementation;
-
-    use super::Divide;
+    use super::_divide;
 
     fn do_divide(test_data: (u32, u32, f64, u32)) {
-        let divide: &dyn Implementation = &Divide {} as &dyn Implementation;
-
         // Create input vector
         let dividend = json!(test_data.0);
         let divisor = json!(test_data.1);
         let inputs: Vec<Value> = vec![dividend, divisor];
 
-        let (output, run_again) = divide.run(&inputs);
+        let (output, run_again) = _divide(&inputs);
         assert!(run_again);
 
         let outputs = output.expect("Could not get the output value");

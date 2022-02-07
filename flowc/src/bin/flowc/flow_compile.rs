@@ -108,7 +108,7 @@ pub fn compile_and_execute_flow(options: &Options, provider: &dyn Provider) -> R
                 #[cfg(feature = "debugger")]
                 &mut source_urls,
             )
-            .chain_err(|| "Could not compile supplied implementation to wasm")?;
+            .chain_err(|| "Could not compile to wasm the flow's supplied implementation(s)")?;
 
             let runnable = check_root(&flow);
 

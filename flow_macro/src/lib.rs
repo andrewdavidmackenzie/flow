@@ -10,9 +10,7 @@ use std::io::prelude::*;
 use std::path::PathBuf;
 use proc_macro2::Ident;
 use quote::{format_ident, quote};
-use syn::{FnArg, parse_macro_input};
-use syn::punctuated::Punctuated;
-use syn::token::Comma;
+use syn::{ItemFn, parse_macro_input};
 
 use flowcore::model::function_definition::FunctionDefinition;
 
@@ -51,46 +49,25 @@ fn load_function_definition(path: &PathBuf) -> FunctionDefinition {
         '{}'\n{}", path.display(), e))
 }
 
-// Parse the attributes of the macro invocation (a TokenStream) and find the value assigned
-// to the definition 'field'
-// TODO there must be a better way to parse this and get the rhv of the expression?
-// If we go back to specifying the filename
-// #[flow_function(definition = "definition_file.toml")]
-// then we can use this code
-// use proc_macro::TokenTree::Ident;
-//    let definition_filename = find_definition_filename(attr);
-// definition_file_path.set_file_name(definition_filename);
-/*
-fn find_definition_filename(attributes: TokenStream) -> String {
-    let mut iter = attributes.into_iter();
-    if let Ident(ident) = iter.next().expect("the 'flow' macro must include ´definition' attribute") {
-            match ident.to_string().as_str() {
-                "definition" => {
-                    let _equals = iter.next().expect("the 'flow' macro expect '=' after 'definition' attribute");
-                    let filename = iter.next()
-                        .expect("the 'flow' macro expected name of definition TOML file after '=' in 'definition' attribute");
-                    return filename.to_string().trim_matches('"').to_string();
-                }
-                attribute => panic!("the 'flow' macro does not support the '{}' attribute", attribute)
-            }
+// If the function accepts inputs as &[serde_json::Value] then there is no need to extract
+// and convert the inputs, otherwise form the expected list of inputs for the implementation
+// function from the vector of Values passed in.
+fn input_conversion(definition: &FunctionDefinition, definition_file_path: PathBuf,
+                    implementation_ast: &ItemFn, implementation_file_path: PathBuf) -> Ident {
+    let implementation_name = &implementation_ast.sig.ident;
+    let implemented_inputs = &implementation_ast.sig.inputs;
+
+    if implemented_inputs.len() == 1 {
+        return format_ident!("inputs");
     }
 
-    panic!("the 'flow' macro must include the ´definition' attribute")
-}
- */
-
-fn input_conversion(_definition: &FunctionDefinition, _implemented_inputs: &Punctuated<FnArg,Comma>) -> Ident {
-//    let defined_inputs = &definition.inputs;
-
-    /*
-    if implemented_inputs.len() != defined_inputs.len() {
+    if implemented_inputs.len() != definition.inputs.len() {
         panic!("a 'flow_function' macro check failed:\n\
             '{}' define {} inputs ({})\n\
             '{}()' implements {} inputs ({})",
-               definition.name, defined_inputs.len(), definition_file_path.display(),
+               definition.name, definition.inputs.len(), definition_file_path.display(),
                implementation_name, implemented_inputs.len(), implementation_file_path.display());
     }
-     */
 
 //    for input in implemented_inputs {
 //        println!(Input name: Input Type);
@@ -102,27 +79,29 @@ fn input_conversion(_definition: &FunctionDefinition, _implemented_inputs: &Punc
 // Generate the code for the implementation struct, including some extra functions to help
 // manage memory and pass parameters to and from wasm from native code
 fn generate_code(function_implementation: TokenStream,
-                 _implementation_file_path: PathBuf,
+                 implementation_file_path: PathBuf,
                  definition: FunctionDefinition,
-                 _definition_file_path: PathBuf
+                 definition_file_path: PathBuf
                 ) -> TokenStream {
     let implementation: proc_macro2::TokenStream = function_implementation.clone().into();
     let implementation_ast = parse_macro_input!(function_implementation as syn::ItemFn);
     let implementation_name = &implementation_ast.sig.ident;
 
-    let implemented_inputs = &implementation_ast.sig.inputs;
-
-    // If the function accepts inputs as &[serde_json::Value] then there is no need to extract
-    // and convert the inputs, otherwise form the expected list of inputs for the implementation
-    // function from the vector of Values passed in.
-    let inputs = if implemented_inputs.len() != 1 {
-        input_conversion(&definition, implemented_inputs)
-    } else {
-        format_ident!("inputs")
-    };
+    let inputs = input_conversion(&definition, definition_file_path,
+                         &implementation_ast, implementation_file_path);
 
     // Generate the code that wraps the provided function, including a copy of the function itself
-    let docs_filename = &definition.docs;
+    let docs_comment = if !definition.docs.is_empty() {
+        let docs_file = &definition.docs;
+        quote! {
+            #[doc = include_str!(#docs_file)]
+        }
+    } else {
+        quote! {
+            // No documentation was supplied
+        }
+    };
+
     let struct_name = format_ident!("{}", FunctionDefinition::camel_case(&definition.name.to_string()));
 
     let wasm_boilerplate = quote! {
@@ -170,12 +149,14 @@ fn generate_code(function_implementation: TokenStream,
 
         #implementation
 
-        #[doc = include_str!(#docs_filename)]
+        #docs_comment
         #[derive(Debug)]
         pub struct #struct_name;
 
         impl Implementation for #struct_name {
             fn run(&self, inputs: &[Value]) -> (Option<Value>, RunAgain) {
+//                #input_conversion
+
                 #implementation_name(#inputs)
             }
         }
@@ -183,3 +164,31 @@ fn generate_code(function_implementation: TokenStream,
     };
     gen.into()
 }
+
+// Parse the attributes of the macro invocation (a TokenStream) and find the value assigned
+// to the definition 'field'
+// TODO there must be a better way to parse this and get the rhv of the expression?
+// If we go back to specifying the filename
+// #[flow_function(definition = "definition_file.toml")]
+// then we can use this code
+// use proc_macro::TokenTree::Ident;
+//    let definition_filename = find_definition_filename(attr);
+// definition_file_path.set_file_name(definition_filename);
+/*
+fn find_definition_filename(attributes: TokenStream) -> String {
+    let mut iter = attributes.into_iter();
+    if let Ident(ident) = iter.next().expect("the 'flow' macro must include ´definition' attribute") {
+            match ident.to_string().as_str() {
+                "definition" => {
+                    let _equals = iter.next().expect("the 'flow' macro expect '=' after 'definition' attribute");
+                    let filename = iter.next()
+                        .expect("the 'flow' macro expected name of definition TOML file after '=' in 'definition' attribute");
+                    return filename.to_string().trim_matches('"').to_string();
+                }
+                attribute => panic!("the 'flow' macro does not support the '{}' attribute", attribute)
+            }
+    }
+
+    panic!("the 'flow' macro must include the ´definition' attribute")
+}
+ */

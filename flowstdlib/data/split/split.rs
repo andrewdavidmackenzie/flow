@@ -1,71 +1,38 @@
-use flow_impl_derive::FlowImpl;
-use flowcore::{Implementation, RUN_AGAIN, RunAgain};
+use flow_macro::flow_function;
 use serde_json::{json, Value};
 
-#[derive(FlowImpl)]
-/// Split a string into (possibly) two parts and a possible token, based on a separator.
-///
-/// This function is implemented in a deliberate way to be able to showcase parallelization.
-///
-/// Instead of going through the string in order looking for the separator and gathering an array
-/// of sections it takes an alternative approach.
-///
-/// It starts in the middle of the string looking for a separator character from there towards the
-/// end. If it finds one then the string is split in two and those two sub-strings are output as
-/// an array of strings on the `partial` output. NOTE that either or both of these two sub-strings
-/// may have separators within them, and hence need further sub-division.
-///
-/// For that reason, the `partial` output is feedback to the `string` input, and the runtime will
-/// serialize the aarray of strings to the input as separate strings.
-///
-/// If from the middle to the end no separator is found, then it tries from the middle backwards
-/// towards the beginning. If a separator is found, the two sub-strings are output on `partial`
-/// output as before.
-///
-/// If no separator is found in either of those cases, then the string doesn't have any and is
-/// output on the `token` output.
-///
-/// Thus, strings with separators are sub-divided until strings without separators are found, and
-/// each of those is output as a token.
-///
-/// Due to the splitting and recursion approach, the order of the output tokens is not the order
-/// they appear in the string.
-#[derive(Debug)]
-pub struct Split;
+#[flow_function]
+fn _split(inputs: &[Value]) -> (Option<Value>, RunAgain) {
+    if inputs[0].is_string() {
+        let string = inputs[0].as_str().unwrap_or("");
+        let separator = inputs[1].as_str().unwrap_or("");
 
-impl Implementation for Split {
-    fn run(&self, inputs: &[Value]) -> (Option<Value>, RunAgain) {
-        if inputs[0].is_string() {
-            let string = inputs[0].as_str().unwrap_or("");
-            let separator = inputs[1].as_str().unwrap_or("");
+        let (partial, token) = split(string, separator);
 
-            let (partial, token) = split(string, separator);
+        let mut output_map = serde_json::Map::new();
 
-            let mut output_map = serde_json::Map::new();
+        let mut work_delta: i32 = -1; // we have consumed a string, so one down
 
-            let mut work_delta: i32 = -1; // we have consumed a string, so one down
-
-            if let Some(partial) = partial {
-                // but we have generated some new strings to be processed by other jobs
-                work_delta += partial.len() as i32;
-                output_map.insert("partial".into(), json!(partial));
-            }
-
-            output_map.insert("delta".into(), json!(work_delta));
-
-            if let Some(tok) = token {
-                output_map.insert("token".into(), json!(tok));
-                output_map.insert("token-count".into(), json!(1));
-            } else {
-                output_map.insert("token-count".into(), json!(0));
-            }
-
-            let output = Value::Object(output_map);
-
-            (Some(output), RUN_AGAIN)
-        } else {
-            (None, RUN_AGAIN)
+        if let Some(partial) = partial {
+            // but we have generated some new strings to be processed by other jobs
+            work_delta += partial.len() as i32;
+            output_map.insert("partial".into(), json!(partial));
         }
+
+        output_map.insert("delta".into(), json!(work_delta));
+
+        if let Some(tok) = token {
+            output_map.insert("token".into(), json!(tok));
+            output_map.insert("token-count".into(), json!(1));
+        } else {
+            output_map.insert("token-count".into(), json!(0));
+        }
+
+        let output = Value::Object(output_map);
+
+        (Some(output), RUN_AGAIN)
+    } else {
+        (None, RUN_AGAIN)
     }
 }
 
@@ -117,8 +84,8 @@ fn split(input: &str, separator: &str) -> (Option<Vec<String>>, Option<String>) 
 
 #[cfg(test)]
 mod test {
-    use flowcore::Implementation;
     use serde_json::json;
+    use super::_split;
 
     #[test]
     fn basic_tests() {
@@ -216,8 +183,7 @@ mod test {
             }
 
             let this_input = input_strings.pop().expect("Could not pop value");
-            let splitter = super::Split {};
-            let (result, _) = splitter.run(&[this_input, separator.clone()]);
+            let (result, _) = _split(&[this_input, separator.clone()]);
 
             let output = result.expect("Could not get the Value from the output");
             if let Some(token) = output.pointer("/token") {
@@ -237,8 +203,7 @@ mod test {
         let test = (json!("  "), 1);
         let separator = json!(" ");
 
-        let splitter = super::Split {};
-        let (result, _) = splitter.run(&[test.0, separator]);
+        let (result, _) = _split(&[test.0, separator]);
 
         let output = result.expect("Could not get the Value from the output");
         assert!(output.pointer("/token").is_none());
@@ -252,8 +217,7 @@ mod test {
         let test = (json!("the quick brown fox jumped over the lazy dog"), 1);
         let separator = json!(" ");
 
-        let splitter = super::Split {};
-        let (result, _) = splitter.run(&[test.0, separator]);
+        let (result, _) = _split(&[test.0, separator]);
 
         let output = result.expect("Could not get the Value from the output");
         assert!(output.pointer("/token").is_none());
@@ -270,8 +234,7 @@ mod test {
         let test = (json!("the quick brown fox-jumped-over-the-lazy-dog"), 1);
         let separator = json!(" ");
 
-        let splitter = super::Split {};
-        let (result, _) = splitter.run(&[test.0, separator]);
+        let (result, _) = _split(&[test.0, separator]);
 
         let output = result.expect("Could not get the Value from the output");
         assert_eq!(
@@ -291,8 +254,7 @@ mod test {
         let test = (json!("the"), -1);
         let separator = json!(" ");
 
-        let splitter = super::Split {};
-        let (result, _) = splitter.run(&[test.0, separator]);
+        let (result, _) = _split(&[test.0, separator]);
 
         let output = result.expect("Could not get the Value from the output");
         assert!(output.pointer("/partial").is_none());

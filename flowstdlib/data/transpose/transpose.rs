@@ -1,42 +1,35 @@
-use flow_impl_derive::FlowImpl;
-use flowcore::{Implementation, RUN_AGAIN, RunAgain};
+use flow_macro::flow_function;
 use serde_json::Value;
 
-#[derive(FlowImpl)]
-/// Transpose a matricies rows and columns
-#[derive(Debug)]
-pub struct Transpose;
+#[flow_function]
+#[allow(clippy::needless_range_loop)]
+fn _transpose(inputs: &[Value]) -> (Option<Value>, RunAgain) {
+    let mut output_matrix: Vec<Value> = vec![]; // vector of Value::Array - i.e. array of rows
 
-impl Implementation for Transpose {
-    #[allow(clippy::needless_range_loop)]
-    fn run(&self, inputs: &[Value]) -> (Option<Value>, RunAgain) {
-        let mut output_matrix: Vec<Value> = vec![]; // vector of Value::Array - i.e. array of rows
+    if let Some(matrix) = inputs[0].as_array() {
+        let rows = matrix.len();
 
-        if let Some(matrix) = inputs[0].as_array() {
-            let rows = matrix.len();
-
-            if let Some(row) = matrix[0].as_array() {
-                let cols = row.len();
-                let mut new_row; // Vector of Value::Number - i.e. a row
-                for new_row_num in 0..cols {
-                    new_row = Vec::with_capacity(rows);
-                    for new_col_num in 0..rows {
-                        new_row.push(matrix[new_col_num][new_row_num].clone());
-                    }
-                    output_matrix.push(Value::Array(new_row));
+        if let Some(row) = matrix[0].as_array() {
+            let cols = row.len();
+            let mut new_row; // Vector of Value::Number - i.e. a row
+            for new_row_num in 0..cols {
+                new_row = Vec::with_capacity(rows);
+                for new_col_num in 0..rows {
+                    new_row.push(matrix[new_col_num][new_row_num].clone());
                 }
+                output_matrix.push(Value::Array(new_row));
             }
         }
-
-        (Some(Value::Array(output_matrix)), RUN_AGAIN)
     }
+
+    (Some(Value::Array(output_matrix)), RUN_AGAIN)
 }
 
 #[cfg(test)]
 mod test {
-    use flowcore::Implementation;
     use serde_json::json;
     use serde_json::Value;
+    use super::_transpose;
 
     #[test]
     fn transpose_empty() {
@@ -44,8 +37,7 @@ mod test {
 
         let inputs = vec![matrix];
 
-        let transposer = super::Transpose {};
-        let (result, _) = transposer.run(&inputs);
+        let (result, _) = _transpose(&inputs);
 
         let new_matrix = result.expect("Could not get the value from the output");
 
@@ -59,8 +51,7 @@ mod test {
 
         let inputs = vec![matrix];
 
-        let transposer = super::Transpose {};
-        let (result, _) = transposer.run(&inputs);
+        let (result, _) = _transpose(&inputs);
 
         let new_matrix = result.expect("Could not get the value from the output");
         let new_row0 = new_matrix[0].clone();
@@ -76,8 +67,7 @@ mod test {
 
         let inputs = vec![matrix];
 
-        let transposer = super::Transpose {};
-        let (result, _) = transposer.run(&inputs);
+        let (result, _) = _transpose(&inputs);
 
         let new_matrix = result.expect("Could not get the value from the output");
         let new_row0 = new_matrix[0].clone();
@@ -95,8 +85,7 @@ mod test {
 
         let inputs = vec![matrix];
 
-        let transposer = super::Transpose {};
-        let (result, _) = transposer.run(&inputs);
+        let (result, _) = _transpose(&inputs);
 
         let new_matrix = result.expect("Could not get the value from the output");
         let new_row0 = new_matrix[0].clone();

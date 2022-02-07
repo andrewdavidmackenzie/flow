@@ -1,5 +1,6 @@
 function = "render_pixel"
 source = "render_pixel.rs"
+docs = "render_pixel.md"
 type = "rust"
 
 [[input]]

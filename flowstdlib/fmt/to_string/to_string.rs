@@ -1,40 +1,23 @@
 use serde_json::{json, Value};
 
-use flow_impl_derive::FlowImpl;
-use flowcore::{Implementation, RunAgain, RUN_AGAIN};
+use flow_macro::flow_function;
 
-#[derive(FlowImpl)]
-/// Convert an input type to a String
-#[derive(Debug)]
-pub struct ToString;
-
-// The data to convert to a String. Current types supported are:
-// * Null - A null will be printed as "Null"
-// * Bool - Boolean JSON value
-// * Number - A JSON Number
-// * String - a bit redundant, but it works
-// * Array - An JSON array of values that can be converted, they are converted one by one
-// * Object - a Map of names/objects that will also be printed out
-impl Implementation for ToString {
-    fn run(&self, inputs: &[Value]) -> (Option<Value>, RunAgain) {
-        let input = &inputs[0];
-        (Some(json!(input.to_string())), RUN_AGAIN)
-    }
+#[flow_function]
+fn _to_string(inputs: &[Value]) -> (Option<Value>, RunAgain) {
+    let input = &inputs[0];
+    (Some(json!(input.to_string())), RUN_AGAIN)
 }
 
 #[cfg(test)]
 mod test {
     use std::collections::HashMap;
-
     use serde_json::{json, Value};
 
-    use super::Implementation;
-    use super::ToString;
+    use super::_to_string;
 
     fn test_to_string(value: Value, string: &str) {
-        let to_string = ToString {};
         let inputs = vec![value];
-        let (result, _) = to_string.run(&inputs);
+        let (result, _) = _to_string(&inputs);
 
         match result {
             Some(value) => {

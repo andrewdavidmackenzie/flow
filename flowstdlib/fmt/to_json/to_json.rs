@@ -1,49 +1,38 @@
 use serde_json::Value;
 
-use flow_impl_derive::FlowImpl;
-use flowcore::{Implementation, RUN_AGAIN, RunAgain};
+use flow_macro::flow_function;
 
-#[derive(FlowImpl)]
-/// Convert a String to Json
-#[derive(Debug)]
-pub struct ToJson;
+#[flow_function]
+fn _to_json(inputs: &[Value]) -> (Option<Value>, RunAgain) {
+    let input = &inputs[0];
 
-impl Implementation for ToJson {
-    fn run(&self, inputs: &[Value]) -> (Option<Value>, RunAgain) {
-        let input = &inputs[0];
-
-        if input.is_null() {
-            (Some(Value::Null), RUN_AGAIN)
-        } else if input.is_string() {
-            match input.as_str() {
-                Some(string) => match serde_json::from_str(string) {
-                    Ok(json) => (Some(json), RUN_AGAIN),
-                    Err(_) => (
-                        Some(serde_json::Value::String(string.to_string())),
-                        RUN_AGAIN,
-                    ),
-                },
-                None => (None, RUN_AGAIN),
-            }
-        } else {
-            (Some(input.clone()), RUN_AGAIN)
+    if input.is_null() {
+        (Some(Value::Null), RUN_AGAIN)
+    } else if input.is_string() {
+        match input.as_str() {
+            Some(string) => match serde_json::from_str(string) {
+                Ok(json) => (Some(json), RUN_AGAIN),
+                Err(_) => (
+                    Some(serde_json::Value::String(string.to_string())),
+                    RUN_AGAIN,
+                ),
+            },
+            None => (None, RUN_AGAIN),
         }
+    } else {
+        (Some(input.clone()), RUN_AGAIN)
     }
 }
 
 #[cfg(test)]
 mod test {
     use std::collections::HashMap;
-
     use serde_json::{json, Value};
-
-    use super::Implementation;
-    use super::ToJson;
+    use super::_to_json;
 
     fn test_to_json(string: &str, expected_value: Value) {
-        let to_json = ToJson {};
         let inputs = vec![json!(string)];
-        let (result, _) = to_json.run(&inputs);
+        let (result, _) = _to_json(&inputs);
 
         match result {
             Some(value) => {

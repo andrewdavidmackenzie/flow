@@ -8,43 +8,36 @@ fn panic(_panic: &PanicInfo<'_>) -> ! {
     loop {}
 }*/
 
-use flow_impl_derive::FlowImpl;
-use flowcore::{Implementation, RUN_AGAIN};
+use flow_macro::flow_function;
 use serde_json::json;
 use serde_json::Value;
 
-#[derive(FlowImpl, Debug)]
-pub struct Reverser;
+#[flow_function]
+fn _reverse(inputs: &[Value]) -> (Option<Value>, bool) {
+    let mut value = None;
 
-impl Implementation for Reverser {
-    fn run(&self, inputs: &[Value]) -> (Option<Value>, bool) {
-        let mut value = None;
-
-        if inputs.len() == 1 {
-            let input = &inputs[0];
-            if let Value::String(ref s) = input {
-                value = Some(json!({
-                    "reversed" : s.chars().rev().collect::<String>(),
-                    "original": s
-                }));
-            }
+    if inputs.len() == 1 {
+        let input = &inputs[0];
+        if let Value::String(ref s) = input {
+            value = Some(json!({
+                "reversed" : s.chars().rev().collect::<String>(),
+                "original": s
+            }));
         }
-
-        (value, RUN_AGAIN)
     }
+
+    (value, RUN_AGAIN)
 }
 
 #[cfg(test)]
 mod test {
-    use flowcore::{Implementation, RUN_AGAIN};
+    use flowcore::{RUN_AGAIN};
     use serde_json::json;
-
-    use super::Reverser;
+    use super::_reverse;
 
     #[test]
     fn invalid_input() {
-        let reverser = &Reverser {} as &dyn Implementation;
-        let (value, run_again) = reverser.run(&[]);
+        let (value, run_again) = _reverse(&[]);
 
         assert_eq!(run_again, RUN_AGAIN);
         assert_eq!(value, None);
@@ -54,8 +47,7 @@ mod test {
     fn send_string() {
         let string = "string of text";
         let value = json!(string);
-        let reverser = &Reverser {} as &dyn Implementation;
-        let (value, run_again) = reverser.run(&[value]);
+        let (value, run_again) = _reverse(&[value]);
 
         assert_eq!(run_again, RUN_AGAIN);
         let val = value.expect("Could not get value returned from implementation");

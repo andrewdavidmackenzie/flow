@@ -443,14 +443,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "flow_impl_derive"
-version = "0.40.1"
-dependencies = [
- "quote",
- "syn",
-]
-
-[[package]]
 name = "flow_macro"
 version = "0.40.1"
 dependencies = [
@@ -541,7 +533,6 @@ name = "flowstdlib"
 version = "0.40.1"
 dependencies = [
  "error-chain 0.12.4",
- "flow_impl_derive",
  "flow_macro",
  "flowcore",
  "image",
