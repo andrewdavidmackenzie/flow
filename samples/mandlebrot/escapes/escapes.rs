@@ -2,11 +2,6 @@ use flow_macro::flow_function;
 use num::Complex;
 use serde_json::{json, Value};
 
-/// Try to determine if 'c' is in the Mandelbrot set, using at most 'limit' iterations to decide
-/// If 'c' is not a member, return 'Some(i)', where 'i' is the number of iterations it took for 'c'
-/// to leave the circle of radius two centered on the origin.
-/// If 'c' seems to be a member (more precisely, if we reached the iteration limit without being
-/// able to prove that 'c' is not a member) return 'None'
 pub fn escapes(c: Complex<f64>, limit: u64) -> u64 {
     if c.norm_sqr() > 4.0 {
         return 0;
@@ -25,7 +20,7 @@ pub fn escapes(c: Complex<f64>, limit: u64) -> u64 {
 }
 
 #[flow_function]
-fn _render_pixel(inputs: &[Value]) -> (Option<Value>, bool) {
+fn _escapes(inputs: &[Value]) -> (Option<Value>, bool) {
     let pixel_point = inputs[0].as_array().unwrap();
 
     let pixel = pixel_point[0].as_array().unwrap();
@@ -47,7 +42,7 @@ fn _render_pixel(inputs: &[Value]) -> (Option<Value>, bool) {
 #[cfg(test)]
 mod test {
     use serde_json::{json, Value};
-    use super::_render_pixel;
+    use super::_escapes;
 
     // bounds = inputs[0]
     //      upper_left = bounds[0];
@@ -59,7 +54,7 @@ mod test {
         let pixel_point = json!([[50, 50], [0.5, 0.5]]);
 
         let inputs: Vec<Value> = vec![pixel_point];
-        let (result, _) = _render_pixel(&inputs);
+        let (result, _) = _escapes(&inputs);
 
         let result_json = result.unwrap();
         let results = result_json.as_array().unwrap();

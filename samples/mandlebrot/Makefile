@@ -2,11 +2,11 @@ all: functions-native functions-wasm app-native
 
 functions-native:
 	cd pixel_to_point && cp flow.toml Cargo.toml && cargo test
-	cd render_pixel && cp flow.toml Cargo.toml && cargo test
+	cd escapes && cargo test
 
 functions-wasm:
 	cd pixel_to_point && cp flow.toml Cargo.toml && wasm-pack test --node
-	cd render_pixel && cp flow.toml Cargo.toml && wasm-pack test --node
+	cd escapes wasm-pack test --node
 
 app-native:
 	cargo +nightly build --release

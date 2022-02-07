@@ -62,7 +62,7 @@ to = "p2p/pixel"
 # function to render a pixel in the imaginary space to a value
 [[process]]
 alias = "p2v"
-source = "render_pixel/render_pixel"
+source = "escapes/escapes"
 
 # Output of p2p is a [pixel, point] pair -> pass it to render
 [[connection]]
