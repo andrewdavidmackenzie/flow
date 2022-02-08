@@ -13,7 +13,7 @@ use serde_json::json;
 use serde_json::Value;
 
 #[flow_function]
-fn _reverse(inputs: &[Value]) -> (Option<Value>, bool) {
+fn _reverse(inputs: &[Value]) -> (Option<Value>, RunAgain) {
     let mut value = None;
 
     if inputs.len() == 1 {

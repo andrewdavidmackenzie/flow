@@ -52,15 +52,25 @@ fn load_function_definition(path: &Path) -> FunctionDefinition {
 // If the function accepts inputs as &[serde_json::Value] then there is no need to extract
 // and convert the inputs, otherwise form the expected list of inputs for the implementation
 // function from the vector of Values passed in.
+// Full of hacks as TokenStream2 from into_token_stream() doesn't implement PartialEq to be
+// able to compare it with a quote!() version of what I'm expecting
 fn input_conversion(definition: &FunctionDefinition, definition_file_path: PathBuf,
                     implementation_ast: &ItemFn, implementation_file_path: PathBuf) -> Ident {
     let implementation_name = &implementation_ast.sig.ident;
     let implemented_inputs = &implementation_ast.sig.inputs;
 
+    // if there is only one form and it matches the expected standard form
     if implemented_inputs.len() == 1 {
-        return format_ident!("inputs");
+        let input = implemented_inputs.first()
+            .expect("the 'flow' macro could not get the implementation function's arguments");
+
+        if input.into_token_stream().to_string() ==
+               quote! { inputs : &[Value] }.to_string() {
+            return format_ident!("inputs");
+        }
     }
 
+    // perform some checks before attempting input conversion
     if implemented_inputs.len() != definition.inputs.len() {
         panic!("a 'flow_function' macro check failed:\n\
             '{}' define {} inputs ({})\n\
@@ -69,11 +79,24 @@ fn input_conversion(definition: &FunctionDefinition, definition_file_path: PathB
                implementation_name, implemented_inputs.len(), implementation_file_path.display());
     }
 
-//    for input in implemented_inputs {
-//        println!(Input name: Input Type);
-//    }
+    // for input_pair in implemented_inputs.pairs() {
+    //    match input_pair {
+    //       Punctuated(t, p) => {
+    //           println!("FnArg: {:?}", t);
+    //           match t {
+    //               Receiver(r) => println!("error, self not allowed"),
+    //               Typed(pt) => {
+    //                  println!("PatType: {:?}", pt));
+    //                  println!("Input name: {}", pt.pat);
+    //                  println!("Input type: {:?}", pt.ty);
+    //               }
+    //           }
+    //       End(_) = {}
+    //       }
+    //    }
+    // }
 
-    format_ident!("inputs")
+    unimplemented!()
 }
 
 // check that the return type of the implementation function is what we need. i.e. that it

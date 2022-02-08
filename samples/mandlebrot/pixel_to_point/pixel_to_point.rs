@@ -16,7 +16,7 @@ pub fn pixel_to_point(
 }
 
 #[flow_function]
-fn pixel_run(inputs: &[Value]) -> (Option<Value>, bool) {
+fn pixel_run(inputs: &[Value]) -> (Option<Value>, RunAgain) {
     let bounds = inputs[0].as_array().unwrap();
 
     let upper_left = bounds[0].as_array().unwrap();

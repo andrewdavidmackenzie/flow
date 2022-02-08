@@ -20,7 +20,7 @@ pub fn escapes(c: Complex<f64>, limit: u64) -> u64 {
 }
 
 #[flow_function]
-fn _escapes(inputs: &[Value]) -> (Option<Value>, bool) {
+fn _escapes(inputs: &[Value]) -> (Option<Value>, RunAgain) {
     let pixel_point = inputs[0].as_array().unwrap();
 
     let pixel = pixel_point[0].as_array().unwrap();
