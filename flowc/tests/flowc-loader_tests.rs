@@ -3,7 +3,7 @@ use std::collections::HashSet;
 use url::Url;
 
 use flowclib::compiler::loader;
-use flowcore::input::InputInitializer::Once;
+use flowcore::model::input::InputInitializer::Once;
 use flowcore::lib_provider::MetaProvider;
 use flowcore::model::io::IO;
 use flowcore::model::name::HasName;

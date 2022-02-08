@@ -11,8 +11,9 @@ use tempdir::TempDir;
 use url::Url;
 
 use flowcore::{DONT_RUN_AGAIN, Implementation, RunAgain};
-use flowcore::flow_manifest::{FlowManifest, MetaData};
-use flowcore::lib_manifest::{ImplementationLocator::Native, LibraryManifest};
+use flowcore::model::flow_manifest::FlowManifest;
+use flowcore::model::metadata::MetaData;
+use flowcore::model::lib_manifest::{ImplementationLocator::Native, LibraryManifest};
 use flowcore::lib_provider::MetaProvider;
 use flowcore::model::runtime_function::RuntimeFunction;
 use flowrlib::loader::Loader;

@@ -8,8 +8,9 @@ use log::info;
 use serde_derive::Serialize;
 use url::Url;
 
-use flowcore::flow_manifest::{DEFAULT_MANIFEST_FILENAME, FlowManifest, MetaData};
-use flowcore::input::Input;
+use flowcore::model::flow_manifest::{DEFAULT_MANIFEST_FILENAME, FlowManifest};
+use flowcore::model::metadata::MetaData;
+use flowcore::model::input::Input;
 use flowcore::model::connection::Connection;
 use flowcore::model::flow_definition::FlowDefinition;
 use flowcore::model::function_definition::FunctionDefinition;
@@ -18,7 +19,7 @@ use flowcore::model::name::HasName;
 use flowcore::model::route::HasRoute;
 use flowcore::model::route::Route;
 use flowcore::model::runtime_function::RuntimeFunction;
-use flowcore::output_connection::Source;
+use flowcore::model::output_connection::Source;
 
 use crate::errors::*;
 
@@ -208,13 +209,13 @@ mod test {
     use serde_json::json;
     use url::Url;
 
-    use flowcore::input::InputInitializer;
+    use flowcore::model::input::InputInitializer;
     use flowcore::model::function_definition::FunctionDefinition;
     use flowcore::model::io::IO;
     use flowcore::model::name::Name;
     use flowcore::model::route::Route;
-    use flowcore::output_connection::{OutputConnection, Source};
-    use flowcore::output_connection::Source::Output;
+    use flowcore::model::output_connection::{OutputConnection, Source};
+    use flowcore::model::output_connection::Source::Output;
 
     use super::function_to_runtimefunction;
 

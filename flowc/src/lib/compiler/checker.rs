@@ -1,6 +1,6 @@
 use error_chain::bail;
 
-use flowcore::input::InputInitializer::Always;
+use flowcore::model::input::InputInitializer::Always;
 use flowcore::model::route::HasRoute;
 use flowcore::model::route::Route;
 

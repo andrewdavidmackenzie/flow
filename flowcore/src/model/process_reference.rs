@@ -4,7 +4,7 @@ use std::fmt;
 use serde_derive::{Deserialize, Serialize};
 
 use crate::errors::*;
-use crate::input::InputInitializer;
+use crate::model::input::InputInitializer;
 use crate::model::name::HasName;
 use crate::model::name::Name;
 use crate::model::validation::Validate;
@@ -69,7 +69,7 @@ mod test {
 
     use crate::deserializers::deserializer::get_deserializer;
     use crate::errors::*;
-    use crate::input::InputInitializer::{Always, Once};
+    use crate::model::input::InputInitializer::{Always, Once};
 
     use super::ProcessReference;
 

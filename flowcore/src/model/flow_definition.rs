@@ -9,8 +9,8 @@ use url::Url;
 
 use crate::errors::*;
 use crate::errors::Error;
-use crate::flow_manifest::MetaData;
-use crate::input::InputInitializer;
+use crate::model::metadata::MetaData;
+use crate::model::input::InputInitializer;
 use crate::model::connection::Connection;
 use crate::model::connection::Direction;
 use crate::model::connection::Direction::FROM;
@@ -427,8 +427,8 @@ mod test {
 
     use serde_json::json;
 
-    use crate::input::InputInitializer::Always;
-    use crate::input::InputInitializer::Once;
+    use crate::model::input::InputInitializer::Always;
+    use crate::model::input::InputInitializer::Once;
     use crate::model::connection::Connection;
     use crate::model::flow_definition::FlowDefinition;
     use crate::model::function_definition::FunctionDefinition;

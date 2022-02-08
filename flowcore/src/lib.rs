@@ -5,46 +5,26 @@
 
 use serde_json::Value;
 
-/// `content` module contains the content providers for files and http/https
-#[cfg(feature = "code")]
-mod content;
-
 /// A set of serializers to read flow models from various text formats based on file extension
-#[cfg(feature = "code")]
 pub mod deserializers;
 
 /// We'll put our errors in an `errors` module, and other modules in this crate will `use errors::*;`
 /// to get access to everything `error_chain` creates.
-#[cfg(feature = "code")]
 pub mod errors;
 
-/// `flow_manifest` is the struct that specifies the manifest of functions in a flow
-#[cfg(feature = "code")]
-pub mod flow_manifest;
-
 /// `model` module defines a number of core data structures
-#[cfg(feature = "code")]
 pub mod model;
 
-/// `input` defines the struct for inputs to functions in a flow
-#[cfg(feature = "code")]
-pub mod input;
+/// Utility functions related to Urls
+pub mod url_helper;
 
-/// `lib_manifest` defines the structs for specifying a Library's manifest and methods to load it
-#[cfg(feature = "code")]
-pub mod lib_manifest;
+/// `content` module contains the content providers for files and http/https
+#[cfg(not(target_arch = "wasm32"))]
+mod content;
 
 /// `lib_provider` is used to resolve library references of the type "lib://" using lib search path
-#[cfg(feature = "code")]
+#[cfg(not(target_arch = "wasm32"))]
 pub mod lib_provider;
-
-/// `output_connection` defines a struct for a function's output connection
-#[cfg(feature = "code")]
-pub mod output_connection;
-
-/// Utility functions related to Urls
-#[cfg(feature = "code")]
-pub mod url_helper;
 
 /// Implementations should return a value of type `RunAgain` to indicate if it should be
 /// executed more times in the future.

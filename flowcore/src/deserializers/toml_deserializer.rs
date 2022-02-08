@@ -49,7 +49,7 @@ mod test {
     use serde_derive::{Deserialize, Serialize};
     use toml::de::Error;
 
-    use crate::flow_manifest::MetaData;
+    use crate::model::metadata::MetaData;
 
     use super::super::deserializer::Deserializer;
     use super::TomlDeserializer;

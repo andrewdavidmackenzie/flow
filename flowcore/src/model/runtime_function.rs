@@ -8,8 +8,8 @@ use serde_json::Value;
 
 use crate::{Implementation, RunAgain};
 use crate::errors::*;
-use crate::input::Input;
-use crate::output_connection::OutputConnection;
+use crate::model::input::Input;
+use crate::model::output_connection::OutputConnection;
 
 #[derive(Deserialize, Serialize, Clone)]
 /// `RuntimeFunction` contains all the information needed about a function and its implementation
@@ -253,9 +253,9 @@ mod test {
     use serde_json::value::Value;
 
     use crate::Implementation;
-    use crate::input::Input;
-    use crate::output_connection::OutputConnection;
-    use crate::output_connection::Source::Output;
+    use crate::model::input::Input;
+    use crate::model::output_connection::OutputConnection;
+    use crate::model::output_connection::Source::Output;
 
     use super::ImplementationNotFound;
     use super::RuntimeFunction;

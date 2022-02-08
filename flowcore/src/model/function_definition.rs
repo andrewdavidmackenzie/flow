@@ -6,7 +6,7 @@ use serde_derive::{Deserialize, Serialize};
 use url::Url;
 
 use crate::errors::*;
-use crate::input::InputInitializer;
+use crate::model::input::InputInitializer;
 use crate::model::io::IOSet;
 use crate::model::io::IOType;
 use crate::model::name::HasName;
@@ -16,7 +16,7 @@ use crate::model::route::Route;
 use crate::model::route::SetIORoutes;
 use crate::model::route::SetRoute;
 use crate::model::validation::Validate;
-use crate::output_connection::OutputConnection;
+use crate::model::output_connection::OutputConnection;
 
 /// `FunctionDefinition` defines a Function (compile time) that implements some processing in the flow hierarchy
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -389,8 +389,8 @@ mod test {
     use crate::model::route::Route;
     use crate::model::route::SetRoute;
     use crate::model::validation::Validate;
-    use crate::output_connection::OutputConnection;
-    use crate::output_connection::Source::Output;
+    use crate::model::output_connection::OutputConnection;
+    use crate::model::output_connection::Source::Output;
 
     use super::FunctionDefinition;
 

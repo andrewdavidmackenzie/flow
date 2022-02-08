@@ -9,8 +9,8 @@ use serde_derive::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
 use flowcore::model::runtime_function::RuntimeFunction;
-use flowcore::output_connection::OutputConnection;
-use flowcore::output_connection::Source::{Input, Output};
+use flowcore::model::output_connection::OutputConnection;
+use flowcore::model::output_connection::Source::{Input, Output};
 
 use crate::block::Block;
 use crate::coordinator::Submission;
@@ -1148,10 +1148,10 @@ mod test {
     use serde_json::Value;
 
     use flowcore::Implementation;
-    use flowcore::input::Input;
-    use flowcore::input::InputInitializer::Once;
+    use flowcore::model::input::Input;
+    use flowcore::model::input::InputInitializer::Once;
     use flowcore::model::runtime_function::RuntimeFunction;
-    use flowcore::output_connection::{OutputConnection, Source};
+    use flowcore::model::output_connection::{OutputConnection, Source};
 
     use super::Job;
 
@@ -1428,11 +1428,11 @@ mod test {
         use serial_test::serial;
         use url::Url;
 
-        use flowcore::input::Input;
-        use flowcore::input::InputInitializer::{Always, Once};
+        use flowcore::model::input::Input;
+        use flowcore::model::input::InputInitializer::{Always, Once};
         use flowcore::model::runtime_function::RuntimeFunction;
-        use flowcore::output_connection::{OutputConnection, Source};
-        use flowcore::output_connection::Source::Output;
+        use flowcore::model::output_connection::{OutputConnection, Source};
+        use flowcore::model::output_connection::Source::Output;
 
         use crate::client_server::Method;
         #[cfg(feature = "debugger")]
@@ -2264,9 +2264,9 @@ mod test {
         use serial_test::serial;
         use url::Url;
 
-        use flowcore::input::Input;
+        use flowcore::model::input::Input;
         use flowcore::model::runtime_function::RuntimeFunction;
-        use flowcore::output_connection::{OutputConnection, Source};
+        use flowcore::model::output_connection::{OutputConnection, Source};
 
         use crate::client_server::Method;
         #[cfg(feature = "debugger")]
@@ -2631,9 +2631,9 @@ mod test {
     mod misc {
         use serde_json::{json, Value};
 
-        use flowcore::input::Input;
+        use flowcore::model::input::Input;
         use flowcore::model::runtime_function::RuntimeFunction;
-        use flowcore::output_connection::{OutputConnection, Source};
+        use flowcore::model::output_connection::{OutputConnection, Source};
 
         use super::super::RunState;
 

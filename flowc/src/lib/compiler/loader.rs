@@ -6,8 +6,9 @@ use log::{debug, info, trace};
 use url::Url;
 
 use flowcore::deserializers::deserializer::get_deserializer;
-use flowcore::flow_manifest::{Cargo, MetaData};
-use flowcore::input::InputInitializer;
+use flowcore::model::flow_manifest::Cargo;
+use flowcore::model::metadata::MetaData;
+use flowcore::model::input::InputInitializer;
 use flowcore::lib_provider::Provider;
 use flowcore::model::flow_definition::FlowDefinition;
 use flowcore::model::name::HasName;
@@ -244,7 +245,8 @@ mod test {
     use url::Url;
 
     use flowcore::deserializers::deserializer::get_deserializer;
-    use flowcore::flow_manifest::{Cargo, MetaData};
+    use flowcore::model::flow_manifest::Cargo;
+    use flowcore::model::metadata::MetaData;
 
     #[test]
     fn deserialize_library() {

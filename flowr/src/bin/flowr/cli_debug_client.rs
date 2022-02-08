@@ -324,10 +324,10 @@ mod test {
     use serde_json::json;
     use url::Url;
 
-    use flowcore::input::Input;
-    use flowcore::input::InputInitializer::Once;
+    use flowcore::model::input::Input;
+    use flowcore::model::input::InputInitializer::Once;
     use flowcore::model::runtime_function::RuntimeFunction;
-    use flowcore::output_connection::{OutputConnection, Source};
+    use flowcore::model::output_connection::{OutputConnection, Source};
     use flowrlib::coordinator::Submission;
     use flowrlib::run_state::{RunState, State};
 

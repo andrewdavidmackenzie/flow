@@ -5,8 +5,8 @@ use std::sync::{Arc, Mutex};
 
 use url::Url;
 
-use flowcore::flow_manifest::MetaData;
-use flowcore::lib_manifest::{ImplementationLocator::Native, LibraryManifest};
+use flowcore::model::metadata::MetaData;
+use flowcore::model::lib_manifest::{ImplementationLocator::Native, LibraryManifest};
 
 use crate::client_server::ServerConnection;
 use crate::errors::*;

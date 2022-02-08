@@ -7,7 +7,7 @@ use url::Url;
 
 use crate::deserializers::deserializer::get_deserializer;
 use crate::errors::*;
-use crate::flow_manifest::MetaData;
+use crate::model::metadata::MetaData;
 use crate::lib_provider::Provider;
 use crate::Implementation;
 
@@ -168,8 +168,8 @@ mod test {
     use url::Url;
 
     use crate::errors::Result;
-    use crate::flow_manifest::MetaData;
-    use crate::lib_manifest::{
+    use crate::model::metadata::MetaData;
+    use crate::model::lib_manifest::{
         ImplementationLocator, ImplementationLocator::Wasm, LibraryManifest,
     };
     use crate::lib_provider::Provider;

@@ -5,7 +5,7 @@ use std::path::Path;
 
 use serde_json::Value;
 
-use flowcore::input::InputInitializer::{Always, Once};
+use flowcore::model::input::InputInitializer::{Always, Once};
 use flowcore::model::connection::Connection;
 use flowcore::model::flow_definition::FlowDefinition;
 use flowcore::model::function_definition::FunctionDefinition;

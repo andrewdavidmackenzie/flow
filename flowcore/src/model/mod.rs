@@ -30,3 +30,15 @@ pub mod process_reference;
 pub mod route;
 /// A custom deserializer for a String or a Sequence of Strings for Routes
 mod route_array_serde;
+/// `input` defines the struct for inputs to functions in a flow
+pub mod input;
+/// `output_connection` defines a struct for a function's output connection
+pub mod output_connection;
+/// `metadata` defined structs for flow meta data
+pub mod metadata;
+/// `flow_manifest` is the struct that specifies the manifest of functions in a flow
+#[cfg(not(target_arch = "wasm32"))]
+pub mod flow_manifest;
+/// `lib_manifest` defines the structs for specifying a Library's manifest and methods to load it
+#[cfg(not(target_arch = "wasm32"))]
+pub mod lib_manifest;

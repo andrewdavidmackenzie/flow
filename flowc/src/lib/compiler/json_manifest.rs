@@ -4,8 +4,8 @@ use std::path::{Path, PathBuf};
 
 use log::info;
 
-use flowcore::lib_manifest::DEFAULT_LIB_JSON_MANIFEST_FILENAME;
-use flowcore::lib_manifest::LibraryManifest;
+use flowcore::model::lib_manifest::DEFAULT_LIB_JSON_MANIFEST_FILENAME;
+use flowcore::model::lib_manifest::LibraryManifest;
 
 use crate::errors::*;
 

@@ -217,7 +217,7 @@ mod test {
     use flowcore::model::function_definition::FunctionDefinition;
     use flowcore::model::io::IO;
     use flowcore::model::route::Route;
-    use flowcore::output_connection::{OutputConnection, Source};
+    use flowcore::model::output_connection::{OutputConnection, Source};
 
     use super::{get_paths, run_optional_command};
     use super::out_of_date;

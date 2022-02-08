@@ -8,8 +8,8 @@ use flowcore::model::io::{IO, IOType};
 use flowcore::model::name::HasName;
 use flowcore::model::route::HasRoute;
 use flowcore::model::route::Route;
-use flowcore::output_connection::{OutputConnection, Source};
-use flowcore::output_connection::Source::{Input, Output};
+use flowcore::model::output_connection::{OutputConnection, Source};
+use flowcore::model::output_connection::Source::{Input, Output};
 
 use crate::errors::*;
 use crate::generator::generate::GenerationTables;
@@ -378,8 +378,8 @@ mod test {
         use std::collections::HashMap;
 
         use flowcore::model::route::Route;
-        use flowcore::output_connection::Source;
-        use flowcore::output_connection::Source::Output;
+        use flowcore::model::output_connection::Source;
+        use flowcore::model::output_connection::Source::Output;
 
         use super::super::get_source;
 

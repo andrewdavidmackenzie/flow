@@ -53,7 +53,7 @@ mod test {
     use flowcore::model::io::IO;
     use flowcore::model::name::Name;
     use flowcore::model::route::Route;
-    use flowcore::output_connection::{OutputConnection, Source};
+    use flowcore::model::output_connection::{OutputConnection, Source};
 
     #[test]
     fn empty_index_test() {

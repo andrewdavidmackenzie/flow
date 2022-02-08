@@ -17,7 +17,7 @@ opt-level = 's' # Optimize for size
 panic = 'abort' # About unwinding code
 
 [dependencies]
-flowcore = {version = "=0.34.8", default-features = false}
+flowcore = {path = "../../../flowcore", version = "0.40.1"}
 flow_macro = { version = "0.40.1", path = "../../../flow_macro"}
 
 num = "0.3.0"

@@ -5,7 +5,7 @@ use error_chain::bail;
 use serde_derive::{Deserialize, Serialize};
 
 use crate::errors::*;
-use crate::input::InputInitializer;
+use crate::model::input::InputInitializer;
 use crate::model::datatype::DataType;
 use crate::model::datatype::HasDataTypes;
 use crate::model::name::HasName;

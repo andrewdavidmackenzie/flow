@@ -6,7 +6,7 @@ use serde_json::Value;
 
 use flowcore::Implementation;
 use flowcore::model::runtime_function::RuntimeFunction;
-use flowcore::output_connection::OutputConnection;
+use flowcore::model::output_connection::OutputConnection;
 
 /// A `Job` contains the information necessary to manage the execution of a function in the
 /// flow on a set of input values, and then where to send the outputs that maybe produces.

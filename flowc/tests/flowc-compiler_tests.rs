@@ -5,7 +5,7 @@ use url::Url;
 
 use flowclib::compiler::compile;
 use flowclib::compiler::loader;
-use flowcore::input::InputInitializer::Once;
+use flowcore::model::input::InputInitializer::Once;
 use flowcore::lib_provider::MetaProvider;
 use flowcore::model::name::HasName;
 use flowcore::model::name::Name;
