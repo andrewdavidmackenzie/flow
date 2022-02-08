@@ -9,7 +9,7 @@ use std::fs::File;
 use std::io::prelude::*;
 use std::path::{Path, PathBuf};
 use proc_macro2::Ident;
-use quote::{format_ident, quote};
+use quote::{format_ident, quote, ToTokens};
 use syn::{ItemFn, parse_macro_input, ReturnType};
 
 use flowcore::model::function_definition::FunctionDefinition;
@@ -79,12 +79,11 @@ fn input_conversion(definition: &FunctionDefinition, definition_file_path: PathB
 // check that the return type of the implementation function is what we need. i.e. that it
 // matches the Implementation trait's run() method return type
 fn check_return_type(return_type: &ReturnType) {
-    match return_type {
-        ReturnType::Default=> panic!("a 'flow_function' macro check failed:\
-                                    implementation's return type is () which does not match the \
-                                    Implementation trait run() method return type"),
-        ReturnType::Type(_, _return_type) => {}
-    }
+    assert_eq!(return_type.into_token_stream().to_string(),
+               quote! { -> (Option<Value>, RunAgain)}.to_string(),
+                "a 'flow_function' macro check failed:\n\
+                                    implementation's return type does not match the \
+                                    Implementation trait's run() method return type");
 }
 
 // Generate the code for the implementation struct, including some extra functions to help
