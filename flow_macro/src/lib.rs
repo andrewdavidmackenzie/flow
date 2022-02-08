@@ -7,10 +7,10 @@ extern crate proc_macro;
 use proc_macro::{Span, TokenStream};
 use std::fs::File;
 use std::io::prelude::*;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use proc_macro2::Ident;
 use quote::{format_ident, quote};
-use syn::{ItemFn, parse_macro_input};
+use syn::{ItemFn, parse_macro_input, ReturnType};
 
 use flowcore::model::function_definition::FunctionDefinition;
 
@@ -36,7 +36,7 @@ pub fn flow_function(_attr: TokenStream, implementation: proc_macro::TokenStream
 }
 
 // Load a FunctionDefinition from the file at `path`
-fn load_function_definition(path: &PathBuf) -> FunctionDefinition {
+fn load_function_definition(path: &Path) -> FunctionDefinition {
     let mut f = File::open(path)
         .unwrap_or_else(|e| panic!("the 'flow' macro could not open the function definition file '{}'\n{}",
                                       path.display(), e));
@@ -76,6 +76,17 @@ fn input_conversion(definition: &FunctionDefinition, definition_file_path: PathB
     format_ident!("inputs")
 }
 
+// check that the return type of the implementation function is what we need. i.e. that it
+// matches the Implementation trait's run() method return type
+fn check_return_type(return_type: &ReturnType) {
+    match return_type {
+        ReturnType::Default=> panic!("a 'flow_function' macro check failed:\
+                                    implementation's return type is () which does not match the \
+                                    Implementation trait run() method return type"),
+        ReturnType::Type(_, _return_type) => {}
+    }
+}
+
 // Generate the code for the implementation struct, including some extra functions to help
 // manage memory and pass parameters to and from wasm from native code
 fn generate_code(function_implementation: TokenStream,
@@ -86,6 +97,8 @@ fn generate_code(function_implementation: TokenStream,
     let implementation: proc_macro2::TokenStream = function_implementation.clone().into();
     let implementation_ast = parse_macro_input!(function_implementation as syn::ItemFn);
     let implementation_name = &implementation_ast.sig.ident;
+
+    check_return_type(&implementation_ast.sig.output);
 
     let inputs = input_conversion(&definition, definition_file_path,
                          &implementation_ast, implementation_file_path);
