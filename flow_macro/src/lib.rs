@@ -101,6 +101,7 @@ fn input_conversion(definition: &FunctionDefinition, definition_file_path: PathB
 
 // check that the return type of the implementation function is what we need. i.e. that it
 // matches the Implementation trait's run() method return type
+// Hacky but works for now - find a better way to do it
 fn check_return_type(return_type: &ReturnType) {
     assert_eq!(return_type.into_token_stream().to_string(),
                quote! { -> (Option<Value>, RunAgain)}.to_string(),
