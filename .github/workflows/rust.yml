@@ -16,7 +16,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-          os: [ macos-12, ubuntu-latest ]
+          os: [ macos-latest, ubuntu-latest ]
           rust: [ stable ]
 
     steps:
@@ -45,7 +45,7 @@ jobs:
       run: sudo apt-get -y install libzmq3-dev binaryen
 
     - name: InstallMacDependencies
-      if: matrix.os == 'macos-12'
+      if: matrix.os == 'macos-latest'
       run: brew install zmq binaryen
 
     - name: AddWasmTarget
