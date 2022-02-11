@@ -5,8 +5,8 @@ use serde_derive::{Deserialize, Serialize};
 use serde_json::Value;
 
 use flowcore::Implementation;
-use flowcore::model::runtime_function::RuntimeFunction;
 use flowcore::model::output_connection::OutputConnection;
+use flowcore::model::runtime_function::RuntimeFunction;
 
 /// A `Job` contains the information necessary to manage the execution of a function in the
 /// flow on a set of input values, and then where to send the outputs that maybe produces.
@@ -30,8 +30,6 @@ pub struct Job {
     /// The result of the execution with optional output Value and if the function should be run
     /// again in the future
     pub result: (Option<Value>, bool),
-    /// Optional error produced by the execution of the job
-    pub error: Option<String>,
 }
 
 impl fmt::Display for Job {
@@ -43,8 +41,7 @@ impl fmt::Display for Job {
         )?;
         writeln!(f, "Inputs: {:?}", self.input_set)?;
         writeln!(f, "Connections: {:?}", self.connections)?;
-        writeln!(f, "Result: {:?}", self.result)?;
-        write!(f, "Error: {:?}", self.error)
+        writeln!(f, "Result: {:?}", self.result)
     }
 }
 
@@ -66,7 +63,6 @@ mod test {
             connections: vec![],
             implementation: RuntimeFunction::default_implementation(),
             result: (None, false),
-            error: None,
         };
         println!("Job: {}", job);
     }
@@ -81,7 +77,6 @@ mod test {
             connections: vec![],
             implementation: RuntimeFunction::default_implementation(),
             result: (Some(json!(42)), false),
-            error: None,
         };
 
         assert_eq!(
@@ -107,7 +102,6 @@ mod test {
             connections: vec![],
             implementation: RuntimeFunction::default_implementation(),
             result: (Some(json!(value)), false),
-            error: None,
         };
 
         assert_eq!(

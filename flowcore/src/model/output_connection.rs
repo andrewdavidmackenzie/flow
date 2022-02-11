@@ -26,7 +26,6 @@ pub struct OutputConnection {
     /// Source of the value that should be forwarded
     #[serde(default = "Source::default", skip_serializing_if = "is_default_source")]
     pub source: Source,
-
     /// `function_id` is the id of the destination function of this `OutputConnection`
     pub function_id: usize,
     /// `io_number` is the IO number the connection is connected to on the destination function
@@ -42,9 +41,9 @@ pub struct OutputConnection {
     /// `generic` defines if the input accepts generic "Value"s
     #[serde(default = "default_generic", skip_serializing_if = "is_not_generic")]
     pub generic: bool,
-    /// `route` is the full route to the destination input
+    /// `destination` is the full route to the destination input
     #[serde(default, skip_serializing_if = "String::is_empty")]
-    pub route: String,
+    pub destination: String,
     /// Optional `name` the output connection can be given to aid debugging
     #[cfg(feature = "debugger")]
     #[serde(default, skip_serializing_if = "String::is_empty")]
@@ -101,7 +100,7 @@ impl OutputConnection {
             flow_id,
             destination_array_order: array_level_serde,
             generic,
-            route,
+            destination: route,
             #[cfg(feature = "debugger")]
             name,
         }
@@ -132,8 +131,8 @@ impl fmt::Display for OutputConnection {
             " -> Function #{}({}):{}",
             self.function_id, self.flow_id, self.io_number
         )?;
-        if !self.route.is_empty() {
-            write!(f, " @ '{}'", self.route)?;
+        if !self.destination.is_empty() {
+            write!(f, " @ '{}'", self.destination)?;
         }
 
         write!(f, "")

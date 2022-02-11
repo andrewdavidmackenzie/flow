@@ -348,6 +348,11 @@ impl Coordinator {
                                 }
                             }
 
+// TODO If execution of the job failed
+//                #[cfg(feature = "debugger")]if self.debug {
+//                    let _ = debugger.job_error(self, job);
+//                }
+
                             state.complete_job(
                                 #[cfg(feature = "metrics")]
                                 &mut metrics,
