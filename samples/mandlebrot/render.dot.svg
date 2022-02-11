@@ -118,19 +118,19 @@
 <!-- /mandlebrot/render/p2v -->
 <g id="node8" class="node">
 <title>/mandlebrot/render/p2v</title>
-<g id="a_node8"><a xlink:href="../../samples/mandlebrot/render_pixel/render_pixel.html" xlink:title="p2v\n(render_pixel)">
-<ellipse fill="coral" stroke="black" cx="540.86" cy="-98.87" rx="82.05" ry="26.74"/>
-<text text-anchor="middle" x="540.86" y="-102.67" font-family="Times,serif" font-size="14.00">p2v</text>
-<text text-anchor="middle" x="540.86" y="-87.67" font-family="Times,serif" font-size="14.00">(render_pixel)</text>
+<g id="a_node8"><a xlink:href="../../samples/mandlebrot/escapes/escapes.html" xlink:title="p2v\n(escapes)">
+<ellipse fill="coral" stroke="black" cx="517.86" cy="-98.87" rx="58.88" ry="26.74"/>
+<text text-anchor="middle" x="517.86" y="-102.67" font-family="Times,serif" font-size="14.00">p2v</text>
+<text text-anchor="middle" x="517.86" y="-87.67" font-family="Times,serif" font-size="14.00">(escapes)</text>
 </a>
 </g>
 </g>
 <!-- /mandlebrot/render/p2p&#45;&gt;/mandlebrot/render/p2v -->
 <g id="edge8" class="edge">
 <title>/mandlebrot/render/p2p:e&#45;&gt;/mandlebrot/render/p2v:ne</title>
-<path fill="none" stroke="black" d="M657.86,-188.61C669.81,-188.61 663.74,-171.51 656.86,-161.74 634.18,-129.55 603.22,-151.58 574.8,-132.34"/>
-<polygon fill="black" stroke="black" points="576.79,-129.44 566.86,-125.74 572.31,-134.82 576.79,-129.44"/>
-<text text-anchor="middle" x="527.36" y="-129.54" font-family="Times,serif" font-size="14.00">pixel_point</text>
+<path fill="none" stroke="black" d="M657.86,-188.61C669.81,-188.61 664.07,-171.27 656.86,-161.74 626.99,-122.26 586.67,-156.87 550.89,-131.67"/>
+<polygon fill="black" stroke="black" points="552.75,-128.66 542.86,-124.87 548.23,-134 552.75,-128.66"/>
+<text text-anchor="middle" x="582.36" y="-128.67" font-family="Times,serif" font-size="14.00">pixel_point</text>
 </g>
 <!-- /mandlebrot/render/buffer_bounds&#45;&gt;/mandlebrot/render/p2p -->
 <g id="edge3" class="edge">
@@ -162,33 +162,33 @@
 <g id="node9" class="node">
 <title>/mandlebrot/render/image_buffer</title>
 <g id="a_node9"><a xlink:href="../../flowr/src/lib/context/image/image_buffer.html" xlink:title="image_buffer">
-<ellipse fill="coral" stroke="black" cx="540.86" cy="-18" rx="71.49" ry="18"/>
-<text text-anchor="middle" x="540.86" y="-14.3" font-family="Times,serif" font-size="14.00">image_buffer</text>
+<ellipse fill="coral" stroke="black" cx="517.86" cy="-18" rx="71.49" ry="18"/>
+<text text-anchor="middle" x="517.86" y="-14.3" font-family="Times,serif" font-size="14.00">image_buffer</text>
 </a>
 </g>
 </g>
 <!-- /mandlebrot/render/p2v&#45;&gt;/mandlebrot/render/image_buffer -->
 <g id="edge15" class="edge">
 <title>/mandlebrot/render/p2v:e&#45;&gt;/mandlebrot/render/image_buffer:ne</title>
-<path fill="none" stroke="black" d="M623.86,-98.87C635.81,-98.87 629.12,-82.18 622.86,-72 607.53,-47.05 586.64,-56.4 565.82,-42.56"/>
-<polygon fill="black" stroke="black" points="567.8,-39.66 557.86,-36 563.35,-45.06 567.8,-39.66"/>
-<text text-anchor="middle" x="586.51" y="-41.95" font-family="Times,serif" font-size="14.00">[0]</text>
-<text text-anchor="middle" x="540.36" y="-39.8" font-family="Times,serif" font-size="14.00">pixel</text>
+<path fill="none" stroke="black" d="M577.86,-98.87C589.81,-98.87 582.05,-82.76 576.86,-72 567.84,-53.32 556.52,-52.91 542.76,-42.8"/>
+<polygon fill="black" stroke="black" points="544.72,-39.87 534.86,-36 540.16,-45.18 544.72,-39.87"/>
+<text text-anchor="middle" x="554.72" y="-45.2" font-family="Times,serif" font-size="14.00">[0]</text>
+<text text-anchor="middle" x="517.36" y="-39.8" font-family="Times,serif" font-size="14.00">pixel</text>
 </g>
 <!-- /mandlebrot/render/p2v&#45;&gt;/mandlebrot/render/image_buffer -->
 <g id="edge16" class="edge">
 <title>/mandlebrot/render/p2v:e&#45;&gt;/mandlebrot/render/image_buffer:n</title>
-<path fill="none" stroke="black" d="M623.86,-98.87C635.81,-98.87 629.58,-81.88 622.86,-72 602.75,-42.43 552.59,-69.06 542.6,-45.91"/>
-<polygon fill="black" stroke="black" points="546.04,-45.24 540.86,-36 539.14,-46.46 546.04,-45.24"/>
-<text text-anchor="middle" x="572.77" y="-60.35" font-family="Times,serif" font-size="14.00">[1]</text>
-<text text-anchor="middle" x="521.36" y="-39.8" font-family="Times,serif" font-size="14.00">value</text>
+<path fill="none" stroke="black" d="M577.86,-98.87C589.81,-98.87 582.9,-82.31 576.86,-72 563.51,-49.22 529.53,-61.69 520.24,-46.16"/>
+<polygon fill="black" stroke="black" points="523.55,-44.94 517.86,-36 516.73,-46.53 523.55,-44.94"/>
+<text text-anchor="middle" x="539.69" y="-60.58" font-family="Times,serif" font-size="14.00">[1]</text>
+<text text-anchor="middle" x="498.36" y="-39.8" font-family="Times,serif" font-size="14.00">value</text>
 </g>
 <!-- /mandlebrot/render/filename_buffer&#45;&gt;/mandlebrot/render/image_buffer -->
 <g id="edge11" class="edge">
 <title>/mandlebrot/render/filename_buffer:e&#45;&gt;/mandlebrot/render/image_buffer:nw</title>
-<path fill="none" stroke="black" d="M242.86,-188.61C323,-188.61 348.34,-174.6 411.86,-125.74 435.05,-107.9 427.56,-90.94 449.86,-72 474.91,-50.73 493.8,-59.5 516.14,-42.74"/>
-<polygon fill="black" stroke="black" points="518.63,-45.21 523.86,-36 514.02,-39.94 518.63,-45.21"/>
-<text text-anchor="middle" x="493.36" y="-39.8" font-family="Times,serif" font-size="14.00">filename</text>
+<path fill="none" stroke="black" d="M242.86,-188.61C323,-188.61 348.34,-174.6 411.86,-125.74 435.05,-107.9 429.17,-92.68 449.86,-72 466.88,-54.99 477.98,-55.16 493.42,-42.71"/>
+<polygon fill="black" stroke="black" points="495.78,-45.3 500.86,-36 491.09,-40.1 495.78,-45.3"/>
+<text text-anchor="middle" x="470.36" y="-39.8" font-family="Times,serif" font-size="14.00">filename</text>
 </g>
 <!-- /mandlebrot/render/filename_buffer&#45;&gt;/mandlebrot/render/filename_buffer -->
 <g id="edge10" class="edge">
@@ -199,9 +199,9 @@
 <!-- /mandlebrot/render/size_buffer&#45;&gt;/mandlebrot/render/image_buffer -->
 <g id="edge14" class="edge">
 <title>/mandlebrot/render/size_buffer:e&#45;&gt;/mandlebrot/render/image_buffer:w</title>
-<path fill="none" stroke="black" d="M404.86,-98.87C417.94,-98.87 409.6,-82.88 416.86,-72 433.11,-47.65 434.68,-24.02 457.85,-18.98"/>
-<polygon fill="black" stroke="black" points="458.25,-22.46 467.86,-18 457.57,-15.5 458.25,-22.46"/>
-<text text-anchor="middle" x="453.86" y="-21.8" font-family="Times,serif" font-size="14.00">size</text>
+<path fill="none" stroke="black" d="M404.86,-98.87C417.94,-98.87 411.18,-83.78 416.86,-72 426.76,-51.45 420.64,-27.14 434.73,-20.04"/>
+<polygon fill="black" stroke="black" points="435.75,-23.4 444.86,-18 434.37,-16.54 435.75,-23.4"/>
+<text text-anchor="middle" x="430.86" y="-21.8" font-family="Times,serif" font-size="14.00">size</text>
 </g>
 <!-- /mandlebrot/render/size_buffer&#45;&gt;/mandlebrot/render/size_buffer -->
 <g id="edge13" class="edge">
