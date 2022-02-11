@@ -1,33 +1,25 @@
 use serde_json::Value;
 
-use flow_impl_derive::FlowImpl;
-use flowcore::{Implementation, RunAgain, RUN_AGAIN};
+use flow_macro::flow_function;
 
-#[derive(FlowImpl)]
-/// Control the flow of a piece of data by waiting for a second value to be available
-#[derive(Debug)]
-pub struct Join;
-
-impl Implementation for Join {
-    fn run(&self, inputs: &[Value]) -> (Option<Value>, RunAgain) {
-        let data = Some(inputs[0].clone());
-        // second input of 'control' is not used, it just "controls" the execution of this process
-        // via it's availability
-        (data, RUN_AGAIN)
-    }
+#[flow_function]
+fn _join(inputs: &[Value]) -> (Option<Value>, RunAgain) {
+    let data = Some(inputs[0].clone());
+    // second input of 'control' is not used, it just "controls" the execution of this process
+    // via it's availability
+    (data, RUN_AGAIN)
 }
 
 #[cfg(test)]
 mod test {
     use serde_json::json;
-
-    use flowcore::{Implementation, RUN_AGAIN};
+    use flowcore::{RUN_AGAIN};
+    use super::_join;
 
     #[test]
     fn test_join() {
-        let joiner = &super::Join {} as &dyn Implementation;
         let inputs = vec![json!(42), json!("OK")];
-        let (output, run_again) = joiner.run(&inputs);
+        let (output, run_again) = _join(&inputs);
         assert_eq!(run_again, RUN_AGAIN);
         assert_eq!(output.expect("No output value"), json!(42));
     }

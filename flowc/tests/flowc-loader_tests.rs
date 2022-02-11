@@ -3,13 +3,13 @@ use std::collections::HashSet;
 use url::Url;
 
 use flowclib::compiler::loader;
-use flowclib::model::io::IO;
-use flowclib::model::name::HasName;
-use flowclib::model::name::Name;
-use flowclib::model::process::Process::FlowProcess;
-use flowclib::model::process::Process::FunctionProcess;
-use flowcore::input::InputInitializer::Once;
+use flowcore::model::input::InputInitializer::Once;
 use flowcore::lib_provider::MetaProvider;
+use flowcore::model::io::IO;
+use flowcore::model::name::HasName;
+use flowcore::model::name::Name;
+use flowcore::model::process::Process::FlowProcess;
+use flowcore::model::process::Process::FunctionProcess;
 
 #[path = "helper.rs"]
 mod helper;

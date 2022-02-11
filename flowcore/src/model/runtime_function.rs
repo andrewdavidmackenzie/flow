@@ -6,15 +6,15 @@ use log::{error, trace};
 use serde_derive::{Deserialize, Serialize};
 use serde_json::Value;
 
-use crate::errors::*;
-use crate::input::Input;
-use crate::output_connection::OutputConnection;
 use crate::{Implementation, RunAgain};
+use crate::errors::*;
+use crate::model::input::Input;
+use crate::model::output_connection::OutputConnection;
 
 #[derive(Deserialize, Serialize, Clone)]
-/// `Function` contains all the information needed about a function and its implementation
+/// `RuntimeFunction` contains all the information needed about a function and its implementation
 /// to be able to execute a flow using it.
-pub struct Function {
+pub struct RuntimeFunction {
     #[cfg(feature = "debugger")]
     #[serde(default, skip_serializing_if = "String::is_empty")]
     name: String,
@@ -42,7 +42,7 @@ pub struct Function {
     output_connections: Vec<OutputConnection>,
 
     #[serde(skip)]
-    #[serde(default = "Function::default_implementation")]
+    #[serde(default = "RuntimeFunction::default_implementation")]
     implementation: Arc<dyn Implementation>,
 }
 
@@ -57,7 +57,7 @@ impl Implementation for ImplementationNotFound {
 }
 
 #[cfg(feature = "debugger")]
-impl fmt::Display for Function {
+impl fmt::Display for RuntimeFunction {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "Function #{}({})", self.id, self.flow_id)?;
 
@@ -89,7 +89,7 @@ impl fmt::Display for Function {
     }
 }
 
-impl Function {
+impl RuntimeFunction {
     /// Create a new `function` with the specified `name`, `route`, `implementation` etc.
     /// This only needs to be used by compilers or IDE generating `manifests` with functions
     /// The library `flowrlib` just deserializes them from the `manifest`
@@ -119,7 +119,7 @@ impl Function {
             }
         }
 
-        Function {
+        RuntimeFunction {
             #[cfg(feature = "debugger")]
             name: name.into(),
             #[cfg(feature = "debugger")]
@@ -127,7 +127,7 @@ impl Function {
             id,
             flow_id,
             implementation_location: implementation_location.into(),
-            implementation: Function::default_implementation(),
+            implementation: RuntimeFunction::default_implementation(),
             output_connections: routes,
             inputs,
         }
@@ -144,26 +144,26 @@ impl Function {
 
     /// A default `Function` - used in deserialization of a `Manifest`
     pub fn default_implementation() -> Arc<dyn Implementation> {
-        Arc::new(super::function::ImplementationNotFound {})
+        Arc::new(super::runtime_function::ImplementationNotFound {})
     }
 
-    /// Accessor for a `Functions` `name`
+    /// Accessor for a `RuntimeFunction` `name`
     #[cfg(feature = "debugger")]
     pub fn name(&self) -> &str {
         &self.name
     }
 
-    /// Accessor for a `Functions` `id`
+    /// Accessor for a `RuntimeFunction` `id`
     pub fn id(&self) -> usize {
         self.id
     }
 
-    /// Accessor for a `Functions` `flow_id`
+    /// Accessor for a `RuntimeFunction` `flow_id`
     pub fn get_flow_id(&self) -> usize {
         self.flow_id
     }
 
-    /// Initialize all of a `Functions` `Inputs` - as they may have initializers that need running
+    /// Initialize all of a `RuntimeFunction` `Inputs` - as they may have initializers that need running
     pub fn init_inputs(&mut self, first_time: bool) -> bool {
         let mut inputs_initialized = false;
         for (io_number, input) in &mut self.inputs.iter_mut().enumerate() {
@@ -175,44 +175,44 @@ impl Function {
         inputs_initialized
     }
 
-    /// Accessor for a `Functions` `implementation_location`
+    /// Accessor for a `RuntimeFunction` `implementation_location`
     pub fn implementation_location(&self) -> &str {
         &self.implementation_location
     }
 
-    /// write a value to a `Function`'s input
+    /// write a value to a `RuntimeFunction` `input`
     pub fn send(&mut self, input_number: usize, value: &Value) {
         let input = &mut self.inputs[input_number];
         input.push(value.clone());
     }
 
-    /// write an array of values to a `Function`'s input
+    /// write an array of values to a `RuntimeFunction` `input`
     pub fn send_iter(&mut self, input_number: usize, array: &[Value]) {
         let input = &mut self.inputs[input_number];
         input.push_array(array.iter());
     }
 
-    /// Accessor for a `Functions` `output_connections` field
+    /// Accessor for a `RuntimeFunction` `output_connections` field
     pub fn get_output_connections(&self) -> &Vec<OutputConnection> {
         &self.output_connections
     }
 
-    /// Get a clone of the `Functions` `implementation`
+    /// Get a clone of the `RuntimeFunction` `implementation`
     pub fn get_implementation(&self) -> Arc<dyn Implementation> {
         self.implementation.clone()
     }
 
-    /// Set a `Functions` `implementation`
+    /// Set a `RuntimeFunction` `implementation`
     pub fn set_implementation(&mut self, implementation: Arc<dyn Implementation>) {
         self.implementation = implementation;
     }
 
-    /// Determine if the `Functions` `input` number `input_number` is full or not
+    /// Determine if the `RuntimeFunction` `input` number `input_number` is full or not
     pub fn input_count(&self, input_number: usize) -> usize {
         self.inputs[input_number].count()
     }
 
-    /// Returns how many inputs sets are available across all the `Functions` `inputs`
+    /// Returns how many inputs sets are available across all the `RuntimeFunction` `inputs`
     pub fn input_set_count(&self) -> usize {
         let mut num_input_sets = usize::MAX;
 
@@ -223,19 +223,19 @@ impl Function {
         num_input_sets
     }
 
-    /// Inspect the values of the `inputs` of a function
+    /// Inspect the values of the `inputs` of a `RuntimeFunction`
     #[cfg(feature = "debugger")]
     pub fn inputs(&self) -> &Vec<Input> {
         &self.inputs
     }
 
-    /// Inspect the value of the `input` of a feature.
+    /// Inspect the value of the `input` of a `RuntimeFunction`.
     #[cfg(feature = "debugger")]
     pub fn input(&self, id: usize) -> &Input {
         &self.inputs[id]
     }
 
-    /// Read the values from the inputs and return them for use in executing the function
+    /// Read the values from the inputs and return them for use in executing the `RuntimeFunction`
     pub fn take_input_set(&mut self) -> Result<Vec<Value>> {
         let mut input_set: Vec<Value> = Vec::new();
         for input in &mut self.inputs {
@@ -252,13 +252,13 @@ mod test {
     use serde_json::json;
     use serde_json::value::Value;
 
-    use crate::input::Input;
-    use crate::output_connection::OutputConnection;
-    use crate::output_connection::Source::Output;
     use crate::Implementation;
+    use crate::model::input::Input;
+    use crate::model::output_connection::OutputConnection;
+    use crate::model::output_connection::Source::Output;
 
-    use super::Function;
     use super::ImplementationNotFound;
+    use super::RuntimeFunction;
 
     /*************** Below are tests for basic json.pointer functionality *************************/
 
@@ -343,7 +343,7 @@ mod test {
         );
     }
 
-    fn test_function() -> Function {
+    fn test_function() -> RuntimeFunction {
         let out_conn = OutputConnection::new(
             Output("/other/input/1".into()),
             1,
@@ -355,7 +355,7 @@ mod test {
             #[cfg(feature = "debugger")]
             String::default(),
         );
-        Function::new(
+        RuntimeFunction::new(
             #[cfg(feature = "debugger")]
             "test",
             #[cfg(feature = "debugger")]
@@ -413,7 +413,7 @@ mod test {
             #[cfg(feature = "debugger")]
             String::default(),
         );
-        let mut function = Function::new(
+        let mut function = RuntimeFunction::new(
             #[cfg(feature = "debugger")]
             "test",
             #[cfg(feature = "debugger")]

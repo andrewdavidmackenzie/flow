@@ -17,8 +17,8 @@ opt-level = 's' # Optimize for size
 panic = 'abort' # About unwinding code
 
 [dependencies]
-flowcore = { version = "0.40", path = "../../../../flowcore", default-features = false }
-flow_impl_derive = { version = "0.40", path = "../../../../flow_impl_derive" }
+flowcore = {path = "../../../../flowcore", version = "0.40.1"}
+flow_macro = { version = "0.40", path = "../../../../flow_macro" }
 serde_json = "1.0"
 
 [workspace]

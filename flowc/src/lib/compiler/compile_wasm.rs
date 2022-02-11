@@ -10,15 +10,16 @@ use simpath::{FileType, FoundType, Simpath};
 use tempdir::TempDir;
 use url::Url;
 
+use flowcore::model::function_definition::FunctionDefinition;
+
 use crate::compiler::cargo_build;
 use crate::errors::*;
-use crate::model::function::Function;
 
 /// Compile a function's implementation to wasm and modify implementation to point to the wasm file
 /// Checks the timestamps of the source and wasm files and only recompiles if wasm file is out of date
 pub fn compile_implementation(
     target_dir: &Path,
-    function: &mut Function,
+    function: &mut FunctionDefinition,
     native_only: bool,
     #[cfg(feature = "debugger")] source_urls: &mut HashSet<(Url, Url)>,
 ) -> Result<(PathBuf, bool)> {
@@ -50,7 +51,9 @@ pub fn compile_implementation(
             }
         } else {
             match function.build_type.as_str() {
-                "rust" => cargo_build::run(&source_path, &wasm_destination)?,
+                "rust" => cargo_build::run(&source_path, &wasm_destination)
+                    .chain_err(|| format!("Cargo build of project at '{}' failed",
+                                       source_path.display()))?,
                 _ => bail!(
                     "Unknown build type '{}' for function at '{}'",
                     function.build_type,
@@ -156,7 +159,7 @@ fn optimize_wasm_file_size(wasm_path: &Path) -> Result<()> {
 
    out_dir optionally overrides the destination directory where the wasm should end up
 */
-fn get_paths(target_dir: &Path, function: &Function) -> Result<(PathBuf, PathBuf)> {
+fn get_paths(target_dir: &Path, function: &FunctionDefinition) -> Result<(PathBuf, PathBuf)> {
     let source_url = function.get_source_url().join(function.get_source())?;
 
     let source_path = source_url
@@ -211,11 +214,10 @@ mod test {
     #[cfg(feature = "debugger")]
     use url::Url;
 
-    use flowcore::output_connection::{OutputConnection, Source};
-
-    use crate::model::function::Function;
-    use crate::model::io::IO;
-    use crate::model::route::Route;
+    use flowcore::model::function_definition::FunctionDefinition;
+    use flowcore::model::io::IO;
+    use flowcore::model::route::Route;
+    use flowcore::model::output_connection::{OutputConnection, Source};
 
     use super::{get_paths, run_optional_command};
     use super::out_of_date;
@@ -320,8 +322,8 @@ mod test {
         );
     }
 
-    fn test_function() -> Function {
-        Function::new(
+    fn test_function() -> FunctionDefinition {
+        FunctionDefinition::new(
             "Stdout".into(),
             false,
             "stdout.rs".to_string(),

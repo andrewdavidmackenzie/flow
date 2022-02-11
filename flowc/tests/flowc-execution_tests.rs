@@ -17,10 +17,10 @@ use url::Url;
 use flowclib::compiler::{compile, loader};
 use flowclib::generator::generate;
 use flowclib::generator::generate::GenerationTables;
-use flowclib::model::flow::Flow;
-use flowclib::model::process::Process;
-use flowclib::model::process::Process::FlowProcess;
 use flowcore::lib_provider::MetaProvider;
+use flowcore::model::flow_definition::FlowDefinition;
+use flowcore::model::process::Process;
+use flowcore::model::process::Process::FlowProcess;
 
 #[path = "helper.rs"]
 mod helper;
@@ -45,7 +45,7 @@ error_chain! {
 /// the output and comparing it to the expected output.
 
 fn write_manifest(
-    flow: &Flow,
+    flow: &FlowDefinition,
     debug_symbols: bool,
     out_dir: PathBuf,
     test_name: &str,

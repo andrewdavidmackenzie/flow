@@ -1,47 +1,40 @@
 use serde_json::Value::Number;
 use serde_json::{json, Value};
 
-use flow_impl_derive::FlowImpl;
-use flowcore::{Implementation, RunAgain, RUN_AGAIN};
+use flow_macro::flow_function;
 
-#[derive(FlowImpl)]
-/// Add two inputs to produce a new output
-#[derive(Debug)]
-pub struct Add;
+#[flow_function]
+fn _add(inputs: &[Value]) -> (Option<Value>, RunAgain) {
+    let input_a = &inputs[0];
+    let input_b = &inputs[1];
 
-impl Implementation for Add {
-    fn run(&self, inputs: &[Value]) -> (Option<Value>, RunAgain) {
-        let input_a = &inputs[0];
-        let input_b = &inputs[1];
-
-        let sum = match (&input_a, &input_b) {
-            (&Number(ref a), &Number(ref b)) => {
-                if let Some(a_i64) = a.as_i64() {
-                    if let Some(b_i64) = b.as_i64() {
-                        a_i64.checked_add(b_i64).map(|result| json!(result))
-                    } else {
-                        None
-                    }
-                } else if let Some(a_u64) = a.as_u64() {
-                    if let Some(b_u64) = b.as_u64() {
-                        a_u64.checked_add(b_u64).map(|result| json!(result))
-                    } else {
-                        None
-                    }
-                } else if let Some(a_f64) = a.as_f64() {
-                    b.as_f64().map(|b_f64| json!(a_f64 + b_f64))
+    let sum = match (&input_a, &input_b) {
+        (&Number(ref a), &Number(ref b)) => {
+            if let Some(a_i64) = a.as_i64() {
+                if let Some(b_i64) = b.as_i64() {
+                    a_i64.checked_add(b_i64).map(|result| json!(result))
                 } else {
                     None
                 }
+            } else if let Some(a_u64) = a.as_u64() {
+                if let Some(b_u64) = b.as_u64() {
+                    a_u64.checked_add(b_u64).map(|result| json!(result))
+                } else {
+                    None
+                }
+            } else if let Some(a_f64) = a.as_f64() {
+                b.as_f64().map(|b_f64| json!(a_f64 + b_f64))
+            } else {
+                None
             }
-            (_, _) => None,
-        };
-
-        if let Some(total) = sum {
-            (Some(json!(total)), RUN_AGAIN)
-        } else {
-            (None, RUN_AGAIN)
         }
+        (_, _) => None,
+    };
+
+    if let Some(total) = sum {
+        (Some(json!(total)), RUN_AGAIN)
+    } else {
+        (None, RUN_AGAIN)
     }
 }
 
@@ -51,9 +44,7 @@ mod test {
     use serde_json::Value;
     use serde_json::Value::Number;
 
-    use flowcore::Implementation;
-
-    use super::Add;
+    use super::_add;
 
     fn get_inputs(pair: &(Value, Value, Option<Value>)) -> Vec<Value> {
         vec![pair.0.clone(), pair.1.clone()]
@@ -154,10 +145,8 @@ mod test {
             ),
         ];
 
-        let added = Add {};
-
         for test in &integer_test_set {
-            let (output, again) = added.run(&get_inputs(test));
+            let (output, again) = _add(&get_inputs(test));
 
             assert!(again);
             assert_eq!(output, test.2);

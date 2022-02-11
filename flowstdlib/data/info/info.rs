@@ -1,11 +1,5 @@
-use flow_impl_derive::FlowImpl;
-use flowcore::{Implementation, RUN_AGAIN, RunAgain};
+use flow_macro::flow_function;
 use serde_json::{json, Value};
-
-#[derive(FlowImpl)]
-/// Output info about the input value
-#[derive(Debug)]
-pub struct Info;
 
 fn type_string(value: &Value) -> String {
     match value {
@@ -14,7 +8,7 @@ fn type_string(value: &Value) -> String {
         Value::Number(_) => "Number".into(),
         Value::Array(array) => format!("Array/{}", type_string(&array[0])),
         Value::Object(map) => {
-            if let Some(value) = &map.values().cloned().next() {
+            if let Some(value) = &map.values().next().cloned() {
                 format!("Map/{}", type_string(value))
             } else {
                 "Map/Unknown".into()
@@ -24,41 +18,39 @@ fn type_string(value: &Value) -> String {
     }
 }
 
-impl Implementation for Info {
-    fn run(&self, inputs: &[Value]) -> (Option<Value>, RunAgain) {
-        let mut output_map = serde_json::Map::new();
+#[flow_function]
+fn _info(inputs: &[Value]) -> (Option<Value>, RunAgain) {
+    let mut output_map = serde_json::Map::new();
 
-        let (rows, cols) = match &inputs[0] {
-            Value::String(string) => (1, string.len()),
-            Value::Bool(_boolean) => (1, 1),
-            Value::Number(_number) => (1, 1),
-            Value::Array(vec) => match &vec[0] {
-                Value::Array(row) => (vec.len(), row.len()), // Array of Arrays
-                _ => (1, vec.len()),
-            },
-            Value::Object(map) => (map.len(), 2),
-            Value::Null => (0, 0),
-        };
+    let (rows, cols) = match &inputs[0] {
+        Value::String(string) => (1, string.len()),
+        Value::Bool(_boolean) => (1, 1),
+        Value::Number(_number) => (1, 1),
+        Value::Array(vec) => match &vec[0] {
+            Value::Array(row) => (vec.len(), row.len()), // Array of Arrays
+            _ => (1, vec.len()),
+        },
+        Value::Object(map) => (map.len(), 2),
+        Value::Null => (0, 0),
+    };
 
-        output_map.insert("rows".into(), json!(rows));
-        output_map.insert("columns".into(), json!(cols));
-        output_map.insert("type".into(), json!(type_string(&inputs[0])));
+    output_map.insert("rows".into(), json!(rows));
+    output_map.insert("columns".into(), json!(cols));
+    output_map.insert("type".into(), json!(type_string(&inputs[0])));
 
-        (Some(Value::Object(output_map)), RUN_AGAIN)
-    }
+    (Some(Value::Object(output_map)), RUN_AGAIN)
 }
 
 #[cfg(test)]
 mod test {
-    use flowcore::Implementation;
     use serde_json::{Map, Value};
     use serde_json::json;
+    use super::_info;
 
     #[test]
     fn info_on_number() {
         let inputs = vec![json!(1)];
-        let info = super::Info {};
-        let (result, _) = info.run(&inputs);
+        let (result, _) = _info(&inputs);
         let output_map = result.expect("Could not get the Value from the output");
 
         assert_eq!(output_map.pointer("/type").expect("Could not get the /type from the output"), &json!("Number"));
@@ -69,8 +61,7 @@ mod test {
     #[test]
     fn info_on_boolean() {
         let inputs = vec![json!(true)];
-        let info = super::Info {};
-        let (result, _) = info.run(&inputs);
+        let (result, _) = _info(&inputs);
         let output_map = result.expect("Could not get the Value from the output");
 
         assert_eq!(output_map.pointer("/type").expect("Could not get the /type from the output"), &json!("Boolean"));
@@ -81,8 +72,7 @@ mod test {
     #[test]
     fn info_on_string() {
         let string = json!("Hello");
-        let info = super::Info {};
-        let (result, _) = info.run(&[string]);
+        let (result, _) = _info(&[string]);
         let output_map = result.expect("Could not get the Value from the output");
 
         assert_eq!(output_map.pointer("/type").expect("Could not get the /type from the output"), &json!("String"));
@@ -93,8 +83,7 @@ mod test {
     #[test]
     fn info_on_null() {
         let inputs = vec![Value::Null];
-        let info = super::Info {};
-        let (result, _) = info.run(&inputs);
+        let (result, _) = _info(&inputs);
         let output_map = result.expect("Could not get the Value from the output");
 
         assert_eq!(output_map.pointer("/type").expect("Could not get the /type from the output"), &json!("Null"));
@@ -105,8 +94,7 @@ mod test {
     #[test]
     fn info_on_array_of_number() {
         let inputs = vec![json!([1, 2, 3])];
-        let info = super::Info {};
-        let (result, _) = info.run(&inputs);
+        let (result, _) = _info(&inputs);
         let output_map = result.expect("Could not get the Value from the output");
 
         assert_eq!(output_map.pointer("/type").expect("Could not get the /type from the output"), &json!("Array/Number"));
@@ -117,8 +105,7 @@ mod test {
     #[test]
     fn info_on_array_of_array_of_number() {
         let array_array_numbers = json!([[1, 2, 3], [4, 5, 6]]);
-        let info = super::Info {};
-        let (result, _) = info.run(&[array_array_numbers]);
+        let (result, _) = _info(&[array_array_numbers]);
         let output_map = result.expect("Could not get the Value from the output");
 
         assert_eq!(
@@ -135,8 +122,7 @@ mod test {
         map.insert("0".into(), json!(1));
         map.insert("1".into(), json!(2));
         let inputs = vec![Value::Object(map)];
-        let info = super::Info {};
-        let (result, _) = info.run(&inputs);
+        let (result, _) = _info(&inputs);
         let output_map = result.expect("Could not get the Value from the output");
 
         assert_eq!(output_map.pointer("/type").expect("Could not get the /type from the output"), &json!("Map/Number"));
@@ -150,8 +136,7 @@ mod test {
         map.insert("0".into(), json!([1, 2]));
         map.insert("1".into(), json!([3, 4]));
         let inputs = vec![Value::Object(map)];
-        let info = super::Info {};
-        let (result, _) = info.run(&inputs);
+        let (result, _) = _info(&inputs);
         let output_map = result.expect("Could not get the Value from the output");
 
         assert_eq!(

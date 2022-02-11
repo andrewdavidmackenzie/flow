@@ -6,32 +6,25 @@ use log::{debug, info, trace};
 use url::Url;
 
 use flowcore::deserializers::deserializer::get_deserializer;
-use flowcore::flow_manifest::{Cargo, MetaData};
-use flowcore::input::InputInitializer;
+use flowcore::model::flow_manifest::Cargo;
+use flowcore::model::metadata::MetaData;
+use flowcore::model::input::InputInitializer;
 use flowcore::lib_provider::Provider;
+use flowcore::model::flow_definition::FlowDefinition;
+use flowcore::model::name::HasName;
+use flowcore::model::name::Name;
+use flowcore::model::process::Process;
+use flowcore::model::process::Process::FlowProcess;
+use flowcore::model::process::Process::FunctionProcess;
+use flowcore::model::route::Route;
 
 use crate::errors::*;
-use crate::model::flow::Flow;
-use crate::model::name::HasName;
-use crate::model::name::Name;
-use crate::model::process::Process;
-use crate::model::process::Process::FlowProcess;
-use crate::model::process::Process::FunctionProcess;
-use crate::model::route::Route;
 
 /// `LibType` describes what format the Flow Library is written in
 #[derive(PartialEq)]
 pub enum LibType {
     /// `RustLib` indicates that the library is written in rust with a Cargo.toml to compile it natively
     RustLib,
-}
-
-/// Many structs in the model implement the `Validate` method which is used to check the
-/// description deserialized from file obeys some additional constraints that cannot be expressed
-/// in the struct definition in `serde`
-pub trait Validate {
-    /// Validate that a deserialized model data structure is valid for use
-    fn validate(&self) -> Result<()>;
 }
 
 /// Load a `Flow` definition from a `Url`, recursively loading all sub-processes referenced.
@@ -204,7 +197,7 @@ pub fn load_metadata(url: &Url, provider: &dyn Provider) -> Result<(MetaData, Li
     Load sub-processes from the process_refs in a flow
 */
 fn load_process_refs(
-    flow: &mut Flow,
+    flow: &mut FlowDefinition,
     flow_count: &mut usize,
     provider: &dyn Provider,
     #[cfg(feature = "debugger")] source_urls: &mut HashSet<(Url, Url)>,
@@ -252,7 +245,8 @@ mod test {
     use url::Url;
 
     use flowcore::deserializers::deserializer::get_deserializer;
-    use flowcore::flow_manifest::{Cargo, MetaData};
+    use flowcore::model::flow_manifest::Cargo;
+    use flowcore::model::metadata::MetaData;
 
     #[test]
     fn deserialize_library() {

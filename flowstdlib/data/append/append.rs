@@ -1,39 +1,31 @@
-use flow_impl_derive::FlowImpl;
-use flowcore::{Implementation, RUN_AGAIN, RunAgain};
+use flow_macro::flow_function;
 use serde_json::{json, Value};
 
-#[derive(FlowImpl)]
-/// Append two strings
-#[derive(Debug)]
-pub struct Append;
+#[flow_function]
+fn _append(inputs: &[Value]) -> (Option<Value>, RunAgain) {
+    let v1 = inputs[0].clone();
+    let v2 = inputs[1].clone();
 
-impl Implementation for Append {
-    fn run(&self, inputs: &[Value]) -> (Option<Value>, RunAgain) {
-        let v1 = inputs[0].clone();
-        let v2 = inputs[1].clone();
-
-        if v1.is_string() && v2.is_string() {
-            let s1 = v1.as_str().unwrap_or("");
-            let s2 = v2.as_str().unwrap_or("");
-            (Some(json!(format!("{}{}", s1, s2))), RUN_AGAIN)
-        } else {
-            (None, RUN_AGAIN)
-        }
+    if v1.is_string() && v2.is_string() {
+        let s1 = v1.as_str().unwrap_or("");
+        let s2 = v2.as_str().unwrap_or("");
+        (Some(json!(format!("{}{}", s1, s2))), RUN_AGAIN)
+    } else {
+        (None, RUN_AGAIN)
     }
 }
 
 #[cfg(test)]
 mod test {
-    use flowcore::Implementation;
     use serde_json::json;
+    use super::_append;
 
     #[test]
     fn append_one_empty_string() {
         let s1 = json!("");
         let s2 = json!("hello");
 
-        let appender = super::Append {};
-        let (result, _) = appender.run(&[s1, s2]);
+        let (result, _) = _append(&[s1, s2]);
         let output = result.expect("Could not get the Value from the output");
         assert_eq!(output, json!("hello"));
     }
@@ -43,8 +35,7 @@ mod test {
         let s1 = json!("");
         let s2 = json!("");
 
-        let appender = super::Append {};
-        let (result, _) = appender.run(&[s1, s2]);
+        let (result, _) = _append(&[s1, s2]);
         let output = result.expect("Could not get the Value from the output");
         assert_eq!(output, json!(""));
     }
@@ -54,8 +45,7 @@ mod test {
         let s1 = json!("hello");
         let s2 = json!(" world");
 
-        let appender = super::Append {};
-        let (result, _) = appender.run(&[s1, s2]);
+        let (result, _) = _append(&[s1, s2]);
         let output = result.expect("Could not get the Value from the output");
         assert_eq!(output, json!("hello world"));
     }
@@ -65,8 +55,7 @@ mod test {
         let s1 = json!("hello");
         let s2 = json!(42);
 
-        let appender = super::Append {};
-        let (result, run_again) = appender.run(&[s1, s2]);
+        let (result, run_again) = _append(&[s1, s2]);
         assert!(result.is_none());
         assert!(run_again);
     }

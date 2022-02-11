@@ -5,13 +5,13 @@ use url::Url;
 
 use flowclib::compiler::compile;
 use flowclib::compiler::loader;
-use flowclib::model::name::HasName;
-use flowclib::model::name::Name;
-use flowclib::model::process::Process::{FlowProcess, FunctionProcess};
-use flowclib::model::route::HasRoute;
-use flowclib::model::route::Route;
-use flowcore::input::InputInitializer::Once;
+use flowcore::model::input::InputInitializer::Once;
 use flowcore::lib_provider::MetaProvider;
+use flowcore::model::name::HasName;
+use flowcore::model::name::Name;
+use flowcore::model::process::Process::{FlowProcess, FunctionProcess};
+use flowcore::model::route::HasRoute;
+use flowcore::model::route::Route;
 
 #[path = "helper.rs"]
 mod helper;

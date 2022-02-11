@@ -4,10 +4,10 @@ use std::fmt;
 use serde_derive::{Deserialize, Serialize};
 use shrinkwraprs::Shrinkwrap;
 
-use crate::compiler::loader::Validate;
 use crate::errors::*;
 use crate::model::io::IOType;
 use crate::model::name::Name;
+use crate::model::validation::Validate;
 
 /// A `Route` is a String that refers to a particular location within the flow hierarchy
 /// and can be used to locate a function, flow, input or output uniquely
@@ -193,8 +193,8 @@ impl From<&Name> for Route {
 
 #[cfg(test)]
 mod test {
-    use crate::compiler::loader::Validate;
     use crate::model::name::Name;
+    use crate::model::validation::Validate;
 
     use super::Route;
 
@@ -344,15 +344,15 @@ mod test {
     #[test]
     fn subroute_distinct_route() {
         let route = Route::from("/context/function");
-        assert!(!route.sub_route_of(&Route::from("/context/foo")).is_some())
+        assert!(route.sub_route_of(&Route::from("/context/foo")).is_none())
     }
 
     #[test]
     fn subroute_extended_name_route() {
         let route = Route::from("/context/function_foo");
-        assert!(!route
+        assert!(route
             .sub_route_of(&Route::from("/context/function"))
-            .is_some())
+            .is_none())
     }
 
     #[test]

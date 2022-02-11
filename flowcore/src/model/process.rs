@@ -1,7 +1,7 @@
 use serde_derive::{Deserialize, Serialize};
 
-use crate::model::flow::Flow;
-use crate::model::function::Function;
+use crate::model::flow_definition::FlowDefinition;
+use crate::model::function_definition::FunctionDefinition;
 use crate::model::name::{HasName, Name};
 use crate::model::route::{HasRoute, Route};
 
@@ -11,9 +11,9 @@ use crate::model::route::{HasRoute, Route};
 #[serde(untagged)]
 pub enum Process {
     /// The process is actually a `Flow`
-    FlowProcess(Flow),
+    FlowProcess(FlowDefinition),
     /// The process is actually a `Function`
-    FunctionProcess(Function),
+    FunctionProcess(FunctionDefinition),
 }
 
 impl HasName for Process {
@@ -52,9 +52,8 @@ impl HasRoute for Process {
 mod test {
     use url::Url;
 
-    use flowcore::deserializers::deserializer::get_deserializer;
-    use flowcore::errors::*;
-
+    use crate::deserializers::deserializer::get_deserializer;
+    use crate::errors::*;
     use crate::model::process::Process;
     use crate::model::process::Process::FlowProcess;
 
@@ -86,7 +85,7 @@ metadata:
   authors: ['unknown <unknown@unknown.com>']
 ";
 
-        match yaml_from_str(&flow_description.replace("'", "\"")) {
+        match yaml_from_str(&flow_description.replace('\'', "\"")) {
             Ok(FlowProcess(flow)) => {
                 assert_eq!(flow.metadata.name, String::default());
                 assert_eq!(flow.metadata.version, "1.1.1".to_string());
@@ -310,7 +309,7 @@ type = 'String'";
     ]
 }";
 
-        let flow = json_from_str(&flow_description.replace("'", "\""));
+        let flow = json_from_str(&flow_description.replace('\'', "\""));
         assert!(flow.is_ok());
     }
 
@@ -336,7 +335,7 @@ type = 'String'";
     ]
 }";
 
-        let flow = json_from_str(&flow_description.replace("'", "\""));
+        let flow = json_from_str(&flow_description.replace('\'', "\""));
         assert!(flow.is_ok());
     }
 
@@ -361,7 +360,7 @@ type = 'String'";
     ]
 }";
 
-        let flow = json_from_str(&flow_description.replace("'", "\""));
+        let flow = json_from_str(&flow_description.replace('\'', "\""));
         assert!(flow.is_err());
     }
 }

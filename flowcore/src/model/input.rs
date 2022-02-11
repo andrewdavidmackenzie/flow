@@ -6,6 +6,7 @@ use serde_derive::{Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::errors::*;
+use crate::model::io::IO;
 
 #[derive(Clone, Debug, Serialize, PartialEq, Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -30,6 +31,12 @@ pub struct Input {
     pub initializer: Option<InputInitializer>,
     #[serde(skip)]
     received: Vec<Value>,
+}
+
+impl From<&IO> for Input {
+    fn from(io: &IO) -> Self {
+        Input::new(io.get_initializer())
+    }
 }
 
 #[cfg(feature = "debugger")]

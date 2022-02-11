@@ -8,8 +8,8 @@ use std::sync::Arc;
 use url::Url;
 
 use errors::*;
-use flowcore::flow_manifest::MetaData;
-use flowcore::lib_manifest::{ImplementationLocator::Native, LibraryManifest};
+use flowcore::model::metadata::MetaData;
+use flowcore::model::lib_manifest::{ImplementationLocator::Native, LibraryManifest};
 
 /// We'll put our errors in an `errors` module, and other modules in this crate will `use errors::*;`
 /// to get access to everything `error_chain` creates.

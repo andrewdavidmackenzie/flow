@@ -5,17 +5,17 @@ use std::path::Path;
 
 use serde_json::Value;
 
-use flowcore::input::InputInitializer::{Always, Once};
+use flowcore::model::input::InputInitializer::{Always, Once};
+use flowcore::model::connection::Connection;
+use flowcore::model::flow_definition::FlowDefinition;
+use flowcore::model::function_definition::FunctionDefinition;
+use flowcore::model::io::{Find, IOSet};
+use flowcore::model::name::{HasName, Name};
+use flowcore::model::process::Process::{FlowProcess, FunctionProcess};
+use flowcore::model::route::{HasRoute, Route};
 
 use crate::errors::*;
 use crate::generator::generate::GenerationTables;
-use crate::model::connection::Connection;
-use crate::model::flow::Flow;
-use crate::model::function::Function;
-use crate::model::io::{Find, IOSet};
-use crate::model::name::{HasName, Name};
-use crate::model::process::Process::{FlowProcess, FunctionProcess};
-use crate::model::route::{HasRoute, Route};
 
 static INPUT_PORTS: &[&str] = &["n", "ne", "nw", "w"];
 static OUTPUT_PORTS: &[&str] = &["s", "se", "sw", "e"];
@@ -44,7 +44,7 @@ fn remove_file_extension(file_path: &str) -> String {
 }
 
 pub fn write_flow_to_dot(
-    flow: &Flow,
+    flow: &FlowDefinition,
     dot_file: &mut dyn Write,
     output_dir: &Path,
 ) -> std::io::Result<()> {
@@ -190,7 +190,7 @@ fn node_from_io_route(route: &Route, name: &Name, io_set: &IOSet) -> (String, St
     }
 }
 
-fn digraph_wrapper_start(flow: &Flow) -> String {
+fn digraph_wrapper_start(flow: &FlowDefinition) -> String {
     let mut wrapper = String::new();
 
     // Create a directed graph named after the flow
@@ -211,7 +211,7 @@ fn digraph_wrapper_end() -> String {
         .to_string()
 }
 
-fn fn_to_dot(function: &Function, output_dir: &Path) -> Result<String> {
+fn fn_to_dot(function: &FunctionDefinition, output_dir: &Path) -> Result<String> {
     let mut dot_string = String::new();
 
     let name = if function.name() == function.alias() {
@@ -236,7 +236,7 @@ fn fn_to_dot(function: &Function, output_dir: &Path) -> Result<String> {
 }
 
 // Given a Function as used in the code generation - generate a "dot" format string to draw it
-fn function_to_dot(function: &Function, functions: &[Function], _output_dir: &Path) -> String {
+fn function_to_dot(function: &FunctionDefinition, functions: &[FunctionDefinition], _output_dir: &Path) -> String {
     let mut function_string = String::new();
 
     // modify path to point to the .html page that's built from .md to document the function
@@ -283,7 +283,7 @@ fn function_to_dot(function: &Function, functions: &[Function], _output_dir: &Pa
     function_string
 }
 
-fn input_initializers(function: &Function, function_identifier: &str) -> String {
+fn input_initializers(function: &FunctionDefinition, function_identifier: &str) -> String {
     let mut initializers = String::new();
 
     for (input_number, input) in function.get_inputs().iter().enumerate() {
@@ -398,7 +398,7 @@ fn output_compiled_function(
 }
 
 pub fn process_refs_to_dot(
-    flow: &Flow,
+    flow: &FlowDefinition,
     tables: &GenerationTables,
     output_dir: &Path,
 ) -> Result<String> {

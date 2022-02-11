@@ -5,11 +5,8 @@ use error_chain::bail;
 use serde_derive::{Deserialize, Serialize};
 use url::Url;
 
-use flowcore::input::InputInitializer;
-use flowcore::output_connection::OutputConnection;
-
-use crate::compiler::loader::Validate;
 use crate::errors::*;
+use crate::model::input::InputInitializer;
 use crate::model::io::IOSet;
 use crate::model::io::IOType;
 use crate::model::name::HasName;
@@ -18,59 +15,64 @@ use crate::model::route::HasRoute;
 use crate::model::route::Route;
 use crate::model::route::SetIORoutes;
 use crate::model::route::SetRoute;
+use crate::model::validation::Validate;
+use crate::model::output_connection::OutputConnection;
 
-/// Function defines a Function that implements some processing in the flow hierarchy
+/// `FunctionDefinition` defines a Function (compile time) that implements some processing in the flow hierarchy
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
-pub struct Function {
-    /// `name` of the function
+pub struct FunctionDefinition {
+    /// `Name` of the function
     #[serde(rename = "function")]
-    pub(crate) name: Name,
+    pub name: Name,
     /// Is this an impure function that interacts with the environment
     #[serde(default)]
-    pub(crate) impure: bool,
+    pub impure: bool,
     /// Name of the source file for the function implementation
-    pub(crate) source: String,
+    pub source: String,
     /// Name of any docs file associated with this Function
     #[serde(default)]
-    pub(crate) docs: String,
+    pub docs: String,
     /// Type of build used to compile Function's implementation to WASM from source
     #[serde(default, rename = "type")]
-    pub(crate) build_type: String,
+    pub build_type: String,
     /// The set of inputs this function has
     #[serde(default, rename = "input")]
-    pub(crate) inputs: IOSet,
+    pub inputs: IOSet,
     /// The set of outputs this function generates when executed
     #[serde(default, rename = "output")]
-    pub(crate) outputs: IOSet,
+    pub outputs: IOSet,
 
     /// As a function can be used multiple times in a single flow, the repeated instances must
     /// be referred to using an alias to disambiguate which instance is being referred to
     #[serde(skip_deserializing)]
-    pub(crate) alias: Name,
+    pub alias: Name,
     /// `source_url` is where this function definition was read from
-    #[serde(skip_deserializing, default = "Function::default_url")]
-    pub(crate) source_url: Url,
+    #[serde(skip_deserializing, default = "FunctionDefinition::default_url")]
+    pub source_url: Url,
     /// the `route` in the flow hierarchy where this function is located
     #[serde(skip_deserializing)]
-    pub(crate) route: Route,
+    pub route: Route,
     /// Implementation is the relative path from the lib root to the compiled wasm implementation
     #[serde(skip_deserializing)]
-    pub(crate) implementation: String,
+    pub implementation: String,
     /// Is the function being used part of a library and where is it found
     #[serde(skip_deserializing)]
-    pub(crate) lib_reference: Option<String>,
+    pub lib_reference: Option<String>,
+    /// The output connections from this function to other processes (functions or flows)
     #[serde(skip_deserializing)]
-    pub(crate) output_connections: Vec<OutputConnection>,
+    pub output_connections: Vec<OutputConnection>,
+    /// A unique `id` assigned to the function as the flow is parsed hierarchically
     #[serde(skip_deserializing)]
-    pub(crate) id: usize,
+    pub id: usize,
+    /// the `id` of the `FlowDefinition` that this `FunctionDefinition` lies within in the hierarchy
     #[serde(skip_deserializing)]
-    pub(crate) flow_id: usize,
+    pub flow_id: usize,
 }
 
-impl Default for Function {
+impl Default for FunctionDefinition {
     fn default() -> Self {
-        Function {
+        FunctionDefinition {
             name: Default::default(),
             impure: false,
             source: "".to_string(),
@@ -79,7 +81,7 @@ impl Default for Function {
             inputs: vec![],
             outputs: vec![],
             alias: Default::default(),
-            source_url: Function::default_url(),
+            source_url: FunctionDefinition::default_url(),
             route: Default::default(),
             implementation: "".to_string(),
             lib_reference: None,
@@ -90,7 +92,7 @@ impl Default for Function {
     }
 }
 
-impl HasName for Function {
+impl HasName for FunctionDefinition {
     fn name(&self) -> &Name {
         &self.name
     }
@@ -99,7 +101,7 @@ impl HasName for Function {
     }
 }
 
-impl HasRoute for Function {
+impl HasRoute for FunctionDefinition {
     fn route(&self) -> &Route {
         &self.route
     }
@@ -108,7 +110,7 @@ impl HasRoute for Function {
     }
 }
 
-impl Function {
+impl FunctionDefinition {
     fn default_url() -> Url {
         #[allow(clippy::unwrap_used)]
         Url::parse("file://").unwrap()
@@ -116,7 +118,6 @@ impl Function {
 
     /// Create a new function - used mainly for testing as Functions are usually deserialized
     #[allow(clippy::too_many_arguments)]
-    #[cfg(test)]
     pub fn new(
         name: Name,
         impure: bool,
@@ -131,7 +132,7 @@ impl Function {
         id: usize,
         flow_id: usize,
     ) -> Self {
-        Function {
+        FunctionDefinition {
             name,
             impure,
             source,
@@ -252,13 +253,12 @@ impl Function {
     }
 
     /// Set the source field of the function
-    #[cfg(test)]
-    pub(crate) fn set_source(&mut self, source: &str) {
+    pub fn set_source(&mut self, source: &str) {
         self.source = source.to_owned()
     }
 
     /// Get the name of the source file relative to the function definition
-    pub(crate) fn get_source(&self) -> &str {
+    pub fn get_source(&self) -> &str {
         &self.source
     }
 
@@ -304,9 +304,22 @@ impl Function {
     pub fn get_lib_reference(&self) -> &Option<String> {
         &self.lib_reference
     }
+
+    /// Convert a FunctionDefinition filename into the name of the struct used to implement it
+    /// by removing underscores and camel case each word
+    /// Example ''duplicate_rows' -> 'DuplicateRows'
+    pub fn camel_case(original: &str) -> String {
+        // split into parts by '_' and Uppercase the first character of the (ASCII) Struct name
+        let words: Vec<String> = original
+            .split('_')
+            .map(|w| format!("{}{}", (w[..1].to_string()).to_uppercase(), &w[1..]))
+            .collect();
+        // recombine
+        words.join("")
+    }
 }
 
-impl Validate for Function {
+impl Validate for FunctionDefinition {
     fn validate(&self) -> Result<()> {
         self.name.validate()?;
 
@@ -331,7 +344,7 @@ impl Validate for Function {
     }
 }
 
-impl fmt::Display for Function {
+impl fmt::Display for FunctionDefinition {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         writeln!(f, "name: \t\t{}", self.name)?;
         writeln!(f, "alias: \t\t{}", self.alias)?;
@@ -352,7 +365,7 @@ impl fmt::Display for Function {
     }
 }
 
-impl SetRoute for Function {
+impl SetRoute for FunctionDefinition {
     fn set_routes_from_parent(&mut self, parent_route: &Route) {
         self.route = Route::from(format!("{}/{}", parent_route, self.alias));
         self.inputs
@@ -366,12 +379,8 @@ impl SetRoute for Function {
 mod test {
     use url::Url;
 
-    use flowcore::deserializers::deserializer::get_deserializer;
-    use flowcore::errors::*;
-    use flowcore::output_connection::OutputConnection;
-    use flowcore::output_connection::Source::Output;
-
-    use crate::compiler::loader::Validate;
+    use crate::deserializers::deserializer::get_deserializer;
+    use crate::errors::*;
     use crate::model::datatype::DataType;
     use crate::model::io::Find;
     use crate::model::name::HasName;
@@ -379,12 +388,15 @@ mod test {
     use crate::model::route::HasRoute;
     use crate::model::route::Route;
     use crate::model::route::SetRoute;
+    use crate::model::validation::Validate;
+    use crate::model::output_connection::OutputConnection;
+    use crate::model::output_connection::Source::Output;
 
-    use super::Function;
+    use super::FunctionDefinition;
 
     #[test]
     fn function_with_no_io_not_valid() {
-        let fun = Function {
+        let fun = FunctionDefinition {
             name: Name::from("test_function"),
             alias: Name::from("test_function"),
             output_connections: vec![OutputConnection::new(
@@ -404,9 +416,9 @@ mod test {
         assert!(fun.validate().is_err());
     }
 
-    fn toml_from_str(content: &str) -> Result<Function> {
+    fn toml_from_str(content: &str) -> Result<FunctionDefinition> {
         let url = Url::parse("file:///fake.toml").expect("Could not parse URL");
-        let deserializer = get_deserializer::<Function>(&url).expect("Could not get deserializer");
+        let deserializer = get_deserializer::<FunctionDefinition>(&url).expect("Could not get deserializer");
         deserializer.deserialize(content, Some(&url))
     }
 
@@ -416,7 +428,7 @@ mod test {
         type = 'Value'
         ";
 
-        let r_f: Result<Function> = toml_from_str(function_str);
+        let r_f: Result<FunctionDefinition> = toml_from_str(function_str);
         assert!(r_f.is_err());
     }
 
@@ -426,7 +438,7 @@ mod test {
         name = 'test_function'
         ";
 
-        let function: Result<Function> = toml_from_str(function_str);
+        let function: Result<FunctionDefinition> = toml_from_str(function_str);
         assert!(function.is_err());
     }
 
@@ -437,7 +449,7 @@ mod test {
         source = 'test.rs'
         ";
 
-        let function: Function =
+        let function: FunctionDefinition =
             toml_from_str(function_str).expect("Couldn't read function from toml");
         assert!(function.validate().is_err());
     }
@@ -451,7 +463,7 @@ mod test {
         foo = 'true'
         ";
 
-        let function: Result<Function> = toml_from_str(function_str);
+        let function: Result<FunctionDefinition> = toml_from_str(function_str);
         assert!(function.is_err());
     }
 
@@ -483,7 +495,7 @@ mod test {
         type = 'String'
         ";
 
-        let function: Function =
+        let function: FunctionDefinition =
             toml_from_str(function_str).expect("Couldn't read function from toml");
         function.validate().expect("Function did not validate");
         assert!(!function.outputs.is_empty());
@@ -504,7 +516,7 @@ mod test {
         type = 'String'
         ";
 
-        let function: Function =
+        let function: FunctionDefinition =
             toml_from_str(function_str).expect("Could not deserialize function from toml");
         function.validate().expect("Function does not validate");
         assert!(!function.outputs.is_empty());
@@ -528,7 +540,7 @@ mod test {
         type = 'Number'
         ";
 
-        let function: Function =
+        let function: FunctionDefinition =
             toml_from_str(function_str).expect("Couldn't read function from toml");
         function.validate().expect("Function didn't validate");
         assert!(!function.outputs.is_empty());
@@ -559,7 +571,7 @@ mod test {
         ";
 
         // Setup
-        let mut function: Function =
+        let mut function: FunctionDefinition =
             toml_from_str(function_str).expect("Couldn't read function from toml");
         function.alias = Name::from("test_alias");
 
@@ -590,7 +602,7 @@ mod test {
         ";
 
         // Setup
-        let mut function: Function =
+        let mut function: FunctionDefinition =
             toml_from_str(function_str).expect("Couldn't read function from toml");
         function.alias = Name::from("test_alias");
         function.set_routes_from_parent(&Route::from("/flow"));

@@ -8,20 +8,20 @@ use log::info;
 use serde_derive::Serialize;
 use url::Url;
 
-use flowcore::flow_manifest::{DEFAULT_MANIFEST_FILENAME, FlowManifest, MetaData};
-use flowcore::function::Function as RuntimeFunction;
-use flowcore::input::Input;
-use flowcore::output_connection::Source;
+use flowcore::model::flow_manifest::{DEFAULT_MANIFEST_FILENAME, FlowManifest};
+use flowcore::model::metadata::MetaData;
+use flowcore::model::input::Input;
+use flowcore::model::connection::Connection;
+use flowcore::model::flow_definition::FlowDefinition;
+use flowcore::model::function_definition::FunctionDefinition;
+use flowcore::model::name::HasName;
+#[cfg(feature = "debugger")]
+use flowcore::model::route::HasRoute;
+use flowcore::model::route::Route;
+use flowcore::model::runtime_function::RuntimeFunction;
+use flowcore::model::output_connection::Source;
 
 use crate::errors::*;
-use crate::model::connection::Connection;
-use crate::model::flow::Flow;
-use crate::model::function::Function;
-use crate::model::io::IO;
-use crate::model::name::HasName;
-#[cfg(feature = "debugger")]
-use crate::model::route::HasRoute;
-use crate::model::route::Route;
 
 /// `GenerationTables` are built from the flattened and connected flow model in memory and are
 /// used to generate the flow's manifest ready to be executed.
@@ -36,7 +36,7 @@ pub struct GenerationTables {
     /// HashMap from "route of the input of a function" --> (destination_function_id, input number, flow_id)
     pub collapsed_connections: Vec<Connection>,
     /// The set of functions left in a flow after it has been flattened, connected and optimized
-    pub functions: Vec<Function>,
+    pub functions: Vec<FunctionDefinition>,
     /// The set of libraries used by a a flow, from their Urls
     pub libs: HashSet<Url>,
     /// The list of source files that were used in the flow definition
@@ -58,23 +58,11 @@ impl GenerationTables {
     }
 }
 
-impl From<&Flow> for MetaData {
-    fn from(flow: &Flow) -> Self {
-        flow.metadata.clone()
-    }
-}
-
-impl From<&IO> for Input {
-    fn from(io: &IO) -> Self {
-        Input::new(io.get_initializer())
-    }
-}
-
 /// Paths in the manifest are relative to the location of the manifest file, to make the file
 /// and associated files relocatable (and maybe packaged into a ZIP etc). So we use manifest_url
 /// as the location other file paths are made relative to.
 pub fn create_manifest(
-    flow: &Flow,
+    flow: &FlowDefinition,
     debug_symbols: bool,
     manifest_url: &Url,
     tables: &GenerationTables,
@@ -104,7 +92,7 @@ pub fn create_manifest(
 // TODO this is tied to being a file:// - generalize this to write to a URL, moving the code
 // TODO into the provider and implementing for file and http
 pub fn write_flow_manifest(
-    flow: Flow,
+    flow: FlowDefinition,
     debug_symbols: bool,
     destination: &Path,
     tables: &GenerationTables,
@@ -144,7 +132,7 @@ pub fn write_flow_manifest(
 */
 fn function_to_runtimefunction(
     manifest_url: &Url,
-    function: &Function,
+    function: &FunctionDefinition,
     debug_symbols: bool,
 ) -> Result<RuntimeFunction> {
     #[cfg(feature = "debugger")]
@@ -187,7 +175,7 @@ fn function_to_runtimefunction(
     Get the location of the implementation - relative to the Manifest if it is a provided implementation
 */
 // TODO generalize this for Urls, not just files - will require changing the function.get_implementation()
-fn implementation_location_relative(function: &Function, manifest_url: &Url) -> Result<String> {
+fn implementation_location_relative(function: &FunctionDefinition, manifest_url: &Url) -> Result<String> {
     if let Some(ref lib_reference) = function.get_lib_reference() {
         Ok(format!("lib://{}/{}", lib_reference, &function.name()))
     } else {
@@ -221,20 +209,19 @@ mod test {
     use serde_json::json;
     use url::Url;
 
-    use flowcore::input::InputInitializer;
-    use flowcore::output_connection::{OutputConnection, Source};
-    use flowcore::output_connection::Source::Output;
-
-    use crate::model::function::Function;
-    use crate::model::io::IO;
-    use crate::model::name::Name;
-    use crate::model::route::Route;
+    use flowcore::model::input::InputInitializer;
+    use flowcore::model::function_definition::FunctionDefinition;
+    use flowcore::model::io::IO;
+    use flowcore::model::name::Name;
+    use flowcore::model::route::Route;
+    use flowcore::model::output_connection::{OutputConnection, Source};
+    use flowcore::model::output_connection::Source::Output;
 
     use super::function_to_runtimefunction;
 
     #[test]
     fn function_with_sub_route_output_generation() {
-        let function = Function::new(
+        let function = FunctionDefinition::new(
             Name::from("Stdout"),
             false,
             "lib://context/stdio/stdout".to_string(),
@@ -296,7 +283,7 @@ mod test {
   ]
 }";
 
-        let br = Box::new(function) as Box<Function>;
+        let br = Box::new(function) as Box<FunctionDefinition>;
 
         let runtime_process = function_to_runtimefunction(
             &Url::parse("file://test").expect("Couldn't parse test Url"),
@@ -307,12 +294,12 @@ mod test {
 
         let serialized_process = serde_json::to_string_pretty(&runtime_process)
             .expect("Could not convert function content to json");
-        assert_eq!(serialized_process, expected.replace("'", "\""));
+        assert_eq!(serialized_process, expected.replace('\'', "\""));
     }
 
     #[test]
     fn function_generation() {
-        let function = Function::new(
+        let function = FunctionDefinition::new(
             Name::from("Stdout"),
             false,
             "lib://context/stdio/stdout".to_string(),
@@ -350,7 +337,7 @@ mod test {
   ]
 }";
 
-        let br = Box::new(function) as Box<Function>;
+        let br = Box::new(function) as Box<FunctionDefinition>;
 
         let process = function_to_runtimefunction(
             &Url::parse("file://test").expect("Couldn't parse test Url"),
@@ -361,12 +348,12 @@ mod test {
 
         let serialized_process = serde_json::to_string_pretty(&process)
             .expect("Could not convert function content to json");
-        assert_eq!(serialized_process, expected.replace("'", "\""));
+        assert_eq!(serialized_process, expected.replace('\'', "\""));
     }
 
     #[test]
     fn function_generation_with_array_order() {
-        let function = Function::new(
+        let function = FunctionDefinition::new(
             Name::from("Stdout"),
             false,
             "lib://context/stdio/stdout".to_string(),
@@ -405,7 +392,7 @@ mod test {
   ]
 }";
 
-        let br = Box::new(function) as Box<Function>;
+        let br = Box::new(function) as Box<FunctionDefinition>;
 
         let process = function_to_runtimefunction(
             &Url::parse("file://test").expect("Couldn't parse test Url"),
@@ -416,7 +403,7 @@ mod test {
 
         let serialized_process = serde_json::to_string_pretty(&process)
             .expect("Could not convert function content to json");
-        assert_eq!(serialized_process, expected.replace("'", "\""));
+        assert_eq!(serialized_process, expected.replace('\'', "\""));
     }
 
     #[test]
@@ -424,7 +411,7 @@ mod test {
         let mut io = IO::new(vec!("String".into()), Route::default());
         io.set_initializer(&Some(InputInitializer::Once(json!(1))));
 
-        let function = Function::new(
+        let function = FunctionDefinition::new(
             Name::from("Stdout"),
             false,
             "lib://context/stdio/stdout".to_string(),
@@ -452,7 +439,7 @@ mod test {
   ]
 }";
 
-        let br = Box::new(function) as Box<Function>;
+        let br = Box::new(function) as Box<FunctionDefinition>;
         let process = function_to_runtimefunction(
             &Url::parse("file://test").expect("Couldn't parse test Url"),
             &br,
@@ -462,7 +449,7 @@ mod test {
 
         let serialized_process = serde_json::to_string_pretty(&process)
             .expect("Could not convert function content to json");
-        assert_eq!(expected.replace("'", "\""), serialized_process);
+        assert_eq!(expected.replace('\'', "\""), serialized_process);
     }
 
     #[test]
@@ -470,7 +457,7 @@ mod test {
         let mut io = IO::new(vec!("String".into()), Route::default());
         io.set_initializer(&Some(InputInitializer::Always(json!(1))));
 
-        let function = Function::new(
+        let function = FunctionDefinition::new(
             Name::from("Stdout"),
             false,
             "lib://context/stdio/stdout".to_string(),
@@ -498,7 +485,7 @@ mod test {
   ]
 }";
 
-        let br = Box::new(function) as Box<Function>;
+        let br = Box::new(function) as Box<FunctionDefinition>;
         let process = function_to_runtimefunction(
             &Url::parse("file://test").expect("Couldn't parse test Url"),
             &br,
@@ -508,14 +495,14 @@ mod test {
 
         let serialized_process = serde_json::to_string_pretty(&process)
             .expect("Could not convert function content to json");
-        assert_eq!(expected.replace("'", "\""), serialized_process);
+        assert_eq!(expected.replace('\'', "\""), serialized_process);
     }
 
     #[test]
     fn function_with_array_input_generation() {
         let io = IO::new(vec!("Array/String".into()), Route::default());
 
-        let function = Function::new(
+        let function = FunctionDefinition::new(
             Name::from("Stdout"),
             false,
             "lib://context/stdio/stdout".to_string(),
@@ -539,7 +526,7 @@ mod test {
   ]
 }";
 
-        let br = Box::new(function) as Box<Function>;
+        let br = Box::new(function) as Box<FunctionDefinition>;
         let process = function_to_runtimefunction(
             &Url::parse("file://test").expect("Couldn't parse test Url"),
             &br,
@@ -549,11 +536,11 @@ mod test {
 
         let serialized_process = serde_json::to_string_pretty(&process)
             .expect("Could not convert function content to json");
-        assert_eq!(serialized_process, expected.replace("'", "\""));
+        assert_eq!(serialized_process, expected.replace('\'', "\""));
     }
 
-    fn test_function() -> Function {
-        Function::new(
+    fn test_function() -> FunctionDefinition {
+        FunctionDefinition::new(
             Name::from("Stdout"),
             false,
             "lib://context/stdio/stdout".to_string(),
@@ -611,7 +598,7 @@ mod test {
     }
   ]
 }";
-        let br = Box::new(function) as Box<Function>;
+        let br = Box::new(function) as Box<FunctionDefinition>;
 
         let process = function_to_runtimefunction(
             &Url::parse("file://test").expect("Couldn't parse test Url"),
@@ -622,12 +609,12 @@ mod test {
 
         let serialized_process = serde_json::to_string_pretty(&process)
             .expect("Could not convert function content to json");
-        assert_eq!(serialized_process, expected.replace("'", "\""));
+        assert_eq!(serialized_process, expected.replace('\'', "\""));
     }
 
     #[test]
     fn function_with_array_element_output_generation() {
-        let function = Function::new(
+        let function = FunctionDefinition::new(
             Name::from("Stdout"),
             false,
             "lib://context/stdio/stdout".to_string(),
@@ -668,7 +655,7 @@ mod test {
   ]
 }";
 
-        let br = Box::new(function) as Box<Function>;
+        let br = Box::new(function) as Box<FunctionDefinition>;
 
         let process = function_to_runtimefunction(
             &Url::parse("file://test").expect("Couldn't parse test Url"),
@@ -679,6 +666,6 @@ mod test {
 
         let serialized_process = serde_json::to_string_pretty(&process)
             .expect("Could not convert function content to json");
-        assert_eq!(serialized_process, expected.replace("'", "\""));
+        assert_eq!(serialized_process, expected.replace('\'', "\""));
     }
 }

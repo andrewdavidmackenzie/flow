@@ -1,9 +1,9 @@
 [package]
-name = "flow_impl_derive"
+name = "flow_macro"
 version = "0.40.1"
-description = "Definition of a derive macro for FlowImpl"
+description = "Definition of a 'flow' attribute macro to help write implementations"
 license = "MIT"
-documentation = "https://github.com/andrewdavidmackenzie/flow/flow_impl_derive/README.md"
+documentation = "https://github.com/andrewdavidmackenzie/flow/flow_macro/README.md"
 homepage = "http://andrewdavidmackenzie.github.io/flow/"
 repository = "https://github.com/andrewdavidmackenzie/flow/"
 readme = "README.md"
@@ -17,5 +17,8 @@ maintenance = { status = "actively-developed" }
 proc-macro = true
 
 [dependencies]
-syn = "~1.0"
+syn = { version = "~1.0", features =["full"] } #Full is required for ItemFn in macro parsing
 quote = "~1.0"
+flowcore = {path = "../flowcore", version = "0.40.1"}
+toml = "0.5.8"
+proc-macro2 = "1.0"

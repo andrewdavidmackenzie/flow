@@ -1,60 +1,50 @@
-use flow_impl_derive::FlowImpl;
-use flowcore::{Implementation, RUN_AGAIN, RunAgain};
+use flow_macro::flow_function;
 use serde_json::{json, Value};
 
 /// Generate numbers within a Range
-#[derive(FlowImpl)]
-#[derive(Debug)]
-pub struct RangeSplit;
+#[flow_function]
+fn _range_split(inputs: &[Value]) -> (Option<Value>, RunAgain) {
+    match inputs[0].as_array() {
+        Some(min_and_max) => {
+            match (min_and_max[0].as_i64(), min_and_max[1].as_i64()) {
+                (Some(min), Some(max)) => {
+                    let mut output_map = serde_json::Map::new();
 
-impl Implementation for RangeSplit {
-    fn run(&self, inputs: &[Value]) -> (Option<Value>, RunAgain) {
-        match inputs[0].as_array() {
-            Some(min_and_max) => {
-                match (min_and_max[0].as_i64(), min_and_max[1].as_i64()) {
-                    (Some(min), Some(max)) => {
-                        let mut output_map = serde_json::Map::new();
+                    if min == max {
+                        // if the two are the same, we are done, output in the sequence
+                        output_map.insert("same".into(), json!(min));
+                    } else {
+                        // split the range_split into two and output for further subdivision
+                        let bottom: Vec<i64> = vec!(min, ((max-min)/2) + min);
+                        output_map.insert("bottom".into(), json!(bottom));
 
-                        if min == max {
-                            // if the two are the same, we are done, output in the sequence
-                            output_map.insert("same".into(), json!(min));
+                        let above_middle = ((max-min)/2) + min +1;
+                        if above_middle != max {
+                            let top: Vec<i64> = vec!(above_middle, max);
+                            output_map.insert("top".into(), json!(top));
                         } else {
-                            // split the range_split into two and output for further subdivision
-                            let bottom: Vec<i64> = vec!(min, ((max-min)/2) + min);
-                            output_map.insert("bottom".into(), json!(bottom));
-
-                            let above_middle = ((max-min)/2) + min +1;
-                            if above_middle != max {
-                                let top: Vec<i64> = vec!(above_middle, max);
-                                output_map.insert("top".into(), json!(top));
-                            } else {
-                                // if the two are the same, we are done, output in the sequence
-                                output_map.insert("same".into(), json!(max));
-                            }
+                            // if the two are the same, we are done, output in the sequence
+                            output_map.insert("same".into(), json!(max));
                         }
-                        (Some(json!(output_map)), RUN_AGAIN)
                     }
-                    _ => (None, RUN_AGAIN)
+                    (Some(json!(output_map)), RUN_AGAIN)
                 }
+                _ => (None, RUN_AGAIN)
             }
-            _ => (None, RUN_AGAIN)
         }
+        _ => (None, RUN_AGAIN)
     }
 }
 
 #[cfg(test)]
 mod test {
-    use flowcore::Implementation;
     use serde_json::{json, Value};
-
-    use super::RangeSplit;
+    use super::_range_split;
 
     #[test]
     fn test_first_split() {
-        let ranger = RangeSplit{};
-
         let range = vec!(1, 10);
-        let (output, again) = ranger.run(&[json!(range)]);
+        let (output, again) = _range_split(&[json!(range)]);
 
         let result = output.expect("Could not get value from output");
         assert!(again);
@@ -78,11 +68,9 @@ mod test {
         // We accumulate the values sent on "sequence" and then compare at the end
         let mut acquired_set: Vec<Value> = vec!();
 
-        let ranger = RangeSplit{};
-
         while let Some(next) = requires_further_splitting.pop() {
             println!("Splitting: {:?}", next);
-            let (output, again) = ranger.run(&[next]);
+            let (output, again) = _range_split(&[next]);
             assert!(again);
             let result = output.expect("Could not get value from output");
 

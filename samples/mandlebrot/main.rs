@@ -9,9 +9,9 @@ use std::io::Write;
 use std::path::PathBuf;
 
 use crate::pixel_to_point::pixel_to_point::pixel_to_point;
-use crate::render_pixel::render_pixel::escapes;
+use crate::escapes::escapes::escapes;
 
-mod render_pixel;
+mod escapes;
 mod pixel_to_point;
 mod parse_pair;
 

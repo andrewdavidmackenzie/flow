@@ -4,10 +4,8 @@ use std::fmt;
 use error_chain::bail;
 use serde_derive::{Deserialize, Serialize};
 
-use flowcore::input::InputInitializer;
-
-use crate::compiler::loader::Validate;
 use crate::errors::*;
+use crate::model::input::InputInitializer;
 use crate::model::datatype::DataType;
 use crate::model::datatype::HasDataTypes;
 use crate::model::name::HasName;
@@ -15,6 +13,7 @@ use crate::model::name::Name;
 use crate::model::route::HasRoute;
 use crate::model::route::Route;
 use crate::model::route::SetIORoutes;
+use crate::model::validation::Validate;
 
 /// `IOType` defines what type of IO this is
 #[derive(Deserialize, Serialize, Debug, Clone, PartialEq)]
@@ -63,6 +62,29 @@ pub struct IO {
 }
 
 impl IO {
+    /// Create a new `IO` with a specific datatype and at a specific `Route`
+    pub fn new<R: Into<Route>>(datatypes: Vec<DataType>, route: R) -> Self {
+        IO {
+            datatypes,
+            route: route.into(),
+            ..Default::default()
+        }
+    }
+
+    /// Create a new `IO` with a specific datatype and at a specific `Route` and a `Name`
+    pub fn new_named<R: Into<Route>, N: Into<Name>>(
+        datatypes: Vec<DataType>,
+        route: R,
+        name: N,
+    ) -> Self {
+        IO {
+            datatypes,
+            route: route.into(),
+            name: name.into(),
+            ..Default::default()
+        }
+    }
+
     /// Is this IO an input or an output of a Flow?
     pub fn flow_io(&self) -> bool {
         self.io_type != IOType::FunctionIO
@@ -284,42 +306,16 @@ impl Find for IOSet {
 mod test {
     use url::Url;
 
-    use flowcore::deserializers::deserializer::get_deserializer;
-    use flowcore::errors::*;
-
-    use crate::compiler::loader::Validate;
+    use crate::deserializers::deserializer::get_deserializer;
+    use crate::errors::*;
     use crate::model::datatype::DataType;
     use crate::model::io::{IOSet, IOType};
     use crate::model::name::HasName;
     use crate::model::name::Name;
-    use crate::model::route::Route;
+    use crate::model::validation::Validate;
 
     use super::IO;
 
-    impl IO {
-        /// Create a new `IO` with a specific datatype and at a specific `Route`
-        pub fn new<R: Into<Route>>(datatypes: Vec<DataType>, route: R) -> Self {
-            IO {
-                datatypes,
-                route: route.into(),
-                ..Default::default()
-            }
-        }
-
-        /// Create a new `IO` with a specific datatype and at a specific `Route` and a `Name`
-        pub fn new_named<R: Into<Route>, N: Into<Name>>(
-            datatypes: Vec<DataType>,
-            route: R,
-            name: N,
-        ) -> Self {
-            IO {
-                datatypes,
-                route: route.into(),
-                name: name.into(),
-                ..Default::default()
-            }
-        }
-    }
     fn toml_from_str(content: &str) -> Result<IO> {
         let url = Url::parse("file:///fake.toml").expect("Could not parse URL");
         let deserializer = get_deserializer::<IO>(&url).expect("Could not get deserializer");

@@ -4,9 +4,9 @@ use std::sync::Arc;
 use log::{debug, info, trace};
 use url::Url;
 
-use flowcore::flow_manifest::FlowManifest;
+use flowcore::model::flow_manifest::FlowManifest;
 use flowcore::Implementation;
-use flowcore::lib_manifest::{
+use flowcore::model::lib_manifest::{
     ImplementationLocator::Native, ImplementationLocator::Wasm, LibraryManifest,
 };
 use flowcore::lib_provider::Provider;

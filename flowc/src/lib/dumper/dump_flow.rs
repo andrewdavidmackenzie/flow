@@ -7,11 +7,11 @@ use log::{debug, info};
 use simpath::{FileType, FoundType, Simpath};
 
 use flowcore::lib_provider::Provider;
+use flowcore::model::flow_definition::FlowDefinition;
+use flowcore::model::process::Process::FlowProcess;
 
 use crate::dumper::dump_dot;
 use crate::errors::*;
-use crate::model::flow::Flow;
-use crate::model::process::Process::FlowProcess;
 
 use super::dump_tables;
 
@@ -24,7 +24,7 @@ use super::dump_tables;
 /// use url::Url;
 /// use flowcore::lib_provider::{Provider, MetaProvider};
 /// use flowcore::errors::Result;
-/// use flowclib::model::process::Process::FlowProcess;
+/// use flowcore::model::process::Process::FlowProcess;
 /// use tempdir::TempDir;
 /// use std::collections::HashSet;
 /// use simpath::Simpath;
@@ -48,7 +48,7 @@ use super::dump_tables;
 /// }
 /// ```
 pub fn dump_flow(
-    flow: &Flow,
+    flow: &FlowDefinition,
     target_dir: &Path,
     provider: &dyn Provider,
     dump_files: bool,
@@ -102,7 +102,7 @@ pub fn generate_svgs(root_dir: &Path) -> Result<()> {
 */
 #[allow(clippy::or_fun_call)]
 fn _dump_flow(
-    flow: &Flow,
+    flow: &FlowDefinition,
     level: usize,
     target_dir: &Path,
     provider: &dyn Provider,

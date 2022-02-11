@@ -1,5 +1,6 @@
-function = "render_pixel"
-source = "render_pixel.rs"
+function = "escapes"
+source = "escapes.rs"
+docs = "escapes.md"
 type = "rust"
 
 [[input]]

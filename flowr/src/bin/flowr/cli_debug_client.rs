@@ -324,17 +324,17 @@ mod test {
     use serde_json::json;
     use url::Url;
 
-    use flowcore::function::Function;
-    use flowcore::input::Input;
-    use flowcore::input::InputInitializer::Once;
-    use flowcore::output_connection::{OutputConnection, Source};
+    use flowcore::model::input::Input;
+    use flowcore::model::input::InputInitializer::Once;
+    use flowcore::model::runtime_function::RuntimeFunction;
+    use flowcore::model::output_connection::{OutputConnection, Source};
     use flowrlib::coordinator::Submission;
     use flowrlib::run_state::{RunState, State};
 
     use super::*;
 
-    fn test_function_b_init() -> Function {
-        Function::new(
+    fn test_function_b_init() -> RuntimeFunction {
+        RuntimeFunction::new(
             #[cfg(feature = "debugger")]
             "fB",
             #[cfg(feature = "debugger")]
@@ -348,7 +348,7 @@ mod test {
         )
     }
 
-    fn test_function_a_to_b() -> Function {
+    fn test_function_a_to_b() -> RuntimeFunction {
         let connection_to_f1 = OutputConnection::new(
             Source::default(),
             1,
@@ -360,7 +360,7 @@ mod test {
             #[cfg(feature = "debugger")]
             String::default(),
         );
-        Function::new(
+        RuntimeFunction::new(
             #[cfg(feature = "debugger")]
             "fA",
             #[cfg(feature = "debugger")]

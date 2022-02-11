@@ -101,7 +101,8 @@ impl Submission {
 /// use std::io::Write;
 /// use flowrlib::coordinator::{Coordinator, Submission, Mode, RUNTIME_SERVICE_NAME, DEBUG_SERVICE_NAME};
 /// use std::process::exit;
-/// use flowcore::flow_manifest::{FlowManifest, MetaData};
+/// use flowcore::model::flow_manifest::FlowManifest;
+/// use flowcore::model::metadata::MetaData;
 /// use flowrlib::runtime_messages::ClientMessage::ClientSubmission;
 /// use simpath::Simpath;
 /// use url::Url;

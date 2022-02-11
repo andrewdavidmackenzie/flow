@@ -1,15 +1,16 @@
 use std::iter::Extend;
 
+use flowcore::model::flow_definition::FlowDefinition;
+use flowcore::model::function_definition::FunctionDefinition;
+use flowcore::model::process::Process::FlowProcess;
+use flowcore::model::process::Process::FunctionProcess;
+
 use crate::errors::*;
 use crate::generator::generate::GenerationTables;
-use crate::model::flow::Flow;
-use crate::model::function::Function;
-use crate::model::process::Process::FlowProcess;
-use crate::model::process::Process::FunctionProcess;
 
 /// This module is responsible for parsing the flow tree and gathering information into a set of
 /// flat tables that the compiler can use for code generation.
-pub fn gather_functions_and_connections(flow: &Flow, tables: &mut GenerationTables) -> Result<()> {
+pub fn gather_functions_and_connections(flow: &FlowDefinition, tables: &mut GenerationTables) -> Result<()> {
     // Add Connections from this flow hierarchy to the connections table
     let mut connections = flow.connections.clone();
     tables.connections.append(&mut connections);
@@ -38,7 +39,7 @@ pub fn gather_functions_and_connections(flow: &Flow, tables: &mut GenerationTabl
     Give each function a unique index that will later be used to indicate where outputs get sent
     to, and used in code generation.
 */
-pub fn index_functions(functions: &mut Vec<Function>) {
+pub fn index_functions(functions: &mut [FunctionDefinition]) {
     for (index, function) in functions.iter_mut().enumerate() {
         function.set_id(index);
     }
@@ -48,21 +49,20 @@ pub fn index_functions(functions: &mut Vec<Function>) {
 mod test {
     use url::Url;
 
-    use flowcore::output_connection::{OutputConnection, Source};
-
-    use crate::model::function::Function;
-    use crate::model::io::IO;
-    use crate::model::name::Name;
-    use crate::model::route::Route;
+    use flowcore::model::function_definition::FunctionDefinition;
+    use flowcore::model::io::IO;
+    use flowcore::model::name::Name;
+    use flowcore::model::route::Route;
+    use flowcore::model::output_connection::{OutputConnection, Source};
 
     #[test]
     fn empty_index_test() {
-        super::index_functions(&mut vec![]);
+        super::index_functions(&mut[]);
     }
 
     #[test]
     fn index_test() {
-        let function = Function::new(
+        let function = FunctionDefinition::new(
             Name::from("Stdout"),
             false,
             "lib://context/stdio/stdout".to_string(),

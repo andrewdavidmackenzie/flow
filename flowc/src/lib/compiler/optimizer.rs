@@ -1,10 +1,11 @@
 use log::debug;
 
+use flowcore::model::connection::Connection;
+use flowcore::model::function_definition::FunctionDefinition;
+use flowcore::model::name::HasName;
+use flowcore::model::route::HasRoute;
+
 use crate::generator::generate::GenerationTables;
-use crate::model::connection::Connection;
-use crate::model::function::Function;
-use crate::model::name::HasName;
-use crate::model::route::HasRoute;
 
 /*
     Keep removing dead processes (that have no effect) and any connection that goes
@@ -82,11 +83,11 @@ fn remove_dead_processes(tables: &mut GenerationTables) -> bool {
 /*
     A function is "dead" or has no effect if it is pure and has no connection to the output
 */
-fn dead_function(connections: &[Connection], function: &Function) -> bool {
+fn dead_function(connections: &[Connection], function: &FunctionDefinition) -> bool {
     !function.is_impure() && !connection_from_function(connections, function)
 }
 
-fn connection_from_function(connections: &[Connection], function: &Function) -> bool {
+fn connection_from_function(connections: &[Connection], function: &FunctionDefinition) -> bool {
     for connection in connections {
         if connection
             .from_io()

@@ -1,8 +1,9 @@
 use log::{info, trace};
 
+use flowcore::model::flow_definition::FlowDefinition;
+
 use crate::errors::*;
 use crate::generator::generate::GenerationTables;
-use crate::model::flow::Flow;
 
 use super::checker;
 use super::connector;
@@ -11,7 +12,7 @@ use super::optimizer;
 
 /// Take a hierarchical flow definition in memory and compile it, generating a manifest for execution
 /// of the flow, including references to libraries required.
-pub fn compile(flow: &Flow) -> Result<GenerationTables> {
+pub fn compile(flow: &FlowDefinition) -> Result<GenerationTables> {
     trace!("compile()");
     let mut tables = GenerationTables::new();
 
@@ -43,21 +44,22 @@ mod test {
 
     use url::Url;
 
+    use flowcore::model::flow_definition::FlowDefinition;
+    use flowcore::model::function_definition::FunctionDefinition;
+    use flowcore::model::io::IO;
+    use flowcore::model::name::{HasName, Name};
+    use flowcore::model::process_reference::ProcessReference;
+    use flowcore::model::route::Route;
+
     use crate::compiler::compile::compile;
-    use crate::model::flow::Flow;
-    use crate::model::function::Function;
-    use crate::model::io::IO;
-    use crate::model::name::{HasName, Name};
-    use crate::model::process_reference::ProcessReference;
-    use crate::model::route::Route;
 
     /*
-                Test an error is thrown if a flow has no side effects, and that unconnected functions
-                are removed by the optimizer
-            */
+                                Test an error is thrown if a flow has no side effects, and that unconnected functions
+                                are removed by the optimizer
+                            */
     #[test]
     fn no_side_effects() {
-        let function = Function::new(
+        let function = FunctionDefinition::new(
             Name::from("Stdout"),
             false,
             "lib://context/stdio/stdout.toml".to_owned(),
@@ -78,13 +80,13 @@ mod test {
             initializations: HashMap::new(),
         };
 
-        let _test_flow = Flow::default();
+        let _test_flow = FlowDefinition::default();
 
-        let flow = Flow {
+        let flow = FlowDefinition {
             alias: Name::from("context"),
             name: Name::from("test-flow"),
             process_refs: vec![function_ref],
-            source_url: Flow::default_url(),
+            source_url: FlowDefinition::default_url(),
             ..Default::default()
         };
 

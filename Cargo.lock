@@ -443,11 +443,14 @@ dependencies = [
 ]
 
 [[package]]
-name = "flow_impl_derive"
+name = "flow_macro"
 version = "0.40.1"
 dependencies = [
+ "flowcore",
+ "proc-macro2",
  "quote",
  "syn",
+ "toml 0.5.8",
 ]
 
 [[package]]
@@ -464,7 +467,6 @@ dependencies = [
  "serde_derive",
  "serde_json",
  "serial_test",
- "shrinkwraprs",
  "simpath",
  "simplog",
  "tempdir",
@@ -482,6 +484,7 @@ dependencies = [
  "serde_derive",
  "serde_json",
  "serde_yaml",
+ "shrinkwraprs",
  "simpath",
  "toml 0.5.8",
  "url",
@@ -530,7 +533,7 @@ name = "flowstdlib"
 version = "0.40.1"
 dependencies = [
  "error-chain 0.12.4",
- "flow_impl_derive",
+ "flow_macro",
  "flowcore",
  "image",
  "serde_json",

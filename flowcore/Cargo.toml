@@ -5,7 +5,7 @@ authors = ["Andrew Mackenzie <andrew@mackenzie-serres.net>"]
 description = "Structures shared between runtime and clients"
 license = "MIT"
 documentation = "https://github.com/andrewdavidmackenzie/flow/README.md"
-homepage = "http://andrewdavidmackenzie.github.io/flow/"
+homepage = "https://andrewdavidmackenzie.github.io/flow/"
 repository = "https://github.com/andrewdavidmackenzie/flow/"
 readme = "README.md"
 edition = "2021"
@@ -21,23 +21,22 @@ name = "flowcore"
 path = "src/lib.rs"
 
 [features]
-default = ["code"]  # by default include code not just the trait definition
-debugger = ["code"] # feature to add the debugger, depends on code feature
-# The "code" feature requires the following dependencies
-code = ["serde", "serde_derive", "url", "error-chain", "log", "curl", "simpath", "toml", "serde_yaml"]
+default = []  # by default include code not just the trait definition
+debugger = [] # feature to add the debugger
 online_tests = []
 
 [dependencies]
-# The only dependency needed for the `Implementation` trait
 serde_json = { version = "1.0", default-features = false, features = ["alloc"] }
+serde_derive = { version = "~1.0.27"}
+error-chain = {version = "0.12.2"}
+url = { version = "2.2", features = ["serde"] }
+log = {version = "0.4.6"}
+shrinkwraprs = { version = "0.3.0" }
+serde = { version = "~1.0.27"}
+toml = { version = "0.5.8" }
+serde_yaml = { version = "~0.8" }
 
-# All other dependencies below are optional and only used when the "code" feature requires them
-serde = { version = "~1.0.27", optional = true }
-serde_derive = { version = "~1.0.27", optional = true }
-url = { version = "2.2", features = ["serde"], optional = true }
-error-chain = {version = "0.12.2", optional = true}
-log = {version = "0.4.6", optional = true}
-curl = {version = "~0.4", optional = true }
-simpath = { version = "~2.3", features = ["urls"], optional = true }
-toml = { version = "0.5.8", optional = true }
-serde_yaml = { version = "~0.8", optional = true }
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+curl = {version = "~0.4" }
+simpath = { version = "~2.3", features = ["urls"] }
+

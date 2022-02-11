@@ -8,9 +8,9 @@ use multimap::MultiMap;
 use serde_derive::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
-use flowcore::function::Function;
-use flowcore::output_connection::OutputConnection;
-use flowcore::output_connection::Source::{Input, Output};
+use flowcore::model::runtime_function::RuntimeFunction;
+use flowcore::model::output_connection::OutputConnection;
+use flowcore::model::output_connection::Source::{Input, Output};
 
 use crate::block::Block;
 use crate::coordinator::Submission;
@@ -179,7 +179,7 @@ pub enum State {
 #[derive(Deserialize, Serialize, Clone)]
 pub struct RunState {
     /// The vector of all functions in the flow loaded from manifest
-    functions: Vec<Function>,
+    functions: Vec<RuntimeFunction>,
     /// blocked: HashSet<function_id> - list of functions by id that are blocked on sending
     blocked: HashSet<usize>,
     /// blocks: Vec<(blocking_id, blocking_io_number, blocked_id, blocked_flow_id)> - a list of blocks between functions
@@ -209,7 +209,7 @@ pub struct RunState {
 impl RunState {
     /// Create a new `RunState` struct from the list of functions provided and the `Submission`
     /// that was sent to be executed
-    pub fn new(functions: &[Function], submission: Submission) -> Self {
+    pub fn new(functions: &[RuntimeFunction], submission: Submission) -> Self {
         RunState {
             functions: functions.to_vec(),
             blocked: HashSet::<usize>::new(),
@@ -379,12 +379,12 @@ impl RunState {
     }
         
     /// Get a reference to the function with `id`
-    pub fn get(&self, id: usize) -> &Function {
+    pub fn get(&self, id: usize) -> &RuntimeFunction {
         &self.functions[id]
     }
 
     /// Get a mutable reference to the function with `id`
-    pub fn get_mut(&mut self, id: usize) -> &mut Function {
+    pub fn get_mut(&mut self, id: usize) -> &mut RuntimeFunction {
         &mut self.functions[id]
     }
 
@@ -572,7 +572,7 @@ impl RunState {
     }
 
     fn type_convert_and_send(
-        function: &mut Function,
+        function: &mut RuntimeFunction,
         destination: &OutputConnection,
         value: &Value,
     ) {
@@ -1147,11 +1147,11 @@ mod test {
     use serde_json::json;
     use serde_json::Value;
 
-    use flowcore::function::Function;
     use flowcore::Implementation;
-    use flowcore::input::Input;
-    use flowcore::input::InputInitializer::Once;
-    use flowcore::output_connection::{OutputConnection, Source};
+    use flowcore::model::input::Input;
+    use flowcore::model::input::InputInitializer::Once;
+    use flowcore::model::runtime_function::RuntimeFunction;
+    use flowcore::model::output_connection::{OutputConnection, Source};
 
     use super::Job;
 
@@ -1168,7 +1168,7 @@ mod test {
         Arc::new(TestImpl {})
     }
 
-    fn test_function_a_to_b_not_init() -> Function {
+    fn test_function_a_to_b_not_init() -> RuntimeFunction {
         let connection_to_f1 = OutputConnection::new(
             Source::default(),
             1,
@@ -1180,7 +1180,7 @@ mod test {
             String::default(),
         );
 
-        Function::new(
+        RuntimeFunction::new(
             "fA",
             "/fA",
             "file://fake/test",
@@ -1192,7 +1192,7 @@ mod test {
         ) // outputs to fB:0
     }
 
-    fn test_function_a_to_b() -> Function {
+    fn test_function_a_to_b() -> RuntimeFunction {
         let connection_to_f1 = OutputConnection::new(
             Source::default(),
             1,
@@ -1203,7 +1203,7 @@ mod test {
             "/fB".to_string(),
             String::default(),
         );
-        Function::new(
+        RuntimeFunction::new(
             "fA",
             "/fA",
             "file://fake/test",
@@ -1215,8 +1215,8 @@ mod test {
         ) // outputs to fB:0
     }
 
-    fn test_function_a_init() -> Function {
-        Function::new(
+    fn test_function_a_init() -> RuntimeFunction {
+        RuntimeFunction::new(
             "fA",
             "/fA",
             "file://fake/test",
@@ -1228,8 +1228,8 @@ mod test {
         )
     }
 
-    fn test_function_b_not_init() -> Function {
-        Function::new(
+    fn test_function_b_not_init() -> RuntimeFunction {
+        RuntimeFunction::new(
             "fB",
             "/fB",
             "file://fake/test",
@@ -1241,8 +1241,8 @@ mod test {
         )
     }
 
-    fn test_function_b_init() -> Function {
-        Function::new(
+    fn test_function_b_init() -> RuntimeFunction {
+        RuntimeFunction::new(
             "fB",
             "/fB",
             "file://fake/test",
@@ -1428,11 +1428,11 @@ mod test {
         use serial_test::serial;
         use url::Url;
 
-        use flowcore::function::Function;
-        use flowcore::input::Input;
-        use flowcore::input::InputInitializer::{Always, Once};
-        use flowcore::output_connection::{OutputConnection, Source};
-        use flowcore::output_connection::Source::Output;
+        use flowcore::model::input::Input;
+        use flowcore::model::input::InputInitializer::{Always, Once};
+        use flowcore::model::runtime_function::RuntimeFunction;
+        use flowcore::model::output_connection::{OutputConnection, Source};
+        use flowcore::model::output_connection::Source::Output;
 
         use crate::client_server::Method;
         #[cfg(feature = "debugger")]
@@ -1583,8 +1583,8 @@ mod test {
             );
         }
 
-        fn test_function_a_not_init() -> Function {
-            Function::new(
+        fn test_function_a_not_init() -> RuntimeFunction {
+            RuntimeFunction::new(
                 "fA",
                 "/fA",
                 "file://fake/test",
@@ -1832,7 +1832,7 @@ mod test {
         #[test]
         #[serial]
         fn running_to_ready_on_done() {
-            let f_a = Function::new(
+            let f_a = RuntimeFunction::new(
                 "fA",
                 "/fA",
                 "file://fake/test",
@@ -1943,7 +1943,7 @@ mod test {
                 String::default(),
                 String::default(),
             );
-            let f_a = Function::new(
+            let f_a = RuntimeFunction::new(
                 "fA",
                 "/fA",
                 "file://fake/test",
@@ -2011,7 +2011,7 @@ mod test {
                 String::default(),
                 String::default(),
             );
-            let f_b = Function::new(
+            let f_b = RuntimeFunction::new(
                 "fB",
                 "/fB",
                 "file://fake/test",
@@ -2072,7 +2072,7 @@ mod test {
                 String::default(),
                 String::default(),
             );
-            let f_b = Function::new(
+            let f_b = RuntimeFunction::new(
                 "fB",
                 "/fB",
                 "file://fake/test",
@@ -2156,7 +2156,7 @@ mod test {
                 String::default(),
             );
 
-            let f_a = Function::new(
+            let f_a = RuntimeFunction::new(
                 "fA",
                 "/fA",
                 "file://fake/test",
@@ -2264,9 +2264,9 @@ mod test {
         use serial_test::serial;
         use url::Url;
 
-        use flowcore::function::Function;
-        use flowcore::input::Input;
-        use flowcore::output_connection::{OutputConnection, Source};
+        use flowcore::model::input::Input;
+        use flowcore::model::runtime_function::RuntimeFunction;
+        use flowcore::model::output_connection::{OutputConnection, Source};
 
         use crate::client_server::Method;
         #[cfg(feature = "debugger")]
@@ -2281,7 +2281,7 @@ mod test {
         use super::super::RunState;
         use super::super::State;
 
-        fn test_functions() -> Vec<Function> {
+        fn test_functions() -> Vec<RuntimeFunction> {
             let out_conn1 = OutputConnection::new(
                 Source::default(),
                 1,
@@ -2302,7 +2302,7 @@ mod test {
                 String::default(),
                 String::default(),
             );
-            let p0 = Function::new(
+            let p0 = RuntimeFunction::new(
                 "p0",
                 "/p0",
                 "file://fake/test/p0",
@@ -2312,7 +2312,7 @@ mod test {
                 &[out_conn1, out_conn2], // destinations
                 false,
             ); // implementation
-            let p1 = Function::new(
+            let p1 = RuntimeFunction::new(
                 "p1",
                 "/p1",
                 "file://fake/test/p1",
@@ -2322,7 +2322,7 @@ mod test {
                 &[],
                 false,
             );
-            let p2 = Function::new(
+            let p2 = RuntimeFunction::new(
                 "p2",
                 "/p2",
                 "file://fake/test/p2",
@@ -2631,9 +2631,9 @@ mod test {
     mod misc {
         use serde_json::{json, Value};
 
-        use flowcore::function::Function;
-        use flowcore::input::Input;
-        use flowcore::output_connection::{OutputConnection, Source};
+        use flowcore::model::input::Input;
+        use flowcore::model::runtime_function::RuntimeFunction;
+        use flowcore::model::output_connection::{OutputConnection, Source};
 
         use super::super::RunState;
 
@@ -2661,8 +2661,8 @@ mod test {
             assert_eq!(RunState::array_order(&value), 2);
         }
 
-        fn test_function() -> Function {
-            Function::new(
+        fn test_function() -> RuntimeFunction {
+            RuntimeFunction::new(
                 "test",
                 "/test",
                 "file://fake/test",

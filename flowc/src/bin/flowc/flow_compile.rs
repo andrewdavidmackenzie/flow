@@ -15,9 +15,9 @@ use flowclib::dumper::dump_flow;
 use flowclib::dumper::dump_tables;
 use flowclib::generator::generate;
 use flowclib::generator::generate::GenerationTables;
-use flowclib::model::flow::Flow;
-use flowclib::model::process::Process::FlowProcess;
 use flowcore::lib_provider::Provider;
+use flowcore::model::flow_definition::FlowDefinition;
+use flowcore::model::process::Process::FlowProcess;
 
 use crate::errors::*;
 use crate::Options;
@@ -25,7 +25,7 @@ use crate::Options;
 /*
     Check root process fits the rules for a Context and being a runnable flow
 */
-fn check_root(flow: &Flow) -> bool {
+fn check_root(flow: &FlowDefinition) -> bool {
     let mut runnable = true;
 
     if !flow.inputs().is_empty() {
@@ -108,7 +108,7 @@ pub fn compile_and_execute_flow(options: &Options, provider: &dyn Provider) -> R
                 #[cfg(feature = "debugger")]
                 &mut source_urls,
             )
-            .chain_err(|| "Could not compile supplied implementation to wasm")?;
+            .chain_err(|| "Could not compile to wasm the flow's supplied implementation(s)")?;
 
             let runnable = check_root(&flow);
 
@@ -143,7 +143,7 @@ pub fn compile_and_execute_flow(options: &Options, provider: &dyn Provider) -> R
 }
 
 fn dump(
-    flow: &Flow,
+    flow: &FlowDefinition,
     provider: &dyn Provider,
     tables: &GenerationTables,
     options: &Options,

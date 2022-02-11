@@ -4,3 +4,4 @@
 **/*.log
 **/*.rs.bk
 **/*.profraw
+**/.rustc_info.json

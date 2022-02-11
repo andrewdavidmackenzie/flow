@@ -3,13 +3,13 @@ use std::fmt;
 use log::debug;
 use serde_derive::{Deserialize, Serialize};
 
-use crate::compiler::loader::Validate;
 use crate::errors::*;
 use crate::model::datatype::DataType;
 use crate::model::io::IO;
 use crate::model::name::Name;
 use crate::model::route::HasRoute;
 use crate::model::route::Route;
+use crate::model::validation::Validate;
 
 /// `Connection` defines a connection between the output of one function or flow to the input
 /// of another function or flow and maybe optionally named for legibility/debugging.
@@ -81,7 +81,6 @@ impl Validate for Connection {
 
 impl Connection {
     /// Create a new Route with `from_route` as the source `Route` and `to_route` as the destination
-    #[cfg(test)]
     pub fn new<R>(from_route: R, to_route: R) -> Self
     where
         R: Into<Route>,
@@ -117,7 +116,7 @@ impl Connection {
     }
 
     /// Return the `from` Route specified in this connection
-    pub(crate) fn from(&self) -> &Route {
+    pub fn from(&self) -> &Route {
         &self.from
     }
 
@@ -127,7 +126,7 @@ impl Connection {
     }
 
     /// Return the `to` Route specified in this connection
-    pub(crate) fn to(&self) -> &Vec<Route> {
+    pub fn to(&self) -> &Vec<Route> {
         &self.to
     }
 
@@ -222,10 +221,9 @@ impl Connection {
 mod test {
     use url::Url;
 
-    use flowcore::deserializers::deserializer::get_deserializer;
-    use flowcore::errors::*;
-
-    use crate::compiler::loader::Validate;
+    use crate::deserializers::deserializer::get_deserializer;
+    use crate::errors::*;
+    use crate::model::validation::Validate;
 
     use super::Connection;
 

@@ -4,7 +4,7 @@ use std::fmt;
 use log::error;
 use serde_json::Value;
 
-use flowcore::output_connection::Source::{Input, Output};
+use flowcore::model::output_connection::Source::{Input, Output};
 
 use crate::block::Block;
 use crate::client_server::{ServerConnection, WAIT};

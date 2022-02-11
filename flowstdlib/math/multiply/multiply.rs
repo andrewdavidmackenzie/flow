@@ -1,44 +1,33 @@
-use flow_impl_derive::FlowImpl;
-use flowcore::{Implementation, RUN_AGAIN, RunAgain};
+use flow_macro::flow_function;
 use serde_json::json;
 use serde_json::Value;
 
-#[derive(FlowImpl)]
-/// Multiply one input by another
-#[derive(Debug)]
-pub struct Multiply;
+#[flow_function]
+fn _multiply(inputs: &[Value]) -> (Option<Value>, RunAgain) {
+    let mut output = None;
 
-impl Implementation for Multiply {
-    fn run(&self, inputs: &[Value]) -> (Option<Value>, RunAgain) {
-        let mut output = None;
-
-        if let Some(i1) = inputs[0].as_u64() {
-            if let Some(i2) = inputs[1].as_u64() {
-                let result = i1 * i2;
-                output = Some(json!(result));
-            }
+    if let Some(i1) = inputs[0].as_u64() {
+        if let Some(i2) = inputs[1].as_u64() {
+            let result = i1 * i2;
+            output = Some(json!(result));
         }
-
-        (output, RUN_AGAIN)
     }
+
+    (output, RUN_AGAIN)
 }
 
 #[cfg(test)]
 mod test {
-    use flowcore::Implementation;
     use serde_json::{json, Value};
-
-    use super::Multiply;
+    use super::_multiply;
 
     fn do_multiply(test_data: (u32, u32, u32)) {
-        let multiplier: &dyn Implementation = &Multiply {} as &dyn Implementation;
-
         // Create input vector
         let i1 = json!(test_data.0);
         let i2 = json!(test_data.1);
         let inputs: Vec<Value> = vec![i1, i2];
 
-        let (output, run_again) = multiplier.run(&inputs);
+        let (output, run_again) = _multiply(&inputs);
         assert!(run_again);
 
         let value = output.expect("Could not get the value from the output");
