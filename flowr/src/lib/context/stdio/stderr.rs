@@ -39,7 +39,7 @@ impl Implementation for Stderr {
                     .send_and_receive_response(ServerMessage::Stderr(input.to_string())),
             };
 
-        return Ok((None, RUN_AGAIN));
+        Ok((None, RUN_AGAIN))
     }
 }
 

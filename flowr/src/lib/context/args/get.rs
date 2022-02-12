@@ -19,7 +19,7 @@ impl Implementation for Get {
         let mut guard = self.server_connection.lock()
             .map_err(|_| "Could not lock server")?;
 
-        return match guard.send_and_receive_response(ServerMessage::GetArgs) {
+        match guard.send_and_receive_response(ServerMessage::GetArgs) {
             Ok(ClientMessage::Args(arg_vec)) => {
                 let mut output_map = serde_json::Map::new();
 
@@ -41,7 +41,7 @@ impl Implementation for Get {
                 Ok((Some(Value::Object(output_map)), DONT_RUN_AGAIN))
             }
             _ => Ok((None, DONT_RUN_AGAIN)),
-        };
+        }
     }
 }
 

@@ -19,7 +19,7 @@ impl Implementation for Readline {
         let mut server = self.server_connection.lock()
             .map_err(|_| "Could not lock server")?;
 
-        return match server.send_and_receive_response(ServerMessage::GetLine) {
+        match server.send_and_receive_response(ServerMessage::GetLine) {
             Ok(ClientMessage::Line(contents)) => {
                 let mut output_map = serde_json::Map::new();
                 if let Ok(value) = serde_json::from_str(&contents) {
@@ -35,7 +35,7 @@ impl Implementation for Readline {
                 Ok((Some(Value::Object(output_map)), DONT_RUN_AGAIN))
             }
             _ => Ok((None, DONT_RUN_AGAIN)),
-        };
+        }
     }
 }
 
