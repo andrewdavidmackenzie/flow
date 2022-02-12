@@ -13,10 +13,10 @@ fn _to_json(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
         match input.as_str() {
             Some(string) => match serde_json::from_str(string) {
                 Ok(json) => {
-                    return Ok((Some(json), RUN_AGAIN));
+                    Ok((Some(json), RUN_AGAIN))
                 },
                 Err(_) => {
-                    return Ok((
+                    Ok((
                         Some(serde_json::Value::String(string.to_string())),
                         RUN_AGAIN,
                     ))
@@ -25,7 +25,7 @@ fn _to_json(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
             None => bail!("Could not get input as string")
         }
     } else {
-        return Ok((Some(input.clone()), RUN_AGAIN));
+        Ok((Some(input.clone()), RUN_AGAIN))
     }
 }
 
