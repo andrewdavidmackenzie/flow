@@ -1,9 +1,8 @@
+use flow_macro::flow_function;
 use serde_json::{json, Value};
 
-use flow_macro::flow_function;
-
 #[flow_function]
-fn _index(inputs: &[Value]) -> (Option<Value>, RunAgain) {
+fn _index(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
     let value = inputs[0].clone();
 
     let mut output_map = serde_json::Map::new();
@@ -30,12 +29,13 @@ fn _index(inputs: &[Value]) -> (Option<Value>, RunAgain) {
         }
     }
 
-    (Some(Value::Object(output_map)), RUN_AGAIN)
+    Ok((Some(Value::Object(output_map)), RUN_AGAIN))
 }
 
 #[cfg(test)]
 mod test {
     use serde_json::{json, Value};
+
     use super::_index;
 
     #[test]
@@ -47,7 +47,7 @@ mod test {
 
         let inputs = vec![value, previous_value, previous_index, select_index];
 
-        let (result, _) = _index(&inputs);
+        let (result, _) = _index(&inputs).expect("_index() failed");
 
         let output_map = result.expect("No output map");
 
@@ -68,7 +68,7 @@ mod test {
 
         let inputs = vec![value, previous_value, previous_index, select_index];
 
-        let (result, _) = _index(&inputs);
+        let (result, _) = _index(&inputs).expect("_index() failed");
 
         let output_map = result.expect("No output map");
 
@@ -84,7 +84,7 @@ mod test {
 
         let inputs = vec![value, previous_value, previous_index, select_index];
 
-        let (result, _) = _index(&inputs);
+        let (result, _) = _index(&inputs).expect("_index() failed");
 
         let output_map = result.expect("No output map");
 
@@ -105,7 +105,7 @@ mod test {
 
         let inputs = vec![value, previous_value, previous_index, select_index];
 
-        let (result, _) = _index(&inputs);
+        let (result, _) = _index(&inputs).expect("_index() failed");
 
         let output_map = result.expect("No output map");
 
@@ -121,7 +121,7 @@ mod test {
 
         let inputs = vec![value, previous_value, previous_index, select_index];
 
-        let (result, _) = _index(&inputs);
+        let (result, _) = _index(&inputs).expect("_index() failed");
 
         let output_map = result.expect("No output map");
 
@@ -142,7 +142,7 @@ mod test {
 
         let inputs = vec![value, previous_value, previous_index, select_index];
 
-        let (result, _) = _index(&inputs);
+        let (result, _) = _index(&inputs).expect("_index() failed");
 
         let output_map = result.expect("No output map");
 

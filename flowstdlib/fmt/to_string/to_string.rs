@@ -1,23 +1,22 @@
+use flow_macro::flow_function;
 use serde_json::{json, Value};
 
-use flow_macro::flow_function;
-
 #[flow_function]
-fn _to_string(inputs: &[Value]) -> (Option<Value>, RunAgain) {
+fn _to_string(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
     let input = &inputs[0];
-    (Some(json!(input.to_string())), RUN_AGAIN)
+    Ok((Some(json!(input.to_string())), RUN_AGAIN))
 }
 
 #[cfg(test)]
 mod test {
-    use std::collections::HashMap;
     use serde_json::{json, Value};
+    use std::collections::HashMap;
 
     use super::_to_string;
 
     fn test_to_string(value: Value, string: &str) {
         let inputs = vec![value];
-        let (result, _) = _to_string(&inputs);
+        let (result, _) = _to_string(&inputs).expect("_to_string() failed");
 
         match result {
             Some(value) => {

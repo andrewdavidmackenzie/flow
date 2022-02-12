@@ -4,7 +4,7 @@ use serde_json::Value;
 use serde_json::Value::String as JsonString;
 
 #[flow_function]
-fn _reverse(inputs: &[Value]) -> (Option<Value>, RunAgain) {
+fn _reverse(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
     let mut value = None;
 
     let input = &inputs[0];
@@ -15,19 +15,20 @@ fn _reverse(inputs: &[Value]) -> (Option<Value>, RunAgain) {
         }));
     }
 
-    (value, RUN_AGAIN)
+    Ok((value, RUN_AGAIN))
 }
 
 #[cfg(test)]
 mod test {
-    use flowcore::{RUN_AGAIN};
+    use flowcore::RUN_AGAIN;
     use serde_json::json;
+
     use super::_reverse;
 
     #[test]
     fn test_reverse() {
         let inputs = vec![json!("Hello"), json!(true)];
-        let (output, run_again) = _reverse(&inputs);
+        let (output, run_again) = _reverse(&inputs).expect("_reverse() failed");
         assert_eq!(run_again, RUN_AGAIN);
 
         assert!(output.is_some());

@@ -2,26 +2,27 @@ use flow_macro::flow_function;
 use serde_json::Value;
 
 #[flow_function]
-fn _route(inputs: &[Value]) -> (Option<Value>, RunAgain) {
+fn _route(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
     let data = &inputs[0];
-    let control = inputs[1].as_bool().unwrap_or(false);
+    let control = inputs[1].as_bool().ok_or("Could not get bool")?;
 
     let mut output_map = serde_json::Map::new();
     output_map.insert(control.to_string(), data.clone());
 
-    (Some(Value::Object(output_map)), RUN_AGAIN)
+    Ok((Some(Value::Object(output_map)), RUN_AGAIN))
 }
 
 #[cfg(test)]
 mod test {
-    use flowcore::{RUN_AGAIN};
+    use flowcore::RUN_AGAIN;
     use serde_json::json;
+
     use super::_route;
 
     #[test]
     fn test_route_true() {
         let inputs = vec![json!(42), json!(true)];
-        let (output, run_again) = _route(&inputs);
+        let (output, run_again) = _route(&inputs).expect("_route() failed");
         assert_eq!(run_again, RUN_AGAIN);
 
         assert!(output.is_some());
@@ -34,7 +35,7 @@ mod test {
     #[test]
     fn test_route_false() {
         let inputs = vec![json!(42), json!(false)];
-        let (output, run_again) = _route(&inputs);
+        let (output, run_again) = _route(&inputs).expect("_route() failed");
         assert_eq!(run_again, RUN_AGAIN);
 
         assert!(output.is_some());

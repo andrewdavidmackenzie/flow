@@ -3,9 +3,9 @@ use std::sync::{Arc, Mutex};
 use serde_json::Value;
 
 use flowcore::{Implementation, RUN_AGAIN, RunAgain};
+use flowcore::errors::*;
 
 use crate::client_server::ServerConnection;
-use crate::errors::*;
 use crate::runtime_messages::{ClientMessage, ServerMessage};
 
 /// `Implementation` struct for the `image_buffer` function
@@ -15,42 +15,35 @@ pub struct ImageBuffer {
 }
 
 impl Implementation for ImageBuffer {
-    fn run(&self, inputs: &[Value]) -> (Option<Value>, RunAgain) {
-        if inputs.len() == 4 {
-            if let (
-                Some(pixel),
-                Some(value),
-                Some(size),
-                Value::String(filename),
-                Ok(ref mut server),
-            ) = (
-                inputs[0].as_array(),
-                inputs[1].as_array(),
-                inputs[2].as_array(),
-                &inputs[3],
-                self.server_connection.lock(),
-            ) {
-                if let (Some(x), Some(y), Some(r), Some(g), Some(b), Some(w), Some(h)) = (
-                    pixel[0].as_u64(),
-                    pixel[1].as_u64(),
-                    value[0].as_u64(),
-                    value[1].as_u64(),
-                    value[2].as_u64(),
-                    size[0].as_u64(),
-                    size[1].as_u64(),
-                ) {
-                    let _: Result<ClientMessage> =
-                        server.send_and_receive_response(ServerMessage::PixelWrite(
-                            (x as u32, y as u32),
-                            (r as u8, g as u8, b as u8),
-                            (w as u32, h as u32),
-                            filename.to_string(),
-                        ));
-                }
-            }
+    fn run(&self, inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
+        if inputs.len() != 4 {
+            bail!("Incorrect number of inputs for image_buffer");
         }
 
-        (None, RUN_AGAIN)
+        let pixel = inputs[0].as_array().ok_or("Could not get pixel")?;
+        let value = inputs[1].as_array().ok_or("Could not get value")?;
+        let size = inputs[2].as_array().ok_or("Could not get size")?;
+        let filename = &inputs[3].as_str().ok_or("Could not get filename")?;
+
+        let mut server = self.server_connection.lock()
+            .map_err(|_| "Could not lock server")?;
+
+        let x = pixel[0].as_u64().ok_or("Could not get x")?;
+        let y = pixel[1].as_u64().ok_or("Could not get y")?;
+        let r = value[0].as_u64().ok_or("Could not get r")?;
+        let g = value[1].as_u64().ok_or("Could not get g")?;
+        let b = value[2].as_u64().ok_or("Could not get b")?;
+        let w = size[0].as_u64().ok_or("Could not get w")?;
+        let h = size[1].as_u64().ok_or("Could not get h")?;
+
+        let _: crate::errors::Result<ClientMessage> = server.send_and_receive_response(ServerMessage::PixelWrite(
+                (x as u32, y as u32),
+                (r as u8, g as u8, b as u8),
+                (w as u32, h as u32),
+                filename.to_string(),
+            ));
+
+        Ok((None, RUN_AGAIN))
     }
 }
 
@@ -75,9 +68,7 @@ mod test {
 
         let server_connection = wait_for_then_send(pixel, ClientMessage::Ack);
         let buffer = &ImageBuffer { server_connection } as &dyn Implementation;
-        let (value, run_again) = buffer.run(&inputs);
-        assert_eq!(run_again, RUN_AGAIN);
-        assert_eq!(value, None);
+        assert!(buffer.run(&inputs).is_err());
     }
 
     #[test]
@@ -98,9 +89,7 @@ mod test {
 
         let server_connection = wait_for_then_send(pixel, ClientMessage::Ack);
         let buffer = &ImageBuffer { server_connection } as &dyn Implementation;
-        let (value, run_again) = buffer.run(&inputs);
-        assert_eq!(run_again, RUN_AGAIN);
-        assert_eq!(value, None);
+        assert!(buffer.run(&inputs).is_err());
     }
 
     #[test]
@@ -115,7 +104,7 @@ mod test {
 
         let server_connection = wait_for_then_send(pixel, ClientMessage::Ack);
         let buffer = &ImageBuffer { server_connection } as &dyn Implementation;
-        let (value, run_again) = buffer.run(&inputs);
+        let (value, run_again) = buffer.run(&inputs).expect("run() failed");
         assert_eq!(run_again, RUN_AGAIN);
         assert_eq!(value, None);
     }

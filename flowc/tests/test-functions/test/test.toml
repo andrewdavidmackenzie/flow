@@ -1,0 +1,10 @@
+function = "test"
+source = "test.rs"
+type = "rust"
+impure = true
+
+[[input]]
+type = "Value"
+
+[[Output]]
+type = "String"

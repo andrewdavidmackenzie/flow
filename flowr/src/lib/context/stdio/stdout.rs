@@ -3,9 +3,9 @@ use std::sync::{Arc, Mutex};
 use serde_json::Value;
 
 use flowcore::{Implementation, RUN_AGAIN, RunAgain};
+use flowcore::errors::*;
 
 use crate::client_server::ServerConnection;
-use crate::errors::*;
 use crate::runtime_messages::{ClientMessage, ServerMessage};
 
 /// `Implementation` struct for the `Stdout` function
@@ -15,30 +15,31 @@ pub struct Stdout {
 }
 
 impl Implementation for Stdout {
-    fn run(&self, inputs: &[Value]) -> (Option<Value>, RunAgain) {
-        if inputs.len() == 1 {
-            let input = &inputs[0];
-
-            // Gain sole access to send to the client to avoid mixing output from other functions
-            if let Ok(mut server) = self.server_connection.lock() {
-                let _: Result<ClientMessage> =
-                    match input {
-                        Value::Null => server.send_and_receive_response(ServerMessage::StdoutEof),
-                        Value::String(string) => server
-                            .send_and_receive_response(ServerMessage::Stdout(string.to_string())),
-                        Value::Bool(boolean) => server
-                            .send_and_receive_response(ServerMessage::Stdout(boolean.to_string())),
-                        Value::Number(number) => server
-                            .send_and_receive_response(ServerMessage::Stdout(number.to_string())),
-                        Value::Array(_array) => server
-                            .send_and_receive_response(ServerMessage::Stdout(input.to_string())),
-                        Value::Object(_obj) => server
-                            .send_and_receive_response(ServerMessage::Stdout(input.to_string())),
-                    };
-            }
+    fn run(&self, inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
+        if inputs.len() != 1 {
+            bail!("Incorrect number of inputs for stdout");
         }
+        let input = &inputs[0];
 
-        (None, RUN_AGAIN)
+        // Gain sole access to send to the client to avoid mixing output from other functions
+        let mut server = self.server_connection.lock()
+            .map_err(|_| "Could not lock server")?;
+
+        let _: crate::errors::Result<ClientMessage> = match input {
+                Value::Null => server.send_and_receive_response(ServerMessage::StdoutEof),
+                Value::String(string) => server
+                    .send_and_receive_response(ServerMessage::Stdout(string.to_string())),
+                Value::Bool(boolean) => server
+                    .send_and_receive_response(ServerMessage::Stdout(boolean.to_string())),
+                Value::Number(number) => server
+                    .send_and_receive_response(ServerMessage::Stdout(number.to_string())),
+                Value::Array(_array) => server
+                    .send_and_receive_response(ServerMessage::Stdout(input.to_string())),
+                Value::Object(_obj) => server
+                    .send_and_receive_response(ServerMessage::Stdout(input.to_string())),
+            };
+
+        Ok((None, RUN_AGAIN))
     }
 }
 
@@ -61,10 +62,7 @@ mod test {
     fn invalid_input() {
         let server_connection = wait_for_then_send(ServerMessage::StdoutEof, ClientMessage::Ack);
         let stderr = &Stdout { server_connection } as &dyn Implementation;
-        let (value, run_again) = stderr.run(&[]);
-
-        assert_eq!(run_again, RUN_AGAIN);
-        assert_eq!(value, None);
+        assert!(stderr.run(&[]).is_err());
     }
 
     #[test]
@@ -72,7 +70,7 @@ mod test {
     fn send_null() {
         let server_connection = wait_for_then_send(ServerMessage::StdoutEof, ClientMessage::Ack);
         let stderr = &Stdout { server_connection } as &dyn Implementation;
-        let (value, run_again) = stderr.run(&[Value::Null]);
+        let (value, run_again) = stderr.run(&[Value::Null]).expect("run() failed");
 
         assert_eq!(run_again, RUN_AGAIN);
         assert_eq!(value, None);
@@ -86,7 +84,7 @@ mod test {
         let server_connection =
             wait_for_then_send(ServerMessage::Stdout(string.into()), ClientMessage::Ack);
         let stderr = &Stdout { server_connection } as &dyn Implementation;
-        let (value, run_again) = stderr.run(&[value]);
+        let (value, run_again) = stderr.run(&[value]).expect("run() failed");
 
         assert_eq!(run_again, RUN_AGAIN);
         assert_eq!(value, None);
@@ -100,7 +98,7 @@ mod test {
         let server_connection =
             wait_for_then_send(ServerMessage::Stdout("true".into()), ClientMessage::Ack);
         let stderr = &Stdout { server_connection } as &dyn Implementation;
-        let (value, run_again) = stderr.run(&[value]);
+        let (value, run_again) = stderr.run(&[value]).expect("run() failed");
 
         assert_eq!(run_again, RUN_AGAIN);
         assert_eq!(value, None);
@@ -113,7 +111,7 @@ mod test {
         let server_connection =
             wait_for_then_send(ServerMessage::Stdout("42".into()), ClientMessage::Ack);
         let stderr = &Stdout { server_connection } as &dyn Implementation;
-        let (value, run_again) = stderr.run(&[value]);
+        let (value, run_again) = stderr.run(&[value]).expect("run() failed");
 
         assert_eq!(run_again, RUN_AGAIN);
         assert_eq!(value, None);
@@ -127,7 +125,7 @@ mod test {
         let server_connection =
             wait_for_then_send(ServerMessage::Stdout("[1,2,3]".into()), ClientMessage::Ack);
         let stderr = &Stdout { server_connection } as &dyn Implementation;
-        let (value, run_again) = stderr.run(&[value]);
+        let (value, run_again) = stderr.run(&[value]).expect("run() failed");
 
         assert_eq!(run_again, RUN_AGAIN);
         assert_eq!(value, None);
@@ -145,7 +143,7 @@ mod test {
             ClientMessage::Ack,
         );
         let stderr = &Stdout { server_connection } as &dyn Implementation;
-        let (value, run_again) = stderr.run(&[value]);
+        let (value, run_again) = stderr.run(&[value]).expect("run() failed");
 
         assert_eq!(run_again, RUN_AGAIN);
         assert_eq!(value, None);

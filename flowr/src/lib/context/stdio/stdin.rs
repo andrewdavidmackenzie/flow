@@ -3,6 +3,7 @@ use std::sync::{Arc, Mutex};
 use serde_json::Value;
 
 use flowcore::{DONT_RUN_AGAIN, Implementation, RUN_AGAIN, RunAgain};
+use flowcore::errors::*;
 
 use crate::client_server::ServerConnection;
 use crate::runtime_messages::{ClientMessage, ServerMessage};
@@ -14,27 +15,27 @@ pub struct Stdin {
 }
 
 impl Implementation for Stdin {
-    fn run(&self, _inputs: &[Value]) -> (Option<Value>, RunAgain) {
-        if let Ok(mut server) = self.server_connection.lock() {
-            return match server.send_and_receive_response(ServerMessage::GetStdin) {
-                Ok(ClientMessage::Stdin(contents)) => {
-                    let mut output_map = serde_json::Map::new();
-                    if let Ok(value) = serde_json::from_str(&contents) {
-                        let _ = output_map.insert("json".into(), value);
-                    };
-                    output_map.insert("string".into(), Value::String(contents));
-                    (Some(Value::Object(output_map)), RUN_AGAIN)
-                }
-                Ok(ClientMessage::GetStdinEof) => {
-                    let mut output_map = serde_json::Map::new();
-                    output_map.insert("string".into(), Value::Null);
-                    output_map.insert("json".into(), Value::Null);
-                    (Some(Value::Object(output_map)), DONT_RUN_AGAIN)
-                }
-                _ => (None, DONT_RUN_AGAIN),
-            };
-        }
-        (None, DONT_RUN_AGAIN)
+    fn run(&self, _inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
+        let mut server = self.server_connection.lock()
+            .map_err(|_| "Could not lock server")?;
+
+        return match server.send_and_receive_response(ServerMessage::GetStdin) {
+            Ok(ClientMessage::Stdin(contents)) => {
+                let mut output_map = serde_json::Map::new();
+                if let Ok(value) = serde_json::from_str(&contents) {
+                    let _ = output_map.insert("json".into(), value);
+                };
+                output_map.insert("string".into(), Value::String(contents));
+                Ok((Some(Value::Object(output_map)), RUN_AGAIN))
+            }
+            Ok(ClientMessage::GetStdinEof) => {
+                let mut output_map = serde_json::Map::new();
+                output_map.insert("string".into(), Value::Null);
+                output_map.insert("json".into(), Value::Null);
+                Ok((Some(Value::Object(output_map)), DONT_RUN_AGAIN))
+            }
+            _ => Ok((None, DONT_RUN_AGAIN)),
+        };
     }
 }
 
@@ -59,7 +60,7 @@ mod test {
             ClientMessage::Stdin("line of text".into()),
         );
         let stdin = &Stdin { server_connection } as &dyn Implementation;
-        let (value, run_again) = stdin.run(&[]);
+        let (value, run_again) = stdin.run(&[]).expect("_stdin() failed");
 
         assert_eq!(run_again, RUN_AGAIN);
 
@@ -76,7 +77,7 @@ mod test {
     fn bad_reply_message() {
         let server_connection = wait_for_then_send(ServerMessage::GetStdin, ClientMessage::Ack);
         let stdin = &Stdin { server_connection } as &dyn Implementation;
-        let (value, run_again) = stdin.run(&[]);
+        let (value, run_again) = stdin.run(&[]).expect("_stdin() failed");
 
         assert_eq!(run_again, DONT_RUN_AGAIN);
         assert_eq!(value, None);
@@ -90,7 +91,7 @@ mod test {
             ClientMessage::Stdin("\"json text\"".into()),
         );
         let stdin = &Stdin { server_connection } as &dyn Implementation;
-        let (value, run_again) = stdin.run(&[]);
+        let (value, run_again) = stdin.run(&[]).expect("_stdin() failed");
 
         assert_eq!(run_again, RUN_AGAIN);
 
@@ -108,7 +109,7 @@ mod test {
         let server_connection =
             wait_for_then_send(ServerMessage::GetStdin, ClientMessage::GetStdinEof);
         let stdin = &Stdin { server_connection } as &dyn Implementation;
-        let (value, run_again) = stdin.run(&[]);
+        let (value, run_again) = stdin.run(&[]).expect("_stdin() failed");
 
         assert_eq!(run_again, DONT_RUN_AGAIN);
         let val = value.expect("Could not get value returned from implementation");

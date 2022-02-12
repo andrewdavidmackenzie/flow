@@ -20,7 +20,7 @@ pub fn escapes(c: Complex<f64>, limit: u64) -> u64 {
 }
 
 #[flow_function]
-fn _escapes(inputs: &[Value]) -> (Option<Value>, RunAgain) {
+fn _escapes(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
     let pixel_point = inputs[0].as_array().unwrap();
 
     let pixel = pixel_point[0].as_array().unwrap();
@@ -36,12 +36,13 @@ fn _escapes(inputs: &[Value]) -> (Option<Value>, RunAgain) {
     // Fake Grey via RGB for now
     let result = Some(json!([pixel, [value, value, value]]));
 
-    (result, true)
+    Ok((result, RUN_AGAIN))
 }
 
 #[cfg(test)]
 mod test {
     use serde_json::{json, Value};
+
     use super::_escapes;
 
     // bounds = inputs[0]
@@ -54,7 +55,7 @@ mod test {
         let pixel_point = json!([[50, 50], [0.5, 0.5]]);
 
         let inputs: Vec<Value> = vec![pixel_point];
-        let (result, _) = _escapes(&inputs);
+        let (result, _) = _escapes(&inputs).expect("_escapes() failed");
 
         let result_json = result.unwrap();
         let results = result_json.as_array().unwrap();

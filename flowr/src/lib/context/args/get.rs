@@ -3,6 +3,7 @@ use std::sync::{Arc, Mutex};
 use serde_json::{json, Value};
 
 use flowcore::{DONT_RUN_AGAIN, Implementation, RunAgain};
+use flowcore::errors::Result;
 
 use crate::client_server::ServerConnection;
 use crate::runtime_messages::{ClientMessage, ServerMessage};
@@ -14,33 +15,33 @@ pub struct Get {
 }
 
 impl Implementation for Get {
-    fn run(&self, mut _inputs: &[Value]) -> (Option<Value>, RunAgain) {
-        if let Ok(mut guard) = self.server_connection.lock() {
-            return match guard.send_and_receive_response(ServerMessage::GetArgs) {
-                Ok(ClientMessage::Args(arg_vec)) => {
-                    let mut output_map = serde_json::Map::new();
+    fn run(&self, mut _inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
+        let mut guard = self.server_connection.lock()
+            .map_err(|_| "Could not lock server")?;
 
-                    // Construct an array of args parsed into Json Values
-                    let mut json_arg_vec: Vec<Value> = Vec::new();
-                    for arg in &arg_vec {
-                        if let Ok(json) = serde_json::from_str(arg) {
-                            json_arg_vec.push(json);
-                        } else {
-                            json_arg_vec.push(serde_json::Value::String(arg.into()))
-                        }
+        return match guard.send_and_receive_response(ServerMessage::GetArgs) {
+            Ok(ClientMessage::Args(arg_vec)) => {
+                let mut output_map = serde_json::Map::new();
+
+                // Construct an array of args parsed into Json Values
+                let mut json_arg_vec: Vec<Value> = Vec::new();
+                for arg in &arg_vec {
+                    if let Ok(json) = serde_json::from_str(arg) {
+                        json_arg_vec.push(json);
+                    } else {
+                        json_arg_vec.push(serde_json::Value::String(arg.into()))
                     }
-                    // Add the json Array of args at the "/json" output route
-                    let _ = output_map.insert("json".into(), Value::Array(json_arg_vec));
-
-                    // Add the array of (unparsed) text values of the args at "/string" route
-                    output_map.insert("string".into(), json!(arg_vec));
-
-                    (Some(Value::Object(output_map)), DONT_RUN_AGAIN)
                 }
-                _ => (None, DONT_RUN_AGAIN),
-            };
-        }
-        (None, DONT_RUN_AGAIN)
+                // Add the json Array of args at the "/json" output route
+                let _ = output_map.insert("json".into(), Value::Array(json_arg_vec));
+
+                // Add the array of (unparsed) text values of the args at "/string" route
+                output_map.insert("string".into(), json!(arg_vec));
+
+                Ok((Some(Value::Object(output_map)), DONT_RUN_AGAIN))
+            }
+            _ => Ok((None, DONT_RUN_AGAIN)),
+        };
     }
 }
 
@@ -70,7 +71,7 @@ mod test {
                     .expect("Could not create server connection"),
             )),
         } as &dyn Implementation;
-        let (value, run_again) = getter.run(&[]);
+        let (value, run_again) = getter.run(&[]).expect("_get() failed");
 
         assert_eq!(run_again, DONT_RUN_AGAIN);
         assert_eq!(value, None);
@@ -88,7 +89,7 @@ mod test {
 
         let getter = &Get { server_connection } as &dyn Implementation;
 
-        let (value, run_again) = getter.run(&[]);
+        let (value, run_again) = getter.run(&[]).expect("_get() failed");
 
         assert_eq!(run_again, DONT_RUN_AGAIN);
 

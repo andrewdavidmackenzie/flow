@@ -342,25 +342,25 @@ impl Coordinator {
                     match self.job_rx.recv_timeout(state.job_timeout) {
                         Ok(job) => {
                             #[cfg(feature = "debugger")]
-                            {
+                            if job.result.is_err() {
+                                if state.debug {
+                                    let _ = self.debugger.job_error(&state,&job);
+                                }
+                            } else {
                                 if display_next_output {
                                     self.debugger.job_completed(&job);
                                 }
+
+                                state.complete_job(
+                                    #[cfg(feature = "metrics")]
+                                        &mut metrics,
+                                    &job,
+                                    #[cfg(feature = "debugger")]
+                                        &mut self.debugger,
+                                );
                             }
-
-// TODO If execution of the job failed
-//                #[cfg(feature = "debugger")]if self.debug {
-//                    let _ = debugger.job_error(self, job);
-//                }
-
-                            state.complete_job(
-                                #[cfg(feature = "metrics")]
-                                &mut metrics,
-                                job,
-                                #[cfg(feature = "debugger")]
-                                &mut self.debugger,
-                            );
                         }
+
                         #[cfg(feature = "debugger")]
                         Err(err) => {
                             if state.debug {
@@ -519,7 +519,7 @@ impl Coordinator {
                     debug!("{}", state);
 
                     #[cfg(feature = "debugger")]
-                    self.debugger.job_error(state, job);
+                    self.debugger.job_error(state, &job);
                 }
             }
         }

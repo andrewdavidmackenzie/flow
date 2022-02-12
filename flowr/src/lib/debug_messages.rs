@@ -5,8 +5,8 @@ use serde_json::Value;
 use zmq::Message;
 
 use flowcore::model::input::Input;
-use flowcore::model::runtime_function::RuntimeFunction;
 use flowcore::model::output_connection::OutputConnection;
+use flowcore::model::runtime_function::RuntimeFunction;
 
 use crate::block::Block;
 use crate::job::Job;
@@ -31,8 +31,8 @@ pub enum Param {
 #[allow(clippy::large_enum_variant)]
 #[derive(Serialize, Deserialize)]
 pub enum DebugServerMessage {
-    /// A `Job` ran to completion by a function - includes:  job_id, function_id
-    JobCompleted(usize, usize, Option<Value>),
+    /// A `Job` ran to completion by a function
+    JobCompleted(Job),
     /// Entering the debugger
     EnteringDebugger,
     /// The debugger/run-time is exiting
@@ -87,7 +87,7 @@ impl fmt::Display for DebugServerMessage {
             f,
             "DebugServerMessage {}",
             match self {
-                DebugServerMessage::JobCompleted(_, _, _) => "JobCompleted",
+                DebugServerMessage::JobCompleted(_) => "JobCompleted",
                 DebugServerMessage::EnteringDebugger => "EnteringDebugger",
                 DebugServerMessage::ExitingDebugger => "ExitingDebugger",
                 DebugServerMessage::PriorToSendingJob(_, _) => "PriorToSendingJob",

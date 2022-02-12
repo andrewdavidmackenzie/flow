@@ -1,14 +1,13 @@
 use anyhow::Result as AnyhowResult;
-use flowcore::lib_provider::Provider;
 use flowcore::{Implementation, RunAgain};
+use flowcore::errors::*;
+use flowcore::lib_provider::Provider;
 use log::info;
-use log::{error, trace};
+use log::trace;
 use serde_json::Value;
 use std::sync::{Arc, Mutex};
 use url::Url;
 use wasmtime::*;
-
-use crate::errors::*;
 
 const DEFAULT_WASM_FILENAME: &str = "module";
 
@@ -72,48 +71,38 @@ impl WasmExecutor {
         result: AnyhowResult<Box<[Val]>>,
         offset: usize,
         store: &mut Store<()>,
-    ) -> (Option<Value>, RunAgain) {
+    ) -> Result<(Option<Value>, RunAgain)> {
         return match result {
             Ok(value) => match *value {
                 [Val::I32(result_length)] => {
                     trace!("Return length from wasm function of {}", result_length);
                     if result_length > MAX_RESULT_SIZE {
-                        error!(
+                        bail!(
                             "Return length from wasm function of {} exceed maximum allowed",
                             result_length
                         );
-                        return (None, true);
                     }
 
                     let mut buffer = vec![0u8; result_length as usize];
-                    if self
+                    self
                         .memory
                         .read(store, offset, buffer.as_mut_slice())
-                        .is_err()
-                    {
-                        error!("could not read return value from WASM linear memory");
-                        return (None, true);
-                    }
+                        .map_err(|_| "could not read return value from WASM linear memory")?;
 
                     match serde_json::from_slice(&buffer) {
-                        Ok((result, run_again)) => (result, run_again),
-                        Err(e) => {
-                            error!("could not deserialize json response from WASM: {}", e);
-                            (None, true)
-                        }
+                        Ok((result, run_again)) => Ok((result, run_again)),
+                        Err(e) => bail!("could not deserialize json response from WASM: {}", e)
                     }
                 }
                 _ => {
-                    error!("Unexpected return type from WASM implementation.call()");
-                    (None, true)
+                    bail!("Unexpected return type from WASM implementation.call()");
                 }
             },
             Err(err) => {
-                error!(
+                bail!(
                     "Error returned by WASM implementation.call() on '{}': {:?}",
                     self.source_url, err
                 );
-                (None, true)
             }
         };
     }
@@ -164,15 +153,12 @@ unsafe impl Send for WasmExecutor {}
 unsafe impl Sync for WasmExecutor {}
 
 impl Implementation for WasmExecutor {
-    fn run(&self, inputs: &[Value]) -> (Option<Value>, RunAgain) {
-        if let Ok(mut store) = self.store.lock() {
-            if let Ok((offset, length)) = self.send_inputs(inputs, &mut store) {
-                let result = self.call(offset, length, &mut store);
-                return self.get_result(result, offset as usize, &mut store);
-            }
-        }
+    fn run(&self, inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
+        let mut store = self.store.lock().map_err(|_| "Could not lock WASM store")?;
 
-        error!("Could not lock WASM store");
-        (None, true)
+        let (offset, length) = self.send_inputs(inputs, &mut store)?;
+
+        let result = self.call(offset, length, &mut store);
+        self.get_result(result, offset as usize, &mut store)
     }
 }

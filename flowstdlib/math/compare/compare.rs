@@ -3,7 +3,7 @@ use serde_json::Value;
 use serde_json::value::Value::Number;
 
 #[flow_function]
-fn _compare(inputs: &[Value]) -> (Option<Value>, RunAgain) {
+fn _compare(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
     let input_a = &inputs[0];
     let input_b = &inputs[1];
 
@@ -17,14 +17,14 @@ fn _compare(inputs: &[Value]) -> (Option<Value>, RunAgain) {
                 output_map.insert("gt".into(), Value::Bool(a.as_i64() > b.as_i64()));
                 output_map.insert("lte".into(), Value::Bool(a.as_i64() <= b.as_i64()));
                 output_map.insert("gte".into(), Value::Bool(a.as_i64() >= b.as_i64()));
-                return (Some(Value::Object(output_map)), RUN_AGAIN);
+                Ok((Some(Value::Object(output_map)), RUN_AGAIN))
             } else if a.is_u64() && b.is_u64() {
                 output_map.insert("equal".into(), Value::Bool(a.as_u64() == b.as_u64()));
                 output_map.insert("lt".into(), Value::Bool(a.as_u64() < b.as_u64()));
                 output_map.insert("gt".into(), Value::Bool(a.as_u64() > b.as_u64()));
                 output_map.insert("lte".into(), Value::Bool(a.as_u64() <= b.as_u64()));
                 output_map.insert("gte".into(), Value::Bool(a.as_u64() >= b.as_u64()));
-                return (Some(Value::Object(output_map)), RUN_AGAIN);
+                Ok((Some(Value::Object(output_map)), RUN_AGAIN))
             } else {
                 match (a.as_f64(), b.as_f64()) {
                     (Some(l), Some(r)) => {
@@ -34,21 +34,20 @@ fn _compare(inputs: &[Value]) -> (Option<Value>, RunAgain) {
                         output_map.insert("gt".into(), Value::Bool(l > r));
                         output_map.insert("lte".into(), Value::Bool(l <= r));
                         output_map.insert("gte".into(), Value::Bool(l >= r));
-                        return (Some(Value::Object(output_map)), RUN_AGAIN);
+                        Ok((Some(Value::Object(output_map)), RUN_AGAIN))
                     }
-                    (_, _) => {}
+                    (_, _) => bail!("Not numbers")
                 }
             }
         }
-        (_, _) => {}
+        (_, _) => bail!("Not numbers")
     }
-
-    (None, RUN_AGAIN)
 }
 
 #[cfg(test)]
 mod test {
     use serde_json::{json, Value};
+
     use super::_compare;
 
     fn get_tests() -> Vec<(Value, Value, bool, bool, bool, bool, bool)> {
@@ -127,7 +126,7 @@ mod test {
     #[test]
     fn positive_tests() {
         for test in &get_tests() {
-            let (output, again) = _compare(&get_inputs(test));
+            let (output, again) = _compare(&get_inputs(test)).expect("_compare() failed");
 
             assert!(again);
 
@@ -151,11 +150,6 @@ mod test {
 
     #[test]
     fn not_numbers() {
-        let (output, again) = _compare(&[json!("hello"), json!(1.0)]);
-        assert!(again);
-        assert_eq!(
-            None, output,
-            "Should not be able to compare different types"
-        );
+        assert!(_compare(&[json!("hello"), json!(1.0)]).is_err());
     }
 }

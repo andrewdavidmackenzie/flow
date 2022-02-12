@@ -11,10 +11,11 @@ use tempdir::TempDir;
 use url::Url;
 
 use flowcore::{DONT_RUN_AGAIN, Implementation, RunAgain};
-use flowcore::model::flow_manifest::FlowManifest;
-use flowcore::model::metadata::MetaData;
-use flowcore::model::lib_manifest::{ImplementationLocator::Native, LibraryManifest};
+use flowcore::errors::Result;
 use flowcore::lib_provider::MetaProvider;
+use flowcore::model::flow_manifest::FlowManifest;
+use flowcore::model::lib_manifest::{ImplementationLocator::Native, LibraryManifest};
+use flowcore::model::metadata::MetaData;
 use flowcore::model::runtime_function::RuntimeFunction;
 use flowrlib::loader::Loader;
 
@@ -70,7 +71,7 @@ fn create_manifest(functions: Vec<RuntimeFunction>) -> FlowManifest {
 struct Fake;
 
 impl Implementation for Fake {
-    fn run(&self, mut _inputs: &[Value]) -> (Option<Value>, RunAgain) {
+    fn run(&self, mut _inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
         let mut value = None;
 
         let mut buffer = String::new();
@@ -83,7 +84,7 @@ impl Implementation for Fake {
             }
         }
 
-        (value, DONT_RUN_AGAIN)
+        Ok((value, DONT_RUN_AGAIN))
     }
 }
 
@@ -125,7 +126,7 @@ fn get_manifest() -> LibraryManifest {
     manifest
 }
 
-fn write_manifest(manifest: &FlowManifest, filename: &Path) -> Result<(), String> {
+fn write_manifest(manifest: &FlowManifest, filename: &Path) -> Result<()> {
     let mut manifest_file =
         File::create(&filename).map_err(|_| "Could not create lib manifest file")?;
 

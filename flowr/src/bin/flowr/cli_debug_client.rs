@@ -207,9 +207,9 @@ impl CliDebugClient {
     */
     fn process_event(&mut self, event: DebugServerMessage) -> Result<DebugClientMessage> {
         match event {
-            JobCompleted(job_id, function_id, opt_output) => {
-                println!("Job #{} completed by Function #{}", job_id, function_id);
-                if let Some(output) = opt_output {
+            JobCompleted(job) => {
+                println!("Job #{} completed by Function #{}", job.job_id, job.function_id);
+                if let Ok((Some(output), _)) = job.result {
                     println!("\tOutput value: '{}'", &output);
                 }
             }
@@ -326,8 +326,8 @@ mod test {
 
     use flowcore::model::input::Input;
     use flowcore::model::input::InputInitializer::Once;
-    use flowcore::model::runtime_function::RuntimeFunction;
     use flowcore::model::output_connection::{OutputConnection, Source};
+    use flowcore::model::runtime_function::RuntimeFunction;
     use flowrlib::coordinator::Submission;
     use flowrlib::run_state::{RunState, State};
 

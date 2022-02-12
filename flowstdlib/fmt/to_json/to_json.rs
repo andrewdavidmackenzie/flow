@@ -1,38 +1,44 @@
+use flow_macro::flow_function;
 use serde_json::Value;
 
-use flow_macro::flow_function;
-
 #[flow_function]
-fn _to_json(inputs: &[Value]) -> (Option<Value>, RunAgain) {
+fn _to_json(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
     let input = &inputs[0];
 
     if input.is_null() {
-        (Some(Value::Null), RUN_AGAIN)
-    } else if input.is_string() {
+        return Ok((Some(Value::Null), RUN_AGAIN))
+    }
+
+    if input.is_string() {
         match input.as_str() {
             Some(string) => match serde_json::from_str(string) {
-                Ok(json) => (Some(json), RUN_AGAIN),
-                Err(_) => (
-                    Some(serde_json::Value::String(string.to_string())),
-                    RUN_AGAIN,
-                ),
+                Ok(json) => {
+                    return Ok((Some(json), RUN_AGAIN));
+                },
+                Err(_) => {
+                    return Ok((
+                        Some(serde_json::Value::String(string.to_string())),
+                        RUN_AGAIN,
+                    ))
+                },
             },
-            None => (None, RUN_AGAIN),
+            None => bail!("Could not get input as string")
         }
     } else {
-        (Some(input.clone()), RUN_AGAIN)
+        return Ok((Some(input.clone()), RUN_AGAIN));
     }
 }
 
 #[cfg(test)]
 mod test {
-    use std::collections::HashMap;
     use serde_json::{json, Value};
+    use std::collections::HashMap;
+
     use super::_to_json;
 
     fn test_to_json(string: &str, expected_value: Value) {
         let inputs = vec![json!(string)];
-        let (result, _) = _to_json(&inputs);
+        let (result, _) = _to_json(&inputs).expect("_to_json() failed");
 
         match result {
             Some(value) => {

@@ -216,8 +216,8 @@ mod test {
 
     use flowcore::model::function_definition::FunctionDefinition;
     use flowcore::model::io::IO;
-    use flowcore::model::route::Route;
     use flowcore::model::output_connection::{OutputConnection, Source};
+    use flowcore::model::route::Route;
 
     use super::{get_paths, run_optional_command};
     use super::out_of_date;
@@ -326,18 +326,18 @@ mod test {
         FunctionDefinition::new(
             "Stdout".into(),
             false,
-            "stdout.rs".to_string(),
+            "test.rs".to_string(),
             "print".into(),
-            vec![],
+            vec![IO::new(vec!("String".into()), Route::default())],
             vec![IO::new(vec!("String".into()), Route::default())],
             Url::parse(&format!(
                 "file://{}/{}",
                 env!("CARGO_MANIFEST_DIR"),
-                "tests/test-functions/stdio/stdout"
+                "tests/test-functions/test/test"
             ))
             .expect("Could not create source Url"),
             Route::from("/flow0/stdout"),
-            Some("tests/test-functions/stdio/stdout".to_string()),
+            Some("tests/test-functions/test/test".to_string()),
             vec![OutputConnection::new(
                 Source::default(),
                 1,
@@ -361,7 +361,7 @@ mod test {
         let target_dir = tempdir::TempDir::new("flow")
             .expect("Could not create TempDir during testing")
             .into_path();
-        let expected_output_wasm = target_dir.join("stdout.wasm");
+        let expected_output_wasm = target_dir.join("test.wasm");
 
         let (impl_source_path, impl_wasm_path) =
             get_paths(&target_dir, &function).expect("Error in 'get_paths'");
@@ -373,7 +373,7 @@ mod test {
                     .parent()
                     .expect("Error getting Manifest Dir")
                     .display(),
-                "flowc/tests/test-functions/stdio/stdout.rs"
+                "flowc/tests/test-functions/test/test.rs"
             ),
             impl_source_path
                 .to_str()
@@ -393,7 +393,7 @@ mod test {
         let target_dir = tempdir::TempDir::new("flow")
             .expect("Could not create TempDir during testing")
             .into_path();
-        let expected_output_wasm = target_dir.join("stdout.wasm");
+        let expected_output_wasm = target_dir.join("test.wasm");
 
         let (wasm_destination, built) = super::compile_implementation(
             &target_dir,
@@ -416,7 +416,7 @@ mod test {
         let target_dir = tempdir::TempDir::new("flow")
             .expect("Could not create TempDir during testing")
             .into_path();
-        let expected_output_wasm = target_dir.join("stdout.wasm");
+        let expected_output_wasm = target_dir.join("test.wasm");
         let _ = fs::remove_file(&expected_output_wasm);
 
         #[cfg(feature = "debugger")]
@@ -444,7 +444,7 @@ mod test {
         let target_dir = tempdir::TempDir::new("flow")
             .expect("Could not create TempDir during testing")
             .into_path();
-        let expected_output_wasm = target_dir.join("stdout.wasm");
+        let expected_output_wasm = target_dir.join("test.wasm");
         let _ = fs::remove_file(&expected_output_wasm);
 
         #[cfg(feature = "debugger")]
@@ -471,7 +471,7 @@ mod test {
         let target_dir = tempdir::TempDir::new("flow")
             .expect("Could not create TempDir during testing")
             .into_path();
-        let expected_output_wasm = target_dir.join("stdout.wasm");
+        let expected_output_wasm = target_dir.join("test.wasm");
 
         let _ = fs::remove_file(&expected_output_wasm);
         write(&expected_output_wasm, b"file touched during testing")

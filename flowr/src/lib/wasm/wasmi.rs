@@ -1,5 +1,5 @@
-use flowcore::lib_provider::Provider;
 use flowcore::{Implementation, RunAgain};
+use flowcore::lib_provider::Provider;
 use log::{error, info, trace};
 use serde_json::Value;
 use std::cmp::max;
@@ -56,7 +56,7 @@ fn send_byte_array(instance: &ModuleRef, memory: &MemoryRef, bytes: &[u8]) -> u3
 }
 
 impl Implementation for WasmExecutor {
-    fn run(&self, inputs: &[Value]) -> (Option<Value>, RunAgain) {
+    fn run(&self, inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
         if let (Ok(module_ref), Ok(memory_ref)) = (self.module.lock(), self.memory.lock()) {
             // setup module memory with the serde serialization of `inputs: Vec<Vec<Value>>`
             if let Ok(input_data) = serde_json::to_vec(&inputs) {

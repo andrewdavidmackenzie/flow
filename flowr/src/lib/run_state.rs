@@ -461,7 +461,7 @@ impl RunState {
                     implementation,
                     input_set,
                     connections,
-                    result: (None, false),
+                    result: Ok((None, false)),
                 })
             }
             Err(e) => {
@@ -485,7 +485,7 @@ impl RunState {
     pub fn complete_job(
         &mut self,
         #[cfg(feature = "metrics")] metrics: &mut Metrics,
-        job: Job,
+        job: &Job,
         #[cfg(feature = "debugger")] debugger: &mut Debugger,
     ) {
         trace!(
@@ -497,54 +497,56 @@ impl RunState {
         #[cfg(feature = "checks")]
         let job_id = job.job_id;
 
-        let output_value = job.result.0;
-        let function_can_run_again = job.result.1;
-        let mut loopback_value_sent = false;
+        if let Ok(result) = &job.result {
+            let output_value = &result.0;
+            let function_can_run_again = result.1;
+            let mut loopback_value_sent = false;
 
-        // if it produced an output value
-        if let Some(output_v) = output_value {
-            debug!("Job #{}:\tOutputs: {:?}", job.job_id, output_v);
+            // if it produced an output value
+            if let Some(output_v) = output_value {
+                debug!("Job #{}:\tOutputs: {:?}", job.job_id, output_v);
 
-            for destination in &job.connections {
-                let value_to_send = match &destination.source {
-                    Output(route) => output_v.pointer(route),
-                    Input(index) => job.input_set.get(*index),
-                };
+                for destination in &job.connections {
+                    let value_to_send = match &destination.source {
+                        Output(route) => output_v.pointer(route),
+                        Input(index) => job.input_set.get(*index),
+                    };
 
-                if let Some(value) = value_to_send {
-                    if job.function_id == destination.function_id {
-                        loopback_value_sent = true;
+                    if let Some(value) = value_to_send {
+                        if job.function_id == destination.function_id {
+                            loopback_value_sent = true;
+                        }
+                        self.send_value(
+                            job.function_id,
+                            job.flow_id,
+                            destination,
+                            value,
+                            #[cfg(feature = "metrics")]
+                            metrics,
+                            #[cfg(feature = "debugger")]
+                            debugger,
+                        );
+                    } else {
+                        debug!(
+                            "Job #{}:\t\tNo value found at '{}'",
+                            job.job_id, &destination.source
+                        );
                     }
-                    self.send_value(
-                        job.function_id,
-                        job.flow_id,
-                        destination,
-                        value,
-                        #[cfg(feature = "metrics")]
-                        metrics,
-                        #[cfg(feature = "debugger")]
-                        debugger,
-                    );
-                } else {
-                    debug!(
-                        "Job #{}:\t\tNo value found at '{}'",
-                        job.job_id, &destination.source
-                    );
                 }
             }
+
+            // if the function can run again, then refill inputs from any possible initializers
+            if function_can_run_again {
+                self.refill_inputs(job.function_id, job.flow_id, loopback_value_sent);
+            } else {
+                self.mark_as_completed(job.function_id);
+            }
+
+            self.remove_from_busy(job.function_id);
+
+            // need to do flow unblocks as that could affect other functions even if this one cannot run again
+            self.unblock_flows(job.flow_id, job.job_id);
         }
-
-        // if the function can run again, then refill inputs from any possible initializers
-        if function_can_run_again {
-            self.refill_inputs(job.function_id, job.flow_id, loopback_value_sent);
-        } else {
-            self.mark_as_completed(job.function_id);
-        }
-
-        self.remove_from_busy(job.function_id);
-
-        // need to do flow unblocks as that could affect other functions even if this one cannot run again
-        self.unblock_flows(job.flow_id, job.job_id);
 
         #[cfg(feature = "checks")]
         self.check_invariants(job_id);
@@ -1135,7 +1137,8 @@ mod test {
     use serde_json::json;
     use serde_json::Value;
 
-    use flowcore::Implementation;
+    use flowcore::{Implementation, RunAgain};
+    use flowcore::errors::Result;
     use flowcore::model::input::Input;
     use flowcore::model::input::InputInitializer::Once;
     use flowcore::model::output_connection::{OutputConnection, Source};
@@ -1147,7 +1150,7 @@ mod test {
     struct TestImpl {}
 
     impl Implementation for TestImpl {
-        fn run(&self, _inputs: &[Value]) -> (Option<Value>, bool) {
+        fn run(&self, _inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
             unimplemented!()
         }
     }
@@ -1259,7 +1262,7 @@ mod test {
             flow_id: 0,
             implementation: test_impl(),
             input_set: vec![json!(1)],
-            result: (Some(json!(1)), true),
+            result: Ok((Some(json!(1)), true)),
             connections: vec![out_conn],
         }
     }
@@ -1670,7 +1673,7 @@ mod test {
             state.complete_job(
                 #[cfg(feature = "metrics")]
                 &mut metrics,
-                output,
+                &output,
                 #[cfg(feature = "debugger")]
                 &mut debugger,
             );
@@ -1736,7 +1739,7 @@ mod test {
             state.complete_job(
                 #[cfg(feature = "metrics")]
                 &mut metrics,
-                output,
+                &output,
                 #[cfg(feature = "debugger")]
                 &mut debugger,
             );
@@ -1752,7 +1755,7 @@ mod test {
                 flow_id: 0,
                 implementation: super::test_impl(),
                 input_set: vec![json!(1)],
-                result: (None, true),
+                result: Ok((None, true)),
                 connections: vec![],
             }
         }
@@ -1798,7 +1801,7 @@ mod test {
             state.complete_job(
                 #[cfg(feature = "metrics")]
                 &mut metrics,
-                job,
+                &job,
                 #[cfg(feature = "debugger")]
                 &mut debugger,
             );
@@ -1844,7 +1847,7 @@ mod test {
             state.complete_job(
                 #[cfg(feature = "metrics")]
                 &mut metrics,
-                job,
+                &job,
                 #[cfg(feature = "debugger")]
                 &mut debugger,
             );
@@ -1916,7 +1919,7 @@ mod test {
             state.complete_job(
                 #[cfg(feature = "metrics")]
                 &mut metrics,
-                output,
+                &output,
                 #[cfg(feature = "debugger")]
                 &mut debugger,
             );
@@ -1973,7 +1976,7 @@ mod test {
             state.complete_job(
                 #[cfg(feature = "metrics")]
                 &mut metrics,
-                output,
+                &output,
                 #[cfg(feature = "debugger")]
                 &mut debugger,
             );
@@ -2046,7 +2049,7 @@ mod test {
             state.complete_job(
                 #[cfg(feature = "metrics")]
                 &mut metrics,
-                output,
+                &output,
                 #[cfg(feature = "debugger")]
                 &mut debugger,
             );
@@ -2136,13 +2139,13 @@ mod test {
                 flow_id: 0,
                 implementation: super::test_impl(),
                 input_set: vec![json!(1)],
-                result: (Some(json!(1)), true),
+                result: Ok((Some(json!(1)), true)),
                 connections: vec![connection_to_0, connection_to_1],
             };
             state.complete_job(
                 #[cfg(feature = "metrics")]
                 &mut metrics,
-                job,
+                &job,
                 #[cfg(feature = "debugger")]
                 &mut debugger,
             );
@@ -2163,7 +2166,7 @@ mod test {
             state.complete_job(
                 #[cfg(feature = "metrics")]
                 &mut metrics,
-                job,
+                &job,
                 #[cfg(feature = "debugger")]
                 &mut debugger,
             );
@@ -2176,7 +2179,7 @@ mod test {
             state.complete_job(
                 #[cfg(feature = "metrics")]
                 &mut metrics,
-                job,
+                &job,
                 #[cfg(feature = "debugger")]
                 &mut debugger,
             );
@@ -2538,7 +2541,7 @@ mod test {
                 flow_id: 0,
                 implementation: super::test_impl(),
                 input_set: vec![json!(1)],
-                result: (Some(json!(1)), true),
+                result: Ok((Some(json!(1)), true)),
                 connections: vec![],
             };
 
@@ -2546,7 +2549,7 @@ mod test {
             state.complete_job(
                 #[cfg(feature = "metrics")]
                 &mut metrics,
-                job,
+                &job,
                 #[cfg(feature = "debugger")]
                 &mut debugger,
             );

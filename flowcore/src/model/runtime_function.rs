@@ -2,7 +2,7 @@
 use std::fmt;
 use std::sync::Arc;
 
-use log::{error, trace};
+use log::trace;
 use serde_derive::{Deserialize, Serialize};
 use serde_json::Value;
 
@@ -50,9 +50,8 @@ pub struct RuntimeFunction {
 struct ImplementationNotFound;
 
 impl Implementation for ImplementationNotFound {
-    fn run(&self, _inputs: &[Value]) -> (Option<Value>, RunAgain) {
-        error!("Implementation not found");
-        (None, false)
+    fn run(&self, _inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
+        bail!("Implementation not found");
     }
 }
 
@@ -385,11 +384,7 @@ mod test {
     #[test]
     fn implementation_not_found() {
         let inf = ImplementationNotFound {};
-        assert_eq!(
-            (None, false),
-            inf.run(&[]),
-            "ImplementationNotFound should return (None, false)"
-        );
+        assert!(inf.run(&[]).is_err());
     }
 
     #[cfg(feature = "debugger")]

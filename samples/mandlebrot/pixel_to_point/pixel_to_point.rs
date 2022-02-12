@@ -16,7 +16,7 @@ pub fn pixel_to_point(
 }
 
 #[flow_function]
-fn pixel_run(inputs: &[Value]) -> (Option<Value>, RunAgain) {
+fn pixel_run(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
     let bounds = inputs[0].as_array().unwrap();
 
     let upper_left = bounds[0].as_array().unwrap();
@@ -44,12 +44,13 @@ fn pixel_run(inputs: &[Value]) -> (Option<Value>, RunAgain) {
 
     let result = Some(json!([pixel, complex_point]));
 
-    (result, true)
+    Ok((result, RUN_AGAIN))
 }
 
 #[cfg(test)]
 mod test {
     use serde_json::{json, Value};
+
     use super::pixel_run;
 
     // bounds = inputs[0]
@@ -66,7 +67,7 @@ mod test {
 
         let inputs: Vec<Value> = vec![bounds, pixel, size];
 
-        let (result, _) = pixel_run(&inputs);
+        let (result, _) = pixel_run(&inputs).expect("pixel_run() failed");
 
         let result_json = result.unwrap();
         let results = result_json.as_array().unwrap();
