@@ -47,6 +47,7 @@ pub const DONT_RUN_AGAIN: RunAgain = false;
 ///
 /// ```
 /// use flowcore::{Implementation, RUN_AGAIN, RunAgain};
+/// use flowcore::errors::Result;
 /// use serde_json::Value;
 /// use serde_json::json;
 ///
