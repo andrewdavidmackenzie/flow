@@ -76,8 +76,8 @@ fn function_input_initialized() {
                     Name::from("print"),
                     "Function alias does not match"
                 );
-                let default_input: &IO = print_function.get_inputs().get(0).unwrap();
-                let initial_value = default_input.get_initializer().clone().unwrap();
+                let default_input: &IO = print_function.get_inputs().get(0).expect("Could not get input 0");
+                let initial_value = default_input.get_initializer().clone().expect("Could not get initializer");
                 match initial_value {
                     Once(one_time) => assert_eq!(one_time, "hello"),
                     _ => panic!("Initializer should have been a Once initializer"),
@@ -107,5 +107,5 @@ fn root_flow_takes_name_from_file() {
 fn load_library() {
     let meta_provider = MetaProvider::new(helper::set_lib_search_path_to_project());
     let path = helper::absolute_file_url_from_relative_path("flowc/tests/test_libs/Cargo.toml");
-    loader::load_metadata(&path, &meta_provider).unwrap();
+    loader::load_metadata(&path, &meta_provider).expect("Could not load metadata");
 }

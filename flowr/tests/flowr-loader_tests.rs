@@ -38,13 +38,14 @@ use flowrlib::loader::Loader;
 
 // Helper function for tests
 fn url_from_rel_path(path: &str) -> Url {
-    let cwd = Url::from_file_path(env::current_dir().unwrap()).unwrap();
-    let source_file = cwd.join(file!()).unwrap();
-    source_file.join(path).unwrap()
+    let cwd = cwd_as_url();
+    let source_file = cwd.join(file!()).expect("Could not join paths");
+    source_file.join(path).expect("Could not join paths")
 }
 
 fn cwd_as_url() -> Url {
-    Url::from_directory_path(env::current_dir().unwrap()).unwrap()
+    Url::from_directory_path(env::current_dir().expect("Could not get CWD"))
+        .expect("Could not create Url from path")
 }
 
 fn create_manifest(functions: Vec<RuntimeFunction>) -> FlowManifest {
@@ -174,10 +175,10 @@ fn load_manifest_from_file() {
 
     let manifest = create_manifest(functions);
 
-    let temp_dir = TempDir::new("flow").unwrap().into_path();
+    let temp_dir = TempDir::new("flow").expect("Coul dno tget temp dir").into_path();
     let manifest_file = temp_dir.join("manifest.json");
-    let _ = write_manifest(&manifest, &manifest_file).unwrap();
-    let manifest_url = Url::from_directory_path(manifest_file).unwrap();
+    let _ = write_manifest(&manifest, &manifest_file).expect("Could not write manifest file");
+    let manifest_url = Url::from_directory_path(manifest_file).expect("Could not create url from directory path");
     let server_provider = MetaProvider::new(set_lib_search_path());
     let client_provider = MetaProvider::new(set_lib_search_path());
 
@@ -218,11 +219,11 @@ fn resolve_lib_implementation_test() {
     // Load library functions provided
     loader
         .add_lib(&provider, get_manifest(), &cwd_as_url())
-        .unwrap();
+        .expect("Could not add library");
 
     loader
         .resolve_implementations(&mut manifest, &manifest_url, &provider)
-        .unwrap();
+        .expect("Could not add library");
 }
 
 #[test]

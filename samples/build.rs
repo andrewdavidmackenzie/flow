@@ -24,7 +24,7 @@ fn main() -> io::Result<()> {
     for entry in fs::read_dir(samples_root)? {
         let e = entry?;
         if e.file_type()?.is_dir() {
-            println!("Building sample '{}'", e.path().to_str().unwrap());
+            println!("Building sample '{}'", e.path().to_str().expect("Could not convert path to string"));
             if compile_sample(&e.path()).is_err() {
                 std::process::exit(1);
             }
@@ -37,7 +37,7 @@ fn main() -> io::Result<()> {
 fn compile_sample(sample_dir: &Path) -> io::Result<()> {
     let mut command = Command::new("flowc");
     // -g for debug symbols, -z to dump graphs, -v warn to show warnings, -s to skip running and only compile the flow
-    let command_args = vec!["-g", "-z", "-v", "warn", "-s", sample_dir.to_str().unwrap()];
+    let command_args = vec!["-g", "-z", "-v", "warn", "-s", sample_dir.to_str().expect("Could not get directory as string")];
 
     let flowc_command = command
         .args(command_args)
