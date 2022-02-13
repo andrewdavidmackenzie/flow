@@ -37,7 +37,7 @@ fn split(input: &str, separator: &str) -> Result<(Option<Vec<String>>, Option<St
     let text = input.trim();
 
     if text.is_empty() {
-        bail!("Trying to split empty text")
+        return Ok((None, None));
     }
 
     if text.len() < 3 {
