@@ -45,11 +45,6 @@ mod test {
 
     use super::_escapes;
 
-    // bounds = inputs[0]
-    //      upper_left = bounds[0];
-    //      lower_right = bounds[1];
-    // pixel = inputs[1]
-    // size = inputs[2]
     #[test]
     fn pixel() {
         let pixel_point = json!([[50, 50], [0.5, 0.5]]);

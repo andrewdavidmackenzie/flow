@@ -1,6 +1,7 @@
 use flowcore::{Implementation, RunAgain};
 use flowcore::lib_provider::Provider;
-use log::{error, info, trace};
+use flowcore::errors::*;
+use log::{info, trace};
 use serde_json::Value;
 use std::cmp::max;
 use std::sync::Arc;
@@ -10,8 +11,6 @@ use wasmi::{
     ExternVal, ImportsBuilder, MemoryRef, Module, ModuleInstance, ModuleRef, NopExternals,
     RuntimeValue, Signature, ValueType,
 };
-
-use crate::errors::*;
 
 const DEFAULT_WASM_FILENAME: &str = "module";
 
@@ -77,52 +76,41 @@ impl Implementation for WasmExecutor {
                         RuntimeValue::I32(result_length) => {
                             trace!("Return length from wasm function of {}", result_length);
                             if result_length > MAX_RESULT_SIZE {
-                                error!(
+                                bail!(
                                     "Return length from wasm function of {} exceed maximum allowed",
                                     result_length
                                 );
-                                (None, true)
                             } else if let Ok(result_data) =
                                 memory_ref.get(input_data_wasm_ptr, result_length as usize)
                             {
                                 if let Ok((result, run_again)) =
                                     serde_json::from_slice(result_data.as_slice())
                                 {
-                                    (result, run_again)
+                                    Ok((result, run_again))
                                 } else {
-                                    (None, true)
+                                    bail!("Could not get json result");
                                 }
                             } else {
-                                error!("could not get() memory_reference");
-                                (None, true)
+                                bail!("could not get() memory_reference");
                             }
                         }
                         _ => {
-                            error!("Unexpected return value from wasm function on invoke_export()");
-                            (None, true)
+                            bail!("Unexpected return value from wasm function on invoke_export()");
                         }
                     },
                     Ok(None) => {
-                        error!(
-                            "None value returned by Wasm invoke_export(): {:?}",
-                            self.source_url
-                        );
-                        error!("Inputs:\n{:?}", inputs);
-                        (None, true)
+                        bail!(format!("None value returned by Wasm invoke_export(): {:?}\nInputs:\n{:?}",
+                            self.source_url, inputs));
                     }
                     Err(err) => {
-                        error!(
-                            "Error returned by Wasm invoke_export() on '{}': {:?}",
-                            self.source_url, err
-                        );
-                        error!("Inputs:\n{:?}", inputs);
-                        (None, true)
+                        bail!("Error returned by Wasm invoke_export() on '{}': {:?}\nInputs:\n{:?}",
+                            self.source_url, err, inputs);
                     }
                 };
             }
         }
 
-        (None, true)
+        Ok((None, true))
     }
 }
 

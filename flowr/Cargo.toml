@@ -18,7 +18,7 @@ name = "flowrlib"
 path = "src/lib/lib.rs"
 
 [features]
-default = ["debugger", "flowstdlib", "metrics", "checks", "wasmtime_runtime"]
+default = ["debugger", "flowstdlib", "metrics", "checks", "wasmi_runtime"]
 debugger = ["flowcore/debugger", "rustyline"] # feature to add the debugger, requires flowcore crate to have feature enabled also
 metrics = []  # feature for tracking of metrics during execution
 checks = []   # feature to perform extra checks during flow execution
