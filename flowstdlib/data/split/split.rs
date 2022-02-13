@@ -3,45 +3,50 @@ use serde_json::{json, Value};
 
 #[flow_function]
 fn _split(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
-    let string = inputs[0].as_str().ok_or("Could not get string")?;
-    let separator = inputs[1].as_str().ok_or("Could not get separator")?;
+    if inputs[0].is_string() {
+        let string = inputs[0].as_str().unwrap_or("");
+        let separator = inputs[1].as_str().unwrap_or("");
 
-    let (partial, token) = split(string, separator)?;
+        let (partial, token) = split(string, separator);
 
-    let mut output_map = serde_json::Map::new();
+        let mut output_map = serde_json::Map::new();
 
-    let mut work_delta: i32 = -1; // we have consumed a string, so one down
+        let mut work_delta: i32 = -1; // we have consumed a string, so one down
 
-    if let Some(partial) = partial {
-        // but we have generated some new strings to be processed by other jobs
-        work_delta += partial.len() as i32;
-        output_map.insert("partial".into(), json!(partial));
-    }
+        if let Some(partial) = partial {
+            // but we have generated some new strings to be processed by other jobs
+            work_delta += partial.len() as i32;
+            output_map.insert("partial".into(), json!(partial));
+        }
 
-    output_map.insert("delta".into(), json!(work_delta));
+        output_map.insert("delta".into(), json!(work_delta));
 
-    if let Some(tok) = token {
-        output_map.insert("token".into(), json!(tok));
-        output_map.insert("token-count".into(), json!(1));
+        if let Some(tok) = token {
+            output_map.insert("token".into(), json!(tok));
+            output_map.insert("token-count".into(), json!(1u64));
+        } else {
+            output_map.insert("token-count".into(), json!(0u64));
+        }
+
+        let output = Value::Object(output_map);
+
+        Ok((Some(output), RUN_AGAIN))
     } else {
-        output_map.insert("token-count".into(), json!(0));
+        Ok((None, RUN_AGAIN))
     }
 
-    let output = Value::Object(output_map);
-
-    Ok((Some(output), RUN_AGAIN))
 }
 
 // Separate an array of text at a separator string close to the center, dividing in two if possible
-fn split(input: &str, separator: &str) -> Result<(Option<Vec<String>>, Option<String>)> {
+fn split(input: &str, separator: &str) -> (Option<Vec<String>>, Option<String>) {
     let text = input.trim();
 
     if text.is_empty() {
-        return Ok((None, None));
+        return (None, None);
     }
 
     if text.len() < 3 {
-        return Ok((None, Some(text.to_string())));
+        return (None, Some(text.to_string()));
     }
 
     let start = 0;
@@ -51,31 +56,31 @@ fn split(input: &str, separator: &str) -> Result<(Option<Vec<String>>, Option<St
     // try and find a separator from middle towards the end
     for point in middle..end {
         // cannot have separator at end
-        if text.get(point..point + 1).ok_or("Could not get text")? == separator {
-            return
-                Ok((Some(vec![
+        if text.get(point..point + 1).expect("Could not get text") == separator {
+            return (
+                Some(vec![
                     text[0..point].to_string(),
                     text[point + 1..text.len()].to_string(),
                 ]),
                 None,
-                ));
+            );
         }
     }
 
     // try and find a separator from middle backwards towards the start
     for point in (start..middle).rev() {
-        if text.get(point..point + 1).ok_or("Coul dno tget text")? == separator {
+        if text.get(point..point + 1).expect("Could not get text") == separator {
             // If we find one return the string upto that  point for further splitting, plus the string from
             // there to the end as a token
-            return Ok((
+            return (
                 Some(vec![text[0..point].to_string()]),
                 Some(text[point + 1..text.len()].to_string()),
-            ));
+            );
         }
     }
 
     // No separator found - return entire string as one entry in the vector
-    Ok((None, Some(text.to_string())))
+    (None, Some(text.to_string()))
 }
 
 #[cfg(test)]
@@ -154,7 +159,7 @@ mod test {
         ];
 
         for test in test_cases {
-            let result = super::split(test.0, " ").expect("split() failed");
+            let result = super::split(test.0, " ");
             let partial = result.0;
             let token = result.1;
 
