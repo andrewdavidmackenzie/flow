@@ -6,7 +6,7 @@ fn _split(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
     let string = inputs[0].as_str().ok_or("Could not get string")?;
     let separator = inputs[1].as_str().ok_or("Could not get separator")?;
 
-    let (partial, token) = split(string, separator);
+    let (partial, token) = split(string, separator)?;
 
     let mut output_map = serde_json::Map::new();
 
@@ -33,15 +33,15 @@ fn _split(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
 }
 
 // Separate an array of text at a separator string close to the center, dividing in two if possible
-fn split(input: &str, separator: &str) -> (Option<Vec<String>>, Option<String>) {
+fn split(input: &str, separator: &str) -> Result<(Option<Vec<String>>, Option<String>)> {
     let text = input.trim();
 
     if text.is_empty() {
-        return (None, None);
+        bail!("Trying to split empty text")
     }
 
     if text.len() < 3 {
-        return (None, Some(text.to_string()));
+        return Ok((None, Some(text.to_string())));
     }
 
     let start = 0;
@@ -51,31 +51,31 @@ fn split(input: &str, separator: &str) -> (Option<Vec<String>>, Option<String>) 
     // try and find a separator from middle towards the end
     for point in middle..end {
         // cannot have separator at end
-        if text.get(point..point + 1).unwrap() == separator {
-            return (
-                Some(vec![
+        if text.get(point..point + 1).ok_or("Could not get text")? == separator {
+            return
+                Ok((Some(vec![
                     text[0..point].to_string(),
                     text[point + 1..text.len()].to_string(),
                 ]),
                 None,
-            );
+                ));
         }
     }
 
     // try and find a separator from middle backwards towards the start
     for point in (start..middle).rev() {
-        if text.get(point..point + 1).unwrap() == separator {
+        if text.get(point..point + 1).ok_or("Coul dno tget text")? == separator {
             // If we find one return the string upto that  point for further splitting, plus the string from
             // there to the end as a token
-            return (
+            return Ok((
                 Some(vec![text[0..point].to_string()]),
                 Some(text[point + 1..text.len()].to_string()),
-            );
+            ));
         }
     }
 
     // No separator found - return entire string as one entry in the vector
-    (None, Some(text.to_string()))
+    Ok((None, Some(text.to_string())))
 }
 
 #[cfg(test)]
@@ -154,7 +154,7 @@ mod test {
         ];
 
         for test in test_cases {
-            let result = super::split(test.0, " ");
+            let result = super::split(test.0, " ").expect("split() failed");
             let partial = result.0;
             let token = result.1;
 

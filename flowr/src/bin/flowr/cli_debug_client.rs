@@ -107,17 +107,14 @@ impl CliDebugClient {
             } else if parts[1].contains(':') {
                 // is an input specifier
                 let sub_parts: Vec<&str> = parts[1].split(':').collect();
-                match (sub_parts[0].parse::<usize>(), sub_parts[1].parse::<usize>()) {
-                    (Ok(destination_function_id), Ok(destination_input_number)) => {
-                        return (
-                            command,
-                            Some(Param::Input((
-                                destination_function_id,
-                                destination_input_number,
-                            ))),
-                        )
-                    }
-                    (_, _) => { /* couldn't parse the process and input numbers */ }
+                if let (Ok(destination_function_id), Ok(destination_input_number)) = (sub_parts[0].parse::<usize>(), sub_parts[1].parse::<usize>()) {
+                    return (
+                        command,
+                        Some(Param::Input((
+                            destination_function_id,
+                            destination_input_number,
+                        ))),
+                    )
                 }
             } else if parts[1].contains("->") {
                 // is a block specifier
