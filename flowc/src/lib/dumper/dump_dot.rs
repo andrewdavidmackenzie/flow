@@ -5,10 +5,10 @@ use std::path::Path;
 
 use serde_json::Value;
 
-use flowcore::model::input::InputInitializer::{Always, Once};
 use flowcore::model::connection::Connection;
 use flowcore::model::flow_definition::FlowDefinition;
 use flowcore::model::function_definition::FunctionDefinition;
+use flowcore::model::input::InputInitializer::{Always, Once};
 use flowcore::model::io::{Find, IOSet};
 use flowcore::model::name::{HasName, Name};
 use flowcore::model::process::Process::{FlowProcess, FunctionProcess};
@@ -266,7 +266,7 @@ fn function_to_dot(function: &FunctionDefinition, functions: &[FunctionDefinitio
         let destination_name = destination_function
             .get_inputs()
             .get(destination.io_number)
-            .unwrap()
+            .expect("Could not get input")
             .name()
             .to_string();
         function_string.push_str(&format!(
