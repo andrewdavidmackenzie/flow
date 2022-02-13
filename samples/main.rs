@@ -170,7 +170,7 @@ mod test {
 
         flowr_child.wait_with_output().expect("Could not get child process output");
 
-        check_test_output(&sample_dir)
+        check_test_output(&sample_dir);
     }
 
     fn compare_and_fail(sample_dir: &Path, expected_name: &str, actual_name: &str) {
@@ -245,12 +245,6 @@ mod test {
 
     #[test]
     #[serial]
-    fn test_mandlebrot() {
-        test_run_sample("mandlebrot");
-    }
-
-    #[test]
-    #[serial]
     fn test_matrix_multiplication_sample() {
         test_run_sample("matrix_mult");
     }
@@ -287,12 +281,6 @@ mod test {
 
     #[test]
     #[serial]
-    fn test_reverse_echo() {
-        test_run_sample("reverse-echo");
-    }
-
-    #[test]
-    #[serial]
     fn test_router() {
         test_run_sample("router");
     }
@@ -301,5 +289,18 @@ mod test {
     #[serial]
     fn test_tokenizer() {
         test_run_sample("tokenizer");
+    }
+
+    #[test]
+    #[serial]
+    fn test_reverse_echo() {
+        test_run_sample("reverse-echo");
+    }
+
+    #[ignore]
+    #[test]
+    #[serial]
+    fn test_mandlebrot() {
+        test_run_sample("mandlebrot");
     }
 }
