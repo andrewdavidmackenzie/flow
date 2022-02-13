@@ -5,7 +5,7 @@ docs = "DESCRIPTION.md"
 source = "lib://context/stdio/readline"
 
 [[process]]
-source = "reverse/reverse"
+source = "lib://flowstdlib/fmt/reverse"
 
 [[process]]
 source = "lib://context/stdio/stdout"
@@ -15,5 +15,5 @@ from = "readline/string"
 to = "reverse"
 
 [[connection]]
-from = "reverse"
+from = "reverse/reversed"
 to = "stdout"
