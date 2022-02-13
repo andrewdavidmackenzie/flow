@@ -297,6 +297,7 @@ mod test {
         test_run_sample("reverse-echo");
     }
 
+    // This is the only sample that is using provided implementations and hence is executing WASM
     #[ignore]
     #[test]
     #[serial]
