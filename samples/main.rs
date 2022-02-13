@@ -136,7 +136,7 @@ mod test {
     use serial_test::serial;
 
     fn test_run_sample(name: &str) {
-        let flowr =  &super::get_flowr().expect("Could not get flowr"));
+        let flowr =  &super::get_flowr().expect("Could not get flowr");
         let sample_dir = Path::new(env!("CARGO_MANIFEST_DIR")).join(name);
 
         // Remove any previous output
