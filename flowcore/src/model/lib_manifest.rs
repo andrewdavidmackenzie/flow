@@ -315,7 +315,7 @@ mod test {
         let locator = lib_manifest
             .locators
             .get(&Url::parse("lib://flowrlib/test-dyn-lib/add2").expect("Create Url error"))
-            .unwrap();
+            .expect("Could not get locator for Url");
         match locator {
             Wasm(source) => assert_eq!(source, "add2.wasm"),
             _ => panic!("Expected type 'Wasm' but found another type"),
