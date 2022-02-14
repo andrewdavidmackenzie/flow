@@ -82,19 +82,12 @@ impl Implementation for WasmExecutor {
                                 );
                             }
 
-                            if let Ok(result_data) =
-                                memory_ref.get(input_data_wasm_ptr, result_length as usize)
-                            {
-                                if let Ok((result, run_again)) =
-                                    serde_json::from_slice(result_data.as_slice())
-                                {
-                                    Ok((result, run_again))
-                                } else {
-                                    bail!("Could not get json result");
-                                }
-                            } else {
-                                bail!("could not get() memory_reference");
-                            }
+                            let result_data = memory_ref.get(input_data_wasm_ptr, result_length as usize)
+                                .chain_err(|| "Could not get wasm memory reference")?;
+                            let result = serde_json::from_slice(result_data.as_slice())
+                                .chain_err(|| "Could not convert returned data to json")?;
+                            trace!("WASM run() function invocation Result = {:?}", result);
+                            result
                         }
                         _ => {
                             bail!("Unexpected return value from wasm function on invoke_export()");

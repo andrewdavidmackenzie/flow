@@ -1,0 +1,9 @@
+function = "reverse"
+source = "reverse.rs"
+type = "rust"
+
+[[input]]
+type = "String"
+
+[[output]]
+type = "String"

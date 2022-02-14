@@ -291,14 +291,14 @@ mod test {
         test_run_sample("tokenizer");
     }
 
+    // This sample uses provided implementations and hence is executing WASM
     #[test]
     #[serial]
     fn test_reverse_echo() {
         test_run_sample("reverse-echo");
     }
 
-    // This is the only sample that is using provided implementations and hence is executing WASM
-    #[ignore]
+    // This sample uses provided implementations and hence is executing WASM
     #[test]
     #[serial]
     fn test_mandlebrot() {
