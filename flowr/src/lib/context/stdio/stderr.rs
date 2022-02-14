@@ -16,10 +16,6 @@ pub struct Stderr {
 
 impl Implementation for Stderr {
     fn run(&self, inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
-        if inputs.len() != 1 {
-            bail!("Incorrect number if inputs for stderr");
-        }
-
         let input = &inputs[0];
 
         let mut server = self.server_connection.lock()

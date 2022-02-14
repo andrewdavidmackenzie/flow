@@ -16,10 +16,6 @@ pub struct FileWrite {
 
 impl Implementation for FileWrite {
     fn run(&self, inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
-        if inputs.len() != 2 {
-            bail!("Incorrect number of inputs for file_write");
-        }
-
         let filename = &inputs[0];
         let bytes = &inputs[1];
 

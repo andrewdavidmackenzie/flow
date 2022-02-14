@@ -55,8 +55,10 @@ fn load_function_definition(path: &Path) -> FunctionDefinition {
 // function from the vector of Values passed in.
 // Full of hacks as TokenStream2 from into_token_stream() doesn't implement PartialEq to be
 // able to compare it with a quote!() version of what I'm expecting
-fn input_conversion(definition: &FunctionDefinition, definition_file_path: PathBuf,
-                    implementation_ast: &ItemFn, implementation_file_path: PathBuf) -> Ident {
+fn input_conversion(definition: &FunctionDefinition,
+                    definition_file_path: PathBuf,
+                    implementation_ast: &ItemFn,
+                    implementation_file_path: PathBuf) -> Ident {
     let implementation_name = &implementation_ast.sig.ident;
     let implemented_inputs = &implementation_ast.sig.inputs;
 
@@ -65,8 +67,11 @@ fn input_conversion(definition: &FunctionDefinition, definition_file_path: PathB
         let input = implemented_inputs.first()
             .expect("the 'flow' macro could not get the implementation function's arguments");
 
-        if input.into_token_stream().to_string() ==
-               quote! { inputs : &[Value] }.to_string() {
+        let _input_checker = quote! {
+                        // runtime code to check the number of inputs matches the definition
+        };
+
+        if input.into_token_stream().to_string() == quote! { inputs : &[Value] }.to_string() {
             return format_ident!("inputs");
         }
     }
@@ -112,7 +117,7 @@ fn check_return_type(return_type: &ReturnType) {
 }
 
 // Generate the code for the implementation struct, including some extra functions to help
-// manage memory and pass parameters to and from wasm from native code
+// manage memory and pass parameters to and from a wasm compiled version of it
 fn generate_code(function_implementation: TokenStream,
                  implementation_file_path: PathBuf,
                  definition: FunctionDefinition,
@@ -124,8 +129,19 @@ fn generate_code(function_implementation: TokenStream,
 
     check_return_type(&implementation_ast.sig.output);
 
-    let inputs = input_conversion(&definition, definition_file_path,
+    let input_list = input_conversion(&definition, definition_file_path,
                          &implementation_ast, implementation_file_path);
+
+    let number_of_defined_inputs = definition.inputs.len();
+
+    // generate code that does a runtime check on the number of values in the 'inputs' array
+    // matches the number of inputs in the FunctionDefinition
+    let input_number_check = quote! {
+        // check at run time that the number of values in inputs matches the inputs number expected
+        if inputs.len() != #number_of_defined_inputs {
+            bail!("'inputs' does not have the expected number of input values");
+        }
+    };
 
     // Generate the code that wraps the provided function, including a copy of the function itself
     let docs_comment = if !definition.docs.is_empty() {
@@ -184,7 +200,7 @@ fn generate_code(function_implementation: TokenStream,
     let gen = quote! {
         #[allow(unused_imports)]
         use flowcore::Implementation;
-        use flowcore::{RUN_AGAIN, RunAgain};
+        use flowcore::{RUN_AGAIN, DONT_RUN_AGAIN, RunAgain};
         use flowcore::errors::*;
 
         #wasm_boilerplate
@@ -198,8 +214,9 @@ fn generate_code(function_implementation: TokenStream,
         impl Implementation for #struct_name {
             fn run(&self, inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
 //                #input_conversion
+                #input_number_check
 
-                #implementation_name(#inputs)
+                #implementation_name(#input_list)
             }
         }
 

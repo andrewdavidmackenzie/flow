@@ -16,10 +16,6 @@ pub struct ImageBuffer {
 
 impl Implementation for ImageBuffer {
     fn run(&self, inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
-        if inputs.len() != 4 {
-            bail!("Incorrect number of inputs for image_buffer");
-        }
-
         let pixel = inputs[0].as_array().ok_or("Could not get pixel")?;
         let value = inputs[1].as_array().ok_or("Could not get value")?;
         let size = inputs[2].as_array().ok_or("Could not get size")?;

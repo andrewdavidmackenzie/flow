@@ -6,15 +6,11 @@ use serde_json::Value;
 fn _reverse(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
     let mut value = None;
 
-    if inputs.len() == 1 {
-        let input = &inputs[0];
-        if let Value::String(ref s) = input {
-            value = Some(json!(s.chars().rev().collect::<String>()));
-        }
-        Ok((value, RUN_AGAIN))
-    } else {
-        Err(Error::from("Incorrect number of inputs for reverse()"))
+    let input = &inputs[0];
+    if let Value::String(ref s) = input {
+        value = Some(json!(s.chars().rev().collect::<String>()));
     }
+    Ok((value, RUN_AGAIN))
 }
 
 #[cfg(test)]
@@ -23,11 +19,6 @@ mod test {
     use serde_json::json;
 
     use super::_reverse;
-
-    #[test]
-    fn invalid_input() {
-        assert!(_reverse(&[]).is_err());
-    }
 
     #[test]
     fn send_string() {

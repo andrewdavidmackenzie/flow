@@ -16,9 +16,6 @@ pub struct Stdout {
 
 impl Implementation for Stdout {
     fn run(&self, inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
-        if inputs.len() != 1 {
-            bail!("Incorrect number of inputs for stdout");
-        }
         let input = &inputs[0];
 
         // Gain sole access to send to the client to avoid mixing output from other functions
