@@ -141,6 +141,10 @@ fn generate_code(function_implementation: TokenStream,
 
     let struct_name = format_ident!("{}", FunctionDefinition::camel_case(&definition.name.to_string()));
 
+    // This code will be compile dto wasm along with the Implementation's run() function
+    // and it will be running on the wasm side - hence it includes code to build the serde_json
+    // input structure expected by run(), and build a flat memory return from the serde_json
+    // returned from run()
     let wasm_boilerplate = quote! {
         use std::os::raw::c_void;
 
