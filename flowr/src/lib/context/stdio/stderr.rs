@@ -55,14 +55,6 @@ mod test {
 
     #[test]
     #[serial]
-    fn invalid_input() {
-        let server_connection = wait_for_then_send(ServerMessage::StderrEof, ClientMessage::Ack);
-        let stderr = &Stderr { server_connection } as &dyn Implementation;
-        assert!(stderr.run(&[]).is_err());
-    }
-
-    #[test]
-    #[serial]
     fn send_null() {
         let server_connection = wait_for_then_send(ServerMessage::StderrEof, ClientMessage::Ack);
         let stderr = &Stderr { server_connection } as &dyn Implementation;

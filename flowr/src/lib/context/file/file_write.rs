@@ -51,18 +51,6 @@ mod test {
 
     #[test]
     #[serial]
-    fn write_file_invalid() {
-        let file_path = "/fake/write_test";
-        let file_contents = "test text".as_bytes().to_vec();
-        let inputs = [json!(file_path)]; // No contents parameter
-        let file_write_message = ServerMessage::Write(file_path.to_string(), file_contents);
-        let server_connection = wait_for_then_send(file_write_message, ClientMessage::Ack);
-        let writer = &FileWrite { server_connection } as &dyn Implementation;
-        assert!(writer.run(&inputs).is_err());
-    }
-
-    #[test]
-    #[serial]
     fn write_file() {
         let file_path = "/fake/write_test";
         let file_contents = "test text".as_bytes().to_vec();

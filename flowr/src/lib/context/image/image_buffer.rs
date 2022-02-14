@@ -57,18 +57,6 @@ mod test {
 
     #[test]
     #[serial]
-    fn missing_parameters() {
-        let pixel = (0, 0);
-        let inputs = [json!(pixel)]; // Missing
-        let pixel = ServerMessage::PixelWrite(pixel, (0, 0, 0), (1, 1), "image_buffer.png".into());
-
-        let server_connection = wait_for_then_send(pixel, ClientMessage::Ack);
-        let buffer = &ImageBuffer { server_connection } as &dyn Implementation;
-        assert!(buffer.run(&inputs).is_err());
-    }
-
-    #[test]
-    #[serial]
     fn invalid_parameters() {
         let pixel = (0, 0);
         let color = (1, 2, 3);
