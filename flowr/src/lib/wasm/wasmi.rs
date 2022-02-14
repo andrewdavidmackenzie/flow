@@ -80,7 +80,9 @@ impl Implementation for WasmExecutor {
                                     "Return length from wasm function of {} exceed maximum allowed",
                                     result_length
                                 );
-                            } else if let Ok(result_data) =
+                            }
+
+                            if let Ok(result_data) =
                                 memory_ref.get(input_data_wasm_ptr, result_length as usize)
                             {
                                 if let Ok((result, run_again)) =
