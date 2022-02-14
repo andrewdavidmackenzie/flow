@@ -16,24 +16,24 @@ pub fn pixel_to_point(
 }
 
 #[flow_function]
-fn pixel_run(inputs: &[Value]) -> (Option<Value>, RunAgain) {
-    let bounds = inputs[0].as_array().unwrap();
+fn pixel_run(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
+    let bounds = inputs[0].as_array().ok_or("Could not get array")?;
 
-    let upper_left = bounds[0].as_array().unwrap();
-    let upper_left_c = [upper_left[0].as_f64().unwrap() as f64,
-                                upper_left[1].as_f64().unwrap() as f64];
+    let upper_left = bounds[0].as_array().ok_or("Could not get array")?;
+    let upper_left_c = [upper_left[0].as_f64().ok_or("Could not get f64")? as f64,
+                                upper_left[1].as_f64().ok_or("Could not get f64")? as f64];
 
-    let lower_right = bounds[1].as_array().unwrap();
-    let lower_right_c = [lower_right[0].as_f64().unwrap() as f64,
-                                lower_right[1].as_f64().unwrap() as f64];
+    let lower_right = bounds[1].as_array().ok_or("Could not get array")?;
+    let lower_right_c = [lower_right[0].as_f64().ok_or("Could not get f64")? as f64,
+                                lower_right[1].as_f64().ok_or("Could not get f64")? as f64];
 
-    let pixel = inputs[1].as_array().unwrap();
-    let x = pixel[0].as_i64().unwrap() as usize;
-    let y = pixel[1].as_i64().unwrap() as usize;
+    let pixel = inputs[1].as_array().ok_or("Could not get array")?;
+    let x = pixel[0].as_i64().ok_or("Could not get i64")? as usize;
+    let y = pixel[1].as_i64().ok_or("Could not get i64")? as usize;
 
-    let size = inputs[2].as_array().unwrap();
-    let width = size[0].as_i64().unwrap() as usize;
-    let height = size[1].as_i64().unwrap() as usize;
+    let size = inputs[2].as_array().ok_or("Could not get array")?;
+    let width = size[0].as_i64().ok_or("Could not get i64")? as usize;
+    let height = size[1].as_i64().ok_or("Could not get i64")? as usize;
 
     let complex_point = pixel_to_point(
         [width, height], // size
@@ -44,12 +44,13 @@ fn pixel_run(inputs: &[Value]) -> (Option<Value>, RunAgain) {
 
     let result = Some(json!([pixel, complex_point]));
 
-    (result, true)
+    Ok((result, RUN_AGAIN))
 }
 
 #[cfg(test)]
 mod test {
     use serde_json::{json, Value};
+
     use super::pixel_run;
 
     // bounds = inputs[0]
@@ -66,18 +67,18 @@ mod test {
 
         let inputs: Vec<Value> = vec![bounds, pixel, size];
 
-        let (result, _) = pixel_run(&inputs);
+        let (result, _) = pixel_run(&inputs).expect("pixel_run() failed");
 
-        let result_json = result.unwrap();
-        let results = result_json.as_array().unwrap();
+        let result_json = result.expect("No result returned");
+        let results = result_json.as_array().expect("Could not get as array");
 
-        let pixel = results[0].as_array().unwrap();
-        let point = results[1].as_array().unwrap();
+        let pixel = results[0].as_array().expect("Could not get as array");
+        let point = results[1].as_array().expect("Could not get as array");
 
         assert_eq!(50, pixel[0]);
         assert_eq!(50, pixel[1]);
-        assert!((0.5 - point[0].as_f64().unwrap()).abs() < f64::EPSILON);
-        assert!((0.5 - point[1].as_f64().unwrap()).abs() < f64::EPSILON);
+        assert!((0.5 - point[0].as_f64().expect("Could not get as f64")).abs() < f64::EPSILON);
+        assert!((0.5 - point[1].as_f64().expect("Could not get as f64")).abs() < f64::EPSILON);
     }
 
     #[test]

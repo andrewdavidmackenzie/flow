@@ -5,6 +5,8 @@
 
 use serde_json::Value;
 
+use crate::errors::*;
+
 /// A set of serializers to read flow models from various text formats based on file extension
 pub mod deserializers;
 
@@ -45,6 +47,7 @@ pub const DONT_RUN_AGAIN: RunAgain = false;
 ///
 /// ```
 /// use flowcore::{Implementation, RUN_AGAIN, RunAgain};
+/// use flowcore::errors::Result;
 /// use serde_json::Value;
 /// use serde_json::json;
 ///
@@ -55,7 +58,7 @@ pub const DONT_RUN_AGAIN: RunAgain = false;
 ///     A compare implementation that takes two numbers and outputs the comparisons between them
 /// */
 /// impl Implementation for Compare {
-///     fn run(&self, mut inputs: &[Value]) -> (Option<Value>, RunAgain) {
+///     fn run(&self, mut inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
 ///         let left = inputs[0].as_i64().unwrap();
 ///         let right = inputs[1].as_i64().unwrap();
 ///
@@ -67,7 +70,7 @@ pub const DONT_RUN_AGAIN: RunAgain = false;
 ///                     "gte" : left >= right
 ///                 });
 ///
-///         (None, RUN_AGAIN)
+///         Ok((None, RUN_AGAIN))
 ///     }
 /// }
 /// ```
@@ -77,5 +80,5 @@ pub const DONT_RUN_AGAIN: RunAgain = false;
 /// function implementing the logic.
 pub trait Implementation: Sync + Send {
     /// The `run` method is used to execute the implementation
-    fn run(&self, inputs: &[Value]) -> (Option<Value>, RunAgain);
+    fn run(&self, inputs: &[Value]) -> Result<(Option<Value>, RunAgain)>;
 }

@@ -5,19 +5,15 @@ docs = "DESCRIPTION.md"
 source = "lib://context/stdio/readline"
 
 [[process]]
-alias = "reverse"
 source = "reverse/reverse"
 
 [[process]]
-alias = "print"
 source = "lib://context/stdio/stdout"
 
 [[connection]]
-name = "normal"
 from = "readline/string"
 to = "reverse"
 
 [[connection]]
-name = "reversed"
-from = "reverse/reversed"
-to = "print"
+from = "reverse"
+to = "stdout"

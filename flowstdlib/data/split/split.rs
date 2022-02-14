@@ -2,7 +2,7 @@ use flow_macro::flow_function;
 use serde_json::{json, Value};
 
 #[flow_function]
-fn _split(inputs: &[Value]) -> (Option<Value>, RunAgain) {
+fn _split(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
     if inputs[0].is_string() {
         let string = inputs[0].as_str().unwrap_or("");
         let separator = inputs[1].as_str().unwrap_or("");
@@ -23,17 +23,18 @@ fn _split(inputs: &[Value]) -> (Option<Value>, RunAgain) {
 
         if let Some(tok) = token {
             output_map.insert("token".into(), json!(tok));
-            output_map.insert("token-count".into(), json!(1));
+            output_map.insert("token-count".into(), json!(1u64));
         } else {
-            output_map.insert("token-count".into(), json!(0));
+            output_map.insert("token-count".into(), json!(0u64));
         }
 
         let output = Value::Object(output_map);
 
-        (Some(output), RUN_AGAIN)
+        Ok((Some(output), RUN_AGAIN))
     } else {
-        (None, RUN_AGAIN)
+        Ok((None, RUN_AGAIN))
     }
+
 }
 
 // Separate an array of text at a separator string close to the center, dividing in two if possible
@@ -55,7 +56,7 @@ fn split(input: &str, separator: &str) -> (Option<Vec<String>>, Option<String>) 
     // try and find a separator from middle towards the end
     for point in middle..end {
         // cannot have separator at end
-        if text.get(point..point + 1).unwrap() == separator {
+        if text.get(point..point + 1).expect("Could not get text") == separator {
             return (
                 Some(vec![
                     text[0..point].to_string(),
@@ -68,7 +69,7 @@ fn split(input: &str, separator: &str) -> (Option<Vec<String>>, Option<String>) 
 
     // try and find a separator from middle backwards towards the start
     for point in (start..middle).rev() {
-        if text.get(point..point + 1).unwrap() == separator {
+        if text.get(point..point + 1).expect("Could not get text") == separator {
             // If we find one return the string upto that  point for further splitting, plus the string from
             // there to the end as a token
             return (
@@ -85,6 +86,7 @@ fn split(input: &str, separator: &str) -> (Option<Vec<String>>, Option<String>) 
 #[cfg(test)]
 mod test {
     use serde_json::json;
+
     use super::_split;
 
     #[test]
@@ -183,7 +185,7 @@ mod test {
             }
 
             let this_input = input_strings.pop().expect("Could not pop value");
-            let (result, _) = _split(&[this_input, separator.clone()]);
+            let (result, _) = _split(&[this_input, separator.clone()]).expect("_split() failed");
 
             let output = result.expect("Could not get the Value from the output");
             if let Some(token) = output.pointer("/token") {
@@ -203,7 +205,7 @@ mod test {
         let test = (json!("  "), 1);
         let separator = json!(" ");
 
-        let (result, _) = _split(&[test.0, separator]);
+        let (result, _) = _split(&[test.0, separator]).expect("_split() failed");
 
         let output = result.expect("Could not get the Value from the output");
         assert!(output.pointer("/token").is_none());
@@ -217,7 +219,7 @@ mod test {
         let test = (json!("the quick brown fox jumped over the lazy dog"), 1);
         let separator = json!(" ");
 
-        let (result, _) = _split(&[test.0, separator]);
+        let (result, _) = _split(&[test.0, separator]).expect("_split() failed");
 
         let output = result.expect("Could not get the Value from the output");
         assert!(output.pointer("/token").is_none());
@@ -234,7 +236,7 @@ mod test {
         let test = (json!("the quick brown fox-jumped-over-the-lazy-dog"), 1);
         let separator = json!(" ");
 
-        let (result, _) = _split(&[test.0, separator]);
+        let (result, _) = _split(&[test.0, separator]).expect("_split() failed");
 
         let output = result.expect("Could not get the Value from the output");
         assert_eq!(
@@ -254,7 +256,7 @@ mod test {
         let test = (json!("the"), -1);
         let separator = json!(" ");
 
-        let (result, _) = _split(&[test.0, separator]);
+        let (result, _) = _split(&[test.0, separator]).expect("_split() failed");
 
         let output = result.expect("Could not get the Value from the output");
         assert!(output.pointer("/partial").is_none());

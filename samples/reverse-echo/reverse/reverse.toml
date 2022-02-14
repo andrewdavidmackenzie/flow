@@ -6,10 +6,4 @@ type = "rust"
 type = "String"
 
 [[output]]
-name = "reversed"
-type = "String"
-
-# TODO remove this now that inputs are always available on the outputs?
-[[output]]
-name = "original"
 type = "String"

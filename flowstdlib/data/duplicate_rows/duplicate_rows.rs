@@ -2,26 +2,26 @@ use flow_macro::flow_function;
 use serde_json::Value;
 
 #[flow_function]
-fn _duplicate_rows(inputs: &[Value]) -> (Option<Value>, RunAgain) {
+fn _duplicate_rows(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
     let mut output_matrix: Vec<Value> = vec![];
 
-    if let Some(factor) = inputs[1].as_i64() {
-        if let Some(matrix) = inputs[0].as_array() {
-            for row in matrix.iter() {
-                for _i in 0..factor {
-                    output_matrix.push(row.clone());
-                }
-            }
+    let factor = inputs[1].as_i64().ok_or("Could not get factor")?;
+    let matrix = inputs[0].as_array().ok_or("Could not get matrix")?;
+
+    for row in matrix.iter() {
+        for _i in 0..factor {
+            output_matrix.push(row.clone());
         }
     }
 
-    (Some(Value::Array(output_matrix)), RUN_AGAIN)
+    Ok((Some(Value::Array(output_matrix)), RUN_AGAIN))
 }
 
 #[cfg(test)]
 mod test {
     use serde_json::{Number, Value};
     use serde_json::json;
+
     use super::_duplicate_rows;
 
     #[test]
@@ -32,7 +32,7 @@ mod test {
 
         let inputs = vec![matrix, json!(2)];
 
-        let (result, _) = _duplicate_rows(&inputs);
+        let (result, _) = _duplicate_rows(&inputs).expect("_duplicate_rows() failed");
 
         let new_matrix = result.expect("Could not get the Value from the output");
         let new_row0 = new_matrix[0].clone();
@@ -78,7 +78,7 @@ mod test {
 
         let inputs = vec![matrix, json!(3)];
 
-        let (result, _) = _duplicate_rows(&inputs);
+        let (result, _) = _duplicate_rows(&inputs).expect("_duplicate_rows() failed");
 
         let new_matrix = result.expect("Could not get the Value from the output");
         let new_row0 = new_matrix[0].clone();

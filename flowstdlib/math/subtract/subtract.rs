@@ -1,46 +1,42 @@
-use serde_json::Value::Number;
-use serde_json::{json, Value};
-
 use flow_macro::flow_function;
+use serde_json::{json, Value};
+use serde_json::Value::Number;
 
 #[flow_function]
-fn _subtract(inputs: &[Value]) -> (Option<Value>, RunAgain) {
+fn _subtract(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
     let input_a = &inputs[0];
     let input_b = &inputs[1];
     let mut value: Option<Value> = None;
 
-    match (&input_a, &input_b) {
-        (&Number(ref a), &Number(ref b)) => {
-            if let Some(a_i64) = a.as_i64() {
-                if let Some(b_i64) = b.as_i64() {
-                    let result = a_i64.checked_sub(b_i64);
-                    if let Some(int) = result {
-                        value = Some(json!(int));
-                    }
+    if let (&Number(ref a), &Number(ref b)) = (&input_a, &input_b) {
+        if let Some(a_i64) = a.as_i64() {
+            if let Some(b_i64) = b.as_i64() {
+                let result = a_i64.checked_sub(b_i64);
+                if let Some(int) = result {
+                    value = Some(json!(int));
                 }
-            } else if let Some(a_u64) = a.as_u64() {
-                if let Some(b_u64) = b.as_u64() {
-                    let result = a_u64.checked_sub(b_u64);
-                    if let Some(int) = result {
-                        value = Some(json!(int));
-                    }
+            }
+        } else if let Some(a_u64) = a.as_u64() {
+            if let Some(b_u64) = b.as_u64() {
+                let result = a_u64.checked_sub(b_u64);
+                if let Some(int) = result {
+                    value = Some(json!(int));
                 }
-            } else if let Some(a_f64) = a.as_f64() {
-                if let Some(b_f64) = b.as_f64() {
-                    let result = a_f64 - b_f64;
-                    if let Some(f) = serde_json::Number::from_f64(result) {
-                        value = Some(Value::Number(f))
-                    }
+            }
+        } else if let Some(a_f64) = a.as_f64() {
+            if let Some(b_f64) = b.as_f64() {
+                let result = a_f64 - b_f64;
+                if let Some(f) = serde_json::Number::from_f64(result) {
+                    value = Some(Value::Number(f))
                 }
-            };
-        }
-        (_, _) => {}
+            }
+        };
     }
 
     if let Some(diff) = value {
-        (Some(json!(diff)), RUN_AGAIN)
+        Ok((Some(json!(diff)), RUN_AGAIN))
     } else {
-        (None, RUN_AGAIN)
+        Ok((None, RUN_AGAIN))
     }
 }
 
@@ -145,7 +141,7 @@ mod test {
         ];
 
         for test in &integer_test_set {
-            let (output, again) = _subtract(&get_inputs(test));
+            let (output, again) = _subtract(&get_inputs(test)).expect("_subtract() failed");
             assert!(again);
             assert_eq!(output, test.2);
         }

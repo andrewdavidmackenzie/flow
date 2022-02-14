@@ -36,9 +36,10 @@ fn args() {
     let meta_provider = MetaProvider::new(helper::set_lib_search_path_to_project());
     let path =
         helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/args/args.toml");
-    let process = loader::load(&path, &meta_provider, &mut HashSet::<(Url, Url)>::new()).unwrap();
+    let process = loader::load(&path, &meta_provider, &mut HashSet::<(Url, Url)>::new())
+        .expect("Could not load test flow");
     if let FlowProcess(ref flow) = process {
-        let _tables = compile::compile(flow).unwrap();
+        let _tables = compile::compile(flow).expect("Could not compile flow");
     } else {
         panic!("Process loaded was not a flow");
     }
@@ -50,9 +51,10 @@ fn object_to_array_connection() {
     let path = helper::absolute_file_url_from_relative_path(
         "flowc/tests/test-flows/object_to_array_connection/object_to_array_connection.toml",
     );
-    let process = loader::load(&path, &meta_provider, &mut HashSet::<(Url, Url)>::new()).unwrap();
+    let process = loader::load(&path, &meta_provider, &mut HashSet::<(Url, Url)>::new())
+        .expect("Could not load test flow");
     if let FlowProcess(ref flow) = process {
-        let _tables = compile::compile(flow).unwrap();
+        let _tables = compile::compile(flow).expect("Could not compile flow");
     } else {
         panic!("Process loaded was not a flow");
     }
@@ -64,7 +66,8 @@ fn context_with_io() {
     let path = helper::absolute_file_url_from_relative_path(
         "flowc/tests/test-flows/context_with_io/context_with_io.toml",
     );
-    let process = loader::load(&path, &meta_provider, &mut HashSet::<(Url, Url)>::new()).unwrap();
+    let process = loader::load(&path, &meta_provider, &mut HashSet::<(Url, Url)>::new())
+        .expect("Could not load test flow");
     if let FlowProcess(ref flow) = process {
         if compile::compile(flow).is_ok() {
             // flow loaded, but has ios
@@ -82,9 +85,10 @@ fn same_name_input_and_output() {
     let path = helper::absolute_file_url_from_relative_path(
         "flowc/tests/test-flows/same-name-parent/same-name-parent.toml",
     );
-    let process = loader::load(&path, &meta_provider, &mut HashSet::<(Url, Url)>::new()).unwrap();
+    let process = loader::load(&path, &meta_provider, &mut HashSet::<(Url, Url)>::new())
+        .expect("Could not load test flow");
     if let FlowProcess(ref flow) = process {
-        let tables = compile::compile(flow).unwrap();
+        let tables = compile::compile(flow).expect("Could not compile flow");
         // If done correctly there should only be two connections
         assert_eq!(2, tables.collapsed_connections.len());
     } else {
@@ -98,16 +102,17 @@ fn same_name_flow_ids() {
     let path = helper::absolute_file_url_from_relative_path(
         "flowc/tests/test-flows/same-name-parent/same-name-parent.toml",
     );
-    let process = loader::load(&path, &meta_provider, &mut HashSet::<(Url, Url)>::new()).unwrap();
+    let process = loader::load(&path, &meta_provider, &mut HashSet::<(Url, Url)>::new())
+        .expect("Could not load test flow");
     if let FlowProcess(ref flow) = process {
-        let tables = compile::compile(flow).unwrap();
+        let tables = compile::compile(flow).expect("Could not compile flow");
 
         // print function in context flow should have flow_id = 0
         let print_function = tables
             .functions
             .iter()
             .find(|f| f.alias() == &Name::from("print"))
-            .unwrap();
+            .expect("Could not find function named print");
         assert_eq!(
             print_function.get_flow_id(),
             0,
@@ -124,7 +129,8 @@ fn connection_to_input_with_constant_initializer() {
     let path = helper::absolute_file_url_from_relative_path(
         "flowc/tests/test-flows/connect_to_constant/connect_to_constant.toml",
     );
-    let process = loader::load(&path, &meta_provider, &mut HashSet::<(Url, Url)>::new()).unwrap();
+    let process = loader::load(&path, &meta_provider, &mut HashSet::<(Url, Url)>::new())
+        .expect("Could not load test flow");
     if let FlowProcess(ref flow) = process {
         if compile::compile(flow).is_ok() {
             panic!("Process should not have loaded due to connection to input with a constant initializer");
@@ -138,19 +144,16 @@ fn connection_to_input_with_constant_initializer() {
 fn no_side_effects() {
     let meta_provider = MetaProvider::new(helper::set_lib_search_path_to_project());
     let path = helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/no_side_effects/no_side_effects.toml");
-    match loader::load(&path, &meta_provider, &mut HashSet::<(Url, Url)>::new()) {
-        Ok(process) => {
-            match process {
-                FlowProcess(ref flow) => {
-                    match compile::compile(flow) {
-                        Ok(_tables) => panic!("Flow should not compile when it has no side-effects"),
-                        Err(e) => assert_eq!("Flow has no side-effects", e.description()),
-                    }
-                }
-                _ => panic!("Did not load a FlowProcess as expected")
+    let process = loader::load(&path, &meta_provider, &mut HashSet::<(Url, Url)>::new())
+        .expect("Could not load test flow");
+    match process {
+        FlowProcess(ref flow) => {
+            match compile::compile(flow) {
+                Ok(_tables) => panic!("Flow should not compile when it has no side-effects"),
+                Err(e) => assert_eq!("Flow has no side-effects", e.description()),
             }
         }
-        Err(e) => panic!("Could not load the test flow as expected: {}", e)
+        _ => panic!("Did not load a FlowProcess as expected")
     }
 }
 
@@ -161,10 +164,9 @@ fn compile_echo_ok() {
         &helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/echo/echo.toml"),
         &meta_provider,
         &mut HashSet::<(Url, Url)>::new(),
-    )
-    .unwrap();
+    ).expect("Could not load test flow");
     if let FlowProcess(ref flow) = process {
-        let _tables = compile::compile(flow).unwrap();
+        let _tables = compile::compile(flow).expect("Could not compile flow");
     } else {
         panic!("Process loaded was not a flow");
     }
@@ -179,8 +181,7 @@ fn compiler_detects_unused_input() {
         ),
         &meta_provider,
         &mut HashSet::<(Url, Url)>::new(),
-    )
-    .unwrap();
+    ).expect("Could not load test flow");
     if let FlowProcess(ref flow) = process {
         assert!(
             compile::compile(flow).is_err(),
@@ -200,8 +201,7 @@ fn compile_detects_connection_to_initialized_input() {
         ),
         &meta_provider,
         &mut HashSet::<(Url, Url)>::new(),
-    )
-    .unwrap();
+    ).expect("Could not load test flow");
     if let FlowProcess(ref flow) = process {
         assert!(
             compile::compile(flow).is_err(),
@@ -261,7 +261,8 @@ fn initialized_output_propagated() {
                         .find(|&f| f.route() == &Route::from("/print_subflow_output/print"))
                     {
                         Some(print_function) => {
-                            let in_input = print_function.get_inputs().get(0).unwrap();
+                            let in_input = print_function.get_inputs().get(0)
+                                .expect("Could not get inputs");
                             let initial_value = in_input.get_initializer();
                             match initial_value {
                                 Some(Once(one_time)) => assert_eq!(one_time, &json!("Hello")), // PASS

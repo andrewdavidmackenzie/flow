@@ -106,7 +106,7 @@ mod test {
             1,
             "Incorrect number of Input initializations parsed"
         );
-        match reference.initializations.get("input1").unwrap() {
+        match reference.initializations.get("input1").expect("Could not get input") {
             Always(_) => panic!("Should have been a Once initializer"),
             Once(value) => assert_eq!(&json!(1), value, "input1 should be initialized to 1"),
         }

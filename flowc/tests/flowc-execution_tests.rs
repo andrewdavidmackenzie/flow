@@ -96,7 +96,7 @@ fn execute_flow(
                 .stdout(Stdio::piped())
                 .stderr(Stdio::piped())
                 .spawn()
-                .unwrap(),
+                .expect("Failed to spawn flowc as server"),
         )
     } else {
         None
@@ -114,7 +114,7 @@ fn execute_flow(
     }
 
     // Append the file path to the manifest to run to the command line args
-    command_args.push(filepath.to_str().unwrap());
+    command_args.push(filepath.to_str().expect("Could not convert path to string"));
 
     // Append the flow arguments to the end of the command line
     for test_arg in &test_args {
@@ -128,16 +128,17 @@ fn execute_flow(
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .spawn()
-        .unwrap();
+        .expect("Could not spawn flowr child process");
 
     // send it stdin from the "${testname}.stdin" file
-    write!(runner.stdin.unwrap(), "{}", input).unwrap();
+    write!(runner.stdin.expect("Could not get stdin"), "{}", input)
+        .expect("Could not write to stdin");
 
     // read it's stdout
     let mut output = String::new();
     if let Some(ref mut stdout) = runner.stdout {
         for line in BufReader::new(stdout).lines() {
-            output.push_str(&format!("{}\n", &line.unwrap()));
+            output.push_str(&format!("{}\n", &line.expect("Could not read line")));
         }
     }
 
@@ -145,14 +146,14 @@ fn execute_flow(
     let mut err = String::new();
     if let Some(ref mut stderr) = runner.stderr {
         for line in BufReader::new(stderr).lines() {
-            err.push_str(&format!("{}\n", &line.unwrap()));
+            err.push_str(&format!("{}\n", &line.expect("Coul dnot read line")));
         }
     }
 
     // If a server was started - then kill it
     if let Some(mut server_child) = server {
         println!("Killing 'flowr' server");
-        server_child.kill().unwrap();
+        server_child.kill().expect("Failed to kill server child process");
     }
 
     (output, err)
@@ -162,12 +163,12 @@ fn test_args(test_dir: &Path, test_name: &str) -> Vec<String> {
     let test_args = format!("{}.args", test_name);
     let mut args_file = test_dir.to_path_buf();
     args_file.push(test_args);
-    let f = File::open(&args_file).unwrap();
+    let f = File::open(&args_file).expect("Could not open args file for test");
     let f = BufReader::new(f);
 
     let mut args = Vec::new();
     for line in f.lines() {
-        args.push(line.unwrap());
+        args.push(line.expect("Could not get line to append to"));
     }
     args
 }
@@ -181,16 +182,16 @@ fn load_flow(test_dir: &Path, test_name: &str, search_path: Simpath) -> Process 
         &MetaProvider::new(search_path),
         &mut HashSet::<(Url, Url)>::new(),
     )
-    .unwrap()
+    .expect("Could not load process")
 }
 
 fn get(test_dir: &Path, file_name: &str) -> String {
     let mut expected_file = test_dir.to_path_buf();
     expected_file.push(file_name);
-    let mut f = File::open(&expected_file).unwrap();
+    let mut f = File::open(&expected_file).expect("Could not open file");
     let mut buffer = Vec::new();
-    f.read_to_end(&mut buffer).unwrap();
-    String::from_utf8(buffer).unwrap()
+    f.read_to_end(&mut buffer).expect("Could not read from file");
+    String::from_utf8(buffer).expect("Could not convert to String")
 }
 
 fn execute_test(test_name: &str, search_path: Simpath, separate_processes: bool) {
@@ -199,10 +200,11 @@ fn execute_test(test_name: &str, search_path: Simpath, separate_processes: bool)
     let test_dir = root_dir.join(&format!("flowc/tests/test-flows/{}", test_name));
 
     if let FlowProcess(ref flow) = load_flow(&test_dir, test_name, search_path) {
-        let tables = compile::compile(flow).unwrap();
+        let tables = compile::compile(flow).expect("Could not compile flow");
         let dir =
-            TempDir::new("flow").unwrap();
-        let manifest_path = write_manifest(flow, true, dir.into_path(), test_name, &tables).unwrap();
+            TempDir::new("flow").expect("Could not get temp dir");
+        let manifest_path = write_manifest(flow, true, dir.into_path(), test_name, &tables)
+            .expect("Could not write manifest file");
         let test_args = test_args(&test_dir, test_name);
         let input = get(&test_dir, &format!("{}.stdin", test_name));
         let (actual_stdout, actual_stderr) =
@@ -287,7 +289,6 @@ fn two_destinations() {
     execute_test("two_destinations", search_path, false);
 }
 
-#[cfg(target_os = "linux")]
 #[test]
 #[serial]
 fn hello_world_client_server() {

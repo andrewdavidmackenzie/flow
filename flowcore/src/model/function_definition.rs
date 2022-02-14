@@ -112,8 +112,7 @@ impl HasRoute for FunctionDefinition {
 
 impl FunctionDefinition {
     fn default_url() -> Url {
-        #[allow(clippy::unwrap_used)]
-        Url::parse("file://").unwrap()
+        Url::parse("file://").expect("Could not create default_url")
     }
 
     /// Create a new function - used mainly for testing as Functions are usually deserialized

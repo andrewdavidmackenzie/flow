@@ -7,9 +7,9 @@ use url::Url;
 
 use crate::deserializers::deserializer::get_deserializer;
 use crate::errors::*;
-use crate::model::metadata::MetaData;
-use crate::lib_provider::Provider;
 use crate::Implementation;
+use crate::lib_provider::Provider;
+use crate::model::metadata::MetaData;
 
 /// The default name used for a Library  Manifest file if none is specified
 pub const DEFAULT_LIB_JSON_MANIFEST_FILENAME: &str = "manifest";
@@ -168,12 +168,12 @@ mod test {
     use url::Url;
 
     use crate::errors::Result;
-    use crate::model::metadata::MetaData;
+    use crate::Implementation;
+    use crate::lib_provider::Provider;
     use crate::model::lib_manifest::{
         ImplementationLocator, ImplementationLocator::Wasm, LibraryManifest,
     };
-    use crate::lib_provider::Provider;
-    use crate::Implementation;
+    use crate::model::metadata::MetaData;
 
     pub struct TestProvider {
         test_content: &'static str,
@@ -242,7 +242,7 @@ mod test {
         struct TestImpl {}
 
         impl Implementation for TestImpl {
-            fn run(&self, _inputs: &[Value]) -> (Option<Value>, bool) {
+            fn run(&self, _inputs: &[Value]) -> Result<(Option<Value>, bool)> {
                 unimplemented!()
             }
         }
@@ -315,7 +315,7 @@ mod test {
         let locator = lib_manifest
             .locators
             .get(&Url::parse("lib://flowrlib/test-dyn-lib/add2").expect("Create Url error"))
-            .unwrap();
+            .expect("Could not get locator for Url");
         match locator {
             Wasm(source) => assert_eq!(source, "add2.wasm"),
             _ => panic!("Expected type 'Wasm' but found another type"),

@@ -19,8 +19,10 @@ fn main() {
     let args: Vec<String> = std::env::args().collect();
 
     if args.len() != 5 {
-        writeln!(std::io::stderr(), "Usage:   {} FILE PIXELS UPPERLEFT LOWERRIGHT", args[0]).unwrap();
-        writeln!(std::io::stderr(), "Example: {} mandel.png 1000x750 -1.2,0.35 -1,0.20", args[0]).unwrap();
+        writeln!(std::io::stderr(), "Usage:   {} FILE PIXELS UPPERLEFT LOWERRIGHT", args[0])
+            .expect("Could not write");
+        writeln!(std::io::stderr(), "Example: {} mandel.png 1000x750 -1.2,0.35 -1,0.20", args[0])
+            .expect("Could not write");
         std::process::exit(1);
     }
 
@@ -82,9 +84,9 @@ fn render_row(pixels: &mut [u8], bounds: (usize, usize), row_index: usize,
 
 /// Write the buffer 'pixels', whose dimensions are given by 'bounds', to the file named 'filename'
 fn write_bitmap(filename: &PathBuf, pixels: &[u8], bounds: (usize, usize)) {
-    let output = File::create(filename).unwrap();
+    let output = File::create(filename).expect("Could not create file");
     let encoder = PngEncoder::new(output);
-    encoder.encode(&pixels, bounds.0 as u32, bounds.1 as u32, ColorType::Rgb8).unwrap();
+    encoder.encode(&pixels, bounds.0 as u32, bounds.1 as u32, ColorType::Rgb8).expect("Could not encode bytes as PNG");
 }
 
 #[cfg(test)]

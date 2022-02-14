@@ -2,29 +2,29 @@ use flow_macro::flow_function;
 use serde_json::{json, Value};
 
 #[flow_function]
-fn _enumerate(inputs: &[Value]) -> (Option<Value>, RunAgain) {
+fn _enumerate(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
     let mut output_array: Vec<(usize, Value)> = vec![];
 
-    if let Some(array) = inputs[0].as_array() {
-        for (index, value) in array.iter().enumerate() {
-            output_array.push((index, value.clone()));
-        }
+    let array = inputs[0].as_array().ok_or("Could not get array")?;
+    for (index, value) in array.iter().enumerate() {
+        output_array.push((index, value.clone()));
     }
 
-    (Some(json!(output_array)), RUN_AGAIN)
+    Ok((Some(json!(output_array)), RUN_AGAIN))
 }
 
 #[cfg(test)]
 mod test {
     use serde_json::{Number, Value};
     use serde_json::json;
+
     use super::_enumerate;
 
     #[test]
     fn enumerate() {
         let array = json!(["a", "b"]);
 
-        let (result, _) = _enumerate(&[array]);
+        let (result, _) = _enumerate(&[array]).expect("_enumerate() failed");
 
         let output = result.expect("Could not get the Value from the output");
         let enumerated_array = output.as_array().expect("Could not get the Array from the output");
@@ -50,7 +50,7 @@ mod test {
     fn enumerate_empty_array() {
         let array = json!([]);
 
-        let (result, _) = _enumerate(&[array]);
+        let (result, _) = _enumerate(&[array]).expect("_enumerate() failed");
 
         let output = result.expect("Could not get the Value from the output");
         let enumerated_array = output.as_array().expect("Could not get the Value from the output");

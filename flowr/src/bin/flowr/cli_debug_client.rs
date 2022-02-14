@@ -107,17 +107,14 @@ impl CliDebugClient {
             } else if parts[1].contains(':') {
                 // is an input specifier
                 let sub_parts: Vec<&str> = parts[1].split(':').collect();
-                match (sub_parts[0].parse::<usize>(), sub_parts[1].parse::<usize>()) {
-                    (Ok(destination_function_id), Ok(destination_input_number)) => {
-                        return (
-                            command,
-                            Some(Param::Input((
-                                destination_function_id,
-                                destination_input_number,
-                            ))),
-                        )
-                    }
-                    (_, _) => { /* couldn't parse the process and input numbers */ }
+                if let (Ok(destination_function_id), Ok(destination_input_number)) = (sub_parts[0].parse::<usize>(), sub_parts[1].parse::<usize>()) {
+                    return (
+                        command,
+                        Some(Param::Input((
+                            destination_function_id,
+                            destination_input_number,
+                        ))),
+                    )
                 }
             } else if parts[1].contains("->") {
                 // is a block specifier
@@ -207,9 +204,9 @@ impl CliDebugClient {
     */
     fn process_event(&mut self, event: DebugServerMessage) -> Result<DebugClientMessage> {
         match event {
-            JobCompleted(job_id, function_id, opt_output) => {
-                println!("Job #{} completed by Function #{}", job_id, function_id);
-                if let Some(output) = opt_output {
+            JobCompleted(job) => {
+                println!("Job #{} completed by Function #{}", job.job_id, job.function_id);
+                if let Ok((Some(output), _)) = job.result {
                     println!("\tOutput value: '{}'", &output);
                 }
             }
@@ -326,8 +323,8 @@ mod test {
 
     use flowcore::model::input::Input;
     use flowcore::model::input::InputInitializer::Once;
-    use flowcore::model::runtime_function::RuntimeFunction;
     use flowcore::model::output_connection::{OutputConnection, Source};
+    use flowcore::model::runtime_function::RuntimeFunction;
     use flowrlib::coordinator::Submission;
     use flowrlib::run_state::{RunState, State};
 

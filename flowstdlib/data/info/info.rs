@@ -19,7 +19,7 @@ fn type_string(value: &Value) -> String {
 }
 
 #[flow_function]
-fn _info(inputs: &[Value]) -> (Option<Value>, RunAgain) {
+fn _info(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
     let mut output_map = serde_json::Map::new();
 
     let (rows, cols) = match &inputs[0] {
@@ -38,19 +38,20 @@ fn _info(inputs: &[Value]) -> (Option<Value>, RunAgain) {
     output_map.insert("columns".into(), json!(cols));
     output_map.insert("type".into(), json!(type_string(&inputs[0])));
 
-    (Some(Value::Object(output_map)), RUN_AGAIN)
+    Ok((Some(Value::Object(output_map)), RUN_AGAIN))
 }
 
 #[cfg(test)]
 mod test {
     use serde_json::{Map, Value};
     use serde_json::json;
+
     use super::_info;
 
     #[test]
     fn info_on_number() {
         let inputs = vec![json!(1)];
-        let (result, _) = _info(&inputs);
+        let (result, _) = _info(&inputs).expect("_info() failed");
         let output_map = result.expect("Could not get the Value from the output");
 
         assert_eq!(output_map.pointer("/type").expect("Could not get the /type from the output"), &json!("Number"));
@@ -61,7 +62,7 @@ mod test {
     #[test]
     fn info_on_boolean() {
         let inputs = vec![json!(true)];
-        let (result, _) = _info(&inputs);
+        let (result, _) = _info(&inputs).expect("_info() failed");
         let output_map = result.expect("Could not get the Value from the output");
 
         assert_eq!(output_map.pointer("/type").expect("Could not get the /type from the output"), &json!("Boolean"));
@@ -72,7 +73,7 @@ mod test {
     #[test]
     fn info_on_string() {
         let string = json!("Hello");
-        let (result, _) = _info(&[string]);
+        let (result, _) = _info(&[string]).expect("_info() failed");
         let output_map = result.expect("Could not get the Value from the output");
 
         assert_eq!(output_map.pointer("/type").expect("Could not get the /type from the output"), &json!("String"));
@@ -83,7 +84,7 @@ mod test {
     #[test]
     fn info_on_null() {
         let inputs = vec![Value::Null];
-        let (result, _) = _info(&inputs);
+        let (result, _) = _info(&inputs).expect("_info() failed");
         let output_map = result.expect("Could not get the Value from the output");
 
         assert_eq!(output_map.pointer("/type").expect("Could not get the /type from the output"), &json!("Null"));
@@ -94,7 +95,7 @@ mod test {
     #[test]
     fn info_on_array_of_number() {
         let inputs = vec![json!([1, 2, 3])];
-        let (result, _) = _info(&inputs);
+        let (result, _) = _info(&inputs).expect("_info() failed");
         let output_map = result.expect("Could not get the Value from the output");
 
         assert_eq!(output_map.pointer("/type").expect("Could not get the /type from the output"), &json!("Array/Number"));
@@ -105,7 +106,7 @@ mod test {
     #[test]
     fn info_on_array_of_array_of_number() {
         let array_array_numbers = json!([[1, 2, 3], [4, 5, 6]]);
-        let (result, _) = _info(&[array_array_numbers]);
+        let (result, _) = _info(&[array_array_numbers]).expect("_info() failed");
         let output_map = result.expect("Could not get the Value from the output");
 
         assert_eq!(
@@ -122,7 +123,7 @@ mod test {
         map.insert("0".into(), json!(1));
         map.insert("1".into(), json!(2));
         let inputs = vec![Value::Object(map)];
-        let (result, _) = _info(&inputs);
+        let (result, _) = _info(&inputs).expect("_info() failed");
         let output_map = result.expect("Could not get the Value from the output");
 
         assert_eq!(output_map.pointer("/type").expect("Could not get the /type from the output"), &json!("Map/Number"));
@@ -136,7 +137,7 @@ mod test {
         map.insert("0".into(), json!([1, 2]));
         map.insert("1".into(), json!([3, 4]));
         let inputs = vec![Value::Object(map)];
-        let (result, _) = _info(&inputs);
+        let (result, _) = _info(&inputs).expect("_info() failed");
         let output_map = result.expect("Could not get the Value from the output");
 
         assert_eq!(

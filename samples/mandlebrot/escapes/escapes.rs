@@ -20,15 +20,15 @@ pub fn escapes(c: Complex<f64>, limit: u64) -> u64 {
 }
 
 #[flow_function]
-fn _escapes(inputs: &[Value]) -> (Option<Value>, RunAgain) {
-    let pixel_point = inputs[0].as_array().unwrap();
+fn _escapes(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
+    let pixel_point = inputs[0].as_array().ok_or("Could not get as array")?;
 
-    let pixel = pixel_point[0].as_array().unwrap();
-    let point = pixel_point[1].as_array().unwrap();
+    let pixel = pixel_point[0].as_array().ok_or("Could not get as array")?;
+    let point = pixel_point[1].as_array().ok_or("Could not get as array")?;
 
     let c = Complex {
-        re: point[0].as_f64().unwrap(),
-        im: point[1].as_f64().unwrap(),
+        re: point[0].as_f64().ok_or("Could not get as f64")?,
+        im: point[1].as_f64().ok_or("Could not get as f64")?,
     };
 
     let value = escapes(c, 255);
@@ -36,32 +36,28 @@ fn _escapes(inputs: &[Value]) -> (Option<Value>, RunAgain) {
     // Fake Grey via RGB for now
     let result = Some(json!([pixel, [value, value, value]]));
 
-    (result, true)
+    Ok((result, RUN_AGAIN))
 }
 
 #[cfg(test)]
 mod test {
     use serde_json::{json, Value};
+
     use super::_escapes;
 
-    // bounds = inputs[0]
-    //      upper_left = bounds[0];
-    //      lower_right = bounds[1];
-    // pixel = inputs[1]
-    // size = inputs[2]
     #[test]
     fn pixel() {
         let pixel_point = json!([[50, 50], [0.5, 0.5]]);
 
         let inputs: Vec<Value> = vec![pixel_point];
-        let (result, _) = _escapes(&inputs);
+        let (results, _) = _escapes(&inputs).expect("_escapes() failed");
 
-        let result_json = result.unwrap();
-        let results = result_json.as_array().unwrap();
+        let results_json = results.expect("No result returned");
+        let results_array = results_json.as_array().expect("Could not get as array");
 
-        let pixel = results[0].as_array().unwrap();
-        let value_array = results[1].as_array().unwrap();
-        let value = value_array[0].as_i64().unwrap() as u8;
+        let pixel = results_array[0].as_array().expect("Could not get as array");
+        let value_array = results_array[1].as_array().expect("Could not get as array");
+        let value = value_array[0].as_i64().expect("Could not get as i64") as u8;
 
         assert_eq!(50, pixel[0]);
         assert_eq!(50, pixel[1]);

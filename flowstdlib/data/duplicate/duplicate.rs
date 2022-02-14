@@ -2,23 +2,23 @@ use flow_macro::flow_function;
 use serde_json::Value;
 
 #[flow_function]
-fn _duplicate(inputs: &[Value]) -> (Option<Value>, RunAgain) {
+fn _duplicate(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
     let value = &inputs[0];
 
     let mut output_array = vec![];
 
-    if let Some(factor) = inputs[1].as_i64() {
-        for _i in 0..factor {
-            output_array.push(value.clone());
-        }
+    let factor = inputs[1].as_i64().ok_or("Could not get factor")?;
+    for _i in 0..factor {
+        output_array.push(value.clone());
     }
 
-    (Some(Value::Array(output_array)), RUN_AGAIN)
+    Ok((Some(Value::Array(output_array)), RUN_AGAIN))
 }
 
 #[cfg(test)]
 mod test {
     use serde_json::json;
+
     use super::_duplicate;
 
     #[test]
@@ -27,7 +27,7 @@ mod test {
         let factor = json!(2);
         let inputs: Vec<serde_json::Value> = vec![value, factor];
 
-        let (output, _) = _duplicate(&inputs);
+        let (output, _) = _duplicate(&inputs).expect("_duplicate() failed");
 
         assert_eq!(output.expect("Could not get the Value from the output"), json!([42, 42]));
     }
@@ -38,7 +38,7 @@ mod test {
         let factor = json!(2);
         let inputs: Vec<serde_json::Value> = vec![value, factor];
 
-        let (output, _) = _duplicate(&inputs);
+        let (output, _) = _duplicate(&inputs).expect("_duplicate() failed");
 
         assert_eq!(output.expect("Could not get the Value from the output"), json!([[1, 2, 3], [1, 2, 3]]));
     }
@@ -49,7 +49,7 @@ mod test {
         let factor = json!(2);
         let inputs: Vec<serde_json::Value> = vec![value, factor];
 
-        let (output, _) = _duplicate(&inputs);
+        let (output, _) = _duplicate(&inputs).expect("_duplicate() failed");
 
         assert_eq!(
             output.expect("Could not get the Value from the output"),

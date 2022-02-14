@@ -4,13 +4,14 @@ use std::sync::Arc;
 use serde_derive::{Deserialize, Serialize};
 use serde_json::Value;
 
-use flowcore::Implementation;
-use flowcore::model::runtime_function::RuntimeFunction;
+use flowcore::{Implementation, RunAgain};
+use flowcore::errors::*;
 use flowcore::model::output_connection::OutputConnection;
+use flowcore::model::runtime_function::RuntimeFunction;
 
 /// A `Job` contains the information necessary to manage the execution of a function in the
 /// flow on a set of input values, and then where to send the outputs that maybe produces.
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Serialize, Deserialize)]
 pub struct Job {
     /// Each `Job` has a unique id that increments as jobs are executed
     pub job_id: usize,
@@ -29,9 +30,7 @@ pub struct Job {
     pub implementation: Arc<dyn Implementation>,
     /// The result of the execution with optional output Value and if the function should be run
     /// again in the future
-    pub result: (Option<Value>, bool),
-    /// Optional error produced by the execution of the job
-    pub error: Option<String>,
+    pub result: Result<(Option<Value>, RunAgain)>,
 }
 
 impl fmt::Display for Job {
@@ -43,8 +42,26 @@ impl fmt::Display for Job {
         )?;
         writeln!(f, "Inputs: {:?}", self.input_set)?;
         writeln!(f, "Connections: {:?}", self.connections)?;
-        writeln!(f, "Result: {:?}", self.result)?;
-        write!(f, "Error: {:?}", self.error)
+        writeln!(f, "Result: {:?}", self.result)
+    }
+}
+
+impl Clone for Job {
+    fn clone(&self) -> Self {
+        let result = match &self.result {
+            Ok(r) => Ok(r.clone()),
+            Err(e) => Err(flowcore::errors::Error::from(e.to_string()))
+        };
+
+        Job {
+            job_id: self.job_id,
+            function_id: self.function_id,
+            flow_id: self.flow_id,
+            input_set: self.input_set.clone(),
+            connections: self.connections.clone(),
+            implementation: self.implementation.clone(),
+            result
+        }
     }
 }
 
@@ -65,8 +82,7 @@ mod test {
             input_set: vec![],
             connections: vec![],
             implementation: RuntimeFunction::default_implementation(),
-            result: (None, false),
-            error: None,
+            result: Ok((None, false)),
         };
         println!("Job: {}", job);
     }
@@ -80,13 +96,13 @@ mod test {
             input_set: vec![],
             connections: vec![],
             implementation: RuntimeFunction::default_implementation(),
-            result: (Some(json!(42)), false),
-            error: None,
+            result: Ok((Some(json!(42u64)), false)),
         };
 
         assert_eq!(
-            &json!(42),
+            &json!(42u64),
             job.result
+                .expect("Could not get result")
                 .0
                 .expect("No output value when one was expected")
                 .pointer("")
@@ -106,13 +122,13 @@ mod test {
             input_set: vec![],
             connections: vec![],
             implementation: RuntimeFunction::default_implementation(),
-            result: (Some(json!(value)), false),
-            error: None,
+            result: Ok((Some(json!(value)), false)),
         };
 
         assert_eq!(
             &json!(3),
             job.result
+                .expect("Could not get result")
                 .0
                 .expect("No output value when one was expected")
                 .pointer("/array/2")

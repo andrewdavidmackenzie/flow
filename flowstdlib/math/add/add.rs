@@ -1,10 +1,9 @@
-use serde_json::Value::Number;
-use serde_json::{json, Value};
-
 use flow_macro::flow_function;
+use serde_json::{json, Value};
+use serde_json::Value::Number;
 
 #[flow_function]
-fn _add(inputs: &[Value]) -> (Option<Value>, RunAgain) {
+fn _add(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
     let input_a = &inputs[0];
     let input_b = &inputs[1];
 
@@ -32,9 +31,12 @@ fn _add(inputs: &[Value]) -> (Option<Value>, RunAgain) {
     };
 
     if let Some(total) = sum {
-        (Some(json!(total)), RUN_AGAIN)
+//        let mut output_map = serde_json::Map::new();
+//        output_map.insert("".into(), total);
+//        (Some(Value::Object(output_map)), RUN_AGAIN)
+        Ok((Some(json!(total)), RUN_AGAIN))
     } else {
-        (None, RUN_AGAIN)
+        Ok((None, RUN_AGAIN))
     }
 }
 
@@ -136,17 +138,11 @@ mod test {
                 json!(1.0),
                 json!(1.0),
                 Some(json!(2.0)),
-            ),
-            (
-                // invalid
-                json!(1.0),
-                json!("aaa"),
-                None,
-            ),
+            )
         ];
 
         for test in &integer_test_set {
-            let (output, again) = _add(&get_inputs(test));
+            let (output, again) = _add(&get_inputs(test)).expect("_add() failed");
 
             assert!(again);
             assert_eq!(output, test.2);

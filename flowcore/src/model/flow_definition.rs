@@ -127,7 +127,6 @@ impl fmt::Display for FlowDefinition {
 
 impl Default for FlowDefinition {
     fn default() -> FlowDefinition {
-        #[allow(clippy::unwrap_used)]
         FlowDefinition {
             name: Default::default(),
             inputs: vec![],
@@ -138,7 +137,7 @@ impl Default for FlowDefinition {
             docs: "".to_string(),
             alias: Default::default(),
             id: 0,
-            source_url: Url::parse("file://").unwrap(),
+            source_url: Url::parse("file://").expect("Could not create Url"),
             route: Default::default(),
             subprocesses: Default::default(),
             lib_references: Default::default(),
@@ -182,8 +181,7 @@ impl SetRoute for FlowDefinition {
 impl FlowDefinition {
     /// Return a default value for a Url as part of a flow
     pub fn default_url() -> Url {
-        #[allow(clippy::unwrap_used)]
-        Url::parse("file://").unwrap()
+        Url::parse("file://").expect("Could not create default_url")
     }
 
     /// Set the alias of this flow to the supplied Name

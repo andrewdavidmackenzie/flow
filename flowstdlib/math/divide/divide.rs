@@ -1,23 +1,18 @@
+use flow_macro::flow_function;
 use serde_json::{json, Value};
 
-use flow_macro::flow_function;
-
 #[flow_function]
-fn _divide(inputs: &[Value]) -> (Option<Value>, RunAgain) {
+fn _divide(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
     let mut output_map = serde_json::Map::new();
 
-    if let Some(dividend) = inputs[0].as_f64() {
-        if let Some(divisor) = inputs[1].as_f64() {
-            output_map.insert("dividend".into(), json!(dividend));
-            output_map.insert("divisor".into(), json!(divisor));
-            output_map.insert("result".into(), json!(dividend / divisor));
-            output_map.insert("remainder".into(), json!(dividend % divisor));
-        }
-    }
+    let dividend = inputs[0].as_f64().ok_or("Could not get dividend")?;
+    let divisor = inputs[1].as_f64().ok_or("Could not get divisor")?;
+    output_map.insert("dividend".into(), json!(dividend));
+    output_map.insert("divisor".into(), json!(divisor));
+    output_map.insert("result".into(), json!(dividend / divisor));
+    output_map.insert("remainder".into(), json!(dividend % divisor));
 
-    let output = Value::Object(output_map);
-
-    (Some(output), RUN_AGAIN)
+    Ok((Some(Value::Object(output_map)), RUN_AGAIN))
 }
 
 #[cfg(test)]
@@ -32,7 +27,7 @@ mod test {
         let divisor = json!(test_data.1);
         let inputs: Vec<Value> = vec![dividend, divisor];
 
-        let (output, run_again) = _divide(&inputs);
+        let (output, run_again) = _divide(&inputs).expect("_divide() failed");
         assert!(run_again);
 
         let outputs = output.expect("Could not get the output value");

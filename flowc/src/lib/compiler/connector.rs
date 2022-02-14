@@ -6,10 +6,10 @@ use log::debug;
 use flowcore::model::connection::Connection;
 use flowcore::model::io::{IO, IOType};
 use flowcore::model::name::HasName;
-use flowcore::model::route::HasRoute;
-use flowcore::model::route::Route;
 use flowcore::model::output_connection::{OutputConnection, Source};
 use flowcore::model::output_connection::Source::{Input, Output};
+use flowcore::model::route::HasRoute;
+use flowcore::model::route::Route;
 
 use crate::errors::*;
 use crate::generator::generate::GenerationTables;
@@ -60,7 +60,7 @@ pub fn prepare_function_connections(tables: &mut GenerationTables) -> Result<()>
                         let destination_input = destination_function
                             .get_mut_inputs()
                             .get_mut(destination_input_index)
-                            .unwrap();
+                            .ok_or("Could not get inputs")?;
                         if destination_input.get_initializer().is_none() {
                             destination_input.set_initializer(connection.to_io().get_initializer());
                             debug!("Set initializer on destination function '{}' input at '{}' from connection",
@@ -377,22 +377,22 @@ mod test {
     mod get_source_tests {
         use std::collections::HashMap;
 
-        use flowcore::model::route::Route;
         use flowcore::model::output_connection::Source;
         use flowcore::model::output_connection::Source::Output;
+        use flowcore::model::route::Route;
 
         use super::super::get_source;
 
         /*
-                            Create a HashTable of routes for use in tests.
-                            Each entry (K, V) is:
-                            - Key   - the route to a function's IO
-                            - Value - a tuple of
-                                        - sub-route (or IO name) from the function to be used at runtime
-                                        - the id number of the function in the functions table, to select it at runtime
+                                    Create a HashTable of routes for use in tests.
+                                    Each entry (K, V) is:
+                                    - Key   - the route to a function's IO
+                                    - Value - a tuple of
+                                                - sub-route (or IO name) from the function to be used at runtime
+                                                - the id number of the function in the functions table, to select it at runtime
 
-                            Plus a vector of test cases with the Route to search for and the expected function_id and output sub-route
-                        */
+                                    Plus a vector of test cases with the Route to search for and the expected function_id and output sub-route
+                                */
         #[allow(clippy::type_complexity)]
         fn test_source_routes() -> (
             HashMap<Route, (Source, usize)>,

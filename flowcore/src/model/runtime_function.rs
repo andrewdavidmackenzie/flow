@@ -2,7 +2,7 @@
 use std::fmt;
 use std::sync::Arc;
 
-use log::{error, trace};
+use log::trace;
 use serde_derive::{Deserialize, Serialize};
 use serde_json::Value;
 
@@ -50,9 +50,8 @@ pub struct RuntimeFunction {
 struct ImplementationNotFound;
 
 impl Implementation for ImplementationNotFound {
-    fn run(&self, _inputs: &[Value]) -> (Option<Value>, RunAgain) {
-        error!("Implementation not found");
-        (None, false)
+    fn run(&self, _inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
+        bail!("Implementation not found");
     }
 }
 
@@ -90,7 +89,7 @@ impl fmt::Display for RuntimeFunction {
 }
 
 impl RuntimeFunction {
-    /// Create a new `function` with the specified `name`, `route`, `implementation` etc.
+    /// Create a new `RuntimeFunction` with the specified `name`, `route`, `implementation` etc.
     /// This only needs to be used by compilers or IDE generating `manifests` with functions
     /// The library `flowrlib` just deserializes them from the `manifest`
     /// The Vector of outputs:
@@ -110,12 +109,12 @@ impl RuntimeFunction {
         output_connections: &[OutputConnection],
         include_destination_routes: bool,
     ) -> Self {
-        let mut routes = output_connections.to_vec();
+        let mut connections = output_connections.to_vec();
 
         // Remove destination routes if not wanted
         if !include_destination_routes {
-            for mut r in &mut routes {
-                r.route = String::default();
+            for mut connection in &mut connections {
+                connection.destination = String::default();
             }
         }
 
@@ -128,7 +127,7 @@ impl RuntimeFunction {
             flow_id,
             implementation_location: implementation_location.into(),
             implementation: RuntimeFunction::default_implementation(),
-            output_connections: routes,
+            output_connections: connections,
             inputs,
         }
     }
@@ -385,11 +384,7 @@ mod test {
     #[test]
     fn implementation_not_found() {
         let inf = ImplementationNotFound {};
-        assert_eq!(
-            (None, false),
-            inf.run(&[]),
-            "ImplementationNotFound should return (None, false)"
-        );
+        assert!(inf.run(&[]).is_err());
     }
 
     #[cfg(feature = "debugger")]

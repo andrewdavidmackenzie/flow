@@ -8,6 +8,7 @@ use proc_macro::{Span, TokenStream};
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::{Path, PathBuf};
+
 use proc_macro2::Ident;
 use quote::{format_ident, quote, ToTokens};
 use syn::{ItemFn, parse_macro_input, ReturnType};
@@ -104,7 +105,7 @@ fn input_conversion(definition: &FunctionDefinition, definition_file_path: PathB
 // Hacky but works for now - find a better way to do it
 fn check_return_type(return_type: &ReturnType) {
     assert_eq!(return_type.into_token_stream().to_string(),
-               quote! { -> (Option<Value>, RunAgain)}.to_string(),
+               quote! { -> Result<(Option<Value>, RunAgain)>}.to_string(),
                 "a 'flow_function' macro check failed:\n\
                                     implementation's return type does not match the \
                                     Implementation trait's run() method return type");
@@ -140,6 +141,10 @@ fn generate_code(function_implementation: TokenStream,
 
     let struct_name = format_ident!("{}", FunctionDefinition::camel_case(&definition.name.to_string()));
 
+    // This code will be compile dto wasm along with the Implementation's run() function
+    // and it will be running on the wasm side - hence it includes code to build the serde_json
+    // input structure expected by run(), and build a flat memory return from the serde_json
+    // returned from run()
     let wasm_boilerplate = quote! {
         use std::os::raw::c_void;
 
@@ -180,6 +185,7 @@ fn generate_code(function_implementation: TokenStream,
         #[allow(unused_imports)]
         use flowcore::Implementation;
         use flowcore::{RUN_AGAIN, RunAgain};
+        use flowcore::errors::*;
 
         #wasm_boilerplate
 
@@ -190,7 +196,7 @@ fn generate_code(function_implementation: TokenStream,
         pub struct #struct_name;
 
         impl Implementation for #struct_name {
-            fn run(&self, inputs: &[Value]) -> (Option<Value>, RunAgain) {
+            fn run(&self, inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
 //                #input_conversion
 
                 #implementation_name(#inputs)

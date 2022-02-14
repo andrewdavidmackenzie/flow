@@ -83,20 +83,6 @@ impl Debugger {
         let _ = self.debug_server_connection.receive::<ClientMessage>(WAIT);
     }
 
-    /// Called from the flowrlib coordinator to inform the debugger that a job has completed
-    /// being executed. It is used to inform the debug client of the fact.
-    /// Return values are (display next output, reset execution)
-    pub fn job_completed(&mut self, job: &Job) -> (bool, bool, bool) {
-        let _: Result<DebugClientMessage> =
-            self.debug_server_connection
-                .send_and_receive_response(JobCompleted(
-                    job.job_id,
-                    job.function_id,
-                    job.result.0.clone(),
-                ));
-        (false, false, false)
-    }
-
     /// Check if there is a breakpoint at this job prior to starting executing it.
     /// Return values are (display next output, reset execution)
     pub fn check_prior_to_job(
@@ -197,11 +183,20 @@ impl Debugger {
     /// This is useful for debugging a flow that has an error. Without setting any explicit
     /// breakpoint it will enter the debugger on an error and let the user inspect the flow's
     /// state etc.
-    pub fn job_error(&mut self, state: &RunState, job: Job) -> (bool, bool, bool) {
+    pub fn job_error(&mut self, state: &RunState, job: &Job) -> (bool, bool, bool) {
         let _: Result<DebugClientMessage> = self
             .debug_server_connection
-            .send_and_receive_response(JobError(job));
+            .send_and_receive_response(JobError(job.clone()));
         self.wait_for_command(state)
+    }
+
+    /// Called from the flowrlib coordinator to inform the debug client that a job has completed
+    /// Return values are (display next output, reset execution)
+    pub fn job_completed(&mut self, job: &Job) -> (bool, bool, bool) {
+        let _: Result<DebugClientMessage> =
+            self.debug_server_connection
+                .send_and_receive_response(JobCompleted(job.clone()));
+        (false, false, false)
     }
 
     /// A panic occurred while executing a flow. Let the debug client know, enter the client

@@ -3,6 +3,7 @@ use std::sync::{Arc, Mutex};
 use serde_json::Value;
 
 use flowcore::{DONT_RUN_AGAIN, Implementation, RUN_AGAIN, RunAgain};
+use flowcore::errors::*;
 
 use crate::client_server::ServerConnection;
 use crate::runtime_messages::{ClientMessage, ServerMessage};
@@ -14,27 +15,27 @@ pub struct Readline {
 }
 
 impl Implementation for Readline {
-    fn run(&self, _inputs: &[Value]) -> (Option<Value>, RunAgain) {
-        if let Ok(mut server) = self.server_connection.lock() {
-            return match server.send_and_receive_response(ServerMessage::GetLine) {
-                Ok(ClientMessage::Line(contents)) => {
-                    let mut output_map = serde_json::Map::new();
-                    if let Ok(value) = serde_json::from_str(&contents) {
-                        let _ = output_map.insert("json".into(), value);
-                    };
-                    output_map.insert("string".into(), Value::String(contents));
-                    (Some(Value::Object(output_map)), RUN_AGAIN)
-                }
-                Ok(ClientMessage::GetLineEof) => {
-                    let mut output_map = serde_json::Map::new();
-                    output_map.insert("string".into(), Value::Null);
-                    output_map.insert("json".into(), Value::Null);
-                    (Some(Value::Object(output_map)), DONT_RUN_AGAIN)
-                }
-                _ => (None, DONT_RUN_AGAIN),
-            };
+    fn run(&self, _inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
+        let mut server = self.server_connection.lock()
+            .map_err(|_| "Could not lock server")?;
+
+        match server.send_and_receive_response(ServerMessage::GetLine) {
+            Ok(ClientMessage::Line(contents)) => {
+                let mut output_map = serde_json::Map::new();
+                if let Ok(value) = serde_json::from_str(&contents) {
+                    let _ = output_map.insert("json".into(), value);
+                };
+                output_map.insert("string".into(), Value::String(contents));
+                Ok((Some(Value::Object(output_map)), RUN_AGAIN))
+            }
+            Ok(ClientMessage::GetLineEof) => {
+                let mut output_map = serde_json::Map::new();
+                output_map.insert("string".into(), Value::Null);
+                output_map.insert("json".into(), Value::Null);
+                Ok((Some(Value::Object(output_map)), DONT_RUN_AGAIN))
+            }
+            _ => Ok((None, DONT_RUN_AGAIN)),
         }
-        (None, DONT_RUN_AGAIN)
     }
 }
 
@@ -59,7 +60,7 @@ mod test {
             ClientMessage::Line("line of text".into()),
         );
         let reader = &Readline { server_connection } as &dyn Implementation;
-        let (value, run_again) = reader.run(&[]);
+        let (value, run_again) = reader.run(&[]).expect("_readline() failed");
 
         assert_eq!(run_again, RUN_AGAIN);
 
@@ -79,7 +80,7 @@ mod test {
             ClientMessage::Line("\"json text\"".into()),
         );
         let reader = &Readline { server_connection } as &dyn Implementation;
-        let (value, run_again) = reader.run(&[]);
+        let (value, run_again) = reader.run(&[]).expect("_readline() failed");
 
         assert_eq!(run_again, RUN_AGAIN);
 
@@ -97,7 +98,7 @@ mod test {
         let server_connection =
             wait_for_then_send(ServerMessage::GetLine, ClientMessage::GetLineEof);
         let reader = &Readline { server_connection } as &dyn Implementation;
-        let (value, run_again) = reader.run(&[]);
+        let (value, run_again) = reader.run(&[]).expect("_readline() failed");
 
         assert_eq!(run_again, DONT_RUN_AGAIN);
         let val = value.expect("Could not get value returned from implementation");
