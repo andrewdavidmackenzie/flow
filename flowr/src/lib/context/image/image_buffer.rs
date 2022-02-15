@@ -16,10 +16,6 @@ pub struct ImageBuffer {
 
 impl Implementation for ImageBuffer {
     fn run(&self, inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
-        if inputs.len() != 4 {
-            bail!("Incorrect number of inputs for image_buffer");
-        }
-
         let pixel = inputs[0].as_array().ok_or("Could not get pixel")?;
         let value = inputs[1].as_array().ok_or("Could not get value")?;
         let size = inputs[2].as_array().ok_or("Could not get size")?;
@@ -58,18 +54,6 @@ mod test {
 
     use super::ImageBuffer;
     use super::super::super::test_helper::test::wait_for_then_send;
-
-    #[test]
-    #[serial]
-    fn missing_parameters() {
-        let pixel = (0, 0);
-        let inputs = [json!(pixel)]; // Missing
-        let pixel = ServerMessage::PixelWrite(pixel, (0, 0, 0), (1, 1), "image_buffer.png".into());
-
-        let server_connection = wait_for_then_send(pixel, ClientMessage::Ack);
-        let buffer = &ImageBuffer { server_connection } as &dyn Implementation;
-        assert!(buffer.run(&inputs).is_err());
-    }
 
     #[test]
     #[serial]

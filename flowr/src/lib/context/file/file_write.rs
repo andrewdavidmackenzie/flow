@@ -16,10 +16,6 @@ pub struct FileWrite {
 
 impl Implementation for FileWrite {
     fn run(&self, inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
-        if inputs.len() != 2 {
-            bail!("Incorrect number of inputs for file_write");
-        }
-
         let filename = &inputs[0];
         let bytes = &inputs[1];
 
@@ -52,18 +48,6 @@ mod test {
 
     use super::FileWrite;
     use super::super::super::test_helper::test::wait_for_then_send;
-
-    #[test]
-    #[serial]
-    fn write_file_invalid() {
-        let file_path = "/fake/write_test";
-        let file_contents = "test text".as_bytes().to_vec();
-        let inputs = [json!(file_path)]; // No contents parameter
-        let file_write_message = ServerMessage::Write(file_path.to_string(), file_contents);
-        let server_connection = wait_for_then_send(file_write_message, ClientMessage::Ack);
-        let writer = &FileWrite { server_connection } as &dyn Implementation;
-        assert!(writer.run(&inputs).is_err());
-    }
 
     #[test]
     #[serial]

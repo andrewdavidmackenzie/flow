@@ -16,9 +16,6 @@ pub struct Stdout {
 
 impl Implementation for Stdout {
     fn run(&self, inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
-        if inputs.len() != 1 {
-            bail!("Incorrect number of inputs for stdout");
-        }
         let input = &inputs[0];
 
         // Gain sole access to send to the client to avoid mixing output from other functions
@@ -56,14 +53,6 @@ mod test {
     use crate::runtime_messages::{ClientMessage, ServerMessage};
 
     use super::super::super::test_helper::test::wait_for_then_send;
-
-    #[test]
-    #[serial]
-    fn invalid_input() {
-        let server_connection = wait_for_then_send(ServerMessage::StdoutEof, ClientMessage::Ack);
-        let stderr = &Stdout { server_connection } as &dyn Implementation;
-        assert!(stderr.run(&[]).is_err());
-    }
 
     #[test]
     #[serial]

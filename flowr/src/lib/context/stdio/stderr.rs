@@ -16,10 +16,6 @@ pub struct Stderr {
 
 impl Implementation for Stderr {
     fn run(&self, inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
-        if inputs.len() != 1 {
-            bail!("Incorrect number if inputs for stderr");
-        }
-
         let input = &inputs[0];
 
         let mut server = self.server_connection.lock()
@@ -56,14 +52,6 @@ mod test {
     use crate::runtime_messages::{ClientMessage, ServerMessage};
 
     use super::super::super::test_helper::test::wait_for_then_send;
-
-    #[test]
-    #[serial]
-    fn invalid_input() {
-        let server_connection = wait_for_then_send(ServerMessage::StderrEof, ClientMessage::Ack);
-        let stderr = &Stderr { server_connection } as &dyn Implementation;
-        assert!(stderr.run(&[]).is_err());
-    }
 
     #[test]
     #[serial]
