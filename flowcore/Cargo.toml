@@ -1,6 +1,6 @@
 [package]
 name = "flowcore"
-version = "0.41.0"
+version = "0.42.0"
 authors = ["Andrew Mackenzie <andrew@mackenzie-serres.net>"]
 description = "Structures shared between runtime and clients"
 license = "MIT"

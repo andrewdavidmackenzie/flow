@@ -1,6 +1,6 @@
 [package]
 name = "flowstdlib"
-version = "0.41.0"
+version = "0.42.0"
 authors = ["Andrew Mackenzie <andrew@mackenzie-serres.net>"]
 description = "The standard library of functions and flows for 'flow' programs"
 license = "MIT"
@@ -30,8 +30,8 @@ default = []
 wasm = []
 
 [dependencies]
-flow_macro = {path = "../flow_macro", version = "0.41.0" }
-flowcore = {path = "../flowcore", version = "0.41.0" }
+flow_macro = {path = "../flow_macro", version = "0.42.0" }
+flowcore = {path = "../flowcore", version = "0.42.0" }
 simpath = { version = "~2.3", features = ["urls"]}
 url = { version = "2.2", features = ["serde"] }
 serde_json = "1.0"
