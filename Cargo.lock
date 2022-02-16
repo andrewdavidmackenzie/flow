@@ -444,7 +444,7 @@ dependencies = [
 
 [[package]]
 name = "flow_macro"
-version = "0.40.1"
+version = "0.41.0"
 dependencies = [
  "flowcore",
  "proc-macro2",
@@ -455,7 +455,7 @@ dependencies = [
 
 [[package]]
 name = "flowc"
-version = "0.40.1"
+version = "0.41.0"
 dependencies = [
  "clap",
  "colored",
@@ -475,7 +475,7 @@ dependencies = [
 
 [[package]]
 name = "flowcore"
-version = "0.40.1"
+version = "0.41.0"
 dependencies = [
  "curl",
  "error-chain 0.12.4",
@@ -492,7 +492,7 @@ dependencies = [
 
 [[package]]
 name = "flowr"
-version = "0.40.1"
+version = "0.41.0"
 dependencies = [
  "anyhow",
  "clap",
@@ -522,7 +522,7 @@ dependencies = [
 
 [[package]]
 name = "flowsamples"
-version = "0.40.1"
+version = "0.41.0"
 dependencies = [
  "serial_test",
  "simpath",
@@ -530,7 +530,7 @@ dependencies = [
 
 [[package]]
 name = "flowstdlib"
-version = "0.40.1"
+version = "0.41.0"
 dependencies = [
  "error-chain 0.12.4",
  "flow_macro",
