@@ -1,0 +1,8 @@
+/Users/andrew/workspace/flow/samples/mandlebrot/escapes/flow.UaEScJ4z8VQU/debug/deps/itoa-a1690091bd441207.rmeta: /Users/andrew/.cargo/registry/src/github.com-1ecc6299db9ec823/itoa-1.0.1/src/lib.rs /Users/andrew/.cargo/registry/src/github.com-1ecc6299db9ec823/itoa-1.0.1/src/udiv128.rs
+
+/Users/andrew/workspace/flow/samples/mandlebrot/escapes/flow.UaEScJ4z8VQU/debug/deps/libitoa-a1690091bd441207.rlib: /Users/andrew/.cargo/registry/src/github.com-1ecc6299db9ec823/itoa-1.0.1/src/lib.rs /Users/andrew/.cargo/registry/src/github.com-1ecc6299db9ec823/itoa-1.0.1/src/udiv128.rs
+
+/Users/andrew/workspace/flow/samples/mandlebrot/escapes/flow.UaEScJ4z8VQU/debug/deps/itoa-a1690091bd441207.d: /Users/andrew/.cargo/registry/src/github.com-1ecc6299db9ec823/itoa-1.0.1/src/lib.rs /Users/andrew/.cargo/registry/src/github.com-1ecc6299db9ec823/itoa-1.0.1/src/udiv128.rs
+
+/Users/andrew/.cargo/registry/src/github.com-1ecc6299db9ec823/itoa-1.0.1/src/lib.rs:
+/Users/andrew/.cargo/registry/src/github.com-1ecc6299db9ec823/itoa-1.0.1/src/udiv128.rs:
