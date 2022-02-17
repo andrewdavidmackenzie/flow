@@ -467,17 +467,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "flow_macro"
-version = "0.42.0"
-dependencies = [
- "flowcore",
- "proc-macro2",
- "quote",
- "syn",
- "toml 0.5.8",
-]
-
-[[package]]
 name = "flowc"
 version = "0.42.0"
 dependencies = [
@@ -512,6 +501,17 @@ dependencies = [
  "simpath",
  "toml 0.5.8",
  "url",
+]
+
+[[package]]
+name = "flowmacro"
+version = "0.42.0"
+dependencies = [
+ "flowcore",
+ "proc-macro2",
+ "quote",
+ "syn",
+ "toml 0.5.8",
 ]
 
 [[package]]
@@ -557,8 +557,8 @@ name = "flowstdlib"
 version = "0.42.0"
 dependencies = [
  "error-chain 0.12.4",
- "flow_macro",
  "flowcore",
+ "flowmacro",
  "image",
  "serde_json",
  "simpath",

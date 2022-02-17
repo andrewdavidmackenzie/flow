@@ -30,7 +30,7 @@ default = []
 wasm = []
 
 [dependencies]
-flow_macro = {path = "../flow_macro", version = "0.42" }
+flowmacro = {path = "../flowmacro", version = "0.42" }
 flowcore = {path = "../flowcore", version = "0.42" }
 simpath = { version = "~2.3", features = ["urls"]}
 url = { version = "2.2", features = ["serde"] }

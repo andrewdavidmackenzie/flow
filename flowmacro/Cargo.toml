@@ -1,9 +1,9 @@
 [package]
-name = "flow_macro"
+name = "flowmacro"
 version = "0.42.0"
 description = "Definition of a 'flow' attribute macro to help write implementations"
 license = "MIT"
-documentation = "https://github.com/andrewdavidmackenzie/flow/flow_macro/README.md"
+documentation = "https://github.com/andrewdavidmackenzie/flow/flowmacro/README.md"
 homepage = "http://andrewdavidmackenzie.github.io/flow/"
 repository = "https://github.com/andrewdavidmackenzie/flow/"
 readme = "README.md"

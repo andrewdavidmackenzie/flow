@@ -15,7 +15,7 @@ endif
 .PHONY: all
 all: clippy build test docs trim-docs
 
-# NOTE: I had some link problems with the flow_macro crate on _my_ mac, which was solved using zld
+# NOTE: I had some link problems with the flowmacro crate on _my_ mac, which was solved using zld
 # as per this post https://dsincl12.medium.com/speed-up-your-rust-compiler-macos-d9fbe0f32dbc
 .PHONY: config
 config:
