@@ -1,3 +1,0 @@
-cargo:rustc-cfg=has_error_source
-cargo:rustc-cfg=has_error_description_deprecated
-cargo:rustc-cfg=build="debug"
