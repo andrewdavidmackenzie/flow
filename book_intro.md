@@ -15,6 +15,6 @@ The top-level sections are:
 * [Debugging Flows](docs/debugging/debugger.md)
 * [The Flow Runtime](flowr/src/lib/context/README.md)
 * [The Flow Standard Library](flowstdlib/README.md)
-* [Sample flows](samples/README.md)
+* [Sample flows](flowsamples/README.md)
 * [Developing Flow](docs/developing/overview.md)
 * [Internals of the Flow Project](docs/internals/overview.md)

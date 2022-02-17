@@ -64,7 +64,7 @@ INFO    - Library 'context' loaded.
 DEBUG   - Loading library 'flowstdlib' from 'native'
 INFO    - Library 'flowstdlib' loaded.
 INFO    - Starting 4 executor threads
-DEBUG   - Loading flow manifest from 'file:///Users/andrew/workspace/flow/samples/fibonacci/manifest.json'
+DEBUG   - Loading flow manifest from 'file:///Users/andrew/workspace/flow/flowsamples/fibonacci/manifest.json'
 DEBUG   - Loading libraries used by the flow
 DEBUG   - Resolving implementations
 DEBUG   - Setup 'FLOW_ARGS' with values = '["my-first-flow"]'

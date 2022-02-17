@@ -1,0 +1,34 @@
+[package]
+name = "flowsamples"
+version = "0.42.0"
+authors = ["Andrew Mackenzie <andrew@mackenzie-serres.net>"]
+readme = "README.md"
+description = "A set of sample 'flow' programs"
+license = "MIT"
+documentation = "https://github.com/andrewdavidmackenzie/flow/samples/README.md"
+homepage = "https://andrewdavidmackenzie.github.io/flow/"
+repository = "https://github.com/andrewdavidmackenzie/flow/"
+edition = "2021"
+
+build = "build.rs"
+
+# Avoid a bunch of files that are generated as part of the flowsamples building and/or running
+exclude = ["**/*.dump", "**/*.err", "**/*.dot", "**/*.svg", "failed.output", "Cargo.lock",
+           ".gitignore"]
+
+[badges]
+maintenance = { status = "actively-developed" }
+
+[[bin]]
+name = "flowsamples"
+path = "main.rs"
+
+[build-dependencies]
+simpath = { version = "~2.3", features = ["urls"]}
+
+[dependencies]
+simpath = { version = "~2.3", features = ["urls"]}
+
+[dev-dependencies]
+serial_test = "0.5.0"
+

@@ -7,7 +7,7 @@ not using nested flows or similar.
 You can run this first flow and observe its output from the terminal, while in the project root folder:
 
 ```shell script
-> cargo run -- samples/fibonacci
+> cargo run -- flowsamples/fibonacci
 ```
 
 `flowc` will compile the flow definition (`context.toml`) and generate the `manifest.json` manifest which is 
@@ -17,10 +17,10 @@ then run using `flowr`.
 The flow produces a fibonacci series:
 
 ```shell script
-> cargo run -p flowc -- samples/fibonacci
+> cargo run -p flowc -- flowsamples/fibonacci
    Compiling flowstdlib v0.6.0 (/Users/andrew/workspace/flow/flowstdlib)
     Finished dev [unoptimized + debuginfo] target(s) in 1.75s
-     Running `target/debug/flowc samples/first`
+     Running `target/debug/flowc flowsamples/first`
 1
 2
 3
