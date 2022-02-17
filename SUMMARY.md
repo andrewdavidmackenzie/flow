@@ -116,7 +116,7 @@
 - [Developing flow](docs/developing/overview.md)
 - [Pre-requisites](docs/developing/prereqs.md)
     - [flowcore](flowcore/README.md)
-    - [flow_macro](flow_macro/README.md)
+    - [flowmacro](flowmacro/README.md)
     - [flowc](flowc/README.md)
         - [Test flows](flowc/tests/test-flows/README.md)
             - [hello-world](flowc/tests/test-flows/hello-world/hello-world.md)

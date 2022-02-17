@@ -4,7 +4,7 @@ Here is a summary of the project components, their purpose and a link to their `
 
 * [flowcore](../../flowcore/README.md) - A set of core structs and traits used by `flowr` and `flowc` plus code 
   to fetch content from file/http and resolve library (lib://) references.
-* [flow_macro](../../flow_macro/README.md) - A macro used to help write function implementation code that compile natively
+* [flowmacro](../../flowmacro/README.md) - A macro used to help write function implementation code that compile natively
   and to wasm
 * [flowc](../../flowc/README.md) - The `flowc` flow compiler binary is a CLI built around `flowclib` that 
   takes a number of command line arguments and source files or URLs and compiles the flow or library referenced.
