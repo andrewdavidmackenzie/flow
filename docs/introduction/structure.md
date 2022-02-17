@@ -17,4 +17,4 @@ Here is a summary of the project components, their purpose and a link to their `
       for all flows to interact with the environment and perform IO
 * [flowstdlib](../../flowstdlib/README.md) - the flow "standard library" which contains a set of functions that can be 
   used by flows being defined by the user
-* [samples](../../samples/README.md) - A set of sample flows
+* [samples](../../flowsamples/README.md) - A set of sample flows

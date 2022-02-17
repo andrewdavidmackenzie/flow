@@ -22,7 +22,7 @@ pub mod url_helper;
 
 /// `content` module contains the content providers for files and http/https
 #[cfg(not(target_arch = "wasm32"))]
-mod content;
+pub(crate) mod content;
 
 /// `lib_provider` is used to resolve library references of the type "lib://" using lib search path
 #[cfg(not(target_arch = "wasm32"))]

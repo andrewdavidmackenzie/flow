@@ -1,0 +1,6 @@
+flow = "hello-world"
+
+[[process]]
+alias = "print"
+source = "lib://context/stdio/stdout"
+input.default = {once =  "Hello World!"}

@@ -125,7 +125,7 @@ mod test {
     #[test]
     fn resolve_web() {
         let provider = HttpProvider {};
-        let expected_url = Url::parse("https://raw.githubusercontent.com/andrewdavidmackenzie/flow/master/samples/hello-world/context.toml")
+        let expected_url = Url::parse("https://raw.githubusercontent.com/andrewdavidmackenzie/flow/master/flowcore/tests/test-flows/hello-world/context.toml")
             .expect("Could not form Url");
         let full_url = provider
             .resolve_url(&expected_url, "context", &["toml"])
@@ -136,9 +136,9 @@ mod test {
     #[test]
     fn resolve_by_extension() {
         let provider = HttpProvider {};
-        let input_url = Url::parse("https://raw.githubusercontent.com/andrewdavidmackenzie/flow/master/samples/hello-world/context")
+        let input_url = Url::parse("https://raw.githubusercontent.com/andrewdavidmackenzie/flow/master/flowcore/tests/test-flows/hello-world/context")
             .expect("Could not form Url");
-        let expected_url = Url::parse("https://raw.githubusercontent.com/andrewdavidmackenzie/flow/master/samples/hello-world/context.toml")
+        let expected_url = Url::parse("https://raw.githubusercontent.com/andrewdavidmackenzie/flow/master/flowcore/tests/test-flows/hello-world/context.toml")
             .expect("Could not form Url");
         let full_url = provider
             .resolve_url(&input_url, "context", &["toml"])
@@ -149,9 +149,9 @@ mod test {
     #[test]
     fn resolve_by_last_path_segment() {
         let provider = HttpProvider {};
-        let input_url = Url::parse("https://raw.githubusercontent.com/andrewdavidmackenzie/flow/master/flowstdlib/control/compare_switch")
+        let input_url = Url::parse("https://raw.githubusercontent.com/andrewdavidmackenzie/flow/master/flowcore/tests/test-flows/control/compare_switch")
             .expect("Could not form Url");
-        let expected_url = Url::parse("https://raw.githubusercontent.com/andrewdavidmackenzie/flow/master/flowstdlib/control/compare_switch/compare_switch.toml")
+        let expected_url = Url::parse("https://raw.githubusercontent.com/andrewdavidmackenzie/flow/master/flowcore/tests/test-flows/control/compare_switch/compare_switch.toml")
             .expect("Could not form Url");
         let full_url = provider
             .resolve_url(&input_url, "context", &["toml"])
@@ -162,9 +162,9 @@ mod test {
     #[test]
     fn resolve_default_web() {
         let provider = HttpProvider {};
-        let folder_url = Url::parse("https://raw.githubusercontent.com/andrewdavidmackenzie/flow/master/samples/hello-world")
+        let folder_url = Url::parse("https://raw.githubusercontent.com/andrewdavidmackenzie/flow/master/flowcore/tests/test-flows/hello-world")
             .expect("Could not form Url");
-        let expected_url = Url::parse("https://raw.githubusercontent.com/andrewdavidmackenzie/flow/master/samples/hello-world/context.toml")
+        let expected_url = Url::parse("https://raw.githubusercontent.com/andrewdavidmackenzie/flow/master/flowcore/tests/test-flows/hello-world/context.toml")
             .expect("Could not form Url");
         let full_url = provider
             .resolve_url(&folder_url, "context", &["toml"])
@@ -175,7 +175,7 @@ mod test {
     #[test]
     fn get_github_sample() {
         let provider: &dyn Provider = &HttpProvider;
-        let url = Url::parse("https://raw.githubusercontent.com/andrewdavidmackenzie/flow/master/samples/hello-world/context.toml")
+        let url = Url::parse("https://raw.githubusercontent.com/andrewdavidmackenzie/flow/master/flowcore/tests/test-flows/hello-world/context.toml")
             .expect("Could not form Url");
         let found = provider.get_contents(&url);
         assert!(found.is_ok());
