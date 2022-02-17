@@ -1,12 +1,14 @@
 use std::env;
 use std::io;
+use std::path::Path;
 use std::process::{Command, Stdio};
 
 // Build script to compile the flowstdlib library (compile WASM files and generate manifest) using flowc
 fn main() -> io::Result<()> {
     let lib_root_dir = env!("CARGO_MANIFEST_DIR");
-    let out_dir =
-        env::var("OUT_DIR").map_err(|e| io::Error::new(io::ErrorKind::Other, e.to_string()))?;
+    let root_dir = Path::new(lib_root_dir).parent().expect("Could not get parent directory");
+    let flowstdlib_out_dir = root_dir.join("target/flowstdlb");
+    let out_dir = flowstdlib_out_dir.to_str().expect("Could not convert to str");
 
     // Tell Cargo that if any file changes it should rerun this build script
     println!("cargo:rerun-if-changed={}", lib_root_dir);
@@ -21,10 +23,10 @@ fn main() -> io::Result<()> {
 
     // If the "wasm" feature is activated, then don't set "-n" and flowc will compile implementations to wasm.
     #[cfg(feature = "wasm")]
-    let command_args = vec!["-v", "info", "-g", "-z", "-l", lib_root_dir, "-o", &out_dir];
+    let command_args = vec!["-v", "info", "-g", "-z", "-l", lib_root_dir, "-o", out_dir];
     // If the "wasm" feature is NOT activated, then set "-n" (native only) flag so flowc will not compile to wasm
     #[cfg(not(feature = "wasm"))]
-    let command_args = vec!["-v", "info", "-g", "-z", "-l", lib_root_dir, "-o", &out_dir, "-n"];
+    let command_args = vec!["-v", "info", "-g", "-z", "-l", lib_root_dir, "-o", out_dir, "-n"];
 
 //    println!("cargo:warning=running command 'flowc {}'",command_args.join(" "));
 
