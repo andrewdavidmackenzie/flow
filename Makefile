@@ -61,7 +61,7 @@ endif
 clean:
 	@echo "clean<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
 	@cargo clean
-	@find samples -name "*.wasm" | xargs rm -fd
+	@find flowsamples -name "*.wasm" | xargs rm -fd
 	@find . -type d -name "target" | xargs rm -rf
 
 .PHONY: install-flow

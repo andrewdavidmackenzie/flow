@@ -3,20 +3,24 @@
 
 //! This is the `flowstdlib` standard library of functions for `flow` programs
 
-use std::sync::Arc;
-
-use url::Url;
-
-use errors::*;
-use flowcore::model::metadata::MetaData;
-use flowcore::model::lib_manifest::{ImplementationLocator::Native, LibraryManifest};
-
 /// We'll put our errors in an `errors` module, and other modules in this crate will `use errors::*;`
 /// to get access to everything `error_chain` creates.
 pub mod errors;
 
-// Include the generated library manifest in rust format
-include!(concat!(env!("OUT_DIR"), "/manifest.rs"));
+/// functions from module 'data'
+pub mod data;
+
+/// functions from module 'control'
+pub mod control;
+
+/// functions from module 'math'
+pub mod math;
+
+/// functions from module 'fmt'
+pub mod fmt;
+
+/// manifest
+pub mod manifest;
 
 #[cfg(test)]
 pub mod test {

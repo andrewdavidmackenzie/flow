@@ -482,7 +482,7 @@ impl Coordinator {
             loader
                 .add_lib(
                     provider,
-                    flowstdlib::get_manifest().chain_err(|| "Could not get flowstdlib manifest")?,
+                    flowstdlib::manifest::get_manifest().chain_err(|| "Could not get flowstdlib manifest")?,
                     &flowstdlib_url,
                 )
                 .chain_err(|| "Could not add 'flowstdlib' library to loader")?;

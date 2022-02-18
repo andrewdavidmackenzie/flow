@@ -7,9 +7,8 @@ use log::{debug, info};
 use simpath::Simpath;
 use url::Url;
 
-use flowclib::compiler::{compile_wasm, rust_manifest};
+use flowclib::compiler::compile_wasm;
 use flowclib::compiler::{json_manifest, loader};
-use flowclib::compiler::loader::LibType::RustLib;
 use flowclib::dumper::dump_flow;
 use flowcore::model::lib_manifest::LibraryManifest;
 use flowcore::lib_provider::{MetaProvider, Provider};
@@ -22,7 +21,7 @@ use crate::Options;
 /// Build a library from source and generate a manifest for it so it can be used at runtime when
 /// a flow referencing it is loaded and ran
 pub fn build_lib(options: &Options, provider: &dyn Provider) -> Result<String> {
-    let (metadata, lib_type) = loader::load_metadata(&options.source_url, provider)?;
+    let (metadata, _) = loader::load_metadata(&options.source_url, provider)?;
 
     let name = metadata.name.clone();
     println!(
@@ -54,14 +53,7 @@ pub fn build_lib(options: &Options, provider: &dyn Provider) -> Result<String> {
     let manifest_json_file = json_manifest::manifest_filename(&options.output_dir);
     let json_manifest_exists = manifest_json_file.exists() && manifest_json_file.is_file();
 
-    let manifest_rust_file = rust_manifest::manifest_filename(&options.output_dir);
-    let rust_manifest_exists = if lib_type == RustLib {
-        manifest_rust_file.exists() && manifest_rust_file.is_file()
-    } else {
-        true // we don't care if the rust manifest exists if the lib type is not a rust lib
-    };
-
-    let (message, write_manifests) = if json_manifest_exists && rust_manifest_exists {
+    let (message, write_manifest) = if json_manifest_exists {
         if build_count > 0 {
             ("Library manifest file(s) exists, but implementations were built, writing new file(s)", true)
         } else {
@@ -94,11 +86,8 @@ pub fn build_lib(options: &Options, provider: &dyn Provider) -> Result<String> {
 
     info!("{}", message);
 
-    if write_manifests {
+    if write_manifest {
         json_manifest::write(&lib_manifest, &manifest_json_file)?;
-        if lib_type == RustLib {
-            rust_manifest::write(&lib_root_path, &lib_manifest, &manifest_rust_file)?;
-        }
     }
 
     Ok(format!("    {} {}", "Finished".green(), name))

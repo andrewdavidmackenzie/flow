@@ -2,28 +2,36 @@
 
 See also: [Code docs](http://andrewdavidmackenzie.github.io/flow/code/doc/flowstdlib/index.html)
 
-`flowstdlib` is a standard library of functions anf flows for `flow` programs to use.
+`flowstdlib` is a standard library of functions and flows for `flow` programs to use.
 
-The directory containing this library must be part of `FLOW_LIB_PATH` or specified using an instance of the `-L` 
-command line option to `flowc`, in order for the compiler to be able to find the library `flow` and `function` definitions.
+## Modules
+`flowstdlib` contains the following modules:
+  * [`control`](control/control.md)
+  * [`data`](data/data.md)
+  * [`fmt`](fmt/fmt.md)
+  * [`math`](math/math.md)
 
-Libraries like `flowstdlib` are built using `flowc` with the `-l` option.
+## Use by the Compiler
+In order for the compiler to be able to find the library's `flow` and `function` definitions, the directory containing
+this library must be part of `FLOW_LIB_PATH` or specified using an instance of the `-L` command line option to `flowc`, 
 
-It can be compiled and linked natively to a run-time, or each function can be compiled to WebAssembly and loaded
-from file by `flowrlib` functions. The directory containing the compiled WebAssembly `.wasm` files must be reachable
-by the run-time in order to load the functions at run-time.
+## Building this library from Source
+Libraries like `flowstdlib` are built using `flowc` with the `-l` option. 
 
-The `flowc` compile process generates a `manifest.json` manifest of the libraries functions and where they 
-implementations (.wasm files) can be found for loading by the runtime. 
+This builds a directory tree of all required files for a portable library, including:-
+  * documentation files (.md MarkDown files, generated .dot files and generated SVG files)
+  * TOML definition files for flows and functions
+  * Function implementations compiled to a .wasm WASM file for each function.
+  * A `manifest.json` manifest of the libraries functions and where the implementations (.wasm files) can be found. \
+This is used by the Runtime to be able to load it.
 
-It also generates a native `lib.rs` version of the manifest that can be used when linking the native compilations
-of the implementations into a binary, such as `flowr`.
+## Native use by a Runtime
+It can be compiled and linked natively to a (rust) run-time. `flowr` offers the `-n` option to specify this use of it.
 
+## WASM use by a Runtime
+Its functions can  be loaded from WASM files by `flowrlib` at run-time using the `manifest.json` file to locate them.
+
+## Configuring `FLOW_LIB_PATH` during development
 If you are using it as part of the larger `flow` workspace then you just need the `flow` project root directory
 in your `FLOW_LIB_PATH` as described above (or added to the lib search part using the `-L <dir>` option).
 
-If you download it using `cargo download` (or similar) and build separately, then you can get more information on how
-to use it running `cargo run` (but it amounts to use of `FLOW_LIB_PATH` and `-L` as above).
-
-If you install it using `cargo` then it will build the `flowstdlib` binary and add it to your path, and you can run it
-directly using `> flowstdlib` and it will print the same usage hints as described above.

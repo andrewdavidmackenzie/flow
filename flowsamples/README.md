@@ -1,5 +1,5 @@
 # Sample flows
-The project includes a number of sample 'flows' that have been developed during the development
+This crate and folder contains a number of sample 'flows' that have been developed during the development
 of the compiler and the run-time to drive the project development and demonstrate it working. 
 
 They also serve as a type of regression test to make sure we don't break any of the 
@@ -22,6 +22,10 @@ Each sample directory contains:
 
 ## Compiling the Samples
 The samples set has now been converted to a rust crate with a custom build script.
+
+There is no dependency declared in Cargo.toml on the other crates (as you cannot currently declare a
+dependency on a binary, just a lib), but in order to build, test and run this crate/folder you will need `flowc`
+and `flowr` installed and on `$PATH` in order for build scripts to find them.
 
 Using `cargo build -p flowsamples` causes the build script to run, and it compiles in-place the samples
 using the `flowc` compiler.
