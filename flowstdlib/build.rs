@@ -7,7 +7,7 @@ use std::process::{Command, Stdio};
 fn main() -> io::Result<()> {
     let lib_root_dir = env!("CARGO_MANIFEST_DIR");
     let root_dir = Path::new(lib_root_dir).parent().expect("Could not get parent directory");
-    let flowstdlib_out_dir = root_dir.join("target/flowstdlb");
+    let flowstdlib_out_dir = root_dir.join("target/flowstdlib");
     let out_dir = flowstdlib_out_dir.to_str().expect("Could not convert to str");
 
     // Tell Cargo that if any file changes it should rerun this build script
