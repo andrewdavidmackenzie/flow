@@ -1,16 +1,15 @@
 ## Flow Libraries
-Functions and Flows can be defined as libraries and shared re-used by other flows.
+Libraries can provide Functions and Flows and be re-used by other flows.
 
-The run-time includes some basic ones in the `flowruntime` and `flowstdlib` libraries.
+An example is the `flowstdlib` library, but others can be created and shared by developers.
 
-Others can be shared by developers.
+References to flows or functions specify a source, which refers to a file on the local file system 
+or located at a URL. 
+A Library search path is used to find the library sources
 
-References to flows or functions specify a source, which is a file on the local file system or located at a URL. 
-A Library search path is used to find the source in libraries.
-
-The library search path is initialized from the contents of the `$FLOW_LIB_PATH` environment variable (if it is defined) 
-and maybe augmented by supplying additional directories or URLs to search using one or more instances of 
-the `-L` command line option.
+The library search path is initialized from the contents of the `$FLOW_LIB_PATH` environment variable 
+(if it is defined) and maybe augmented by supplying additional directories or URLs to search using one 
+or more instances of the `-L` command line option.
 
 TODO
 

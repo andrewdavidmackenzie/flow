@@ -22,7 +22,7 @@ such as `stdout`, or other inputs/outputs provided by the flow runtime being use
 
 The only interaction with the execution environment in this example is the use of `stdout`.
 
-`stdout` (Standard Output) is a function defined in the `flowruntime`, to which output can be sent for display.
+`stdout` (Standard Output) is a function defined in the `context`, to which output can be sent for display.
 
 When executing a flow using `flowc`, `stdout` is sent to the standard output of 
 the process running `flowc`, hence it is displayed in the terminal if running from the command line.

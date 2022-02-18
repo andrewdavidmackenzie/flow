@@ -18,7 +18,7 @@ Features Used
 * Connections between Input/Outputs of parent/child flows
 * Setting initial value of a Value at startup
 * Multiple connections into and out of functions and values
-* Runtime Functions used (`stdout` from `flowruntime`)
+* `context` Functions used (`stdout`)
 * Library Functions used (`buffer` and `add` from `flowstdlib`)
 * Use of aliases to refer to functions with different names inside a flow
 * Connections between flows, functions and values

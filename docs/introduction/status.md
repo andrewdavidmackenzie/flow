@@ -1,9 +1,9 @@
 ## Status
-The semantics of flows, processes, connections etc along with the implementation of the `flowc` compiler, `flowr` 
-runner, `flowruntime` code runtime functions and the `flowstdlib` library of functions and flows has allowed for the 
+The semantics of flows, processes and connections along with the implementation of the `flowc` compiler, `flowr` 
+runner, `context` functions and the `flowstdlib` library has allowed for the 
 creation of a set of example flows that execute as expected.
 
-There is pretty good overall test coverage (> 82%) that allows for safer refactoring.
+There has pretty good overall test coverage (> 82%) that allows for safer refactoring.
 
 The docs are reasonably extensive but a bit out of date in places, but I have issues created to cover most of the most
 significant docs improvements needed.

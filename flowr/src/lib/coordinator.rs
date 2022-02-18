@@ -461,7 +461,7 @@ impl Coordinator {
         server_connection: Arc<Mutex<ServerConnection>>,
         native: bool,
     ) -> Result<()> {
-        let flowruntimelib_url =
+        let context_url =
             Url::parse("lib://context").chain_err(|| "Could not parse context lib url")?;
 
         // Load this run-time's library of native (statically linked) implementations
@@ -469,7 +469,7 @@ impl Coordinator {
             .add_lib(
                 provider,
                 context::get_manifest(server_connection)?,
-                &flowruntimelib_url,
+                &context_url,
             )
             .chain_err(|| "Could not add 'context' library to loader")?;
 

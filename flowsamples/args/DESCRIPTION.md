@@ -14,7 +14,7 @@ Click image to navigate flow hierarchy.
 Features Used
 ===
 * Context Flow
-* Library Functions used (`stdio/stdout` from `flowruntime`)
+* `context` Functions used (`stdio/stdout``)
 * Reduced syntax so that `alias` of referenced processes default to their names (`get` and `stdout`)
 * Selecting a specific indexed entry of an `Array` output
 * Library Flows used (`args/get` from `flowstdlib`)

@@ -9,7 +9,7 @@ from the input array
 Features Used
 ===
 * Context Flow
-* Library Functions used (`stdout` from `flowruntime`)
+* Context Functions used (`stdout`)
 * Sub-flow inside a context flow
 * Sub-flow initializer
 * Connecting from an element of an array input to a flow
