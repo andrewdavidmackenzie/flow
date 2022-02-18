@@ -72,8 +72,10 @@
     - [count](flowstdlib/data/count/count.md)
     - [duplicate](flowstdlib/data/duplicate/duplicate.md)
     - [duplicate_rows](flowstdlib/data/duplicate_rows/duplicate_rows.md)
+    - [enumerate](flowstdlib/data/enumerate/enumerate.md)
     - [info](flowstdlib/data/info/info.md)
     - [multiply_row](flowstdlib/data/multiply_row/multiply_row.md)
+    - [ordered_split](flowstdlib/data/ordered_split/ordered_split.md)
     - [remove](flowstdlib/data/remove/remove.md)
     - [sort](flowstdlib/data/sort/sort.md)
     - [split](flowstdlib/data/split/split.md)
@@ -88,9 +90,11 @@
     - [compare](flowstdlib/math/compare/compare.md)
     - [divide](flowstdlib/math/divide/divide.md)
     - [multiply](flowstdlib/math/multiply/multiply.md)
+    - [range](flowstdlib/math/range.md)
+    - [range_split](flowstdlib/math/range_split/range_split.md)
     - [sequence](flowstdlib/math/sequence.md)
-    - [subtract](flowstdlib/math/subtract/subtract.md)
     - [sqrt](flowstdlib/math/sqrt/sqrt.md)
+    - [subtract](flowstdlib/math/subtract/subtract.md)
     
 # Sample flows
 - [Samples Intro](flowsamples/README.md)
