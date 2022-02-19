@@ -28,7 +28,44 @@ use flowcore::lib_provider::Provider;
 
 use crate::dumper::{dump, dump_dot};
 
-/// Create a directed graph named after the flow, adding functions grouped in sub-clusters
+/// Create a directed graph named after the flow, showing all the functions of the flow after it
+/// has been compiled down, grouped in sub-clusters
+///
+/// # Example
+/// ```
+/// use std::env;
+/// use url::Url;
+/// use flowcore::lib_provider::{Provider, MetaProvider};
+/// use flowcore::errors::Result;
+/// use flowcore::model::process::Process::FlowProcess;
+/// use tempdir::TempDir;
+/// use std::collections::HashSet;
+/// use simpath::Simpath;
+/// use std::path::Path;
+///
+/// // Create a lib_search_path including 'context' which is in flowr/src/lib
+/// let mut lib_search_path = Simpath::new("TEST_LIBS");
+/// let root_str = Path::new(env!("CARGO_MANIFEST_DIR")).parent().unwrap();
+/// let runtime_parent = root_str.join("flowr/src/lib");
+/// lib_search_path.add_directory(runtime_parent.to_str().unwrap());
+/// let provider = MetaProvider::new(lib_search_path);
+///
+/// let mut url = url::Url::from_file_path(env::current_dir().unwrap()).unwrap();
+/// url = url.join("flowc/tests/test-flows/hello-world/hello-world.toml").unwrap();
+///
+/// let mut source_urls = HashSet::<(Url, Url)>::new();
+/// if let Ok(FlowProcess(mut flow)) = flowclib::compiler::loader::load(&url,
+///                                                    &provider,
+///                                                    &mut source_urls) {
+///     let tables = flowclib::compiler::compile::compile(&flow).unwrap();
+///
+///     // strip off filename so output_dir is where the context.toml file resides
+///     let output_dir = TempDir::new("flow").unwrap().into_path();
+///
+///     // create a .dot format directed graph of all the functions after compiling down the flow
+///     flowclib::dumper::dump_dot::dump_functions(&flow, &tables, &output_dir).unwrap();
+/// }
+/// ```
 pub fn dump_functions(
     flow: &FlowDefinition,
     tables: &GenerationTables,
@@ -61,8 +98,7 @@ pub fn dump_functions(
     dot_file.write_all(b"}")
 }
 
-/// Dump a representation of loaded flow definition (in a `Flow` structure) to a dot file for the
-/// purpose of generating grpahs of its data flow
+/// Create a .dot format directed graph of a loaded flow definition
 ///
 /// # Example
 /// ```
@@ -107,7 +143,7 @@ pub fn dump_flow(
 }
 
 /// Generate SVG files from any .dot file found below the `root_dir` using the `dot` graphviz
-/// executable, if it is found on the system within the `$PATH` variable of the user
+/// executable, if it is found installed on the system within the `$PATH` variable of the user
 pub fn generate_svgs(root_dir: &Path, delete_dot: bool) -> Result<()> {
     if let Ok(FoundType::File(dot)) = Simpath::new("PATH").find_type("dot", FileType::File) {
         info!("\tGenerating .dot.svg files from .dot files, using 'dot' command from $PATH");
