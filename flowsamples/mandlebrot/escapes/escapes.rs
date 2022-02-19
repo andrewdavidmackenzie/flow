@@ -43,26 +43,12 @@ fn _escapes(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
 
 #[cfg(test)]
 mod test {
-    use serde_json::{json, Value};
-
-    use super::_escapes;
+    use super::escapes;
 
     #[test]
     fn pixel() {
-        let pixel_point = json!([[50, 50], [0.5, 0.5]]);
+        let value = escapes([0.5, 0.5], 255);
 
-        let inputs: Vec<Value> = vec![pixel_point];
-        let (results, _) = _escapes(&inputs).expect("_escapes() failed");
-
-        let results_json = results.expect("No result returned");
-        let results_array = results_json.as_array().expect("Could not get as array");
-
-        let pixel = results_array[0].as_array().expect("Could not get as array");
-        let value_array = results_array[1].as_array().expect("Could not get as array");
-        let value = value_array[0].as_i64().expect("Could not get as i64") as u8;
-
-        assert_eq!(50, pixel[0]);
-        assert_eq!(50, pixel[1]);
         assert_eq!(4, value);
     }
 
