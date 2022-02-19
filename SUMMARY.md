@@ -108,10 +108,10 @@
     - [pipeline](flowsamples/pipeline/DESCRIPTION.md)
     - [prime](flowsamples/prime/DESCRIPTION.md)
     - [primitives](flowsamples/primitives/DESCRIPTION.md)
-    - [sequence](flowsamples/sequence/DESCRIPTION.md)
-    - [sequence-of-sequences](flowsamples/sequence-of-sequences/DESCRIPTION.md)
     - [reverse-echo](flowsamples/reverse-echo/DESCRIPTION.md)
     - [router](flowsamples/router/DESCRIPTION.md)
+    - [sequence](flowsamples/sequence/DESCRIPTION.md)
+    - [sequence-of-sequences](flowsamples/sequence-of-sequences/DESCRIPTION.md)
     - [tokenizer](flowsamples/tokenizer/DESCRIPTION.md)
     
 --------------------------------------------------------------------------------
