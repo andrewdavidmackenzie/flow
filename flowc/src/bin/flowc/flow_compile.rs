@@ -11,8 +11,7 @@ use url::Url;
 use flowclib::compiler::compile;
 use flowclib::compiler::compile_wasm;
 use flowclib::compiler::loader;
-use flowclib::dumper::dump_flow;
-use flowclib::dumper::dump_tables;
+use flowclib::dumper::{dump, dump_dot};
 use flowclib::generator::generate;
 use flowclib::generator::generate::GenerationTables;
 use flowcore::lib_provider::Provider;
@@ -148,26 +147,22 @@ fn dump(
     tables: &GenerationTables,
     options: &Options,
 ) -> Result<String> {
-    if options.dump || options.graphs {
-        dump_flow::dump_flow(
+    if options.dump {
+        dump::dump_flow(
             flow,
             &options.output_dir,
-            provider,
-            options.dump,
-            options.graphs,
-        )
-        .chain_err(|| "Failed to dump flow's definition")?;
+            provider
+        ).chain_err(|| "Failed to dump flow's definition")?;
 
-        if options.graphs {
-            dump_flow::generate_svgs(&options.output_dir)?;
-        }
+        dump::dump_tables(tables, &options.output_dir)
+            .chain_err(|| "Failed to dump flow's tables")?;
 
-        if options.dump {
-            dump_tables::dump_tables(tables, &options.output_dir)
-                .chain_err(|| "Failed to dump flow's tables")?;
-            dump_tables::dump_functions(flow, tables, &options.output_dir)
-                .chain_err(|| "Failed to dump flow's functions")?;
-        }
+        dump::dump_functions(flow, tables, &options.output_dir)
+            .chain_err(|| "Failed to dump flow's functions")?;
+    }
+
+    if options.graphs {
+        dump_dot::generate_svgs(&options.output_dir, true)?;
     }
 
     Ok("Dumped".into())

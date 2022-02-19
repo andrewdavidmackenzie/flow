@@ -1,7 +1,5 @@
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
-use std::io::prelude::*;
-use std::path::Path;
 
 use serde_json::Value;
 
@@ -16,6 +14,184 @@ use flowcore::model::route::{HasRoute, Route};
 
 use crate::errors::*;
 use crate::generator::generate::GenerationTables;
+
+use std::fs;
+use std::io::Write;
+use std::path::Path;
+use std::process::{Command, Stdio};
+
+use glob::{glob_with, MatchOptions};
+use log::{debug, info};
+use simpath::{FileType, FoundType, Simpath};
+
+use flowcore::lib_provider::Provider;
+
+use crate::dumper::{dump, dump_dot};
+
+/// Create a directed graph named after the flow, adding functions grouped in sub-clusters
+pub fn dump_functions(
+    flow: &FlowDefinition,
+    tables: &GenerationTables,
+    output_dir: &Path,
+) -> std::io::Result<()> {
+    info!(
+        "=== Dumper: Dumping functions to '{}'",
+        output_dir.display()
+    );
+    let mut dot_file = dump::create_output_file(output_dir, "functions", "dot")?;
+    info!("\tGenerating functions.dot, Use \"dotty\" to view it");
+    dot_file.write_all(
+        format!(
+            "digraph {} {{\nnodesep=1.0\n",
+            str::replace(&flow.alias.to_string(), "-", "_")
+        )
+            .as_bytes(),
+    )?;
+    dot_file.write_all(format!("labelloc=t;\nlabel = \"{}\";\n", flow.route()).as_bytes())?;
+
+    let functions = dump_dot::process_refs_to_dot(flow, tables, output_dir).map_err(|_| {
+        std::io::Error::new(
+            std::io::ErrorKind::Other,
+            "Could not create dot content for process_refs",
+        )
+    })?;
+
+    dot_file.write_all(functions.as_bytes())?;
+
+    dot_file.write_all(b"}")
+}
+
+/// Dump a representation of loaded flow definition (in a `Flow` structure) to a dot file for the
+/// purpose of generating grpahs of its data flow
+///
+/// # Example
+/// ```
+/// use std::env;
+/// use url::Url;
+/// use flowcore::lib_provider::{Provider, MetaProvider};
+/// use flowcore::errors::Result;
+/// use flowcore::model::process::Process::FlowProcess;
+/// use tempdir::TempDir;
+/// use std::collections::HashSet;
+/// use simpath::Simpath;
+///
+/// let lib_search_path = Simpath::new("FLOW_LIB_PATH");
+/// let provider = MetaProvider::new(lib_search_path);
+///
+/// let mut url = url::Url::from_file_path(env::current_dir().unwrap()).unwrap();
+/// url = url.join("samples/hello-world/context.toml").unwrap();
+///
+/// let mut source_urls = HashSet::<(Url, Url)>::new();
+/// if let Ok(FlowProcess(mut flow)) = flowclib::compiler::loader::load(&url,
+///                                                    &provider,
+///                                                    &mut source_urls) {
+///
+///     // strip off filename so output_dir is where the context.toml file resides
+///     let output_dir = TempDir::new("flow").unwrap().into_path();
+///
+///     // dump the flows compiler data and dot graph into files alongside the 'context.toml'
+///     flowclib::dumper::dump_dot::dump_flow(&flow, &output_dir, &provider).unwrap();
+/// }
+/// ```
+pub fn dump_flow(
+    flow: &FlowDefinition,
+    target_dir: &Path,
+    provider: &dyn Provider,
+) -> Result<()> {
+    info!(
+        "=== Dumper: Dumping flow hierarchy to '{}'",
+        target_dir.display()
+    );
+    _dump_flow(flow, 0, target_dir, provider)?;
+    Ok(())
+}
+
+/// Generate SVG files from any .dot file found below the `root_dir` using the `dot` graphviz
+/// executable, if it is found on the system within the `$PATH` variable of the user
+pub fn generate_svgs(root_dir: &Path, delete_dot: bool) -> Result<()> {
+    if let Ok(FoundType::File(dot)) = Simpath::new("PATH").find_type("dot", FileType::File) {
+        info!("\tGenerating .dot.svg files from .dot files, using 'dot' command from $PATH");
+
+        let mut dot_command = Command::new(dot);
+        let options = MatchOptions {
+            case_sensitive: false,
+            ..Default::default()
+        };
+
+        let pattern = format!("{}/**/*.dot", root_dir.to_string_lossy());
+
+        for dot_file_path in glob_with(&pattern, options)?.flatten() {
+            let dot_child = dot_command
+                .args(vec!["-Tsvg", "-O", &dot_file_path.to_string_lossy()])
+                .stdin(Stdio::inherit())
+                .stdout(Stdio::inherit())
+                .stderr(Stdio::inherit());
+
+            let dot_output = dot_child.output()?;
+            match dot_output.status.code() {
+                Some(0) if delete_dot =>  {
+                    fs::remove_file(&dot_file_path)?;
+                    debug!("Source file {} was removed after SVG generation", dot_file_path.to_string_lossy())
+                },
+                Some(0) if !delete_dot => debug!(".dot.svg successfully generated from {}", dot_file_path.to_string_lossy()),
+                Some(sc) => bail!("`dot` exited with non-zero status code of {}", sc),
+                _ => bail!("Could not get the status code of `dot` command"),
+            }
+        }
+    } else {
+        info!("Could not find 'dot' command in $PATH so SVG generation skipped");
+    }
+
+    Ok(())
+}
+
+/*
+    dump the flow definition recursively, tracking what level we are at as we go down
+*/
+#[allow(clippy::or_fun_call)]
+fn _dump_flow(
+    flow: &FlowDefinition,
+    level: usize,
+    target_dir: &Path,
+    provider: &dyn Provider
+) -> Result<()> {
+    let file_path = flow.source_url.to_file_path().map_err(|_| {
+        std::io::Error::new(
+            std::io::ErrorKind::Other,
+            "Could not get file_stem of flow definition filename",
+        )
+    })?;
+    let filename = file_path
+        .file_stem()
+        .ok_or(std::io::Error::new(
+            std::io::ErrorKind::Other,
+            "Could not get file_stem of flow definition filename",
+        ))?
+        .to_str()
+        .ok_or(std::io::Error::new(
+            std::io::ErrorKind::Other,
+            "Could not convert filename to string",
+        ))?;
+
+    debug!("Dumping dot file to {}", filename);
+    let mut writer = dump::create_output_file(target_dir, filename, "dot")?;
+    info!("\tGenerating {}.dot, Use \"dotty\" to view it", filename);
+    dump_dot::write_flow_to_dot(flow, &mut writer, target_dir)?;
+
+    // Dump sub-flows
+    for subprocess in &flow.subprocesses {
+        if let FlowProcess(ref subflow) = subprocess.1 {
+            _dump_flow(
+                subflow,
+                level + 1,
+                target_dir,
+                provider
+            )?;
+        }
+    }
+
+    Ok(())
+}
 
 static INPUT_PORTS: &[&str] = &["n", "ne", "nw", "w"];
 static OUTPUT_PORTS: &[&str] = &["s", "se", "sw", "e"];
@@ -43,7 +219,7 @@ fn remove_file_extension(file_path: &str) -> String {
     }
 }
 
-pub fn write_flow_to_dot(
+fn write_flow_to_dot(
     flow: &FlowDefinition,
     dot_file: &mut dyn Write,
     output_dir: &Path,
@@ -397,7 +573,7 @@ fn output_compiled_function(
     }
 }
 
-pub fn process_refs_to_dot(
+fn process_refs_to_dot(
     flow: &FlowDefinition,
     tables: &GenerationTables,
     output_dir: &Path,

@@ -25,7 +25,8 @@ fn main() -> io::Result<()> {
         let e = entry?;
         if e.file_type()?.is_dir() {
             println!("Building sample '{}'", e.path().to_str().expect("Could not convert path to string"));
-            if compile_sample(&e.path()).is_err() {
+            if let Err(err) = compile_sample(&e.path()) {
+                eprintln!("Sample build failed with message:\n{}", err);
                 std::process::exit(1);
             }
         }
@@ -40,7 +41,7 @@ fn compile_sample(sample_dir: &Path) -> io::Result<()> {
     let command_args = vec!["-g", "-z", "-v", "warn", "-s", sample_dir.to_str().expect("Could not get directory as string")];
 
     let flowc_command = command
-        .args(command_args)
+        .args(&command_args)
         .stdin(Stdio::inherit())
         .stdout(Stdio::inherit())
         .stderr(Stdio::inherit());
@@ -52,8 +53,8 @@ fn compile_sample(sample_dir: &Path) -> io::Result<()> {
         Some(_) => {
             return Err(io::Error::new(
                 io::ErrorKind::Other,
-                "`flowc` exited with non-zero status code",
-            ))
+                format!("Error building sample, command line\n {}{}",
+                "flowc ", command_args.join(" "))))
         }
     }
 

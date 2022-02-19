@@ -1,6 +1,4 @@
-mod dump_dot;
-
-/// Module to dump a flow definition to text and dot format
-pub mod dump_flow;
-/// Module to dump flow compiler tables to text
-pub mod dump_tables;
+/// Module to dump a flow, or functions to .dot files of directed graphs
+pub mod dump_dot;
+/// Module to dump a flow, functions or tables to text files for inspection
+pub mod dump;

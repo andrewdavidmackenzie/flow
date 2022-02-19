@@ -9,7 +9,7 @@ use url::Url;
 
 use flowclib::compiler::compile_wasm;
 use flowclib::compiler::{json_manifest, loader};
-use flowclib::dumper::dump_flow;
+use flowclib::dumper::{dump, dump_dot};
 use flowcore::model::lib_manifest::LibraryManifest;
 use flowcore::lib_provider::{MetaProvider, Provider};
 use flowcore::model::name::HasName;
@@ -201,13 +201,13 @@ fn compile_implementations(
                 }
             }
             Ok(FlowProcess(ref mut flow)) => {
-                if dump || graphs {
-                    dump_flow::dump_flow(flow, &target_dir, provider, dump, graphs)
+                if dump {
+                    dump::dump_flow(flow, &target_dir, provider)
                         .chain_err(|| "Failed to dump flow's definition")?;
+                }
 
-                    if graphs {
-                        dump_flow::generate_svgs(output_dir)?;
-                    }
+                if graphs {
+                    dump_dot::generate_svgs(output_dir, true)?;
                 }
 
                 copy_sources_to_target_dir(&toml_path, &target_dir, flow.get_docs())?;

@@ -1,14 +1,20 @@
+use std::io::Write;
+use std::path::Path;
+
+use log::{debug, info};
+
+use flowcore::lib_provider::Provider;
+use flowcore::model::flow_definition::FlowDefinition;
+use flowcore::model::process::Process::FlowProcess;
+
+use crate::errors::*;
+
 use std::fmt;
 use std::fs::File;
-use std::io::Write;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
-use log::info;
 
-use flowcore::model::flow_definition::FlowDefinition;
-use flowcore::model::route::HasRoute;
-
-use crate::dumper::dump_dot;
+use crate::dumper::{dump, dump_dot};
 use crate::generator::generate::GenerationTables;
 
 /// Dump the compiler tables of a loaded flow in human readable format to a specified
@@ -41,7 +47,7 @@ use crate::generator::generate::GenerationTables;
 ///     let tables = flowclib::compiler::compile::compile(&mut flow).unwrap();
 ///     let output_dir = tempdir::TempDir::new("dumper").unwrap().into_path();
 ///
-///     flowclib::dumper::dump_tables::dump_tables(&tables, &output_dir).unwrap();
+///     flowclib::dumper::dump::dump_tables(&tables, &output_dir).unwrap();
 /// }
 /// ```
 ///
@@ -82,41 +88,6 @@ pub fn create_output_file(
     File::create(&output_file_path)
 }
 
-/*
-    Create a directed graph named after the flow, adding functions grouped in sub-clusters
-*/
-fn functions_to_dot(
-    flow: &FlowDefinition,
-    tables: &GenerationTables,
-    output_dir: &Path,
-) -> std::io::Result<()> {
-    info!(
-        "=== Dumper: Dumping functions to '{}'",
-        output_dir.display()
-    );
-    let mut dot_file = create_output_file(output_dir, "functions", "dot")?;
-    info!("\tGenerating functions.dot, Use \"dotty\" to view it");
-    dot_file.write_all(
-        format!(
-            "digraph {} {{\nnodesep=1.0\n",
-            str::replace(&flow.alias.to_string(), "-", "_")
-        )
-        .as_bytes(),
-    )?;
-    dot_file.write_all(format!("labelloc=t;\nlabel = \"{}\";\n", flow.route()).as_bytes())?;
-
-    let functions = dump_dot::process_refs_to_dot(flow, tables, output_dir).map_err(|_| {
-        std::io::Error::new(
-            std::io::ErrorKind::Other,
-            "Could not create dot content for process_refs",
-        )
-    })?;
-
-    dot_file.write_all(functions.as_bytes())?;
-
-    dot_file.write_all(b"}")
-}
-
 /// dump a flow's functions graph as a .dot file to visualize dependencies
 ///
 ///
@@ -143,7 +114,7 @@ fn functions_to_dot(
 ///     let tables = flowclib::compiler::compile::compile(&mut flow).unwrap();
 ///     let output_dir = tempdir::TempDir::new("flow").unwrap().into_path();
 ///
-///     flowclib::dumper::dump_tables::dump_functions(&flow, &tables, &output_dir).unwrap();
+///     flowclib::dumper::dump::dump_functions(&flow, &tables, &output_dir).unwrap();
 /// }
 /// ```
 pub fn dump_functions(
@@ -151,7 +122,7 @@ pub fn dump_functions(
     tables: &GenerationTables,
     output_dir: &Path,
 ) -> std::io::Result<()> {
-    functions_to_dot(flow, tables, output_dir)?;
+    dump_dot::dump_functions(flow, tables, output_dir)?;
 
     let mut writer = create_output_file(output_dir, "functions", "dump")?;
     info!("\tGenerating functions.dump");
@@ -159,11 +130,102 @@ pub fn dump_functions(
 }
 
 fn dump_table<C: Iterator>(table: C, writer: &mut dyn Write) -> std::io::Result<()>
-where
-    <C as Iterator>::Item: fmt::Display,
+    where
+        <C as Iterator>::Item: fmt::Display,
 {
     for function in table {
         writer.write_all(format!("{}\n", function).as_bytes())?;
     }
     writer.write_all(b"\n")
+}
+
+/// Dump a human readable representation of loaded flow definition to a file in `output_dir`
+///
+/// # Example
+/// ```
+/// use std::env;
+/// use url::Url;
+/// use flowcore::lib_provider::{Provider, MetaProvider};
+/// use flowcore::errors::Result;
+/// use flowcore::model::process::Process::FlowProcess;
+/// use tempdir::TempDir;
+/// use std::collections::HashSet;
+/// use simpath::Simpath;
+///
+/// let lib_search_path = Simpath::new("FLOW_LIB_PATH");
+/// let provider = MetaProvider::new(lib_search_path);
+///
+/// let mut url = url::Url::from_file_path(env::current_dir().unwrap()).unwrap();
+/// url = url.join("samples/hello-world/context.toml").unwrap();
+///
+/// let mut source_urls = HashSet::<(Url, Url)>::new();
+/// if let Ok(FlowProcess(mut flow)) = flowclib::compiler::loader::load(&url,
+///                                                    &provider,
+///                                                    &mut source_urls) {
+///
+///     // strip off filename so output_dir is where the context.toml file resides
+///     let output_dir = TempDir::new("flow").unwrap().into_path();
+///
+///     // dump the flows compiler data and dot graph into files alongside the 'context.toml'
+///     flowclib::dumper::dump::dump_flow(&flow, &output_dir, &provider).unwrap();
+/// }
+/// ```
+pub fn dump_flow(
+    flow: &FlowDefinition,
+    output_dir: &Path,
+    provider: &dyn Provider
+) -> Result<()> {
+    info!(
+        "=== Dumper: Dumping flow hierarchy to '{}' folder",
+        output_dir.display()
+    );
+    _dump_flow(flow, 0, output_dir, provider)?;
+    Ok(())
+}
+
+/*
+    dump the flow definition recursively, tracking what level we are at as we go down
+*/
+#[allow(clippy::or_fun_call)]
+fn _dump_flow(
+    flow: &FlowDefinition,
+    level: usize,
+    target_dir: &Path,
+    provider: &dyn Provider
+) -> Result<()> {
+    let file_path = flow.source_url.to_file_path().map_err(|_| {
+        std::io::Error::new(
+            std::io::ErrorKind::Other,
+            "Could not get file_stem of flow definition filename",
+        )
+    })?;
+    let filename = file_path
+        .file_stem()
+        .ok_or(std::io::Error::new(
+            std::io::ErrorKind::Other,
+            "Could not get file_stem of flow definition filename",
+        ))?
+        .to_str()
+        .ok_or(std::io::Error::new(
+            std::io::ErrorKind::Other,
+            "Could not convert filename to string",
+        ))?;
+
+    debug!("Dumping tables to {}", filename);
+    let mut writer = dump::create_output_file(target_dir, filename, "dump")?;
+    writer.write_all(format!("\nLevel={}\n{}", level, flow).as_bytes())?;
+
+    // Dump sub-flows
+    for subprocess in &flow.subprocesses {
+        if let FlowProcess(ref subflow) = subprocess.1 {
+            _dump_flow(
+                subflow,
+                level + 1,
+                target_dir,
+                provider
+            )?;
+        }
+    }
+
+    Ok(())
 }
