@@ -1,13 +1,16 @@
 mandlebrot
 ==
+Render a mandlebrot set, with the size and imaginary space configured via input parameters.
 
-WIP
+The pre-configured test renders a very small mandlebrot set (25x25 pixels) in order to keep the test time short.
+
+<a href="expected.file" target="_blank"><img src="expected.file"></a>
 
 Description
 ===
 Renders a mandelbrot into a PNG file.
 
-Notably, this project in the root directory is a full standalong rust project
+Notably, this project in the `project` folder is a full standalone rust project
 and the functions are made available as functions to the Flow project that is described 
 in the toml files alongside - showing how native code can live alongside and be used by 
 the flow.
