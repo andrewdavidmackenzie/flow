@@ -150,27 +150,20 @@ pub fn generate_svgs(root_dir: &Path, delete_dots: bool) -> Result<()> {
 
         let glob = Glob::new("**/*.dot").map_err(|_| "Globbing error")?;
         for entry in glob.walk(root_dir, usize::MAX) {
-            match &entry {
-                Ok(walk_entry) => {
-                    let path = walk_entry.path();
-                    let mut dot_command = Command::new(&dot);
-
-                    let status = dot_command
-                        .args(vec!["-Tsvg", "-O", &path.to_string_lossy()])
-                        .status()?;
-
-                    if status.success() {
-                        if delete_dots {
-                            fs::remove_file(path)?;
-                            debug!("Source file {} was removed after SVG generation", path.to_string_lossy())
-                        } else {
-                            debug!(".dot.svg successfully generated from {}", path.to_string_lossy());
-                        }
-                    } else {
-                        bail!("Error executing 'dot'");
-                    }
-                },
-                Err(e) => bail!("Error walking glob entries: {}", e.to_string())
+            let entry = entry?;
+            let path = entry.path();
+            let path_name = path.to_string_lossy();
+            if Command::new(&dot)
+                .args(vec!["-Tsvg", "-O", &path_name])
+                .status()?.success() {
+                if delete_dots {
+                    fs::remove_file(path)?;
+                    debug!("Source file {} was removed after SVG generation", path_name)
+                } else {
+                    debug!(".dot.svg successfully generated from {}", path_name);
+                }
+            } else {
+                bail!("Error executing 'dot'");
             }
         }
     } else {
