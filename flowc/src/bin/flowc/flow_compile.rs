@@ -83,7 +83,7 @@ fn compile_supplied_implementations(
 /*
     Compile a flow, maybe run it
 */
-pub fn compile_and_execute_flow(options: &Options, provider: &dyn Provider) -> Result<String> {
+pub fn compile_and_execute_flow(options: &Options, provider: &dyn Provider) -> Result<()> {
     info!("==== Compiler phase: Loading flow");
     #[cfg(feature = "debugger")]
     let mut source_urls = HashSet::<(Url, Url)>::new();
@@ -114,9 +114,8 @@ pub fn compile_and_execute_flow(options: &Options, provider: &dyn Provider) -> R
             dump(&flow, provider, &tables, options)?;
 
             if !runnable {
-                return Ok(
-                    "Flow not runnable, so Manifest generation and execution skipped".to_string(),
-                );
+                info!("Flow not runnable, so Manifest generation and flow execution skipped");
+                return Ok(());
             }
 
             info!("==== Compiler phase: Generating Manifest");
@@ -131,7 +130,7 @@ pub fn compile_and_execute_flow(options: &Options, provider: &dyn Provider) -> R
             .chain_err(|| "Failed to write manifest")?;
 
             if options.skip_execution {
-                return Ok("Flow execution skipped".to_string());
+                info!("Flow execution skipped");
             }
 
             info!("==== Compiler phase: Executing flow from manifest");
@@ -175,7 +174,7 @@ fn dump(
     If the process exits correctly then just return an Ok() with message and no log
     If the process fails then return an Err() with message and log stderr in an ERROR level message
 */
-fn execute_flow(filepath: &Path, options: &Options) -> Result<String> {
+fn execute_flow(filepath: &Path, options: &Options) -> Result<()> {
     info!("Executing flow from manifest in '{}'", filepath.display());
 
     let mut command_args = vec![filepath.display().to_string()];
@@ -225,7 +224,7 @@ fn execute_flow(filepath: &Path, options: &Options) -> Result<String> {
         .chain_err(|| "Could not capture 'flowr' output")?;
 
     match flowr_output.status.code() {
-        Some(0) => Ok("".into()),
+        Some(0) => Ok(()),
         Some(code) => {
             error!("Execution of 'flowr' failed");
             error!(
@@ -241,6 +240,6 @@ fn execute_flow(filepath: &Path, options: &Options) -> Result<String> {
                 code
             )
         }
-        None => Ok("No return code - ignoring".to_string()),
+        None => Ok(()),
     }
 }

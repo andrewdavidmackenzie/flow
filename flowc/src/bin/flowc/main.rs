@@ -69,12 +69,7 @@ fn main() {
 
             exit(1);
         }
-        Ok(msg) => {
-            if !msg.is_empty() {
-                println!("{}", msg);
-            }
-            exit(0)
-        }
+        Ok(_) => exit(0)
     }
 }
 
@@ -106,7 +101,7 @@ pub fn set_lib_search_path(search_path_additions: &[String]) -> Result<Simpath> 
     Return either an error string if anything goes wrong or
     a message to display to the user if all went OK
 */
-fn run() -> Result<String> {
+fn run() -> Result<()> {
     let options = parse_args(get_matches())?;
 
     let lib_search_path = set_lib_search_path(&options.lib_dirs)?;

@@ -20,7 +20,7 @@ use crate::Options;
 
 /// Build a library from source and generate a manifest for it so it can be used at runtime when
 /// a flow referencing it is loaded and ran
-pub fn build_lib(options: &Options, provider: &dyn Provider) -> Result<String> {
+pub fn build_lib(options: &Options, provider: &dyn Provider) -> Result<()> {
     let (metadata, _) = loader::load_metadata(&options.source_url, provider)?;
 
     let name = metadata.name.clone();
@@ -90,7 +90,8 @@ pub fn build_lib(options: &Options, provider: &dyn Provider) -> Result<String> {
         json_manifest::write(&lib_manifest, &manifest_json_file)?;
     }
 
-    Ok(format!("    {} {}", "Finished".green(), name))
+    println!("    {} {}", "Finished".green(), name);
+    Ok(())
 }
 
 /*
