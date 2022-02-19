@@ -102,7 +102,7 @@ mod test {
     use std::fs;
     use std::fs::File;
     use std::io::{BufRead, BufReader};
-    use std::path::Path;
+    use std::path::{Path, PathBuf};
     use std::process::{Command, Stdio};
 
     use serial_test::serial;
@@ -142,24 +142,29 @@ mod test {
         flowr_child.wait_with_output().expect("Could not get child process output");
 
         check_test_output(&sample_dir);
+
+        // if test passed, remove output
+        let _ = fs::remove_file(sample_dir.join("test.err"));
+        let _ = fs::remove_file(sample_dir.join("test.file"));
+        let _ = fs::remove_file(sample_dir.join("test.output"));
     }
 
-    fn compare_and_fail(sample_dir: &Path, expected_name: &str, actual_name: &str) {
-        let expected = sample_dir.join(expected_name);
-        if expected.exists() {
-            let actual = sample_dir.join(actual_name);
+    fn compare_and_fail(expected_path: PathBuf, actual_path: PathBuf) {
+        if expected_path.exists() {
             let diff = Command::new("diff")
-                .args(vec![&expected, &actual])
+                .args(vec![&expected_path, &actual_path])
                 .stdin(Stdio::inherit())
                 .stderr(Stdio::inherit())
                 .stdout(Stdio::inherit())
                 .spawn()
                 .expect("Could not get child process");
             let output = diff.wait_with_output().expect("Could not get child process output");
-            assert!(
-                output.status.success(),
-                "Output doesn't match the expected output"
-            );
+            if output.status.success() {
+                return;
+            }
+            eprintln!("Contents of '{}' doesn't match the expected contents in '{}'",
+                           actual_path.display(), expected_path.display());
+            panic!();
         }
     }
 
@@ -180,8 +185,8 @@ mod test {
             }
         }
 
-        compare_and_fail(sample_dir, "expected.output", "test.output");
-        compare_and_fail(sample_dir, "expected.file", "test.file");
+        compare_and_fail(sample_dir.join("expected.output"), sample_dir.join("test.output"));
+        compare_and_fail(sample_dir.join("expected.file"), sample_dir.join("test.file"));
     }
 
     #[test]
@@ -216,7 +221,7 @@ mod test {
 
     #[test]
     #[serial]
-    fn test_matrix_multiplication_sample() {
+    fn test_matrix_mult() {
         test_run_sample("matrix_mult");
     }
 
