@@ -23,12 +23,6 @@ maintenance = { status = "actively-developed" }
 name = "flowsamples"
 path = "main.rs"
 
-[build-dependencies]
-simpath = { version = "~2.3", features = ["urls"]}
-
-[dependencies]
-simpath = { version = "~2.3", features = ["urls"]}
-
 [dev-dependencies]
 serial_test = "0.5.0"
 
