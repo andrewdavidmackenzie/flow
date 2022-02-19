@@ -18,11 +18,11 @@ use crate::generator::generate::GenerationTables;
 use std::fs;
 use std::io::Write;
 use std::path::Path;
-use std::process::{Command, Stdio};
+use std::process::Command;
 
-use glob::{glob_with, MatchOptions};
 use log::{debug, info};
 use simpath::{FileType, FoundType, Simpath};
+use wax::Glob;
 
 use flowcore::lib_provider::Provider;
 
@@ -72,7 +72,7 @@ pub fn dump_functions(
     output_dir: &Path,
 ) -> std::io::Result<()> {
     info!(
-        "=== Dumper: Dumping functions to '{}'",
+        "=== Dumper: Dumping functions in dot format to '{}'",
         output_dir.display()
     );
     let mut dot_file = dump::create_output_file(output_dir, "functions", "dot")?;
@@ -131,47 +131,46 @@ pub fn dump_functions(
 /// ```
 pub fn dump_flow(
     flow: &FlowDefinition,
-    target_dir: &Path,
+    output_dir: &Path,
     provider: &dyn Provider,
 ) -> Result<()> {
     info!(
         "=== Dumper: Dumping flow hierarchy to '{}'",
-        target_dir.display()
+        output_dir.display()
     );
-    _dump_flow(flow, 0, target_dir, provider)?;
+    _dump_flow(flow, 0, output_dir, provider)?;
     Ok(())
 }
 
 /// Generate SVG files from any .dot file found below the `root_dir` using the `dot` graphviz
 /// executable, if it is found installed on the system within the `$PATH` variable of the user
-pub fn generate_svgs(root_dir: &Path, delete_dot: bool) -> Result<()> {
+pub fn generate_svgs(root_dir: &Path, delete_dots: bool) -> Result<()> {
     if let Ok(FoundType::File(dot)) = Simpath::new("PATH").find_type("dot", FileType::File) {
-        info!("\tGenerating .dot.svg files from .dot files, using 'dot' command from $PATH");
+        info!("Generating .dot.svg files from .dot files, using 'dot' command from $PATH");
 
-        let mut dot_command = Command::new(dot);
-        let options = MatchOptions {
-            case_sensitive: false,
-            ..Default::default()
-        };
+        let glob = Glob::new("**/*.dot").map_err(|_| "Globbing error")?;
+        for entry in glob.walk(root_dir, usize::MAX) {
+            match &entry {
+                Ok(walk_entry) => {
+                    let path = walk_entry.path();
+                    let mut dot_command = Command::new(&dot);
 
-        let pattern = format!("{}/**/*.dot", root_dir.to_string_lossy());
+                    let status = dot_command
+                        .args(vec!["-Tsvg", "-O", &path.to_string_lossy()])
+                        .status()?;
 
-        for dot_file_path in glob_with(&pattern, options)?.flatten() {
-            let dot_child = dot_command
-                .args(vec!["-Tsvg", "-O", &dot_file_path.to_string_lossy()])
-                .stdin(Stdio::inherit())
-                .stdout(Stdio::inherit())
-                .stderr(Stdio::inherit());
-
-            let dot_output = dot_child.output()?;
-            match dot_output.status.code() {
-                Some(0) if delete_dot =>  {
-                    fs::remove_file(&dot_file_path)?;
-                    debug!("Source file {} was removed after SVG generation", dot_file_path.to_string_lossy())
+                    if status.success() {
+                        if delete_dots {
+                            fs::remove_file(path)?;
+                            debug!("Source file {} was removed after SVG generation", path.to_string_lossy())
+                        } else {
+                            debug!(".dot.svg successfully generated from {}", path.to_string_lossy());
+                        }
+                    } else {
+                        bail!("Error executing 'dot'");
+                    }
                 },
-                Some(0) if !delete_dot => debug!(".dot.svg successfully generated from {}", dot_file_path.to_string_lossy()),
-                Some(sc) => bail!("`dot` exited with non-zero status code of {}", sc),
-                _ => bail!("Could not get the status code of `dot` command"),
+                Err(e) => bail!("Error walking glob entries: {}", e.to_string())
             }
         }
     } else {
@@ -209,7 +208,6 @@ fn _dump_flow(
             "Could not convert filename to string",
         ))?;
 
-    debug!("Dumping dot file to {}", filename);
     let mut writer = dump::create_output_file(target_dir, filename, "dot")?;
     info!("\tGenerating {}.dot, Use \"dotty\" to view it", filename);
     dump_dot::write_flow_to_dot(flow, &mut writer, target_dir)?;

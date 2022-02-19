@@ -22,9 +22,9 @@ use crate::errors::*;
 use crate::Options;
 
 /*
-    Check root process fits the rules for a Context and being a runnable flow
+    Check the flow can be run (it could be a sub-flow that is part of a runnable flow)
 */
-fn check_root(flow: &FlowDefinition) -> bool {
+fn runnable(flow: &FlowDefinition) -> bool {
     let mut runnable = true;
 
     if !flow.inputs().is_empty() {
@@ -109,11 +109,9 @@ pub fn compile_and_execute_flow(options: &Options, provider: &dyn Provider) -> R
             )
             .chain_err(|| "Could not compile to wasm the flow's supplied implementation(s)")?;
 
-            let runnable = check_root(&flow);
-
             dump(&flow, provider, &tables, options)?;
 
-            if !runnable {
+            if !runnable(&flow) {
                 info!("Flow not runnable, so Manifest generation and flow execution skipped");
                 return Ok(());
             }
@@ -131,9 +129,9 @@ pub fn compile_and_execute_flow(options: &Options, provider: &dyn Provider) -> R
 
             if options.skip_execution {
                 info!("Flow execution skipped");
+                return Ok(());
             }
 
-            info!("==== Compiler phase: Executing flow from manifest");
             execute_flow(&manifest_path, options)
         }
         _ => bail!("Process loaded was not of type 'Flow' and cannot be executed"),
@@ -145,26 +143,28 @@ fn dump(
     provider: &dyn Provider,
     tables: &GenerationTables,
     options: &Options,
-) -> Result<String> {
+) -> Result<()> {
     if options.dump {
         dump::dump_flow(
             flow,
             &options.output_dir,
             provider
-        ).chain_err(|| "Failed to dump flow's definition")?;
+        ).chain_err(|| "Failed to dump flow definition")?;
 
         dump::dump_tables(tables, &options.output_dir)
-            .chain_err(|| "Failed to dump flow's tables")?;
+            .chain_err(|| "Failed to dump the compiled flow's compiler tables")?;
 
         dump::dump_functions(flow, tables, &options.output_dir)
-            .chain_err(|| "Failed to dump flow's functions")?;
+            .chain_err(|| "Failed to dump the compiled flow's functions")?;
     }
 
     if options.graphs {
+        dump_dot::dump_flow(flow, &options.output_dir, provider)?;
+        dump_dot::dump_functions(flow, tables, &options.output_dir)?;
         dump_dot::generate_svgs(&options.output_dir, true)?;
     }
 
-    Ok("Dumped".into())
+    Ok(())
 }
 
 /*
@@ -175,7 +175,7 @@ fn dump(
     If the process fails then return an Err() with message and log stderr in an ERROR level message
 */
 fn execute_flow(filepath: &Path, options: &Options) -> Result<()> {
-    info!("Executing flow from manifest in '{}'", filepath.display());
+    info!("==== Compiler phase: Executing flow from manifest at '{}'", filepath.display());
 
     let mut command_args = vec![filepath.display().to_string()];
 
