@@ -2,7 +2,11 @@ use flowmacro::flow_function;
 use num::Complex;
 use serde_json::{json, Value};
 
-pub fn escapes(c: Complex<f64>, limit: u64) -> u64 {
+pub fn escapes(c_array: [f64; 2], limit: u64) -> u64 {
+    let c = Complex {
+        re: c_array[0], im: c_array[1]
+    };
+
     if c.norm_sqr() > 4.0 {
         return 0;
     }
@@ -26,10 +30,8 @@ fn _escapes(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
     let pixel = pixel_point[0].as_array().ok_or("Could not get as array")?;
     let point = pixel_point[1].as_array().ok_or("Could not get as array")?;
 
-    let c = Complex {
-        re: point[0].as_f64().ok_or("Could not get as f64")?,
-        im: point[1].as_f64().ok_or("Could not get as f64")?,
-    };
+    let c: [f64; 2] = [point[0].as_f64().ok_or("Could not get as f64")?,
+                    point[1].as_f64().ok_or("Could not get as f64")?];
 
     let value = escapes(c, 255);
 
@@ -75,10 +77,7 @@ mod test {
 
         #[bench]
         fn bench_escapes(b: &mut Bencher) {
-            let upper_left = Complex {
-                re: -1.20,
-                im: 0.35,
-            };
+            let upper_left = [-1.20, 0.35];
 
             b.iter(|| escapes(upper_left, 255));
         }
