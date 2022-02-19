@@ -5,8 +5,6 @@ use std::io::{BufRead, BufReader, ErrorKind};
 use std::path::Path;
 use std::process::{Command, Stdio};
 
-use simpath::{FileType, Simpath};
-
 fn main() -> io::Result<()> {
     println!("`flowsample` version {}", env!("CARGO_PKG_VERSION"));
     println!(
@@ -15,8 +13,6 @@ fn main() -> io::Result<()> {
     );
     println!("Samples Root Directory: `{}`", env!("CARGO_MANIFEST_DIR"));
 
-    let flowr = get_flowr()?;
-
     let args: Vec<String> = env::args().collect();
 
     match args.len() {
@@ -24,13 +20,13 @@ fn main() -> io::Result<()> {
             // find all sample sub-folders below this crate root
             for entry in (fs::read_dir(env!("CARGO_MANIFEST_DIR"))?).flatten() {
                 if entry.metadata()?.is_dir() {
-                    run_sample(&entry.path(), &flowr)?
+                    run_sample(&entry.path())?
                 }
             }
         }
         2 => {
             let samples_dir = Path::new(env!("CARGO_MANIFEST_DIR")).join(&args[1]);
-            run_sample(&samples_dir, &flowr)?
+            run_sample(&samples_dir)?
         }
         _ => eprintln!("Usage: {} <optional_sample_directory_name>", args[0]),
     }
@@ -38,37 +34,13 @@ fn main() -> io::Result<()> {
     Ok(())
 }
 
-fn get_flowr() -> io::Result<String> {
-    let dev = Path::new(env!("CARGO_MANIFEST_DIR")).join("../target/debug/flowr");
-    if dev.exists() {
-        return Ok(dev.into_os_string().to_str().expect("Could not convert path to string").to_string());
-    }
-
-    let dev = Path::new(env!("CARGO_MANIFEST_DIR")).join("../target/release/flowr");
-    if dev.exists() {
-        return Ok(dev.into_os_string().to_str().expect("Could not convert path to string").to_string());
-    }
-
-    if Simpath::new("PATH")
-        .find_type("flowr", FileType::File)
-        .is_ok()
-    {
-        return Ok("flowr".into());
-    }
-
-    Err(io::Error::new(
-        io::ErrorKind::Other,
-        "`flowr` could not be found in `$PATH` or `target/`",
-    ))
-}
-
-fn run_sample(sample_dir: &Path, flowr_path: &str) -> io::Result<()> {
+fn run_sample(sample_dir: &Path) -> io::Result<()> {
     // Remove any previous output
     let _ = fs::remove_file(sample_dir.join("test.err"));
     let _ = fs::remove_file(sample_dir.join("test.file"));
     let _ = fs::remove_file(sample_dir.join("test.output"));
 
-    let mut flowr_command = Command::new(flowr_path);
+    let mut flowr_command = Command::new("flowr");
     let manifest = sample_dir.join("manifest.json");
     println!("\n\tRunning Sample: {:?}", sample_dir.file_name());
     assert!(manifest.exists(), "Manifest file does not exist");
@@ -136,7 +108,6 @@ mod test {
     use serial_test::serial;
 
     fn test_run_sample(name: &str) {
-        let flowr =  &super::get_flowr().expect("Could not get flowr");
         let sample_dir = Path::new(env!("CARGO_MANIFEST_DIR")).join(name);
 
         // Remove any previous output
@@ -144,7 +115,7 @@ mod test {
         let _ = fs::remove_file(sample_dir.join("test.file"));
         let _ = fs::remove_file(sample_dir.join("test.output"));
 
-        let mut flowr_command = Command::new(flowr);
+        let mut flowr_command = Command::new("flowr");
         println!("\tSample: {:?}", sample_dir.file_name().expect("Could no tget directory as string"));
 
         let manifest = sample_dir.join("manifest.json");
