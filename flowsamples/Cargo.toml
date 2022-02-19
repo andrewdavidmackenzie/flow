@@ -13,8 +13,7 @@ edition = "2021"
 build = "build.rs"
 
 # Avoid a bunch of files that are generated as part of the flowsamples building and/or running
-exclude = ["**/*.dump", "**/*.err", "**/*.dot", "**/*.svg", "failed.output", "Cargo.lock",
-           ".gitignore"]
+exclude = ["Cargo.lock", ".gitignore"]
 
 [badges]
 maintenance = { status = "actively-developed" }
@@ -25,4 +24,3 @@ path = "main.rs"
 
 [dev-dependencies]
 serial_test = "0.5.0"
-
