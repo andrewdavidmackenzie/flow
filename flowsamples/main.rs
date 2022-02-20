@@ -59,7 +59,7 @@ fn run_sample(sample_dir: &Path, output_dir: &Path) -> io::Result<()> {
 
     match Command::new("flowr")
         .args(command_args)
-        .current_dir(output_dir.canonicalize())
+        .current_dir(output_dir.canonicalize()?)
         .stdin(Stdio::piped())
         .stdout(Stdio::from(output))
         .stderr(Stdio::from(error))
