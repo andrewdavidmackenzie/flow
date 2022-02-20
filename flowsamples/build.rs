@@ -24,10 +24,12 @@ fn main() -> io::Result<()> {
     for entry in fs::read_dir(samples_root)? {
         let e = entry?;
         if e.file_type()?.is_dir() {
-            println!("Building sample '{}'", e.path().to_str().expect("Could not convert path to string"));
-            if let Err(err) = compile_sample(&e.path()) {
-                eprintln!("Sample build failed with message:\n{}", err);
-                std::process::exit(1);
+            if e.path().join("context.toml").exists() {
+                println!("Building sample '{}'", e.path().to_str().expect("Could not convert path to string"));
+                if let Err(err) = compile_sample(&e.path()) {
+                    eprintln!("Sample build failed with message:\n{}", err);
+                    std::process::exit(1);
+                }
             }
         }
     }
