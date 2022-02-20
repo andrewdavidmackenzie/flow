@@ -13,8 +13,7 @@ edition = "2021"
 build = "build.rs"
 
 # Avoid a bunch of files that are generated as part of the flowsamples building and/or running
-exclude = ["Cargo.lock", ".gitignore"]
-include = ["**/FlowCargo.toml", "**/*.svg", "**/*.toml", "**/*.md", "**/manifest.json", "**/expected.output", "**/test.arguments",
+include = ["**/FlowCargo.toml", "**/*.rs", "**/*.wasm", "**/*.svg", "**/*.toml", "**/*.md", "**/manifest.json", "**/expected.output", "**/test.arguments",
     "**/test.input", "**/expected.file"]
 
 [badges]
