@@ -21,54 +21,18 @@ use flowcore::model::process::Process::FlowProcess;
 use crate::errors::*;
 use crate::Options;
 
-/*
-    Check the flow can be run (it could be a sub-flow that is part of a runnable flow)
-*/
-fn runnable(flow: &FlowDefinition) -> bool {
-    let mut runnable = true;
-
-    if !flow.inputs().is_empty() {
-        error!(
-            "Root process '{}' has inputs: {:?}",
-            flow.name,
-            flow.inputs()
-        );
-        runnable = false
-    }
-
-    if !flow.outputs().is_empty() {
-        error!(
-            "Root process '{}' has outputs: {:?}",
-            flow.name,
-            flow.outputs()
-        );
-        runnable = false
-    }
-
-    runnable
-}
-
 // For any function that provides an implementation - compile the source to wasm and modify the
 // implementation to indicate it is the wasm file
 fn compile_supplied_implementations(
-    _out_dir: &Path,
+    out_dir: &Path,
     tables: &mut GenerationTables,
     skip_building: bool,
     #[cfg(feature = "debugger")] source_urls: &mut HashSet<(Url, Url)>,
 ) -> Result<String> {
     for function in &mut tables.functions {
         if function.get_lib_reference().is_none() {
-            // calculate directory where we want compiled implementation to be left
-            let source_dir = function
-                .get_source_url()
-                .to_file_path()
-                .map_err(|_| "Could not get file path for function source")?
-                .parent()
-                .ok_or("Couldn't get directory where function defined")?
-                .to_path_buf();
-
             compile_wasm::compile_implementation(
-                &source_dir,
+                out_dir,
                 function,
                 skip_building,
                 #[cfg(feature = "debugger")]
@@ -80,9 +44,7 @@ fn compile_supplied_implementations(
     Ok("All supplied implementations compiled successfully".into())
 }
 
-/*
-    Compile a flow, maybe run it
-*/
+/// Compile a flow, maybe run it
 pub fn compile_and_execute_flow(options: &Options, provider: &dyn Provider) -> Result<()> {
     info!("==== Compiler phase: Loading flow");
     #[cfg(feature = "debugger")]
@@ -111,7 +73,7 @@ pub fn compile_and_execute_flow(options: &Options, provider: &dyn Provider) -> R
 
             dump(&flow, provider, &tables, options)?;
 
-            if !runnable(&flow) {
+            if !flow.is_runnable() {
                 info!("Flow not runnable, so Manifest generation and flow execution skipped");
                 return Ok(());
             }
