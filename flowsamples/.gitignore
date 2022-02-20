@@ -1,2 +1,0 @@
-# sub-projects may generate a Cargo.lock when compiled by flowc
-Cargo.lock
