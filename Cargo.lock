@@ -523,7 +523,7 @@ dependencies = [
 
 [[package]]
 name = "flowc"
-version = "0.43.0"
+version = "0.44.0"
 dependencies = [
  "clap",
  "colored",
@@ -571,7 +571,7 @@ dependencies = [
 
 [[package]]
 name = "flowr"
-version = "0.43.0"
+version = "0.44.0"
 dependencies = [
  "anyhow",
  "clap",
@@ -601,14 +601,14 @@ dependencies = [
 
 [[package]]
 name = "flowsamples"
-version = "0.43.0"
+version = "0.44.0"
 dependencies = [
  "serial_test",
 ]
 
 [[package]]
 name = "flowstdlib"
-version = "0.43.0"
+version = "0.44.0"
 dependencies = [
  "error-chain 0.12.4",
  "flowcore",
