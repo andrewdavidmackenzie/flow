@@ -174,5 +174,10 @@ pub fn run(implementation_source_path: &Path, wasm_destination: &Path) -> Result
         )
     })?;
 
-    fs::remove_file(cargo_toml).chain_err(|| "Could not remove temporary Cargo.toml")
+    fs::remove_file(&cargo_toml)
+        .chain_err(|| "Could not remove temporary Cargo.toml")?;
+
+    cargo_toml.set_extension(".lock");
+    fs::remove_file(cargo_toml)
+        .chain_err(|| "Could not remove generated Cargo.lock")
 }
