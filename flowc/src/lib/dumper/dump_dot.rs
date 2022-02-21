@@ -1,7 +1,5 @@
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
-use std::io::prelude::*;
-use std::path::Path;
 
 use serde_json::Value;
 
@@ -16,6 +14,211 @@ use flowcore::model::route::{HasRoute, Route};
 
 use crate::errors::*;
 use crate::generator::generate::GenerationTables;
+
+use std::fs;
+use std::io::Write;
+use std::path::Path;
+use std::process::Command;
+
+use log::{debug, info};
+use simpath::{FileType, FoundType, Simpath};
+use wax::Glob;
+
+use flowcore::lib_provider::Provider;
+
+use crate::dumper::{dump, dump_dot};
+
+/// Create a directed graph named after the flow, showing all the functions of the flow after it
+/// has been compiled down, grouped in sub-clusters
+///
+/// # Example
+/// ```
+/// use std::env;
+/// use url::Url;
+/// use flowcore::lib_provider::{Provider, MetaProvider};
+/// use flowcore::errors::Result;
+/// use flowcore::model::process::Process::FlowProcess;
+/// use tempdir::TempDir;
+/// use std::collections::HashSet;
+/// use simpath::Simpath;
+/// use std::path::Path;
+///
+/// // Create a lib_search_path including 'context' which is in flowr/src/lib
+/// let mut lib_search_path = Simpath::new("TEST_LIBS");
+/// let root_str = Path::new(env!("CARGO_MANIFEST_DIR")).parent().unwrap();
+/// let runtime_parent = root_str.join("flowr/src/lib");
+/// lib_search_path.add_directory(runtime_parent.to_str().unwrap());
+/// let provider = MetaProvider::new(lib_search_path);
+///
+/// let mut url = url::Url::from_file_path(env::current_dir().unwrap()).unwrap();
+/// url = url.join("flowc/tests/test-flows/hello-world/hello-world.toml").unwrap();
+///
+/// let mut source_urls = HashSet::<(Url, Url)>::new();
+/// if let Ok(FlowProcess(mut flow)) = flowclib::compiler::loader::load(&url,
+///                                                    &provider,
+///                                                    &mut source_urls) {
+///     let tables = flowclib::compiler::compile::compile(&flow).unwrap();
+///
+///     // strip off filename so output_dir is where the context.toml file resides
+///     let output_dir = TempDir::new("flow").unwrap().into_path();
+///
+///     // create a .dot format directed graph of all the functions after compiling down the flow
+///     flowclib::dumper::dump_dot::dump_functions(&flow, &tables, &output_dir).unwrap();
+/// }
+/// ```
+pub fn dump_functions(
+    flow: &FlowDefinition,
+    tables: &GenerationTables,
+    output_dir: &Path,
+) -> std::io::Result<()> {
+    info!(
+        "=== Dumper: Dumping functions in dot format to '{}'",
+        output_dir.display()
+    );
+    let mut dot_file = dump::create_output_file(output_dir, "functions", "dot")?;
+    info!("\tGenerating functions.dot, Use \"dotty\" to view it");
+    dot_file.write_all(
+        format!(
+            "digraph {} {{\nnodesep=1.0\n",
+            str::replace(&flow.alias.to_string(), "-", "_")
+        )
+            .as_bytes(),
+    )?;
+    dot_file.write_all(format!("labelloc=t;\nlabel = \"{}\";\n", flow.route()).as_bytes())?;
+
+    let functions = dump_dot::process_refs_to_dot(flow, tables, output_dir).map_err(|_| {
+        std::io::Error::new(
+            std::io::ErrorKind::Other,
+            "Could not create dot content for process_refs",
+        )
+    })?;
+
+    dot_file.write_all(functions.as_bytes())?;
+
+    dot_file.write_all(b"}")
+}
+
+/// Create a .dot format directed graph of a loaded flow definition
+///
+/// # Example
+/// ```
+/// use std::env;
+/// use url::Url;
+/// use flowcore::lib_provider::{Provider, MetaProvider};
+/// use flowcore::errors::Result;
+/// use flowcore::model::process::Process::FlowProcess;
+/// use tempdir::TempDir;
+/// use std::collections::HashSet;
+/// use simpath::Simpath;
+///
+/// let lib_search_path = Simpath::new("FLOW_LIB_PATH");
+/// let provider = MetaProvider::new(lib_search_path);
+///
+/// let mut url = url::Url::from_file_path(env::current_dir().unwrap()).unwrap();
+/// url = url.join("samples/hello-world/context.toml").unwrap();
+///
+/// let mut source_urls = HashSet::<(Url, Url)>::new();
+/// if let Ok(FlowProcess(mut flow)) = flowclib::compiler::loader::load(&url,
+///                                                    &provider,
+///                                                    &mut source_urls) {
+///
+///     // strip off filename so output_dir is where the context.toml file resides
+///     let output_dir = TempDir::new("flow").unwrap().into_path();
+///
+///     // dump the flows compiler data and dot graph into files alongside the 'context.toml'
+///     flowclib::dumper::dump_dot::dump_flow(&flow, &output_dir, &provider).unwrap();
+/// }
+/// ```
+pub fn dump_flow(
+    flow: &FlowDefinition,
+    output_dir: &Path,
+    provider: &dyn Provider,
+) -> Result<()> {
+    info!(
+        "=== Dumper: Dumping flow hierarchy to '{}'",
+        output_dir.display()
+    );
+    _dump_flow(flow, 0, output_dir, provider)?;
+    Ok(())
+}
+
+/// Generate SVG files from any .dot file found below the `root_dir` using the `dot` graphviz
+/// executable, if it is found installed on the system within the `$PATH` variable of the user
+pub fn generate_svgs(root_dir: &Path, delete_dots: bool) -> Result<()> {
+    if let Ok(FoundType::File(dot)) = Simpath::new("PATH").find_type("dot", FileType::File) {
+        info!("Generating .dot.svg files from .dot files, using 'dot' command from $PATH");
+
+        let glob = Glob::new("**/*.dot").map_err(|_| "Globbing error")?;
+        for entry in glob.walk(root_dir, usize::MAX) {
+            let entry = entry?;
+            let path = entry.path();
+            let path_name = path.to_string_lossy();
+            if Command::new(&dot)
+                .args(vec!["-Tsvg", "-O", &path_name])
+                .status()?.success() {
+                if delete_dots {
+                    fs::remove_file(path)?;
+                    debug!("Source file {} was removed after SVG generation", path_name)
+                } else {
+                    debug!(".dot.svg successfully generated from {}", path_name);
+                }
+            } else {
+                bail!("Error executing 'dot'");
+            }
+        }
+    } else {
+        info!("Could not find 'dot' command in $PATH so SVG generation skipped");
+    }
+
+    Ok(())
+}
+
+/*
+    dump the flow definition recursively, tracking what level we are at as we go down
+*/
+#[allow(clippy::or_fun_call)]
+fn _dump_flow(
+    flow: &FlowDefinition,
+    level: usize,
+    target_dir: &Path,
+    provider: &dyn Provider
+) -> Result<()> {
+    let file_path = flow.source_url.to_file_path().map_err(|_| {
+        std::io::Error::new(
+            std::io::ErrorKind::Other,
+            "Could not get file_stem of flow definition filename",
+        )
+    })?;
+    let filename = file_path
+        .file_stem()
+        .ok_or(std::io::Error::new(
+            std::io::ErrorKind::Other,
+            "Could not get file_stem of flow definition filename",
+        ))?
+        .to_str()
+        .ok_or(std::io::Error::new(
+            std::io::ErrorKind::Other,
+            "Could not convert filename to string",
+        ))?;
+
+    let mut writer = dump::create_output_file(target_dir, filename, "dot")?;
+    info!("\tGenerating {}.dot, Use \"dotty\" to view it", filename);
+    dump_dot::write_flow_to_dot(flow, &mut writer, target_dir)?;
+
+    // Dump sub-flows
+    for subprocess in &flow.subprocesses {
+        if let FlowProcess(ref subflow) = subprocess.1 {
+            _dump_flow(
+                subflow,
+                level + 1,
+                target_dir,
+                provider
+            )?;
+        }
+    }
+
+    Ok(())
+}
 
 static INPUT_PORTS: &[&str] = &["n", "ne", "nw", "w"];
 static OUTPUT_PORTS: &[&str] = &["s", "se", "sw", "e"];
@@ -43,7 +246,7 @@ fn remove_file_extension(file_path: &str) -> String {
     }
 }
 
-pub fn write_flow_to_dot(
+fn write_flow_to_dot(
     flow: &FlowDefinition,
     dot_file: &mut dyn Write,
     output_dir: &Path,
@@ -397,7 +600,7 @@ fn output_compiled_function(
     }
 }
 
-pub fn process_refs_to_dot(
+fn process_refs_to_dot(
     flow: &FlowDefinition,
     tables: &GenerationTables,
     output_dir: &Path,

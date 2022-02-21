@@ -2,14 +2,14 @@ use std::fs;
 use std::path::Path;
 
 use colored::*;
-use glob::glob;
 use log::{debug, info};
 use simpath::Simpath;
 use url::Url;
+use wax::Glob;
 
 use flowclib::compiler::compile_wasm;
 use flowclib::compiler::{json_manifest, loader};
-use flowclib::dumper::dump_flow;
+use flowclib::dumper::{dump, dump_dot};
 use flowcore::model::lib_manifest::LibraryManifest;
 use flowcore::lib_provider::{MetaProvider, Provider};
 use flowcore::model::name::HasName;
@@ -20,7 +20,7 @@ use crate::Options;
 
 /// Build a library from source and generate a manifest for it so it can be used at runtime when
 /// a flow referencing it is loaded and ran
-pub fn build_lib(options: &Options, provider: &dyn Provider) -> Result<String> {
+pub fn build_lib(options: &Options, provider: &dyn Provider) -> Result<()> {
     let (metadata, _) = loader::load_metadata(&options.source_url, provider)?;
 
     let name = metadata.name.clone();
@@ -90,7 +90,8 @@ pub fn build_lib(options: &Options, provider: &dyn Provider) -> Result<String> {
         json_manifest::write(&lib_manifest, &manifest_json_file)?;
     }
 
-    Ok(format!("    {} {}", "Finished".green(), name))
+    println!("    {} {}", "Finished".green(), name);
+    Ok(())
 }
 
 /*
@@ -136,83 +137,90 @@ fn compile_implementations(
     let mut build_count = 0;
     // Function implementations are described in .toml format and can be at multiple levels in
     // a library's directory structure.
-    let search_pattern = format!("{}/**/*.toml", &lib_root_path.display());
 
     debug!(
-        "Searching for process definitions using search pattern: '{}'",
-        search_pattern
+        "Searching for process definitions using search pattern: '{}/**/*.toml'",
+        lib_root_path.display(),
     );
 
-    for toml_path in (glob(&search_pattern).chain_err(|| "Failed to read glob pattern")?).flatten()
-    {
-        let url = Url::from_file_path(&toml_path).map_err(|_| {
-            format!(
-                "Could not create url from file path '{}'",
-                toml_path.display()
-            )
-        })?;
-        debug!("Trying to load library process from '{}'", url);
+    let glob = Glob::new("**/*.toml").map_err(|_| "Globbing error")?;
+    for entry in glob.walk(lib_root_path, usize::MAX) {
+        match &entry {
+            Ok(walk_entry) => {
+                let toml_path = walk_entry.path();
 
-        // calculate the path of the file's directory, relative to lib_root
-        let relative_dir = toml_path
-            .parent()
-            .ok_or("Could not get toml path parent dir")?
-            .strip_prefix(&lib_root_path)
-            .map_err(|_| "Could not calculate relative_dir")?;
-        // calculate the target directory for generating output using the relative path from the
-        // lib_root appended to the root of the output directory
-        let target_dir = output_dir.join(relative_dir);
-        if !target_dir.exists() {
-            fs::create_dir_all(&target_dir)?;
-        }
-
-        // Load the `FunctionProcess` or `FlowProcess` definition from the found `.toml` file
-        match loader::load(
-            &url,
-            provider,
-            #[cfg(feature = "debugger")]
-            &mut lib_manifest.source_urls,
-        ) {
-            Ok(FunctionProcess(ref mut function)) => {
-                let (wasm_abs_path, built) = compile_wasm::compile_implementation(
-                    &target_dir,
-                    function,
-                    native_only,
-                    #[cfg(feature = "debugger")]
-                    &mut lib_manifest.source_urls,
-                )
-                .chain_err(|| "Could not compile supplied implementation to wasm")?;
-
-                let wasm_relative_path = wasm_abs_path
-                    .strip_prefix(output_dir)
-                    .map_err(|_| "Could not calculate wasm_relative_path")?;
-
-                copy_sources_to_target_dir(&toml_path, &target_dir, function.get_docs())?;
-
-                lib_manifest
-                    .add_locator(
-                        &wasm_relative_path.to_string_lossy(),
-                        &relative_dir.to_string_lossy(),
-                        function.name() as &str,
+                let url = Url::from_file_path(&toml_path).map_err(|_| {
+                    format!(
+                        "Could not create url from file path '{}'",
+                        toml_path.display()
                     )
-                    .chain_err(|| "Could not add entry to library manifest")?;
-                if built {
-                    build_count += 1;
-                }
-            }
-            Ok(FlowProcess(ref mut flow)) => {
-                if dump || graphs {
-                    dump_flow::dump_flow(flow, &target_dir, provider, dump, graphs)
-                        .chain_err(|| "Failed to dump flow's definition")?;
+                })?;
+                debug!("Trying to load library process from '{}'", url);
 
-                    if graphs {
-                        dump_flow::generate_svgs(output_dir)?;
+                // calculate the path of the file's directory, relative to lib_root
+                let relative_dir = toml_path
+                    .parent()
+                    .ok_or("Could not get toml path parent dir")?
+                    .strip_prefix(&lib_root_path)
+                    .map_err(|_| "Could not calculate relative_dir")?;
+                // calculate the target directory for generating output using the relative path from the
+                // lib_root appended to the root of the output directory
+                let target_dir = output_dir.join(relative_dir);
+                if !target_dir.exists() {
+                    fs::create_dir_all(&target_dir)?;
+                }
+
+                // Load the `FunctionProcess` or `FlowProcess` definition from the found `.toml` file
+                match loader::load(
+                    &url,
+                    provider,
+                    #[cfg(feature = "debugger")]
+                        &mut lib_manifest.source_urls,
+                ) {
+                    Ok(FunctionProcess(ref mut function)) => {
+                        let (wasm_abs_path, built) = compile_wasm::compile_implementation(
+                            &target_dir,
+                            function,
+                            native_only,
+                            #[cfg(feature = "debugger")]
+                                &mut lib_manifest.source_urls,
+                        )
+                            .chain_err(|| "Could not compile supplied implementation to wasm")?;
+
+                        let wasm_relative_path = wasm_abs_path
+                            .strip_prefix(output_dir)
+                            .map_err(|_| "Could not calculate wasm_relative_path")?;
+
+                        copy_sources_to_target_dir(toml_path, &target_dir, function.get_docs())?;
+
+                        lib_manifest
+                            .add_locator(
+                                &wasm_relative_path.to_string_lossy(),
+                                &relative_dir.to_string_lossy(),
+                                function.name() as &str,
+                            )
+                            .chain_err(|| "Could not add entry to library manifest")?;
+                        if built {
+                            build_count += 1;
+                        }
                     }
-                }
+                    Ok(FlowProcess(ref mut flow)) => {
+                        if dump {
+                            dump::dump_flow(flow, &target_dir, provider)
+                                .chain_err(|| "Failed to dump flow's definition")?;
+                        }
 
-                copy_sources_to_target_dir(&toml_path, &target_dir, flow.get_docs())?;
-            }
-            Err(_) => debug!("Skipping file '{}'", url),
+                        if graphs {
+                            dump_dot::dump_flow(flow, output_dir, provider)?;
+                            dump_dot::generate_svgs(output_dir, true)?;
+                        }
+
+                        copy_sources_to_target_dir(toml_path, &target_dir, flow.get_docs())?;
+                    }
+                    Err(_) => debug!("Skipping file '{}'", url),
+                }
+            },
+            Err(e) => bail!("Error walking glob entries: {}", e.to_string())
         }
     }
 

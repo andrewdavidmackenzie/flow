@@ -11,8 +11,7 @@ use url::Url;
 use flowclib::compiler::compile;
 use flowclib::compiler::compile_wasm;
 use flowclib::compiler::loader;
-use flowclib::dumper::dump_flow;
-use flowclib::dumper::dump_tables;
+use flowclib::dumper::{dump, dump_dot};
 use flowclib::generator::generate;
 use flowclib::generator::generate::GenerationTables;
 use flowcore::lib_provider::Provider;
@@ -22,54 +21,18 @@ use flowcore::model::process::Process::FlowProcess;
 use crate::errors::*;
 use crate::Options;
 
-/*
-    Check root process fits the rules for a Context and being a runnable flow
-*/
-fn check_root(flow: &FlowDefinition) -> bool {
-    let mut runnable = true;
-
-    if !flow.inputs().is_empty() {
-        error!(
-            "Root process '{}' has inputs: {:?}",
-            flow.name,
-            flow.inputs()
-        );
-        runnable = false
-    }
-
-    if !flow.outputs().is_empty() {
-        error!(
-            "Root process '{}' has outputs: {:?}",
-            flow.name,
-            flow.outputs()
-        );
-        runnable = false
-    }
-
-    runnable
-}
-
 // For any function that provides an implementation - compile the source to wasm and modify the
 // implementation to indicate it is the wasm file
 fn compile_supplied_implementations(
-    _out_dir: &Path,
+    out_dir: &Path,
     tables: &mut GenerationTables,
     skip_building: bool,
     #[cfg(feature = "debugger")] source_urls: &mut HashSet<(Url, Url)>,
 ) -> Result<String> {
     for function in &mut tables.functions {
         if function.get_lib_reference().is_none() {
-            // calculate directory where we want compiled implementation to be left
-            let source_dir = function
-                .get_source_url()
-                .to_file_path()
-                .map_err(|_| "Could not get file path for function source")?
-                .parent()
-                .ok_or("Couldn't get directory where function defined")?
-                .to_path_buf();
-
             compile_wasm::compile_implementation(
-                &source_dir,
+                out_dir,
                 function,
                 skip_building,
                 #[cfg(feature = "debugger")]
@@ -81,10 +44,8 @@ fn compile_supplied_implementations(
     Ok("All supplied implementations compiled successfully".into())
 }
 
-/*
-    Compile a flow, maybe run it
-*/
-pub fn compile_and_execute_flow(options: &Options, provider: &dyn Provider) -> Result<String> {
+/// Compile a flow, maybe run it
+pub fn compile_and_execute_flow(options: &Options, provider: &dyn Provider) -> Result<()> {
     info!("==== Compiler phase: Loading flow");
     #[cfg(feature = "debugger")]
     let mut source_urls = HashSet::<(Url, Url)>::new();
@@ -110,14 +71,11 @@ pub fn compile_and_execute_flow(options: &Options, provider: &dyn Provider) -> R
             )
             .chain_err(|| "Could not compile to wasm the flow's supplied implementation(s)")?;
 
-            let runnable = check_root(&flow);
-
             dump(&flow, provider, &tables, options)?;
 
-            if !runnable {
-                return Ok(
-                    "Flow not runnable, so Manifest generation and execution skipped".to_string(),
-                );
+            if !flow.is_runnable() {
+                info!("Flow not runnable, so Manifest generation and flow execution skipped");
+                return Ok(());
             }
 
             info!("==== Compiler phase: Generating Manifest");
@@ -132,10 +90,10 @@ pub fn compile_and_execute_flow(options: &Options, provider: &dyn Provider) -> R
             .chain_err(|| "Failed to write manifest")?;
 
             if options.skip_execution {
-                return Ok("Flow execution skipped".to_string());
+                info!("Flow execution skipped");
+                return Ok(());
             }
 
-            info!("==== Compiler phase: Executing flow from manifest");
             execute_flow(&manifest_path, options)
         }
         _ => bail!("Process loaded was not of type 'Flow' and cannot be executed"),
@@ -147,30 +105,28 @@ fn dump(
     provider: &dyn Provider,
     tables: &GenerationTables,
     options: &Options,
-) -> Result<String> {
-    if options.dump || options.graphs {
-        dump_flow::dump_flow(
+) -> Result<()> {
+    if options.dump {
+        dump::dump_flow(
             flow,
             &options.output_dir,
-            provider,
-            options.dump,
-            options.graphs,
-        )
-        .chain_err(|| "Failed to dump flow's definition")?;
+            provider
+        ).chain_err(|| "Failed to dump flow definition")?;
 
-        if options.graphs {
-            dump_flow::generate_svgs(&options.output_dir)?;
-        }
+        dump::dump_tables(tables, &options.output_dir)
+            .chain_err(|| "Failed to dump the compiled flow's compiler tables")?;
 
-        if options.dump {
-            dump_tables::dump_tables(tables, &options.output_dir)
-                .chain_err(|| "Failed to dump flow's tables")?;
-            dump_tables::dump_functions(flow, tables, &options.output_dir)
-                .chain_err(|| "Failed to dump flow's functions")?;
-        }
+        dump::dump_functions(flow, tables, &options.output_dir)
+            .chain_err(|| "Failed to dump the compiled flow's functions")?;
     }
 
-    Ok("Dumped".into())
+    if options.graphs {
+        dump_dot::dump_flow(flow, &options.output_dir, provider)?;
+        dump_dot::dump_functions(flow, tables, &options.output_dir)?;
+        dump_dot::generate_svgs(&options.output_dir, true)?;
+    }
+
+    Ok(())
 }
 
 /*
@@ -180,8 +136,8 @@ fn dump(
     If the process exits correctly then just return an Ok() with message and no log
     If the process fails then return an Err() with message and log stderr in an ERROR level message
 */
-fn execute_flow(filepath: &Path, options: &Options) -> Result<String> {
-    info!("Executing flow from manifest in '{}'", filepath.display());
+fn execute_flow(filepath: &Path, options: &Options) -> Result<()> {
+    info!("==== Compiler phase: Executing flow from manifest at '{}'", filepath.display());
 
     let mut command_args = vec![filepath.display().to_string()];
 
@@ -230,7 +186,7 @@ fn execute_flow(filepath: &Path, options: &Options) -> Result<String> {
         .chain_err(|| "Could not capture 'flowr' output")?;
 
     match flowr_output.status.code() {
-        Some(0) => Ok("".into()),
+        Some(0) => Ok(()),
         Some(code) => {
             error!("Execution of 'flowr' failed");
             error!(
@@ -246,6 +202,6 @@ fn execute_flow(filepath: &Path, options: &Options) -> Result<String> {
                 code
             )
         }
-        None => Ok("No return code - ignoring".to_string()),
+        None => Ok(()),
     }
 }

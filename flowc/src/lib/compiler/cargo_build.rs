@@ -139,8 +139,12 @@ fn cargo_build(
 
 /// Run the cargo build to compile wasm from function source
 pub fn run(implementation_source_path: &Path, wasm_destination: &Path) -> Result<()> {
-    let mut cargo_manifest_path = implementation_source_path.to_path_buf();
-    cargo_manifest_path.set_file_name("Cargo.toml");
+    let mut manifest_path = implementation_source_path.to_path_buf();
+    manifest_path.set_file_name("FlowCargo.toml");
+
+    let mut cargo_toml = manifest_path.clone();
+    cargo_toml.set_file_name("Cargo.toml");
+    fs::copy(manifest_path, &cargo_toml)?;
 
     // Create a temp directory for building in. To avoid the corner case where the TempDir
     // maybe on another FS from the destination (preventing renaming) I create it under the
@@ -154,9 +158,9 @@ pub fn run(implementation_source_path: &Path, wasm_destination: &Path) -> Result
     .chain_err(|| "Error creating new TempDir for compiling in")?
     .into_path();
 
-    cargo_test(cargo_manifest_path.clone(), build_dir.clone())?;
+    cargo_test(cargo_toml.clone(), build_dir.clone())?;
     cargo_build(
-        cargo_manifest_path,
+        cargo_toml.clone(),
         &build_dir,
         implementation_source_path,
         wasm_destination,
@@ -168,5 +172,13 @@ pub fn run(implementation_source_path: &Path, wasm_destination: &Path) -> Result
             "Could not remove temporary build directory '{}'",
             build_dir.display()
         )
-    })
+    })?;
+
+    fs::remove_file(&cargo_toml)
+        .chain_err(|| "Could not remove temporary Cargo.toml")?;
+
+    cargo_toml.set_extension("lock");
+    let _ = fs::remove_file(cargo_toml);
+
+    Ok(())
 }

@@ -106,6 +106,6 @@ fn root_flow_takes_name_from_file() {
 #[test]
 fn load_library() {
     let meta_provider = MetaProvider::new(helper::set_lib_search_path_to_project());
-    let path = helper::absolute_file_url_from_relative_path("flowc/tests/test_libs/Cargo.toml");
+    let path = helper::absolute_file_url_from_relative_path("flowc/tests/test_libs/FlowCargo.toml");
     loader::load_metadata(&path, &meta_provider).expect("Could not load metadata");
 }

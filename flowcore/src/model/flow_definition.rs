@@ -244,6 +244,12 @@ impl FlowDefinition {
         self.validate()
     }
 
+
+    /// Check if the flow can be run (it could be a sub-flow not a context level runnable flow)
+    pub fn is_runnable(&self) -> bool {
+        self.inputs().is_empty()  && self.outputs().is_empty()
+    }
+
     fn get_io_subprocess(
         &mut self,
         subprocess_alias: &Name,

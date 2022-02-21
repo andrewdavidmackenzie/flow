@@ -43,8 +43,8 @@
 # Debugging Flows
 - [The Debugger](docs/debugging/debugger.md)
 
-# The `flowruntime` Runtime
-- [The flowruntime functions](flowr/src/lib/context/README.md)
+# `context` functions
+- [`context` functions](flowr/src/lib/context/README.md)
 - [Arg functions](flowr/src/lib/context/args/args.md)
     - [Arg get function](flowr/src/lib/context/args/get.md)
 - [File functions](flowr/src/lib/context/file/file.md)
@@ -108,10 +108,10 @@
     - [pipeline](flowsamples/pipeline/DESCRIPTION.md)
     - [prime](flowsamples/prime/DESCRIPTION.md)
     - [primitives](flowsamples/primitives/DESCRIPTION.md)
-    - [sequence](flowsamples/sequence/DESCRIPTION.md)
-    - [sequence-of-sequences](flowsamples/sequence-of-sequences/DESCRIPTION.md)
     - [reverse-echo](flowsamples/reverse-echo/DESCRIPTION.md)
     - [router](flowsamples/router/DESCRIPTION.md)
+    - [sequence](flowsamples/sequence/DESCRIPTION.md)
+    - [sequence-of-sequences](flowsamples/sequence-of-sequences/DESCRIPTION.md)
     - [tokenizer](flowsamples/tokenizer/DESCRIPTION.md)
     
 --------------------------------------------------------------------------------
@@ -130,7 +130,7 @@
     - [flowr](flowr/README.md)
     - [flowrlib](flowr/src/lib/README.md)
     - [flowstdlib](flowstdlib/README.md)
-    - [flowruntime](flowr/src/lib/context/README.md)
+    - [`context`](flowr/src/lib/context/README.md)
     - [samples](flowsamples/README.md)
 - [Makefile targets](docs/developing/make.md)
 - [Ways to contribute](docs/developing/contributing.md)

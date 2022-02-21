@@ -69,12 +69,7 @@ fn main() {
 
             exit(1);
         }
-        Ok(msg) => {
-            if !msg.is_empty() {
-                println!("{}", msg);
-            }
-            exit(0)
-        }
+        Ok(_) => exit(0)
     }
 }
 
@@ -106,7 +101,7 @@ pub fn set_lib_search_path(search_path_additions: &[String]) -> Result<Simpath> 
     Return either an error string if anything goes wrong or
     a message to display to the user if all went OK
 */
-fn run() -> Result<String> {
+fn run() -> Result<()> {
     let options = parse_args(get_matches())?;
 
     let lib_search_path = set_lib_search_path(&options.lib_dirs)?;
@@ -164,13 +159,13 @@ fn get_matches<'a>() -> ArgMatches<'a> {
             Arg::with_name("dump")
                 .short("d")
                 .long("dump")
-                .help("Dump the flow to .dump files after loading it"),
+                .help("Dump data on the flow to .dump a.dot files after loading it"),
         )
         .arg(
             Arg::with_name("graphs")
                 .short("z")
                 .long("graphs")
-                .help("Create .dot files for graphs, and generate SVGs with 'dot'"),
+                .help("Create .dot files for graphs then generate SVGs with 'dot' command (if available)"),
         )
         .arg(
             Arg::with_name("provided")

@@ -2,7 +2,11 @@ use flowmacro::flow_function;
 use num::Complex;
 use serde_json::{json, Value};
 
-pub fn escapes(c: Complex<f64>, limit: u64) -> u64 {
+pub fn escapes(c_array: [f64; 2], limit: u64) -> u64 {
+    let c = Complex {
+        re: c_array[0], im: c_array[1]
+    };
+
     if c.norm_sqr() > 4.0 {
         return 0;
     }
@@ -26,10 +30,8 @@ fn _escapes(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
     let pixel = pixel_point[0].as_array().ok_or("Could not get as array")?;
     let point = pixel_point[1].as_array().ok_or("Could not get as array")?;
 
-    let c = Complex {
-        re: point[0].as_f64().ok_or("Could not get as f64")?,
-        im: point[1].as_f64().ok_or("Could not get as f64")?,
-    };
+    let c: [f64; 2] = [point[0].as_f64().ok_or("Could not get as f64")?,
+                    point[1].as_f64().ok_or("Could not get as f64")?];
 
     let value = escapes(c, 255);
 
@@ -41,26 +43,12 @@ fn _escapes(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
 
 #[cfg(test)]
 mod test {
-    use serde_json::{json, Value};
-
-    use super::_escapes;
+    use super::escapes;
 
     #[test]
     fn pixel() {
-        let pixel_point = json!([[50, 50], [0.5, 0.5]]);
+        let value = escapes([0.5, 0.5], 255);
 
-        let inputs: Vec<Value> = vec![pixel_point];
-        let (results, _) = _escapes(&inputs).expect("_escapes() failed");
-
-        let results_json = results.expect("No result returned");
-        let results_array = results_json.as_array().expect("Could not get as array");
-
-        let pixel = results_array[0].as_array().expect("Could not get as array");
-        let value_array = results_array[1].as_array().expect("Could not get as array");
-        let value = value_array[0].as_i64().expect("Could not get as i64") as u8;
-
-        assert_eq!(50, pixel[0]);
-        assert_eq!(50, pixel[1]);
         assert_eq!(4, value);
     }
 
@@ -75,10 +63,7 @@ mod test {
 
         #[bench]
         fn bench_escapes(b: &mut Bencher) {
-            let upper_left = Complex {
-                re: -1.20,
-                im: 0.35,
-            };
+            let upper_left = [-1.20, 0.35];
 
             b.iter(|| escapes(upper_left, 255));
         }

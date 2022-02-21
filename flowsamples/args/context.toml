@@ -1,4 +1,4 @@
-flow = "arg-print"
+flow = "args"
 docs = "DESCRIPTION.md"
 
 [[process]]

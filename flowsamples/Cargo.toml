@@ -13,8 +13,8 @@ edition = "2021"
 build = "build.rs"
 
 # Avoid a bunch of files that are generated as part of the flowsamples building and/or running
-exclude = ["**/*.dump", "**/*.err", "**/*.dot", "**/*.svg", "failed.output", "Cargo.lock",
-           ".gitignore"]
+include = ["**/FlowCargo.toml", "**/*.rs", "**/*.wasm", "**/*.svg", "**/*.toml", "**/*.md", "**/manifest.json", "**/expected.output", "**/test.arguments",
+    "**/test.input", "**/expected.file"]
 
 [badges]
 maintenance = { status = "actively-developed" }
@@ -23,12 +23,5 @@ maintenance = { status = "actively-developed" }
 name = "flowsamples"
 path = "main.rs"
 
-[build-dependencies]
-simpath = { version = "~2.3", features = ["urls"]}
-
-[dependencies]
-simpath = { version = "~2.3", features = ["urls"]}
-
 [dev-dependencies]
 serial_test = "0.5.0"
-
