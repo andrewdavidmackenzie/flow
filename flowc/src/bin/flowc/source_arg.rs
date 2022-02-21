@@ -65,7 +65,7 @@ fn make_writeable(output_dir: PathBuf) -> Result<PathBuf> {
             bail!("Output directory '{}' is read only", output_dir.display());
         }
     } else {
-        fs::create_dir(&output_dir)
+        fs::create_dir_all(&output_dir)
             .chain_err(|| format!("Could not create directory '{}'", output_dir.display()))?;
     }
 
