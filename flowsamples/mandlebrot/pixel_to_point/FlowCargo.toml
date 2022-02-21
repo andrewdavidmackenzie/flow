@@ -20,3 +20,6 @@ panic = 'abort' # About unwinding code
 flowcore = "0.42"
 flowmacro = "0.42"
 serde_json = "1.0"
+
+[workspace]
+exclude = ["../../..", ".."]
