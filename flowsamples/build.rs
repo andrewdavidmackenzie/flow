@@ -6,7 +6,10 @@ use std::process::Command;
 fn main() -> io::Result<()> {
     let samples_root = env!("CARGO_MANIFEST_DIR");
     let root_dir = Path::new(samples_root).parent().expect("Could not get parent directory");
-    let samples_out_dir = root_dir.join("target/flowsamples");
+    let samples_out_dir = root_dir.join(
+        format!("{}/.flow/{}/flowsamples",
+                std::env::var("HOME").expect("HOME not set"),
+                std::env::var("PROFILE").expect("$PROFILE not set")));
 
     println!("cargo:rerun-if-env-changed=FLOW_LIB_PATH");
     // Tell Cargo that if any file in the flowsamples directory changes it should rerun this build script
