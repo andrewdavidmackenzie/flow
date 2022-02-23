@@ -66,7 +66,7 @@ impl Loader {
         debug!("Loading flow manifest from '{}'", flow_manifest_url);
         let (mut flow_manifest, resolved_url) =
             FlowManifest::load(server_provider, flow_manifest_url).chain_err(|| {
-                format!("Error while loading manifest from: '{}'", flow_manifest_url)
+                format!("Could not load manifest from: '{}'", flow_manifest_url)
             })?;
 
         self.load_library_implementations(server_provider, &flow_manifest)
