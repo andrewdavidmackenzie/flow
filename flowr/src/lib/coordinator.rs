@@ -120,6 +120,7 @@ impl Submission {
 ///         true,
 ///         runtime_server_connection,
 ///         #[cfg(feature = "debugger")] debug_server_connection,
+///         false,
 ///     );
 /// });
 ///
