@@ -219,12 +219,15 @@ impl Coordinator {
                     let state = RunState::new(manifest.get_functions(), submission);
                     self.execute_flow(state)?;
                 }
-                Err(e) => error!("{}", e), // log error but don't exit loop at first error
+                Err(e) => {
+                    error!("{}", e);
+
+                    if !loop_forever {
+                        break;
+                    }
+                },
             }
 
-            if !loop_forever {
-                break;
-            }
         }
 
         debug!("Server has exited submission loop and will close connection");
