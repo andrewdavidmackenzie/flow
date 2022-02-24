@@ -217,20 +217,23 @@ impl Coordinator {
             match loader.load_flow(&server_provider, &client_provider, &submission.manifest_url) {
                 Ok(mut manifest) => {
                     let state = RunState::new(manifest.get_functions(), submission);
-                    self.execute_flow(state)?;
+                    if self.execute_flow(state)? {
+                        break;
+                    }
                 }
                 Err(e) => {
                     error!("{}", e);
 
                     if !loop_forever {
-                        break;
+                        debug!("Server exiting submission loop and closing connection");
+                        return self.close_connection();
                     }
                 },
             }
 
         }
 
-        debug!("Server has exited submission loop and will close connection");
+        debug!("Server exiting submission loop and closing connection");
         self.close_connection()
     }
 
@@ -275,7 +278,7 @@ impl Coordinator {
     // There is an outer loop for the case when you are using the debugger, to allow entering
     // the debugger when the flow ends and at any point resetting all the state and starting
     // execution again from the initial state
-    fn execute_flow(&mut self, mut state: RunState) -> Result<()> {
+    fn execute_flow(&mut self, mut state: RunState) -> Result<bool> {
         #[cfg(feature = "metrics")]
         let mut metrics = Metrics::new(state.num_functions());
 
@@ -302,7 +305,7 @@ impl Coordinator {
             if state.debug {
                 let debug_check = self.debugger.wait_for_command(&state);
                 if debug_check.2 {
-                    return Ok(());
+                    return Ok(true); // User requested via debugger to exit execution
                 }
             }
 
@@ -317,7 +320,7 @@ impl Coordinator {
                 if state.debug && self.should_enter_debugger()? {
                     let debug_check = self.debugger.wait_for_command(&state);
                     if debug_check.2 {
-                        return Ok(());
+                        return Ok(true); // User requested via debugger to exit execution
                     }
                 }
 
@@ -329,7 +332,7 @@ impl Coordinator {
 
                 #[cfg(feature = "debugger")]
                 if _debug_check.2 {
-                    return Ok(());
+                    return Ok(true); // User requested via debugger to exit execution
                 }
 
                 #[cfg(feature = "debugger")]
@@ -395,7 +398,7 @@ impl Coordinator {
                     if state.debug {
                         let debug_check = self.debugger.execution_ended(&state);
                         if debug_check.2 {
-                            return Ok(());
+                            return Ok(true); // Exit debugger
                         }
 
                         restart = debug_check.1;
@@ -416,7 +419,7 @@ impl Coordinator {
             }
         }
 
-        Ok(())
+        Ok(false)
     }
 
     #[cfg(feature = "metrics")]
