@@ -154,6 +154,7 @@ fn server_only(num_threads: usize, lib_search_path: Simpath, native: bool) -> Re
         runtime_server_connection,
         #[cfg(feature = "debugger")]
         debug_server_connection,
+        true
     )?;
     info!("'flowr' server process has exited");
 
@@ -189,6 +190,7 @@ fn client_and_server(
             runtime_server_connection,
             #[cfg(feature = "debugger")]
             debug_server_connection,
+            false,
         );
         info!("'flowr' server thread has exited");
     });

@@ -120,6 +120,7 @@ impl Submission {
 ///         true,
 ///         runtime_server_connection,
 ///         #[cfg(feature = "debugger")] debug_server_connection,
+///         false,
 ///     );
 /// });
 ///
@@ -174,6 +175,7 @@ impl Coordinator {
         native: bool,
         runtime_server_connection: ServerConnection,
         #[cfg(feature = "debugger")] debug_server_connection: ServerConnection,
+        loop_forever: bool,
     ) -> Result<()> {
         let mut coordinator = Coordinator::new(
             runtime_server_connection,
@@ -185,6 +187,7 @@ impl Coordinator {
         coordinator.submission_loop(
             lib_search_path,
             native,
+            loop_forever
         )
     }
 
@@ -198,6 +201,7 @@ impl Coordinator {
         &mut self,
         lib_search_path: Simpath,
         native: bool,
+        loop_forever: bool,
     ) -> Result<()> {
         let mut loader = Loader::new();
         let server_provider = MetaProvider::new(lib_search_path);
@@ -217,14 +221,19 @@ impl Coordinator {
                         break;
                     }
                 }
-                Err(e) => error!(
-                    "Could not load the flow from manifest url: '{}'\n    {}",
-                    submission.manifest_url, e
-                ),
+                Err(e) => {
+                    error!("{}", e);
+
+                    if !loop_forever {
+                        debug!("Server exiting submission loop and closing connection");
+                        return self.close_connection();
+                    }
+                },
             }
+
         }
 
-        debug!("Server has exited submission loop and will close connection");
+        debug!("Server exiting submission loop and closing connection");
         self.close_connection()
     }
 
