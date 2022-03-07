@@ -143,13 +143,13 @@ fn write_manifest(manifest: &FlowManifest, filename: &Path) -> Result<()> {
 }
 
 // Setup a lib search path so that they can find the context library that is in
-// flowr/src/lib/context
+// flowr/src/bin/flowr/context
 fn set_lib_search_path() -> Simpath {
     let mut lib_search_path = Simpath::new("lib_search_path");
     let flowr_path_str = Path::new(env!("CARGO_MANIFEST_DIR"))
         .parent()
         .expect("Could not get project root dir")
-        .join("flowr/src/lib");
+        .join("flowr/src/bin/flowr");
     println!("flowr_path_str: {:?}", flowr_path_str);
     lib_search_path.add_directory(
         flowr_path_str
@@ -175,24 +175,23 @@ fn load_manifest_from_file() {
 
     let manifest = create_manifest(functions);
 
-    let temp_dir = TempDir::new("flow").expect("Coul dno tget temp dir").into_path();
+    let temp_dir = TempDir::new("flow").expect("Could not get temp dir").into_path();
     let manifest_file = temp_dir.join("manifest.json");
     let _ = write_manifest(&manifest, &manifest_file).expect("Could not write manifest file");
     let manifest_url = Url::from_directory_path(manifest_file).expect("Could not create url from directory path");
-    let server_provider = MetaProvider::new(set_lib_search_path());
-    let client_provider = MetaProvider::new(set_lib_search_path());
+    let provider = MetaProvider::new(set_lib_search_path());
 
     let mut loader = Loader::new();
     loader
         .add_lib(
-            &server_provider,
+            &provider,
             get_manifest(),
             &Url::parse("lib://context").expect("Could not parse lib url"),
         )
         .expect("Could not add context library to loader");
 
     let _ = loader
-        .load_flow(&server_provider, &client_provider, &manifest_url)
+        .load_flow(&provider, &manifest_url)
         .expect("Loader could not load flow");
 
     assert!(!loader.get_lib_implementations().is_empty());
@@ -222,7 +221,7 @@ fn resolve_lib_implementation_test() {
         .expect("Could not add library");
 
     loader
-        .resolve_implementations(&mut manifest, &manifest_url, &provider)
+        .resolve_implementations(&provider, &mut manifest, &manifest_url)
         .expect("Could not add library");
 }
 
@@ -250,6 +249,6 @@ fn unresolved_lib_functions_test() {
         .expect("Could not add context library to loader");
 
     assert!(loader
-        .resolve_implementations(&mut manifest, &manifest_url, &provider)
+        .resolve_implementations(&provider, &mut manifest, &manifest_url)
         .is_err());
 }

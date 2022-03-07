@@ -5,9 +5,9 @@ use std::time::Duration;
 use log::{info, trace};
 use portpicker::pick_unused_port;
 use simpdiscoverylib::{BeaconListener, BeaconSender};
-use zmq::{Message, Socket};
+use zmq::Socket;
 
-use crate::errors::*;
+use flowcore::errors::*;
 
 /// WAIT for a message to arrive when performing a receive()
 pub const WAIT:i32 = 0;
@@ -17,7 +17,7 @@ pub static DONT_WAIT:i32 = zmq::DONTWAIT;
 /// `Method` describes the communication method used between client and server
 #[derive(Clone)]
 pub enum Method {
-    /// InProc ZQM communications over a shared context
+    /// InProc ZQM communications over a shared Context
     InProc(Option<zmq::Context>),
     /// Tcp communications - Optional tuple of Server hostname and port to connect to
     Tcp(Option<(String, u16)>)
@@ -110,7 +110,9 @@ impl ClientConnection {
     }
 
     /// Receive a ServerMessage from the server
-    pub fn receive<SM: From<Message> + Display>(&self) -> Result<SM> {
+    pub fn receive<SM>(&self) -> Result<SM>
+    where
+        SM : From<String> + Display {
         trace!("Client waiting for message from server");
 
         let msg = self
@@ -118,16 +120,20 @@ impl ClientConnection {
             .recv_msg(0)
             .map_err(|e| format!("Error receiving from service: {}", e))?;
 
-        let message = SM::from(msg);
+        let message_string = msg.as_str().ok_or("Could not get message as str")?
+            .to_string();
+        let message: SM = message_string.into();
         trace!("Client Received <--- {}", message);
         Ok(message)
     }
 
     /// Send a ClientMessage to the Server
-    pub fn send<CM: Into<Message> + Display>(&self, message: CM) -> Result<()> {
+    pub fn send<CM>(&self, message: CM) -> Result<()>
+    where
+        CM: Into<String> + Display {
         trace!("Client Sent     ---> {}", message);
         self.requester
-            .send(message, 0)
+            .send(&message.into(), 0)
             .chain_err(|| "Error sending to service")
     }
 }
@@ -207,8 +213,7 @@ impl ServerConnection {
     /// Receive a Message sent from the client to the server
     pub fn receive<CM>(&self, flags: i32) -> Result<CM>
     where
-        CM: From<Message> + Display,
-        zmq::Message: std::convert::From<CM> {
+        CM: From<String> + Display {
         trace!("Server waiting for message from client");
 
         let msg = self
@@ -216,7 +221,9 @@ impl ServerConnection {
             .recv_msg(flags)
             .map_err(|e| format!("Server error getting message: '{}'", e))?;
 
-        let message = CM::from(msg);
+        let message_string = msg.as_str().ok_or("Could not get message as str")?
+            .to_string();
+        let message = message_string.into();
         trace!("                ---> Server Received {}", message);
         Ok(message)
     }
@@ -224,9 +231,8 @@ impl ServerConnection {
     /// Send a Message from the server to the Client and wait for it's response
     pub fn send_and_receive_response<SM, CM>(&mut self, message: SM) -> Result<CM>
     where
-        SM: Into<Message> + Display,
-        CM: From<Message> + Display,
-        zmq::Message: std::convert::From<CM> {
+        SM: Into<String> + Display,
+        CM: From<String> + Display {
         self.send(message)?;
         self.receive(WAIT)
     }
@@ -234,16 +240,17 @@ impl ServerConnection {
     /// Send a Message from the server to the Client but don't wait for it's response
     pub fn send<SM>(&mut self, message: SM) -> Result<()>
     where
-        SM: Into<Message> + Display {
+        SM: Into<String> + Display {
         trace!("                <--- Server Sent {}", message);
 
         self.responder
-            .send(message, 0)
+            .send(&message.into(), 0)
             .map_err(|e| format!("Server error sending to client: '{}'", e))?;
 
         Ok(())
     }
 }
+
 
 #[cfg(test)]
 mod test {
@@ -252,7 +259,6 @@ mod test {
 
     use serde_derive::{Deserialize, Serialize};
     use serial_test::serial;
-    use zmq::Message;
 
     use crate::client_server::{ClientConnection, DONT_WAIT, Method, ServerConnection, WAIT};
 
@@ -284,31 +290,27 @@ mod test {
         }
     }
 
-    impl From<ServerMessage> for Message {
+    impl From<ServerMessage> for String {
         fn from(event: ServerMessage) -> Self {
-            Message::from(&serde_json::to_string(&event).expect("Could not serialize message"))
+            serde_json::to_string(&event).expect("Could not serialize message")
         }
     }
 
-    impl From<Message> for ServerMessage {
-        fn from(msg: Message) -> Self {
-            serde_json::from_str(msg.as_str().expect("Could not convert message to &str"))
-                .expect("Could not deserialize message")
+    impl From<String> for ServerMessage {
+        fn from(msg: String) -> Self {
+            serde_json::from_str(&msg).expect("Could not deserialize message")
         }
     }
 
-    impl From<ClientMessage> for Message {
+    impl From<ClientMessage> for String {
         fn from(msg: ClientMessage) -> Self {
-            Message::from(
-                &serde_json::to_string(&msg).expect("Could not convert message to string"),
-            )
+            serde_json::to_string(&msg).expect("Could not convert message to string")
         }
     }
 
-    impl From<Message> for ClientMessage {
-        fn from(msg: Message) -> Self {
-            serde_json::from_str(msg.as_str().expect("Could not convert message to str"))
-                .expect("Could not deserialize message")
+    impl From<String> for ClientMessage {
+        fn from(msg: String) -> Self {
+            serde_json::from_str(&msg).expect("Could not deserialize message")
         }
     }
 

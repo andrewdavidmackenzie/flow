@@ -32,7 +32,7 @@ impl Implementation for ImageBuffer {
         let w = size[0].as_u64().ok_or("Could not get w")?;
         let h = size[1].as_u64().ok_or("Could not get h")?;
 
-        let _: crate::errors::Result<ClientMessage> = server.send_and_receive_response(ServerMessage::PixelWrite(
+        let _: Result<ClientMessage> = server.send_and_receive_response(ServerMessage::PixelWrite(
                 (x as u32, y as u32),
                 (r as u8, g as u8, b as u8),
                 (w as u32, h as u32),
@@ -51,9 +51,9 @@ mod test {
     use flowcore::{Implementation, RUN_AGAIN};
 
     use crate::runtime_messages::{ClientMessage, ServerMessage};
+    use crate::test_helper::test::wait_for_then_send;
 
     use super::ImageBuffer;
-    use super::super::super::test_helper::test::wait_for_then_send;
 
     #[test]
     #[serial]

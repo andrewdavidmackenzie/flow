@@ -4,12 +4,12 @@ use std::sync::Arc;
 use log::{debug, info, trace};
 use url::Url;
 
-use flowcore::model::flow_manifest::FlowManifest;
 use flowcore::Implementation;
+use flowcore::lib_provider::Provider;
+use flowcore::model::flow_manifest::FlowManifest;
 use flowcore::model::lib_manifest::{
     ImplementationLocator::Native, ImplementationLocator::Wasm, LibraryManifest,
 };
-use flowcore::lib_provider::Provider;
 
 use crate::errors::*;
 use crate::wasm;
@@ -59,21 +59,20 @@ impl Loader {
     /// Thus, all library implementations found will be Native.
     pub fn load_flow(
         &mut self,
-        server_provider: &dyn Provider,
-        client_provider: &dyn Provider,
+        provider: &dyn Provider,
         flow_manifest_url: &Url,
     ) -> Result<FlowManifest> {
         debug!("Loading flow manifest from '{}'", flow_manifest_url);
         let (mut flow_manifest, resolved_url) =
-            FlowManifest::load(server_provider, flow_manifest_url).chain_err(|| {
+            FlowManifest::load(provider, flow_manifest_url).chain_err(|| {
                 format!("Could not load manifest from: '{}'", flow_manifest_url)
             })?;
 
-        self.load_library_implementations(server_provider, &flow_manifest)
+        self.load_library_implementations(provider, &flow_manifest)
             .chain_err(|| "Could not load library implementations for flow")?;
 
         // Find the implementations for all functions in this flow
-        self.resolve_implementations(&mut flow_manifest, &resolved_url, client_provider)
+        self.resolve_implementations(provider, &mut flow_manifest, &resolved_url)
             .chain_err(|| "Could not resolve implementations required for flow execution")?;
 
         Ok(flow_manifest)
@@ -244,9 +243,9 @@ impl Loader {
     /// and is used in resolving relative references to other files.
     pub fn resolve_implementations(
         &mut self,
+        provider: &dyn Provider,
         flow_manifest: &mut FlowManifest,
         manifest_url: &Url,
-        provider: &dyn Provider,
     ) -> Result<()> {
         debug!("Resolving implementations");
         // find in a library, or load the supplied implementation - as specified by the source

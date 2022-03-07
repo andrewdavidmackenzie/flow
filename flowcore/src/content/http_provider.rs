@@ -5,6 +5,7 @@ use url::Url;
 use crate::errors::*;
 use crate::lib_provider::Provider;
 
+/// The `HttpProvider` implements the `Provider` trait and takes care of fetching content via http
 pub struct HttpProvider;
 
 struct Collector(Vec<u8>);

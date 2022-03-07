@@ -11,7 +11,7 @@ pub fn set_lib_search_path_to_project() -> Simpath {
     let root_str = Path::new(env!("CARGO_MANIFEST_DIR"))
         .parent()
         .expect("Could not get project root dir");
-    let runtime_parent = root_str.join("flowr/src/lib");
+    let runtime_parent = root_str.join("flowr/src/bin/flowr");
     lib_search_path.add_directory(runtime_parent.to_str().expect("Could not convert path to string"));
 
     lib_search_path

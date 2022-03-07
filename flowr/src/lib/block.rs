@@ -19,6 +19,7 @@ pub struct Block {
 }
 
 impl Block {
+    /// Create a new `Block`
     pub fn new(
         blocking_flow_id: usize,
         blocking_id: usize,

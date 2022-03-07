@@ -3,7 +3,7 @@ use std::fs::File;
 use std::io::prelude::*;
 use std::path::Path;
 
-use log::debug;
+use log::{debug, trace};
 use url::Url;
 
 use crate::errors::*;
@@ -29,12 +29,21 @@ impl Provider for FileProvider {
         match md_result {
             Ok(md) => {
                 if md.is_dir() {
+                    trace!(
+                        "'{}' is a directory, so attempting to find default file named '{}' in it",
+                        path.display(),
+                        default_filename
+                    );
                     if let Ok(file_found_url) =
                         FileProvider::find_file(&path, default_filename, extensions)
                     {
                         return Ok((file_found_url, None));
                     }
 
+                    trace!(
+                        "'{}' is a directory, so attempting to find file with same name inside it",
+                        path.display()
+                    );
                     if let Some(dir_os_name) = path.file_name() {
                         let dir_name = dir_os_name.to_string_lossy();
                         if let Ok(file_found_url) = Self::find_file(&path, &dir_name, extensions) {
@@ -72,17 +81,17 @@ impl Provider for FileProvider {
 }
 
 impl FileProvider {
-    /// Passed a path to a directory, it searches for a file in the directory called 'default_filename'
-    /// If found, it opens the file and returns its contents as a String in the result
-    pub fn find_file(dir: &Path, default_filename: &str, extensions: &[&str]) -> Result<Url> {
+    // Passed a path to a directory, it searches for a file in the directory called 'default_filename'
+    // If found, it opens the file and returns its contents as a String in the result
+    fn find_file(dir: &Path, default_filename: &str, extensions: &[&str]) -> Result<Url> {
         let mut file = dir.to_path_buf();
         file.push(default_filename);
 
         Self::file_by_extensions(&file, extensions)
     }
 
-    /// Given a path to a filename, try to find an existing file with any of the allowed extensions
-    pub fn file_by_extensions(file: &Path, extensions: &[&str]) -> Result<Url> {
+    // Given a path to a filename, try to find an existing file with any of the allowed extensions
+    fn file_by_extensions(file: &Path, extensions: &[&str]) -> Result<Url> {
         let mut file_with_extension = file.to_path_buf();
 
         // for that file path, try with all the allowed file extensions

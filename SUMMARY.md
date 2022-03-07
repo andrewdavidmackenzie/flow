@@ -3,7 +3,6 @@
 [Intro](book_intro.md)
 
 # Introduction to `flow`
-
 - [What is `flow`?](docs/introduction/what_is_flow.md)
 - [Tenets of `flow`](docs/introduction/tenets.md)
 - [Project Components and Structure](docs/introduction/structure.md)
@@ -13,7 +12,6 @@
 - [Flow Programming](docs/introduction/flow_programming.md)
 
 # Your First Flow
-
 - [Your First Flow](docs/first_flow/first_flow.md)
 - [Understanding it](docs/first_flow/understanding.md)
 - [Real Implementation](docs/first_flow/implementation.md)
@@ -33,27 +31,29 @@
 - [Flow Libraries](docs/describing/flow_libraries.md)
 
 # Running Flows
+- [flowr library](flowr/src/lib/README.md)
+- [flowr runner](flowr/src/bin/flowr/README.md)
 - [Running flows](docs/running/running.md)
 - [flowc Command Line Arguments](docs/running/flowc.md)
 - [Passing command line arguments to flows](docs/running/arguments.md)
 - [Selecting the Context file](docs/running/context_selection.md)
 - [Standard Input and Output](docs/running/stdio.md)
 - [Exceptions and Panics](docs/running/panics.md)
+## `flowr's` `context` functions
+- [Arg functions](flowr/src/bin/flowr/context/args/args.md)
+    - [Arg get function](flowr/src/bin/flowr/context/args/get.md)
+- [File functions](flowr/src/bin/flowr/context/file/file.md)
+    - [File Write function](flowr/src/bin/flowr/context/file/file_write.md)
+- [Image manipulation functions](flowr/src/bin/flowr/context/image/image.md)
+    - [Image buffer](flowr/src/bin/flowr/context/image/image_buffer.md)
+- [Standard IO functions](flowr/src/bin/flowr/context/stdio/stdio.md)
+    - [Readline function](flowr/src/bin/flowr/context/stdio/readline.md)
+    - [Standard Input function](flowr/src/bin/flowr/context/stdio/stdin.md)
+    - [Standard Output function](flowr/src/bin/flowr/context/stdio/stdout.md)
+    - [Standard Error function](flowr/src/bin/flowr/context/stdio/stderr.md)
 
 # Debugging Flows
 - [The Debugger](docs/debugging/debugger.md)
-
-# `context` functions
-- [`context` functions](flowr/src/lib/context/README.md)
-- [Arg functions](flowr/src/lib/context/args/args.md)
-    - [Arg get function](flowr/src/lib/context/args/get.md)
-- [File functions](flowr/src/lib/context/file/file.md)
-    - [File Write function](flowr/src/lib/context/file/file_write.md)
-- [Standard IO functions](flowr/src/lib/context/stdio/stdio.md)
-    - [Readline function](flowr/src/lib/context/stdio/readline.md)
-    - [Standard Input function](flowr/src/lib/context/stdio/stdin.md)
-    - [Standard Output function](flowr/src/lib/context/stdio/stdout.md)
-    - [Standard Error function](flowr/src/lib/context/stdio/stderr.md)
 
 # The `flowstdlib` Standard Library
 - [flowstdlib](flowstdlib/README.md)
@@ -127,11 +127,7 @@
             - [line-echo](flowc/tests/test-flows/line-echo/line-echo.md)
             - [print-args](flowc/tests/test-flows/print-args/print-args.md)
             <!--- TODO add Markdown docs for other test flows explaining what they test -->
-    - [flowr](flowr/README.md)
-    - [flowrlib](flowr/src/lib/README.md)
-    - [flowstdlib](flowstdlib/README.md)
-    - [`context`](flowr/src/lib/context/README.md)
-    - [samples](flowsamples/README.md)
+    -[flowrlib](flowr/src/lib/README.md) - The flow runner library that loads and executes compiled flows.
 - [Makefile targets](docs/developing/make.md)
 - [Ways to contribute](docs/developing/contributing.md)
     - [Issues](docs/developing/issues.md)

@@ -1,0 +1,80 @@
+use serde_json::Value;
+
+use flowcore::errors::*;
+use flowcore::model::input::Input;
+#[cfg(feature = "metrics")]
+use flowcore::model::metrics::Metrics;
+use flowcore::model::output_connection::OutputConnection;
+use flowcore::model::runtime_function::RuntimeFunction;
+use flowcore::model::submission::Submission;
+
+use crate::block::Block;
+use crate::debug_command::DebugCommand;
+use crate::job::Job;
+use crate::run_state::{RunState, State};
+
+/// A `Server` implements a number of "callbacks" to communicate between a CLI/UI and background
+/// flow coordinator executing the flow
+pub trait Server {
+    /// The flow is starting
+    fn flow_starting(&mut self) -> Result<()>;
+
+    /// See if the runtime client has sent a message to request us to enter the debugger,
+    /// if so, return Ok(true).
+    /// A different message or Absence of a message returns Ok(false)
+    #[cfg(feature = "debugger")]
+    fn should_enter_debugger(&mut self) -> Result<bool>;
+
+    /// The flow has ended
+    #[cfg(feature = "metrics")]
+    fn flow_ended(&mut self, state: &RunState, metrics: Metrics) -> Result<()>;
+    #[cfg(not(feature = "metrics"))]
+    fn flow_ended(&mut self) -> Result<()>;
+
+    /// Wait for a `Submission` to be sent for execution
+    fn wait_for_submission(&mut self) -> Result<Option<Submission>>;
+}
+
+/// a `DebugServer` implements these "callbacks" in order to communicate between a CLI/UI
+/// implementation of one and the background flow coordinator executing the flow and debugger
+pub trait DebugServer {
+    /// Start the debugger - which swallows the first message to initialize the connection
+    fn start(&mut self);
+    /// a breakpoint has been hit on a Job being created
+    fn job_breakpoint(&mut self, next_job_id: usize, function: &RuntimeFunction, state: State);
+    /// A breakpoint set on creation of a `Block` matching `block` has been hit
+    fn block_breakpoint(&mut self, block: &Block);
+    /// A breakpoint on sending a value from a specific function or to a specific function was hit
+    fn send_breakpoint(&mut self, source_process_id: usize, output_route: &str, value: &Value,
+                       destination_id: usize, input_number: usize);
+    /// A job error occurred during execution of the flow
+    fn job_error(&mut self, job: &Job);
+    /// A specific job completed
+    fn job_completed(&mut self, job: &Job);
+    /// returns a set of blocks
+    fn blocks(&mut self, blocks: Vec<Block>);
+    /// returns an output's connections
+    fn outputs(&mut self, output: Vec<OutputConnection>);
+    /// returns an inputs state
+    fn input(&mut self, input: Input);
+    /// returns the state of a function
+    fn function_state(&mut self, function: RuntimeFunction, function_state: State);
+    /// returns the global run state
+    fn run_state(&mut self, run_state: RunState);
+    /// a string message from the Debugger
+    fn message(&mut self, message: String);
+    /// a panic occurred during execution
+    fn panic(&mut self, state: &RunState, error_message: String);
+    /// the debugger is exiting
+    fn debugger_exiting(&mut self);
+    /// The debugger is resetting the runtime state
+    fn debugger_resetting(&mut self);
+    /// An error occurred in the debugger
+    fn debugger_error(&mut self, error: String);
+    /// execution of the flow is starting
+    fn execution_starting(&mut self);
+    /// Execution of the flow fn execution_ended(&mut self, state: &RunState) {
+    fn execution_ended(&mut self);
+    /// Get a command for the debugger to perform
+    fn get_command(&mut self, state: &RunState) -> Result<DebugCommand>;
+}

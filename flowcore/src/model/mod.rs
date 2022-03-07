@@ -8,7 +8,7 @@ pub mod runtime_function;
 pub mod validation;
 /// `io` is the object used to define a process's inputs or outputs
 pub mod io;
-/// `datatype` specifies the type o fdata permitted on a input, output or connection
+/// `datatype` specifies the type of data permitted on a input, output or connection
 pub mod datatype;
 /// A custom deserializer for a String or a Sequence of Strings for DataTypes
 mod datatype_array_serde;
@@ -20,7 +20,7 @@ pub mod flow_definition;
 pub mod function_definition;
 /// `name` is used to name various objects in the flow model
 pub mod name;
-/// `process` is a generic definition of a `function` or a `flow` so a flow refering to it or using
+/// `process` is a generic definition of a `function` or a `flow` so a flow referring to it or using
 /// it does not need to know or define how it is implemented
 pub mod process;
 /// `process_reference` is an object used within a flow to reference a process defined elsewhere
@@ -36,6 +36,10 @@ pub mod input;
 pub mod output_connection;
 /// `metadata` defined structs for flow meta data
 pub mod metadata;
+/// `submission`defines a struct for submitting flows for execution
+pub mod submission;
+/// `metrics` defines a struct for runtime execution metrics
+pub mod metrics;
 /// `flow_manifest` is the struct that specifies the manifest of functions in a flow
 #[cfg(not(target_arch = "wasm32"))]
 pub mod flow_manifest;

@@ -3,8 +3,8 @@ pub mod test {
     use std::sync::{Arc, Mutex};
 
     use crate::client_server::{ClientConnection, Method, ServerConnection, WAIT};
-    use crate::coordinator::RUNTIME_SERVICE_NAME;
     use crate::runtime_messages::{ClientMessage, ServerMessage};
+    use crate::RUNTIME_SERVICE_NAME;
 
     pub fn wait_for_then_send(
         wait_for_message: ServerMessage,

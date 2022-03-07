@@ -8,17 +8,17 @@ use multimap::MultiMap;
 use serde_derive::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
+#[cfg(feature = "metrics")]
+use flowcore::model::metrics::Metrics;
 use flowcore::model::output_connection::OutputConnection;
 use flowcore::model::output_connection::Source::{Input, Output};
 use flowcore::model::runtime_function::RuntimeFunction;
+use flowcore::model::submission::Submission;
 
 use crate::block::Block;
-use crate::coordinator::Submission;
 #[cfg(feature = "debugger")]
 use crate::debugger::Debugger;
 use crate::job::Job;
-#[cfg(feature = "metrics")]
-use crate::metrics::Metrics;
 
 /// `State` represents the possible states it is possible for a function to be in
 #[cfg(any(feature = "checks", feature = "debugger", test))]
@@ -1144,6 +1144,12 @@ mod test {
     use flowcore::model::output_connection::{OutputConnection, Source};
     use flowcore::model::runtime_function::RuntimeFunction;
 
+    use crate::block::Block;
+    use crate::debug_command::DebugCommand;
+    use crate::debugger::Debugger;
+    use crate::run_state::{RunState, State};
+    use crate::server::DebugServer;
+
     use super::Job;
 
     #[derive(Debug)]
@@ -1267,6 +1273,39 @@ mod test {
         }
     }
 
+    #[cfg(feature = "debugger")]
+    struct DummyServer;
+    #[cfg(feature = "debugger")]
+    impl DebugServer for DummyServer {
+        fn start(&mut self) {}
+        fn job_breakpoint(&mut self, _next_job_id: usize, _function: &RuntimeFunction, _state: State) {}
+        fn block_breakpoint(&mut self, _block: &Block) {}
+        fn send_breakpoint(&mut self, _source_process_id: usize, _output_route: &str, _value: &Value,
+                           _destination_id: usize, _input_number: usize) {}
+        fn job_error(&mut self, _job: &Job) {}
+        fn job_completed(&mut self, _job: &Job) {}
+        fn blocks(&mut self, _blocks: Vec<Block>) {}
+        fn outputs(&mut self, _output: Vec<OutputConnection>) {}
+        fn input(&mut self, _input: Input) {}
+        fn function_state(&mut self, _function: RuntimeFunction, _function_state: State) {}
+        fn run_state(&mut self, _run_state: RunState) {}
+        fn message(&mut self, _message: String) {}
+        fn panic(&mut self, _state: &RunState, _error_message: String) {}
+        fn debugger_exiting(&mut self) {}
+        fn debugger_resetting(&mut self) {}
+        fn debugger_error(&mut self, _error: String) {}
+        fn execution_starting(&mut self) {}
+        fn execution_ended(&mut self) {}
+        fn get_command(&mut self, _state: &RunState) -> flowcore::errors::Result<DebugCommand> {
+            todo!()
+        }
+    }
+
+    #[cfg(feature = "debugger")]
+    fn dummy_debugger<'a>(server: &'a mut dyn DebugServer) -> Debugger<'a> {
+        Debugger::new(server)
+    }
+
     mod general_run_state_tests {
         #[cfg(feature = "debugger")]
         use std::collections::HashSet;
@@ -1277,7 +1316,7 @@ mod test {
         use url::Url;
 
         #[cfg(any(feature = "debugger", feature = "metrics"))]
-        use crate::coordinator::Submission;
+        use flowcore::model::submission::Submission;
 
         #[cfg(any(feature = "debugger", feature = "metrics"))]
         use super::super::RunState;
@@ -1397,18 +1436,13 @@ mod test {
 
         use flowcore::model::input::Input;
         use flowcore::model::input::InputInitializer::{Always, Once};
+        #[cfg(feature = "metrics")]
+        use flowcore::model::metrics::Metrics;
         use flowcore::model::output_connection::{OutputConnection, Source};
         use flowcore::model::output_connection::Source::Output;
         use flowcore::model::runtime_function::RuntimeFunction;
+        use flowcore::model::submission::Submission;
 
-        use crate::client_server::Method;
-        #[cfg(feature = "debugger")]
-        use crate::client_server::ServerConnection;
-        use crate::coordinator::Submission;
-        #[cfg(feature = "debugger")]
-        use crate::debugger::Debugger;
-        #[cfg(feature = "metrics")]
-        use crate::metrics::Metrics;
         use crate::run_state::test::test_function_b_not_init;
 
         use super::super::Job;
@@ -1645,10 +1679,9 @@ mod test {
             #[cfg(feature = "metrics")]
             let mut metrics = Metrics::new(2);
             #[cfg(feature = "debugger")]
-            let debug_server_context =
-                ServerConnection::new("debug", Method::Tcp(None)).expect("Could not create connections");
+            let mut server = super::DummyServer{};
             #[cfg(feature = "debugger")]
-            let mut debugger = Debugger::new(debug_server_context);
+            let mut debugger = super::dummy_debugger(&mut server);
 
             // Initial state
             state.init();
@@ -1698,10 +1731,9 @@ mod test {
             #[cfg(feature = "metrics")]
             let mut metrics = Metrics::new(2);
             #[cfg(feature = "debugger")]
-            let debug_server_context =
-                ServerConnection::new("debug", Method::Tcp(None)).expect("Could not create connection");
+                let mut server = super::DummyServer{};
             #[cfg(feature = "debugger")]
-            let mut debugger = Debugger::new(debug_server_context);
+                let mut debugger = super::dummy_debugger(&mut server);
 
             // Initial state
             state.init();
@@ -1784,10 +1816,10 @@ mod test {
             #[cfg(feature = "metrics")]
             let mut metrics = Metrics::new(1);
             #[cfg(feature = "debugger")]
-            let debug_server_context =
-                ServerConnection::new("debug", Method::Tcp(None)).expect("Could not create connection");
+                let mut server = super::DummyServer{};
             #[cfg(feature = "debugger")]
-            let mut debugger = Debugger::new(debug_server_context);
+                let mut debugger = super::dummy_debugger(&mut server);
+
             state.init();
             assert_eq!(State::Ready, state.get_state(0), "f_a should be Ready");
             let job = state.next_job().expect("Couldn't get next job");
@@ -1830,10 +1862,10 @@ mod test {
             #[cfg(feature = "metrics")]
             let mut metrics = Metrics::new(1);
             #[cfg(feature = "debugger")]
-            let debug_server_context =
-                ServerConnection::new("debug", Method::Tcp(None)).expect("Could not create connection");
+                let mut server = super::DummyServer{};
             #[cfg(feature = "debugger")]
-            let mut debugger = Debugger::new(debug_server_context);
+                let mut debugger = super::dummy_debugger(&mut server);
+
             state.init();
             assert_eq!(State::Ready, state.get_state(0), "f_a should be Ready");
             let job = state.next_job().expect("Couldn't get next job");
@@ -1896,10 +1928,9 @@ mod test {
             #[cfg(feature = "metrics")]
             let mut metrics = Metrics::new(1);
             #[cfg(feature = "debugger")]
-            let debug_server_context =
-                ServerConnection::new("debug", Method::Tcp(None)).expect("Could not create connection");
+                let mut server = super::DummyServer{};
             #[cfg(feature = "debugger")]
-            let mut debugger = Debugger::new(debug_server_context);
+                let mut debugger = super::dummy_debugger(&mut server);
 
             state.init();
 
@@ -1963,10 +1994,9 @@ mod test {
             #[cfg(feature = "metrics")]
             let mut metrics = Metrics::new(1);
             #[cfg(feature = "debugger")]
-            let debug_server_context =
-                ServerConnection::new("debug", Method::Tcp(None)).expect("Could not create connection");
+                let mut server = super::DummyServer{};
             #[cfg(feature = "debugger")]
-            let mut debugger = Debugger::new(debug_server_context);
+                let mut debugger = super::dummy_debugger(&mut server);
 
             state.init();
             assert_eq!(State::Waiting, state.get_state(0), "f_a should be Waiting");
@@ -2024,10 +2054,9 @@ mod test {
             #[cfg(feature = "metrics")]
             let mut metrics = Metrics::new(1);
             #[cfg(feature = "debugger")]
-            let debug_server_context =
-                ServerConnection::new("debug", Method::Tcp(None)).expect("Could not create connection");
+                let mut server = super::DummyServer{};
             #[cfg(feature = "debugger")]
-            let mut debugger = Debugger::new(debug_server_context);
+                let mut debugger = super::dummy_debugger(&mut server);
 
             state.init();
 
@@ -2112,10 +2141,9 @@ mod test {
             #[cfg(feature = "metrics")]
             let mut metrics = Metrics::new(2);
             #[cfg(feature = "debugger")]
-            let debug_server_context =
-                ServerConnection::new("debug", Method::Tcp(None)).expect("Could not create connection");
+                let mut server = super::DummyServer{};
             #[cfg(feature = "debugger")]
-            let mut debugger = Debugger::new(debug_server_context);
+                let mut debugger = super::dummy_debugger(&mut server);
 
             state.init();
 
@@ -2195,17 +2223,11 @@ mod test {
         use url::Url;
 
         use flowcore::model::input::Input;
+        #[cfg(feature = "metrics")]
+        use flowcore::model::metrics::Metrics;
         use flowcore::model::output_connection::{OutputConnection, Source};
         use flowcore::model::runtime_function::RuntimeFunction;
-
-        use crate::client_server::Method;
-        #[cfg(feature = "debugger")]
-        use crate::client_server::ServerConnection;
-        use crate::coordinator::Submission;
-        #[cfg(feature = "debugger")]
-        use crate::debugger::Debugger;
-        #[cfg(feature = "metrics")]
-        use crate::metrics::Metrics;
+        use flowcore::model::submission::Submission;
 
         use super::super::Job;
         use super::super::RunState;
@@ -2276,10 +2298,9 @@ mod test {
             );
             let mut state = RunState::new(&test_functions(), submission);
             #[cfg(feature = "debugger")]
-            let debug_server_context =
-                ServerConnection::new("debug", Method::Tcp(None)).expect("Could not create connection");
+                let mut server = super::DummyServer{};
             #[cfg(feature = "debugger")]
-            let mut debugger = Debugger::new(debug_server_context);
+                let mut debugger = super::dummy_debugger(&mut server);
 
             // Indicate that 0 is blocked by 1 on input 0
             state.create_block(
@@ -2369,10 +2390,9 @@ mod test {
             );
             let mut state = RunState::new(&test_functions(), submission);
             #[cfg(feature = "debugger")]
-            let debug_server_context =
-                ServerConnection::new("debug", Method::Tcp(None)).expect("Could not create connection");
+                let mut server = super::DummyServer{};
             #[cfg(feature = "debugger")]
-            let mut debugger = Debugger::new(debug_server_context);
+                let mut debugger = super::dummy_debugger(&mut server);
 
             // Indicate that 0 is blocked by 1 on input 0
             state.create_block(
@@ -2402,10 +2422,9 @@ mod test {
             );
             let mut state = RunState::new(&test_functions(), submission);
             #[cfg(feature = "debugger")]
-            let debug_server_context =
-                ServerConnection::new("debug", Method::Tcp(None)).expect("Could not create connection");
+                let mut server = super::DummyServer{};
             #[cfg(feature = "debugger")]
-            let mut debugger = Debugger::new(debug_server_context);
+                let mut debugger = super::dummy_debugger(&mut server);
 
             // Indicate that 0 is blocked by 1 and put 0 on the blocked list
             state.create_block(
@@ -2444,10 +2463,9 @@ mod test {
             let mut state = RunState::new(&test_functions(), submission);
 
             #[cfg(feature = "debugger")]
-            let debug_server_context =
-                ServerConnection::new("debug", Method::Tcp(None)).expect("Could not create server connection");
+                let mut server = super::DummyServer{};
             #[cfg(feature = "debugger")]
-            let mut debugger = Debugger::new(debug_server_context);
+                let mut debugger = super::dummy_debugger(&mut server);
 
             // Indicate that 0 is blocked by 1 and 2
             state.create_block(
@@ -2523,10 +2541,10 @@ mod test {
             #[cfg(feature = "metrics")]
             let mut metrics = Metrics::new(1);
             #[cfg(feature = "debugger")]
-            let debug_server_context =
-                ServerConnection::new("debug", Method::Tcp(None)).expect("Could not create connection");
+                let mut server = super::DummyServer{};
             #[cfg(feature = "debugger")]
-            let mut debugger = Debugger::new(debug_server_context);
+                let mut debugger = super::dummy_debugger(&mut server);
+
             state.init();
 
             assert_eq!(

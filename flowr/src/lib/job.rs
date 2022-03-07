@@ -17,7 +17,7 @@ pub struct Job {
     pub job_id: usize,
     /// The `id` of the function in the `RunState`'s list of functions that will execute this job
     pub function_id: usize,
-    /// The `id` of the nested flow (from context on down) there the function executing the job is
+    /// The `id` of the nested flow (from root flow on down) there the function executing the job is
     pub flow_id: usize,
     /// The set of input values to be used by the function when executing this job
     pub input_set: Vec<Value>,

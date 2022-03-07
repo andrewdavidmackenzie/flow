@@ -2,11 +2,10 @@ use std::fmt;
 use std::path::PathBuf;
 
 use serde_derive::{Deserialize, Serialize};
-use zmq::Message;
 
-use crate::coordinator::Submission;
 #[cfg(feature = "metrics")]
-use crate::metrics::Metrics;
+use flowcore::model::metrics::Metrics;
+use flowcore::model::submission::Submission;
 
 /// An Message sent from the runtime server to a runtime_client
 #[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
@@ -16,6 +15,7 @@ pub enum ServerMessage {
     /// A flow has stopped executing
     #[cfg(feature = "metrics")]
     FlowEnd(Metrics),
+    /// A flow has stopped executing
     #[cfg(not(feature = "metrics"))]
     FlowEnd,
     /// Server is exiting
@@ -52,11 +52,11 @@ impl fmt::Display for ServerMessage {
             f,
             "ServerMessage {}",
             match self {
-                ServerMessage::FlowStart => "FlowStart",
-                #[cfg(feature = "metrics")]
-                ServerMessage::FlowEnd(_) => "FlowEnd",
                 #[cfg(not(feature = "metrics"))]
                 ServerMessage::FlowEnd => "FlowEnd",
+                #[cfg(feature = "metrics")]
+                ServerMessage::FlowEnd(_) => "FlowEnd",
+                ServerMessage::FlowStart => "FlowStart",
                 ServerMessage::ServerExiting => "ServerExiting",
                 ServerMessage::Stdout(_) => "Stdout",
                 ServerMessage::Stderr(_) => "Stderr",
@@ -148,43 +148,37 @@ unsafe impl Send for ClientMessage {}
 
 unsafe impl Sync for ClientMessage {}
 
-impl From<ServerMessage> for Message {
-    fn from(event: ServerMessage) -> Self {
-        match serde_json::to_string(&event) {
-            Ok(message_string) => Message::from(&message_string),
-            _ => Message::new(),
+impl From<ServerMessage> for String {
+    fn from(msg: ServerMessage) -> Self {
+        match serde_json::to_string(&msg) {
+            Ok(message_string) => message_string,
+            _ => String::new(),
         }
     }
 }
 
-impl From<Message> for ServerMessage {
-    fn from(msg: Message) -> Self {
-        match msg.as_str() {
-            Some(message_string) => match serde_json::from_str(message_string) {
-                Ok(message) => message,
-                _ => ServerMessage::Invalid,
-            },
+impl From<String> for ServerMessage {
+    fn from(msg: String) -> Self {
+        match serde_json::from_str(&msg) {
+            Ok(message) => message,
             _ => ServerMessage::Invalid,
         }
     }
 }
 
-impl From<ClientMessage> for Message {
+impl From<ClientMessage> for String {
     fn from(msg: ClientMessage) -> Self {
         match serde_json::to_string(&msg) {
-            Ok(message_string) => Message::from(&message_string),
-            _ => Message::new(),
+            Ok(message_string) => message_string,
+            _ => String::new(),
         }
     }
 }
 
-impl From<Message> for ClientMessage {
-    fn from(msg: Message) -> Self {
-        match msg.as_str() {
-            Some(message_string) => match serde_json::from_str(message_string) {
-                Ok(message) => message,
-                _ => ClientMessage::Invalid,
-            },
+impl From<String> for ClientMessage {
+    fn from(msg: String) -> Self {
+        match serde_json::from_str(&msg) {
+            Ok(message) => message,
             _ => ClientMessage::Invalid,
         }
     }
