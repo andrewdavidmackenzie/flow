@@ -159,8 +159,14 @@ impl<'a> Debugger<'a> {
 
     /// Called from the flowrlib coordinator to inform the debug client that a job has completed
     /// Return values are (display next output, reset execution)
-    pub fn job_completed(&mut self, job: &Job) -> (bool, bool, bool) {
-        self.debug_server.job_completed(job);
+    pub fn job_completed(&mut self, state: &RunState, job: &Job) -> (bool, bool, bool) {
+        if job.result.is_err() {
+            if state.debug {
+                let _ = self.job_error(state, job);
+            }
+        } else {
+            self.debug_server.job_completed(job);
+        }
         (false, false, false)
     }
 
@@ -189,8 +195,8 @@ impl<'a> Debugger<'a> {
     /// - execute and respond immediately those that require it
     /// - some commands will cause the command loop to exit.
     ///
-    /// When exiting return a tuple for the Coordinator to determine what to do:
-    /// (display next output, reset execution)
+    /// When exiting return a set of booleans for the Coordinator to determine what to do:
+    /// (display next output, reset execution, exit_debugger)
     pub fn wait_for_command(&mut self, state: &RunState) -> (bool, bool, bool) {
         loop {
             match self.debug_server.get_command(state)

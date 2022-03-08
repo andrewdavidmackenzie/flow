@@ -111,24 +111,22 @@ impl<'a> Coordinator<'a> {
             self.debugger.start();
         }
 
+        #[cfg(feature = "debugger")]
+        let (mut display_next_output, mut restart, mut exit_debugger);
+        restart = false;
+        display_next_output = false;
+
         // This outer loop is just a way of restarting execution from scratch if the debugger requests it
         'flow_execution: loop {
             state.init();
             #[cfg(feature = "metrics")]
             metrics.reset();
 
-            #[cfg(feature = "debugger")]
-            let mut display_next_output;
-            #[cfg(feature = "debugger")]
-            let mut restart: bool;
-            #[cfg(not(feature = "debugger"))]
-            let restart: bool = false;
-
             // If debugging then check if we should enter the debugger
             #[cfg(feature = "debugger")]
             if state.debug {
-                let debug_check = self.debugger.wait_for_command(&state);
-                if debug_check.2 {
+                (_, _, exit_debugger) = self.debugger.wait_for_command(&state);
+                if exit_debugger {
                     return Ok(true); // User requested via debugger to exit execution
                 }
             }
@@ -138,29 +136,22 @@ impl<'a> Coordinator<'a> {
             'jobs: loop {
                 trace!("{}", state);
                 #[cfg(feature = "debugger")]
-                if state.debug && self.server.should_enter_debugger()? {
-                    let debug_check = self.debugger.wait_for_command(&state);
-                    if debug_check.2 {
-                        return Ok(true); // User requested via debugger to exit execution
-                    }
+                if state.debug && self.server.should_enter_debugger()? && self.debugger.wait_for_command(&state).2 {
+                    return Ok(true); // User requested via debugger to exit execution
                 }
 
-                let _debug_check = self.send_jobs(
+                (_, _, exit_debugger) = self.send_jobs(
                     &mut state,
                     #[cfg(feature = "metrics")]
                     &mut metrics,
                 );
 
-                #[cfg(feature = "debugger")]
-                if _debug_check.2 {
+                if exit_debugger {
                     return Ok(true); // User requested via debugger to exit execution
                 }
 
                 #[cfg(feature = "debugger")]
                 {
-                    display_next_output = _debug_check.0;
-                    restart = _debug_check.1;
-
                     // If debugger request it, exit the inner job loop which will cause us to reset state
                     // and restart execution, in the outer flow_execution loop
                     if restart {
@@ -172,23 +163,17 @@ impl<'a> Coordinator<'a> {
                     match self.job_rx.recv_timeout(state.job_timeout) {
                         Ok(job) => {
                             #[cfg(feature = "debugger")]
-                            if job.result.is_err() {
-                                if state.debug {
-                                    let _ = self.debugger.job_error(&state,&job);
-                                }
-                            } else {
-                                if display_next_output {
-                                    self.debugger.job_completed(&job);
-                                }
-
-                                state.complete_job(
-                                    #[cfg(feature = "metrics")]
-                                        &mut metrics,
-                                    &job,
-                                    #[cfg(feature = "debugger")]
-                                        &mut self.debugger,
-                                );
+                            if display_next_output {
+                                self.debugger.job_completed(&state, &job);
                             }
+
+                            state.complete_job(
+                                #[cfg(feature = "metrics")]
+                                    &mut metrics,
+                                &job,
+                                #[cfg(feature = "debugger")]
+                                    &mut self.debugger,
+                            );
                         }
 
                         #[cfg(feature = "debugger")]
@@ -212,17 +197,15 @@ impl<'a> Coordinator<'a> {
 
             // flow execution has ended
             #[allow(clippy::collapsible_if)]
+            #[cfg(feature = "debugger")]
             if !restart {
-                #[cfg(feature = "debugger")]
                 {
                     // If debugging then enter the debugger for a final time before ending flow execution
                     if state.debug {
-                        let debug_check = self.debugger.execution_ended(&state);
-                        if debug_check.2 {
+                        (display_next_output, restart, exit_debugger) = self.debugger.execution_ended(&state);
+                        if exit_debugger {
                             return Ok(true); // Exit debugger
                         }
-
-                        restart = debug_check.1;
                     }
                 }
 
