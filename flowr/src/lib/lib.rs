@@ -11,31 +11,27 @@
 
 /// `coordinator` is the module that coordinates the execution of flows submitted to it
 pub mod coordinator;
-/// `context` module implements the executor/server side of the runtime functions and appears
-/// to user code like a library
-mod context;
+
 /// `info` offers methods to get information about this library
 pub mod info;
+
 /// `loader` is responsible for loading a flow from it's manifest and loading libraries it uses
 pub mod loader;
-
-/// message_queue implementation of the communications between the runtime client, debug client and
-/// the runtime server and debug server.
-pub mod client_server;
-
-/// 'debug' defines structs passed between the Server and the Client regarding debug events
-/// and client responses to them
-#[cfg(feature = "debugger")]
-pub mod debug_messages;
-
-/// 'runtime_messages' defines messages passed between the Server and the Client during flow execution
-pub mod runtime_messages;
 
 /// Structure that defines/tracks the current runtime state
 pub mod run_state;
 
+/// Trait for a set of methods a server using the library must supply
+pub mod server;
+
 #[cfg(feature = "debugger")]
 mod debugger;
+#[cfg(feature = "debugger")]
+/// `param`module provides `Param`struct with different types of parameters for debugger commands
+pub mod param;
+#[cfg(feature = "debugger")]
+/// `debug_command` provides the `DebugCommand` enum for commands from debug client to debug server
+pub mod debug_command;
 
 mod execution;
 
@@ -49,11 +45,8 @@ mod wasm;
 /// to get access to everything `error_chain` creates.
 pub mod errors;
 
-/// 'metrics' defines a struct for tracking metrics gathered during flow execution
-#[cfg(feature = "metrics")]
-pub mod metrics;
+/// module providing `Block` struct from runtime that is required for debugging and tracing
+pub mod block;
 
-mod block;
-/// `client_provider` is a special content provider that makes requests to the client to fetch files
-mod client_provider;
-mod job;
+/// module providing `Job` struct from runtime that is required for debugging and tracing
+pub mod job;

@@ -48,7 +48,7 @@ impl Metrics {
         self.outputs_sent += 1;
     }
 
-    /// Keep track of the miximum jobs that are executing in parallel during a flows
+    /// Keep track of the maximum jobs that are executing in parallel during a flows
     /// execution, as a measure of the maximum level of parallelism achieved
     pub fn track_max_jobs(&mut self, jobs_running: usize) {
         self.max_simultaneous_jobs = max(self.max_simultaneous_jobs, jobs_running);

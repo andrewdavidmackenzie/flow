@@ -45,9 +45,9 @@ mod test {
     use flowcore::{Implementation, RUN_AGAIN};
 
     use crate::runtime_messages::{ClientMessage, ServerMessage};
+    use crate::test_helper::test::wait_for_then_send;
 
     use super::FileWrite;
-    use super::super::super::test_helper::test::wait_for_then_send;
 
     #[test]
     #[serial]

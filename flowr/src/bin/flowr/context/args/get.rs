@@ -55,12 +55,12 @@ mod test {
     use flowcore::{DONT_RUN_AGAIN, Implementation};
 
     use crate::client_server::{Method, ServerConnection};
-    use crate::coordinator::RUNTIME_SERVICE_NAME;
     use crate::runtime_messages::ClientMessage::Args;
     use crate::runtime_messages::ServerMessage::GetArgs;
+    use crate::RUNTIME_SERVICE_NAME;
+    use crate::test_helper::test::wait_for_then_send;
 
     use super::Get;
-    use super::super::super::test_helper::test::wait_for_then_send;
 
     #[test]
     #[serial]

@@ -7,9 +7,10 @@ use std::path::Path;
 use image::{ImageBuffer, ImageFormat, Rgb, RgbImage};
 use log::{debug, error, info};
 
-use flowrlib::client_server::ClientConnection;
-use flowrlib::errors::*;
-use flowrlib::runtime_messages::{ClientMessage, FileMetaData, ServerMessage};
+use flowcore::errors::*;
+
+use crate::client_server::ClientConnection;
+use crate::runtime_messages::{ClientMessage, FileMetaData, ServerMessage};
 
 #[derive(Debug, Clone)]
 pub struct CliRuntimeClient {
@@ -87,7 +88,6 @@ impl CliRuntimeClient {
         }
     }
 
-    #[allow(clippy::many_single_char_names)]
     pub fn process_server_message(&mut self, message: ServerMessage) -> ClientMessage {
         match message {
             #[cfg(feature = "metrics")]
@@ -192,7 +192,7 @@ impl CliRuntimeClient {
                     .or_insert_with(|| RgbImage::new(width, height));
                 image.put_pixel(x, y, Rgb([r, g, b]));
                 ClientMessage::Ack
-            }
+            },
             ServerMessage::GetArgs => ClientMessage::Args(self.args.clone()),
             ServerMessage::StderrEof => ClientMessage::Ack,
             ServerMessage::Invalid => ClientMessage::Ack,
@@ -209,8 +209,9 @@ mod test {
     use tempdir::TempDir;
 
     #[cfg(feature = "metrics")]
-    use flowrlib::metrics::Metrics;
-    use flowrlib::runtime_messages::{ClientMessage, ServerMessage};
+    use flowcore::model::metrics::Metrics;
+
+    use crate::runtime_messages::{ClientMessage, ServerMessage};
 
     use super::CliRuntimeClient;
 
