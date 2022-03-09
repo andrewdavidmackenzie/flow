@@ -137,7 +137,7 @@ mod test {
     #[test]
     fn resolve_by_extension() {
         let provider = HttpProvider {};
-        let input_url = Url::parse("https://raw.githubusercontent.com/andrewdavidmackenzie/flow/master/flowcore/tests/test-flows/hello-world/context")
+        let input_url = Url::parse("https://raw.githubusercontent.com/andrewdavidmackenzie/flow/master/flowcore/tests/test-flows/hello-world/root")
             .expect("Could not form Url");
         let expected_url = Url::parse("https://raw.githubusercontent.com/andrewdavidmackenzie/flow/master/flowcore/tests/test-flows/hello-world/root.toml")
             .expect("Could not form Url");

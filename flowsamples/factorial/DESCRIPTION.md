@@ -7,7 +7,7 @@ A flow that calculates the factorial of a number and prints it out on `stdout`.
 
 Context Diagram
 ===
-<a href="context.dot.svg" target="_blank"><img src="context.dot.svg"></a>
+<a href="root.dot.svg" target="_blank"><img src="root.dot.svg"></a>
 
 Click image to navigate flow hierarchy.
 

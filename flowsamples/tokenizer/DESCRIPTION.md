@@ -8,7 +8,7 @@ tokens using the string splitter function from the flowstdlib.
 
 Context Diagram
 ===
-<a href="context.dot.svg" target="_blank"><img src="context.dot.svg"></a>
+<a href="root.dot.svg" target="_blank"><img src="root.dot.svg"></a>
 
 Click image to navigate flow hierarchy.
 

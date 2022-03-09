@@ -8,7 +8,7 @@ This is intended as a test case for an issue with two linked flows like 'sequenc
 
 Context Diagram
 ===
-<a href="context.dot.svg" target="_blank"><img src="context.dot.svg"></a>
+<a href="root.dot.svg" target="_blank"><img src="root.dot.svg"></a>
 
 Click image to navigate flow hierarchy.
 
