@@ -173,7 +173,7 @@ mod test {
         #[test]
         fn get_default_sample_full_path_without_extension() {
             let root = Path::new(env!("CARGO_MANIFEST_DIR"));
-            let path = root.join("tests/test-flows/hello-world/context");
+            let path = root.join("tests/test-flows/hello-world/root");
             let url = Url::from_file_path(path).expect("Could not create Url from path");
             let provider: &dyn Provider = &FileProvider;
             let resolved_url = provider
