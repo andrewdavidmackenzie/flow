@@ -45,8 +45,8 @@ subdirectory of the directory where the flow's context was loaded from
 ### Flow Directory or Filename
 After Flags and Options you can supply an optional field for where to load the context flow from.
 * By default this is the current directory.
-* If it's a directory then it attempts to load "context.toml" from there
-* If it's a file then it attempts to load "context.toml" from that file
+* If it's a directory then it attempts to load "root.toml" from there
+* If it's a file then it attempts to load "root.toml" from that file
 
 It can also be a URL to a flow context specification somewhere on the web. Currently supports http and http.
 

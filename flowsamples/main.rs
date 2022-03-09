@@ -25,7 +25,7 @@ fn main() -> io::Result<()> {
         1 => {
             for entry in fs::read_dir(samples_root)? {
                 let e = entry?;
-                if e.file_type()?.is_dir() && e.path().join("context.toml").exists() {
+                if e.file_type()?.is_dir() && e.path().join("root.toml").exists() {
                     run_sample(&e.path(), &samples_out_dir.join(e.file_name()))?
                 }
             }

@@ -83,7 +83,7 @@ mod test {
         let _test_flow = FlowDefinition::default();
 
         let flow = FlowDefinition {
-            alias: Name::from("context"),
+            alias: Name::from("root"),
             name: Name::from("test-flow"),
             process_refs: vec![function_ref],
             source_url: FlowDefinition::default_url(),

@@ -102,7 +102,7 @@ fn load_process(
     trace!("load_process()");
 
     let (resolved_url, lib_ref) = provider
-        .resolve_url(url, "context", &["toml"])
+        .resolve_url(url, "root", &["toml"])
         .chain_err(|| format!("Could not resolve the url: '{}'", url))?;
     if &resolved_url != url {
         debug!("Source URL '{}' resolved to: '{}'", url, resolved_url);
