@@ -143,11 +143,11 @@
                 <div id="content" class="content">
                     <main>
                         <h2 id="defining-flows"><a class="header" href="#defining-flows">Defining Flows</a></h2>
-<p>A flow can define the entities external to the program with which it interacts and should be provided by the run-time, 
-or bundled via a library. i.e. they are not included in the flow, but the flow interacts with them as part of it's
-run-time &quot;context&quot;.</p>
-<p>By definition, nothing enters or leaves the top-level flow (&quot;context&quot;).
-At most things flow between the contained flow and entities referenced, as defined by the connections.</p>
+<p>A flow can define the entities external to the program with which it interacts. These are the &quot;context functions&quot;
+provided by the run-time.</p>
+<p>By definition, nothing enters or leaves the top-level root flow (named &quot;root.toml&quot; by default).
+At most, things flow internally between contained sub-flows and functions (collectively known as &quot;processes&quot;), 
+as defined by the connections.</p>
 <p>A flow contain 0 or more sub-flows which are described in separate &quot;flow&quot; files.
 The entities referenced in the top-level flow definition are connected to inputs and outputs of any sub-flow by 
 connections.</p>
@@ -163,9 +163,9 @@ can be another <code>flow</code> or a <code>function</code></li>
 <li><code>connection</code>  - 0 or more connections between outputs and inputs of values or sub-processes and <code>io</code> of this flow 
 (hence permitting connections to/from parent flows including this one)</li>
 </ul>
-<h3 id="context"><a class="header" href="#context">Context</a></h3>
-<p>All flows start with a flow called the <code>context</code>. This is the flow that defines the interactions
-of the overall flow hierarchy with the environment or &quot;context&quot; around the contained flows.</p>
+<h3 id="root-of-flow"><a class="header" href="#root-of-flow">Root of Flow</a></h3>
+<p>All flows start with a flow called the <code>root</code>. This is the flow that defines the interactions
+of the overall flow hierarchy with the environment or &quot;context&quot; around it.</p>
 <p>Any flow can contain any number of nested flows via <a href="process_references.html">Process References</a>.</p>
 
                     </main>
