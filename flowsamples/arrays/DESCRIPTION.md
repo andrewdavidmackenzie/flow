@@ -22,7 +22,7 @@ greater than 4, which is the size of the Array of Numbers formed.
 
 Context Diagram
 ===
-<a href="context.dot.svg" target="_blank"><img src="context.dot.svg"></a>
+<a href="root.dot.svg" target="_blank"><img src="root.dot.svg"></a>
 
 Click image to navigate flow hierarchy.
 
