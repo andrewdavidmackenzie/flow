@@ -27,8 +27,9 @@ pub struct Input {
         default = "default_initial_value",
         skip_serializing_if = "Option::is_none"
     )]
-    /// An optional `InputInitializer` associated with this input
-    pub initializer: Option<InputInitializer>,
+    // An optional `InputInitializer` associated with this input
+    initializer: Option<InputInitializer>,
+    // The values received so far
     #[serde(skip)]
     received: Vec<Value>,
 }
