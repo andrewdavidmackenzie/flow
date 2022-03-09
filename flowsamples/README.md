@@ -13,7 +13,7 @@ Each sample directory contains:
 * A `DESCRIPTION.md` file that:
     * describes what the `Flow` does
     * lists the features of `flow` that this sample uses and demonstrates
-* A ```context.toml``` file that is the root file of the flow description
+* A ```root.toml``` file that is the root file of the flow description
 * Files used in the automated testing of each sample:
     * ```test_arguments.txt``` the arguments to be passed to the flow when running it
     * ```test_input.txt``` the input supplied to the flow when running it
@@ -117,7 +117,7 @@ under `samples` where the sample is) to run just that one sample.
 ## Developing a new sample
 To develop a new sample, just create a new folder under 'samples' with your sample name. 
 
-Add the context.toml and any other included flows and describe them.
+Add the root.toml and any other included flows and describe them.
 
 Add a DESCRIPTION.md file that describes what the sample does and what features of flow it uses.
 

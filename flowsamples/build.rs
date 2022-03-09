@@ -12,10 +12,10 @@ fn main() -> io::Result<()> {
     // Tell Cargo that if any file in the flowsamples directory changes it should rerun this build script
     println!("cargo:rerun-if-changed={}", samples_root);
 
-    // find all sample sub-folders at have a "context.toml" flow definition file
+    // find all sample sub-folders at have a "root.toml" flow definition file
     for entry in fs::read_dir(samples_root)? {
         let e = entry?;
-        if e.file_type()?.is_dir() && e.path().join("context.toml").exists() {
+        if e.file_type()?.is_dir() && e.path().join("root.toml").exists() {
             let sample_out_dir = &samples_out_dir.join(e.file_name());
             println!("Building sample '{}' to '{}'",
                      e.path().display(),

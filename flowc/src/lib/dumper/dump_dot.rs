@@ -59,7 +59,7 @@ use crate::dumper::{dump, dump_dot};
 ///                                                    &mut source_urls) {
 ///     let tables = flowclib::compiler::compile::compile(&flow).unwrap();
 ///
-///     // strip off filename so output_dir is where the context.toml file resides
+///     // strip off filename so output_dir is where the root.toml file resides
 ///     let output_dir = TempDir::new("flow").unwrap().into_path();
 ///
 ///     // create a .dot format directed graph of all the functions after compiling down the flow
@@ -115,17 +115,17 @@ pub fn dump_functions(
 /// let provider = MetaProvider::new(lib_search_path);
 ///
 /// let mut url = url::Url::from_file_path(env::current_dir().unwrap()).unwrap();
-/// url = url.join("samples/hello-world/context.toml").unwrap();
+/// url = url.join("samples/hello-world/root.toml").unwrap();
 ///
 /// let mut source_urls = HashSet::<(Url, Url)>::new();
 /// if let Ok(FlowProcess(mut flow)) = flowclib::compiler::loader::load(&url,
 ///                                                    &provider,
 ///                                                    &mut source_urls) {
 ///
-///     // strip off filename so output_dir is where the context.toml file resides
+///     // strip off filename so output_dir is where the root.toml file resides
 ///     let output_dir = TempDir::new("flow").unwrap().into_path();
 ///
-///     // dump the flows compiler data and dot graph into files alongside the 'context.toml'
+///     // dump the flows compiler data and dot graph into files alongside the 'root.toml'
 ///     flowclib::dumper::dump_dot::dump_flow(&flow, &output_dir, &provider).unwrap();
 /// }
 /// ```

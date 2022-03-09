@@ -34,7 +34,7 @@ use crate::generator::generate::GenerationTables;
 /// let provider = MetaProvider::new(lib_search_path);
 ///
 /// let mut url = url::Url::from_file_path(env::current_dir().unwrap()).unwrap();
-/// url = url.join("samples/hello-world/context.toml").unwrap();
+/// url = url.join("samples/hello-world/root.toml").unwrap();
 ///
 /// let mut source_urls = HashSet::<(Url, Url)>::new();
 ///
@@ -104,7 +104,7 @@ pub fn create_output_file(
 /// let lib_search_path = Simpath::new("FLOW_LIB_PATH");
 /// let provider = MetaProvider::new(lib_search_path);
 /// let mut url = url::Url::from_file_path(env::current_dir().unwrap()).unwrap();
-/// url = url.join("samples/hello-world/context.toml").unwrap();
+/// url = url.join("samples/hello-world/root.toml").unwrap();
 ///
 /// let mut source_urls = HashSet::<(Url, Url)>::new();
 ///
@@ -156,17 +156,17 @@ fn dump_table<C: Iterator>(table: C, writer: &mut dyn Write) -> std::io::Result<
 /// let provider = MetaProvider::new(lib_search_path);
 ///
 /// let mut url = url::Url::from_file_path(env::current_dir().unwrap()).unwrap();
-/// url = url.join("samples/hello-world/context.toml").unwrap();
+/// url = url.join("samples/hello-world/root.toml").unwrap();
 ///
 /// let mut source_urls = HashSet::<(Url, Url)>::new();
 /// if let Ok(FlowProcess(mut flow)) = flowclib::compiler::loader::load(&url,
 ///                                                    &provider,
 ///                                                    &mut source_urls) {
 ///
-///     // strip off filename so output_dir is where the context.toml file resides
+///     // strip off filename so output_dir is where the root.toml file resides
 ///     let output_dir = TempDir::new("flow").unwrap().into_path();
 ///
-///     // dump the flows compiler data and dot graph into files alongside the 'context.toml'
+///     // dump the flows compiler data and dot graph into files alongside the 'root.toml'
 ///     flowclib::dumper::dump::dump_flow(&flow, &output_dir, &provider).unwrap();
 /// }
 /// ```

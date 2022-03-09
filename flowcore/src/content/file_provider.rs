@@ -133,14 +133,14 @@ mod test {
         fn get_default_sample() {
             let root = Path::new(env!("CARGO_MANIFEST_DIR"));
             let path = root.join("tests/test-flows/hello-world");
-            match FileProvider::find_file(&path, "context", &["toml"]) {
+            match FileProvider::find_file(&path, "root", &["toml"]) {
                 Ok(path_string) => {
                     let path = path_string
                         .to_file_path()
                         .expect("Could not convert Url to File Path");
-                    assert_eq!(Some(OsStr::new("context.toml")), path.file_name());
+                    assert_eq!(Some(OsStr::new("root.toml")), path.file_name());
                 }
-                _ => panic!("Could not find_file 'context.toml'"),
+                _ => panic!("Could not find_file 'root.toml'"),
             }
         }
     }
@@ -157,11 +157,11 @@ mod test {
         #[test]
         fn get_default_sample_full_path() {
             let root = Path::new(env!("CARGO_MANIFEST_DIR"));
-            let path = root.join("tests/test-flows/hello-world/context.toml");
+            let path = root.join("tests/test-flows/hello-world/root.toml");
             let url = Url::from_file_path(path).expect("Could not create Url from path");
             let provider: &dyn Provider = &FileProvider;
             let resolved_url = provider
-                .resolve_url(&url, "context", &["toml"])
+                .resolve_url(&url, "root", &["toml"])
                 .expect("Could not resolve url");
             assert_eq!(resolved_url.0, url);
 
@@ -173,15 +173,15 @@ mod test {
         #[test]
         fn get_default_sample_full_path_without_extension() {
             let root = Path::new(env!("CARGO_MANIFEST_DIR"));
-            let path = root.join("tests/test-flows/hello-world/context");
+            let path = root.join("tests/test-flows/hello-world/root");
             let url = Url::from_file_path(path).expect("Could not create Url from path");
             let provider: &dyn Provider = &FileProvider;
             let resolved_url = provider
-                .resolve_url(&url, "context", &["toml"])
+                .resolve_url(&url, "root", &["toml"])
                 .expect("Could not resolve url");
             assert_eq!(
                 resolved_url.0,
-                url.join("context.toml").expect("Could not join")
+                url.join("root.toml").expect("Could not join")
             );
 
             let _ = provider
@@ -196,9 +196,9 @@ mod test {
             let url = Url::from_file_path(path.clone()).expect("Could not create Url from path");
             let provider: &dyn Provider = &FileProvider;
             let resolved_url = provider
-                .resolve_url(&url, "context", &["toml"])
+                .resolve_url(&url, "root", &["toml"])
                 .expect("Could not resolve url");
-            let expected_url = Url::from_file_path(path.join("context.toml"))
+            let expected_url = Url::from_file_path(path.join("root.toml"))
                 .expect("Could not create Url from path");
             assert_eq!(resolved_url.0, expected_url);
 
@@ -214,7 +214,7 @@ mod test {
             let url = Url::from_file_path(path.clone()).expect("Could not create Url from path");
             let provider: &dyn Provider = &FileProvider;
             let resolved_url = provider
-                .resolve_url(&url, "context", &["toml"])
+                .resolve_url(&url, "root", &["toml"])
                 .expect("Could not resolve url");
             let expected_url = Url::from_file_path(path.join("compare_switch.toml"))
                 .expect("Could not create Url from path");

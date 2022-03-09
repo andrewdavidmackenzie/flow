@@ -7,7 +7,7 @@ See also: [Code docs](http://andrewdavidmackenzie.github.io/flow/code/doc/flowr/
 It handles the execution of `Functions` forming a `Flow` according to the defined semantics.
 
 ## Context Functions
-`flowr` `context` module implements the context functions that this runtime
+The `flowr` `context` module implements the context functions that this runtime
 provides for flows to interact with the surrounding "context" it is being run in, such as IO and File System.
 
 These are all impure functions, or functions with side effects, not part of the flow itself.
