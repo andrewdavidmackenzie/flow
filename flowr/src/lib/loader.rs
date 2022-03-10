@@ -69,7 +69,7 @@ impl Loader {
 
         self.load_library_implementations(provider, &flow_manifest)
             .chain_err(|| format!("Could not load libraries referenced by flow at: {}",
-                       resolved_url.to_string()))?;
+                       resolved_url))?;
 
         // Find the implementations for all functions used in this flow
         self.resolve_implementations(provider, &mut flow_manifest, &resolved_url)
