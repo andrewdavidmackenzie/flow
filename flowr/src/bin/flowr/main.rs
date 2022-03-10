@@ -15,34 +15,24 @@ use std::process::exit;
 use std::sync::{Arc, Mutex};
 
 use clap::{App, AppSettings, Arg, ArgMatches};
-use log::{debug, error, info, warn};
-use serde_json::Value;
+use log::{error, info, warn};
 use simpath::Simpath;
 use simplog::simplog::SimpleLogger;
 use url::Url;
 
 use flowcore::lib_provider::{MetaProvider, Provider};
-use flowcore::model::input::Input;
-use flowcore::model::metrics::Metrics;
-use flowcore::model::output_connection::OutputConnection;
-use flowcore::model::runtime_function::RuntimeFunction;
 use flowcore::model::submission::Submission;
 use flowcore::url_helper::url_from_string;
-use flowrlib::block::Block;
 use flowrlib::coordinator::Coordinator;
-#[cfg(feature = "debugger")]
-use flowrlib::debug_command::DebugCommand;
 use flowrlib::info as flowrlib_info;
-use flowrlib::job::Job;
 use flowrlib::loader::Loader;
-use flowrlib::run_state::{RunState, State};
-#[cfg(feature = "debugger")]
-use flowrlib::server::DebugServer;
-use flowrlib::server::Server;
 
 #[cfg(feature = "debugger")]
 use crate::cli_debug_client::CliDebugClient;
+#[cfg(feature = "debugger")]
+use crate::cli_debug_server::CliDebugServer;
 use crate::cli_runtime_client::CliRuntimeClient;
+use crate::cli_runtime_server::CliServer;
 use crate::client_server::{ClientConnection, DONT_WAIT, Method, ServerConnection, ServerInfo, WAIT};
 #[cfg(feature = "debugger")]
 use crate::debug_messages::DebugServerMessage;
@@ -66,6 +56,10 @@ pub mod runtime_messages; // TODO see if can keep private or even remove
 #[cfg(feature = "debugger")]
 mod cli_debug_client;
 mod cli_runtime_client;
+
+#[cfg(feature = "debugger")]
+mod cli_debug_server;
+mod cli_runtime_server;
 
 /// We'll put our errors in an `errors` module, and other modules in this crate will
 /// `use crate::errors::*;` to get access to everything `error_chain` creates.
@@ -95,266 +89,6 @@ pub enum Mode {
     ServerOnly,
     /// `Coordinator` mode where a single process runs as a client and s server in different threads
     ClientAndServer,
-}
-
-/// Get and Send messages to/from the runtime client
-struct CliServer {
-    runtime_server_connection: Arc<Mutex<ServerConnection>>,
-}
-
-impl Server for CliServer {
-    // The flow is starting
-    fn flow_starting(&mut self) -> flowcore::errors::Result<()> {
-        let _ = self.runtime_server_connection
-            .lock()
-            .map_err(|_| "Could not lock server connection")?
-            .send_and_receive_response::<ServerMessage, ClientMessage>(ServerMessage::FlowStart)?;
-
-        Ok(())
-    }
-
-    // See if the runtime client has sent a message to request us to enter the debugger,
-    // if so, return Ok(true).
-    // A different message or Absence of a message returns Ok(false)
-    #[cfg(feature = "debugger")]
-    fn should_enter_debugger(&mut self) -> flowcore::errors::Result<bool> {
-        let msg = self
-            .runtime_server_connection
-            .lock()
-            .map_err(|_| "Could not lock server connection")?
-            .receive(DONT_WAIT);
-        match msg {
-            Ok(ClientMessage::EnterDebugger) => {
-                debug!("Got EnterDebugger message");
-                Ok(true)
-            }
-            Ok(m) => {
-                debug!("Got {:?} message", m);
-                Ok(false)
-            }
-            _ => Ok(false),
-        }
-    }
-
-    #[cfg(feature = "metrics")]
-    fn flow_ended(&mut self, state: &RunState, metrics: Metrics) -> flowcore::errors::Result<()> {
-        self.runtime_server_connection
-            .lock()
-            .map_err(|_| "Could not lock server connection")?
-            .send(ServerMessage::FlowEnd(metrics))?;
-        debug!("{}", state);
-        Ok(())
-    }
-
-    #[cfg(not(feature = "metrics"))]
-    fn flow_ended(&mut self) -> flowcore::errors::Result<()> {
-        self.runtime_server_connection
-            .lock()
-            .map_err(|_| "Could not lock server connection")?
-            .send(ServerMessage::FlowEnd)?;
-        debug!("{}", state);
-        Ok(())
-    }
-
-    // Loop waiting for one of the following two messages from the client thread:
-    //  - `ClientSubmission` with a submission, then return Ok(Some(submission))
-    //  - `ClientExiting` then return Ok(None)
-    fn wait_for_submission(&mut self) -> flowcore::errors::Result<Option<Submission>> {
-        loop {
-            info!("Server is waiting to receive a 'Submission'");
-            match self.runtime_server_connection.lock() {
-                Ok(guard) => match guard.receive(WAIT) {
-                    Ok(ClientMessage::ClientSubmission(submission)) => {
-                        debug!(
-                            "Server received a submission for execution with manifest_url: '{}'",
-                            submission.manifest_url
-                        );
-                        return Ok(Some(submission));
-                    }
-                    Ok(ClientMessage::ClientExiting) => return Ok(None),
-                    Ok(r) => error!("Server did not expect response from client: '{:?}'", r),
-                    Err(e) => bail!("Server error while waiting for submission: '{}'", e),
-                },
-                _ => {
-                    error!("Server could not lock connection");
-                    return Ok(None);
-                }
-            }
-        }
-    }
-}
-
-impl CliServer {
-    // Close the connection between the background thread running the flow and the client thread
-    fn close_connection(&mut self) -> flowcore::errors::Result<()> {
-        debug!("Server closing connection");
-        let mut connection = self.runtime_server_connection
-            .lock()
-            .map_err(|e| format!("Could not lock Server Connection: {}", e))?;
-        connection.send(ServerMessage::ServerExiting)?;
-        Ok(())
-    }
-}
-
-struct  CliDebugServer {
-    debug_server_connection: ServerConnection,
-}
-
-/// Implement a CLI debug server that implements the trait required by the runtime
-impl DebugServer for CliDebugServer {
-    // Start the debugger - which swallows the first message to initialize the connection
-    fn start(&mut self) {
-        let _ = self.debug_server_connection.receive::<DebugCommand>(WAIT);
-    }
-
-    // a breakpoint has been hit on a Job being created
-    fn job_breakpoint(&mut self, next_job_id: usize, function: &RuntimeFunction, state: State) {
-        let _: flowcore::errors::Result<DebugCommand> = self
-            .debug_server_connection
-            .send_and_receive_response(PriorToSendingJob(next_job_id, function.id()));
-
-        // display the status of the function we stopped prior to creating a job for
-        let event = DebugServerMessage::FunctionState((function.clone(), state));
-        let _: flowcore::errors::Result<DebugCommand> = self
-            .debug_server_connection
-            .send_and_receive_response(event);
-    }
-
-    // A breakpoint set on creation of a `Block` matching `block` has been hit
-    fn block_breakpoint(&mut self, block: &Block) {
-        let _: flowcore::errors::Result<DebugCommand> = self
-            .debug_server_connection
-            .send_and_receive_response(BlockBreakpoint(block.clone()));
-    }
-
-    // A breakpoint on sending a value from a specific function or to a specific function was hit
-    fn send_breakpoint(&mut self, source_process_id: usize, output_route: &str, value: &Value,
-                       destination_id: usize, input_number: usize) {
-        let _: flowcore::errors::Result<DebugCommand> = self
-            .debug_server_connection
-            .send_and_receive_response(SendingValue(
-                source_process_id,
-                value.clone(),
-                destination_id,
-                input_number,
-            ));
-        let _: flowcore::errors::Result<DebugCommand> = self
-            .debug_server_connection
-            .send_and_receive_response(DataBreakpoint(
-                source_process_id,
-                output_route.to_string(),
-                value.clone(),
-                destination_id,
-                input_number,
-            ));
-    }
-
-    // A job error occurred during execution of the flow
-    fn job_error(&mut self, job: &Job) {
-        let _: flowcore::errors::Result<DebugCommand> = self
-            .debug_server_connection
-            .send_and_receive_response(JobError(job.clone()));
-    }
-
-    // A specific job completed
-    fn job_completed(&mut self, job: &Job) {
-        let _: flowcore::errors::Result<DebugCommand> =
-            self.debug_server_connection
-                .send_and_receive_response(JobCompleted(job.clone()));
-    }
-
-    // returns a set of blocks
-    fn blocks(&mut self, blocks: Vec<Block>) {
-        let _: flowcore::errors::Result<DebugCommand> =
-            self.debug_server_connection
-            .send_and_receive_response(DebugServerMessage::BlockState(blocks));
-    }
-
-    // returns an output's connections
-    fn outputs(&mut self, output_connections: Vec<OutputConnection>) {
-        let _: flowcore::errors::Result<DebugCommand> = self
-            .debug_server_connection
-            .send_and_receive_response(DebugServerMessage::OutputState(output_connections));
-    }
-
-    // returns an inputs state
-    fn input(&mut self, input: Input) {
-        let _: flowcore::errors::Result<DebugCommand> = self
-            .debug_server_connection
-            .send_and_receive_response(DebugServerMessage::InputState(input));
-    }
-
-    // returns the state of a function
-    fn function_state(&mut self,  function: RuntimeFunction, function_state: State) {
-        let message = DebugServerMessage::FunctionState((function, function_state));
-        let _: flowcore::errors::Result<DebugCommand> = self
-            .debug_server_connection
-            .send_and_receive_response(message);
-    }
-
-    // returns the global run state
-    fn run_state(&mut self, run_state: RunState) {
-        let _: flowcore::errors::Result<DebugCommand> = self
-            .debug_server_connection
-            .send_and_receive_response(DebugServerMessage::OverallState(run_state));
-    }
-
-    // a string message from the Debugger
-    fn message(&mut self, message: String) {
-        let _: flowcore::errors::Result<DebugCommand> = self
-            .debug_server_connection
-            .send_and_receive_response(message);
-    }
-
-    // a panic occurred during execution
-    fn panic(&mut self, state: &RunState, error_message: String) {
-        let _: flowcore::errors::Result<DebugCommand> = self
-            .debug_server_connection
-            .send_and_receive_response(Panic(error_message, state.jobs_created()));
-    }
-
-    // the debugger is exiting
-    fn debugger_exiting(&mut self) {
-        let _: flowcore::errors::Result<DebugCommand> = self
-            .debug_server_connection
-            .send_and_receive_response(ExitingDebugger);
-    }
-
-    // The debugger is resetting the runtime state
-    fn debugger_resetting(&mut self) {
-        let _: flowcore::errors::Result<DebugCommand> = self
-            .debug_server_connection
-            .send_and_receive_response(Resetting);
-    }
-
-    // An error occurred in the debugger
-    fn debugger_error(&mut self, error_message: String) {
-        let _: flowcore::errors::Result<DebugCommand> = self
-            .debug_server_connection.send_and_receive_response(
-            DebugServerMessage::Error(error_message),
-        );
-    }
-
-    // execution of the flow is starting
-    fn execution_starting(&mut self) {
-        let _: flowcore::errors::Result<DebugCommand> = self
-            .debug_server_connection
-            .send_and_receive_response(ExecutionStarted);
-    }
-
-    // Execution of the flow fn execution_ended(&mut self, state: &RunState) {
-    fn execution_ended(&mut self) {
-        let _: flowcore::errors::Result<DebugCommand> = self
-            .debug_server_connection
-            .send_and_receive_response(ExecutionEnded);
-    }
-
-    // Get a command for the debugger to perform
-    fn get_command(&mut self, state: &RunState) -> flowcore::errors::Result<DebugCommand> {
-        self
-            .debug_server_connection
-            .send_and_receive_response(WaitingForCommand(state.jobs_created()))
-    }
 }
 
 /// # Example Submission of a flow for execution to the Coordinator
@@ -406,17 +140,11 @@ impl DebugServer for CliDebugServer {
 fn main() {
     match run() {
         Err(ref e) => {
-            error!("{}", e);
+            eprintln!("{}", e);
 
             for e in e.iter().skip(1) {
-                error!("caused by: {}", e);
+                eprintln!("caused by: {}", e);
             }
-
-            if let Some(backtrace) = e.backtrace() {
-                error!("backtrace: {:?}", backtrace);
-            }
-
-            error!("Exiting with status code = 1");
             exit(1);
         }
         Ok(_) => exit(0),
@@ -522,21 +250,23 @@ fn load_native_libs(
             context::get_manifest(server_connection)?,
             &context_url,
         )
-        .chain_err(|| "Could not add 'context' library to loader")?;
+        .chain_err(|| "Loader: Could not add native 'context' functions")?;
 
+    // if the command line options request loading native implementation of available native libs
+    // if not, the native implementation is not loaded and later when a flow is loaded it's library
+    // references will be resolved and those libraries (WASM implementations) will be loaded at runtime
     if native {
-        // If the "flowstdlib" optional dependency is used and the command line options request
-        // a native implementation of libs, then load the native version of it
+        // If the "flowstdlib" optional dependency is used and the , then load the native version of it
         #[cfg(feature = "flowstdlib")]
             let flowstdlib_url = Url::parse("lib://flowstdlib")
-            .chain_err(|| "Could not parse flowstdlib lib url")?;
+                .chain_err(|| "Could not parse flowstdlib lib url")?;
         loader
             .add_lib(
                 provider,
                 flowstdlib::manifest::get_manifest().chain_err(|| "Could not get flowstdlib manifest")?,
                 &flowstdlib_url,
             )
-            .chain_err(|| "Could not add 'flowstdlib' library to loader")?;
+            .chain_err(|| "Loader: Could not add native 'flowstdlib' library")?;
     }
 
     Ok(())
@@ -573,7 +303,7 @@ fn client_and_server(
     matches: ArgMatches,
     #[cfg(feature = "debugger")]
     debug_this_flow: bool,
-) -> Result<()> {
+) -> flowcore::errors::Result<()> {
     let runtime_server_connection = ServerConnection::new(RUNTIME_SERVICE_NAME, Method::InProc(None))?;
     #[cfg(feature = "debugger")]
     let debug_server_connection = ServerConnection::new(DEBUG_SERVICE_NAME, Method::InProc(None))?;
@@ -593,7 +323,6 @@ fn client_and_server(
             debug_server_connection,
             false,
         );
-        info!("'flowr' server thread has exited");
     });
 
     #[cfg(feature = "debugger")]
@@ -611,9 +340,7 @@ fn client_and_server(
         #[cfg(feature = "debugger")] control_c_client_connection,
         #[cfg(feature = "debugger")] debug_this_flow,
         #[cfg(feature = "debugger")] &mut debug_server_info,
-    )?;
-
-    Ok(())
+    )
 }
 
 // Create a new `Coordinator`, pre-load any libraries in native format that we want to have before
@@ -657,8 +384,6 @@ fn server(
         loop_forever,
     )?;
 
-    debug!("Server closing connection");
-    server.close_connection()?;
     Ok(())
 }
 
@@ -668,7 +393,7 @@ fn server(
 fn client_only(
     matches: ArgMatches,
     #[cfg(feature = "debugger")] debug_this_flow: bool,
-) -> Result<()> {
+) -> flowcore::errors::Result<()> {
     let mut runtime_server_info = ServerInfo::new(
         RUNTIME_SERVICE_NAME,
         Method::Tcp(
@@ -713,7 +438,7 @@ fn client(
     control_c_client_connection: Option<ClientConnection>,
     #[cfg(feature = "debugger")] debug_this_flow: bool,
     #[cfg(feature = "debugger")] debug_server_info: &mut ServerInfo,
-) -> Result<()> {
+) -> flowcore::errors::Result<()> {
     let flow_manifest_url = parse_flow_url(&matches)?;
     let flow_args = get_flow_args(&matches, &flow_manifest_url);
     let max_parallel_jobs = num_parallel_jobs(
@@ -748,9 +473,7 @@ fn client(
      runtime_client.event_loop(runtime_client_connection,
             #[cfg(feature = "debugger")]
                                control_c_client_connection
-     )?;
-
-    Ok(())
+     )
 }
 
 // Determine the number of threads to use to execute flows, with a default of the number of cores
@@ -909,13 +632,10 @@ fn get_matches<'a>() -> ArgMatches<'a> {
 }
 
 // Parse the command line arguments passed onto the flow itself
-fn parse_flow_url(matches: &ArgMatches) -> Result<Url> {
-    let cwd = env::current_dir().chain_err(|| "Could not get current working directory value")?;
-    let cwd_url = Url::from_directory_path(cwd)
+fn parse_flow_url(matches: &ArgMatches) -> flowcore::errors::Result<Url> {
+    let cwd_url = Url::from_directory_path(env::current_dir()?)
         .map_err(|_| "Could not form a Url for the current working directory")?;
-
     url_from_string(&cwd_url, matches.value_of("flow-manifest"))
-        .chain_err(|| "Unable to parse the URL of the manifest of the flow to run")
 }
 
 // Set environment variable with the args this will not be unique, but it will be used very

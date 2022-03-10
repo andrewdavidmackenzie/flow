@@ -75,7 +75,7 @@ impl LibraryManifest {
         }
     }
 
-    /// `load` a `LibraryManifest` from the `source` url, using the `provider` to fetch contents
+    /// load a `LibraryManifest` from `lib_manifest_url`, using `provider` to fetch the contents
     pub fn load(provider: &dyn Provider, lib_manifest_url: &Url) -> Result<(LibraryManifest, Url)> {
         let (resolved_url, _) = provider
             .resolve_url(

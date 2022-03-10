@@ -46,9 +46,9 @@ impl CliRuntimeClient {
             match connection.receive() {
                 Ok(event) => {
                     let response = self.process_server_message(event);
-                    if response == ClientMessage::ClientExiting {
+                    if let ClientMessage::ClientExiting(server_result) = response {
                         debug!("Client has decided to exit, so exiting the event loop.");
-                        return Ok(());
+                        return server_result;
                     }
 
                     let _ = connection.send(response);
@@ -98,7 +98,7 @@ impl CliRuntimeClient {
                 }
 
                 self.flush_image_buffers();
-                ClientMessage::ClientExiting
+                ClientMessage::ClientExiting(Ok(()))
             }
 
             #[cfg(not(feature = "metrics"))]
@@ -111,9 +111,9 @@ impl CliRuntimeClient {
                 debug!("===========================    Starting flow execution =============================");
                 ClientMessage::Ack
             }
-            ServerMessage::ServerExiting => {
+            ServerMessage::ServerExiting(result) => {
                 debug!("Server is exiting");
-                ClientMessage::ClientExiting
+                ClientMessage::ClientExiting(result)
             }
             ServerMessage::StdoutEof => ClientMessage::Ack,
             ServerMessage::Stdout(contents) => {

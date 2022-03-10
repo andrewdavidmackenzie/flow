@@ -3,12 +3,13 @@ use std::path::PathBuf;
 
 use serde_derive::{Deserialize, Serialize};
 
+use flowcore::errors::*;
 #[cfg(feature = "metrics")]
 use flowcore::model::metrics::Metrics;
 use flowcore::model::submission::Submission;
 
 /// An Message sent from the runtime server to a runtime_client
-#[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum ServerMessage {
     /// A flow has started executing
     FlowStart,
@@ -18,8 +19,8 @@ pub enum ServerMessage {
     /// A flow has stopped executing
     #[cfg(not(feature = "metrics"))]
     FlowEnd,
-    /// Server is exiting
-    ServerExiting,
+    /// Server is exiting, with a result (OK, or Err)
+    ServerExiting(Result<()>),
     /// A String of contents was sent to stdout
     Stdout(String),
     /// A String of contents was sent to stderr
@@ -53,23 +54,24 @@ impl fmt::Display for ServerMessage {
             "ServerMessage {}",
             match self {
                 #[cfg(not(feature = "metrics"))]
-                ServerMessage::FlowEnd => "FlowEnd",
+                ServerMessage::FlowEnd => "FlowEnd".into(),
                 #[cfg(feature = "metrics")]
-                ServerMessage::FlowEnd(_) => "FlowEnd",
-                ServerMessage::FlowStart => "FlowStart",
-                ServerMessage::ServerExiting => "ServerExiting",
-                ServerMessage::Stdout(_) => "Stdout",
-                ServerMessage::Stderr(_) => "Stderr",
-                ServerMessage::GetStdin => "GetStdIn",
-                ServerMessage::GetLine => "GetLine",
-                ServerMessage::GetArgs => "GetArgs",
-                ServerMessage::Read(_) => "Read",
-                ServerMessage::GetFileMetaData(_) => "GetFileMetaData",
-                ServerMessage::Write(_, _) => "Write",
-                ServerMessage::PixelWrite(_, _, _, _) => "PixelWrite",
-                ServerMessage::StdoutEof => "StdOutEof",
-                ServerMessage::StderrEof => "StdErrEof",
-                ServerMessage::Invalid => "Invalid",
+                ServerMessage::FlowEnd(_) => "FlowEnd".into(),
+                ServerMessage::FlowStart => "FlowStart".into(),
+                ServerMessage::ServerExiting(result) =>
+                    format!("ServerExiting with result: {:?}", result),
+                ServerMessage::Stdout(_) => "Stdout".into(),
+                ServerMessage::Stderr(_) => "Stderr".into(),
+                ServerMessage::GetStdin => "GetStdIn".into(),
+                ServerMessage::GetLine => "GetLine".into(),
+                ServerMessage::GetArgs => "GetArgs".into(),
+                ServerMessage::Read(_) => "Read".into(),
+                ServerMessage::GetFileMetaData(_) => "GetFileMetaData".into(),
+                ServerMessage::Write(_, _) => "Write".into(),
+                ServerMessage::PixelWrite(_, _, _, _) => "PixelWrite".into(),
+                ServerMessage::StdoutEof => "StdOutEof".into(),
+                ServerMessage::StderrEof => "StdErrEof".into(),
+                ServerMessage::Invalid => "Invalid".into(),
             }
         )
     }
@@ -90,7 +92,7 @@ pub struct FileMetaData {
 }
 
 /// A Message from the a runtime_client to the runtime server
-#[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum ClientMessage {
     /// Simple acknowledgement
     Ack,
@@ -107,7 +109,7 @@ pub enum ClientMessage {
     /// EOF was detected on input reading Stdin using Readline
     GetLineEof,
     /// Client is exiting Event loop
-    ClientExiting,
+    ClientExiting(Result<()>),
     /// A submission from the client for execution
     ClientSubmission(Submission),
     /// Client requests that server enters the ddebugger at the next opportunity
@@ -126,19 +128,20 @@ impl fmt::Display for ClientMessage {
             f,
             "ClientMessage {}",
             match self {
-                ClientMessage::Ack => "Ack",
-                ClientMessage::Stdin(_) => "Stdin",
-                ClientMessage::Line(_) => "Line",
-                ClientMessage::Args(_) => "Args",
-                ClientMessage::Error(_) => "Error",
-                ClientMessage::GetStdinEof => "GetStdinEof",
-                ClientMessage::GetLineEof => "GetLineEof",
-                ClientMessage::ClientExiting => "ClientExiting",
-                ClientMessage::ClientSubmission(_) => "ClientSubmission",
-                ClientMessage::EnterDebugger => "EnterDebugger",
-                ClientMessage::Invalid => "Invalid",
-                ClientMessage::FileContents(_, _) => "FileContents",
-                ClientMessage::FileMetaDate(_, _) => "FileMetaDate",
+                ClientMessage::Ack => "Ack".into(),
+                ClientMessage::Stdin(_) => "Stdin".into(),
+                ClientMessage::Line(_) => "Line".into(),
+                ClientMessage::Args(_) => "Args".into(),
+                ClientMessage::Error(_) => "Error".into(),
+                ClientMessage::GetStdinEof => "GetStdinEof".into(),
+                ClientMessage::GetLineEof => "GetLineEof".into(),
+                ClientMessage::ClientExiting(result) =>
+                    format!("ClientExiting with server result: {:?}", result),
+                ClientMessage::ClientSubmission(_) => "ClientSubmission".into(),
+                ClientMessage::EnterDebugger => "EnterDebugger".into(),
+                ClientMessage::Invalid => "Invalid".into(),
+                ClientMessage::FileContents(_, _) => "FileContents".into(),
+                ClientMessage::FileMetaDate(_, _) => "FileMetaDate".into(),
             }
         )
     }

@@ -4,6 +4,7 @@ use std::sync::Arc;
 use log::{debug, info, trace};
 use url::Url;
 
+use flowcore::errors::*;
 use flowcore::Implementation;
 use flowcore::lib_provider::Provider;
 use flowcore::model::flow_manifest::FlowManifest;
@@ -11,7 +12,6 @@ use flowcore::model::lib_manifest::{
     ImplementationLocator::Native, ImplementationLocator::Wasm, LibraryManifest,
 };
 
-use crate::errors::*;
 use crate::wasm;
 
 /// A `Loader` is responsible for loading a compiled `Flow` from it's `Manifest`, loading the required
@@ -64,14 +64,14 @@ impl Loader {
     ) -> Result<FlowManifest> {
         debug!("Loading flow manifest from '{}'", flow_manifest_url);
         let (mut flow_manifest, resolved_url) =
-            FlowManifest::load(provider, flow_manifest_url).chain_err(|| {
-                format!("Could not load manifest from: '{}'", flow_manifest_url)
-            })?;
+            FlowManifest::load(provider, flow_manifest_url)
+                .chain_err(|| format!("Could not load manifest from: '{}'", flow_manifest_url))?;
 
         self.load_library_implementations(provider, &flow_manifest)
-            .chain_err(|| "Could not load library implementations for flow")?;
+            .chain_err(|| format!("Could not load libraries referenced by flow at: {}",
+                       resolved_url.to_string()))?;
 
-        // Find the implementations for all functions in this flow
+        // Find the implementations for all functions used in this flow
         self.resolve_implementations(provider, &mut flow_manifest, &resolved_url)
             .chain_err(|| "Could not resolve implementations required for flow execution")?;
 
@@ -113,7 +113,7 @@ impl Loader {
                 )
             })?;
 
-        Ok(tuple.clone())
+        Ok(tuple.clone()) // TODO avoid the clone and return a reference
     }
 
     /// Load libraries implementations referenced in the flow manifest
