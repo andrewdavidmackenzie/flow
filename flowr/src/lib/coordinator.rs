@@ -80,16 +80,17 @@ impl<'a> Coordinator<'a> {
                     }
                 }
                 Err(e) => {
-                    error!("{}", e);
-
-                    if !loop_forever {
-                        debug!("Coordinator exiting submission loop due to error");
+                    if loop_forever {
+                        error!("{}", e);
+                    } else {
+                        self.server.server_exiting(Err(e.clone()))?;
                         bail!("{}", e);
                     }
                 },
             }
         }
 
+        self.server.server_exiting(Ok(()))?;
         Ok(())
     }
 

@@ -30,7 +30,7 @@ pub mod test {
         std::thread::spawn(move || loop {
             match client_connection.receive::<ServerMessage>() {
                 Ok(received_message) => {
-                    if received_message == wait_for_message {
+                    if std::mem::discriminant(&received_message) == std::mem::discriminant(&wait_for_message) {
                         client_connection
                             .send(then_send)
                             .expect("Could not send ClientMessage");
