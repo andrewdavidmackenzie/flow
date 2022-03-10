@@ -51,8 +51,8 @@ fn run_sample(sample_dir: &Path, output_dir: &Path) -> io::Result<()> {
     println!("\tSTDIN is read from test.input, Arguments are read from test.arguments");
     println!("\tSTDOUT is sent to test.output, STDERR to test.err and file output to test.file");
 
-//    let mut command_args: Vec<String> = vec!["--native".into(), manifest_path.display().to_string()];
-    let mut command_args: Vec<String> = vec![manifest_path.display().to_string()];
+    let mut command_args: Vec<String> = vec!["--native".into(), manifest_path.display().to_string()];
+//    let mut command_args: Vec<String> = vec![manifest_path.display().to_string()];
     command_args.append(&mut args(sample_dir)?);
 
     let output = File::create(output_dir.join("test.output")).expect("Could not get directory as string");
