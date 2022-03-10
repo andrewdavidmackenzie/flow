@@ -273,12 +273,11 @@ mod test {
             false,
         );
 
-        if client.process_server_message(ServerMessage::Write(
+        match client.process_server_message(ServerMessage::Write(
             file.to_str().expect("Couldn't get filename").to_string(),
-            b"Hello".to_vec(),
-        )) != ClientMessage::Ack
-        {
-            panic!("Didn't get Write response as expected")
+            b"Hello".to_vec())) {
+            ClientMessage::Ack => {},
+            _ => panic!("Didn't get Write response as expected"),
         }
     }
 
@@ -289,10 +288,9 @@ mod test {
             #[cfg(feature = "metrics")]
             false,
         );
-        if client.process_server_message(ServerMessage::Stdout("Hello".into()))
-            != ClientMessage::Ack
-        {
-            panic!("Didn't get Stdout response as expected")
+        match client.process_server_message(ServerMessage::Stdout("Hello".into())) {
+            ClientMessage::Ack => {},
+            _ => panic!("Didn't get Stdout response as expected"),
         }
     }
 
@@ -303,10 +301,9 @@ mod test {
             #[cfg(feature = "metrics")]
             false,
         );
-        if client.process_server_message(ServerMessage::Stderr("Hello".into()))
-            != ClientMessage::Ack
-        {
-            panic!("Didn't get Stderr response as expected")
+        match client.process_server_message(ServerMessage::Stderr("Hello".into())) {
+            ClientMessage::Ack => {},
+            _ => panic!("Didn't get Stderr response as expected"),
         }
     }
 
@@ -329,8 +326,9 @@ mod test {
         client.process_server_message(ServerMessage::FlowStart);
         let pixel =
             ServerMessage::PixelWrite((0, 0), (255, 200, 20), (10, 10), path.display().to_string());
-        if client.process_server_message(pixel) != ClientMessage::Ack {
-            panic!("Didn't get pixel write response as expected")
+        match client.process_server_message(pixel) {
+            ClientMessage::Ack => {},
+            _ => panic!("Didn't get pixel write response as expected"),
         }
 
         #[cfg(not(feature = "metrics"))]
@@ -349,9 +347,9 @@ mod test {
             false,
         );
 
-        assert_eq!(
-            client.process_server_message(ServerMessage::ServerExiting),
-            ClientMessage::ClientExiting
-        );
+        match client.process_server_message(ServerMessage::ServerExiting(Ok(()))) {
+            ClientMessage::ClientExiting(_) => {},
+            _ => panic!("Didn't get ClientExiting response as expected"),
+        }
     }
 }
