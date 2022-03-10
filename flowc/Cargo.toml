@@ -20,7 +20,6 @@ path = "src/lib/lib.rs"
 [features]
 default = ["debugger"]
 debugger = ["flowcore/debugger"] # feature to add output for the debugger
-online_tests = []
 
 [dependencies]
 flowcore = {path = "../flowcore", version = "0.43.0"}
