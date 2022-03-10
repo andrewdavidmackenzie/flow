@@ -1,8 +1,16 @@
 use std::collections::hash_map::DefaultHasher;
+use std::fs;
 use std::hash::{Hash, Hasher};
+use std::io::Write;
+use std::path::Path;
+use std::process::Command;
 
+use log::{debug, info};
 use serde_json::Value;
+use simpath::{FileType, FoundType, Simpath};
+use wax::Glob;
 
+use flowcore::lib_provider::Provider;
 use flowcore::model::connection::Connection;
 use flowcore::model::flow_definition::FlowDefinition;
 use flowcore::model::function_definition::FunctionDefinition;
@@ -12,21 +20,9 @@ use flowcore::model::name::{HasName, Name};
 use flowcore::model::process::Process::{FlowProcess, FunctionProcess};
 use flowcore::model::route::{HasRoute, Route};
 
+use crate::dumper::{dump, dump_dot};
 use crate::errors::*;
 use crate::generator::generate::GenerationTables;
-
-use std::fs;
-use std::io::Write;
-use std::path::Path;
-use std::process::Command;
-
-use log::{debug, info};
-use simpath::{FileType, FoundType, Simpath};
-use wax::Glob;
-
-use flowcore::lib_provider::Provider;
-
-use crate::dumper::{dump, dump_dot};
 
 /// Create a directed graph named after the flow, showing all the functions of the flow after it
 /// has been compiled down, grouped in sub-clusters
@@ -43,10 +39,10 @@ use crate::dumper::{dump, dump_dot};
 /// use simpath::Simpath;
 /// use std::path::Path;
 ///
-/// // Create a lib_search_path including 'context' which is in flowr/src/lib
+/// // Create a lib_search_path including 'context' which is in flowr/src
 /// let mut lib_search_path = Simpath::new("TEST_LIBS");
 /// let root_str = Path::new(env!("CARGO_MANIFEST_DIR")).parent().unwrap();
-/// let runtime_parent = root_str.join("flowr/src/lib");
+/// let runtime_parent = root_str.join("flowr/src");
 /// lib_search_path.add_directory(runtime_parent.to_str().unwrap());
 /// let provider = MetaProvider::new(lib_search_path);
 ///

@@ -12,7 +12,7 @@ The top-level sections are:
 * [Your First Flow](docs/first_flow/first_flow.md)
 * [Defining flows](docs/describing/definition_overview.md)
 * [Running flows](docs/running/running.md)
-* [The `flowr` runner](flowr/src/bin/flowr/README.md)
+* [The `flowr` runner](flowr/README.md)
 * [Debugging Flows](docs/debugging/debugger.md)
 * [The Flow Standard Library](flowstdlib/README.md)
 * [Sample flows](flowsamples/README.md)

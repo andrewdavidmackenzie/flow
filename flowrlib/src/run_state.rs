@@ -1,3 +1,8 @@
+use std::collections::{HashMap, HashSet};
+use std::collections::VecDeque;
+use std::fmt;
+use std::time::Duration;
+
 use log::{debug, error, info, trace};
 use multimap::MultiMap;
 use serde_derive::{Deserialize, Serialize};
@@ -9,10 +14,6 @@ use flowcore::model::output_connection::OutputConnection;
 use flowcore::model::output_connection::Source::{Input, Output};
 use flowcore::model::runtime_function::RuntimeFunction;
 use flowcore::model::submission::Submission;
-use std::collections::{HashMap, HashSet};
-use std::collections::VecDeque;
-use std::fmt;
-use std::time::Duration;
 
 use crate::block::Block;
 #[cfg(feature = "debugger")]
@@ -1131,6 +1132,8 @@ impl fmt::Display for RunState {
 
 #[cfg(test)]
 mod test {
+    use std::sync::Arc;
+
     use serde_json::json;
     use serde_json::Value;
 
@@ -1140,7 +1143,6 @@ mod test {
     use flowcore::model::input::InputInitializer::Once;
     use flowcore::model::output_connection::{OutputConnection, Source};
     use flowcore::model::runtime_function::RuntimeFunction;
-    use std::sync::Arc;
 
     use crate::block::Block;
     use crate::debug_command::DebugCommand;
@@ -1306,14 +1308,15 @@ mod test {
 
     mod general_run_state_tests {
         #[cfg(feature = "debugger")]
-        use multimap::MultiMap;
+                use std::collections::HashSet;
+
+        #[cfg(feature = "debugger")]
+                use multimap::MultiMap;
         #[cfg(any(feature = "debugger", feature = "metrics"))]
         use url::Url;
 
         #[cfg(any(feature = "debugger", feature = "metrics"))]
         use flowcore::model::submission::Submission;
-        #[cfg(feature = "debugger")]
-                use std::collections::HashSet;
 
         #[cfg(any(feature = "debugger", feature = "metrics"))]
         use super::super::RunState;

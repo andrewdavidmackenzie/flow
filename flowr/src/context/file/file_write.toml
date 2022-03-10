@@ -1,4 +1,4 @@
-function = "file_write"
+ function = "file_write"
 source = "file_write.rs"
 docs = "file_write.md"
 impure = true

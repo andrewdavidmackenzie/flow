@@ -20,7 +20,7 @@ strip = "debuginfo"
 [dependencies]
 flowcore = "0.42"
 flowmacro = "0.42"
-serde_json = "1.0"
+serde_json = { version = "1.0", default-features = false }
 
 [workspace]
 exclude = ["../../.."]

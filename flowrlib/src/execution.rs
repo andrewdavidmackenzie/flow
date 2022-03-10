@@ -1,6 +1,6 @@
 use std::panic;
-use std::sync::mpsc::{Receiver, Sender};
 use std::sync::{Arc, Mutex};
+use std::sync::mpsc::{Receiver, Sender};
 use std::thread;
 
 use log::error;

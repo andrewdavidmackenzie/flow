@@ -31,8 +31,8 @@
 - [Flow Libraries](docs/describing/flow_libraries.md)
 
 # Running Flows
-- [flowr library](flowr/src/lib/README.md)
-- [flowr runner](flowr/src/bin/flowr/README.md)
+- [flowr library](flowrlib/README.md)
+- [flowr runner](flowr/README.md)
 - [Running flows](docs/running/running.md)
 - [flowc Command Line Arguments](docs/running/flowc.md)
 - [Passing command line arguments to flows](docs/running/arguments.md)
@@ -40,17 +40,17 @@
 - [Standard Input and Output](docs/running/stdio.md)
 - [Exceptions and Panics](docs/running/panics.md)
 ## `flowr's` `context` functions
-- [Arg functions](flowr/src/bin/flowr/context/args/args.md)
-    - [Arg get function](flowr/src/bin/flowr/context/args/get.md)
-- [File functions](flowr/src/bin/flowr/context/file/file.md)
-    - [File Write function](flowr/src/bin/flowr/context/file/file_write.md)
-- [Image manipulation functions](flowr/src/bin/flowr/context/image/image.md)
-    - [Image buffer](flowr/src/bin/flowr/context/image/image_buffer.md)
-- [Standard IO functions](flowr/src/bin/flowr/context/stdio/stdio.md)
-    - [Readline function](flowr/src/bin/flowr/context/stdio/readline.md)
-    - [Standard Input function](flowr/src/bin/flowr/context/stdio/stdin.md)
-    - [Standard Output function](flowr/src/bin/flowr/context/stdio/stdout.md)
-    - [Standard Error function](flowr/src/bin/flowr/context/stdio/stderr.md)
+- [Arg functions](flowr/src/context/args/args.md)
+    - [Arg get function](flowr/src/context/args/get.md)
+- [File functions](flowr/src/context/file/file.md)
+    - [File Write function](flowr/src/context/file/file_write.md)
+- [Image manipulation functions](flowr/src/context/image/image.md)
+    - [Image buffer](flowr/src/context/image/image_buffer.md)
+- [Standard IO functions](flowr/src/context/stdio/stdio.md)
+    - [Readline function](flowr/src/context/stdio/readline.md)
+    - [Standard Input function](flowr/src/context/stdio/stdin.md)
+    - [Standard Output function](flowr/src/context/stdio/stdout.md)
+    - [Standard Error function](flowr/src/context/stdio/stderr.md)
 
 # Debugging Flows
 - [The Debugger](docs/debugging/debugger.md)
@@ -127,7 +127,7 @@
             - [line-echo](flowc/tests/test-flows/line-echo/line-echo.md)
             - [print-args](flowc/tests/test-flows/print-args/print-args.md)
             <!--- TODO add Markdown docs for other test flows explaining what they test -->
-    -[flowrlib](flowr/src/lib/README.md) - The flow runner library that loads and executes compiled flows.
+    -[flowrlib](flowrlib/README.md) - The flow runner library that loads and executes compiled flows.
 - [Makefile targets](docs/developing/make.md)
 - [Ways to contribute](docs/developing/contributing.md)
     - [Issues](docs/developing/issues.md)

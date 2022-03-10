@@ -578,6 +578,7 @@ dependencies = [
  "ctrlc",
  "error-chain 0.12.4",
  "flowcore",
+ "flowrlib",
  "flowstdlib",
  "image",
  "log",
@@ -594,9 +595,28 @@ dependencies = [
  "simplog",
  "tempdir",
  "url",
+ "zmq",
+]
+
+[[package]]
+name = "flowrlib"
+version = "0.44.0"
+dependencies = [
+ "anyhow",
+ "error-chain 0.12.4",
+ "flowcore",
+ "log",
+ "multimap",
+ "serde",
+ "serde_derive",
+ "serde_json",
+ "serial_test",
+ "simpath",
+ "simplog",
+ "tempdir",
+ "url",
  "wasmi",
  "wasmtime",
- "zmq",
 ]
 
 [[package]]
