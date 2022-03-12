@@ -11,8 +11,8 @@ type = "string"
 
 [[output]]
 name = "rows" # - Number of rows in the input value
-type = "Number"
+type = "number"
 
 [[output]]
 name = "columns" # - Number of columns in the input value
-type = "Number"
+type = "number"

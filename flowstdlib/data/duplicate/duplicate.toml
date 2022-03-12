@@ -9,7 +9,7 @@ type = "object"
 
 [[input]]
 name = "factor" # - how many times to duplicate the value in the output
-type = "Number"
+type = "number"
 
 [[output]]
 type = "Array/object" # - the array of duplicate values

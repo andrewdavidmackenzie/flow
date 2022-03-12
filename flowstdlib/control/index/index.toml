@@ -13,15 +13,15 @@ type = "object"
 
 [[input]]
 name = "previous_index" # - the loop-backed previous index to enable counting
-type = "Number"
+type = "number"
 
 [[input]]
 name = "select_index" # th index to select from, where -1 = "last"
-type = "Number"
+type = "number"
 
 [[output]]
 name = "index" # the index of the value just processed and output on "value"
-type = "Number"
+type = "number"
 
 [[output]]
 name = "value" # the value just processed

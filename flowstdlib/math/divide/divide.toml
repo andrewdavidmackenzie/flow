@@ -5,24 +5,24 @@ type = "rust"
 
 [[input]]
 name = "dividend" # - the number to be divided, of type `Number`
-type = "Number"
+type = "number"
 
 [[input]]
 name = "divisor" # - the number to divide by, of type `Number`
-type = "Number"
+type = "number"
 
 [[output]]
 name = "dividend" # - re output the `dividend` input, of type `Number`
-type = "Number"
+type = "number"
 
 [[output]]
 name = "divisor" # - re output the `divisor` input, of type `Number`
-type = "Number"
+type = "number"
 
 [[output]]
 name = "result" # - the result of the division, of type `Number`
-type = "Number"
+type = "number"
 
 [[output]]
 name = "remainder" # - the remainder of the division, of type `Number`
-type = "Number"
+type = "number"

@@ -13,7 +13,7 @@ type = "object"
 
 [[input]]
 name = "chunk_size" # - The size of the Array we want to create
-type = "Number"
+type = "number"
 
 [[output]]
 name = "chunk" # - The accumulated Array of inputs of size `limit` or more
@@ -25,4 +25,4 @@ type = "object"
 
 [[output]]
 name = "chunk_size" # - The chunk-size, output for use downstream or in loop-back
-type = "Number"
+type = "number"

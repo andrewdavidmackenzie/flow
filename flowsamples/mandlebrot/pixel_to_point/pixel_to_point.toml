@@ -6,17 +6,17 @@ type = "rust"
 # `bounds` is a pair giving the width and height of the image in pixels.
 [[input]]
 name = "bounds"
-type = "Array/Array/Number"
+type = "Array/Array/number"
 
 # `pixel` is a (row, column) pair indicating a particular pixel in that image.
 [[input]]
 name = "pixel"
-type = "Array/Number"
+type = "Array/number"
 
 # `size` is the size of the pixel area to translate the complex area into: [width, height]
 [[input]]
 name = "size"
-type = "Array/Number"
+type = "Array/number"
 
 # Pixel and point are output together
 [[output]]

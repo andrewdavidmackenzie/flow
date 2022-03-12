@@ -4,7 +4,7 @@ docs = "sqrt.md"
 type = "rust"
 
 [[input]]
-type = "Number"
+type = "number"
 
 [[output]]
-type = "Number" # Square Root of type `Number`
+type = "number" # Square Root of type `Number`

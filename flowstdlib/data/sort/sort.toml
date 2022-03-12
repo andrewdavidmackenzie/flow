@@ -4,7 +4,7 @@ docs = "sort.md"
 type = "rust"
 
 [[input]]
-type = "Array/Number"
+type = "Array/number"
 
 [[output]]
-type = "Array/Number"
+type = "Array/number"

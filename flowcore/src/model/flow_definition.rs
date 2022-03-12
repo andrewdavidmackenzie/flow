@@ -453,11 +453,11 @@ mod test {
             alias: "test_flow".into(),
             inputs: vec![
                 IO::new_named(vec!("string".into()), "string", "string"),
-                IO::new_named(vec!("Number".into()), "number", "number"),
+                IO::new_named(vec!("number".into()), "number", "number"),
             ],
             outputs: vec![
                 IO::new_named(vec!("string".into()), "string", "string"),
-                IO::new_named(vec!("Number".into()), "number", "number"),
+                IO::new_named(vec!("number".into()), "number", "number"),
             ],
             source_url: super::FlowDefinition::default_url(),
             ..Default::default()
@@ -475,7 +475,7 @@ mod test {
             name: "process_2".into(),
             id: 1,
             inputs: vec![IO::new(vec!("string".into()), "")],
-            outputs: vec![IO::new(vec!("Number".into()), "")],
+            outputs: vec![IO::new(vec!("number".into()), "")],
             ..Default::default()
         });
 

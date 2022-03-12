@@ -496,7 +496,7 @@ mod test {
 
         [[input]]
         name = 'left'
-        type = 'Number'
+        type = 'number'
         ";
 
         let function = toml_from_str(function_str)
@@ -555,7 +555,7 @@ mod test {
         type = 'string'
         [[output]]
         name = 'other_output'
-        type = 'Number'
+        type = 'number'
         ";
 
         let function: FunctionDefinition =
@@ -571,7 +571,7 @@ mod test {
         let output1 = &outputs[1];
         assert_eq!(*output1.name(), Name::from("other_output"));
         assert_eq!(output1.datatypes().len(), 1);
-        assert_eq!(output1.datatypes()[0], DataType::from("Number"));
+        assert_eq!(output1.datatypes()[0], DataType::from("number"));
     }
 
     #[test]
@@ -585,7 +585,7 @@ mod test {
         type = 'string'
         [[output]]
         name = 'other_output'
-        type = 'Number'
+        type = 'number'
         ";
 
         // Setup

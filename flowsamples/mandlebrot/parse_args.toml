@@ -7,11 +7,11 @@ type = "string"
 [[output]]
 name = "size"
 # Workaround for https://github.com/andrewdavidmackenzie/flow/issues/747
-#type = "Array/Number"
+#type = "Array/number"
 
 [[output]]
 name = "bounds"
-type = "Array/Array/Number"
+type = "Array/Array/number"
 
 # Args
 [[process]]
@@ -133,7 +133,7 @@ to = "accumulate_lower_right/values"
 from = "accumulate_lower_right/partial"
 to = "accumulate_lower_right/partial"
 
-# Accumulate bounds points into bounds (Array/Array/Number)
+# Accumulate bounds points into bounds (Array/Array/number)
 [[process]]
 alias = "accumulate_bounds"
 source = "lib://flowstdlib/data/accumulate"

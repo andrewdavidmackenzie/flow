@@ -10,7 +10,7 @@ type = "object"
 
 [[input]]
 name = "select_index"
-type = "Number"
+type = "number"
 
 [[output]]
 name = "selected_value"

@@ -4,12 +4,12 @@ docs = "range.md"
 # The range to generate: [min, max] both are inclusive
 [[input]]
 name = "range"
-type = "Array/Number"
+type = "Array/number"
 
 # The series of numbers in the range generated
 [[output]]
 name = "number"
-type = "Number"
+type = "number"
 
 [[process]]
 alias = "range_split"

@@ -5,15 +5,15 @@ impure = true
 
 [[input]]
 name = "pixel"
-type = "Array/Number"
+type = "Array/number"
 
 [[input]]
 name = "value"
-type = "Array/Number"
+type = "Array/number"
 
 [[input]]
 name = "size"
-type = "Array/Number"
+type = "Array/number"
 
 [[input]]
 name = "filename"

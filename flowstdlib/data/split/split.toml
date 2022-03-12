@@ -20,7 +20,7 @@ type = "Array/string"
 
 [[output]]
 name = "token-count" # - the number of tokens emitted, can be used to count tokens generated
-type = "Number"
+type = "number"
 
 [[output]]
 name = "token" # - a String that cannot be sub-divided further.
@@ -33,4 +33,4 @@ name = "delta" # - this is a Number that indicates if this job reduced (-1) or i
 # -0 partials for further splitting). If the input string
 # is split into two partial strings that are output for further splitting, then the delta to
 # pending work is +1 (+2 partials -1 input)
-type = "Number"
+type = "number"

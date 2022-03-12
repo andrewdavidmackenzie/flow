@@ -2,15 +2,15 @@ flow = "multiply_matrices"
 
 [[input]]
 name = "a"
-type = "Array/Array/Number"
+type = "Array/Array/number"
 
 [[input]]
 name = "b"
-type = "Array/Array/Number"
+type = "Array/Array/number"
 
 [[output]]
 name = "product"
-type = "Array/Array/Number"
+type = "Array/Array/number"
 
 [[process]]
 alias = "b_info"

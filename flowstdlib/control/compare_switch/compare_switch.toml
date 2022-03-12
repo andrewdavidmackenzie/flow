@@ -5,44 +5,44 @@ type = "rust"
 
 [[input]]
 name = "left" # - left hand input
-type = "Number"
+type = "number"
 
 [[input]]
 name = "right" # - right hand input
-type = "Number"
+type = "number"
 
 [[output]]
 name = "equal" # - outputs right hand value if the two values are equal
-type = "Number"
+type = "number"
 
 [[output]]
 name = "right-lt" # - outputs right hand value if the left hand value is less than the right hand value
-type = "Number"
+type = "number"
 
 [[output]]
 name = "right-lte" # - outputs right hand value if the left hand value is less than or equal to the right hand value
-type = "Number"
+type = "number"
 
 [[output]]
 name = "right-gt" # - outputs right hand value if the left hand value is greater than the right hand value
-type = "Number"
+type = "number"
 
 [[output]]
 name = "right-gte" # - outputs right hand value if the left hand value is greater than or equal to the right hand value
-type = "Number"
+type = "number"
 
 [[output]]
 name = "left-lt" # - outputs left hand value if the left hand value is less than the right hand value
-type = "Number"
+type = "number"
 
 [[output]]
 name = "left-lte" # - outputs left hand value if the left hand value is less than or equal to the right hand value
-type = "Number"
+type = "number"
 
 [[output]]
 name = "left-gt" # - outputs left hand value if the left hand value is greater than the right hand value
-type = "Number"
+type = "number"
 
 [[output]]
 name = "left-gte" # - outputs left hand value if the left hand value is greater than or equal to the right hand value
-type = "Number"
+type = "number"

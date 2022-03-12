@@ -15,8 +15,8 @@ Features Used
 ===
 * Context Flow
 * Connections between functions
-* Loop-back connections to accumulate an array, used to gather Numbers into Array/Number and then Array/Number into
-Array/Array/Number (i.e. Matrix)
+* Loop-back connections to accumulate an array, used to gather Numbers into Array/number and then Array/number into
+Array/Array/number (i.e. Matrix)
 * Initializing function inputs with values, once and constantly
 * Multiple connections into and out of functions
 * Library Functions `to_json`, `multiply`, `subtract` from `flowstdlib`

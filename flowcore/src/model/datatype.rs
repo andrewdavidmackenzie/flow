@@ -7,7 +7,7 @@ use shrinkwraprs::Shrinkwrap;
 
 use crate::errors::*;
 
-const DATA_TYPES: &[&str] = &["object", "string", "Number", "Bool", "Map", "Array", "Null"];
+const DATA_TYPES: &[&str] = &["object", "string", "number", "Bool", "Map", "Array", "Null"];
 
 /// Datatype is just a string defining what data type is being used
 #[derive(Shrinkwrap, Hash, Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
@@ -75,7 +75,7 @@ impl DataType {
         match value {
             Value::String(_) => "string".into(),
             Value::Bool(_) => "Boolean".into(),
-            Value::Number(_) => "Number".into(),
+            Value::Number(_) => "number".into(),
             Value::Array(array) => format!("Array/{}", Self::type_string(&array[0])),
             Value::Object(map) => {
                 if let Some(map_entry) = map.values().next() {

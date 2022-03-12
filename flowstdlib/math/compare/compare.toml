@@ -5,11 +5,11 @@ type = "rust"
 
 [[input]]
 name = "left" # - left hand input
-type = "Number"
+type = "number"
 
 [[input]]
 name = "right" # - right hand input
-type = "Number"
+type = "number"
 
 [[output]]
 name = "equal" # - `equal` \[Boolean\] - outputs true if the two values are equal

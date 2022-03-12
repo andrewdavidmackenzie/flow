@@ -4,7 +4,7 @@ docs = "transpose.md"
 type = "rust"
 
 [[input]]
-type = "Array/Array/Number"
+type = "Array/Array/number"
 
 [[output]]
-type = "Array/Array/Number"
+type = "Array/Array/number"

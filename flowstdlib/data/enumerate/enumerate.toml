@@ -4,7 +4,7 @@ docs = "enumerate.md"
 type = "rust"
 
 [[input]]
-type = "Array/Number"          # e.g. ["a", "b"]
+type = "Array/number"          # e.g. ["a", "b"]
 
 [[output]]
-type = "Array/Array/Number"  # e.g. [[0, "a"], [1, "b"]]
+type = "Array/Array/number"  # e.g. [[0, "a"], [1, "b"]]
