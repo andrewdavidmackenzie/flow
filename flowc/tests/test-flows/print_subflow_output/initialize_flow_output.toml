@@ -1,5 +1,5 @@
 flow = "initialize_flow_output"
 
 [[output]]
-type = "String"
+type = "string"
 value = { once = "Hello" }

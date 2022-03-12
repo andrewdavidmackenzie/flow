@@ -5,7 +5,7 @@ impure = true
 
 [[input]]
 name = "filename"
-type = "String"
+type = "string"
 
 [[input]]
 name = "bytes"

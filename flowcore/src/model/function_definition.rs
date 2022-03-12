@@ -510,7 +510,7 @@ mod test {
         function = 'test_function'
         source = 'test.rs'
         [[output]]
-        type = 'String'
+        type = 'string'
         ";
 
         let function: FunctionDefinition =
@@ -520,7 +520,7 @@ mod test {
         let output = &function.outputs[0];
         assert_eq!(*output.name(), Name::default());
         assert_eq!(output.datatypes().len(), 1);
-        assert_eq!(output.datatypes()[0], DataType::from("String"));
+        assert_eq!(output.datatypes()[0], DataType::from("string"));
     }
 
     #[test]
@@ -531,7 +531,7 @@ mod test {
 
         [[output]]
         name = 'sub_output'
-        type = 'String'
+        type = 'string'
         ";
 
         let function: FunctionDefinition =
@@ -541,7 +541,7 @@ mod test {
         let output = &function.outputs[0];
         assert_eq!(*output.name(), Name::from("sub_output"));
         assert_eq!(output.datatypes().len(), 1);
-        assert_eq!(output.datatypes()[0], DataType::from("String"));
+        assert_eq!(output.datatypes()[0], DataType::from("string"));
     }
 
     #[test]
@@ -552,7 +552,7 @@ mod test {
 
         [[output]]
         name = 'sub_output'
-        type = 'String'
+        type = 'string'
         [[output]]
         name = 'other_output'
         type = 'Number'
@@ -567,7 +567,7 @@ mod test {
         let output0 = &outputs[0];
         assert_eq!(*output0.name(), Name::from("sub_output"));
         assert_eq!(output0.datatypes().len(), 1);
-        assert_eq!(output0.datatypes()[0], DataType::from("String"));
+        assert_eq!(output0.datatypes()[0], DataType::from("string"));
         let output1 = &outputs[1];
         assert_eq!(*output1.name(), Name::from("other_output"));
         assert_eq!(output1.datatypes().len(), 1);
@@ -582,7 +582,7 @@ mod test {
 
         [[output]]
         name = 'sub_output'
-        type = 'String'
+        type = 'string'
         [[output]]
         name = 'other_output'
         type = 'Number'
@@ -616,7 +616,7 @@ mod test {
         source = 'test.rs'
 
         [[output]]
-        type = 'Array/String'
+        type = 'Array/string'
         ";
 
         // Setup

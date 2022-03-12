@@ -7,7 +7,7 @@ use shrinkwraprs::Shrinkwrap;
 
 use crate::errors::*;
 
-const DATA_TYPES: &[&str] = &["object", "String", "Number", "Bool", "Map", "Array", "Null"];
+const DATA_TYPES: &[&str] = &["object", "string", "Number", "Bool", "Map", "Array", "Null"];
 
 /// Datatype is just a string defining what data type is being used
 #[derive(Shrinkwrap, Hash, Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
@@ -73,7 +73,7 @@ impl DataType {
     /// going down when the type is a container type (Array or Map(Object))
     pub fn type_string(value: &Value) -> String {
         match value {
-            Value::String(_) => "String".into(),
+            Value::String(_) => "string".into(),
             Value::Bool(_) => "Boolean".into(),
             Value::Number(_) => "Number".into(),
             Value::Array(array) => format!("Array/{}", Self::type_string(&array[0])),
@@ -106,10 +106,10 @@ mod test {
 
     #[test]
     fn valid_data_string_type() {
-        let string_type = DataType::from("String");
+        let string_type = DataType::from("string");
         string_type
             .valid()
-            .expect("'String' DataType should be valid");
+            .expect("'string' DataType should be valid");
     }
 
     #[test]
@@ -132,7 +132,7 @@ mod test {
 
     #[test]
     fn is_array_false() {
-        let string_type = DataType::from("String");
+        let string_type = DataType::from("string");
         assert!(!string_type.is_array());
     }
 }

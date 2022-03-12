@@ -2,7 +2,7 @@ flow = "subflow"
 
 [[output]]
 name = "out"
-type = "String"
+type = "string"
 
 [[process]]
 source = "context://stdio/stdin"

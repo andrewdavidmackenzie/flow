@@ -5,18 +5,18 @@ type = "rust"
 
 [[input]]
 name = "string" # - the String to split
-type = "String"
+type = "string"
 
 [[input]]
 name = "separator" # - the String to use as a separator
-type = "String"
+type = "string"
 
 [[output]]
 name = "partial" # - an Array of Strings that each may or may not have `separator` strings inside
 # them. This should be feed-back to the input (will be serialized into Strings by the
 # runtime) for further subdivision until each one cannot be split further - in which case
 # it will be output as `token`
-type = "Array/String"
+type = "Array/string"
 
 [[output]]
 name = "token-count" # - the number of tokens emitted, can be used to count tokens generated
@@ -24,7 +24,7 @@ type = "Number"
 
 [[output]]
 name = "token" # - a String that cannot be sub-divided further.
-type = "String"
+type = "string"
 
 [[output]]
 name = "delta" # - this is a Number that indicates if this job reduced (-1) or increased (+1) the number

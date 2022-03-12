@@ -2,7 +2,7 @@ flow = "parse_args"
 
 [[output]]
 name = "filename"
-type = "String"
+type = "string"
 
 [[output]]
 name = "size"

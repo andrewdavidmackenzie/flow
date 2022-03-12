@@ -7,4 +7,4 @@ type = "rust"
 type = "object"
 
 [[output]]
-type = "String" # The String equivalent of the input value
+type = "string" # The String equivalent of the input value

@@ -5,11 +5,11 @@ type = "rust"
 
 [[input]]
 name = "s1"
-type = "String"
+type = "string"
 
 [[input]]
 name = "s2"
-type = "String"
+type = "string"
 
 [[output]]
-type = "String" # - The Concatenated string
+type = "string" # - The Concatenated string

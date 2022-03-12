@@ -7,7 +7,7 @@ type = "rust"
 
 [[output]]
 name = "type" # - String identifying the type of the input value
-type = "String"
+type = "string"
 
 [[output]]
 name = "rows" # - Number of rows in the input value

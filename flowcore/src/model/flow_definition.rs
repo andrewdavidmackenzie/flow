@@ -452,11 +452,11 @@ mod test {
             name: "test_flow".into(),
             alias: "test_flow".into(),
             inputs: vec![
-                IO::new_named(vec!("String".into()), "string", "string"),
+                IO::new_named(vec!("string".into()), "string", "string"),
                 IO::new_named(vec!("Number".into()), "number", "number"),
             ],
             outputs: vec![
-                IO::new_named(vec!("String".into()), "string", "string"),
+                IO::new_named(vec!("string".into()), "string", "string"),
                 IO::new_named(vec!("Number".into()), "number", "number"),
             ],
             source_url: super::FlowDefinition::default_url(),
@@ -466,15 +466,15 @@ mod test {
         let process_1 = Process::FunctionProcess(FunctionDefinition {
             name: "process_1".into(),
             id: 0,
-            inputs: vec![IO::new(vec!("String".into()), "")],
-            outputs: vec![IO::new(vec!("String".into()), "")],
+            inputs: vec![IO::new(vec!("string".into()), "")],
+            outputs: vec![IO::new(vec!("string".into()), "")],
             ..Default::default()
         });
 
         let process_2 = Process::FunctionProcess(FunctionDefinition {
             name: "process_2".into(),
             id: 1,
-            inputs: vec![IO::new(vec!("String".into()), "")],
+            inputs: vec![IO::new(vec!("string".into()), "")],
             outputs: vec![IO::new(vec!("Number".into()), "")],
             ..Default::default()
         });

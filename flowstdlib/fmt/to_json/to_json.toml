@@ -4,7 +4,7 @@ docs = "to_json.md"
 type = "rust"
 
 [[input]]
-type = "String" # The String to convert
+type = "string" # The String to convert
 
 [[output]]
 type = "object" # The Json equivalent of String input

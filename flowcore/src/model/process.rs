@@ -265,7 +265,7 @@ function = 'stdout'
 source = 'stdout.rs'
 [[input]]
 name = 'stdout'
-type = 'String'";
+type = 'string'";
 
         assert!(toml_from_str(function_definition).is_ok());
     }
@@ -276,7 +276,7 @@ type = 'String'";
 source = 'stdout.rs'
 [[input]]
 name = 'stdout'
-type = 'String'";
+type = 'string'";
 
         assert!(toml_from_str(function_definition).is_err());
     }
@@ -287,7 +287,7 @@ type = 'String'";
 function = 'stdout'
 [[input]]
 name = 'stdout'
-type = 'String'";
+type = 'string'";
 
         assert!(toml_from_str(function_definition).is_err());
     }

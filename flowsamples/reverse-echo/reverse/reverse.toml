@@ -3,7 +3,7 @@ source = "reverse.rs"
 type = "rust"
 
 [[input]]
-type = "String"
+type = "string"
 
 [[output]]
-type = "String"
+type = "string"

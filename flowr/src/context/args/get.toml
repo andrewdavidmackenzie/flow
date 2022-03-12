@@ -5,7 +5,7 @@ impure = true
 
 [[output]]
 name = "string"
-type = "Array/String"
+type = "Array/string"
 
 [[output]]
 name = "json"

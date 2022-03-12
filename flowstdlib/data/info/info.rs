@@ -1,9 +1,10 @@
-use flowmacro::flow_function;
 use serde_json::{json, Value};
+
+use flowmacro::flow_function;
 
 fn type_string(value: &Value) -> String {
     match value {
-        Value::String(_) => "String".into(),
+        Value::String(_) => "string".into(),
         Value::Bool(_) => "Boolean".into(),
         Value::Number(_) => "Number".into(),
         Value::Array(array) => format!("Array/{}", type_string(&array[0])),
@@ -76,7 +77,7 @@ mod test {
         let (result, _) = _info(&[string]).expect("_info() failed");
         let output_map = result.expect("Could not get the Value from the output");
 
-        assert_eq!(output_map.pointer("/type").expect("Could not get the /type from the output"), &json!("String"));
+        assert_eq!(output_map.pointer("/type").expect("Could not get the /type from the output"), &json!("string"));
         assert_eq!(output_map.pointer("/rows").expect("Could not get the /row from the output"), &json!(1));
         assert_eq!(output_map.pointer("/columns").expect("Could not get the /columns from the output"), &json!(5));
     }

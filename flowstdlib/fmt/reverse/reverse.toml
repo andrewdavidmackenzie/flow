@@ -4,12 +4,12 @@ docs = "reverse.md"
 type = "rust"
 
 [[input]]
-type = "String" # The String to reverse
+type = "string" # The String to reverse
 
 [[output]]
 name = "reversed" # - The input string reversed
-type = "String"
+type = "string"
 
 [[output]]
 name = "original" # - The original input string
-type = "String"
+type = "string"
