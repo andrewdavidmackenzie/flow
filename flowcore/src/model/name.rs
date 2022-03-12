@@ -30,7 +30,7 @@ pub trait HasName {
 
 impl Validate for Name {
     fn validate(&self) -> Result<()> {
-        // Names cannot be numbers as they can be confused with array indexes for Array outputs
+        // Names cannot be numbers as they can be confused with array indexes for array outputs
         if self.parse::<usize>().is_ok() {
             bail!(
                 "Name '{}' cannot be a number, they are reserved for array indexes",

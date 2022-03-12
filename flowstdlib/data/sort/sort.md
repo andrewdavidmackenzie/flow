@@ -1,5 +1,5 @@
 ## Sort (//flowstdlib/data/sort)
-Sort an Array of Numbers
+Sort an array of numbers
 
 ### Definition
 ```toml

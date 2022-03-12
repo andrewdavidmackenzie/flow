@@ -12,12 +12,12 @@ name = "partial" # - A partial array, to use in the accumulation, adding next in
 type = "object"
 
 [[input]]
-name = "chunk_size" # - The size of the Array we want to create
+name = "chunk_size" # - The size of the array we want to create
 type = "number"
 
 [[output]]
-name = "chunk" # - The accumulated Array of inputs of size `limit` or more
-type = "Array/object"
+name = "chunk" # - The accumulated array of inputs of size `limit` or more
+type = "array/object"
 
 [[output]]
 name = "partial" # - The partially accumulated array, of size smaller than `chunk_size`

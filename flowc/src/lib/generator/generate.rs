@@ -511,7 +511,7 @@ mod test {
 
     #[test]
     fn function_with_array_input_generation() {
-        let io = IO::new(vec!("Array/string".into()), Route::default());
+        let io = IO::new(vec!("array/string".into()), Route::default());
 
         let function = FunctionDefinition::new(
             Name::from("Stdout"),
@@ -634,7 +634,7 @@ mod test {
             "context://stdio/stdout".to_string(),
             Name::from("print"),
             vec![],
-            vec![IO::new(vec!("Array".into()), Route::default())],
+            vec![IO::new(vec!("array".into()), Route::default())],
             Url::parse("file:///fake/file").expect("Could not parse Url"),
             Route::from("/flow0/stdout"),
             None,

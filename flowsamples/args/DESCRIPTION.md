@@ -16,7 +16,7 @@ Features Used
 * Context Flow
 * `context` Functions used (`stdio/stdout``)
 * Reduced syntax so that `alias` of referenced processes default to their names (`get` and `stdout`)
-* Selecting a specific indexed entry of an `Array` output
+* Selecting a specific indexed entry of an `array` output
 * Library Flows used (`args/get` from `flowstdlib`)
 * Connections between functions
 

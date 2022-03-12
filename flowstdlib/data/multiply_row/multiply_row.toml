@@ -5,11 +5,11 @@ type = "rust"
 
 [[input]]
 name = "a"
-type = "Array/number"
+type = "array/number"
 
 [[input]]
 name = "b"
-type = "Array/number"
+type = "array/number"
 
 [[output]]
 type = "number"

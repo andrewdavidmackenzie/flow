@@ -19,7 +19,7 @@ pub mod duplicate;
 /// A module that duplicates the rows in an array
 #[path = "duplicate_rows/duplicate_rows.rs"]
 pub mod duplicate_rows;
-/// A module that enumerates entries of an Array
+/// A module that enumerates entries of an array
 #[path = "enumerate/enumerate.rs"]
 pub mod enumerate;
 /// A module with a function to get info about a Value
@@ -28,7 +28,7 @@ pub mod info;
 /// A module that does matrix row multiplication
 #[path = "multiply_row/multiply_row.rs"]
 pub mod multiply_row;
-/// A module that splits a String into an Array of Strings
+/// A module that splits a String into an array of strings
 #[path = "ordered_split/ordered_split.rs"]
 pub mod ordered_split;
 /// A module that removes elements from an array
@@ -37,7 +37,7 @@ pub mod remove;
 /// A module with a function to sort values into an ordered array of numbers
 #[path = "sort/sort.rs"]
 pub mod sort;
-/// A module that splits a String into an Array of Strings
+/// A module that splits a String into an array of strings
 #[path = "split/split.rs"]
 pub mod split;
 /// A module with a function for transposing a Matrix

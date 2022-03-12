@@ -7,7 +7,7 @@ use shrinkwraprs::Shrinkwrap;
 
 use crate::errors::*;
 
-const DATA_TYPES: &[&str] = &["object", "string", "number", "bool", "Array", "Null"];
+const DATA_TYPES: &[&str] = &["object", "string", "number", "bool", "array", "Null"];
 
 /// Datatype is just a string defining what data type is being used
 #[derive(Shrinkwrap, Hash, Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
@@ -47,7 +47,7 @@ impl DataType {
 
     /// Return if this datatype is an array or not
     pub fn is_array(&self) -> bool {
-        self.starts_with("Array")
+        self.starts_with("array")
     }
 
     /// Return true if this datatype is generic (not specified at compile time and can contain
@@ -56,32 +56,32 @@ impl DataType {
         self == &DataType::from("object")
     }
 
-    /// Determine if this data type is an array of the other
+    /// Determine if this data type is an array of the `second` type
     pub fn array_of(&self, second: &Self) -> bool {
-        &DataType::from(format!("Array/{}", second).as_str()) == self
+        &DataType::from(format!("array/{}", second).as_str()) == self
     }
 
     /// Get the data type the array holds
     pub fn within_array(&self) -> Result<DataType> {
-        self.strip_prefix("Array/").map(DataType::from).ok_or_else(|| 
+        self.strip_prefix("array/").map(DataType::from).ok_or_else(||
             {
-                Error::from("DataType is now an Array of Types")
+                Error::from("DataType is not an array of Types")
             })
     }
 
     /// Take a json data value and return the type string for it, recursively
-    /// going down when the type is a container type (Array or Map(Object))
+    /// going down when the type is a container type (array or object)
     pub fn type_string(value: &Value) -> String {
         match value {
             Value::String(_) => "string".into(),
             Value::Bool(_) => "boolean".into(),
             Value::Number(_) => "number".into(),
-            Value::Array(array) => format!("Array/{}", Self::type_string(&array[0])),
+            Value::Array(array) => format!("array/{}", Self::type_string(&array[0])),
             Value::Object(map) => {
                 if let Some(map_entry) = map.values().next() {
-                    format!("Map/{}", Self::type_string(map_entry))
+                    format!("object/{}", Self::type_string(map_entry))
                 } else {
-                    "Map".to_owned()
+                    "object".to_owned()
                 }
             }
             Value::Null => "Null".into(),
@@ -126,7 +126,7 @@ mod test {
 
     #[test]
     fn is_array_true() {
-        let array_type = DataType::from("Array");
+        let array_type = DataType::from("array");
         assert!(array_type.is_array());
     }
 

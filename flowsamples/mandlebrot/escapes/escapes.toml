@@ -5,7 +5,7 @@ type = "rust"
 
 [[input]]
 name = "pixel_point"
-type = "Array/Array/number"
+type = "array/array/number"
 
 [[output]]
-type = "Array/Array/number" # [[x, y], [r, g, b]]
+type = "array/array/number" # [[x, y], [r, g, b]]

@@ -4,7 +4,7 @@ docs = "range.md"
 # The range to generate: [min, max] both are inclusive
 [[input]]
 name = "range"
-type = "Array/number"
+type = "array/number"
 
 # The series of numbers in the range generated
 [[output]]

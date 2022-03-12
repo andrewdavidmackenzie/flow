@@ -1,5 +1,6 @@
-use flowmacro::flow_function;
 use serde_json::Value;
+
+use flowmacro::flow_function;
 
 #[flow_function]
 fn _select(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
@@ -21,8 +22,9 @@ fn _select(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
 
 #[cfg(test)]
 mod test {
-    use flowcore::RUN_AGAIN;
     use serde_json::json;
+
+    use flowcore::RUN_AGAIN;
 
     use super::_select;
 
@@ -34,7 +36,7 @@ mod test {
 
         assert!(output.is_some());
         let value = output.expect("Could not get the Value from the output");
-        let map = value.as_object().expect("Could not get the Map json object from the output");
+        let map = value.as_object().expect("Could not get the object from the output");
         assert_eq!(
             map.get("select_i1").expect("No 'select_i1' value in map"),
             &json!("A")
@@ -53,7 +55,7 @@ mod test {
 
         assert!(output.is_some());
         let value = output.expect("Could not get the Value from the output");
-        let map = value.as_object().expect("Could not get the Map json object from the output");
+        let map = value.as_object().expect("Could not get the object from the output");
         assert_eq!(
             map.get("select_i1").expect("No 'select_i1' value in map"),
             &json!("B")

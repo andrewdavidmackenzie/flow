@@ -6,15 +6,15 @@ type = "string"
 
 [[input]]
 name = "size"
-type = "Array/number"
+type = "array/number"
 
 [[input]]
 name = "bounds"
-type = "Array/Array/number"
+type = "array/array/number"
 
 [[input]]
 name = "pixel"
-type = "Array/number" # Workaround
+type = "array/number" # Workaround
 
 # Convert a pixel coordinates ot a point in the imaginary space
 [[process]]

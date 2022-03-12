@@ -610,13 +610,13 @@ mod test {
 
     #[test]
     fn get_array_element_of_root_output() {
-        // Create a function where the output is an Array of String
+        // Create a function where the output is an array of String
         let function_str = "
         function = 'test_function'
         source = 'test.rs'
 
         [[output]]
-        type = 'Array/string'
+        type = 'array/string'
         ";
 
         // Setup

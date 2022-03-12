@@ -15,6 +15,6 @@ source = "context://stdio/stderr"
 ```
 
 ### Input
-* (default) - the object to output a String representation of (String, boolean, Number, Array)
+* (default) - the object to output a String representation of (string, boolean, number, array)
 
 #### Output
