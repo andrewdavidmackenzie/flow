@@ -71,7 +71,7 @@ install-flow:
 .PHONY: clippy
 clippy: install-flow
 	@echo "clippy<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
-	@cargo clippy --tests -- -D warnings || true
+	@cargo clippy --tests -- -D warnings
 
 .PHONY: build
 build: install-flow
