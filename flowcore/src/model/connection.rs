@@ -305,29 +305,29 @@ mod test {
 
         #[test]
         fn type_conversions() {
-            let valid_type_conversions: Vec<(String, String)> = vec![
-                (NUMBER_TYPE.into(), OBJECT_TYPE.into()),
-                (OBJECT_TYPE.into(), OBJECT_TYPE.into()),
-                (NUMBER_TYPE.into(), NUMBER_TYPE.into()),
-                (NUMBER_TYPE.into(), OBJECT_TYPE.into()),
-                (OBJECT_TYPE.into(), NUMBER_TYPE.into()), // Trust me!
-                (NUMBER_TYPE.into(), format!("{}/{}", ARRAY_TYPE, OBJECT_TYPE)),
-                (NUMBER_TYPE.into(), format!("{}/{}", ARRAY_TYPE, NUMBER_TYPE)),
-                (format!("{}/{}", ARRAY_TYPE, OBJECT_TYPE), OBJECT_TYPE.into()),
-                (format!("{}/{}", ARRAY_TYPE, NUMBER_TYPE), OBJECT_TYPE.into()),
-                (format!("{}/{}", ARRAY_TYPE, NUMBER_TYPE), NUMBER_TYPE.into()),
-                (format!("{}/{}", ARRAY_TYPE, NUMBER_TYPE), format!("{}/{}", ARRAY_TYPE, NUMBER_TYPE)),
-                (format!("{}/{}", ARRAY_TYPE, OBJECT_TYPE), format!("{}/{}", ARRAY_TYPE, NUMBER_TYPE)),
-                (format!("{}/{}", ARRAY_TYPE, OBJECT_TYPE), format!("{}/{}/{}", ARRAY_TYPE, ARRAY_TYPE, NUMBER_TYPE)),
-                (format!("{}/{}/{}", ARRAY_TYPE, ARRAY_TYPE, NUMBER_TYPE), OBJECT_TYPE.into()),
-                (format!("{}/{}/{}", ARRAY_TYPE, ARRAY_TYPE, NUMBER_TYPE), format!("{}/{}", ARRAY_TYPE, NUMBER_TYPE)),
+            let valid_type_conversions: Vec<(String, String, &str)> = vec![
+                (OBJECT_TYPE.into(), NUMBER_TYPE.into(), ""),
+                (OBJECT_TYPE.into(), OBJECT_TYPE.into(), ""),
+                (NUMBER_TYPE.into(), OBJECT_TYPE.into(), ""),
+                (NUMBER_TYPE.into(), NUMBER_TYPE.into(), ""), // equality
+                (NUMBER_TYPE.into(), OBJECT_TYPE.into(), ""),
+                (NUMBER_TYPE.into(), format!("{}/{}", ARRAY_TYPE, OBJECT_TYPE), ""),
+                (NUMBER_TYPE.into(), format!("{}/{}", ARRAY_TYPE, NUMBER_TYPE), ""),
+                (format!("{}/{}", ARRAY_TYPE, OBJECT_TYPE), OBJECT_TYPE.into(), ""),
+                (format!("{}/{}", ARRAY_TYPE, NUMBER_TYPE), OBJECT_TYPE.into(), ""),
+                (format!("{}/{}", ARRAY_TYPE, NUMBER_TYPE), NUMBER_TYPE.into(), ""),
+                (format!("{}/{}", ARRAY_TYPE, NUMBER_TYPE), format!("{}/{}", ARRAY_TYPE, NUMBER_TYPE), ""),
+                (format!("{}/{}", ARRAY_TYPE, OBJECT_TYPE), format!("{}/{}", ARRAY_TYPE, NUMBER_TYPE), ""),
+                (format!("{}/{}", ARRAY_TYPE, OBJECT_TYPE), format!("{}/{}/{}", ARRAY_TYPE, ARRAY_TYPE, NUMBER_TYPE), ""),
+                (format!("{}/{}/{}", ARRAY_TYPE, ARRAY_TYPE, NUMBER_TYPE), OBJECT_TYPE.into(), ""),
+                (format!("{}/{}/{}", ARRAY_TYPE, ARRAY_TYPE, NUMBER_TYPE), format!("{}/{}", ARRAY_TYPE, NUMBER_TYPE), ""),
             ];
 
             for test in valid_type_conversions.iter() {
                 assert!(Connection::compatible_types(
                     &[DataType::from(&test.0 as &str)],
                     &[DataType::from(&test.1 as &str)],
-                    &Route::default()
+                    &Route::from(test.2)
                 ));
             }
         }
