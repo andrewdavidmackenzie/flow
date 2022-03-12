@@ -443,7 +443,7 @@ mod test {
     #[test]
     fn deserialize_missing_name() {
         let function_str = "
-        type = 'Value'
+        type = 'object'
         ";
 
         let r_f: Result<FunctionDefinition> = toml_from_str(function_str);

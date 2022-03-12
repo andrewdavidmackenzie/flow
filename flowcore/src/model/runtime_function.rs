@@ -307,7 +307,7 @@ mod test {
                 .take_input_set()
                 .expect("Couldn't get input set")
                 .remove(0),
-            "Value from input set wasn't what was expected"
+            "The value from input set wasn't what was expected"
         );
     }
 
@@ -322,7 +322,7 @@ mod test {
                 .take_input_set()
                 .expect("Couldn't get input set")
                 .remove(0),
-            "Value from input set wasn't what was expected"
+            "The value from input set wasn't what was expected"
         );
     }
 
@@ -337,7 +337,7 @@ mod test {
                 .expect("Couldn't get input set")
                 .remove(0),
             json!([1, 2]),
-            "Value from input set wasn't what was expected"
+            "The value from input set wasn't what was expected"
         );
     }
 
