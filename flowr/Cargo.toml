@@ -18,9 +18,10 @@ name = "flowr"
 path = "src/main.rs"
 
 [features]
-default = ["debugger", "flowstdlib", "metrics"]
-debugger = ["flowcore/debugger", "rustyline"] # feature to add the debugger, requires flowcore crate to have feature enabled also
-metrics = []  # feature for tracking of metrics during execution
+default = ["debugger", "flowstdlib", "metrics", "checks"]
+debugger = ["flowrlib/debugger", "flowcore/debugger", "rustyline"] # feature to add the debugger, requires flowrlib and flowcore crate to have feature enabled also
+metrics = ["flowrlib/metrics"]  # feature for tracking of metrics during execution - requires flowrlib with metrics also
+checks = ["flowrlib/checks"] # enable checks in flowrlib dependency - they are not default
 
 [dependencies]
 flowcore = {path = "../flowcore", version = "0.43.0"}
