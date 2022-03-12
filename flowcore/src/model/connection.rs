@@ -4,7 +4,7 @@ use log::debug;
 use serde_derive::{Deserialize, Serialize};
 
 use crate::errors::*;
-use crate::model::datatype::DataType;
+use crate::model::datatype::{DataType, OBJECT_TYPE};
 use crate::model::io::IO;
 use crate::model::name::Name;
 use crate::model::route::HasRoute;
@@ -112,7 +112,7 @@ impl Connection {
             return Ok(());
         }
 
-        bail!("Cannot connect types: from {:#?} to\n{:#?}", from_io, to_io);
+        bail!("Cannot connect types: from {:#?} to\n{:#?}", from_io, to_io)
     }
 
     /// Return the `from` Route specified in this connection
@@ -190,7 +190,7 @@ impl Connection {
             return true;
         }
 
-        if to.array_of(&DataType::from("object")) {
+        if to.array_of(&DataType::from(OBJECT_TYPE)) {
             return true;
         }
 
@@ -199,17 +199,17 @@ impl Connection {
         }
 
         // Faith for now!
-        if from.is_generic() && !to.array_of(&DataType::from("object")) {
+        if from.is_generic() && !to.array_of(&DataType::from(OBJECT_TYPE)) {
             return true;
         }
 
         // Faith for now!
-        if from.array_of(&DataType::from("object")) && !to.is_array() {
+        if from.array_of(&DataType::from(OBJECT_TYPE)) && !to.is_array() {
             return true;
         }
 
-        // Faith that "object" elements can be converted to whatever the destination array is
-        if from.array_of(&DataType::from("object")) && to.is_array() {
+        // Faith that OBJECT_TYPE elements can be converted to whatever the destination array is
+        if from.array_of(&DataType::from(OBJECT_TYPE)) && to.is_array() {
             return true;
         }
 
@@ -284,7 +284,7 @@ mod test {
     }
 
     mod type_conversion {
-        use crate::model::datatype::DataType;
+        use crate::model::datatype::{ARRAY_TYPE, DataType, NUMBER_TYPE, OBJECT_TYPE, STRING_TYPE};
         use crate::model::io::IO;
         use crate::model::route::Route;
 
@@ -307,20 +307,20 @@ mod test {
         #[test]
         fn type_conversions() {
             let valid_type_conversions: Vec<(&str, &str)> = vec![
-                ("number", "object"),
-                ("object", "object"),
-                ("array/object", "object"),
-                ("number", "number"),
-                ("number", "object"),
-                ("array/number", "object"),
-                ("number", "array/number"),
-                ("array/number", "number"),
-                ("number", "array/object"),
+                (NUMBER_TYPE, OBJECT_TYPE),
+                (OBJECT_TYPE, OBJECT_TYPE),
+                ("array/object", OBJECT_TYPE),
+                (NUMBER_TYPE, NUMBER_TYPE),
+                (NUMBER_TYPE, OBJECT_TYPE),
+                ("array/number", OBJECT_TYPE),
+                (NUMBER_TYPE, "array/number"),
+                ("array/number", NUMBER_TYPE),
+                (NUMBER_TYPE, "array/object"),
                 ("array/number", "array/number"),
                 ("array/object", "array/array/number"),
                 ("array/array/number", "array/number"),
-                ("array/array/number", "object"),
-                ("object", "number"), // Trust me!
+                ("array/array/number", OBJECT_TYPE),
+                (OBJECT_TYPE, NUMBER_TYPE), // Trust me!
                 ("array/object", "array/number"),
             ];
 
@@ -334,8 +334,8 @@ mod test {
         }
         #[test]
         fn simple_to_simple() {
-            let from_io = IO::new(vec!("string".into()), "/p1/output");
-            let to_io = IO::new(vec!("string".into()), "/p2");
+            let from_io = IO::new(vec!(STRING_TYPE.into()), "/p1/output");
+            let to_io = IO::new(vec!(STRING_TYPE.into()), "/p2");
             assert!(Connection::compatible_types(
                 from_io.datatypes(),
                 to_io.datatypes(),
@@ -345,8 +345,8 @@ mod test {
 
         #[test]
         fn simple_indexed_to_simple() {
-            let from_io = IO::new(vec!("string".into()), "/p1/output/0");
-            let to_io = IO::new(vec!("string".into()), "/p2");
+            let from_io = IO::new(vec!(STRING_TYPE.into()), "/p1/output/0");
+            let to_io = IO::new(vec!(STRING_TYPE.into()), "/p2");
             assert!(Connection::compatible_types(
                 from_io.datatypes(),
                 to_io.datatypes(),
@@ -356,8 +356,8 @@ mod test {
 
         #[test]
         fn simple_to_simple_mismatch() {
-            let from_io = IO::new(vec!("string".into()), "/p1/output");
-            let to_io = IO::new(vec!("number".into()), "/p2");
+            let from_io = IO::new(vec!(STRING_TYPE.into()), "/p1/output");
+            let to_io = IO::new(vec!(NUMBER_TYPE.into()), "/p2");
             assert!(!Connection::compatible_types(
                 from_io.datatypes(),
                 to_io.datatypes(),
@@ -367,7 +367,7 @@ mod test {
 
         #[test]
         fn simple_indexed_to_array() {
-            let from_io = IO::new(vec!("string".into()), "/p1/output/0");
+            let from_io = IO::new(vec!(STRING_TYPE.into()), "/p1/output/0");
             let to_io = IO::new(vec!("array/string".into()), "/p2");
             assert!(Connection::compatible_types(
                 from_io.datatypes(),
@@ -378,7 +378,7 @@ mod test {
 
         #[test]
         fn simple_to_array() {
-            let from_io = IO::new(vec!("string".into()), "/p1/output");
+            let from_io = IO::new(vec!(STRING_TYPE.into()), "/p1/output");
             let to_io = IO::new(vec!("array/string".into()), "/p2");
             assert!(Connection::compatible_types(
                 from_io.datatypes(),
@@ -389,7 +389,7 @@ mod test {
 
         #[test]
         fn simple_to_array_mismatch() {
-            let from_io = IO::new(vec!("string".into()), "/p1/output");
+            let from_io = IO::new(vec!(STRING_TYPE.into()), "/p1/output");
             let to_io = IO::new(vec!("array/number".into()), "/p2");
             assert!(!Connection::compatible_types(
                 from_io.datatypes(),
@@ -400,8 +400,8 @@ mod test {
 
         #[test]
         fn array_to_array() {
-            let from_io = IO::new(vec!("array".into()), "/p1/output");
-            let to_io = IO::new(vec!("array".into()), "/p2");
+            let from_io = IO::new(vec!(ARRAY_TYPE.into()), "/p1/output");
+            let to_io = IO::new(vec!(ARRAY_TYPE.into()), "/p2");
             assert!(Connection::compatible_types(
                 from_io.datatypes(),
                 to_io.datatypes(),
@@ -412,7 +412,7 @@ mod test {
         #[test]
         fn array_to_simple() {
             let from_io = IO::new(vec!("array/string".into()), "/p1/output");
-            let to_io = IO::new(vec!("string".into()), "/p2");
+            let to_io = IO::new(vec!(STRING_TYPE.into()), "/p2");
             assert!(Connection::compatible_types(
                 from_io.datatypes(),
                 to_io.datatypes(),
@@ -422,8 +422,8 @@ mod test {
 
         #[test]
         fn multiple_output_type_to_single_input_type() {
-            let from_io = IO::new(vec!("string".into(), "number".into()), "/p1/output");
-            let to_io = IO::new(vec!("string".into()), "/p2");
+            let from_io = IO::new(vec!(STRING_TYPE.into(), NUMBER_TYPE.into()), "/p1/output");
+            let to_io = IO::new(vec!(STRING_TYPE.into()), "/p2");
             assert!(!Connection::compatible_types(
                 from_io.datatypes(),
                 to_io.datatypes(),
@@ -433,8 +433,8 @@ mod test {
 
         #[test]
         fn multiple_output_type_to_value_input_type() {
-            let from_io = IO::new(vec!("string".into(), "number".into()), "/p1/output");
-            let to_io = IO::new(vec!("object".into()), "/p2");
+            let from_io = IO::new(vec!(STRING_TYPE.into(), NUMBER_TYPE.into()), "/p1/output");
+            let to_io = IO::new(vec!(OBJECT_TYPE.into()), "/p2");
             assert!(Connection::compatible_types(
                 from_io.datatypes(),
                 to_io.datatypes(),
@@ -444,8 +444,8 @@ mod test {
 
         #[test]
         fn multiple_output_type_to_matching_input_types() {
-            let from_io = IO::new(vec!("string".into(), "number".into()), "/p1/output");
-            let to_io = IO::new(vec!("string".into(), "number".into()), "/p2");
+            let from_io = IO::new(vec!(STRING_TYPE.into(), NUMBER_TYPE.into()), "/p1/output");
+            let to_io = IO::new(vec!(STRING_TYPE.into(), NUMBER_TYPE.into()), "/p2");
             assert!(Connection::compatible_types(
                 from_io.datatypes(),
                 to_io.datatypes(),
@@ -455,8 +455,8 @@ mod test {
 
         #[test]
         fn single_output_type_to_superset_input_types() {
-            let from_io = IO::new(vec!("string".into()), "/p1/output");
-            let to_io = IO::new(vec!("string".into(), "number".into()), "/p2");
+            let from_io = IO::new(vec!(STRING_TYPE.into()), "/p1/output");
+            let to_io = IO::new(vec!(STRING_TYPE.into(), NUMBER_TYPE.into()), "/p2");
             assert!(Connection::compatible_types(
                 from_io.datatypes(),
                 to_io.datatypes(),
@@ -466,8 +466,8 @@ mod test {
 
         #[test]
         fn multiple_output_type_to_superset_input_types() {
-            let from_io = IO::new(vec!("string".into(), "number".into()), "/p1/output");
-            let to_io = IO::new(vec!("string".into(), "number".into(), "array".into()), "/p2");
+            let from_io = IO::new(vec!(STRING_TYPE.into(), NUMBER_TYPE.into()), "/p1/output");
+            let to_io = IO::new(vec!(STRING_TYPE.into(), NUMBER_TYPE.into(), ARRAY_TYPE.into()), "/p2");
             assert!(Connection::compatible_types(
                 from_io.datatypes(),
                 to_io.datatypes(),
@@ -477,8 +477,8 @@ mod test {
 
         #[test]
         fn multiple_output_type_to_non_matching_input_types() {
-            let from_io = IO::new(vec!("string".into(), "number".into()), "/p1/output");
-            let to_io = IO::new(vec!("string".into(), "array".into()), "/p2");
+            let from_io = IO::new(vec!(STRING_TYPE.into(), NUMBER_TYPE.into()), "/p1/output");
+            let to_io = IO::new(vec!(STRING_TYPE.into(), ARRAY_TYPE.into()), "/p2");
             assert!(!Connection::compatible_types(
                 from_io.datatypes(),
                 to_io.datatypes(),
@@ -488,8 +488,8 @@ mod test {
 
         #[test]
         fn single_output_type_to_non_matching_input_types() {
-            let from_io = IO::new(vec!("string".into()), "/p1/output");
-            let to_io = IO::new(vec!("array".into(), "number".into()), "/p2");
+            let from_io = IO::new(vec!(STRING_TYPE.into()), "/p1/output");
+            let to_io = IO::new(vec!(ARRAY_TYPE.into(), NUMBER_TYPE.into()), "/p2");
             assert!(!Connection::compatible_types(
                 from_io.datatypes(),
                 to_io.datatypes(),
@@ -499,8 +499,8 @@ mod test {
 
         #[test]
         fn multiple_output_type_to_value_input_types() {
-            let from_io = IO::new(vec!("string".into(), "number".into()), "/p1/output");
-            let to_io = IO::new(vec!("array".into(), "object".into()), "/p2");
+            let from_io = IO::new(vec!(STRING_TYPE.into(), NUMBER_TYPE.into()), "/p1/output");
+            let to_io = IO::new(vec!(ARRAY_TYPE.into(), OBJECT_TYPE.into()), "/p2");
             assert!(Connection::compatible_types(
                 from_io.datatypes(),
                 to_io.datatypes(),
@@ -510,8 +510,8 @@ mod test {
 
         #[test]
         fn single_output_type_to_value_input_types() {
-            let from_io = IO::new(vec!("string".into()), "/p1/output");
-            let to_io = IO::new(vec!("array".into(), "object".into()), "/p2");
+            let from_io = IO::new(vec!(STRING_TYPE.into()), "/p1/output");
+            let to_io = IO::new(vec!(ARRAY_TYPE.into(), OBJECT_TYPE.into()), "/p2");
             assert!(Connection::compatible_types(
                 from_io.datatypes(),
                 to_io.datatypes(),
@@ -522,7 +522,7 @@ mod test {
         #[test]
         fn null_output_type_to_valid_input_types() {
             let from_io = IO::new(vec!(), "/p1/output");
-            let to_io = IO::new(vec!("object".into()), "/p2");
+            let to_io = IO::new(vec!(OBJECT_TYPE.into()), "/p2");
             assert!(!Connection::compatible_types(
                 from_io.datatypes(),
                 to_io.datatypes(),
@@ -532,7 +532,7 @@ mod test {
 
         #[test]
         fn valid_output_type_to_null_input_types() {
-            let from_io = IO::new(vec!("object".into()), "/p1/output");
+            let from_io = IO::new(vec!(OBJECT_TYPE.into()), "/p1/output");
             let to_io = IO::new(vec!(), "/p2");
             assert!(!Connection::compatible_types(
                 from_io.datatypes(),

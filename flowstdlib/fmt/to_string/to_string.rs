@@ -1,5 +1,6 @@
-use flowmacro::flow_function;
 use serde_json::{json, Value};
+
+use flowmacro::flow_function;
 
 #[flow_function]
 fn _to_string(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
@@ -9,8 +10,11 @@ fn _to_string(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
 
 #[cfg(test)]
 mod test {
-    use serde_json::{json, Value};
     use std::collections::HashMap;
+
+    use serde_json::{json, Value};
+
+    use flowcore::model::datatype::NULL_TYPE;
 
     use super::_to_string;
 
@@ -28,7 +32,7 @@ mod test {
 
     #[test]
     fn test_null_input() {
-        test_to_string(serde_json::Value::Null, "null");
+        test_to_string(serde_json::Value::Null, NULL_TYPE);
     }
 
     #[test]

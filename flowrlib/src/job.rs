@@ -71,6 +71,7 @@ mod test {
 
     use serde_json::json;
 
+    use flowcore::model::datatype::ARRAY_TYPE;
     use flowcore::model::runtime_function::RuntimeFunction;
 
     #[test]
@@ -113,7 +114,7 @@ mod test {
     #[test]
     fn get_sub_array_from_output_value() {
         let mut map = HashMap::new();
-        map.insert("array", vec![1, 2, 3]);
+        map.insert(ARRAY_TYPE, vec![1, 2, 3]);
         let value = json!(map);
         let job = super::Job {
             job_id: 0,

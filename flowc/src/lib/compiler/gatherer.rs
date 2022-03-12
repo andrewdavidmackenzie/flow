@@ -53,6 +53,7 @@ pub fn index_functions(functions: &mut [FunctionDefinition]) {
 mod test {
     use url::Url;
 
+    use flowcore::model::datatype::STRING_TYPE;
     use flowcore::model::function_definition::FunctionDefinition;
     use flowcore::model::io::IO;
     use flowcore::model::name::Name;
@@ -72,7 +73,7 @@ mod test {
             "context://stdio/stdout".to_string(),
             Name::from("print"),
             vec![],
-            vec![IO::new(vec!("string".into()), Route::default())],
+            vec![IO::new(vec!(STRING_TYPE.into()), Route::default())],
             Url::parse("file:///fake/file").expect("Could not parse Url"),
             Route::from("/flow0/stdout"),
             None,

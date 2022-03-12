@@ -399,7 +399,7 @@ mod test {
 
     use crate::deserializers::deserializer::get_deserializer;
     use crate::errors::*;
-    use crate::model::datatype::DataType;
+    use crate::model::datatype::{DataType, NUMBER_TYPE, STRING_TYPE};
     use crate::model::io::Find;
     use crate::model::name::HasName;
     use crate::model::name::Name;
@@ -520,7 +520,7 @@ mod test {
         let output = &function.outputs[0];
         assert_eq!(*output.name(), Name::default());
         assert_eq!(output.datatypes().len(), 1);
-        assert_eq!(output.datatypes()[0], DataType::from("string"));
+        assert_eq!(output.datatypes()[0], DataType::from(STRING_TYPE));
     }
 
     #[test]
@@ -541,7 +541,7 @@ mod test {
         let output = &function.outputs[0];
         assert_eq!(*output.name(), Name::from("sub_output"));
         assert_eq!(output.datatypes().len(), 1);
-        assert_eq!(output.datatypes()[0], DataType::from("string"));
+        assert_eq!(output.datatypes()[0], DataType::from(STRING_TYPE));
     }
 
     #[test]
@@ -567,11 +567,11 @@ mod test {
         let output0 = &outputs[0];
         assert_eq!(*output0.name(), Name::from("sub_output"));
         assert_eq!(output0.datatypes().len(), 1);
-        assert_eq!(output0.datatypes()[0], DataType::from("string"));
+        assert_eq!(output0.datatypes()[0], DataType::from(STRING_TYPE));
         let output1 = &outputs[1];
         assert_eq!(*output1.name(), Name::from("other_output"));
         assert_eq!(output1.datatypes().len(), 1);
-        assert_eq!(output1.datatypes()[0], DataType::from("number"));
+        assert_eq!(output1.datatypes()[0], DataType::from(NUMBER_TYPE));
     }
 
     #[test]

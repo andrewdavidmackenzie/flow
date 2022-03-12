@@ -5,7 +5,7 @@ use error_chain::bail;
 use serde_derive::{Deserialize, Serialize};
 
 use crate::errors::*;
-use crate::model::datatype::DataType;
+use crate::model::datatype::{DataType, OBJECT_TYPE};
 use crate::model::datatype::HasDataTypes;
 use crate::model::input::InputInitializer;
 use crate::model::name::HasName;
@@ -171,7 +171,7 @@ impl HasRoute for IO {
 }
 
 fn default_types() -> Vec<DataType> {
-    vec!(DataType::from("object"))
+    vec!(DataType::from(OBJECT_TYPE))
 }
 
 fn default_io_type() -> IOType {
@@ -308,7 +308,7 @@ mod test {
 
     use crate::deserializers::deserializer::get_deserializer;
     use crate::errors::*;
-    use crate::model::datatype::DataType;
+    use crate::model::datatype::{DataType, OBJECT_TYPE, STRING_TYPE};
     use crate::model::io::{IOSet, IOType};
     use crate::model::name::HasName;
     use crate::model::name::Name;
@@ -329,7 +329,7 @@ mod test {
             Err(_) => panic!("TOML does not parse"),
         };
         assert!(output.validate().is_ok(), "IO does not validate()");
-        assert_eq!(output.datatypes[0], DataType::from("object"));
+        assert_eq!(output.datatypes[0], DataType::from(OBJECT_TYPE));
         assert_eq!(output.name, Name::default());
     }
 
@@ -401,7 +401,7 @@ mod test {
         };
         assert_eq!(Name::from("input"), *input.name());
         assert_eq!(1, input.datatypes().len());
-        assert_eq!(DataType::from("string"), input.datatypes()[0]);
+        assert_eq!(DataType::from(STRING_TYPE), input.datatypes()[0]);
     }
 
     #[test]
@@ -434,14 +434,14 @@ mod test {
     fn unique_io_names_validate() {
         let io0 = IO {
             name: Name::from("io_name"),
-            datatypes: vec!(DataType::from("string")),
+            datatypes: vec!(DataType::from(STRING_TYPE)),
             io_type: IOType::FunctionIO,
             initializer: None,
             ..Default::default()
         };
         let io1 = IO {
             name: Name::from("different_name"),
-            datatypes: vec!(DataType::from("string")),
+            datatypes: vec!(DataType::from(STRING_TYPE)),
             io_type: IOType::FunctionIO,
             initializer: None,
             ..Default::default()
@@ -454,7 +454,7 @@ mod test {
     fn non_unique_io_names_wont_validate() {
         let io0 = IO {
             name: Name::from("io_name"),
-            datatypes: vec!(DataType::from("string")),
+            datatypes: vec!(DataType::from(STRING_TYPE)),
             io_type: IOType::FunctionIO,
             initializer: None,
             ..Default::default()
@@ -468,13 +468,13 @@ mod test {
     fn multiple_inputs_empty_name_not_allowed() {
         let io0 = IO {
             name: Name::from("io_name"),
-            datatypes: vec!(DataType::from("string")),
+            datatypes: vec!(DataType::from(STRING_TYPE)),
             io_type: IOType::FunctionIO,
             initializer: None,
             ..Default::default()
         };
         let io1 = IO {
-            datatypes: vec!(DataType::from("string")),
+            datatypes: vec!(DataType::from(STRING_TYPE)),
             io_type: IOType::FunctionIO,
             initializer: None,
             ..Default::default()

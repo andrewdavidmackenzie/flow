@@ -436,6 +436,7 @@ mod test {
     use serde_json::json;
 
     use crate::model::connection::Connection;
+    use crate::model::datatype::{NUMBER_TYPE, STRING_TYPE};
     use crate::model::flow_definition::FlowDefinition;
     use crate::model::function_definition::FunctionDefinition;
     use crate::model::input::InputInitializer::Always;
@@ -452,12 +453,12 @@ mod test {
             name: "test_flow".into(),
             alias: "test_flow".into(),
             inputs: vec![
-                IO::new_named(vec!("string".into()), "string", "string"),
-                IO::new_named(vec!("number".into()), "number", "number"),
+                IO::new_named(vec!(STRING_TYPE.into()), "string", "string"),
+                IO::new_named(vec!(NUMBER_TYPE.into()), "number", "number"),
             ],
             outputs: vec![
-                IO::new_named(vec!("string".into()), "string", "string"),
-                IO::new_named(vec!("number".into()), "number", "number"),
+                IO::new_named(vec!(STRING_TYPE.into()), "string", "string"),
+                IO::new_named(vec!(NUMBER_TYPE.into()), "number", "number"),
             ],
             source_url: super::FlowDefinition::default_url(),
             ..Default::default()
@@ -466,16 +467,16 @@ mod test {
         let process_1 = Process::FunctionProcess(FunctionDefinition {
             name: "process_1".into(),
             id: 0,
-            inputs: vec![IO::new(vec!("string".into()), "")],
-            outputs: vec![IO::new(vec!("string".into()), "")],
+            inputs: vec![IO::new(vec!(STRING_TYPE.into()), "")],
+            outputs: vec![IO::new(vec!(STRING_TYPE.into()), "")],
             ..Default::default()
         });
 
         let process_2 = Process::FunctionProcess(FunctionDefinition {
             name: "process_2".into(),
             id: 1,
-            inputs: vec![IO::new(vec!("string".into()), "")],
-            outputs: vec![IO::new(vec!("number".into()), "")],
+            inputs: vec![IO::new(vec!(STRING_TYPE.into()), "")],
+            outputs: vec![IO::new(vec!(NUMBER_TYPE.into()), "")],
             ..Default::default()
         });
 
@@ -581,8 +582,8 @@ mod test {
     fn test_inputs_initializers() {
         let mut flow = test_flow();
         let mut initializers = HashMap::new();
-        initializers.insert("string".into(), Always(json!("Hello")));
-        initializers.insert("number".into(), Once(json!(42)));
+        initializers.insert(STRING_TYPE.into(), Always(json!("Hello")));
+        initializers.insert(NUMBER_TYPE.into(), Once(json!(42)));
         flow.set_initial_values(&initializers);
 
         assert_eq!(

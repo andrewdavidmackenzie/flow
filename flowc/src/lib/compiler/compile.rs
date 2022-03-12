@@ -44,6 +44,7 @@ mod test {
 
     use url::Url;
 
+    use flowcore::model::datatype::STRING_TYPE;
     use flowcore::model::flow_definition::FlowDefinition;
     use flowcore::model::function_definition::FunctionDefinition;
     use flowcore::model::io::IO;
@@ -54,8 +55,8 @@ mod test {
     use crate::compiler::compile::compile;
 
     /* Test an error is thrown if a flow has no side effects, and that unconnected functions
-               are removed by the optimizer
-            */
+                   are removed by the optimizer
+                */
     #[test]
     fn no_side_effects() {
         let function = FunctionDefinition::new(
@@ -63,7 +64,7 @@ mod test {
             false,
             "context://stdio/stdout.toml".to_owned(),
             Name::from("test-function"),
-            vec![IO::new(vec!("string".into()), "/print")],
+            vec![IO::new(vec!(STRING_TYPE.into()), "/print")],
             vec![],
             Url::parse("context://stdio/stdout.toml").expect("Could not parse Url"),
             Route::from("/print"),

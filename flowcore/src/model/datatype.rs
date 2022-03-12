@@ -7,7 +7,25 @@ use shrinkwraprs::Shrinkwrap;
 
 use crate::errors::*;
 
-const DATA_TYPES: &[&str] = &["object", "string", "number", "bool", "array", "null"];
+/// Json "object" data type
+pub const OBJECT_TYPE: &str = "object";
+
+/// Json "string" data type
+pub const STRING_TYPE: &str = "string";
+
+/// Json "number" data type
+pub const NUMBER_TYPE: &str = "number";
+
+/// Json "bool" data type
+pub const BOOL_TYPE: &str = "bool";
+
+/// Json "array" data type
+pub const ARRAY_TYPE: &str = "array";
+
+/// Json "null" data type
+pub const NULL_TYPE: &str = "null";
+
+const DATA_TYPES: &[&str] = &[OBJECT_TYPE, STRING_TYPE, NUMBER_TYPE, BOOL_TYPE, ARRAY_TYPE, NULL_TYPE];
 
 /// Datatype is just a string defining what data type is being used
 #[derive(Shrinkwrap, Hash, Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
@@ -47,23 +65,23 @@ impl DataType {
 
     /// Return if this datatype is an array or not
     pub fn is_array(&self) -> bool {
-        self.starts_with("array")
+        self.starts_with(ARRAY_TYPE)
     }
 
     /// Return true if this datatype is generic (not specified at compile time and can contain
     /// any other datatype) or not
     pub fn is_generic(&self) -> bool {
-        self == &DataType::from("object")
+        self == &DataType::from(OBJECT_TYPE)
     }
 
     /// Determine if this data type is an array of the `second` type
     pub fn array_of(&self, second: &Self) -> bool {
-        &DataType::from(format!("array/{}", second).as_str()) == self
+        &DataType::from(format!("{}/{}", ARRAY_TYPE, second).as_str()) == self
     }
 
     /// Get the data type the array holds
     pub fn within_array(&self) -> Result<DataType> {
-        self.strip_prefix("array/").map(DataType::from).ok_or_else(||
+        self.strip_prefix(&format!("{}/", ARRAY_TYPE)).map(DataType::from).ok_or_else(||
             {
                 Error::from("DataType is not an array of Types")
             })
@@ -73,18 +91,19 @@ impl DataType {
     /// going down when the type is a container type (array or object)
     pub fn type_string(value: &Value) -> String {
         match value {
-            Value::String(_) => "string".into(),
+            Value::String(_) => STRING_TYPE.into(),
             Value::Bool(_) => "boolean".into(),
-            Value::Number(_) => "number".into(),
-            Value::Array(array) => format!("array/{}", Self::type_string(&array[0])),
+            Value::Number(_) => NUMBER_TYPE.into(),
+            Value::Array(array) => format!("{}/{}",
+                                           ARRAY_TYPE, Self::type_string(&array[0])),
             Value::Object(map) => {
                 if let Some(map_entry) = map.values().next() {
-                    format!("object/{}", Self::type_string(map_entry))
+                    format!("{}/{}", OBJECT_TYPE, Self::type_string(map_entry))
                 } else {
-                    "object".to_owned()
+                    OBJECT_TYPE.to_owned()
                 }
             }
-            Value::Null => "null".into(),
+            Value::Null => NULL_TYPE.into(),
         }
     }
 
@@ -102,11 +121,13 @@ impl DataType {
 
 #[cfg(test)]
 mod test {
+    use crate::model::datatype::{ARRAY_TYPE, OBJECT_TYPE, STRING_TYPE};
+
     use super::DataType;
 
     #[test]
     fn valid_data_string_type() {
-        let string_type = DataType::from("string");
+        let string_type = DataType::from(STRING_TYPE);
         string_type
             .valid()
             .expect("'string' DataType should be valid");
@@ -114,7 +135,7 @@ mod test {
 
     #[test]
     fn valid_data_json_type() {
-        let json_type = DataType::from("object");
+        let json_type = DataType::from(OBJECT_TYPE);
         json_type.valid().expect("'object' DataType should be valid");
     }
 
@@ -126,13 +147,13 @@ mod test {
 
     #[test]
     fn is_array_true() {
-        let array_type = DataType::from("array");
+        let array_type = DataType::from(ARRAY_TYPE);
         assert!(array_type.is_array());
     }
 
     #[test]
     fn is_array_false() {
-        let string_type = DataType::from("string");
+        let string_type = DataType::from(STRING_TYPE);
         assert!(!string_type.is_array());
     }
 }
