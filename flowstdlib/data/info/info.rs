@@ -5,7 +5,7 @@ use flowmacro::flow_function;
 fn type_string(value: &Value) -> String {
     match value {
         Value::String(_) => "string".into(),
-        Value::Bool(_) => "Boolean".into(),
+        Value::Bool(_) => "boolean".into(),
         Value::Number(_) => "number".into(),
         Value::Array(array) => format!("Array/{}", type_string(&array[0])),
         Value::Object(map) => {
@@ -66,7 +66,7 @@ mod test {
         let (result, _) = _info(&inputs).expect("_info() failed");
         let output_map = result.expect("Could not get the Value from the output");
 
-        assert_eq!(output_map.pointer("/type").expect("Could not get the /type from the output"), &json!("Boolean"));
+        assert_eq!(output_map.pointer("/type").expect("Could not get the /type from the output"), &json!("boolean"));
         assert_eq!(output_map.pointer("/rows").expect("Could not get the /row from the output"), &json!(1));
         assert_eq!(output_map.pointer("/columns").expect("Could not get the /columns from the output"), &json!(1));
     }

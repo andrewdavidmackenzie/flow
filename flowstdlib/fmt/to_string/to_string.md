@@ -2,12 +2,12 @@
 Convert an input type to a String
 
 Current types supported are:
- * Null - A null will be printed as "Null"
- * Bool - Boolean JSON value
- * Number - A JSON Number
- * String - a bit redundant, but it works
- * Array - An JSON array of values that can be converted, they are converted one by one
- * Object - a Map of names/objects that will also be printed out
+ * null - A null will be printed as "Null"
+ * boolean - boolean JSON value
+ * number - A JSON Number
+ * string - a bit redundant, but it works
+ * array - An JSON array of values that can be converted, they are converted one by one
+ * object - a Map of names/objects that will also be printed out
  
 ### Definition
 ```toml

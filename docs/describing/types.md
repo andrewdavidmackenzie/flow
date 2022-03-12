@@ -1,8 +1,8 @@
 ## Types
 By default flow supports JSON types:
-* `Boolean`
-* `Number`
-* `String`
-* `Map`
-* `Array`
-* `Json`
+* `null`
+* `boolean`
+* `object`
+* `array`
+* `number`
+* `string`
