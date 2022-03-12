@@ -16,8 +16,8 @@ pub const STRING_TYPE: &str = "string";
 /// Json "number" data type
 pub const NUMBER_TYPE: &str = "number";
 
-/// Json "bool" data type
-pub const BOOL_TYPE: &str = "bool";
+/// Json "boolean" data type
+pub const BOOLEAN_TYPE: &str = "boolean";
 
 /// Json "array" data type
 pub const ARRAY_TYPE: &str = "array";
@@ -25,7 +25,7 @@ pub const ARRAY_TYPE: &str = "array";
 /// Json "null" data type
 pub const NULL_TYPE: &str = "null";
 
-const DATA_TYPES: &[&str] = &[OBJECT_TYPE, STRING_TYPE, NUMBER_TYPE, BOOL_TYPE, ARRAY_TYPE, NULL_TYPE];
+const DATA_TYPES: &[&str] = &[OBJECT_TYPE, STRING_TYPE, NUMBER_TYPE, BOOLEAN_TYPE, ARRAY_TYPE, NULL_TYPE];
 
 /// Datatype is just a string defining what data type is being used
 #[derive(Shrinkwrap, Hash, Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
@@ -92,7 +92,7 @@ impl DataType {
     pub fn type_string(value: &Value) -> String {
         match value {
             Value::String(_) => STRING_TYPE.into(),
-            Value::Bool(_) => "boolean".into(),
+            Value::Bool(_) => BOOLEAN_TYPE.into(),
             Value::Number(_) => NUMBER_TYPE.into(),
             Value::Array(array) => format!("{}/{}",
                                            ARRAY_TYPE, Self::type_string(&array[0])),

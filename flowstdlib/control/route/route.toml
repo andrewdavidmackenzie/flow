@@ -9,7 +9,7 @@ type = "object"
 
 [[input]]
 name = "control" # - a boolean value to determine which output roue `data` is passed to
-type = "bool"
+type = "boolean"
 
 [[output]]
 name = "true" # `if `control` is true `data` is routed here

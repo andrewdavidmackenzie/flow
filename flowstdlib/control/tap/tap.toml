@@ -9,7 +9,7 @@ type = "object"
 
 [[input]]
 name = "control" # - a boolean value to determine in `data` is passed on or not
-type = "bool"
+type = "boolean"
 
 [[output]]
 type = "object" # `data` is output if `control` is true, nothing if `control` is false

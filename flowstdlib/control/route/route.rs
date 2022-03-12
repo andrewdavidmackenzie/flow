@@ -5,7 +5,7 @@ use flowmacro::flow_function;
 #[flow_function]
 fn _route(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
     let data = &inputs[0];
-    let control = inputs[1].as_bool().ok_or("Could not get bool")?;
+    let control = inputs[1].as_bool().ok_or("Could not get boolean")?;
 
     let mut output_map = serde_json::Map::new();
     output_map.insert(control.to_string(), data.clone());

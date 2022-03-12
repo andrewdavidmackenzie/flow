@@ -1,12 +1,12 @@
 use serde_json::{json, Value};
 
-use flowcore::model::datatype::{ARRAY_TYPE, BOOL_TYPE, NULL_TYPE, NUMBER_TYPE, OBJECT_TYPE, STRING_TYPE};
+use flowcore::model::datatype::{ARRAY_TYPE, BOOLEAN_TYPE, NULL_TYPE, NUMBER_TYPE, OBJECT_TYPE, STRING_TYPE};
 use flowmacro::flow_function;
 
 fn type_string(value: &Value) -> String {
     match value {
         Value::String(_) => STRING_TYPE.into(),
-        Value::Bool(_) => BOOL_TYPE.into(),
+        Value::Bool(_) => BOOLEAN_TYPE.into(),
         Value::Number(_) => NUMBER_TYPE.into(),
         Value::Array(array) => format!("{}/{}", ARRAY_TYPE, type_string(&array[0])),
         Value::Object(map) => {
@@ -50,7 +50,7 @@ mod test {
 
     use flowcore::model::datatype::{NUMBER_TYPE, OBJECT_TYPE};
     use flowcore::model::datatype::ARRAY_TYPE;
-    use flowcore::model::datatype::BOOL_TYPE;
+    use flowcore::model::datatype::BOOLEAN_TYPE;
     use flowcore::model::datatype::NULL_TYPE;
     use flowcore::model::datatype::STRING_TYPE;
 
@@ -73,7 +73,7 @@ mod test {
         let (result, _) = _info(&inputs).expect("_info() failed");
         let output_map = result.expect("Could not get the Value from the output");
 
-        assert_eq!(output_map.pointer("/type").expect("Could not get the /type from the output"), &json!(BOOL_TYPE));
+        assert_eq!(output_map.pointer("/type").expect("Could not get the /type from the output"), &json!(BOOLEAN_TYPE));
         assert_eq!(output_map.pointer("/rows").expect("Could not get the /row from the output"), &json!(1));
         assert_eq!(output_map.pointer("/columns").expect("Could not get the /columns from the output"), &json!(1));
     }
