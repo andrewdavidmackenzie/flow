@@ -37,6 +37,12 @@ impl From<&str> for DataType {
     }
 }
 
+impl From<String> for DataType {
+    fn from(s: String) -> Self {
+        DataType(s)
+    }
+}
+
 impl fmt::Display for DataType {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.0)

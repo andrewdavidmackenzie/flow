@@ -153,7 +153,7 @@ impl Connection {
     /// For a set of output types to be compatible with a destination's set of types
     /// ALL of the output_types must have a compatible input type, to guarantee that any
     /// of the valid types produced can be handled by the destination
-    fn compatible_types(from: &[DataType], to: &[DataType], _from_route: &Route) -> bool {
+    fn compatible_types(from: &[DataType], to: &[DataType], from_route: &Route) -> bool {
         if from.is_empty() || to.is_empty() {
             return false;
         }
@@ -161,7 +161,7 @@ impl Connection {
         for output_type in from {
             let mut compatible_destination_type = false;
             for input_type in to {
-                if Self::two_compatible_types(output_type, input_type) {
+                if Self::two_compatible_types(output_type, input_type, from_route) {
                     compatible_destination_type = true;
                 }
             }
@@ -177,7 +177,7 @@ impl Connection {
     /// compatible, what type of conversion maybe required and if a Connection can be formed
     /// TODO calculate the real from type based on the subroute of the output used by
     /// the connection from_route
-    fn two_compatible_types(from: &DataType, to: &DataType) -> bool {
+    fn two_compatible_types(from: &DataType, to: &DataType, _from_route: &Route) -> bool {
         if from == to {
             return true;
         }
@@ -290,44 +290,43 @@ mod test {
 
         use super::super::Connection;
 
-        /// # Compatible Types in a Connection
+        /// # Array serialization and object to array wrapping
         ///
-        /// ## Simple Object Value being sent
-        ///   Value Type        Input Type
-        /// * Simple Object --> Simple Object (is_array = false)
-        /// input and sent to the function as an array
-        /// * Simple Object --> array (is_array = true)
+        /// ## object being sent
+        ///   Value Type   Input Type
+        /// * object   --> object (is_array = false) - input and sent to the function as an array
+        /// * object   --> array (is_array = true)   - object will be converted to a one element array
         ///
-        /// ## array Object being sent
+        /// ## array of object being sent
         ///   Value Type        Input Type
-        /// * array Object  --> Array (is_array = true)
-        /// * Array Object  --> Simple Object (is_array = false) (values in Array will be
-        /// serialized and sent to input one by one)
+        /// * array/object  --> array (is_array = true)
+        /// * array/object  --> object (is_array = false) - values in Array will be serialized
+        ///                     and sent to input one by one)
 
         #[test]
         fn type_conversions() {
-            let valid_type_conversions: Vec<(&str, &str)> = vec![
-                (NUMBER_TYPE, OBJECT_TYPE),
-                (OBJECT_TYPE, OBJECT_TYPE),
-                ("array/object", OBJECT_TYPE),
-                (NUMBER_TYPE, NUMBER_TYPE),
-                (NUMBER_TYPE, OBJECT_TYPE),
-                ("array/number", OBJECT_TYPE),
-                (NUMBER_TYPE, "array/number"),
-                ("array/number", NUMBER_TYPE),
-                (NUMBER_TYPE, "array/object"),
-                ("array/number", "array/number"),
-                ("array/object", "array/array/number"),
-                ("array/array/number", "array/number"),
-                ("array/array/number", OBJECT_TYPE),
-                (OBJECT_TYPE, NUMBER_TYPE), // Trust me!
-                ("array/object", "array/number"),
+            let valid_type_conversions: Vec<(String, String)> = vec![
+                (NUMBER_TYPE.into(), OBJECT_TYPE.into()),
+                (OBJECT_TYPE.into(), OBJECT_TYPE.into()),
+                (NUMBER_TYPE.into(), NUMBER_TYPE.into()),
+                (NUMBER_TYPE.into(), OBJECT_TYPE.into()),
+                (OBJECT_TYPE.into(), NUMBER_TYPE.into()), // Trust me!
+                (NUMBER_TYPE.into(), format!("{}/{}", ARRAY_TYPE, OBJECT_TYPE)),
+                (NUMBER_TYPE.into(), format!("{}/{}", ARRAY_TYPE, NUMBER_TYPE)),
+                (format!("{}/{}", ARRAY_TYPE, OBJECT_TYPE), OBJECT_TYPE.into()),
+                (format!("{}/{}", ARRAY_TYPE, NUMBER_TYPE), OBJECT_TYPE.into()),
+                (format!("{}/{}", ARRAY_TYPE, NUMBER_TYPE), NUMBER_TYPE.into()),
+                (format!("{}/{}", ARRAY_TYPE, NUMBER_TYPE), format!("{}/{}", ARRAY_TYPE, NUMBER_TYPE)),
+                (format!("{}/{}", ARRAY_TYPE, OBJECT_TYPE), format!("{}/{}", ARRAY_TYPE, NUMBER_TYPE)),
+                (format!("{}/{}", ARRAY_TYPE, OBJECT_TYPE), format!("{}/{}/{}", ARRAY_TYPE, ARRAY_TYPE, NUMBER_TYPE)),
+                (format!("{}/{}/{}", ARRAY_TYPE, ARRAY_TYPE, NUMBER_TYPE), OBJECT_TYPE.into()),
+                (format!("{}/{}/{}", ARRAY_TYPE, ARRAY_TYPE, NUMBER_TYPE), format!("{}/{}", ARRAY_TYPE, NUMBER_TYPE)),
             ];
 
             for test in valid_type_conversions.iter() {
                 assert!(Connection::compatible_types(
-                    &[DataType::from(test.0)],
-                    &[DataType::from(test.1)],
+                    &[DataType::from(&test.0 as &str)],
+                    &[DataType::from(&test.1 as &str)],
                     &Route::default()
                 ));
             }
