@@ -729,7 +729,7 @@ In order for flow to find the function at compile time it uses the
 environment variable <code>FLOW_LIB_PATH</code>, that is a <code>PATH</code> style variable with zero or
 more directory entries or URLs separated by the <code>&quot;,&quot;</code> character</p>
 <ul>
-<li>e.g. <code>source = &quot;lib://context/stdio/stdin&quot;</code>
+<li>e.g. <code>source = &quot;context://stdio/stdin&quot;</code>
 <ul>
 <li>Library name = <code>flowrlib</code></li>
 <li>Function path within the library = <code>stdio/stdin</code></li>
@@ -747,7 +747,7 @@ find the process definition file.</p>
 <p>And my flow references a process thus:</p>
 <pre><code class="language-toml">[[process]]
 alias = &quot;stdin&quot;
-source = &quot;lib://context/stdio/stdin&quot;
+source = &quot;context://stdio/stdin&quot;
 </code></pre>
 <p>Then the directory <code>/Users/me/workspace/flow/flowrlib</code> is looked for.</p>
 <p>If that directory and hence the library is found, then the Function path within the library
@@ -768,7 +768,7 @@ sent from a process.</li>
 <p>Eamples:</p>
 <pre><code class="language-toml">[[process]]
 alias = &quot;print&quot;
-source = &quot;lib://context/stdio/stdout&quot;
+source = &quot;context://stdio/stdout&quot;
 input.default = {once = &quot;Hello World!&quot;}
 </code></pre>
 <pre><code class="language-toml">[[process]]
@@ -1091,7 +1091,7 @@ type = &quot;Array/Value&quot;
 <h3 id="include-using"><a class="header" href="#include-using">Include using</a></h3>
 <pre><code class="language-toml">[[process]]
 alias = &quot;get&quot;
-source = &quot;lib://context/args/get&quot;
+source = &quot;context://args/get&quot;
 </code></pre>
 <h3 id="inputs"><a class="header" href="#inputs">Inputs</a></h3>
 <h3 id="output"><a class="header" href="#output">Output</a></h3>
@@ -1123,7 +1123,7 @@ type = &quot;Array&quot;
 <h3 id="include-using-1"><a class="header" href="#include-using-1">Include using</a></h3>
 <pre><code class="language-toml">[[process]]
 alias = &quot;write&quot;
-source = &quot;lib://context/file/write&quot;
+source = &quot;context://file/write&quot;
 </code></pre>
 <h3 id="inputs-1"><a class="header" href="#inputs-1">Inputs</a></h3>
 <ul>
@@ -1164,7 +1164,7 @@ type = &quot;String&quot;
 <h3 id="include-using-2"><a class="header" href="#include-using-2">Include using</a></h3>
 <pre><code class="language-toml">[[process]]
 alias = &quot;buffer&quot;
-source = &quot;lib://context/file/image_buffer&quot;
+source = &quot;context://file/image_buffer&quot;
 </code></pre>
 <h3 id="inputs-2"><a class="header" href="#inputs-2">Inputs</a></h3>
 <ul>
@@ -1206,7 +1206,7 @@ type = &quot;Value&quot;
 <h3 id="include-using-3"><a class="header" href="#include-using-3">Include using</a></h3>
 <pre><code class="language-toml">[[process]]
 alias = &quot;readline&quot;
-source = &quot;lib://context/stdio/readline&quot;
+source = &quot;context://stdio/readline&quot;
 </code></pre>
 <h3 id="inputs-3"><a class="header" href="#inputs-3">Inputs</a></h3>
 <h4 id="output-1"><a class="header" href="#output-1">Output</a></h4>
@@ -1234,7 +1234,7 @@ type = &quot;Value&quot;
 <h3 id="include-using-4"><a class="header" href="#include-using-4">Include using</a></h3>
 <pre><code class="language-toml">[[process]]
 alias = &quot;stdin&quot;
-source = &quot;lib://context/stdio/stdin&quot;
+source = &quot;context://stdio/stdin&quot;
 </code></pre>
 <h3 id="inputs-4"><a class="header" href="#inputs-4">Inputs</a></h3>
 <h3 id="output-2"><a class="header" href="#output-2">Output</a></h3>
@@ -1257,7 +1257,7 @@ type = &quot;Value&quot;
 <h3 id="include-using-5"><a class="header" href="#include-using-5">Include using</a></h3>
 <pre><code class="language-toml">[[process]]
 alias = &quot;stdout&quot;
-source = &quot;lib://context/stdio/stdout&quot;
+source = &quot;context://stdio/stdout&quot;
 </code></pre>
 <h3 id="input"><a class="header" href="#input">Input</a></h3>
 <ul>
@@ -1279,7 +1279,7 @@ type = &quot;Value&quot;
 <h3 id="include-using-6"><a class="header" href="#include-using-6">Include using</a></h3>
 <pre><code class="language-toml">[[process]]
 alias = &quot;stderr&quot;
-source = &quot;lib://context/stdio/stderr&quot;
+source = &quot;context://stdio/stderr&quot;
 </code></pre>
 <h3 id="input-1"><a class="header" href="#input-1">Input</a></h3>
 <ul>

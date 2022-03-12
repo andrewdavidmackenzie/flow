@@ -201,7 +201,7 @@ In order for flow to find the function at compile time it uses the
 environment variable <code>FLOW_LIB_PATH</code>, that is a <code>PATH</code> style variable with zero or
 more directory entries or URLs separated by the <code>&quot;,&quot;</code> character</p>
 <ul>
-<li>e.g. <code>source = &quot;lib://context/stdio/stdin&quot;</code>
+<li>e.g. <code>source = &quot;context://stdio/stdin&quot;</code>
 <ul>
 <li>Library name = <code>flowrlib</code></li>
 <li>Function path within the library = <code>stdio/stdin</code></li>
@@ -219,7 +219,7 @@ find the process definition file.</p>
 <p>And my flow references a process thus:</p>
 <pre><code class="language-toml">[[process]]
 alias = &quot;stdin&quot;
-source = &quot;lib://context/stdio/stdin&quot;
+source = &quot;context://stdio/stdin&quot;
 </code></pre>
 <p>Then the directory <code>/Users/me/workspace/flow/flowrlib</code> is looked for.</p>
 <p>If that directory and hence the library is found, then the Function path within the library
@@ -240,7 +240,7 @@ sent from a process.</li>
 <p>Eamples:</p>
 <pre><code class="language-toml">[[process]]
 alias = &quot;print&quot;
-source = &quot;lib://context/stdio/stdout&quot;
+source = &quot;context://stdio/stdout&quot;
 input.default = {once = &quot;Hello World!&quot;}
 </code></pre>
 <pre><code class="language-toml">[[process]]
