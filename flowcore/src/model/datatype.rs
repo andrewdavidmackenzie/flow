@@ -7,7 +7,7 @@ use shrinkwraprs::Shrinkwrap;
 
 use crate::errors::*;
 
-const DATA_TYPES: &[&str] = &["object", "string", "number", "bool", "array", "Null"];
+const DATA_TYPES: &[&str] = &["object", "string", "number", "bool", "array", "null"];
 
 /// Datatype is just a string defining what data type is being used
 #[derive(Shrinkwrap, Hash, Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
@@ -84,7 +84,7 @@ impl DataType {
                     "object".to_owned()
                 }
             }
-            Value::Null => "Null".into(),
+            Value::Null => "null".into(),
         }
     }
 

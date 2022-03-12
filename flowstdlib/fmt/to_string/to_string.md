@@ -2,7 +2,7 @@
 Convert an input type to a String
 
 Current types supported are:
- * null - A null will be printed as "Null"
+ * null - A null will be printed as "null"
  * boolean - boolean JSON value
  * number - A JSON Number
  * string - a bit redundant, but it works

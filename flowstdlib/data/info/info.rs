@@ -15,7 +15,7 @@ fn type_string(value: &Value) -> String {
                 "object/Unknown".into()
             }
         }
-        Value::Null => "Null".into(),
+        Value::Null => "null".into(),
     }
 }
 
@@ -88,7 +88,7 @@ mod test {
         let (result, _) = _info(&inputs).expect("_info() failed");
         let output_map = result.expect("Could not get the Value from the output");
 
-        assert_eq!(output_map.pointer("/type").expect("Could not get the /type from the output"), &json!("Null"));
+        assert_eq!(output_map.pointer("/type").expect("Could not get the /type from the output"), &json!("null"));
         assert_eq!(output_map.pointer("/rows").expect("Could not get the /rows from the output"), &json!(0));
         assert_eq!(output_map.pointer("/columns").expect("Could not get the /column from the output"), &json!(0));
     }
