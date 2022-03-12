@@ -5,11 +5,11 @@ type = "rust"
 
 [[input]]
 name = "value" # - the value to duplicate
-type = "Value"
+type = "object"
 
 [[input]]
 name = "factor" # - how many times to duplicate the value in the output
 type = "Number"
 
 [[output]]
-type = "Array/Value" # - the array of duplicate values
+type = "Array/object" # - the array of duplicate values

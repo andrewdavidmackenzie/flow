@@ -5,9 +5,9 @@ use error_chain::bail;
 use serde_derive::{Deserialize, Serialize};
 
 use crate::errors::*;
-use crate::model::input::InputInitializer;
 use crate::model::datatype::DataType;
 use crate::model::datatype::HasDataTypes;
+use crate::model::input::InputInitializer;
 use crate::model::name::HasName;
 use crate::model::name::Name;
 use crate::model::route::HasRoute;
@@ -171,7 +171,7 @@ impl HasRoute for IO {
 }
 
 fn default_types() -> Vec<DataType> {
-    vec!(DataType::from("Value"))
+    vec!(DataType::from("object"))
 }
 
 fn default_io_type() -> IOType {
@@ -329,7 +329,7 @@ mod test {
             Err(_) => panic!("TOML does not parse"),
         };
         assert!(output.validate().is_ok(), "IO does not validate()");
-        assert_eq!(output.datatypes[0], DataType::from("Value"));
+        assert_eq!(output.datatypes[0], DataType::from("object"));
         assert_eq!(output.name, Name::default());
     }
 
@@ -408,7 +408,7 @@ mod test {
     fn deserialize_valid_json_type() {
         let input_str = "
         name = 'input'
-        type = 'Value'
+        type = 'object'
         ";
 
         let input: IO = match toml_from_str(input_str) {
@@ -423,7 +423,7 @@ mod test {
         let input_str = "
         name = 'input'
         foo = 'extra token'
-        type = 'Value'
+        type = 'object'
         ";
 
         let input: Result<IO> = toml_from_str(input_str);

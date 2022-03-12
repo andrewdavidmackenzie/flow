@@ -234,7 +234,7 @@ mod test {
             Name::from("print"),
             vec![],
             vec![
-                IO::new(vec!("Value".into()), Route::default()),
+                IO::new(vec!("object".into()), Route::default()),
                 IO::new(vec!("String".into()), Route::default()),
             ],
             Url::parse("file:///fake/file").expect("Could not parse Url"),

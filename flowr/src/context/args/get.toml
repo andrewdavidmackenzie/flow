@@ -9,4 +9,4 @@ type = "Array/String"
 
 [[output]]
 name = "json"
-type = "Array/Value"
+type = "Array/object"

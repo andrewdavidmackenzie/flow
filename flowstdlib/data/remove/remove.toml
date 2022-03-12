@@ -8,7 +8,7 @@ name = "value" # - The value to remove from the array
 
 [[input]]
 name = "array" # - An array, to remove `value` from
-type = "Array/Value"
+type = "Array/object"
 
 [[output]]
-type = "Array/Value" # - The resulting array
+type = "Array/object" # - The resulting array

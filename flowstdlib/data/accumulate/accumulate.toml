@@ -5,11 +5,11 @@ type = "rust"
 
 [[input]]
 name = "values" # - The stream of input values to accumulate into an array
-type = "Value"
+type = "object"
 
 [[input]]
 name = "partial" # - A partial array, to use in the accumulation, adding next input `value` to it
-type = "Value"
+type = "object"
 
 [[input]]
 name = "chunk_size" # - The size of the Array we want to create
@@ -17,11 +17,11 @@ type = "Number"
 
 [[output]]
 name = "chunk" # - The accumulated Array of inputs of size `limit` or more
-type = "Array/Value"
+type = "Array/object"
 
 [[output]]
 name = "partial" # - The partially accumulated array, of size smaller than `chunk_size`
-type = "Value"
+type = "object"
 
 [[output]]
 name = "chunk_size" # - The chunk-size, output for use downstream or in loop-back

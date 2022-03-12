@@ -7,7 +7,7 @@ use shrinkwraprs::Shrinkwrap;
 
 use crate::errors::*;
 
-const DATA_TYPES: &[&str] = &["Value", "String", "Number", "Bool", "Map", "Array", "Null"];
+const DATA_TYPES: &[&str] = &["object", "String", "Number", "Bool", "Map", "Array", "Null"];
 
 /// Datatype is just a string defining what data type is being used
 #[derive(Shrinkwrap, Hash, Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
@@ -53,7 +53,7 @@ impl DataType {
     /// Return true if this datatype is generic (not specified at compile time and can contain
     /// any other datatype) or not
     pub fn is_generic(&self) -> bool {
-        self == &DataType::from("Value")
+        self == &DataType::from("object")
     }
 
     /// Determine if this data type is an array of the other
@@ -114,8 +114,8 @@ mod test {
 
     #[test]
     fn valid_data_json_type() {
-        let json_type = DataType::from("Value");
-        json_type.valid().expect("'Value' DataType should be valid");
+        let json_type = DataType::from("object");
+        json_type.valid().expect("'object' DataType should be valid");
     }
 
     #[test]
