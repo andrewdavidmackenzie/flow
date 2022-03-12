@@ -30,6 +30,7 @@ pub struct RuntimeFunction {
     flow_id: usize,
 
     /// Implementation location can be a "lib://lib_name/path/to/implementation" reference
+    /// or a "context://stdio/stdout" context function reference
     /// or a path relative to the manifest location where a supplied implementation file can be found
     implementation_location: String,
 
@@ -68,13 +69,11 @@ impl fmt::Display for RuntimeFunction {
             writeln!(f, " @ '{}'", self.route)?;
         }
 
-        if !self.implementation_location.is_empty() {
-            writeln!(
-                f,
-                "\tImplementation Location: '{}'",
-                self.implementation_location
-            )?;
-        }
+        writeln!(
+            f,
+            "\tImplementation Location: '{}'",
+            self.implementation_location
+        )?;
 
         for (number, input) in self.inputs.iter().enumerate() {
             writeln!(f, "\tInput:{} {}", number, input)?;

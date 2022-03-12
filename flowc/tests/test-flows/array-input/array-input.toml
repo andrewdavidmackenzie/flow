@@ -1,7 +1,7 @@
 flow = "array-input-test-flow"
 
 [[process]]
-source = "lib://context/args/get"
+source = "context://args/get"
 
 [[process]]
 source = "subflow"

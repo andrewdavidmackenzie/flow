@@ -16,7 +16,7 @@ type = "Array/Array/Number"
 # Args
 [[process]]
 alias = "args"
-source = "lib://context/args/get"
+source = "context://args/get"
 
 ############# filename
 [[connection]]

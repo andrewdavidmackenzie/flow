@@ -2,5 +2,5 @@ flow = "function_input_init"
 
 [[process]]
 alias = "print"
-source = "lib://context/stdio/stdout"
+source = "context://stdio/stdout"
 input.default = {once =  "hello"}

@@ -4,7 +4,7 @@ use std::sync::mpsc::{Receiver, Sender};
 
 use log::{debug, error, info, trace};
 
-use flowcore::lib_provider::MetaProvider;
+use flowcore::meta_provider::MetaProvider;
 use flowcore::model::flow_manifest::FlowManifest;
 #[cfg(feature = "metrics")]
 use flowcore::model::metrics::Metrics;

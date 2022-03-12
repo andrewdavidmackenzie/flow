@@ -41,7 +41,7 @@ jobs:
           ${{ runner.os }}-cargo-target
 
     - name: SetupFlowLibPath
-      run: echo "FLOW_LIB_PATH=$GITHUB_WORKSPACE,$GITHUB_WORKSPACE/flowr/src" >> "$GITHUB_ENV"
+      run: echo "FLOW_LIB_PATH=$GITHUB_WORKSPACE" >> "$GITHUB_ENV"
 
     - name: Install latest nightly
       uses: actions-rs/toolchain@v1

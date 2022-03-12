@@ -30,46 +30,46 @@ pub fn get_manifest(
     let mut manifest = LibraryManifest::new(lib_url, metadata);
 
     manifest.locators.insert(
-        Url::parse("lib://context/args/get/get")?,
+        Url::parse("context://args/get")?,
         Native(Arc::new(args::get::Get {
             server_connection: server_connection.clone(),
         })),
     );
     manifest.locators.insert(
-        Url::parse("lib://context/file/file_write/file_write")
+        Url::parse("context://file/file_write")
             .chain_err(|| "Could not parse url")?,
         Native(Arc::new(file::file_write::FileWrite {
             server_connection: server_connection.clone(),
         })),
     );
     manifest.locators.insert(
-        Url::parse("lib://context/image/image_buffer/image_buffer")
+        Url::parse("context://image/image_buffer")
             .chain_err(|| "Could not parse url")?,
         Native(Arc::new(image::image_buffer::ImageBuffer {
             server_connection: server_connection.clone(),
         })),
     );
     manifest.locators.insert(
-        Url::parse("lib://context/stdio/readline/readline")
+        Url::parse("context://stdio/readline")
             .chain_err(|| "Could not parse url")?,
         Native(Arc::new(stdio::readline::Readline {
             server_connection: server_connection.clone(),
         })),
     );
     manifest.locators.insert(
-        Url::parse("lib://context/stdio/stdin/stdin").chain_err(|| "Could not parse url")?,
+        Url::parse("context://stdio/stdin").chain_err(|| "Could not parse url")?,
         Native(Arc::new(stdio::stdin::Stdin {
             server_connection: server_connection.clone(),
         })),
     );
     manifest.locators.insert(
-        Url::parse("lib://context/stdio/stdout/stdout").chain_err(|| "Could not parse url")?,
+        Url::parse("context://stdio/stdout").chain_err(|| "Could not parse url")?,
         Native(Arc::new(stdio::stdout::Stdout {
             server_connection: server_connection.clone(),
         })),
     );
     manifest.locators.insert(
-        Url::parse("lib://context/stdio/stderr/stderr").chain_err(|| "Could not parse url")?,
+        Url::parse("context://stdio/stderr").chain_err(|| "Could not parse url")?,
         Native(Arc::new(stdio::stderr::Stderr { server_connection })),
     );
 

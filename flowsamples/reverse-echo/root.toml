@@ -2,13 +2,13 @@ flow = "reverse-echo"
 docs = "DESCRIPTION.md"
 
 [[process]]
-source = "lib://context/stdio/readline"
+source = "context://stdio/readline"
 
 [[process]]
 source = "reverse/reverse"
 
 [[process]]
-source = "lib://context/stdio/stdout"
+source = "context://stdio/stdout"
 
 [[connection]]
 from = "readline/string"

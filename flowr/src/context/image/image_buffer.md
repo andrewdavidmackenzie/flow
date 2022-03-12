@@ -10,7 +10,7 @@ Write `pixels` to an image buffer
 ```toml
 [[process]]
 alias = "buffer"
-source = "lib://context/file/image_buffer"
+source = "context://file/image_buffer"
 ```
 
 ### Inputs

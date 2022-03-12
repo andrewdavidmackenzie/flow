@@ -4,7 +4,7 @@ docs = "DESCRIPTION.md"
 # Read 'n' from the command line
 [[process]]
 alias = "args"
-source = "lib://context/args/get"
+source = "context://args/get"
 
 [[connection]]
 from = "args/json/1"
@@ -63,7 +63,7 @@ to = "result-tap/data"
 
 [[process]]
 alias = "print"
-source = "lib://context/stdio/stdout"
+source = "context://stdio/stdout"
 
 [[connection]]
 from = "result-tap"

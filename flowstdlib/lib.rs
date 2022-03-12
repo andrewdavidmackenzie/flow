@@ -32,9 +32,19 @@ pub mod test {
 
     use tempdir::TempDir;
 
+    pub fn get_context_root() -> PathBuf {
+        let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        let samples_dir = manifest_dir.parent().ok_or("Could not get parent dir")
+            .expect("Could not get parent dir");
+        samples_dir.join("flowr/src/context")
+    }
+
     fn execute_flow(filepath: PathBuf) -> String {
         let mut command = Command::new("flowc");
-        let command_args = vec![filepath.to_str().expect("Couldn't convert file path to string")];
+        let context_root = get_context_root();
+        let command_args = vec![
+            "-C", context_root.to_str().expect("Could not get context root"),
+            filepath.to_str().expect("Couldn't convert file path to string")];
 
         // spawn the 'flowc' child process
         let mut runner = command
@@ -53,8 +63,6 @@ pub mod test {
             stdout.read_to_string(&mut output).expect("Could not read stdout");
         }
 
-        println!("stdout = {}", output);
-
         assert!(result.success());
         output
     }
@@ -69,7 +77,7 @@ source = \"lib://flowstdlib/math/range\"
 input.range = { once = [1, 10] }
 
 [[process]]
-source = \"lib://context/stdio/stdout\"
+source = \"context://stdio/stdout\"
 
 [[connection]]
 from = \"range/number\"
@@ -81,9 +89,6 @@ to = \"stdout\"
         let mut flow_file =
             File::create(&flow_filename).expect("Could not create lib manifest file");
         flow_file.write_all(flow.as_bytes()).expect("Could not write data bytes to created flow file");
-
-        let cwd = env::current_dir().expect("Could not get the current working directory");
-        println!("CWD = {}", cwd.display());
 
         let stdout = execute_flow(flow_filename);
 

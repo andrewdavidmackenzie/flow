@@ -5,7 +5,7 @@ use url::Url;
 
 use crate::deserializers::deserializer::get_deserializer;
 use crate::errors::*;
-use crate::lib_provider::Provider;
+use crate::meta_provider::Provider;
 use crate::model::flow_definition::FlowDefinition;
 use crate::model::metadata::MetaData;
 use crate::model::runtime_function::RuntimeFunction;
@@ -34,6 +34,8 @@ pub struct FlowManifest {
     metadata: MetaData,
     /// A list of the `lib_references` used by this flow
     lib_references: HashSet<Url>,
+    /// A list of the `context_references` used by this flow
+    context_references: HashSet<Url>,
     /// A list of descriptors of the `Functions` used in this flow
     functions: Vec<RuntimeFunction>,
     #[cfg(feature = "debugger")]
@@ -47,6 +49,7 @@ impl FlowManifest {
         FlowManifest {
             metadata,
             lib_references: HashSet::<Url>::new(),
+            context_references: HashSet::<Url>::new(),
             functions: Vec::<RuntimeFunction>::new(),
             #[cfg(feature = "debugger")]
             source_urls: HashSet::<(Url, Url)>::new(),
@@ -73,14 +76,29 @@ impl FlowManifest {
         &self.lib_references
     }
 
+    /// get the list of all context references in this manifest
+    pub fn get_context_references(&self) -> &HashSet<Url> {
+        &self.context_references
+    }
+
     /// set the list of all library references in this manifest
     pub fn set_lib_references(&mut self, lib_references: &HashSet<Url>) {
         self.lib_references = lib_references.clone();
     }
 
+    /// set the list of all context references in this manifest
+    pub fn set_context_references(&mut self, context_references: &HashSet<Url>) {
+        self.context_references = context_references.clone();
+    }
+
     /// Add a new library reference (the name of a library) into the manifest
     pub fn add_lib_reference(&mut self, lib_reference: &Url) {
         self.lib_references.insert(lib_reference.clone());
+    }
+
+    /// Add a new context reference (the name of a library) into the manifest
+    pub fn add_context_reference(&mut self, context_reference: &Url) {
+        self.context_references.insert(context_reference.clone());
     }
 
     /// set the list of all source urls used in the flow
@@ -122,7 +140,7 @@ mod test {
     use url::Url;
 
     use crate::errors::Result;
-    use crate::lib_provider::Provider;
+    use crate::meta_provider::Provider;
     use crate::model::input::Input;
     use crate::model::runtime_function::RuntimeFunction;
 
@@ -147,7 +165,7 @@ mod test {
             source: &Url,
             _default_filename: &str,
             _extensions: &[&str],
-        ) -> Result<(Url, Option<String>)> {
+        ) -> Result<(Url, Option<Url>)> {
             Ok((source.clone(), None))
         }
 
@@ -196,7 +214,9 @@ mod test {
                 },
             \"manifest_dir\": \"fake dir\",
             \"lib_references\": [
-                \"lib://context\"
+             ],
+            \"context_references\": [
+                \"context://\"
              ],
             \"functions\": [
                 {
@@ -204,7 +224,7 @@ mod test {
                     \"route\": \"/print\",
                     \"id\": 0,
                     \"flow_id\": 0,
-                    \"implementation_location\": \"lib://context/stdio/stdout/Stdout\",
+                    \"implementation_location\": \"context://stdio/stdout\",
                     \"inputs\": [ {} ]
                 }
              ],

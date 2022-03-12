@@ -39,6 +39,13 @@ fn main() -> io::Result<()> {
     Ok(())
 }
 
+fn get_context_root() -> Result<String, String> {
+    let samples_dir = Path::new(env!("CARGO_MANIFEST_DIR")).parent()
+        .ok_or("Could not get parent dir")?;
+    Ok(samples_dir.join("flowr/src/context").to_str()
+        .expect("Could not convert path to String").to_string())
+}
+
 fn run_sample(sample_dir: &Path, output_dir: &Path) -> io::Result<()> {
     // Remove any previous output
     let _ = fs::remove_file(output_dir.join("test.err"));
@@ -52,11 +59,16 @@ fn run_sample(sample_dir: &Path, output_dir: &Path) -> io::Result<()> {
     println!("\tSTDOUT is sent to test.output, STDERR to test.err and file output to test.file");
 
     let mut command_args: Vec<String> = vec!["--native".into(), manifest_path.display().to_string()];
-//    let mut command_args: Vec<String> = vec![manifest_path.display().to_string()];
+    command_args.push("-C".into());
+    let context_root = get_context_root().expect("Could not get context root directory");
+    command_args.push(context_root);
+
     command_args.append(&mut args(sample_dir)?);
 
-    let output = File::create(output_dir.join("test.output")).expect("Could not get directory as string");
-    let error = File::create(output_dir.join("test.err")).expect("Could not get directory as string");
+    let output = File::create(output_dir.join("test.output"))
+        .expect("Could not get directory as string");
+    let error = File::create(output_dir.join("test.err"))
+        .expect("Could not get directory as string");
 
     match Command::new("flowr")
         .args(command_args)
@@ -109,8 +121,6 @@ fn args(sample_dir: &Path) -> io::Result<Vec<String>> {
 #[cfg(test)]
 mod test {
     use std::fs;
-    use std::fs::File;
-    use std::io::{BufRead, BufReader};
     use std::path::{Path, PathBuf};
     use std::process::{Command, Stdio};
 
@@ -148,26 +158,22 @@ mod test {
             if output.status.success() {
                 return;
             }
-            eprintln!("Contents of '{}' doesn't match the expected contents in '{}'",
+            panic!("Contents of '{}' doesn't match the expected contents in '{}'",
                            actual_path.display(), expected_path.display());
-            panic!();
         }
     }
 
     fn check_test_output(sample_dir: &Path, output_dir: &Path) {
         let error_output = output_dir.join("test.err");
         if error_output.exists() {
-            let f = File::open(&error_output).expect("Could not open 'test.err' file");
-            let mut f = BufReader::new(f);
-            let contents = f.fill_buf().expect("Could not read from 'test.err' file");
+            let contents = fs::read_to_string(&error_output).expect("Could not read from 'test.err' file");
 
             if !contents.is_empty() {
-                eprintln!(
-                    "Sample {:?} produced error output in '{}'",
+                panic!(
+                    "Sample {:?} produced error output in '{}'\n{}",
                     sample_dir.file_name().expect("Could not get directory file name"),
-                    error_output.display()
+                    error_output.display(), contents
                 );
-                std::process::exit(1);
             }
         }
 

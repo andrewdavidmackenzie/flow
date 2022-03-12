@@ -26,7 +26,7 @@ pub(crate) mod content;
 
 /// `lib_provider` is used to resolve library references of the type "lib://" using lib search path
 #[cfg(not(target_arch = "wasm32"))]
-pub mod lib_provider;
+pub mod meta_provider;
 
 /// Implementations should return a value of type `RunAgain` to indicate if it should be
 /// executed more times in the future.

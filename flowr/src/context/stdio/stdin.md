@@ -11,7 +11,7 @@ again. If you wish to get the value of a line (i.e. after ENTER is pressed, then
 ```toml
 [[process]]
 alias = "stdin"
-source = "lib://context/stdio/stdin"
+source = "context://stdio/stdin"
 ```
 
 ### Inputs

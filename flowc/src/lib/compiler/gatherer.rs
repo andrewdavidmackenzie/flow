@@ -32,6 +32,10 @@ pub fn gather_functions_and_connections(flow: &FlowDefinition, tables: &mut Gene
     let lib_refs = &flow.lib_references;
     tables.libs.extend(lib_refs.iter().cloned());
 
+    // Add the context references of this flow into the tables list
+    let context_refs = &flow.context_references;
+    tables.context_functions.extend(context_refs.iter().cloned());
+
     Ok(())
 }
 
@@ -52,8 +56,8 @@ mod test {
     use flowcore::model::function_definition::FunctionDefinition;
     use flowcore::model::io::IO;
     use flowcore::model::name::Name;
-    use flowcore::model::route::Route;
     use flowcore::model::output_connection::{OutputConnection, Source};
+    use flowcore::model::route::Route;
 
     #[test]
     fn empty_index_test() {
@@ -65,13 +69,14 @@ mod test {
         let function = FunctionDefinition::new(
             Name::from("Stdout"),
             false,
-            "lib://context/stdio/stdout".to_string(),
+            "context://stdio/stdout".to_string(),
             Name::from("print"),
             vec![],
             vec![IO::new(vec!("String".into()), Route::default())],
             Url::parse("file:///fake/file").expect("Could not parse Url"),
             Route::from("/flow0/stdout"),
-            Some("context/stdio/stdout".to_string()),
+            None,
+            Some(Url::parse("context://stdio/stdout").expect("Could not parse Url")),
             vec![OutputConnection::new(
                 Source::default(),
                 1,

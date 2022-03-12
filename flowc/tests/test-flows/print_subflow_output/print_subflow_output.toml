@@ -6,7 +6,7 @@ source = "initialize_flow_output"
 
 [[process]]
 alias = "print"
-source = "lib://context/stdio/stdout"
+source = "context://stdio/stdout"
 
 [[connection]]
 from = "subflow"

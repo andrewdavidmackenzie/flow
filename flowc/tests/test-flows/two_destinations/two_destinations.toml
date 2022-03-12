@@ -2,13 +2,13 @@ flow = "two-destinations"
 
 [[process]]
 alias = "args"
-source = "lib://context/args/get"
+source = "context://args/get"
 
 [[process]]
-source = "lib://context/stdio/stdout"
+source = "context://stdio/stdout"
 
 [[process]]
-source = "lib://context/file/file_write"
+source = "context://file/file_write"
 input.bytes = { once = [1, 2] }
 
 [[connection]]

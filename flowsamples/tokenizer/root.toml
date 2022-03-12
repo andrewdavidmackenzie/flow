@@ -2,7 +2,7 @@ flow = "tokenizer"
 docs = "DESCRIPTION.md"
 
 [[process]] # Read a single line of inputs text into a stringn
-source = "lib://context/stdio/readline"
+source = "context://stdio/readline"
 
 [[process]] # Split a string on the space (" ") separator
 source = "lib://flowstdlib/data/split"
@@ -67,7 +67,7 @@ from = "compare/equal"
 to = "tap/control"
 
 [[process]] # stdout for showing text
-source = "lib://context/stdio/stdout"
+source = "context://stdio/stdout"
 
 [[connection]] # output the last token count when done
 name = "last-token-count"

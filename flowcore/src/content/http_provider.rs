@@ -3,7 +3,7 @@ use log::debug;
 use url::Url;
 
 use crate::errors::*;
-use crate::lib_provider::Provider;
+use crate::meta_provider::Provider;
 
 /// The `HttpProvider` implements the `Provider` trait and takes care of fetching content via http
 pub struct HttpProvider;
@@ -23,7 +23,7 @@ impl Provider for HttpProvider {
         url: &Url,
         default_filename: &str,
         extensions: &[&str],
-    ) -> Result<(Url, Option<String>)> {
+    ) -> Result<(Url, Option<Url>)> {
         // Try the url directly first
         if Self::resource_exists(url).is_ok() {
             return Ok((url.clone(), None));
@@ -119,7 +119,7 @@ impl HttpProvider {
 mod test {
     use url::Url;
 
-    use crate::lib_provider::Provider;
+    use crate::meta_provider::Provider;
 
     use super::HttpProvider;
 

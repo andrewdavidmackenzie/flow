@@ -71,7 +71,7 @@ to = "p2v/pixel_point"
 
 # An image buffer to accumulate the results
 [[process]]
-source = "lib://context/image/image_buffer"
+source = "context://image/image_buffer"
 
 # connect up the image buffer with filename and size - buffering them for each pixel
 [[process]]

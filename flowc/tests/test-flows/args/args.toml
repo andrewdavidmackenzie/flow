@@ -2,10 +2,10 @@ flow = "args"
 
 [[process]]
 alias = "args"
-source = "lib://context/args/get"
+source = "context://args/get"
 
 [[process]]
-source = "lib://context/stdio/stdout"
+source = "context://stdio/stdout"
 
 [[connection]]
 from = "args/string/3"

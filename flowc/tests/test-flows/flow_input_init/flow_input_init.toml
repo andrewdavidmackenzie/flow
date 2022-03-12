@@ -7,7 +7,7 @@ input.input = {once =  42}
 
 [[process]]
 alias = "print"
-source = "lib://context/stdio/stdout"
+source = "context://stdio/stdout"
 
 [[connection]]
 from = "sub_flow/output"
