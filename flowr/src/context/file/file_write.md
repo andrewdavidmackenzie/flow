@@ -10,7 +10,7 @@ Writes `bytes` of data supplied to the file named `filename`, creating it if nec
 ```toml
 [[process]]
 alias = "write"
-source = "lib://context/file/write"
+source = "context://file/write"
 ```
 
 ### Inputs

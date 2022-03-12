@@ -25,4 +25,4 @@ from = "add/i2"
 to = "add/i1"
 
 [[process]]
-source = "lib://context/stdio/stdout"
+source = "context://stdio/stdout"

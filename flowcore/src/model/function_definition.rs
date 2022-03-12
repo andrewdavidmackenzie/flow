@@ -11,12 +11,12 @@ use crate::model::io::IOSet;
 use crate::model::io::IOType;
 use crate::model::name::HasName;
 use crate::model::name::Name;
+use crate::model::output_connection::OutputConnection;
 use crate::model::route::HasRoute;
 use crate::model::route::Route;
 use crate::model::route::SetIORoutes;
 use crate::model::route::SetRoute;
 use crate::model::validation::Validate;
-use crate::model::output_connection::OutputConnection;
 
 /// `FunctionDefinition` defines a Function (compile time) that implements some processing in the flow hierarchy
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -58,7 +58,10 @@ pub struct FunctionDefinition {
     pub implementation: String,
     /// Is the function being used part of a library and where is it found
     #[serde(skip_deserializing)]
-    pub lib_reference: Option<String>,
+    pub lib_reference: Option<Url>,
+    /// Is the function a context function and where is it found
+    #[serde(skip_deserializing)]
+    pub context_reference: Option<Url>,
     /// The output connections from this function to other processes (functions or flows)
     #[serde(skip_deserializing)]
     pub output_connections: Vec<OutputConnection>,
@@ -85,6 +88,7 @@ impl Default for FunctionDefinition {
             route: Default::default(),
             implementation: "".to_string(),
             lib_reference: None,
+            context_reference: None,
             output_connections: vec![],
             id: 0,
             flow_id: 0,
@@ -126,7 +130,8 @@ impl FunctionDefinition {
         outputs: IOSet,
         source_url: Url,
         route: Route,
-        lib_reference: Option<String>,
+        lib_reference: Option<Url>,
+        context_reference: Option<Url>,
         output_connections: Vec<OutputConnection>,
         id: usize,
         flow_id: usize,
@@ -143,6 +148,7 @@ impl FunctionDefinition {
             route,
             implementation: String::default(),
             lib_reference,
+            context_reference,
             output_connections,
             id,
             flow_id,
@@ -159,13 +165,19 @@ impl FunctionDefinition {
         parent_route: &Route,
         alias: &Name,
         flow_id: usize,
-        lib_ref: Option<String>,
+        reference: Option<Url>,
         initializations: &HashMap<String, InputInitializer>,
     ) -> Result<()> {
         self.set_flow_id(flow_id);
         self.set_alias(alias);
         self.set_source_url(source_url);
-        self.set_lib_reference(lib_ref);
+        if let Some(function_reference) = reference {
+            match function_reference.scheme() {
+                "context" => self.set_context_reference(Some(function_reference)),
+                "lib" => self.set_lib_reference(Some(function_reference)),
+                _ => {}
+            }
+        }
         self.set_routes_from_parent(parent_route);
         self.set_initial_values(initializations);
         self.check_impurity(original_url)?;
@@ -206,11 +218,8 @@ impl FunctionDefinition {
         A function can only be impure if it is provided by 'context'
     */
     fn check_impurity(&self, url: &Url) -> Result<()> {
-        if self.impure {
-            let host = url.host().ok_or("Could not identify host of impure function")?;
-            if host.to_string() != "context" {
-                bail!("Only functions provided by 'context' can be impure ('{}')", url);
-            }
+        if self.impure && url.scheme() != "context" {
+            bail!("Only functions provided by 'context' can be impure ('{}')", url);
         }
 
         Ok(())
@@ -295,13 +304,23 @@ impl FunctionDefinition {
     }
 
     // Set the lib reference of this function
-    fn set_lib_reference(&mut self, lib_reference: Option<String>) {
+    fn set_lib_reference(&mut self, lib_reference: Option<Url>) {
         self.lib_reference = lib_reference
     }
 
     /// Get the lib reference of this function
-    pub fn get_lib_reference(&self) -> &Option<String> {
+    pub fn get_lib_reference(&self) -> &Option<Url> {
         &self.lib_reference
+    }
+
+    // Set the context reference of this function
+    fn set_context_reference(&mut self, context_reference: Option<Url>) {
+        self.context_reference = context_reference
+    }
+
+    /// Get the context reference of this function
+    pub fn get_context_reference(&self) -> &Option<Url> {
+        &self.context_reference
     }
 
     /// Convert a FunctionDefinition filename into the name of the struct used to implement it
@@ -384,12 +403,12 @@ mod test {
     use crate::model::io::Find;
     use crate::model::name::HasName;
     use crate::model::name::Name;
+    use crate::model::output_connection::OutputConnection;
+    use crate::model::output_connection::Source::Output;
     use crate::model::route::HasRoute;
     use crate::model::route::Route;
     use crate::model::route::SetRoute;
     use crate::model::validation::Validate;
-    use crate::model::output_connection::OutputConnection;
-    use crate::model::output_connection::Source::Output;
 
     use super::FunctionDefinition;
 

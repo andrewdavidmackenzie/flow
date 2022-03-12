@@ -11,6 +11,7 @@
 //! terminal for STDIO and the File system for files.
 
 use std::env;
+use std::path::PathBuf;
 use std::process::exit;
 use std::sync::{Arc, Mutex};
 
@@ -20,7 +21,7 @@ use simpath::Simpath;
 use simplog::simplog::SimpleLogger;
 use url::Url;
 
-use flowcore::lib_provider::{MetaProvider, Provider};
+use flowcore::meta_provider::{MetaProvider, Provider};
 use flowcore::model::submission::Submission;
 use flowcore::url_helper::url_from_string;
 use flowrlib::coordinator::Coordinator;
@@ -141,7 +142,6 @@ fn main() {
     match run() {
         Err(ref e) => {
             eprintln!("{}", e);
-
             for e in e.iter().skip(1) {
                 eprintln!("caused by: {}", e);
             }
@@ -238,19 +238,12 @@ fn load_native_libs(
     provider: &dyn Provider,
     server_connection: Arc<Mutex<ServerConnection>>,
 ) -> Result<()> {
-    // If the "flowstdlib" optional dependency is used and the command line options request
-    // a native implementation of libs, then load the native version of it
-    let context_url =
-        Url::parse("lib://context").chain_err(|| "Could not parse context lib url")?;
-
-    // Load this run-time's library of native (statically linked) implementations
-    loader
-        .add_lib(
+    // Add the native context functions to functions available for use by the flow
+    loader.add_lib(
             provider,
             context::get_manifest(server_connection)?,
-            &context_url,
-        )
-        .chain_err(|| "Loader: Could not add native 'context' functions")?;
+            &Url::parse("context://")?,
+        )?;
 
     // if the command line options request loading native implementation of available native libs
     // if not, the native implementation is not loaded and later when a flow is loaded it's library
@@ -258,15 +251,12 @@ fn load_native_libs(
     if native {
         // If the "flowstdlib" optional dependency is used and the , then load the native version of it
         #[cfg(feature = "flowstdlib")]
-            let flowstdlib_url = Url::parse("lib://flowstdlib")
-                .chain_err(|| "Could not parse flowstdlib lib url")?;
-        loader
-            .add_lib(
+        loader.add_lib(
                 provider,
-                flowstdlib::manifest::get_manifest().chain_err(|| "Could not get flowstdlib manifest")?,
-                &flowstdlib_url,
-            )
-            .chain_err(|| "Loader: Could not add native 'flowstdlib' library")?;
+                flowstdlib::manifest::get_manifest()
+                    .chain_err(|| "Could not get flowstdlib manifest")?,
+                &Url::parse("lib://flowstdlib")?,
+            )?;
     }
 
     Ok(())
@@ -355,7 +345,7 @@ fn server(
     loop_forever: bool,
 ) -> Result<()> {
     let mut loader = Loader::new();
-    let provider = MetaProvider::new(lib_search_path);
+    let provider = MetaProvider::new(lib_search_path, PathBuf::from("/"));
 
     let server_connection = Arc::new(Mutex::new(runtime_server_connection));
 
@@ -559,6 +549,11 @@ fn get_matches<'a>() -> ArgMatches<'a> {
             .multiple(true)
             .value_name("LIB_DIR|BASE_URL")
             .help("Add a directory or base Url to the Library Search path"))
+        .arg(Arg::with_name("context_root")
+                .short("C")
+                .long("context_root")
+                .value_name("CONTEXT_DIRECTORY")
+                .help("Set the directory to use as the root dir for context functions definitions"), )
         .arg(Arg::with_name("threads")
             .short("t")
             .long("threads")

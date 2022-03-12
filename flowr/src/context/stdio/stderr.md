@@ -11,7 +11,7 @@ is output on a separate line.
 ```toml
 [[process]]
 alias = "stderr"
-source = "lib://context/stdio/stderr"
+source = "context://stdio/stderr"
 ```
 
 ### Input

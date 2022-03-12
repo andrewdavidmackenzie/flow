@@ -2,7 +2,7 @@ use std::env;
 use std::fs::File;
 use std::io::{self, Read};
 use std::io::Write;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use serde_json::Value;
@@ -12,7 +12,7 @@ use url::Url;
 
 use flowcore::{DONT_RUN_AGAIN, Implementation, RunAgain};
 use flowcore::errors::Result;
-use flowcore::lib_provider::MetaProvider;
+use flowcore::meta_provider::MetaProvider;
 use flowcore::model::flow_manifest::FlowManifest;
 use flowcore::model::lib_manifest::{ImplementationLocator::Native, LibraryManifest};
 use flowcore::model::metadata::MetaData;
@@ -59,9 +59,13 @@ fn create_manifest(functions: Vec<RuntimeFunction>) -> FlowManifest {
     let mut manifest = FlowManifest::new(metadata);
 
     for function in functions {
-        manifest.add_lib_reference(
-            &Url::parse(function.implementation_location()).expect("Could not create Url"),
-        );
+        let location_url = &Url::parse(function.implementation_location())
+            .expect("Could not create Url");
+        match location_url.scheme() {
+            "lib" => manifest.add_lib_reference(location_url),
+            "context" => manifest.add_context_reference(location_url),
+            _ => {}
+        }
         manifest.add_function(function);
     }
 
@@ -100,27 +104,27 @@ fn get_manifest() -> LibraryManifest {
     let mut manifest = LibraryManifest::new(lib_url, metadata);
 
     manifest.locators.insert(
-        Url::parse("lib://context/args/get/get").expect("Could not create Url"),
+        Url::parse("context://args/get/get").expect("Could not create Url"),
         Native(Arc::new(Fake {})),
     );
     manifest.locators.insert(
-        Url::parse("lib://context/file/file_write/file_write").expect("Could not create Url"),
+        Url::parse("context://file/file_write/file_write").expect("Could not create Url"),
         Native(Arc::new(Fake {})),
     );
     manifest.locators.insert(
-        Url::parse("lib://context/stdio/readline/readline").expect("Could not create Url"),
+        Url::parse("context://stdio/readline/readline").expect("Could not create Url"),
         Native(Arc::new(Fake {})),
     );
     manifest.locators.insert(
-        Url::parse("lib://context/stdio/stdin/stdin").expect("Could not create Url"),
+        Url::parse("context://stdio/stdin/stdin").expect("Could not create Url"),
         Native(Arc::new(Fake {})),
     );
     manifest.locators.insert(
-        Url::parse("lib://context/stdio/stdout/stdout").expect("Could not create Url"),
+        Url::parse("context://stdio/stdout/stdout").expect("Could not create Url"),
         Native(Arc::new(Fake {})),
     );
     manifest.locators.insert(
-        Url::parse("lib://context/stdio/stderr/stderr").expect("Could not create Url"),
+        Url::parse("context://stdio/stderr/stderr").expect("Could not create Url"),
         Native(Arc::new(Fake {})),
     );
 
@@ -164,7 +168,7 @@ fn load_manifest_from_file() {
     let f_a = RuntimeFunction::new(
         "fA",
         "/fA",
-        "lib://context/stdio/stdout/stdout",
+        "context://stdio/stdout/stdout",
         vec![],
         0,
         0,
@@ -179,7 +183,8 @@ fn load_manifest_from_file() {
     let manifest_file = temp_dir.join("manifest.json");
     let _ = write_manifest(&manifest, &manifest_file).expect("Could not write manifest file");
     let manifest_url = Url::from_directory_path(manifest_file).expect("Could not create url from directory path");
-    let provider = MetaProvider::new(set_lib_search_path());
+    let provider = MetaProvider::new(set_lib_search_path(),
+                                     PathBuf::from("/"));
 
     let mut loader = Loader::new();
     loader
@@ -202,7 +207,7 @@ fn resolve_lib_implementation_test() {
     let f_a = RuntimeFunction::new(
         "fA",
         "/fA",
-        "lib://context/stdio/stdin/stdin",
+        "context://stdio/stdin/stdin",
         vec![],
         0,
         0,
@@ -211,7 +216,8 @@ fn resolve_lib_implementation_test() {
     );
     let functions = vec![f_a];
     let mut manifest = create_manifest(functions);
-    let provider = MetaProvider::new(set_lib_search_path());
+    let provider = MetaProvider::new(set_lib_search_path(),
+                                     PathBuf::from("/"));
     let mut loader = Loader::new();
     let manifest_url = url_from_rel_path("manifest.json");
 
@@ -230,7 +236,7 @@ fn unresolved_lib_functions_test() {
     let f_a = RuntimeFunction::new(
         "fA",
         "/fA",
-        "lib://context/stdio/stdin/foo",
+        "context://stdio/stdin/foo",
         vec![],
         0,
         0,
@@ -239,7 +245,8 @@ fn unresolved_lib_functions_test() {
     );
     let functions = vec![f_a];
     let mut manifest = create_manifest(functions);
-    let provider = MetaProvider::new(set_lib_search_path());
+    let provider = MetaProvider::new(set_lib_search_path(),
+                                     PathBuf::from("/"));
     let mut loader = Loader::new();
     let manifest_url = url_from_rel_path("manifest.json");
 

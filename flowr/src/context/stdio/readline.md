@@ -14,7 +14,7 @@ again.
 ```toml
 [[process]]
 alias = "readline"
-source = "lib://context/stdio/readline"
+source = "context://stdio/readline"
 ```
 
 ### Inputs

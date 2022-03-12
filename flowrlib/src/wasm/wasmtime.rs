@@ -1,7 +1,7 @@
 use anyhow::Result as AnyhowResult;
 use flowcore::{Implementation, RunAgain};
 use flowcore::errors::*;
-use flowcore::lib_provider::Provider;
+use flowcore::meta_provider::Provider;
 use log::info;
 use log::trace;
 use serde_json::Value;

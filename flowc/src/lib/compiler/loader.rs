@@ -6,11 +6,11 @@ use log::{debug, info, trace};
 use url::Url;
 
 use flowcore::deserializers::deserializer::get_deserializer;
-use flowcore::model::flow_manifest::Cargo;
-use flowcore::model::metadata::MetaData;
-use flowcore::model::input::InputInitializer;
-use flowcore::lib_provider::Provider;
+use flowcore::meta_provider::Provider;
 use flowcore::model::flow_definition::FlowDefinition;
+use flowcore::model::flow_manifest::Cargo;
+use flowcore::model::input::InputInitializer;
+use flowcore::model::metadata::MetaData;
 use flowcore::model::name::HasName;
 use flowcore::model::name::Name;
 use flowcore::model::process::Process;
@@ -34,7 +34,7 @@ pub enum LibType {
 ///
 /// # Example
 /// ```
-/// use flowcore::lib_provider::Provider;
+/// use flowcore::meta_provider::Provider;
 /// use flowcore::errors::Result;
 /// use std::env;
 /// use url::Url;
@@ -47,7 +47,7 @@ pub enum LibType {
 /// // A Provider must implement the `Provider` trait, with the methods to `resolve` a URL and to
 /// // `get` the contents for parsing.
 /// impl Provider for DummyProvider {
-///     fn resolve_url(&self, url: &Url, default_filename: &str, _ext: &[&str]) -> Result<(Url, Option<String>)> {
+///     fn resolve_url(&self, url: &Url, default_filename: &str, _ext: &[&str]) -> Result<(Url, Option<Url>)> {
 ///        // Just fake the url resolution in this example
 ///        Ok((url.clone(), None))
 ///     }
@@ -101,7 +101,7 @@ fn load_process(
 ) -> Result<Process> {
     trace!("load_process()");
 
-    let (resolved_url, lib_ref) = provider
+    let (resolved_url, reference) = provider
         .resolve_url(url, "root", &["toml"])
         .chain_err(|| format!("Could not resolve the url: '{}'", url))?;
     if &resolved_url != url {
@@ -159,7 +159,7 @@ fn load_process(
                 parent_route,
                 alias,
                 parent_flow_id,
-                lib_ref,
+                reference,
                 initializations,
             )?;
         }
@@ -226,10 +226,11 @@ fn load_process_refs(
         // library flow definitions are "compiled down" to just library function references at compile time.
         if let FunctionProcess(function) = &process {
             if let Some(lib_ref) = function.get_lib_reference() {
-                flow.lib_references.insert(
-                    Url::parse(&format!("lib://{}/{}", lib_ref, function.name()))
-                        .map_err(|_| "Could not create Url from library reference")?,
-                );
+                flow.lib_references.insert(lib_ref.clone());
+            }
+
+            if let Some(context_ref) = function.get_context_reference() {
+                flow.context_references.insert(context_ref.clone());
             }
         }
 

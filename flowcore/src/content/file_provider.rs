@@ -7,7 +7,7 @@ use log::{debug, trace};
 use url::Url;
 
 use crate::errors::*;
-use crate::lib_provider::Provider;
+use crate::meta_provider::Provider;
 
 /// The `FileProvider` implements the `Provider` trait and takes care of fetching content located
 /// on the local file system.
@@ -19,7 +19,7 @@ impl Provider for FileProvider {
         url: &Url,
         default_filename: &str,
         extensions: &[&str],
-    ) -> Result<(Url, Option<String>)> {
+    ) -> Result<(Url, Option<Url>)> {
         let path = url
             .to_file_path()
             .map_err(|_| format!("Could not convert '{}' to a file path", url))?;
@@ -60,7 +60,7 @@ impl Provider for FileProvider {
                 }
             }
             _ => {
-                // doesn't exist
+                // as-is the file at path doesn't exist, try with extensions
                 let file_found_url = Self::file_by_extensions(&path, extensions)?;
                 Ok((file_found_url, None))
             }
@@ -150,7 +150,7 @@ mod test {
 
         use url::Url;
 
-        use crate::lib_provider::Provider;
+        use crate::meta_provider::Provider;
 
         use super::super::FileProvider;
 

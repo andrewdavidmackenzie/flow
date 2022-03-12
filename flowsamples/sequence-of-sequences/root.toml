@@ -37,7 +37,7 @@ to = "sequence-of-sequences/end"
 # We will be printing out the sequence-of-sequences of numbers
 [[process]]
 alias = "print"
-source = "lib://context/stdio/stdout"
+source = "context://stdio/stdout"
 
 # Connect the sequence-of-sequences to the print function
 [[connection]]

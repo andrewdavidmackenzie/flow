@@ -53,22 +53,23 @@ mod test {
 
     use crate::compiler::compile::compile;
 
-    /*
-                                Test an error is thrown if a flow has no side effects, and that unconnected functions
-                                are removed by the optimizer
-                            */
+    /* Test an error is thrown if a flow has no side effects, and that unconnected functions
+           are removed by the optimizer
+        */
     #[test]
     fn no_side_effects() {
         let function = FunctionDefinition::new(
             Name::from("Stdout"),
             false,
-            "lib://context/stdio/stdout.toml".to_owned(),
+            "context://stdio/stdout.toml".to_owned(),
             Name::from("test-function"),
             vec![IO::new(vec!("String".into()), "/print")],
             vec![],
-            Url::parse("lib://context/stdio/stdout.toml").expect("Could not parse Url"),
+            Url::parse("context://stdio/stdout.toml").expect("Could not parse Url"),
             Route::from("/print"),
-            Some("lib://context/stdio/stdout.toml".to_string()),
+            None,
+            Some(Url::parse("context://stdio/stdout.toml")
+                     .expect("Could not parse Url")),
             vec![],
             0,
             0,

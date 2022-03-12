@@ -20,7 +20,7 @@ use url::Url;
 
 use errors::*;
 use flowclib::info;
-use flowcore::lib_provider::MetaProvider;
+use flowcore::meta_provider::MetaProvider;
 use flowcore::url_helper::url_from_string;
 use lib_build::build_lib;
 
@@ -44,6 +44,8 @@ pub struct Options {
     flow_args: Vec<String>,
     dump: bool,
     graphs: bool,
+    execution_metrics: bool,
+    wasm_execution: bool,
     skip_execution: bool,
     debug_symbols: bool,
     provided_implementations: bool,
@@ -51,6 +53,7 @@ pub struct Options {
     stdin_file: Option<String>,
     lib_dirs: Vec<String>,
     native_only: bool,
+    context_root: Option<PathBuf>,
 }
 
 fn main() {
@@ -76,10 +79,7 @@ fn main() {
 /// For the lib provider, libraries maybe installed in multiple places in the file system.
 /// In order to find the content, a FLOW_LIB_PATH environment variable can be configured with a
 /// list of directories in which to look for the library in question.
-///
-/// Using the "FLOW_LIB_PATH" environment variable attempt to locate the library's root folder
-/// in the file system.
-pub fn set_lib_search_path(search_path_additions: &[String]) -> Result<Simpath> {
+pub fn get_lib_search_path(search_path_additions: &[String]) -> Result<Simpath> {
     let mut lib_search_path = Simpath::new_with_separator("FLOW_LIB_PATH", ',');
 
     if env::var("FLOW_LIB_PATH").is_err() && search_path_additions.is_empty() {
@@ -104,9 +104,11 @@ pub fn set_lib_search_path(search_path_additions: &[String]) -> Result<Simpath> 
 fn run() -> Result<()> {
     let options = parse_args(get_matches())?;
 
-    let lib_search_path = set_lib_search_path(&options.lib_dirs)?;
+    let lib_search_path = get_lib_search_path(&options.lib_dirs)?;
+    let context_root = options.context_root.clone()
+        .unwrap_or_else(|| PathBuf::from(""));
 
-    let provider = &MetaProvider::new(lib_search_path);
+    let provider = &MetaProvider::new(lib_search_path, context_root);
 
     if options.lib {
         build_lib(&options, provider).chain_err(|| "Could not build library")
@@ -156,6 +158,14 @@ fn get_matches<'a>() -> ArgMatches<'a> {
                 .help("Add a directory or base Url to the Library Search path"),
         )
         .arg(
+            Arg::with_name("context_root")
+                .short("C")
+                .long("context_root")
+                .number_of_values(1)
+                .value_name("CONTEXT_DIRECTORY")
+                .help("Set the directory to use as the root dir for context functions definitions"),
+        )
+        .arg(
             Arg::with_name("dump")
                 .short("d")
                 .long("dump")
@@ -166,6 +176,20 @@ fn get_matches<'a>() -> ArgMatches<'a> {
                 .short("z")
                 .long("graphs")
                 .help("Create .dot files for graphs then generate SVGs with 'dot' command (if available)"),
+        )
+        .arg(
+            Arg::with_name("metrics")
+                .short("m")
+                .long("metrics")
+                .conflicts_with("skip")
+                .help("Show flow execution metrics when execution ends"),
+        )
+        .arg(
+            Arg::with_name("wasm")
+                .short("w")
+                .long("wasm")
+                .conflicts_with("skip")
+                .help("Use wasm library implementations when executing flow"),
         )
         .arg(
             Arg::with_name("provided")
@@ -258,18 +282,28 @@ fn parse_args(matches: ArgMatches) -> Result<Options> {
         vec![]
     };
 
+    let context_root = if matches.is_present("context_root") {
+        Some(PathBuf::from(matches.value_of("context_root")
+            .chain_err(|| "Could not get the 'CONTEXT_DIRECTORY' option specified")?))
+    } else {
+        None
+    };
+
     Ok(Options {
         lib: matches.is_present("lib"),
         source_url: url,
         flow_args,
         dump: matches.is_present("dump"),
         graphs: matches.is_present("graphs"),
+        wasm_execution: matches.is_present("wasm"),
+        execution_metrics: matches.is_present("metrics"),
         skip_execution: matches.is_present("skip"),
         debug_symbols: matches.is_present("symbols"),
         provided_implementations: matches.is_present("provided"),
         output_dir,
         stdin_file: matches.value_of("stdin").map(String::from),
         lib_dirs,
-        native_only: matches.is_present("native")
+        native_only: matches.is_present("native"),
+        context_root,
     })
 }

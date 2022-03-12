@@ -1,4 +1,4 @@
 flow = "no_side_effects"
 
 [[process]]
-source = "lib://context/stdio/stdin"
+source = "context://stdio/stdin"

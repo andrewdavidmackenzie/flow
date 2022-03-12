@@ -2,5 +2,5 @@ flow = "unused input"
 
 [[process]]
 alias = "file_write"
-source = "lib://context/file/file_write"
+source = "context://file/file_write"
 input.filename = { once = "test" }

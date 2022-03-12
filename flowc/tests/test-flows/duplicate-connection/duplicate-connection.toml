@@ -2,11 +2,11 @@ flow = "duplicate-connection"
 
 [[process]]
 alias = "args"
-source = "lib://context/args/get"
+source = "context://args/get"
 
 [[process]]
 alias = "print"
-source = "lib://context/stdio/stdout"
+source = "context://stdio/stdout"
 
 [[connection]]
 from = "args/string/1"

@@ -2,11 +2,11 @@ flow = "invalid process"
 
 [[process]]
 # should have an alias here
-source = "lib://context/args/get"
+source = "context://args/get"
 
 [[process]]
 alias = "print"
-source = "lib://context/stdio/stdout"
+source = "context://stdio/stdout"
 
 [[connection]]
 from = "args/string/1"

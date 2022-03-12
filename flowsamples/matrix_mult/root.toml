@@ -2,7 +2,7 @@ flow = "matrix_mult"
 docs = "DESCRIPTION.md"
 
 [[process]]
-source = "lib://context/stdio/readline"
+source = "context://stdio/readline"
 
 [[process]]
 alias = "select_0"
@@ -36,7 +36,7 @@ to = "multiply/b"
 
 [[process]]
 alias = "print"
-source = "lib://context/stdio/stdout"
+source = "context://stdio/stdout"
 
 [[connection]]
 from = "multiply/product"

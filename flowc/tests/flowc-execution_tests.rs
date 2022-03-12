@@ -17,7 +17,7 @@ use url::Url;
 use flowclib::compiler::{compile, loader};
 use flowclib::generator::generate;
 use flowclib::generator::generate::GenerationTables;
-use flowcore::lib_provider::MetaProvider;
+use flowcore::meta_provider::MetaProvider;
 use flowcore::model::flow_definition::FlowDefinition;
 use flowcore::model::process::Process;
 use flowcore::model::process::Process::FlowProcess;
@@ -83,10 +83,13 @@ fn execute_flow(
     input: String,
     separate_processes: bool,
 ) -> (String, String) {
+    let context_root = helper::get_context_root();
+    let context_root_str = context_root.to_str().expect("Could not get context root");
     let server = if separate_processes {
         println!("Starting the 'flowr' server");
         let mut server_command = Command::new("cargo");
-        let server_command_args = vec!["run", "--quiet", "-p", "flowr", "--", "-n", "-s"];
+        let server_command_args = vec!["run", "--quiet", "-p", "flowr", "--", "-n", "-s",
+        "-C", context_root_str];
 
         // spawn the 'flowr' server child process
         Some(
@@ -179,7 +182,7 @@ fn load_flow(test_dir: &Path, test_name: &str, search_path: Simpath) -> Process 
     flow_file.push(test_flow);
     loader::load(
         &helper::absolute_file_url_from_relative_path(&flow_file.to_string_lossy()),
-        &MetaProvider::new(search_path),
+        &MetaProvider::new(search_path, helper::get_context_root()),
         &mut HashSet::<(Url, Url)>::new(),
     )
     .expect("Could not load process")
@@ -194,7 +197,8 @@ fn get(test_dir: &Path, file_name: &str) -> String {
     String::from_utf8(buffer).expect("Could not convert to String")
 }
 
-fn execute_test(test_name: &str, search_path: Simpath, separate_processes: bool) {
+fn execute_test(test_name: &str, separate_processes: bool) {
+    let search_path = helper::set_lib_search_path_to_project();
     let mut root_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     root_dir.pop();
     let test_dir = root_dir.join(&format!("flowc/tests/test-flows/{}", test_name));
@@ -222,76 +226,65 @@ fn execute_test(test_name: &str, search_path: Simpath, separate_processes: bool)
 #[test]
 #[serial]
 fn debug_print_args() {
-    let search_path = helper::set_lib_search_path_to_project();
-    execute_test("debug-print-args", search_path, false);
+    execute_test("debug-print-args", false);
 }
 
 #[test]
 #[serial]
 fn print_args() {
-    let search_path = helper::set_lib_search_path_to_project();
-    execute_test("print-args", search_path, false);
+    execute_test("print-args", false);
 }
 
 #[test]
 #[serial]
 fn hello_world() {
-    let search_path = helper::set_lib_search_path_to_project();
-    execute_test("hello-world", search_path, false);
+    execute_test("hello-world", false);
 }
 
 #[test]
 #[serial]
 fn line_echo() {
-    let search_path = helper::set_lib_search_path_to_project();
-    execute_test("line-echo", search_path, false);
+    execute_test("line-echo", false);
 }
 
 #[test]
 #[serial]
 fn args() {
-    let search_path = helper::set_lib_search_path_to_project();
-    execute_test("args", search_path, false);
+    execute_test("args", false);
 }
 
 #[test]
 #[serial]
 fn args_json() {
-    let search_path = helper::set_lib_search_path_to_project();
-    execute_test("args_json", search_path, false);
+    execute_test("args_json", false);
 }
 
 #[test]
 #[serial]
 fn array_input() {
-    let search_path = helper::set_lib_search_path_to_project();
-    execute_test("array-input", search_path, false);
+    execute_test("array-input", false);
 }
 
 #[test]
 #[serial]
 fn double_connection() {
-    let search_path = helper::set_lib_search_path_to_project();
-    execute_test("double-connection", search_path, false);
+    execute_test("double-connection", false);
 }
 
 #[test]
 #[serial]
 fn duplicate_connection() {
-    let search_path = helper::set_lib_search_path_to_project();
-    execute_test("duplicate-connection", search_path, false);
+    execute_test("duplicate-connection", false);
 }
 
 #[test]
 #[serial]
 fn two_destinations() {
-    let search_path = helper::set_lib_search_path_to_project();
-    execute_test("two_destinations", search_path, false);
+    execute_test("two_destinations", false);
 }
 
 #[test]
 #[serial]
 fn hello_world_client_server() {
-    let search_path = helper::set_lib_search_path_to_project();
-    execute_test("hello-world", search_path, true);
+    execute_test("hello-world", true);
 }

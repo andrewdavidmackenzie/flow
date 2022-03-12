@@ -8,18 +8,18 @@ use log::info;
 use serde_derive::Serialize;
 use url::Url;
 
-use flowcore::model::flow_manifest::{DEFAULT_MANIFEST_FILENAME, FlowManifest};
-use flowcore::model::metadata::MetaData;
-use flowcore::model::input::Input;
 use flowcore::model::connection::Connection;
 use flowcore::model::flow_definition::FlowDefinition;
+use flowcore::model::flow_manifest::{DEFAULT_MANIFEST_FILENAME, FlowManifest};
 use flowcore::model::function_definition::FunctionDefinition;
+use flowcore::model::input::Input;
+use flowcore::model::metadata::MetaData;
 use flowcore::model::name::HasName;
+use flowcore::model::output_connection::Source;
 #[cfg(feature = "debugger")]
 use flowcore::model::route::HasRoute;
 use flowcore::model::route::Route;
 use flowcore::model::runtime_function::RuntimeFunction;
-use flowcore::model::output_connection::Source;
 
 use crate::errors::*;
 
@@ -37,8 +37,10 @@ pub struct GenerationTables {
     pub collapsed_connections: Vec<Connection>,
     /// The set of functions left in a flow after it has been flattened, connected and optimized
     pub functions: Vec<FunctionDefinition>,
-    /// The set of libraries used by a a flow, from their Urls
+    /// The set of libraries used by a flow, from their Urls
     pub libs: HashSet<Url>,
+    /// The set of context functions used by a flow, from their Urls
+    pub context_functions: HashSet<Url>,
     /// The list of source files that were used in the flow definition
     pub source_files: Vec<String>,
 }
@@ -53,6 +55,7 @@ impl GenerationTables {
             collapsed_connections: Vec::new(),
             functions: Vec::new(),
             libs: HashSet::new(),
+            context_functions: HashSet::new(),
             source_files: Vec::new(),
         }
     }
@@ -78,10 +81,11 @@ pub fn create_manifest(
             manifest_url,
             function,
             debug_symbols,
-        )?);
+        ).chain_err(|| "Could not convert function to runtime function")?);
     }
 
     manifest.set_lib_references(&tables.libs);
+    manifest.set_context_references(&tables.context_functions);
     #[cfg(feature = "debugger")]
     manifest.set_source_urls(source_urls);
 
@@ -150,7 +154,8 @@ fn function_to_runtimefunction(
     };
 
     // make the location of implementation relative to the output directory if it is under it
-    let implementation_location = implementation_location_relative(function, manifest_url)?;
+    let implementation_location = implementation_location_relative(function, manifest_url)
+        .chain_err(|| "Could not create Url for relative implementation location")?;
 
     let mut runtime_inputs = vec![];
     for input in function.get_inputs() {
@@ -174,10 +179,11 @@ fn function_to_runtimefunction(
 /*
     Get the location of the implementation - relative to the Manifest if it is a provided implementation
 */
-// TODO generalize this for Urls, not just files - will require changing the function.get_implementation()
 fn implementation_location_relative(function: &FunctionDefinition, manifest_url: &Url) -> Result<String> {
     if let Some(ref lib_reference) = function.get_lib_reference() {
-        Ok(format!("lib://{}/{}", lib_reference, &function.name()))
+        Ok(lib_reference.to_string())
+    } else if let Some(ref context_reference) = function.get_context_reference() {
+        Ok(context_reference.to_string())
     } else {
         let implementation_path = function.get_implementation();
         let implementation_url = Url::from_file_path(implementation_path)
@@ -209,13 +215,13 @@ mod test {
     use serde_json::json;
     use url::Url;
 
-    use flowcore::model::input::InputInitializer;
     use flowcore::model::function_definition::FunctionDefinition;
+    use flowcore::model::input::InputInitializer;
     use flowcore::model::io::IO;
     use flowcore::model::name::Name;
-    use flowcore::model::route::Route;
     use flowcore::model::output_connection::{OutputConnection, Source};
     use flowcore::model::output_connection::Source::Output;
+    use flowcore::model::route::Route;
 
     use super::function_to_runtimefunction;
 
@@ -224,7 +230,7 @@ mod test {
         let function = FunctionDefinition::new(
             Name::from("Stdout"),
             false,
-            "lib://context/stdio/stdout".to_string(),
+            "context://stdio/stdout".to_string(),
             Name::from("print"),
             vec![],
             vec![
@@ -233,7 +239,8 @@ mod test {
             ],
             Url::parse("file:///fake/file").expect("Could not parse Url"),
             Route::from("/flow0/stdout"),
-            Some("context/stdio/stdout".to_string()),
+            None,
+            Some(Url::parse("context://stdio/stdout").expect("Could not parse Url")),
             vec![
                 OutputConnection::new(
                     Source::default(),
@@ -265,7 +272,7 @@ mod test {
         let expected = "{
   'id': 0,
   'flow_id': 0,
-  'implementation_location': 'lib://context/stdio/stdout/Stdout',
+  'implementation_location': 'context://stdio/stdout',
   'output_connections': [
     {
       'function_id': 1,
@@ -302,13 +309,14 @@ mod test {
         let function = FunctionDefinition::new(
             Name::from("Stdout"),
             false,
-            "lib://context/stdio/stdout".to_string(),
+            "context://stdio/stdout".to_string(),
             Name::from("print"),
             vec![],
             vec![IO::new(vec!("String".into()), Route::default())],
             Url::parse("file:///fake/file").expect("Could not parse Url"),
             Route::from("/flow0/stdout"),
-            Some("context/stdio/stdout".to_string()),
+            None,
+            Some(Url::parse("context://stdio/stdout").expect("Could not parse Url")),
             vec![OutputConnection::new(
                 Source::default(),
                 1,
@@ -327,7 +335,7 @@ mod test {
         let expected = "{
   'id': 0,
   'flow_id': 0,
-  'implementation_location': 'lib://context/stdio/stdout/Stdout',
+  'implementation_location': 'context://stdio/stdout',
   'output_connections': [
     {
       'function_id': 1,
@@ -356,13 +364,14 @@ mod test {
         let function = FunctionDefinition::new(
             Name::from("Stdout"),
             false,
-            "lib://context/stdio/stdout".to_string(),
+            "context://stdio/stdout".to_string(),
             Name::from("print"),
             vec![],
             vec![IO::new(vec!("String".into()), Route::default())],
             Url::parse("file:///fake/file").expect("Could not parse Url"),
             Route::from("/flow0/stdout"),
-            Some("context/stdio/stdout".to_string()),
+            None,
+            Some(Url::parse("context://stdio/stdout").expect("Could not parse Url")),
             vec![OutputConnection::new(
                 Source::default(),
                 1,
@@ -381,7 +390,7 @@ mod test {
         let expected = "{
   'id': 0,
   'flow_id': 0,
-  'implementation_location': 'lib://context/stdio/stdout/Stdout',
+  'implementation_location': 'context://stdio/stdout',
   'output_connections': [
     {
       'function_id': 1,
@@ -414,13 +423,14 @@ mod test {
         let function = FunctionDefinition::new(
             Name::from("Stdout"),
             false,
-            "lib://context/stdio/stdout".to_string(),
+            "context://stdio/stdout".to_string(),
             Name::from("print"),
             vec![io],
             vec![],
             Url::parse("file:///fake/file").expect("Could not parse Url"),
             Route::from("/flow0/stdout"),
-            Some("context/stdio/stdout".to_string()),
+            None,
+            Some(Url::parse("context://stdio/stdout").expect("Could not parse Url")),
             vec![],
             0,
             0,
@@ -429,7 +439,7 @@ mod test {
         let expected = "{
   'id': 0,
   'flow_id': 0,
-  'implementation_location': 'lib://context/stdio/stdout/Stdout',
+  'implementation_location': 'context://stdio/stdout',
   'inputs': [
     {
       'initializer': {
@@ -460,13 +470,14 @@ mod test {
         let function = FunctionDefinition::new(
             Name::from("Stdout"),
             false,
-            "lib://context/stdio/stdout".to_string(),
+            "context://stdio/stdout".to_string(),
             Name::from("print"),
             vec![io],
             vec![],
             Url::parse("file:///fake/file").expect("Could not parse Url"),
             Route::from("/flow0/stdout"),
-            Some("context/stdio/stdout".to_string()),
+            None,
+            Some(Url::parse("context://stdio/stdout").expect("Could not parse Url")),
             vec![],
             0,
             0,
@@ -475,7 +486,7 @@ mod test {
         let expected = "{
   'id': 0,
   'flow_id': 0,
-  'implementation_location': 'lib://context/stdio/stdout/Stdout',
+  'implementation_location': 'context://stdio/stdout',
   'inputs': [
     {
       'initializer': {
@@ -505,13 +516,14 @@ mod test {
         let function = FunctionDefinition::new(
             Name::from("Stdout"),
             false,
-            "lib://context/stdio/stdout".to_string(),
+            "context://stdio/stdout".to_string(),
             Name::from("print"),
             vec![io],
             vec![],
             Url::parse("file:///fake/file").expect("Could not parse Url"),
             Route::from("/flow0/stdout"),
-            Some("context/stdio/stdout".to_string()),
+            None,
+            Some(Url::parse("context://stdio/stdout").expect("Could not parse Url")),
             vec![],
             0,
             0,
@@ -520,7 +532,7 @@ mod test {
         let expected = "{
   'id': 0,
   'flow_id': 0,
-  'implementation_location': 'lib://context/stdio/stdout/Stdout',
+  'implementation_location': 'context://stdio/stdout',
   'inputs': [
     {}
   ]
@@ -543,13 +555,15 @@ mod test {
         FunctionDefinition::new(
             Name::from("Stdout"),
             false,
-            "lib://context/stdio/stdout".to_string(),
+            "context://stdio/stdout".to_string(),
             Name::from("print"),
             vec![],
             vec![IO::new(vec!("String".into()), Route::default())],
             Url::parse("file:///fake/file").expect("Could not parse Url"),
             Route::from("/flow0/stdout"),
-            Some("context/stdio/stdout".to_string()),
+            None,
+            Some(Url::parse("context://stdio/stdout")
+                .expect("Could not parse Url")),
             vec![OutputConnection::new(
                 Source::default(),
                 1,
@@ -576,7 +590,7 @@ mod test {
   'route': '/flow0/stdout',
   'id': 0,
   'flow_id': 0,
-  'implementation_location': 'lib://context/stdio/stdout/Stdout',
+  'implementation_location': 'context://stdio/stdout',
   'output_connections': [
     {
       'function_id': 1,
@@ -589,7 +603,7 @@ mod test {
         let expected = "{
   'id': 0,
   'flow_id': 0,
-  'implementation_location': 'lib://context/stdio/stdout/Stdout',
+  'implementation_location': 'context://stdio/stdout',
   'output_connections': [
     {
       'function_id': 1,
@@ -617,13 +631,14 @@ mod test {
         let function = FunctionDefinition::new(
             Name::from("Stdout"),
             false,
-            "lib://context/stdio/stdout".to_string(),
+            "context://stdio/stdout".to_string(),
             Name::from("print"),
             vec![],
             vec![IO::new(vec!("Array".into()), Route::default())],
             Url::parse("file:///fake/file").expect("Could not parse Url"),
             Route::from("/flow0/stdout"),
-            Some("context/stdio/stdout".to_string()),
+            None,
+            Some(Url::parse("context://stdio/stdout").expect("Could not parse Url")),
             vec![OutputConnection::new(
                 Output("/0".into()),
                 1,
@@ -642,7 +657,7 @@ mod test {
         let expected = "{
   'id': 0,
   'flow_id': 0,
-  'implementation_location': 'lib://context/stdio/stdout/Stdout',
+  'implementation_location': 'context://stdio/stdout',
   'output_connections': [
     {
       'source': {

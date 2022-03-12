@@ -3,5 +3,5 @@ docs = "DESCRIPTION.md"
 
 [[process]]
 alias = "print"
-source = "lib://context/stdio/stdout"
+source = "context://stdio/stdout"
 input.default = {once =  "Hello World!"}

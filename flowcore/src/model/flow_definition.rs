@@ -9,15 +9,15 @@ use url::Url;
 
 use crate::errors::*;
 use crate::errors::Error;
-use crate::model::metadata::MetaData;
-use crate::model::input::InputInitializer;
 use crate::model::connection::Connection;
 use crate::model::connection::Direction;
 use crate::model::connection::Direction::FROM;
 use crate::model::connection::Direction::TO;
+use crate::model::input::InputInitializer;
 use crate::model::io::{IO, IOType};
 use crate::model::io::Find;
 use crate::model::io::IOSet;
+use crate::model::metadata::MetaData;
 use crate::model::name::HasName;
 use crate::model::name::Name;
 use crate::model::process::Process;
@@ -75,6 +75,9 @@ pub struct FlowDefinition {
     /// `lib_references` is the set of library references used in this flow
     #[serde(skip)]
     pub lib_references: HashSet<Url>,
+    /// `context_references` is the set of context functions used in this flow
+    #[serde(skip)]
+    pub context_references: HashSet<Url>,
 }
 
 impl Validate for FlowDefinition {
@@ -141,6 +144,7 @@ impl Default for FlowDefinition {
             route: Default::default(),
             subprocesses: Default::default(),
             lib_references: Default::default(),
+            context_references: Default::default(),
         }
     }
 }
@@ -431,11 +435,11 @@ mod test {
 
     use serde_json::json;
 
-    use crate::model::input::InputInitializer::Always;
-    use crate::model::input::InputInitializer::Once;
     use crate::model::connection::Connection;
     use crate::model::flow_definition::FlowDefinition;
     use crate::model::function_definition::FunctionDefinition;
+    use crate::model::input::InputInitializer::Always;
+    use crate::model::input::InputInitializer::Once;
     use crate::model::io::IO;
     use crate::model::name::{HasName, Name};
     use crate::model::process::Process;

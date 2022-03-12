@@ -6,7 +6,7 @@ use url::Url;
 
 use flowcore::errors::*;
 use flowcore::Implementation;
-use flowcore::lib_provider::Provider;
+use flowcore::meta_provider::Provider;
 use flowcore::model::flow_manifest::FlowManifest;
 use flowcore::model::lib_manifest::{
     ImplementationLocator::Native, ImplementationLocator::Wasm, LibraryManifest,
@@ -68,7 +68,7 @@ impl Loader {
                 .chain_err(|| format!("Could not load manifest from: '{}'", flow_manifest_url))?;
 
         self.load_library_implementations(provider, &flow_manifest)
-            .chain_err(|| format!("Could not load libraries referenced by flow at: {}",
+            .chain_err(|| format!("Could not load libraries referenced by manifest at: {}",
                        resolved_url))?;
 
         // Find the implementations for all functions used in this flow
@@ -251,7 +251,7 @@ impl Loader {
         // find in a library, or load the supplied implementation - as specified by the source
         for function in flow_manifest.get_functions() {
             match function.implementation_location().split_once(':') {
-                Some(("lib", _)) => {
+                Some(("lib", _)) | Some(("context", _)) => {
                     let implementation_url = Url::parse(function.implementation_location())
                         .chain_err(|| {
                             "Could not create a Url from a lib: implementation location"
@@ -259,12 +259,10 @@ impl Loader {
                     let implementation = self
                         .loaded_lib_implementations
                         .get(&implementation_url)
-                        .chain_err(|| {
-                        format!(
+                        .ok_or_else(|| format!(
                             "Implementation at '{}' is not in loaded libraries",
                             function.implementation_location()
-                        )
-                    })?;
+                        ))?;
                     trace!(
                         "Found implementation location for '{}' in loaded libraries",
                         function.implementation_location()

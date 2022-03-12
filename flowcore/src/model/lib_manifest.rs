@@ -8,7 +8,7 @@ use url::Url;
 use crate::deserializers::deserializer::get_deserializer;
 use crate::errors::*;
 use crate::Implementation;
-use crate::lib_provider::Provider;
+use crate::meta_provider::Provider;
 use crate::model::metadata::MetaData;
 
 /// The default name used for a Library  Manifest file if none is specified
@@ -108,17 +108,16 @@ impl LibraryManifest {
         Ok((manifest, url))
     }
 
-    /// Add a function's implementation locator (location of wasm file) to the `LibraryManifest`
+    /// Add an implementation locator (location of the wasm file) to the `LibraryManifest`
     /// The WASM file's path is relative to the library root so that the library is location independent
     pub fn add_locator(
         &mut self,
         wasm_relative_path: &str,
         relative_dir: &str,
-        function_name: &str,
     ) -> Result<()> {
         let lib_reference = Url::parse(&format!(
-            "lib://{}/{}/{}",
-            self.metadata.name, relative_dir, function_name
+            "lib://{}/{}",
+            self.metadata.name, relative_dir
         ))
         .chain_err(|| "Could not form library Url to add to the manifest")?;
 
@@ -169,7 +168,7 @@ mod test {
 
     use crate::errors::Result;
     use crate::Implementation;
-    use crate::lib_provider::Provider;
+    use crate::meta_provider::Provider;
     use crate::model::lib_manifest::{
         ImplementationLocator, ImplementationLocator::Wasm, LibraryManifest,
     };
@@ -203,7 +202,7 @@ mod test {
             source: &Url,
             _default_filename: &str,
             _extensions: &[&str],
-        ) -> Result<(Url, Option<String>)> {
+        ) -> Result<(Url, Option<Url>)> {
             Ok((source.clone(), None))
         }
 
@@ -329,7 +328,7 @@ mod test {
             test_meta_data(),
         );
         library
-            .add_locator("/bin/my.wasm", "/bin", "my function")
+            .add_locator("/bin/my.wasm", "/bin")
             .expect("Could not add to manifest");
         assert_eq!(
             library.locators.len(),
@@ -359,7 +358,7 @@ mod test {
             test_meta_data(),
         );
         library1
-            .add_locator("/bin/my.wasm", "/bin", "my-function")
+            .add_locator("/bin/my.wasm", "/bin")
             .expect("Could not add to manifest");
 
         let library2 = LibraryManifest::new(
@@ -377,7 +376,7 @@ mod test {
             test_meta_data(),
         );
         library1
-            .add_locator("/bin/fake.wasm", "/bin", "my fake function")
+            .add_locator("/bin/fake.wasm", "/bin")
             .expect("Could not add to manifest");
 
         let mut library2 = LibraryManifest::new(
@@ -385,7 +384,7 @@ mod test {
             test_meta_data(),
         );
         library2
-            .add_locator("/bin/my.wasm", "/bin", "my function")
+            .add_locator("/bin/my.wasm", "/bin")
             .expect("Could not add to manifest");
 
         assert!(library1 != library2);
@@ -398,7 +397,7 @@ mod test {
             test_meta_data(),
         );
         library1
-            .add_locator("/bin/my.wasm", "/bin", "my function")
+            .add_locator("/bin/my.wasm", "/bin")
             .expect("Could not add to manifest");
 
         let mut library2 = LibraryManifest::new(
@@ -406,7 +405,7 @@ mod test {
             test_meta_data(),
         );
         library2
-            .add_locator("/bin/my.wasm", "/bin", "my function")
+            .add_locator("/bin/my.wasm", "/bin")
             .expect("Could not add to manifest");
 
         assert!(library1 == library2);

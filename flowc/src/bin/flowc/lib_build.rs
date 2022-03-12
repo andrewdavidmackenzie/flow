@@ -1,5 +1,5 @@
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use colored::*;
 use log::{debug, info};
@@ -7,12 +7,11 @@ use simpath::Simpath;
 use url::Url;
 use wax::Glob;
 
-use flowclib::compiler::compile_wasm;
 use flowclib::compiler::{json_manifest, loader};
+use flowclib::compiler::compile_wasm;
 use flowclib::dumper::{dump, dump_dot};
+use flowcore::meta_provider::{MetaProvider, Provider};
 use flowcore::model::lib_manifest::LibraryManifest;
-use flowcore::lib_provider::{MetaProvider, Provider};
-use flowcore::model::name::HasName;
 use flowcore::model::process::Process::{FlowProcess, FunctionProcess};
 
 use crate::errors::*;
@@ -57,7 +56,8 @@ pub fn build_lib(options: &Options, provider: &dyn Provider) -> Result<()> {
         if build_count > 0 {
             ("Library manifest file(s) exists, but implementations were built, writing new file(s)", true)
         } else {
-            let provider = MetaProvider::new(Simpath::new(""));
+            let provider = MetaProvider::new(Simpath::new(""),
+                                             PathBuf::from("/"));
             let json_manifest_file_as_url =
                 Url::from_file_path(&manifest_json_file).map_err(|_| {
                     format!(
@@ -197,7 +197,6 @@ fn compile_implementations(
                             .add_locator(
                                 &wasm_relative_path.to_string_lossy(),
                                 &relative_dir.to_string_lossy(),
-                                function.name() as &str,
                             )
                             .chain_err(|| "Could not add entry to library manifest")?;
                         if built {

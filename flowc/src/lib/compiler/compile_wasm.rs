@@ -337,7 +337,9 @@ mod test {
             ))
             .expect("Could not create source Url"),
             Route::from("/flow0/stdout"),
-            Some("tests/test-functions/test/test".to_string()),
+            Some(Url::parse("lib::/tests/test-functions/test/test")
+                .expect("Could not parse Url")),
+            None,
             vec![OutputConnection::new(
                 Source::default(),
                 1,

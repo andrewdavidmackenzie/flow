@@ -105,11 +105,11 @@ metadata:
 
         [[process]]
         alias = 'input'
-        source = 'lib://context/stdio/stdin.toml'
+        source = 'context://stdio/stdin.toml'
 
         [[process]]
         alias = 'print'
-        source = 'lib://context/stdio/stdout.toml'
+        source = 'context://stdio/stdout.toml'
 
         [[connection]]
         from = 'input'
@@ -217,7 +217,7 @@ version = \"1.1.1\"
 
         [[process]]
         alias = 'print'
-        source = 'lib://context/stdio/stdout.toml'
+        source = 'context://stdio/stdout.toml'
     ";
 
         assert!(toml_from_str(flow_description).is_ok());
@@ -252,7 +252,7 @@ version = \"1.1.1\"
     fn load_fails_if_no_alias() {
         let flow_description = "\
         [[process]]
-        source = 'lib://context/stdio/stdout.toml'
+        source = 'context://stdio/stdout.toml'
     ";
 
         assert!(toml_from_str(flow_description).is_err());
@@ -299,7 +299,7 @@ type = 'String'";
     'process': [
         {
             'alias': 'print',
-            'source': 'lib://context/stdio/stdout.toml',
+            'source': 'context://stdio/stdout.toml',
             'input': {
                 'default': {
                     'once': 'hello'
@@ -320,11 +320,11 @@ type = 'String'";
     'process': [
         {
             'alias': 'input',
-            'source': 'lib://context/stdio/stdin.toml'
+            'source': 'context://stdio/stdin.toml'
         },
         {
             'alias': 'print',
-            'source': 'lib://context/stdio/stdout.toml'
+            'source': 'context://stdio/stdout.toml'
         }
     ],
     'connection': [
@@ -346,11 +346,11 @@ type = 'String'";
     'process': [
         {
             'alias': 'message',
-            'source': 'lib://context/stdio/stdin.toml'
+            'source': 'context://stdio/stdin.toml'
         },
         {
             'alias': 'print',
-            'source': 'lib://context/stdio/stdout.toml'
+            'source': 'context://stdio/stdout.toml'
         }
     ],
     'connection': [

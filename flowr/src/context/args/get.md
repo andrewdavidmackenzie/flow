@@ -10,7 +10,7 @@ Get the arguments the flow was executed with
 ```toml
 [[process]]
 alias = "get"
-source = "lib://context/args/get"
+source = "context://args/get"
 ```
 
 ### Inputs

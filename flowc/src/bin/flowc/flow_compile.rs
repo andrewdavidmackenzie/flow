@@ -14,7 +14,7 @@ use flowclib::compiler::loader;
 use flowclib::dumper::{dump, dump_dot};
 use flowclib::generator::generate;
 use flowclib::generator::generate::GenerationTables;
-use flowcore::lib_provider::Provider;
+use flowcore::meta_provider::Provider;
 use flowcore::model::flow_definition::FlowDefinition;
 use flowcore::model::process::Process::FlowProcess;
 
@@ -30,7 +30,7 @@ fn compile_supplied_implementations(
     #[cfg(feature = "debugger")] source_urls: &mut HashSet<(Url, Url)>,
 ) -> Result<String> {
     for function in &mut tables.functions {
-        if function.get_lib_reference().is_none() {
+        if function.get_lib_reference().is_none() && function.get_context_reference().is_none() {
             compile_wasm::compile_implementation(
                 out_dir,
                 function,
@@ -55,7 +55,7 @@ pub fn compile_and_execute_flow(options: &Options, provider: &dyn Provider) -> R
         #[cfg(feature = "debugger")]
         &mut source_urls,
     )
-    .chain_err(|| format!("Could not load flow from '{}'", options.source_url))?;
+    .chain_err(|| format!("Could not load flow using '{}'", options.source_url))?;
 
     match context {
         FlowProcess(flow) => {
@@ -139,23 +139,41 @@ fn dump(
 fn execute_flow(filepath: &Path, options: &Options) -> Result<()> {
     info!("==== Compiler phase: Executing flow from manifest at '{}'", filepath.display());
 
-    let mut command_args = vec![filepath.display().to_string()];
+    let mut flowr_args = vec![];
 
-    // If the user didn't already specify the "-n" (native libraries) option for execution of
-    // "flowr" then add it - to execute flows using the libraries natively linked to "flow"
-    if !options.flow_args.contains(&"-n".to_string()) {
-        command_args.push("-n".to_string());
+    // if execution metrics requested to flowc, pass that onto flowr
+    if options.execution_metrics {
+        flowr_args.push("-m".to_string());
+    }
+
+    // unless wasm execution requested, pass the native flag onto flowr
+    if !options.wasm_execution {
+        flowr_args.push("-n".to_string());
+    }
+
+    // pass along any specified library directories to flowr also
+    for lib_dir in &options.lib_dirs {
+        flowr_args.push("-L".to_string());
+        flowr_args.push(lib_dir.to_string());
+    }
+
+    // pass along any specified context root to flowr also
+    if let Some(context_root) = &options.context_root {
+        flowr_args.push("-C".to_string());
+        flowr_args.push(context_root.to_owned().to_string_lossy().to_string());
     }
 
     if !options.flow_args.is_empty() {
-        command_args.push("--".to_string());
-        command_args.append(&mut options.flow_args.to_vec());
+        flowr_args.push("--".to_string());
+        flowr_args.append(&mut options.flow_args.to_vec());
     }
-    info!("Running flow using 'flowr {:?}'", &command_args);
 
+    flowr_args.push(filepath.display().to_string());
+
+    info!("Running flow using 'flowr {:?}'", &flowr_args);
     let mut flowr = Command::new("flowr");
     flowr
-        .args(command_args)
+        .args(flowr_args)
         .stdin(Stdio::inherit())
         .stdout(Stdio::inherit())
         .stderr(Stdio::inherit());

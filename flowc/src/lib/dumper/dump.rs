@@ -1,20 +1,17 @@
+use std::fmt;
+use std::fs::File;
 use std::io::Write;
 use std::path::Path;
+use std::path::PathBuf;
 
 use log::{debug, info};
 
-use flowcore::lib_provider::Provider;
+use flowcore::meta_provider::Provider;
 use flowcore::model::flow_definition::FlowDefinition;
 use flowcore::model::process::Process::FlowProcess;
 
-use crate::errors::*;
-
-use std::fmt;
-use std::fs::File;
-use std::path::PathBuf;
-
-
 use crate::dumper::{dump, dump_dot};
+use crate::errors::*;
 use crate::generator::generate::GenerationTables;
 
 /// Dump the compiler tables of a loaded flow in human readable format to a specified
@@ -24,14 +21,15 @@ use crate::generator::generate::GenerationTables;
 /// ```
 /// use std::env;
 /// use url::Url;
-/// use flowcore::lib_provider::{Provider, MetaProvider};
+/// use flowcore::meta_provider::{Provider, MetaProvider};
 /// use flowcore::errors::Result;
 /// use flowcore::model::process::Process::FlowProcess;
 /// use std::collections::HashSet;
 /// use simpath::Simpath;
+/// use std::path::PathBuf;
 ///
 /// let lib_search_path = Simpath::new("FLOW_LIB_PATH");
-/// let provider = MetaProvider::new(lib_search_path);
+/// let provider = MetaProvider::new(lib_search_path, PathBuf::from("/"));
 ///
 /// let mut url = url::Url::from_file_path(env::current_dir().unwrap()).unwrap();
 /// url = url.join("samples/hello-world/root.toml").unwrap();
@@ -95,14 +93,15 @@ pub fn create_output_file(
 /// ```
 /// use std::env;
 /// use url::Url;
-/// use flowcore::lib_provider::{Provider, MetaProvider};
+/// use flowcore::meta_provider::{Provider, MetaProvider};
 /// use flowcore::errors::Result;
 /// use flowcore::model::process::Process::FlowProcess;
 /// use std::collections::HashSet;
 /// use simpath::Simpath;
+/// use std::path::PathBuf;
 ///
 /// let lib_search_path = Simpath::new("FLOW_LIB_PATH");
-/// let provider = MetaProvider::new(lib_search_path);
+/// let provider = MetaProvider::new(lib_search_path, PathBuf::from("/"));
 /// let mut url = url::Url::from_file_path(env::current_dir().unwrap()).unwrap();
 /// url = url.join("samples/hello-world/root.toml").unwrap();
 ///
@@ -145,15 +144,16 @@ fn dump_table<C: Iterator>(table: C, writer: &mut dyn Write) -> std::io::Result<
 /// ```
 /// use std::env;
 /// use url::Url;
-/// use flowcore::lib_provider::{Provider, MetaProvider};
+/// use flowcore::meta_provider::{Provider, MetaProvider};
 /// use flowcore::errors::Result;
 /// use flowcore::model::process::Process::FlowProcess;
 /// use tempdir::TempDir;
 /// use std::collections::HashSet;
 /// use simpath::Simpath;
+/// use std::path::PathBuf;
 ///
 /// let lib_search_path = Simpath::new("FLOW_LIB_PATH");
-/// let provider = MetaProvider::new(lib_search_path);
+/// let provider = MetaProvider::new(lib_search_path, PathBuf::from("/"));
 ///
 /// let mut url = url::Url::from_file_path(env::current_dir().unwrap()).unwrap();
 /// url = url.join("samples/hello-world/root.toml").unwrap();

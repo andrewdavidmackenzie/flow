@@ -10,7 +10,7 @@ use serde_json::Value;
 use simpath::{FileType, FoundType, Simpath};
 use wax::Glob;
 
-use flowcore::lib_provider::Provider;
+use flowcore::meta_provider::Provider;
 use flowcore::model::connection::Connection;
 use flowcore::model::flow_definition::FlowDefinition;
 use flowcore::model::function_definition::FunctionDefinition;
@@ -31,20 +31,21 @@ use crate::generator::generate::GenerationTables;
 /// ```
 /// use std::env;
 /// use url::Url;
-/// use flowcore::lib_provider::{Provider, MetaProvider};
+/// use flowcore::meta_provider::{Provider, MetaProvider};
 /// use flowcore::errors::Result;
 /// use flowcore::model::process::Process::FlowProcess;
 /// use tempdir::TempDir;
 /// use std::collections::HashSet;
 /// use simpath::Simpath;
 /// use std::path::Path;
+/// use std::path::PathBuf;
 ///
 /// // Create a lib_search_path including 'context' which is in flowr/src
 /// let mut lib_search_path = Simpath::new("TEST_LIBS");
 /// let root_str = Path::new(env!("CARGO_MANIFEST_DIR")).parent().unwrap();
 /// let runtime_parent = root_str.join("flowr/src");
 /// lib_search_path.add_directory(runtime_parent.to_str().unwrap());
-/// let provider = MetaProvider::new(lib_search_path);
+/// let provider = MetaProvider::new(lib_search_path, PathBuf::from("/"));
 ///
 /// let mut url = url::Url::from_file_path(env::current_dir().unwrap()).unwrap();
 /// url = url.join("flowc/tests/test-flows/hello-world/hello-world.toml").unwrap();
@@ -100,15 +101,16 @@ pub fn dump_functions(
 /// ```
 /// use std::env;
 /// use url::Url;
-/// use flowcore::lib_provider::{Provider, MetaProvider};
+/// use flowcore::meta_provider::{Provider, MetaProvider};
 /// use flowcore::errors::Result;
 /// use flowcore::model::process::Process::FlowProcess;
 /// use tempdir::TempDir;
 /// use std::collections::HashSet;
 /// use simpath::Simpath;
+/// use std::path::PathBuf;
 ///
 /// let lib_search_path = Simpath::new("FLOW_LIB_PATH");
-/// let provider = MetaProvider::new(lib_search_path);
+/// let provider = MetaProvider::new(lib_search_path, PathBuf::from("/"));
 ///
 /// let mut url = url::Url::from_file_path(env::current_dir().unwrap()).unwrap();
 /// url = url.join("samples/hello-world/root.toml").unwrap();

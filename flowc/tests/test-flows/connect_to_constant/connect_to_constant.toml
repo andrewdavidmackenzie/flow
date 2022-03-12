@@ -2,12 +2,12 @@ flow = "connect_to_constant"
 
 [[process]]
 alias = "args"
-source = "lib://context/args/get"
+source = "context://args/get"
 
 [[connection]]
 from = "args/string/1"
 to = "stdout"
 
 [[process]]
-source = "lib://context/stdio/stdout"
+source = "context://stdio/stdout"
 input.default = { always = "OK" }
