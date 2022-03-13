@@ -21,7 +21,6 @@ path = "src/lib.rs"
 default = ["wasmi_runtime"]
 debugger = ["flowcore/debugger"] # feature to add the debugger, requires flowcore crate to have feature enabled also
 metrics = []  # feature for tracking of metrics during execution
-checks = []   # feature to perform extra checks during flow execution
 wasmi_runtime = ["wasmi"] # First WASM implementation
 wasmtime_runtime = ["wasmtime", "anyhow"] # An alternative WASM implementation
 

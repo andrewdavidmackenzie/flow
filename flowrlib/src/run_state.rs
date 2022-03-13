@@ -21,7 +21,7 @@ use crate::debugger::Debugger;
 use crate::job::Job;
 
 /// `State` represents the possible states it is possible for a function to be in
-#[cfg(any(feature = "checks", feature = "debugger", test))]
+#[cfg(any(debug_assertions, feature = "debugger", test))]
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub enum State {
     /// Ready     - Function will be in Ready state when all of it's inputs are full and there are no inputs
@@ -342,9 +342,8 @@ impl RunState {
         self.blocked = blocked;
     }
 
-    /// Figure out the state of a function based on it's presence or not in the different control
-    /// lists
-    #[cfg(any(feature = "checks", feature = "debugger", test))]
+    /// Figure out the state of a function based on it's presence or not in the different control lists
+    #[cfg(any(debug_assertions, feature = "debugger", test))]
     pub fn get_state(&self, function_id: usize) -> State {
         if self.ready.contains(&function_id) {
             State::Ready
@@ -494,7 +493,7 @@ impl RunState {
             job.function_id
         );
         self.running.retain(|&_, &job_id| job_id != job.job_id);
-        #[cfg(feature = "checks")]
+        #[cfg(debug_assertions)]
         let job_id = job.job_id;
 
         if let Ok(result) = &job.result {
@@ -548,7 +547,7 @@ impl RunState {
             self.unblock_flows(job.flow_id, job.job_id);
         }
 
-        #[cfg(feature = "checks")]
+        #[cfg(debug_assertions)]
         self.check_invariants(job_id);
     }
 
@@ -958,7 +957,7 @@ impl RunState {
         }
     }
 
-    #[cfg(feature = "checks")]
+    #[cfg(debug_assertions)]
     fn runtime_error(&self, job_id: usize, message: &str, file: &str, line: u32) {
         error!(
             "Job #{}: Runtime error: at file: {}, line: {}\n\t\t{}",
@@ -971,7 +970,7 @@ impl RunState {
     /// Check a number of "invariants" i.e. unbreakable rules about the state.
     /// If one is found to be broken, report a runtime error explaining it, which may
     /// trigger entry into the debugger.
-    #[cfg(feature = "checks")]
+    #[cfg(debug_assertions)]
     fn check_invariants(&mut self, job_id: usize) {
         for function in &self.functions {
             match self.get_state(function.id()) {
