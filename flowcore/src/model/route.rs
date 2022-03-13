@@ -118,6 +118,20 @@ impl Route {
 
         (Cow::Borrowed(self), 0, false)
     }
+
+    /// Return true if the route selects an element from an array
+    pub fn is_array_selector(&self) -> bool {
+        if self.is_empty() {
+            return false;
+        }
+
+        let mut parts: Vec<&str> = self.split('/').collect();
+        if let Some(last_part) = parts.pop() {
+            return last_part.parse::<usize>().is_ok();
+        }
+
+        false
+    }
 }
 
 impl AsRef<str> for Route {

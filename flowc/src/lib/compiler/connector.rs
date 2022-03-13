@@ -328,6 +328,7 @@ fn find_function_destinations(
                             next_connection.to_io().route()
                         );
                         // Found a destination that is a function, add it to the list
+                        // TODO accumulate the source subroute that builds up as we go
                         destinations
                             .push((accumulated_source_subroute, next_connection.to_io().clone()));
                         found = true;
@@ -365,8 +366,8 @@ fn find_function_destinations(
         }
     }
 
-    if !found {
-        debug!("\t\tEnd of connection chain reached without finding a destination function");
+    if !found { // Some chains or sub-chains of connections maybe dead ends, without that being an error
+        debug!("\t\tEnd of connection chain reached without finding a destination Function Input");
     }
 
     destinations
@@ -384,15 +385,15 @@ mod test {
         use super::super::get_source;
 
         /*
-                    Create a HashTable of routes for use in tests.
-                    Each entry (K, V) is:
-                    - Key   - the route to a function's IO
-                    - Value - a tuple of
-                                - sub-route (or IO name) from the function to be used at runtime
-                                - the id number of the function in the functions table, to select it at runtime
+                            Create a HashTable of routes for use in tests.
+                            Each entry (K, V) is:
+                            - Key   - the route to a function's IO
+                            - Value - a tuple of
+                                        - sub-route (or IO name) from the function to be used at runtime
+                                        - the id number of the function in the functions table, to select it at runtime
 
-                    Plus a vector of test cases with the Route to search for and the expected function_id and output sub-route
-                */
+                            Plus a vector of test cases with the Route to search for and the expected function_id and output sub-route
+                        */
         #[allow(clippy::type_complexity)]
         fn test_source_routes() -> (
             HashMap<Route, (Source, usize)>,

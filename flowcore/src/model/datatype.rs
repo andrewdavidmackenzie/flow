@@ -49,6 +49,19 @@ impl fmt::Display for DataType {
     }
 }
 
+/// A set of datatypes
+pub struct DataTypeList(Vec<DataType>);
+
+impl fmt::Display for DataTypeList {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "[")?;
+        for dt in &self.0 {
+            write!(f, "{}, ", dt.0)?;
+        }
+        write!(f, "]")
+    }
+}
+
 /// Trait that is used on multiple objects to get their data type
 pub trait HasDataTypes {
     /// Return a reference to the datatype of the object implementing this trait
