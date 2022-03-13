@@ -2,7 +2,7 @@ flow = "generate_pixels"
 
 [[input]]
 name = "size"
-type = "Array/Number"
+type = "array/number"
 
 [[output]]
 name = "pixels"

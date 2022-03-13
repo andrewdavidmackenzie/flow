@@ -5,28 +5,28 @@ type = "rust"
 
 [[input]]
 name = "left" # - left hand input
-type = "Number"
+type = "number"
 
 [[input]]
 name = "right" # - right hand input
-type = "Number"
+type = "number"
 
 [[output]]
-name = "equal" # - `equal` \[Boolean\] - outputs true if the two values are equal
-type = "Bool"
+name = "equal" # - `equal` - outputs true if the two values are equal
+type = "boolean"
 
 [[output]]
-name = "lt" # - `lt` \[Boolean\] - outputs true if the left hand value is less than the right hand value
-type = "Bool"
+name = "lt" # - `lt` - outputs true if the left hand value is less than the right hand value
+type = "boolean"
 
 [[output]]
-name = "lte" # - `lte` \[Boolean\] - outputs true if the left hand value is less than or equal to the right hand value
-type = "Bool"
+name = "lte" # - `lte` - outputs true if the left hand value is less than or equal to the right hand value
+type = "boolean"
 
 [[output]]
-name = "gt" # - `gt` \[Boolean\] - outputs true if the left hand value is greater than the right hand value
-type = "Bool"
+name = "gt" # - `gt` - outputs true if the left hand value is greater than the right hand value
+type = "boolean"
 
 [[output]]
-name = "gte" # - `gte` \[Boolean\] - outputs true if the left hand value is greater than or equal to the right hand value
-type = "Bool"
+name = "gte" # - `gte` - outputs true if the left hand value is greater than or equal to the right hand value
+type = "boolean"

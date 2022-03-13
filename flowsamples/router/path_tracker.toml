@@ -3,47 +3,47 @@ flow = "path_tracker"
 # Distance to next stop going forward
 [[input]]
 name = "forward"
-type = "Number"
+type = "number"
 
 # Distance crossing over from the other route
 [[input]]
 name = "cross"
-type = "Number"
+type = "number"
 
 # Forward distance on the other route
 [[input]]
 name = "other"
-type = "Number"
+type = "number"
 
 # The string we use to denominate we have selected the forward route e.g. 'A' on the top, 'B' on the bottom
 [[input]]
 name = "forward_string"
-type = "String"
+type = "string"
 
 # The string we use to denominate we have selected the cross route e.g. 'BC' on the top route, 'AC' on the bottom route
 [[input]]
 name = "cross_string"
-type = "String"
+type = "string"
 
 # The Route taken so far on the forward route (A on top, B on bottom)
 [[input]]
 name = "forward_route"
-type = "String"
+type = "string"
 
 # The distance taken on that route
 [[input]]
 name = "forward_distance"
-type = "Number"
+type = "number"
 
 # The Route taken so far on the other route (B on top, A on bottom)
 [[input]]
 name = "other_route"
-type = "String"
+type = "string"
 
 # The distance taken on that route
 [[input]]
 name = "other_distance"
-type = "Number"
+type = "number"
 
 
 #### Outputs
@@ -51,12 +51,12 @@ type = "Number"
 #### The path (so far) that we have selected
 [[output]]
 name = "route"
-type = "String"
+type = "string"
 
 #### The total (so far) for the path (so far) we have selected
 [[output]]
 name = "distance"
-type = "Number"
+type = "number"
 
 ############################### Definition #####################
 

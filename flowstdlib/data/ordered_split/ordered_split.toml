@@ -5,11 +5,11 @@ type = "rust"
 
 [[input]]
 name = "string" # - the String to split
-type = "String"
+type = "string"
 
 [[input]]
 name = "separator" # - the String to use as a separator
-type = "String"
+type = "string"
 
 [[output]]
-type = "Array/String"
+type = "array/string"

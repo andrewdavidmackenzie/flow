@@ -5,8 +5,8 @@ impure = true
 
 [[output]]
 name = "string"
-type = "String"
+type = "string"
 
 [[output]]
 name = "json"
-type = "Value"
+type = "object"

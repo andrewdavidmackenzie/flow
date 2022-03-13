@@ -2,19 +2,19 @@ flow = "generate_composites"
 
 [[input]]
 name = "limit"
-type = "Number"
+type = "number"
 
 [[input]]
 name = "start"
-type = "Number"
+type = "number"
 
 [[output]]
 name = "composites"
-type = "Number"
+type = "number"
 
 [[output]]
 name = "subsequence-end"
-type = "Number"
+type = "number"
 
 # Multiply start by 2
 [[process]]

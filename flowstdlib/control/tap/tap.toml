@@ -5,11 +5,11 @@ type = "rust"
 
 [[input]]
 name = "data" # - the data flow we wish to control the flow if
-type = "Value"
+type = "object"
 
 [[input]]
 name = "control" # - a boolean value to determine in `data` is passed on or not
-type = "Bool"
+type = "boolean"
 
 [[output]]
-type = "Value" # `data` is output if `control` is true, nothing if `control` is false
+type = "object" # `data` is output if `control` is true, nothing if `control` is false

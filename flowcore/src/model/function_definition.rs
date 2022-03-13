@@ -399,7 +399,7 @@ mod test {
 
     use crate::deserializers::deserializer::get_deserializer;
     use crate::errors::*;
-    use crate::model::datatype::DataType;
+    use crate::model::datatype::{DataType, NUMBER_TYPE, STRING_TYPE};
     use crate::model::io::Find;
     use crate::model::name::HasName;
     use crate::model::name::Name;
@@ -443,7 +443,7 @@ mod test {
     #[test]
     fn deserialize_missing_name() {
         let function_str = "
-        type = 'Value'
+        type = 'object'
         ";
 
         let r_f: Result<FunctionDefinition> = toml_from_str(function_str);
@@ -496,7 +496,7 @@ mod test {
 
         [[input]]
         name = 'left'
-        type = 'Number'
+        type = 'number'
         ";
 
         let function = toml_from_str(function_str)
@@ -510,7 +510,7 @@ mod test {
         function = 'test_function'
         source = 'test.rs'
         [[output]]
-        type = 'String'
+        type = 'string'
         ";
 
         let function: FunctionDefinition =
@@ -520,7 +520,7 @@ mod test {
         let output = &function.outputs[0];
         assert_eq!(*output.name(), Name::default());
         assert_eq!(output.datatypes().len(), 1);
-        assert_eq!(output.datatypes()[0], DataType::from("String"));
+        assert_eq!(output.datatypes()[0], DataType::from(STRING_TYPE));
     }
 
     #[test]
@@ -531,7 +531,7 @@ mod test {
 
         [[output]]
         name = 'sub_output'
-        type = 'String'
+        type = 'string'
         ";
 
         let function: FunctionDefinition =
@@ -541,7 +541,7 @@ mod test {
         let output = &function.outputs[0];
         assert_eq!(*output.name(), Name::from("sub_output"));
         assert_eq!(output.datatypes().len(), 1);
-        assert_eq!(output.datatypes()[0], DataType::from("String"));
+        assert_eq!(output.datatypes()[0], DataType::from(STRING_TYPE));
     }
 
     #[test]
@@ -552,10 +552,10 @@ mod test {
 
         [[output]]
         name = 'sub_output'
-        type = 'String'
+        type = 'string'
         [[output]]
         name = 'other_output'
-        type = 'Number'
+        type = 'number'
         ";
 
         let function: FunctionDefinition =
@@ -567,11 +567,11 @@ mod test {
         let output0 = &outputs[0];
         assert_eq!(*output0.name(), Name::from("sub_output"));
         assert_eq!(output0.datatypes().len(), 1);
-        assert_eq!(output0.datatypes()[0], DataType::from("String"));
+        assert_eq!(output0.datatypes()[0], DataType::from(STRING_TYPE));
         let output1 = &outputs[1];
         assert_eq!(*output1.name(), Name::from("other_output"));
         assert_eq!(output1.datatypes().len(), 1);
-        assert_eq!(output1.datatypes()[0], DataType::from("Number"));
+        assert_eq!(output1.datatypes()[0], DataType::from(NUMBER_TYPE));
     }
 
     #[test]
@@ -582,10 +582,10 @@ mod test {
 
         [[output]]
         name = 'sub_output'
-        type = 'String'
+        type = 'string'
         [[output]]
         name = 'other_output'
-        type = 'Number'
+        type = 'number'
         ";
 
         // Setup
@@ -610,13 +610,13 @@ mod test {
 
     #[test]
     fn get_array_element_of_root_output() {
-        // Create a function where the output is an Array of String
+        // Create a function where the output is an array of String
         let function_str = "
         function = 'test_function'
         source = 'test.rs'
 
         [[output]]
-        type = 'Array/String'
+        type = 'array/string'
         ";
 
         // Setup

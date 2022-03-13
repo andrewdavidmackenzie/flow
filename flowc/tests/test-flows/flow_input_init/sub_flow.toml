@@ -2,11 +2,11 @@ flow = "sub_flow"
 
 [[input]]
 name = "input"
-type = "Value"
+type = "object"
 
 [[output]]
 name = "output"
-type = "Value"
+type = "object"
 
 [[connection]]
 from = "input/input"

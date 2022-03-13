@@ -5,9 +5,9 @@ use error_chain::bail;
 use serde_derive::{Deserialize, Serialize};
 
 use crate::errors::*;
-use crate::model::input::InputInitializer;
-use crate::model::datatype::DataType;
+use crate::model::datatype::{DataType, OBJECT_TYPE};
 use crate::model::datatype::HasDataTypes;
+use crate::model::input::InputInitializer;
 use crate::model::name::HasName;
 use crate::model::name::Name;
 use crate::model::route::HasRoute;
@@ -171,7 +171,7 @@ impl HasRoute for IO {
 }
 
 fn default_types() -> Vec<DataType> {
-    vec!(DataType::from("Value"))
+    vec!(DataType::from(OBJECT_TYPE))
 }
 
 fn default_io_type() -> IOType {
@@ -308,7 +308,7 @@ mod test {
 
     use crate::deserializers::deserializer::get_deserializer;
     use crate::errors::*;
-    use crate::model::datatype::DataType;
+    use crate::model::datatype::{DataType, OBJECT_TYPE, STRING_TYPE};
     use crate::model::io::{IOSet, IOType};
     use crate::model::name::HasName;
     use crate::model::name::Name;
@@ -329,14 +329,14 @@ mod test {
             Err(_) => panic!("TOML does not parse"),
         };
         assert!(output.validate().is_ok(), "IO does not validate()");
-        assert_eq!(output.datatypes[0], DataType::from("Value"));
+        assert_eq!(output.datatypes[0], DataType::from(OBJECT_TYPE));
         assert_eq!(output.name, Name::default());
     }
 
     #[test]
     fn deserialize_valid_type() {
         let input_str = "
-        type = 'String'
+        type = 'string'
         ";
 
         let output: IO = match toml_from_str(input_str) {
@@ -363,7 +363,7 @@ mod test {
     fn deserialize_name() {
         let input_str = "
         name = '/sub_route'
-        type = 'String'
+        type = 'string'
         ";
 
         let output: IO = match toml_from_str(input_str) {
@@ -378,7 +378,7 @@ mod test {
     fn deserialize_valid_string_type() {
         let input_str = "
         name = 'input'
-        type = 'String'
+        type = 'string'
         ";
 
         let input: IO = match toml_from_str(input_str) {
@@ -392,7 +392,7 @@ mod test {
     fn methods_work() {
         let input_str = "
         name = 'input'
-        type = 'String'
+        type = 'string'
         ";
 
         let input: IO = match toml_from_str(input_str) {
@@ -401,14 +401,14 @@ mod test {
         };
         assert_eq!(Name::from("input"), *input.name());
         assert_eq!(1, input.datatypes().len());
-        assert_eq!(DataType::from("String"), input.datatypes()[0]);
+        assert_eq!(DataType::from(STRING_TYPE), input.datatypes()[0]);
     }
 
     #[test]
     fn deserialize_valid_json_type() {
         let input_str = "
         name = 'input'
-        type = 'Value'
+        type = 'object'
         ";
 
         let input: IO = match toml_from_str(input_str) {
@@ -423,7 +423,7 @@ mod test {
         let input_str = "
         name = 'input'
         foo = 'extra token'
-        type = 'Value'
+        type = 'object'
         ";
 
         let input: Result<IO> = toml_from_str(input_str);
@@ -434,14 +434,14 @@ mod test {
     fn unique_io_names_validate() {
         let io0 = IO {
             name: Name::from("io_name"),
-            datatypes: vec!(DataType::from("String")),
+            datatypes: vec!(DataType::from(STRING_TYPE)),
             io_type: IOType::FunctionIO,
             initializer: None,
             ..Default::default()
         };
         let io1 = IO {
             name: Name::from("different_name"),
-            datatypes: vec!(DataType::from("String")),
+            datatypes: vec!(DataType::from(STRING_TYPE)),
             io_type: IOType::FunctionIO,
             initializer: None,
             ..Default::default()
@@ -454,7 +454,7 @@ mod test {
     fn non_unique_io_names_wont_validate() {
         let io0 = IO {
             name: Name::from("io_name"),
-            datatypes: vec!(DataType::from("String")),
+            datatypes: vec!(DataType::from(STRING_TYPE)),
             io_type: IOType::FunctionIO,
             initializer: None,
             ..Default::default()
@@ -468,13 +468,13 @@ mod test {
     fn multiple_inputs_empty_name_not_allowed() {
         let io0 = IO {
             name: Name::from("io_name"),
-            datatypes: vec!(DataType::from("String")),
+            datatypes: vec!(DataType::from(STRING_TYPE)),
             io_type: IOType::FunctionIO,
             initializer: None,
             ..Default::default()
         };
         let io1 = IO {
-            datatypes: vec!(DataType::from("String")),
+            datatypes: vec!(DataType::from(STRING_TYPE)),
             io_type: IOType::FunctionIO,
             initializer: None,
             ..Default::default()

@@ -4,27 +4,27 @@ docs = "sequence.md"
 # The number the sequence should start at
 [[input]]
 name = "start"
-type = "Number"
+type = "number"
 
 # 'end' is the maximum or limit of the sequence - the last we will generate
 [[input]]
 name = "end"
-type = "Number"
+type = "number"
 
 # 'step' is the amount to add each time
 [[input]]
 name = "step"
-type = "Number"
+type = "number"
 
 # The sequence of numbers we will generate
 [[output]]
 name = "sequence"
-type = "Number"
+type = "number"
 
 # A value is output when the sequence has ended
 [[output]]
 name = "last"
-type = "Number"
+type = "number"
 
 # For the first time around, pass the start number of the sequence into the "compare" process
 [[connection]]

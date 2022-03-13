@@ -5,16 +5,16 @@ type = "rust"
 
 [[input]]
 name = "data" # the value to count and pass on
-type = "Value"
+type = "object"
 
 [[input]]
 name = "count" # - the count before this data item
-type = "Value"
+type = "object"
 
 [[output]]
 name = "data" # - the value passed on
-type = "Value"
+type = "object"
 
 [[output]]
 name = "count" # - the incremented count of values passed thru
-type = "Value"
+type = "object"

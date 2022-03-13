@@ -1,10 +1,11 @@
-use flowmacro::flow_function;
 use serde_json::Value;
+
+use flowmacro::flow_function;
 
 #[flow_function]
 fn _route(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
     let data = &inputs[0];
-    let control = inputs[1].as_bool().ok_or("Could not get bool")?;
+    let control = inputs[1].as_bool().ok_or("Could not get boolean")?;
 
     let mut output_map = serde_json::Map::new();
     output_map.insert(control.to_string(), data.clone());
@@ -14,8 +15,9 @@ fn _route(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
 
 #[cfg(test)]
 mod test {
-    use flowcore::RUN_AGAIN;
     use serde_json::json;
+
+    use flowcore::RUN_AGAIN;
 
     use super::_route;
 
@@ -27,7 +29,7 @@ mod test {
 
         assert!(output.is_some());
         let value = output.expect("Could not get the Value from the output");
-        let map = value.as_object().expect("Could not get the Map json object from the output");
+        let map = value.as_object().expect("Could not get the object from the output");
         assert_eq!(map.get("true").expect("No 'true' value in map"), &json!(42));
         assert!(!map.contains_key("false"));
     }
@@ -40,7 +42,7 @@ mod test {
 
         assert!(output.is_some());
         let value = output.expect("Could not get the Value from the output");
-        let map = value.as_object().expect("Could not get the Map json object from the output");
+        let map = value.as_object().expect("Could not get the object from the output");
         assert_eq!(
             map.get("false").expect("No 'false' value in map"),
             &json!(42)

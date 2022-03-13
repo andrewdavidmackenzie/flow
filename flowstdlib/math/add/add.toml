@@ -5,11 +5,11 @@ type = "rust"
 
 [[input]]
 name = "i1" # - first input of type `Number`
-type = "Number"
+type = "number"
 
 [[input]]
 name = "i2" # - second input of type `Number`
-type = "Number"
+type = "number"
 
 [[output]]
-type = "Number"
+type = "number"

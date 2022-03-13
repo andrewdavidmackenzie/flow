@@ -38,7 +38,7 @@ pub struct OutputConnection {
         skip_serializing_if = "is_default_array_order"
     )]
     pub destination_array_order: i32,
-    /// `generic` defines if the input accepts generic "Value"s
+    /// `generic` defines if the input accepts generic OBJECT_TYPEs
     #[serde(default = "default_generic", skip_serializing_if = "is_not_generic")]
     pub generic: bool,
     /// `destination` is the full route to the destination input
@@ -106,7 +106,7 @@ impl OutputConnection {
         }
     }
 
-    /// Does the destination IO accept generic "Value" types
+    /// Does the destination IO accept generic OBJECT_TYPE types
     pub fn is_generic(&self) -> bool {
         self.generic
     }

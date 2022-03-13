@@ -7,7 +7,25 @@ use shrinkwraprs::Shrinkwrap;
 
 use crate::errors::*;
 
-const DATA_TYPES: &[&str] = &["Value", "String", "Number", "Bool", "Map", "Array", "Null"];
+/// Json "object" data type
+pub const OBJECT_TYPE: &str = "object";
+
+/// Json "string" data type
+pub const STRING_TYPE: &str = "string";
+
+/// Json "number" data type
+pub const NUMBER_TYPE: &str = "number";
+
+/// Json "boolean" data type
+pub const BOOLEAN_TYPE: &str = "boolean";
+
+/// Json "array" data type
+pub const ARRAY_TYPE: &str = "array";
+
+/// Json "null" data type
+pub const NULL_TYPE: &str = "null";
+
+const DATA_TYPES: &[&str] = &[OBJECT_TYPE, STRING_TYPE, NUMBER_TYPE, BOOLEAN_TYPE, ARRAY_TYPE, NULL_TYPE];
 
 /// Datatype is just a string defining what data type is being used
 #[derive(Shrinkwrap, Hash, Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
@@ -19,9 +37,28 @@ impl From<&str> for DataType {
     }
 }
 
+impl From<String> for DataType {
+    fn from(s: String) -> Self {
+        DataType(s)
+    }
+}
+
 impl fmt::Display for DataType {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.0)
+    }
+}
+
+/// A set of datatypes
+pub struct DataTypeList(Vec<DataType>);
+
+impl fmt::Display for DataTypeList {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "[")?;
+        for dt in &self.0 {
+            write!(f, "{}, ", dt.0)?;
+        }
+        write!(f, "]")
     }
 }
 
@@ -47,44 +84,45 @@ impl DataType {
 
     /// Return if this datatype is an array or not
     pub fn is_array(&self) -> bool {
-        self.starts_with("Array")
+        self.starts_with(ARRAY_TYPE)
     }
 
     /// Return true if this datatype is generic (not specified at compile time and can contain
     /// any other datatype) or not
     pub fn is_generic(&self) -> bool {
-        self == &DataType::from("Value")
+        self == &DataType::from(OBJECT_TYPE)
     }
 
-    /// Determine if this data type is an array of the other
+    /// Determine if this data type is an array of the `second` type
     pub fn array_of(&self, second: &Self) -> bool {
-        &DataType::from(format!("Array/{}", second).as_str()) == self
+        &DataType::from(format!("{}/{}", ARRAY_TYPE, second).as_str()) == self
     }
 
     /// Get the data type the array holds
     pub fn within_array(&self) -> Result<DataType> {
-        self.strip_prefix("Array/").map(DataType::from).ok_or_else(|| 
+        self.strip_prefix(&format!("{}/", ARRAY_TYPE)).map(DataType::from).ok_or_else(||
             {
-                Error::from("DataType is now an Array of Types")
+                Error::from("DataType is not an array of Types")
             })
     }
 
     /// Take a json data value and return the type string for it, recursively
-    /// going down when the type is a container type (Array or Map(Object))
+    /// going down when the type is a container type (array or object)
     pub fn type_string(value: &Value) -> String {
         match value {
-            Value::String(_) => "String".into(),
-            Value::Bool(_) => "Boolean".into(),
-            Value::Number(_) => "Number".into(),
-            Value::Array(array) => format!("Array/{}", Self::type_string(&array[0])),
+            Value::String(_) => STRING_TYPE.into(),
+            Value::Bool(_) => BOOLEAN_TYPE.into(),
+            Value::Number(_) => NUMBER_TYPE.into(),
+            Value::Array(array) => format!("{}/{}",
+                                           ARRAY_TYPE, Self::type_string(&array[0])),
             Value::Object(map) => {
                 if let Some(map_entry) = map.values().next() {
-                    format!("Map/{}", Self::type_string(map_entry))
+                    format!("{}/{}", OBJECT_TYPE, Self::type_string(map_entry))
                 } else {
-                    "Map".to_owned()
+                    OBJECT_TYPE.to_owned()
                 }
             }
-            Value::Null => "Null".into(),
+            Value::Null => NULL_TYPE.into(),
         }
     }
 
@@ -102,20 +140,22 @@ impl DataType {
 
 #[cfg(test)]
 mod test {
+    use crate::model::datatype::{ARRAY_TYPE, OBJECT_TYPE, STRING_TYPE};
+
     use super::DataType;
 
     #[test]
     fn valid_data_string_type() {
-        let string_type = DataType::from("String");
+        let string_type = DataType::from(STRING_TYPE);
         string_type
             .valid()
-            .expect("'String' DataType should be valid");
+            .expect("'string' DataType should be valid");
     }
 
     #[test]
     fn valid_data_json_type() {
-        let json_type = DataType::from("Value");
-        json_type.valid().expect("'Value' DataType should be valid");
+        let json_type = DataType::from(OBJECT_TYPE);
+        json_type.valid().expect("'object' DataType should be valid");
     }
 
     #[test]
@@ -126,13 +166,13 @@ mod test {
 
     #[test]
     fn is_array_true() {
-        let array_type = DataType::from("Array");
+        let array_type = DataType::from(ARRAY_TYPE);
         assert!(array_type.is_array());
     }
 
     #[test]
     fn is_array_false() {
-        let string_type = DataType::from("String");
+        let string_type = DataType::from(STRING_TYPE);
         assert!(!string_type.is_array());
     }
 }

@@ -2,16 +2,16 @@ flow = "parse_args"
 
 [[output]]
 name = "filename"
-type = "String"
+type = "string"
 
 [[output]]
 name = "size"
 # Workaround for https://github.com/andrewdavidmackenzie/flow/issues/747
-#type = "Array/Number"
+#type = "array/number"
 
 [[output]]
 name = "bounds"
-type = "Array/Array/Number"
+type = "array/array/number"
 
 # Args
 [[process]]
@@ -100,7 +100,7 @@ from = "split_lower_right"
 to = "lower_right_to_json"
 
 
-# Accumulate upper_left x and y into a point (Array of 2 Numbers)
+# Accumulate upper_left x and y into a point (array of 2 numbers)
 [[process]]
 alias = "accumulate_upper_left"
 source = "lib://flowstdlib/data/accumulate"
@@ -117,7 +117,7 @@ from = "accumulate_upper_left/partial"
 to = "accumulate_upper_left/partial"
 
 
-# Accumulate lower_right x and y into a point (Array of 2 Numbers)
+# Accumulate lower_right x and y into a point (array of 2 numbers)
 [[process]]
 alias = "accumulate_lower_right"
 source = "lib://flowstdlib/data/accumulate"
@@ -133,7 +133,7 @@ to = "accumulate_lower_right/values"
 from = "accumulate_lower_right/partial"
 to = "accumulate_lower_right/partial"
 
-# Accumulate bounds points into bounds (Array/Array/Number)
+# Accumulate bounds points into bounds (array/array/number)
 [[process]]
 alias = "accumulate_bounds"
 source = "lib://flowstdlib/data/accumulate"

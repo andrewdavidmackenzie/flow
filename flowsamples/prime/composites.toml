@@ -2,15 +2,15 @@ flow = "composites"
 
 [[input]]
 name = "limit"
-type = "Number"
+type = "number"
 
 [[output]]
 name = "composites"
-type = "Number"
+type = "number"
 
 [[output]]
 name = "last"
-type = "Number"
+type = "number"
 
 # Generate a set of divisors from 2 .. SQRT(limit)
 [[process]]

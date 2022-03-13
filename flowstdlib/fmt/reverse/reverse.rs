@@ -1,7 +1,8 @@
-use flowmacro::flow_function;
 use serde_json::json;
 use serde_json::Value;
 use serde_json::Value::String as JsonString;
+
+use flowmacro::flow_function;
 
 #[flow_function]
 fn _reverse(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
@@ -20,8 +21,9 @@ fn _reverse(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
 
 #[cfg(test)]
 mod test {
-    use flowcore::RUN_AGAIN;
     use serde_json::json;
+
+    use flowcore::RUN_AGAIN;
 
     use super::_reverse;
 
@@ -33,7 +35,7 @@ mod test {
 
         assert!(output.is_some());
         let value = output.expect("No value was returned in the output");
-        let map = value.as_object().expect("Expected a Map json object");
+        let map = value.as_object().expect("Expected a object");
         assert_eq!(
             map.get("original").expect("No 'original' value in map"),
             &json!("Hello")

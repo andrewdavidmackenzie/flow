@@ -28,4 +28,4 @@ Referenced from a flow:
 
 TODO 
 
-Using named outputs to destructure a JSON value or Array or Map
+Using named outputs to destructure a JSON value or array or object

@@ -5,12 +5,12 @@ type = "rust"
 
 [[input]]
 name = "left" # - the 'left' array
-type = "Array/Value"
+type = "array/object"
 
 [[input]]
 name = "right" # - the 'right' array
-type = "Array/Value"
+type = "array/object"
 
 [[output]]
 name = "tuples" # - tuples - the array of tuples of (left, right)
-type = "Array/Value"
+type = "array/object"

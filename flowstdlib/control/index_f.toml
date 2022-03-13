@@ -6,15 +6,15 @@ description = "A wrapper flow to simplify the use of the index function for stan
 
 [[input]]
 name = "value"
-type = "Value"
+type = "object"
 
 [[input]]
 name = "select_index"
-type = "Number"
+type = "number"
 
 [[output]]
 name = "selected_value"
-type = "Value"
+type = "object"
 
 # the index function we wrap
 [[process]]

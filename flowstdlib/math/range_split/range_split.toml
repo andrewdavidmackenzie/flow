@@ -6,19 +6,19 @@ type = "rust"
 # The range_split definition: an array of [smallest number in the range_split, The largest number in the range_split]
 [[input]]
 name = "range"
-type = "Array/Number"
+type = "array/number"
 
 # This will be a new range (array of two numbers) in the bottom half of the input range_split
 [[output]]
 name = "bottom"
-type = "Array/Number"
+type = "array/number"
 
 # This will be a new range (array of two numbers) in the top half of the input range_split
 [[output]]
 name = "top"
-type = "Array/Number"
+type = "array/number"
 
 # Numbers in the range will be output here
 [[output]]
 name = "same"
-type = "Number"
+type = "number"

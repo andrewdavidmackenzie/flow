@@ -214,6 +214,7 @@ mod test {
     #[cfg(feature = "debugger")]
     use url::Url;
 
+    use flowcore::model::datatype::STRING_TYPE;
     use flowcore::model::function_definition::FunctionDefinition;
     use flowcore::model::io::IO;
     use flowcore::model::output_connection::{OutputConnection, Source};
@@ -328,8 +329,8 @@ mod test {
             false,
             "test.rs".to_string(),
             "print".into(),
-            vec![IO::new(vec!("String".into()), Route::default())],
-            vec![IO::new(vec!("String".into()), Route::default())],
+            vec![IO::new(vec!(STRING_TYPE.into()), Route::default())],
+            vec![IO::new(vec!(STRING_TYPE.into()), Route::default())],
             Url::parse(&format!(
                 "file://{}/{}",
                 env!("CARGO_MANIFEST_DIR"),

@@ -18,7 +18,7 @@ source = "lib://flowstdlib/math/sequence"
 input.start = {once =  1}
 input.step = {once =  1}
 
-######### All numbers - gather into an Array
+######### All numbers - gather into an array
 [[process]]
 alias = "all-numbers"
 source = "lib://flowstdlib/data/accumulate"

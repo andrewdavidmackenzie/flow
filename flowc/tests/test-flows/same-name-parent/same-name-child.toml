@@ -1,11 +1,11 @@
 flow = "same-name-child"
 
 [[input]]
-type = "String"
+type = "string"
 name = "message"
 
 [[output]]
-type = "String"
+type = "string"
 name = "message"
 
 [[connection]]

@@ -4,11 +4,11 @@ docs = "duplicate_rows.md"
 type = "rust"
 
 [[input]]
-type = "Array/Array/Number" # Input matrix
+type = "array/array/number" # Input matrix
 
 [[input]]
 name = "factor" # - duplication factor
-type = "Number"
+type = "number"
 
 [[output]]
-type = "Array/Array/Number" # - matrix with duplicated rows
+type = "array/array/number" # - matrix with duplicated rows

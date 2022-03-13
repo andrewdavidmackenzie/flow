@@ -215,6 +215,7 @@ mod test {
     use serde_json::json;
     use url::Url;
 
+    use flowcore::model::datatype::{ARRAY_TYPE, OBJECT_TYPE, STRING_TYPE};
     use flowcore::model::function_definition::FunctionDefinition;
     use flowcore::model::input::InputInitializer;
     use flowcore::model::io::IO;
@@ -234,8 +235,8 @@ mod test {
             Name::from("print"),
             vec![],
             vec![
-                IO::new(vec!("Value".into()), Route::default()),
-                IO::new(vec!("String".into()), Route::default()),
+                IO::new(vec!(OBJECT_TYPE.into()), Route::default()),
+                IO::new(vec!(STRING_TYPE.into()), Route::default()),
             ],
             Url::parse("file:///fake/file").expect("Could not parse Url"),
             Route::from("/flow0/stdout"),
@@ -312,7 +313,7 @@ mod test {
             "context://stdio/stdout".to_string(),
             Name::from("print"),
             vec![],
-            vec![IO::new(vec!("String".into()), Route::default())],
+            vec![IO::new(vec!(STRING_TYPE.into()), Route::default())],
             Url::parse("file:///fake/file").expect("Could not parse Url"),
             Route::from("/flow0/stdout"),
             None,
@@ -367,7 +368,7 @@ mod test {
             "context://stdio/stdout".to_string(),
             Name::from("print"),
             vec![],
-            vec![IO::new(vec!("String".into()), Route::default())],
+            vec![IO::new(vec!(STRING_TYPE.into()), Route::default())],
             Url::parse("file:///fake/file").expect("Could not parse Url"),
             Route::from("/flow0/stdout"),
             None,
@@ -417,7 +418,7 @@ mod test {
 
     #[test]
     fn function_with_initialized_input_generation() {
-        let mut io = IO::new(vec!("String".into()), Route::default());
+        let mut io = IO::new(vec!(STRING_TYPE.into()), Route::default());
         io.set_initializer(&Some(InputInitializer::Once(json!(1))));
 
         let function = FunctionDefinition::new(
@@ -464,7 +465,7 @@ mod test {
 
     #[test]
     fn function_with_constant_input_generation() {
-        let mut io = IO::new(vec!("String".into()), Route::default());
+        let mut io = IO::new(vec!(STRING_TYPE.into()), Route::default());
         io.set_initializer(&Some(InputInitializer::Always(json!(1))));
 
         let function = FunctionDefinition::new(
@@ -511,7 +512,7 @@ mod test {
 
     #[test]
     fn function_with_array_input_generation() {
-        let io = IO::new(vec!("Array/String".into()), Route::default());
+        let io = IO::new(vec!("array/string".into()), Route::default());
 
         let function = FunctionDefinition::new(
             Name::from("Stdout"),
@@ -558,7 +559,7 @@ mod test {
             "context://stdio/stdout".to_string(),
             Name::from("print"),
             vec![],
-            vec![IO::new(vec!("String".into()), Route::default())],
+            vec![IO::new(vec!(STRING_TYPE.into()), Route::default())],
             Url::parse("file:///fake/file").expect("Could not parse Url"),
             Route::from("/flow0/stdout"),
             None,
@@ -634,7 +635,7 @@ mod test {
             "context://stdio/stdout".to_string(),
             Name::from("print"),
             vec![],
-            vec![IO::new(vec!("Array".into()), Route::default())],
+            vec![IO::new(vec!(ARRAY_TYPE.into()), Route::default())],
             Url::parse("file:///fake/file").expect("Could not parse Url"),
             Route::from("/flow0/stdout"),
             None,
