@@ -222,7 +222,7 @@ mod test {
                 {
                     \"name\": \"print\",
                     \"route\": \"/print\",
-                    \"id\": 0,
+                    \"function_id\": 0,
                     \"flow_id\": 0,
                     \"implementation_location\": \"context://stdio/stdout\",
                     \"inputs\": [ {} ]

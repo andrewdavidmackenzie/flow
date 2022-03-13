@@ -69,8 +69,13 @@ pub fn collapse_connections(original_connections: &[Connection]) -> Vec<Connecti
                     "\tFound direct connection to function input at '{}'",
                     connection.to_io().route()
                 );
+                let collapsed_connection = connection.clone();
                 // TODO set priority
-                collapsed_connections.push(connection.clone());
+                // if source function == destination function
+                //    priority = 0; // loopback connection on the same function
+                // else
+                //    priority = 1; // direct connection between functions within the same flow
+                collapsed_connections.push(collapsed_connection);
             } else {
                 // If the connection enters or leaves this flow, then follow it to all destinations at function inputs
                 for (source_subroute, destination_io) in find_function_destinations(

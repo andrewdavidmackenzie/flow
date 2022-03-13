@@ -31,7 +31,8 @@ pub struct Connection {
     /// `to_io` is used during the compilation process and refers to a found input for the connection
     #[serde(skip)]
     to_io: IO,
-    /// `level` defines at what level in the flow hierarchy of nested flows this connections belongs
+    /// `level` defines at what level in the flow hierarchy this connections belongs. It is used
+    /// when collapsing connections to reduce work and avoid infinite recursion
     #[serde(skip)]
     level: usize,
     /// `priority` depends on for how far "out" in the flow hierarchy from the destination the

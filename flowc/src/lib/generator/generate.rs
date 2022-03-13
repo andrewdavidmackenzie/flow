@@ -229,7 +229,7 @@ mod test {
         );
 
         let expected = "{
-  'id': 0,
+  'function_id': 0,
   'flow_id': 0,
   'implementation_location': 'context://stdio/stdout',
   'output_connections': [
@@ -292,7 +292,7 @@ mod test {
         );
 
         let expected = "{
-  'id': 0,
+  'function_id': 0,
   'flow_id': 0,
   'implementation_location': 'context://stdio/stdout',
   'output_connections': [
@@ -347,7 +347,7 @@ mod test {
         );
 
         let expected = "{
-  'id': 0,
+  'function_id': 0,
   'flow_id': 0,
   'implementation_location': 'context://stdio/stdout',
   'output_connections': [
@@ -396,7 +396,7 @@ mod test {
         );
 
         let expected = "{
-  'id': 0,
+  'function_id': 0,
   'flow_id': 0,
   'implementation_location': 'context://stdio/stdout',
   'inputs': [
@@ -443,7 +443,7 @@ mod test {
         );
 
         let expected = "{
-  'id': 0,
+  'function_id': 0,
   'flow_id': 0,
   'implementation_location': 'context://stdio/stdout',
   'inputs': [
@@ -489,7 +489,7 @@ mod test {
         );
 
         let expected = "{
-  'id': 0,
+  'function_id': 0,
   'flow_id': 0,
   'implementation_location': 'context://stdio/stdout',
   'inputs': [
@@ -547,7 +547,7 @@ mod test {
         let expected = "{
   'name': 'print',
   'route': '/flow0/stdout',
-  'id': 0,
+  'function_id': 0,
   'flow_id': 0,
   'implementation_location': 'context://stdio/stdout',
   'output_connections': [
@@ -614,7 +614,7 @@ mod test {
         );
 
         let expected = "{
-  'id': 0,
+  'function_id': 0,
   'flow_id': 0,
   'implementation_location': 'context://stdio/stdout',
   'output_connections': [

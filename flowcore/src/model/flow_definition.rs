@@ -251,7 +251,7 @@ impl FlowDefinition {
 
     /// Check if the flow can be run (it could be a sub-flow not a context level runnable flow)
     pub fn is_runnable(&self) -> bool {
-        self.inputs().is_empty()  && self.outputs().is_empty()
+        self.inputs().is_empty() && self.outputs().is_empty()
     }
 
     fn get_io_subprocess(
@@ -352,6 +352,38 @@ impl FlowDefinition {
         }
     }
 
+    /// Iterate over all the connections defined in the flow, and attempt to connect the source
+    /// and destination, checking the types are compatible
+    pub fn build_connections(&mut self, level: usize) -> Result<()> {
+        debug!("Building connections for flow '{}'", self.name);
+
+        let mut error_count = 0;
+
+        // get connections out of self - so we can use immutable references to self inside loop
+        let mut connections = take(&mut self.connections);
+
+        for connection in connections.iter_mut() {
+            if let Err(e) = self.build_connection(connection, level) {
+                error_count += 1;
+                error!("{}", e);
+            }
+        }
+
+        if error_count == 0 {
+            debug!(
+                "All connections inside flow '{}' successfully built",
+                self.source_url
+            );
+            Ok(())
+        } else {
+            bail!(
+                "{} connections errors found in flow '{}'",
+                error_count,
+                self.source_url
+            )
+        }
+    }
+
     // Connection to/from Formats:
     // "input/input_name"
     // "output/output_name"
@@ -394,38 +426,6 @@ impl FlowDefinition {
         }
 
         Ok(())
-    }
-
-    /// Iterate over all the connections defined in the flow, and attempt to connect the source
-    /// and destination, checking the types are compatible
-    pub fn build_connections(&mut self, level: usize) -> Result<()> {
-        debug!("Building connections for flow '{}'", self.name);
-
-        let mut error_count = 0;
-
-        // get connections out of self - so we can use immutable references to self inside loop
-        let mut connections = take(&mut self.connections);
-
-        for connection in connections.iter_mut() {
-            if let Err(e) = self.build_connection(connection, level) {
-                error_count += 1;
-                error!("{}", e);
-            }
-        }
-
-        if error_count == 0 {
-            debug!(
-                "All connections inside flow '{}' successfully built",
-                self.source_url
-            );
-            Ok(())
-        } else {
-            bail!(
-                "{} connections errors found in flow '{}'",
-                error_count,
-                self.source_url
-            )
-        }
     }
 }
 
