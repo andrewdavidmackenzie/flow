@@ -170,26 +170,26 @@ type = &quot;rust&quot;
 
 [[input]]
 name = &quot;string&quot; # - the String to split
-type = &quot;String&quot;
+type = &quot;string&quot;
 
 [[input]]
 name = &quot;separator&quot; # - the String to use as a separator
-type = &quot;String&quot;
+type = &quot;string&quot;
 
 [[output]]
-name = &quot;partial&quot; # - an Array of Strings that each may or may not have `separator` strings inside
+name = &quot;partial&quot; # - an array of Strings that each may or may not have `separator` strings inside
 # them. This should be feed-back to the input (will be serialized into Strings by the
 # runtime) for further subdivision until each one cannot be split further - in which case
 # it will be output as `token`
-type = &quot;Array/String&quot;
+type = &quot;array/string&quot;
 
 [[output]]
 name = &quot;token-count&quot; # - the number of tokens emitted, can be used to count tokens generated
-type = &quot;Number&quot;
+type = &quot;number&quot;
 
 [[output]]
 name = &quot;token&quot; # - a String that cannot be sub-divided further.
-type = &quot;String&quot;
+type = &quot;string&quot;
 
 [[output]]
 name = &quot;delta&quot; # - this is a Number that indicates if this job reduced (-1) or increased (+1) the number
@@ -198,7 +198,7 @@ name = &quot;delta&quot; # - this is a Number that indicates if this job reduced
 # -0 partials for further splitting). If the input string
 # is split into two partial strings that are output for further splitting, then the delta to
 # pending work is +1 (+2 partials -1 input)
-type = &quot;Number&quot;
+type = &quot;number&quot;
 </code></pre>
 <h3 id="include-using"><a class="header" href="#include-using">Include using</a></h3>
 <pre><code class="language-toml">[[process]]

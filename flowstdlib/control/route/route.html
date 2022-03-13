@@ -152,19 +152,19 @@ type = &quot;rust&quot;
 
 [[input]]
 name = &quot;data&quot; # - the data flow we wish to control the flow if
-type = &quot;Value&quot;
+type = &quot;object&quot;
 
 [[input]]
 name = &quot;control&quot; # - a boolean value to determine which output roue `data` is passed to
-type = &quot;Bool&quot;
+type = &quot;boolean&quot;
 
 [[output]]
 name = &quot;true&quot; # `if `control` is true `data` is routed here
-type = &quot;Value&quot;
+type = &quot;object&quot;
 
 [[output]]
 name = &quot;false&quot; # if `control` is false `data` is routed here
-type = &quot;Value&quot;
+type = &quot;object&quot;
 </code></pre>
 <h3 id="include-using"><a class="header" href="#include-using">Include using</a></h3>
 <pre><code class="language-toml">[[process]]

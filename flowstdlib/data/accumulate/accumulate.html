@@ -152,27 +152,27 @@ type = &quot;rust&quot;
 
 [[input]]
 name = &quot;values&quot; # - The stream of input values to accumulate into an array
-type = &quot;Value&quot;
+type = &quot;object&quot;
 
 [[input]]
 name = &quot;partial&quot; # - A partial array, to use in the accumulation, adding next input `value` to it
-type = &quot;Value&quot;
+type = &quot;object&quot;
 
 [[input]]
-name = &quot;chunk_size&quot; # - The size of the Array we want to create
-type = &quot;Number&quot;
+name = &quot;chunk_size&quot; # - The size of the array we want to create
+type = &quot;number&quot;
 
 [[output]]
-name = &quot;chunk&quot; # - The accumulated Array of inputs of size `limit` or more
-type = &quot;Array/Value&quot;
+name = &quot;chunk&quot; # - The accumulated array of inputs of size `limit` or more
+type = &quot;array/object&quot;
 
 [[output]]
 name = &quot;partial&quot; # - The partially accumulated array, of size smaller than `chunk_size`
-type = &quot;Value&quot;
+type = &quot;object&quot;
 
 [[output]]
 name = &quot;chunk_size&quot; # - The chunk-size, output for use downstream or in loop-back
-type = &quot;Number&quot;
+type = &quot;number&quot;
 </code></pre>
 <h3 id="include-using"><a class="header" href="#include-using">Include using</a></h3>
 <pre><code class="language-toml">[[process]]

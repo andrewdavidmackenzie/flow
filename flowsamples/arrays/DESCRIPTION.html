@@ -151,14 +151,14 @@
 This is done by the P2 'composer' (<code>ComposeArray</code>) function.</p>
 </li>
 <li>
-<p>Decomposing an output of type Array of Objects to a stream of Objects. This is done by the runtime when it sees
-a connection from an Array of Type to Type.</p>
+<p>Decomposing an output of type array of objects to a stream of objects. This is done by the runtime when it sees
+a connection from an array of Type to Type.</p>
 </li>
 <li>
-<p>P1 - sequence - generates a stream of outputs of type Number</p>
+<p>P1 - sequence - generates a stream of outputs of type number</p>
 </li>
 <li>
-<p>P2 - composer - input of type Number of width 4, output of type Array of Number</p>
+<p>P2 - composer - input of type Number of width 4, output of type array of number</p>
 </li>
 <li>
 <p>P3 - adder    - input of type Number and output of type Number, adding 1 in the process</p>
@@ -168,10 +168,10 @@ a connection from an Array of Type to Type.</p>
 </li>
 </ul>
 <p>This sample (with default settings on a multi-core machine) shows parallelism of the add function, dispatching
-multiple jobs for it in parallel as the Array of Number output from the previous process is decomposed, creating
+multiple jobs for it in parallel as the array of number output from the previous process is decomposed, creating
 a job for each Number. You can see this by using the <code>-j</code> option of the runtime to limit the number of outstanding
 jobs and the <code>-m</code> options to dump metrics after execution. The &quot;Max Number of Parallel Jobs&quot; should be similar or
-greater than 4, which is the size of the Array of Numbers formed.</p>
+greater than 4, which is the size of the array of numbers formed.</p>
 <h1 id="context-diagram"><a class="header" href="#context-diagram">Context Diagram</a></h1>
 <p><a href="root.dot.svg" target="_blank"><img src="root.dot.svg"></a></p>
 <p>Click image to navigate flow hierarchy.</p>

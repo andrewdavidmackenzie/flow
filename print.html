@@ -816,12 +816,12 @@ determine the input/output &quot;contact&quot; of flow without having to load al
 <div style="break-before: page; page-break-before: always;"></div><h2 id="types"><a class="header" href="#types">Types</a></h2>
 <p>By default flow supports JSON types:</p>
 <ul>
-<li><code>Boolean</code></li>
-<li><code>Number</code></li>
-<li><code>String</code></li>
-<li><code>Map</code></li>
-<li><code>Array</code></li>
-<li><code>Json</code></li>
+<li><code>null</code></li>
+<li><code>boolean</code></li>
+<li><code>object</code></li>
+<li><code>array</code></li>
+<li><code>number</code></li>
+<li><code>string</code></li>
 </ul>
 <div style="break-before: page; page-break-before: always;"></div><h2 id="connection"><a class="header" href="#connection">Connection</a></h2>
 <p>Connections connect a source of data (via an IO Reference) to a sink of data (via an IO Reference) 
@@ -882,7 +882,7 @@ used in the IO references to inputs or outputs of that referenced flow/function.
 <li><code>{function_alias|function_name}/{input_name}</code></li>
 </ul>
 <p>TODO </p>
-<p>Using named outputs to destructure a JSON value or Array or Map</p>
+<p>Using named outputs to destructure a JSON value or array or object</p>
 <div style="break-before: page; page-break-before: always;"></div><h2 id="complete-feature-list"><a class="header" href="#complete-feature-list">Complete Feature List</a></h2>
 <p>This is a complete list of features implemented in the description of flows:</p>
 <ul>
@@ -1082,11 +1082,11 @@ impure = true
 
 [[output]]
 name = &quot;string&quot;
-type = &quot;Array/String&quot;
+type = &quot;array/string&quot;
 
 [[output]]
 name = &quot;json&quot;
-type = &quot;Array/Value&quot;
+type = &quot;array/object&quot;
 </code></pre>
 <h3 id="include-using"><a class="header" href="#include-using">Include using</a></h3>
 <pre><code class="language-toml">[[process]]
@@ -1114,11 +1114,11 @@ impure = true
 
 [[input]]
 name = &quot;filename&quot;
-type = &quot;String&quot;
+type = &quot;string&quot;
 
 [[input]]
 name = &quot;bytes&quot;
-type = &quot;Array&quot;
+type = &quot;array&quot;
 </code></pre>
 <h3 id="include-using-1"><a class="header" href="#include-using-1">Include using</a></h3>
 <pre><code class="language-toml">[[process]]
@@ -1147,19 +1147,19 @@ impure = true
 
 [[input]]
 name = &quot;pixel&quot;
-type = &quot;Array/Number&quot;
+type = &quot;array/number&quot;
 
 [[input]]
 name = &quot;value&quot;
-type = &quot;Array/Number&quot;
+type = &quot;array/number&quot;
 
 [[input]]
 name = &quot;size&quot;
-type = &quot;Array/Number&quot;
+type = &quot;array/number&quot;
 
 [[input]]
 name = &quot;filename&quot;
-type = &quot;String&quot;
+type = &quot;string&quot;
 </code></pre>
 <h3 id="include-using-2"><a class="header" href="#include-using-2">Include using</a></h3>
 <pre><code class="language-toml">[[process]]
@@ -1197,11 +1197,11 @@ impure = true
 
 [[output]]
 name = &quot;string&quot;
-type = &quot;String&quot;
+type = &quot;string&quot;
 
 [[output]]
 name = &quot;json&quot;
-type = &quot;Value&quot;
+type = &quot;object&quot;
 </code></pre>
 <h3 id="include-using-3"><a class="header" href="#include-using-3">Include using</a></h3>
 <pre><code class="language-toml">[[process]]
@@ -1225,11 +1225,11 @@ impure = true
 
 [[output]]
 name = &quot;string&quot;
-type = &quot;String&quot;
+type = &quot;string&quot;
 
 [[output]]
 name = &quot;json&quot;
-type = &quot;Value&quot;
+type = &quot;object&quot;
 </code></pre>
 <h3 id="include-using-4"><a class="header" href="#include-using-4">Include using</a></h3>
 <pre><code class="language-toml">[[process]]
@@ -1252,7 +1252,7 @@ docs = &quot;stdout.md&quot;
 impure = true
 
 [[input]]
-type = &quot;Value&quot;
+type = &quot;object&quot;
 </code></pre>
 <h3 id="include-using-5"><a class="header" href="#include-using-5">Include using</a></h3>
 <pre><code class="language-toml">[[process]]
@@ -1261,7 +1261,7 @@ source = &quot;context://stdio/stdout&quot;
 </code></pre>
 <h3 id="input"><a class="header" href="#input">Input</a></h3>
 <ul>
-<li>(default) - the object to output a String representation of (String, Boolean, Number, Array)</li>
+<li>(default) - the object to output a String representation of (String, boolean, Number, array)</li>
 </ul>
 <h3 id="output-3"><a class="header" href="#output-3">Output</a></h3>
 <div style="break-before: page; page-break-before: always;"></div><h2 id="stderr-contextstdiostderr"><a class="header" href="#stderr-contextstdiostderr">Stderr (//context/stdio/stderr)</a></h2>
@@ -1274,7 +1274,7 @@ docs = &quot;stderr.md&quot;
 impure = true
 
 [[input]]
-type = &quot;Value&quot;
+type = &quot;object&quot;
 </code></pre>
 <h3 id="include-using-6"><a class="header" href="#include-using-6">Include using</a></h3>
 <pre><code class="language-toml">[[process]]
@@ -1283,7 +1283,7 @@ source = &quot;context://stdio/stderr&quot;
 </code></pre>
 <h3 id="input-1"><a class="header" href="#input-1">Input</a></h3>
 <ul>
-<li>(default) - the object to output a String representation of (String, Boolean, Number, Array)</li>
+<li>(default) - the object to output a String representation of (string, boolean, number, array)</li>
 </ul>
 <h4 id="output-4"><a class="header" href="#output-4">Output</a></h4>
 <div style="break-before: page; page-break-before: always;"></div><h3 id="the-flow-debugger"><a class="header" href="#the-flow-debugger">The Flow Debugger</a></h3>
@@ -1414,47 +1414,47 @@ type = &quot;rust&quot;
 
 [[input]]
 name = &quot;left&quot; # - left hand input
-type = &quot;Number&quot;
+type = &quot;number&quot;
 
 [[input]]
 name = &quot;right&quot; # - right hand input
-type = &quot;Number&quot;
+type = &quot;number&quot;
 
 [[output]]
 name = &quot;equal&quot; # - outputs right hand value if the two values are equal
-type = &quot;Number&quot;
+type = &quot;number&quot;
 
 [[output]]
 name = &quot;right-lt&quot; # - outputs right hand value if the left hand value is less than the right hand value
-type = &quot;Number&quot;
+type = &quot;number&quot;
 
 [[output]]
 name = &quot;right-lte&quot; # - outputs right hand value if the left hand value is less than or equal to the right hand value
-type = &quot;Number&quot;
+type = &quot;number&quot;
 
 [[output]]
 name = &quot;right-gt&quot; # - outputs right hand value if the left hand value is greater than the right hand value
-type = &quot;Number&quot;
+type = &quot;number&quot;
 
 [[output]]
 name = &quot;right-gte&quot; # - outputs right hand value if the left hand value is greater than or equal to the right hand value
-type = &quot;Number&quot;
+type = &quot;number&quot;
 
 [[output]]
 name = &quot;left-lt&quot; # - outputs left hand value if the left hand value is less than the right hand value
-type = &quot;Number&quot;
+type = &quot;number&quot;
 
 [[output]]
 name = &quot;left-lte&quot; # - outputs left hand value if the left hand value is less than or equal to the right hand value
-type = &quot;Number&quot;
+type = &quot;number&quot;
 
 [[output]]
 name = &quot;left-gt&quot; # - outputs left hand value if the left hand value is greater than the right hand value
-type = &quot;Number&quot;
+type = &quot;number&quot;
 
 [[output]]
 name = &quot;left-gte&quot; # - outputs left hand value if the left hand value is greater than or equal to the right hand value
-type = &quot;Number&quot;
+type = &quot;number&quot;
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h2 id="index-flowstdlibcontrolindex"><a class="header" href="#index-flowstdlibcontrolindex">Index (//flowstdlib/control/index)</a></h2>
 <p>Pass thru a value based on the index of an item in the stream of values</p>
@@ -1466,31 +1466,31 @@ type = &quot;rust&quot;
 
 [[input]]
 name = &quot;value&quot; # - the stream of input values to select from
-type = &quot;Value&quot;
+type = &quot;object&quot;
 
 [[input]]
 name = &quot;previous_value&quot; # - the loop-backed previous value to enable selecting &quot;last&quot;
-type = &quot;Value&quot;
+type = &quot;object&quot;
 
 [[input]]
 name = &quot;previous_index&quot; # - the loop-backed previous index to enable counting
-type = &quot;Number&quot;
+type = &quot;number&quot;
 
 [[input]]
 name = &quot;select_index&quot; # th index to select from, where -1 = &quot;last&quot;
-type = &quot;Number&quot;
+type = &quot;number&quot;
 
 [[output]]
 name = &quot;index&quot; # the index of the value just processed and output on &quot;value&quot;
-type = &quot;Number&quot;
+type = &quot;number&quot;
 
 [[output]]
 name = &quot;value&quot; # the value just processed
-type = &quot;Value&quot;
+type = &quot;object&quot;
 
 [[output]]
 name = &quot;selected_value&quot; # the value selected by index - only output when selected
-type = &quot;Value&quot;
+type = &quot;object&quot;
 </code></pre>
 <h3 id="include-using-7"><a class="header" href="#include-using-7">Include using</a></h3>
 <pre><code class="language-toml">[[process]]
@@ -1508,15 +1508,15 @@ description = &quot;A wrapper flow to simplify the use of the index function for
 
 [[input]]
 name = &quot;value&quot;
-type = &quot;Value&quot;
+type = &quot;object&quot;
 
 [[input]]
 name = &quot;select_index&quot;
-type = &quot;Number&quot;
+type = &quot;number&quot;
 
 [[output]]
 name = &quot;selected_value&quot;
-type = &quot;Value&quot;
+type = &quot;object&quot;
 
 # the index function we wrap
 [[process]]
@@ -1561,14 +1561,14 @@ type = &quot;rust&quot;
 
 [[input]]
 name = &quot;data&quot; # - the data we wish to control the flow of
-type = &quot;Value&quot;
+type = &quot;object&quot;
 
 [[input]]
 name = &quot;control&quot; # - a second value we wait on
-type = &quot;Value&quot;
+type = &quot;object&quot;
 
 [[output]]
-type = &quot;Value&quot;
+type = &quot;object&quot;
 </code></pre>
 <h3 id="include-using-9"><a class="header" href="#include-using-9">Include using</a></h3>
 <pre><code class="language-toml">[[process]]
@@ -1584,19 +1584,19 @@ type = &quot;rust&quot;
 
 [[input]]
 name = &quot;data&quot; # - the data flow we wish to control the flow if
-type = &quot;Value&quot;
+type = &quot;object&quot;
 
 [[input]]
 name = &quot;control&quot; # - a boolean value to determine which output roue `data` is passed to
-type = &quot;Bool&quot;
+type = &quot;boolean&quot;
 
 [[output]]
 name = &quot;true&quot; # `if `control` is true `data` is routed here
-type = &quot;Value&quot;
+type = &quot;object&quot;
 
 [[output]]
 name = &quot;false&quot; # if `control` is false `data` is routed here
-type = &quot;Value&quot;
+type = &quot;object&quot;
 </code></pre>
 <h3 id="include-using-10"><a class="header" href="#include-using-10">Include using</a></h3>
 <pre><code class="language-toml">[[process]]
@@ -1612,23 +1612,23 @@ type = &quot;rust&quot;
 
 [[input]]
 name = &quot;i1&quot;
-type = &quot;Value&quot;
+type = &quot;object&quot;
 
 [[input]]
 name = &quot;i2&quot;
-type = &quot;Value&quot;
+type = &quot;object&quot;
 
 [[input]]
 name = &quot;control&quot; # - a boolean value to selection of inputs passed to outputs
-type = &quot;Bool&quot;
+type = &quot;boolean&quot;
 
 [[output]]
 name = &quot;select_i1&quot; # if `control` is true `i1` is selected for this output else `i2` is selected
-type = &quot;Value&quot;
+type = &quot;object&quot;
 
 [[output]]
 name = &quot;select_i2&quot; # if `control` is true `i2` is selected for this output else `i1` is selected
-type = &quot;Value&quot;
+type = &quot;object&quot;
 </code></pre>
 <h3 id="include-using-11"><a class="header" href="#include-using-11">Include using</a></h3>
 <pre><code class="language-toml">[[process]]
@@ -1644,14 +1644,14 @@ type = &quot;rust&quot;
 
 [[input]]
 name = &quot;data&quot; # - the data flow we wish to control the flow if
-type = &quot;Value&quot;
+type = &quot;object&quot;
 
 [[input]]
 name = &quot;control&quot; # - a boolean value to determine in `data` is passed on or not
-type = &quot;Bool&quot;
+type = &quot;boolean&quot;
 
 [[output]]
-type = &quot;Value&quot; # `data` is output if `control` is true, nothing if `control` is false
+type = &quot;object&quot; # `data` is output if `control` is true, nothing if `control` is false
 </code></pre>
 <h3 id="include-using-12"><a class="header" href="#include-using-12">Include using</a></h3>
 <pre><code class="language-toml">[[process]]
@@ -1687,27 +1687,27 @@ type = &quot;rust&quot;
 
 [[input]]
 name = &quot;values&quot; # - The stream of input values to accumulate into an array
-type = &quot;Value&quot;
+type = &quot;object&quot;
 
 [[input]]
 name = &quot;partial&quot; # - A partial array, to use in the accumulation, adding next input `value` to it
-type = &quot;Value&quot;
+type = &quot;object&quot;
 
 [[input]]
-name = &quot;chunk_size&quot; # - The size of the Array we want to create
-type = &quot;Number&quot;
+name = &quot;chunk_size&quot; # - The size of the array we want to create
+type = &quot;number&quot;
 
 [[output]]
-name = &quot;chunk&quot; # - The accumulated Array of inputs of size `limit` or more
-type = &quot;Array/Value&quot;
+name = &quot;chunk&quot; # - The accumulated array of inputs of size `limit` or more
+type = &quot;array/object&quot;
 
 [[output]]
 name = &quot;partial&quot; # - The partially accumulated array, of size smaller than `chunk_size`
-type = &quot;Value&quot;
+type = &quot;object&quot;
 
 [[output]]
 name = &quot;chunk_size&quot; # - The chunk-size, output for use downstream or in loop-back
-type = &quot;Number&quot;
+type = &quot;number&quot;
 </code></pre>
 <h3 id="include-using-13"><a class="header" href="#include-using-13">Include using</a></h3>
 <pre><code class="language-toml">[[process]]
@@ -1723,14 +1723,14 @@ type = &quot;rust&quot;
 
 [[input]]
 name = &quot;s1&quot;
-type = &quot;String&quot;
+type = &quot;string&quot;
 
 [[input]]
 name = &quot;s2&quot;
-type = &quot;String&quot;
+type = &quot;string&quot;
 
 [[output]]
-type = &quot;String&quot; # - The Concatenated string
+type = &quot;string&quot; # - The Concatenated string
 </code></pre>
 <h3 id="include-using-14"><a class="header" href="#include-using-14">Include using</a></h3>
 <pre><code class="language-toml">[[process]]
@@ -1746,10 +1746,10 @@ docs = &quot;buffer.md&quot;
 type = &quot;rust&quot;
 
 [[input]]
-type = &quot;Value&quot; # - the value to buffer
+type = &quot;object&quot; # - the value to buffer
 
 [[output]]
-type = &quot;Value&quot; # - The buffered value
+type = &quot;object&quot; # - The buffered value
 </code></pre>
 <h3 id="include-using-15"><a class="header" href="#include-using-15">Include using</a></h3>
 <pre><code class="language-toml">[[process]]
@@ -1766,19 +1766,19 @@ type = &quot;rust&quot;
 
 [[input]]
 name = &quot;data&quot; # the value to count and pass on
-type = &quot;Value&quot;
+type = &quot;object&quot;
 
 [[input]]
 name = &quot;count&quot; # - the count before this data item
-type = &quot;Value&quot;
+type = &quot;object&quot;
 
 [[output]]
 name = &quot;data&quot; # - the value passed on
-type = &quot;Value&quot;
+type = &quot;object&quot;
 
 [[output]]
 name = &quot;count&quot; # - the incremented count of values passed thru
-type = &quot;Value&quot;
+type = &quot;object&quot;
 </code></pre>
 <h3 id="include-using-16"><a class="header" href="#include-using-16">Include using</a></h3>
 <pre><code class="language-toml">[[process]]
@@ -1794,14 +1794,14 @@ type = &quot;rust&quot;
 
 [[input]]
 name = &quot;value&quot; # - the value to duplicate
-type = &quot;Value&quot;
+type = &quot;object&quot;
 
 [[input]]
 name = &quot;factor&quot; # - how many times to duplicate the value in the output
-type = &quot;Number&quot;
+type = &quot;number&quot;
 
 [[output]]
-type = &quot;Array/Value&quot; # - the array of duplicate values
+type = &quot;array/object&quot; # - the array of duplicate values
 </code></pre>
 <h3 id="include-using-17"><a class="header" href="#include-using-17">Include using</a></h3>
 <pre><code class="language-toml">[[process]]
@@ -1816,23 +1816,23 @@ docs = &quot;duplicate_rows.md&quot;
 type = &quot;rust&quot;
 
 [[input]]
-type = &quot;Array/Array/Number&quot; # Input matrix
+type = &quot;array/array/number&quot; # Input matrix
 
 [[input]]
 name = &quot;factor&quot; # - duplication factor
-type = &quot;Number&quot;
+type = &quot;number&quot;
 
 [[output]]
-type = &quot;Array/Array/Number&quot; # - matrix with duplicated rows
+type = &quot;array/array/number&quot; # - matrix with duplicated rows
 </code></pre>
 <h3 id="include-using-18"><a class="header" href="#include-using-18">Include using</a></h3>
 <pre><code class="language-toml">[[process]]
 source = &quot;lib://flowstdlib/data/duplicate_rows&quot;
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h2 id="enumerate-flowstdlibdataenumerate"><a class="header" href="#enumerate-flowstdlibdataenumerate">Enumerate (//flowstdlib/data/enumerate)</a></h2>
-<p>Enumerate the elements of an Array</p>
+<p>Enumerate the elements of an array</p>
 <p>With an input array such as <code>[&quot;a&quot;, &quot;b&quot;]</code> it will assign an index to each element
-and produce an output array of tuples (Array of two elements) such as <code>[[0, &quot;a&quot;], [1, &quot;b&quot;]]</code></p>
+and produce an output array of tuples (array of two elements) such as <code>[[0, &quot;a&quot;], [1, &quot;b&quot;]]</code></p>
 <h3 id="definition-20"><a class="header" href="#definition-20">Definition</a></h3>
 <pre><code class="language-toml">function = &quot;enumerate&quot;
 source = &quot;enumerate.rs&quot;
@@ -1840,10 +1840,10 @@ docs = &quot;enumerate.md&quot;
 type = &quot;rust&quot;
 
 [[input]]
-type = &quot;Array/Number&quot;          # e.g. [&quot;a&quot;, &quot;b&quot;]
+type = &quot;array/number&quot;          # e.g. [&quot;a&quot;, &quot;b&quot;]
 
 [[output]]
-type = &quot;Array/Array/Number&quot;  # e.g. [[0, &quot;a&quot;], [1, &quot;b&quot;]]
+type = &quot;array/array/number&quot;  # e.g. [[0, &quot;a&quot;], [1, &quot;b&quot;]]
 </code></pre>
 <h3 id="include-using-19"><a class="header" href="#include-using-19">Include using</a></h3>
 <pre><code class="language-toml">[[process]]
@@ -1861,15 +1861,15 @@ type = &quot;rust&quot;
 
 [[output]]
 name = &quot;type&quot; # - String identifying the type of the input value
-type = &quot;String&quot;
+type = &quot;string&quot;
 
 [[output]]
 name = &quot;rows&quot; # - Number of rows in the input value
-type = &quot;Number&quot;
+type = &quot;number&quot;
 
 [[output]]
 name = &quot;columns&quot; # - Number of columns in the input value
-type = &quot;Number&quot;
+type = &quot;number&quot;
 </code></pre>
 <h3 id="include-using-20"><a class="header" href="#include-using-20">Include using</a></h3>
 <pre><code class="language-toml">[[process]]
@@ -1885,14 +1885,14 @@ type = &quot;rust&quot;
 
 [[input]]
 name = &quot;a&quot;
-type = &quot;Array/Number&quot;
+type = &quot;array/number&quot;
 
 [[input]]
 name = &quot;b&quot;
-type = &quot;Array/Number&quot;
+type = &quot;array/number&quot;
 
 [[output]]
-type = &quot;Number&quot;
+type = &quot;number&quot;
 </code></pre>
 <h3 id="include-using-21"><a class="header" href="#include-using-21">Include using</a></h3>
 <pre><code class="language-toml">[[process]]
@@ -1909,14 +1909,14 @@ type = &quot;rust&quot;
 
 [[input]]
 name = &quot;string&quot; # - the String to split
-type = &quot;String&quot;
+type = &quot;string&quot;
 
 [[input]]
 name = &quot;separator&quot; # - the String to use as a separator
-type = &quot;String&quot;
+type = &quot;string&quot;
 
 [[output]]
-type = &quot;Array/String&quot;
+type = &quot;array/string&quot;
 </code></pre>
 <h3 id="include-using-22"><a class="header" href="#include-using-22">Include using</a></h3>
 <pre><code class="language-toml">[[process]]
@@ -1935,17 +1935,17 @@ name = &quot;value&quot; # - The value to remove from the array
 
 [[input]]
 name = &quot;array&quot; # - An array, to remove `value` from
-type = &quot;Array/Value&quot;
+type = &quot;array/object&quot;
 
 [[output]]
-type = &quot;Array/Value&quot; # - The resulting array
+type = &quot;array/object&quot; # - The resulting array
 </code></pre>
 <h3 id="include-using-23"><a class="header" href="#include-using-23">Include using</a></h3>
 <pre><code class="language-toml">[[process]]
 source = &quot;lib://flowstdlib/data/remove&quot;
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h2 id="sort-flowstdlibdatasort"><a class="header" href="#sort-flowstdlibdatasort">Sort (//flowstdlib/data/sort)</a></h2>
-<p>Sort an Array of Numbers</p>
+<p>Sort an array of numbers</p>
 <h3 id="definition-25"><a class="header" href="#definition-25">Definition</a></h3>
 <pre><code class="language-toml">function = &quot;sort&quot;
 source = &quot;sort.rs&quot;
@@ -1953,10 +1953,10 @@ docs = &quot;sort.md&quot;
 type = &quot;rust&quot;
 
 [[input]]
-type = &quot;Array/Number&quot;
+type = &quot;array/number&quot;
 
 [[output]]
-type = &quot;Array/Number&quot;
+type = &quot;array/number&quot;
 </code></pre>
 <h3 id="include-using-24"><a class="header" href="#include-using-24">Include using</a></h3>
 <pre><code class="language-toml">[[process]]
@@ -1990,26 +1990,26 @@ type = &quot;rust&quot;
 
 [[input]]
 name = &quot;string&quot; # - the String to split
-type = &quot;String&quot;
+type = &quot;string&quot;
 
 [[input]]
 name = &quot;separator&quot; # - the String to use as a separator
-type = &quot;String&quot;
+type = &quot;string&quot;
 
 [[output]]
-name = &quot;partial&quot; # - an Array of Strings that each may or may not have `separator` strings inside
+name = &quot;partial&quot; # - an array of Strings that each may or may not have `separator` strings inside
 # them. This should be feed-back to the input (will be serialized into Strings by the
 # runtime) for further subdivision until each one cannot be split further - in which case
 # it will be output as `token`
-type = &quot;Array/String&quot;
+type = &quot;array/string&quot;
 
 [[output]]
 name = &quot;token-count&quot; # - the number of tokens emitted, can be used to count tokens generated
-type = &quot;Number&quot;
+type = &quot;number&quot;
 
 [[output]]
 name = &quot;token&quot; # - a String that cannot be sub-divided further.
-type = &quot;String&quot;
+type = &quot;string&quot;
 
 [[output]]
 name = &quot;delta&quot; # - this is a Number that indicates if this job reduced (-1) or increased (+1) the number
@@ -2018,7 +2018,7 @@ name = &quot;delta&quot; # - this is a Number that indicates if this job reduced
 # -0 partials for further splitting). If the input string
 # is split into two partial strings that are output for further splitting, then the delta to
 # pending work is +1 (+2 partials -1 input)
-type = &quot;Number&quot;
+type = &quot;number&quot;
 </code></pre>
 <h3 id="include-using-25"><a class="header" href="#include-using-25">Include using</a></h3>
 <pre><code class="language-toml">[[process]]
@@ -2033,10 +2033,10 @@ docs = &quot;transpose.md&quot;
 type = &quot;rust&quot;
 
 [[input]]
-type = &quot;Array/Array/Number&quot;
+type = &quot;array/array/number&quot;
 
 [[output]]
-type = &quot;Array/Array/Number&quot;
+type = &quot;array/array/number&quot;
 </code></pre>
 <h3 id="include-using-26"><a class="header" href="#include-using-26">Include using</a></h3>
 <pre><code class="language-toml">[[process]]
@@ -2052,15 +2052,15 @@ type = &quot;rust&quot;
 
 [[input]]
 name = &quot;left&quot; # - the 'left' array
-type = &quot;Array/Value&quot;
+type = &quot;array/object&quot;
 
 [[input]]
 name = &quot;right&quot; # - the 'right' array
-type = &quot;Array/Value&quot;
+type = &quot;array/object&quot;
 
 [[output]]
 name = &quot;tuples&quot; # - tuples - the array of tuples of (left, right)
-type = &quot;Array/Value&quot;
+type = &quot;array/object&quot;
 </code></pre>
 <h3 id="include-using-27"><a class="header" href="#include-using-27">Include using</a></h3>
 <pre><code class="language-toml">[[process]]
@@ -2083,15 +2083,15 @@ docs = &quot;reverse.md&quot;
 type = &quot;rust&quot;
 
 [[input]]
-type = &quot;String&quot; # The String to reverse
+type = &quot;string&quot; # The String to reverse
 
 [[output]]
 name = &quot;reversed&quot; # - The input string reversed
-type = &quot;String&quot;
+type = &quot;string&quot;
 
 [[output]]
 name = &quot;original&quot; # - The original input string
-type = &quot;String&quot;
+type = &quot;string&quot;
 </code></pre>
 <h3 id="include-using-28"><a class="header" href="#include-using-28">Include using</a></h3>
 <pre><code class="language-toml">[[process]]
@@ -2106,10 +2106,10 @@ docs = &quot;to_json.md&quot;
 type = &quot;rust&quot;
 
 [[input]]
-type = &quot;String&quot; # The String to convert
+type = &quot;string&quot; # The String to convert
 
 [[output]]
-type = &quot;Value&quot; # The Json equivalent of String input
+type = &quot;object&quot; # The Json equivalent of String input
 </code></pre>
 <h3 id="include-using-29"><a class="header" href="#include-using-29">Include using</a></h3>
 <pre><code class="language-toml">[[process]]
@@ -2119,12 +2119,12 @@ source = &quot;lib://flowstdlib/fmt/to_json&quot;
 <p>Convert an input type to a String</p>
 <p>Current types supported are:</p>
 <ul>
-<li>Null - A null will be printed as &quot;Null&quot;</li>
-<li>Bool - Boolean JSON value</li>
-<li>Number - A JSON Number</li>
-<li>String - a bit redundant, but it works</li>
-<li>Array - An JSON array of values that can be converted, they are converted one by one</li>
-<li>Object - a Map of names/objects that will also be printed out</li>
+<li>null - A null will be printed as &quot;null&quot;</li>
+<li>boolean - boolean JSON value</li>
+<li>number - A JSON Number</li>
+<li>string - a bit redundant, but it works</li>
+<li>array - An JSON array of values that can be converted, they are converted one by one</li>
+<li>object - a Map of names/objects that will also be printed out</li>
 </ul>
 <h3 id="definition-31"><a class="header" href="#definition-31">Definition</a></h3>
 <pre><code class="language-toml">function = &quot;to_string&quot;
@@ -2133,10 +2133,10 @@ docs = &quot;to_string.md&quot;
 type = &quot;rust&quot;
 
 [[input]]
-type = &quot;Value&quot;
+type = &quot;object&quot;
 
 [[output]]
-type = &quot;String&quot; # The String equivalent of the input value
+type = &quot;string&quot; # The String equivalent of the input value
 </code></pre>
 <h3 id="include-using-30"><a class="header" href="#include-using-30">Include using</a></h3>
 <pre><code class="language-toml">[[process]]
@@ -2166,14 +2166,14 @@ type = &quot;rust&quot;
 
 [[input]]
 name = &quot;i1&quot; # - first input of type `Number`
-type = &quot;Number&quot;
+type = &quot;number&quot;
 
 [[input]]
 name = &quot;i2&quot; # - second input of type `Number`
-type = &quot;Number&quot;
+type = &quot;number&quot;
 
 [[output]]
-type = &quot;Number&quot;
+type = &quot;number&quot;
 </code></pre>
 <h3 id="include-using-31"><a class="header" href="#include-using-31">Include using</a></h3>
 <pre><code class="language-toml">[[process]]
@@ -2190,31 +2190,31 @@ type = &quot;rust&quot;
 
 [[input]]
 name = &quot;left&quot; # - left hand input
-type = &quot;Number&quot;
+type = &quot;number&quot;
 
 [[input]]
 name = &quot;right&quot; # - right hand input
-type = &quot;Number&quot;
+type = &quot;number&quot;
 
 [[output]]
-name = &quot;equal&quot; # - `equal` \[Boolean\] - outputs true if the two values are equal
-type = &quot;Bool&quot;
+name = &quot;equal&quot; # - `equal` - outputs true if the two values are equal
+type = &quot;boolean&quot;
 
 [[output]]
-name = &quot;lt&quot; # - `lt` \[Boolean\] - outputs true if the left hand value is less than the right hand value
-type = &quot;Bool&quot;
+name = &quot;lt&quot; # - `lt` - outputs true if the left hand value is less than the right hand value
+type = &quot;boolean&quot;
 
 [[output]]
-name = &quot;lte&quot; # - `lte` \[Boolean\] - outputs true if the left hand value is less than or equal to the right hand value
-type = &quot;Bool&quot;
+name = &quot;lte&quot; # - `lte` - outputs true if the left hand value is less than or equal to the right hand value
+type = &quot;boolean&quot;
 
 [[output]]
-name = &quot;gt&quot; # - `gt` \[Boolean\] - outputs true if the left hand value is greater than the right hand value
-type = &quot;Bool&quot;
+name = &quot;gt&quot; # - `gt` - outputs true if the left hand value is greater than the right hand value
+type = &quot;boolean&quot;
 
 [[output]]
-name = &quot;gte&quot; # - `gte` \[Boolean\] - outputs true if the left hand value is greater than or equal to the right hand value
-type = &quot;Bool&quot;
+name = &quot;gte&quot; # - `gte` - outputs true if the left hand value is greater than or equal to the right hand value
+type = &quot;boolean&quot;
 </code></pre>
 <h3 id="include-using-32"><a class="header" href="#include-using-32">Include using</a></h3>
 <pre><code class="language-toml">[[process]]
@@ -2230,27 +2230,27 @@ type = &quot;rust&quot;
 
 [[input]]
 name = &quot;dividend&quot; # - the number to be divided, of type `Number`
-type = &quot;Number&quot;
+type = &quot;number&quot;
 
 [[input]]
 name = &quot;divisor&quot; # - the number to divide by, of type `Number`
-type = &quot;Number&quot;
+type = &quot;number&quot;
 
 [[output]]
 name = &quot;dividend&quot; # - re output the `dividend` input, of type `Number`
-type = &quot;Number&quot;
+type = &quot;number&quot;
 
 [[output]]
 name = &quot;divisor&quot; # - re output the `divisor` input, of type `Number`
-type = &quot;Number&quot;
+type = &quot;number&quot;
 
 [[output]]
 name = &quot;result&quot; # - the result of the division, of type `Number`
-type = &quot;Number&quot;
+type = &quot;number&quot;
 
 [[output]]
 name = &quot;remainder&quot; # - the remainder of the division, of type `Number`
-type = &quot;Number&quot;
+type = &quot;number&quot;
 </code></pre>
 <h3 id="include-using-33"><a class="header" href="#include-using-33">Include using</a></h3>
 <pre><code class="language-toml">[[process]]
@@ -2266,14 +2266,14 @@ type = &quot;rust&quot;
 
 [[input]]
 name = &quot;i1&quot; # - one number, of type `Number`
-type = &quot;Number&quot;
+type = &quot;number&quot;
 
 [[input]]
 name = &quot;i2&quot; # - the other number, of type `Number`
-type = &quot;Number&quot;
+type = &quot;number&quot;
 
 [[output]]
-type = &quot;Number&quot; # - the multiplication of i1 and i2, of type `Number`
+type = &quot;number&quot; # - the multiplication of i1 and i2, of type `Number`
 </code></pre>
 <h3 id="include-using-34"><a class="header" href="#include-using-34">Include using</a></h3>
 <pre><code class="language-toml">[[process]]
@@ -2288,12 +2288,12 @@ docs = &quot;range.md&quot;
 # The range to generate: [min, max] both are inclusive
 [[input]]
 name = &quot;range&quot;
-type = &quot;Array/Number&quot;
+type = &quot;array/number&quot;
 
 # The series of numbers in the range generated
 [[output]]
 name = &quot;number&quot;
-type = &quot;Number&quot;
+type = &quot;number&quot;
 
 [[process]]
 alias = &quot;range_split&quot;
@@ -2332,22 +2332,22 @@ type = &quot;rust&quot;
 # The range_split definition: an array of [smallest number in the range_split, The largest number in the range_split]
 [[input]]
 name = &quot;range&quot;
-type = &quot;Array/Number&quot;
+type = &quot;array/number&quot;
 
 # This will be a new range (array of two numbers) in the bottom half of the input range_split
 [[output]]
 name = &quot;bottom&quot;
-type = &quot;Array/Number&quot;
+type = &quot;array/number&quot;
 
 # This will be a new range (array of two numbers) in the top half of the input range_split
 [[output]]
 name = &quot;top&quot;
-type = &quot;Array/Number&quot;
+type = &quot;array/number&quot;
 
 # Numbers in the range will be output here
 [[output]]
 name = &quot;same&quot;
-type = &quot;Number&quot;
+type = &quot;number&quot;
 </code></pre>
 <h3 id="include-using-36"><a class="header" href="#include-using-36">Include using</a></h3>
 <pre><code class="language-toml">[[process]]
@@ -2362,27 +2362,27 @@ docs = &quot;sequence.md&quot;
 # The number the sequence should start at
 [[input]]
 name = &quot;start&quot;
-type = &quot;Number&quot;
+type = &quot;number&quot;
 
 # 'end' is the maximum or limit of the sequence - the last we will generate
 [[input]]
 name = &quot;end&quot;
-type = &quot;Number&quot;
+type = &quot;number&quot;
 
 # 'step' is the amount to add each time
 [[input]]
 name = &quot;step&quot;
-type = &quot;Number&quot;
+type = &quot;number&quot;
 
 # The sequence of numbers we will generate
 [[output]]
 name = &quot;sequence&quot;
-type = &quot;Number&quot;
+type = &quot;number&quot;
 
 # A value is output when the sequence has ended
 [[output]]
 name = &quot;last&quot;
-type = &quot;Number&quot;
+type = &quot;number&quot;
 
 # For the first time around, pass the start number of the sequence into the &quot;compare&quot; process
 [[connection]]
@@ -2454,10 +2454,10 @@ docs = &quot;sqrt.md&quot;
 type = &quot;rust&quot;
 
 [[input]]
-type = &quot;Number&quot;
+type = &quot;number&quot;
 
 [[output]]
-type = &quot;Number&quot; # Square Root of type `Number`
+type = &quot;number&quot; # Square Root of type `Number`
 </code></pre>
 <h3 id="include-using-38"><a class="header" href="#include-using-38">Include using</a></h3>
 <pre><code class="language-toml">[[process]]
@@ -2473,14 +2473,14 @@ type = &quot;rust&quot;
 
 [[input]]
 name = &quot;i1&quot; # - first input of type `Number`
-type = &quot;Number&quot;
+type = &quot;number&quot;
 
 [[input]]
 name = &quot;i2&quot; # - second input of type `Number`
-type = &quot;Number&quot;
+type = &quot;number&quot;
 
 [[output]]
-type = &quot;Number&quot; # - `i1` minus `i2` of type `Number`
+type = &quot;number&quot; # - `i1` minus `i2` of type `Number`
 </code></pre>
 <h3 id="include-using-39"><a class="header" href="#include-using-39">Include using</a></h3>
 <pre><code class="language-toml">[[process]]
@@ -2610,7 +2610,7 @@ under <code>samples</code> where the sample is) to run just that one sample.</p>
 <li>Context Flow</li>
 <li><code>context</code> Functions used (`stdio/stdout``)</li>
 <li>Reduced syntax so that <code>alias</code> of referenced processes default to their names (<code>get</code> and <code>stdout</code>)</li>
-<li>Selecting a specific indexed entry of an <code>Array</code> output</li>
+<li>Selecting a specific indexed entry of an <code>array</code> output</li>
 <li>Library Flows used (<code>args/get</code> from <code>flowstdlib</code>)</li>
 <li>Connections between functions</li>
 </ul>
@@ -2627,14 +2627,14 @@ under <code>samples</code> where the sample is) to run just that one sample.</p>
 This is done by the P2 'composer' (<code>ComposeArray</code>) function.</p>
 </li>
 <li>
-<p>Decomposing an output of type Array of Objects to a stream of Objects. This is done by the runtime when it sees
-a connection from an Array of Type to Type.</p>
+<p>Decomposing an output of type array of objects to a stream of objects. This is done by the runtime when it sees
+a connection from an array of Type to Type.</p>
 </li>
 <li>
-<p>P1 - sequence - generates a stream of outputs of type Number</p>
+<p>P1 - sequence - generates a stream of outputs of type number</p>
 </li>
 <li>
-<p>P2 - composer - input of type Number of width 4, output of type Array of Number</p>
+<p>P2 - composer - input of type Number of width 4, output of type array of number</p>
 </li>
 <li>
 <p>P3 - adder    - input of type Number and output of type Number, adding 1 in the process</p>
@@ -2644,10 +2644,10 @@ a connection from an Array of Type to Type.</p>
 </li>
 </ul>
 <p>This sample (with default settings on a multi-core machine) shows parallelism of the add function, dispatching
-multiple jobs for it in parallel as the Array of Number output from the previous process is decomposed, creating
+multiple jobs for it in parallel as the array of number output from the previous process is decomposed, creating
 a job for each Number. You can see this by using the <code>-j</code> option of the runtime to limit the number of outstanding
 jobs and the <code>-m</code> options to dump metrics after execution. The &quot;Max Number of Parallel Jobs&quot; should be similar or
-greater than 4, which is the size of the Array of Numbers formed.</p>
+greater than 4, which is the size of the array of numbers formed.</p>
 <h1 id="context-diagram-1"><a class="header" href="#context-diagram-1">Context Diagram</a></h1>
 <p><a href="flowsamples/arrays/root.dot.svg" target="_blank"><img src="flowsamples/arrays/root.dot.svg"></a></p>
 <p>Click image to navigate flow hierarchy.</p>
@@ -2760,14 +2760,14 @@ the flow.</p>
 <ul>
 <li>Context Flow</li>
 <li>Connections between functions</li>
-<li>Loop-back connections to accumulate an array, used to gather Numbers into Array/Number and then Array/Number into
-Array/Array/Number (i.e. Matrix)</li>
+<li>Loop-back connections to accumulate an array, used to gather Numbers into array/number and then array/number into
+array/array/number (i.e. Matrix)</li>
 <li>Initializing function inputs with values, once and constantly</li>
 <li>Multiple connections into and out of functions</li>
 <li>Library Functions <code>to_json</code>, <code>multiply</code>, <code>subtract</code> from <code>flowstdlib</code></li>
 <li>Library Functions <code>tap</code>, <code>compare</code> from <code>flowstdlib</code></li>
 <li>Use of aliases to refer to functions with different names inside a flow</li>
-<li>Automatic Array decomposing into the elements the array holds when target function input does not accept the array type</li>
+<li>Automatic array decomposing into the elements the array holds when target function input does not accept the array type</li>
 </ul>
 <h1 id="functions-diagram-6"><a class="header" href="#functions-diagram-6">Functions Diagram</a></h1>
 <p>This diagram shows the exploded diagram of all functions in all flows, and their connections.

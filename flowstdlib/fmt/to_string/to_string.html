@@ -146,12 +146,12 @@
 <p>Convert an input type to a String</p>
 <p>Current types supported are:</p>
 <ul>
-<li>Null - A null will be printed as &quot;Null&quot;</li>
-<li>Bool - Boolean JSON value</li>
-<li>Number - A JSON Number</li>
-<li>String - a bit redundant, but it works</li>
-<li>Array - An JSON array of values that can be converted, they are converted one by one</li>
-<li>Object - a Map of names/objects that will also be printed out</li>
+<li>null - A null will be printed as &quot;null&quot;</li>
+<li>boolean - boolean JSON value</li>
+<li>number - A JSON Number</li>
+<li>string - a bit redundant, but it works</li>
+<li>array - An JSON array of values that can be converted, they are converted one by one</li>
+<li>object - a Map of names/objects that will also be printed out</li>
 </ul>
 <h3 id="definition"><a class="header" href="#definition">Definition</a></h3>
 <pre><code class="language-toml">function = &quot;to_string&quot;
@@ -160,10 +160,10 @@ docs = &quot;to_string.md&quot;
 type = &quot;rust&quot;
 
 [[input]]
-type = &quot;Value&quot;
+type = &quot;object&quot;
 
 [[output]]
-type = &quot;String&quot; # The String equivalent of the input value
+type = &quot;string&quot; # The String equivalent of the input value
 </code></pre>
 <h3 id="include-using"><a class="header" href="#include-using">Include using</a></h3>
 <pre><code class="language-toml">[[process]]
