@@ -5,17 +5,17 @@ use flowcore::model::function_definition::FunctionDefinition;
 use flowcore::model::name::HasName;
 use flowcore::model::route::HasRoute;
 
-use crate::generator::generate::GenerationTables;
+use crate::compiler::tables::CompilerTables;
 
 /*
     Keep removing dead processes (that have no effect) and any connection that goes
     no-where or comes from nowhere, iteratively until no more can be removed
 */
-pub fn optimize(tables: &mut GenerationTables) {
+pub fn optimize(tables: &mut CompilerTables) {
     while remove_dead_processes(tables) {}
 }
 
-fn remove_dead_processes(tables: &mut GenerationTables) -> bool {
+fn remove_dead_processes(tables: &mut CompilerTables) -> bool {
     let mut processes_to_remove = vec![];
     let mut connections_to_remove = vec![];
 

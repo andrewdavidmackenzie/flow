@@ -34,6 +34,12 @@ pub struct Connection {
     /// `level` defines at what level in the flow hierarchy of nested flows this connections belongs
     #[serde(skip)]
     level: usize,
+    /// `priority` depends on for how far "out" in the flow hierarchy from the destination the
+    /// connection comes. 0 = self connection, 1 = from same flow, 2 = from next flow out, etc
+    /// It is used to prioritize the selection of input values queued up at an input using the
+    /// "innermost first" theory
+    #[serde(skip)]
+    priority: usize,
 }
 
 /// `Direction` defines whether a `Connection` is coming from an IO or to an IO
@@ -98,7 +104,7 @@ impl Connection {
         &self.name
     }
 
-    /// Connect the `from_io` to the `to_io` if they are compatible
+    /// Connect the `from_io` to the `to_io` inside a flow at level `level`, if they are compatible
     pub fn connect(&mut self, from_io: IO, to_io: IO, level: usize) -> Result<()> {
         // are we selecting from a sub-route of an IO, such as an array index or element of output object?
         // TODO this requires the accumulation of the subroute to be done during connection building #1192
@@ -153,6 +159,11 @@ impl Connection {
     /// Get at what level in the flow hierarchy this connection exists (source)
     pub fn level(&self) -> usize {
         self.level
+    }
+
+    /// Get at the priority of this connection
+    pub fn priority(&self) -> usize {
+        self.priority
     }
 
     /// For a set of output types to be compatible with a destination's set of types
