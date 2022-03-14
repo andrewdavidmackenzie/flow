@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use log::{debug, info};
 
+use flowcore::model::connection::LOOPBACK_PRIORITY;
 use flowcore::model::flow_definition::FlowDefinition;
 use flowcore::model::name::HasName;
 use flowcore::model::output_connection::{OutputConnection, Source};
@@ -67,6 +68,13 @@ pub fn prepare_output_connections(tables: &mut CompilerTables) -> Result<()> {
                     debug!("  Source output route = '{}' --> Destination: Process ID = {},  Input number = {}",
                            source, destination_function_id, destination_input_index);
 
+                    // Detect loopback connections and set their priority appropriately
+                    let priority = if source_id == destination_function_id {
+                        LOOPBACK_PRIORITY
+                    } else {
+                        connection.get_priority()
+                    };
+
                     let output_conn = OutputConnection::new(
                         source,
                         destination_function_id,
@@ -77,8 +85,9 @@ pub fn prepare_output_connections(tables: &mut CompilerTables) -> Result<()> {
                         connection.to_io().route().to_string(),
                         #[cfg(feature = "debugger")]
                             connection.name().to_string(),
+                        priority,
                     );
-                    source_function.add_output_route(output_conn);
+                    source_function.add_output_connection(output_conn);
                 }
 
                 // TODO when connection uses references to real IOs then we maybe able to remove this
@@ -282,8 +291,8 @@ mod test {
     }
 
     /* Test an error is thrown if a flow has no side effects, and that unconnected functions
-                       are removed by the optimizer
-                    */
+       are removed by the optimizer
+    */
     #[test]
     fn no_side_effects() {
         let function = FunctionDefinition::new(

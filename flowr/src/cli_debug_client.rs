@@ -357,6 +357,7 @@ mod test {
             "/fB".to_string(),
             #[cfg(feature = "debugger")]
             String::default(),
+            0,
         );
         RuntimeFunction::new(
             #[cfg(feature = "debugger")]

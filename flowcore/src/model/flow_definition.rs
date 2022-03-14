@@ -248,7 +248,6 @@ impl FlowDefinition {
         self.validate()
     }
 
-
     /// Check if the flow can be run (it could be a sub-flow not a context level runnable flow)
     pub fn is_runnable(&self) -> bool {
         self.inputs().is_empty() && self.outputs().is_empty()
@@ -466,7 +465,6 @@ mod test {
 
         let process_1 = Process::FunctionProcess(FunctionDefinition {
             name: "process_1".into(),
-            id: 0,
             inputs: vec![IO::new(vec!(STRING_TYPE.into()), "")],
             outputs: vec![IO::new(vec!(STRING_TYPE.into()), "")],
             ..Default::default()
@@ -474,7 +472,7 @@ mod test {
 
         let process_2 = Process::FunctionProcess(FunctionDefinition {
             name: "process_2".into(),
-            id: 1,
+            function_id: 1,
             inputs: vec![IO::new(vec!(STRING_TYPE.into()), "")],
             outputs: vec![IO::new(vec!(NUMBER_TYPE.into()), "")],
             ..Default::default()

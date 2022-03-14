@@ -352,6 +352,7 @@ mod test {
             String::default(),
             #[cfg(feature = "debugger")]
             String::default(),
+            0,
         );
         RuntimeFunction::new(
             #[cfg(feature = "debugger")]
@@ -406,6 +407,7 @@ mod test {
             String::default(),
             #[cfg(feature = "debugger")]
             String::default(),
+            0,
         );
         let mut function = RuntimeFunction::new(
             #[cfg(feature = "debugger")]

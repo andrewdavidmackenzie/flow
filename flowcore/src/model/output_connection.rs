@@ -2,6 +2,8 @@ use std::fmt;
 
 use serde_derive::{Deserialize, Serialize};
 
+use crate::model::connection::UNSET_PRIORITY;
+
 /// The `Conversion` enum defines what type of run-time conversion of types is to be done
 #[derive(Deserialize, Serialize, Clone, PartialEq, Debug)]
 pub enum Conversion {
@@ -40,20 +42,38 @@ pub struct OutputConnection {
     pub destination_array_order: i32,
     /// `generic` defines if the input accepts generic OBJECT_TYPEs
     #[serde(default = "default_generic", skip_serializing_if = "is_not_generic")]
-    pub generic: bool,
+    generic: bool,
     /// `destination` is the full route to the destination input
     #[serde(default, skip_serializing_if = "String::is_empty")]
     pub destination: String,
     /// Optional `name` the output connection can be given to aid debugging
     #[cfg(feature = "debugger")]
     #[serde(default, skip_serializing_if = "String::is_empty")]
-    pub name: String,
+    name: String,
+    /// `priority` depends on for how far "out" in the flow hierarchy from the destination the
+    /// connection comes.
+    ///     0 = loopback connection
+    ///     1 = from same flow
+    ///     2 = from next flow out
+    ///   MAX = priority was not set at compile time
+    /// It is used to prioritize the selection of input values queued up at an input using the
+    /// "innermost first" theory
+    #[serde(default = "unset_priority", skip_serializing_if = "priority_is_unset")]
+    priority: usize,
 }
 
 /// If the Source is an Output and the String for the subroute is empty then we can just
 /// skip serializing it
 fn is_default_source(source: &Source) -> bool {
     matches!(source, Source::Output(subroute) if subroute.is_empty())
+}
+
+fn unset_priority() -> usize {
+    UNSET_PRIORITY
+}
+
+fn priority_is_unset(u: &usize) -> bool {
+    u == &UNSET_PRIORITY
 }
 
 impl Default for Source {
@@ -92,6 +112,7 @@ impl OutputConnection {
         generic: bool,
         route: String,
         #[cfg(feature = "debugger")] name: String,
+        priority: usize,
     ) -> Self {
         OutputConnection {
             source,
@@ -103,6 +124,7 @@ impl OutputConnection {
             destination: route,
             #[cfg(feature = "debugger")]
             name,
+            priority,
         }
     }
 
@@ -178,6 +200,7 @@ mod test {
             String::default(),
             #[cfg(feature = "debugger")]
             "test-connection".into(),
+            0,
         );
         println!("Connection: {}", connection);
     }
@@ -194,6 +217,7 @@ mod test {
             "/flow1/input".into(),
             #[cfg(feature = "debugger")]
             "test-connection".into(),
+            0,
         );
         println!("Connection: {}", connection);
     }

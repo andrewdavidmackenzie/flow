@@ -1,6 +1,6 @@
 use log::debug;
 
-use flowcore::model::connection::Connection;
+use flowcore::model::connection::{Connection, DIRECT_CONNECTION_PRIORITY};
 use flowcore::model::flow_definition::FlowDefinition;
 use flowcore::model::function_definition::FunctionDefinition;
 use flowcore::model::io::{IO, IOType};
@@ -51,34 +51,25 @@ pub fn gather_functions_and_connections(flow: &FlowDefinition, tables: &mut Comp
 pub fn collapse_connections(original_connections: &[Connection]) -> Vec<Connection> {
     let mut collapsed_connections: Vec<Connection> = Vec::new();
 
-    debug!(
-        "Working on collapsing {} flow connections",
-        original_connections.len()
-    );
+    debug!("Collapsing {} flow connections", original_connections.len());
 
     for connection in original_connections {
-        // All collapsed connections must start and end at a Function, so we only build
-        // them starting at ones that begin at a Function's IO
+        // All collapsed connections must start and end at a Function, so we collapse connections
+        // starting at ones that begin at a Function's IO (Output)
         if connection.from_io().io_type() == &IOType::FunctionIO {
-            debug!(
-                "Trying to create connection from function output at '{}'",
-                connection.from_io().route()
-            );
+            debug!("Trying to create connection from function output at '{}'",
+                   connection.from_io().route());
             if connection.to_io().io_type() == &IOType::FunctionIO {
-                debug!(
-                    "\tFound direct connection to function input at '{}'",
-                    connection.to_io().route()
-                );
-                let collapsed_connection = connection.clone();
-                // TODO set priority
-                // if source function == destination function
-                //    priority = 0; // loopback connection on the same function
-                // else
-                //    priority = 1; // direct connection between functions within the same flow
+                debug!("\tFound direct connection within the flow to a function input at '{}'",
+                       connection.to_io().route());
+                let mut collapsed_connection = connection.clone();
+                // Note: This maybe to the same function. Loopback connections will be detected
+                // and their priorities changed later in the process.
+                collapsed_connection.set_priority(DIRECT_CONNECTION_PRIORITY);
                 collapsed_connections.push(collapsed_connection);
             } else {
                 // If the connection enters or leaves this flow, then follow it to all destinations at function inputs
-                for (source_subroute, destination_io) in find_function_destinations(
+                for (source_subroute, outermost_level, innermost_level, destination_io) in find_function_destinations(
                     Route::from(""),
                     connection.to_io().route(),
                     connection.level(),
@@ -96,6 +87,7 @@ pub fn collapse_connections(original_connections: &[Connection]) -> Vec<Connecti
                     collapsed_connection
                         .from_io_mut()
                         .set_route(&from_route, &IOType::FunctionIO);
+                    collapsed_connection.set_priority(innermost_level - outermost_level + 1);
                     *collapsed_connection.to_io_mut() = destination_io;
                     debug!("\tIndirect connection {}", collapsed_connection);
                     collapsed_connections.push(collapsed_connection);
@@ -104,10 +96,7 @@ pub fn collapse_connections(original_connections: &[Connection]) -> Vec<Connecti
         }
     }
 
-    debug!(
-        "Connections between functions: {}",
-        collapsed_connections.len()
-    );
+    debug!("Connections between functions: {}", collapsed_connections.len());
 
     collapsed_connections
 }
@@ -173,8 +162,10 @@ fn find_function_destinations(
     from_io_route: &Route,
     from_level: usize,
     connections: &[Connection],
-) -> Vec<(Route, IO)> {
+) -> Vec<(Route, usize, usize, IO)> {
     let mut destinations = vec![];
+    let mut outermost_level = from_level;
+    let mut innermost_level = 0;
 
     let mut found = false;
     for next_connection in connections {
@@ -193,26 +184,27 @@ fn find_function_destinations(
 
             // Avoid infinite recursion and stack overflow
             if next_connection.level() == next_level {
+                // keep track of the level of the outermost flow level this connection goes through
+                outermost_level = std::cmp::min(outermost_level, next_level);
+                // keep track of the level of the innermost flow level this connection goes through
+                innermost_level = std::cmp::max(innermost_level, next_level);
+
                 // Add any subroute from this connection to the origin subroute accumulated so far
                 let accumulated_source_subroute = prev_subroute.clone().extend(&subroute).clone();
 
                 match *next_connection.to_io().io_type() {
                     IOType::FunctionIO => {
-                        debug!(
-                            "\t\tFound destination function input at '{}'",
-                            next_connection.to_io().route()
-                        );
+                        debug!("\t\tFound destination function input at '{}'",
+                            next_connection.to_io().route());
                         // Found a destination that is a function, add it to the list
                         // TODO accumulate the source subroute that builds up as we go
                         destinations
-                            .push((accumulated_source_subroute, next_connection.to_io().clone()));
+                            .push((accumulated_source_subroute, outermost_level, innermost_level,
+                                   next_connection.to_io().clone()));
                         found = true;
                     }
                     IOType::FlowInput => {
-                        debug!(
-                            "\t\tFollowing connection into sub-flow via '{}'",
-                            from_io_route
-                        );
+                        debug!("\t\tFollowing connection into sub-flow via '{}'", from_io_route);
                         let new_destinations = &mut find_function_destinations(
                             accumulated_source_subroute,
                             next_connection.to_io().route(),
@@ -223,10 +215,7 @@ fn find_function_destinations(
                         destinations.append(new_destinations);
                     }
                     IOType::FlowOutput => {
-                        debug!(
-                            "\t\tFollowing connection out of flow via '{}'",
-                            from_io_route
-                        );
+                        debug!("\t\tFollowing connection out of flow via '{}'", from_io_route);
                         let new_destinations = &mut find_function_destinations(
                             accumulated_source_subroute,
                             next_connection.to_io().route(),
@@ -288,6 +277,49 @@ mod test {
     }
 
     #[test]
+    fn no_collapse_of_a_loopback_connection() {
+        let mut only_connection = Connection::new("/function1/out", "/function1/in");
+        only_connection
+            .connect(
+                IO::new(vec!(STRING_TYPE.into()), "/function1/out"),
+                IO::new(vec!(STRING_TYPE.into()), "/function1/in"),
+                0,
+            ).expect("Could not connect IOs");
+        only_connection.from_io_mut().set_io_type(IOType::FunctionIO);
+        only_connection.to_io_mut().set_io_type(IOType::FunctionIO);
+
+        let connections = vec![only_connection];
+
+        let collapsed = collapse_connections(&connections);
+        assert_eq!(collapsed.len(), 1);
+        assert_eq!(*collapsed[0].from_io().route(), Route::from("/function1/out"));
+        assert_eq!(*collapsed[0].to_io().route(), Route::from("/function1/in"));
+        assert_eq!(collapsed[0].get_priority(), 1); // Loopback set to 0 later in compilation
+    }
+
+    #[test]
+    fn no_collapse_of_a_direct_connection() {
+        let mut only_connection = Connection::new("/function1/out", "/function2/in");
+        only_connection
+            .connect(
+                IO::new(vec!(STRING_TYPE.into()), "/function1/out"),
+                IO::new(vec!(STRING_TYPE.into()), "/function2/in"),
+                0,
+            )
+            .expect("Could not connect IOs");
+        only_connection.from_io_mut().set_io_type(IOType::FunctionIO);
+        only_connection.to_io_mut().set_io_type(IOType::FunctionIO);
+
+        let connections = vec![only_connection];
+
+        let collapsed = collapse_connections(&connections);
+        assert_eq!(collapsed.len(), 1);
+        assert_eq!(*collapsed[0].from_io().route(), Route::from("/function1/out"));
+        assert_eq!(*collapsed[0].to_io().route(), Route::from("/function2/in"));
+        assert_eq!(collapsed[0].get_priority(), 1);
+    }
+
+    #[test]
     fn collapse_a_connection() {
         let mut left_side = Connection::new("/function1", "/flow2/a");
         left_side
@@ -328,10 +360,8 @@ mod test {
         let collapsed = collapse_connections(&connections);
         assert_eq!(collapsed.len(), 1);
         assert_eq!(*collapsed[0].from_io().route(), Route::from("/function1"));
-        assert_eq!(
-            *collapsed[0].to_io().route(),
-            Route::from("/flow2/function3")
-        );
+        assert_eq!(*collapsed[0].to_io().route(), Route::from("/flow2/function3"));
+        assert_eq!(collapsed[0].get_priority(), 2);
     }
 
     /*
@@ -377,18 +407,22 @@ mod test {
 
         let collapsed = collapse_connections(&connections);
         assert_eq!(2, collapsed.len());
-        assert_eq!(Route::from("/f1"), *collapsed[0].from_io().route());
-        assert_eq!(Route::from("/f2/value1"), *collapsed[0].to_io().route());
-        assert_eq!(Route::from("/f1"), *collapsed[1].from_io().route());
-        assert_eq!(Route::from("/f2/value2"), *collapsed[1].to_io().route());
+
+        assert_eq!(*collapsed[0].from_io().route(), Route::from("/f1"));
+        assert_eq!(*collapsed[0].to_io().route(), Route::from("/f2/value1"));
+        assert_eq!(collapsed[0].get_priority(), 2);
+
+        assert_eq!(*collapsed[1].from_io().route(), Route::from("/f1"));
+        assert_eq!(*collapsed[1].to_io().route(), Route::from("/f2/value2"));
+        assert_eq!(collapsed[1].get_priority(), 2);
     }
 
     #[test]
     fn collapse_connection_into_sub_flow() {
-        let mut first_level = Connection::new("/value", "/flow1/a");
+        let mut first_level = Connection::new("/function1/out", "/flow1/a");
         first_level
             .connect(
-                IO::new(vec!(STRING_TYPE.into()), "/value"),
+                IO::new(vec!(STRING_TYPE.into()), "/function1/out"),
                 IO::new(vec!(STRING_TYPE.into()), "/flow1/a"),
                 0,
             )
@@ -422,11 +456,10 @@ mod test {
 
         let collapsed = collapse_connections(&connections);
         assert_eq!(1, collapsed.len());
-        assert_eq!(Route::from("/value"), *collapsed[0].from_io().route());
-        assert_eq!(
-            Route::from("/flow1/flow2/func/in"),
-            *collapsed[0].to_io().route()
-        );
+
+        assert_eq!(*collapsed[0].from_io().route(), Route::from("/function1/out"));
+        assert_eq!(*collapsed[0].to_io().route(), Route::from("/flow1/flow2/func/in"));
+        assert_eq!(collapsed[0].get_priority(), 2);
     }
 
     #[test]
@@ -474,6 +507,7 @@ mod test {
                 String::default(),
                 #[cfg(feature = "debugger")]
                 String::default(),
+                0,
             )],
             99,
             0,

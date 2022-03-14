@@ -1174,6 +1174,7 @@ mod test {
             false,
             "/fB".to_string(),
             String::default(),
+            0,
         );
 
         RuntimeFunction::new(
@@ -1198,6 +1199,7 @@ mod test {
             false,
             "/fB".to_string(),
             String::default(),
+            0,
         );
         RuntimeFunction::new(
             "fA",
@@ -1260,6 +1262,7 @@ mod test {
             false,
             String::default(),
             String::default(),
+            0,
         );
         Job {
             job_id: 1,
@@ -1764,6 +1767,7 @@ mod test {
                 false,
                 String::default(),
                 String::default(),
+                0,
             );
             output.connections = vec![no_such_out_conn];
 
@@ -1904,6 +1908,7 @@ mod test {
                 false,
                 String::default(),
                 String::default(),
+                0,
             );
             let f_a = RuntimeFunction::new(
                 "fA",
@@ -1971,6 +1976,7 @@ mod test {
                 false,
                 String::default(),
                 String::default(),
+                0,
             );
             let f_b = RuntimeFunction::new(
                 "fB",
@@ -2031,6 +2037,7 @@ mod test {
                 false,
                 String::default(),
                 String::default(),
+                0,
             );
             let f_b = RuntimeFunction::new(
                 "fB",
@@ -2103,6 +2110,7 @@ mod test {
                 false,
                 String::default(),
                 String::default(),
+                0,
             );
             let connection_to_1 = OutputConnection::new(
                 Source::default(),
@@ -2113,6 +2121,7 @@ mod test {
                 false,
                 String::default(),
                 String::default(),
+                0,
             );
 
             let f_a = RuntimeFunction::new(
@@ -2242,6 +2251,7 @@ mod test {
                 false,
                 String::default(),
                 String::default(),
+                0,
             );
             let out_conn2 = OutputConnection::new(
                 Source::default(),
@@ -2252,6 +2262,7 @@ mod test {
                 false,
                 String::default(),
                 String::default(),
+                0,
             );
             let p0 = RuntimeFunction::new(
                 "p0",
@@ -2728,6 +2739,7 @@ mod test {
                     test_case.destination_is_generic,
                     String::default(),
                     String::default(),
+                    0,
                 );
 
                 // Test

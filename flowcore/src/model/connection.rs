@@ -36,12 +36,23 @@ pub struct Connection {
     #[serde(skip)]
     level: usize,
     /// `priority` depends on for how far "out" in the flow hierarchy from the destination the
-    /// connection comes. 0 = self connection, 1 = from same flow, 2 = from next flow out, etc
+    /// connection comes.
+    ///     0 = loopback connection
+    ///     1 = from same flow
+    ///     2 = from next flow out
+    ///   MAX = priority was not set at compile time
     /// It is used to prioritize the selection of input values queued up at an input using the
     /// "innermost first" theory
     #[serde(skip)]
     priority: usize,
 }
+
+/// Constant for the priority of a function's loopback `Connection` to one of its own inputs
+pub const LOOPBACK_PRIORITY: usize = 0;
+/// Constant for the priority of a function's `Connection` to another function within the same flow
+pub const DIRECT_CONNECTION_PRIORITY: usize = 1;
+/// Constant to indicate that the priority was not set at compile time
+pub const UNSET_PRIORITY: usize = usize::MAX;
 
 /// `Direction` defines whether a `Connection` is coming from an IO or to an IO
 #[derive(Debug)]
@@ -162,8 +173,13 @@ impl Connection {
         self.level
     }
 
-    /// Get at the priority of this connection
-    pub fn priority(&self) -> usize {
+    /// Set the priority
+    pub fn set_priority(&mut self, priority:usize) {
+        self.priority = priority;
+    }
+
+    /// Get the priority of this connection
+    pub fn get_priority(&self) -> usize {
         self.priority
     }
 
