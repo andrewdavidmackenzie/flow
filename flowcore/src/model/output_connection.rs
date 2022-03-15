@@ -121,6 +121,11 @@ impl OutputConnection {
     pub fn is_generic(&self) -> bool {
         self.generic
     }
+
+    /// get the priority of this connection
+    pub fn get_priority(&self) -> usize {
+        self.priority
+    }
 }
 
 impl fmt::Display for Source {

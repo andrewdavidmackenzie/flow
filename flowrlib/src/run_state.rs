@@ -562,27 +562,32 @@ impl RunState {
 
     fn type_convert_and_send(
         function: &mut RuntimeFunction,
-        destination: &OutputConnection,
+        connection: &OutputConnection,
         value: &Value,
     ) {
-        if destination.is_generic() {
-            function.send(destination.io_number, value);
+        if connection.is_generic() {
+            function.send(connection.io_number, connection.get_priority(), value);
         } else {
             match (
-                (Self::array_order(value) - destination.destination_array_order),
+                (Self::array_order(value) - connection.destination_array_order),
                 value,
             ) {
-                (0, _) => function.send(destination.io_number, value),
-                (1, Value::Array(array)) => function.send_iter(destination.io_number, array),
+                (0, _) => function.send(connection.io_number,
+                                        connection.get_priority(),  value),
+                (1, Value::Array(array)) => function.send_iter(connection.io_number,
+                                                               connection.get_priority(), array),
                 (2, Value::Array(array_2)) => {
                     for array in array_2.iter() {
                         if let Value::Array(sub_array) = array {
-                            function.send_iter(destination.io_number, sub_array)
+                            function.send_iter(connection.io_number,
+                                               connection.get_priority(), sub_array)
                         }
                     }
                 }
-                (-1, _) => function.send(destination.io_number, &json!([value])),
-                (-2, _) => function.send(destination.io_number, &json!([[value]])),
+                (-1, _) => function.send(connection.io_number,
+                                         connection.get_priority(), &json!([value])),
+                (-2, _) => function.send(connection.io_number,
+                                         connection.get_priority(), &json!([[value]])),
                 _ => error!("Unable to handle difference in array order"),
             }
         }

@@ -187,6 +187,7 @@ pub fn dump_flow(
     dump the flow definition recursively, tracking what level we are at as we go down
 */
 #[allow(clippy::or_fun_call)]
+#[allow(clippy::only_used_in_recursion)]
 fn _dump_flow(
     flow: &FlowDefinition,
     level: usize,
