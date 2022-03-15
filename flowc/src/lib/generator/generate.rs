@@ -173,7 +173,6 @@ mod test {
     use serde_json::json;
     use url::Url;
 
-    use flowcore::model::connection::UNSET_PRIORITY;
     use flowcore::model::datatype::{ARRAY_TYPE, OBJECT_TYPE, STRING_TYPE};
     use flowcore::model::function_definition::FunctionDefinition;
     use flowcore::model::input::InputInitializer;
@@ -212,7 +211,7 @@ mod test {
                     String::default(),
                     #[cfg(feature = "debugger")]
                     String::default(),
-                    UNSET_PRIORITY,
+                    0,
                 ),
                 OutputConnection::new(
                     Output("sub_route".into()),
@@ -224,7 +223,7 @@ mod test {
                     String::default(),
                     #[cfg(feature = "debugger")]
                     String::default(),
-                    UNSET_PRIORITY,
+                    0,
                 ),
             ],
             0,
@@ -239,7 +238,8 @@ mod test {
     {
       'function_id': 1,
       'io_number': 0,
-      'flow_id': 0
+      'flow_id': 0,
+      'priority': 0
     },
     {
       'source': {
@@ -247,7 +247,8 @@ mod test {
       },
       'function_id': 2,
       'io_number': 0,
-      'flow_id': 0
+      'flow_id': 0,
+      'priority': 0
     }
   ]
 }";
@@ -289,7 +290,7 @@ mod test {
                 String::default(),
                 #[cfg(feature = "debugger")]
                 String::default(),
-                UNSET_PRIORITY,
+                0,
             )],
             0,
             0,
@@ -303,7 +304,8 @@ mod test {
     {
       'function_id': 1,
       'io_number': 0,
-      'flow_id': 0
+      'flow_id': 0,
+      'priority': 0
     }
   ]
 }";
@@ -345,7 +347,7 @@ mod test {
                 String::default(),
                 #[cfg(feature = "debugger")]
                 String::default(),
-                UNSET_PRIORITY,
+                0,
             )],
             0,
             0,
@@ -360,7 +362,8 @@ mod test {
       'function_id': 1,
       'io_number': 0,
       'flow_id': 0,
-      'destination_array_order': 1
+      'destination_array_order': 1,
+      'priority': 0
     }
   ]
 }";
@@ -538,7 +541,7 @@ mod test {
                 String::default(),
                 #[cfg(feature = "debugger")]
                 String::default(),
-                UNSET_PRIORITY,
+                0,
             )],
             0,
             0,
@@ -560,7 +563,8 @@ mod test {
     {
       'function_id': 1,
       'io_number': 0,
-      'flow_id': 0
+      'flow_id': 0,
+      'priority': 0
     }
   ]
 }";
@@ -573,7 +577,8 @@ mod test {
     {
       'function_id': 1,
       'io_number': 0,
-      'flow_id': 0
+      'flow_id': 0,
+      'priority': 0
     }
   ]
 }";
@@ -614,7 +619,7 @@ mod test {
                 String::default(),
                 #[cfg(feature = "debugger")]
                 String::default(),
-                UNSET_PRIORITY,
+                0,
             )],
             0,
             0,
@@ -631,7 +636,8 @@ mod test {
       },
       'function_id': 1,
       'io_number': 0,
-      'flow_id': 0
+      'flow_id': 0,
+      'priority': 0
     }
   ]
 }";
