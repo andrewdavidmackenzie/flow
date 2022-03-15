@@ -186,7 +186,6 @@ pub fn dump_flow(
 /*
     dump the flow definition recursively, tracking what level we are at as we go down
 */
-#[allow(clippy::or_fun_call)]
 #[allow(clippy::only_used_in_recursion)]
 fn _dump_flow(
     flow: &FlowDefinition,
@@ -202,12 +201,12 @@ fn _dump_flow(
     })?;
     let filename = file_path
         .file_stem()
-        .ok_or(std::io::Error::new(
+        .ok_or_else(|| std::io::Error::new(
             std::io::ErrorKind::Other,
             "Could not get file_stem of flow definition filename",
         ))?
         .to_str()
-        .ok_or(std::io::Error::new(
+        .ok_or_else(|| std::io::Error::new(
             std::io::ErrorKind::Other,
             "Could not convert filename to string",
         ))?;

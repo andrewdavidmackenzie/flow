@@ -165,7 +165,7 @@ impl RuntimeFunction {
     pub fn init_inputs(&mut self, first_time: bool) -> bool {
         let mut inputs_initialized = false;
         for (io_number, input) in &mut self.inputs.iter_mut().enumerate() {
-            if input.count() == 0 && input.init(first_time, io_number) {
+            if input.is_empty() && input.init(first_time, io_number) {
                 trace!("\t\tInput #{}:{} set from initializer", self.function_id, io_number);
                 inputs_initialized = true;
             }
@@ -210,7 +210,7 @@ impl RuntimeFunction {
         self.inputs[input_number].count()
     }
 
-    /// Returns how many inputs sets are available across all the `RuntimeFunction` `inputs`
+    /// Returns how many inputs sets are available across all the `RuntimeFunction` `Inputs`
     pub fn input_set_count(&self) -> usize {
         let mut num_input_sets = usize::MAX;
 
