@@ -11,9 +11,9 @@ use url::Url;
 use flowclib::compiler::compile;
 use flowclib::compiler::compile_wasm;
 use flowclib::compiler::loader;
+use flowclib::compiler::tables::CompilerTables;
 use flowclib::dumper::{dump, dump_dot};
 use flowclib::generator::generate;
-use flowclib::generator::generate::GenerationTables;
 use flowcore::meta_provider::Provider;
 use flowcore::model::flow_definition::FlowDefinition;
 use flowcore::model::process::Process::FlowProcess;
@@ -25,7 +25,7 @@ use crate::Options;
 // implementation to indicate it is the wasm file
 fn compile_supplied_implementations(
     out_dir: &Path,
-    tables: &mut GenerationTables,
+    tables: &mut CompilerTables,
     skip_building: bool,
     #[cfg(feature = "debugger")] source_urls: &mut HashSet<(Url, Url)>,
 ) -> Result<String> {
@@ -103,7 +103,7 @@ pub fn compile_and_execute_flow(options: &Options, provider: &dyn Provider) -> R
 fn dump(
     flow: &FlowDefinition,
     provider: &dyn Provider,
-    tables: &GenerationTables,
+    tables: &CompilerTables,
     options: &Options,
 ) -> Result<()> {
     if options.dump {

@@ -16,8 +16,10 @@ pub mod rust_manifest;
 /// `json_manifest` provides functions to help generate a manifest in json format for dynamic linking
 pub mod json_manifest;
 
+/// `tables` defines the `CompilerTables`structs and associated functions
+pub mod tables;
+
 mod cargo_build;
 mod checker;
-mod connector;
 mod gatherer;
 mod optimizer;

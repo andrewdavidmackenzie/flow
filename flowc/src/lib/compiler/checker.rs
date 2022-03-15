@@ -4,13 +4,13 @@ use flowcore::model::input::InputInitializer::Always;
 use flowcore::model::route::HasRoute;
 use flowcore::model::route::Route;
 
+use crate::compiler::tables::CompilerTables;
 use crate::errors::*;
-use crate::generator::generate::GenerationTables;
 
 /*
     Check for a series of potential problems in connections
 */
-pub fn check_connections(tables: &mut GenerationTables) -> Result<()> {
+pub fn check_connections(tables: &mut CompilerTables) -> Result<()> {
     check_for_competing_inputs(tables)?;
 
     Ok(())
@@ -21,7 +21,7 @@ pub fn check_connections(tables: &mut GenerationTables) -> Result<()> {
     - A single function has two output connections to the same destination input
     - a function connects to an input that has a constant initializer
 */
-fn check_for_competing_inputs(tables: &GenerationTables) -> Result<()> {
+fn check_for_competing_inputs(tables: &CompilerTables) -> Result<()> {
     for connection in &tables.collapsed_connections {
         // check for ConstantInitializer at destination
         if let Some(Always(_)) = connection.to_io().get_initializer() {
@@ -37,7 +37,7 @@ fn check_for_competing_inputs(tables: &GenerationTables) -> Result<()> {
 }
 
 /// Check that all Functions have connections to all their inputs or return an error
-pub fn check_function_inputs(tables: &mut GenerationTables) -> Result<()> {
+pub fn check_function_inputs(tables: &mut CompilerTables) -> Result<()> {
     for function in &tables.functions {
         for input in function.get_inputs() {
             match input.get_initializer() {
@@ -63,7 +63,7 @@ pub fn check_function_inputs(tables: &mut GenerationTables) -> Result<()> {
 }
 
 /// Check that some impure function producing a side effect is called or return an error
-pub fn check_side_effects(tables: &mut GenerationTables) -> Result<()> {
+pub fn check_side_effects(tables: &mut CompilerTables) -> Result<()> {
     for function in &tables.functions {
         // Until we separate impure inputs and side-effects we will assume that if a function
         // is impure and has inputs then it has side-effects
@@ -75,7 +75,7 @@ pub fn check_side_effects(tables: &mut GenerationTables) -> Result<()> {
     bail!("Flow has no side-effects")
 }
 
-fn connection_to(tables: &GenerationTables, input: &Route) -> bool {
+fn connection_to(tables: &CompilerTables, input: &Route) -> bool {
     for connection in &tables.collapsed_connections {
         if connection.to_io().route() == input {
             return true;

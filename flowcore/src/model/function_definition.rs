@@ -67,7 +67,7 @@ pub struct FunctionDefinition {
     pub output_connections: Vec<OutputConnection>,
     /// A unique `id` assigned to the function as the flow is parsed hierarchically
     #[serde(skip_deserializing)]
-    pub id: usize,
+    pub function_id: usize,
     /// the `id` of the `FlowDefinition` that this `FunctionDefinition` lies within in the hierarchy
     #[serde(skip_deserializing)]
     pub flow_id: usize,
@@ -90,7 +90,7 @@ impl Default for FunctionDefinition {
             lib_reference: None,
             context_reference: None,
             output_connections: vec![],
-            id: 0,
+            function_id: 0,
             flow_id: 0,
         }
     }
@@ -150,7 +150,7 @@ impl FunctionDefinition {
             lib_reference,
             context_reference,
             output_connections,
-            id,
+            function_id: id,
             flow_id,
             build_type: String::default(),
         }
@@ -186,12 +186,12 @@ impl FunctionDefinition {
 
     /// Set the id of this function
     pub fn set_id(&mut self, id: usize) {
-        self.id = id;
+        self.function_id = id;
     }
 
     /// Get the id of this function
     pub fn get_id(&self) -> usize {
-        self.id
+        self.function_id
     }
 
     /// Get the name of any associated docs file
@@ -241,7 +241,7 @@ impl FunctionDefinition {
     }
 
     /// Add a connection from this function to another
-    pub fn add_output_route(&mut self, output_route: OutputConnection) {
+    pub fn add_output_connection(&mut self, output_route: OutputConnection) {
         self.output_connections.push(output_route);
     }
 
@@ -366,7 +366,7 @@ impl fmt::Display for FunctionDefinition {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         writeln!(f, "name: \t\t{}", self.name)?;
         writeln!(f, "alias: \t\t{}", self.alias)?;
-        writeln!(f, "id: \t\t{}", self.id)?;
+        writeln!(f, "id: \t\t{}", self.function_id)?;
         writeln!(f, "flow_id: \t\t{}", self.flow_id)?;
 
         writeln!(f, "inputs:")?;
@@ -427,6 +427,7 @@ mod test {
                 String::default(),
                 #[cfg(feature = "debugger")]
                 String::default(),
+                0,
             )],
             ..Default::default()
         };

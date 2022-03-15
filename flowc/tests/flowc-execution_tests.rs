@@ -15,8 +15,8 @@ use tempdir::TempDir;
 use url::Url;
 
 use flowclib::compiler::{compile, loader};
+use flowclib::compiler::tables::CompilerTables;
 use flowclib::generator::generate;
-use flowclib::generator::generate::GenerationTables;
 use flowcore::meta_provider::MetaProvider;
 use flowcore::model::flow_definition::FlowDefinition;
 use flowcore::model::process::Process;
@@ -49,7 +49,7 @@ fn write_manifest(
     debug_symbols: bool,
     out_dir: PathBuf,
     test_name: &str,
-    tables: &GenerationTables,
+    tables: &CompilerTables,
 ) -> Result<PathBuf> {
     let mut filename = out_dir;
     filename.push(&format!("{}.json", test_name));

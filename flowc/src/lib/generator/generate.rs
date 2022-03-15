@@ -1,65 +1,23 @@
-use std::collections::HashMap;
 use std::collections::HashSet;
 use std::fs::File;
 use std::io::Write;
 use std::path::{Path, PathBuf};
 
 use log::info;
-use serde_derive::Serialize;
 use url::Url;
 
-use flowcore::model::connection::Connection;
 use flowcore::model::flow_definition::FlowDefinition;
 use flowcore::model::flow_manifest::{DEFAULT_MANIFEST_FILENAME, FlowManifest};
 use flowcore::model::function_definition::FunctionDefinition;
 use flowcore::model::input::Input;
 use flowcore::model::metadata::MetaData;
 use flowcore::model::name::HasName;
-use flowcore::model::output_connection::Source;
 #[cfg(feature = "debugger")]
 use flowcore::model::route::HasRoute;
-use flowcore::model::route::Route;
 use flowcore::model::runtime_function::RuntimeFunction;
 
+use crate::compiler::tables::CompilerTables;
 use crate::errors::*;
-
-/// `GenerationTables` are built from the flattened and connected flow model in memory and are
-/// used to generate the flow's manifest ready to be executed.
-#[derive(Serialize, Default)]
-pub struct GenerationTables {
-    /// The set of connections between functions in the compiled flow
-    pub connections: Vec<Connection>,
-    /// HashMap of sources of values and what route they are connected to
-    pub sources: HashMap<Route, (Source, usize)>,
-    /// HashMap from "route of the output of a function" --> (output name, source_function_id)
-    pub destination_routes: HashMap<Route, (usize, usize, usize)>,
-    /// HashMap from "route of the input of a function" --> (destination_function_id, input number, flow_id)
-    pub collapsed_connections: Vec<Connection>,
-    /// The set of functions left in a flow after it has been flattened, connected and optimized
-    pub functions: Vec<FunctionDefinition>,
-    /// The set of libraries used by a flow, from their Urls
-    pub libs: HashSet<Url>,
-    /// The set of context functions used by a flow, from their Urls
-    pub context_functions: HashSet<Url>,
-    /// The list of source files that were used in the flow definition
-    pub source_files: Vec<String>,
-}
-
-impl GenerationTables {
-    /// Create a new set of `GenerationTables` for use in compiling a flow
-    pub fn new() -> Self {
-        GenerationTables {
-            connections: Vec::new(),
-            sources: HashMap::<Route, (Source, usize)>::new(),
-            destination_routes: HashMap::<Route, (usize, usize, usize)>::new(),
-            collapsed_connections: Vec::new(),
-            functions: Vec::new(),
-            libs: HashSet::new(),
-            context_functions: HashSet::new(),
-            source_files: Vec::new(),
-        }
-    }
-}
 
 /// Paths in the manifest are relative to the location of the manifest file, to make the file
 /// and associated files relocatable (and maybe packaged into a ZIP etc). So we use manifest_url
@@ -68,7 +26,7 @@ pub fn create_manifest(
     flow: &FlowDefinition,
     debug_symbols: bool,
     manifest_url: &Url,
-    tables: &GenerationTables,
+    tables: &CompilerTables,
     #[cfg(feature = "debugger")] source_urls: HashSet<(Url, Url)>,
 ) -> Result<FlowManifest> {
     info!("Writing flow manifest to '{}'", manifest_url);
@@ -99,7 +57,7 @@ pub fn write_flow_manifest(
     flow: FlowDefinition,
     debug_symbols: bool,
     destination: &Path,
-    tables: &GenerationTables,
+    tables: &CompilerTables,
     #[cfg(feature = "debugger")] source_urls: HashSet<(Url, Url)>,
 ) -> Result<PathBuf> {
     let mut filename = destination.to_path_buf();
@@ -215,6 +173,7 @@ mod test {
     use serde_json::json;
     use url::Url;
 
+    use flowcore::model::connection::UNSET_PRIORITY;
     use flowcore::model::datatype::{ARRAY_TYPE, OBJECT_TYPE, STRING_TYPE};
     use flowcore::model::function_definition::FunctionDefinition;
     use flowcore::model::input::InputInitializer;
@@ -253,6 +212,7 @@ mod test {
                     String::default(),
                     #[cfg(feature = "debugger")]
                     String::default(),
+                    UNSET_PRIORITY,
                 ),
                 OutputConnection::new(
                     Output("sub_route".into()),
@@ -264,6 +224,7 @@ mod test {
                     String::default(),
                     #[cfg(feature = "debugger")]
                     String::default(),
+                    UNSET_PRIORITY,
                 ),
             ],
             0,
@@ -271,7 +232,7 @@ mod test {
         );
 
         let expected = "{
-  'id': 0,
+  'function_id': 0,
   'flow_id': 0,
   'implementation_location': 'context://stdio/stdout',
   'output_connections': [
@@ -328,13 +289,14 @@ mod test {
                 String::default(),
                 #[cfg(feature = "debugger")]
                 String::default(),
+                UNSET_PRIORITY,
             )],
             0,
             0,
         );
 
         let expected = "{
-  'id': 0,
+  'function_id': 0,
   'flow_id': 0,
   'implementation_location': 'context://stdio/stdout',
   'output_connections': [
@@ -383,13 +345,14 @@ mod test {
                 String::default(),
                 #[cfg(feature = "debugger")]
                 String::default(),
+                UNSET_PRIORITY,
             )],
             0,
             0,
         );
 
         let expected = "{
-  'id': 0,
+  'function_id': 0,
   'flow_id': 0,
   'implementation_location': 'context://stdio/stdout',
   'output_connections': [
@@ -438,7 +401,7 @@ mod test {
         );
 
         let expected = "{
-  'id': 0,
+  'function_id': 0,
   'flow_id': 0,
   'implementation_location': 'context://stdio/stdout',
   'inputs': [
@@ -485,7 +448,7 @@ mod test {
         );
 
         let expected = "{
-  'id': 0,
+  'function_id': 0,
   'flow_id': 0,
   'implementation_location': 'context://stdio/stdout',
   'inputs': [
@@ -531,7 +494,7 @@ mod test {
         );
 
         let expected = "{
-  'id': 0,
+  'function_id': 0,
   'flow_id': 0,
   'implementation_location': 'context://stdio/stdout',
   'inputs': [
@@ -575,6 +538,7 @@ mod test {
                 String::default(),
                 #[cfg(feature = "debugger")]
                 String::default(),
+                UNSET_PRIORITY,
             )],
             0,
             0,
@@ -589,7 +553,7 @@ mod test {
         let expected = "{
   'name': 'print',
   'route': '/flow0/stdout',
-  'id': 0,
+  'function_id': 0,
   'flow_id': 0,
   'implementation_location': 'context://stdio/stdout',
   'output_connections': [
@@ -650,13 +614,14 @@ mod test {
                 String::default(),
                 #[cfg(feature = "debugger")]
                 String::default(),
+                UNSET_PRIORITY,
             )],
             0,
             0,
         );
 
         let expected = "{
-  'id': 0,
+  'function_id': 0,
   'flow_id': 0,
   'implementation_location': 'context://stdio/stdout',
   'output_connections': [

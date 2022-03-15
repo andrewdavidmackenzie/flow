@@ -20,9 +20,9 @@ use flowcore::model::name::{HasName, Name};
 use flowcore::model::process::Process::{FlowProcess, FunctionProcess};
 use flowcore::model::route::{HasRoute, Route};
 
+use crate::compiler::tables::CompilerTables;
 use crate::dumper::{dump, dump_dot};
 use crate::errors::*;
-use crate::generator::generate::GenerationTables;
 
 /// Create a directed graph named after the flow, showing all the functions of the flow after it
 /// has been compiled down, grouped in sub-clusters
@@ -65,7 +65,7 @@ use crate::generator::generate::GenerationTables;
 /// ```
 pub fn dump_functions(
     flow: &FlowDefinition,
-    tables: &GenerationTables,
+    tables: &CompilerTables,
     output_dir: &Path,
 ) -> std::io::Result<()> {
     info!(
@@ -587,7 +587,7 @@ fn add_output_set(output_set: &IOSet, from: &Route, connect_subflow: bool) -> St
 
 fn output_compiled_function(
     route: &Route,
-    tables: &GenerationTables,
+    tables: &CompilerTables,
     output: &mut String,
     output_dir: &Path,
 ) {
@@ -600,7 +600,7 @@ fn output_compiled_function(
 
 fn process_refs_to_dot(
     flow: &FlowDefinition,
-    tables: &GenerationTables,
+    tables: &CompilerTables,
     output_dir: &Path,
 ) -> Result<String> {
     let mut output = String::new();

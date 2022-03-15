@@ -10,9 +10,9 @@ use flowcore::meta_provider::Provider;
 use flowcore::model::flow_definition::FlowDefinition;
 use flowcore::model::process::Process::FlowProcess;
 
+use crate::compiler::tables::CompilerTables;
 use crate::dumper::{dump, dump_dot};
 use crate::errors::*;
-use crate::generator::generate::GenerationTables;
 
 /// Dump the compiler tables of a loaded flow in human readable format to a specified
 /// output directory.
@@ -49,7 +49,7 @@ use crate::generator::generate::GenerationTables;
 /// }
 /// ```
 ///
-pub fn dump_tables(tables: &GenerationTables, output_dir: &Path) -> std::io::Result<()> {
+pub fn dump_tables(tables: &CompilerTables, output_dir: &Path) -> std::io::Result<()> {
     info!("=== Dumper: Dumping tables to '{}'", output_dir.display());
 
     let mut writer = create_output_file(output_dir, "connections", "dump")?;
@@ -118,7 +118,7 @@ pub fn create_output_file(
 /// ```
 pub fn dump_functions(
     flow: &FlowDefinition,
-    tables: &GenerationTables,
+    tables: &CompilerTables,
     output_dir: &Path,
 ) -> std::io::Result<()> {
     dump_dot::dump_functions(flow, tables, output_dir)?;

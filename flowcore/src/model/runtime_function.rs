@@ -23,8 +23,8 @@ pub struct RuntimeFunction {
     #[serde(default, skip_serializing_if = "String::is_empty")]
     route: String,
 
-    /// The unique `id` of this function at run-time
-    id: usize,
+    /// The unique `function_id` of this function at run-time
+    function_id: usize,
 
     /// The unique id of the flow this function was in at definition time
     flow_id: usize,
@@ -59,7 +59,7 @@ impl Implementation for ImplementationNotFound {
 #[cfg(feature = "debugger")]
 impl fmt::Display for RuntimeFunction {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Function #{}({})", self.id, self.flow_id)?;
+        write!(f, "Function #{}({})", self.function_id, self.flow_id)?;
 
         if !self.name.is_empty() {
             write!(f, " '{}'", self.name)?;
@@ -122,7 +122,7 @@ impl RuntimeFunction {
             name: name.into(),
             #[cfg(feature = "debugger")]
             route: route.into(),
-            id,
+            function_id: id,
             flow_id,
             implementation_location: implementation_location.into(),
             implementation: RuntimeFunction::default_implementation(),
@@ -153,7 +153,7 @@ impl RuntimeFunction {
 
     /// Accessor for a `RuntimeFunction` `id`
     pub fn id(&self) -> usize {
-        self.id
+        self.function_id
     }
 
     /// Accessor for a `RuntimeFunction` `flow_id`
@@ -166,7 +166,7 @@ impl RuntimeFunction {
         let mut inputs_initialized = false;
         for (io_number, input) in &mut self.inputs.iter_mut().enumerate() {
             if input.count() == 0 && input.init(first_time, io_number) {
-                trace!("\t\tInput #{}:{} set from initializer", self.id, io_number);
+                trace!("\t\tInput #{}:{} set from initializer", self.function_id, io_number);
                 inputs_initialized = true;
             }
         }
@@ -352,6 +352,7 @@ mod test {
             String::default(),
             #[cfg(feature = "debugger")]
             String::default(),
+            0,
         );
         RuntimeFunction::new(
             #[cfg(feature = "debugger")]
@@ -406,6 +407,7 @@ mod test {
             String::default(),
             #[cfg(feature = "debugger")]
             String::default(),
+            0,
         );
         let mut function = RuntimeFunction::new(
             #[cfg(feature = "debugger")]
