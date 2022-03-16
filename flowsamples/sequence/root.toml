@@ -11,8 +11,8 @@ to = "sequence/end"
 [[process]]
 alias = "sequence"
 source = "lib://flowstdlib/math/sequence"
-input.start = {once =  1}
-input.step = {once =  1}
+input.start = {once =  2}
+input.step = {once =  3}
 
 [[connection]]
 from = "sequence/sequence"
