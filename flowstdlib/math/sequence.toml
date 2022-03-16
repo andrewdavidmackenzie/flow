@@ -21,7 +21,7 @@ type = "number"
 name = "sequence"
 type = "number"
 
-# A value is output when the sequence has ended
+# the last value is output when the sequence ends (may not be == limit if step is not 1)
 [[output]]
 name = "last"
 type = "number"
