@@ -976,7 +976,6 @@ impl RunState {
             job_id, file, line, message
         );
         error!("Job #{}: Error State - {}", job_id, self);
-        panic!();
     }
 
     /// Check a number of "invariants" i.e. unbreakable rules about the state.
