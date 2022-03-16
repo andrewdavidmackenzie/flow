@@ -1,7 +1,8 @@
 flow = "range-of-ranges"
 docs = "DESCRIPTION.md"
 
-# Generate a sequence of numbers 1 2 3 4 5 6 7 8 9
+# Generate a sequence of numbers 1 2 3 4 5 6 7 8 9 - which are the upper limits of each of the sequences
+# we generate. so here we generate 'n' and later the sequence is 0..'n'
 [[process]]
 alias = "limit-sequence"
 source = "lib://flowstdlib/math/sequence"
