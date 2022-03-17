@@ -223,7 +223,6 @@ mod test {
         test_sample("pipeline");
     }
 
-    #[ignore]
     #[test]
     #[serial]
     fn test_prime() {
