@@ -1,7 +1,7 @@
 //! This module is responsible for parsing the flow tree and gathering information into a set of
 //! flat tables that the compiler can use for code generation.
 
-use log::debug;
+use log::{debug, warn};
 
 use flowcore::model::connection::{Connection, DIRECT_CONNECTION_PRIORITY};
 use flowcore::model::flow_definition::FlowDefinition;
@@ -315,7 +315,7 @@ fn find_function_destinations(
     }
 
     if !found { // Some chains or sub-chains of connections maybe dead ends, without that being an error
-        debug!("\t\tEnd of connection chain reached without finding a destination Function Input");
+        warn!("WARN: Connection from '{}' : did not find a destination Function Input", from_io_route);
     }
 
     destinations
