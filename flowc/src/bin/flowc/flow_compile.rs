@@ -10,7 +10,6 @@ use url::Url;
 
 use flowclib::compiler::compile;
 use flowclib::compiler::compile::CompilerTables;
-use flowclib::compiler::compile_wasm;
 use flowclib::compiler::loader;
 use flowclib::dumper::{dump, dump_dot};
 use flowclib::generator::generate;
@@ -21,35 +20,13 @@ use flowcore::model::process::Process::FlowProcess;
 use crate::errors::*;
 use crate::Options;
 
-// For any function that provides an implementation - compile the source to wasm and modify the
-// implementation to indicate it is the wasm file
-fn compile_supplied_implementations(
-    out_dir: &Path,
-    tables: &mut CompilerTables,
-    skip_building: bool,
-    #[cfg(feature = "debugger")] source_urls: &mut HashSet<(Url, Url)>,
-) -> Result<String> {
-    for function in &mut tables.functions {
-        if function.get_lib_reference().is_none() && function.get_context_reference().is_none() {
-            compile_wasm::compile_implementation(
-                out_dir,
-                function,
-                skip_building,
-                #[cfg(feature = "debugger")]
-                source_urls,
-            )?;
-        }
-    }
-
-    Ok("All supplied implementations compiled successfully".into())
-}
-
 /// Compile a flow, maybe run it
 pub fn compile_and_execute_flow(options: &Options, provider: &dyn Provider) -> Result<()> {
-    info!("==== Compiler phase: Loading flow");
+    info!("==== Parsing flow hierarchy from '{}'", options.source_url);
     #[cfg(feature = "debugger")]
     let mut source_urls = HashSet::<(Url, Url)>::new();
-    let context = loader::load(
+
+    let root = loader::load(
         &options.source_url,
         provider,
         #[cfg(feature = "debugger")]
@@ -57,19 +34,14 @@ pub fn compile_and_execute_flow(options: &Options, provider: &dyn Provider) -> R
     )
     .chain_err(|| format!("Could not load flow using '{}'", options.source_url))?;
 
-    match context {
+    match root {
         FlowProcess(flow) => {
-            let mut tables = compile::compile(&flow)
-                .chain_err(|| format!("Could not compile flow from '{}'", options.source_url))?;
-
-            compile_supplied_implementations(
-                &options.output_dir,
-                &mut tables,
-                options.provided_implementations,
-                #[cfg(feature = "debugger")]
-                &mut source_urls,
-            )
-            .chain_err(|| "Could not compile to wasm the flow's supplied implementation(s)")?;
+            info!("Finished parsing flow hierarchy starting at root flow '{}'", flow.name);
+            let tables = compile::compile(&flow,
+                                              &options.output_dir,
+                                              options.provided_implementations,
+                                              #[cfg(feature = "debugger")] &mut source_urls,
+            ).chain_err(|| format!("Could not compile flow from '{}'", options.source_url))?;
 
             dump(&flow, provider, &tables, options)?;
 
@@ -78,14 +50,12 @@ pub fn compile_and_execute_flow(options: &Options, provider: &dyn Provider) -> R
                 return Ok(());
             }
 
-            info!("==== Compiler phase: Generating Manifest");
             let manifest_path = generate::write_flow_manifest(
                 flow,
                 options.debug_symbols,
                 &options.output_dir,
                 &tables,
-                #[cfg(feature = "debugger")]
-                source_urls,
+                #[cfg(feature = "debugger")] &source_urls,
             )
             .chain_err(|| "Failed to write manifest")?;
 
@@ -96,7 +66,7 @@ pub fn compile_and_execute_flow(options: &Options, provider: &dyn Provider) -> R
 
             execute_flow(&manifest_path, options)
         }
-        _ => bail!("Process loaded was not of type 'Flow' and cannot be executed"),
+        _ => bail!("Process parsed was not of type 'Flow' and cannot be executed"),
     }
 }
 
@@ -137,7 +107,7 @@ fn dump(
     If the process fails then return an Err() with message and log stderr in an ERROR level message
 */
 fn execute_flow(filepath: &Path, options: &Options) -> Result<()> {
-    info!("==== Compiler phase: Executing flow from manifest at '{}'", filepath.display());
+    info!("\n==== Executing flow from manifest at '{}'", filepath.display());
 
     let mut flowr_args = vec![];
 

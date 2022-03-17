@@ -1,7 +1,7 @@
 //! This module is responsible for parsing the flow tree and gathering information into a set of
 //! flat tables that the compiler can use for code generation.
 
-use log::{debug, warn};
+use log::{debug, info};
 
 use flowcore::model::connection::{Connection, DIRECT_CONNECTION_PRIORITY};
 use flowcore::model::flow_definition::FlowDefinition;
@@ -18,13 +18,16 @@ use crate::compiler::compile::CompilerTables;
 use crate::errors::*;
 
 /// Recursively go through the flow hierarchy, harvesting out functions and connections within
-/// each flow into the `CompilerTables` that will be used in later compiler phases.
+/// each flow into the `CompilerTables` that will be used in later compilers.
 pub fn gather_functions_and_connections(flow: &FlowDefinition, tables: &mut CompilerTables) -> Result<()> {
+    info!("\n=== Compiler: Gathering Functions and Connections");
     _gather_functions_and_connections(flow, tables)?;
 
     index_functions(&mut tables.functions);
 
     create_routes_table(tables);
+
+    info!("Gathered {} functions and {} connections", tables.functions.len(), tables.connections.len());
 
     Ok(())
 }
@@ -112,9 +115,8 @@ fn create_routes_table(tables: &mut CompilerTables) {
 /// - `tables.connections`is populated by `gather_functions_and_connections`
 /// - `tables.destination_routes` is populated by `create_routes_table`
 pub fn collapse_connections(tables: &mut CompilerTables) {
+    info!("\n=== Compiler: Collapsing {} flow connections", tables.connections.len());
     let mut collapsed_connections: Vec<Connection> = Vec::new();
-
-    debug!("Collapsing {} flow connections", tables.connections.len());
 
     for connection in &tables.connections {
         match connection.from_io().io_type() {
@@ -180,7 +182,7 @@ pub fn collapse_connections(tables: &mut CompilerTables) {
         }
     }
 
-    debug!("Connections between functions: {}", collapsed_connections.len());
+    info!("{} connections collapsed down to {}", tables.connections.len(), collapsed_connections.len());
 
     tables.collapsed_connections = collapsed_connections;
 }
@@ -315,7 +317,7 @@ fn find_function_destinations(
     }
 
     if !found { // Some chains or sub-chains of connections maybe dead ends, without that being an error
-        warn!("WARN: Connection from '{}' : did not find a destination Function Input", from_io_route);
+        info!("Connection from '{}' : did not find a destination Function Input", from_io_route);
     }
 
     destinations

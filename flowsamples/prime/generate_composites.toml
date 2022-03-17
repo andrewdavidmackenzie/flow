@@ -1,11 +1,11 @@
 flow = "generate_composites"
 
 [[input]]
-name = "limit"
+name = "start"
 type = "number"
 
 [[input]]
-name = "start"
+name = "limit"
 type = "number"
 
 [[output]]

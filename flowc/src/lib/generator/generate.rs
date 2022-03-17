@@ -27,7 +27,7 @@ pub fn create_manifest(
     debug_symbols: bool,
     manifest_url: &Url,
     tables: &CompilerTables,
-    #[cfg(feature = "debugger")] source_urls: HashSet<(Url, Url)>,
+    #[cfg(feature = "debugger")] source_urls: &HashSet<(Url, Url)>,
 ) -> Result<FlowManifest> {
     info!("Writing flow manifest to '{}'", manifest_url);
 
@@ -45,7 +45,7 @@ pub fn create_manifest(
     manifest.set_lib_references(&tables.libs);
     manifest.set_context_references(&tables.context_functions);
     #[cfg(feature = "debugger")]
-    manifest.set_source_urls(source_urls);
+    manifest.set_source_urls(source_urls.clone());
 
     Ok(manifest)
 }
@@ -58,8 +58,10 @@ pub fn write_flow_manifest(
     debug_symbols: bool,
     destination: &Path,
     tables: &CompilerTables,
-    #[cfg(feature = "debugger")] source_urls: HashSet<(Url, Url)>,
+    #[cfg(feature = "debugger")] source_urls: &HashSet<(Url, Url)>,
 ) -> Result<PathBuf> {
+    info!("\n==== Generating Manifest");
+
     let mut filename = destination.to_path_buf();
     filename.push(DEFAULT_MANIFEST_FILENAME);
     filename.set_extension("json");

@@ -1,4 +1,4 @@
-use log::debug;
+use log::{debug, info};
 
 use flowcore::model::connection::Connection;
 use flowcore::model::function_definition::FunctionDefinition;
@@ -7,16 +7,22 @@ use flowcore::model::route::HasRoute;
 
 use crate::compiler::compile::CompilerTables;
 
-/*
-    Keep removing dead processes (that have no effect) and any connection that goes
-    no-where or comes from nowhere, iteratively until no more can be removed
-*/
+/// Keep removing dead function (that have no effect) and any connection that goes
+/// no-where or comes from nowhere, iteratively until no more can be removed-
+///
+/// This is iterative, as removing a function can remove the destination to a connection
+/// that was valid previously, so the connection can be removed. That in turn can lead to
+/// more functions without outputs that should be removed, and so on and so forth.
 pub fn optimize(tables: &mut CompilerTables) {
-    while remove_dead_processes(tables) {}
+    info!("\n=== Compiler: Optimizing");
+    while remove_dead_functions(tables) {}
+    info!("All unused functions and unnecessary connections removed");
 }
 
-fn remove_dead_processes(tables: &mut CompilerTables) -> bool {
-    let mut processes_to_remove = vec![];
+// Remove all the "dead" functions we can find in one iteration of the list of functions
+// and remove connections to them after that.
+fn remove_dead_functions(tables: &mut CompilerTables) -> bool {
+    let mut functions_to_remove = vec![];
     let mut connections_to_remove = vec![];
 
     for (index, function) in tables.functions.iter().enumerate() {
@@ -27,10 +33,10 @@ fn remove_dead_processes(tables: &mut CompilerTables) -> bool {
                 function.alias(),
                 function.route()
             );
-            processes_to_remove.push(index);
+            functions_to_remove.push(index);
 
             let removed_route = function.route();
-            // remove connections to and from the process
+            // remove connections to and from the function
             for (conn_index, connection) in tables.collapsed_connections.iter().enumerate() {
                 if connection
                     .from_io()
@@ -50,15 +56,15 @@ fn remove_dead_processes(tables: &mut CompilerTables) -> bool {
         }
     }
 
-    // Remove the processes marked for removal
-    let process_remove_count = processes_to_remove.len();
-    processes_to_remove.reverse();
-    for index in processes_to_remove {
-        let removed_process = tables.functions.remove(index);
+    // Remove the functions marked for removal
+    let function_remove_count = functions_to_remove.len();
+    functions_to_remove.reverse();
+    for index in functions_to_remove {
+        let removed_function = tables.functions.remove(index);
         debug!(
-            "Removed process #{}, with route '{}'",
+            "Removed function #{}, with route '{}'",
             index,
-            removed_process.route()
+            removed_function.route()
         );
     }
 
@@ -72,17 +78,18 @@ fn remove_dead_processes(tables: &mut CompilerTables) -> bool {
         debug!("Removed connection: {}", removed);
     }
 
-    debug!(
-        "Removed {} processes, {} associated connections",
-        process_remove_count, connection_remove_count
-    );
+    let removed_something = (function_remove_count + connection_remove_count) > 0;
+    if removed_something {
+        info!(
+            "Removed {} functions and {} connections",
+            function_remove_count, connection_remove_count
+        );
+    }
 
-    (process_remove_count + connection_remove_count) > 0
+    removed_something
 }
 
-/*
-    A function is "dead" or has no effect if it is pure and has no connection to the output
-*/
+// A function is "dead" or has no effect if it is pure (not impure) and there is no connection it
 fn dead_function(connections: &[Connection], function: &FunctionDefinition) -> bool {
     !function.is_impure() && !connection_from_function(connections, function)
 }

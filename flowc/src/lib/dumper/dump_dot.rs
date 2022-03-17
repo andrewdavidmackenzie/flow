@@ -51,10 +51,14 @@ use crate::errors::*;
 /// url = url.join("flowc/tests/test-flows/hello-world/hello-world.toml").unwrap();
 ///
 /// let mut source_urls = HashSet::<(Url, Url)>::new();
+/// let output_dir = TempDir::new("flow-test").expect("A temp dir").into_path();
+///
 /// if let Ok(FlowProcess(mut flow)) = flowclib::compiler::loader::load(&url,
 ///                                                    &provider,
 ///                                                    &mut source_urls) {
-///     let tables = flowclib::compiler::compile::compile(&flow).unwrap();
+///     let tables = flowclib::compiler::compile::compile(&flow, &output_dir, false,
+///                                                       #[cfg(feature = "debugger")] &mut source_urls
+///                                                      ).unwrap();
 ///
 ///     // strip off filename so output_dir is where the root.toml file resides
 ///     let output_dir = TempDir::new("flow").unwrap().into_path();
@@ -69,7 +73,7 @@ pub fn dump_functions(
     output_dir: &Path,
 ) -> std::io::Result<()> {
     info!(
-        "=== Dumper: Dumping functions in dot format to '{}'",
+        "\n=== Dumper: Dumping functions in dot format to '{}'",
         output_dir.display()
     );
     let mut dot_file = dump::create_output_file(output_dir, "functions", "dot")?;
@@ -116,6 +120,7 @@ pub fn dump_functions(
 /// url = url.join("samples/hello-world/root.toml").unwrap();
 ///
 /// let mut source_urls = HashSet::<(Url, Url)>::new();
+///
 /// if let Ok(FlowProcess(mut flow)) = flowclib::compiler::loader::load(&url,
 ///                                                    &provider,
 ///                                                    &mut source_urls) {
@@ -133,7 +138,7 @@ pub fn dump_flow(
     provider: &dyn Provider,
 ) -> Result<()> {
     info!(
-        "=== Dumper: Dumping flow hierarchy to '{}'",
+        "\n=== Dumper: Dumping flow hierarchy to '{}'",
         output_dir.display()
     );
     _dump_flow(flow, 0, output_dir, provider)?;
@@ -144,7 +149,7 @@ pub fn dump_flow(
 /// executable, if it is found installed on the system within the `$PATH` variable of the user
 pub fn generate_svgs(root_dir: &Path, delete_dots: bool) -> Result<()> {
     if let Ok(FoundType::File(dot)) = Simpath::new("PATH").find_type("dot", FileType::File) {
-        info!("Generating .dot.svg files from .dot files, using 'dot' command from $PATH");
+        info!("\n=== Dumper: Generating .dot.svg files from .dot files, using 'dot' command from $PATH");
 
         let glob = Glob::new("**/*.dot").map_err(|_| "Globbing error")?;
         for entry in glob.walk(root_dir, usize::MAX) {
