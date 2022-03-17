@@ -4,7 +4,7 @@ use flowcore::model::input::InputInitializer::Always;
 use flowcore::model::route::HasRoute;
 use flowcore::model::route::Route;
 
-use crate::compiler::tables::CompilerTables;
+use crate::compiler::compile::CompilerTables;
 use crate::errors::*;
 
 /*

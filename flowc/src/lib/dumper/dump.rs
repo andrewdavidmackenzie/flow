@@ -10,7 +10,7 @@ use flowcore::meta_provider::Provider;
 use flowcore::model::flow_definition::FlowDefinition;
 use flowcore::model::process::Process::FlowProcess;
 
-use crate::compiler::tables::CompilerTables;
+use crate::compiler::compile::CompilerTables;
 use crate::dumper::{dump, dump_dot};
 use crate::errors::*;
 

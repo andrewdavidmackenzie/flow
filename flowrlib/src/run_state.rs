@@ -1354,23 +1354,6 @@ mod test {
             println!("Run state: {}", state);
         }
 
-        #[should_panic]
-        #[test]
-        fn run_time_error_test() {
-            let submission = Submission::new(
-                &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
-                1,
-                #[cfg(feature = "debugger")]
-                true,
-            );
-            let state = RunState::new(&[], submission);
-
-            #[cfg(any(feature = "debugger", feature = "metrics"))]
-            assert_eq!(state.num_functions(), 0);
-
-            state.runtime_error(0, "test error", "test_file.rs", 42);
-        }
-
         #[cfg(feature = "metrics")]
         #[test]
         fn jobs_created_zero_at_init() {

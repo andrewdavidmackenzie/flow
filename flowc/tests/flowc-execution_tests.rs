@@ -15,7 +15,7 @@ use tempdir::TempDir;
 use url::Url;
 
 use flowclib::compiler::{compile, loader};
-use flowclib::compiler::tables::CompilerTables;
+use flowclib::compiler::compile::CompilerTables;
 use flowclib::generator::generate;
 use flowcore::meta_provider::MetaProvider;
 use flowcore::model::flow_definition::FlowDefinition;

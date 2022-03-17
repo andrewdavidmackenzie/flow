@@ -1,0 +1,13 @@
+flow = "subflow"
+
+[[input]]
+name = "only"
+type = "string"
+
+[[process]]
+alias = "subsubflow"
+source = "subsubflow"
+
+[[connection]]
+from = "input/only"
+to = "subsubflow/only"

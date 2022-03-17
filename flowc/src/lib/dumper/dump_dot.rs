@@ -20,7 +20,7 @@ use flowcore::model::name::{HasName, Name};
 use flowcore::model::process::Process::{FlowProcess, FunctionProcess};
 use flowcore::model::route::{HasRoute, Route};
 
-use crate::compiler::tables::CompilerTables;
+use crate::compiler::compile::CompilerTables;
 use crate::dumper::{dump, dump_dot};
 use crate::errors::*;
 

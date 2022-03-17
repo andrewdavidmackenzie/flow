@@ -5,7 +5,7 @@ use flowcore::model::function_definition::FunctionDefinition;
 use flowcore::model::name::HasName;
 use flowcore::model::route::HasRoute;
 
-use crate::compiler::tables::CompilerTables;
+use crate::compiler::compile::CompilerTables;
 
 /*
     Keep removing dead processes (that have no effect) and any connection that goes

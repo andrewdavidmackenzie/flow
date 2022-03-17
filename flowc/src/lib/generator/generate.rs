@@ -16,7 +16,7 @@ use flowcore::model::name::HasName;
 use flowcore::model::route::HasRoute;
 use flowcore::model::runtime_function::RuntimeFunction;
 
-use crate::compiler::tables::CompilerTables;
+use crate::compiler::compile::CompilerTables;
 use crate::errors::*;
 
 /// Paths in the manifest are relative to the location of the manifest file, to make the file

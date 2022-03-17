@@ -9,9 +9,9 @@ use log::{debug, error, info};
 use url::Url;
 
 use flowclib::compiler::compile;
+use flowclib::compiler::compile::CompilerTables;
 use flowclib::compiler::compile_wasm;
 use flowclib::compiler::loader;
-use flowclib::compiler::tables::CompilerTables;
 use flowclib::dumper::{dump, dump_dot};
 use flowclib::generator::generate;
 use flowcore::meta_provider::Provider;

@@ -302,3 +302,58 @@ fn initialized_output_propagated() {
         ),
     }
 }
+
+
+/*
+    This tests that an initializer on an input to a subflow (and a subsequent subflow) is propagated
+    along to the eventual function that uses it.
+*/
+#[ignore]
+#[test]
+fn initialized_input_to_subflow() {
+    let meta_provider = MetaProvider::new(helper::set_lib_search_path_to_project(),
+                                          helper::get_context_root());
+    // Relative path from project root to the test file
+    let url = helper::absolute_file_url_from_relative_path(
+        "flowc/tests/test-flows/initialized_input_to_subflow/initialized_input_to_subflow.toml",
+    );
+
+    match loader::load(&url, &meta_provider, &mut HashSet::<(Url, Url)>::new()) {
+        Ok(FlowProcess(context)) => {
+            match compile::compile(&context) {
+                Ok(tables) => {
+                    match tables
+                        .functions
+                        .iter()
+                        .find(|&f| f.route() == &Route::from("/initialized_input_to_subflow/subflow/print"))
+                    {
+                        Some(print_function) => {
+                            let in_input = print_function.get_inputs().get(0)
+                                .expect("Could not get inputs");
+                            let initial_value = in_input.get_initializer();
+                            match initial_value {
+                                Some(Once(one_time)) => assert_eq!(one_time, &json!("Hello")), // PASS
+                                _ => panic!(
+                                    "Initializer should have been a Once initializer, was {:?}",
+                                    initial_value
+                                ),
+                            }
+                        }
+                        None => {
+                            panic!("Could not find function at route '/initialized_input_to_subflow/subflow/print'")
+                        }
+                    }
+                }
+                Err(error) => panic!(
+                    "Couldn't compile the flow from test file at '{}'\n{}",
+                    url, error
+                ),
+            }
+        }
+        Ok(FunctionProcess(_)) => panic!("Unexpected compile result from test file at '{}'", url),
+        Err(error) => panic!(
+            "Couldn't load the flow from test file at '{}'.\n{}",
+            url, error
+        ),
+    }
+}

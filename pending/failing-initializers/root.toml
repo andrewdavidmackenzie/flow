@@ -1,0 +1,13 @@
+flow = "composites"
+
+[[process]]
+source = "generate_composites"
+input.start = {once = 6}
+input.limit = {once = 9}
+
+[[process]]
+source = "context://stdio/stdout"
+
+[[connection]]
+from = "generate_composites/composites"
+to = "stdout"

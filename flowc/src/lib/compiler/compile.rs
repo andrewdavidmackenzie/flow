@@ -1,21 +1,60 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use log::{debug, info};
+use serde_derive::Serialize;
+use url::Url;
 
-use flowcore::model::connection::LOOPBACK_PRIORITY;
+use flowcore::model::connection::{Connection, LOOPBACK_PRIORITY};
 use flowcore::model::flow_definition::FlowDefinition;
+use flowcore::model::function_definition::FunctionDefinition;
 use flowcore::model::name::HasName;
 use flowcore::model::output_connection::{OutputConnection, Source};
 use flowcore::model::output_connection::Source::{Input, Output};
 use flowcore::model::route::{HasRoute, Route};
 
-use crate::compiler::tables::CompilerTables;
 use crate::errors::*;
 
 use super::checker;
 use super::gatherer;
 use super::optimizer;
-use super::tables;
+
+/// `CompilerTables` are built from the flattened and connected flow model in memory and are
+/// used to generate the flow's manifest ready to be executed.
+#[derive(Serialize, Default)]
+pub struct CompilerTables {
+    /// The set of connections between functions in the compiled flow
+    pub connections: Vec<Connection>,
+    /// HashMap of sources of values and what route they are connected to
+    pub sources: HashMap<Route, (Source, usize)>,
+    /// HashMap from "route of the output of a function" --> (output name, source_function_id)
+    pub destination_routes: HashMap<Route, (usize, usize, usize)>,
+    /// HashMap from "route of the input of a function" --> (destination_function_id, input number, flow_id)
+    pub collapsed_connections: Vec<Connection>,
+    /// The set of functions left in a flow after it has been flattened, connected and optimized
+    pub functions: Vec<FunctionDefinition>,
+    /// The set of libraries used by a flow, from their Urls
+    pub libs: HashSet<Url>,
+    /// The set of context functions used by a flow, from their Urls
+    pub context_functions: HashSet<Url>,
+    /// The list of source files that were used in the flow definition
+    pub source_files: Vec<String>,
+}
+
+impl CompilerTables {
+    /// Create a new set of `GenerationTables` for use in compiling a flow
+    pub fn new() -> Self {
+        CompilerTables {
+            connections: Vec::new(),
+            sources: HashMap::<Route, (Source, usize)>::new(),
+            destination_routes: HashMap::<Route, (usize, usize, usize)>::new(),
+            collapsed_connections: Vec::new(),
+            functions: Vec::new(),
+            libs: HashSet::new(),
+            context_functions: HashSet::new(),
+            source_files: Vec::new(),
+        }
+    }
+}
 
 /// Take a hierarchical flow definition in memory and compile it, generating a manifest for execution
 /// of the flow, including references to libraries required.
@@ -25,13 +64,9 @@ pub fn compile(flow: &FlowDefinition) -> Result<CompilerTables> {
     info!("=== Compiler phase: Gathering Functions and Connections");
     gatherer::gather_functions_and_connections(flow, &mut tables)?;
     info!("=== Compiler phase: Collapsing connections");
-    tables.collapsed_connections = gatherer::collapse_connections(&tables.connections);
+    gatherer::collapse_connections(&mut tables);
     info!("=== Compiler phase: Optimizing");
     optimizer::optimize(&mut tables);
-    info!("=== Compiler phase: Indexing Functions");
-    gatherer::index_functions(&mut tables.functions);
-    info!("=== Compiler phase: Creating routes tables");
-    tables::create_routes_table(&mut tables);
     info!("=== Compiler phase: Checking connections");
     checker::check_connections(&mut tables)?;
     info!("=== Compiler phase: Checking Function Inputs");
@@ -202,15 +237,15 @@ mod test {
         use super::super::get_source;
 
         /*
-                    Create a HashTable of routes for use in tests.
-                    Each entry (K, V) is:
-                    - Key   - the route to a function's IO
-                    - Value - a tuple of
-                                - sub-route (or IO name) from the function to be used at runtime
-                                - the id number of the function in the functions table, to select it at runtime
+                            Create a HashTable of routes for use in tests.
+                            Each entry (K, V) is:
+                            - Key   - the route to a function's IO
+                            - Value - a tuple of
+                                        - sub-route (or IO name) from the function to be used at runtime
+                                        - the id number of the function in the functions table, to select it at runtime
 
-                    Plus a vector of test cases with the Route to search for and the expected function_id and output sub-route
-                */
+                            Plus a vector of test cases with the Route to search for and the expected function_id and output sub-route
+                        */
         #[allow(clippy::type_complexity)]
         fn test_source_routes() -> (
             HashMap<Route, (Source, usize)>,
