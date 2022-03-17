@@ -303,12 +303,10 @@ fn initialized_output_propagated() {
     }
 }
 
-
 /*
     This tests that an initializer on an input to a subflow (and a subsequent subflow) is propagated
     along to the eventual function that uses it.
 */
-#[ignore]
 #[test]
 fn initialized_input_to_subflow() {
     let meta_provider = MetaProvider::new(helper::set_lib_search_path_to_project(),
@@ -325,7 +323,7 @@ fn initialized_input_to_subflow() {
                     match tables
                         .functions
                         .iter()
-                        .find(|&f| f.route() == &Route::from("/initialized_input_to_subflow/subflow/print"))
+                        .find(|&f| f.route() == &Route::from("/initialized_input_to_subflow/subflow/subsubflow/stdout"))
                     {
                         Some(print_function) => {
                             let in_input = print_function.get_inputs().get(0)
