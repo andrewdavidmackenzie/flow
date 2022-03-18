@@ -70,6 +70,7 @@ fn run_sample(sample_dir: &Path, output_dir: &Path) -> io::Result<()> {
     let error = File::create(output_dir.join("test.err"))
         .expect("Could not get directory as string");
 
+    println!("Command line: 'flowr {}'", command_args.join(" "));
     match Command::new("flowr")
         .args(command_args)
         .current_dir(output_dir.canonicalize()?)
@@ -170,7 +171,7 @@ mod test {
 
             if !contents.is_empty() {
                 panic!(
-                    "Sample {:?} produced error output in '{}'\n{}",
+                    "Sample {:?} produced output to STDERR written to '{}'\n{}",
                     sample_dir.file_name().expect("Could not get directory file name"),
                     error_output.display(), contents
                 );
