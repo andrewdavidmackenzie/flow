@@ -31,7 +31,10 @@ fn main() -> io::Result<()> {
 fn get_context_root() -> Result<String, String> {
     let samples_dir = Path::new(env!("CARGO_MANIFEST_DIR")).parent()
         .ok_or("Could not get parent dir")?;
-    Ok(samples_dir.join("flowr/src/context").to_str()
+    let context_root = samples_dir.join("flowr/src/context");
+    assert!(context_root.exists(), "Context root directory '{}' does not exist",
+            context_root.display());
+    Ok(context_root.to_str()
         .expect("Could not convert path to String").to_string())
 }
 
