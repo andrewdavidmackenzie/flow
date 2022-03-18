@@ -36,7 +36,7 @@ to = "compare/right"
 from = "input/end"
 to = "compare/left"
 
-# "pass if less than or equal" process that will pass all numbers that are less than the limit
+# compare will pass all numbers that are less than the limit
 [[process]]
 alias = "compare"
 source = "lib://flowstdlib/control/compare_switch"
@@ -65,7 +65,7 @@ to = "output/sequence"
 from = "compare/left-gt"
 to = "compare/left"
 
-# Take the last generated number of the sequence and pass it to the added to add one to it for the next number
+# Take the last generated number of the sequence and pass it to 'add' to add one to it for the next number
 # in the sequence (if less than the limit)
 [[connection]]
 from = "compare/right-lt"
