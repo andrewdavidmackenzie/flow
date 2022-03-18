@@ -1635,7 +1635,7 @@ type = &quot;object&quot;
 source = &quot;lib://flowstdlib/control/select&quot;
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h2 id="tap-flowstdlibcontroltap"><a class="header" href="#tap-flowstdlibcontroltap">Tap (//flowstdlib/control/tap)</a></h2>
-<p>Control the flow of data (flow or disappear it) based on a boolean control value.</p>
+<p>Control the flow of data (flow it through this function, or have it disappear) based on a boolean control value.</p>
 <h3 id="definition-13"><a class="header" href="#definition-13">Definition</a></h3>
 <pre><code class="language-toml">function = &quot;tap&quot;
 source = &quot;tap.rs&quot;
@@ -2379,7 +2379,7 @@ type = &quot;number&quot;
 name = &quot;sequence&quot;
 type = &quot;number&quot;
 
-# A value is output when the sequence has ended
+# the last value is output when the sequence ends (may not be == limit if step is not 1)
 [[output]]
 name = &quot;last&quot;
 type = &quot;number&quot;
@@ -2394,7 +2394,7 @@ to = &quot;compare/right&quot;
 from = &quot;input/end&quot;
 to = &quot;compare/left&quot;
 
-# &quot;pass if less than or equal&quot; process that will pass all numbers that are less than the limit
+# compare will pass all numbers that are less than the limit
 [[process]]
 alias = &quot;compare&quot;
 source = &quot;lib://flowstdlib/control/compare_switch&quot;
@@ -2423,7 +2423,7 @@ to = &quot;output/sequence&quot;
 from = &quot;compare/left-gt&quot;
 to = &quot;compare/left&quot;
 
-# Take the last generated number of the sequence and pass it to the added to add one to it for the next number
+# Take the last generated number of the sequence and pass it to 'add' to add one to it for the next number
 # in the sequence (if less than the limit)
 [[connection]]
 from = &quot;compare/right-lt&quot;

@@ -168,7 +168,7 @@ type = &quot;number&quot;
 name = &quot;sequence&quot;
 type = &quot;number&quot;
 
-# A value is output when the sequence has ended
+# the last value is output when the sequence ends (may not be == limit if step is not 1)
 [[output]]
 name = &quot;last&quot;
 type = &quot;number&quot;
@@ -183,7 +183,7 @@ to = &quot;compare/right&quot;
 from = &quot;input/end&quot;
 to = &quot;compare/left&quot;
 
-# &quot;pass if less than or equal&quot; process that will pass all numbers that are less than the limit
+# compare will pass all numbers that are less than the limit
 [[process]]
 alias = &quot;compare&quot;
 source = &quot;lib://flowstdlib/control/compare_switch&quot;
@@ -212,7 +212,7 @@ to = &quot;output/sequence&quot;
 from = &quot;compare/left-gt&quot;
 to = &quot;compare/left&quot;
 
-# Take the last generated number of the sequence and pass it to the added to add one to it for the next number
+# Take the last generated number of the sequence and pass it to 'add' to add one to it for the next number
 # in the sequence (if less than the limit)
 [[connection]]
 from = &quot;compare/right-lt&quot;
