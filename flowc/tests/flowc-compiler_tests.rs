@@ -1,6 +1,7 @@
 use std::collections::HashSet;
 
 use serde_json::json;
+use tempdir::TempDir;
 use url::Url;
 
 use flowclib::compiler::compile;
@@ -40,7 +41,12 @@ fn args() {
     let process = loader::load(&path, &meta_provider, &mut HashSet::<(Url, Url)>::new())
         .expect("Could not load test flow");
     if let FlowProcess(ref flow) = process {
-        let _tables = compile::compile(flow).expect("Could not compile flow");
+        let mut source_urls = HashSet::<(Url, Url)>::new();
+        let output_dir = TempDir::new("flow-test").expect("A temp dir").into_path();
+
+        let _tables = compile::compile(flow, &output_dir, false,
+                                       #[cfg(feature = "debugger")] &mut source_urls
+        ).expect("Could not compile flow");
     } else {
         panic!("Process loaded was not a flow");
     }
@@ -56,7 +62,13 @@ fn object_to_array_connection() {
     let process = loader::load(&path, &meta_provider, &mut HashSet::<(Url, Url)>::new())
         .expect("Could not load test flow");
     if let FlowProcess(ref flow) = process {
-        let _tables = compile::compile(flow).expect("Could not compile flow");
+        let mut source_urls = HashSet::<(Url, Url)>::new();
+        let output_dir = TempDir::new("flow-test").expect("A temp dir").into_path();
+
+        let _tables = compile::compile(flow,
+                                       &output_dir, false,
+                                       #[cfg(feature = "debugger")] &mut source_urls
+        ).expect("Could not compile flow");
     } else {
         panic!("Process loaded was not a flow");
     }
@@ -72,7 +84,12 @@ fn context_with_io() {
     let process = loader::load(&path, &meta_provider, &mut HashSet::<(Url, Url)>::new())
         .expect("Could not load test flow");
     if let FlowProcess(ref flow) = process {
-        if compile::compile(flow).is_ok() {
+        let mut source_urls = HashSet::<(Url, Url)>::new();
+        let output_dir = TempDir::new("flow-test").expect("A temp dir").into_path();
+
+        if compile::compile(flow, &output_dir, false,
+                            #[cfg(feature = "debugger")] &mut source_urls
+        ).is_ok() {
             // flow loaded, but has ios
             assert!(!flow.inputs().is_empty());
             assert!(!flow.outputs().is_empty());
@@ -92,7 +109,12 @@ fn same_name_input_and_output() {
     let process = loader::load(&path, &meta_provider, &mut HashSet::<(Url, Url)>::new())
         .expect("Could not load test flow");
     if let FlowProcess(ref flow) = process {
-        let tables = compile::compile(flow).expect("Could not compile flow");
+        let mut source_urls = HashSet::<(Url, Url)>::new();
+        let output_dir = TempDir::new("flow-test").expect("A temp dir").into_path();
+
+        let tables = compile::compile(flow, &output_dir, false,
+                                      #[cfg(feature = "debugger")] &mut source_urls
+        ).expect("Could not compile flow");
         // If done correctly there should only be two connections
         assert_eq!(2, tables.collapsed_connections.len());
     } else {
@@ -110,7 +132,12 @@ fn same_name_flow_ids() {
     let process = loader::load(&path, &meta_provider, &mut HashSet::<(Url, Url)>::new())
         .expect("Could not load test flow");
     if let FlowProcess(ref flow) = process {
-        let tables = compile::compile(flow).expect("Could not compile flow");
+        let mut source_urls = HashSet::<(Url, Url)>::new();
+        let output_dir = TempDir::new("flow-test").expect("A temp dir").into_path();
+
+        let tables = compile::compile(flow, &output_dir, false,
+                                      #[cfg(feature = "debugger")] &mut source_urls
+        ).expect("Could not compile flow");
 
         // print function in context flow should have flow_id = 0
         let print_function = tables
@@ -138,7 +165,12 @@ fn connection_to_input_with_constant_initializer() {
     let process = loader::load(&path, &meta_provider, &mut HashSet::<(Url, Url)>::new())
         .expect("Could not load test flow");
     if let FlowProcess(ref flow) = process {
-        if compile::compile(flow).is_ok() {
+        let mut source_urls = HashSet::<(Url, Url)>::new();
+        let output_dir = TempDir::new("flow-test").expect("A temp dir").into_path();
+
+        if compile::compile(flow, &output_dir, false,
+                            #[cfg(feature = "debugger")] &mut source_urls
+        ).is_ok() {
             panic!("Process should not have loaded due to connection to input with a constant initializer");
         }
     } else {
@@ -155,7 +187,12 @@ fn no_side_effects() {
         .expect("Could not load test flow");
     match process {
         FlowProcess(ref flow) => {
-            match compile::compile(flow) {
+            let mut source_urls = HashSet::<(Url, Url)>::new();
+            let output_dir = TempDir::new("flow-test").expect("A temp dir").into_path();
+
+            match compile::compile(flow, &output_dir, false,
+                                   #[cfg(feature = "debugger")] &mut source_urls
+            ) {
                 Ok(_tables) => panic!("Flow should not compile when it has no side-effects"),
                 Err(e) => assert_eq!("Flow has no side-effects", e.description()),
             }
@@ -174,7 +211,12 @@ fn compile_echo_ok() {
         &mut HashSet::<(Url, Url)>::new(),
     ).expect("Could not load test flow");
     if let FlowProcess(ref flow) = process {
-        let _tables = compile::compile(flow).expect("Could not compile flow");
+        let mut source_urls = HashSet::<(Url, Url)>::new();
+        let output_dir = TempDir::new("flow-test").expect("A temp dir").into_path();
+
+        let _tables = compile::compile(flow, &output_dir, false,
+                                       #[cfg(feature = "debugger")] &mut source_urls
+        ).expect("Could not compile flow");
     } else {
         panic!("Process loaded was not a flow");
     }
@@ -192,8 +234,13 @@ fn compiler_detects_unused_input() {
         &mut HashSet::<(Url, Url)>::new(),
     ).expect("Could not load test flow");
     if let FlowProcess(ref flow) = process {
+        let mut source_urls = HashSet::<(Url, Url)>::new();
+        let output_dir = TempDir::new("flow-test").expect("A temp dir").into_path();
+
         assert!(
-            compile::compile(flow).is_err(),
+            compile::compile(flow, &output_dir, false,
+                             #[cfg(feature = "debugger")] &mut source_urls
+            ).is_err(),
             "Should not compile due to unused input"
         );
     } else {
@@ -213,8 +260,13 @@ fn compile_detects_connection_to_initialized_input() {
         &mut HashSet::<(Url, Url)>::new(),
     ).expect("Could not load test flow");
     if let FlowProcess(ref flow) = process {
+        let mut source_urls = HashSet::<(Url, Url)>::new();
+        let output_dir = TempDir::new("flow-test").expect("A temp dir").into_path();
+
         assert!(
-            compile::compile(flow).is_err(),
+            compile::compile(flow, &output_dir, false,
+                             #[cfg(feature = "debugger")] &mut source_urls
+            ).is_err(),
             "Should not compile due to connection to constant initialized input"
         );
     } else {
@@ -236,12 +288,19 @@ fn flow_input_propagated_back_out() {
     );
 
     match loader::load(&url, &meta_provider, &mut HashSet::<(Url, Url)>::new()) {
-        Ok(FlowProcess(context)) => match compile::compile(&context) {
-            Ok(_tables) => {}
-            Err(error) => panic!(
-                "Couldn't compile the flow from test file at '{}'\n{}",
-                url, error
-            ),
+        Ok(FlowProcess(context)) => {
+            let mut source_urls = HashSet::<(Url, Url)>::new();
+            let output_dir = TempDir::new("flow-test").expect("A temp dir").into_path();
+
+            match compile::compile(&context, &output_dir, false,
+                                   #[cfg(feature = "debugger")] &mut source_urls
+            ) {
+                Ok(_tables) => {}
+                Err(error) => panic!(
+                    "Couldn't compile the flow from test file at '{}'\n{}",
+                    url, error
+                ),
+            }
         },
         Ok(FunctionProcess(_)) => panic!("Unexpected compile result from test file at '{}'", url),
         Err(error) => panic!(
@@ -265,7 +324,12 @@ fn initialized_output_propagated() {
 
     match loader::load(&url, &meta_provider, &mut HashSet::<(Url, Url)>::new()) {
         Ok(FlowProcess(context)) => {
-            match compile::compile(&context) {
+            let mut source_urls = HashSet::<(Url, Url)>::new();
+            let output_dir = TempDir::new("flow-test").expect("A temp dir").into_path();
+
+            match compile::compile(&context, &output_dir, false,
+                                   #[cfg(feature = "debugger")] &mut source_urls
+            ) {
                 Ok(tables) => {
                     match tables
                         .functions
@@ -286,6 +350,64 @@ fn initialized_output_propagated() {
                         }
                         None => {
                             panic!("Could not find function at route '/print_subflow_output/print'")
+                        }
+                    }
+                }
+                Err(error) => panic!(
+                    "Couldn't compile the flow from test file at '{}'\n{}",
+                    url, error
+                ),
+            }
+        }
+        Ok(FunctionProcess(_)) => panic!("Unexpected compile result from test file at '{}'", url),
+        Err(error) => panic!(
+            "Couldn't load the flow from test file at '{}'.\n{}",
+            url, error
+        ),
+    }
+}
+
+/*
+    This tests that an initializer on an input to a subflow (and a subsequent subflow) is propagated
+    along to the eventual function that uses it.
+*/
+#[test]
+fn initialized_input_to_subflow() {
+    let meta_provider = MetaProvider::new(helper::set_lib_search_path_to_project(),
+                                          helper::get_context_root());
+    // Relative path from project root to the test file
+    let url = helper::absolute_file_url_from_relative_path(
+        "flowc/tests/test-flows/initialized_input_to_subflow/initialized_input_to_subflow.toml",
+    );
+
+    match loader::load(&url, &meta_provider, &mut HashSet::<(Url, Url)>::new()) {
+        Ok(FlowProcess(root)) => {
+            let mut source_urls = HashSet::<(Url, Url)>::new();
+            let output_dir = TempDir::new("flow-test").expect("A temp dir").into_path();
+
+            match compile::compile(&root, &output_dir, false,
+                                   #[cfg(feature = "debugger")] &mut source_urls
+            ) {
+                Ok(tables) => {
+                    match tables
+                        .functions
+                        .iter()
+                        .find(|&f| f.route() == &Route::from("/initialized_input_to_subflow/subflow/subsubflow/stdout"))
+                    {
+                        Some(print_function) => {
+                            let in_input = print_function.get_inputs().get(0)
+                                .expect("Could not get inputs");
+                            let initial_value = in_input.get_initializer();
+                            match initial_value {
+                                Some(Once(one_time)) => assert_eq!(one_time, &json!("Hello")), // PASS
+                                _ => panic!(
+                                    "Initializer should have been a Once initializer, was {:?}",
+                                    initial_value
+                                ),
+                            }
+                        }
+                        None => {
+                            panic!("Could not find function at route '/initialized_input_to_subflow/subflow/print'")
                         }
                     }
                 }

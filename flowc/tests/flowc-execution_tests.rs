@@ -15,7 +15,7 @@ use tempdir::TempDir;
 use url::Url;
 
 use flowclib::compiler::{compile, loader};
-use flowclib::compiler::tables::CompilerTables;
+use flowclib::compiler::compile::CompilerTables;
 use flowclib::generator::generate;
 use flowcore::meta_provider::MetaProvider;
 use flowcore::model::flow_definition::FlowDefinition;
@@ -63,7 +63,7 @@ fn write_manifest(
         debug_symbols,
         &out_dir_path,
         tables,
-        HashSet::<(Url, Url)>::new(),
+        &HashSet::<(Url, Url)>::new(),
     )?;
 
     manifest_file
@@ -204,7 +204,13 @@ fn execute_test(test_name: &str, separate_processes: bool) {
     let test_dir = root_dir.join(&format!("flowc/tests/test-flows/{}", test_name));
 
     if let FlowProcess(ref flow) = load_flow(&test_dir, test_name, search_path) {
-        let tables = compile::compile(flow).expect("Could not compile flow");
+        let mut source_urls = HashSet::<(Url, Url)>::new();
+        let output_dir = TempDir::new("flow-test").expect("A temp dir").into_path();
+
+        let tables = compile::compile(flow,
+                                          &output_dir, false,
+                                      #[cfg(feature = "debugger")] &mut source_urls
+        ).expect("Could not compile flow");
         let dir =
             TempDir::new("flow").expect("Could not get temp dir");
         let manifest_path = write_manifest(flow, true, dir.into_path(), test_name, &tables)

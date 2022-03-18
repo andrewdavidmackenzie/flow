@@ -16,7 +16,7 @@ use flowcore::model::name::HasName;
 use flowcore::model::route::HasRoute;
 use flowcore::model::runtime_function::RuntimeFunction;
 
-use crate::compiler::tables::CompilerTables;
+use crate::compiler::compile::CompilerTables;
 use crate::errors::*;
 
 /// Paths in the manifest are relative to the location of the manifest file, to make the file
@@ -27,7 +27,7 @@ pub fn create_manifest(
     debug_symbols: bool,
     manifest_url: &Url,
     tables: &CompilerTables,
-    #[cfg(feature = "debugger")] source_urls: HashSet<(Url, Url)>,
+    #[cfg(feature = "debugger")] source_urls: &HashSet<(Url, Url)>,
 ) -> Result<FlowManifest> {
     info!("Writing flow manifest to '{}'", manifest_url);
 
@@ -45,7 +45,7 @@ pub fn create_manifest(
     manifest.set_lib_references(&tables.libs);
     manifest.set_context_references(&tables.context_functions);
     #[cfg(feature = "debugger")]
-    manifest.set_source_urls(source_urls);
+    manifest.set_source_urls(source_urls.clone());
 
     Ok(manifest)
 }
@@ -58,8 +58,10 @@ pub fn write_flow_manifest(
     debug_symbols: bool,
     destination: &Path,
     tables: &CompilerTables,
-    #[cfg(feature = "debugger")] source_urls: HashSet<(Url, Url)>,
+    #[cfg(feature = "debugger")] source_urls: &HashSet<(Url, Url)>,
 ) -> Result<PathBuf> {
+    info!("\n==== Generating Manifest");
+
     let mut filename = destination.to_path_buf();
     filename.push(DEFAULT_MANIFEST_FILENAME);
     filename.set_extension("json");
@@ -173,7 +175,6 @@ mod test {
     use serde_json::json;
     use url::Url;
 
-    use flowcore::model::connection::UNSET_PRIORITY;
     use flowcore::model::datatype::{ARRAY_TYPE, OBJECT_TYPE, STRING_TYPE};
     use flowcore::model::function_definition::FunctionDefinition;
     use flowcore::model::input::InputInitializer;
@@ -212,7 +213,7 @@ mod test {
                     String::default(),
                     #[cfg(feature = "debugger")]
                     String::default(),
-                    UNSET_PRIORITY,
+                    0,
                 ),
                 OutputConnection::new(
                     Output("sub_route".into()),
@@ -224,7 +225,7 @@ mod test {
                     String::default(),
                     #[cfg(feature = "debugger")]
                     String::default(),
-                    UNSET_PRIORITY,
+                    0,
                 ),
             ],
             0,
@@ -239,7 +240,8 @@ mod test {
     {
       'function_id': 1,
       'io_number': 0,
-      'flow_id': 0
+      'flow_id': 0,
+      'priority': 0
     },
     {
       'source': {
@@ -247,7 +249,8 @@ mod test {
       },
       'function_id': 2,
       'io_number': 0,
-      'flow_id': 0
+      'flow_id': 0,
+      'priority': 0
     }
   ]
 }";
@@ -289,7 +292,7 @@ mod test {
                 String::default(),
                 #[cfg(feature = "debugger")]
                 String::default(),
-                UNSET_PRIORITY,
+                0,
             )],
             0,
             0,
@@ -303,7 +306,8 @@ mod test {
     {
       'function_id': 1,
       'io_number': 0,
-      'flow_id': 0
+      'flow_id': 0,
+      'priority': 0
     }
   ]
 }";
@@ -345,7 +349,7 @@ mod test {
                 String::default(),
                 #[cfg(feature = "debugger")]
                 String::default(),
-                UNSET_PRIORITY,
+                0,
             )],
             0,
             0,
@@ -360,7 +364,8 @@ mod test {
       'function_id': 1,
       'io_number': 0,
       'flow_id': 0,
-      'destination_array_order': 1
+      'destination_array_order': 1,
+      'priority': 0
     }
   ]
 }";
@@ -538,7 +543,7 @@ mod test {
                 String::default(),
                 #[cfg(feature = "debugger")]
                 String::default(),
-                UNSET_PRIORITY,
+                0,
             )],
             0,
             0,
@@ -560,7 +565,8 @@ mod test {
     {
       'function_id': 1,
       'io_number': 0,
-      'flow_id': 0
+      'flow_id': 0,
+      'priority': 0
     }
   ]
 }";
@@ -573,7 +579,8 @@ mod test {
     {
       'function_id': 1,
       'io_number': 0,
-      'flow_id': 0
+      'flow_id': 0,
+      'priority': 0
     }
   ]
 }";
@@ -614,7 +621,7 @@ mod test {
                 String::default(),
                 #[cfg(feature = "debugger")]
                 String::default(),
-                UNSET_PRIORITY,
+                0,
             )],
             0,
             0,
@@ -631,7 +638,8 @@ mod test {
       },
       'function_id': 1,
       'io_number': 0,
-      'flow_id': 0
+      'flow_id': 0,
+      'priority': 0
     }
   ]
 }";

@@ -293,7 +293,7 @@ mod test {
 
         assert!(
             !out_of_date(&source, &derived)
-                .expect("Error in 'out__of_date'")
+                .expect("Error in 'out_of_date'")
                 .0
         );
     }

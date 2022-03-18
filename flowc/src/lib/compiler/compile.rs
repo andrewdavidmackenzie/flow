@@ -1,58 +1,118 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
+use std::path::Path;
 
 use log::{debug, info};
+use serde_derive::Serialize;
+use url::Url;
 
-use flowcore::model::connection::LOOPBACK_PRIORITY;
+use flowcore::model::connection::{Connection, LOOPBACK_PRIORITY};
 use flowcore::model::flow_definition::FlowDefinition;
+use flowcore::model::function_definition::FunctionDefinition;
 use flowcore::model::name::HasName;
 use flowcore::model::output_connection::{OutputConnection, Source};
 use flowcore::model::output_connection::Source::{Input, Output};
 use flowcore::model::route::{HasRoute, Route};
 
-use crate::compiler::tables::CompilerTables;
+use crate::compiler::compile_wasm;
 use crate::errors::*;
 
 use super::checker;
 use super::gatherer;
 use super::optimizer;
-use super::tables;
+
+/// `CompilerTables` are built from the flattened and connected flow model in memory and are
+/// used to generate the flow's manifest ready to be executed.
+#[derive(Serialize, Default)]
+pub struct CompilerTables {
+    /// The set of connections between functions in the compiled flow
+    pub connections: Vec<Connection>,
+    /// HashMap of sources of values and what route they are connected to
+    pub sources: HashMap<Route, (Source, usize)>,
+    /// HashMap from "route of the output of a function" --> (output name, source_function_id)
+    pub destination_routes: HashMap<Route, (usize, usize, usize)>,
+    /// HashMap from "route of the input of a function" --> (destination_function_id, input number, flow_id)
+    pub collapsed_connections: Vec<Connection>,
+    /// The set of functions left in a flow after it has been flattened, connected and optimized
+    pub functions: Vec<FunctionDefinition>,
+    /// The set of libraries used by a flow, from their Urls
+    pub libs: HashSet<Url>,
+    /// The set of context functions used by a flow, from their Urls
+    pub context_functions: HashSet<Url>,
+    /// The list of source files that were used in the flow definition
+    pub source_files: Vec<String>,
+}
+
+impl CompilerTables {
+    /// Create a new set of `GenerationTables` for use in compiling a flow
+    pub fn new() -> Self {
+        CompilerTables {
+            connections: Vec::new(),
+            sources: HashMap::<Route, (Source, usize)>::new(),
+            destination_routes: HashMap::<Route, (usize, usize, usize)>::new(),
+            collapsed_connections: Vec::new(),
+            functions: Vec::new(),
+            libs: HashSet::new(),
+            context_functions: HashSet::new(),
+            source_files: Vec::new(),
+        }
+    }
+}
 
 /// Take a hierarchical flow definition in memory and compile it, generating a manifest for execution
 /// of the flow, including references to libraries required.
-pub fn compile(flow: &FlowDefinition) -> Result<CompilerTables> {
+pub fn compile(flow: &FlowDefinition, output_dir: &Path,
+               skip_building: bool,
+               #[cfg(feature = "debugger")] source_urls: &mut HashSet<(Url, Url)>,
+    ) -> Result<CompilerTables> {
     let mut tables = CompilerTables::new();
 
-    info!("=== Compiler phase: Gathering Functions and Connections");
     gatherer::gather_functions_and_connections(flow, &mut tables)?;
-    info!("=== Compiler phase: Collapsing connections");
-    tables.collapsed_connections = gatherer::collapse_connections(&tables.connections);
-    info!("=== Compiler phase: Optimizing");
+    gatherer::collapse_connections(&mut tables);
     optimizer::optimize(&mut tables);
-    info!("=== Compiler phase: Indexing Functions");
-    gatherer::index_functions(&mut tables.functions);
-    info!("=== Compiler phase: Creating routes tables");
-    tables::create_routes_table(&mut tables);
-    info!("=== Compiler phase: Checking connections");
     checker::check_connections(&mut tables)?;
-    info!("=== Compiler phase: Checking Function Inputs");
     checker::check_function_inputs(&mut tables)?;
-    info!("=== Compiler phase: Checking flow has side-effects");
     checker::check_side_effects(&mut tables)?;
-    info!("=== Compiler phase: Preparing OutputConnections");
-    prepare_output_connections(&mut tables)?;
+    configuring_output_connections(&mut tables)?;
+    compile_supplied_implementations(
+        output_dir, &mut tables,
+        skip_building,
+        #[cfg(feature = "debugger")] source_urls,
+    ).chain_err(|| "Could not compile to wasm the flow's supplied implementation(s)")?;
 
     Ok(tables)
 }
 
-/// Go through all connections, finding:
-/// - source process (process id and the output route the connection is from)
-/// - destination process (process id and input number the connection is to)
-///
-/// Then add an output route to the source process's list of output routes
-/// (according to each function's output route in the original description plus each connection from
-/// that route, which could be to multiple destinations)
-pub fn prepare_output_connections(tables: &mut CompilerTables) -> Result<()> {
-    debug!("Setting output routes on processes");
+// For any function that provides an implementation - compile the source to wasm and modify the
+// implementation to indicate it is the wasm file
+fn compile_supplied_implementations(
+    out_dir: &Path,
+    tables: &mut CompilerTables,
+    skip_building: bool,
+    #[cfg(feature = "debugger")] source_urls: &mut HashSet<(Url, Url)>,
+) -> Result<String> {
+    for function in &mut tables.functions {
+        if function.get_lib_reference().is_none() && function.get_context_reference().is_none() {
+            compile_wasm::compile_implementation(
+                out_dir,
+                function,
+                skip_building,
+                #[cfg(feature = "debugger")] source_urls,
+            )?;
+        }
+    }
+
+    Ok("All supplied implementations compiled successfully".into())
+}
+
+// Go through all connections, finding:
+// - source process (process id and the output route the connection is from)
+// - destination process (process id and input number the connection is to)
+//
+// Then add an output route to the source process's list of output routes
+// (according to each function's output route in the original description plus each connection from
+// that route, which could be to multiple destinations)
+fn configuring_output_connections(tables: &mut CompilerTables) -> Result<()> {
+    info!("\n=== Compiler: Configuring Output Connections");
     for connection in &tables.collapsed_connections {
         if let Some((source, source_id)) = get_source(&tables.sources, connection.from_io().route())
         {
@@ -120,7 +180,7 @@ pub fn prepare_output_connections(tables: &mut CompilerTables) -> Result<()> {
         }
     }
 
-    debug!("Output routes set on all processes");
+    info!("Output Connections set on all functions");
 
     Ok(())
 }
@@ -178,8 +238,9 @@ fn get_source(
 
 #[cfg(test)]
 mod test {
-    use std::collections::HashMap;
+    use std::collections::{HashMap, HashSet};
 
+    use tempdir::TempDir;
     use url::Url;
 
     use flowcore::model::datatype::STRING_TYPE;
@@ -202,15 +263,15 @@ mod test {
         use super::super::get_source;
 
         /*
-                    Create a HashTable of routes for use in tests.
-                    Each entry (K, V) is:
-                    - Key   - the route to a function's IO
-                    - Value - a tuple of
-                                - sub-route (or IO name) from the function to be used at runtime
-                                - the id number of the function in the functions table, to select it at runtime
+                                    Create a HashTable of routes for use in tests.
+                                    Each entry (K, V) is:
+                                    - Key   - the route to a function's IO
+                                    - Value - a tuple of
+                                                - sub-route (or IO name) from the function to be used at runtime
+                                                - the id number of the function in the functions table, to select it at runtime
 
-                    Plus a vector of test cases with the Route to search for and the expected function_id and output sub-route
-                */
+                                    Plus a vector of test cases with the Route to search for and the expected function_id and output sub-route
+                                */
         #[allow(clippy::type_complexity)]
         fn test_source_routes() -> (
             HashMap<Route, (Source, usize)>,
@@ -290,7 +351,8 @@ mod test {
         }
     }
 
-    /* Test an error is thrown if a flow has no side effects, and that unconnected functions
+    /*
+        Test an error is thrown if a flow has no side effects, and that unconnected functions
        are removed by the optimizer
     */
     #[test]
@@ -328,8 +390,15 @@ mod test {
             ..Default::default()
         };
 
+        let mut source_urls = HashSet::<(Url, Url)>::new();
+        let output_dir = TempDir::new("flow-test").expect("A temp dir").into_path();
+
         // Optimizer should remove unconnected function leaving no side-effects
-        match compile(&flow) {
+        match compile(&flow,
+                      &output_dir,
+                      true,
+                      #[cfg(feature = "debugger")] &mut source_urls,
+                        ) {
             Ok(_tables) => panic!("Flow should not compile when it has no side-effects"),
             Err(e) => assert_eq!("Flow has no side-effects", e.description()),
         }

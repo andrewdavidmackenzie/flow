@@ -1,3 +1,4 @@
+use std::collections::BTreeMap;
 #[cfg(feature = "debugger")]
 use std::fmt;
 
@@ -29,9 +30,13 @@ pub struct Input {
     )]
     // An optional `InputInitializer` associated with this input
     initializer: Option<InputInitializer>,
-    // The values received so far
+
+    // The prioritized queue of values received so far (priority, values)
+    // priorities will be sparse, 0 the minimum and usize::MAX the maximum
+    // values will be an ordered vector of entries, with first at the head and last at the tail
     #[serde(skip)]
-    received: Vec<Value>,
+//    received: Vec<(usize, Value)>,
+    received: BTreeMap<usize, Vec<Value>>,
 }
 
 impl From<&IO> for Input {
@@ -43,13 +48,13 @@ impl From<&IO> for Input {
 #[cfg(feature = "debugger")]
 impl fmt::Display for Input {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        if self.count() == 0 {
+        if self.received.is_empty() {
             write!(f, "\tEmpty")?;
         } else {
-            write!(f, "\tValues: ")?;
+            write!(f, "\tPrioritized Queue of Values: ")?;
 
             for value in &self.received {
-                write!(f, "{}, ", value)?;
+                write!(f, "{:?}, ", value)?;
             }
         }
 
@@ -66,7 +71,8 @@ impl Input {
     pub fn new(initial_value: &Option<InputInitializer>) -> Self {
         Input {
             initializer: initial_value.clone(),
-            received: Vec::new(),
+//            received: Vec::new(),
+            received: BTreeMap::new(),
         }
     }
 
@@ -76,20 +82,33 @@ impl Input {
         self.received.clear();
     }
 
-    /// Take first element from the Input
+    /// Take the first element of the highest priority from the Input and return it.
+    /// Remove a priority level if there are no values left with that priority
     pub fn take(&mut self) -> Result<Value> {
         if self.received.is_empty() {
             bail!("Trying to take from an empty Input");
         }
 
-        Ok(self.received.remove(0))
+//        let (_, value) = self.received.remove(0);
+        #[allow(clippy::clone_on_copy)]
+        let priority = self.received.keys().next()
+            .ok_or("Priority Vector is empty")?.clone();
+        let priority_vec = self.received.get_mut(&priority)
+            .ok_or("Could not get the Priority Vector")?;
+        let value = priority_vec.remove(0);         // remove the oldest element
+        // if the vector of values for this priority is now empty, remove that priority entry
+        if priority_vec.is_empty() {
+            self.received.remove(&priority);
+        }
+
+        Ok(value)
     }
 
     /// Initialize an input with the InputInitializer if it has one.
     /// When called at start-up    it will initialize      if it's a OneTime or Constant initializer
     /// When called after start-up it will initialize only if it's a            Constant initializer
     pub fn init(&mut self, first_time: bool, io_number: usize) -> bool {
-        if self.count() > 1 {
+        if !self.received.is_empty() {
             return false;
         }
 
@@ -102,32 +121,48 @@ impl Input {
         match init_value {
             Some(value) => {
                 debug!("\t\tInput #{} initialized with '{:?}'", io_number, value);
-                self.push(value);
+                self.push(0, value);
                 true
             }
             _ => false,
         }
     }
 
-    /// Add a value to this `Input`
-    pub fn push(&mut self, value: Value) {
-        self.received.push(value);
+    /// Add a value with priority to this `Input`
+    pub fn push(&mut self, priority: usize, value: Value) {
+//        self.received.push((priority, value))
+        match self.received.get_mut(&priority) {
+            Some(priority_vec) => {
+                // add the value to the existing vector of values for this priority
+                priority_vec.push(value);
+            }
+            None => {
+                // create a new vec of values for this priority level and insert into the map
+                self.received.insert(priority, vec!(value));
+            }
+        }
     }
 
     /// Add an array of values to this `Input`, by pushing them one by one
-    pub fn push_array<'a, I>(&mut self, iter: I)
+    pub fn push_array<'a, I>(&mut self, priority: usize, iter: I)
     where
         I: Iterator<Item = &'a Value>,
     {
         for value in iter {
             trace!("\t\t\tPushing array element '{}'", value);
-            self.received.push(value.clone());
+            self.push(priority, value.clone());
         }
     }
 
-    /// Return true if the `Input` is empty or false otherwise
+    /// Return the total number of inputs values queued up, across all priorities, in this input
     pub fn count(&self) -> usize {
-        self.received.len()
+//        self.received.len()
+        self.received.values().into_iter().fold(0, |sum, vec| sum + vec.len())
+    }
+
+    /// Return true if there are no more values available from this input
+    pub fn is_empty(&self) -> bool {
+        self.received.is_empty()
     }
 }
 
@@ -146,46 +181,70 @@ mod test {
     #[test]
     fn no_inputs_initially() {
         let input = Input::new(&None);
-        assert_eq!(input.count(), 0);
+        assert!(input.is_empty());
+    }
+
+    #[test]
+    fn take_from_empty_fails() {
+        let mut input = Input::new(&None);
+        assert!(input.take().is_err());
     }
 
     #[test]
     fn accepts_value() {
         let mut input = Input::new(&None);
-        input.push(Value::Null);
-        assert_ne!(input.count(), 0);
+        input.push(0, Value::Null);
+        assert!(!input.is_empty());
     }
 
     #[test]
     fn accepts_array() {
         let mut input = Input::new(&None);
-        input.push_array(vec![json!(5), json!(10), json!(15)].iter());
-        assert_ne!(input.count(), 0);
-    }
-
-    #[test]
-    fn gets_full() {
-        let mut input = Input::new(&None);
-        input.push(Value::Null);
-        assert!(input.count() > 0);
+        input.push_array(0, vec![json!(5), json!(10), json!(15)].iter());
+        assert!(!input.is_empty());
     }
 
     #[test]
     fn take_empties() {
         let mut input = Input::new(&None);
-        input.push(json!(10));
-        assert_ne!(input.count(), 0);
+        input.push(0, json!(10));
+        assert!(!input.is_empty());
         let _value = input.take().expect("Could not take the input value as expected");
-        assert_eq!(input.count(), 0);
+        assert!(input.is_empty());
+    }
+
+    #[test]
+    fn two_simple_priorities() {
+        let mut input = Input::new(&None);
+        input.push(1, json!(1));
+        input.push(0, json!(0));
+        assert_eq!(json!(0), input.take().expect("Could not take() any value"));
+        assert_eq!(json!(1), input.take().expect("Could not take() any value"));
+        assert!(input.is_empty());
+    }
+
+    #[test]
+    fn multiple_values_per_priority() {
+        let mut input = Input::new(&None);
+        input.push(1, json!(2));
+        input.push(0, json!(0));
+        input.push(1, json!(3));
+        input.push(0, json!(1));
+        assert_eq!(4, input.count());
+        assert_eq!(json!(0), input.take().expect("Could not take() any value"));
+        assert_eq!(json!(1), input.take().expect("Could not take() any value"));
+        assert_eq!(json!(2), input.take().expect("Could not take() any value"));
+        assert_eq!(json!(3), input.take().expect("Could not take() any value"));
+        assert!(input.is_empty());
     }
 
     #[cfg(feature = "debugger")]
     #[test]
     fn reset_empties() {
         let mut input = Input::new(&None);
-        input.push(json!(10));
-        assert_ne!(input.count(), 0);
+        input.push(0, json!(10));
+        assert!(!input.is_empty());
         input.reset();
-        assert_eq!(input.count(), 0);
+        assert!(input.is_empty());
     }
 }

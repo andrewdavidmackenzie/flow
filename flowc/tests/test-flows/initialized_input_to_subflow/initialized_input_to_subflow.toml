@@ -1,0 +1,5 @@
+flow = "initialized_input_to_subflow"
+
+[[process]]
+source = "subflow"
+input.only = { once = "Hello" }

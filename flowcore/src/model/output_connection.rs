@@ -2,8 +2,6 @@ use std::fmt;
 
 use serde_derive::{Deserialize, Serialize};
 
-use crate::model::connection::UNSET_PRIORITY;
-
 /// The `Conversion` enum defines what type of run-time conversion of types is to be done
 #[derive(Deserialize, Serialize, Clone, PartialEq, Debug)]
 pub enum Conversion {
@@ -58,7 +56,6 @@ pub struct OutputConnection {
     ///   MAX = priority was not set at compile time
     /// It is used to prioritize the selection of input values queued up at an input using the
     /// "innermost first" theory
-    #[serde(default = "unset_priority", skip_serializing_if = "priority_is_unset")]
     priority: usize,
 }
 
@@ -66,14 +63,6 @@ pub struct OutputConnection {
 /// skip serializing it
 fn is_default_source(source: &Source) -> bool {
     matches!(source, Source::Output(subroute) if subroute.is_empty())
-}
-
-fn unset_priority() -> usize {
-    UNSET_PRIORITY
-}
-
-fn priority_is_unset(u: &usize) -> bool {
-    u == &UNSET_PRIORITY
 }
 
 impl Default for Source {
@@ -131,6 +120,11 @@ impl OutputConnection {
     /// Does the destination IO accept generic OBJECT_TYPE types
     pub fn is_generic(&self) -> bool {
         self.generic
+    }
+
+    /// get the priority of this connection
+    pub fn get_priority(&self) -> usize {
+        self.priority
     }
 }
 

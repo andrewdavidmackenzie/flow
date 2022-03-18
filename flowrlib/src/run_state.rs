@@ -560,32 +560,44 @@ impl RunState {
         }
     }
 
+    // Do the necessary serialization of an array to values, or wrapping of a value into an array
+    // in order to convert the value on expected by the destination, if possible, send the value
+    // and return true. If the conversion cannot be done and no value is sent, return false.
     fn type_convert_and_send(
         function: &mut RuntimeFunction,
-        destination: &OutputConnection,
+        connection: &OutputConnection,
         value: &Value,
-    ) {
-        if destination.is_generic() {
-            function.send(destination.io_number, value);
+    ) -> bool {
+        if connection.is_generic() {
+            function.send(connection.io_number, connection.get_priority(), value);
         } else {
             match (
-                (Self::array_order(value) - destination.destination_array_order),
+                (Self::array_order(value) - connection.destination_array_order),
                 value,
             ) {
-                (0, _) => function.send(destination.io_number, value),
-                (1, Value::Array(array)) => function.send_iter(destination.io_number, array),
+                (0, _) => function.send(connection.io_number,
+                                        connection.get_priority(),  value),
+                (1, Value::Array(array)) => function.send_iter(connection.io_number,
+                                                               connection.get_priority(), array),
                 (2, Value::Array(array_2)) => {
                     for array in array_2.iter() {
                         if let Value::Array(sub_array) = array {
-                            function.send_iter(destination.io_number, sub_array)
+                            function.send_iter(connection.io_number,
+                                               connection.get_priority(), sub_array)
                         }
                     }
                 }
-                (-1, _) => function.send(destination.io_number, &json!([value])),
-                (-2, _) => function.send(destination.io_number, &json!([[value]])),
-                _ => error!("Unable to handle difference in array order"),
+                (-1, _) => function.send(connection.io_number,
+                                         connection.get_priority(), &json!([value])),
+                (-2, _) => function.send(connection.io_number,
+                                         connection.get_priority(), &json!([[value]])),
+                _ => {
+                    error!("Unable to handle difference in array order");
+                    return false;
+                },
             }
         }
+        true // a value was sent!
     }
 
     /*
@@ -607,7 +619,9 @@ impl RunState {
             Input(index) => format!(" from value at input #{}", index),
         };
 
-        let destination_str = if source_id == connection.function_id {
+        let loopback = source_id == connection.function_id;
+
+        let destination_str = if loopback {
             format!("to Self:{}", connection.io_number)
         } else {
             format!(
@@ -638,18 +652,16 @@ impl RunState {
         Self::type_convert_and_send(function, connection, output_value);
 
         #[cfg(feature = "metrics")]
-        metrics.increment_outputs_sent();
+        metrics.increment_outputs_sent(); // not distinguishing array serialization / wrapping etc
+
+        let block = function.input_count(connection.io_number) > 0;
+        let new_input_set_available = function.input_set_count() > count_before;
 
         // for the case when a function is sending to itself:
         // - avoid blocking on itself
-        // - delay determining if it should be in the blocked or ready lists (by calling inputs_now_full())
+        // - delay determining if it should be in the blocked or ready lists)
         //   until it has sent all it's other outputs as it might be blocked by another function.
-        let block = (function.input_count(connection.io_number) > 0)
-            && (source_id != connection.function_id);
-        let filled =
-            (function.input_set_count() > count_before) && (source_id != connection.function_id);
-
-        if block {
+        if block && !loopback {
             // TODO pass in destination and combine Block and OutputConnection?
             self.create_block(
                 connection.flow_id,
@@ -662,7 +674,7 @@ impl RunState {
             );
         }
 
-        if filled {
+        if new_input_set_available && !loopback {
             self.new_input_set(connection.function_id, connection.flow_id, true);
         }
     }
@@ -964,7 +976,6 @@ impl RunState {
             job_id, file, line, message
         );
         error!("Job #{}: Error State - {}", job_id, self);
-        panic!();
     }
 
     /// Check a number of "invariants" i.e. unbreakable rules about the state.
@@ -1341,23 +1352,6 @@ mod test {
             assert_eq!(state.num_functions(), 2);
 
             println!("Run state: {}", state);
-        }
-
-        #[should_panic]
-        #[test]
-        fn run_time_error_test() {
-            let submission = Submission::new(
-                &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
-                1,
-                #[cfg(feature = "debugger")]
-                true,
-            );
-            let state = RunState::new(&[], submission);
-
-            #[cfg(any(feature = "debugger", feature = "metrics"))]
-            assert_eq!(state.num_functions(), 0);
-
-            state.runtime_error(0, "test error", "test_file.rs", 42);
         }
 
         #[cfg(feature = "metrics")]
@@ -2743,7 +2737,8 @@ mod test {
                 );
 
                 // Test
-                RunState::type_convert_and_send(&mut function, &destination, &test_case.value);
+                assert!(RunState::type_convert_and_send(&mut function,
+                    &destination, &test_case.value));
 
                 // Check
                 assert_eq!(

@@ -214,9 +214,7 @@ impl FunctionDefinition {
         self.impure
     }
 
-    /*
-        A function can only be impure if it is provided by 'context'
-    */
+    // A function can only be impure if it is provided by 'context'
     fn check_impurity(&self, url: &Url) -> Result<()> {
         if self.impure && url.scheme() != "context" {
             bail!("Only functions provided by 'context' can be impure ('{}')", url);
@@ -301,6 +299,12 @@ impl FunctionDefinition {
                 }
             }
         }
+    }
+
+    /// Set the initial value on one of the IOs
+    pub fn set_initial_value(&mut self, io_number: usize, initializer: &Option<InputInitializer>) -> Result<()> {
+        self.inputs.get_mut(io_number).ok_or("No such input")?.set_initializer(initializer);
+        Ok(())
     }
 
     // Set the lib reference of this function

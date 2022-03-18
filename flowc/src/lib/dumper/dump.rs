@@ -10,7 +10,7 @@ use flowcore::meta_provider::Provider;
 use flowcore::model::flow_definition::FlowDefinition;
 use flowcore::model::process::Process::FlowProcess;
 
-use crate::compiler::tables::CompilerTables;
+use crate::compiler::compile::CompilerTables;
 use crate::dumper::{dump, dump_dot};
 use crate::errors::*;
 
@@ -27,6 +27,7 @@ use crate::errors::*;
 /// use std::collections::HashSet;
 /// use simpath::Simpath;
 /// use std::path::PathBuf;
+/// use tempdir::TempDir;
 ///
 /// let lib_search_path = Simpath::new("FLOW_LIB_PATH");
 /// let provider = MetaProvider::new(lib_search_path, PathBuf::from("/"));
@@ -35,22 +36,22 @@ use crate::errors::*;
 /// url = url.join("samples/hello-world/root.toml").unwrap();
 ///
 /// let mut source_urls = HashSet::<(Url, Url)>::new();
+/// let output_dir = TempDir::new("flow-test").expect("A temp dir").into_path();
 ///
 /// if let Ok(FlowProcess(mut flow)) = flowclib::compiler::loader::load(&url,
 ///                                                           &provider,
 ///                                                           &mut source_urls) {
-///     let tables = flowclib::compiler::compile::compile(&mut flow).unwrap();
-///     let output_dir = tempdir::TempDir::new("flow").unwrap().into_path();
-///
-///     let tables = flowclib::compiler::compile::compile(&mut flow).unwrap();
-///     let output_dir = tempdir::TempDir::new("dumper").unwrap().into_path();
+///     let tables = flowclib::compiler::compile::compile(&mut flow,
+///                                                       &output_dir, true,
+///                                                       #[cfg(feature = "debugger")] &mut source_urls
+///                                                       ).unwrap();
 ///
 ///     flowclib::dumper::dump::dump_tables(&tables, &output_dir).unwrap();
 /// }
 /// ```
 ///
 pub fn dump_tables(tables: &CompilerTables, output_dir: &Path) -> std::io::Result<()> {
-    info!("=== Dumper: Dumping tables to '{}'", output_dir.display());
+    info!("\n=== Dumper: Dumping tables to '{}'", output_dir.display());
 
     let mut writer = create_output_file(output_dir, "connections", "dump")?;
     info!("\tGenerating connections.dump");
@@ -106,12 +107,15 @@ pub fn create_output_file(
 /// url = url.join("samples/hello-world/root.toml").unwrap();
 ///
 /// let mut source_urls = HashSet::<(Url, Url)>::new();
+/// let output_dir = tempdir::TempDir::new("flow").unwrap().into_path();
 ///
 /// if let Ok(FlowProcess(mut flow)) = flowclib::compiler::loader::load(&url,
 ///                                                           &provider,
 ///                                                           &mut source_urls) {
-///     let tables = flowclib::compiler::compile::compile(&mut flow).unwrap();
-///     let output_dir = tempdir::TempDir::new("flow").unwrap().into_path();
+///     let tables = flowclib::compiler::compile::compile(&mut flow,
+///                                                       &output_dir, true,
+///                                                       #[cfg(feature = "debugger")] &mut source_urls
+///                                                      ).unwrap();
 ///
 ///     flowclib::dumper::dump::dump_functions(&flow, &tables, &output_dir).unwrap();
 /// }
@@ -121,10 +125,10 @@ pub fn dump_functions(
     tables: &CompilerTables,
     output_dir: &Path,
 ) -> std::io::Result<()> {
+    info!("\n=== Dumper: Generating {}/functions.dump", output_dir.display());
     dump_dot::dump_functions(flow, tables, output_dir)?;
 
     let mut writer = create_output_file(output_dir, "functions", "dump")?;
-    info!("\tGenerating functions.dump");
     dump_table(tables.functions.iter(), &mut writer)
 }
 
@@ -176,7 +180,7 @@ pub fn dump_flow(
     provider: &dyn Provider
 ) -> Result<()> {
     info!(
-        "=== Dumper: Dumping flow hierarchy to '{}' folder",
+        "\n=== Dumper: Dumping flow hierarchy to '{}' folder",
         output_dir.display()
     );
     _dump_flow(flow, 0, output_dir, provider)?;
@@ -186,7 +190,7 @@ pub fn dump_flow(
 /*
     dump the flow definition recursively, tracking what level we are at as we go down
 */
-#[allow(clippy::or_fun_call)]
+#[allow(clippy::only_used_in_recursion)]
 fn _dump_flow(
     flow: &FlowDefinition,
     level: usize,
@@ -201,12 +205,12 @@ fn _dump_flow(
     })?;
     let filename = file_path
         .file_stem()
-        .ok_or(std::io::Error::new(
+        .ok_or_else(|| std::io::Error::new(
             std::io::ErrorKind::Other,
             "Could not get file_stem of flow definition filename",
         ))?
         .to_str()
-        .ok_or(std::io::Error::new(
+        .ok_or_else(|| std::io::Error::new(
             std::io::ErrorKind::Other,
             "Could not convert filename to string",
         ))?;

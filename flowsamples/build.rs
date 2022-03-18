@@ -31,19 +31,27 @@ fn main() -> io::Result<()> {
 fn get_context_root() -> Result<String, String> {
     let samples_dir = Path::new(env!("CARGO_MANIFEST_DIR")).parent()
         .ok_or("Could not get parent dir")?;
-    Ok(samples_dir.join("flowr/src/context").to_str()
+    let context_root = samples_dir.join("flowr/src/context");
+    assert!(context_root.exists(), "Context root directory '{}' does not exist",
+            context_root.display());
+    Ok(context_root.to_str()
         .expect("Could not convert path to String").to_string())
 }
 
 fn compile_sample(sample_dir: &str, output_dir: &str) {
     let mut command = Command::new("flowc");
-    // -g for debug symbols, -z to dump graphs, -v warn to show warnings, -s to skip running and only compile the flow
+    // -g for debug symbols
+    // -z to dump graphs
+    // -v warn to show warnings
+    // -s to skip running and only compile the flow
+    // -C <dir> to set the context root dir
     // -o output_dir to generate output files in specified directory
+    // <sample_dir> is the path to the directory of the sample flow to compile
     let context_root = get_context_root().expect("Could not get context root");
     let command_args = vec!["-g", "-z", "-v", "warn", "-s",
-                            sample_dir,
                             "-C", &context_root,
-                            "-o", output_dir];
+                            "-o", output_dir,
+                            sample_dir];
 
     if !command
         .args(&command_args).status().expect("Could not get status").success() {

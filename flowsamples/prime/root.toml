@@ -62,7 +62,7 @@ to = "remove/array"
 from = "composites/composites"
 to = "remove/value"
 
-[[connection]]
+[[connection]] # loopback
 from = "remove"
 to = "remove/array"
 

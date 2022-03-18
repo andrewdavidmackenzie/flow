@@ -8,10 +8,6 @@ type = "number"
 name = "composites"
 type = "number"
 
-[[output]]
-name = "last"
-type = "number"
-
 # Generate a set of divisors from 2 .. SQRT(limit)
 [[process]]
 alias = "sqrt"
@@ -45,46 +41,3 @@ to = "generate_composites/limit"
 [[connection]]
 from = "generate_composites/composites"
 to = "output/composites"
-
-# accumulate a count of sub-sequences generated so we know when we're done - adding an extra 1
-[[process]]
-alias = "join"
-source = "lib://flowstdlib/control/join"
-input.data = { always =  1 }
-
-[[connection]]
-from = "generate_composites/subsequence-end"
-to = "join/control"
-
-[[process]]
-alias = "subsequence-count"
-source = "lib://flowstdlib/math/add"
-input.i1 = { once =  1 }
-
-[[connection]]
-from = "join"
-to = "subsequence-count/i2"
-
-[[connection]]
-from = "subsequence-count"
-to = "subsequence-count/i1"
-
-# compare the count of subsequences to how many we expect
-[[process]]
-alias = "compare"
-source = "lib://flowstdlib/control/compare_switch"
-
-[[connection]]
-from = "divisors/last"
-to = "compare/left"
-
-[[connection]]
-from = "subsequence-count"
-to = "compare/right"
-
-[[connection]]
-from = "compare/equal"
-to = "output/last"
-
-
-

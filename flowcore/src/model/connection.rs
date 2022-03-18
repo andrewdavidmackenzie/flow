@@ -51,8 +51,6 @@ pub struct Connection {
 pub const LOOPBACK_PRIORITY: usize = 0;
 /// Constant for the priority of a function's `Connection` to another function within the same flow
 pub const DIRECT_CONNECTION_PRIORITY: usize = 1;
-/// Constant to indicate that the priority was not set at compile time
-pub const UNSET_PRIORITY: usize = usize::MAX;
 
 /// `Direction` defines whether a `Connection` is coming from an IO or to an IO
 #[derive(Debug)]

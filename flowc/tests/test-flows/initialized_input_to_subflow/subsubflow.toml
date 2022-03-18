@@ -1,0 +1,12 @@
+flow = "subsubflow"
+
+[[input]]
+name = "only"
+type = "string"
+
+[[process]]
+source = "context://stdio/stdout"
+
+[[connection]]
+from = "input/only"
+to = "stdout"
