@@ -12,10 +12,6 @@ type = "number"
 name = "composites"
 type = "number"
 
-[[output]]
-name = "subsequence-end"
-type = "number"
-
 #start each sequence at 2 x input/start
 [[connection]]
 from = "input/start"
@@ -54,7 +50,3 @@ to = "composite-sequence/step"
 [[connection]]
 from = "composite-sequence/sequence"
 to = "output/composites"
-
-[[connection]]
-from = "composite-sequence/last"
-to = "output/subsequence-end"
