@@ -25,7 +25,7 @@ input.step = {once =  1}
 
 [[connection]]
 from = "sqrt"
-to = "divisors/end"
+to = "divisors/limit"
 
 [[process]]
 source = "generate_composites"

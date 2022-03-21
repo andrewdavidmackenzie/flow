@@ -7,7 +7,7 @@ docs = "DESCRIPTION.md"
 alias = "limit-sequence"
 source = "lib://flowstdlib/math/sequence"
 input.start = {once =  1}
-input.end = {once =  9}
+input.limit = {once =  9}
 input.step = {once =  1}
 
 [[process]] # a Buffer between the constant starting point of 0 and the 'start' input to avoid priority issues for the input
@@ -19,28 +19,26 @@ input.default = {always =  0}
 from = "start-of-each"
 to = "sequence-of-sequences/start"
 
-# Generate a sequence of numbers from 0 upto the value from sequence above
+# Generate a sequence of sequence from 0 upto the limit value, with step of limit value also
 # 0 1
-# 0 1 2
-# .....
-# 0 1 2 3 4 5 6 7 8 9
+# 0 2
+# ...
+# 0 9
 [[process]]
 alias = "sequence-of-sequences"
 source = "lib://flowstdlib/math/sequence"
-input.step = {once =  1}
 input.start = { once = 0 }
 
 # Connect the list of limits to use for each sequence to the generator of the sequence of sequences
+# use the limit as the step and the limit, so sequences will all be 0..'n' where 'n' is the limit
 [[connection]]
 from = "limit-sequence/sequence"
-to = "sequence-of-sequences/end"
+to = ["sequence-of-sequences/step", "sequence-of-sequences/limit"]
 
-# We will be printing out the sequence-of-sequences of numbers
 [[process]]
-alias = "print"
 source = "context://stdio/stdout"
 
-# Connect the sequence-of-sequences to the print function
+# Print the sequence-of-sequences to stdout
 [[connection]]
 from = "sequence-of-sequences/sequence"
-to = "print"
+to = "stdout"

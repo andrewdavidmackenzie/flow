@@ -4,9 +4,10 @@ docs = "DESCRIPTION.md"
 [[process]]
 source = "context://args/get"
 
+# The arg for the sequence limit is arg #1 to the flow (arg #0 is the flow name)
 [[connection]]
 from = "get/json/1"
-to = "sequence/end"
+to = "sequence/limit"
 
 [[process]]
 alias = "sequence"
@@ -18,10 +19,10 @@ input.step = {once =  3}
 from = "sequence/sequence"
 to = "stdout"
 
-# Output a string to show we're done when the series ends
+# Output a string to show we're done when the Sequence ends
 [[process]]
 source = "lib://flowstdlib/control/join"
-input.data = {once =  "Range done"}
+input.data = {once =  "Sequence done"}
 
 [[connection]]
 from = "sequence/last"

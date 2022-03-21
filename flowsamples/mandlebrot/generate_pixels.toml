@@ -25,7 +25,7 @@ input.step = { once = 1 }
 
 [[connection]]
 from = "height"
-to = "y-sequence/end"
+to = "y-sequence/limit"
 
 [[process]]
 alias = "width-gate"

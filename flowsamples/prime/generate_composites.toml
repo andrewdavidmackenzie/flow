@@ -42,7 +42,7 @@ to = "limit-buffer"
 
 [[connection]]
 from = "limit-buffer"
-to = "composite-sequence/end"
+to = "composite-sequence/limit"
 
 # Advance to the next composite in the series by adding the divisor
 # e.g. if start = 2, first composite will be 4, add 2 to get next one, 6, then 8 etc

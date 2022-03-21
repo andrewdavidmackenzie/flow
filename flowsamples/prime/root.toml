@@ -8,7 +8,7 @@ source = "context://args/get"
 
 [[connection]]
 from = "args/json/1"
-to = "candidates/end"
+to = "candidates/limit"
 
 ####### All numbers - Sequence
 # Generate the sequence of numbers from 1..limit of possible primes
