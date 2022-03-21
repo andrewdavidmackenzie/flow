@@ -54,6 +54,7 @@ pub struct Options {
     lib_dirs: Vec<String>,
     native_only: bool,
     context_root: Option<PathBuf>,
+    verbosity: Option<String>,
 }
 
 fn main() {
@@ -253,7 +254,8 @@ fn parse_args(matches: ArgMatches) -> Result<Options> {
         flow_args = args.map(|a| a.to_string()).collect();
     }
 
-    SimpleLogger::init_prefix(matches.value_of("verbosity"), false);
+    let verbosity = matches.value_of("verbosity");
+    SimpleLogger::init_prefix(verbosity, false);
 
     debug!(
         "'{}' version {}",
@@ -305,5 +307,6 @@ fn parse_args(matches: ArgMatches) -> Result<Options> {
         lib_dirs,
         native_only: matches.is_present("native"),
         context_root,
+        verbosity: verbosity.map(|v| v.to_string()),
     })
 }

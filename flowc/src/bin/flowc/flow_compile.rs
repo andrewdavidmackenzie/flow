@@ -111,6 +111,12 @@ fn execute_flow(filepath: &Path, options: &Options) -> Result<()> {
 
     let mut flowr_args = vec![];
 
+    // if a specific verbosity level was set on the CL to flowc, pass it on to flowr
+    if let Some(verbosity) = &options.verbosity {
+        flowr_args.push("-v".to_string());
+        flowr_args.push(verbosity.to_string());
+    }
+
     // if execution metrics requested to flowc, pass that onto flowr
     if options.execution_metrics {
         flowr_args.push("-m".to_string());
