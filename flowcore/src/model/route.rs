@@ -17,12 +17,12 @@ pub struct Route(pub String);
 
 /// A `Route` can be of various Types
 pub enum RouteType {
-    /// The route refers to an input of a Process
-    Input(Name, Route),
-    /// The Route refers to the output of a Process
-    Output(Name),
-    /// The route is internal to a Process
-    Internal(Name, Route),
+    /// The route refers to an Input of a Flow
+    FlowInput(Name, Route),
+    /// The Route refers to the Output of a Flow
+    FlowOutput(Name),
+    /// The route specifies a sub-process of a flow (Input or Output)
+    SubProcess(Name, Route),
     /// The route is invalid (needed for errors during deserialization)
     Invalid(String),
 }
@@ -79,13 +79,13 @@ impl Route {
         let segments: Vec<&str> = self.split('/').collect();
 
         match segments[0] {
-            "input" => RouteType::Input(segments[1].into(), segments[2..].join("/").into()),
-            "output" => RouteType::Output(segments[1].into()),
+            "input" => RouteType::FlowInput(segments[1].into(), segments[2..].join("/").into()),
+            "output" => RouteType::FlowOutput(segments[1].into()),
             "" => RouteType::Invalid(
                 "'input' or 'output' or valid process name must be specified in route".into(),
             ),
             process_name => {
-                RouteType::Internal(process_name.into(), segments[1..].join("/").into())
+                RouteType::SubProcess(process_name.into(), segments[1..].join("/").into())
             }
         }
     }

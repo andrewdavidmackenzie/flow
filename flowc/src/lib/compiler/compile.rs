@@ -73,6 +73,7 @@ pub fn compile(flow: &FlowDefinition, output_dir: &Path,
     checker::check_function_inputs(&mut tables)?;
     checker::check_side_effects(&mut tables)?;
     configuring_output_connections(&mut tables)?;
+    checker::check_priorities(&tables)?;
     compile_supplied_implementations(
         output_dir, &mut tables,
         skip_building,
@@ -263,15 +264,15 @@ mod test {
         use super::super::get_source;
 
         /*
-                                            Create a HashTable of routes for use in tests.
-                                            Each entry (K, V) is:
-                                            - Key   - the route to a function's IO
-                                            - Value - a tuple of
-                                                        - sub-route (or IO name) from the function to be used at runtime
-                                                        - the id number of the function in the functions table, to select it at runtime
+                                                                    Create a HashTable of routes for use in tests.
+                                                                    Each entry (K, V) is:
+                                                                    - Key   - the route to a function's IO
+                                                                    - Value - a tuple of
+                                                                                - sub-route (or IO name) from the function to be used at runtime
+                                                                                - the id number of the function in the functions table, to select it at runtime
 
-                                            Plus a vector of test cases with the Route to search for and the expected function_id and output sub-route
-                                        */
+                                                                    Plus a vector of test cases with the Route to search for and the expected function_id and output sub-route
+                                                                */
         #[allow(clippy::type_complexity)]
         fn test_source_routes() -> (
             HashMap<Route, (Source, usize)>,

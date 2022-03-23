@@ -3,7 +3,7 @@
 
 use log::{debug, info};
 
-use flowcore::model::connection::{Connection, DIRECT_CONNECTION_PRIORITY};
+use flowcore::model::connection::{Connection, INTERNAL_FLOW_PRIORITY};
 use flowcore::model::flow_definition::FlowDefinition;
 use flowcore::model::function_definition::FunctionDefinition;
 use flowcore::model::io::{IO, IOType};
@@ -130,7 +130,7 @@ pub fn collapse_connections(tables: &mut CompilerTables) {
                     let mut collapsed_connection = connection.clone();
                     // Note: This maybe to the same function. Loopback connections will be detected
                     // and their priorities changed later in the process.
-                    collapsed_connection.set_priority(DIRECT_CONNECTION_PRIORITY);
+                    collapsed_connection.set_priority(INTERNAL_FLOW_PRIORITY);
                     collapsed_connections.push(collapsed_connection);
                 } else {
                     // If the connection enters or leaves this flow, then follow it to all destinations at function inputs
@@ -162,12 +162,19 @@ pub fn collapse_connections(tables: &mut CompilerTables) {
             // connection starts at a flow input or output that has an initializer on it
             IOType::FlowInput | IOType::FlowOutput if connection.from_io().get_initializer().is_some() => {
                 // find the destination functions (the connection could split to multiple destinations)
-                for (_, _, _, destination_io) in find_function_destinations(
-                    Route::from(""),
-                    connection.to_io().route(),
-                    connection.level(),
-                    &tables.connections,
-                ) {
+                let destinations = if connection.to_io().io_type() == &IOType::FunctionIO {
+                    // Flow input (or output) (that has an initializer) connects directly to a function's IO
+                    vec!((Route::default(), 0, 0, connection.to_io().clone()))
+                } else {
+                    find_function_destinations(
+                        Route::from(""),
+                        connection.to_io().route(),
+                        connection.level(),
+                        &tables.connections,
+                    )
+                };
+
+                for (_, _, _, destination_io) in destinations {
                     // get a mutable reference to the destination function and set the initializer on it
                     if let Some(&(destination_function_id, destination_input_index, _)) =
                         tables.destination_routes.get(destination_io.route()) {

@@ -52,7 +52,7 @@ pub struct IO {
     #[serde(rename = "value")]
     initializer: Option<InputInitializer>,
 
-    /// `route` defines where in the flow hierarchy this IO is located
+    /// `route` defines where in the full flow hierarchy this IO is located
     #[serde(skip_deserializing)]
     route: Route,
     
@@ -226,7 +226,7 @@ impl SetIORoutes for IOSet {
 pub trait Find {
     /// Find a sub-object using it's Route
     fn find(&self, route: &Route) -> bool;
-    /// Find a sub-object (Input) using it's name and set the input initializer on it
+    /// Find an Input using it's name and set the input initializer on it
     fn find_by_name_and_set_initializer(
         &mut self,
         name: &Name,
@@ -234,9 +234,9 @@ pub trait Find {
     ) -> Result<IO>;
 
     /// Find a sub-object (Input) using it's Route and set the input initializer on it
-    fn find_by_route_and_set_initializer(
+    fn find_by_subroute_and_set_initializer(
         &mut self,
-        route: &Route,
+        subroute: &Route,
         initial_value: &Option<InputInitializer>,
     ) -> Result<IO>;
 }
@@ -267,7 +267,7 @@ impl Find for IOSet {
 
     // TODO improve the Route handling of this - maybe moving into Router
     // TODO return a reference to the IO, with same lifetime as IOSet?
-    fn find_by_route_and_set_initializer(
+    fn find_by_subroute_and_set_initializer(
         &mut self,
         sub_route: &Route,
         initial_value: &Option<InputInitializer>,

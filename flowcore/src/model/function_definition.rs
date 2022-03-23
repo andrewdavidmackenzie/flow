@@ -634,7 +634,7 @@ mod test {
         // Try and get the output using a route to a specific element of the output
         let output = function
             .outputs
-            .find_by_route_and_set_initializer(&Route::from("/0"), &None)
+            .find_by_subroute_and_set_initializer(&Route::from("/0"), &None)
             .expect("Expected to find an IO");
         assert_eq!(*output.name(), Name::default());
     }

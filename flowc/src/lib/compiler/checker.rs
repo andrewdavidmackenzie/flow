@@ -1,7 +1,9 @@
 use error_chain::bail;
-use log::info;
+use log::{info, warn};
 
+use flowcore::model::connection::{INTERNAL_FLOW_PRIORITY, LOOPBACK_PRIORITY};
 use flowcore::model::input::InputInitializer::Always;
+use flowcore::model::output_connection::Source;
 use flowcore::model::route::HasRoute;
 use flowcore::model::route::Route;
 
@@ -30,6 +32,34 @@ fn check_for_competing_inputs(tables: &CompilerTables) -> Result<()> {
                 connection.from_io().route(),
                 connection.to_io().route()
             );
+        }
+    }
+
+    Ok(())
+}
+
+/// Check for a problems that causes an inner-flow loopback to keep state from one flow execution
+/// to the next, as when the flow execution ends, the loopback will always re-fill the input before
+/// a new set of inputs to the flow are picked up
+pub fn check_priorities(tables: &CompilerTables) -> Result<()> {
+    for function in &tables.functions {
+        for connection in &function.output_connections {
+            if connection.get_priority() == LOOPBACK_PRIORITY {
+                // see if there is another connection from a different function outside the flow that connects to the same input
+                for other_function in &tables.functions {
+                    for other_connection in &other_function.output_connections {
+                        if (function.function_id != other_function.function_id) &&
+                            matches!(&connection.source, Source::Input(_)) &&
+                            (connection.function_id == other_connection.function_id) &&
+                            (other_connection.get_priority() > INTERNAL_FLOW_PRIORITY) {
+                            warn!(
+                                "Loopback of input value on function #{} at '{}' may cause internal flow state between inputs from '{}'",
+                                function.function_id, function.route, other_function.route
+                                );
+                        }
+                    }
+                }
+            }
         }
     }
 
