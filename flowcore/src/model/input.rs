@@ -35,7 +35,6 @@ pub struct Input {
     // priorities will be sparse, 0 the minimum and usize::MAX the maximum
     // values will be an ordered vector of entries, with first at the head and last at the tail
     #[serde(skip)]
-//    received: Vec<(usize, Value)>,
     received: BTreeMap<usize, Vec<Value>>,
 }
 
@@ -71,7 +70,6 @@ impl Input {
     pub fn new(initial_value: &Option<InputInitializer>) -> Self {
         Input {
             initializer: initial_value.clone(),
-//            received: Vec::new(),
             received: BTreeMap::new(),
         }
     }
@@ -89,7 +87,6 @@ impl Input {
             bail!("Trying to take from an empty Input");
         }
 
-//        let (_, value) = self.received.remove(0);
         #[allow(clippy::clone_on_copy)]
         let priority = self.received.keys().next()
             .ok_or("Priority Vector is empty")?.clone();
@@ -130,7 +127,6 @@ impl Input {
 
     /// Add a value with priority to this `Input`
     pub fn push(&mut self, priority: usize, value: Value) {
-//        self.received.push((priority, value))
         match self.received.get_mut(&priority) {
             Some(priority_vec) => {
                 // add the value to the existing vector of values for this priority
@@ -156,7 +152,6 @@ impl Input {
 
     /// Return the total number of inputs values queued up, across all priorities, in this input
     pub fn count(&self) -> usize {
-//        self.received.len()
         self.received.values().into_iter().fold(0, |sum, vec| sum + vec.len())
     }
 

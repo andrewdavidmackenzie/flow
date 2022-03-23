@@ -19,8 +19,10 @@ use crate::model::validation::Validate;
 #[derive(Deserialize, Serialize, Debug, Clone, PartialEq)]
 #[allow(clippy::upper_case_acronyms)]
 pub enum IOType {
-    /// The IO is an input or an output of a Function
-    FunctionIO,
+    /// The IO is an input of a Function
+    FunctionInput,
+    /// The IO is an output of a Function
+    FunctionOutput,
     /// The IO is the input to a Flow
     FlowInput,
     /// The IO is the output of a Flow
@@ -29,7 +31,7 @@ pub enum IOType {
 
 impl Default for IOType {
     fn default() -> Self {
-        IOType::FunctionIO
+        IOType::FunctionInput
     }
 }
 
@@ -57,7 +59,7 @@ pub struct IO {
     route: Route,
     
     /// What type of IO is this, used in making connections between IOs
-    #[serde(skip_deserializing, default = "default_io_type")]
+    #[serde(skip_deserializing, default = "IOType::default")]
     io_type: IOType,
 }
 
@@ -87,7 +89,12 @@ impl IO {
 
     /// Is this IO an input or an output of a Flow?
     pub fn flow_io(&self) -> bool {
-        self.io_type != IOType::FunctionIO
+        self.io_type == IOType::FlowInput || self.io_type == IOType::FlowOutput
+    }
+
+    /// Is this IO an input or an output of a Function?
+    pub fn function_io(&self) -> bool {
+        self.io_type == IOType::FunctionInput || self.io_type == IOType::FunctionOutput
     }
 
     /// Return a reference to the IOType of this IO
@@ -174,9 +181,9 @@ fn default_types() -> Vec<DataType> {
     vec!(DataType::from(OBJECT_TYPE))
 }
 
-fn default_io_type() -> IOType {
+/*fn default_io_type() -> IOType {
     IOType::FunctionIO
-}
+}*/
 
 impl Validate for IO {
     fn validate(&self) -> Result<()> {
@@ -435,14 +442,14 @@ mod test {
         let io0 = IO {
             name: Name::from("io_name"),
             datatypes: vec!(DataType::from(STRING_TYPE)),
-            io_type: IOType::FunctionIO,
+            io_type: IOType::FunctionInput,
             initializer: None,
             ..Default::default()
         };
         let io1 = IO {
             name: Name::from("different_name"),
             datatypes: vec!(DataType::from(STRING_TYPE)),
-            io_type: IOType::FunctionIO,
+            io_type: IOType::FunctionInput,
             initializer: None,
             ..Default::default()
         };
@@ -455,7 +462,7 @@ mod test {
         let io0 = IO {
             name: Name::from("io_name"),
             datatypes: vec!(DataType::from(STRING_TYPE)),
-            io_type: IOType::FunctionIO,
+            io_type: IOType::FunctionInput,
             initializer: None,
             ..Default::default()
         };
@@ -469,13 +476,13 @@ mod test {
         let io0 = IO {
             name: Name::from("io_name"),
             datatypes: vec!(DataType::from(STRING_TYPE)),
-            io_type: IOType::FunctionIO,
+            io_type: IOType::FunctionInput,
             initializer: None,
             ..Default::default()
         };
         let io1 = IO {
             datatypes: vec!(DataType::from(STRING_TYPE)),
-            io_type: IOType::FunctionIO,
+            io_type: IOType::FunctionInput,
             initializer: None,
             ..Default::default()
         };
@@ -488,7 +495,7 @@ mod test {
         let io = IO {
             name: Name::from("io_name"),
             datatypes: vec!(),
-            io_type: IOType::FunctionIO,
+            io_type: IOType::FunctionInput,
             initializer: None,
             ..Default::default()
         };

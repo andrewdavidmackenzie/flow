@@ -312,10 +312,17 @@ impl FlowDefinition {
         }
     }
 
-    // TODO consider finding the object first using it's type and name (flow, subflow, value, function)
-    // Then from the object find the IO (by name or route, probably route) in common code, maybe using IOSet directly?
-    // Find the IO of a function using the route and the Direction of the connection TO/FROM it
-    fn get_route_and_type(
+    // Find an IO in a flow using its Route. Depending on the direction, possible IOs inside a flow are:
+    //
+    // FROM an Input of the Flow itself (FlowInput)
+    // TO an Output of the Flow itself (FlowOutput)
+    //
+    // TO or FROM an Input/Output of a subprocess (subflow, or function) (SubProcess)
+    //
+    // Invalid Connections are:
+    // FROM a FLowOutput
+    // TO a FlowInput
+    fn get_io_by_route(
         &mut self,
         direction: Direction,
         route: &Route,
@@ -338,7 +345,6 @@ impl FlowDefinition {
             },
 
             (_, RouteType::SubProcess(process_name, sub_route)) => {
-// TODO                here don't set initilaize if it is from an input
                 self.get_subprocess_io_and_set_initializer(&process_name, direction, &sub_route, initial_value)
             },
 
@@ -398,12 +404,19 @@ impl FlowDefinition {
     //
     // Propagate any initializers on a flow output to the input (subflow or function) it is connected to
     fn build_connection(&mut self, connection: &mut Connection, level: usize) -> Result<()> {
-        match self.get_route_and_type(FROM, connection.from(), &None) {
+        match self.get_io_by_route(FROM, connection.from(), &None) {
             Ok(from_io) => {
                 trace!("Found connection source:\n{:#?}", from_io);
+                // if connection is from a flow IO with an initializer, then propagate it to the destination
+                let destination_initializer = if from_io.flow_io() {
+                    from_io.get_initializer()
+                } else {
+                    &None
+                };
+
                 // Iterate over all the destinations for this connection
                 for to_route in connection.to() {
-                    match self.get_route_and_type(TO, to_route, from_io.get_initializer()) {
+                    match self.get_io_by_route(TO, to_route, destination_initializer) {
                         Ok(to_io) => {
                             trace!("Found connection destination:\n{:#?}", to_io);
                             let mut new_connection = connection.clone();

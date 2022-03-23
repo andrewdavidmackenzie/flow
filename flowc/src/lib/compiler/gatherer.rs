@@ -120,11 +120,11 @@ pub fn collapse_connections(tables: &mut CompilerTables) {
 
     for connection in &tables.connections {
         match connection.from_io().io_type() {
-            // connection starts at a Function output
-            &IOType::FunctionIO => {
+            // connection starts at a Function output, or is a connection from a value at a Function's input
+            &IOType::FunctionOutput | &IOType::FunctionInput => {
                 debug!("Trying to create connection from function output at '{}'",
                        connection.from_io().route());
-                if connection.to_io().io_type() == &IOType::FunctionIO {
+                if connection.to_io().io_type() == &IOType::FunctionInput {
                     debug!("\tFound direct connection within the flow to a function input at '{}'",
                 connection.to_io().route());
                     let mut collapsed_connection = connection.clone();
@@ -150,7 +150,7 @@ pub fn collapse_connections(tables: &mut CompilerTables) {
                             .clone();
                         collapsed_connection
                             .from_io_mut()
-                            .set_route(&from_route, &IOType::FunctionIO);
+                            .set_route(&from_route, &IOType::FunctionOutput);
                         collapsed_connection.set_priority(innermost_level - outermost_level + 1);
                         *collapsed_connection.to_io_mut() = destination_io;
                         debug!("\tIndirect connection {}", collapsed_connection);
@@ -160,32 +160,32 @@ pub fn collapse_connections(tables: &mut CompilerTables) {
             },
 
             // connection starts at a flow input or output that has an initializer on it
-            IOType::FlowInput | IOType::FlowOutput if connection.from_io().get_initializer().is_some() => {
-                // find the destination functions (the connection could split to multiple destinations)
-                let destinations = if connection.to_io().io_type() == &IOType::FunctionIO {
-                    // Flow input (or output) (that has an initializer) connects directly to a function's IO
-                    vec!((Route::default(), 0, 0, connection.to_io().clone()))
-                } else {
-                    find_function_destinations(
-                        Route::from(""),
-                        connection.to_io().route(),
-                        connection.level(),
-                        &tables.connections,
-                    )
-                };
+            IOType::FlowInput | IOType::FlowOutput => {
+                if connection.from_io().get_initializer().is_some() {
+                    // find the destination functions (the connection could split to multiple destinations)
+                    let destinations = if connection.to_io().io_type() == &IOType::FunctionInput {
+                        // Flow input (or output) (that has an initializer) connects directly to a function's Input
+                        vec!((Route::default(), 0, 0, connection.to_io().clone()))
+                    } else {
+                        find_function_destinations(
+                            Route::from(""),
+                            connection.to_io().route(),
+                            connection.level(),
+                            &tables.connections,
+                        )
+                    };
 
-                for (_, _, _, destination_io) in destinations {
-                    // get a mutable reference to the destination function and set the initializer on it
-                    if let Some(&(destination_function_id, destination_input_index, _)) =
+                    for (_, _, _, destination_io) in destinations {
+                        // get a mutable reference to the destination function and set the initializer on it
+                        if let Some(&(destination_function_id, destination_input_index, _)) =
                         tables.destination_routes.get(destination_io.route()) {
                             if let Some(destination_function) = tables.functions.get_mut(destination_function_id) {
                                 let _ = destination_function.set_initial_value(destination_input_index, connection.from_io().get_initializer());
                             }
                         }
+                    }
                 }
-            },
-
-            _ => { /* Nothing to do */ }
+            }
         }
     }
 
@@ -286,7 +286,7 @@ fn find_function_destinations(
                 let accumulated_source_subroute = prev_subroute.clone().extend(&subroute).clone();
 
                 match *next_connection.to_io().io_type() {
-                    IOType::FunctionIO => {
+                    IOType::FunctionInput => {
                         debug!("\t\tFound destination function input at '{}'",
                             next_connection.to_io().route());
                         // Found a destination that is a function, add it to the list
@@ -295,7 +295,12 @@ fn find_function_destinations(
                             .push((accumulated_source_subroute, outermost_level, innermost_level,
                                    next_connection.to_io().clone()));
                         found = true;
-                    }
+                    },
+
+                    IOType::FunctionOutput => {
+                        // TODO report an error - destination is a functions output!
+                    },
+
                     IOType::FlowInput => {
                         debug!("\t\tFollowing connection into sub-flow via '{}'", from_io_route);
                         let new_destinations = &mut find_function_destinations(
@@ -306,7 +311,8 @@ fn find_function_destinations(
                         );
                         // TODO accumulate the source subroute that builds up as we go
                         destinations.append(new_destinations);
-                    }
+                    },
+
                     IOType::FlowOutput => {
                         debug!("\t\tFollowing connection out of flow via '{}'", from_io_route);
                         let new_destinations = &mut find_function_destinations(
@@ -371,8 +377,8 @@ mod test {
                 IO::new(vec!(STRING_TYPE.into()), "/function1/in"),
                 0,
             ).expect("Could not connect IOs");
-        only_connection.from_io_mut().set_io_type(IOType::FunctionIO);
-        only_connection.to_io_mut().set_io_type(IOType::FunctionIO);
+        only_connection.from_io_mut().set_io_type(IOType::FunctionOutput);
+        only_connection.to_io_mut().set_io_type(IOType::FunctionInput);
 
         let mut tables = CompilerTables::new();
         tables.connections = vec![only_connection];
@@ -393,8 +399,8 @@ mod test {
                 0,
             )
             .expect("Could not connect IOs");
-        only_connection.from_io_mut().set_io_type(IOType::FunctionIO);
-        only_connection.to_io_mut().set_io_type(IOType::FunctionIO);
+        only_connection.from_io_mut().set_io_type(IOType::FunctionOutput);
+        only_connection.to_io_mut().set_io_type(IOType::FunctionInput);
 
         let mut tables = CompilerTables::new();
         tables.connections = vec![only_connection];
@@ -415,7 +421,7 @@ mod test {
                 0,
             )
             .expect("Could not connect IOs");
-        left_side.from_io_mut().set_io_type(IOType::FunctionIO);
+        left_side.from_io_mut().set_io_type(IOType::FunctionOutput);
         left_side.to_io_mut().set_io_type(IOType::FlowInput);
 
         // This one goes to a flow but then nowhere, so should be dropped
@@ -439,7 +445,7 @@ mod test {
             )
             .expect("Could not connect IOs");
         right_side.from_io_mut().set_io_type(IOType::FlowInput);
-        right_side.to_io_mut().set_io_type(IOType::FunctionIO);
+        right_side.to_io_mut().set_io_type(IOType::FunctionInput);
 
         let mut tables = CompilerTables::new();
         tables.connections = vec![left_side, extra_one, right_side];
@@ -463,7 +469,7 @@ mod test {
             .connect(IO::new(vec!(STRING_TYPE.into()), "/f1"),
                      IO::new(vec!(STRING_TYPE.into()), "/f2/a"), 0)
             .expect("Could not connect IOs");
-        left_side.from_io_mut().set_io_type(IOType::FunctionIO);
+        left_side.from_io_mut().set_io_type(IOType::FunctionOutput);
         left_side.to_io_mut().set_io_type(IOType::FlowInput);
 
         let mut right_side_one = Connection::new("/f2/a", "/f2/value1");
@@ -475,7 +481,7 @@ mod test {
             )
             .expect("Could not connect IOs");
         right_side_one.from_io_mut().set_io_type(IOType::FlowInput);
-        right_side_one.to_io_mut().set_io_type(IOType::FunctionIO);
+        right_side_one.to_io_mut().set_io_type(IOType::FunctionInput);
 
         let mut right_side_two = Connection::new("/f2/a", "/f2/value2");
         right_side_two
@@ -486,7 +492,7 @@ mod test {
             )
             .expect("Could not connect IOs");
         right_side_two.from_io_mut().set_io_type(IOType::FlowInput);
-        right_side_two.to_io_mut().set_io_type(IOType::FunctionIO);
+        right_side_two.to_io_mut().set_io_type(IOType::FunctionInput);
 
         let mut tables = CompilerTables::new();
         tables.connections = vec![left_side, right_side_one, right_side_two];
@@ -512,7 +518,7 @@ mod test {
                 0,
             )
             .expect("Could not connect IOs");
-        first_level.from_io_mut().set_io_type(IOType::FunctionIO);
+        first_level.from_io_mut().set_io_type(IOType::FunctionOutput);
         first_level.to_io_mut().set_io_type(IOType::FlowInput);
 
         let mut second_level = Connection::new("/flow1/a", "/flow1/flow2/a");
@@ -535,7 +541,7 @@ mod test {
             )
             .expect("Could not connect IOs");
         third_level.from_io_mut().set_io_type(IOType::FlowInput);
-        third_level.to_io_mut().set_io_type(IOType::FunctionIO);
+        third_level.to_io_mut().set_io_type(IOType::FunctionInput);
 
         let mut tables = CompilerTables::new();
         tables.connections = vec![first_level, second_level, third_level];
