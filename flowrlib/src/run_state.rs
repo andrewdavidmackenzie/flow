@@ -616,24 +616,18 @@ impl RunState {
         let route_str = match &connection.source {
             Output(route) if route.is_empty() => "".into(),
             Output(route) => format!(" from output route '{}'", route),
-            Input(index) => format!(" from value at input #{}", index),
+            Input(index) => format!(" from Job value at input #{}", index),
         };
 
         let loopback = source_id == connection.function_id;
 
-        let destination_str = if loopback {
-            format!("to Self:{}", connection.io_number)
+        if loopback {
+            info!("\t\tFunction #{source_id} loopback of '{}'{} to Self:{}",
+                    output_value, route_str, connection.io_number);
         } else {
-            format!(
-                "to Function #{}:{}",
-                connection.function_id, connection.io_number
-            )
+            info!("\t\tFunction #{source_id} sending '{}'{} to Function #{}:{}",
+                    output_value, route_str, connection.function_id, connection.io_number);
         };
-
-        info!(
-            "\t\tFunction #{} sending '{}'{} {}",
-            source_id, output_value, route_str, destination_str
-        );
 
         #[cfg(feature = "debugger")]
         if let Output(route) = &connection.source {
@@ -679,9 +673,7 @@ impl RunState {
         }
     }
 
-    /*
-        Refresh any inputs that have initializers on them, and update the state if inputs are now full
-    */
+    // Refresh any inputs that have initializers on them, and update the state if inputs are now full
     fn refill_inputs(&mut self, function_id: usize, flow_id: usize, loopback_value_sent: bool) {
         let function = self.get_mut(function_id);
 
@@ -779,7 +771,7 @@ impl RunState {
         // TODO if we predicate this on "value_sent" also then it breaks matrix_mult sample
         if self.blocked_sending(id) {
             debug!(
-                "\t\t\tFunction #{}, inputs full, but blocked on output. Added to blocked list",
+                "\t\t\tFunction #{} blocked on output. Added to 'Blocked' list",
                 id
             );
             // so put it on the blocked list
@@ -789,7 +781,7 @@ impl RunState {
             // If the function has inputs backed-up and is not ready, then make ready
             if value_sent {
                 debug!(
-                    "\t\t\tFunction #{} not blocked on output, so added to 'Ready' list",
+                    "\t\t\tFunction #{} not blocked on output. Added to 'Ready' list",
                     id
                 );
                 self.mark_ready(id, flow_id);
