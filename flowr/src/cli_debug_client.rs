@@ -211,8 +211,9 @@ impl CliDebugClient {
                     println!("\tOutput value: '{}'", &output);
                 }
             }
-            PriorToSendingJob(job_id, function_id) => {
-                println!("About to send Job #{} to Function #{}", job_id, function_id)
+            PriorToSendingJob(job) => {
+                println!("About to send Job #{} to Function #{}", job.job_id, job.function_id);
+                println!("\tInputs: {:?}", job.input_set);
             }
             BlockBreakpoint(block) => println!("Block breakpoint: {:?}", block),
             DataBreakpoint(
@@ -286,27 +287,31 @@ impl CliDebugClient {
     fn display_state(run_state: &RunState) {
         println!("{}\n", run_state);
 
-        println!("Functions:\n");
-
         for id in 0..run_state.num_functions() {
-            print!("{}", run_state.get(id));
+            print!("{}", run_state.get_function(id));
             let function_state = run_state.get_state(id);
-            println!("\tState: {:?}\n", function_state);
+            println!("\tState: {:?}", function_state);
 
             if function_state == State::Running {
                 println!(
-                    "\t\tJob Numbers Running: {:?}\n",
+                    "\t\tJob Numbers Running: {:?}",
                     run_state.get_running().get_vec(&id)
                 );
             }
 
+            if function_state == State::Blocked {
+                for block in run_state.get_blocks() {
+                    if block.blocked_id == id {
+                        println!("\t\t{:?}", block);
+                    }
+                }
+            }
+
             // print any blocked or blocking function information
             for block in run_state.get_blocks() {
-                if block.blocked_flow_id == id {
-                    println!("\t{:?}\n", block);
-                } else if block.blocking_id == id {
+                if block.blocking_id == id {
                     println!(
-                        "\tBlocking #{}:{} <- Blocked #{}\n",
+                        "\tBlocking #{}:{} <- Blocked #{}",
                         block.blocking_id, block.blocking_io_number, block.blocked_id
                     );
                 }

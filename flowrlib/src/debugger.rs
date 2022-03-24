@@ -85,12 +85,11 @@ impl<'a> Debugger<'a> {
     pub fn check_prior_to_job(
         &mut self,
         state: &RunState,
-        next_job_id: usize,
-        function_id: usize,
+        job: &Job,
     ) -> (bool, bool, bool) {
-        if self.break_at_job == next_job_id || self.function_breakpoints.contains(&function_id) {
-            self.debug_server.job_breakpoint(next_job_id, state.get(function_id),
-                                             state.get_state(function_id));
+        if self.break_at_job == job.job_id || self.function_breakpoints.contains(&job.function_id) {
+            self.debug_server.job_breakpoint(job, state.get_function(job.function_id),
+                                             state.get_state(job.function_id));
             return self.wait_for_command(state);
         }
 
@@ -218,10 +217,10 @@ impl<'a> Debugger<'a> {
                     let message = self.list_breakpoints();
                     self.debug_server.message(message);
                 },
-                Ok(Inspect) => self.debug_server.run_state(state.clone()),
+                Ok(Inspect) => self.debug_server.run_state(state),
                 Ok(InspectFunction(function_id)) => {
                     if function_id < state.num_functions() {
-                        self.debug_server.function_state(state.get(function_id).clone(),
+                        self.debug_server.function_state(state.get_function(function_id).clone(),
                                                          state.get_state(function_id));
                     } else {
                         self.debug_server.debugger_error(format!("No function with id = {}", function_id));
@@ -229,7 +228,7 @@ impl<'a> Debugger<'a> {
                 }
                 Ok(InspectInput(function_id, input_number)) => {
                     if function_id < state.num_functions() {
-                        let function = state.get(function_id);
+                        let function = state.get_function(function_id);
 
                         if input_number < function.inputs().len() {
                             self.debug_server.input(function.input(input_number).clone());
@@ -244,7 +243,7 @@ impl<'a> Debugger<'a> {
                 }
                 Ok(InspectOutput(function_id, sub_route)) => {
                     if function_id < state.num_functions() {
-                        let function = state.get(function_id);
+                        let function = state.get_function(function_id);
 
                         let mut output_connections = vec![];
 

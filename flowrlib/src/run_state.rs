@@ -3,7 +3,7 @@ use std::collections::VecDeque;
 use std::fmt;
 use std::time::Duration;
 
-use log::{debug, error, info, trace};
+use log::{debug, error, trace};
 use multimap::MultiMap;
 use serde_derive::{Deserialize, Serialize};
 use serde_json::{json, Value};
@@ -314,10 +314,10 @@ impl RunState {
             for destination in destinations {
                 if destination.function_id != source_id {
                     // don't block yourself!
-                    let destination_function = self.get(destination.function_id);
+                    let destination_function = self.get_function(destination.function_id);
                     if destination_function.input_count(destination.io_number) > 0 {
                         trace!(
-                            "Init:\t\tAdded block #{} --> #{}:{}",
+                            "Init:\t\tAdded block #{} -> #{}:{}",
                             source_id,
                             destination.function_id,
                             destination.io_number
@@ -378,7 +378,7 @@ impl RunState {
     }
         
     /// Get a reference to the function with `id`
-    pub fn get(&self, id: usize) -> &RuntimeFunction {
+    pub fn get_function(&self, id: usize) -> &RuntimeFunction {
         &self.functions[id]
     }
 
@@ -430,27 +430,10 @@ impl RunState {
 
         let function = self.get_mut(function_id);
 
-        #[cfg(feature = "debugger")]
-        debug!(
-            "Job #{}:-------Creating for Function #{} '{}' ---------------------------",
-            job_id,
-            function_id,
-            function.name()
-        );
-        #[cfg(not(feature = "debugger"))]
-        debug!(
-            "Job #{}:-------Creating for Function #{} ---------------------------",
-            job_id, function_id
-        );
-
         match function.take_input_set() {
             Ok(input_set) => {
                 let flow_id = function.get_flow_id();
-
-                debug!("Job #{}:\tInputs: {:?}", job_id, input_set);
-
                 let implementation = function.get_implementation();
-
                 let connections = function.get_output_connections().clone();
 
                 Some(Job {
@@ -501,9 +484,16 @@ impl RunState {
             let function_can_run_again = result.1;
             let mut loopback_value_sent = false;
 
-            // if it produced an output value
+            #[cfg(feature = "debugger")]
+            let function_name = self.get_function(job.function_id).name();
+
             if let Some(output_v) = output_value {
-                debug!("Job #{}:\tOutputs: {:?}", job.job_id, output_v);
+            #[cfg(feature = "debugger")]
+                debug!("Job #{}: Function #{} '{}' {:?} -> {:?}", job.job_id, job.function_id,
+                    function_name, job.input_set,  output_v);
+            #[cfg(not(feature = "debugger"))]
+                debug!("Job #{}: Function #{} {:?} -> {:?}", job.job_id, job.function_id,
+                    job.input_set,  output_v);
 
                 for destination in &job.connections {
                     let value_to_send = match &destination.source {
@@ -526,12 +516,19 @@ impl RunState {
                             debugger,
                         );
                     } else {
-                        debug!(
+                        trace!(
                             "Job #{}:\t\tNo value found at '{}'",
                             job.job_id, &destination.source
                         );
                     }
                 }
+            } else {
+            #[cfg(feature = "debugger")]
+                debug!("Job #{}: Function #{} '{}' ({:?})", job.job_id, job.function_id,
+                    function_name, job.input_set);
+            #[cfg(not(feature = "debugger"))]
+                debug!("Job #{}: Function #{} ({:?})", job.job_id, job.function_id,
+                    job.input_set);
             }
 
             // if the function can run again, then refill inputs from any possible initializers
@@ -622,10 +619,10 @@ impl RunState {
         let loopback = source_id == connection.function_id;
 
         if loopback {
-            info!("\t\tFunction #{source_id} loopback of '{}'{} to Self:{}",
+            trace!("\t\tFunction #{source_id} loopback of '{}'{} to Self:{}",
                     output_value, route_str, connection.io_number);
         } else {
-            info!("\t\tFunction #{source_id} sending '{}'{} to Function #{}:{}",
+            trace!("\t\tFunction #{source_id} sending '{}'{} to Function #{}:{}",
                     output_value, route_str, connection.function_id, connection.io_number);
         };
 
@@ -729,7 +726,7 @@ impl RunState {
     #[cfg(feature = "debugger")]
     pub fn get_input_blockers(&self, target_id: usize) -> Vec<(usize, usize)> {
         let mut input_blockers = vec![];
-        let target_function = self.get(target_id);
+        let target_function = self.get_function(target_id);
 
         // for each empty input of the target function
         for (target_io, input) in target_function.inputs().iter().enumerate() {
@@ -770,7 +767,7 @@ impl RunState {
         // go ready. Now it has inputs and could run, if not blocked, so it's added to the blocked list
         // TODO if we predicate this on "value_sent" also then it breaks matrix_mult sample
         if self.blocked_sending(id) {
-            debug!(
+            trace!(
                 "\t\t\tFunction #{} blocked on output. Added to 'Blocked' list",
                 id
             );
@@ -780,7 +777,7 @@ impl RunState {
             // If a value was sent to the function (from another, from initializer or from loopback) then make ready
             // If the function has inputs backed-up and is not ready, then make ready
             if value_sent {
-                debug!(
+                trace!(
                     "\t\t\tFunction #{} not blocked on output. Added to 'Ready' list",
                     id
                 );
@@ -836,7 +833,7 @@ impl RunState {
             .or_insert(new_set);
         set.insert(blocker_function_id);
         trace!(
-            "Job #{}:\t\tAdded a pending_unblock --> #{}({})",
+            "Job #{}:\t\tAdded a pending_unblock -> #{}({})",
             job_id,
             blocker_function_id,
             blocker_flow_id
@@ -913,15 +910,15 @@ impl RunState {
         // Note: they could be blocked on other functions apart from the the one that just unblocked
         for (unblocked_id, unblocked_flow_id) in unblock_list {
             if self.blocked.contains(&unblocked_id) && !self.blocked_sending(unblocked_id) {
-                debug!(
+                trace!(
                     "\t\t\t\tFunction #{} \
                 removed from 'blocked' list",
                     unblocked_id
                 );
                 self.blocked.remove(&unblocked_id);
 
-                if self.get(unblocked_id).input_set_count() > 0 {
-                    debug!(
+                if self.get_function(unblocked_id).input_set_count() > 0 {
+                    trace!(
                         "\t\t\t\tFunction #{} has inputs ready, so added to 'ready' list",
                         unblocked_id
                     );
@@ -1283,7 +1280,7 @@ mod test {
     #[cfg(feature = "debugger")]
     impl DebugServer for DummyServer {
         fn start(&mut self) {}
-        fn job_breakpoint(&mut self, _next_job_id: usize, _function: &RuntimeFunction, _state: State) {}
+        fn job_breakpoint(&mut self, _job: &Job, _function: &RuntimeFunction, _state: State) {}
         fn block_breakpoint(&mut self, _block: &Block) {}
         fn send_breakpoint(&mut self, _source_process_id: usize, _output_route: &str, _value: &Value,
                            _destination_id: usize, _input_number: usize) {}
@@ -1293,7 +1290,7 @@ mod test {
         fn outputs(&mut self, _output: Vec<OutputConnection>) {}
         fn input(&mut self, _input: Input) {}
         fn function_state(&mut self, _function: RuntimeFunction, _function_state: State) {}
-        fn run_state(&mut self, _run_state: RunState) {}
+        fn run_state(&mut self, _run_state: &RunState) {}
         fn message(&mut self, _message: String) {}
         fn panic(&mut self, _state: &RunState, _error_message: String) {}
         fn debugger_exiting(&mut self) {}
@@ -2320,7 +2317,7 @@ mod test {
                 true,
             );
             let state = RunState::new(&test_functions(), submission);
-            let got = state.get(1);
+            let got = state.get_function(1);
             assert_eq!(got.id(), 1)
         }
 

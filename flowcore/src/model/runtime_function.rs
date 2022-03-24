@@ -69,11 +69,7 @@ impl fmt::Display for RuntimeFunction {
             writeln!(f, " @ '{}'", self.route)?;
         }
 
-        writeln!(
-            f,
-            "\tImplementation Location: '{}'",
-            self.implementation_location
-        )?;
+        writeln!(f, "\tImplementation Location: '{}'", self.implementation_location)?;
 
         for (number, input) in self.inputs.iter().enumerate() {
             writeln!(f, "\tInput:{} {}", number, input)?;

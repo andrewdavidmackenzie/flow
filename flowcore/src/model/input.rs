@@ -47,16 +47,17 @@ impl From<&IO> for Input {
 #[cfg(feature = "debugger")]
 impl fmt::Display for Input {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        if let Some(initializer) = &self.initializer {
+            write!(f, "Initializer: {:?}, ", initializer)?;
+        }
         if self.received.is_empty() {
-            write!(f, "\tEmpty")?;
+            write!(f, "Empty")?;
         } else {
-            write!(f, "\tPrioritized Queue of Values: ")?;
-
-            for value in &self.received {
-                write!(f, "{:?}, ", value)?;
+            write!(f, "Received: ")?;
+            for item in &self.received {
+                write!(f, "{:?}, ", item.1)?;
             }
         }
-
         Ok(())
     }
 }

@@ -24,10 +24,11 @@ impl DebugServer for CliDebugServer {
     }
 
     // a breakpoint has been hit on a Job being created
-    fn job_breakpoint(&mut self, next_job_id: usize, function: &RuntimeFunction, state: State) {
+    fn job_breakpoint(&mut self, job: &Job, function: &RuntimeFunction, state: State) {
+        // Send a copy of the job about to be sent - for display
         let _: flowcore::errors::Result<DebugCommand> = self
             .debug_server_connection
-            .send_and_receive_response(PriorToSendingJob(next_job_id, function.id()));
+            .send_and_receive_response(PriorToSendingJob(job.clone()));
 
         // display the status of the function we stopped prior to creating a job for
         let event = DebugServerMessage::FunctionState((function.clone(), state));
@@ -109,10 +110,10 @@ impl DebugServer for CliDebugServer {
     }
 
     // returns the global run state
-    fn run_state(&mut self, run_state: RunState) {
+    fn run_state(&mut self, run_state: &RunState) {
         let _: flowcore::errors::Result<DebugCommand> = self
             .debug_server_connection
-            .send_and_receive_response(DebugServerMessage::OverallState(run_state));
+            .send_and_receive_response(DebugServerMessage::OverallState(run_state.clone()));
     }
 
     // a string message from the Debugger

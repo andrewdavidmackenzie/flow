@@ -21,9 +21,8 @@ pub enum DebugServerMessage {
     EnteringDebugger,
     /// The debugger/run-time is exiting
     ExitingDebugger,
-    /// The run-time is about to send a `Job` for execution - an opportunity to break
-    /// includes: job_id, function_id
-    PriorToSendingJob(usize, usize),
+    /// The run-time is about to send a `Job` for execution
+    PriorToSendingJob(Job),
     /// A breakpoint on a `Block` between two functions was encountered
     /// includes: blocked_id, blocking_id, blocking_io_number
     BlockBreakpoint(Block),
@@ -74,7 +73,7 @@ impl fmt::Display for DebugServerMessage {
                 DebugServerMessage::JobCompleted(_) => "JobCompleted",
                 DebugServerMessage::EnteringDebugger => "EnteringDebugger",
                 DebugServerMessage::ExitingDebugger => "ExitingDebugger",
-                DebugServerMessage::PriorToSendingJob(_, _) => "PriorToSendingJob",
+                DebugServerMessage::PriorToSendingJob(_) => "PriorToSendingJob",
                 DebugServerMessage::BlockBreakpoint(_) => "BlockBreakpoint",
                 DebugServerMessage::DataBreakpoint(_, _, _, _, _) => "DataBreakpoint",
                 DebugServerMessage::Panic(_, _) => "Panic",

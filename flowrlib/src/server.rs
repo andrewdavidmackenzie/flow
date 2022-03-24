@@ -44,7 +44,7 @@ pub trait DebugServer {
     /// Start the debugger - which swallows the first message to initialize the connection
     fn start(&mut self);
     /// a breakpoint has been hit on a Job being created
-    fn job_breakpoint(&mut self, next_job_id: usize, function: &RuntimeFunction, state: State);
+    fn job_breakpoint(&mut self, job: &Job, function: &RuntimeFunction, state: State);
     /// A breakpoint set on creation of a `Block` matching `block` has been hit
     fn block_breakpoint(&mut self, block: &Block);
     /// A breakpoint on sending a value from a specific function or to a specific function was hit
@@ -63,7 +63,7 @@ pub trait DebugServer {
     /// returns the state of a function
     fn function_state(&mut self, function: RuntimeFunction, function_state: State);
     /// returns the global run state
-    fn run_state(&mut self, run_state: RunState);
+    fn run_state(&mut self, run_state: &RunState);
     /// a string message from the Debugger
     fn message(&mut self, message: String);
     /// a panic occurred during execution
