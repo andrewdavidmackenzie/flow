@@ -76,7 +76,7 @@ impl Input {
     }
 
     #[cfg(feature = "debugger")]
-    /// reset the value of an `Input` - usually only used while debugging
+    /// Reset the an `Input` - clearing all received values (only used while debugging)
     pub fn reset(&mut self) {
         self.received.clear();
     }
@@ -126,7 +126,7 @@ impl Input {
         }
     }
 
-    /// Add a value with priority to this `Input`
+    /// Add a `value` with `priority` to this `Input`
     pub fn push(&mut self, priority: usize, value: Value) {
         match self.received.get_mut(&priority) {
             Some(priority_vec) => {
@@ -151,7 +151,7 @@ impl Input {
         }
     }
 
-    /// Return the total number of inputs values queued up, across all priorities, in this input
+    /// Return the total number of values queued up, across all priorities, in this input
     pub fn count(&self) -> usize {
         self.received.values().into_iter().fold(0, |sum, vec| sum + vec.len())
     }
