@@ -10,7 +10,8 @@ use flowrlib::run_state::{RunState, State};
 #[cfg(feature = "debugger")]
 use flowrlib::server::DebugServer;
 
-use crate::{BlockBreakpoint, DataBreakpoint, DebugServerMessage, ExecutionEnded, ExecutionStarted, ExitingDebugger, JobCompleted, JobError, Panic, PriorToSendingJob, Resetting, SendingValue, ServerConnection, WAIT, WaitingForCommand};
+use crate::{BlockBreakpoint, DataBreakpoint, ExecutionEnded, ExecutionStarted, ExitingDebugger, JobCompleted, JobError, Panic, PriorToSendingJob, Resetting, SendingValue, ServerConnection, WAIT, WaitingForCommand};
+use crate::DebugServerMessage::{BlockState, Error, FunctionState, InputState, Message, OutputState, OverallState};
 
 pub(crate) struct  CliDebugServer {
     pub(crate) debug_server_connection: ServerConnection,
@@ -31,10 +32,9 @@ impl DebugServer for CliDebugServer {
             .send_and_receive_response(PriorToSendingJob(job.clone()));
 
         // display the status of the function we stopped prior to creating a job for
-        let event = DebugServerMessage::FunctionState((function.clone(), state));
         let _: flowcore::errors::Result<DebugCommand> = self
             .debug_server_connection
-            .send_and_receive_response(event);
+            .send_and_receive_response(FunctionState((function.clone(), state)));
     }
 
     // A breakpoint set on creation of a `Block` matching `block` has been hit
@@ -84,43 +84,42 @@ impl DebugServer for CliDebugServer {
     fn blocks(&mut self, blocks: Vec<Block>) {
         let _: flowcore::errors::Result<DebugCommand> =
             self.debug_server_connection
-                .send_and_receive_response(DebugServerMessage::BlockState(blocks));
+                .send_and_receive_response(BlockState(blocks));
     }
 
     // returns an output's connections
     fn outputs(&mut self, output_connections: Vec<OutputConnection>) {
         let _: flowcore::errors::Result<DebugCommand> = self
             .debug_server_connection
-            .send_and_receive_response(DebugServerMessage::OutputState(output_connections));
+            .send_and_receive_response(OutputState(output_connections));
     }
 
     // returns an inputs state
     fn input(&mut self, input: Input) {
         let _: flowcore::errors::Result<DebugCommand> = self
             .debug_server_connection
-            .send_and_receive_response(DebugServerMessage::InputState(input));
+            .send_and_receive_response(InputState(input));
     }
 
     // returns the state of a function
     fn function_state(&mut self,  function: RuntimeFunction, function_state: State) {
-        let message = DebugServerMessage::FunctionState((function, function_state));
         let _: flowcore::errors::Result<DebugCommand> = self
             .debug_server_connection
-            .send_and_receive_response(message);
+            .send_and_receive_response(FunctionState((function, function_state)));
     }
 
     // returns the global run state
     fn run_state(&mut self, run_state: &RunState) {
         let _: flowcore::errors::Result<DebugCommand> = self
             .debug_server_connection
-            .send_and_receive_response(DebugServerMessage::OverallState(run_state.clone()));
+            .send_and_receive_response(OverallState(run_state.clone()));
     }
 
     // a string message from the Debugger
     fn message(&mut self, message: String) {
         let _: flowcore::errors::Result<DebugCommand> = self
             .debug_server_connection
-            .send_and_receive_response(message);
+            .send_and_receive_response(Message(message));
     }
 
     // a panic occurred during execution
@@ -147,9 +146,7 @@ impl DebugServer for CliDebugServer {
     // An error occurred in the debugger
     fn debugger_error(&mut self, error_message: String) {
         let _: flowcore::errors::Result<DebugCommand> = self
-            .debug_server_connection.send_and_receive_response(
-            DebugServerMessage::Error(error_message),
-        );
+            .debug_server_connection.send_and_receive_response(Error(error_message));
     }
 
     // execution of the flow is starting

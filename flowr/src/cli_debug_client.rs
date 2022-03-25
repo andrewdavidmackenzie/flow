@@ -14,15 +14,15 @@ const FLOWR_HISTORY_FILENAME: &str = ".flowr_history";
 
 const HELP_STRING: &str = "Debugger commands:
 'b' | 'breakpoint' {spec}    - Set a breakpoint on a function (by id), an output or an input using spec:
-                                - function_id
+                                - function_id (integer)
                                 - source_id/output_route ('source_id/' for default output route)
                                 - destination_id:input_number
                                 - blocked_process_id->blocking_process_id
-ENTER | 'c' | 'continue'     - Continue execution until next breakpoint
+'c' | 'continue'             - Continue execution until next breakpoint
 'd' | 'delete' {spec} or '*' - Delete the breakpoint matching {spec} or all with '*'
 'e' | 'exit'                 - Stop flow execution and exit debugger
-'h' | 'help'                 - Display this help message
-'i' | 'inspect' [n]          - Inspect the overall state, or the state of function number 'n'
+'h' | 'help' | '?'           - Display this help message
+'i' | 'inspect' [n]          - Inspect the overall state, or the function number 'n'
 'l' | 'list'                 - List all breakpoints
 'q' | 'quit'                 - Stop flow execution and exit debugger
 'r' | 'run' or 'reset'       - run the flow or if running already then reset the state to initial state
@@ -161,7 +161,7 @@ impl CliDebugClient {
     ) -> Option<DebugCommand> {
         return match command {
             "b" | "breakpoint" => Some(Breakpoint(param)),
-            "" | "c" | "continue" => Some(Continue),
+            "c" | "continue" => Some(Continue),
             "d" | "delete" => Some(Delete(param)),
             "e" | "exit" => Some(ExitDebugger),
             "h" | "?" | "help" => {
@@ -252,7 +252,7 @@ impl CliDebugClient {
             Message(message) => println!("{}", message),
             Resetting => println!("Resetting state"),
             WaitingForCommand(job_id) => return self.get_user_command(job_id),
-            DebugServerMessage::Invalid => {}
+            Invalid => println!("Invalid message received from debug server"),
             FunctionState((function, state)) => {
                 print!("{}", function);
                 println!("\tState: {:?}", state);
