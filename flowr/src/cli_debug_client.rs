@@ -164,7 +164,7 @@ impl CliDebugClient {
             "" | "c" | "continue" => Some(Continue),
             "d" | "delete" => Some(Delete(param)),
             "e" | "exit" => Some(ExitDebugger),
-            "h" | "help" => {
+            "h" | "?" | "help" => {
                 Self::help();
                 self.editor.add_history_entry(command);
                 None
