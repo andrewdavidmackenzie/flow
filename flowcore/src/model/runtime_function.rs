@@ -174,7 +174,7 @@ impl RuntimeFunction {
         &self.implementation_location
     }
 
-    /// write a value to a `RuntimeFunction` `input`
+    /// write a value to a `RuntimeFunction`'s `input`
     pub fn send(&mut self, input_number: usize, priority: usize, value: &Value) {
         let input = &mut self.inputs[input_number];
         input.push(priority, value.clone());
