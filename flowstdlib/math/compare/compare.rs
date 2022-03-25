@@ -1,32 +1,33 @@
-use flowmacro::flow_function;
 use serde_json::Value;
 use serde_json::value::Value::Number;
 
+use flowmacro::flow_function;
+
 #[flow_function]
 fn _compare(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
-    let input_a = &inputs[0];
-    let input_b = &inputs[1];
+    let left = &inputs[0];
+    let right = &inputs[1];
 
     let mut output_map = serde_json::Map::new();
 
-    match (&input_a, &input_b) {
-        (&Number(ref a), &Number(ref b)) => {
-            if a.is_i64() && b.is_i64() {
-                output_map.insert("equal".into(), Value::Bool(a.as_i64() == b.as_i64()));
-                output_map.insert("lt".into(), Value::Bool(a.as_i64() < b.as_i64()));
-                output_map.insert("gt".into(), Value::Bool(a.as_i64() > b.as_i64()));
-                output_map.insert("lte".into(), Value::Bool(a.as_i64() <= b.as_i64()));
-                output_map.insert("gte".into(), Value::Bool(a.as_i64() >= b.as_i64()));
+    match (&left, &right) {
+        (&Number(ref l), &Number(ref r)) => {
+            if l.is_i64() && r.is_i64() {
+                output_map.insert("equal".into(), Value::Bool(l.as_i64() == r.as_i64()));
+                output_map.insert("lt".into(), Value::Bool(l.as_i64() < r.as_i64()));
+                output_map.insert("gt".into(), Value::Bool(l.as_i64() > r.as_i64()));
+                output_map.insert("lte".into(), Value::Bool(l.as_i64() <= r.as_i64()));
+                output_map.insert("gte".into(), Value::Bool(l.as_i64() >= r.as_i64()));
                 Ok((Some(Value::Object(output_map)), RUN_AGAIN))
-            } else if a.is_u64() && b.is_u64() {
-                output_map.insert("equal".into(), Value::Bool(a.as_u64() == b.as_u64()));
-                output_map.insert("lt".into(), Value::Bool(a.as_u64() < b.as_u64()));
-                output_map.insert("gt".into(), Value::Bool(a.as_u64() > b.as_u64()));
-                output_map.insert("lte".into(), Value::Bool(a.as_u64() <= b.as_u64()));
-                output_map.insert("gte".into(), Value::Bool(a.as_u64() >= b.as_u64()));
+            } else if l.is_u64() && r.is_u64() {
+                output_map.insert("equal".into(), Value::Bool(l.as_u64() == r.as_u64()));
+                output_map.insert("lt".into(), Value::Bool(l.as_u64() < r.as_u64()));
+                output_map.insert("gt".into(), Value::Bool(l.as_u64() > r.as_u64()));
+                output_map.insert("lte".into(), Value::Bool(l.as_u64() <= r.as_u64()));
+                output_map.insert("gte".into(), Value::Bool(l.as_u64() >= r.as_u64()));
                 Ok((Some(Value::Object(output_map)), RUN_AGAIN))
             } else {
-                match (a.as_f64(), b.as_f64()) {
+                match (l.as_f64(), r.as_f64()) {
                     (Some(l), Some(r)) => {
                         output_map
                             .insert("equal".into(), Value::Bool((l - r).abs() < f64::EPSILON));
