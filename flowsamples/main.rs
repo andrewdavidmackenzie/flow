@@ -243,7 +243,6 @@ mod test {
         test_sample("sequence");
     }
 
-    #[ignore]
     #[test]
     #[serial]
     fn test_sequence_of_sequences() {

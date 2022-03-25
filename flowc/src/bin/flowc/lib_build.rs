@@ -41,7 +41,7 @@ pub fn build_lib(options: &Options, provider: &dyn Provider) -> Result<()> {
     let build_count = compile_implementations(
         &lib_root_path,
         &options.output_dir,
-        options.dump,
+        options.tables_dump,
         options.graphs,
         &mut lib_manifest,
         provider,
