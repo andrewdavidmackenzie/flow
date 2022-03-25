@@ -37,6 +37,7 @@ const HELP_STRING: &str = "Debugger commands:
 pub struct CliDebugClient {
     connection: ClientConnection,
     editor: Editor<()>,
+    last_command: String,
 }
 
 impl CliDebugClient {
@@ -45,6 +46,7 @@ impl CliDebugClient {
         CliDebugClient {
             connection,
             editor: Editor::<()>::new(), // `()` can be used when no completer is required
+            last_command: "".to_string(),
         }
     }
 
@@ -80,53 +82,59 @@ impl CliDebugClient {
         println!("{}", HELP_STRING);
     }
 
-    fn parse_command(input: &str) -> (&str, Option<Param>) {
-        let parts: Vec<&str> = input.trim().split(' ').collect();
-        let command = parts[0];
+    fn parse_command(&self, mut input: String) -> Result<(String, String, Option<Param>)> {
+        input = input.trim().to_string();
+        if input.is_empty() && !self.last_command.is_empty() {
+            input = self.last_command.clone();
+            println!("Repeating last valid command: '{}'", input);
+        }
+
+        let parts: Vec<String> = input.split(' ').map(|s| s.to_string()).collect();
+        let command = parts[0].to_string();
 
         if parts.len() > 1 {
             if parts[1] == "*" {
-                return (command, Some(Param::Wildcard));
+                return Ok((input, command, Some(Param::Wildcard)));
             }
 
             if let Ok(integer) = parts[1].parse::<usize>() {
-                return (command, Some(Param::Numeric(integer)));
+                return Ok((input, command, Some(Param::Numeric(integer))));
             }
 
             if parts[1].contains('/') {
                 // is an output specified
                 let sub_parts: Vec<&str> = parts[1].split('/').collect();
                 if let Ok(source_process_id) = sub_parts[0].parse::<usize>() {
-                    return (
-                        command,
+                    return Ok((
+                        input, command,
                         Some(Param::Output((
                             source_process_id,
                             format!("/{}", sub_parts[1]),
                         ))),
-                    );
+                    ));
                 }
             } else if parts[1].contains(':') {
                 // is an input specifier
                 let sub_parts: Vec<&str> = parts[1].split(':').collect();
                 if let (Ok(destination_function_id), Ok(destination_input_number)) = (sub_parts[0].parse::<usize>(), sub_parts[1].parse::<usize>()) {
-                    return (
-                        command,
+                    return Ok((
+                        input, command,
                         Some(Param::Input((
                             destination_function_id,
                             destination_input_number,
                         ))),
-                    )
+                    ));
                 }
             } else if parts[1].contains("->") {
                 // is a block specifier
                 let sub_parts: Vec<&str> = parts[1].split("->").collect();
                 let source = sub_parts[0].parse::<usize>().ok();
                 let destination = sub_parts[1].parse::<usize>().ok();
-                return (command, Some(Param::Block((source, destination))));
+                return Ok((input, command, Some(Param::Block((source, destination)))));
             }
-        }
+        };
 
-        (command, None)
+        Ok((input, command, None))
     }
 
     /*
@@ -137,10 +145,17 @@ impl CliDebugClient {
         loop {
             match self.editor.readline(&format!("Debug #{}> ", job_number)) {
                 Ok(line) => {
-                    let (command, param) = Self::parse_command(&line);
-                    if let Some(response) = self.get_server_command(command, param) {
-                        self.editor.add_history_entry(&line);
-                        return Ok(response);
+                    match self.parse_command(line) {
+                        Ok((line, command, param)) => {
+                            if let Some(debugger_command) = self.get_server_command(&command, param) {
+                                self.editor.add_history_entry(&line);
+                                self.last_command = line;
+                                return Ok(debugger_command);
+                            } else {
+                                self.last_command = "".into();
+                            }
+                        },
+                        Err(e) => println!("{}", e)
                     }
                 }
                 Err(_) => return Ok(ExitDebugger), // Includes CONTROL-C and CONTROL-D exits
@@ -164,7 +179,7 @@ impl CliDebugClient {
             "c" | "continue" => Some(Continue),
             "d" | "delete" => Some(Delete(param)),
             "e" | "exit" => Some(ExitDebugger),
-            "h" | "?" | "help" => {
+            "h" | "?" | "help" => { // only command that doesn't send a message to debugger
                 Self::help();
                 self.editor.add_history_entry(command);
                 None
