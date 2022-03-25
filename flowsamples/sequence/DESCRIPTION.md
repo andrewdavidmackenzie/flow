@@ -13,17 +13,13 @@ Click image to navigate flow hierarchy.
 
 Features Used
 ===
-* Context Flow
-* Value used (with an initial value set)
-* Constant Value used
+* Root Flow
+* Initial value setting on flow inputs
 * Connections between functions
-* Two functions of the same name in the same flow, distinguished by `alias`
-* Library Functions used
-    * `add` to add numbers
-    * `ToString` to convert Numbers to Strings
+* Library function `join` used
+* Library subflow `sequence` used
+* Context Functions used
     * `stdout` to print a String to standard output
-    * `switch` function to stop or pass a data flow based on another one
-    * `compare` function to produce outputs based on comparing two input values
     
 Functions Diagram
 ===
