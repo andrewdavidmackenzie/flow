@@ -8,6 +8,7 @@ use serde_json::Value;
 
 use crate::errors::*;
 use crate::model::io::IO;
+use crate::model::name::HasName;
 
 #[derive(Clone, Debug, Serialize, PartialEq, Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -22,7 +23,7 @@ pub enum InputInitializer {
 }
 
 #[derive(Deserialize, Serialize, Clone, Debug)]
-/// An `Input` to a `Function`.
+/// An `Input` to a `RuntimeFunction`.
 pub struct Input {
     #[serde(
         default = "default_initial_value",
@@ -36,17 +37,24 @@ pub struct Input {
     // values will be an ordered vector of entries, with first at the head and last at the tail
     #[serde(skip)]
     received: BTreeMap<usize, Vec<Value>>,
+
+    #[cfg(feature = "debugger")]
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    name: String
 }
 
 impl From<&IO> for Input {
     fn from(io: &IO) -> Self {
-        Input::new(io.get_initializer())
+        Input::new(io.name() as &str, io.get_initializer())
     }
 }
 
 #[cfg(feature = "debugger")]
 impl fmt::Display for Input {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        if !self.name.is_empty() {
+            write!(f, "'{}' ", self.name)?;
+        }
         if let Some(initializer) = &self.initializer {
             write!(f, "Initializer: {:?}, ", initializer)?;
         }
@@ -68,8 +76,13 @@ fn default_initial_value() -> Option<InputInitializer> {
 
 impl Input {
     /// Create a new `Input` with an optional `InputInitializer`
-    pub fn new(initial_value: &Option<InputInitializer>) -> Self {
+    pub fn new(
+                #[cfg(feature = "debugger")]
+                name: &str,
+               initial_value: &Option<InputInitializer>) -> Self {
         Input {
+            #[cfg(feature = "debugger")]
+            name: name.to_string(),
             initializer: initial_value.clone(),
             received: BTreeMap::new(),
         }
@@ -79,6 +92,12 @@ impl Input {
     /// Reset the an `Input` - clearing all received values (only used while debugging)
     pub fn reset(&mut self) {
         self.received.clear();
+    }
+
+    #[cfg(feature = "debugger")]
+    /// Return the name of the input
+    pub fn name(&self) -> &str {
+        &self.name
     }
 
     /// Take the first element of the highest priority from the Input and return it.
@@ -176,33 +195,33 @@ mod test {
 
     #[test]
     fn no_inputs_initially() {
-        let input = Input::new(&None);
+        let input = Input::new("", &None);
         assert!(input.is_empty());
     }
 
     #[test]
     fn take_from_empty_fails() {
-        let mut input = Input::new(&None);
+        let mut input = Input::new("", &None);
         assert!(input.take().is_err());
     }
 
     #[test]
     fn accepts_value() {
-        let mut input = Input::new(&None);
+        let mut input = Input::new("", &None);
         input.push(0, Value::Null);
         assert!(!input.is_empty());
     }
 
     #[test]
     fn accepts_array() {
-        let mut input = Input::new(&None);
+        let mut input = Input::new("", &None);
         input.push_array(0, vec![json!(5), json!(10), json!(15)].iter());
         assert!(!input.is_empty());
     }
 
     #[test]
     fn take_empties() {
-        let mut input = Input::new(&None);
+        let mut input = Input::new("", &None);
         input.push(0, json!(10));
         assert!(!input.is_empty());
         let _value = input.take().expect("Could not take the input value as expected");
@@ -211,7 +230,7 @@ mod test {
 
     #[test]
     fn two_simple_priorities() {
-        let mut input = Input::new(&None);
+        let mut input = Input::new("", &None);
         input.push(1, json!(1));
         input.push(0, json!(0));
         assert_eq!(json!(0), input.take().expect("Could not take() any value"));
@@ -221,7 +240,7 @@ mod test {
 
     #[test]
     fn multiple_values_per_priority() {
-        let mut input = Input::new(&None);
+        let mut input = Input::new("", &None);
         input.push(1, json!(2));
         input.push(0, json!(0));
         input.push(1, json!(3));
@@ -237,7 +256,7 @@ mod test {
     #[cfg(feature = "debugger")]
     #[test]
     fn reset_empties() {
-        let mut input = Input::new(&None);
+        let mut input = Input::new("", &None);
         input.push(0, json!(10));
         assert!(!input.is_empty());
         input.reset();

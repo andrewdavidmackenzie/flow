@@ -232,14 +232,18 @@ impl CliDebugClient {
             }
             BlockBreakpoint(block) => println!("Block breakpoint: {:?}", block),
             DataBreakpoint(
-                source_process_id,
+                source_function_name,
+                source_function_id,
                 output_route,
                 value,
                 destination_id,
+            destination_name,
+            io_name,
                 input_number,
             ) => println!(
-                "Data breakpoint: Function #{}{} --{}-> Function #{}:{}",
-                source_process_id, output_route, value, destination_id, input_number
+                "Data breakpoint: Function #{} '{}{}' --{}-> Function #{}:{} '{}'/'{}'",
+                source_function_id, source_function_name, output_route, value, destination_id, input_number,
+                destination_name, io_name
             ),
             Panic(message, jobs_created) => {
                 println!(
@@ -358,7 +362,7 @@ mod test {
             #[cfg(feature = "debugger")]
             "/fB",
             "file://fake/test",
-            vec![Input::new(&Some(Once(json!(1))))],
+            vec![Input::new("", &Some(Once(json!(1))))],
             1,
             0,
             &[],
@@ -385,7 +389,7 @@ mod test {
             #[cfg(feature = "debugger")]
             "/fA",
             "file://fake/test",
-            vec![Input::new(&Some(Once(json!(1))))],
+            vec![Input::new("", &Some(Once(json!(1))))],
             0,
             0,
             &[connection_to_f1],

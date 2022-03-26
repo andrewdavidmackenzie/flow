@@ -186,7 +186,7 @@ mod test {
             #[cfg(feature = "debugger")]
             "/test",
             "file://fake/test",
-            vec![Input::new(&None)],
+            vec![Input::new("", &None)],
             0,
             0,
             &[],

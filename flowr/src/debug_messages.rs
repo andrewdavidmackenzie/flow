@@ -27,8 +27,9 @@ pub enum DebugServerMessage {
     /// includes: blocked_id, blocking_id, blocking_io_number
     BlockBreakpoint(Block),
     /// A breakpoint on a `Value` being sent between two functions was encountered
-    /// includes: source_process_id, output_route, value, destination_id, input_number));
-    DataBreakpoint(usize, String, Value, usize, usize),
+    /// includes: source_process_id, output_route, value, destination_id, function_name,
+    /// io_name, input_number));
+    DataBreakpoint(String, usize, String, Value, usize, String, String, usize),
     /// A panic occurred executing a `Flows` `Job` -  includes the output of the job that panicked
     Panic(String, usize),
     /// There was an error executing the Job
@@ -75,7 +76,7 @@ impl fmt::Display for DebugServerMessage {
                 DebugServerMessage::ExitingDebugger => "ExitingDebugger",
                 DebugServerMessage::PriorToSendingJob(_) => "PriorToSendingJob",
                 DebugServerMessage::BlockBreakpoint(_) => "BlockBreakpoint",
-                DebugServerMessage::DataBreakpoint(_, _, _, _, _) => "DataBreakpoint",
+                DebugServerMessage::DataBreakpoint(_, _, _, _, _, _, _, _) => "DataBreakpoint",
                 DebugServerMessage::Panic(_, _) => "Panic",
                 DebugServerMessage::JobError(_) => "JobError",
                 DebugServerMessage::ExecutionStarted => "ExecutionStarted",

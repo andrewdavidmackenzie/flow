@@ -38,7 +38,9 @@ use crate::client_server::{ClientConnection, DONT_WAIT, Method, ServerConnection
 #[cfg(feature = "debugger")]
 use crate::debug_messages::DebugServerMessage;
 #[cfg(feature = "debugger")]
-use crate::DebugServerMessage::{BlockBreakpoint, DataBreakpoint, ExecutionEnded, ExecutionStarted, ExitingDebugger, JobCompleted, JobError, Panic, PriorToSendingJob, SendingValue, WaitingForCommand};
+use crate::DebugServerMessage::{BlockBreakpoint, DataBreakpoint, ExecutionEnded, ExecutionStarted,
+                                ExitingDebugger, JobCompleted, JobError, Panic, PriorToSendingJob,
+                                WaitingForCommand};
 use crate::DebugServerMessage::Resetting;
 use crate::errors::*;
 use crate::runtime_messages::{ClientMessage, ServerMessage};

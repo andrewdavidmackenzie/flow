@@ -124,7 +124,7 @@ impl<'a> Debugger<'a> {
     pub fn check_prior_to_send(
         &mut self,
         state: &RunState,
-        source_process_id: usize,
+        source_function_id: usize,
         output_route: &str,
         value: &Value,
         destination_id: usize,
@@ -132,13 +132,18 @@ impl<'a> Debugger<'a> {
     ) -> (bool, bool, bool) {
         if self
             .output_breakpoints
-            .contains(&(source_process_id, output_route.to_string()))
+            .contains(&(source_function_id, output_route.to_string()))
             || self
                 .input_breakpoints
                 .contains(&(destination_id, input_number))
         {
-            self.debug_server.send_breakpoint(source_process_id, output_route, value,
-                                               destination_id, input_number);
+            let source_function = state.get_function(source_function_id);
+            let destination_function = state.get_function(destination_id);
+            let io_name = destination_function.input(input_number).name();
+
+            self.debug_server.send_breakpoint(source_function.name(), source_function_id, output_route, value,
+                                              destination_id, destination_function.name(),
+                                              io_name, input_number);
             return self.wait_for_command(state);
         }
 
@@ -356,10 +361,11 @@ impl<'a> Debugger<'a> {
                 }
             }
             Some(Param::Input((destination_id, input_number))) => {
+                let function = state.get_function(destination_id);
+                let io_name = function.input(input_number).name();
                 response.push_str(&format!(
-                    "Data breakpoint set on Function #{} receiving data on input: {}\n",
-                    destination_id, input_number
-                ));
+                    "Data breakpoint set on Function #{}:{} '{}' receiving data on input '{}'\n",
+                    destination_id, input_number, function.name(), io_name));
                 self.input_breakpoints
                     .insert((destination_id, input_number));
             }

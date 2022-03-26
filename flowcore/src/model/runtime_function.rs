@@ -72,11 +72,11 @@ impl fmt::Display for RuntimeFunction {
         writeln!(f, "\tImplementation Location: '{}'", self.implementation_location)?;
 
         for (number, input) in self.inputs.iter().enumerate() {
-            writeln!(f, "\tInput:{} {}", number, input)?;
+            write!(f, "\tInput:{number} {input}")?;
         }
 
         for output_route in &self.output_connections {
-            writeln!(f, "\t{}", output_route)?;
+            writeln!(f, "\t{output_route}",)?;
         }
 
         Ok(())
@@ -356,7 +356,7 @@ mod test {
             #[cfg(feature = "debugger")]
             "/test",
             "file://fake/implementation",
-            vec![Input::new(&None)],
+            vec![Input::new("", &None)],
             1,
             0,
             &[out_conn],
@@ -411,7 +411,7 @@ mod test {
             #[cfg(feature = "debugger")]
             "/test",
             "file://fake/test",
-            vec![Input::new(&None)],
+            vec![Input::new("", &None)],
             0,
             0,
             &[output_route.clone()],

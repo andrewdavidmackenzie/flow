@@ -10,8 +10,11 @@ use flowrlib::run_state::{RunState, State};
 #[cfg(feature = "debugger")]
 use flowrlib::server::DebugServer;
 
-use crate::{BlockBreakpoint, DataBreakpoint, ExecutionEnded, ExecutionStarted, ExitingDebugger, JobCompleted, JobError, Panic, PriorToSendingJob, Resetting, SendingValue, ServerConnection, WAIT, WaitingForCommand};
-use crate::DebugServerMessage::{BlockState, Error, FunctionState, InputState, Message, OutputState, OverallState};
+use crate::{BlockBreakpoint, DataBreakpoint, ExecutionEnded, ExecutionStarted, ExitingDebugger,
+            JobCompleted, JobError, Panic, PriorToSendingJob, Resetting, ServerConnection, WAIT,
+            WaitingForCommand};
+use crate::DebugServerMessage::{BlockState, Error, FunctionState, InputState, Message,
+                                OutputState, OverallState};
 
 pub(crate) struct  CliDebugServer {
     pub(crate) debug_server_connection: ServerConnection,
@@ -45,23 +48,19 @@ impl DebugServer for CliDebugServer {
     }
 
     // A breakpoint on sending a value from a specific function or to a specific function was hit
-    fn send_breakpoint(&mut self, source_process_id: usize, output_route: &str, value: &Value,
-                       destination_id: usize, input_number: usize) {
-        let _: flowcore::errors::Result<DebugCommand> = self
-            .debug_server_connection
-            .send_and_receive_response(SendingValue(
-                source_process_id,
-                value.clone(),
-                destination_id,
-                input_number,
-            ));
+    fn send_breakpoint(&mut self, source_function_name: &str, source_function_id: usize,
+                       output_route: &str, value: &Value, destination_id: usize,
+                       destination_name: &str, io_name: &str, input_number: usize) {
         let _: flowcore::errors::Result<DebugCommand> = self
             .debug_server_connection
             .send_and_receive_response(DataBreakpoint(
-                source_process_id,
+                source_function_name.to_string(),
+                source_function_id,
                 output_route.to_string(),
                 value.clone(),
                 destination_id,
+                destination_name.to_string(),
+                io_name.to_string(),
                 input_number,
             ));
     }

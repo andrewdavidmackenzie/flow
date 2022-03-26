@@ -48,8 +48,10 @@ pub trait DebugServer {
     /// A breakpoint set on creation of a `Block` matching `block` has been hit
     fn block_breakpoint(&mut self, block: &Block);
     /// A breakpoint on sending a value from a specific function or to a specific function was hit
-    fn send_breakpoint(&mut self, source_process_id: usize, output_route: &str, value: &Value,
-                       destination_id: usize, input_number: usize);
+    #[allow(clippy::too_many_arguments)]
+    fn send_breakpoint(&mut self, source_function_name: &str, source_function_id: usize,
+                       output_route: &str, value: &Value, destination_id: usize,
+                       destination_name: &str, io_name: &str, input_number: usize);
     /// A job error occurred during execution of the flow
     fn job_error(&mut self, job: &Job);
     /// A specific job completed
