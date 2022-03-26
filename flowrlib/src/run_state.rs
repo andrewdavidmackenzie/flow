@@ -1181,7 +1181,7 @@ mod test {
             "fA",
             "/fA",
             "file://fake/test",
-            vec![Input::new(&None)],
+            vec![Input::new("", &None)],
             0,
             0,
             &[connection_to_f1],
@@ -1205,7 +1205,7 @@ mod test {
             "fA",
             "/fA",
             "file://fake/test",
-            vec![Input::new(&Some(Once(json!(1))))],
+            vec![Input::new("", &Some(Once(json!(1))))],
             0,
             0,
             &[connection_to_f1],
@@ -1218,7 +1218,7 @@ mod test {
             "fA",
             "/fA",
             "file://fake/test",
-            vec![Input::new(&Some(Once(json!(1))))],
+            vec![Input::new("", &Some(Once(json!(1))))],
             0,
             0,
             &[],
@@ -1231,7 +1231,7 @@ mod test {
             "fB",
             "/fB",
             "file://fake/test",
-            vec![Input::new(&None)],
+            vec![Input::new("", &None)],
             1,
             0,
             &[],
@@ -1244,7 +1244,7 @@ mod test {
             "fB",
             "/fB",
             "file://fake/test",
-            vec![Input::new(&Some(Once(json!(1))))],
+            vec![Input::new("", &Some(Once(json!(1))))],
             1,
             0,
             &[],
@@ -1282,8 +1282,8 @@ mod test {
         fn start(&mut self) {}
         fn job_breakpoint(&mut self, _job: &Job, _function: &RuntimeFunction, _state: State) {}
         fn block_breakpoint(&mut self, _block: &Block) {}
-        fn send_breakpoint(&mut self, _source_process_id: usize, _output_route: &str, _value: &Value,
-                           _destination_id: usize, _input_number: usize) {}
+        fn send_breakpoint(&mut self, _: &str, _source_process_id: usize, _output_route: &str, _value: &Value,
+                           _destination_id: usize, _destination_name:&str, _input_name: &str, _input_number: usize) {}
         fn job_error(&mut self, _job: &Job) {}
         fn job_completed(&mut self, _job: &Job) {}
         fn blocks(&mut self, _blocks: Vec<Block>) {}
@@ -1574,7 +1574,7 @@ mod test {
                 "fA",
                 "/fA",
                 "file://fake/test",
-                vec![Input::new(&None)],
+                vec![Input::new("", &None)],
                 0,
                 0,
                 &[],
@@ -1785,7 +1785,7 @@ mod test {
                 "fA",
                 "/fA",
                 "file://fake/test",
-                vec![Input::new(&Some(Always(json!(1))))],
+                vec![Input::new("", &Some(Always(json!(1))))],
                 0,
                 0,
                 &[],
@@ -1897,7 +1897,7 @@ mod test {
                 "fA",
                 "/fA",
                 "file://fake/test",
-                vec![Input::new(&Some(Always(json!(1))))],
+                vec![Input::new("", &Some(Always(json!(1))))],
                 0,
                 0,
                 &[out_conn],
@@ -1965,7 +1965,7 @@ mod test {
                 "fB",
                 "/fB",
                 "file://fake/test",
-                vec![Input::new(&None)],
+                vec![Input::new("", &None)],
                 1,
                 0,
                 &[out_conn],
@@ -2026,7 +2026,7 @@ mod test {
                 "fB",
                 "/fB",
                 "file://fake/test",
-                vec![Input::new(&Some(Always(json!(1))))],
+                vec![Input::new("", &Some(Always(json!(1))))],
                 1,
                 0,
                 &[connection_to_f0],
@@ -2111,7 +2111,7 @@ mod test {
                 "fA",
                 "/fA",
                 "file://fake/test",
-                vec![Input::new(&Some(Once(json!(1))))],
+                vec![Input::new("", &Some(Once(json!(1))))],
                 0,
                 0,
                 &[
@@ -2261,7 +2261,7 @@ mod test {
                 "p1",
                 "/p1",
                 "file://fake/test/p1",
-                vec![Input::new(&None)], // inputs array
+                vec![Input::new("", &None)], // inputs array
                 1,
                 0,
                 &[],
@@ -2271,7 +2271,7 @@ mod test {
                 "p2",
                 "/p2",
                 "file://fake/test/p2",
-                vec![Input::new(&None)], // inputs array
+                vec![Input::new("", &None)], // inputs array
                 2,
                 0,
                 &[],
@@ -2606,7 +2606,7 @@ mod test {
                 "test",
                 "/test",
                 "file://fake/test",
-                vec![Input::new(&None)],
+                vec![Input::new("", &None)],
                 0,
                 0,
                 &[],
