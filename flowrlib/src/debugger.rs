@@ -344,20 +344,20 @@ impl<'a> Debugger<'a> {
             Some(Param::Numeric(process_id)) => {
                 if process_id > state.num_functions() {
                     response.push_str(&format!(
-                        "There is no process with id '{}' to set a breakpoint on\n",
+                        "There is no Function with id '{}' to set a breakpoint on\n",
                         process_id
                     ));
                 } else {
                     self.function_breakpoints.insert(process_id);
                     response.push_str(&format!(
-                        "Set process breakpoint on Function #{}\n",
+                        "Breakpoint set on Function #{}\n",
                         process_id
                     ));
                 }
             }
             Some(Param::Input((destination_id, input_number))) => {
                 response.push_str(&format!(
-                    "Set data breakpoint on process #{} receiving data on input: {}\n",
+                    "Data breakpoint set on Function #{} receiving data on input: {}\n",
                     destination_id, input_number
                 ));
                 self.input_breakpoints
@@ -365,7 +365,7 @@ impl<'a> Debugger<'a> {
             }
             Some(Param::Block((Some(blocked_id), Some(blocking_id)))) => {
                 response.push_str(&format!(
-                    "Set block breakpoint for Function #{} being blocked by Function #{}\n",
+                    "Block breakpoint set on Function #{} being blocked by Function #{}\n",
                     blocked_id, blocking_id
                 ));
                 self.block_breakpoints.insert((blocked_id, blocking_id));
@@ -375,7 +375,7 @@ impl<'a> Debugger<'a> {
             }
             Some(Param::Output((source_id, source_output_route))) => {
                 response.push_str(&format!(
-                    "Set data breakpoint on process #{} sending data via output: '/{}'\n",
+                    "Data breakpoint set on Function #{} sending data via output: '{}'\n",
                     source_id, source_output_route
                 ));
                 self.output_breakpoints
@@ -383,7 +383,7 @@ impl<'a> Debugger<'a> {
             }
             Some(Param::Wildcard) => {
                 response.push_str(
-                    "To break on every process, you can just single step using 's' command\n",
+                    "To break on every Function, you can just single step using 's' command\n",
                 );
             }
         }
