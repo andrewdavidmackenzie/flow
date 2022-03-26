@@ -16,6 +16,10 @@ name = "equal" # - `equal` - outputs true if the two values are equal
 type = "boolean"
 
 [[output]]
+name = "ne" # - `ne` - outputs true if the two values are not equal
+type = "boolean"
+
+[[output]]
 name = "lt" # - `lt` - outputs true if the left hand value is less than the right hand value
 type = "boolean"
 
