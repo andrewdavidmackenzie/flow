@@ -238,7 +238,7 @@ impl CliDebugClient {
                 destination_id,
                 input_number,
             ) => println!(
-                "Data breakpoint: Function #{}{}    ----- {} ----> Function #{}:{}",
+                "Data breakpoint: Function #{}{} --{}-> Function #{}:{}",
                 source_process_id, output_route, value, destination_id, input_number
             ),
             Panic(message, jobs_created) => {
