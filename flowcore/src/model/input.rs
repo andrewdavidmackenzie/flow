@@ -45,7 +45,10 @@ pub struct Input {
 
 impl From<&IO> for Input {
     fn from(io: &IO) -> Self {
-        Input::new(io.name() as &str, io.get_initializer())
+        Input::new(
+            #[cfg(feature = "debugger")]
+            io.name() as &str,
+            io.get_initializer())
     }
 }
 
