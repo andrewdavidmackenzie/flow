@@ -66,6 +66,12 @@ impl From<&String> for Name {
     }
 }
 
+impl From<&Name> for Name {
+    fn from(string: &Name) -> Self {
+        string.clone()
+    }
+}
+
 impl From<&Route> for Name {
     fn from(route: &Route) -> Self {
         Name::from(&route.to_string())

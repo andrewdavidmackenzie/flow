@@ -8,7 +8,7 @@ use serde_json::Value;
 
 use crate::errors::*;
 use crate::model::io::IO;
-use crate::model::name::HasName;
+use crate::model::name::{HasName, Name};
 
 #[derive(Clone, Debug, Serialize, PartialEq, Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -40,14 +40,14 @@ pub struct Input {
 
     #[cfg(feature = "debugger")]
     #[serde(default, skip_serializing_if = "String::is_empty")]
-    name: String
+    name: Name
 }
 
 impl From<&IO> for Input {
     fn from(io: &IO) -> Self {
         Input::new(
             #[cfg(feature = "debugger")]
-            io.name() as &str,
+            io.name(),
             io.get_initializer())
     }
 }
@@ -79,13 +79,14 @@ fn default_initial_value() -> Option<InputInitializer> {
 
 impl Input {
     /// Create a new `Input` with an optional `InputInitializer`
-    pub fn new(
+    pub fn new<S>(
                 #[cfg(feature = "debugger")]
-                name: &str,
-               initial_value: &Option<InputInitializer>) -> Self {
+                name: S,
+               initial_value: &Option<InputInitializer>) -> Self
+    where S: Into<Name> {
         Input {
             #[cfg(feature = "debugger")]
-            name: name.to_string(),
+            name: name.into(),
             initializer: initial_value.clone(),
             received: BTreeMap::new(),
         }
