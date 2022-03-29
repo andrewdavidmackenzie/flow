@@ -1603,7 +1603,7 @@ type = &quot;object&quot;
 source = &quot;lib://flowstdlib/control/route&quot;
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h2 id="select-flowstdlibcontrolselect"><a class="header" href="#select-flowstdlibcontrolselect">Select (//flowstdlib/control/select)</a></h2>
-<p>Select which data to outputbased on a boolean control value.</p>
+<p>Select which data to output, based on a boolean control value.</p>
 <h3 id="definition-12"><a class="header" href="#definition-12">Definition</a></h3>
 <pre><code class="language-toml">function = &quot;select&quot;
 source = &quot;select.rs&quot;
@@ -2201,6 +2201,10 @@ name = &quot;equal&quot; # - `equal` - outputs true if the two values are equal
 type = &quot;boolean&quot;
 
 [[output]]
+name = &quot;ne&quot; # - `ne` - outputs true if the two values are not equal
+type = &quot;boolean&quot;
+
+[[output]]
 name = &quot;lt&quot; # - `lt` - outputs true if the left hand value is less than the right hand value
 type = &quot;boolean&quot;
 
@@ -2364,9 +2368,9 @@ docs = &quot;sequence.md&quot;
 name = &quot;start&quot;
 type = &quot;number&quot;
 
-# 'end' is the maximum or limit of the sequence - the last we will generate
+# limit of the sequence
 [[input]]
-name = &quot;end&quot;
+name = &quot;limit&quot;
 type = &quot;number&quot;
 
 # 'step' is the amount to add each time
@@ -2389,29 +2393,14 @@ type = &quot;number&quot;
 from = &quot;input/start&quot;
 to = &quot;compare/right&quot;
 
-# Put the limit of the sequence from the &quot;end&quot; input into the limit store
 [[connection]]
-from = &quot;input/end&quot;
+from = &quot;input/limit&quot;
 to = &quot;compare/left&quot;
 
-# compare will pass all numbers that are less than the limit
+# compare will pass all numbers that are less than the limit on the &quot;right-lte&quot; output
 [[process]]
 alias = &quot;compare&quot;
 source = &quot;lib://flowstdlib/control/compare_switch&quot;
-
-# An add process to add one to the last output of the sequence each time
-[[process]]
-alias = &quot;add&quot;
-source = &quot;lib://flowstdlib/math/add&quot;
-
-[[connection]]
-from = &quot;input/step&quot;
-to = &quot;add/i2&quot;
-
-# loop back the 'step' value to use in each iteration
-[[connection]]
-from = &quot;add/i2&quot;
-to = &quot;add/i2&quot;
 
 # connect the /right-lte output of compare_switch to the output of this process - the sequence of numbers being generated
 [[connection]]
@@ -2422,6 +2411,15 @@ to = &quot;output/sequence&quot;
 [[connection]]
 from = &quot;compare/left-gt&quot;
 to = &quot;compare/left&quot;
+
+# An add process to add one to the last output of the sequence each time, up to the penultimate one
+[[process]]
+alias = &quot;add&quot;
+source = &quot;lib://flowstdlib/math/add&quot;
+
+[[connection]]
+from = &quot;input/step&quot;
+to = &quot;add/i2&quot;
 
 # Take the last generated number of the sequence and pass it to 'add' to add one to it for the next number
 # in the sequence (if less than the limit)
@@ -2434,6 +2432,39 @@ to = &quot;add/i1&quot;
 [[connection]]
 from = &quot;add&quot;
 to = &quot;compare/right&quot;
+
+# pass the 'step' value to the tap for the loopback
+[[connection]]
+from = &quot;add/i2&quot;
+to = &quot;tap/data&quot;
+
+[[process]]
+source = &quot;lib://flowstdlib/control/tap&quot;
+
+# feedback the value, if it's not the last iteration
+[[connection]]
+from = &quot;tap&quot;
+to = &quot;add/i2&quot;
+
+# a comparer to see if this is the last iteration
+[[process]]
+alias = &quot;last&quot;
+source = &quot;lib://flowstdlib/math/compare&quot;
+
+# pass the limit to the comparer each time
+[[connection]]
+from = &quot;compare/left-gt&quot;
+to = &quot;last/right&quot;
+
+# pass the previous value generated to the comparer each time
+[[connection]]
+from = &quot;compare/right-lt&quot;
+to = &quot;last/left&quot;
+
+# pass the result of the comparison to the tap that allows the value to pass or disapear
+[[connection]]
+from = &quot;last/lt&quot;
+to = &quot;tap/control&quot;
 
 # When the compare flow indicates that the number was blocked due to being too large (equal to the limit) then
 # we want that to indicate that the sequence is done
@@ -2901,18 +2932,14 @@ output). This involves selecting the structure from the output by route, and the
 <p>Click image to navigate flow hierarchy.</p>
 <h1 id="features-used-12"><a class="header" href="#features-used-12">Features Used</a></h1>
 <ul>
-<li>Context Flow</li>
-<li>Value used (with an initial value set)</li>
-<li>Constant Value used</li>
+<li>Root Flow</li>
+<li>Initial value setting on flow inputs</li>
 <li>Connections between functions</li>
-<li>Two functions of the same name in the same flow, distinguished by <code>alias</code></li>
-<li>Library Functions used
+<li>Library function <code>join</code> used</li>
+<li>Library subflow <code>sequence</code> used</li>
+<li>Context Functions used
 <ul>
-<li><code>add</code> to add numbers</li>
-<li><code>ToString</code> to convert Numbers to Strings</li>
 <li><code>stdout</code> to print a String to standard output</li>
-<li><code>switch</code> function to stop or pass a data flow based on another one</li>
-<li><code>compare</code> function to produce outputs based on comparing two input values</li>
 </ul>
 </li>
 </ul>

@@ -153,9 +153,9 @@ docs = &quot;sequence.md&quot;
 name = &quot;start&quot;
 type = &quot;number&quot;
 
-# 'end' is the maximum or limit of the sequence - the last we will generate
+# limit of the sequence
 [[input]]
-name = &quot;end&quot;
+name = &quot;limit&quot;
 type = &quot;number&quot;
 
 # 'step' is the amount to add each time
@@ -178,29 +178,14 @@ type = &quot;number&quot;
 from = &quot;input/start&quot;
 to = &quot;compare/right&quot;
 
-# Put the limit of the sequence from the &quot;end&quot; input into the limit store
 [[connection]]
-from = &quot;input/end&quot;
+from = &quot;input/limit&quot;
 to = &quot;compare/left&quot;
 
-# compare will pass all numbers that are less than the limit
+# compare will pass all numbers that are less than the limit on the &quot;right-lte&quot; output
 [[process]]
 alias = &quot;compare&quot;
 source = &quot;lib://flowstdlib/control/compare_switch&quot;
-
-# An add process to add one to the last output of the sequence each time
-[[process]]
-alias = &quot;add&quot;
-source = &quot;lib://flowstdlib/math/add&quot;
-
-[[connection]]
-from = &quot;input/step&quot;
-to = &quot;add/i2&quot;
-
-# loop back the 'step' value to use in each iteration
-[[connection]]
-from = &quot;add/i2&quot;
-to = &quot;add/i2&quot;
 
 # connect the /right-lte output of compare_switch to the output of this process - the sequence of numbers being generated
 [[connection]]
@@ -211,6 +196,15 @@ to = &quot;output/sequence&quot;
 [[connection]]
 from = &quot;compare/left-gt&quot;
 to = &quot;compare/left&quot;
+
+# An add process to add one to the last output of the sequence each time, up to the penultimate one
+[[process]]
+alias = &quot;add&quot;
+source = &quot;lib://flowstdlib/math/add&quot;
+
+[[connection]]
+from = &quot;input/step&quot;
+to = &quot;add/i2&quot;
 
 # Take the last generated number of the sequence and pass it to 'add' to add one to it for the next number
 # in the sequence (if less than the limit)
@@ -223,6 +217,39 @@ to = &quot;add/i1&quot;
 [[connection]]
 from = &quot;add&quot;
 to = &quot;compare/right&quot;
+
+# pass the 'step' value to the tap for the loopback
+[[connection]]
+from = &quot;add/i2&quot;
+to = &quot;tap/data&quot;
+
+[[process]]
+source = &quot;lib://flowstdlib/control/tap&quot;
+
+# feedback the value, if it's not the last iteration
+[[connection]]
+from = &quot;tap&quot;
+to = &quot;add/i2&quot;
+
+# a comparer to see if this is the last iteration
+[[process]]
+alias = &quot;last&quot;
+source = &quot;lib://flowstdlib/math/compare&quot;
+
+# pass the limit to the comparer each time
+[[connection]]
+from = &quot;compare/left-gt&quot;
+to = &quot;last/right&quot;
+
+# pass the previous value generated to the comparer each time
+[[connection]]
+from = &quot;compare/right-lt&quot;
+to = &quot;last/left&quot;
+
+# pass the result of the comparison to the tap that allows the value to pass or disapear
+[[connection]]
+from = &quot;last/lt&quot;
+to = &quot;tap/control&quot;
 
 # When the compare flow indicates that the number was blocked due to being too large (equal to the limit) then
 # we want that to indicate that the sequence is done
