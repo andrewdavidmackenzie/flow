@@ -8,7 +8,9 @@ use serde_json::Value;
 
 use crate::errors::*;
 use crate::model::io::IO;
-use crate::model::name::{HasName, Name};
+#[cfg(feature = "debugger")]
+use crate::model::name::HasName;
+use crate::model::name::Name;
 
 #[derive(Clone, Debug, Serialize, PartialEq, Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -23,7 +25,7 @@ pub enum InputInitializer {
 }
 
 #[derive(Deserialize, Serialize, Clone, Debug)]
-/// An `Input` to a `RuntimeFunction`.
+/// An `Input` to a `RuntimeFunction`
 pub struct Input {
     #[serde(
         default = "default_initial_value",
@@ -79,14 +81,23 @@ fn default_initial_value() -> Option<InputInitializer> {
 
 impl Input {
     /// Create a new `Input` with an optional `InputInitializer`
+    #[cfg(feature = "debugger")]
     pub fn new<S>(
-                #[cfg(feature = "debugger")]
                 name: S,
                initial_value: &Option<InputInitializer>) -> Self
     where S: Into<Name> {
         Input {
-            #[cfg(feature = "debugger")]
             name: name.into(),
+            initializer: initial_value.clone(),
+            received: BTreeMap::new(),
+        }
+    }
+
+    /// Create a new `Input` with an optional `InputInitializer`
+    #[cfg(not(feature = "debugger"))]
+    pub fn new(
+        initial_value: &Option<InputInitializer>) -> Self {
+        Input {
             initializer: initial_value.clone(),
             received: BTreeMap::new(),
         }
