@@ -14,15 +14,15 @@ const FLOWR_HISTORY_FILENAME: &str = ".flowr_history";
 
 const HELP_STRING: &str = "Debugger commands:
 'b' | 'breakpoint' {spec}    - Set a breakpoint on a function (by id), an output or an input using spec:
-                                - function_id
+                                - function_id (integer)
                                 - source_id/output_route ('source_id/' for default output route)
                                 - destination_id:input_number
                                 - blocked_process_id->blocking_process_id
-ENTER | 'c' | 'continue'     - Continue execution until next breakpoint
+'c' | 'continue'             - Continue execution until next breakpoint
 'd' | 'delete' {spec} or '*' - Delete the breakpoint matching {spec} or all with '*'
 'e' | 'exit'                 - Stop flow execution and exit debugger
-'h' | 'help'                 - Display this help message
-'i' | 'inspect' [n]          - Inspect the overall state, or the state of function number 'n'
+'h' | 'help' | '?'           - Display this help message
+'i' | 'inspect' [n]          - Inspect the overall state, or the function number 'n'
 'l' | 'list'                 - List all breakpoints
 'q' | 'quit'                 - Stop flow execution and exit debugger
 'r' | 'run' or 'reset'       - run the flow or if running already then reset the state to initial state
@@ -37,6 +37,7 @@ ENTER | 'c' | 'continue'     - Continue execution until next breakpoint
 pub struct CliDebugClient {
     connection: ClientConnection,
     editor: Editor<()>,
+    last_command: String,
 }
 
 impl CliDebugClient {
@@ -45,6 +46,7 @@ impl CliDebugClient {
         CliDebugClient {
             connection,
             editor: Editor::<()>::new(), // `()` can be used when no completer is required
+            last_command: "".to_string(),
         }
     }
 
@@ -80,53 +82,59 @@ impl CliDebugClient {
         println!("{}", HELP_STRING);
     }
 
-    fn parse_command(input: &str) -> (&str, Option<Param>) {
-        let parts: Vec<&str> = input.trim().split(' ').collect();
-        let command = parts[0];
+    fn parse_command(&self, mut input: String) -> Result<(String, String, Option<Param>)> {
+        input = input.trim().to_string();
+        if input.is_empty() && !self.last_command.is_empty() {
+            input = self.last_command.clone();
+            println!("Repeating last valid command: '{}'", input);
+        }
+
+        let parts: Vec<String> = input.split(' ').map(|s| s.to_string()).collect();
+        let command = parts[0].to_string();
 
         if parts.len() > 1 {
             if parts[1] == "*" {
-                return (command, Some(Param::Wildcard));
+                return Ok((input, command, Some(Param::Wildcard)));
             }
 
             if let Ok(integer) = parts[1].parse::<usize>() {
-                return (command, Some(Param::Numeric(integer)));
+                return Ok((input, command, Some(Param::Numeric(integer))));
             }
 
             if parts[1].contains('/') {
                 // is an output specified
                 let sub_parts: Vec<&str> = parts[1].split('/').collect();
                 if let Ok(source_process_id) = sub_parts[0].parse::<usize>() {
-                    return (
-                        command,
+                    return Ok((
+                        input, command,
                         Some(Param::Output((
                             source_process_id,
                             format!("/{}", sub_parts[1]),
                         ))),
-                    );
+                    ));
                 }
             } else if parts[1].contains(':') {
                 // is an input specifier
                 let sub_parts: Vec<&str> = parts[1].split(':').collect();
                 if let (Ok(destination_function_id), Ok(destination_input_number)) = (sub_parts[0].parse::<usize>(), sub_parts[1].parse::<usize>()) {
-                    return (
-                        command,
+                    return Ok((
+                        input, command,
                         Some(Param::Input((
                             destination_function_id,
                             destination_input_number,
                         ))),
-                    )
+                    ));
                 }
             } else if parts[1].contains("->") {
                 // is a block specifier
                 let sub_parts: Vec<&str> = parts[1].split("->").collect();
                 let source = sub_parts[0].parse::<usize>().ok();
                 let destination = sub_parts[1].parse::<usize>().ok();
-                return (command, Some(Param::Block((source, destination))));
+                return Ok((input, command, Some(Param::Block((source, destination)))));
             }
-        }
+        };
 
-        (command, None)
+        Ok((input, command, None))
     }
 
     /*
@@ -137,10 +145,17 @@ impl CliDebugClient {
         loop {
             match self.editor.readline(&format!("Debug #{}> ", job_number)) {
                 Ok(line) => {
-                    let (command, param) = Self::parse_command(&line);
-                    if let Some(response) = self.get_server_command(command, param) {
-                        self.editor.add_history_entry(&line);
-                        return Ok(response);
+                    match self.parse_command(line) {
+                        Ok((line, command, param)) => {
+                            if let Some(debugger_command) = self.get_server_command(&command, param) {
+                                self.editor.add_history_entry(&line);
+                                self.last_command = line;
+                                return Ok(debugger_command);
+                            } else {
+                                self.last_command = "".into();
+                            }
+                        },
+                        Err(e) => println!("{}", e)
                     }
                 }
                 Err(_) => return Ok(ExitDebugger), // Includes CONTROL-C and CONTROL-D exits
@@ -161,10 +176,10 @@ impl CliDebugClient {
     ) -> Option<DebugCommand> {
         return match command {
             "b" | "breakpoint" => Some(Breakpoint(param)),
-            "" | "c" | "continue" => Some(Continue),
+            "c" | "continue" => Some(Continue),
             "d" | "delete" => Some(Delete(param)),
             "e" | "exit" => Some(ExitDebugger),
-            "h" | "help" => {
+            "h" | "?" | "help" => { // only command that doesn't send a message to debugger
                 Self::help();
                 self.editor.add_history_entry(command);
                 None
@@ -211,19 +226,24 @@ impl CliDebugClient {
                     println!("\tOutput value: '{}'", &output);
                 }
             }
-            PriorToSendingJob(job_id, function_id) => {
-                println!("About to send Job #{} to Function #{}", job_id, function_id)
+            PriorToSendingJob(job) => {
+                println!("About to send Job #{} to Function #{}", job.job_id, job.function_id);
+                println!("\tInputs: {:?}", job.input_set);
             }
             BlockBreakpoint(block) => println!("Block breakpoint: {:?}", block),
             DataBreakpoint(
-                source_process_id,
+                source_function_name,
+                source_function_id,
                 output_route,
                 value,
                 destination_id,
+            destination_name,
+            io_name,
                 input_number,
             ) => println!(
-                "Data breakpoint: Function #{}{}    ----- {} ----> Function #{}:{}",
-                source_process_id, output_route, value, destination_id, input_number
+                "Data breakpoint: Function #{} '{}{}' --{}-> Function #{}:{} '{}'/'{}'",
+                source_function_id, source_function_name, output_route, value, destination_id, input_number,
+                destination_name, io_name
             ),
             Panic(message, jobs_created) => {
                 println!(
@@ -251,7 +271,7 @@ impl CliDebugClient {
             Message(message) => println!("{}", message),
             Resetting => println!("Resetting state"),
             WaitingForCommand(job_id) => return self.get_user_command(job_id),
-            DebugServerMessage::Invalid => {}
+            Invalid => println!("Invalid message received from debug server"),
             FunctionState((function, state)) => {
                 print!("{}", function);
                 println!("\tState: {:?}", state);
@@ -286,27 +306,31 @@ impl CliDebugClient {
     fn display_state(run_state: &RunState) {
         println!("{}\n", run_state);
 
-        println!("Functions:\n");
-
         for id in 0..run_state.num_functions() {
-            print!("{}", run_state.get(id));
+            print!("{}", run_state.get_function(id));
             let function_state = run_state.get_state(id);
-            println!("\tState: {:?}\n", function_state);
+            println!("\tState: {:?}", function_state);
 
             if function_state == State::Running {
                 println!(
-                    "\t\tJob Numbers Running: {:?}\n",
+                    "\t\tJob Numbers Running: {:?}",
                     run_state.get_running().get_vec(&id)
                 );
             }
 
+            if function_state == State::Blocked {
+                for block in run_state.get_blocks() {
+                    if block.blocked_id == id {
+                        println!("\t\t{:?}", block);
+                    }
+                }
+            }
+
             // print any blocked or blocking function information
             for block in run_state.get_blocks() {
-                if block.blocked_flow_id == id {
-                    println!("\t{:?}\n", block);
-                } else if block.blocking_id == id {
+                if block.blocking_id == id {
                     println!(
-                        "\tBlocking #{}:{} <- Blocked #{}\n",
+                        "\tBlocking #{}:{} <- Blocked #{}",
                         block.blocking_id, block.blocking_io_number, block.blocked_id
                     );
                 }
@@ -338,7 +362,7 @@ mod test {
             #[cfg(feature = "debugger")]
             "/fB",
             "file://fake/test",
-            vec![Input::new(&Some(Once(json!(1))))],
+            vec![Input::new("", &Some(Once(json!(1))))],
             1,
             0,
             &[],
@@ -365,7 +389,7 @@ mod test {
             #[cfg(feature = "debugger")]
             "/fA",
             "file://fake/test",
-            vec![Input::new(&Some(Once(json!(1))))],
+            vec![Input::new("", &Some(Once(json!(1))))],
             0,
             0,
             &[connection_to_f1],

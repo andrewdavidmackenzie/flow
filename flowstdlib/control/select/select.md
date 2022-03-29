@@ -1,5 +1,5 @@
 ## Select (//flowstdlib/control/select)
-Select which data to outputbased on a boolean control value.
+Select which data to output, based on a boolean control value.
 
 ### Definition
 ```toml

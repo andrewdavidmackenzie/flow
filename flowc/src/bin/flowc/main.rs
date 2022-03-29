@@ -42,7 +42,7 @@ pub struct Options {
     lib: bool,
     source_url: Url,
     flow_args: Vec<String>,
-    dump: bool,
+    tables_dump: bool,
     graphs: bool,
     execution_metrics: bool,
     wasm_execution: bool,
@@ -54,6 +54,7 @@ pub struct Options {
     lib_dirs: Vec<String>,
     native_only: bool,
     context_root: Option<PathBuf>,
+    verbosity: Option<String>,
 }
 
 fn main() {
@@ -166,14 +167,14 @@ fn get_matches<'a>() -> ArgMatches<'a> {
                 .help("Set the directory to use as the root dir for context functions definitions"),
         )
         .arg(
-            Arg::with_name("dump")
-                .short("d")
-                .long("dump")
-                .help("Dump data on the flow to .dump a.dot files after loading it"),
+            Arg::with_name("tables")
+                .short("t")
+                .long("tables")
+                .help("Write flow and compiler tables to .dump and .dot files"),
         )
         .arg(
             Arg::with_name("graphs")
-                .short("z")
+                .short("g")
                 .long("graphs")
                 .help("Create .dot files for graphs then generate SVGs with 'dot' command (if available)"),
         )
@@ -235,10 +236,10 @@ fn get_matches<'a>() -> ArgMatches<'a> {
 
     #[cfg(feature = "debugger")]
     let app = app.arg(
-        Arg::with_name("symbols")
-            .short("g")
-            .long("symbols")
-            .help("Generate debug symbols (like process names and full routes)"),
+        Arg::with_name("debug")
+            .short("d")
+            .long("debug")
+            .help("Generate names for debugging. If executing the flow, do so with the debugger"),
     );
 
     app.get_matches()
@@ -253,7 +254,8 @@ fn parse_args(matches: ArgMatches) -> Result<Options> {
         flow_args = args.map(|a| a.to_string()).collect();
     }
 
-    SimpleLogger::init_prefix(matches.value_of("verbosity"), false);
+    let verbosity = matches.value_of("verbosity");
+    SimpleLogger::init_prefix(verbosity, false);
 
     debug!(
         "'{}' version {}",
@@ -293,17 +295,18 @@ fn parse_args(matches: ArgMatches) -> Result<Options> {
         lib: matches.is_present("lib"),
         source_url: url,
         flow_args,
-        dump: matches.is_present("dump"),
+        tables_dump: matches.is_present("tables"),
         graphs: matches.is_present("graphs"),
         wasm_execution: matches.is_present("wasm"),
         execution_metrics: matches.is_present("metrics"),
         skip_execution: matches.is_present("skip"),
-        debug_symbols: matches.is_present("symbols"),
+        debug_symbols: matches.is_present("debug"),
         provided_implementations: matches.is_present("provided"),
         output_dir,
         stdin_file: matches.value_of("stdin").map(String::from),
         lib_dirs,
         native_only: matches.is_present("native"),
         context_root,
+        verbosity: verbosity.map(|v| v.to_string()),
     })
 }

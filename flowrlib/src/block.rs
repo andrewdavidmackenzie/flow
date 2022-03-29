@@ -41,7 +41,7 @@ impl fmt::Debug for Block {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
             f,
-            "#{}({}) --> #{}({}):{}",
+            "#{}({}) -> #{}({}):{}",
             self.blocked_id,
             self.blocked_flow_id,
             self.blocking_id,
@@ -55,7 +55,7 @@ impl fmt::Display for Block {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
             f,
-            "#{}({}) --> #{}({}):{}",
+            "#{}({}) -> #{}({}):{}",
             self.blocked_id,
             self.blocked_flow_id,
             self.blocking_id,

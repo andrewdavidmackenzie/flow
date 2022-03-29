@@ -132,15 +132,15 @@ impl fmt::Display for Source {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Source::Output(subroute) if subroute.is_empty() => Ok(()),
-            Source::Output(subroute) => write!(f, "Output{}", subroute),
-            Source::Input(index) => write!(f, "Input #{}", index),
+            Source::Output(subroute) => write!(f, "{}", subroute),
+            Source::Input(index) => write!(f, ":{}", index),
         }
     }
 }
 
 impl fmt::Display for OutputConnection {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Output Connection:")?;
+        write!(f, "Output Connection: ")?;
         write!(f, "'{}'", self.source)?;
         write!(
             f,

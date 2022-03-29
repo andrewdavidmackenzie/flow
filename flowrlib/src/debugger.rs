@@ -85,12 +85,11 @@ impl<'a> Debugger<'a> {
     pub fn check_prior_to_job(
         &mut self,
         state: &RunState,
-        next_job_id: usize,
-        function_id: usize,
+        job: &Job,
     ) -> (bool, bool, bool) {
-        if self.break_at_job == next_job_id || self.function_breakpoints.contains(&function_id) {
-            self.debug_server.job_breakpoint(next_job_id, state.get(function_id),
-                                             state.get_state(function_id));
+        if self.break_at_job == job.job_id || self.function_breakpoints.contains(&job.function_id) {
+            self.debug_server.job_breakpoint(job, state.get_function(job.function_id),
+                                             state.get_state(job.function_id));
             return self.wait_for_command(state);
         }
 
@@ -125,7 +124,7 @@ impl<'a> Debugger<'a> {
     pub fn check_prior_to_send(
         &mut self,
         state: &RunState,
-        source_process_id: usize,
+        source_function_id: usize,
         output_route: &str,
         value: &Value,
         destination_id: usize,
@@ -133,13 +132,18 @@ impl<'a> Debugger<'a> {
     ) -> (bool, bool, bool) {
         if self
             .output_breakpoints
-            .contains(&(source_process_id, output_route.to_string()))
+            .contains(&(source_function_id, output_route.to_string()))
             || self
                 .input_breakpoints
                 .contains(&(destination_id, input_number))
         {
-            self.debug_server.send_breakpoint(source_process_id, output_route, value,
-                                               destination_id, input_number);
+            let source_function = state.get_function(source_function_id);
+            let destination_function = state.get_function(destination_id);
+            let io_name = destination_function.input(input_number).name();
+
+            self.debug_server.send_breakpoint(source_function.name(), source_function_id, output_route, value,
+                                              destination_id, destination_function.name(),
+                                              io_name, input_number);
             return self.wait_for_command(state);
         }
 
@@ -218,10 +222,10 @@ impl<'a> Debugger<'a> {
                     let message = self.list_breakpoints();
                     self.debug_server.message(message);
                 },
-                Ok(Inspect) => self.debug_server.run_state(state.clone()),
+                Ok(Inspect) => self.debug_server.run_state(state),
                 Ok(InspectFunction(function_id)) => {
                     if function_id < state.num_functions() {
-                        self.debug_server.function_state(state.get(function_id).clone(),
+                        self.debug_server.function_state(state.get_function(function_id).clone(),
                                                          state.get_state(function_id));
                     } else {
                         self.debug_server.debugger_error(format!("No function with id = {}", function_id));
@@ -229,7 +233,7 @@ impl<'a> Debugger<'a> {
                 }
                 Ok(InspectInput(function_id, input_number)) => {
                     if function_id < state.num_functions() {
-                        let function = state.get(function_id);
+                        let function = state.get_function(function_id);
 
                         if input_number < function.inputs().len() {
                             self.debug_server.input(function.input(input_number).clone());
@@ -244,7 +248,7 @@ impl<'a> Debugger<'a> {
                 }
                 Ok(InspectOutput(function_id, sub_route)) => {
                     if function_id < state.num_functions() {
-                        let function = state.get(function_id);
+                        let function = state.get_function(function_id);
 
                         let mut output_connections = vec![];
 
@@ -345,28 +349,29 @@ impl<'a> Debugger<'a> {
             Some(Param::Numeric(process_id)) => {
                 if process_id > state.num_functions() {
                     response.push_str(&format!(
-                        "There is no process with id '{}' to set a breakpoint on\n",
+                        "There is no Function with id '{}' to set a breakpoint on\n",
                         process_id
                     ));
                 } else {
                     self.function_breakpoints.insert(process_id);
                     response.push_str(&format!(
-                        "Set process breakpoint on Function #{}\n",
+                        "Breakpoint set on Function #{}\n",
                         process_id
                     ));
                 }
             }
             Some(Param::Input((destination_id, input_number))) => {
+                let function = state.get_function(destination_id);
+                let io_name = function.input(input_number).name();
                 response.push_str(&format!(
-                    "Set data breakpoint on process #{} receiving data on input: {}\n",
-                    destination_id, input_number
-                ));
+                    "Data breakpoint set on Function #{}:{} '{}' receiving data on input '{}'\n",
+                    destination_id, input_number, function.name(), io_name));
                 self.input_breakpoints
                     .insert((destination_id, input_number));
             }
             Some(Param::Block((Some(blocked_id), Some(blocking_id)))) => {
                 response.push_str(&format!(
-                    "Set block breakpoint for Function #{} being blocked by Function #{}\n",
+                    "Block breakpoint set on Function #{} being blocked by Function #{}\n",
                     blocked_id, blocking_id
                 ));
                 self.block_breakpoints.insert((blocked_id, blocking_id));
@@ -376,7 +381,7 @@ impl<'a> Debugger<'a> {
             }
             Some(Param::Output((source_id, source_output_route))) => {
                 response.push_str(&format!(
-                    "Set data breakpoint on process #{} sending data via output: '/{}'\n",
+                    "Data breakpoint set on Function #{} sending data via output: '{}'\n",
                     source_id, source_output_route
                 ));
                 self.output_breakpoints
@@ -384,7 +389,7 @@ impl<'a> Debugger<'a> {
             }
             Some(Param::Wildcard) => {
                 response.push_str(
-                    "To break on every process, you can just single step using 's' command\n",
+                    "To break on every Function, you can just single step using 's' command\n",
                 );
             }
         }

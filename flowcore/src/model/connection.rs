@@ -50,7 +50,7 @@ pub struct Connection {
 /// Constant for the priority of a function's loopback `Connection` to one of its own inputs
 pub const LOOPBACK_PRIORITY: usize = 0;
 /// Constant for the priority of a function's `Connection` to another function within the same flow
-pub const DIRECT_CONNECTION_PRIORITY: usize = 1;
+pub const INTERNAL_FLOW_PRIORITY: usize = 1;
 
 /// `Direction` defines whether a `Connection` is coming from an IO or to an IO
 #[derive(Debug)]

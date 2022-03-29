@@ -280,13 +280,12 @@ impl<'a> Coordinator<'a> {
         #[cfg(feature = "debugger")]
         let debug_options = self
             .debugger
-            .check_prior_to_job(state, job.job_id, job.function_id);
+            .check_prior_to_job(state, job);
 
         // Jobs maybe sent to remote nodes over network so have to be self--contained - clone OK
         self.job_tx
             .send(job.clone())
             .chain_err(|| "Sending of job for execution failed")?;
-        debug!("Job #{}:\tSent for execution", job.job_id);
 
         Ok(debug_options)
     }

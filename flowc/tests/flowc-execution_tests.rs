@@ -149,7 +149,7 @@ fn execute_flow(
     let mut err = String::new();
     if let Some(ref mut stderr) = runner.stderr {
         for line in BufReader::new(stderr).lines() {
-            err.push_str(&format!("{}\n", &line.expect("Coul dnot read line")));
+            err.push_str(&format!("{}\n", &line.expect("Could not read line")));
         }
     }
 
@@ -289,6 +289,7 @@ fn two_destinations() {
     execute_test("two_destinations", false);
 }
 
+#[ignore]
 #[test]
 #[serial]
 fn hello_world_client_server() {

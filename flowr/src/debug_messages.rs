@@ -21,15 +21,15 @@ pub enum DebugServerMessage {
     EnteringDebugger,
     /// The debugger/run-time is exiting
     ExitingDebugger,
-    /// The run-time is about to send a `Job` for execution - an opportunity to break
-    /// includes: job_id, function_id
-    PriorToSendingJob(usize, usize),
+    /// The run-time is about to send a `Job` for execution
+    PriorToSendingJob(Job),
     /// A breakpoint on a `Block` between two functions was encountered
     /// includes: blocked_id, blocking_id, blocking_io_number
     BlockBreakpoint(Block),
     /// A breakpoint on a `Value` being sent between two functions was encountered
-    /// includes: source_process_id, output_route, value, destination_id, input_number));
-    DataBreakpoint(usize, String, Value, usize, usize),
+    /// includes: source_process_id, output_route, value, destination_id, function_name,
+    /// io_name, input_number));
+    DataBreakpoint(String, usize, String, Value, usize, String, String, usize),
     /// A panic occurred executing a `Flows` `Job` -  includes the output of the job that panicked
     Panic(String, usize),
     /// There was an error executing the Job
@@ -74,9 +74,9 @@ impl fmt::Display for DebugServerMessage {
                 DebugServerMessage::JobCompleted(_) => "JobCompleted",
                 DebugServerMessage::EnteringDebugger => "EnteringDebugger",
                 DebugServerMessage::ExitingDebugger => "ExitingDebugger",
-                DebugServerMessage::PriorToSendingJob(_, _) => "PriorToSendingJob",
+                DebugServerMessage::PriorToSendingJob(_) => "PriorToSendingJob",
                 DebugServerMessage::BlockBreakpoint(_) => "BlockBreakpoint",
-                DebugServerMessage::DataBreakpoint(_, _, _, _, _) => "DataBreakpoint",
+                DebugServerMessage::DataBreakpoint(_, _, _, _, _, _, _, _) => "DataBreakpoint",
                 DebugServerMessage::Panic(_, _) => "Panic",
                 DebugServerMessage::JobError(_) => "JobError",
                 DebugServerMessage::ExecutionStarted => "ExecutionStarted",

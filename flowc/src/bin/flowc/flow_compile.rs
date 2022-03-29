@@ -76,7 +76,7 @@ fn dump(
     tables: &CompilerTables,
     options: &Options,
 ) -> Result<()> {
-    if options.dump {
+    if options.tables_dump {
         dump::dump_flow(
             flow,
             &options.output_dir,
@@ -111,9 +111,20 @@ fn execute_flow(filepath: &Path, options: &Options) -> Result<()> {
 
     let mut flowr_args = vec![];
 
+    // if a specific verbosity level was set on the CL to flowc, pass it on to flowr
+    if let Some(verbosity) = &options.verbosity {
+        flowr_args.push("-v".to_string());
+        flowr_args.push(verbosity.to_string());
+    }
+
     // if execution metrics requested to flowc, pass that onto flowr
     if options.execution_metrics {
         flowr_args.push("-m".to_string());
+    }
+
+    // if debug (symbols) requested to flowc, pass that onto flowr
+    if options.debug_symbols {
+        flowr_args.push("-d".to_string());
     }
 
     // unless wasm execution requested, pass the native flag onto flowr
@@ -133,12 +144,10 @@ fn execute_flow(filepath: &Path, options: &Options) -> Result<()> {
         flowr_args.push(context_root.to_owned().to_string_lossy().to_string());
     }
 
-    if !options.flow_args.is_empty() {
-        flowr_args.push("--".to_string());
-        flowr_args.append(&mut options.flow_args.to_vec());
-    }
-
     flowr_args.push(filepath.display().to_string());
+
+    // any arguments for the flow itself (not flowr) go at the end
+    flowr_args.append(&mut options.flow_args.to_vec());
 
     info!("Running flow using 'flowr {:?}'", &flowr_args);
     let mut flowr = Command::new("flowr");
