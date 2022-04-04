@@ -1,4 +1,4 @@
-flow = "range-of-ranges"
+flow = "sequence-of-sequences"
 docs = "DESCRIPTION.md"
 
 # Generate a sequence of numbers 1 2 3 4 5 6 7 8 9 - which are the upper limits of each of the sequences
@@ -27,7 +27,6 @@ to = "sequence-of-sequences/start"
 [[process]]
 alias = "sequence-of-sequences"
 source = "lib://flowstdlib/math/sequence"
-input.start = { once = 0 }
 
 # Connect the list of limits to use for each sequence to the generator of the sequence of sequences
 # use the limit as the step and the limit, so sequences will all be 0..'n' where 'n' is the limit
@@ -35,10 +34,10 @@ input.start = { once = 0 }
 from = "limit-sequence/sequence"
 to = ["sequence-of-sequences/step", "sequence-of-sequences/limit"]
 
+# Print the sequence-of-sequences to stdout
 [[process]]
 source = "context://stdio/stdout"
 
-# Print the sequence-of-sequences to stdout
 [[connection]]
 from = "sequence-of-sequences/sequence"
 to = "stdout"
