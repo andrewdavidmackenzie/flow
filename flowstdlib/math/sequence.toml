@@ -45,7 +45,7 @@ source = "lib://flowstdlib/control/compare_switch"
 from = "compare/right-lte"
 to = "output/sequence"
 
-# while the sequence is running - feed the left value (limit) back around to compare against next time
+# while the sequence is running - loopback the left value (limit) to compare against next time
 [[connection]]
 from = "compare/left-gt"
 to = "compare/left"
@@ -104,8 +104,42 @@ to = "last/left"
 from = "last/lt"
 to = "tap/control"
 
-# When the compare flow indicates that the number was blocked due to being too large (equal to the limit) then
-# we want that to indicate that the sequence is done
+# a comparer to see if this is the last iteration
+#[[process]]
+#alias = "not-last"
+#source = "lib://flowstdlib/math/compare"
+#
+## pass the limit to the comparer left input - even on the last iteration
+#[[connection]]
+#from = "compare/left"
+#to = "not-last/left"
+#
+## pass the value generated to the comparer right input - even on the last iteration
+#[[connection]]
+#from = "compare/right"
+#to = "not-last/right"
+#
+## pass the result of the comparison to the tap that allows the value to pass (during iterations)
+## or disapear the value (on the last iteration), which should let a new step input be possible to restart
+#[[connection]]
+#from = "not-last/gte"
+#to = "tap/control"
+#
+#[[process]]
+#source = "lib://flowstdlib/control/tap"
+#
+## pass the 'step' value to the tap for possible loopback
+#[[connection]]
+#from = "add/i2"
+#to = "tap/data"
+#
+## loopback the step to the added, if it's not the last iteration
+#[[connection]]
+#from = "tap"
+#to = "add/i2"
+
+# When compare_switch determines the next value is too large (greater-than-or-equal to the limit) then
+# the flow will end, output that value - whose presence indicates it's the end of the sequence
 [[connection]]
 from = "compare/right-gte"
 to = "output/last"
