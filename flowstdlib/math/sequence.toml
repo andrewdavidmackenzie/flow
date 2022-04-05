@@ -89,15 +89,15 @@ source = "lib://flowstdlib/math/compare"
 
 # pass the limit to the comparer each time
 [[connection]]
-from = "compare_switch/left-gt"
+from = "compare_switch/left"
 to = "not-last/right"
 
 # pass the previous value generated to the comparer each time
 [[connection]]
-from = "compare_switch/right-lt"
+from = "compare_switch/right"
 to = "not-last/left"
 
-# pass the result of the comparison to the tap that allows the value to pass or disapear
+# pass the result of the comparison to the tap that allows the value to pass or disapear on the last iteration
 [[connection]]
 from = "not-last/lt"
 to = "tap/control"
