@@ -84,22 +84,22 @@ to = "add/i2"
 
 # a comparer to see if this is the last iteration
 [[process]]
-alias = "last"
+alias = "not-last"
 source = "lib://flowstdlib/math/compare"
 
 # pass the limit to the comparer each time
 [[connection]]
 from = "compare_switch/left-gt"
-to = "last/right"
+to = "not-last/right"
 
 # pass the previous value generated to the comparer each time
 [[connection]]
 from = "compare_switch/right-lt"
-to = "last/left"
+to = "not-last/left"
 
 # pass the result of the comparison to the tap that allows the value to pass or disapear
 [[connection]]
-from = "last/lt"
+from = "not-last/lt"
 to = "tap/control"
 
 # When compare_switch determines the next value is too large (greater-than-or-equal to the limit) then
