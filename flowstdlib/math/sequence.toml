@@ -76,18 +76,20 @@ from = "add"
 to = "compare_switch/right"
 name = "next"
 
+# a tap process that controls the feedback of the 'step' value to 'add'
 [[process]]
+alias = "step-tap"
 source = "lib://flowstdlib/control/tap"
 
 # pass the 'step' value to the tap for the loopback
 [[connection]]
 from = "add/i2"
-to = "tap/data"
+to = "step-tap/data"
 name = "step"
 
 # feedback the step, if it's not the last iteration
 [[connection]]
-from = "tap"
+from = "step-tap"
 to = "add/i2"
 name = "feedback-step"
 
@@ -111,7 +113,7 @@ name = "previous"
 # pass the result of the comparison to the tap that allows the value to pass or disapear on the last iteration
 [[connection]]
 from = "not-last/lt"
-to = "tap/control"
+to = "step-tap/control"
 name = "not-last"
 
 # When compare_switch determines the next value is too large (greater-than-or-equal to the limit) then
