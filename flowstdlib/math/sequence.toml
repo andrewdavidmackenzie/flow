@@ -69,10 +69,23 @@ from = "compare_switch/right-lt"
 to = "add/i1"
 name = "previous"
 
+# a tap process that controls the flow of the 'next' value from 'add' to 'compare_switch' at the end of sequence
+[[process]]
+alias = "next-tap"
+source = "lib://flowstdlib/control/tap"
+
 # After the first iteration, each time take the sum from the adder (i.e. possibly the next number in the sequence)
-# and pass it into the compare_switch function to pass it through∫ if it's less than the limit
+# and pass it into the compare_switch function to pass it through) if it's less than the limit
 [[connection]]
 from = "add"
+to = "next-tap/data"
+
+[[connection]]
+from = "not-last/lt"
+to = "next-tap/control"
+
+[[connection]]
+from = "next-tap"
 to = "compare_switch/right"
 name = "next"
 
