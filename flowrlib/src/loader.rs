@@ -264,7 +264,7 @@ impl Loader {
                             function.implementation_location()
                         ))?;
                     trace!(
-                        "Found implementation location for '{}' in loaded libraries",
+                        "\tFound implementation location for '{}' in loaded libraries",
                         function.implementation_location()
                     );
 

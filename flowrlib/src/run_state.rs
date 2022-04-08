@@ -135,11 +135,11 @@ pub enum State {
 ///
 /// From    To State  Event causing transition and additional conditions          Test
 /// ----    --------  --------------------------------------------------          ----
-/// Init    Ready     Init: No inputs and no destination input full               to_ready_1_on_init
-///                   Init: All inputs initialized and no destination input full  to_ready_2_on_init
-///                   Init: All inputs initialized and no destinations            to_ready_3_on_init
-/// Init    Blocked   Init: Some destination input is full                        to_blocked_on_init
-/// Init    Waiting   Init: At least one input is not full                        to_waiting_on_init
+/// Init    Ready     No inputs and no destination input full                     to_ready_1_on_init
+///                   All inputs initialized and no destination input full        to_ready_2_on_init
+///                   All inputs initialized and no destinations                  to_ready_3_on_init
+/// Init    Blocked   Some destination input is full                              to_blocked_on_init
+/// Init    Waiting   At least one input is not full                              to_waiting_on_init
 ///
 /// Ready   Running   NextJob: called to fetch the function_id for execution      ready_to_running_on_next
 ///
@@ -269,14 +269,14 @@ impl RunState {
         for function in &mut self.functions {
             #[cfg(feature = "debugger")]
             debug!(
-                "Init:\tInitializing Function #{} '{}' in Flow #{}",
+                "\tInitializing Function #{} '{}' in Flow #{}",
                 function.id(),
                 function.name(),
                 function.get_flow_id()
             );
             #[cfg(not(feature = "debugger"))]
             debug!(
-                "Init:\tInitializing Function #{} in Flow #{}",
+                "\tInitializing Function #{} in Flow #{}",
                 function.id(),
                 function.get_flow_id()
             );
@@ -290,7 +290,7 @@ impl RunState {
         self.create_init_blocks();
 
         // Put all functions that have their inputs ready and are not blocked on the `ready` list
-        debug!("Init:\tReadying initial functions: inputs full and not blocked on output");
+        debug!("Readying initial functions: inputs full and not blocked on output");
         for (id, flow_id) in inputs_ready_list {
             self.new_input_set(id, flow_id, true);
         }
@@ -303,7 +303,7 @@ impl RunState {
         let mut blocks = HashSet::<Block>::new();
         let mut blocked = HashSet::<usize>::new();
 
-        debug!("Init:\tCreating any initial block entries that are needed");
+        debug!("Creating any initial block entries that are needed");
 
         for source_function in &self.functions {
             let source_id = source_function.id();
@@ -317,7 +317,7 @@ impl RunState {
                     let destination_function = self.get_function(destination.function_id);
                     if destination_function.input_count(destination.io_number) > 0 {
                         trace!(
-                            "Init:\t\tAdded block #{} -> #{}:{}",
+                            "\tAdded block #{} -> #{}:{}",
                             source_id,
                             destination.function_id,
                             destination.io_number
