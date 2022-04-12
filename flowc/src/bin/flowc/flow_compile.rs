@@ -40,6 +40,7 @@ pub fn compile_and_execute_flow(options: &Options, provider: &dyn Provider) -> R
             let tables = compile::compile(&flow,
                                               &options.output_dir,
                                               options.provided_implementations,
+                                              options.optimize,
                                               #[cfg(feature = "debugger")] &mut source_urls,
             ).chain_err(|| format!("Could not compile flow from '{}'", options.source_url))?;
 
@@ -59,7 +60,7 @@ pub fn compile_and_execute_flow(options: &Options, provider: &dyn Provider) -> R
             )
             .chain_err(|| "Failed to write manifest")?;
 
-            if options.skip_execution {
+            if options.compile_only {
                 info!("Flow execution skipped");
                 return Ok(());
             }

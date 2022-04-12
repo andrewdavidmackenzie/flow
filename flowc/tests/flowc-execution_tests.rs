@@ -88,7 +88,7 @@ fn execute_flow(
     let server = if separate_processes {
         println!("Starting the 'flowr' server");
         let mut server_command = Command::new("cargo");
-        let server_command_args = vec!["run", "--quiet", "-p", "flowr", "--", "-n", "-s",
+        let server_command_args = vec!["run", "--quiet", "-p", "flowr", "--", "-n", "-c",
         "-C", context_root_str];
 
         // spawn the 'flowr' server child process
@@ -208,7 +208,7 @@ fn execute_test(test_name: &str, separate_processes: bool) {
         let output_dir = TempDir::new("flow-test").expect("A temp dir").into_path();
 
         let tables = compile::compile(flow,
-                                          &output_dir, false,
+                                          &output_dir, false,  false,
                                       #[cfg(feature = "debugger")] &mut source_urls
         ).expect("Could not compile flow");
         let dir =

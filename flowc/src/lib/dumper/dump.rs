@@ -42,7 +42,7 @@ use crate::errors::*;
 ///                                                           &provider,
 ///                                                           &mut source_urls) {
 ///     let tables = flowclib::compiler::compile::compile(&mut flow,
-///                                                       &output_dir, true,
+///                                                       &output_dir, true, true,
 ///                                                       #[cfg(feature = "debugger")] &mut source_urls
 ///                                                       ).unwrap();
 ///
@@ -113,7 +113,7 @@ pub fn create_output_file(
 ///                                                           &provider,
 ///                                                           &mut source_urls) {
 ///     let tables = flowclib::compiler::compile::compile(&mut flow,
-///                                                       &output_dir, true,
+///                                                       &output_dir, true, true,
 ///                                                       #[cfg(feature = "debugger")] &mut source_urls
 ///                                                      ).unwrap();
 ///

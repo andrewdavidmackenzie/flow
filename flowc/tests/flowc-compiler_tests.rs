@@ -44,7 +44,7 @@ fn args() {
         let mut source_urls = HashSet::<(Url, Url)>::new();
         let output_dir = TempDir::new("flow-test").expect("A temp dir").into_path();
 
-        let _tables = compile::compile(flow, &output_dir, false,
+        let _tables = compile::compile(flow, &output_dir, false, false,
                                        #[cfg(feature = "debugger")] &mut source_urls
         ).expect("Could not compile flow");
     } else {
@@ -66,7 +66,7 @@ fn object_to_array_connection() {
         let output_dir = TempDir::new("flow-test").expect("A temp dir").into_path();
 
         let _tables = compile::compile(flow,
-                                       &output_dir, false,
+                                       &output_dir, false, false,
                                        #[cfg(feature = "debugger")] &mut source_urls
         ).expect("Could not compile flow");
     } else {
@@ -87,7 +87,7 @@ fn context_with_io() {
         let mut source_urls = HashSet::<(Url, Url)>::new();
         let output_dir = TempDir::new("flow-test").expect("A temp dir").into_path();
 
-        if compile::compile(flow, &output_dir, false,
+        if compile::compile(flow, &output_dir, false, false,
                             #[cfg(feature = "debugger")] &mut source_urls
         ).is_ok() {
             // flow loaded, but has ios
@@ -112,7 +112,7 @@ fn same_name_input_and_output() {
         let mut source_urls = HashSet::<(Url, Url)>::new();
         let output_dir = TempDir::new("flow-test").expect("A temp dir").into_path();
 
-        let tables = compile::compile(flow, &output_dir, false,
+        let tables = compile::compile(flow, &output_dir, false, false,
                                       #[cfg(feature = "debugger")] &mut source_urls
         ).expect("Could not compile flow");
         // If done correctly there should only be two connections
@@ -135,7 +135,7 @@ fn same_name_flow_ids() {
         let mut source_urls = HashSet::<(Url, Url)>::new();
         let output_dir = TempDir::new("flow-test").expect("A temp dir").into_path();
 
-        let tables = compile::compile(flow, &output_dir, false,
+        let tables = compile::compile(flow, &output_dir, false, false,
                                       #[cfg(feature = "debugger")] &mut source_urls
         ).expect("Could not compile flow");
 
@@ -168,7 +168,7 @@ fn connection_to_input_with_constant_initializer() {
         let mut source_urls = HashSet::<(Url, Url)>::new();
         let output_dir = TempDir::new("flow-test").expect("A temp dir").into_path();
 
-        if compile::compile(flow, &output_dir, false,
+        if compile::compile(flow, &output_dir, false, false,
                             #[cfg(feature = "debugger")] &mut source_urls
         ).is_ok() {
             panic!("Process should not have loaded due to connection to input with a constant initializer");
@@ -190,7 +190,7 @@ fn no_side_effects() {
             let mut source_urls = HashSet::<(Url, Url)>::new();
             let output_dir = TempDir::new("flow-test").expect("A temp dir").into_path();
 
-            match compile::compile(flow, &output_dir, false,
+            match compile::compile(flow, &output_dir, false, false,
                                    #[cfg(feature = "debugger")] &mut source_urls
             ) {
                 Ok(_tables) => panic!("Flow should not compile when it has no side-effects"),
@@ -214,7 +214,7 @@ fn compile_echo_ok() {
         let mut source_urls = HashSet::<(Url, Url)>::new();
         let output_dir = TempDir::new("flow-test").expect("A temp dir").into_path();
 
-        let _tables = compile::compile(flow, &output_dir, false,
+        let _tables = compile::compile(flow, &output_dir, false, false,
                                        #[cfg(feature = "debugger")] &mut source_urls
         ).expect("Could not compile flow");
     } else {
@@ -238,7 +238,7 @@ fn compiler_detects_unused_input() {
         let output_dir = TempDir::new("flow-test").expect("A temp dir").into_path();
 
         assert!(
-            compile::compile(flow, &output_dir, false,
+            compile::compile(flow, &output_dir, false, false,
                              #[cfg(feature = "debugger")] &mut source_urls
             ).is_err(),
             "Should not compile due to unused input"
@@ -264,7 +264,7 @@ fn compile_detects_connection_to_initialized_input() {
         let output_dir = TempDir::new("flow-test").expect("A temp dir").into_path();
 
         assert!(
-            compile::compile(flow, &output_dir, false,
+            compile::compile(flow, &output_dir, false, false,
                              #[cfg(feature = "debugger")] &mut source_urls
             ).is_err(),
             "Should not compile due to connection to constant initialized input"
@@ -292,7 +292,7 @@ fn flow_input_propagated_back_out() {
             let mut source_urls = HashSet::<(Url, Url)>::new();
             let output_dir = TempDir::new("flow-test").expect("A temp dir").into_path();
 
-            match compile::compile(&context, &output_dir, false,
+            match compile::compile(&context, &output_dir, false, false,
                                    #[cfg(feature = "debugger")] &mut source_urls
             ) {
                 Ok(_tables) => {}
@@ -327,7 +327,7 @@ fn initialized_output_propagated() {
             let mut source_urls = HashSet::<(Url, Url)>::new();
             let output_dir = TempDir::new("flow-test").expect("A temp dir").into_path();
 
-            match compile::compile(&context, &output_dir, false,
+            match compile::compile(&context, &output_dir, false, false,
                                    #[cfg(feature = "debugger")] &mut source_urls
             ) {
                 Ok(tables) => {
@@ -385,7 +385,7 @@ fn initialized_input_to_subflow() {
             let mut source_urls = HashSet::<(Url, Url)>::new();
             let output_dir = TempDir::new("flow-test").expect("A temp dir").into_path();
 
-            match compile::compile(&root, &output_dir, false,
+            match compile::compile(&root, &output_dir, false, false,
                                    #[cfg(feature = "debugger")] &mut source_urls
             ) {
                 Ok(tables) => {

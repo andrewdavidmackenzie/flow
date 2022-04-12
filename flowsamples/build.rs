@@ -48,7 +48,7 @@ fn compile_sample(sample_dir: &str, output_dir: &str) {
     // -o output_dir to generate output files in specified directory
     // <sample_dir> is the path to the directory of the sample flow to compile
     let context_root = get_context_root().expect("Could not get context root");
-    let command_args = vec!["-d", "-g", "-v", "warn", "-s",
+    let command_args = vec!["-d", "-g", "-v", "warn", "-c",
                             "-C", &context_root,
                             "-o", output_dir,
                             sample_dir];

@@ -46,7 +46,7 @@ pub struct Options {
     graphs: bool,
     execution_metrics: bool,
     wasm_execution: bool,
-    skip_execution: bool,
+    compile_only: bool,
     debug_symbols: bool,
     provided_implementations: bool,
     output_dir: PathBuf,
@@ -55,6 +55,7 @@ pub struct Options {
     native_only: bool,
     context_root: Option<PathBuf>,
     verbosity: Option<String>,
+    optimize: bool,
 }
 
 fn main() {
@@ -131,10 +132,10 @@ fn get_matches<'a>() -> ArgMatches<'a> {
         .setting(AppSettings::TrailingVarArg)
         .version(env!("CARGO_PKG_VERSION"))
         .arg(
-            Arg::with_name("skip")
-                .short("s")
-                .long("skip")
-                .help("Skip execution of flow"),
+            Arg::with_name("compile")
+                .short("c")
+                .long("compile")
+                .help("Compile (only) flow and implementations, do not execute"),
         )
         .arg(
             Arg::with_name("lib")
@@ -182,15 +183,21 @@ fn get_matches<'a>() -> ArgMatches<'a> {
             Arg::with_name("metrics")
                 .short("m")
                 .long("metrics")
-                .conflicts_with("skip")
+                .conflicts_with("compile")
                 .help("Show flow execution metrics when execution ends"),
         )
         .arg(
             Arg::with_name("wasm")
                 .short("w")
                 .long("wasm")
-                .conflicts_with("skip")
+                .conflicts_with("compile")
                 .help("Use wasm library implementations when executing flow"),
+        )
+        .arg(
+            Arg::with_name("optimize")
+                .short("O")
+                .long("optimize")
+                .help("Optimize generated output (flows and wasm)"),
         )
         .arg(
             Arg::with_name("provided")
@@ -299,7 +306,7 @@ fn parse_args(matches: ArgMatches) -> Result<Options> {
         graphs: matches.is_present("graphs"),
         wasm_execution: matches.is_present("wasm"),
         execution_metrics: matches.is_present("metrics"),
-        skip_execution: matches.is_present("skip"),
+        compile_only: matches.is_present("compile"),
         debug_symbols: matches.is_present("debug"),
         provided_implementations: matches.is_present("provided"),
         output_dir,
@@ -308,5 +315,6 @@ fn parse_args(matches: ArgMatches) -> Result<Options> {
         native_only: matches.is_present("native"),
         context_root,
         verbosity: verbosity.map(|v| v.to_string()),
+        optimize: matches.is_present("optimize")
     })
 }
