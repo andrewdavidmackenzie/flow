@@ -156,7 +156,7 @@ impl Input {
 
         match init_value {
             Some(value) => {
-                debug!("\t\tInput #{} initialized with '{:?}'", io_number, value);
+                debug!("\t\tInput:{} initialized with '{:?}'", io_number, value);
                 self.push(0, value);
                 true
             }

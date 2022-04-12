@@ -72,7 +72,7 @@ impl fmt::Display for RuntimeFunction {
         writeln!(f, "\t({})", self.implementation_location)?;
 
         for (number, input) in self.inputs.iter().enumerate() {
-            writeln!(f, "\tInput #{number} {input}")?;
+            writeln!(f, "\tInput:{number} {input}")?;
         }
 
         for output_route in &self.output_connections {
