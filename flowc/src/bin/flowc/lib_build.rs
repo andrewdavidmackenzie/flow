@@ -40,12 +40,9 @@ pub fn build_lib(options: &Options, provider: &dyn Provider) -> Result<()> {
 
     let build_count = compile_implementations(
         &lib_root_path,
-        &options.output_dir,
-        options.tables_dump,
-        options.graphs,
+        options,
         &mut lib_manifest,
         provider,
-        options.native_only,
     )
     .chain_err(|| "Could not compile implementations in library")?;
 
@@ -127,12 +124,9 @@ fn copy_sources_to_target_dir(toml_path: &Path, target_dir: &Path, docs: &str) -
 */
 fn compile_implementations(
     lib_root_path: &Path,
-    output_dir: &Path,
-    dump: bool,
-    graphs: bool,
+    options: &Options,
     lib_manifest: &mut LibraryManifest,
     provider: &dyn Provider,
-    native_only: bool,
 ) -> Result<i32> {
     let mut build_count = 0;
     // Function implementations are described in .toml format and can be at multiple levels in
@@ -165,7 +159,7 @@ fn compile_implementations(
                     .map_err(|_| "Could not calculate relative_dir")?;
                 // calculate the target directory for generating output using the relative path from the
                 // lib_root appended to the root of the output directory
-                let target_dir = output_dir.join(relative_dir);
+                let target_dir = options.output_dir.join(relative_dir);
                 if !target_dir.exists() {
                     fs::create_dir_all(&target_dir)?;
                 }
@@ -181,14 +175,15 @@ fn compile_implementations(
                         let (wasm_abs_path, built) = compile_wasm::compile_implementation(
                             &target_dir,
                             function,
-                            native_only,
+                            options.native_only,
+                            options.optimize,
                             #[cfg(feature = "debugger")]
                                 &mut lib_manifest.source_urls,
                         )
                             .chain_err(|| "Could not compile supplied implementation to wasm")?;
 
                         let wasm_relative_path = wasm_abs_path
-                            .strip_prefix(output_dir)
+                            .strip_prefix(&options.output_dir)
                             .map_err(|_| "Could not calculate wasm_relative_path")?;
 
                         copy_sources_to_target_dir(toml_path, &target_dir, function.get_docs())?;
@@ -204,14 +199,14 @@ fn compile_implementations(
                         }
                     }
                     Ok(FlowProcess(ref mut flow)) => {
-                        if dump {
+                        if options.tables_dump {
                             dump::dump_flow(flow, &target_dir, provider)
                                 .chain_err(|| "Failed to dump flow's definition")?;
                         }
 
-                        if graphs {
-                            dump_dot::dump_flow(flow, output_dir, provider)?;
-                            dump_dot::generate_svgs(output_dir, true)?;
+                        if options.graphs {
+                            dump_dot::dump_flow(flow, &options.output_dir, provider)?;
+                            dump_dot::generate_svgs(&options.output_dir, true)?;
                         }
 
                         copy_sources_to_target_dir(toml_path, &target_dir, flow.get_docs())?;

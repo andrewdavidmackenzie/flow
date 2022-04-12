@@ -56,7 +56,7 @@ use crate::errors::*;
 /// if let Ok(FlowProcess(mut flow)) = flowclib::compiler::loader::load(&url,
 ///                                                    &provider,
 ///                                                    &mut source_urls) {
-///     let tables = flowclib::compiler::compile::compile(&flow, &output_dir, false,
+///     let tables = flowclib::compiler::compile::compile(&flow, &output_dir, false, false,
 ///                                                       #[cfg(feature = "debugger")] &mut source_urls
 ///                                                      ).unwrap();
 ///

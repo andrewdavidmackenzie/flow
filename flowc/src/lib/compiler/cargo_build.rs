@@ -69,6 +69,7 @@ fn cargo_test(manifest_path: PathBuf, build_dir: PathBuf) -> Result<()> {
 fn cargo_build(
     manifest_path: PathBuf,
     build_dir: &Path,
+    release_build: bool,
     implementation_source_path: &Path,
     wasm_destination: &Path,
 ) -> Result<()> {
@@ -88,14 +89,20 @@ fn cargo_build(
         implementation_source_path.display()
     );
 
-    let command_args = vec![
-        "build",
-        "--release",
+    let mut command_args = vec![
+        "build"];
+
+    if release_build {
+        command_args.push("--release");
+    }
+
+    command_args.append(&mut vec![
         "--lib",
         "--target=wasm32-unknown-unknown",
         &manifest,
         &target_dir,
-    ];
+        ]
+    );
 
     debug!(
         "\tRunning command = '{}', command_args = {:?}",
@@ -120,7 +127,13 @@ fn cargo_build(
     let mut wasm_filename = implementation_source_path.to_path_buf();
     wasm_filename.set_extension("wasm");
     let mut wasm_build_location = build_dir.to_path_buf();
-    wasm_build_location.push("wasm32-unknown-unknown/release/");
+
+    if release_build {
+        wasm_build_location.push("wasm32-unknown-unknown/release/");
+    } else {
+        wasm_build_location.push("wasm32-unknown-unknown/debug/");
+    }
+
     wasm_build_location.push(
         wasm_filename
             .file_name()
@@ -138,7 +151,7 @@ fn cargo_build(
 }
 
 /// Run the cargo build to compile wasm from function source
-pub fn run(implementation_source_path: &Path, wasm_destination: &Path) -> Result<()> {
+pub fn run(implementation_source_path: &Path, wasm_destination: &Path, release_build: bool) -> Result<()> {
     let mut manifest_path = implementation_source_path.to_path_buf();
     manifest_path.set_file_name("FlowCargo.toml");
 
@@ -162,6 +175,7 @@ pub fn run(implementation_source_path: &Path, wasm_destination: &Path) -> Result
     cargo_build(
         cargo_toml.clone(),
         &build_dir,
+        release_build,
         implementation_source_path,
         wasm_destination,
     )?;

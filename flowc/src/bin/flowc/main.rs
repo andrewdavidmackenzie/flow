@@ -55,6 +55,7 @@ pub struct Options {
     native_only: bool,
     context_root: Option<PathBuf>,
     verbosity: Option<String>,
+    optimize: bool,
 }
 
 fn main() {
@@ -193,6 +194,12 @@ fn get_matches<'a>() -> ArgMatches<'a> {
                 .help("Use wasm library implementations when executing flow"),
         )
         .arg(
+            Arg::with_name("optimize")
+                .short("O")
+                .long("optimize")
+                .help("Optimize generated output (flows and wasm)"),
+        )
+        .arg(
             Arg::with_name("provided")
                 .short("p")
                 .long("provided")
@@ -308,5 +315,6 @@ fn parse_args(matches: ArgMatches) -> Result<Options> {
         native_only: matches.is_present("native"),
         context_root,
         verbosity: verbosity.map(|v| v.to_string()),
+        optimize: matches.is_present("optimize")
     })
 }

@@ -21,6 +21,7 @@ pub fn compile_implementation(
     target_dir: &Path,
     function: &mut FunctionDefinition,
     native_only: bool,
+    optimize: bool,
     #[cfg(feature = "debugger")] source_urls: &mut HashSet<(Url, Url)>,
 ) -> Result<(PathBuf, bool)> {
     let mut built = false;
@@ -51,7 +52,8 @@ pub fn compile_implementation(
             }
         } else {
             match function.build_type.as_str() {
-                "rust" => cargo_build::run(&source_path, &wasm_destination)
+                "rust" => cargo_build::run(&source_path, &wasm_destination,
+                                           optimize)
                     .chain_err(|| format!("Cargo build of project at '{}' failed",
                                        source_path.display()))?,
                 _ => bail!(
@@ -61,7 +63,9 @@ pub fn compile_implementation(
                 ),
             }
 
-            optimize_wasm_file_size(&wasm_destination)?;
+            if optimize {
+                optimize_wasm_file_size(&wasm_destination)?;
+            }
             built = true;
         }
     } else {
@@ -403,6 +407,7 @@ mod test {
             &target_dir,
             &mut function,
             true,
+            false,
             #[cfg(feature = "debugger")]
             &mut source_urls,
         )
@@ -430,6 +435,7 @@ mod test {
             &target_dir,
             &mut function,
             true,
+            false,
             #[cfg(feature = "debugger")]
             &mut source_urls,
         )
@@ -457,6 +463,7 @@ mod test {
         let (wasm_destination, built) = super::compile_implementation(
             &target_dir,
             &mut function,
+            false,
             false,
             #[cfg(feature = "debugger")]
             &mut source_urls,
@@ -487,6 +494,7 @@ mod test {
             &target_dir,
             &mut function,
             false,
+            false,
             #[cfg(feature = "debugger")]
             &mut source_urls,
         )
@@ -513,6 +521,7 @@ mod test {
             &target_dir,
             &mut function,
             true,
+            false,
             #[cfg(feature = "debugger")]
             &mut source_urls,
         )

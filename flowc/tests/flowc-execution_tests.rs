@@ -208,7 +208,7 @@ fn execute_test(test_name: &str, separate_processes: bool) {
         let output_dir = TempDir::new("flow-test").expect("A temp dir").into_path();
 
         let tables = compile::compile(flow,
-                                          &output_dir, false,
+                                          &output_dir, false,  false,
                                       #[cfg(feature = "debugger")] &mut source_urls
         ).expect("Could not compile flow");
         let dir =

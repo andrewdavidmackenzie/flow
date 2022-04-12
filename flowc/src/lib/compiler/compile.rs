@@ -43,7 +43,7 @@ pub struct CompilerTables {
 }
 
 impl CompilerTables {
-    /// Create a new set of `GenerationTables` for use in compiling a flow
+    /// Create a new set of `CompilerTables` for use in compiling a flow
     pub fn new() -> Self {
         CompilerTables {
             connections: Vec::new(),
@@ -62,21 +62,26 @@ impl CompilerTables {
 /// of the flow, including references to libraries required.
 pub fn compile(flow: &FlowDefinition, output_dir: &Path,
                skip_building: bool,
+               optimize: bool,
                #[cfg(feature = "debugger")] source_urls: &mut HashSet<(Url, Url)>,
     ) -> Result<CompilerTables> {
     let mut tables = CompilerTables::new();
 
     gatherer::gather_functions_and_connections(flow, &mut tables)?;
     gatherer::collapse_connections(&mut tables);
-    optimizer::optimize(&mut tables);
+    if optimize {
+        optimizer::optimize(&mut tables);
+    }
     checker::check_connections(&mut tables)?;
     checker::check_function_inputs(&mut tables)?;
     checker::check_side_effects(&mut tables)?;
     configuring_output_connections(&mut tables)?;
     checker::check_priorities(&tables)?;
     compile_supplied_implementations(
-        output_dir, &mut tables,
+        output_dir,
+        &mut tables,
         skip_building,
+        optimize,
         #[cfg(feature = "debugger")] source_urls,
     ).chain_err(|| "Could not compile to wasm the flow's supplied implementation(s)")?;
 
@@ -89,6 +94,7 @@ fn compile_supplied_implementations(
     out_dir: &Path,
     tables: &mut CompilerTables,
     skip_building: bool,
+    release_build: bool,
     #[cfg(feature = "debugger")] source_urls: &mut HashSet<(Url, Url)>,
 ) -> Result<String> {
     for function in &mut tables.functions {
@@ -97,6 +103,7 @@ fn compile_supplied_implementations(
                 out_dir,
                 function,
                 skip_building,
+                release_build,
                 #[cfg(feature = "debugger")] source_urls,
             )?;
         }
@@ -264,15 +271,15 @@ mod test {
         use super::super::get_source;
 
         /*
-                                                                    Create a HashTable of routes for use in tests.
-                                                                    Each entry (K, V) is:
-                                                                    - Key   - the route to a function's IO
-                                                                    - Value - a tuple of
-                                                                                - sub-route (or IO name) from the function to be used at runtime
-                                                                                - the id number of the function in the functions table, to select it at runtime
+                                                                            Create a HashTable of routes for use in tests.
+                                                                            Each entry (K, V) is:
+                                                                            - Key   - the route to a function's IO
+                                                                            - Value - a tuple of
+                                                                                        - sub-route (or IO name) from the function to be used at runtime
+                                                                                        - the id number of the function in the functions table, to select it at runtime
 
-                                                                    Plus a vector of test cases with the Route to search for and the expected function_id and output sub-route
-                                                                */
+                                                                            Plus a vector of test cases with the Route to search for and the expected function_id and output sub-route
+                                                                        */
         #[allow(clippy::type_complexity)]
         fn test_source_routes() -> (
             HashMap<Route, (Source, usize)>,
@@ -398,6 +405,7 @@ mod test {
         match compile(&flow,
                       &output_dir,
                       true,
+                      false,
                       #[cfg(feature = "debugger")] &mut source_urls,
                         ) {
             Ok(_tables) => panic!("Flow should not compile when it has no side-effects"),
