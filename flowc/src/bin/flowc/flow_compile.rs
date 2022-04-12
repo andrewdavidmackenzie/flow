@@ -60,7 +60,7 @@ pub fn compile_and_execute_flow(options: &Options, provider: &dyn Provider) -> R
             )
             .chain_err(|| "Failed to write manifest")?;
 
-            if options.skip_execution {
+            if options.compile_only {
                 info!("Flow execution skipped");
                 return Ok(());
             }
