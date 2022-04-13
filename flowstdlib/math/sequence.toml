@@ -62,10 +62,9 @@ from = "input/step"
 to = "add/i2"
 name = "step"
 
-# Take the last generated number of the sequence and pass it to 'add' to add one to it for the next number
-# in the sequence (if less than the limit)
+# Take generated number of the sequence and pass it to 'add' to add one to it for the next number in the sequence
 [[connection]]
-from = "compare_switch/right-lt"
+from = "compare_switch/right"
 to = "add/i1"
 name = "previous"
 
