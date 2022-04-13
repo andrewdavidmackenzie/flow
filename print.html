@@ -2388,88 +2388,112 @@ type = &quot;number&quot;
 name = &quot;last&quot;
 type = &quot;number&quot;
 
+# compare will pass all numbers that are less than the limit on the &quot;right-lte&quot; output
+[[process]]
+source = &quot;lib://flowstdlib/control/compare_switch&quot;
+
 # For the first time around, pass the start number of the sequence into the &quot;compare&quot; process
 [[connection]]
 from = &quot;input/start&quot;
-to = &quot;compare/right&quot;
+to = &quot;compare_switch/right&quot;
+name = &quot;first&quot;
 
 [[connection]]
 from = &quot;input/limit&quot;
-to = &quot;compare/left&quot;
-
-# compare will pass all numbers that are less than the limit on the &quot;right-lte&quot; output
-[[process]]
-alias = &quot;compare&quot;
-source = &quot;lib://flowstdlib/control/compare_switch&quot;
+to = &quot;compare_switch/left&quot;
+name = &quot;limit&quot;
 
 # connect the /right-lte output of compare_switch to the output of this process - the sequence of numbers being generated
 [[connection]]
-from = &quot;compare/right-lte&quot;
+from = &quot;compare_switch/right-lte&quot;
 to = &quot;output/sequence&quot;
+name = &quot;sequence&quot;
 
-# while the sequence is running - feed the left value (limit) back around to compare against next time
+# while the sequence is running - loopback the left value (limit) to compare against next time
 [[connection]]
-from = &quot;compare/left-gt&quot;
-to = &quot;compare/left&quot;
+from = &quot;compare_switch/left-gt&quot;
+to = &quot;compare_switch/left&quot;
+name = &quot;feedback-limit&quot;
 
 # An add process to add one to the last output of the sequence each time, up to the penultimate one
 [[process]]
-alias = &quot;add&quot;
 source = &quot;lib://flowstdlib/math/add&quot;
 
 [[connection]]
 from = &quot;input/step&quot;
 to = &quot;add/i2&quot;
+name = &quot;step&quot;
 
-# Take the last generated number of the sequence and pass it to 'add' to add one to it for the next number
-# in the sequence (if less than the limit)
+# Take generated number of the sequence and pass it to 'add' to add one to it for the next number in the sequence
 [[connection]]
-from = &quot;compare/right-lt&quot;
+from = &quot;compare_switch/right&quot;
 to = &quot;add/i1&quot;
+name = &quot;previous&quot;
+
+# a tap process that controls the flow of the 'next' value from 'add' to 'compare_switch' at the end of sequence
+[[process]]
+alias = &quot;next-tap&quot;
+source = &quot;lib://flowstdlib/control/tap&quot;
 
 # After the first iteration, each time take the sum from the adder (i.e. possibly the next number in the sequence)
-# and pass it into the compare_switch function to pass it through∫ if it's less than the limit
+# and pass it into the compare_switch function to pass it through) if it's less than the limit
 [[connection]]
 from = &quot;add&quot;
-to = &quot;compare/right&quot;
+to = &quot;next-tap/data&quot;
+
+[[connection]]
+from = &quot;not-last/lt&quot;
+to = &quot;next-tap/control&quot;
+
+[[connection]]
+from = &quot;next-tap&quot;
+to = &quot;compare_switch/right&quot;
+name = &quot;next&quot;
+
+# a tap process that controls the feedback of the 'step' value to 'add'
+[[process]]
+alias = &quot;step-tap&quot;
+source = &quot;lib://flowstdlib/control/tap&quot;
 
 # pass the 'step' value to the tap for the loopback
 [[connection]]
 from = &quot;add/i2&quot;
-to = &quot;tap/data&quot;
+to = &quot;step-tap/data&quot;
+name = &quot;step&quot;
 
-[[process]]
-source = &quot;lib://flowstdlib/control/tap&quot;
-
-# feedback the value, if it's not the last iteration
+# feedback the step, if it's not the last iteration
 [[connection]]
-from = &quot;tap&quot;
+from = &quot;step-tap&quot;
 to = &quot;add/i2&quot;
+name = &quot;feedback-step&quot;
 
 # a comparer to see if this is the last iteration
 [[process]]
-alias = &quot;last&quot;
+alias = &quot;not-last&quot;
 source = &quot;lib://flowstdlib/math/compare&quot;
 
 # pass the limit to the comparer each time
 [[connection]]
-from = &quot;compare/left-gt&quot;
-to = &quot;last/right&quot;
+from = &quot;compare_switch/left&quot;
+to = &quot;not-last/right&quot;
+name = &quot;limit&quot;
 
 # pass the previous value generated to the comparer each time
 [[connection]]
-from = &quot;compare/right-lt&quot;
-to = &quot;last/left&quot;
+from = &quot;compare_switch/right&quot;
+to = &quot;not-last/left&quot;
+name = &quot;previous&quot;
 
-# pass the result of the comparison to the tap that allows the value to pass or disapear
+# pass the result of the comparison to the tap that allows the value to pass or disapear on the last iteration
 [[connection]]
-from = &quot;last/lt&quot;
-to = &quot;tap/control&quot;
+from = &quot;not-last/lt&quot;
+to = &quot;step-tap/control&quot;
+name = &quot;not-last&quot;
 
-# When the compare flow indicates that the number was blocked due to being too large (equal to the limit) then
-# we want that to indicate that the sequence is done
+# When compare_switch determines the next value is too large (greater-than-or-equal to the limit) then
+# the flow will end, output that value - whose presence indicates it's the end of the sequence
 [[connection]]
-from = &quot;compare/right-gte&quot;
+from = &quot;compare_switch/right-gte&quot;
 to = &quot;output/last&quot;
 </code></pre>
 <h3 id="include-using-37"><a class="header" href="#include-using-37">Include using</a></h3>
@@ -2949,8 +2973,9 @@ output). This involves selecting the structure from the output by route, and the
 <p>Click image to view functions graph.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="range-of-ranges"><a class="header" href="#range-of-ranges">range-of-ranges</a></h1>
 <h1 id="description-14"><a class="header" href="#description-14">Description</a></h1>
-<p>A flow that generates a range of numbers, and for each of them generates a range from 1 upto the numner.
-This is intended as a test case for an issue with two linked flows like 'sequence' that can lead to a deadlock</p>
+<p>A flow that generates a sequence of numbers, and for each of those numbers it generates a sequence
+from 1 upto the number from the sequence.</p>
+<p>This is intended as a test case for having nested flows.</p>
 <h1 id="context-diagram-13"><a class="header" href="#context-diagram-13">Context Diagram</a></h1>
 <p><a href="flowsamples/sequence-of-sequences/root.dot.svg" target="_blank"><img src="flowsamples/sequence-of-sequences/root.dot.svg"></a></p>
 <p>Click image to navigate flow hierarchy.</p>
