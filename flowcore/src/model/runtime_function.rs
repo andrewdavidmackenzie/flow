@@ -147,6 +147,12 @@ impl RuntimeFunction {
         &self.name
     }
 
+    /// Accessor for a `RuntimeFunction` `route`
+    #[cfg(feature = "debugger")]
+    pub fn route(&self) -> &str {
+        &self.route
+    }
+
     /// Accessor for a `RuntimeFunction` `id`
     pub fn id(&self) -> usize {
         self.function_id

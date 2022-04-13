@@ -22,6 +22,7 @@ const HELP_STRING: &str = "Debugger commands:
 'c' | 'continue'             - Continue execution until next breakpoint
 'd' | 'delete' {spec} or '*' - Delete the breakpoint matching {spec} or all with '*'
 'e' | 'exit'                 - Stop flow execution and exit debugger
+'f' | 'functions'            - Show the list of functions
 'h' | 'help' | '?'           - Display this help message
 'i' | 'inspect' [n]          - Inspect the overall state, or the function number 'n'
 'l' | 'list'                 - List all breakpoints
@@ -306,7 +307,7 @@ impl CliDebugClient {
     fn function_list(functions: Vec<RuntimeFunction>) {
         println!("Functions List");
         for function in functions {
-            println!("\t#{} '{}'", function.id(), function.name());
+            println!("\t#{} '{}' @ '{}'", function.id(), function.name(), function.route());
         }
     }
 
