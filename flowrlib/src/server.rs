@@ -62,6 +62,8 @@ pub trait DebugServer {
     fn outputs(&mut self, output: Vec<OutputConnection>);
     /// returns an inputs state
     fn input(&mut self, input: Input);
+    /// lists all functions
+    fn function_list(&mut self, functions: &[RuntimeFunction]);
     /// returns the state of a function
     fn function_state(&mut self, function: RuntimeFunction, function_state: State);
     /// returns the global run state

@@ -13,8 +13,8 @@ use flowrlib::server::DebugServer;
 use crate::{BlockBreakpoint, DataBreakpoint, ExecutionEnded, ExecutionStarted, ExitingDebugger,
             JobCompleted, JobError, Panic, PriorToSendingJob, Resetting, ServerConnection, WAIT,
             WaitingForCommand};
-use crate::DebugServerMessage::{BlockState, Error, FunctionState, InputState, Message,
-                                OutputState, OverallState};
+use crate::DebugServerMessage::{BlockState, Error, Functions, FunctionState, InputState,
+                                Message, OutputState, OverallState};
 
 pub(crate) struct  CliDebugServer {
     pub(crate) debug_server_connection: ServerConnection,
@@ -98,6 +98,12 @@ impl DebugServer for CliDebugServer {
         let _: flowcore::errors::Result<DebugCommand> = self
             .debug_server_connection
             .send_and_receive_response(InputState(input));
+    }
+
+    fn function_list(&mut self, functions: &[RuntimeFunction]) {
+        let _: flowcore::errors::Result<DebugCommand> = self
+            .debug_server_connection
+            .send_and_receive_response(Functions(functions.to_vec()));
     }
 
     // returns the state of a function

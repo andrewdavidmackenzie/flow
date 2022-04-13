@@ -227,6 +227,11 @@ impl RunState {
         }
     }
 
+    /// Get a reference to the vector of all functions
+    pub fn get_functions(&self) -> &Vec<RuntimeFunction> {
+        &self.functions
+    }
+
     /// Reset all values back to initial ones to enable debugging to restart from the initial
     /// state
     #[cfg(feature = "debugger")]
@@ -344,7 +349,7 @@ impl RunState {
 
     /// Figure out the state of a function based on it's presence or not in the different control lists
     #[cfg(any(debug_assertions, feature = "debugger", test))]
-    pub fn get_state(&self, function_id: usize) -> State {
+    pub fn get_function_state(&self, function_id: usize) -> State {
         if self.ready.contains(&function_id) {
             State::Ready
         } else if self.blocked.contains(&function_id) {
@@ -973,7 +978,7 @@ impl RunState {
     #[cfg(debug_assertions)]
     fn check_invariants(&mut self, job_id: usize) {
         for function in &self.functions {
-            match self.get_state(function.id()) {
+            match self.get_function_state(function.id()) {
                 State::Ready => {
                     if !self.busy_flows.contains_key(&function.get_flow_id()) {
                         return self.runtime_error(
@@ -1037,7 +1042,7 @@ impl RunState {
 
             // State::Running is because functions with initializers auto-refill
             // So they will show as inputs full, but not Ready or Blocked
-            let state = self.get_state(function.id());
+            let state = self.get_function_state(function.id());
             if (!function.inputs().is_empty())
                 && (function.input_set_count() > 0)
                 && !(state == State::Ready || state == State::Blocked || state == State::Running)
@@ -1105,7 +1110,7 @@ impl RunState {
 
         // Check busy flow invariants
         for (flow_id, function_id) in self.busy_flows.iter() {
-            let state = self.get_state(*function_id);
+            let state = self.get_function_state(*function_id);
             if !(state == State::Ready || state == State::Running) {
                 return self.runtime_error(job_id, &format!("Busy flow entry exists for Function #{} in Flow #{} but it's state is {:?}",
                                                            function_id, flow_id, state),
@@ -1289,6 +1294,7 @@ mod test {
         fn blocks(&mut self, _blocks: Vec<Block>) {}
         fn outputs(&mut self, _output: Vec<OutputConnection>) {}
         fn input(&mut self, _input: Input) {}
+        fn function_list(&mut self, _functions: &[RuntimeFunction]) {}
         fn function_state(&mut self, _function: RuntimeFunction, _function_state: State) {}
         fn run_state(&mut self, _run_state: &RunState) {}
         fn message(&mut self, _message: String) {}
@@ -1451,11 +1457,11 @@ mod test {
             state.init();
 
             // Test
-            assert_eq!(State::Ready, state.get_state(0), "f_a should be Ready");
+            assert_eq!(State::Ready, state.get_function_state(0), "f_a should be Ready");
             assert_eq!(1, state.number_jobs_ready());
             assert_eq!(
                 State::Waiting,
-                state.get_state(1),
+                state.get_function_state(1),
                 "f_b should be waiting for input"
             );
         }
@@ -1479,12 +1485,12 @@ mod test {
             // Test
             assert_eq!(
                 State::Waiting,
-                state.get_state(0),
+                state.get_function_state(0),
                 "f_a should be waiting for input"
             );
             assert_eq!(
                 State::Waiting,
-                state.get_state(1),
+                state.get_function_state(1),
                 "f_b should be waiting for input"
             );
             #[cfg(feature = "debugger")]
@@ -1511,7 +1517,7 @@ mod test {
             state.init();
 
             // Test
-            assert_eq!(State::Ready, state.get_state(0), "f_a should be Ready");
+            assert_eq!(State::Ready, state.get_function_state(0), "f_a should be Ready");
         }
 
         #[test]
@@ -1530,7 +1536,7 @@ mod test {
             state.init();
 
             // Test
-            assert_eq!(State::Ready, state.get_state(0), "f_a should be Ready");
+            assert_eq!(State::Ready, state.get_function_state(0), "f_a should be Ready");
         }
 
         /*
@@ -1556,10 +1562,10 @@ mod test {
             state.init();
 
             // Test
-            assert_eq!(State::Ready, state.get_state(1), "f_b should be Ready");
+            assert_eq!(State::Ready, state.get_function_state(1), "f_b should be Ready");
             assert_eq!(
                 State::Blocked,
-                state.get_state(0),
+                state.get_function_state(0),
                 "f_a should be in Blocked state"
             );
             #[cfg(feature = "debugger")]
@@ -1598,7 +1604,7 @@ mod test {
             state.init();
 
             // Test
-            assert_eq!(State::Waiting, state.get_state(0), "f_a should be Waiting");
+            assert_eq!(State::Waiting, state.get_function_state(0), "f_a should be Waiting");
         }
 
         #[test]
@@ -1613,7 +1619,7 @@ mod test {
             );
             let mut state = RunState::new(&functions, submission);
             state.init();
-            assert_eq!(State::Ready, state.get_state(0), "f_a should be Ready");
+            assert_eq!(State::Ready, state.get_function_state(0), "f_a should be Ready");
 
             // Event
             let job = state.next_job().expect("Couldn't get next job");
@@ -1624,7 +1630,7 @@ mod test {
             state.start(&job);
 
             // Test
-            assert_eq!(State::Running, state.get_state(0), "f_a should be Running");
+            assert_eq!(State::Running, state.get_function_state(0), "f_a should be Running");
         }
 
         #[test]
@@ -1639,13 +1645,13 @@ mod test {
             );
             let mut state = RunState::new(&functions, submission);
             state.init();
-            assert_eq!(State::Waiting, state.get_state(0), "f_a should be Waiting");
+            assert_eq!(State::Waiting, state.get_function_state(0), "f_a should be Waiting");
 
             // Event
             assert!(state.next_job().is_none(), "next_job() should return None");
 
             // Test
-            assert_eq!(State::Waiting, state.get_state(0), "f_a should be Waiting");
+            assert_eq!(State::Waiting, state.get_function_state(0), "f_a should be Waiting");
         }
 
         #[serial]
@@ -1670,10 +1676,10 @@ mod test {
 
             // Initial state
             state.init();
-            assert_eq!(State::Ready, state.get_state(1), "f_b should be Ready");
+            assert_eq!(State::Ready, state.get_function_state(1), "f_b should be Ready");
             assert_eq!(
                 State::Blocked,
-                state.get_state(0),
+                state.get_function_state(0),
                 "f_a should be in Blocked state, by f_b"
             );
 
@@ -1684,7 +1690,7 @@ mod test {
                 "next() should return function_id=1 (f_b) for running"
             );
             state.start(&job);
-            assert_eq!(State::Running, state.get_state(1), "f_b should be Running");
+            assert_eq!(State::Running, state.get_function_state(1), "f_b should be Running");
 
             // Event
             let output = super::test_output(1, 0);
@@ -1697,7 +1703,7 @@ mod test {
             );
 
             // Test
-            assert_eq!(State::Ready, state.get_state(0), "f_a should be Ready");
+            assert_eq!(State::Ready, state.get_function_state(0), "f_a should be Ready");
         }
 
         #[test]
@@ -1722,10 +1728,10 @@ mod test {
 
             // Initial state
             state.init();
-            assert_eq!(State::Ready, state.get_state(1), "f_b should be Ready");
+            assert_eq!(State::Ready, state.get_function_state(1), "f_b should be Ready");
             assert_eq!(
                 State::Blocked,
-                state.get_state(0),
+                state.get_function_state(0),
                 "f_a should be in Blocked state, by f_b"
             );
 
@@ -1735,7 +1741,7 @@ mod test {
                 "next() should return function_id=1 (f_b) for running"
             );
             state.start(&job);
-            assert_eq!(State::Running, state.get_state(1), "f_b should be Running");
+            assert_eq!(State::Running, state.get_function_state(1), "f_b should be Running");
 
             // Event
             let mut output = super::test_output(1, 0);
@@ -1763,7 +1769,7 @@ mod test {
             );
 
             // Test
-            assert_eq!(State::Ready, state.get_state(0), "f_a should be Ready");
+            assert_eq!(State::Ready, state.get_function_state(0), "f_a should be Ready");
         }
 
         fn test_job() -> Job {
@@ -1807,12 +1813,12 @@ mod test {
                 let mut debugger = super::dummy_debugger(&mut server);
 
             state.init();
-            assert_eq!(State::Ready, state.get_state(0), "f_a should be Ready");
+            assert_eq!(State::Ready, state.get_function_state(0), "f_a should be Ready");
             let job = state.next_job().expect("Couldn't get next job");
             assert_eq!(0, job.function_id, "next() should return function_id = 0");
             state.start(&job);
 
-            assert_eq!(State::Running, state.get_state(0), "f_a should be Running");
+            assert_eq!(State::Running, state.get_function_state(0), "f_a should be Running");
 
             // Event
             let job = test_job();
@@ -1827,7 +1833,7 @@ mod test {
             // Test
             assert_eq!(
                 State::Ready,
-                state.get_state(0),
+                state.get_function_state(0),
                 "f_a should be Ready again"
             );
         }
@@ -1853,12 +1859,12 @@ mod test {
                 let mut debugger = super::dummy_debugger(&mut server);
 
             state.init();
-            assert_eq!(State::Ready, state.get_state(0), "f_a should be Ready");
+            assert_eq!(State::Ready, state.get_function_state(0), "f_a should be Ready");
             let job = state.next_job().expect("Couldn't get next job");
             assert_eq!(0, job.function_id, "next() should return function_id = 0");
             state.start(&job);
 
-            assert_eq!(State::Running, state.get_state(0), "f_a should be Running");
+            assert_eq!(State::Running, state.get_function_state(0), "f_a should be Running");
 
             // Event
             let job = test_job();
@@ -1873,7 +1879,7 @@ mod test {
             // Test
             assert_eq!(
                 State::Waiting,
-                state.get_state(0),
+                state.get_function_state(0),
                 "f_a should be Waiting again"
             );
         }
@@ -1921,7 +1927,7 @@ mod test {
 
             state.init();
 
-            assert_eq!(State::Ready, state.get_state(0), "f_a should be Ready");
+            assert_eq!(State::Ready, state.get_function_state(0), "f_a should be Ready");
 
             let job = state.next_job().expect("Couldn't get next job");
             assert_eq!(
@@ -1930,7 +1936,7 @@ mod test {
             );
             state.start(&job);
 
-            assert_eq!(State::Running, state.get_state(0), "f_a should be Running");
+            assert_eq!(State::Running, state.get_function_state(0), "f_a should be Running");
 
             // Event
             let output = super::test_output(0, 1);
@@ -1943,7 +1949,7 @@ mod test {
             );
 
             // Test f_a should transition to Blocked on f_b
-            assert_eq!(State::Blocked, state.get_state(0), "f_a should be Blocked");
+            assert_eq!(State::Blocked, state.get_function_state(0), "f_a should be Blocked");
         }
 
         #[test]
@@ -1987,7 +1993,7 @@ mod test {
                 let mut debugger = super::dummy_debugger(&mut server);
 
             state.init();
-            assert_eq!(State::Waiting, state.get_state(0), "f_a should be Waiting");
+            assert_eq!(State::Waiting, state.get_function_state(0), "f_a should be Waiting");
 
             // Event run f_b which will send to f_a
             let output = super::test_output(1, 0);
@@ -2000,7 +2006,7 @@ mod test {
             );
 
             // Test
-            assert_eq!(State::Ready, state.get_state(0), "f_a should be Ready");
+            assert_eq!(State::Ready, state.get_function_state(0), "f_a should be Ready");
         }
 
         /*
@@ -2049,9 +2055,9 @@ mod test {
 
             state.init();
 
-            assert_eq!(state.get_state(1), State::Ready, "f_b should be Ready");
+            assert_eq!(state.get_function_state(1), State::Ready, "f_b should be Ready");
             assert_eq!(
-                state.get_state(0),
+                state.get_function_state(0),
                 State::Waiting,
                 "f_a should be in Waiting"
             );
@@ -2073,7 +2079,7 @@ mod test {
             );
 
             // Test
-            assert_eq!(state.get_state(0), State::Ready, "f_a should be Ready");
+            assert_eq!(state.get_function_state(0), State::Ready, "f_a should be Ready");
         }
 
         /*
@@ -2138,9 +2144,9 @@ mod test {
 
             state.init();
 
-            assert_eq!(state.get_state(0), State::Ready, "f_a should be Ready");
+            assert_eq!(state.get_function_state(0), State::Ready, "f_a should be Ready");
             assert_eq!(
-                state.get_state(1),
+                state.get_function_state(1),
                 State::Waiting,
                 "f_b should be in Waiting"
             );
@@ -2170,9 +2176,9 @@ mod test {
             );
 
             // Test
-            assert_eq!(state.get_state(1), State::Ready, "f_b should be Ready");
+            assert_eq!(state.get_function_state(1), State::Ready, "f_b should be Ready");
             assert_eq!(
-                state.get_state(0),
+                state.get_function_state(0),
                 State::Blocked,
                 "f_a should be Blocked on f_b"
             );
@@ -2564,7 +2570,7 @@ mod test {
                 #[cfg(feature = "debugger")]
                 &mut debugger,
             );
-            assert_eq!(State::Waiting, state.get_state(0), "f_a should be Waiting");
+            assert_eq!(State::Waiting, state.get_function_state(0), "f_a should be Waiting");
         }
     }
 

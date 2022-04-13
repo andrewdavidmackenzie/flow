@@ -7,6 +7,7 @@ use serde_json::Value;
 use flowcore::model::output_connection::Source::{Input, Output};
 
 use crate::block::Block;
+use crate::debug_command::DebugCommand;
 use crate::debug_command::DebugCommand::{Ack, Breakpoint, Continue, DebugClientStarting, Delete,
                                          Error, ExitDebugger, Inspect, InspectBlock, InspectFunction, InspectInput,
                                          InspectOutput, Invalid, List, RunReset, Step, Validate
@@ -89,7 +90,7 @@ impl<'a> Debugger<'a> {
     ) -> (bool, bool, bool) {
         if self.break_at_job == job.job_id || self.function_breakpoints.contains(&job.function_id) {
             self.debug_server.job_breakpoint(job, state.get_function(job.function_id),
-                                             state.get_state(job.function_id));
+                                             state.get_function_state(job.function_id));
             return self.wait_for_command(state);
         }
 
@@ -222,11 +223,14 @@ impl<'a> Debugger<'a> {
                     let message = self.list_breakpoints();
                     self.debug_server.message(message);
                 },
+                Ok(DebugCommand::FunctionList) => {
+                    self.debug_server.function_list(state.get_functions());
+                },
                 Ok(Inspect) => self.debug_server.run_state(state),
                 Ok(InspectFunction(function_id)) => {
                     if function_id < state.num_functions() {
                         self.debug_server.function_state(state.get_function(function_id).clone(),
-                                                         state.get_state(function_id));
+                                                         state.get_function_state(function_id));
                     } else {
                         self.debug_server.debugger_error(format!("No function with id = {}", function_id));
                     };

@@ -2,8 +2,9 @@ use log::error;
 use rustyline::Editor;
 
 use flowcore::errors::*;
+use flowcore::model::runtime_function::RuntimeFunction;
 use flowrlib::debug_command::DebugCommand;
-use flowrlib::debug_command::DebugCommand::{Ack, Breakpoint, Continue, Delete, ExitDebugger, Inspect, InspectBlock, InspectFunction, InspectInput, InspectOutput, List, RunReset, Step, Validate};
+use flowrlib::debug_command::DebugCommand::*;
 use flowrlib::param::Param;
 use flowrlib::run_state::{RunState, State};
 
@@ -179,6 +180,7 @@ impl CliDebugClient {
             "c" | "continue" => Some(Continue),
             "d" | "delete" => Some(Delete(param)),
             "e" | "exit" => Some(ExitDebugger),
+            "f" | "functions" => Some(FunctionList),
             "h" | "?" | "help" => { // only command that doesn't send a message to debugger
                 Self::help();
                 self.editor.add_history_entry(command);
@@ -256,13 +258,14 @@ impl CliDebugClient {
                 println!("Error occurred executing a Job: \n'{}'", job);
                 return self.get_user_command(job.job_id);
             }
+            Deadlock(message) => println!("Deadlock detected{}", message),
             EnteringDebugger => println!(
                 "Server is Entering Debugger. Use 'h' or 'help' for help on commands at the prompt"
             ),
             ExitingDebugger => println!("Debugger is exiting"),
             ExecutionStarted => println!("Running flow"),
             ExecutionEnded => println!("Flow has completed"),
-            Deadlock(message) => println!("Deadlock detected{}", message),
+            Functions(functions) => Self::function_list(functions),
             SendingValue(source_process_id, value, destination_id, input_number) => println!(
                 "Function #{} sending '{}' to {}:{}",
                 source_process_id, value, destination_id, input_number
@@ -271,7 +274,7 @@ impl CliDebugClient {
             Message(message) => println!("{}", message),
             Resetting => println!("Resetting state"),
             WaitingForCommand(job_id) => return self.get_user_command(job_id),
-            Invalid => println!("Invalid message received from debug server"),
+            DebugServerMessage::Invalid => println!("Invalid message received from debug server"),
             FunctionState((function, state)) => {
                 print!("{}", function);
                 println!("\tState: {:?}", state);
@@ -300,6 +303,13 @@ impl CliDebugClient {
         Ok(Ack)
     }
 
+    fn function_list(functions: Vec<RuntimeFunction>) {
+        println!("Functions List");
+        for function in functions {
+            println!("\t#{} '{}'", function.id(), function.name());
+        }
+    }
+
     /*
        Display information to the user about the current RunState
     */
@@ -308,7 +318,7 @@ impl CliDebugClient {
 
         for id in 0..run_state.num_functions() {
             print!("{}", run_state.get_function(id));
-            let function_state = run_state.get_state(id);
+            let function_state = run_state.get_function_state(id);
             println!("\tState: {:?}", function_state);
 
             if function_state == State::Running {
@@ -416,10 +426,10 @@ mod test {
         assert_eq!(2, state.num_functions(), "There should be 2 functions");
         assert_eq!(
             State::Blocked,
-            state.get_state(0),
+            state.get_function_state(0),
             "f_a should be in Blocked state"
         );
-        assert_eq!(State::Ready, state.get_state(1), "f_b should be Ready");
+        assert_eq!(State::Ready, state.get_function_state(1), "f_b should be Ready");
         assert_eq!(
             1,
             state.number_jobs_ready(),
@@ -441,7 +451,7 @@ mod test {
         state.start(&job);
 
         // Test
-        assert_eq!(State::Running, state.get_state(1), "f_b should be Running");
+        assert_eq!(State::Running, state.get_function_state(1), "f_b should be Running");
         assert_eq!(
             1,
             state.number_jobs_running(),
