@@ -88,7 +88,8 @@ fn execute_flow(
     let server = if separate_processes {
         println!("Starting the 'flowr' server");
         let mut server_command = Command::new("cargo");
-        let server_command_args = vec!["run", "--quiet", "-p", "flowr", "--", "-n", "-c",
+        // flowr args: -n for native libs, -s to get a server process
+        let server_command_args = vec!["run", "--quiet", "-p", "flowr", "--", "-n", "-s",
         "-C", context_root_str];
 
         // spawn the 'flowr' server child process

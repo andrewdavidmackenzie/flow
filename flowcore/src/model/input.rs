@@ -37,7 +37,7 @@ pub struct Input {
     // The prioritized queue of values received so far (priority, values)
     // priorities will be sparse, 0 the minimum and usize::MAX the maximum
     // values will be an ordered vector of entries, with first at the head and last at the tail
-    #[serde(skip)]
+    #[serde(default = "default_received", skip_serializing_if = "BTreeMap::is_empty")]
     received: BTreeMap<usize, Vec<Value>>,
 
     #[cfg(feature = "debugger")]
@@ -58,18 +58,10 @@ impl From<&IO> for Input {
 impl fmt::Display for Input {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         if !self.name.is_empty() {
-            write!(f, "'{}' ", self.name)?;
+            write!(f, "({}) ", self.name)?;
         }
-        if let Some(initializer) = &self.initializer {
-            write!(f, "Initializer: {:?}, ", initializer)?;
-        }
-        if self.received.is_empty() {
-            write!(f, "Empty")?;
-        } else {
-            write!(f, "Received: ")?;
-            for item in &self.received {
-                write!(f, "{:?}, ", item.1)?;
-            }
+        if !self.received.is_empty() {
+            write!(f, "{:?}", self.received)?;
         }
         Ok(())
     }
@@ -77,6 +69,10 @@ impl fmt::Display for Input {
 
 fn default_initial_value() -> Option<InputInitializer> {
     None
+}
+
+fn default_received() -> BTreeMap<usize, Vec<Value>> {
+    BTreeMap::new()
 }
 
 impl Input {
@@ -152,7 +148,7 @@ impl Input {
 
         match init_value {
             Some(value) => {
-                debug!("\t\tInput #{} initialized with '{:?}'", io_number, value);
+                debug!("\t\tInput:{} initialized with '{:?}'", io_number, value);
                 self.push(0, value);
                 true
             }

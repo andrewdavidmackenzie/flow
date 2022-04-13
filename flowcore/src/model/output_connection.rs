@@ -140,13 +140,8 @@ impl fmt::Display for Source {
 
 impl fmt::Display for OutputConnection {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Output Connection: ")?;
-        write!(f, "'{}'", self.source)?;
-        write!(
-            f,
-            " -> Function #{}({}):{}",
-            self.function_id, self.flow_id, self.io_number
-        )?;
+        write!(f, "Output '{}' -> Function #{}({}):{}", self.source,
+            self.function_id, self.flow_id, self.io_number)?;
         if !self.destination.is_empty() {
             write!(f, " @ '{}'", self.destination)?;
         }

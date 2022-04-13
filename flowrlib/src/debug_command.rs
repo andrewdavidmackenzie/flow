@@ -21,6 +21,8 @@ pub enum DebugCommand {
     Error(String),
     /// `exit` the debugger and runtime
     ExitDebugger,
+    /// List of all functions
+    FunctionList,
     /// `inspect` a function
     InspectFunction(usize),
     /// Inspect overall state
@@ -55,6 +57,7 @@ impl fmt::Display for DebugCommand {
                 DebugCommand::Delete(_) => "Delete",
                 DebugCommand::Error(_) => "Error",
                 DebugCommand::ExitDebugger => "ExitDebugger",
+                DebugCommand::FunctionList => "FunctionList",
                 DebugCommand::InspectFunction(_) => "InspectFunction",
                 DebugCommand::Inspect => "Inspect",
                 DebugCommand::InspectInput(_, _) => "InspectInput",

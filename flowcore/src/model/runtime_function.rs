@@ -69,10 +69,10 @@ impl fmt::Display for RuntimeFunction {
             writeln!(f, " @ '{}'", self.route)?;
         }
 
-        writeln!(f, "\tImplementation Location: '{}'", self.implementation_location)?;
+        writeln!(f, "\t({})", self.implementation_location)?;
 
         for (number, input) in self.inputs.iter().enumerate() {
-            write!(f, "\tInput:{number} {input}")?;
+            writeln!(f, "\tInput:{number} {input}")?;
         }
 
         for output_route in &self.output_connections {
@@ -145,6 +145,12 @@ impl RuntimeFunction {
     #[cfg(feature = "debugger")]
     pub fn name(&self) -> &str {
         &self.name
+    }
+
+    /// Accessor for a `RuntimeFunction` `route`
+    #[cfg(feature = "debugger")]
+    pub fn route(&self) -> &str {
+        &self.route
     }
 
     /// Accessor for a `RuntimeFunction` `id`

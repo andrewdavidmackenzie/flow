@@ -34,19 +34,21 @@ pub enum DebugServerMessage {
     Panic(String, usize),
     /// There was an error executing the Job
     JobError(Job),
+    /// A check has detected that there is a deadlock between functions impeding more execution
+    Deadlock(String),
     /// Execution of the flow has started
     ExecutionStarted,
     /// Execution of the flow has ended
     ExecutionEnded,
-    /// A check has detected that there is a deadlock between functions impeding more execution
-    Deadlock(String),
+    /// An error was detected - includes: A string describing the error
+    Error(String),
+    /// A list of all functions
+    Functions(Vec<RuntimeFunction>),
+    /// The state of a function
+    FunctionState((RuntimeFunction, State)),
     /// A value is being sent from the output of one function to the input of another
     /// includes: source_process_id, value, destination_id, input_number
     SendingValue(usize, Value, usize, usize),
-    /// An error was detected - includes: A string describing the error
-    Error(String),
-    /// The state of a function
-    FunctionState((RuntimeFunction, State)),
     /// The overall state
     OverallState(RunState),
     /// The state of an Input - optional values on it
@@ -77,15 +79,16 @@ impl fmt::Display for DebugServerMessage {
                 DebugServerMessage::PriorToSendingJob(_) => "PriorToSendingJob",
                 DebugServerMessage::BlockBreakpoint(_) => "BlockBreakpoint",
                 DebugServerMessage::DataBreakpoint(_, _, _, _, _, _, _, _) => "DataBreakpoint",
-                DebugServerMessage::Panic(_, _) => "Panic",
-                DebugServerMessage::JobError(_) => "JobError",
+                DebugServerMessage::Deadlock(_) => "Deadlock",
+                DebugServerMessage::Error(_) => "Error",
                 DebugServerMessage::ExecutionStarted => "ExecutionStarted",
                 DebugServerMessage::ExecutionEnded => "ExecutionEnded",
-                DebugServerMessage::Deadlock(_) => "Deadlock",
-                DebugServerMessage::SendingValue(_, _, _, _) => "SendingValue",
-                DebugServerMessage::Error(_) => "Error",
+                DebugServerMessage::Functions(_) => "Functions",
                 DebugServerMessage::FunctionState(_) => "FunctionState",
+                DebugServerMessage::JobError(_) => "JobError",
+                DebugServerMessage::SendingValue(_, _, _, _) => "SendingValue",
                 DebugServerMessage::OverallState(_) => "OverallState",
+                DebugServerMessage::Panic(_, _) => "Panic",
                 DebugServerMessage::InputState(_) => "InputState",
                 DebugServerMessage::OutputState(_) => "OutputState",
                 DebugServerMessage::BlockState(_) => "BlockState",
