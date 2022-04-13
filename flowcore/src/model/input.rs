@@ -58,18 +58,10 @@ impl From<&IO> for Input {
 impl fmt::Display for Input {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         if !self.name.is_empty() {
-            write!(f, "'{}' ", self.name)?;
+            write!(f, "({}) ", self.name)?;
         }
-        if let Some(initializer) = &self.initializer {
-            write!(f, "Initializer: {:?}, ", initializer)?;
-        }
-        if self.received.is_empty() {
-            write!(f, "Empty")?;
-        } else {
-            write!(f, "Received: ")?;
-            for item in &self.received {
-                write!(f, "{:?}, ", item.1)?;
-            }
+        if !self.received.is_empty() {
+            write!(f, "{:?}", self.received)?;
         }
         Ok(())
     }
