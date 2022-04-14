@@ -1135,10 +1135,15 @@ mod test {
     use flowcore::model::output_connection::{OutputConnection, Source};
     use flowcore::model::runtime_function::RuntimeFunction;
 
+    #[cfg(feature = "debugger")]
     use crate::block::Block;
+    #[cfg(feature = "debugger")]
     use crate::debug_command::DebugCommand;
+    #[cfg(feature = "debugger")]
     use crate::debugger::Debugger;
+    #[cfg(feature = "debugger")]
     use crate::run_state::{RunState, State};
+    #[cfg(feature = "debugger")]
     use crate::server::DebugServer;
 
     use super::Job;
@@ -1165,15 +1170,20 @@ mod test {
             0,
             false,
             "/fB".to_string(),
+            #[cfg(feature = "debugger")]
             String::default(),
             0,
         );
 
         RuntimeFunction::new(
+            #[cfg(feature = "debugger")]
             "fA",
+            #[cfg(feature = "debugger")]
             "/fA",
             "file://fake/test",
-            vec![Input::new("", &None)],
+            vec![Input::new(
+                        #[cfg(feature = "debugger")] "",
+                            &None)],
             0,
             0,
             &[connection_to_f1],
@@ -1190,14 +1200,19 @@ mod test {
             0,
             false,
             "/fB".to_string(),
+            #[cfg(feature = "debugger")]
             String::default(),
             0,
         );
         RuntimeFunction::new(
+            #[cfg(feature = "debugger")]
             "fA",
+            #[cfg(feature = "debugger")]
             "/fA",
             "file://fake/test",
-            vec![Input::new("", &Some(Once(json!(1))))],
+            vec![Input::new(
+                            #[cfg(feature = "debugger")] "",
+                            &Some(Once(json!(1))))],
             0,
             0,
             &[connection_to_f1],
@@ -1207,10 +1222,14 @@ mod test {
 
     fn test_function_a_init() -> RuntimeFunction {
         RuntimeFunction::new(
+            #[cfg(feature = "debugger")]
             "fA",
+            #[cfg(feature = "debugger")]
             "/fA",
             "file://fake/test",
-            vec![Input::new("", &Some(Once(json!(1))))],
+            vec![Input::new(
+                #[cfg(feature = "debugger")] "",
+                &Some(Once(json!(1))))],
             0,
             0,
             &[],
@@ -1220,10 +1239,14 @@ mod test {
 
     fn test_function_b_not_init() -> RuntimeFunction {
         RuntimeFunction::new(
+            #[cfg(feature = "debugger")]
             "fB",
+            #[cfg(feature = "debugger")]
             "/fB",
             "file://fake/test",
-            vec![Input::new("", &None)],
+            vec![Input::new(
+                #[cfg(feature = "debugger")] "",
+                &None)],
             1,
             0,
             &[],
@@ -1233,10 +1256,14 @@ mod test {
 
     fn test_function_b_init() -> RuntimeFunction {
         RuntimeFunction::new(
+            #[cfg(feature = "debugger")]
             "fB",
+            #[cfg(feature = "debugger")]
             "/fB",
             "file://fake/test",
-            vec![Input::new("", &Some(Once(json!(1))))],
+            vec![Input::new(
+                #[cfg(feature = "debugger")] "",
+                &Some(Once(json!(1))))],
             1,
             0,
             &[],
@@ -1253,6 +1280,7 @@ mod test {
             0,
             false,
             String::default(),
+            #[cfg(feature = "debugger")]
             String::default(),
             0,
         );
@@ -1307,13 +1335,10 @@ mod test {
 
         #[cfg(feature = "debugger")]
                 use multimap::MultiMap;
-        #[cfg(any(feature = "debugger", feature = "metrics"))]
         use url::Url;
 
-        #[cfg(any(feature = "debugger", feature = "metrics"))]
         use flowcore::model::submission::Submission;
 
-        #[cfg(any(feature = "debugger", feature = "metrics"))]
         use super::super::RunState;
 
         #[test]
@@ -1564,10 +1589,14 @@ mod test {
 
         fn test_function_a_not_init() -> RuntimeFunction {
             RuntimeFunction::new(
+                #[cfg(feature = "debugger")]
                 "fA",
+                #[cfg(feature = "debugger")]
                 "/fA",
                 "file://fake/test",
-                vec![Input::new("", &None)],
+                vec![Input::new(
+                    #[cfg(feature = "debugger")] "",
+                    &None)],
                 0,
                 0,
                 &[],
@@ -1742,6 +1771,7 @@ mod test {
                 0,
                 false,
                 String::default(),
+                #[cfg(feature = "debugger")]
                 String::default(),
                 0,
             );
@@ -1775,10 +1805,14 @@ mod test {
         #[serial]
         fn running_to_ready_on_done() {
             let f_a = RuntimeFunction::new(
+                #[cfg(feature = "debugger")]
                 "fA",
+                #[cfg(feature = "debugger")]
                 "/fA",
                 "file://fake/test",
-                vec![Input::new("", &Some(Always(json!(1))))],
+                vec![Input::new(
+                    #[cfg(feature = "debugger")] "",
+                    &Some(Always(json!(1))))],
                 0,
                 0,
                 &[],
@@ -1883,14 +1917,19 @@ mod test {
                 0,
                 false,
                 String::default(),
+                #[cfg(feature = "debugger")]
                 String::default(),
                 0,
             );
             let f_a = RuntimeFunction::new(
+                #[cfg(feature = "debugger")]
                 "fA",
+                #[cfg(feature = "debugger")]
                 "/fA",
                 "file://fake/test",
-                vec![Input::new("", &Some(Always(json!(1))))],
+                vec![Input::new(
+                    #[cfg(feature = "debugger")] "",
+                    &Some(Always(json!(1))))],
                 0,
                 0,
                 &[out_conn],
@@ -1951,14 +1990,19 @@ mod test {
                 0,
                 false,
                 String::default(),
+                #[cfg(feature = "debugger")]
                 String::default(),
                 0,
             );
             let f_b = RuntimeFunction::new(
+                #[cfg(feature = "debugger")]
                 "fB",
+                #[cfg(feature = "debugger")]
                 "/fB",
                 "file://fake/test",
-                vec![Input::new("", &None)],
+                vec![Input::new(
+                    #[cfg(feature = "debugger")] "",
+                    &None)],
                 1,
                 0,
                 &[out_conn],
@@ -2012,14 +2056,19 @@ mod test {
                 0,
                 false,
                 String::default(),
+                #[cfg(feature = "debugger")]
                 String::default(),
                 0,
             );
             let f_b = RuntimeFunction::new(
+                #[cfg(feature = "debugger")]
                 "fB",
+                #[cfg(feature = "debugger")]
                 "/fB",
                 "file://fake/test",
-                vec![Input::new("", &Some(Always(json!(1))))],
+                vec![Input::new(
+                    #[cfg(feature = "debugger")] "",
+                    &Some(Always(json!(1))))],
                 1,
                 0,
                 &[connection_to_f0],
@@ -2085,6 +2134,7 @@ mod test {
                 0,
                 false,
                 String::default(),
+                #[cfg(feature = "debugger")]
                 String::default(),
                 0,
             );
@@ -2096,15 +2146,20 @@ mod test {
                 0,
                 false,
                 String::default(),
+                #[cfg(feature = "debugger")]
                 String::default(),
                 0,
             );
 
             let f_a = RuntimeFunction::new(
+                #[cfg(feature = "debugger")]
                 "fA",
+                #[cfg(feature = "debugger")]
                 "/fA",
                 "file://fake/test",
-                vec![Input::new("", &Some(Once(json!(1))))],
+                vec![Input::new(
+                    #[cfg(feature = "debugger")] "",
+                    &Some(Once(json!(1))))],
                 0,
                 0,
                 &[
@@ -2144,8 +2199,8 @@ mod test {
                 "next() should return function_id=0 (f_a) for running"
             );
 
-            // Event: run f_a
-            let job = Job {
+            // Event: fake running of function fA
+            let result_job = Job {
                 job_id: 0,
                 function_id: 0,
                 flow_id: 0,
@@ -2157,7 +2212,7 @@ mod test {
             state.complete_job(
                 #[cfg(feature = "metrics")]
                 &mut metrics,
-                &job,
+                &result_job,
                 #[cfg(feature = "debugger")]
                 &mut debugger,
             );
@@ -2226,6 +2281,7 @@ mod test {
                 0,
                 false,
                 String::default(),
+                #[cfg(feature = "debugger")]
                 String::default(),
                 0,
             );
@@ -2237,11 +2293,14 @@ mod test {
                 0,
                 false,
                 String::default(),
+                #[cfg(feature = "debugger")]
                 String::default(),
                 0,
             );
             let p0 = RuntimeFunction::new(
+                #[cfg(feature = "debugger")]
                 "p0",
+                #[cfg(feature = "debugger")]
                 "/p0",
                 "file://fake/test/p0",
                 vec![], // input array
@@ -2251,20 +2310,28 @@ mod test {
                 false,
             ); // implementation
             let p1 = RuntimeFunction::new(
+                #[cfg(feature = "debugger")]
                 "p1",
+                #[cfg(feature = "debugger")]
                 "/p1",
                 "file://fake/test/p1",
-                vec![Input::new("", &None)], // inputs array
+                vec![Input::new(
+                    #[cfg(feature = "debugger")] "",
+                    &None)], // inputs array
                 1,
                 0,
                 &[],
                 false,
             );
             let p2 = RuntimeFunction::new(
+                #[cfg(feature = "debugger")]
                 "p2",
+                #[cfg(feature = "debugger")]
                 "/p2",
                 "file://fake/test/p2",
-                vec![Input::new("", &None)], // inputs array
+                vec![Input::new(
+                    #[cfg(feature = "debugger")] "",
+                    &None)], // inputs array
                 2,
                 0,
                 &[],
@@ -2596,10 +2663,14 @@ mod test {
 
         fn test_function() -> RuntimeFunction {
             RuntimeFunction::new(
+                #[cfg(feature = "debugger")]
                 "test",
+                #[cfg(feature = "debugger")]
                 "/test",
                 "file://fake/test",
-                vec![Input::new("", &None)],
+                vec![Input::new(
+                    #[cfg(feature = "debugger")] "",
+                    &None)],
                 0,
                 0,
                 &[],
@@ -2714,6 +2785,7 @@ mod test {
                     test_case.destination_array_order,
                     test_case.destination_is_generic,
                     String::default(),
+                    #[cfg(feature = "debugger")]
                     String::default(),
                     0,
                 );

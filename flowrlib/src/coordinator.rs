@@ -10,13 +10,16 @@ use flowcore::model::flow_manifest::FlowManifest;
 use flowcore::model::metrics::Metrics;
 use flowcore::model::submission::Submission;
 
+#[cfg(feature = "debugger")]
 use crate::debugger::Debugger;
 use crate::errors::*;
 use crate::execution;
 use crate::job::Job;
 use crate::loader::Loader;
 use crate::run_state::RunState;
-use crate::server::{DebugServer, Server};
+#[cfg(feature = "debugger")]
+use crate::server::DebugServer;
+use crate::server::Server;
 
 /// The `Coordinator` is responsible for coordinating the dispatching of jobs (consisting
 /// of a set of Input values and an Implementation of a Function) for execution,
@@ -112,7 +115,6 @@ impl<'a> Coordinator<'a> {
             self.debugger.start();
         }
 
-        #[cfg(feature = "debugger")]
         let (mut display_next_output, mut restart, mut exit_debugger);
         restart = false;
         display_next_output = false;

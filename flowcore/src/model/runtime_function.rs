@@ -237,7 +237,7 @@ impl RuntimeFunction {
     }
 
     /// Inspect the values of the `inputs` of a `RuntimeFunction`
-    #[cfg(feature = "debugger")]
+    #[cfg(any(feature = "debugger", debug_assertions))]
     pub fn inputs(&self) -> &Vec<Input> {
         &self.inputs
     }

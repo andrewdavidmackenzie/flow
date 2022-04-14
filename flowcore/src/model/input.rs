@@ -10,6 +10,7 @@ use crate::errors::*;
 use crate::model::io::IO;
 #[cfg(feature = "debugger")]
 use crate::model::name::HasName;
+#[cfg(feature = "debugger")]
 use crate::model::name::Name;
 
 #[derive(Clone, Debug, Serialize, PartialEq, Deserialize)]

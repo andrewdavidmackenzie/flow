@@ -1,16 +1,24 @@
+#[cfg(feature = "debugger")]
 use serde_json::Value;
 
 use flowcore::errors::*;
+#[cfg(feature = "debugger")]
 use flowcore::model::input::Input;
 #[cfg(feature = "metrics")]
 use flowcore::model::metrics::Metrics;
+#[cfg(feature = "debugger")]
 use flowcore::model::output_connection::OutputConnection;
+#[cfg(feature = "debugger")]
 use flowcore::model::runtime_function::RuntimeFunction;
 use flowcore::model::submission::Submission;
 
+#[cfg(feature = "debugger")]
 use crate::block::Block;
+#[cfg(feature = "debugger")]
 use crate::debug_command::DebugCommand;
+#[cfg(feature = "debugger")]
 use crate::job::Job;
+#[cfg(feature = "debugger")]
 use crate::run_state::{RunState, State};
 
 /// A `Server` implements a number of "callbacks" to communicate between a CLI/UI and background
@@ -40,6 +48,7 @@ pub trait Server {
 
 /// a `DebugServer` implements these "callbacks" in order to communicate between a CLI/UI
 /// implementation of one and the background flow coordinator executing the flow and debugger
+#[cfg(feature = "debugger")]
 pub trait DebugServer {
     /// Start the debugger - which swallows the first message to initialize the connection
     fn start(&mut self);
