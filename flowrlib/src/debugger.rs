@@ -358,9 +358,10 @@ impl<'a> Debugger<'a> {
                     ));
                 } else {
                     self.function_breakpoints.insert(process_id);
+                    let function = state.get_function(process_id);
                     response.push_str(&format!(
-                        "Breakpoint set on Function #{}\n",
-                        process_id
+                        "Breakpoint set on Function #{} ({}) @ '{}'\n",
+                        process_id, function.name(), function.route()
                     ));
                 }
             }
