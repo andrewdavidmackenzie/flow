@@ -270,21 +270,8 @@ impl RunState {
 
         let mut inputs_ready_list = Vec::<(usize, usize)>::new();
 
-        debug!("Initializing all functions");
+        debug!("Initializing inputs with initializers");
         for function in &mut self.functions {
-            #[cfg(feature = "debugger")]
-            debug!(
-                "\tInitializing Function #{} '{}' in Flow #{}",
-                function.id(),
-                function.name(),
-                function.get_flow_id()
-            );
-            #[cfg(not(feature = "debugger"))]
-            debug!(
-                "\tInitializing Function #{} in Flow #{}",
-                function.id(),
-                function.get_flow_id()
-            );
             function.init_inputs(true);
             if function.input_set_count() > 0 {
                 inputs_ready_list.push((function.id(), function.get_flow_id()));

@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 #[cfg(feature = "debugger")]
 use std::fmt;
 
-use log::{debug, trace};
+use log::trace;
 use serde_derive::{Deserialize, Serialize};
 use serde_json::Value;
 
@@ -148,7 +148,7 @@ impl Input {
 
         match init_value {
             Some(value) => {
-                debug!("\t\tInput:{} initialized with '{:?}'", io_number, value);
+                trace!("\t\tInput:{} initialized with '{:?}'", io_number, value);
                 self.push(0, value);
                 true
             }

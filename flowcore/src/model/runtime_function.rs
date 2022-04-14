@@ -2,7 +2,7 @@
 use std::fmt;
 use std::sync::Arc;
 
-use log::trace;
+use log::debug;
 use serde_derive::{Deserialize, Serialize};
 use serde_json::Value;
 
@@ -163,12 +163,25 @@ impl RuntimeFunction {
         self.flow_id
     }
 
-    /// Initialize all of a `RuntimeFunction` `Inputs` - as they may have initializers that need running
+    /// Initialize all of a `RuntimeFunction` `Inputs` that have initializers on them
     pub fn init_inputs(&mut self, first_time: bool) -> bool {
         let mut inputs_initialized = false;
         for (io_number, input) in &mut self.inputs.iter_mut().enumerate() {
             if input.is_empty() && input.init(first_time, io_number) {
-                trace!("\t\tInput #{}:{} set from initializer", self.function_id, io_number);
+                #[cfg(feature = "debugger")]
+                debug!(
+                    "\tInitialized Input #{}({}):{} '{}' ",
+                    self.function_id,
+                    self.flow_id,
+                    io_number,
+                    self.name);
+                #[cfg(not(feature = "debugger"))]
+                debug!(
+                    "\tInitialized Input #{}({}):{} ",
+                    self.function_id,
+                    self.flow_id,
+                    io_number);
+
                 inputs_initialized = true;
             }
         }
