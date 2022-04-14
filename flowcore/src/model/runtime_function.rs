@@ -238,6 +238,12 @@ impl RuntimeFunction {
         num_input_sets
     }
 
+    /// Can this function run and produce an output, either because it has input sets to allow it
+    /// to run, or because it has no inputs (must be impure) and can produce values
+    pub fn can_produce_output(&self) -> bool {
+        self.inputs.is_empty() || self.input_set_count() > 0
+    }
+
     /// Inspect the values of the `inputs` of a `RuntimeFunction`
     #[cfg(any(feature = "debugger", debug_assertions))]
     pub fn inputs(&self) -> &Vec<Input> {

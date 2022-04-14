@@ -272,7 +272,7 @@ impl RunState {
         debug!("Initializing inputs with initializers");
         for function in &mut self.functions {
             function.init_inputs(true);
-            if function.input_set_count() > 0 {
+            if function.can_produce_output() {
                 inputs_ready_list.push((function.id(), function.get_flow_id()));
             }
         }
@@ -300,7 +300,7 @@ impl RunState {
             let source_id = source_function.id();
             let source_flow_id = source_function.get_flow_id();
             let destinations = source_function.get_output_connections();
-            let source_has_inputs_full = source_function.input_set_count() > 0;
+            let source_has_inputs_full = source_function.can_produce_output();
 
             for destination in destinations {
                 if destination.function_id != source_id {
@@ -517,7 +517,7 @@ impl RunState {
 
                 // Only decide if the sender should be Ready after sending all values in case blocks created
                 let function = self.get_function(job.function_id);
-                if function.input_set_count() > 0 {
+                if function.can_produce_output() {
                     self.can_produce_output(
                         job.function_id,
                         job.flow_id,
@@ -637,6 +637,8 @@ impl RunState {
         metrics.increment_outputs_sent(); // not distinguishing array serialization / wrapping etc
 
         let block = function.input_count(connection.io_number) > 0;
+        // NOTE: We have just sent a value to this functions inputs, so it *has* inputs
+        // the the impure function without inputs case for input_set_count() does not apply
         let new_input_set_available = function.input_set_count() > count_before;
 
         // Avoid a function blocking on itself when sending itself a value via a loopback
@@ -877,7 +879,7 @@ impl RunState {
                 );
                 self.blocked.remove(&unblocked_id);
 
-                if self.get_function(unblocked_id).input_set_count() > 0 {
+                if self.get_function(unblocked_id).can_produce_output() {
                     trace!(
                         "\t\t\t\tFunction #{} has inputs ready, so added to 'ready' list",
                         unblocked_id
@@ -999,7 +1001,7 @@ impl RunState {
             // So they will show as inputs full, but not Ready or Blocked
             let state = self.get_function_state(function.id());
             if (!function.inputs().is_empty())
-                && (function.input_set_count() > 0)
+                && function.can_produce_output()
                 && !(state == State::Ready || state == State::Blocked || state == State::Running)
             {
                 #[cfg(feature = "debugger")]
