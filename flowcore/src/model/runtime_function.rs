@@ -226,6 +226,8 @@ impl RuntimeFunction {
     }
 
     /// Returns how many inputs sets are available across all the `RuntimeFunction` `Inputs`
+    /// NOTE: For Impure functions without inputs (that can always run and produce a value)
+    /// this will return usize::MAX
     pub fn input_set_count(&self) -> usize {
         let mut num_input_sets = usize::MAX;
 

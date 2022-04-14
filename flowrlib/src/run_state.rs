@@ -232,8 +232,7 @@ impl RunState {
         &self.functions
     }
 
-    /// Reset all values back to initial ones to enable debugging to restart from the initial
-    /// state
+    // Reset all values back to initial ones to enable debugging to restart from the initial state
     #[cfg(feature = "debugger")]
     fn reset(&mut self) {
         debug!("Resetting RunState");
@@ -284,13 +283,13 @@ impl RunState {
         // Put all functions that have their inputs ready and are not blocked on the `ready` list
         debug!("Readying initial functions: inputs full and not blocked on output");
         for (id, flow_id) in inputs_ready_list {
-            self.new_input_set(id, flow_id, true);
+            self.can_produce_output(id, flow_id);
         }
     }
 
-    /// Scan through all functions and output routes for each, if the destination input is already
-    /// full due to the init process, then create a block for the sender and added sender to blocked
-    /// list.
+    // Scan through all functions and output routes for each, if the destination input is already
+    // full due to the init process, then create a block for the sender and added sender to blocked
+    // list.
     fn create_init_blocks(&mut self) {
         let mut blocks = HashSet::<Block>::new();
         let mut blocked = HashSet::<usize>::new();
@@ -414,8 +413,8 @@ impl RunState {
         self.jobs_created
     }
 
-    /// Given a function id, prepare a job for execution that contains the input values, the
-    /// implementation and the destination functions the output should be sent to when done
+    // Given a function id, prepare a job for execution that contains the input values, the
+    // implementation and the destination functions the output should be sent to when done
     fn create_job(&mut self, function_id: usize) -> Option<Job> {
         self.jobs_created += 1;
         let job_id = self.jobs_created;
@@ -474,19 +473,15 @@ impl RunState {
         if let Ok(result) = &job.result {
             let output_value = &result.0;
             let function_can_run_again = result.1;
-            let mut loopback_value_sent = false;
 
             #[cfg(feature = "debugger")]
-            let function_name = self.get_function(job.function_id).name();
+            debug!("Job #{}: Function #{} '{}' {:?} -> {:?}", job.job_id, job.function_id,
+                    self.get_function(job.function_id).name(), job.input_set,  output_value);
+            #[cfg(not(feature = "debugger"))]
+            debug!("Job #{}: Function #{} {:?} -> {:?}", job.job_id, job.function_id,
+                    job.input_set,  output_value);
 
             if let Some(output_v) = output_value {
-            #[cfg(feature = "debugger")]
-                debug!("Job #{}: Function #{} '{}' {:?} -> {:?}", job.job_id, job.function_id,
-                    function_name, job.input_set,  output_v);
-            #[cfg(not(feature = "debugger"))]
-                debug!("Job #{}: Function #{} {:?} -> {:?}", job.job_id, job.function_id,
-                    job.input_set,  output_v);
-
                 for destination in &job.connections {
                     let value_to_send = match &destination.source {
                         Output(route) => output_v.pointer(route),
@@ -494,9 +489,6 @@ impl RunState {
                     };
 
                     if let Some(value) = value_to_send {
-                        if job.function_id == destination.function_id {
-                            loopback_value_sent = true;
-                        }
                         self.send_value(
                             job.function_id,
                             job.flow_id,
@@ -514,23 +506,27 @@ impl RunState {
                         );
                     }
                 }
-            } else {
-            #[cfg(feature = "debugger")]
-                debug!("Job #{}: Function #{} '{}' ({:?})", job.job_id, job.function_id,
-                    function_name, job.input_set);
-            #[cfg(not(feature = "debugger"))]
-                debug!("Job #{}: Function #{} ({:?})", job.job_id, job.function_id,
-                    job.input_set);
-            }
-
-            // if the function can run again, then refill inputs from any possible initializers
-            if function_can_run_again {
-                self.refill_inputs(job.function_id, job.flow_id, loopback_value_sent);
-            } else {
-                self.mark_as_completed(job.function_id);
             }
 
             self.remove_from_busy(job.function_id);
+
+            if function_can_run_again {
+                // Once done sending values to other functions (and possibly itself via a loopback)
+                // if the function can run again, then refill any inputs with initializers
+                self.init_inputs(job.function_id);
+
+                // Only decide if the sender should be Ready after sending all values in case blocks created
+                let function = self.get_function(job.function_id);
+                if function.input_set_count() > 0 {
+                    self.can_produce_output(
+                        job.function_id,
+                        job.flow_id,
+                    );
+                }
+            } else {
+                // otherwise mark it as completed as it will never run again
+                self.mark_as_completed(job.function_id);
+            }
 
             // need to do flow unblocks as that could affect other functions even if this one cannot run again
             self.unblock_flows(job.flow_id, job.job_id);
@@ -538,6 +534,11 @@ impl RunState {
 
         #[cfg(debug_assertions)]
         self.check_invariants(job_id);
+    }
+
+    // Initialize any input of the sending function that has an initializer
+    fn init_inputs(&mut self, function_id: usize) {
+        self.get_mut(function_id).init_inputs(false);
     }
 
     // Take a json data value and return the array order for it
@@ -589,10 +590,8 @@ impl RunState {
         true // a value was sent!
     }
 
-    /*
-        Send a value produced as part of an output of running a job to a destination function on
-        a specific input, update the metrics and potentially enter the debugger
-    */
+    // Send a value produced as part of an output of running a job to a destination function on
+    // a specific input, update the metrics and potentially enter the debugger
     fn send_value(
         &mut self,
         source_id: usize,
@@ -640,10 +639,7 @@ impl RunState {
         let block = function.input_count(connection.io_number) > 0;
         let new_input_set_available = function.input_set_count() > count_before;
 
-        // for the case when a function is sending to itself:
-        // - avoid blocking on itself
-        // - delay determining if it should be in the blocked or ready lists)
-        //   until it has sent all it's other outputs as it might be blocked by another function.
+        // Avoid a function blocking on itself when sending itself a value via a loopback
         if block && !loopback {
             // TODO pass in destination and combine Block and OutputConnection?
             self.create_block(
@@ -657,25 +653,11 @@ impl RunState {
             );
         }
 
+        // postpone the decision about making the sending function Ready due to a loopback
+        // value sent to itself, as it may send to other functions and be blocked.
+        // But for all other receivers of values, possibly make them Ready now
         if new_input_set_available && !loopback {
-            self.new_input_set(connection.function_id, connection.flow_id, true);
-        }
-    }
-
-    // Refresh any inputs that have initializers on them, and update the state if inputs are now full
-    fn refill_inputs(&mut self, function_id: usize, flow_id: usize, loopback_value_sent: bool) {
-        let function = self.get_mut(function_id);
-
-        let _count_before = function.input_set_count();
-
-        let input_initialized = function.init_inputs(false);
-
-        if function.input_set_count() > 0 {
-            self.new_input_set(
-                function_id,
-                flow_id,
-                input_initialized || loopback_value_sent,
-            );
+            self.can_produce_output(connection.function_id, connection.flow_id);
         }
     }
 
@@ -751,40 +733,26 @@ impl RunState {
         input_blockers
     }
 
-    /// Save the fact that a new set of inputs are available for processing at the Function's inputs
-    /// so it maybe ready to run (if not blocked sending on it's output)
-    fn new_input_set(&mut self, id: usize, flow_id: usize, value_sent: bool) {
-        // TODO I think this first part should maybe be somewhere else - a block between this function
-        // and the one it wants to send to exists - but until now it did not have inputs and couldn't
-        // go ready. Now it has inputs and could run, if not blocked, so it's added to the blocked list
-        // TODO if we predicate this on "value_sent" also then it breaks matrix_mult sample
+    // A function may be able to produce output, either because:
+    // - it has a full set of inputs, so can be run and produce an output
+    // - it has no input and is impure, so can run and produce an output
+    fn can_produce_output(&mut self, id: usize, flow_id: usize) {
         if self.blocked_sending(id) {
-            trace!(
-                "\t\t\tFunction #{} blocked on output. Added to 'Blocked' list",
-                id
-            );
-            // so put it on the blocked list
+            trace!( "\t\t\tFunction #{} blocked on output. State set to 'Blocked'", id);
             self.blocked.insert(id);
         } else {
-            // If a value was sent to the function (from another, from initializer or from loopback) then make ready
-            // If the function has inputs backed-up and is not ready, then make ready
-            if value_sent {
-                trace!(
-                    "\t\t\tFunction #{} not blocked on output. Added to 'Ready' list",
-                    id
-                );
-                self.mark_ready(id, flow_id);
-            }
+            trace!("\t\t\tFunction #{} not blocked on output. State set to 'Ready'", id);
+            self.mark_ready(id, flow_id);
         }
     }
 
-    /// Mark a function "ready" to run, by adding it's id to the ready list
+    // Mark a function "ready" to run, by adding it's id to the ready list
     fn mark_ready(&mut self, function_id: usize, flow_id: usize) {
         self.ready.push_back(function_id);
         self.busy_flows.insert(flow_id, function_id);
     }
 
-    /// See if there is any block where the blocked function is the one we're looking for
+    // See if there is any block where the blocked function is the one we're looking for
     fn blocked_sending(&self, id: usize) -> bool {
         for block in &self.blocks {
             if block.blocked_id == id {
@@ -800,12 +768,12 @@ impl RunState {
         self.functions.len()
     }
 
-    /// The function blocker_function_id in flow blocked_flow_id has completed execution and so
-    /// is a candidate to send to from other functions that were blocked sending to it previously.
-    ///
-    /// But we don't want to unblock them to send to it, until all other functions inside this flow
-    /// are idle, and hence the flow becomes idle.
-    pub fn unblock_senders(
+    // The function blocker_function_id in flow blocked_flow_id has completed execution and so
+    // is a candidate to send to from other functions that were blocked sending to it previously.
+    //
+    // But we don't want to unblock them to send to it, until all other functions inside this flow
+    // are idle, and hence the flow becomes idle.
+    fn unblock_senders(
         &mut self,
         job_id: usize,
         blocker_function_id: usize,
@@ -832,7 +800,7 @@ impl RunState {
         );
     }
 
-    /// Detect which flows have gone inactive and remove pending unblocks for functions in it
+    // Detect which flows have gone inactive and remove pending unblocks for functions in it
     fn unblock_flows(&mut self, blocker_flow_id: usize, job_id: usize) {
         let flow_external_blocks = |block: &Block| block.blocking_flow_id != block.blocked_flow_id;
 
@@ -858,12 +826,12 @@ impl RunState {
         }
     }
 
-    /// Mark a function (via its ID) as having run to completion 
+    // Mark a function (via its ID) as having run to completion
     fn mark_as_completed(&mut self, function_id: usize) {
         self.completed.insert(function_id);
     }
 
-    /// Remove ONE entry of <flow_id, function_id> from the busy_flows multi-map
+    // Remove ONE entry of <flow_id, function_id> from the busy_flows multi-map
     fn remove_from_busy(&mut self, blocker_function_id: usize) {
         let mut count = 0;
         self.busy_flows.retain(|&_flow_id, &function_id| {
@@ -877,11 +845,11 @@ impl RunState {
         trace!("\t\t\tUpdated busy_flows list to: {:?}", self.busy_flows);
     }
 
-    /// unblock all functions that were blocked trying to send to blocker_function_id by removing all entries
-    /// in the `blocks` list where the first value (blocking_id) matches blocker_function_id.
-    ///
-    /// Once each is unblocked, if it's inputs are full, then it is ready to be run again,
-    /// so mark as ready
+    // unblock all functions that were blocked trying to send to blocker_function_id by removing all entries
+    // in the `blocks` list where the first value (blocking_id) matches blocker_function_id.
+    //
+    // Once each is unblocked, if it's inputs are full, then it is ready to be run again,
+    // so mark as ready
     fn unblock_senders_to_function<F>(&mut self, blocker_function_id: usize, f: F)
     where
         F: Fn(&Block) -> bool,
@@ -920,8 +888,8 @@ impl RunState {
         }
     }
 
-    /// Create a 'block" indicating that function 'blocked_id' cannot run as it has an output
-    /// destination to an input on function 'blocking_id' that is already full.
+    // Create a 'block" indicating that function 'blocked_id' cannot run as it has an output
+    // destination to an input on function 'blocking_id' that is already full.
     fn create_block(
         &mut self,
         blocking_flow_id: usize,
@@ -2163,8 +2131,8 @@ mod test {
                 0,
                 0,
                 &[
-                    connection_to_0.clone(), // outputs to self:0
-                    connection_to_1.clone(), // outputs to f_b:0
+                    connection_to_0, // outputs to self:0
+                    connection_to_1, // outputs to f_b:0
                 ],
                 false,
             );
@@ -2193,26 +2161,16 @@ mod test {
                 "f_b should be in Waiting"
             );
 
-            assert_eq!(
-                state.next_job().expect("Couldn't get next job").function_id,
-                0,
-                "next() should return function_id=0 (f_a) for running"
-            );
+            let mut job = state.next_job().expect("Couldn't get next job");
+            assert_eq!(job.function_id, 0, "Expected job with function_id=0");
 
             // Event: fake running of function fA
-            let result_job = Job {
-                job_id: 0,
-                function_id: 0,
-                flow_id: 0,
-                implementation: super::test_impl(),
-                input_set: vec![json!(1)],
-                result: Ok((Some(json!(1)), true)),
-                connections: vec![connection_to_0, connection_to_1],
-            };
+            job.result = Ok((Some(json!(1)), true));
+
             state.complete_job(
                 #[cfg(feature = "metrics")]
                 &mut metrics,
-                &result_job,
+                &job,
                 #[cfg(feature = "debugger")]
                 &mut debugger,
             );
@@ -2405,7 +2363,7 @@ mod test {
             let mut state = RunState::new(&test_functions(), submission);
 
             // Put 0 on the blocked/ready
-            state.new_input_set(0, 0, true);
+            state.can_produce_output(0, 0);
 
             assert_eq!(
                 state.next_job().expect("Couldn't get next job").function_id,
@@ -2424,7 +2382,7 @@ mod test {
             let mut state = RunState::new(&test_functions(), submission);
 
             // Put 0 on the blocked/ready list depending on blocked status
-            state.new_input_set(0, 0, true);
+            state.can_produce_output(0, 0);
 
             assert_eq!(
                 state.next_job().expect("Couldn't get next job").function_id,
@@ -2459,7 +2417,7 @@ mod test {
             );
 
             // Put 0 on the blocked/ready list depending on blocked status
-            state.new_input_set(0, 0, true);
+            state.can_produce_output(0, 0);
 
             assert!(state.next_job().is_none());
         }
@@ -2490,7 +2448,7 @@ mod test {
                 &mut debugger,
             );
             // 0's inputs are now full, so it would be ready if it weren't blocked on output
-            state.new_input_set(0, 0, true);
+            state.can_produce_output(0, 0);
             // 0 does not show as ready.
             assert!(state.next_job().is_none());
 
@@ -2541,7 +2499,7 @@ mod test {
             );
 
             // Put 0 on the blocked/ready list depending on blocked status
-            state.new_input_set(0, 0, true);
+            state.can_produce_output(0, 0);
 
             assert!(state.next_job().is_none());
 
@@ -2563,9 +2521,9 @@ mod test {
             let mut state = RunState::new(&test_functions(), submission);
 
             // Put 0 on the ready list
-            state.new_input_set(0, 0, true);
+            state.can_produce_output(0, 0);
             // Put 1 on the ready list
-            state.new_input_set(1, 0, true);
+            state.can_produce_output(1, 0);
 
             let job = state.next_job().expect("Couldn't get next job");
             assert_eq!(0, job.function_id);
