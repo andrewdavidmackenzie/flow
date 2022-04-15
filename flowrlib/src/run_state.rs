@@ -363,9 +363,16 @@ impl RunState {
         states
     }
 
+    /// See if the function is in only the specified state
+    #[cfg(any(debug_assertions, feature = "debugger", test))]
+    pub fn function_state_is_only(&self, function_id: usize, state: State) -> bool {
+        let function_states = self.get_function_states(function_id);
+        function_states.len() == 1 && function_states.contains(&state)
+    }
+
     /// See if there is at least one instance of a function in the given state
     #[cfg(any(debug_assertions, feature = "debugger", test))]
-    pub fn function_state_among(&self, function_id: usize, state: State) -> bool {
+    pub fn function_states_includes(&self, function_id: usize, state: State) -> bool {
         match state {
             State::Ready => self.ready.contains(&function_id),
             State::Blocked => self.blocked.contains(&function_id),
@@ -373,9 +380,9 @@ impl RunState {
             State::Completed => self.completed.contains(&function_id),
             State::Waiting => {
                 !self.ready.contains(&function_id) &&
-                !self.blocked.contains(&function_id) &&
-                !self.running.contains_key(&function_id) &&
-                !self.completed.contains(&function_id)
+                    !self.blocked.contains(&function_id) &&
+                    !self.running.contains_key(&function_id) &&
+                    !self.completed.contains(&function_id)
             }
         }
     }
@@ -1329,10 +1336,10 @@ mod test {
             state.init();
 
             // Test
-            assert!(state.function_state_among(0, State::Ready), "f_a should be Ready");
+            assert!(state.function_state_is_only(0, State::Ready), "f_a should be Ready");
             assert_eq!(1, state.number_jobs_ready());
             assert!(
-                state.function_state_among(1, State::Waiting),
+                state.function_state_is_only(1, State::Waiting),
                 "f_b should be waiting for input"
             );
         }
@@ -1355,11 +1362,11 @@ mod test {
 
             // Test
             assert!(
-                state.function_state_among(0, State::Waiting),
+                state.function_state_is_only(0, State::Waiting),
                 "f_a should be waiting for input"
             );
             assert!(
-                state.function_state_among(1, State::Waiting),
+                state.function_state_is_only(1, State::Waiting),
                 "f_b should be waiting for input"
             );
             #[cfg(feature = "debugger")]
@@ -1386,7 +1393,7 @@ mod test {
             state.init();
 
             // Test
-            assert!(state.function_state_among(0, State::Ready), "f_a should be Ready");
+            assert!(state.function_state_is_only(0, State::Ready), "f_a should be Ready");
         }
 
         #[test]
@@ -1405,7 +1412,7 @@ mod test {
             state.init();
 
             // Test
-            assert!(state.function_state_among(0, State::Ready), "f_a should be Ready");
+            assert!(state.function_state_is_only(0, State::Ready), "f_a should be Ready");
         }
 
         /*
@@ -1431,9 +1438,9 @@ mod test {
             state.init();
 
             // Test
-            assert!(state.function_state_among(1, State::Ready), "f_b should be Ready");
+            assert!(state.function_state_is_only(1, State::Ready), "f_b should be Ready");
             assert!(
-                state.function_state_among(0, State::Blocked),
+                state.function_state_is_only(0, State::Blocked),
                 "f_a should be in Blocked state"
             );
             #[cfg(feature = "debugger")]
@@ -1476,7 +1483,7 @@ mod test {
             state.init();
 
             // Test
-            assert!(state.function_state_among(0, State::Waiting), "f_a should be Waiting");
+            assert!(state.function_state_is_only(0, State::Waiting), "f_a should be Waiting");
         }
 
         #[test]
@@ -1491,7 +1498,7 @@ mod test {
             );
             let mut state = RunState::new(&functions, submission);
             state.init();
-            assert!(state.function_state_among(0, State::Ready), "f_a should be Ready");
+            assert!(state.function_state_is_only(0, State::Ready), "f_a should be Ready");
 
             // Event
             let job = state.next_job().expect("Couldn't get next job");
@@ -1502,7 +1509,7 @@ mod test {
             state.start(&job);
 
             // Test
-            assert!(state.function_state_among(0, State::Running), "f_a should be Running");
+            assert!(state.function_state_is_only(0, State::Running), "f_a should be Running");
         }
 
         #[test]
@@ -1517,13 +1524,13 @@ mod test {
             );
             let mut state = RunState::new(&functions, submission);
             state.init();
-            assert!(state.function_state_among(0, State::Waiting), "f_a should be Waiting");
+            assert!(state.function_state_is_only(0, State::Waiting), "f_a should be Waiting");
 
             // Event
             assert!(state.next_job().is_none(), "next_job() should return None");
 
             // Test
-            assert!(state.function_state_among(0, State::Waiting), "f_a should be Waiting");
+            assert!(state.function_state_is_only(0, State::Waiting), "f_a should be Waiting");
         }
 
         #[serial]
@@ -1548,9 +1555,9 @@ mod test {
 
             // Initial state
             state.init();
-            assert!(state.function_state_among(1, State::Ready), "f_b should be Ready");
+            assert!(state.function_state_is_only(1, State::Ready), "f_b should be Ready");
             assert!(
-                state.function_state_among(0, State::Blocked),
+                state.function_state_is_only(0, State::Blocked),
                 "f_a should be in Blocked state, by f_b"
             );
 
@@ -1561,7 +1568,7 @@ mod test {
                 "next() should return function_id=1 (f_b) for running"
             );
             state.start(&job);
-            assert!(state.function_state_among(1, State::Running), "f_b should be Running");
+            assert!(state.function_state_is_only(1, State::Running), "f_b should be Running");
 
             // Event
             let output = super::test_output(1, 0);
@@ -1574,7 +1581,7 @@ mod test {
             );
 
             // Test
-            assert!(state.function_state_among(0, State::Ready), "f_a should be Ready");
+            assert!(state.function_state_is_only(0, State::Ready), "f_a should be Ready");
         }
 
         #[test]
@@ -1599,9 +1606,9 @@ mod test {
 
             // Initial state
             state.init();
-            assert!(state.function_state_among(1, State::Ready), "f_b should be Ready");
-            assert!(state.function_state_among(0, State::Blocked),
-                "f_a should be in Blocked state, by f_b"
+            assert!(state.function_state_is_only(1, State::Ready), "f_b should be Ready");
+            assert!(state.function_state_is_only(0, State::Blocked),
+                    "f_a should be in Blocked state, by f_b"
             );
 
             let job = state.next_job().expect("Couldn't get next job");
@@ -1610,7 +1617,7 @@ mod test {
                 "next() should return function_id=1 (f_b) for running"
             );
             state.start(&job);
-            assert!(state.function_state_among(1, State::Running), "f_b should be Running");
+            assert!(state.function_state_is_only(1, State::Running), "f_b should be Running");
 
             // Event
             let mut output = super::test_output(1, 0);
@@ -1639,7 +1646,7 @@ mod test {
             );
 
             // Test
-            assert!(state.function_state_among(0, State::Ready), "f_a should be Ready");
+            assert!(state.function_state_is_only(0, State::Ready), "f_a should be Ready");
         }
 
         fn test_job() -> Job {
@@ -1687,12 +1694,12 @@ mod test {
                 let mut debugger = super::dummy_debugger(&mut server);
 
             state.init();
-            assert!(state.function_state_among(0, State::Ready), "f_a should be Ready");
+            assert!(state.function_state_is_only(0, State::Ready), "f_a should be Ready");
             let job = state.next_job().expect("Couldn't get next job");
             assert_eq!(0, job.function_id, "next() should return function_id = 0");
             state.start(&job);
 
-            assert!(state.function_state_among(0, State::Running), "f_a should be Running");
+            assert!(state.function_state_is_only(0, State::Running), "f_a should be Running");
 
             // Event
             let job = test_job();
@@ -1706,7 +1713,7 @@ mod test {
 
             // Test
             assert!(
-                state.function_state_among(0, State::Ready),
+                state.function_state_is_only(0, State::Ready),
                 "f_a should be Ready again"
             );
         }
@@ -1732,12 +1739,12 @@ mod test {
                 let mut debugger = super::dummy_debugger(&mut server);
 
             state.init();
-            assert!(state.function_state_among(0, State::Ready), "f_a should be Ready");
+            assert!(state.function_state_is_only(0, State::Ready), "f_a should be Ready");
             let job = state.next_job().expect("Couldn't get next job");
             assert_eq!(0, job.function_id, "next() should return function_id = 0");
             state.start(&job);
 
-            assert!(state.function_state_among(0, State::Running), "f_a should be Running");
+            assert!(state.function_state_is_only(0, State::Running), "f_a should be Running");
 
             // Event
             let job = test_job();
@@ -1750,8 +1757,8 @@ mod test {
             );
 
             // Test
-            assert!(state.function_state_among(0, State::Waiting),
-                "f_a should be Waiting again"
+            assert!(state.function_state_is_only(0, State::Waiting),
+                    "f_a should be Waiting again"
             );
         }
 
@@ -1803,7 +1810,7 @@ mod test {
 
             state.init();
 
-            assert!(state.function_state_among(0, State::Ready), "f_a should be Ready");
+            assert!(state.function_state_is_only(0, State::Ready), "f_a should be Ready");
 
             let job = state.next_job().expect("Couldn't get next job");
             assert_eq!(
@@ -1812,7 +1819,7 @@ mod test {
             );
             state.start(&job);
 
-            assert!(state.function_state_among(0, State::Running), "f_a should be Running");
+            assert!(state.function_state_is_only(0, State::Running), "f_a should be Running");
 
             // Event
             let output = super::test_output(0, 1);
@@ -1825,7 +1832,7 @@ mod test {
             );
 
             // Test f_a should transition to Blocked on f_b
-            assert!(state.function_state_among(0, State::Blocked), "f_a should be Blocked");
+            assert!(state.function_state_is_only(0, State::Blocked), "f_a should be Blocked");
         }
 
         #[test]
@@ -1874,7 +1881,7 @@ mod test {
                 let mut debugger = super::dummy_debugger(&mut server);
 
             state.init();
-            assert!(state.function_state_among(0, State::Waiting), "f_a should be Waiting");
+            assert!(state.function_state_is_only(0, State::Waiting), "f_a should be Waiting");
 
             // Event run f_b which will send to f_a
             let output = super::test_output(1, 0);
@@ -1887,7 +1894,7 @@ mod test {
             );
 
             // Test
-            assert!(state.function_state_among(0, State::Ready), "f_a should be Ready");
+            assert!(state.function_state_is_only(0, State::Ready), "f_a should be Ready");
         }
 
         /*
@@ -1941,9 +1948,9 @@ mod test {
 
             state.init();
 
-            assert!(state.function_state_among(1, State::Ready), "f_b should be Ready");
+            assert!(state.function_state_is_only(1, State::Ready), "f_b should be Ready");
             assert!(
-                state.function_state_among(0, State::Waiting),
+                state.function_state_is_only(0, State::Waiting),
                 "f_a should be in Waiting"
             );
 
@@ -1964,7 +1971,7 @@ mod test {
             );
 
             // Test
-            assert!(state.function_state_among(0, State::Ready), "f_a should be Ready");
+            assert!(state.function_state_is_only(0, State::Ready), "f_a should be Ready");
         }
 
         /*
@@ -2035,9 +2042,9 @@ mod test {
 
             state.init();
 
-            assert!(state.function_state_among(0, State::Ready), "f_a should be Ready");
-            assert!(state.function_state_among(1, State::Waiting),
-                "f_b should be in Waiting"
+            assert!(state.function_state_is_only(0, State::Ready), "f_a should be Ready");
+            assert!(state.function_state_is_only(1, State::Waiting),
+                    "f_b should be in Waiting"
             );
 
             let mut job = state.next_job().expect("Couldn't get next job");
@@ -2055,9 +2062,9 @@ mod test {
             );
 
             // Test
-            assert!(state.function_state_among(1, State::Ready), "f_b should be Ready");
-            assert!(state.function_state_among(0, State::Blocked),
-                "f_a should be Blocked on f_b"
+            assert!(state.function_state_is_only(1, State::Ready), "f_b should be Ready");
+            assert!(state.function_state_is_only(0, State::Blocked),
+                    "f_a should be Blocked on f_b"
             );
 
             let job = state.next_job().expect("Couldn't get next job");
@@ -2459,7 +2466,7 @@ mod test {
                 #[cfg(feature = "debugger")]
                 &mut debugger,
             );
-            assert!(state.function_state_among(0, State::Waiting), "f_a should be Waiting");
+            assert!(state.function_state_is_only(0, State::Waiting), "f_a should be Waiting");
         }
     }
 

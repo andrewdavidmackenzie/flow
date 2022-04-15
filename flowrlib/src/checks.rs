@@ -156,13 +156,13 @@ pub(crate) fn check_invariants(state: &RunState, job_id: usize) {
 
     // Check busy flow invariants
     for (flow_id, function_id) in state.get_busy_flows().iter() {
-        if !state.function_state_among(*function_id, State::Ready) &&
-            !state.function_state_among(*function_id, State::Running) {
+        if !state.function_states_includes(*function_id, State::Ready) &&
+            !state.function_states_includes(*function_id, State::Running) {
             return runtime_error(
                             state,
                             job_id,
-                    &format!("Busy flow entry exists for Function #{} in Flow #{} but it's states are {:?}",
-                                                       function_id, flow_id, state.get_function_states(*function_id)),
+                    &format!("Busy flow entry exists for Function #{} in Flow #{} but it's not Ready nor Running",
+                                                       function_id, flow_id),
                     file!(), line!());
         }
     }

@@ -426,10 +426,10 @@ mod test {
         // Test
         assert_eq!(2, state.num_functions(), "There should be 2 functions");
         assert!(
-            state.function_state_among(0, State::Blocked),
+            state.function_state_is_only(0, State::Blocked),
             "f_a should be in Blocked state"
         );
-        assert!(state.function_state_among(1, State::Ready), "f_b should be Ready");
+        assert!(state.function_state_is_only(1, State::Ready), "f_b should be Ready");
         assert_eq!(1, state.number_jobs_ready(), "There should be 1 job running");
         let mut blocked = HashSet::new();
         blocked.insert(0);
@@ -447,7 +447,7 @@ mod test {
         state.start(&job);
 
         // Test
-        assert!(state.function_state_among(1, State::Running), "f_b should be Running");
+        assert!(state.function_state_is_only(1, State::Running), "f_b should be Running");
         assert_eq!(
             1,
             state.number_jobs_running(),
