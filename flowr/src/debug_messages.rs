@@ -45,7 +45,7 @@ pub enum DebugServerMessage {
     /// A list of all functions
     Functions(Vec<RuntimeFunction>),
     /// The state of a function
-    FunctionState((RuntimeFunction, State)),
+    FunctionStates((RuntimeFunction, Vec<State>)),
     /// A value is being sent from the output of one function to the input of another
     /// includes: source_process_id, value, destination_id, input_number
     SendingValue(usize, Value, usize, usize),
@@ -84,7 +84,7 @@ impl fmt::Display for DebugServerMessage {
                 DebugServerMessage::ExecutionStarted => "ExecutionStarted",
                 DebugServerMessage::ExecutionEnded => "ExecutionEnded",
                 DebugServerMessage::Functions(_) => "Functions",
-                DebugServerMessage::FunctionState(_) => "FunctionState",
+                DebugServerMessage::FunctionStates(_) => "FunctionState",
                 DebugServerMessage::JobError(_) => "JobError",
                 DebugServerMessage::SendingValue(_, _, _, _) => "SendingValue",
                 DebugServerMessage::OverallState(_) => "OverallState",

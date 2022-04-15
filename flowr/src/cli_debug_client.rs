@@ -276,7 +276,7 @@ impl CliDebugClient {
             Resetting => println!("Resetting state"),
             WaitingForCommand(job_id) => return self.get_user_command(job_id),
             DebugServerMessage::Invalid => println!("Invalid message received from debug server"),
-            FunctionState((function, state)) => {
+            FunctionStates((function, state)) => {
                 print!("{}", function);
                 println!("\tState: {:?}", state);
             }
@@ -319,17 +319,17 @@ impl CliDebugClient {
 
         for id in 0..run_state.num_functions() {
             print!("{}", run_state.get_function(id));
-            let function_state = run_state.get_function_state(id);
-            println!("\tState: {:?}", function_state);
+            let function_states = run_state.get_function_states(id);
+            println!("\tStates: {:?}", function_states);
 
-            if function_state == State::Running {
+            if function_states.contains(&State::Running) {
                 println!(
                     "\t\tJob Numbers Running: {:?}",
                     run_state.get_running().get_vec(&id)
                 );
             }
 
-            if function_state == State::Blocked {
+            if function_states.contains(&State::Blocked) {
                 for block in run_state.get_blocks() {
                     if block.blocked_id == id {
                         println!("\t\t{:?}", block);
@@ -425,17 +425,12 @@ mod test {
 
         // Test
         assert_eq!(2, state.num_functions(), "There should be 2 functions");
-        assert_eq!(
-            State::Blocked,
-            state.get_function_state(0),
+        assert!(
+            state.function_state_among(0, State::Blocked),
             "f_a should be in Blocked state"
         );
-        assert_eq!(State::Ready, state.get_function_state(1), "f_b should be Ready");
-        assert_eq!(
-            1,
-            state.number_jobs_ready(),
-            "There should be 1 job running"
-        );
+        assert!(state.function_state_among(1, State::Ready), "f_b should be Ready");
+        assert_eq!(1, state.number_jobs_ready(), "There should be 1 job running");
         let mut blocked = HashSet::new();
         blocked.insert(0);
 
@@ -452,7 +447,7 @@ mod test {
         state.start(&job);
 
         // Test
-        assert_eq!(State::Running, state.get_function_state(1), "f_b should be Running");
+        assert!(state.function_state_among(1, State::Running), "f_b should be Running");
         assert_eq!(
             1,
             state.number_jobs_running(),

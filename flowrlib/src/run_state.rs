@@ -333,20 +333,65 @@ impl RunState {
         self.blocked = blocked;
     }
 
-    /// Figure out the state of a function based on it's presence or not in the different control lists
+    // Figure out the state of a function based on it's presence or not in the different control lists
+    // TODO obsolete this as assumes only one state per function...
     #[cfg(any(debug_assertions, feature = "debugger", test))]
-    pub fn get_function_state(&self, function_id: usize) -> State {
-        if self.ready.contains(&function_id) {
+    fn get_function_state(&self, function_id: usize) -> State {
+        if self.completed.contains(&function_id) {
+            State::Completed
+        } else if self.ready.contains(&function_id) {
             State::Ready
         } else if self.blocked.contains(&function_id) {
             State::Blocked
         } else if self.running.contains_key(&function_id) {
             State::Running
-        } else if self.completed.contains(&function_id) {
-            State::Completed
-        }
-        else {
+        } else {
             State::Waiting
+        }
+    }
+
+    /// Figure out the states a function is in - based on it's presence or not in the different control lists
+    #[cfg(any(debug_assertions, feature = "debugger", test))]
+    pub fn get_function_states(&self, function_id: usize) -> Vec<State> {
+        let mut states = vec![];
+
+        if self.completed.contains(&function_id) {
+            states.push(State::Completed);
+        }
+
+        if self.ready.contains(&function_id) {
+            states.push(State::Ready);
+        }
+
+        if self.blocked.contains(&function_id) {
+            states.push(State::Blocked);
+        }
+
+        if self.running.contains_key(&function_id) {
+            states.push(State::Running);
+        }
+
+        if states.is_empty() {
+            states.push(State::Waiting);
+        }
+
+        states
+    }
+
+    /// See if there is at least one instance of a function in the given state
+    #[cfg(any(debug_assertions, feature = "debugger", test))]
+    pub fn function_state_among(&self, function_id: usize, state: State) -> bool {
+        match state {
+            State::Ready => self.ready.contains(&function_id),
+            State::Blocked => self.blocked.contains(&function_id),
+            State::Running => self.running.contains_key(&function_id),
+            State::Completed => self.completed.contains(&function_id),
+            State::Waiting => {
+                !self.ready.contains(&function_id) &&
+                !self.blocked.contains(&function_id) &&
+                !self.running.contains_key(&function_id) &&
+                !self.completed.contains(&function_id)
+            }
         }
     }
 
@@ -470,129 +515,78 @@ impl RunState {
         #[cfg(debug_assertions)]
         let job_id = job.job_id;
 
-        if let Ok(result) = &job.result {
-            let output_value = &result.0;
-            let function_can_run_again = result.1;
+        match &job.result {
+            Ok(result) => {
+                let output_value = &result.0;
+                let function_can_run_again = result.1;
 
-            #[cfg(feature = "debugger")]
-            debug!("Job #{}: Function #{} '{}' {:?} -> {:?}", job.job_id, job.function_id,
-                    self.get_function(job.function_id).name(), job.input_set,  output_value);
-            #[cfg(not(feature = "debugger"))]
-            debug!("Job #{}: Function #{} {:?} -> {:?}", job.job_id, job.function_id,
-                    job.input_set,  output_value);
+                #[cfg(feature = "debugger")]
+                debug!("Job #{}: Function #{} '{}' {:?} -> {:?}", job.job_id, job.function_id,
+                        self.get_function(job.function_id).name(), job.input_set,  output_value);
+                #[cfg(not(feature = "debugger"))]
+                debug!("Job #{}: Function #{} {:?} -> {:?}", job.job_id, job.function_id,
+                        job.input_set,  output_value);
 
-            if let Some(output_v) = output_value {
-                for destination in &job.connections {
-                    let value_to_send = match &destination.source {
-                        Output(route) => output_v.pointer(route),
-                        Input(index) => job.input_set.get(*index),
-                    };
+                if let Some(output_v) = output_value {
+                    for destination in &job.connections {
+                        let value_to_send = match &destination.source {
+                            Output(route) => output_v.pointer(route),
+                            Input(index) => job.input_set.get(*index),
+                        };
 
-                    if let Some(value) = value_to_send {
-                        self.send_value(
-                            job.function_id,
-                            job.flow_id,
-                            destination,
-                            value,
-                            #[cfg(feature = "metrics")]
-                            metrics,
-                            #[cfg(feature = "debugger")]
-                            debugger,
-                        );
-                    } else {
-                        trace!(
-                            "Job #{}:\t\tNo value found at '{}'",
-                            job.job_id, &destination.source
-                        );
+                        if let Some(value) = value_to_send {
+                            self.send_a_value(
+                                job.function_id,
+                                job.flow_id,
+                                destination,
+                                value,
+                                #[cfg(feature = "metrics")]
+                                    metrics,
+                                #[cfg(feature = "debugger")]
+                                    debugger,
+                            );
+                        } else {
+                            trace!(
+                                "Job #{}:\t\tNo value found at '{}'",
+                                job.job_id, &destination.source
+                            );
+                        }
                     }
                 }
-            }
 
-            self.remove_from_busy(job.function_id);
+                if function_can_run_again {
+                    // Once done sending values to other functions (and possibly itself via a loopback)
+                    // if the function can run again, then refill any inputs with initializers
+                    self.init_inputs(job.function_id);
 
-            if function_can_run_again {
-                // Once done sending values to other functions (and possibly itself via a loopback)
-                // if the function can run again, then refill any inputs with initializers
-                self.init_inputs(job.function_id);
-
-                // Only decide if the sender should be Ready after sending all values in case blocks created
-                let function = self.get_function(job.function_id);
-                if function.can_produce_output() {
-                    self.can_produce_output(
-                        job.function_id,
-                        job.flow_id,
-                    );
+                    // Only decide if the sender should be Ready after sending all values in case blocks created
+                    let function = self.get_function(job.function_id);
+                    if function.can_produce_output() {
+                        self.can_produce_output(
+                            job.function_id,
+                            job.flow_id,
+                        );
+                    }
+                } else {
+                    // otherwise mark it as completed as it will never run again
+                    self.mark_as_completed(job.function_id);
                 }
-            } else {
-                // otherwise mark it as completed as it will never run again
-                self.mark_as_completed(job.function_id);
-            }
-
-            // need to do flow unblocks as that could affect other functions even if this one cannot run again
-            self.unblock_flows(job.flow_id, job.job_id);
+            },
+            Err(e) => error!("Error in Job#{}: {}", job.job_id, e)
         }
+
+        self.remove_from_busy(job.function_id);
+
+        // need to do flow unblocks as that could affect other functions even if this one cannot run again
+        self.unblock_flows(job.flow_id, job.job_id);
 
         #[cfg(debug_assertions)]
         self.check_invariants(job_id);
     }
 
-    // Initialize any input of the sending function that has an initializer
-    fn init_inputs(&mut self, function_id: usize) {
-        self.get_mut(function_id).init_inputs(false);
-    }
-
-    // Take a json data value and return the array order for it
-    fn array_order(value: &Value) -> i32 {
-        match value {
-            Value::Array(array) if !array.is_empty() => 1 + Self::array_order(&array[0]),
-            Value::Array(array) if array.is_empty() => 1,
-            _ => 0,
-        }
-    }
-
-    // Do the necessary serialization of an array to values, or wrapping of a value into an array
-    // in order to convert the value on expected by the destination, if possible, send the value
-    // and return true. If the conversion cannot be done and no value is sent, return false.
-    fn type_convert_and_send(
-        function: &mut RuntimeFunction,
-        connection: &OutputConnection,
-        value: &Value,
-    ) -> bool {
-        if connection.is_generic() {
-            function.send(connection.io_number, connection.get_priority(), value);
-        } else {
-            match (
-                (Self::array_order(value) - connection.destination_array_order),
-                value,
-            ) {
-                (0, _) => function.send(connection.io_number,
-                                        connection.get_priority(),  value),
-                (1, Value::Array(array)) => function.send_iter(connection.io_number,
-                                                               connection.get_priority(), array),
-                (2, Value::Array(array_2)) => {
-                    for array in array_2.iter() {
-                        if let Value::Array(sub_array) = array {
-                            function.send_iter(connection.io_number,
-                                               connection.get_priority(), sub_array)
-                        }
-                    }
-                }
-                (-1, _) => function.send(connection.io_number,
-                                         connection.get_priority(), &json!([value])),
-                (-2, _) => function.send(connection.io_number,
-                                         connection.get_priority(), &json!([[value]])),
-                _ => {
-                    error!("Unable to handle difference in array order");
-                    return false;
-                },
-            }
-        }
-        true // a value was sent!
-    }
-
     // Send a value produced as part of an output of running a job to a destination function on
     // a specific input, update the metrics and potentially enter the debugger
-    fn send_value(
+    fn send_a_value(
         &mut self,
         source_id: usize,
         source_flow_id: usize,
@@ -651,7 +645,7 @@ impl RunState {
                 source_id,
                 source_flow_id,
                 #[cfg(feature = "debugger")]
-                debugger,
+                    debugger,
             );
         }
 
@@ -661,6 +655,60 @@ impl RunState {
         if new_input_set_available && !loopback {
             self.can_produce_output(connection.function_id, connection.flow_id);
         }
+    }
+
+    // Initialize any input of the sending function that has an initializer
+    fn init_inputs(&mut self, function_id: usize) {
+        self.get_mut(function_id).init_inputs(false);
+    }
+
+    // Take a json data value and return the array order for it
+    fn array_order(value: &Value) -> i32 {
+        match value {
+            Value::Array(array) if !array.is_empty() => 1 + Self::array_order(&array[0]),
+            Value::Array(array) if array.is_empty() => 1,
+            _ => 0,
+        }
+    }
+
+    // Do the necessary serialization of an array to values, or wrapping of a value into an array
+    // in order to convert the value on expected by the destination, if possible, send the value
+    // and return true. If the conversion cannot be done and no value is sent, return false.
+    fn type_convert_and_send(
+        function: &mut RuntimeFunction,
+        connection: &OutputConnection,
+        value: &Value,
+    ) -> bool {
+        if connection.is_generic() {
+            function.send(connection.io_number, connection.get_priority(), value);
+        } else {
+            match (
+                (Self::array_order(value) - connection.destination_array_order),
+                value,
+            ) {
+                (0, _) => function.send(connection.io_number,
+                                        connection.get_priority(),  value),
+                (1, Value::Array(array)) => function.send_iter(connection.io_number,
+                                                               connection.get_priority(), array),
+                (2, Value::Array(array_2)) => {
+                    for array in array_2.iter() {
+                        if let Value::Array(sub_array) = array {
+                            function.send_iter(connection.io_number,
+                                               connection.get_priority(), sub_array)
+                        }
+                    }
+                }
+                (-1, _) => function.send(connection.io_number,
+                                         connection.get_priority(), &json!([value])),
+                (-2, _) => function.send(connection.io_number,
+                                         connection.get_priority(), &json!([[value]])),
+                _ => {
+                    error!("Unable to handle difference in array order");
+                    return false;
+                },
+            }
+        }
+        true // a value was sent!
     }
 
     /// Start executing `Job`
@@ -935,66 +983,68 @@ impl RunState {
     #[cfg(debug_assertions)]
     fn check_invariants(&mut self, job_id: usize) {
         for function in &self.functions {
-            match self.get_function_state(function.id()) {
-                State::Ready => {
-                    if !self.busy_flows.contains_key(&function.get_flow_id()) {
-                        return self.runtime_error(
-                            job_id,
-                            &format!(
-                                "Function #{} is Ready, but Flow #{} is not busy",
-                                function.id(),
-                                function.get_flow_id()
-                            ),
-                            file!(),
-                            line!(),
-                        );
+            for state in self.get_function_states(function.id()) {
+                match state {
+                    State::Ready => {
+                        if !self.busy_flows.contains_key(&function.get_flow_id()) {
+                            return self.runtime_error(
+                                job_id,
+                                &format!(
+                                    "Function #{} is Ready, but Flow #{} is not busy",
+                                    function.id(),
+                                    function.get_flow_id()
+                                ),
+                                file!(),
+                                line!(),
+                            );
+                        }
                     }
+                    State::Running => {
+                        if !self.busy_flows.contains_key(&function.get_flow_id()) {
+                            return self.runtime_error(
+                                job_id,
+                                &format!(
+                                    "Function #{} is Running, but Flow #{} is not busy",
+                                    function.id(),
+                                    function.get_flow_id()
+                                ),
+                                file!(),
+                                line!(),
+                            );
+                        }
+                    }
+                    State::Blocked => {
+                        if !self.blocked_sending(function.id()) {
+                            return self.runtime_error(
+                                job_id,
+                                &format!(
+                                    "Function #{} is in Blocked state, but no block exists",
+                                    function.id()
+                                ),
+                                file!(),
+                                line!(),
+                            );
+                        }
+                    }
+                    State::Waiting => {},
+                    State::Completed => {
+                        // If completed, should not be in any of the other states
+                        if self.ready.contains(&function.id()) ||
+                        self.blocked.contains(&function.id()) ||
+                        self.running.contains_key(&function.id())
+                        {
+                            return self.runtime_error(
+                                job_id,
+                                &format!(
+                                    "Function #{} has Completed, but also appears as Ready or Blocked or Running",
+                                    function.id(),
+                                ),
+                                file!(),
+                                line!(),
+                            );
+                        }
+                    },
                 }
-                State::Running => {
-                    if !self.busy_flows.contains_key(&function.get_flow_id()) {
-                        return self.runtime_error(
-                            job_id,
-                            &format!(
-                                "Function #{} is Running, but Flow #{} is not busy",
-                                function.id(),
-                                function.get_flow_id()
-                            ),
-                            file!(),
-                            line!(),
-                        );
-                    }
-                }
-                State::Blocked => {
-                    if !self.blocked_sending(function.id()) {
-                        return self.runtime_error(
-                            job_id,
-                            &format!(
-                                "Function #{} is in Blocked state, but no block exists",
-                                function.id()
-                            ),
-                            file!(),
-                            line!(),
-                        );
-                    }
-                }
-                State::Waiting => {},
-                State::Completed => {
-                    // If completed, should not be in any of the other states
-                    if self.ready.contains(&function.id()) ||
-                    self.blocked.contains(&function.id()) ||
-                    self.running.contains_key(&function.id())
-                    {
-                        return self.runtime_error(
-                            job_id,
-                            &format!(
-                                "Function #{} has Completed, but also appears as Ready or Blocked or Running",
-                                function.id(),
-                            ),
-                            file!(),
-                            line!(),
-                        );
-                    }
-                },
             }
 
             // State::Running is because functions with initializers auto-refill
@@ -1067,10 +1117,10 @@ impl RunState {
 
         // Check busy flow invariants
         for (flow_id, function_id) in self.busy_flows.iter() {
-            let state = self.get_function_state(*function_id);
-            if !(state == State::Ready || state == State::Running) {
+            if !self.function_state_among(*function_id, State::Ready) &&
+                !self.function_state_among(*function_id, State::Running) {
                 return self.runtime_error(job_id, &format!("Busy flow entry exists for Function #{} in Flow #{} but it's state is {:?}",
-                                                           function_id, flow_id, state),
+                                                           function_id, flow_id, self.get_function_state(*function_id)),
                                           file!(), line!());
             }
         }
@@ -1270,7 +1320,7 @@ mod test {
     #[cfg(feature = "debugger")]
     impl DebugServer for DummyServer {
         fn start(&mut self) {}
-        fn job_breakpoint(&mut self, _job: &Job, _function: &RuntimeFunction, _state: State) {}
+        fn job_breakpoint(&mut self, _job: &Job, _function: &RuntimeFunction, _states: Vec<State>) {}
         fn block_breakpoint(&mut self, _block: &Block) {}
         fn send_breakpoint(&mut self, _: &str, _source_process_id: usize, _output_route: &str, _value: &Value,
                            _destination_id: usize, _destination_name:&str, _input_name: &str, _input_number: usize) {}
@@ -1280,7 +1330,7 @@ mod test {
         fn outputs(&mut self, _output: Vec<OutputConnection>) {}
         fn input(&mut self, _input: Input) {}
         fn function_list(&mut self, _functions: &[RuntimeFunction]) {}
-        fn function_state(&mut self, _function: RuntimeFunction, _function_state: State) {}
+        fn function_states(&mut self, _function: RuntimeFunction, _function_states: Vec<State>) {}
         fn run_state(&mut self, _run_state: &RunState) {}
         fn message(&mut self, _message: String) {}
         fn panic(&mut self, _state: &RunState, _error_message: String) {}
