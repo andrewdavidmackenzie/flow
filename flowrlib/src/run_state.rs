@@ -16,6 +16,8 @@ use flowcore::model::runtime_function::RuntimeFunction;
 use flowcore::model::submission::Submission;
 
 use crate::block::Block;
+#[cfg(debug_assertions)]
+use crate::checks;
 #[cfg(feature = "debugger")]
 use crate::debugger::Debugger;
 use crate::job::Job;
@@ -283,7 +285,7 @@ impl RunState {
         // Put all functions that have their inputs ready and are not blocked on the `ready` list
         debug!("Readying initial functions: inputs full and not blocked on output");
         for (id, flow_id) in inputs_ready_list {
-            self.can_produce_output(id, flow_id);
+            self.make_ready_or_blocked(id, flow_id);
         }
     }
 
@@ -331,23 +333,6 @@ impl RunState {
 
         self.blocks = blocks;
         self.blocked = blocked;
-    }
-
-    // Figure out the state of a function based on it's presence or not in the different control lists
-    // TODO obsolete this as assumes only one state per function...
-    #[cfg(any(debug_assertions, feature = "debugger", test))]
-    fn get_function_state(&self, function_id: usize) -> State {
-        if self.completed.contains(&function_id) {
-            State::Completed
-        } else if self.ready.contains(&function_id) {
-            State::Ready
-        } else if self.blocked.contains(&function_id) {
-            State::Blocked
-        } else if self.running.contains_key(&function_id) {
-            State::Running
-        } else {
-            State::Waiting
-        }
     }
 
     /// Figure out the states a function is in - based on it's presence or not in the different control lists
@@ -427,6 +412,18 @@ impl RunState {
     #[cfg(feature = "debugger")]
     pub fn get_blocks(&self) -> &HashSet<Block> {
         &self.blocks
+    }
+
+    #[cfg(debug_assertions)]
+    /// Return the list of busy flows and what functions in each flow are busy
+    pub(crate) fn get_busy_flows(&self) -> &MultiMap<usize, usize> {
+        &self.busy_flows
+    }
+
+    #[cfg(debug_assertions)]
+    /// Return the list of pending unblocks
+    pub(crate) fn get_pending_unblocks(&self) -> &HashMap<usize, HashSet<usize>> {
+        &self.pending_unblocks
     }
 
     /// Return the next job ready to be run, if there is one and there are not
@@ -562,7 +559,7 @@ impl RunState {
                     // Only decide if the sender should be Ready after sending all values in case blocks created
                     let function = self.get_function(job.function_id);
                     if function.can_produce_output() {
-                        self.can_produce_output(
+                        self.make_ready_or_blocked(
                             job.function_id,
                             job.flow_id,
                         );
@@ -581,7 +578,7 @@ impl RunState {
         self.unblock_flows(job.flow_id, job.job_id);
 
         #[cfg(debug_assertions)]
-        self.check_invariants(job_id);
+        checks::check_invariants(self, job_id);
     }
 
     // Send a value produced as part of an output of running a job to a destination function on
@@ -653,7 +650,7 @@ impl RunState {
         // value sent to itself, as it may send to other functions and be blocked.
         // But for all other receivers of values, possibly make them Ready now
         if new_input_set_available && !loopback {
-            self.can_produce_output(connection.function_id, connection.flow_id);
+            self.make_ready_or_blocked(connection.function_id, connection.flow_id);
         }
     }
 
@@ -786,7 +783,8 @@ impl RunState {
     // A function may be able to produce output, either because:
     // - it has a full set of inputs, so can be run and produce an output
     // - it has no input and is impure, so can run and produce an output
-    fn can_produce_output(&mut self, id: usize, flow_id: usize) {
+    // In which case it should transition to one of two states: Ready or Blocked
+    fn make_ready_or_blocked(&mut self, id: usize, flow_id: usize) {
         if self.blocked_sending(id) {
             trace!( "\t\t\tFunction #{} blocked on output. State set to 'Blocked'", id);
             self.blocked.insert(id);
@@ -803,7 +801,7 @@ impl RunState {
     }
 
     // See if there is any block where the blocked function is the one we're looking for
-    fn blocked_sending(&self, id: usize) -> bool {
+    pub(crate) fn blocked_sending(&self, id: usize) -> bool {
         for block in &self.blocks {
             if block.blocked_id == id {
                 return true;
@@ -965,164 +963,6 @@ impl RunState {
             self.blocks.insert(block.clone());
             #[cfg(feature = "debugger")]
             debugger.check_on_block_creation(self, &block);
-        }
-    }
-
-    #[cfg(debug_assertions)]
-    fn runtime_error(&self, job_id: usize, message: &str, file: &str, line: u32) {
-        error!(
-            "Job #{}: Runtime error: at file: {}, line: {}\n\t\t{}",
-            job_id, file, line, message
-        );
-        error!("Job #{}: Error State - {}", job_id, self);
-    }
-
-    /// Check a number of "invariants" i.e. unbreakable rules about the state.
-    /// If one is found to be broken, report a runtime error explaining it, which may
-    /// trigger entry into the debugger.
-    #[cfg(debug_assertions)]
-    fn check_invariants(&mut self, job_id: usize) {
-        for function in &self.functions {
-            for state in self.get_function_states(function.id()) {
-                match state {
-                    State::Ready => {
-                        if !self.busy_flows.contains_key(&function.get_flow_id()) {
-                            return self.runtime_error(
-                                job_id,
-                                &format!(
-                                    "Function #{} is Ready, but Flow #{} is not busy",
-                                    function.id(),
-                                    function.get_flow_id()
-                                ),
-                                file!(),
-                                line!(),
-                            );
-                        }
-                    }
-                    State::Running => {
-                        if !self.busy_flows.contains_key(&function.get_flow_id()) {
-                            return self.runtime_error(
-                                job_id,
-                                &format!(
-                                    "Function #{} is Running, but Flow #{} is not busy",
-                                    function.id(),
-                                    function.get_flow_id()
-                                ),
-                                file!(),
-                                line!(),
-                            );
-                        }
-                    }
-                    State::Blocked => {
-                        if !self.blocked_sending(function.id()) {
-                            return self.runtime_error(
-                                job_id,
-                                &format!(
-                                    "Function #{} is in Blocked state, but no block exists",
-                                    function.id()
-                                ),
-                                file!(),
-                                line!(),
-                            );
-                        }
-                    }
-                    State::Waiting => {},
-                    State::Completed => {
-                        // If completed, should not be in any of the other states
-                        if self.ready.contains(&function.id()) ||
-                        self.blocked.contains(&function.id()) ||
-                        self.running.contains_key(&function.id())
-                        {
-                            return self.runtime_error(
-                                job_id,
-                                &format!(
-                                    "Function #{} has Completed, but also appears as Ready or Blocked or Running",
-                                    function.id(),
-                                ),
-                                file!(),
-                                line!(),
-                            );
-                        }
-                    },
-                }
-            }
-
-            // State::Running is because functions with initializers auto-refill
-            // So they will show as inputs full, but not Ready or Blocked
-            let state = self.get_function_state(function.id());
-            if (!function.inputs().is_empty())
-                && function.can_produce_output()
-                && !(state == State::Ready || state == State::Blocked || state == State::Running)
-            {
-                #[cfg(feature = "debugger")]
-                error!("{}", function);
-                return self.runtime_error(
-                    job_id,
-                    &format!(
-                        "Function #{} inputs have data, but it is not Ready or Blocked or Running",
-                        function.id()
-                    ),
-                    file!(),
-                    line!(),
-                );
-            }
-        }
-
-        // Check block invariants
-        for block in &self.blocks {
-            // function should not be blocked on itself
-            if block.blocked_id == block.blocking_id {
-                return self.runtime_error(
-                    job_id,
-                    &format!(
-                        "Block {} has same Function id as blocked and blocking",
-                        block
-                    ),
-                    file!(),
-                    line!(),
-                );
-            }
-
-            // For each block on a destination function, then either that input should be full or
-            // the function should be running in parallel with the one that just completed
-            // or it's flow should be busy and there should be a pending unblock on it
-            if let Some(function) = self.functions.get(block.blocking_id) {
-                if !(function.input_count(block.blocking_io_number) > 0
-                    || (self.busy_flows.contains_key(&block.blocking_flow_id)
-                        && self.pending_unblocks.contains_key(&block.blocking_flow_id)))
-                {
-                    return self.runtime_error(job_id,
-                                              &format!("Block {} exists for function #{}, but Function #{}:{} input is not full",
-                                                       block, block.blocking_id, block.blocking_id, block.blocking_io_number),
-                                              file!(), line!());
-                }
-            }
-        }
-
-        // Check pending unblock invariants
-        for pending_unblock_flow_id in self.pending_unblocks.keys() {
-            // flow it's in must be busy
-            if !self.busy_flows.contains_key(pending_unblock_flow_id) {
-                return self.runtime_error(
-                    job_id,
-                    &format!(
-                        "Pending Unblock exists for Flow #{}, but it is not busy",
-                        pending_unblock_flow_id
-                    ),
-                    file!(),
-                    line!(),
-                );
-            }
-        }
-
-        // Check busy flow invariants
-        for (flow_id, function_id) in self.busy_flows.iter() {
-            if !self.function_state_among(*function_id, State::Ready) &&
-                !self.function_state_among(*function_id, State::Running) {
-                return self.runtime_error(job_id, &format!("Busy flow entry exists for Function #{} in Flow #{} but it's state is {:?}",
-                                                           function_id, flow_id, self.get_function_state(*function_id)),
-                                          file!(), line!());
-            }
         }
     }
 }
@@ -1489,11 +1329,10 @@ mod test {
             state.init();
 
             // Test
-            assert_eq!(State::Ready, state.get_function_state(0), "f_a should be Ready");
+            assert!(state.function_state_among(0, State::Ready), "f_a should be Ready");
             assert_eq!(1, state.number_jobs_ready());
-            assert_eq!(
-                State::Waiting,
-                state.get_function_state(1),
+            assert!(
+                state.function_state_among(1, State::Waiting),
                 "f_b should be waiting for input"
             );
         }
@@ -1515,14 +1354,12 @@ mod test {
             state.init();
 
             // Test
-            assert_eq!(
-                State::Waiting,
-                state.get_function_state(0),
+            assert!(
+                state.function_state_among(0, State::Waiting),
                 "f_a should be waiting for input"
             );
-            assert_eq!(
-                State::Waiting,
-                state.get_function_state(1),
+            assert!(
+                state.function_state_among(1, State::Waiting),
                 "f_b should be waiting for input"
             );
             #[cfg(feature = "debugger")]
@@ -1549,7 +1386,7 @@ mod test {
             state.init();
 
             // Test
-            assert_eq!(State::Ready, state.get_function_state(0), "f_a should be Ready");
+            assert!(state.function_state_among(0, State::Ready), "f_a should be Ready");
         }
 
         #[test]
@@ -1568,7 +1405,7 @@ mod test {
             state.init();
 
             // Test
-            assert_eq!(State::Ready, state.get_function_state(0), "f_a should be Ready");
+            assert!(state.function_state_among(0, State::Ready), "f_a should be Ready");
         }
 
         /*
@@ -1594,10 +1431,9 @@ mod test {
             state.init();
 
             // Test
-            assert_eq!(State::Ready, state.get_function_state(1), "f_b should be Ready");
-            assert_eq!(
-                State::Blocked,
-                state.get_function_state(0),
+            assert!(state.function_state_among(1, State::Ready), "f_b should be Ready");
+            assert!(
+                state.function_state_among(0, State::Blocked),
                 "f_a should be in Blocked state"
             );
             #[cfg(feature = "debugger")]
@@ -1640,7 +1476,7 @@ mod test {
             state.init();
 
             // Test
-            assert_eq!(State::Waiting, state.get_function_state(0), "f_a should be Waiting");
+            assert!(state.function_state_among(0, State::Waiting), "f_a should be Waiting");
         }
 
         #[test]
@@ -1655,7 +1491,7 @@ mod test {
             );
             let mut state = RunState::new(&functions, submission);
             state.init();
-            assert_eq!(State::Ready, state.get_function_state(0), "f_a should be Ready");
+            assert!(state.function_state_among(0, State::Ready), "f_a should be Ready");
 
             // Event
             let job = state.next_job().expect("Couldn't get next job");
@@ -1666,7 +1502,7 @@ mod test {
             state.start(&job);
 
             // Test
-            assert_eq!(State::Running, state.get_function_state(0), "f_a should be Running");
+            assert!(state.function_state_among(0, State::Running), "f_a should be Running");
         }
 
         #[test]
@@ -1681,13 +1517,13 @@ mod test {
             );
             let mut state = RunState::new(&functions, submission);
             state.init();
-            assert_eq!(State::Waiting, state.get_function_state(0), "f_a should be Waiting");
+            assert!(state.function_state_among(0, State::Waiting), "f_a should be Waiting");
 
             // Event
             assert!(state.next_job().is_none(), "next_job() should return None");
 
             // Test
-            assert_eq!(State::Waiting, state.get_function_state(0), "f_a should be Waiting");
+            assert!(state.function_state_among(0, State::Waiting), "f_a should be Waiting");
         }
 
         #[serial]
@@ -1712,10 +1548,9 @@ mod test {
 
             // Initial state
             state.init();
-            assert_eq!(State::Ready, state.get_function_state(1), "f_b should be Ready");
-            assert_eq!(
-                State::Blocked,
-                state.get_function_state(0),
+            assert!(state.function_state_among(1, State::Ready), "f_b should be Ready");
+            assert!(
+                state.function_state_among(0, State::Blocked),
                 "f_a should be in Blocked state, by f_b"
             );
 
@@ -1726,7 +1561,7 @@ mod test {
                 "next() should return function_id=1 (f_b) for running"
             );
             state.start(&job);
-            assert_eq!(State::Running, state.get_function_state(1), "f_b should be Running");
+            assert!(state.function_state_among(1, State::Running), "f_b should be Running");
 
             // Event
             let output = super::test_output(1, 0);
@@ -1739,7 +1574,7 @@ mod test {
             );
 
             // Test
-            assert_eq!(State::Ready, state.get_function_state(0), "f_a should be Ready");
+            assert!(state.function_state_among(0, State::Ready), "f_a should be Ready");
         }
 
         #[test]
@@ -1764,10 +1599,8 @@ mod test {
 
             // Initial state
             state.init();
-            assert_eq!(State::Ready, state.get_function_state(1), "f_b should be Ready");
-            assert_eq!(
-                State::Blocked,
-                state.get_function_state(0),
+            assert!(state.function_state_among(1, State::Ready), "f_b should be Ready");
+            assert!(state.function_state_among(0, State::Blocked),
                 "f_a should be in Blocked state, by f_b"
             );
 
@@ -1777,7 +1610,7 @@ mod test {
                 "next() should return function_id=1 (f_b) for running"
             );
             state.start(&job);
-            assert_eq!(State::Running, state.get_function_state(1), "f_b should be Running");
+            assert!(state.function_state_among(1, State::Running), "f_b should be Running");
 
             // Event
             let mut output = super::test_output(1, 0);
@@ -1806,7 +1639,7 @@ mod test {
             );
 
             // Test
-            assert_eq!(State::Ready, state.get_function_state(0), "f_a should be Ready");
+            assert!(state.function_state_among(0, State::Ready), "f_a should be Ready");
         }
 
         fn test_job() -> Job {
@@ -1854,12 +1687,12 @@ mod test {
                 let mut debugger = super::dummy_debugger(&mut server);
 
             state.init();
-            assert_eq!(State::Ready, state.get_function_state(0), "f_a should be Ready");
+            assert!(state.function_state_among(0, State::Ready), "f_a should be Ready");
             let job = state.next_job().expect("Couldn't get next job");
             assert_eq!(0, job.function_id, "next() should return function_id = 0");
             state.start(&job);
 
-            assert_eq!(State::Running, state.get_function_state(0), "f_a should be Running");
+            assert!(state.function_state_among(0, State::Running), "f_a should be Running");
 
             // Event
             let job = test_job();
@@ -1872,9 +1705,8 @@ mod test {
             );
 
             // Test
-            assert_eq!(
-                State::Ready,
-                state.get_function_state(0),
+            assert!(
+                state.function_state_among(0, State::Ready),
                 "f_a should be Ready again"
             );
         }
@@ -1900,12 +1732,12 @@ mod test {
                 let mut debugger = super::dummy_debugger(&mut server);
 
             state.init();
-            assert_eq!(State::Ready, state.get_function_state(0), "f_a should be Ready");
+            assert!(state.function_state_among(0, State::Ready), "f_a should be Ready");
             let job = state.next_job().expect("Couldn't get next job");
             assert_eq!(0, job.function_id, "next() should return function_id = 0");
             state.start(&job);
 
-            assert_eq!(State::Running, state.get_function_state(0), "f_a should be Running");
+            assert!(state.function_state_among(0, State::Running), "f_a should be Running");
 
             // Event
             let job = test_job();
@@ -1918,9 +1750,7 @@ mod test {
             );
 
             // Test
-            assert_eq!(
-                State::Waiting,
-                state.get_function_state(0),
+            assert!(state.function_state_among(0, State::Waiting),
                 "f_a should be Waiting again"
             );
         }
@@ -1973,7 +1803,7 @@ mod test {
 
             state.init();
 
-            assert_eq!(State::Ready, state.get_function_state(0), "f_a should be Ready");
+            assert!(state.function_state_among(0, State::Ready), "f_a should be Ready");
 
             let job = state.next_job().expect("Couldn't get next job");
             assert_eq!(
@@ -1982,7 +1812,7 @@ mod test {
             );
             state.start(&job);
 
-            assert_eq!(State::Running, state.get_function_state(0), "f_a should be Running");
+            assert!(state.function_state_among(0, State::Running), "f_a should be Running");
 
             // Event
             let output = super::test_output(0, 1);
@@ -1995,7 +1825,7 @@ mod test {
             );
 
             // Test f_a should transition to Blocked on f_b
-            assert_eq!(State::Blocked, state.get_function_state(0), "f_a should be Blocked");
+            assert!(state.function_state_among(0, State::Blocked), "f_a should be Blocked");
         }
 
         #[test]
@@ -2044,7 +1874,7 @@ mod test {
                 let mut debugger = super::dummy_debugger(&mut server);
 
             state.init();
-            assert_eq!(State::Waiting, state.get_function_state(0), "f_a should be Waiting");
+            assert!(state.function_state_among(0, State::Waiting), "f_a should be Waiting");
 
             // Event run f_b which will send to f_a
             let output = super::test_output(1, 0);
@@ -2057,7 +1887,7 @@ mod test {
             );
 
             // Test
-            assert_eq!(State::Ready, state.get_function_state(0), "f_a should be Ready");
+            assert!(state.function_state_among(0, State::Ready), "f_a should be Ready");
         }
 
         /*
@@ -2111,10 +1941,9 @@ mod test {
 
             state.init();
 
-            assert_eq!(state.get_function_state(1), State::Ready, "f_b should be Ready");
-            assert_eq!(
-                state.get_function_state(0),
-                State::Waiting,
+            assert!(state.function_state_among(1, State::Ready), "f_b should be Ready");
+            assert!(
+                state.function_state_among(0, State::Waiting),
                 "f_a should be in Waiting"
             );
 
@@ -2135,7 +1964,7 @@ mod test {
             );
 
             // Test
-            assert_eq!(state.get_function_state(0), State::Ready, "f_a should be Ready");
+            assert!(state.function_state_among(0, State::Ready), "f_a should be Ready");
         }
 
         /*
@@ -2206,10 +2035,8 @@ mod test {
 
             state.init();
 
-            assert_eq!(state.get_function_state(0), State::Ready, "f_a should be Ready");
-            assert_eq!(
-                state.get_function_state(1),
-                State::Waiting,
+            assert!(state.function_state_among(0, State::Ready), "f_a should be Ready");
+            assert!(state.function_state_among(1, State::Waiting),
                 "f_b should be in Waiting"
             );
 
@@ -2228,10 +2055,8 @@ mod test {
             );
 
             // Test
-            assert_eq!(state.get_function_state(1), State::Ready, "f_b should be Ready");
-            assert_eq!(
-                state.get_function_state(0),
-                State::Blocked,
+            assert!(state.function_state_among(1, State::Ready), "f_b should be Ready");
+            assert!(state.function_state_among(0, State::Blocked),
                 "f_a should be Blocked on f_b"
             );
 
@@ -2415,7 +2240,7 @@ mod test {
             let mut state = RunState::new(&test_functions(), submission);
 
             // Put 0 on the blocked/ready
-            state.can_produce_output(0, 0);
+            state.make_ready_or_blocked(0, 0);
 
             assert_eq!(
                 state.next_job().expect("Couldn't get next job").function_id,
@@ -2434,7 +2259,7 @@ mod test {
             let mut state = RunState::new(&test_functions(), submission);
 
             // Put 0 on the blocked/ready list depending on blocked status
-            state.can_produce_output(0, 0);
+            state.make_ready_or_blocked(0, 0);
 
             assert_eq!(
                 state.next_job().expect("Couldn't get next job").function_id,
@@ -2469,7 +2294,7 @@ mod test {
             );
 
             // Put 0 on the blocked/ready list depending on blocked status
-            state.can_produce_output(0, 0);
+            state.make_ready_or_blocked(0, 0);
 
             assert!(state.next_job().is_none());
         }
@@ -2500,7 +2325,7 @@ mod test {
                 &mut debugger,
             );
             // 0's inputs are now full, so it would be ready if it weren't blocked on output
-            state.can_produce_output(0, 0);
+            state.make_ready_or_blocked(0, 0);
             // 0 does not show as ready.
             assert!(state.next_job().is_none());
 
@@ -2551,7 +2376,7 @@ mod test {
             );
 
             // Put 0 on the blocked/ready list depending on blocked status
-            state.can_produce_output(0, 0);
+            state.make_ready_or_blocked(0, 0);
 
             assert!(state.next_job().is_none());
 
@@ -2573,9 +2398,9 @@ mod test {
             let mut state = RunState::new(&test_functions(), submission);
 
             // Put 0 on the ready list
-            state.can_produce_output(0, 0);
+            state.make_ready_or_blocked(0, 0);
             // Put 1 on the ready list
-            state.can_produce_output(1, 0);
+            state.make_ready_or_blocked(1, 0);
 
             let job = state.next_job().expect("Couldn't get next job");
             assert_eq!(0, job.function_id);
@@ -2634,7 +2459,7 @@ mod test {
                 #[cfg(feature = "debugger")]
                 &mut debugger,
             );
-            assert_eq!(State::Waiting, state.get_function_state(0), "f_a should be Waiting");
+            assert!(state.function_state_among(0, State::Waiting), "f_a should be Waiting");
         }
     }
 

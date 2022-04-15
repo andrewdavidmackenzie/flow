@@ -50,3 +50,6 @@ pub mod block;
 
 /// module providing `Job` struct from runtime that is required for debugging and tracing
 pub mod job;
+
+#[cfg(debug_assertions)]
+mod checks;
