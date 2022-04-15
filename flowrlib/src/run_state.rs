@@ -161,11 +161,11 @@ pub enum State {
 /// A function sending a value to itself will not create any blocks, and will not be marked as blocked
 /// due to the loop, and thus avoid deadlocks.
 ///
-/// Blocks on other senders due to Constant Initializers and Loops
+/// Blocks on other senders due to Always Initializers and Loops
 /// ==============================================================
-/// After a function runs, its ConstantInitializers are ran, and outputs (possibly to itself) are
+/// After a function runs, its Always Initializers are used to refill inputs, and outputs (possibly to itself) are
 /// sent, before determining that other functions sending to it should unblocked.
-/// This, the initializers and loops to it's inputs have priority and the input(s) will be refilled
+/// The initializers and loops to it's inputs have priority and the input(s) will be refilled
 /// but another function wishing to send to it, and blocked, is NOT yet unblocked.
 /// TODO TEST
 ///
