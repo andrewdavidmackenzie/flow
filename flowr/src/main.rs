@@ -208,11 +208,7 @@ fn run() -> Result<()> {
     };
     info!("Starting 'flowr' in {:?} mode", mode);
 
-    let num_threads = num_threads(
-        &matches,
-        #[cfg(feature = "debugger")]
-        debug_this_flow,
-    );
+    let num_threads = num_threads(&matches);
 
     match mode {
         Mode::ServerOnly => server_only(num_threads, lib_search_path, native)?,
@@ -433,10 +429,7 @@ fn client(
 ) -> flowcore::errors::Result<()> {
     let flow_manifest_url = parse_flow_url(&matches)?;
     let flow_args = get_flow_args(&matches, &flow_manifest_url);
-    let max_parallel_jobs = num_parallel_jobs(
-        &matches,
-        #[cfg(feature = "debugger")] debug_this_flow,
-    );
+    let max_parallel_jobs = num_parallel_jobs(&matches);
     let submission = Submission::new(
         &flow_manifest_url,
         max_parallel_jobs,
@@ -470,14 +463,7 @@ fn client(
 
 // Determine the number of threads to use to execute flows, with a default of the number of cores
 // in the device, or any override from the command line.
-// If debugger=true, then default to 0 threads, unless overridden by an argument
-fn num_threads(matches: &ArgMatches, #[cfg(feature = "debugger")] debug_this_flow: bool) -> usize {
-    #[cfg(feature = "debugger")]
-    if debug_this_flow {
-        info!("Due to debugger option being set, number of threads has been forced to 1");
-        return 1;
-    }
-
+fn num_threads(matches: &ArgMatches) -> usize {
     match matches.value_of("threads") {
         Some(value) => match value.parse::<i32>() {
             Ok(mut threads) => {
@@ -500,7 +486,6 @@ fn num_threads(matches: &ArgMatches, #[cfg(feature = "debugger")] debug_this_flo
 // the number of cores in the device, or any override from the command line.
 fn num_parallel_jobs(
     matches: &ArgMatches,
-    #[cfg(feature = "debugger")] debug_this_flow: bool,
 ) -> usize {
     match matches.value_of("jobs") {
         Some(value) => match value.parse::<i32>() {
@@ -520,15 +505,7 @@ fn num_parallel_jobs(
                 2 * num_cpus::get()
             }
         },
-        None => {
-            #[cfg(feature = "debugger")]
-            if debug_this_flow {
-                info!("Due to debugger option being set, max number of parallel jobs has defaulted to 1");
-                return 1;
-            }
-
-            2 * num_cpus::get()
-        }
+        None => 2 * num_cpus::get()
     }
 }
 

@@ -13,7 +13,7 @@ use flowrlib::server::DebugServer;
 use crate::{BlockBreakpoint, DataBreakpoint, ExecutionEnded, ExecutionStarted, ExitingDebugger,
             JobCompleted, JobError, Panic, PriorToSendingJob, Resetting, ServerConnection, WAIT,
             WaitingForCommand};
-use crate::DebugServerMessage::{BlockState, Error, Functions, FunctionState, InputState,
+use crate::DebugServerMessage::{BlockState, Error, Functions, FunctionStates, InputState,
                                 Message, OutputState, OverallState};
 
 pub(crate) struct  CliDebugServer {
@@ -28,7 +28,7 @@ impl DebugServer for CliDebugServer {
     }
 
     // a breakpoint has been hit on a Job being created
-    fn job_breakpoint(&mut self, job: &Job, function: &RuntimeFunction, state: State) {
+    fn job_breakpoint(&mut self, job: &Job, function: &RuntimeFunction, states: Vec<State>) {
         // Send a copy of the job about to be sent - for display
         let _: flowcore::errors::Result<DebugCommand> = self
             .debug_server_connection
@@ -37,7 +37,7 @@ impl DebugServer for CliDebugServer {
         // display the status of the function we stopped prior to creating a job for
         let _: flowcore::errors::Result<DebugCommand> = self
             .debug_server_connection
-            .send_and_receive_response(FunctionState((function.clone(), state)));
+            .send_and_receive_response(FunctionStates((function.clone(), states)));
     }
 
     // A breakpoint set on creation of a `Block` matching `block` has been hit
@@ -107,10 +107,10 @@ impl DebugServer for CliDebugServer {
     }
 
     // returns the state of a function
-    fn function_state(&mut self,  function: RuntimeFunction, function_state: State) {
+    fn function_states(&mut self,  function: RuntimeFunction, function_states: Vec<State>) {
         let _: flowcore::errors::Result<DebugCommand> = self
             .debug_server_connection
-            .send_and_receive_response(FunctionState((function, function_state)));
+            .send_and_receive_response(FunctionStates((function, function_states)));
     }
 
     // returns the global run state

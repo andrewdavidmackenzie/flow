@@ -2,7 +2,7 @@
 use std::fmt;
 use std::sync::Arc;
 
-use log::trace;
+use log::debug;
 use serde_derive::{Deserialize, Serialize};
 use serde_json::Value;
 
@@ -163,12 +163,25 @@ impl RuntimeFunction {
         self.flow_id
     }
 
-    /// Initialize all of a `RuntimeFunction` `Inputs` - as they may have initializers that need running
+    /// Initialize all of a `RuntimeFunction` `Inputs` that have initializers on them
     pub fn init_inputs(&mut self, first_time: bool) -> bool {
         let mut inputs_initialized = false;
         for (io_number, input) in &mut self.inputs.iter_mut().enumerate() {
             if input.is_empty() && input.init(first_time, io_number) {
-                trace!("\t\tInput #{}:{} set from initializer", self.function_id, io_number);
+                #[cfg(feature = "debugger")]
+                debug!(
+                    "\tInitialized Input #{}({}):{} '{}' ",
+                    self.function_id,
+                    self.flow_id,
+                    io_number,
+                    self.name);
+                #[cfg(not(feature = "debugger"))]
+                debug!(
+                    "\tInitialized Input #{}({}):{} ",
+                    self.function_id,
+                    self.flow_id,
+                    io_number);
+
                 inputs_initialized = true;
             }
         }
@@ -213,6 +226,8 @@ impl RuntimeFunction {
     }
 
     /// Returns how many inputs sets are available across all the `RuntimeFunction` `Inputs`
+    /// NOTE: For Impure functions without inputs (that can always run and produce a value)
+    /// this will return usize::MAX
     pub fn input_set_count(&self) -> usize {
         let mut num_input_sets = usize::MAX;
 
@@ -223,8 +238,14 @@ impl RuntimeFunction {
         num_input_sets
     }
 
+    /// Can this function run and produce an output, either because it has input sets to allow it
+    /// to run, or because it has no inputs (must be impure) and can produce values
+    pub fn can_produce_output(&self) -> bool {
+        self.inputs.is_empty() || self.input_set_count() > 0
+    }
+
     /// Inspect the values of the `inputs` of a `RuntimeFunction`
-    #[cfg(feature = "debugger")]
+    #[cfg(any(feature = "debugger", debug_assertions))]
     pub fn inputs(&self) -> &Vec<Input> {
         &self.inputs
     }
