@@ -316,7 +316,7 @@ impl RunState {
         }
     }
 
-    /// Figure out the states a function is in - based on it's presence or not in the different control lists
+    /// Return a vector of the states a function is in
     #[cfg(any(debug_assertions, feature = "debugger", test))]
     pub fn get_function_states(&self, function_id: usize) -> Vec<State> {
         let mut states = vec![];
@@ -409,18 +409,9 @@ impl RunState {
             return None;
         }
 
-        // create a job for the function_id at the head of the ready list
+        // create a job for the function_id at the head of the ready list - if there is one
         match self.ready.remove(0) {
-            Some(function_id) => {
-                let job = self.create_job(function_id);
-
-                // unblock senders blocked trying to send to this function's empty inputs
-                if let Some(ref j) = job {
-                    self.unblock_senders_to_function(j.function_id);
-                }
-
-                job
-            }
+            Some(function_id) => self.create_job(function_id),
             None => None,
         }
     }
@@ -444,6 +435,9 @@ impl RunState {
                 let flow_id = function.get_flow_id();
                 let implementation = function.get_implementation();
                 let connections = function.get_output_connections().clone();
+
+                // unblock senders blocked trying to send to this function's empty inputs
+                self.unblock_senders_to_function(function_id);
 
                 Some(Job {
                     job_id,
