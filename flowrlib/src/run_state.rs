@@ -523,7 +523,7 @@ impl RunState {
                 if function_can_run_again {
                     // Once done sending values to other functions (and possibly itself via a loopback)
                     // if the function can run again, then refill any inputs with initializers
-                    self.init_inputs(job.function_id);
+                    self.get_mut(job.function_id).init_inputs(false);
 
                     // Only decide if the sender should be Ready after sending all values in case blocks created
                     let function = self.get_function(job.function_id);
@@ -612,11 +612,6 @@ impl RunState {
         }
     }
 
-    // Initialize any input of the sending function that has an initializer
-    fn init_inputs(&mut self, function_id: usize) {
-        self.get_mut(function_id).init_inputs(false);
-    }
-
     // Take a json data value and return the array order for it
     fn array_order(value: &Value) -> i32 {
         match value {
@@ -628,12 +623,11 @@ impl RunState {
 
     // Do the necessary serialization of an array to values, or wrapping of a value into an array
     // in order to convert the value on expected by the destination, if possible, send the value
-    // and return true. If the conversion cannot be done and no value is sent, return false.
     fn type_convert_and_send(
         function: &mut RuntimeFunction,
         connection: &OutputConnection,
         value: &Value,
-    ) -> bool {
+    ) {
         if connection.is_generic() {
             function.send(connection.io_number, connection.get_priority(), value);
         } else {
@@ -657,16 +651,12 @@ impl RunState {
                                          connection.get_priority(), &json!([value])),
                 (-2, _) => function.send(connection.io_number,
                                          connection.get_priority(), &json!([[value]])),
-                _ => {
-                    error!("Unable to handle difference in array order");
-                    return false;
-                },
+                _ => error!("Unable to handle difference in array order"),
             }
         }
-        true // a value was sent!
     }
 
-    /// Start executing `Job`
+    /// Add entry in running list for the `Job`
     pub fn start(&mut self, job: &Job) {
         self.running.insert(job.function_id, job.job_id);
     }
@@ -2492,8 +2482,8 @@ mod test {
                 );
 
                 // Test
-                assert!(RunState::type_convert_and_send(&mut function,
-                    &destination, &test_case.value));
+                RunState::type_convert_and_send(&mut function,
+                    &destination, &test_case.value);
 
                 // Check
                 assert_eq!(

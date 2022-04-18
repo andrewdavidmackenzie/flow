@@ -275,10 +275,6 @@ impl<'a> Coordinator<'a> {
         #[cfg(not(feature = "debugger"))]
         let debug_options = (false, false, false);
 
-        state.start(job);
-        #[cfg(feature = "metrics")]
-        metrics.track_max_jobs(state.number_jobs_running());
-
         #[cfg(feature = "debugger")]
         let debug_options = self
             .debugger
@@ -288,6 +284,10 @@ impl<'a> Coordinator<'a> {
         self.job_tx
             .send(job.clone())
             .chain_err(|| "Sending of job for execution failed")?;
+
+        state.start(job);
+        #[cfg(feature = "metrics")]
+        metrics.track_max_jobs(state.number_jobs_running());
 
         Ok(debug_options)
     }
