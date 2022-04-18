@@ -418,9 +418,6 @@ mod test {
         );
         let mut state = RunState::new(&functions, submission);
 
-        // Event
-        state.init();
-
         CliDebugClient::display_state(&state);
     }
 }
