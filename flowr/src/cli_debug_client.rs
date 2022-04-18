@@ -416,8 +416,7 @@ mod test {
             1,
             true,
         );
-        let mut state = RunState::new(&functions, submission);
-
+        let state = RunState::new(&functions, submission);
         CliDebugClient::display_state(&state);
     }
 }
