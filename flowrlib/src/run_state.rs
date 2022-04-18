@@ -284,8 +284,6 @@ impl RunState {
     // full due to the init process, then create a block for the sender and added sender to blocked
     // list.
     fn create_init_blocks(&mut self) {
-        let mut blocks = HashSet::<Block>::new();
-
         debug!("Creating blocks due to initializers");
 
         for source_function in &self.functions {
@@ -303,7 +301,7 @@ impl RunState {
                             destination.function_id,
                             destination.io_number
                         );
-                        blocks.insert(Block::new(
+                        self.blocks.insert(Block::new(
                             destination.function_id,
                             destination.io_number,
                             source_id,
@@ -312,8 +310,6 @@ impl RunState {
                 }
             }
         }
-
-        self.blocks = blocks;
     }
 
     /// Figure out the states a function is in - based on it's presence or not in the different control lists
