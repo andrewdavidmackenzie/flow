@@ -2,6 +2,7 @@ flow = "subflow"
 
 [[input]]
 name = "array_input"
+type = "array/string"
 
 [[process]]
 source = "context://stdio/stdout"

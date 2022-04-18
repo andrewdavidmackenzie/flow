@@ -164,8 +164,7 @@ impl RuntimeFunction {
     }
 
     /// Initialize all of a `RuntimeFunction` `Inputs` that have initializers on them
-    pub fn init_inputs(&mut self, first_time: bool) -> bool {
-        let mut inputs_initialized = false;
+    pub fn init_inputs(&mut self, first_time: bool) {
         for (io_number, input) in &mut self.inputs.iter_mut().enumerate() {
             if input.is_empty() && input.init(first_time, io_number) {
                 #[cfg(feature = "debugger")]
@@ -181,11 +180,8 @@ impl RuntimeFunction {
                     self.function_id,
                     self.flow_id,
                     io_number);
-
-                inputs_initialized = true;
             }
         }
-        inputs_initialized
     }
 
     /// Accessor for a `RuntimeFunction` `implementation_location`
@@ -240,7 +236,7 @@ impl RuntimeFunction {
 
     /// Can this function run and produce an output, either because it has input sets to allow it
     /// to run, or because it has no inputs (must be impure) and can produce values
-    pub fn can_produce_output(&self) -> bool {
+    pub fn is_runnable(&self) -> bool {
         self.inputs.is_empty() || self.input_set_count() > 0
     }
 
