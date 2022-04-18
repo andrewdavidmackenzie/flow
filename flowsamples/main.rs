@@ -224,13 +224,6 @@ mod test {
         test_sample("pipeline");
     }
 
-    #[ignore]
-    #[test]
-    #[serial]
-    fn test_prime() {
-        test_sample("prime");
-    }
-
     #[test]
     #[serial]
     fn test_primitives() {
@@ -243,6 +236,14 @@ mod test {
         test_sample("sequence");
     }
 
+    #[ignore]
+    #[test]
+    #[serial]
+    fn test_prime() {
+        test_sample("prime");
+    }
+
+    #[ignore]
     #[test]
     #[serial]
     fn test_sequence_of_sequences() {
