@@ -360,7 +360,7 @@ mod test {
     use flowcore::model::output_connection::{OutputConnection, Source};
     use flowcore::model::runtime_function::RuntimeFunction;
     use flowcore::model::submission::Submission;
-    use flowrlib::run_state::{RunState, State};
+    use flowrlib::run_state::RunState;
 
     use super::*;
 
