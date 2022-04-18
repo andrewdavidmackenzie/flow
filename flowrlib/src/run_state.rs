@@ -231,6 +231,7 @@ impl RunState {
     #[cfg(feature = "debugger")]
     fn reset(&mut self) {
         debug!("Resetting RunState");
+        // self.functions - list of functions remains the same, but reset the state of each
         for function in &mut self.functions {
             function.reset()
         }
@@ -240,6 +241,9 @@ impl RunState {
         self.running.clear();
         self.completed.clear();
         self.jobs_created = 0;
+        // self.max_pending_jobs left the same
+        // self.debug - left the same
+        // self.job_timeout - left the same
     }
 
     /// The `ìnit()` function is responsible for initializing all functions, and it returns a boolean
