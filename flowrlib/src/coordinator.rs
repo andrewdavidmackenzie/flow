@@ -103,10 +103,10 @@ impl<'a> Coordinator<'a> {
     pub fn execute_flow(&mut self,
                         mut manifest: FlowManifest,
                         submission: Submission,) -> Result<bool> {
-        let mut state = RunState::new(manifest.get_functions(), submission);
+        let mut state = RunState::new(manifest.get_functions(), submission.max_parallel_jobs);
 
         #[cfg(feature = "debugger")]
-        if state.debug {
+        if submission.debug {
             self.debugger.start();
         }
 
@@ -120,7 +120,7 @@ impl<'a> Coordinator<'a> {
 
             // If debugging then check if we should enter the debugger
             #[cfg(feature = "debugger")]
-            if state.debug {
+            if submission.debug {
                 (_, _, exit_debugger) = self.debugger.wait_for_command(&state);
                 if exit_debugger {
                     return Ok(true); // User requested via debugger to exit execution
@@ -132,7 +132,7 @@ impl<'a> Coordinator<'a> {
             'jobs: loop {
                 trace!("{}", state);
                 #[cfg(feature = "debugger")]
-                if state.debug && self.server.should_enter_debugger()? && self.debugger.wait_for_command(&state).2 {
+                if submission.debug && self.server.should_enter_debugger()? && self.debugger.wait_for_command(&state).2 {
                     return Ok(true); // User requested via debugger to exit execution
                 }
 
@@ -152,7 +152,7 @@ impl<'a> Coordinator<'a> {
                 }
 
                 if state.number_jobs_running() > 0 {
-                    match self.job_rx.recv_timeout(state.job_timeout) {
+                    match self.job_rx.recv_timeout(submission.job_timeout) {
                         Ok(job) => {
                             #[cfg(feature = "debugger")]
                             if display_next_output {
@@ -168,7 +168,7 @@ impl<'a> Coordinator<'a> {
 
                         #[cfg(feature = "debugger")]
                         Err(err) => {
-                            if state.debug {
+                            if submission.debug {
                                 self.debugger
                                     .panic(&state, format!("Error in job reception: '{}'", err));
                             }
@@ -191,7 +191,7 @@ impl<'a> Coordinator<'a> {
             if !restart {
                 {
                     // If debugging then enter the debugger for a final time before ending flow execution
-                    if state.debug {
+                    if submission.debug {
                         (display_next_output, restart, exit_debugger) = self.debugger.execution_ended(&state);
                         if exit_debugger {
                             return Ok(true); // Exit debugger

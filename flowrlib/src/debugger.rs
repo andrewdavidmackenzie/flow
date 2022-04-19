@@ -166,9 +166,7 @@ impl<'a> Debugger<'a> {
     /// Return values are (display next output, reset execution)
     pub fn job_completed(&mut self, state: &RunState, job: &Job) -> (bool, bool, bool) {
         if job.result.is_err() {
-            if state.debug {
-                let _ = self.job_error(state, job);
-            }
+           let _ = self.job_error(state, job);
         } else {
             self.debug_server.job_completed(job);
         }

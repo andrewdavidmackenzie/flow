@@ -353,13 +353,11 @@ impl CliDebugClient {
 #[cfg(test)]
 mod test {
     use serde_json::json;
-    use url::Url;
 
     use flowcore::model::input::Input;
     use flowcore::model::input::InputInitializer::Once;
     use flowcore::model::output_connection::{OutputConnection, Source};
     use flowcore::model::runtime_function::RuntimeFunction;
-    use flowcore::model::submission::Submission;
     use flowrlib::run_state::RunState;
 
     use super::*;
@@ -411,12 +409,7 @@ mod test {
         let f_a = test_function_a_to_b();
         let f_b = test_function_b_init();
         let functions = vec![f_b, f_a];
-        let submission = Submission::new(
-            &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
-            1,
-            true,
-        );
-        let state = RunState::new(&functions, submission);
+        let state = RunState::new(&functions, 1);
         CliDebugClient::display_state(&state);
     }
 }
