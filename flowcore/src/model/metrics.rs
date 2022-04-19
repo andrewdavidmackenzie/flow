@@ -43,7 +43,7 @@ impl Metrics {
         self.jobs_created = jobs;
     }
 
-    /// Increment the tracker for the number of output values sent between functions
+    /// Increment the tracker for the number of values sent between functions
     pub fn increment_outputs_sent(&mut self) {
         self.outputs_sent += 1;
     }

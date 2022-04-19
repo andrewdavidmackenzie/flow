@@ -6,8 +6,6 @@ use log::{debug, error, info, trace};
 
 use flowcore::meta_provider::MetaProvider;
 use flowcore::model::flow_manifest::FlowManifest;
-#[cfg(feature = "metrics")]
-use flowcore::model::metrics::Metrics;
 use flowcore::model::submission::Submission;
 
 #[cfg(feature = "debugger")]
@@ -107,9 +105,6 @@ impl<'a> Coordinator<'a> {
                         submission: Submission,) -> Result<bool> {
         let mut state = RunState::new(manifest.get_functions(), submission);
 
-        #[cfg(feature = "metrics")]
-        let mut metrics = Metrics::new(state.num_functions());
-
         #[cfg(feature = "debugger")]
         if state.debug {
             self.debugger.start();
@@ -122,8 +117,6 @@ impl<'a> Coordinator<'a> {
         // This outer loop is just a way of restarting execution from scratch if the debugger requests it
         'flow_execution: loop {
             state.init();
-            #[cfg(feature = "metrics")]
-            metrics.reset();
 
             // If debugging then check if we should enter the debugger
             #[cfg(feature = "debugger")]
@@ -143,11 +136,7 @@ impl<'a> Coordinator<'a> {
                     return Ok(true); // User requested via debugger to exit execution
                 }
 
-                (_, _, exit_debugger) = self.send_jobs(
-                    &mut state,
-                    #[cfg(feature = "metrics")]
-                    &mut metrics,
-                );
+                (_, _, exit_debugger) = self.send_jobs(&mut state);
 
                 if exit_debugger {
                     return Ok(true); // User requested via debugger to exit execution
@@ -171,8 +160,6 @@ impl<'a> Coordinator<'a> {
                             }
 
                             state.complete_job(
-                                #[cfg(feature = "metrics")]
-                                    &mut metrics,
                                 &job,
                                 #[cfg(feature = "debugger")]
                                     &mut self.debugger,
@@ -220,9 +207,7 @@ impl<'a> Coordinator<'a> {
         }
 
         #[cfg(feature = "metrics")]
-        metrics.set_jobs_created(state.jobs_created());
-        #[cfg(feature = "metrics")]
-        self.server.flow_ended(&state, metrics)?;
+        self.server.flow_ended(&mut state)?;
         #[cfg(not(feature = "metrics"))]
         self.server.flow_ended()?;
 
@@ -234,7 +219,6 @@ impl<'a> Coordinator<'a> {
     fn send_jobs(
         &mut self,
         state: &mut RunState,
-        #[cfg(feature = "metrics")] metrics: &mut Metrics,
     ) -> (bool, bool, bool) {
         let mut display_output = false;
         let mut restart = false;
@@ -244,8 +228,6 @@ impl<'a> Coordinator<'a> {
             match self.send_job(
                 &job,
                 state,
-                #[cfg(feature = "metrics")]
-                metrics,
             ) {
                 Ok((display, rest, leave)) => {
                     display_output = display;
@@ -270,7 +252,6 @@ impl<'a> Coordinator<'a> {
         &mut self,
         job: &Job,
         state: &mut RunState,
-        #[cfg(feature = "metrics")] metrics: &mut Metrics,
     ) -> Result<(bool, bool, bool)> {
         #[cfg(not(feature = "debugger"))]
         let debug_options = (false, false, false);
@@ -286,8 +267,6 @@ impl<'a> Coordinator<'a> {
             .chain_err(|| "Sending of job for execution failed")?;
 
         state.start(job);
-        #[cfg(feature = "metrics")]
-        metrics.track_max_jobs(state.number_jobs_running());
 
         Ok(debug_options)
     }

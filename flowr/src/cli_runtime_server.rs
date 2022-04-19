@@ -4,7 +4,6 @@ use error_chain::bail;
 use log::{debug, error, info};
 
 use flowcore::errors::*;
-use flowcore::model::metrics::Metrics;
 use flowcore::model::submission::Submission;
 use flowrlib::run_state::RunState;
 use flowrlib::server::Server;
@@ -50,22 +49,19 @@ impl Server for CliServer {
         }
     }
 
-    #[cfg(feature = "metrics")]
-    fn flow_ended(&mut self, state: &RunState, metrics: Metrics) -> flowcore::errors::Result<()> {
+    fn flow_ended(&mut self, state: &mut RunState) -> flowcore::errors::Result<()> {
+        #[cfg(feature = "metrics")]
         self.runtime_server_connection
             .lock()
             .map_err(|_| "Could not lock server connection")?
-            .send(ServerMessage::FlowEnd(metrics))?;
-        debug!("{}", state);
-        Ok(())
-    }
+            .send(ServerMessage::FlowEnd(state.get_mut_metrics().clone()))?;
 
-    #[cfg(not(feature = "metrics"))]
-    fn flow_ended(&mut self) -> flowcore::errors::Result<()> {
+        #[cfg(not(feature = "metrics"))]
         self.runtime_server_connection
             .lock()
             .map_err(|_| "Could not lock server connection")?
             .send(ServerMessage::FlowEnd)?;
+
         debug!("{}", state);
         Ok(())
     }

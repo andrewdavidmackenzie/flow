@@ -4,8 +4,6 @@ use serde_json::Value;
 use flowcore::errors::*;
 #[cfg(feature = "debugger")]
 use flowcore::model::input::Input;
-#[cfg(feature = "metrics")]
-use flowcore::model::metrics::Metrics;
 #[cfg(feature = "debugger")]
 use flowcore::model::output_connection::OutputConnection;
 #[cfg(feature = "debugger")]
@@ -35,7 +33,7 @@ pub trait Server {
 
     /// The flow has ended
     #[cfg(feature = "metrics")]
-    fn flow_ended(&mut self, state: &RunState, metrics: Metrics) -> Result<()>;
+    fn flow_ended(&mut self, state: &mut RunState) -> Result<()>;
     #[cfg(not(feature = "metrics"))]
     fn flow_ended(&mut self) -> Result<()>;
 

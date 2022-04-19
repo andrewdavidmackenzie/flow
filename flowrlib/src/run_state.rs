@@ -201,6 +201,9 @@ pub struct RunState {
     pub debug: bool,
     /// The timeout to be used when waiting for a job to respond
     pub job_timeout: Duration,
+    #[cfg(feature = "metrics")]
+    /// Metrics of execution
+    metrics: Metrics,
 }
 
 impl RunState {
@@ -219,6 +222,8 @@ impl RunState {
             #[cfg(feature = "debugger")]
             debug: submission.debug,
             job_timeout: submission.job_timeout,
+            #[cfg(feature = "metrics")]
+            metrics: Metrics::new(functions.len()),
         }
     }
 
@@ -244,6 +249,7 @@ impl RunState {
         // self.max_pending_jobs left the same
         // self.debug - left the same
         // self.job_timeout - left the same
+        self.metrics.reset();
     }
 
     /// The `ìnit()` function is responsible for initializing all functions, and it returns a boolean
@@ -261,7 +267,7 @@ impl RunState {
     ///               But the `block` will be created so when later it's inputs become full the fact
     ///               it is blocked will be detected and it can move to the `blocked` state
     pub fn init(&mut self) {
-        #[cfg(feature = "debugger")]
+        #[cfg(any(feature = "debugger", feature = "metrics"))]
         self.reset();
 
         let mut runnable_functions = Vec::<usize>::new();
@@ -402,6 +408,13 @@ impl RunState {
         &self.blocks
     }
 
+    /// Return the metrics of job execution
+    #[cfg(feature = "metrics")]
+    pub fn get_mut_metrics(&mut self) -> &mut Metrics {
+        self.metrics.set_jobs_created(self.jobs_created);
+        &mut self.metrics
+    }
+
     /// Return the next job ready to be run, if there is one and there are not
     /// too many jobs already running
     pub fn next_job(&mut self) -> Option<Job> {
@@ -469,7 +482,6 @@ impl RunState {
     /// if those other function have all their inputs, then mark them accordingly.
     pub fn complete_job(
         &mut self,
-        #[cfg(feature = "metrics")] metrics: &mut Metrics,
         job: &Job,
         #[cfg(feature = "debugger")] debugger: &mut Debugger,
     ) {
@@ -506,8 +518,6 @@ impl RunState {
                                 job.function_id,
                                 destination,
                                 value,
-                                #[cfg(feature = "metrics")]
-                                    metrics,
                                 #[cfg(feature = "debugger")]
                                     debugger,
                             );
@@ -549,24 +559,16 @@ impl RunState {
         source_id: usize,
         connection: &OutputConnection,
         output_value: &Value,
-        #[cfg(feature = "metrics")] metrics: &mut Metrics,
         #[cfg(feature = "debugger")] debugger: &mut Debugger,
     ) {
         let route_str = match &connection.source {
             Output(route) if route.is_empty() => "".into(),
-            Output(route) => format!(" from output route '{}'", route),
-            Input(index) => format!(" from Job value at input #{}", index),
+            Output(route) => format!(" from output route '{route}'"),
+            Input(index) => format!(" from Job value at input #{index}"),
         };
 
-        let loopback = source_id == connection.function_id;
-
-        if loopback {
-            trace!("\t\tFunction #{source_id} loopback of '{}'{} to Self:{}",
-                    output_value, route_str, connection.io_number);
-        } else {
-            trace!("\t\tFunction #{source_id} sending '{}'{} to Function #{}:{}",
-                    output_value, route_str, connection.function_id, connection.io_number);
-        };
+        trace!("\t\tFunction #{source_id} sending '{output_value}'{route_str} to Function #{}:{}",
+                connection.function_id, connection.io_number);
 
         #[cfg(feature = "debugger")]
         if let Output(route) = &connection.source {
@@ -581,19 +583,12 @@ impl RunState {
         }
 
         let function = self.get_mut(connection.function_id);
-        let count_before = function.input_set_count();
-        Self::type_convert_and_send(function, connection, output_value);
-
-        #[cfg(feature = "metrics")]
-        metrics.increment_outputs_sent(); // not distinguishing array serialization / wrapping etc
-
-        let block = function.input_count(connection.io_number) > 0;
-        // NOTE: We have just sent a value to this functions inputs, so it *has* inputs
-        // the the impure function without inputs case for input_set_count() does not apply
-        let new_input_set_available = function.input_set_count() > count_before;
+        let (value_sent, new_input_set_available) = Self::type_convert_and_send(function, connection, output_value);
+        self.output_sent(); // not distinguishing array serialization / wrapping etc
 
         // Avoid a function blocking on itself when sending itself a value via a loopback
-        if block && !loopback {
+        let loopback = source_id == connection.function_id;
+        if value_sent && !loopback {
             // TODO pass in destination and combine Block and OutputConnection?
             self.create_block(
                 connection.function_id,
@@ -604,9 +599,10 @@ impl RunState {
             );
         }
 
-        // postpone the decision about making the sending function Ready due to a loopback
-        // value sent to itself, as it may send to other functions and be blocked.
-        // But for all other receivers of values, possibly make them Ready now
+        // When 'loopback' (i.e. sending and receiving function are one and the same) then postpone
+        // the decision about making the function with a new input set `Ready` as it is also the
+        // sending function and it may send to other functions and then be blocked.
+        // For other cases where sender != receiver, make the receiving function ready or blocked
         if new_input_set_available && !loopback {
             self.make_ready_or_blocked(connection.function_id);
         }
@@ -623,11 +619,14 @@ impl RunState {
 
     // Do the necessary serialization of an array to values, or wrapping of a value into an array
     // in order to convert the value on expected by the destination, if possible, send the value
+    // returns a tuple: (a value was sent so create a block, new input set available on destination function)
     fn type_convert_and_send(
         function: &mut RuntimeFunction,
         connection: &OutputConnection,
         value: &Value,
-    ) {
+    ) -> (bool, bool) {
+        let count_before = function.input_set_count();
+
         if connection.is_generic() {
             function.send(connection.io_number, connection.get_priority(), value);
         } else {
@@ -651,14 +650,32 @@ impl RunState {
                                          connection.get_priority(), &json!([value])),
                 (-2, _) => function.send(connection.io_number,
                                          connection.get_priority(), &json!([[value]])),
-                _ => error!("Unable to handle difference in array order"),
+                _ => {
+                    error!("Unable to handle difference in array order");
+                    return (false, false)
+                },
             }
         }
+
+        // NOTE: We have just sent a value to this functions inputs, so it *has* inputs
+        // the the impure function without inputs case for input_set_count() does not apply
+        let new_input_set_available = function.input_set_count() > count_before;
+
+        (function.input_count(connection.io_number) > 0, new_input_set_available)
+    }
+
+    // not distinguishing array serialization / wrapping etc
+    fn output_sent(&mut self) {
+        #[cfg(feature = "metrics")]
+        self.metrics.increment_outputs_sent();
     }
 
     /// Add entry in running list for the `Job`
     pub fn start(&mut self, job: &Job) {
         self.running.insert(job.function_id, job.job_id);
+
+        #[cfg(feature = "metrics")]
+        self.metrics.track_max_jobs(self.number_jobs_running());
     }
 
     /// Get the set of (blocking_function_id, function's IO number causing the block)
@@ -1165,8 +1182,6 @@ mod test {
 
         use flowcore::model::input::Input;
         use flowcore::model::input::InputInitializer::{Always, Once};
-        #[cfg(feature = "metrics")]
-        use flowcore::model::metrics::Metrics;
         use flowcore::model::output_connection::{OutputConnection, Source};
         use flowcore::model::output_connection::Source::Output;
         use flowcore::model::runtime_function::RuntimeFunction;
@@ -1405,8 +1420,6 @@ mod test {
                 true,
             );
             let mut state = RunState::new(&functions, submission);
-            #[cfg(feature = "metrics")]
-            let mut metrics = Metrics::new(2);
             #[cfg(feature = "debugger")]
             let mut server = super::DummyServer{};
             #[cfg(feature = "debugger")]
@@ -1432,8 +1445,6 @@ mod test {
             // Event
             let output = super::test_output(1, 0);
             state.complete_job(
-                #[cfg(feature = "metrics")]
-                &mut metrics,
                 &output,
                 #[cfg(feature = "debugger")]
                 &mut debugger,
@@ -1456,8 +1467,6 @@ mod test {
                 true,
             );
             let mut state = RunState::new(&functions, submission);
-            #[cfg(feature = "metrics")]
-            let mut metrics = Metrics::new(2);
             #[cfg(feature = "debugger")]
                 let mut server = super::DummyServer{};
             #[cfg(feature = "debugger")]
@@ -1497,8 +1506,6 @@ mod test {
             output.connections = vec![no_such_out_conn];
 
             state.complete_job(
-                #[cfg(feature = "metrics")]
-                &mut metrics,
                 &output,
                 #[cfg(feature = "debugger")]
                 &mut debugger,
@@ -1545,8 +1552,6 @@ mod test {
                 true,
             );
             let mut state = RunState::new(&functions, submission);
-            #[cfg(feature = "metrics")]
-            let mut metrics = Metrics::new(1);
             #[cfg(feature = "debugger")]
                 let mut server = super::DummyServer{};
             #[cfg(feature = "debugger")]
@@ -1563,8 +1568,6 @@ mod test {
             // Event
             let job = test_job();
             state.complete_job(
-                #[cfg(feature = "metrics")]
-                &mut metrics,
                 &job,
                 #[cfg(feature = "debugger")]
                 &mut debugger,
@@ -1590,8 +1593,6 @@ mod test {
                 true,
             );
             let mut state = RunState::new(&functions, submission);
-            #[cfg(feature = "metrics")]
-            let mut metrics = Metrics::new(1);
             #[cfg(feature = "debugger")]
                 let mut server = super::DummyServer{};
             #[cfg(feature = "debugger")]
@@ -1608,8 +1609,6 @@ mod test {
             // Event
             let job = test_job();
             state.complete_job(
-                #[cfg(feature = "metrics")]
-                &mut metrics,
                 &job,
                 #[cfg(feature = "debugger")]
                 &mut debugger,
@@ -1660,8 +1659,6 @@ mod test {
                 true,
             );
             let mut state = RunState::new(&functions, submission);
-            #[cfg(feature = "metrics")]
-            let mut metrics = Metrics::new(1);
             #[cfg(feature = "debugger")]
                 let mut server = super::DummyServer{};
             #[cfg(feature = "debugger")]
@@ -1683,8 +1680,6 @@ mod test {
             // Event
             let output = super::test_output(0, 1);
             state.complete_job(
-                #[cfg(feature = "metrics")]
-                &mut metrics,
                 &output,
                 #[cfg(feature = "debugger")]
                 &mut debugger,
@@ -1732,8 +1727,6 @@ mod test {
                 true,
             );
             let mut state = RunState::new(&functions, submission);
-            #[cfg(feature = "metrics")]
-            let mut metrics = Metrics::new(1);
             #[cfg(feature = "debugger")]
                 let mut server = super::DummyServer{};
             #[cfg(feature = "debugger")]
@@ -1745,8 +1738,6 @@ mod test {
             // Event run f_b which will send to f_a
             let output = super::test_output(1, 0);
             state.complete_job(
-                #[cfg(feature = "metrics")]
-                &mut metrics,
                 &output,
                 #[cfg(feature = "debugger")]
                 &mut debugger,
@@ -1798,8 +1789,6 @@ mod test {
                 true,
             );
             let mut state = RunState::new(&functions, submission);
-            #[cfg(feature = "metrics")]
-            let mut metrics = Metrics::new(1);
             #[cfg(feature = "debugger")]
                 let mut server = super::DummyServer{};
             #[cfg(feature = "debugger")]
@@ -1822,8 +1811,6 @@ mod test {
             // create output from f_b as if it had run - will send to f_a
             let output = super::test_output(1, 0);
             state.complete_job(
-                #[cfg(feature = "metrics")]
-                &mut metrics,
                 &output,
                 #[cfg(feature = "debugger")]
                 &mut debugger,
@@ -1892,8 +1879,6 @@ mod test {
                 true,
             );
             let mut state = RunState::new(&functions, submission);
-            #[cfg(feature = "metrics")]
-            let mut metrics = Metrics::new(2);
             #[cfg(feature = "debugger")]
                 let mut server = super::DummyServer{};
             #[cfg(feature = "debugger")]
@@ -1913,8 +1898,6 @@ mod test {
             job.result = Ok((Some(json!(1)), true));
 
             state.complete_job(
-                #[cfg(feature = "metrics")]
-                &mut metrics,
                 &job,
                 #[cfg(feature = "debugger")]
                 &mut debugger,
@@ -1932,8 +1915,6 @@ mod test {
                 "next() should return function_id=1 (f_b) for running"
             );
             state.complete_job(
-                #[cfg(feature = "metrics")]
-                &mut metrics,
                 &job,
                 #[cfg(feature = "debugger")]
                 &mut debugger,
@@ -1945,8 +1926,6 @@ mod test {
                 "next() should return function_id=0 (f_a) for running"
             );
             state.complete_job(
-                #[cfg(feature = "metrics")]
-                &mut metrics,
                 &job,
                 #[cfg(feature = "debugger")]
                 &mut debugger,
@@ -1963,8 +1942,6 @@ mod test {
         use url::Url;
 
         use flowcore::model::input::Input;
-        #[cfg(feature = "metrics")]
-        use flowcore::model::metrics::Metrics;
         use flowcore::model::output_connection::{OutputConnection, Source};
         use flowcore::model::runtime_function::RuntimeFunction;
         use flowcore::model::submission::Submission;
@@ -2282,8 +2259,6 @@ mod test {
                 true,
             );
             let mut state = RunState::new(&functions, submission);
-            #[cfg(feature = "metrics")]
-            let mut metrics = Metrics::new(1);
             #[cfg(feature = "debugger")]
                 let mut server = super::DummyServer{};
             #[cfg(feature = "debugger")]
@@ -2309,8 +2284,6 @@ mod test {
 
             // Test there is no problem producing an Output when no destinations to send it to
             state.complete_job(
-                #[cfg(feature = "metrics")]
-                &mut metrics,
                 &job,
                 #[cfg(feature = "debugger")]
                 &mut debugger,
