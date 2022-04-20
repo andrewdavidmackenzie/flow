@@ -134,8 +134,8 @@ impl Input {
     }
 
     /// Initialize an input with the InputInitializer if it has one.
-    /// When called at start-up    it will initialize      if it's a OneTime or Constant initializer
-    /// When called after start-up it will initialize only if it's a            Constant initializer
+    /// When called at start-up    it will initialize      if it's a OneTime or Always initializer
+    /// When called after start-up it will initialize only if it's a            Always initializer
     pub fn init(&mut self, first_time: bool, io_number: usize) -> bool {
         if !self.received.is_empty() {
             return false;
