@@ -50,7 +50,7 @@ impl<'a> Coordinator<'a> {
 
         execution::set_panic_hook();
 
-        info!("Starting {} executor threads", num_threads);
+        info!("Starting {num_threads} executor threads");
         let shared_job_receiver = Arc::new(Mutex::new(job_rx));
         execution::start_executors(num_threads, &shared_job_receiver, &output_tx);
 
@@ -82,10 +82,10 @@ impl<'a> Coordinator<'a> {
                 }
                 Err(e) => {
                     if loop_forever {
-                        error!("{}", e);
+                        error!("{e}");
                     } else {
-                        self.server.server_exiting(Err(e.clone()))?;
-                        bail!("{}", e);
+                        self.server.server_exiting(Err(e))?;
+                        bail!("{e}");
                     }
                 },
             }
@@ -142,13 +142,10 @@ impl<'a> Coordinator<'a> {
                     return Ok(true); // User requested via debugger to exit execution
                 }
 
-                #[cfg(feature = "debugger")]
-                {
-                    // If debugger request it, exit the inner job loop which will cause us to reset state
-                    // and restart execution, in the outer flow_execution loop
-                    if restart {
-                        break 'jobs;
-                    }
+                // If debugger request it, exit the inner job loop which will cause us to reset state
+                // and restart execution, in the outer flow_execution loop
+                if restart {
+                    break 'jobs;
                 }
 
                 if state.number_jobs_running() > 0 {
@@ -170,11 +167,11 @@ impl<'a> Coordinator<'a> {
                         Err(err) => {
                             if submission.debug {
                                 self.debugger
-                                    .panic(&state, format!("Error in job reception: '{}'", err));
+                                    .panic(&state, format!("Error in job reception: '{err}'"));
                             }
                         }
                         #[cfg(not(feature = "debugger"))]
-                        Err(e) => error!("\tError in Job reception: {}", e),
+                        Err(e) => error!("\tError in Job reception: {e}"),
                     }
                 }
 
@@ -236,7 +233,7 @@ impl<'a> Coordinator<'a> {
                 }
                 Err(err) => {
                     error!("Error sending on 'job_tx': {}", err.to_string());
-                    debug!("{}", state);
+                    debug!("{state}");
 
                     #[cfg(feature = "debugger")]
                     self.debugger.job_error(state, &job);

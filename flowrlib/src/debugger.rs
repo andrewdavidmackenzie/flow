@@ -241,11 +241,11 @@ impl<'a> Debugger<'a> {
                             self.debug_server.input(function.input(input_number).clone());
                         } else {
                             self.debug_server.debugger_error(format!(
-                                "Function #{} has no input number {}", function_id, input_number
+                                "Function #{function_id} has no input number {input_number}"
                             ));
                         }
                     } else {
-                        self.debug_server.debugger_error(format!("No function with id = {}", function_id));
+                        self.debug_server.debugger_error(format!("No function with id = {function_id}"));
                     };
                 }
                 Ok(InspectOutput(function_id, sub_route)) => {
@@ -271,7 +271,7 @@ impl<'a> Debugger<'a> {
                         }
                         self.debug_server.outputs(output_connections);
                     } else {
-                        self.debug_server.debugger_error(format!("No function with id = {}", function_id));
+                        self.debug_server.debugger_error(format!("No function with id = {function_id}"));
                     };
                 }
                 Ok(InspectBlock(from_function_id, to_function_id)) => {
@@ -309,7 +309,7 @@ impl<'a> Debugger<'a> {
                 }
                 Ok(Error(_)) => { /* client error */ }
                 Ok(Invalid) => {}
-                Err(e) => error!("Error in Debug server getting command; {}", e),
+                Err(e) => error!("Error in Debug server getting command; {e}"),
             };
         }
     }
@@ -348,18 +348,17 @@ impl<'a> Debugger<'a> {
 
         match param {
             None => response.push_str("'break' command must specify a breakpoint\n"),
-            Some(Param::Numeric(process_id)) => {
-                if process_id > state.num_functions() {
+            Some(Param::Numeric(function_id)) => {
+                if function_id > state.num_functions() {
                     response.push_str(&format!(
-                        "There is no Function with id '{}' to set a breakpoint on\n",
-                        process_id
+                        "There is no Function with id '{function_id}' to set a breakpoint on\n"
                     ));
                 } else {
-                    self.function_breakpoints.insert(process_id);
-                    let function = state.get_function(process_id);
+                    self.function_breakpoints.insert(function_id);
+                    let function = state.get_function(function_id);
                     response.push_str(&format!(
-                        "Breakpoint set on Function #{} ({}) @ '{}'\n",
-                        process_id, function.name(), function.route()
+                        "Breakpoint set on Function #{function_id} ({}) @ '{}'\n",
+                        function.name(), function.route()
                     ));
                 }
             }
@@ -367,15 +366,14 @@ impl<'a> Debugger<'a> {
                 let function = state.get_function(destination_id);
                 let io_name = function.input(input_number).name();
                 response.push_str(&format!(
-                    "Data breakpoint set on Function #{}:{} '{}' receiving data on input '{}'\n",
-                    destination_id, input_number, function.name(), io_name));
+                    "Data breakpoint set on Function #{destination_id}:{input_number} '{}' receiving data on input '{io_name}'\n",
+                    function.name()));
                 self.input_breakpoints
                     .insert((destination_id, input_number));
             }
             Some(Param::Block((Some(blocked_id), Some(blocking_id)))) => {
                 response.push_str(&format!(
-                    "Block breakpoint set on Function #{} being blocked by Function #{}\n",
-                    blocked_id, blocking_id
+                    "Block breakpoint set on Function #{blocked_id} being blocked by Function #{blocking_id}\n",
                 ));
                 self.block_breakpoints.insert((blocked_id, blocking_id));
             }
@@ -384,8 +382,7 @@ impl<'a> Debugger<'a> {
             }
             Some(Param::Output((source_id, source_output_route))) => {
                 response.push_str(&format!(
-                    "Data breakpoint set on Function #{} sending data via output: '{}'\n",
-                    source_id, source_output_route
+                    "Data breakpoint set on Function #{source_id} sending data via output: '{source_output_route}'\n",
                 ));
                 self.output_breakpoints
                     .insert((source_id, source_output_route));
@@ -411,8 +408,7 @@ impl<'a> Debugger<'a> {
             Some(Param::Numeric(process_number)) => {
                 if self.function_breakpoints.remove(&process_number) {
                     response.push_str(&format!(
-                        "Breakpoint on process #{} was deleted\n",
-                        process_number
+                        "Breakpoint on function #{process_number} was deleted\n",
                     ));
                 } else {
                     response.push_str("No breakpoint number '{}' exists\n");
@@ -458,7 +454,7 @@ impl<'a> Debugger<'a> {
             breakpoints = true;
             response.push_str("Function Breakpoints: \n");
             for process_id in &self.function_breakpoints {
-                response.push_str(&format!("\tFunction #{}\n", process_id));
+                response.push_str(&format!("\tFunction #{process_id}\n"));
             }
         }
 
@@ -466,7 +462,7 @@ impl<'a> Debugger<'a> {
             breakpoints = true;
             response.push_str("Output Breakpoints: \n");
             for (process_id, route) in &self.output_breakpoints {
-                response.push_str(&format!("\tOutput #{}/{}\n", process_id, route));
+                response.push_str(&format!("\tOutput #{process_id}/{route}\n"));
             }
         }
 
@@ -474,7 +470,7 @@ impl<'a> Debugger<'a> {
             breakpoints = true;
             response.push_str("Input Breakpoints: \n");
             for (process_id, input_number) in &self.input_breakpoints {
-                response.push_str(&format!("\tInput #{}:{}\n", process_id, input_number));
+                response.push_str(&format!("\tInput #{process_id}:{input_number}\n"));
             }
         }
 
@@ -482,7 +478,7 @@ impl<'a> Debugger<'a> {
             breakpoints = true;
             response.push_str("Block Breakpoints: \n");
             for (blocked_id, blocking_id) in &self.block_breakpoints {
-                response.push_str(&format!("\tBlock #{}->#{}\n", blocked_id, blocking_id));
+                response.push_str(&format!("\tBlock #{blocked_id}->#{blocking_id}\n"));
             }
         }
 

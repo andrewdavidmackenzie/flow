@@ -58,7 +58,7 @@ mod test {
     #[test]
     fn display_block_test() {
         let block = super::Block::new(2, 0, 1);
-        println!("Block: {}", block);
+        println!("Block: {block}");
     }
 
     #[test]
