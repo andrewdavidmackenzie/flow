@@ -562,10 +562,10 @@ impl RunState {
                 })
             }
             Err(e) => {
-                error!(
-                    "Job #{}: Error '{}' while creating job for Function #{}",
-                    job_id, e, function_id
-                );
+                #[cfg(not(feature = "debugger"))]
+                error!("Job #{job_id}: Error '{e}' creating job for Function #{function_id}");
+                #[cfg(feature = "debugger")]
+                error!("Job #{job_id}: Error '{e}' creating job for Function #{function_id} '{}'", function.name());
                 None
             }
         }
@@ -587,8 +587,7 @@ impl RunState {
                     let destination_function = self.get_function(destination.function_id);
                     if destination_function.input_count(destination.io_number) > 0 {
                         trace!(
-                            "\tAdded block #{} -> #{}:{}",
-                            source_id,
+                            "\tAdded block #{source_id} -> #{}:{}",
                             destination.function_id,
                             destination.io_number
                         );
@@ -727,10 +726,10 @@ impl RunState {
     // In which case it should transition to one of two states: Ready or Blocked
     fn make_ready_or_blocked(&mut self, id: usize) {
         if self.blocked_sending(id) {
-            trace!( "\t\t\tFunction #{} blocked on output. State set to 'Blocked'", id);
+            trace!( "\t\t\tFunction #{id} blocked on output. State set to 'Blocked'");
             self.blocked.insert(id);
         } else {
-            trace!("\t\t\tFunction #{} not blocked on output. State set to 'Ready'", id);
+            trace!("\t\t\tFunction #{id} not blocked on output. State set to 'Ready'");
             self.ready.push_back(id);
         }
     }
@@ -757,18 +756,11 @@ impl RunState {
         // Note: they could be blocked on other functions apart from the the one that just unblocked
         for unblocked_id in unblock_list {
             if self.blocked.contains(&unblocked_id) && !self.blocked_sending(unblocked_id) {
-                trace!(
-                    "\t\t\t\tFunction #{} \
-                removed from 'blocked' list",
-                    unblocked_id
-                );
+                trace!("\t\t\t\tFunction #{unblocked_id} removed from 'blocked' list");
                 self.blocked.remove(&unblocked_id);
 
                 if self.get_function(unblocked_id).is_runnable() {
-                    trace!(
-                        "\t\t\t\tFunction #{} has inputs ready, so added to 'ready' list",
-                        unblocked_id
-                    );
+                    trace!("\t\t\t\tFunction #{unblocked_id} has inputs ready, so added to 'ready' list");
                     self.ready.push_back(unblocked_id);
                 }
             }
@@ -1048,7 +1040,7 @@ mod test {
             #[cfg(any(feature = "debugger", feature = "metrics"))]
             assert_eq!(state.num_functions(), 2);
 
-            println!("Run state: {}", state);
+            println!("Run state: {state}");
         }
 
         #[cfg(feature = "metrics")]
