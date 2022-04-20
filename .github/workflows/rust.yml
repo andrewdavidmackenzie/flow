@@ -11,13 +11,14 @@ on:
 env:
   CARGO_TERM_COLOR: always
 
+# Pending adding macos-12 to the matrix
 jobs:
   build:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
           os: [ macos-latest, ubuntu-latest ]
-          rust: [ stable ]
+          rust: [ nightly ]
 
     steps:
     - uses: actions/checkout@v2
@@ -26,16 +27,16 @@ jobs:
       uses: actions/cache@v1
       with:
         path: ~/.cargo
-        key: ${{ runner.os }}-cargo-${{ hashFiles('FlowCargo.toml') }}
+        key: ${{ runner.os }}-cargo-${{ hashFiles('Cargo.toml') }}
         restore-keys: |
           ${{ runner.os }}-cargo-${{ hashFiles('Cargo.toml') }}
           ${{ runner.os }}-cargo-
 
-    - name: Cargo Target Cache
+    - name: Target Directory Cache
       uses: actions/cache@v1
       with:
         path: target
-        key: ${{ runner.os }}-cargo-target-${{ hashFiles('FlowCargo.toml') }}
+        key: ${{ runner.os }}-cargo-target-${{ hashFiles('Cargo.toml') }}
         restore-keys: |
           ${{ runner.os }}-cargo-target-${{ hashFiles('Cargo.toml') }}
           ${{ runner.os }}-cargo-target
@@ -53,12 +54,23 @@ jobs:
     - name: DebugData
       run: rustc --version
 
+    - name: MacOS Details
+      if: runner.os == 'macOS'
+      run: |
+        uname -a
+        sw_vers        
+
+    - name: Linux Details
+      if: runner.os == 'Linux'
+      run: |
+        uname -a
+
     - name: InstallLinuxDependencies
-      if: matrix.os == 'ubuntu-latest'
+      if: runner.os == 'Linux'
       run: sudo apt-get -y install libzmq3-dev binaryen
 
     - name: InstallMacDependencies
-      if: matrix.os == 'macos-latest'
+      if: runner.os == 'macOS'
       run: brew install zmq binaryen
 
     - name: AddWasmTarget
@@ -67,10 +79,11 @@ jobs:
     - name: InstallWasmTools
       run: cargo install wasm-gc wasm-snip
 
+    # Only measure coverage on Linux as MacOS build is already very slow
     - name: ConfigureCoverage
       if: matrix.os == 'ubuntu-latest'
       run: |
-        echo RUSTC_BOOTSTRAP=1 >> "$GITHUB_ENV" # Enables -Z in stable
+        # echo RUSTC_BOOTSTRAP=1 >> "$GITHUB_ENV" # Enables -Z in stable
         cargo install grcov
         rustup component add llvm-tools-preview
         echo RUSTFLAGS="-C instrument-coverage" >> "$GITHUB_ENV"
@@ -91,6 +104,7 @@ jobs:
     - name: test
       run: cargo test --features "online_tests","wasm"
 
+    # Only build docs on one matrix.os combination
     - name: docs
       if: matrix.os == 'ubuntu-latest'
       run: |
@@ -108,6 +122,7 @@ jobs:
         bash <(curl -s https://codecov.io/bash) -f lcov.info
         rm -f lcov.info
 
+    # Only deploy docs once - on one specific matrix.os and when on master
     - name: DeployDocsToGHPages
       uses: JamesIves/github-pages-deploy-action@4.1.4
       if: matrix.os == 'ubuntu-latest' && github.ref == 'refs/heads/master'
