@@ -50,6 +50,9 @@ jobs:
         override: true
         components: clippy
 
+    - name: DebugData
+      run: rustc --version
+
     - name: InstallLinuxDependencies
       if: matrix.os == 'ubuntu-latest'
       run: sudo apt-get -y install libzmq3-dev binaryen
