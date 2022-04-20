@@ -49,13 +49,13 @@ pub struct OutputConnection {
     #[serde(default, skip_serializing_if = "String::is_empty")]
     name: String,
     /// `priority` depends on for how far "out" in the flow hierarchy from the destination the
-    /// connection comes.
-    ///     0 = loopback connection
-    ///     1 = from same flow
-    ///     2 = from next flow out
-    ///   MAX = priority was not set at compile time
-    /// It is used to prioritize the selection of input values queued up at an input using the
+    /// connection comes. It is used to prioritize the selection of input values queued up at an input using the
     /// "innermost first" theory
+    ///     0 = loopback connection (also used for initializers)
+    ///     1 = from within the same flow
+    ///     2 = from the next flow outwards in the hierarchy
+    ///   MAX = priority was not set at compile time
+    ///
     priority: usize,
 }
 
