@@ -149,7 +149,7 @@ impl Input {
 
         match init_value {
             Some(value) => {
-                trace!("\t\tInput:{} initialized with '{:?}'", io_number, value);
+                trace!("\t\tInput:{io_number} initialized with '{:?}'", value);
                 self.push(0, value);
                 true
             }
@@ -177,7 +177,7 @@ impl Input {
         I: Iterator<Item = &'a Value>,
     {
         for value in iter {
-            trace!("\t\t\tPushing array element '{}'", value);
+            trace!("\t\t\tPushing array element '{value}'");
             self.push(priority, value.clone());
         }
     }

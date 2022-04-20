@@ -132,8 +132,8 @@ impl fmt::Display for Source {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Source::Output(subroute) if subroute.is_empty() => Ok(()),
-            Source::Output(subroute) => write!(f, "{}", subroute),
-            Source::Input(index) => write!(f, ":{}", index),
+            Source::Output(subroute) => write!(f, "{subroute}"),
+            Source::Input(index) => write!(f, ":{index}"),
         }
     }
 }

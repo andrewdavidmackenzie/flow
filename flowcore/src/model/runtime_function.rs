@@ -169,17 +169,15 @@ impl RuntimeFunction {
             if input.is_empty() && input.init(first_time, io_number) {
                 #[cfg(feature = "debugger")]
                 debug!(
-                    "\tInitialized Input #{}({}):{} '{}' ",
+                    "\tInitialized Input #{}({}):{io_number} '{}' ",
                     self.function_id,
                     self.flow_id,
-                    io_number,
                     self.name);
                 #[cfg(not(feature = "debugger"))]
                 debug!(
-                    "\tInitialized Input #{}({}):{} ",
+                    "\tInitialized Input #{}({}):{io_number} ",
                     self.function_id,
-                    self.flow_id,
-                    io_number);
+                    self.flow_id);
             }
         }
     }
@@ -225,13 +223,9 @@ impl RuntimeFunction {
     /// NOTE: For Impure functions without inputs (that can always run and produce a value)
     /// this will return usize::MAX
     pub fn input_set_count(&self) -> usize {
-        let mut num_input_sets = usize::MAX;
-
-        for input in &self.inputs {
-            num_input_sets = std::cmp::min(num_input_sets, input.count());
-        }
-
-        num_input_sets
+        self.inputs.iter().fold(usize::MAX,
+                                |min, input|
+                                    std::cmp::min(min, input.count()))
     }
 
     /// Can this function run and produce an output, either because it has input sets to allow it
@@ -410,7 +404,7 @@ mod test {
     #[test]
     fn can_display_function() {
         let function = test_function();
-        let _ = format!("{}", function);
+        let _ = format!("{function}");
     }
 
     #[cfg(feature = "debugger")]
@@ -456,10 +450,7 @@ mod test {
         #[cfg(feature = "debugger")]
         assert_eq!("test".to_string(), function.name());
         assert_eq!(1, function.id());
-        assert_eq!(
-            "file://fake/implementation",
-            function.implementation_location()
-        );
+        assert_eq!("file://fake/implementation", function.implementation_location());
     }
 
     #[test]
