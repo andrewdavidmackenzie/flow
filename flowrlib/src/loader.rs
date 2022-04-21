@@ -107,7 +107,7 @@ impl Loader {
             .get(lib_root_url)
             .ok_or("Could not find (supposedly already loaded) library manifest")?;
 
-        Ok(tuple.clone()) // TODO avoid the clone and return a reference
+        Ok(tuple.clone())
     }
 
     /// Load libraries implementations referenced in the flow manifest
@@ -205,7 +205,7 @@ impl Loader {
                 .0
                 .locators
                 .get(implementation_reference)
-                .ok_or(format!(
+                .ok_or_else(|| format!(
                     "Could not find ImplementationLocator for '{implementation_reference}' in library"
                 ))?;
 
