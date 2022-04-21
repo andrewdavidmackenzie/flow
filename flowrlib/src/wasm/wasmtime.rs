@@ -75,11 +75,10 @@ impl WasmExecutor {
         return match result {
             Ok(value) => match *value {
                 [Val::I32(result_length)] => {
-                    trace!("Return length from wasm function of {}", result_length);
+                    trace!("Return length from wasm function of {result_length}");
                     if result_length > MAX_RESULT_SIZE {
                         bail!(
-                            "Return length from wasm function of {} exceed maximum allowed",
-                            result_length
+                            "Return length from wasm function of {result_length} exceed maximum allowed"
                         );
                     }
 
@@ -91,7 +90,7 @@ impl WasmExecutor {
 
                     match serde_json::from_slice(&buffer) {
                         Ok((result, run_again)) => Ok((result, run_again)),
-                        Err(e) => bail!("could not deserialize json response from WASM: {}", e)
+                        Err(e) => bail!("could not deserialize json response from WASM: {e}")
                     }
                 }
                 _ => {
@@ -114,17 +113,14 @@ pub fn load(provider: &dyn Provider, source_url: &Url) -> Result<WasmExecutor> {
         .resolve_url(source_url, DEFAULT_WASM_FILENAME, &["wasm"])
         .chain_err(|| "Could not resolve url for manifest while attempting to load manifest")?;
     let content = provider.get_contents(&resolved_url).chain_err(|| {
-        format!(
-            "Could not fetch content from url '{}' for loading wasm",
-            resolved_url
-        )
+        format!("Could not fetch content from url '{resolved_url}' for loading wasm")
     })?;
 
     let mut store: Store<()> = Store::default();
     let module = Module::new(store.engine(), content)
-        .map_err(|e| format!("Could not create WASM Module: {}", e))?;
+        .map_err(|e| format!("Could not create WASM Module: {e}"))?;
     let instance = Instance::new(&mut store, &module, &[])
-        .map_err(|e| format!("Could not create WASM Instance: {}", e))?;
+        .map_err(|e| format!("Could not create WASM Instance: {e}"))?;
     let memory = instance
         .get_memory(&mut store, "memory")
         .ok_or("Could not get WASM linear memory")?;
@@ -137,7 +133,7 @@ pub fn load(provider: &dyn Provider, source_url: &Url) -> Result<WasmExecutor> {
         .get_func(&mut store, "alloc")
         .ok_or("Could not get the WASM alloc() function")?;
 
-    info!("Loaded wasm module from: '{}'", source_url);
+    info!("Loaded wasm module from: '{source_url}'");
 
     Ok(WasmExecutor::new(
         store,

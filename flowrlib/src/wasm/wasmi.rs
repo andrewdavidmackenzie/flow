@@ -74,11 +74,10 @@ impl Implementation for WasmExecutor {
                 return match result {
                     Ok(Some(value)) => match value {
                         RuntimeValue::I32(result_length) => {
-                            trace!("Return length from wasm function of {}", result_length);
+                            trace!("Return length from wasm function of {result_length}");
                             if result_length > MAX_RESULT_SIZE {
                                 bail!(
-                                    "Return length from wasm function of {} exceed maximum allowed",
-                                    result_length
+                                    "Return length from wasm function of {result_length} exceed maximum allowed"
                                 );
                             }
 
@@ -115,16 +114,10 @@ pub fn load(provider: &dyn Provider, source_url: &Url) -> Result<WasmExecutor> {
         .resolve_url(source_url, DEFAULT_WASM_FILENAME, &["wasm"])
         .chain_err(|| "Could not resolve url for manifest while attempting to load manifest")?;
     let content = provider.get_contents(&resolved_url).chain_err(|| {
-        format!(
-            "Could not fetch content from url '{}' for loading wasm",
-            resolved_url
-        )
+        format!("Could not fetch content from url '{resolved_url}' for loading wasm")
     })?;
     let module = Module::from_buffer(content).chain_err(|| {
-        format!(
-            "Could not create Wasm Module from content in '{}'",
-            resolved_url
-        )
+        format!("Could not create Wasm Module from content in '{resolved_url}'")
     })?;
 
     let module_ref = ModuleInstance::new(&module, &ImportsBuilder::default())
@@ -140,7 +133,7 @@ pub fn load(provider: &dyn Provider, source_url: &Url) -> Result<WasmExecutor> {
 
     check_required_functions(&module_ref, &resolved_url)?;
 
-    info!("Loaded wasm module from: '{}'", source_url);
+    info!("Loaded wasm module from: '{source_url}'");
 
     Ok(WasmExecutor::new(module_ref, memory, source_url))
 }
@@ -159,8 +152,7 @@ fn check_required_functions(module_ref: &ModuleRef, filename: &Url) -> Result<()
 
     for (function_name, signature) in required_wasm_functions {
         match module_ref.export_by_name(function_name).ok_or(format!(
-            "No function named '{}' found in wasm file '{}'",
-            function_name, filename
+            "No function named '{function_name}' found in wasm file '{filename}'"
         ))? {
             ExternVal::Func(function_ref) => {
                 let sig = function_ref.signature();

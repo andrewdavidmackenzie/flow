@@ -20,7 +20,7 @@ pub fn start_executors(
 ) {
     for executor_number in 0..number_of_executors {
         create_executor(
-            format!("Executor #{}", executor_number),
+            format!("Executor #{executor_number}"),
             job_rx.clone(),
             job_tx.clone(),
         ); // clone of Arcs and Sender OK
@@ -67,16 +67,16 @@ fn get_and_execute_job(
 ) -> Result<()> {
     let guard = job_rx
         .lock()
-        .map_err(|e| format!("Error locking receiver to get job: '{}'", e))?;
+        .map_err(|e| format!("Error locking receiver to get job: '{e}'"))?;
     let job = guard
         .recv()
-        .map_err(|e| format!("Error receiving job for execution: '{}'", e))?;
+        .map_err(|e| format!("Error receiving job for execution: '{e}'"))?;
     execute(job, job_tx, name)
 }
 
 fn execute(mut job: Job, job_tx: &Sender<Job>, name: &str) -> Result<()> {
     // Run the job and catch the execution result
-    trace!("Job #{}:\tExecuting on '{}'", job.job_id, name);
+    trace!("Job #{}:\tExecuting on '{name}'", job.job_id);
     let result = job.implementation.run(&job.input_set);
 
     job.result = result;
