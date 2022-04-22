@@ -11,13 +11,12 @@ on:
 env:
   CARGO_TERM_COLOR: always
 
-# Pending adding macos-12 to the matrix
 jobs:
   build:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-          os: [ macos-latest, ubuntu-latest, macos-12 ]
+          os: [ macos-latest, ubuntu-latest ] # add ', macos-12' when working in GH Actions
           rust: [ nightly ]
 
     steps:
