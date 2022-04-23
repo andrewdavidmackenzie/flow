@@ -226,7 +226,6 @@ mod test {
                 ),
             ],
             0,
-            0,
         );
 
         let expected = "{
@@ -288,7 +287,6 @@ mod test {
                 0,
             )],
             0,
-            0,
         );
 
         let expected = "{
@@ -342,7 +340,6 @@ mod test {
                 0,
             )],
             0,
-            0,
         );
 
         let expected = "{
@@ -390,7 +387,6 @@ mod test {
             Some(Url::parse("context://stdio/stdout").expect("Could not parse Url")),
             vec![],
             0,
-            0,
         );
 
         let expected = "{
@@ -436,7 +432,6 @@ mod test {
             Some(Url::parse("context://stdio/stdout").expect("Could not parse Url")),
             vec![],
             0,
-            0,
         );
 
         let expected = "{
@@ -480,7 +475,6 @@ mod test {
             None,
             Some(Url::parse("context://stdio/stdout").expect("Could not parse Url")),
             vec![],
-            0,
             0,
         );
 
@@ -529,7 +523,6 @@ mod test {
                 String::default(),
                 0,
             )],
-            0,
             0,
         )
     }
@@ -602,7 +595,6 @@ mod test {
                 String::default(),
                 0,
             )],
-            0,
             0,
         );
 

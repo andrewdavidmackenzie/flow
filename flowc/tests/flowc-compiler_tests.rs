@@ -8,8 +8,6 @@ use flowclib::compiler::compile;
 use flowclib::compiler::loader;
 use flowcore::meta_provider::MetaProvider;
 use flowcore::model::input::InputInitializer::Once;
-use flowcore::model::name::HasName;
-use flowcore::model::name::Name;
 use flowcore::model::process::Process::{FlowProcess, FunctionProcess};
 use flowcore::model::route::HasRoute;
 use flowcore::model::route::Route;
@@ -117,39 +115,6 @@ fn same_name_input_and_output() {
         ).expect("Could not compile flow");
         // If done correctly there should only be two connections
         assert_eq!(2, tables.collapsed_connections.len());
-    } else {
-        panic!("Process loaded was not a flow");
-    }
-}
-
-#[test]
-fn same_name_flow_ids() {
-    let meta_provider = MetaProvider::new(helper::set_lib_search_path_to_project(),
-                                          helper::get_context_root());
-    let path = helper::absolute_file_url_from_relative_path(
-        "flowc/tests/test-flows/same-name-parent/same-name-parent.toml",
-    );
-    let process = loader::load(&path, &meta_provider, &mut HashSet::<(Url, Url)>::new())
-        .expect("Could not load test flow");
-    if let FlowProcess(ref flow) = process {
-        let mut source_urls = HashSet::<(Url, Url)>::new();
-        let output_dir = TempDir::new("flow-test").expect("A temp dir").into_path();
-
-        let tables = compile::compile(flow, &output_dir, false, false,
-                                      #[cfg(feature = "debugger")] &mut source_urls
-        ).expect("Could not compile flow");
-
-        // print function in context flow should have flow_id = 0
-        let print_function = tables
-            .functions
-            .iter()
-            .find(|f| f.alias() == &Name::from("print"))
-            .expect("Could not find function named print");
-        assert_eq!(
-            print_function.get_flow_id(),
-            0,
-            "print function in context should have flow_id = 0"
-        );
     } else {
         panic!("Process loaded was not a flow");
     }

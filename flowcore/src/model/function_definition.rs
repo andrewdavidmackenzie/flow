@@ -68,9 +68,6 @@ pub struct FunctionDefinition {
     /// A unique `id` assigned to the function as the flow is parsed hierarchically
     #[serde(skip_deserializing)]
     pub function_id: usize,
-    /// the `id` of the `FlowDefinition` that this `FunctionDefinition` lies within in the hierarchy
-    #[serde(skip_deserializing)]
-    pub flow_id: usize,
 }
 
 impl Default for FunctionDefinition {
@@ -91,7 +88,6 @@ impl Default for FunctionDefinition {
             context_reference: None,
             output_connections: vec![],
             function_id: 0,
-            flow_id: 0,
         }
     }
 }
@@ -134,7 +130,6 @@ impl FunctionDefinition {
         context_reference: Option<Url>,
         output_connections: Vec<OutputConnection>,
         id: usize,
-        flow_id: usize,
     ) -> Self {
         FunctionDefinition {
             name,
@@ -151,7 +146,6 @@ impl FunctionDefinition {
             context_reference,
             output_connections,
             function_id: id,
-            flow_id,
             build_type: String::default(),
         }
     }
@@ -164,11 +158,9 @@ impl FunctionDefinition {
         source_url: &Url,
         parent_route: &Route,
         alias: &Name,
-        flow_id: usize,
         reference: Option<Url>,
         initializations: &HashMap<String, InputInitializer>,
     ) -> Result<()> {
-        self.set_flow_id(flow_id);
         self.set_alias(alias);
         self.set_source_url(source_url);
         if let Some(function_reference) = reference {
@@ -197,16 +189,6 @@ impl FunctionDefinition {
     /// Get the name of any associated docs file
     pub fn get_docs(&self) -> &str {
         &self.docs
-    }
-
-    // Set the id of the low this function is a part of
-    fn set_flow_id(&mut self, flow_id: usize) {
-        self.flow_id = flow_id;
-    }
-
-    /// Get the id of the low this function is a part of  
-    pub fn get_flow_id(&self) -> usize {
-        self.flow_id
     }
 
     /// Return true if this function is impure or not
@@ -371,7 +353,6 @@ impl fmt::Display for FunctionDefinition {
         writeln!(f, "name: \t\t{}", self.name)?;
         writeln!(f, "alias: \t\t{}", self.alias)?;
         writeln!(f, "id: \t\t{}", self.function_id)?;
-        writeln!(f, "flow_id: \t\t{}", self.flow_id)?;
 
         writeln!(f, "inputs:")?;
         for input in &self.inputs {

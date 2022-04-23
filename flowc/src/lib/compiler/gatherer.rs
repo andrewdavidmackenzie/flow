@@ -602,7 +602,6 @@ mod test {
                 0,
             )],
             99,
-            0,
         );
 
         let mut functions = vec![function.clone(), function];
