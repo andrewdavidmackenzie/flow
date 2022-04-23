@@ -520,7 +520,7 @@ impl RunState {
         debug!("Resetting RunState");
         // self.functions - list of functions remains the same, but reset the state of each
         for function in &mut self.functions {
-            function.reset()
+            function.clear_inputs()
         }
         self.blocked.clear();
         self.blocks.clear();
@@ -585,7 +585,7 @@ impl RunState {
                 if destination.function_id != source_id {
                     // don't block yourself!
                     let destination_function = self.get_function(destination.function_id);
-                    if destination_function.input_count(destination.io_number) > 0 {
+                    if !destination_function.input(destination.io_number).is_empty() {
                         trace!(
                             "\tAdded block #{source_id} -> #{}:{}",
                             destination.function_id,
@@ -711,7 +711,7 @@ impl RunState {
         // the the impure function without inputs case for input_set_count() does not apply
         let new_input_set_available = function.input_set_count() > count_before;
 
-        (function.input_count(connection.io_number) > 0, new_input_set_available)
+        (!function.input(connection.io_number).is_empty(), new_input_set_available)
     }
 
     // not distinguishing array serialization / wrapping etc

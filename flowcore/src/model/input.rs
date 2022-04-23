@@ -13,6 +13,8 @@ use crate::model::name::HasName;
 #[cfg(feature = "debugger")]
 use crate::model::name::Name;
 
+const HIGHEST_PRIORITY:usize = 0;
+
 #[derive(Clone, Debug, Serialize, PartialEq, Deserialize)]
 #[serde(rename_all = "lowercase")]
 /// An `Input` can be initialized in one of two ways with an `InputInitializer`
@@ -101,8 +103,8 @@ impl Input {
     }
 
     #[cfg(feature = "debugger")]
-    /// Reset the an `Input` - clearing all received values (only used while debugging)
-    pub fn reset(&mut self) {
+    /// Clear all received values (only used while debugging)
+    pub fn clear(&mut self) {
         self.received.clear();
     }
 
@@ -136,33 +138,26 @@ impl Input {
     /// Initialize an input with the InputInitializer if it has one.
     /// When called at start-up    it will initialize      if it's a OneTime or Always initializer
     /// When called after start-up it will initialize only if it's a            Always initializer
-    pub fn init(&mut self, first_time: bool) -> bool {
+    pub fn init(&mut self, first_time: bool) {
         let init_value = match (first_time, &self.initializer) {
             (true, Some(InputInitializer::Once(one_time))) => Some(one_time.clone()),
             (_, Some(InputInitializer::Always(constant))) => Some(constant.clone()),
             (_, None) | (false, Some(InputInitializer::Once(_))) => None,
         };
 
-        match init_value {
-            Some(value) => {
-                self.push(0, value);
-                true
-            }
-            _ => false,
+        if let Some(value) = init_value {
+            trace!("\tInitialized Input with: {value}");
+            self.push(HIGHEST_PRIORITY, value);
         }
     }
 
-    /// Add a `value` with `priority` to this `Input`
+    /// Add a `Value` with `priority` to this `Input`
     pub fn push(&mut self, priority: usize, value: Value) {
         match self.received.get_mut(&priority) {
-            Some(priority_vec) => {
-                // add the value to the existing vector of values for this priority
-                priority_vec.push(value);
-            }
-            None => {
-                // create a new vec of values for this priority level and insert into the map
-                self.received.insert(priority, vec!(value));
-            }
+            // add the value to the existing vector of values for this priority
+            Some(priority_vec) => priority_vec.push(value),
+            // create a new vec of values for this priority level and insert into the map
+            None => {self.received.insert(priority, vec!(value));},
         }
     }
 
@@ -298,11 +293,11 @@ mod test {
 
     #[cfg(feature = "debugger")]
     #[test]
-    fn reset_empties() {
+    fn clear_empties() {
         let mut input = Input::new("", &None);
         input.push(0, json!(10));
         assert!(!input.is_empty());
-        input.reset();
+        input.clear();
         assert!(input.is_empty());
     }
 }

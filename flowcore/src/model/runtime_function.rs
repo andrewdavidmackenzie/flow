@@ -2,7 +2,6 @@
 use std::fmt;
 use std::sync::Arc;
 
-use log::trace;
 use serde_derive::{Deserialize, Serialize};
 use serde_json::Value;
 
@@ -128,11 +127,11 @@ impl RuntimeFunction {
     }
 
     #[cfg(feature = "debugger")]
-    /// Reset a `Function` to initial state. Used by a debugger at run-time to reset a function
-    /// as part of a whole flow reset to run it again.
-    pub fn reset(&mut self) {
+    /// Clear all `Inputs` of received values to date.
+    /// Used by a debugger at run-time to reset execution before running flow again.
+    pub fn clear_inputs(&mut self) {
         for input in &mut self.inputs {
-            input.reset();
+            input.clear();
         }
     }
 
@@ -163,22 +162,10 @@ impl RuntimeFunction {
         self.flow_id
     }
 
-    /// Initialize all of a `RuntimeFunction` `Inputs` that have initializers on them
+    /// Initialize all the `Inputs` that have an initializer
     pub fn init_inputs(&mut self, first_time: bool) {
-        for (io_number, input) in &mut self.inputs.iter_mut().enumerate() {
-            if input.init(first_time) {
-                #[cfg(feature = "debugger")]
-                trace!(
-                    "\tInitialized Input #{}({}):{io_number} '{}' ",
-                    self.function_id,
-                    self.flow_id,
-                    self.name);
-                #[cfg(not(feature = "debugger"))]
-                trace!(
-                    "\tInitialized Input #{}({}):{io_number} ",
-                    self.function_id,
-                    self.flow_id);
-            }
+        for input in &mut self.inputs {
+            input.init(first_time);
         }
     }
 
@@ -189,14 +176,12 @@ impl RuntimeFunction {
 
     /// write a value to a `RuntimeFunction`'s `input`
     pub fn send(&mut self, input_number: usize, priority: usize, value: &Value) {
-        let input = &mut self.inputs[input_number];
-        input.push(priority, value.clone());
+        self.inputs[input_number].push(priority, value.clone());
     }
 
     /// write an array of values to a `RuntimeFunction` `input`
     pub fn send_iter(&mut self, input_number: usize, priority: usize, array: &[Value]) {
-        let input = &mut self.inputs[input_number];
-        input.push_array(priority, array.iter());
+        self.inputs[input_number].push_array(priority, array.iter());
     }
 
     /// Accessor for a `RuntimeFunction` `output_connections` field
@@ -214,11 +199,6 @@ impl RuntimeFunction {
         self.implementation = implementation;
     }
 
-    /// Determine if the `RuntimeFunction` `input` number `input_number` is full or not
-    pub fn input_count(&self, input_number: usize) -> usize {
-        self.inputs[input_number].count()
-    }
-
     /// Returns how many inputs sets are available across all the `RuntimeFunction` `Inputs`
     /// NOTE: For Impure functions without inputs (that can always run and produce a value)
     /// this will return usize::MAX
@@ -234,7 +214,7 @@ impl RuntimeFunction {
         self.inputs.is_empty() || self.input_set_count() > 0
     }
 
-    /// Inspect the values of the `inputs` of a `RuntimeFunction`
+    /// Accessor for the Inputs - used in debugging
     #[cfg(any(feature = "debugger", debug_assertions))]
     pub fn inputs(&self) -> &Vec<Input> {
         &self.inputs
