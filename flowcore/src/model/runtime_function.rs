@@ -174,7 +174,7 @@ impl RuntimeFunction {
                     self.flow_id,
                     self.name);
                 #[cfg(not(feature = "debugger"))]
-                debug!(
+                trace!(
                     "\tInitialized Input #{}({}):{io_number} ",
                     self.function_id,
                     self.flow_id);
