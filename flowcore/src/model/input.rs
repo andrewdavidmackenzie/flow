@@ -136,11 +136,7 @@ impl Input {
     /// Initialize an input with the InputInitializer if it has one.
     /// When called at start-up    it will initialize      if it's a OneTime or Always initializer
     /// When called after start-up it will initialize only if it's a            Always initializer
-    pub fn init(&mut self, first_time: bool, io_number: usize) -> bool {
-        if !self.received.is_empty() {
-            return false;
-        }
-
+    pub fn init(&mut self, first_time: bool) -> bool {
         let init_value = match (first_time, &self.initializer) {
             (true, Some(InputInitializer::Once(one_time))) => Some(one_time.clone()),
             (_, Some(InputInitializer::Always(constant))) => Some(constant.clone()),
@@ -149,7 +145,6 @@ impl Input {
 
         match init_value {
             Some(value) => {
-                trace!("\t\tInput:{io_number} initialized with '{:?}'", value);
                 self.push(0, value);
                 true
             }
@@ -243,10 +238,27 @@ mod test {
     }
 
     #[test]
-    fn initializer_first() {
+    fn once_initializer_before_loopback() {
         let mut input = Input::new("", &Some(InputInitializer::Once(json!(99))));
-        input.init(true, 0);
+        input.init(true);
+        // input a value of priority 0 which corresponds to a loopback connection
         input.push(0, json!(0));
+        assert_eq!(json!(99), input.take().expect("Could not take() any value"));
+    }
+
+    #[test]
+    // This case should be avoided by the compiler, but we will allow it in the runtime and test it
+    // anyway. This is an input that has an Always() initializer on it and also a connection from
+    // somewhere else - these two compete and the Always initializer always wins, rendering
+    // the connection and the other inputs useless.
+    fn always_initializer_always() {
+        let mut input = Input::new("", &Some(InputInitializer::Always(json!(99))));
+        input.init(true);
+        input.push(1, json!(0));
+        assert_eq!(json!(99), input.take().expect("Could not take() any value"));
+        input.init(false);
+        assert_eq!(json!(99), input.take().expect("Could not take() any value"));
+        input.init(false);
         assert_eq!(json!(99), input.take().expect("Could not take() any value"));
     }
 
