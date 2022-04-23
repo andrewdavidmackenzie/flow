@@ -247,6 +247,15 @@ mod test {
     }
 
     #[test]
+    fn once_initializer_before_other_connection() {
+        let mut input = Input::new("", &Some(InputInitializer::Once(json!(99))));
+        input.init(true);
+        // input a value of priority 1 which corresponds to a connection from within the same flow
+        input.push(1, json!(0));
+        assert_eq!(json!(99), input.take().expect("Could not take() any value"));
+    }
+
+    #[test]
     // This case should be avoided by the compiler, but we will allow it in the runtime and test it
     // anyway. This is an input that has an Always() initializer on it and also a connection from
     // somewhere else - these two compete and the Always initializer always wins, rendering
