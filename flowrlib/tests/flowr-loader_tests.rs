@@ -171,7 +171,6 @@ fn load_manifest_from_file() {
         "context://stdio/stdout/stdout",
         vec![],
         0,
-        0,
         &[],
         false,
     );
@@ -210,7 +209,6 @@ fn resolve_lib_implementation_test() {
         "context://stdio/stdin/stdin",
         vec![],
         0,
-        0,
         &[],
         false,
     );
@@ -238,7 +236,6 @@ fn unresolved_lib_functions_test() {
         "/fA",
         "context://stdio/stdin/foo",
         vec![],
-        0,
         0,
         &[],
         false,

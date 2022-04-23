@@ -188,7 +188,6 @@ mod test {
             "file://fake/test",
             vec![Input::new("", &None)],
             0,
-            0,
             &[],
             false,
         )

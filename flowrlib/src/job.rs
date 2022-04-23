@@ -17,8 +17,6 @@ pub struct Job {
     pub job_id: usize,
     /// The `id` of the function in the `RunState`'s list of functions that will execute this job
     pub function_id: usize,
-    /// The `id` of the nested flow (from root flow on down) there the function executing the job is
-    pub flow_id: usize,
     /// The set of input values to be used by the function when executing this job
     pub input_set: Vec<Value>,
     /// The set of destinations (other function's inputs) where the output produced by the function
@@ -35,11 +33,7 @@ pub struct Job {
 
 impl fmt::Display for Job {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        writeln!(
-            f,
-            "Job Id: {}, Function Id: {}, Flow Id: {}",
-            self.job_id, self.function_id, self.flow_id
-        )?;
+        writeln!(f, "Job Id: {}, Function Id: {}", self.job_id, self.function_id)?;
         writeln!(f, "Inputs: {:?}", self.input_set)?;
         writeln!(f, "Connections: {:?}", self.connections)?;
         writeln!(f, "Result: {:?}", self.result)
@@ -56,7 +50,6 @@ impl Clone for Job {
         Job {
             job_id: self.job_id,
             function_id: self.function_id,
-            flow_id: self.flow_id,
             input_set: self.input_set.clone(),
             connections: self.connections.clone(),
             implementation: self.implementation.clone(),
@@ -79,7 +72,6 @@ mod test {
         let job = super::Job {
             job_id: 0,
             function_id: 1,
-            flow_id: 0,
             input_set: vec![],
             connections: vec![],
             implementation: RuntimeFunction::default_implementation(),
@@ -93,7 +85,6 @@ mod test {
         let job = super::Job {
             job_id: 0,
             function_id: 1,
-            flow_id: 0,
             input_set: vec![],
             connections: vec![],
             implementation: RuntimeFunction::default_implementation(),
@@ -119,7 +110,6 @@ mod test {
         let job = super::Job {
             job_id: 0,
             function_id: 1,
-            flow_id: 0,
             input_set: vec![],
             connections: vec![],
             implementation: RuntimeFunction::default_implementation(),

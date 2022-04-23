@@ -25,9 +25,6 @@ pub struct RuntimeFunction {
     /// The unique `function_id` of this function at run-time
     function_id: usize,
 
-    /// The unique id of the flow this function was in at definition time
-    flow_id: usize,
-
     /// Implementation location can be a "lib://lib_name/path/to/implementation" reference
     /// or a "context://stdio/stdout" context function reference
     /// or a path relative to the manifest location where a supplied implementation file can be found
@@ -58,7 +55,7 @@ impl Implementation for ImplementationNotFound {
 #[cfg(feature = "debugger")]
 impl fmt::Display for RuntimeFunction {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Function #{}({})", self.function_id, self.flow_id)?;
+        write!(f, "Function #{}", self.function_id)?;
 
         if !self.name.is_empty() {
             write!(f, " '{}'", self.name)?;
@@ -99,7 +96,6 @@ impl RuntimeFunction {
         implementation_location: I,
         inputs: Vec<Input>,
         id: usize,
-        flow_id: usize,
         output_connections: &[OutputConnection],
         include_destination_routes: bool,
     ) -> Self {
@@ -118,7 +114,6 @@ impl RuntimeFunction {
             #[cfg(feature = "debugger")]
             route: route.into(),
             function_id: id,
-            flow_id,
             implementation_location: implementation_location.into(),
             implementation: RuntimeFunction::default_implementation(),
             output_connections: connections,
@@ -155,11 +150,6 @@ impl RuntimeFunction {
     /// Accessor for a `RuntimeFunction` `id`
     pub fn id(&self) -> usize {
         self.function_id
-    }
-
-    /// Accessor for a `RuntimeFunction` `flow_id`
-    pub fn get_flow_id(&self) -> usize {
-        self.flow_id
     }
 
     /// Initialize all the `Inputs` that have an initializer
@@ -340,7 +330,6 @@ mod test {
             1,
             1,
             0,
-            0,
             false,
             String::default(),
             #[cfg(feature = "debugger")]
@@ -355,7 +344,6 @@ mod test {
             "file://fake/implementation",
             vec![Input::new("", &None)],
             1,
-            0,
             &[out_conn],
             false,
         )
@@ -395,7 +383,6 @@ mod test {
             1,
             1,
             0,
-            0,
             false,
             String::default(),
             #[cfg(feature = "debugger")]
@@ -409,7 +396,6 @@ mod test {
             "/test",
             "file://fake/test",
             vec![Input::new("", &None)],
-            0,
             0,
             &[output_route.clone()],
             false,

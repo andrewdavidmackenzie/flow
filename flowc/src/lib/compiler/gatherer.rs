@@ -93,7 +93,7 @@ fn create_routes_table(tables: &mut CompilerTables) {
         for (input_index, input) in function.get_inputs().iter().enumerate() {
             tables.destination_routes.insert(
                 input.route().clone(),
-                (function.get_id(), input_index, function.get_flow_id()),
+                (function.get_id(), input_index),
             );
         }
     }
@@ -177,7 +177,7 @@ pub fn collapse_connections(tables: &mut CompilerTables) {
 
                     for (_, _, _, destination_io) in destinations {
                         // get a mutable reference to the destination function and set the initializer on it
-                        if let Some(&(destination_function_id, destination_input_index, _)) =
+                        if let Some(&(destination_function_id, destination_input_index)) =
                         tables.destination_routes.get(destination_io.route()) {
                             if let Some(destination_function) = tables.functions.get_mut(destination_function_id) {
                                 let _ = destination_function.set_initial_value(destination_input_index, connection.from_io().get_initializer());
@@ -593,7 +593,6 @@ mod test {
             vec![OutputConnection::new(
                 Source::default(),
                 1,
-                0,
                 0,
                 0,
                 false,

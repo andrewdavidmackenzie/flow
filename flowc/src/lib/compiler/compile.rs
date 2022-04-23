@@ -29,7 +29,7 @@ pub struct CompilerTables {
     /// HashMap of sources of values and what route they are connected to
     pub sources: HashMap<Route, (Source, usize)>,
     /// HashMap from "route of the output of a function" --> (output name, source_function_id)
-    pub destination_routes: HashMap<Route, (usize, usize, usize)>,
+    pub destination_routes: HashMap<Route, (usize, usize)>,
     /// HashMap from "route of the input of a function" --> (destination_function_id, input number, flow_id)
     pub collapsed_connections: Vec<Connection>,
     /// The set of functions left in a flow after it has been flattened, connected and optimized
@@ -48,7 +48,7 @@ impl CompilerTables {
         CompilerTables {
             connections: Vec::new(),
             sources: HashMap::<Route, (Source, usize)>::new(),
-            destination_routes: HashMap::<Route, (usize, usize, usize)>::new(),
+            destination_routes: HashMap::<Route, (usize, usize)>::new(),
             collapsed_connections: Vec::new(),
             functions: Vec::new(),
             libs: HashSet::new(),
@@ -124,7 +124,7 @@ fn configuring_output_connections(tables: &mut CompilerTables) -> Result<()> {
     for connection in &tables.collapsed_connections {
         if let Some((source, source_id)) = get_source(&tables.sources, connection.from_io().route())
         {
-            if let Some(&(destination_function_id, destination_input_index, destination_flow_id)) =
+            if let Some(&(destination_function_id, destination_input_index)) =
             tables.destination_routes.get(connection.to_io().route())
             {
                 if let Some(source_function) = tables.functions.get_mut(source_id) {
@@ -147,7 +147,6 @@ fn configuring_output_connections(tables: &mut CompilerTables) -> Result<()> {
                         source,
                         destination_function_id,
                         destination_input_index,
-                        destination_flow_id,
                         connection.to_io().datatypes()[0].array_order()?, // TODO
                         connection.to_io().datatypes()[0].is_generic(), // TODO
                         connection.to_io().route().to_string(),
@@ -271,15 +270,15 @@ mod test {
         use super::super::get_source;
 
         /*
-                                                                                    Create a HashTable of routes for use in tests.
-                                                                                    Each entry (K, V) is:
-                                                                                    - Key   - the route to a function's IO
-                                                                                    - Value - a tuple of
-                                                                                                - sub-route (or IO name) from the function to be used at runtime
-                                                                                                - the id number of the function in the functions table, to select it at runtime
+                                                                                            Create a HashTable of routes for use in tests.
+                                                                                            Each entry (K, V) is:
+                                                                                            - Key   - the route to a function's IO
+                                                                                            - Value - a tuple of
+                                                                                                        - sub-route (or IO name) from the function to be used at runtime
+                                                                                                        - the id number of the function in the functions table, to select it at runtime
 
-                                                                                    Plus a vector of test cases with the Route to search for and the expected function_id and output sub-route
-                                                                                */
+                                                                                            Plus a vector of test cases with the Route to search for and the expected function_id and output sub-route
+                                                                                        */
         #[allow(clippy::type_complexity)]
         fn test_source_routes() -> (
             HashMap<Route, (Source, usize)>,

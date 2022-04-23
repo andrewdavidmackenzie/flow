@@ -130,7 +130,6 @@ fn function_to_runtimefunction(
         implementation_location,
         runtime_inputs,
         function.get_id(),
-        function.get_flow_id(),
         function.get_output_connections(),
         debug_symbols,
     ))
@@ -208,7 +207,6 @@ mod test {
                     1,
                     0,
                     0,
-                    0,
                     false,
                     String::default(),
                     #[cfg(feature = "debugger")]
@@ -218,7 +216,6 @@ mod test {
                 OutputConnection::new(
                     Output("sub_route".into()),
                     2,
-                    0,
                     0,
                     0,
                     false,
@@ -234,13 +231,11 @@ mod test {
 
         let expected = "{
   'function_id': 0,
-  'flow_id': 0,
   'implementation_location': 'context://stdio/stdout',
   'output_connections': [
     {
       'function_id': 1,
       'io_number': 0,
-      'flow_id': 0,
       'priority': 0
     },
     {
@@ -249,7 +244,6 @@ mod test {
       },
       'function_id': 2,
       'io_number': 0,
-      'flow_id': 0,
       'priority': 0
     }
   ]
@@ -287,7 +281,6 @@ mod test {
                 1,
                 0,
                 0,
-                0,
                 false,
                 String::default(),
                 #[cfg(feature = "debugger")]
@@ -300,13 +293,11 @@ mod test {
 
         let expected = "{
   'function_id': 0,
-  'flow_id': 0,
   'implementation_location': 'context://stdio/stdout',
   'output_connections': [
     {
       'function_id': 1,
       'io_number': 0,
-      'flow_id': 0,
       'priority': 0
     }
   ]
@@ -343,7 +334,6 @@ mod test {
                 Source::default(),
                 1,
                 0,
-                0,
                 1,
                 false,
                 String::default(),
@@ -357,13 +347,11 @@ mod test {
 
         let expected = "{
   'function_id': 0,
-  'flow_id': 0,
   'implementation_location': 'context://stdio/stdout',
   'output_connections': [
     {
       'function_id': 1,
       'io_number': 0,
-      'flow_id': 0,
       'destination_array_order': 1,
       'priority': 0
     }
@@ -407,7 +395,6 @@ mod test {
 
         let expected = "{
   'function_id': 0,
-  'flow_id': 0,
   'implementation_location': 'context://stdio/stdout',
   'inputs': [
     {
@@ -454,7 +441,6 @@ mod test {
 
         let expected = "{
   'function_id': 0,
-  'flow_id': 0,
   'implementation_location': 'context://stdio/stdout',
   'inputs': [
     {
@@ -500,7 +486,6 @@ mod test {
 
         let expected = "{
   'function_id': 0,
-  'flow_id': 0,
   'implementation_location': 'context://stdio/stdout',
   'inputs': [
     {}
@@ -538,7 +523,6 @@ mod test {
                 1,
                 0,
                 0,
-                0,
                 false,
                 String::default(),
                 #[cfg(feature = "debugger")]
@@ -559,13 +543,11 @@ mod test {
   'name': 'print',
   'route': '/flow0/stdout',
   'function_id': 0,
-  'flow_id': 0,
   'implementation_location': 'context://stdio/stdout',
   'output_connections': [
     {
       'function_id': 1,
       'io_number': 0,
-      'flow_id': 0,
       'priority': 0
     }
   ]
@@ -573,13 +555,11 @@ mod test {
         #[cfg(not(feature = "debugger"))]
         let expected = "{
   'id': 0,
-  'flow_id': 0,
   'implementation_location': 'context://stdio/stdout',
   'output_connections': [
     {
       'function_id': 1,
       'io_number': 0,
-      'flow_id': 0,
       'priority': 0
     }
   ]
@@ -616,7 +596,6 @@ mod test {
                 1,
                 0,
                 0,
-                0,
                 false,
                 String::default(),
                 #[cfg(feature = "debugger")]
@@ -629,7 +608,6 @@ mod test {
 
         let expected = "{
   'function_id': 0,
-  'flow_id': 0,
   'implementation_location': 'context://stdio/stdout',
   'output_connections': [
     {
@@ -638,7 +616,6 @@ mod test {
       },
       'function_id': 1,
       'io_number': 0,
-      'flow_id': 0,
       'priority': 0
     }
   ]

@@ -544,7 +544,6 @@ impl RunState {
 
         match function.take_input_set() {
             Ok(input_set) => {
-                let flow_id = function.get_flow_id();
                 let implementation = function.get_implementation();
                 let connections = function.get_output_connections().clone();
 
@@ -554,7 +553,6 @@ impl RunState {
                 Some(Job {
                     job_id,
                     function_id,
-                    flow_id,
                     implementation,
                     input_set,
                     connections,
@@ -858,7 +856,6 @@ mod test {
             1,
             0,
             0,
-            0,
             false,
             "/fB".to_string(),
             #[cfg(feature = "debugger")]
@@ -876,7 +873,6 @@ mod test {
                         #[cfg(feature = "debugger")] "",
                             &None)],
             0,
-            0,
             &[connection_to_f1],
             false,
         ) // outputs to fB:0
@@ -886,7 +882,6 @@ mod test {
         let connection_to_f1 = OutputConnection::new(
             Source::default(),
             1,
-            0,
             0,
             0,
             false,
@@ -905,7 +900,6 @@ mod test {
                             #[cfg(feature = "debugger")] "",
                             &Some(Once(json!(1))))],
             0,
-            0,
             &[connection_to_f1],
             false,
         ) // outputs to fB:0
@@ -921,7 +915,6 @@ mod test {
             vec![Input::new(
                 #[cfg(feature = "debugger")] "",
                 &Some(Once(json!(1))))],
-            0,
             0,
             &[],
             false,
@@ -939,7 +932,6 @@ mod test {
                 #[cfg(feature = "debugger")] "",
                 &None)],
             1,
-            0,
             &[],
             false,
         )
@@ -956,7 +948,6 @@ mod test {
                 #[cfg(feature = "debugger")] "",
                 &Some(Once(json!(1))))],
             1,
-            0,
             &[],
             false,
         )
@@ -968,7 +959,6 @@ mod test {
             destination_function_id,
             0,
             0,
-            0,
             false,
             String::default(),
             #[cfg(feature = "debugger")]
@@ -978,7 +968,6 @@ mod test {
         Job {
             job_id: 1,
             function_id: source_function_id,
-            flow_id: 0,
             implementation: test_impl(),
             input_set: vec![json!(1)],
             result: Ok((Some(json!(1)), true)),
@@ -1218,7 +1207,6 @@ mod test {
                     #[cfg(feature = "debugger")] "",
                     &None)],
                 0,
-                0,
                 &[],
                 false,
             )
@@ -1349,7 +1337,6 @@ mod test {
                 0,
                 0,
                 0,
-                0,
                 false,
                 String::default(),
                 #[cfg(feature = "debugger")]
@@ -1372,7 +1359,6 @@ mod test {
             Job {
                 job_id: 1,
                 function_id: 0,
-                flow_id: 0,
                 implementation: super::test_impl(),
                 input_set: vec![json!(1)],
                 result: Ok((None, true)),
@@ -1392,7 +1378,6 @@ mod test {
                 vec![Input::new(
                     #[cfg(feature = "debugger")] "",
                     &Some(Always(json!(1))))],
-                0,
                 0,
                 &[],
                 false,
@@ -1470,7 +1455,6 @@ mod test {
                 1,
                 0,
                 0,
-                0,
                 false,
                 String::default(),
                 #[cfg(feature = "debugger")]
@@ -1486,7 +1470,6 @@ mod test {
                 vec![Input::new(
                     #[cfg(feature = "debugger")] "",
                     &Some(Always(json!(1))))],
-                0,
                 0,
                 &[out_conn],
                 false,
@@ -1533,7 +1516,6 @@ mod test {
                 0,
                 0,
                 0,
-                0,
                 false,
                 String::default(),
                 #[cfg(feature = "debugger")]
@@ -1550,7 +1532,6 @@ mod test {
                     #[cfg(feature = "debugger")] "",
                     &None)],
                 1,
-                0,
                 &[out_conn],
                 false,
             );
@@ -1589,7 +1570,6 @@ mod test {
                 0,
                 0,
                 0,
-                0,
                 false,
                 String::default(),
                 #[cfg(feature = "debugger")]
@@ -1606,7 +1586,6 @@ mod test {
                     #[cfg(feature = "debugger")] "",
                     &Some(Always(json!(1))))],
                 1,
-                0,
                 &[connection_to_f0],
                 false,
             );
@@ -1656,7 +1635,6 @@ mod test {
                 0,
                 0,
                 0,
-                0,
                 false,
                 String::default(),
                 #[cfg(feature = "debugger")]
@@ -1666,7 +1644,6 @@ mod test {
             let connection_to_1 = OutputConnection::new(
                 Source::default(),
                 1,
-                0,
                 0,
                 0,
                 false,
@@ -1685,7 +1662,6 @@ mod test {
                 vec![Input::new(
                     #[cfg(feature = "debugger")] "",
                     &Some(Once(json!(1))))],
-                0,
                 0,
                 &[
                     connection_to_0, // outputs to self:0
@@ -1771,7 +1747,6 @@ mod test {
                 1,
                 0,
                 0,
-                0,
                 false,
                 String::default(),
                 #[cfg(feature = "debugger")]
@@ -1781,7 +1756,6 @@ mod test {
             let out_conn2 = OutputConnection::new(
                 Source::default(),
                 2,
-                0,
                 0,
                 0,
                 false,
@@ -1798,7 +1772,6 @@ mod test {
                 "file://fake/test/p0",
                 vec![], // input array
                 0,
-                0,
                 &[out_conn1, out_conn2], // destinations
                 false,
             ); // implementation
@@ -1812,7 +1785,6 @@ mod test {
                     #[cfg(feature = "debugger")] "",
                     &None)], // inputs array
                 1,
-                0,
                 &[],
                 false,
             );
@@ -1826,7 +1798,6 @@ mod test {
                     #[cfg(feature = "debugger")] "",
                     &None)], // inputs array
                 2,
-                0,
                 &[],
                 false,
             );
@@ -2029,7 +2000,6 @@ mod test {
             let job = Job {
                 job_id: 0,
                 function_id: 0,
-                flow_id: 0,
                 implementation: super::test_impl(),
                 input_set: vec![json!(1)],
                 result: Ok((Some(json!(1)), true)),
@@ -2089,7 +2059,6 @@ mod test {
                 vec![Input::new(
                     #[cfg(feature = "debugger")] "",
                     &None)],
-                0,
                 0,
                 &[],
                 false,
@@ -2197,7 +2166,6 @@ mod test {
                 let mut function = test_function();
                 let destination = OutputConnection::new(
                     Source::default(),
-                    0,
                     0,
                     0,
                     test_case.destination_array_order,

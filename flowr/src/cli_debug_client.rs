@@ -371,7 +371,6 @@ mod test {
             "file://fake/test",
             vec![Input::new("", &Some(Once(json!(1))))],
             1,
-            0,
             &[],
             false,
         )
@@ -381,7 +380,6 @@ mod test {
         let connection_to_f1 = OutputConnection::new(
             Source::default(),
             1,
-            0,
             0,
             0,
             false,
@@ -397,7 +395,6 @@ mod test {
             "/fA",
             "file://fake/test",
             vec![Input::new("", &Some(Once(json!(1))))],
-            0,
             0,
             &[connection_to_f1],
             false,
