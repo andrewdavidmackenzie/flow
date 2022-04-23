@@ -198,6 +198,8 @@ mod test {
     use serde_json::json;
     use serde_json::Value;
 
+    use crate::model::input::InputInitializer;
+
     use super::Input;
 
     #[test]
@@ -238,6 +240,14 @@ mod test {
         assert!(!input.is_empty());
         let _value = input.take().expect("Could not take the input value as expected");
         assert!(input.is_empty());
+    }
+
+    #[test]
+    fn initializer_first() {
+        let mut input = Input::new("", &Some(InputInitializer::Once(json!(99))));
+        input.init(true, 0);
+        input.push(0, json!(0));
+        assert_eq!(json!(99), input.take().expect("Could not take() any value"));
     }
 
     #[test]
