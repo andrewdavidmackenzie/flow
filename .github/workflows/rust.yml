@@ -77,11 +77,8 @@ jobs:
     - name: InstallWasmTools
       run: cargo install wasm-gc wasm-snip
 
-    # Only measure coverage on Linux as MacOS build is already very slow
     - name: ConfigureCoverage
-      if: matrix.os == 'ubuntu-latest'
       run: |
-        # echo RUSTC_BOOTSTRAP=1 >> "$GITHUB_ENV" # Enables -Z in stable
         cargo install grcov
         rustup component add llvm-tools-preview
         echo RUSTFLAGS="-C instrument-coverage" >> "$GITHUB_ENV"
@@ -114,7 +111,6 @@ jobs:
         make trim-docs
 
     - name: UploadCoverage
-      if: matrix.os == 'ubuntu-latest'
       run: |
         grcov . --binary-path target/debug/ -s . -t lcov --branch --ignore-not-existing --ignore "/*" -o lcov.info
         bash <(curl -s https://codecov.io/bash) -f lcov.info
