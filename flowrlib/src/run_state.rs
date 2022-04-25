@@ -1,4 +1,5 @@
 use std::collections::{HashMap, HashSet};
+use std::collections::hash_map::Entry;
 use std::collections::VecDeque;
 use std::fmt;
 use std::time::Duration;
@@ -840,22 +841,18 @@ impl RunState {
         self.unblock_senders_to_function(blocker_function_id, flow_internal_blocks);
 
         // Add this function to the pending unblock list for later when flow goes idle - ensure entry is unique
-        let mut new_set = HashSet::new();
-        new_set.insert(blocker_function_id);
-        let set = self
-            .pending_unblocks
-            .entry(blocker_flow_id)
-            .or_insert(new_set);
-        set.insert(blocker_function_id);
-        trace!(
-            "Job #{}:\t\tAdded a pending_unblock -> #{}({})",
-            job_id,
-            blocker_function_id,
-            blocker_flow_id
-        );
+        match self.pending_unblocks.entry(blocker_flow_id) {
+            Entry::Occupied(mut o) => {o.get_mut().insert(blocker_function_id);},
+            Entry::Vacant(v) => {
+                let mut new_set = HashSet::new();
+                new_set.insert(blocker_function_id);
+                v.insert(new_set);
+            }
+        }
+        trace!("Job #{job_id}:\t\tAdded a pending_unblock -> #{blocker_function_id}({blocker_flow_id})");
     }
 
-    // Detect which flows have gone inactive and remove pending unblocks for functions in it
+    // Remove blocks on functions sending to another function inside a flow that has just gone idle
     fn unblock_flows(&mut self, blocker_flow_id: usize, job_id: usize) {
         let flow_external_blocks = |block: &Block| block.blocking_flow_id != block.blocked_flow_id;
 
