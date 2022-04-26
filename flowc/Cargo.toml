@@ -24,7 +24,7 @@ debugger = ["flowcore/debugger"] # feature to add output for the debugger
 [dependencies]
 flowcore = {path = "../flowcore", version = "0.43.0"}
 clap = "~2"
-simplog = "~1.3"
+simplog = "~1.4"
 log = "0.4.6"
 url = { version = "2.2", features = ["serde"] }
 tempdir = "~0.3.5"
