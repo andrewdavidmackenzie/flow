@@ -1,5 +1,6 @@
 use std::collections::HashSet;
 use std::fmt;
+use std::fmt::Write;
 
 use log::error;
 use serde_json::Value;
@@ -352,43 +353,43 @@ impl<'a> Debugger<'a> {
             None => response.push_str("'break' command must specify a breakpoint\n"),
             Some(Param::Numeric(process_id)) => {
                 if process_id > state.num_functions() {
-                    response.push_str(&format!(
-                        "There is no Function with id '{}' to set a breakpoint on\n",
+                    let _ = writeln!(response,
+                        "There is no Function with id '{}' to set a breakpoint on",
                         process_id
-                    ));
+                    );
                 } else {
                     self.function_breakpoints.insert(process_id);
                     let function = state.get_function(process_id);
-                    response.push_str(&format!(
-                        "Breakpoint set on Function #{} ({}) @ '{}'\n",
+                    let _ = writeln!(response,
+                        "Breakpoint set on Function #{} ({}) @ '{}'",
                         process_id, function.name(), function.route()
-                    ));
+                    );
                 }
             }
             Some(Param::Input((destination_id, input_number))) => {
                 let function = state.get_function(destination_id);
                 let io_name = function.input(input_number).name();
-                response.push_str(&format!(
-                    "Data breakpoint set on Function #{}:{} '{}' receiving data on input '{}'\n",
-                    destination_id, input_number, function.name(), io_name));
+                let _ = writeln!(response,
+                    "Data breakpoint set on Function #{}:{} '{}' receiving data on input '{}'",
+                    destination_id, input_number, function.name(), io_name);
                 self.input_breakpoints
                     .insert((destination_id, input_number));
             }
             Some(Param::Block((Some(blocked_id), Some(blocking_id)))) => {
-                response.push_str(&format!(
-                    "Block breakpoint set on Function #{} being blocked by Function #{}\n",
+                let _ = writeln!(response,
+                    "Block breakpoint set on Function #{} being blocked by Function #{}",
                     blocked_id, blocking_id
-                ));
+                );
                 self.block_breakpoints.insert((blocked_id, blocking_id));
             }
             Some(Param::Block(_)) => {
                 response.push_str("Invalid format to set a breakpoint on a block\n");
             }
             Some(Param::Output((source_id, source_output_route))) => {
-                response.push_str(&format!(
-                    "Data breakpoint set on Function #{} sending data via output: '{}'\n",
+                let _ = writeln!(response,
+                    "Data breakpoint set on Function #{} sending data via output: '{}'",
                     source_id, source_output_route
-                ));
+                );
                 self.output_breakpoints
                     .insert((source_id, source_output_route));
             }
@@ -412,10 +413,10 @@ impl<'a> Debugger<'a> {
             None => response.push_str("No process id specified\n"),
             Some(Param::Numeric(process_number)) => {
                 if self.function_breakpoints.remove(&process_number) {
-                    response.push_str(&format!(
-                        "Breakpoint on process #{} was deleted\n",
+                    let _ = writeln!(response,
+                        "Breakpoint on process #{} was deleted",
                         process_number
-                    ));
+                    );
                 } else {
                     response.push_str("No breakpoint number '{}' exists\n");
                 }
@@ -460,7 +461,7 @@ impl<'a> Debugger<'a> {
             breakpoints = true;
             response.push_str("Function Breakpoints: \n");
             for process_id in &self.function_breakpoints {
-                response.push_str(&format!("\tFunction #{}\n", process_id));
+                let _ = writeln!(response, "\tFunction #{}", process_id);
             }
         }
 
@@ -468,7 +469,7 @@ impl<'a> Debugger<'a> {
             breakpoints = true;
             response.push_str("Output Breakpoints: \n");
             for (process_id, route) in &self.output_breakpoints {
-                response.push_str(&format!("\tOutput #{}/{}\n", process_id, route));
+                let _ = writeln!(response, "\tOutput #{}/{}", process_id, route);
             }
         }
 
@@ -476,7 +477,7 @@ impl<'a> Debugger<'a> {
             breakpoints = true;
             response.push_str("Input Breakpoints: \n");
             for (process_id, input_number) in &self.input_breakpoints {
-                response.push_str(&format!("\tInput #{}:{}\n", process_id, input_number));
+                let _ = writeln!(response, "\tInput #{}:{}", process_id, input_number);
             }
         }
 
@@ -484,7 +485,7 @@ impl<'a> Debugger<'a> {
             breakpoints = true;
             response.push_str("Block Breakpoints: \n");
             for (blocked_id, blocking_id) in &self.block_breakpoints {
-                response.push_str(&format!("\tBlock #{}->#{}\n", blocked_id, blocking_id));
+                let _ = writeln!(response, "\tBlock #{}->#{}", blocked_id, blocking_id);
             }
         }
 
@@ -599,9 +600,9 @@ impl<'a> Debugger<'a> {
 
     fn display_set(root_node: &BlockerNode, node_set: Vec<BlockerNode>) -> String {
         let mut display_string = String::new();
-        display_string.push_str(&format!("#{}", root_node.function_id));
+        let _ = write!(display_string, "#{}", root_node.function_id);
         for node in node_set {
-            display_string.push_str(&format!("{}", node));
+            let _ = write!(display_string, "{node}");
         }
         display_string
     }
@@ -621,10 +622,7 @@ impl<'a> Debugger<'a> {
                 &mut root_node,
             );
             if !deadlock_set.is_empty() {
-                response.push_str(&format!(
-                    "{}\n",
-                    Self::display_set(&root_node, deadlock_set)
-                ));
+                let _ = writeln!(response, "{}", Self::display_set(&root_node, deadlock_set));
             }
         }
 
