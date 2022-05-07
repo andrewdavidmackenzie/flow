@@ -8,6 +8,7 @@ use std::io::prelude::*;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::process::Stdio;
+use std::fmt::Write as FormatWrite;
 
 use serial_test::serial;
 use simpath::Simpath;
@@ -142,7 +143,7 @@ fn execute_flow(
     let mut output = String::new();
     if let Some(ref mut stdout) = runner.stdout {
         for line in BufReader::new(stdout).lines() {
-            output.push_str(&format!("{}\n", &line.expect("Could not read line")));
+            let _ = writeln!(output, "{}", &line.expect("Could not read line"));
         }
     }
 
@@ -150,7 +151,7 @@ fn execute_flow(
     let mut err = String::new();
     if let Some(ref mut stderr) = runner.stderr {
         for line in BufReader::new(stderr).lines() {
-            err.push_str(&format!("{}\n", &line.expect("Could not read line")));
+            let _ = writeln!(err, "{}", &line.expect("Could not read line"));
         }
     }
 
