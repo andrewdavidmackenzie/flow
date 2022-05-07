@@ -1,0 +1,26 @@
+[package]
+name = "duplicate_rows"
+version = "0.11.0"
+authors = ["Andrew Mackenzie <andrew@mackenzie-serres.net>"]
+edition = "2018"
+
+[lib]
+name = "duplicate_rows"
+crate-type = ["cdylib"]
+path = "duplicate_rows.rs"
+
+[profile.release]
+debug = false
+lto = true
+codegen-units = 1
+opt-level = 's' # Optimize for size
+panic = 'abort' # About unwinding code
+strip = "debuginfo"
+
+[dependencies]
+flowcore = "0.42"
+flowmacro = "0.42"
+serde_json = { version = "1.0", default-features = false }
+
+[workspace]
+exclude = ["../../.."]
