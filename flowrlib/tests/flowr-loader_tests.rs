@@ -181,7 +181,7 @@ fn load_manifest_from_file() {
 
     let temp_dir = TempDir::new("flow").expect("Could not get temp dir").into_path();
     let manifest_file = temp_dir.join("manifest.json");
-    let _ = write_manifest(&manifest, &manifest_file).expect("Could not write manifest file");
+    write_manifest(&manifest, &manifest_file).expect("Could not write manifest file");
     let manifest_url = Url::from_directory_path(manifest_file).expect("Could not create url from directory path");
     let provider = MetaProvider::new(set_lib_search_path(),
                                      PathBuf::from("/"));

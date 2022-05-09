@@ -4,6 +4,7 @@ use std::hash::{Hash, Hasher};
 use std::io::Write;
 use std::path::Path;
 use std::process::Command;
+use std::fmt::Write as FormatWrite;
 
 use log::{debug, info};
 use serde_json::Value;
@@ -400,13 +401,13 @@ fn digraph_wrapper_start(flow: &FlowDefinition) -> String {
     let mut wrapper = String::new();
 
     // Create a directed graph named after the flow
-    wrapper.push_str(&format!(
-        "digraph {} {{\n",
+    let _ = writeln!(wrapper,
+        "digraph {} {{",
         str::replace(&flow.alias.to_string(), "-", "_")
-    ));
-    wrapper.push_str(&format!("\tlabel=\"{}\";\n", flow.alias));
-    wrapper.push_str("\tlabelloc=t;\n");
-    wrapper.push_str("\tmargin=0.4;\n");
+    );
+    let _ = writeln!(wrapper, "\tlabel=\"{}\";", flow.alias);
+    let _ = writeln!(wrapper, "\tlabelloc=t;");
+    let _ = writeln!(wrapper, "\tmargin=0.4;");
 
     wrapper
 }
@@ -430,11 +431,12 @@ fn fn_to_dot(function: &FunctionDefinition, output_dir: &Path) -> Result<String>
 
     // modify path to point to the .html page that's built from .md to document the function
     let md_path = relative_path.replace("toml", "html");
-    dot_string.push_str(&format!("\t\"{}\" [style=filled, fillcolor=coral, URL=\"{}\", label=\"{}{}\"]; // function @ route, label = function name \n",
-                                 function.route(),
-                                 md_path,
-                                 function.alias(),
-                                 name));
+    let _ = writeln!(dot_string,
+                    "\t\"{}\" [style=filled, fillcolor=coral, URL=\"{}\", label=\"{}{}\"]; // function @ route, label = function name",
+                    function.route(),
+                    md_path,
+                    function.alias(),
+                    name);
 
     dot_string.push_str(&input_initializers(function, function.route().as_ref()));
 
@@ -451,13 +453,13 @@ fn function_to_dot(function: &FunctionDefinition, functions: &[FunctionDefinitio
         .to_string()
         .replace("toml", "html");
 
-    function_string.push_str(&format!(
-        "r{}[style=filled, fillcolor=coral, URL=\"{}\", label=\"{} (#{})\"];\n",
+    let _ = writeln!(function_string,
+        "r{}[style=filled, fillcolor=coral, URL=\"{}\", label=\"{} (#{})\"];",
         function.get_id(),
         md_path,
         function.alias(),
         function.get_id()
-    ));
+    );
 
     function_string.push_str(&input_initializers(
         function,
@@ -475,15 +477,15 @@ fn function_to_dot(function: &FunctionDefinition, functions: &[FunctionDefinitio
             .expect("Could not get input")
             .name()
             .to_string();
-        function_string.push_str(&format!(
-            "r{}:{} -> r{}:{} [taillabel = \"{}\", headlabel = \"{}\"];\n",
+        let _ = writeln!(function_string,
+            "r{}:{} -> r{}:{} [taillabel = \"{}\", headlabel = \"{}\"];",
             function.get_id(),
             source_port,
             destination.function_id,
             input_port,
             destination.source,
             destination_name
-        ));
+        );
     }
 
     function_string
@@ -495,10 +497,10 @@ fn input_initializers(function: &FunctionDefinition, function_identifier: &str) 
     for (input_number, input) in function.get_inputs().iter().enumerate() {
         if let Some(initializer) = input.get_initializer() {
             // Add an extra (hidden) graph entry for the initializer
-            initializers.push_str(&format!(
-                "\"initializer{}_{}\"[style=invis];\n",
+            let _ = writeln!(initializers,
+                "\"initializer{}_{}\"[style=invis];",
                 function_identifier, input_number
-            ));
+            );
             let (value, is_constant) = match initializer {
                 Always(value) => (value.clone(), true),
                 Once(value) => (value.clone(), false),
@@ -514,8 +516,8 @@ fn input_initializers(function: &FunctionDefinition, function_identifier: &str) 
 
             let input_port = input_name_to_port(input.name());
             // escape the quotes in the value when converted to string
-            initializers.push_str(&format!("\"initializer{}_{}\" -> \"{}\":{} [style={}] [len=0.1] [color=blue] [label=\"{}\"];\n",
-                                               function_identifier, input_number, function_identifier, input_port, line_style, value_string));
+            let _ = writeln!(initializers, "\"initializer{}_{}\" -> \"{}\":{} [style={}] [len=0.1] [color=blue] [label=\"{}\"];",
+                                               function_identifier, input_number, function_identifier, input_port, line_style, value_string);
         }
     }
 
@@ -535,20 +537,20 @@ fn add_input_set(input_set: &IOSet, to: &Route, connect_subflow: bool) -> String
         // Avoid creating extra points to connect to for default input
         if input.route() != to {
             // Add an entry for each input using it's route
-            string.push_str(&format!(
-                "\t\"{}\" [label=\"{}\", shape=house, style=filled, fillcolor=white];\n",
+            let _ = writeln!(string,
+                "\t\"{}\" [label=\"{}\", shape=house, style=filled, fillcolor=white];",
                 input.route(),
                 input.name()
-            ));
+            );
 
             if connect_subflow {
                 // and connect the input to the sub-flow
-                string.push_str(&format!(
-                    "\t\"{}\" -> \"{}\":n [style=invis, headtooltip=\"{}\"];\n",
+                let _ = writeln!(string,
+                    "\t\"{}\" -> \"{}\":n [style=invis, headtooltip=\"{}\"];",
                     input.route(),
                     to,
                     input.name()
-                ));
+                );
             }
         }
     }
@@ -569,19 +571,19 @@ fn add_output_set(output_set: &IOSet, from: &Route, connect_subflow: bool) -> St
         // Only add output if it's not got the same route as it's function i.e. it's not the default output
         if output.route() != from {
             // Add an entry for each output using it's route
-            string.push_str(&format!("\t\"{}\" [label=\"{}\", shape=invhouse, style=filled, fillcolor=black, fontcolor=white];\n",
-                                         output.route(), output.name()));
+            let _ = writeln!(string, "\t\"{}\" [label=\"{}\", shape=invhouse, style=filled, fillcolor=black, fontcolor=white];",
+                                         output.route(), output.name());
 
             if connect_subflow {
                 // and connect the output to the sub-flow
                 let output_port = output_name_to_port(output.name());
-                string.push_str(&format!(
-                    "\t\"{}\":{} -> \"{}\"[style=invis, headtooltip=\"{}\"];\n",
+                let _ = writeln!(string, 
+                    "\t\"{}\":{} -> \"{}\"[style=invis, headtooltip=\"{}\"];",
                     from,
                     output_port,
                     output.route(),
                     output.name()
-                ));
+                );
             }
         }
     }
@@ -619,11 +621,10 @@ fn process_refs_to_dot(
         match process {
             FlowProcess(ref subflow) => {
                 // create cluster sub graph
-                output.push_str(&format!(
-                    "\nsubgraph cluster_{} {{\n",
+                let _ = writeln!(output, "\nsubgraph cluster_{} {{",
                     str::replace(&subflow.alias.to_string(), "-", "_")
-                ));
-                output.push_str(&format!("label = \"{}\";", subflow.route()));
+                );
+                let _ = write!(output, "label = \"{}\";", subflow.route());
 
                 output.push_str(&process_refs_to_dot(subflow, tables, output_dir)?); // recurse
 
