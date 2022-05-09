@@ -90,7 +90,7 @@ impl Input {
         initial_value: &Option<InputInitializer>) -> Self {
         Input {
             initializer: initial_value.clone(),
-            received: BTreeMap::new(),
+            received: Vec::new(),
         }
     }
 
