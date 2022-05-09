@@ -138,7 +138,7 @@ impl RuntimeFunction {
 
     /// A default `Function` - used in deserialization of a `Manifest`
     pub fn default_implementation() -> Arc<dyn Implementation> {
-        Arc::new(super::runtime_function::ImplementationNotFound {})
+        Arc::new(ImplementationNotFound {})
     }
 
     /// Accessor for a `RuntimeFunction` `name`
@@ -194,15 +194,15 @@ impl RuntimeFunction {
     }
 
     /// write a value to a `RuntimeFunction`'s `input`
-    pub fn send(&mut self, input_number: usize, priority: usize, value: &Value) {
+    pub fn send(&mut self, input_number: usize, value: &Value) {
         let input = &mut self.inputs[input_number];
-        input.push(priority, value.clone());
+        input.push(value.clone());
     }
 
     /// write an array of values to a `RuntimeFunction` `input`
-    pub fn send_iter(&mut self, input_number: usize, priority: usize, array: &[Value]) {
+    pub fn send_iter(&mut self, input_number: usize, array: &[Value]) {
         let input = &mut self.inputs[input_number];
-        input.push_array(priority, array.iter());
+        input.push_array(array.iter());
     }
 
     /// Accessor for a `RuntimeFunction` `output_connections` field
@@ -323,7 +323,7 @@ mod test {
     fn can_send_simple_object() {
         let mut function = test_function();
         function.init_inputs(true);
-        function.send(0, 0, &json!(1));
+        function.send(0, &json!(1));
         assert_eq!(
             json!(1),
             function
@@ -338,7 +338,7 @@ mod test {
     fn can_send_array_object() {
         let mut function = test_function();
         function.init_inputs(true);
-        function.send(0, 0, &json!([1, 2]));
+        function.send(0, &json!([1, 2]));
         assert_eq!(
             json!([1, 2]),
             function
@@ -353,7 +353,7 @@ mod test {
     fn test_array_to_non_array() {
         let mut function = test_function();
         function.init_inputs(true);
-        function.send(0, 0, &json!([1, 2]));
+        function.send(0, &json!([1, 2]));
         assert_eq!(
             function
                 .take_input_set()
@@ -396,7 +396,7 @@ mod test {
     fn debugger_can_inspect_non_full_input() {
         let mut function = test_function();
         function.init_inputs(true);
-        function.send(0, 0, &json!(1));
+        function.send(0, &json!(1));
         assert_eq!(
             function.inputs().len(),
             1,
@@ -445,7 +445,7 @@ mod test {
             false,
         );
         function.init_inputs(true);
-        function.send(0, 0, &json!(1));
+        function.send(0, &json!(1));
         let _ = format!("{}", function);
         assert_eq!(
             &vec!(output_route),
