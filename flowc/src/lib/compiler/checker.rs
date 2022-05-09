@@ -20,12 +20,11 @@ pub fn check_connections(tables: &mut CompilerTables) -> Result<()> {
 
 /*
     Check for a problems that lead to competition for inputs causing input overflow:
-    - A single function has two output connections to the same destination input
     - a function connects to an input that has a constant initializer
 */
 fn check_for_competing_inputs(tables: &CompilerTables) -> Result<()> {
     for connection in &tables.collapsed_connections {
-        // check for ConstantInitializer at destination
+        // check for `Always` type of Initializer at destination
         if let Some(Always(_)) = connection.to_io().get_initializer() {
             bail!(
                 "Connection from '{}' to input at '{}' that also has a `always` initializer",
