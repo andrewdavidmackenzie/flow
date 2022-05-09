@@ -18,7 +18,7 @@ use std::sync::{Arc, Mutex};
 use clap::{App, AppSettings, Arg, ArgMatches};
 use log::{error, info, warn};
 use simpath::Simpath;
-use simplog::simplog::SimpleLogger;
+use simplog::SimpleLogger;
 use url::Url;
 
 use flowcore::meta_provider::{MetaProvider, Provider};
@@ -184,7 +184,8 @@ fn run() -> Result<()> {
 
     let matches = get_matches();
 
-    SimpleLogger::init(matches.value_of("verbosity"));
+    SimpleLogger::init_prefix_timestamp(matches.value_of("verbosity"), true, false);
+
     #[cfg(feature = "debugger")]
     let debug_this_flow = matches.is_present("debugger");
     let native = matches.is_present("native");

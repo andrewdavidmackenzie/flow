@@ -289,6 +289,12 @@ impl<'a> Coordinator<'a> {
             .send(job.clone())
             .chain_err(|| "Sending of job for execution failed")?;
 
+        trace!(
+            "Job #{}: Sent for Execution of Function #{}",
+            job.job_id,
+            job.function_id
+        );
+
         Ok(debug_options)
     }
 }

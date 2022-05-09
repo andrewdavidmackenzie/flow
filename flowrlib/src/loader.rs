@@ -264,8 +264,8 @@ impl Loader {
                             function.implementation_location()
                         ))?;
                     trace!(
-                        "\tFound implementation location for '{}' in loaded libraries",
-                        function.implementation_location()
+                        "\tFunction #{}({}) implementation loaded from '{}'",
+                        function.id(), function.get_flow_id(), function.implementation_location()
                     );
 
                     // Set the location of the implementation of this function

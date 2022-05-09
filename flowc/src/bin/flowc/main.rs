@@ -15,7 +15,7 @@ use clap::{App, AppSettings, Arg, ArgMatches};
 use colored::*;
 use log::{debug, error, info, warn};
 use simpath::Simpath;
-use simplog::simplog::SimpleLogger;
+use simplog::SimpleLogger;
 use url::Url;
 
 use errors::*;

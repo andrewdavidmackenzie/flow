@@ -438,6 +438,7 @@ impl RunState {
     /// too many jobs already running
     pub fn next_job(&mut self) -> Option<Job> {
         if self.number_jobs_running() >= self.max_pending_jobs {
+            trace!("Max Pending Job count of {} reached, skipping new jobs", self.max_pending_jobs);
             return None;
         }
 
@@ -477,6 +478,8 @@ impl RunState {
                 let implementation = function.get_implementation();
                 let connections = function.get_output_connections().clone();
 
+                trace!("Job #{job_id}: NEW Job Created for Function #{function_id}({flow_id})");
+
                 Some(Job {
                     job_id,
                     function_id,
@@ -511,11 +514,6 @@ impl RunState {
         job: &Job,
         #[cfg(feature = "debugger")] debugger: &mut Debugger,
     ) {
-        trace!(
-            "Job #{}:\tCompleted by Function #{}",
-            job.job_id,
-            job.function_id
-        );
         self.running.retain(|&_, &job_id| job_id != job.job_id);
         #[cfg(debug_assertions)]
         let job_id = job.job_id;
@@ -587,6 +585,11 @@ impl RunState {
 
         #[cfg(debug_assertions)]
         checks::check_invariants(self, job_id);
+
+        trace!(
+            "Job #{}: Completed-----------------------",
+            job.job_id,
+        );
     }
 
     // Send a value produced as part of an output of running a job to a destination function on
@@ -685,28 +688,24 @@ impl RunState {
         value: &Value,
     ) -> bool {
         if connection.is_generic() {
-            function.send(connection.io_number, connection.get_priority(), value);
+            function.send(connection.io_number, value);
         } else {
             match (
                 (Self::array_order(value) - connection.destination_array_order),
                 value,
             ) {
-                (0, _) => function.send(connection.io_number,
-                                        connection.get_priority(),  value),
+                (0, _) => function.send(connection.io_number, value),
                 (1, Value::Array(array)) => function.send_iter(connection.io_number,
-                                                               connection.get_priority(), array),
+                                                               array),
                 (2, Value::Array(array_2)) => {
                     for array in array_2.iter() {
                         if let Value::Array(sub_array) = array {
-                            function.send_iter(connection.io_number,
-                                               connection.get_priority(), sub_array)
+                            function.send_iter(connection.io_number, sub_array)
                         }
                     }
                 }
-                (-1, _) => function.send(connection.io_number,
-                                         connection.get_priority(), &json!([value])),
-                (-2, _) => function.send(connection.io_number,
-                                         connection.get_priority(), &json!([[value]])),
+                (-1, _) => function.send(connection.io_number, &json!([value])),
+                (-2, _) => function.send(connection.io_number, &json!([[value]])),
                 _ => {
                     error!("Unable to handle difference in array order");
                     return false;
