@@ -911,34 +911,32 @@ impl RunState {
     {
         let mut unblock_set = vec![];
 
-        let mut highest_priority = usize::MAX;
-
         // Remove matching blocks and maintain a list of sender functions to unblock
         for block in &self.blocks {
             if block_filter(block) {
                 unblock_set.push(block.clone());
-                highest_priority = std::cmp::min(block.priority, highest_priority);
             }
         }
+
+        unblock_set.sort_by(|a, b| b.priority.cmp(&a.priority));
+        unblock_set.reverse();
 
         // update the state of the functions that have been unblocked
         // Note: they could be blocked on other functions apart from the the one that just unblocked
         for block in unblock_set {
-//            if block.priority == highest_priority {
-                self.blocks.remove(&block);
-                trace!("\t\t\tBlock removed {:?}", block);
+            self.blocks.remove(&block);
+            trace!("\t\t\tBlock removed {:?}", block);
 
-                if self.blocked.contains(&block.blocked_function_id) && !self.blocked_sending(block.blocked_function_id) {
-                    trace!("\t\t\t\tFunction #{} removed from 'blocked' list", block.blocked_function_id);
-                    self.blocked.remove(&block.blocked_function_id);
+            if self.blocked.contains(&block.blocked_function_id) && !self.blocked_sending(block.blocked_function_id) {
+                trace!("\t\t\t\tFunction #{} removed from 'blocked' list", block.blocked_function_id);
+                self.blocked.remove(&block.blocked_function_id);
 
-                    if self.get_function(block.blocked_function_id).can_produce_output() {
-                        trace!("\t\t\t\tFunction #{} has inputs ready, so added to 'ready' list",
-                            block.blocked_function_id);
-                        self.mark_ready(block.blocked_function_id, block.blocked_flow_id);
-                    }
+                if self.get_function(block.blocked_function_id).can_produce_output() {
+                    trace!("\t\t\t\tFunction #{} has inputs ready, so added to 'ready' list",
+                        block.blocked_function_id);
+                    self.mark_ready(block.blocked_function_id, block.blocked_flow_id);
                 }
-//            }
+            }
         }
     }
 
