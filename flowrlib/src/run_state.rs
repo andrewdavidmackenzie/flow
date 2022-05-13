@@ -472,8 +472,10 @@ impl RunState {
         blocker_flow_id: usize,
     ) {
         // delete blocks to this function from other functions within the same flow
-        let internal_senders_filter = |block: &Block| block.blocking_flow_id == block.blocked_flow_id;
-        self.unblock_senders_to_function(blocker_function_id, internal_senders_filter);
+        let internal_senders_filter = |block: &Block|
+            (block.blocking_flow_id == block.blocked_flow_id) &
+                (block.blocking_function_id == blocker_function_id);
+        self.unblock_senders_to_function(internal_senders_filter);
 
         // Add this function to the pending unblock list for later when flow goes idle and senders
         // to it from *outside* this flow can be allowed to send to it.
@@ -872,11 +874,11 @@ impl RunState {
                 so removing pending_unblocks for flow #{blocker_flow_id}");
 
             if let Some(pending_unblocks) = self.pending_unblocks.remove(&blocker_flow_id) {
-                let all = |_block: &Block| true;
                 trace!("Job #{job_id}:\tRemoving pending unblocks to functions in \
                     Flow #{blocker_flow_id} from other flows");
                 for unblock_function_id in pending_unblocks {
-                    self.unblock_senders_to_function(unblock_function_id, all);
+                    let all = |block: &Block| block.blocking_function_id == unblock_function_id;
+                    self.unblock_senders_to_function(all);
                 }
             }
         }
@@ -903,35 +905,40 @@ impl RunState {
 
     // unblock all functions that were blocked trying to send to blocker_function_id by removing
     // entries in the `blocks` list where the first value (blocking_id) matches blocker_function_id.
-    fn unblock_senders_to_function<F>(&mut self, blocker_function_id: usize, block_filter: F)
+    fn unblock_senders_to_function<F>(&mut self, block_filter: F)
     where
         F: Fn(&Block) -> bool,
     {
         let mut unblock_set = vec![];
 
+        let mut highest_priority = usize::MAX;
+
         // Remove matching blocks and maintain a list of sender functions to unblock
         for block in &self.blocks {
-            if (block.blocking_function_id == blocker_function_id) && block_filter(block) {
+            if block_filter(block) {
                 unblock_set.push(block.clone());
+                highest_priority = std::cmp::min(block.priority, highest_priority);
             }
         }
 
         // update the state of the functions that have been unblocked
         // Note: they could be blocked on other functions apart from the the one that just unblocked
         for block in unblock_set {
-            self.blocks.remove(&block);
-            trace!("\t\t\tBlock removed {:?}", block);
+//            if block.priority == highest_priority {
+                self.blocks.remove(&block);
+                trace!("\t\t\tBlock removed {:?}", block);
 
-            if self.blocked.contains(&block.blocked_function_id) && !self.blocked_sending(block.blocked_function_id) {
-                trace!("\t\t\t\tFunction #{} removed from 'blocked' list", block.blocked_function_id);
-                self.blocked.remove(&block.blocked_function_id);
+                if self.blocked.contains(&block.blocked_function_id) && !self.blocked_sending(block.blocked_function_id) {
+                    trace!("\t\t\t\tFunction #{} removed from 'blocked' list", block.blocked_function_id);
+                    self.blocked.remove(&block.blocked_function_id);
 
-                if self.get_function(block.blocked_function_id).can_produce_output() {
-                    trace!("\t\t\t\tFunction #{} has inputs ready, so added to 'ready' list",
-                        block.blocked_function_id);
-                    self.mark_ready(block.blocked_function_id, block.blocked_flow_id);
+                    if self.get_function(block.blocked_function_id).can_produce_output() {
+                        trace!("\t\t\t\tFunction #{} has inputs ready, so added to 'ready' list",
+                            block.blocked_function_id);
+                        self.mark_ready(block.blocked_function_id, block.blocked_flow_id);
+                    }
                 }
-            }
+//            }
         }
     }
 
