@@ -727,8 +727,8 @@ impl RunState {
         let mut blockers = vec![];
 
         for block in &self.blocks {
-            if block.blocked_id == id {
-                blockers.push((block.blocking_id, block.blocking_io_number));
+            if block.blocked_function_id == id {
+                blockers.push((block.blocking_function_id, block.blocking_io_number));
             }
         }
 
@@ -810,7 +810,7 @@ impl RunState {
     // See if there is any block where the blocked function is the one we're looking for
     pub(crate) fn blocked_sending(&self, id: usize) -> bool {
         for block in &self.blocks {
-            if block.blocked_id == id {
+            if block.blocked_function_id == id {
                 return true;
             }
         }
@@ -823,23 +823,26 @@ impl RunState {
         self.functions.len()
     }
 
-    // The function blocker_function_id in flow blocked_flow_id has completed execution and so
-    // is a candidate to send to from other functions that were blocked sending to it previously.
+    // The function with id `blocker_function_id` in the flow with id `blocked_flow_id` has
+    // completed execution and so is a candidate to send Values to from other functions that
+    // previously were blocked sending to it.
     //
-    // But we don't want to unblock them to send to it, until all other functions inside this flow
-    // are idle, and hence the flow becomes idle.
+    // But we don't want to unblock them to send to it, until all other functions inside the same
+    // flow are idle, and hence the flow becomes idle.
     fn unblock_senders(
         &mut self,
         job_id: usize,
         blocker_function_id: usize,
         blocker_flow_id: usize,
     ) {
-        // delete blocks to this function from within the same flow
-        let flow_internal_blocks = |block: &Block| block.blocking_flow_id == block.blocked_flow_id;
+        // delete blocks to this function from other functions within the same flow
+        // TODO - could maybe use priority to do the same thing - select senders from inside the flow
+        let same_flow = |block: &Block| block.blocking_flow_id == block.blocked_flow_id;
+        self.unblock_senders_to_function(blocker_function_id, same_flow);
 
-        self.unblock_senders_to_function(blocker_function_id, flow_internal_blocks);
-
-        // Add this function to the pending unblock list for later when flow goes idle - ensure entry is unique
+        // Add this function to the pending unblock list for later when flow goes idle
+        // The entry key is the blocker_flow_id and the entry all blocker_function_ids in that flow
+        // that are pending to have senders to them unblocked
         match self.pending_unblocks.entry(blocker_flow_id) {
             Entry::Occupied(mut o) => {o.get_mut().insert(blocker_function_id);},
             Entry::Vacant(v) => {
@@ -907,9 +910,10 @@ impl RunState {
     {
         let mut unblock_list = vec![];
 
+        // Remove matching blocks and maintain a list of sender functions to unblock
         self.blocks.retain(|block| {
-            if (block.blocking_id == blocker_function_id) && f(block) {
-                unblock_list.push((block.blocked_id, block.blocked_flow_id));
+            if (block.blocking_function_id == blocker_function_id) && f(block) {
+                unblock_list.push((block.blocked_function_id, block.blocked_flow_id));
                 trace!("\t\t\tBlock removed {:?}", block);
                 false // remove this block
             } else {
@@ -921,51 +925,41 @@ impl RunState {
         // Note: they could be blocked on other functions apart from the the one that just unblocked
         for (unblocked_id, unblocked_flow_id) in unblock_list {
             if self.blocked.contains(&unblocked_id) && !self.blocked_sending(unblocked_id) {
-                trace!(
-                    "\t\t\t\tFunction #{} \
-                removed from 'blocked' list",
-                    unblocked_id
-                );
+                trace!("\t\t\t\tFunction #{unblocked_id} removed from 'blocked' list");
                 self.blocked.remove(&unblocked_id);
 
                 if self.get_function(unblocked_id).can_produce_output() {
-                    trace!(
-                        "\t\t\t\tFunction #{} has inputs ready, so added to 'ready' list",
-                        unblocked_id
-                    );
+                    trace!("\t\t\t\tFunction #{unblocked_id} has inputs ready, so added to 'ready' list");
                     self.mark_ready(unblocked_id, unblocked_flow_id);
                 }
             }
         }
     }
 
-    // Create a 'block" indicating that function 'blocked_id' cannot run as it has an output
-    // destination to an input on function 'blocking_id' that is already full.
+    // Create a 'block" indicating that function `blocked_function_id` cannot run as it has sends
+    // to an input on function 'blocking_function_id' that is already full.
     fn create_block(
         &mut self,
         blocking_flow_id: usize,
-        blocking_id: usize,
+        blocking_function_id: usize,
         blocking_io_number: usize,
-        blocked_id: usize,
+        blocked_function_id: usize,
         blocked_flow_id: usize,
         #[cfg(feature = "debugger")] debugger: &mut Debugger,
     ) {
         let block = Block::new(
             blocking_flow_id,
-            blocking_id,
+            blocking_function_id,
             blocking_io_number,
-            blocked_id,
+            blocked_function_id,
             blocked_flow_id,
         );
         trace!("\t\t\t\t\tCreating Block {:?}", block);
 
         if !self.blocks.contains(&block) {
-            #[cfg(not(feature = "debugger"))]
-            self.blocks.insert(block);
-            #[cfg(feature = "debugger")]
-            self.blocks.insert(block.clone());
             #[cfg(feature = "debugger")]
             debugger.check_on_block_creation(self, &block);
+            self.blocks.insert(block);
         }
     }
 }

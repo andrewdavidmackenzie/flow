@@ -331,7 +331,7 @@ impl CliDebugClient {
 
             if function_states.contains(&State::Blocked) {
                 for block in run_state.get_blocks() {
-                    if block.blocked_id == id {
+                    if block.blocked_function_id == id {
                         println!("\t\t{:?}", block);
                     }
                 }
@@ -339,10 +339,10 @@ impl CliDebugClient {
 
             // print any blocked or blocking function information
             for block in run_state.get_blocks() {
-                if block.blocking_id == id {
+                if block.blocking_function_id == id {
                     println!(
                         "\tBlocking #{}:{} <- Blocked #{}",
-                        block.blocking_id, block.blocking_io_number, block.blocked_id
+                        block.blocking_function_id, block.blocking_io_number, block.blocked_function_id
                     );
                 }
             }

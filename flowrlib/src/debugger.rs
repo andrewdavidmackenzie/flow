@@ -110,7 +110,7 @@ impl<'a> Debugger<'a> {
     ) -> (bool, bool, bool) {
         if self
             .block_breakpoints
-            .contains(&(block.blocked_id, block.blocking_id))
+            .contains(&(block.blocked_function_id, block.blocking_function_id))
         {
             self.debug_server.block_breakpoint(block);
             return self.wait_for_command(state);
@@ -331,8 +331,8 @@ impl<'a> Debugger<'a> {
         let mut matching_blocks = vec![];
 
         for block in run_state.get_blocks() {
-            if (from.is_none() || from == Some(block.blocked_id))
-                && (to.is_none() || to == Some(block.blocking_id))
+            if (from.is_none() || from == Some(block.blocked_function_id))
+                && (to.is_none() || to == Some(block.blocking_function_id))
             {
                 matching_blocks.push(block.clone());
             }
