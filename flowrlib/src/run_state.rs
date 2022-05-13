@@ -322,6 +322,7 @@ impl RunState {
                             destination.io_number,
                             source_id,
                             source_flow_id,
+                            0 /* priority of an initializer */
                         ));
                         // only put source on the blocked list if it already has it's inputs full
                         if source_has_inputs_full {
@@ -690,6 +691,7 @@ impl RunState {
                 connection.io_number,
                 source_id,
                 source_flow_id,
+                connection.get_priority(),
                 #[cfg(feature = "debugger")]
                     debugger,
             );
@@ -920,7 +922,6 @@ impl RunState {
 
         // update the state of the functions that have been unblocked
         // Note: they could be blocked on other functions apart from the the one that just unblocked
-        // (unblocked_id = block.blocked_function_id, unblocked_flow_id = block.blocked_flow_id)
         for block in unblock_set {
             if self.blocked.contains(&block.blocked_function_id) && !self.blocked_sending(block.blocked_function_id) {
                 trace!("\t\t\t\tFunction #{} removed from 'blocked' list", block.blocked_function_id);
@@ -937,6 +938,7 @@ impl RunState {
 
     // Create a 'block" indicating that function `blocked_function_id` cannot run as it has sends
     // to an input on function 'blocking_function_id' that is already full.
+    #[allow(clippy::too_many_arguments)]
     fn create_block(
         &mut self,
         blocking_flow_id: usize,
@@ -944,6 +946,7 @@ impl RunState {
         blocking_io_number: usize,
         blocked_function_id: usize,
         blocked_flow_id: usize,
+        priority: usize,
         #[cfg(feature = "debugger")] debugger: &mut Debugger,
     ) {
         let block = Block::new(
@@ -952,14 +955,13 @@ impl RunState {
             blocking_io_number,
             blocked_function_id,
             blocked_flow_id,
+            priority,
         );
 
-        if !self.blocks.contains(&block) {
-            trace!("\t\t\t\t\tCreating Block {:?}", block);
-            #[cfg(feature = "debugger")]
-            debugger.check_on_block_creation(self, &block);
-            self.blocks.insert(block);
-        }
+        trace!("\t\t\t\t\tCreating Block {:?}", block);
+        #[cfg(feature = "debugger")]
+        debugger.check_on_block_creation(self, &block);
+        self.blocks.insert(block);
     }
 }
 
@@ -2193,6 +2195,7 @@ mod test {
                 0,
                 0,
                 0,
+                0,
                 #[cfg(feature = "debugger")]
                 &mut debugger,
             );
@@ -2285,6 +2288,7 @@ mod test {
                 0,
                 0,
                 0,
+                0,
                 #[cfg(feature = "debugger")]
                 &mut debugger,
             );
@@ -2314,6 +2318,7 @@ mod test {
             state.create_block(
                 0,
                 1,
+                0,
                 0,
                 0,
                 0,
@@ -2358,12 +2363,14 @@ mod test {
                 0,
                 0,
                 0,
+                0,
                 #[cfg(feature = "debugger")]
                 &mut debugger,
             );
             state.create_block(
                 0,
                 2,
+                0,
                 0,
                 0,
                 0,

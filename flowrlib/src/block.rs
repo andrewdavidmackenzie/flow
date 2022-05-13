@@ -16,6 +16,8 @@ pub struct Block {
     pub blocked_function_id: usize,
     /// The id of the flow where the blocked function resides
     pub blocked_flow_id: usize,
+    /// The priority of the connection that is blocked
+    pub priority: usize,
 }
 
 impl Block {
@@ -26,6 +28,7 @@ impl Block {
         blocking_io_number: usize,
         blocked_function_id: usize,
         blocked_flow_id: usize,
+        priority: usize,
     ) -> Self {
         Block {
             blocking_flow_id,
@@ -33,6 +36,7 @@ impl Block {
             blocking_io_number,
             blocked_function_id,
             blocked_flow_id,
+            priority,
         }
     }
 }
@@ -69,19 +73,19 @@ impl fmt::Display for Block {
 mod test {
     #[test]
     fn display_block_test() {
-        let block = super::Block::new(1, 2, 0, 1, 0);
+        let block = super::Block::new(1, 2, 0, 1, 0, 0);
         println!("Block: {}", block);
     }
 
     #[test]
     fn debug_block_test() {
-        let block = super::Block::new(1, 2, 0, 1, 0);
+        let block = super::Block::new(1, 2, 0, 1, 0, 0);
         println!("Block: {:?}", block);
     }
 
     #[test]
     fn block_new_test() {
-        let block = super::Block::new(1, 2, 0, 1, 0);
+        let block = super::Block::new(1, 2, 0, 1, 0, 0);
         assert_eq!(block.blocking_flow_id, 1);
         assert_eq!(block.blocking_function_id, 2);
         assert_eq!(block.blocking_io_number, 0);
