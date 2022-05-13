@@ -288,12 +288,12 @@ impl<'a> Debugger<'a> {
 
                 // **************************      The following commands exit the command loop
                 Ok(Continue) => {
-                    if state.jobs_created() > 0 {
+                    if state.get_number_of_jobs_created() > 0 {
                         return (false, false, false);
                     }
                 }
                 Ok(RunReset) => {
-                    return if state.jobs_created() > 0 {
+                    return if state.get_number_of_jobs_created() > 0 {
                         self.reset();
                         self.debug_server.debugger_resetting();
                         (false, true, false)
@@ -527,10 +527,10 @@ impl<'a> Debugger<'a> {
     fn step(&mut self, state: &RunState, steps: Option<Param>) {
         match steps {
             None => {
-                self.break_at_job = state.jobs_created() + 1;
+                self.break_at_job = state.get_number_of_jobs_created() + 1;
             }
             Some(Param::Numeric(steps)) => {
-                self.break_at_job = state.jobs_created() + steps;
+                self.break_at_job = state.get_number_of_jobs_created() + steps;
             }
             _ => self.debug_server.debugger_error(
                 "Did not understand step command parameter\n".into()),

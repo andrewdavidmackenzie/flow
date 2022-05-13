@@ -131,7 +131,7 @@ impl DebugServer for CliDebugServer {
     fn panic(&mut self, state: &RunState, error_message: String) {
         let _: flowcore::errors::Result<DebugCommand> = self
             .debug_server_connection
-            .send_and_receive_response(Panic(error_message, state.jobs_created()));
+            .send_and_receive_response(Panic(error_message, state.get_number_of_jobs_created()));
     }
 
     // the debugger is exiting
@@ -172,6 +172,6 @@ impl DebugServer for CliDebugServer {
     fn get_command(&mut self, state: &RunState) -> flowcore::errors::Result<DebugCommand> {
         self
             .debug_server_connection
-            .send_and_receive_response(WaitingForCommand(state.jobs_created()))
+            .send_and_receive_response(WaitingForCommand(state.get_number_of_jobs_created()))
     }
 }
