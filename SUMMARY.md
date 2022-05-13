@@ -1,6 +1,6 @@
 # The `flow` book
 
-[Intro](book_intro.md)
+[Intro](docs/book_intro.md)
 
 # Introduction to `flow`
 - [What is `flow`?](docs/introduction/what_is_flow.md)
