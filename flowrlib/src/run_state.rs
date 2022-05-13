@@ -910,19 +910,18 @@ impl RunState {
         let mut unblock_set = vec![];
 
         // Remove matching blocks and maintain a list of sender functions to unblock
-        self.blocks.retain(|block| {
+        for block in &self.blocks {
             if (block.blocking_function_id == blocker_function_id) && block_filter(block) {
                 unblock_set.push(block.clone());
-                trace!("\t\t\tBlock removed {:?}", block);
-                false // remove this block
-            } else {
-                true // retain this block
             }
-        });
+        }
 
         // update the state of the functions that have been unblocked
         // Note: they could be blocked on other functions apart from the the one that just unblocked
         for block in unblock_set {
+            self.blocks.remove(&block);
+            trace!("\t\t\tBlock removed {:?}", block);
+
             if self.blocked.contains(&block.blocked_function_id) && !self.blocked_sending(block.blocked_function_id) {
                 trace!("\t\t\t\tFunction #{} removed from 'blocked' list", block.blocked_function_id);
                 self.blocked.remove(&block.blocked_function_id);
