@@ -268,7 +268,6 @@ mod test {
         test_sample("mandlebrot");
     }
 
-    #[ignore]
     #[test]
     #[serial]
     fn test_prime() {
