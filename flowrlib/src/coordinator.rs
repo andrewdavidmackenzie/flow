@@ -220,7 +220,7 @@ impl<'a> Coordinator<'a> {
         }
 
         #[cfg(feature = "metrics")]
-        metrics.set_jobs_created(state.jobs_created());
+        metrics.set_jobs_created(state.get_number_of_jobs_created());
         #[cfg(feature = "metrics")]
         self.server.flow_ended(&state, metrics)?;
         #[cfg(not(feature = "metrics"))]
