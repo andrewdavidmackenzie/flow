@@ -480,7 +480,7 @@ fn num_threads(matches: &ArgMatches) -> usize {
     }
 
     if num_threads == 0 {
-        let num_threads = thread::available_concurrency().map(|n| n.get()).unwrap_or(1);
+        num_threads = thread::available_parallelism().map(|n| n.get()).unwrap_or(1);
     }
 
     num_threads
@@ -506,7 +506,7 @@ fn num_parallel_jobs(
     }
 
     if num_jobs == 0 {
-        let num_jobs = thread::available_concurrency().map(|n| 2 * n.get()).unwrap_or(1);
+        num_jobs = thread::available_parallelism().map(|n| 2 * n.get()).unwrap_or(1);
     }
 
     num_jobs
