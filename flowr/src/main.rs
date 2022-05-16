@@ -301,7 +301,7 @@ fn client_and_server(
     #[cfg(feature = "debugger")]
     let mut debug_server_info = debug_server_connection.get_server_info().clone();
 
-    std::thread::spawn(move || {
+    thread::spawn(move || {
         info!("Starting 'flowr' server in background thread");
         let _ = server(
             num_threads,
@@ -442,7 +442,7 @@ fn client(
     if debug_this_flow {
         let debug_client_connection = ClientConnection::new(debug_server_info)?;
         let debug_client = CliDebugClient::new(debug_client_connection);
-        let _ = std::thread::spawn(move || {
+        let _ = thread::spawn(move || {
             debug_client.debug_client_loop();
         });
     }
