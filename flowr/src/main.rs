@@ -480,13 +480,7 @@ fn num_threads(matches: &ArgMatches) -> usize {
     }
 
     if num_threads == 0 {
-        match thread::available_parallelism() {
-            Ok(non_zero) => num_threads = non_zero.get(),
-            Err(_) => {
-                error!("Error while determining available concurrency, defaulting to 1 thread");
-                num_threads = 1
-            },
-        }
+        let num_threads = thread::available_concurrency().map(|n| n.get()).unwrap_or(1);
     }
 
     num_threads
@@ -512,13 +506,7 @@ fn num_parallel_jobs(
     }
 
     if num_jobs == 0 {
-        match thread::available_parallelism() {
-            Ok(non_zero) => num_jobs = 2 * non_zero.get(),
-            Err(_) => {
-                error!("Error while determining available concurrency, defaulting to 1 job");
-                num_jobs = 1
-            },
-        }
+        let num_jobs = thread::available_concurrency().map(|n| 2 * n.get()).unwrap_or(1);
     }
 
     num_jobs
