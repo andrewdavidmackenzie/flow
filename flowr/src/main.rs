@@ -10,7 +10,7 @@
 //! This particular implementation of this set of functions is a "CLI" one that interacts with the
 //! terminal for STDIO and the File system for files.
 
-use std::env;
+use std::{env, thread};
 use std::path::PathBuf;
 use std::process::exit;
 use std::sync::{Arc, Mutex};
@@ -465,22 +465,31 @@ fn client(
 // Determine the number of threads to use to execute flows, with a default of the number of cores
 // in the device, or any override from the command line.
 fn num_threads(matches: &ArgMatches) -> usize {
-    match matches.value_of("threads") {
-        Some(value) => match value.parse::<i32>() {
-            Ok(mut threads) => {
-                if threads < 1 {
-                    error!("Minimum number of additional threads is '1', so option has been overridden to be '1'");
-                    threads = 1;
-                }
-                threads as usize
+    let mut num_threads: usize = 0;
+
+    if let Some(value) = matches.value_of("threads") {
+        if let Ok(threads) = value.parse::<usize>() {
+            if threads < 1 {
+                error!("Minimum number of additional threads is '1', \
+                so option has been overridden to be '1'");
+                num_threads = 1;
+            } else {
+                num_threads = threads;
             }
-            Err(_) => {
-                error!("Error parsing the value for number of threads '{}'", value);
-                num_cpus::get()
-            }
-        },
-        None => num_cpus::get(),
+        }
     }
+
+    if num_threads == 0 {
+        match thread::available_parallelism() {
+            Ok(non_zero) => num_threads = non_zero.get(),
+            Err(_) => {
+                error!("Error while determining available concurrency, defaulting to 1 thread");
+                num_threads = 1
+            },
+        }
+    }
+
+    num_threads
 }
 
 // Determine the number of parallel jobs to be run in parallel based on a default of 2 times
@@ -488,26 +497,31 @@ fn num_threads(matches: &ArgMatches) -> usize {
 fn num_parallel_jobs(
     matches: &ArgMatches,
 ) -> usize {
-    match matches.value_of("jobs") {
-        Some(value) => match value.parse::<i32>() {
-            Ok(mut jobs) => {
-                if jobs < 1 {
-                    error!("Minimum number of parallel jobs is '0', so option of '{}' has been overridden to be '1'",
-                               jobs);
-                    jobs = 1;
-                }
-                jobs as usize
+    let mut num_jobs: usize = 0;
+
+    if let Some(value) = matches.value_of("jobs") {
+        if let Ok(jobs) = value.parse::<usize>() {
+            if jobs < 1 {
+                error!("Minimum number of parallel jobs is '0', \
+                so option of '{jobs}' has been overridden to be '1'");
+                num_jobs = 1;
+            } else {
+                num_jobs = jobs;
             }
-            Err(_) => {
-                error!(
-                    "Error parsing the value for number of parallel jobs '{}'",
-                    value
-                );
-                2 * num_cpus::get()
-            }
-        },
-        None => 2 * num_cpus::get()
+        }
     }
+
+    if num_jobs == 0 {
+        match thread::available_parallelism() {
+            Ok(non_zero) => num_jobs = 2 * non_zero.get(),
+            Err(_) => {
+                error!("Error while determining available concurrency, defaulting to 1 job");
+                num_jobs = 1
+            },
+        }
+    }
+
+    num_jobs
 }
 
 // Parse the command line arguments using clap
