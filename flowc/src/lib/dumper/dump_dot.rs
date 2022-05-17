@@ -1,10 +1,10 @@
 use std::collections::hash_map::DefaultHasher;
+use std::fmt::Write as FormatWrite;
 use std::fs;
 use std::hash::{Hash, Hasher};
 use std::io::Write;
 use std::path::Path;
 use std::process::Command;
-use std::fmt::Write as FormatWrite;
 
 use log::{debug, info};
 use serde_json::Value;
@@ -16,13 +16,13 @@ use flowcore::model::connection::Connection;
 use flowcore::model::flow_definition::FlowDefinition;
 use flowcore::model::function_definition::FunctionDefinition;
 use flowcore::model::input::InputInitializer::{Always, Once};
-use flowcore::model::io::{Find, IOSet};
+use flowcore::model::io::IOSet;
 use flowcore::model::name::{HasName, Name};
 use flowcore::model::process::Process::{FlowProcess, FunctionProcess};
 use flowcore::model::route::{HasRoute, Route};
 
 use crate::compiler::compile::CompilerTables;
-use crate::dumper::{dump, dump_dot};
+use crate::dumper::dump;
 use crate::errors::*;
 
 /// Create a directed graph named after the flow, showing all the functions of the flow after it
@@ -48,7 +48,7 @@ use crate::errors::*;
 /// lib_search_path.add_directory(runtime_parent.to_str().unwrap());
 /// let provider = MetaProvider::new(lib_search_path, PathBuf::from("/"));
 ///
-/// let mut url = url::Url::from_file_path(env::current_dir().unwrap()).unwrap();
+/// let mut url = Url::from_file_path(env::current_dir().unwrap()).unwrap();
 /// url = url.join("flowc/tests/test-flows/hello-world/hello-world.toml").unwrap();
 ///
 /// let mut source_urls = HashSet::<(Url, Url)>::new();
@@ -88,7 +88,7 @@ pub fn dump_functions(
     )?;
     dot_file.write_all(format!("labelloc=t;\nlabel = \"{}\";\n", flow.route()).as_bytes())?;
 
-    let functions = dump_dot::process_refs_to_dot(flow, tables, output_dir).map_err(|_| {
+    let functions = process_refs_to_dot(flow, tables, output_dir).map_err(|_| {
         std::io::Error::new(
             std::io::ErrorKind::Other,
             "Could not create dot content for process_refs",
@@ -117,7 +117,7 @@ pub fn dump_functions(
 /// let lib_search_path = Simpath::new("FLOW_LIB_PATH");
 /// let provider = MetaProvider::new(lib_search_path, PathBuf::from("/"));
 ///
-/// let mut url = url::Url::from_file_path(env::current_dir().unwrap()).unwrap();
+/// let mut url = Url::from_file_path(env::current_dir().unwrap()).unwrap();
 /// url = url.join("samples/hello-world/root.toml").unwrap();
 ///
 /// let mut source_urls = HashSet::<(Url, Url)>::new();
@@ -207,7 +207,7 @@ fn _dump_flow(
 
     let mut writer = dump::create_output_file(target_dir, filename, "dot")?;
     info!("\tGenerating {}.dot, Use \"dotty\" to view it", filename);
-    dump_dot::write_flow_to_dot(flow, &mut writer, target_dir)?;
+    write_flow_to_dot(flow, &mut writer, target_dir)?;
 
     // Dump sub-flows
     for subprocess in &flow.subprocesses {
@@ -305,11 +305,7 @@ fn write_flow_to_dot(
     // Connections
     contents.push_str("\n\t// Connections");
     for connection in &flow.connections {
-        contents.push_str(&connection_to_dot(
-            connection,
-            flow.inputs(),
-            flow.outputs(),
-        ));
+        contents.push_str(&connection_to_dot(connection));
     }
 
     dot_file.write_all(contents.as_bytes())?;
@@ -332,17 +328,21 @@ fn output_name_to_port<T: Hash>(t: &T) -> &str {
     OUTPUT_PORTS[index_from_name(t, OUTPUT_PORTS.len())]
 }
 
+// Return the route to a node (function, flow) from an IO route by stripping off any IO Name at the end
+fn node_from_io_route(route: &Route, name: &Name) -> (String, String) {
+    (route.to_string().strip_suffix(&name.to_string()).unwrap_or(route).to_string(), name.to_string())
+}
+
 #[allow(clippy::ptr_arg)]
-fn connection_to_dot(connection: &Connection, input_set: &IOSet, output_set: &IOSet) -> String {
+fn connection_to_dot(connection: &Connection) -> String {
     let (from_route, number, array_index) =
         connection.from_io().route().without_trailing_array_index();
 
     let (from_node, from_label) =
-        node_from_io_route(&from_route, connection.from_io().name(), input_set);
+        node_from_io_route(&from_route, connection.from_io().name());
     let (to_node, to_label) = node_from_io_route(
         connection.to_io().route(),
         connection.to_io().name(),
-        output_set,
     );
 
     let from_port = if connection.from_io().flow_io() {
@@ -366,33 +366,6 @@ fn connection_to_dot(connection: &Connection, input_set: &IOSet, output_set: &IO
         format!(
             "\n\t\"{}\":{} -> \"{}\":{} [xlabel=\"{}\", headlabel=\"{}\"];",
             from_node, from_port, to_node, to_port, from_label, to_label
-        )
-    }
-}
-
-/*
-    Return the route to a node (value, function, flow) for a given route, by:
-
-    If the input or output name IS the default one ("" empty string), then just return the route.
-
-    If the input or output IS NOT the default one ("" empty string) then remove the IO name from the
-    route and return that.
-*/
-#[allow(clippy::ptr_arg)]
-fn node_from_io_route(route: &Route, name: &Name, io_set: &IOSet) -> (String, String) {
-    let label = if !io_set.find(route) {
-        name.to_string()
-    } else {
-        "".to_string()
-    };
-
-    if name.is_empty() || io_set.find(route) {
-        (route.to_string(), label)
-    } else {
-        let length_without_io_name = route.len() - name.len() - 1; // 1 for '/'
-        (
-            route.to_string()[..length_without_io_name].to_string(),
-            label,
         )
     }
 }

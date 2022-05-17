@@ -54,7 +54,8 @@ pub struct IO {
     #[serde(rename = "value")]
     initializer: Option<InputInitializer>,
 
-    /// `route` defines where in the full flow hierarchy this IO is located
+    /// `route` defines where in the full flow hierarchy this IO is located, including it's `name`
+    /// as the last segment
     #[serde(skip_deserializing)]
     route: Route,
     
@@ -231,8 +232,6 @@ impl SetIORoutes for IOSet {
 /// `Find` trait is implemented by a number of object types to help find a sub-object
 /// using it's Name or Route
 pub trait Find {
-    /// Find a sub-object using it's Route
-    fn find(&self, route: &Route) -> bool;
     /// Find an Input using it's name and set the input initializer on it
     fn find_by_name_and_set_initializer(
         &mut self,
@@ -249,15 +248,6 @@ pub trait Find {
 }
 
 impl Find for IOSet {
-    fn find(&self, route: &Route) -> bool {
-        for io in self {
-            if io.route() == route {
-                return true;
-            }
-        }
-        false
-    }
-
     fn find_by_name_and_set_initializer(
         &mut self,
         name: &Name,
