@@ -249,23 +249,23 @@ impl Find for IOSet {
         initial_value: &Option<InputInitializer>,
     ) -> Result<IO> {
         for io in self {
-            for datatype in io.datatypes().clone() { // TODO remove need for clone
-                let (array_route, index, array_index) = sub_route.without_trailing_array_index();
-                if array_index
-                    && (datatype.is_array())
-                    && (Route::from(io.name()) == array_route.into_owned())
-                {
-                    io.set_initializer(initial_value);
+            for datatype in io.datatypes().clone() {
+                if datatype.is_array() {
+                    let (array_route, index, array_index) = sub_route.without_trailing_array_index();
+                    if array_index && (Route::from(io.name()) == array_route.into_owned())
+                    {
+                        io.set_initializer(initial_value);
 
-                    let mut found = io.clone();
+                        let mut found = io.clone();
 
-                    // Set the datatype of the found IO to be the type within the array of types
-                    // and this will be converted by the runtime during execution
-                    found.set_datatypes(&[datatype.within_array()?]);
+                        // Set the datatype of the found IO to be the type within the array of types
+                        // and this will be converted by the runtime during execution
+                        found.set_datatypes(&[datatype.within_array()?]);
 
-                    let new_route = Route::from(format!("{}/{}", found.route(), index));
-                    found.set_route(&new_route, &io.io_type);
-                    return Ok(found);
+                        let new_route = Route::from(format!("{}/{}", found.route(), index));
+                        found.set_route(&new_route, &io.io_type);
+                        return Ok(found);
+                    }
                 }
 
                 if Route::from(io.name()) == *sub_route {
