@@ -404,7 +404,6 @@ mod test {
     use crate::deserializers::deserializer::get_deserializer;
     use crate::errors::*;
     use crate::model::datatype::{DataType, NUMBER_TYPE, STRING_TYPE};
-    use crate::model::io::Find;
     use crate::model::name::HasName;
     use crate::model::name::Name;
     use crate::model::output_connection::OutputConnection;
@@ -611,31 +610,5 @@ mod test {
             *output1.route(),
             Route::from("/flow/test_alias/other_output")
         );
-    }
-
-    #[test]
-    fn get_array_element_of_root_output() {
-        // Create a function where the output is an array of String
-        let function_str = "
-        function = 'test_function'
-        source = 'test.rs'
-
-        [[output]]
-        type = 'array/string'
-        ";
-
-        // Setup
-        let mut function: FunctionDefinition =
-            toml_from_str(function_str).expect("Couldn't read function from toml");
-        function.alias = Name::from("test_alias");
-        function.set_routes_from_parent(&Route::from("/flow"));
-
-        // Test
-        // Try and get the output using a route to a specific element of the output
-        let output = function
-            .outputs
-            .find_by_subroute_and_set_initializer(&Route::from("/0"), &None)
-            .expect("Expected to find an IO");
-        assert_eq!(*output.name(), Name::default());
     }
 }

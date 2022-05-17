@@ -232,14 +232,7 @@ impl SetIORoutes for IOSet {
 /// `Find` trait is implemented by a number of object types to help find a sub-object
 /// using it's Name or Route
 pub trait Find {
-    /// Find an Input using it's name and set the input initializer on it
-    fn find_by_name_and_set_initializer(
-        &mut self,
-        name: &Name,
-        initial_value: &Option<InputInitializer>,
-    ) -> Result<IO>;
-
-    /// Find a sub-object (Input) using it's Route and set the input initializer on it
+    /// Find IO using it's sub-Route and set the input initializer on it
     fn find_by_subroute_and_set_initializer(
         &mut self,
         subroute: &Route,
@@ -248,20 +241,6 @@ pub trait Find {
 }
 
 impl Find for IOSet {
-    fn find_by_name_and_set_initializer(
-        &mut self,
-        name: &Name,
-        initial_value: &Option<InputInitializer>,
-    ) -> Result<IO> {
-        for io in self {
-            if io.name() == name {
-                io.set_initializer(initial_value);
-                return Ok(io.clone());
-            }
-        }
-        bail!("No input or output with name '{}' was found", name)
-    }
-
     // TODO improve the Route handling of this - maybe moving into Router
     // TODO return a reference to the IO, with same lifetime as IOSet?
     fn find_by_subroute_and_set_initializer(
@@ -309,8 +288,10 @@ mod test {
     use crate::model::io::{IOSet, IOType};
     use crate::model::name::HasName;
     use crate::model::name::Name;
+    use crate::model::route::Route;
     use crate::model::validation::Validate;
 
+    use super::Find;
     use super::IO;
 
     fn toml_from_str(content: &str) -> Result<IO> {
@@ -490,5 +471,17 @@ mod test {
             ..Default::default()
         };
         assert!(io.validate().is_err());
+    }
+
+    #[test]
+    fn get_array_element_of_root_output() {
+        let mut outputs = vec![IO::new(vec![DataType::from("array/integer")], "")] as IOSet;
+
+        // Test
+        // Try and get the output using a route to a specific element of the output
+        let output = outputs
+            .find_by_subroute_and_set_initializer(&Route::from("/0"), &None)
+            .expect("Expected to find an IO");
+        assert_eq!(*output.name(), Name::default());
     }
 }

@@ -279,14 +279,13 @@ impl FlowDefinition {
                     "\tFlow sub-process with matching name found, name = '{}'",
                     subprocess_alias
                 );
-                let io_name = Name::from(sub_route);
                 match direction {
-                    Direction::TO => sub_flow
+                    TO => sub_flow
                         .inputs
-                        .find_by_name_and_set_initializer(&io_name, initial_value),
-                    Direction::FROM => sub_flow
+                        .find_by_subroute_and_set_initializer(sub_route, initial_value),
+                    FROM => sub_flow
                         .outputs
-                        .find_by_name_and_set_initializer(&io_name, &None),
+                        .find_by_subroute_and_set_initializer(sub_route, &None),
                 }
             },
 
@@ -296,10 +295,10 @@ impl FlowDefinition {
                     subprocess_alias
                 );
                 match direction {
-                    Direction::TO => function
+                    TO => function
                         .inputs
                         .find_by_subroute_and_set_initializer(sub_route, initial_value),
-                    Direction::FROM => function
+                    FROM => function
                         .get_outputs()
                         .find_by_subroute_and_set_initializer(sub_route, &None)
                         .or_else(|_| { // for connections from the Input value copied at the output
@@ -330,29 +329,29 @@ impl FlowDefinition {
     ) -> Result<IO> {
         debug!("Looking for connection {:?} '{}'", direction, route);
         match (&direction, route.route_type()) {
-            (&Direction::FROM, RouteType::FlowInput(input_name, sub_route)) => {
+            (&FROM, RouteType::FlowInput(input_name, sub_route)) => {
                 // make sure the sub-route of the input is added to the source of the connection
                 let mut from = self
                     .inputs
-                    .find_by_name_and_set_initializer(&input_name, &None)?;
+                    .find_by_subroute_and_set_initializer(&Route::from(input_name.to_string()), &None)?;
                 // accumulate any subroute within the input
                 from.route_mut().extend(&sub_route);
                 Ok(from)
             },
 
-            (&Direction::TO, RouteType::FlowOutput(output_name)) => {
-                self.outputs.find_by_name_and_set_initializer(&output_name, initial_value)
+            (&TO, RouteType::FlowOutput(output_name)) => {
+                self.outputs.find_by_subroute_and_set_initializer(&Route::from(output_name.to_string()), initial_value)
             },
 
             (_, RouteType::SubProcess(process_name, sub_route)) => {
                 self.get_subprocess_io_and_set_initializer(&process_name, direction, &sub_route, initial_value)
             },
 
-            (&Direction::FROM, RouteType::FlowOutput(output_name)) => {
+            (&FROM, RouteType::FlowOutput(output_name)) => {
                 bail!("Invalid connection FROM an output named: '{}'", output_name)
             },
 
-            (&Direction::TO, RouteType::FlowInput(input_name, sub_route)) => {
+            (&TO, RouteType::FlowInput(input_name, sub_route)) => {
                 bail!(
                     "Invalid connection TO an input named: '{}' with sub_route: '{}'",
                     input_name,
@@ -479,7 +478,7 @@ mod test {
                 IO::new_named(vec!(STRING_TYPE.into()), "string", "string"),
                 IO::new_named(vec!(NUMBER_TYPE.into()), "number", "number"),
             ],
-            source_url: super::FlowDefinition::default_url(),
+            source_url: FlowDefinition::default_url(),
             ..Default::default()
         };
 
@@ -506,39 +505,39 @@ mod test {
 
     #[test]
     fn test_name() {
-        let flow = super::FlowDefinition::default();
+        let flow = FlowDefinition::default();
         assert_eq!(flow.name(), &Name::default());
     }
 
     #[test]
     fn test_alias() {
-        let flow = super::FlowDefinition::default();
+        let flow = FlowDefinition::default();
         assert_eq!(flow.alias(), &Name::default());
     }
 
     #[test]
     fn test_set_alias() {
-        let mut flow = super::FlowDefinition::default();
+        let mut flow = FlowDefinition::default();
         flow.set_alias(&Name::from("test flow"));
         assert_eq!(flow.alias(), &Name::from("test flow"));
     }
 
     #[test]
     fn test_set_empty_alias() {
-        let mut flow = super::FlowDefinition::default();
+        let mut flow = FlowDefinition::default();
         flow.set_alias(&Name::from(""));
         assert_eq!(flow.alias(), &Name::from(""));
     }
 
     #[test]
     fn test_route() {
-        let flow = super::FlowDefinition::default();
+        let flow = FlowDefinition::default();
         assert_eq!(flow.route(), &Route::default());
     }
 
     #[test]
     fn test_route_mut() {
-        let mut flow = super::FlowDefinition::default();
+        let mut flow = FlowDefinition::default();
         let route = flow.route_mut();
         assert_eq!(route, &Route::default());
         *route = Route::from("/context");
