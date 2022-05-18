@@ -1,6 +1,6 @@
 [package]
 name = "flowc"
-version = "0.46.0"
+version = "0.50.0"
 authors = ["Andrew Mackenzie <andrew@mackenzie-serres.net>"]
 description = "A compiler for 'flow' programs"
 license = "MIT"
@@ -22,7 +22,7 @@ default = ["debugger"]
 debugger = ["flowcore/debugger"] # feature to add output for the debugger
 
 [dependencies]
-flowcore = {path = "../flowcore", version = "0.45.0"}
+flowcore = {path = "../flowcore", version = "0.50.0"}
 clap = "~2"
 simplog = { version = "~1.5" }
 log = "0.4.6"
