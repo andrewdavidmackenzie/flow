@@ -120,7 +120,8 @@ impl<'a> Coordinator<'a> {
         display_next_output = false;
 
         // This outer loop is just a way of restarting execution from scratch if the debugger requests it
-        'flow_execution: loop {
+        'flow_execution:
+        loop {
             state.init();
             #[cfg(feature = "metrics")]
             metrics.reset();
@@ -212,10 +213,12 @@ impl<'a> Coordinator<'a> {
                     }
                 }
 
-                // if the debugger has not requested a restart of the flow
-                if !restart {
-                    break 'flow_execution;
-                }
+            }
+
+            // if no debugger then end execution always
+            // if a debugger - then end execution if the debugger has not requested a restart
+            if !restart {
+                break 'flow_execution;
             }
         }
 
