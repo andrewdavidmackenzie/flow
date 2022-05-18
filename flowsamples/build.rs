@@ -1,6 +1,6 @@
 //! Build script to compile the flow flowsamples in the crate
 use std::{fs, io};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 
 fn main() -> io::Result<()> {
@@ -29,9 +29,14 @@ fn main() -> io::Result<()> {
 }
 
 fn get_context_root() -> Result<String, String> {
-    let samples_dir = Path::new(env!("CARGO_MANIFEST_DIR")).parent()
-        .ok_or("Could not get parent dir")?;
-    let context_root = samples_dir.join("flowr/src/context");
+    let context_root = match std::env::var("FLOW_CONTEXT_ROOT") {
+        Ok(var) => PathBuf::from(&var),
+        Err(_) => {
+            let samples_dir = Path::new(env!("CARGO_MANIFEST_DIR")).parent()
+                .ok_or("Could not get parent dir")?;
+            samples_dir.join("flowr/src/context")
+        }
+    };
     assert!(context_root.exists(), "Context root directory '{}' does not exist",
             context_root.display());
     Ok(context_root.to_str()
