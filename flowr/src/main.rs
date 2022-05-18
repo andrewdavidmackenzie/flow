@@ -188,7 +188,7 @@ fn run() -> Result<()> {
 
     #[cfg(feature = "debugger")]
     let debug_this_flow = matches.is_present("debugger");
-    let native = matches.is_present("native");
+    let native_flowstdlib = matches.is_present("native");
     let lib_dirs = if matches.is_present("lib_dir") {
         matches
             .values_of("lib_dir")
@@ -212,7 +212,7 @@ fn run() -> Result<()> {
     let num_threads = num_threads(&matches);
 
     match mode {
-        Mode::ServerOnly => server_only(num_threads, lib_search_path, native)?,
+        Mode::ServerOnly => server_only(num_threads, lib_search_path, native_flowstdlib)?,
         Mode::ClientOnly => client_only(
             matches,
             #[cfg(feature = "debugger")]
@@ -221,7 +221,7 @@ fn run() -> Result<()> {
         Mode::ClientAndServer => client_and_server(
             num_threads,
             lib_search_path,
-            native,
+            native_flowstdlib,
             matches,
             #[cfg(feature = "debugger")]
             debug_this_flow,
@@ -232,7 +232,7 @@ fn run() -> Result<()> {
 }
 
 fn load_native_libs(
-    native: bool,
+    native_flowstdlib: bool,
     loader: &mut Loader,
     provider: &dyn Provider,
     server_connection: Arc<Mutex<ServerConnection>>,
@@ -247,13 +247,12 @@ fn load_native_libs(
     // if the command line options request loading native implementation of available native libs
     // if not, the native implementation is not loaded and later when a flow is loaded it's library
     // references will be resolved and those libraries (WASM implementations) will be loaded at runtime
-    if native {
-        // If the "flowstdlib" optional dependency is used and the , then load the native version of it
-        #[cfg(feature = "flowstdlib")]
+    if native_flowstdlib {
+        #[cfg(feature = "native")]
         loader.add_lib(
                 provider,
                 flowstdlib::manifest::get_manifest()
-                    .chain_err(|| "Could not get flowstdlib manifest")?,
+                    .chain_err(|| "Could not get 'native' flowstdlib manifest")?,
                 &Url::parse("lib://flowstdlib")?,
             )?;
     }
@@ -262,7 +261,7 @@ fn load_native_libs(
 }
 
 // Start just a server - by running a Coordinator in the calling thread.
-fn server_only(num_threads: usize, lib_search_path: Simpath, native: bool) -> Result<()> {
+fn server_only(num_threads: usize, lib_search_path: Simpath, native_flowstdlib: bool) -> Result<()> {
     let runtime_server_connection = ServerConnection::new(RUNTIME_SERVICE_NAME, Method::Tcp(None))?;
     #[cfg(feature = "debugger")]
     let debug_server_connection = ServerConnection::new(DEBUG_SERVICE_NAME, Method::Tcp(None))?;
@@ -271,7 +270,7 @@ fn server_only(num_threads: usize, lib_search_path: Simpath, native: bool) -> Re
     server(
         num_threads,
         lib_search_path,
-        native,
+        native_flowstdlib,
         runtime_server_connection,
         #[cfg(feature = "debugger")]
         debug_server_connection,
@@ -338,7 +337,7 @@ fn client_and_server(
 fn server(
     num_threads: usize,
     lib_search_path: Simpath,
-    native: bool,
+    native_flowstdlib: bool,
     runtime_server_connection: ServerConnection,
     #[cfg(feature = "debugger")] debug_server_connection: ServerConnection,
     loop_forever: bool,
@@ -349,7 +348,7 @@ fn server(
     let server_connection = Arc::new(Mutex::new(runtime_server_connection));
 
     load_native_libs(
-        native,
+        native_flowstdlib,
         &mut loader,
         &provider,
         server_connection.clone(),
@@ -597,12 +596,13 @@ fn get_matches<'a>() -> ArgMatches<'a> {
             .help("Calculate metrics during flow execution and print them out when done"),
     );
 
+    #[cfg(not(feature = "wasm"))]
     let app = app.arg(
         Arg::with_name("native")
             .short("n")
             .long("native")
             .conflicts_with("client")
-            .help("Use native libraries when compiled with \"native\" feature"),
+            .help("Link with native (not WASM) version of flowstdlib"),
     );
 
     app.get_matches()

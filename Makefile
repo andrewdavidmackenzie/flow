@@ -124,3 +124,8 @@ trim-docs:
 	@rm -rf target/html/code/debug
 	@rm -rf target/html/Makefile
 	@find target/html -depth -type d -empty -delete
+
+.PHONY: publish
+publish:
+	@cargo build --no-default-features
+	@cargo ws publish
