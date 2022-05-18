@@ -23,8 +23,7 @@ name = "flowstdlib"
 path = "lib.rs"
 
 [features]
-default = ["native"]
-native = []
+default = []
 wasm = []
 
 [dependencies]

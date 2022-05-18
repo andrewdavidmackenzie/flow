@@ -1,4 +1,4 @@
-use std::{env, fs};
+use std::env;
 use std::path::PathBuf;
 
 use tempdir::TempDir;
@@ -40,35 +40,6 @@ pub fn get_output_dir(url: &Url, option: Option<&str>) -> Result<PathBuf> {
         }
     }
 
-    make_writeable(output_dir)
-}
-
-fn make_writeable(output_dir: PathBuf) -> Result<PathBuf> {
-    // Now make sure the directory exists, if not create it, and is writable
-    if output_dir.exists() {
-        let md = fs::metadata(&output_dir).chain_err(|| {
-            format!(
-                "Could not read metadata of the existing output directory '{}'",
-                output_dir.display()
-            )
-        })?;
-        // Check it's not a file!
-        if md.is_file() {
-            bail!(
-                "Output directory '{}' already exists as a file",
-                output_dir.display()
-            );
-        }
-
-        // check it's not read only!
-        if md.permissions().readonly() {
-            bail!("Output directory '{}' is read only", output_dir.display());
-        }
-    } else {
-        fs::create_dir_all(&output_dir)
-            .chain_err(|| format!("Could not create directory '{}'", output_dir.display()))?;
-    }
-
     Ok(output_dir)
 }
 
@@ -108,29 +79,6 @@ mod test {
             dir.to_str().expect("Could not convert dir ot String"),
             out_dir_arg
         );
-    }
-
-    #[test]
-    fn output_dir_is_created() {
-        let url = &Url::parse("http://test.com/dir/file.flow").expect("Could not parse test url");
-
-        let temp_dir = TempDir::new("flow")
-            .expect("Could not create TempDir for test")
-            .into_path();
-        let out_dir_arg = format!(
-            "{}/subdir",
-            temp_dir
-                .to_str()
-                .expect("Could not convert temp dir name to string")
-        );
-
-        let dir = super::get_output_dir(url, Some(&out_dir_arg)).expect("Could not get output dir");
-
-        assert_eq!(
-            dir.to_str().expect("Could not convert dir ot String"),
-            out_dir_arg
-        );
-        assert!(dir.exists());
     }
 
     #[test]

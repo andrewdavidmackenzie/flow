@@ -1,6 +1,7 @@
 #[cfg(feature = "debugger")]
 use std::collections::HashSet;
-use std::path::Path;
+use std::fs;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::process::Stdio;
 
@@ -44,6 +45,8 @@ pub fn compile_and_execute_flow(options: &Options, provider: &dyn Provider) -> R
                                               #[cfg(feature = "debugger")] &mut source_urls,
             ).chain_err(|| format!("Could not compile flow from '{}'", options.source_url))?;
 
+            make_writeable(&options.output_dir)?;
+
             dump(&flow, provider, &tables, options)?;
 
             if !flow.is_runnable() {
@@ -69,6 +72,35 @@ pub fn compile_and_execute_flow(options: &Options, provider: &dyn Provider) -> R
         }
         _ => bail!("Process parsed was not of type 'Flow' and cannot be executed"),
     }
+}
+
+fn make_writeable(output_dir: &PathBuf) -> Result<()> {
+    // Now make sure the directory exists, if not create it, and is writable
+    if output_dir.exists() {
+        let md = fs::metadata(&output_dir).chain_err(|| {
+            format!(
+                "Could not read metadata of the existing output directory '{}'",
+                output_dir.display()
+            )
+        })?;
+        // Check it's not a file!
+        if md.is_file() {
+            bail!(
+                "Output directory '{}' already exists as a file",
+                output_dir.display()
+            );
+        }
+
+        // check it's not read only!
+        if md.permissions().readonly() {
+            bail!("Output directory '{}' is read only", output_dir.display());
+        }
+    } else {
+        fs::create_dir_all(&output_dir)
+            .chain_err(|| format!("Could not create directory '{}'", output_dir.display()))?;
+    }
+
+    Ok(())
 }
 
 fn dump(

@@ -2,13 +2,13 @@
 extern crate error_chain;
 
 use std::collections::HashSet;
+use std::fmt::Write as FormatWrite;
 use std::fs::File;
 use std::io::{BufRead, BufReader, Write};
 use std::io::prelude::*;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::process::Stdio;
-use std::fmt::Write as FormatWrite;
 
 use serial_test::serial;
 use simpath::Simpath;
@@ -296,4 +296,25 @@ fn two_destinations() {
 #[serial]
 fn hello_world_client_server() {
     execute_test("hello-world", true);
+}
+
+#[test]
+fn doesnt_create_if_not_exist() {
+    let dir = TempDir::new("flowc-test").expect("A temp dir").into_path();
+    let non_existent = dir.join("__nope");
+    assert!(!non_existent.exists());
+
+    let mut command = Command::new("cargo");
+    let command_args = vec!["run", "--quiet", "-p", "flowc", "--",
+                            non_existent.to_str().expect("Could not get test file path")];
+
+    let _ = command
+        .args(command_args)
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .status().expect("cargo run failed");
+
+    // Check directory / file still doesn't exist
+    assert!(!non_existent.exists(), "File {} was created and should not have been", non_existent.to_string_lossy());
 }

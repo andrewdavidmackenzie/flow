@@ -28,8 +28,6 @@ use crate::server::Server;
 ///
 /// It accepts Flows to be executed in the form of a `Submission` struct that has the required
 /// information to execute the flow.
-///
-
 pub struct Coordinator<'a> {
     /// A channel used to send Jobs out for execution
     job_tx: Sender<Job>,

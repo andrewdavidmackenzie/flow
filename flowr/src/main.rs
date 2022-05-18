@@ -94,6 +94,41 @@ pub enum Mode {
     ClientAndServer,
 }
 
+/// Main for flowr binary - call `run()` and print any error that results or exit silently if OK
+fn main() {
+    match run() {
+        Err(ref e) => {
+            eprintln!("{}", e);
+            for e in e.iter().skip(1) {
+                eprintln!("caused by: {}", e);
+            }
+            exit(1);
+        }
+        Ok(_) => exit(0),
+    }
+}
+
+/// For the lib provider, libraries maybe installed in multiple places in the file system.
+/// In order to find the content, a FLOW_LIB_PATH environment variable can be configured with a
+/// list of directories in which to look for the library in question.
+///
+/// Using the "FLOW_LIB_PATH" environment variable attempt to locate the library's root folder
+/// in the file system.
+fn set_lib_search_path(search_path_additions: &[String]) -> Result<Simpath> {
+    let mut lib_search_path = Simpath::new_with_separator("FLOW_LIB_PATH", ',');
+
+    if env::var("FLOW_LIB_PATH").is_err() && search_path_additions.is_empty() {
+        warn!("'FLOW_LIB_PATH' is not set, and no LIB_DIRS supplied, so it is possible libraries referenced will not be found");
+    }
+
+    for additions in search_path_additions {
+        lib_search_path.add(additions);
+        info!("'{}' added to the Library Search Path", additions);
+    }
+
+    Ok(lib_search_path)
+}
+
 /// # Example Submission of a flow for execution to the Coordinator
 ///
 /// Instantiate the Coordinator server that receives the submitted flows to be executed, specifying
@@ -140,40 +175,6 @@ pub enum Mode {
 /// runtime_client_connection.send(ClientSubmission(submission)).unwrap();
 /// exit(0);
 /// ```
-fn main() {
-    match run() {
-        Err(ref e) => {
-            eprintln!("{}", e);
-            for e in e.iter().skip(1) {
-                eprintln!("caused by: {}", e);
-            }
-            exit(1);
-        }
-        Ok(_) => exit(0),
-    }
-}
-
-/// For the lib provider, libraries maybe installed in multiple places in the file system.
-/// In order to find the content, a FLOW_LIB_PATH environment variable can be configured with a
-/// list of directories in which to look for the library in question.
-///
-/// Using the "FLOW_LIB_PATH" environment variable attempt to locate the library's root folder
-/// in the file system.
-fn set_lib_search_path(search_path_additions: &[String]) -> Result<Simpath> {
-    let mut lib_search_path = Simpath::new_with_separator("FLOW_LIB_PATH", ',');
-
-    if env::var("FLOW_LIB_PATH").is_err() && search_path_additions.is_empty() {
-        warn!("'FLOW_LIB_PATH' is not set, and no LIB_DIRS supplied, so it is possible libraries referenced will not be found");
-    }
-
-    for additions in search_path_additions {
-        lib_search_path.add(additions);
-        info!("'{}' added to the Library Search Path", additions);
-    }
-
-    Ok(lib_search_path)
-}
-
 fn run() -> Result<()> {
     info!(
         "'{}' version {}",
@@ -248,7 +249,7 @@ fn load_native_libs(
     // if not, the native implementation is not loaded and later when a flow is loaded it's library
     // references will be resolved and those libraries (WASM implementations) will be loaded at runtime
     if native_flowstdlib {
-        #[cfg(feature = "native")]
+        #[cfg(feature = "flowstdlib")]
         loader.add_lib(
                 provider,
                 flowstdlib::manifest::get_manifest()

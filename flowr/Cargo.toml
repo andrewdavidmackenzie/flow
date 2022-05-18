@@ -18,9 +18,7 @@ name = "flowr"
 path = "src/main.rs"
 
 [features]
-default = ["debugger", "native", "metrics"] # Replace "native" with wasm if you want WASM flowstdlib library loaded
-native = ["flowstdlib/native"]
-wasm = ["flowstdlib/wasm"]
+default = ["debugger", "flowstdlib", "metrics"]
 debugger = ["flowrlib/debugger", "flowcore/debugger", "rustyline"] # feature to add the debugger, requires flowrlib and flowcore crate to have feature enabled also
 metrics = ["flowrlib/metrics"]  # feature for tracking of metrics during execution - requires flowrlib with metrics also
 
