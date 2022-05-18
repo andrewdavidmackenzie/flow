@@ -76,7 +76,7 @@ clean:
 install-flow:
 	@echo "install-flow<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
 	@cargo install --path flowc
-	@cargo install --path flowr --features $(features)
+	@cargo install --path flowr
 
 .PHONY: clippy
 clippy: install-flow
