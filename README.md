@@ -105,8 +105,8 @@ to use. I have tried Iced and other emerging rust-native GUI toolkits, but they 
       * [gtk-rs-state](https://github.com/andrewdavidmackenzie/gtk-rs-state) - a small library to help
   do a GTK UI in rust, accessing UI from background threads.
         
-Currently, I'm experimenting with flutter and react native, and FLTK looks relatively easy to use, has rust
-native bindings for the UI, but doesn't look so modern and is not so well known.
+Currently, I'm experimenting with flutter. FLTK looks relatively easy to use, has rust
+native bindings for the UI, but it doesn't look so modern and is not so well known.
 
 Once I get a solution I like, I may well bring it back into this repo, although build-times for so many crates
 may become a problem again if this repo includes too much.

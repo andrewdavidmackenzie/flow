@@ -418,7 +418,7 @@ impl RunState {
     }
 
     /// Get the HashSet of blocked function ids
-    #[cfg(debug_assertions)]
+    #[cfg(any(debug_assertions, feature = "debugger"))]
     pub fn get_blocks(&self) -> &HashSet<Block> {
         &self.blocks
     }
