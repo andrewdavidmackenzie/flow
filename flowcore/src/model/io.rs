@@ -54,7 +54,8 @@ pub struct IO {
     #[serde(rename = "value")]
     initializer: Option<InputInitializer>,
 
-    /// `route` defines where in the full flow hierarchy this IO is located
+    /// `route` defines where in the full flow hierarchy this IO is located, including it's `name`
+    /// as the last segment
     #[serde(skip_deserializing)]
     route: Route,
     
@@ -231,16 +232,7 @@ impl SetIORoutes for IOSet {
 /// `Find` trait is implemented by a number of object types to help find a sub-object
 /// using it's Name or Route
 pub trait Find {
-    /// Find a sub-object using it's Route
-    fn find(&self, route: &Route) -> bool;
-    /// Find an Input using it's name and set the input initializer on it
-    fn find_by_name_and_set_initializer(
-        &mut self,
-        name: &Name,
-        initial_value: &Option<InputInitializer>,
-    ) -> Result<IO>;
-
-    /// Find a sub-object (Input) using it's Route and set the input initializer on it
+    /// Find IO using it's sub-Route and set the input initializer on it
     fn find_by_subroute_and_set_initializer(
         &mut self,
         subroute: &Route,
@@ -249,29 +241,6 @@ pub trait Find {
 }
 
 impl Find for IOSet {
-    fn find(&self, route: &Route) -> bool {
-        for io in self {
-            if io.route() == route {
-                return true;
-            }
-        }
-        false
-    }
-
-    fn find_by_name_and_set_initializer(
-        &mut self,
-        name: &Name,
-        initial_value: &Option<InputInitializer>,
-    ) -> Result<IO> {
-        for io in self {
-            if io.name() == name {
-                io.set_initializer(initial_value);
-                return Ok(io.clone());
-            }
-        }
-        bail!("No input or output with name '{}' was found", name)
-    }
-
     // TODO improve the Route handling of this - maybe moving into Router
     // TODO return a reference to the IO, with same lifetime as IOSet?
     fn find_by_subroute_and_set_initializer(
@@ -280,23 +249,23 @@ impl Find for IOSet {
         initial_value: &Option<InputInitializer>,
     ) -> Result<IO> {
         for io in self {
-            for datatype in io.datatypes().clone() { // TODO remove need for clone
-                let (array_route, index, array_index) = sub_route.without_trailing_array_index();
-                if array_index
-                    && (datatype.is_array())
-                    && (Route::from(io.name()) == array_route.into_owned())
-                {
-                    io.set_initializer(initial_value);
+            for datatype in io.datatypes().clone() {
+                if datatype.is_array() {
+                    let (array_route, index, array_index) = sub_route.without_trailing_array_index();
+                    if array_index && (Route::from(io.name()) == array_route.into_owned())
+                    {
+                        io.set_initializer(initial_value);
 
-                    let mut found = io.clone();
+                        let mut found = io.clone();
 
-                    // Set the datatype of the found IO to be the type within the array of types
-                    // and this will be converted by the runtime during execution
-                    found.set_datatypes(&[datatype.within_array()?]);
+                        // Set the datatype of the found IO to be the type within the array of types
+                        // and this will be converted by the runtime during execution
+                        found.set_datatypes(&[datatype.within_array()?]);
 
-                    let new_route = Route::from(format!("{}/{}", found.route(), index));
-                    found.set_route(&new_route, &io.io_type);
-                    return Ok(found);
+                        let new_route = Route::from(format!("{}/{}", found.route(), index));
+                        found.set_route(&new_route, &io.io_type);
+                        return Ok(found);
+                    }
                 }
 
                 if Route::from(io.name()) == *sub_route {
@@ -319,8 +288,10 @@ mod test {
     use crate::model::io::{IOSet, IOType};
     use crate::model::name::HasName;
     use crate::model::name::Name;
+    use crate::model::route::Route;
     use crate::model::validation::Validate;
 
+    use super::Find;
     use super::IO;
 
     fn toml_from_str(content: &str) -> Result<IO> {
@@ -500,5 +471,17 @@ mod test {
             ..Default::default()
         };
         assert!(io.validate().is_err());
+    }
+
+    #[test]
+    fn get_array_element_of_root_output() {
+        let mut outputs = vec![IO::new(vec![DataType::from("array/integer")], "")] as IOSet;
+
+        // Test
+        // Try and get the output using a route to a specific element of the output
+        let output = outputs
+            .find_by_subroute_and_set_initializer(&Route::from("/0"), &None)
+            .expect("Expected to find an IO");
+        assert_eq!(*output.name(), Name::default());
     }
 }
