@@ -18,8 +18,10 @@ use crate::block::Block;
 use crate::debug_command::DebugCommand;
 #[cfg(feature = "debugger")]
 use crate::job::Job;
+#[cfg(any(feature = "debugger", feature="metrics"))]
+use crate::run_state::RunState;
 #[cfg(feature = "debugger")]
-use crate::run_state::{RunState, State};
+use crate::run_state::State;
 
 /// A `Server` implements a number of "callbacks" to communicate between a CLI/UI and background
 /// flow coordinator executing the flow
@@ -36,6 +38,7 @@ pub trait Server {
     /// The flow has ended
     #[cfg(feature = "metrics")]
     fn flow_ended(&mut self, state: &RunState, metrics: Metrics) -> Result<()>;
+    /// The flow has ended
     #[cfg(not(feature = "metrics"))]
     fn flow_ended(&mut self) -> Result<()>;
 

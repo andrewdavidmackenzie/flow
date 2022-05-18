@@ -102,6 +102,7 @@ impl<'a> Coordinator<'a> {
     /// There is an outer loop for the case when you are using the debugger, to allow entering
     /// the debugger when the flow ends and at any point resetting all the state and starting
     /// execution again from the initial state
+    #[allow(unused_variables, unused_assignments, unused_mut)]
     pub fn execute_flow(&mut self,
                         mut manifest: FlowManifest,
                         submission: Submission,) -> Result<bool> {

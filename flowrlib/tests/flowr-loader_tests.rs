@@ -166,8 +166,8 @@ fn set_lib_search_path() -> Simpath {
 #[test]
 fn load_manifest_from_file() {
     let f_a = RuntimeFunction::new(
-        "fA",
-        "/fA",
+        #[cfg(feature = "debugger")] "fA",
+        #[cfg(feature = "debugger")] "/fA",
         "context://stdio/stdout/stdout",
         vec![],
         0,
@@ -205,8 +205,8 @@ fn load_manifest_from_file() {
 #[test]
 fn resolve_lib_implementation_test() {
     let f_a = RuntimeFunction::new(
-        "fA",
-        "/fA",
+        #[cfg(feature = "debugger")] "fA",
+        #[cfg(feature = "debugger")] "/fA",
         "context://stdio/stdin/stdin",
         vec![],
         0,
@@ -234,8 +234,8 @@ fn resolve_lib_implementation_test() {
 #[test]
 fn unresolved_lib_functions_test() {
     let f_a = RuntimeFunction::new(
-        "fA",
-        "/fA",
+        #[cfg(feature = "debugger")] "fA",
+        #[cfg(feature = "debugger")] "/fA",
         "context://stdio/stdin/foo",
         vec![],
         0,
