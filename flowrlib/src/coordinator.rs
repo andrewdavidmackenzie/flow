@@ -114,10 +114,10 @@ impl<'a> Coordinator<'a> {
             self.debugger.start();
         }
 
-        let (mut display_next_output, mut restart, mut exit_debugger);
+        let (mut display_next_output, mut restart, mut debugger_requested_exit);
         restart = false;
         display_next_output = false;
-        exit_debugger = false;
+        debugger_requested_exit = false;
 
         // This outer loop is just a way of restarting execution from scratch if the debugger requests it
         'flow_execution:
@@ -129,10 +129,10 @@ impl<'a> Coordinator<'a> {
             // If debugging then check if we should enter the debugger
             #[cfg(feature = "debugger")]
             if state.debug {
-                (display_next_output, restart, exit_debugger) = self.debugger.wait_for_command(&state);
+                (display_next_output, restart, debugger_requested_exit) = self.debugger.wait_for_command(&state);
 
-                if exit_debugger {
-                    return Ok(true); // User requested via debugger to exit execution
+                if debugger_requested_exit {
+                    break 'flow_execution;
                 }
             }
 
@@ -142,29 +142,26 @@ impl<'a> Coordinator<'a> {
                 trace!("{}", state);
                 #[cfg(feature = "debugger")]
                 if state.debug && self.server.should_enter_debugger()? {
-                    (display_next_output, restart, exit_debugger) = self.debugger.wait_for_command(&state);
+                    (display_next_output, restart, debugger_requested_exit) = self.debugger.wait_for_command(&state);
                     if restart {
                         break 'jobs;
                     }
-                    if exit_debugger {
-                        return Ok(true); // User requested via debugger to exit execution
+                    if debugger_requested_exit {
+                        break 'flow_execution;
                     }
                 }
 
-                (display_next_output, restart, exit_debugger) = self.send_jobs(
+                (display_next_output, restart, debugger_requested_exit) = self.send_jobs(
                     &mut state,
                     #[cfg(feature = "metrics")]
                     &mut metrics,
                 );
 
-                if exit_debugger {
-                    return Ok(true); // User requested via debugger to exit execution
-                }
-
-                // If debugger request it, exit the inner job loop which will cause us to reset state
-                // and restart execution, in the outer flow_execution loop
                 if restart {
                     break 'jobs;
+                }
+                if debugger_requested_exit {
+                    break 'flow_execution;
                 }
 
                 if state.number_jobs_running() > 0 {
@@ -172,13 +169,13 @@ impl<'a> Coordinator<'a> {
                         Ok(job) => {
                             #[cfg(feature = "debugger")]
                             if display_next_output {
-                                (display_next_output, restart, exit_debugger) =
+                                (display_next_output, restart, debugger_requested_exit) =
                                     self.debugger.job_completed(&state, &job);
                                 if restart {
                                     break 'jobs;
                                 }
-                                if exit_debugger {
-                                    return Ok(true); // User requested via debugger to exit execution
+                                if debugger_requested_exit {
+                                    break 'flow_execution;
                                 }
                             }
 
@@ -217,14 +214,14 @@ impl<'a> Coordinator<'a> {
                 {
                     // If debugging then enter the debugger for a final time before ending flow execution
                     if state.debug {
-                        (display_next_output, restart, exit_debugger) = self.debugger.execution_ended(&state);
+                        (display_next_output, restart, debugger_requested_exit) = self.debugger.execution_ended(&state);
                     }
                 }
 
             }
 
-            // if no debugger then end execution always
-            // if a debugger - then end execution if the debugger has not requested a restart
+            // if no debugger - then end execution always by breaking out of loop
+            // if a debugger - then end execution only if the debugger has not requested a restart
             if !restart {
                 break 'flow_execution;
             }
