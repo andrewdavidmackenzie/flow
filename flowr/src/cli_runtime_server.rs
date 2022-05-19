@@ -18,7 +18,7 @@ pub(crate) struct CliServer {
 
 impl Server for CliServer {
     // The flow is starting
-    fn flow_starting(&mut self) -> flowcore::errors::Result<()> {
+    fn flow_starting(&mut self) -> Result<()> {
         let _ = self.runtime_server_connection
             .lock()
             .map_err(|_| "Could not lock server connection")?
@@ -31,7 +31,7 @@ impl Server for CliServer {
     // if so, return Ok(true).
     // A different message or Absence of a message returns Ok(false)
     #[cfg(feature = "debugger")]
-    fn should_enter_debugger(&mut self) -> flowcore::errors::Result<bool> {
+    fn should_enter_debugger(&mut self) -> Result<bool> {
         let msg = self
             .runtime_server_connection
             .lock()
@@ -51,7 +51,7 @@ impl Server for CliServer {
     }
 
     #[cfg(feature = "metrics")]
-    fn flow_ended(&mut self, state: &RunState, metrics: Metrics) -> flowcore::errors::Result<()> {
+    fn flow_ended(&mut self, state: &RunState, metrics: Metrics) -> Result<()> {
         self.runtime_server_connection
             .lock()
             .map_err(|_| "Could not lock server connection")?
@@ -73,7 +73,7 @@ impl Server for CliServer {
     // Loop waiting for one of the following two messages from the client thread:
     //  - `ClientSubmission` with a submission, then return Ok(Some(submission))
     //  - `ClientExiting` then return Ok(None)
-    fn wait_for_submission(&mut self) -> flowcore::errors::Result<Option<Submission>> {
+    fn wait_for_submission(&mut self) -> Result<Option<Submission>> {
         loop {
             info!("Server is waiting to receive a 'Submission'");
             match self.runtime_server_connection.lock() {
@@ -98,7 +98,7 @@ impl Server for CliServer {
     }
 
     // The flow server is about to exit
-    fn server_exiting(&mut self, result: Result<()>) -> flowcore::errors::Result<()> {
+    fn server_exiting(&mut self, result: Result<()>) -> Result<()> {
         debug!("Server closing connection");
         let mut connection = self.runtime_server_connection
             .lock()
