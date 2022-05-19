@@ -236,7 +236,7 @@ mod test {
     fn test_file_reading() {
         let test_contents = b"The quick brown fox jumped over the lazy dog";
 
-        let temp = tempdir::TempDir::new("flow")
+        let temp = TempDir::new("flow")
             .expect("Couldn't get TempDir")
             .into_path();
         let file_path = temp.join("test_read");
@@ -262,7 +262,7 @@ mod test {
 
     #[test]
     fn test_file_writing() {
-        let temp = tempdir::TempDir::new("flow")
+        let temp = TempDir::new("flow")
             .expect("Couldn't get TempDir")
             .into_path();
         let file = temp.join("test");
