@@ -139,7 +139,9 @@ impl CliRuntimeClient {
             }
             ServerMessage::GetLine => {
                 let mut input = String::new();
-                match io::stdin().read_line(&mut input) {
+                let stdin = io::stdin();
+                let mut handle = stdin.lock();
+                match handle.read_line(&mut input) {
                     Ok(n) if n > 0 => ClientMessage::Line(input.trim().to_string()),
                     Ok(n) if n == 0 => ClientMessage::GetLineEof,
                     _ => ClientMessage::Error("Could not read Readline".into()),
