@@ -117,6 +117,7 @@ impl<'a> Coordinator<'a> {
         let (mut display_next_output, mut restart, mut exit_debugger);
         restart = false;
         display_next_output = false;
+        exit_debugger = false;
 
         // This outer loop is just a way of restarting execution from scratch if the debugger requests it
         'flow_execution:
@@ -128,7 +129,7 @@ impl<'a> Coordinator<'a> {
             // If debugging then check if we should enter the debugger
             #[cfg(feature = "debugger")]
             if state.debug {
-                (_, _, exit_debugger) = self.debugger.wait_for_command(&state);
+                (display_next_output, restart, exit_debugger) = self.debugger.wait_for_command(&state);
                 if exit_debugger {
                     return Ok(true); // User requested via debugger to exit execution
                 }
@@ -143,7 +144,7 @@ impl<'a> Coordinator<'a> {
                     return Ok(true); // User requested via debugger to exit execution
                 }
 
-                (_, _, exit_debugger) = self.send_jobs(
+                (display_next_output, restart, exit_debugger) = self.send_jobs(
                     &mut state,
                     #[cfg(feature = "metrics")]
                     &mut metrics,
@@ -167,7 +168,8 @@ impl<'a> Coordinator<'a> {
                         Ok(job) => {
                             #[cfg(feature = "debugger")]
                             if display_next_output {
-                                self.debugger.job_completed(&state, &job);
+                                (display_next_output, restart, exit_debugger) =
+                                    self.debugger.job_completed(&state, &job);
                             }
 
                             state.complete_job(
