@@ -84,14 +84,12 @@ fn execute_flow(
     input: String,
     separate_processes: bool,
 ) -> (String, String) {
-    let context_root = helper::get_context_root();
-    let context_root_str = context_root.to_str().expect("Could not get context root");
     let server = if separate_processes {
         println!("Starting the 'flowr' server");
         let mut server_command = Command::new("cargo");
         // flowr args: -n for native libs, -s to get a server process
         let server_command_args = vec!["run", "--quiet", "-p", "flowr", "--", "-n", "-s",
-        "-C", context_root_str];
+        "-C", "flowr/src/context"];
 
         // spawn the 'flowr' server child process
         Some(
