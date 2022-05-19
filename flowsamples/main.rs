@@ -39,13 +39,6 @@ fn main() -> io::Result<()> {
     Ok(())
 }
 
-fn get_context_root() -> Result<String, String> {
-    let samples_dir = Path::new(env!("CARGO_MANIFEST_DIR")).parent()
-        .ok_or("Could not get parent dir")?;
-    Ok(samples_dir.join("flowr/src/context").to_str()
-        .expect("Could not convert path to String").to_string())
-}
-
 fn run_sample(sample_dir: &Path, output_dir: &Path) -> io::Result<()> {
     // Remove any previous output
     let _ = fs::remove_file(output_dir.join("test.err"));
@@ -59,9 +52,6 @@ fn run_sample(sample_dir: &Path, output_dir: &Path) -> io::Result<()> {
     println!("\tSTDOUT is sent to test.output, STDERR to test.err and file output to test.file");
 
     let mut command_args: Vec<String> = vec!["--native".into(), manifest_path.display().to_string()];
-    command_args.push("-C".into());
-    let context_root = get_context_root().expect("Could not get context root directory");
-    command_args.push(context_root);
 
     command_args.append(&mut args(sample_dir)?);
 
