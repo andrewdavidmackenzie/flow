@@ -72,7 +72,6 @@ impl<'a> Coordinator<'a> {
         provider: MetaProvider,
         loop_forever: bool,
     ) -> Result<()> {
-
         while let Some(submission) = self.server.wait_for_submission()? {
             match loader.load_flow(&provider, &submission.manifest_url) {
                 Ok(manifest) => {
