@@ -25,10 +25,8 @@ fn main() -> io::Result<()> {
     #[cfg(feature = "wasm")]
     let command_args = vec!["-v", "info", "-d", "-g", "-l", lib_root_dir, "-o", out_dir];
     // If the "wasm" feature is NOT activated, then set "-n" (native only) flag so flowc will not compile to wasm
-    #[cfg(feature = "native")]
+    #[cfg(not(feature = "wasm"))]
     let command_args = vec!["-v", "info", "-d", "-g", "-l", lib_root_dir, "-o", out_dir, "-n"];
-
-//    println!("cargo:warning=running command 'flowc {}'",command_args.join(" "));
 
     let flowc_command = command
         .args(command_args)
