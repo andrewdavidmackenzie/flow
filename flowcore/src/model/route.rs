@@ -22,9 +22,7 @@ pub enum RouteType {
     /// The Route refers to the Output of a Flow
     FlowOutput(Name),
     /// The route specifies a sub-process of a flow (Input or Output)
-    SubProcess(Name, Route),
-    /// The route is invalid (needed for errors during deserialization)
-    Invalid(String),
+    SubProcess(Name, Route)
 }
 
 /// `Route` is used to locate Processes (Flows or Functions), their IOs and sub-elements of a
@@ -75,18 +73,17 @@ impl Route {
     }
 
     /// Return the type of this Route
-    pub fn route_type(&self) -> RouteType {
+    pub fn route_type(&self) -> Result<RouteType> {
         let segments: Vec<&str> = self.split('/').collect();
 
         match segments[0] {
-            "input" => RouteType::FlowInput(segments[1].into(), segments[2..].join("/").into()),
-            "output" => RouteType::FlowOutput(segments[1].into()),
-            "" => RouteType::Invalid(
-                "'input' or 'output' or valid process name must be specified in route".into(),
-            ),
-            process_name => {
-                RouteType::SubProcess(process_name.into(), segments[1..].join("/").into())
-            }
+            "input" => Ok(RouteType::FlowInput(segments[1].into(),
+                                               segments[2..].join("/").into())),
+            "output" => Ok(RouteType::FlowOutput(segments[1].into())),
+            "" => bail!("Invalid route '{}' - 'input' or 'output' or a valid sub-process name \
+                must be specified in the route", self),
+            process_name => Ok(RouteType::SubProcess(process_name.into(),
+                                                     segments[1..].join("/").into())),
         }
     }
 
@@ -142,9 +139,7 @@ impl AsRef<str> for Route {
 
 impl Validate for Route {
     fn validate(&self) -> Result<()> {
-        if let RouteType::Invalid(error) = self.route_type() {
-            bail!("{}", error);
-        }
+        self.route_type()?;
 
         if self.parse::<usize>().is_ok() {
             bail!("Route '{}' is invalid - cannot be an integer", self);

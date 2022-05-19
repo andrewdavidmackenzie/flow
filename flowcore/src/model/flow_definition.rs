@@ -328,7 +328,7 @@ impl FlowDefinition {
         initial_value: &Option<InputInitializer>,
     ) -> Result<IO> {
         debug!("Looking for connection {:?} '{}'", direction, route);
-        match (&direction, route.route_type()) {
+        match (&direction, route.route_type()?) {
             (&FROM, RouteType::FlowInput(input_name, sub_route)) => {
                 // make sure the sub-route of the input is added to the source of the connection
                 let mut from = self
@@ -357,9 +357,7 @@ impl FlowDefinition {
                     input_name,
                     sub_route
                 )
-            },
-
-            (_, RouteType::Invalid(error)) => bail!(error),
+            }
         }
     }
 
