@@ -76,6 +76,7 @@ impl<'a> Coordinator<'a> {
         while let Some(submission) = self.server.wait_for_submission()? {
             match loader.load_flow(&provider, &submission.manifest_url) {
                 Ok(manifest) => {
+                    // If an early exit then break out of submission loop
                     if self.execute_flow(manifest, submission)? {
                         break;
                     }
@@ -132,7 +133,7 @@ impl<'a> Coordinator<'a> {
                 (display_next_output, restart, debugger_requested_exit) = self.debugger.wait_for_command(&state);
 
                 if debugger_requested_exit {
-                    break 'flow_execution;
+                    return Ok(true); // User requested via debugger to exit execution
                 }
             }
 
@@ -147,7 +148,7 @@ impl<'a> Coordinator<'a> {
                         break 'jobs;
                     }
                     if debugger_requested_exit {
-                        break 'flow_execution;
+                        return Ok(true); // User requested via debugger to exit execution
                     }
                 }
 
@@ -161,7 +162,7 @@ impl<'a> Coordinator<'a> {
                     break 'jobs;
                 }
                 if debugger_requested_exit {
-                    break 'flow_execution;
+                    return Ok(true); // User requested via debugger to exit execution
                 }
 
                 if state.number_jobs_running() > 0 {
@@ -175,7 +176,7 @@ impl<'a> Coordinator<'a> {
                                     break 'jobs;
                                 }
                                 if debugger_requested_exit {
-                                    break 'flow_execution;
+                                    return Ok(true); // User requested via debugger to exit execution
                                 }
                             }
 
@@ -215,13 +216,16 @@ impl<'a> Coordinator<'a> {
                     // If debugging then enter the debugger for a final time before ending flow execution
                     if state.debug {
                         (display_next_output, restart, debugger_requested_exit) = self.debugger.execution_ended(&state);
+                        if debugger_requested_exit {
+                            return Ok(true); // User requested via debugger to exit execution
+                        }
                     }
                 }
 
             }
 
-            // if no debugger - then end execution always by breaking out of loop
-            // if a debugger - then end execution only if the debugger has not requested a restart
+            // if no debugger then end execution always
+            // if a debugger - then end execution if the debugger has not requested a restart
             if !restart {
                 break 'flow_execution;
             }
