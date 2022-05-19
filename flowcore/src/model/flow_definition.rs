@@ -357,9 +357,7 @@ impl FlowDefinition {
                     input_name,
                     sub_route
                 )
-            },
-
-            (_, RouteType::Invalid(error)) => bail!(error),
+            }
         }
     }
 

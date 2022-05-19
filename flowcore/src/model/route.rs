@@ -22,9 +22,7 @@ pub enum RouteType {
     /// The Route refers to the Output of a Flow
     FlowOutput(Name),
     /// The route specifies a sub-process of a flow (Input or Output)
-    SubProcess(Name, Route),
-    /// The route is invalid (needed for errors during deserialization)
-    Invalid(String),
+    SubProcess(Name, Route)
 }
 
 /// `Route` is used to locate Processes (Flows or Functions), their IOs and sub-elements of a
