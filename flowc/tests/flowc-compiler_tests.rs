@@ -35,7 +35,7 @@ mod helper;
 #[test]
 fn args() {
     let meta_provider = MetaProvider::new(helper::set_lib_search_path_to_project(),
-                                          helper::get_context_root());
+                                          helper::get_canonical_context_root());
     let path =
         helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/args/args.toml");
     let process = loader::load(&path, &meta_provider, &mut HashSet::<(Url, Url)>::new())
@@ -55,7 +55,7 @@ fn args() {
 #[test]
 fn object_to_array_connection() {
     let meta_provider = MetaProvider::new(helper::set_lib_search_path_to_project(),
-                                          helper::get_context_root());
+                                          helper::get_canonical_context_root());
     let path = helper::absolute_file_url_from_relative_path(
         "flowc/tests/test-flows/object_to_array_connection/object_to_array_connection.toml",
     );
@@ -77,7 +77,7 @@ fn object_to_array_connection() {
 #[test]
 fn context_with_io() {
     let meta_provider = MetaProvider::new(helper::set_lib_search_path_to_project(),
-                                          helper::get_context_root());
+                                          helper::get_canonical_context_root());
     let path = helper::absolute_file_url_from_relative_path(
         "flowc/tests/test-flows/context_with_io/context_with_io.toml",
     );
@@ -102,7 +102,7 @@ fn context_with_io() {
 #[test]
 fn same_name_input_and_output() {
     let meta_provider = MetaProvider::new(helper::set_lib_search_path_to_project(),
-                                          helper::get_context_root());
+                                          helper::get_canonical_context_root());
     let path = helper::absolute_file_url_from_relative_path(
         "flowc/tests/test-flows/same-name-parent/same-name-parent.toml",
     );
@@ -125,7 +125,7 @@ fn same_name_input_and_output() {
 #[test]
 fn same_name_flow_ids() {
     let meta_provider = MetaProvider::new(helper::set_lib_search_path_to_project(),
-                                          helper::get_context_root());
+                                          helper::get_canonical_context_root());
     let path = helper::absolute_file_url_from_relative_path(
         "flowc/tests/test-flows/same-name-parent/same-name-parent.toml",
     );
@@ -158,7 +158,7 @@ fn same_name_flow_ids() {
 #[test]
 fn connection_to_input_with_constant_initializer() {
     let meta_provider = MetaProvider::new(helper::set_lib_search_path_to_project(),
-                                          helper::get_context_root());
+                                          helper::get_canonical_context_root());
     let path = helper::absolute_file_url_from_relative_path(
         "flowc/tests/test-flows/connect_to_constant/connect_to_constant.toml",
     );
@@ -181,7 +181,7 @@ fn connection_to_input_with_constant_initializer() {
 #[test]
 fn no_side_effects() {
     let meta_provider = MetaProvider::new(helper::set_lib_search_path_to_project(),
-                                          helper::get_context_root());
+                                          helper::get_canonical_context_root());
     let path = helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/no_side_effects/no_side_effects.toml");
     let process = loader::load(&path, &meta_provider, &mut HashSet::<(Url, Url)>::new())
         .expect("Could not load test flow");
@@ -204,7 +204,7 @@ fn no_side_effects() {
 #[test]
 fn compile_echo_ok() {
     let meta_provider = MetaProvider::new(helper::set_lib_search_path_to_project(),
-                                          helper::get_context_root());
+                                          helper::get_canonical_context_root());
     let process = loader::load(
         &helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/echo/echo.toml"),
         &meta_provider,
@@ -225,7 +225,7 @@ fn compile_echo_ok() {
 #[test]
 fn compiler_detects_unused_input() {
     let meta_provider = MetaProvider::new(helper::set_lib_search_path_to_project(),
-                                          helper::get_context_root());
+                                          helper::get_canonical_context_root());
     let process = loader::load(
         &helper::absolute_file_url_from_relative_path(
             "flowc/tests/test-flows/unused_input/unused_input.toml",
@@ -251,7 +251,7 @@ fn compiler_detects_unused_input() {
 #[test]
 fn compile_detects_connection_to_initialized_input() {
     let meta_provider = MetaProvider::new(helper::set_lib_search_path_to_project(),
-                                          helper::get_context_root());
+                                          helper::get_canonical_context_root());
     let process = loader::load(
         &helper::absolute_file_url_from_relative_path(
             "flowc/tests/test-flows/connect_to_constant/connect_to_constant.toml",
@@ -281,7 +281,7 @@ fn compile_detects_connection_to_initialized_input() {
 #[test]
 fn flow_input_propagated_back_out() {
     let meta_provider = MetaProvider::new(helper::set_lib_search_path_to_project(),
-                                          helper::get_context_root());
+                                          helper::get_canonical_context_root());
     // Relative path from project root to the test file
     let url = helper::absolute_file_url_from_relative_path(
         "flowc/tests/test-flows/flow_input_init/flow_input_init.toml",
@@ -316,7 +316,7 @@ fn flow_input_propagated_back_out() {
 #[test]
 fn initialized_output_propagated() {
     let meta_provider = MetaProvider::new(helper::set_lib_search_path_to_project(),
-                                          helper::get_context_root());
+                                          helper::get_canonical_context_root());
     // Relative path from project root to the test file
     let url = helper::absolute_file_url_from_relative_path(
         "flowc/tests/test-flows/print_subflow_output/print_subflow_output.toml",
@@ -374,7 +374,7 @@ fn initialized_output_propagated() {
 #[test]
 fn initialized_input_to_subflow() {
     let meta_provider = MetaProvider::new(helper::set_lib_search_path_to_project(),
-                                          helper::get_context_root());
+                                          helper::get_canonical_context_root());
     // Relative path from project root to the test file
     let url = helper::absolute_file_url_from_relative_path(
         "flowc/tests/test-flows/initialized_input_to_subflow/initialized_input_to_subflow.toml",

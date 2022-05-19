@@ -292,8 +292,9 @@ fn parse_args(matches: ArgMatches) -> Result<Options> {
     };
 
     let context_root = if matches.is_present("context_root") {
-        Some(PathBuf::from(matches.value_of("context_root")
-            .chain_err(|| "Could not get the 'CONTEXT_DIRECTORY' option specified")?))
+        let root = PathBuf::from(matches.value_of("context_root")
+                                         .chain_err(|| "Could not get the 'CONTEXT_DIRECTORY' option specified")?);
+        Some(root.canonicalize()?)
     } else {
         None
     };

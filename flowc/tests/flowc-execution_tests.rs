@@ -182,7 +182,7 @@ fn load_flow(test_dir: &Path, test_name: &str, search_path: Simpath) -> Process 
     flow_file.push(test_flow);
     loader::load(
         &helper::absolute_file_url_from_relative_path(&flow_file.to_string_lossy()),
-        &MetaProvider::new(search_path, helper::get_context_root()),
+        &MetaProvider::new(search_path, helper::get_canonical_context_root()),
         &mut HashSet::<(Url, Url)>::new(),
     )
     .expect("Could not load process")
