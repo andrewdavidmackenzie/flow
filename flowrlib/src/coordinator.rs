@@ -130,6 +130,7 @@ impl<'a> Coordinator<'a> {
             #[cfg(feature = "debugger")]
             if state.debug {
                 (display_next_output, restart, exit_debugger) = self.debugger.wait_for_command(&state);
+
                 if exit_debugger {
                     return Ok(true); // User requested via debugger to exit execution
                 }
@@ -140,8 +141,14 @@ impl<'a> Coordinator<'a> {
             'jobs: loop {
                 trace!("{}", state);
                 #[cfg(feature = "debugger")]
-                if state.debug && self.server.should_enter_debugger()? && self.debugger.wait_for_command(&state).2 {
-                    return Ok(true); // User requested via debugger to exit execution
+                if state.debug && self.server.should_enter_debugger()? {
+                    (display_next_output, restart, exit_debugger) = self.debugger.wait_for_command(&state);
+                    if restart {
+                        break 'jobs;
+                    }
+                    if exit_debugger {
+                        return Ok(true); // User requested via debugger to exit execution
+                    }
                 }
 
                 (display_next_output, restart, exit_debugger) = self.send_jobs(
@@ -154,13 +161,10 @@ impl<'a> Coordinator<'a> {
                     return Ok(true); // User requested via debugger to exit execution
                 }
 
-                #[cfg(feature = "debugger")]
-                {
-                    // If debugger request it, exit the inner job loop which will cause us to reset state
-                    // and restart execution, in the outer flow_execution loop
-                    if restart {
-                        break 'jobs;
-                    }
+                // If debugger request it, exit the inner job loop which will cause us to reset state
+                // and restart execution, in the outer flow_execution loop
+                if restart {
+                    break 'jobs;
                 }
 
                 if state.number_jobs_running() > 0 {
@@ -170,6 +174,12 @@ impl<'a> Coordinator<'a> {
                             if display_next_output {
                                 (display_next_output, restart, exit_debugger) =
                                     self.debugger.job_completed(&state, &job);
+                                if restart {
+                                    break 'jobs;
+                                }
+                                if exit_debugger {
+                                    return Ok(true); // User requested via debugger to exit execution
+                                }
                             }
 
                             state.complete_job(
@@ -208,9 +218,6 @@ impl<'a> Coordinator<'a> {
                     // If debugging then enter the debugger for a final time before ending flow execution
                     if state.debug {
                         (display_next_output, restart, exit_debugger) = self.debugger.execution_ended(&state);
-                        if exit_debugger {
-                            return Ok(true); // Exit debugger
-                        }
                     }
                 }
 

@@ -56,7 +56,7 @@ impl CliRuntimeClient {
                 Err(e) => {
                     // When debugging, a Control-C to break into the debugger will cause receive()
                     // to return an error. Ignore it so we continue to process events from server
-                    error!("Error receiving message from server: '{}'", e);
+                    bail!("Error receiving message from server: '{}'", e);
                 }
             }
         }
