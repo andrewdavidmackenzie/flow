@@ -171,12 +171,6 @@ fn execute_flow(filepath: &Path, options: &Options) -> Result<()> {
         flowr_args.push(lib_dir.to_string());
     }
 
-    // pass along any specified context root to flowr also
-    if let Some(context_root) = &options.context_root {
-        flowr_args.push("-C".to_string());
-        flowr_args.push(context_root.to_owned().to_string_lossy().to_string());
-    }
-
     flowr_args.push(filepath.display().to_string());
 
     // any arguments for the flow itself (not flowr) go at the end
