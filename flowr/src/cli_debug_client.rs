@@ -1,5 +1,6 @@
 use log::error;
 use rustyline::Editor;
+use rustyline::error::ReadlineError;
 
 use flowcore::errors::*;
 use flowcore::model::runtime_function::RuntimeFunction;
@@ -60,7 +61,7 @@ impl CliDebugClient {
         // Send an first message to initialize the connection
         let _ = self
             .connection
-            .send(DebugCommand::DebugClientStarting);
+            .send(DebugClientStarting);
 
         // loop while? and avoid break?
         loop {
@@ -145,7 +146,7 @@ impl CliDebugClient {
     */
     fn get_user_command(&mut self, job_number: usize) -> Result<DebugCommand> {
         loop {
-            match self.editor.readline(&format!("Debug #{}> ", job_number)) {
+            match self.editor.readline(&format!("Job #{}> ", job_number)) {
                 Ok(line) => {
                     match self.parse_command(line) {
                         Ok((line, command, param)) => {
@@ -157,10 +158,13 @@ impl CliDebugClient {
                                 self.last_command = "".into();
                             }
                         },
-                        Err(e) => println!("{}", e)
+                        Err(e) => eprintln!("{}", e)
                     }
                 }
-                Err(_) => return Ok(ExitDebugger), // Includes CONTROL-C and CONTROL-D exits
+                Err(ReadlineError::Interrupted) => {
+                    println!("Use 'q' or 'quit' to exit the debugger");
+                },
+                Err(_) => return Ok(ExitDebugger), // Includes CONTROL-D exits
             }
         }
     }
