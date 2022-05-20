@@ -356,8 +356,6 @@ impl CliDebugClient {
 
 #[cfg(test)]
 mod test {
-    use std::collections::HashSet;
-
     use serde_json::json;
     use url::Url;
 
@@ -366,7 +364,7 @@ mod test {
     use flowcore::model::output_connection::{OutputConnection, Source};
     use flowcore::model::runtime_function::RuntimeFunction;
     use flowcore::model::submission::Submission;
-    use flowrlib::run_state::{RunState, State};
+    use flowrlib::run_state::RunState;
 
     use super::*;
 
@@ -422,41 +420,7 @@ mod test {
             1,
             true,
         );
-        let mut state = RunState::new(&functions, submission);
-
-        // Event
-        state.init();
-
-        // Test
-        assert_eq!(2, state.num_functions(), "There should be 2 functions");
-        assert!(
-            state.function_state_is_only(0, State::Blocked),
-            "f_a should be in Blocked state"
-        );
-        assert!(state.function_state_is_only(1, State::Ready), "f_b should be Ready");
-        assert_eq!(1, state.number_jobs_ready(), "There should be 1 job running");
-        let mut blocked = HashSet::new();
-        blocked.insert(0);
-
-        // Test
-        assert_eq!(
-            &blocked,
-            state.get_blocked(),
-            "Function with ID = 1 should be in 'blocked' list"
-        );
-        CliDebugClient::display_state(&state);
-
-        // Event
-        let job = state.next_job().expect("Couldn't get next job");
-        state.start(&job);
-
-        // Test
-        assert!(state.function_state_is_only(1, State::Running), "f_b should be Running");
-        assert_eq!(
-            1,
-            state.number_jobs_running(),
-            "There should be 1 job running"
-        );
+        let state = RunState::new(&functions, submission);
 
         CliDebugClient::display_state(&state);
     }

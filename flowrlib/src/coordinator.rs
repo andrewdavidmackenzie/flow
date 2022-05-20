@@ -54,14 +54,12 @@ impl<'a> Coordinator<'a> {
         let shared_job_receiver = Arc::new(Mutex::new(job_rx));
         execution::start_executors(num_threads, &shared_job_receiver, &output_tx);
 
-        #[cfg(feature = "debugger")] let debugger = Debugger::new(debug_server);
-
         Coordinator {
             job_tx,
             job_rx: output_rx,
             server,
             #[cfg(feature = "debugger")]
-            debugger,
+            debugger: Debugger::new(debug_server),
         }
     }
 
@@ -114,10 +112,9 @@ impl<'a> Coordinator<'a> {
             self.debugger.start();
         }
 
-        let (mut display_next_output, mut restart, mut debugger_requested_exit);
-        restart = false;
-        display_next_output = false;
-        debugger_requested_exit = false;
+        let mut restart = false;
+        let mut display_next_output = false;
+        let mut debugger_requested_exit = false;
 
         // This outer loop is just a way of restarting execution from scratch if the debugger requests it
         'flow_execution:

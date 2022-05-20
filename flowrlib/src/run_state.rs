@@ -231,7 +231,7 @@ impl RunState {
     }
 
     /// Get a reference to the vector of all functions
-    pub fn get_functions(&self) -> &Vec<RuntimeFunction> {
+    pub(crate) fn get_functions(&self) -> &Vec<RuntimeFunction> {
         &self.functions
     }
 
@@ -266,7 +266,7 @@ impl RunState {
     ///               `ready` nor `blocked` lists, so by omission it is in the `Waiting` state.
     ///               But the `block` will be created so when later it's inputs become full the fact
     ///               it is blocked will be detected and it can move to the `blocked` state
-    pub fn init(&mut self) {
+    pub(crate) fn init(&mut self) {
         #[cfg(feature = "debugger")]
         self.reset();
 
@@ -337,7 +337,7 @@ impl RunState {
         self.blocked = blocked;
     }
 
-    /// Figure out the states a function is in - based on it's presence or not in the different control lists
+    /// Return the states a function is in
     #[cfg(any(debug_assertions, feature = "debugger", test))]
     pub fn get_function_states(&self, function_id: usize) -> Vec<State> {
         let mut states = vec![];
@@ -365,16 +365,16 @@ impl RunState {
         states
     }
 
-    /// See if the function is in only the specified state
-    #[cfg(any(debug_assertions, feature = "debugger", test))]
-    pub fn function_state_is_only(&self, function_id: usize, state: State) -> bool {
+    // See if the function is in only the specified state
+    #[cfg(test)]
+    fn function_state_is_only(&self, function_id: usize, state: State) -> bool {
         let function_states = self.get_function_states(function_id);
         function_states.len() == 1 && function_states.contains(&state)
     }
 
     /// See if there is at least one instance of a function in the given state
-    #[cfg(any(debug_assertions, feature = "debugger", test))]
-    pub fn function_states_includes(&self, function_id: usize, state: State) -> bool {
+    #[cfg(any(debug_assertions, test))]
+    pub(crate) fn function_states_includes(&self, function_id: usize, state: State) -> bool {
         match state {
             State::Ready => self.ready.contains(&function_id),
             State::Blocked => self.blocked.contains(&function_id),
@@ -412,8 +412,8 @@ impl RunState {
         &self.functions[id]
     }
 
-    /// Get a mutable reference to the function with `id`
-    pub fn get_mut(&mut self, id: usize) -> &mut RuntimeFunction {
+    // Get a mutable reference to the function with `id`
+    fn get_mut(&mut self, id: usize) -> &mut RuntimeFunction {
         &mut self.functions[id]
     }
 
@@ -425,19 +425,19 @@ impl RunState {
 
     #[cfg(debug_assertions)]
     /// Return the list of busy flows and what functions in each flow are busy
-    pub(crate) fn get_busy_flows(&self) -> &MultiMap<usize, usize> {
+    pub fn get_busy_flows(&self) -> &MultiMap<usize, usize> {
         &self.busy_flows
     }
 
     #[cfg(debug_assertions)]
     /// Return the list of pending unblocks
-    pub(crate) fn get_pending_unblocks(&self) -> &HashMap<usize, HashSet<usize>> {
+    pub fn get_pending_unblocks(&self) -> &HashMap<usize, HashSet<usize>> {
         &self.pending_unblocks
     }
 
     /// Return the next job ready to be run, if there is one and there are not
     /// too many jobs already running
-    pub fn next_job(&mut self) -> Option<Job> {
+    pub(crate) fn next_job(&mut self) -> Option<Job> {
         if self.number_jobs_running() >= self.max_pending_jobs {
             trace!("Max Pending Job count of {} reached, skipping new jobs", self.max_pending_jobs);
             return None;
