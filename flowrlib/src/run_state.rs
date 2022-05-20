@@ -443,6 +443,7 @@ impl RunState {
             return None;
         }
 
+        // TODO do this all using map()?
         // create a job for the function_id at the head of the ready list
         match self.ready.remove(0) {
             Some(function_id) => {
@@ -452,7 +453,6 @@ impl RunState {
                 if let Some(ref j) = job {
                     self.unblock_internal_flow_senders(j.job_id, j.function_id, j.flow_id);
                 }
-
                 job
             }
             None => None,
@@ -550,6 +550,7 @@ impl RunState {
     /// sent to, marking the source function as blocked because those others must consume the output
     /// if those other function have all their inputs, then mark them accordingly.
     #[must_use]
+    #[allow(unused_variables, unused_assignments, unused_mut)]
     pub fn complete_job(
         &mut self,
         #[cfg(feature = "metrics")] metrics: &mut Metrics,
@@ -590,10 +591,8 @@ impl RunState {
                                 job.flow_id,
                                 destination,
                                 value,
-                                #[cfg(feature = "metrics")]
-                                    metrics,
-                                #[cfg(feature = "debugger")]
-                                    debugger,
+                                #[cfg(feature = "metrics")] metrics,
+                                #[cfg(feature = "debugger")] debugger,
                             );
                         } else {
                             trace!(
@@ -628,7 +627,11 @@ impl RunState {
         self.remove_from_busy(job.function_id);
 
         // need to do flow unblocks as that could affect other functions even if this one cannot run again
-        self.unblock_flows(job.flow_id, job.job_id);
+        (display_next_output, restart, debugger_requested_exit) =
+            self.unblock_flows(job.flow_id,
+                               job.job_id,
+                               #[cfg(feature = "debugger")] debugger,
+            );
 
         #[cfg(debug_assertions)]
         checks::check_invariants(self, job_id);
@@ -882,7 +885,18 @@ impl RunState {
 
     // Remove blocks on functions sending to another function inside the `blocker_flow_id` flow
     // if that has just gone idle
-    fn unblock_flows(&mut self, blocker_flow_id: usize, job_id: usize) {
+    #[must_use]
+    #[allow(unused_variables, unused_assignments, unused_mut)]
+    fn unblock_flows(&mut self, blocker_flow_id: usize, job_id: usize,
+        #[cfg(feature = "debugger")] debugger: &mut Debugger
+        ) -> (bool, bool, bool) {
+        let mut display_next_output = false;
+        let mut restart = false;
+        let mut debugger_requested_exit = false;
+
+        (display_next_output, restart, debugger_requested_exit) =
+            debugger.check_prior_to_flow_unblock(self, blocker_flow_id);
+
         // if flow is now idle, remove any blocks on sending to functions in the flow
         if self.busy_flows.get(&blocker_flow_id).is_none() {
             trace!("Job #{job_id}:\tFlow #{blocker_flow_id} is now idle, \
@@ -897,6 +911,8 @@ impl RunState {
                 }
             }
         }
+
+        (display_next_output, restart, debugger_requested_exit)
     }
 
     // Mark a function (via its ID) as having run to completion
@@ -1180,6 +1196,7 @@ mod test {
         fn start(&mut self) {}
         fn job_breakpoint(&mut self, _job: &Job, _function: &RuntimeFunction, _states: Vec<State>) {}
         fn block_breakpoint(&mut self, _block: &Block) {}
+        fn flow_unblock_breakpoint(&mut self, _flow_id: usize) {}
         fn send_breakpoint(&mut self, _: &str, _source_process_id: usize, _output_route: &str, _value: &Value,
                            _destination_id: usize, _destination_name:&str, _input_name: &str, _input_number: usize) {}
         fn job_error(&mut self, _job: &Job) {}

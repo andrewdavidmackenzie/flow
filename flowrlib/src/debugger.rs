@@ -28,6 +28,7 @@ pub struct Debugger<'a> {
     output_breakpoints: HashSet<(usize, String)>,
     break_at_job: usize,
     function_breakpoints: HashSet<usize>,
+    flow_unblock_breakpoints: HashSet<usize>,
 }
 
 #[derive(Debug, Clone)]
@@ -74,6 +75,7 @@ impl<'a> Debugger<'a> {
             output_breakpoints: HashSet::<(usize, String)>::new(),
             break_at_job: usize::MAX,
             function_breakpoints: HashSet::<usize>::new(),
+            flow_unblock_breakpoints: HashSet::<usize>::new(),
         }
     }
 
@@ -154,6 +156,28 @@ impl<'a> Debugger<'a> {
 
         (false, false, false)
     }
+
+    /// Called from flowrlib runtime prior to unblocking a flow to see if there is a breakpoint
+    /// set on that event
+    ///
+    /// If there is, then enter the debug client and wait for a command.
+    #[must_use]
+    pub fn check_prior_to_flow_unblock(
+        &mut self,
+        state: &RunState,
+        flow_being_unblocked_id: usize,
+    ) -> (bool, bool, bool) {
+        if self
+            .flow_unblock_breakpoints
+            .contains(&flow_being_unblocked_id)
+        {
+            self.debug_server.flow_unblock_breakpoint(flow_being_unblocked_id);
+            return self.wait_for_command(state);
+        }
+
+        (false, false, false)
+    }
+
 
     /// An error occurred while executing a flow. Let the debug client know, enter the client
     /// and wait for a user command.

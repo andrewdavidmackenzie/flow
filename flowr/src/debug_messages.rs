@@ -26,6 +26,8 @@ pub enum DebugServerMessage {
     /// A breakpoint on a `Block` between two functions was encountered
     /// includes: blocked_id, blocking_id, blocking_io_number
     BlockBreakpoint(Block),
+    /// A breakpoint on a `Flow` that was busy going idle (and unblocking senders to it) was hit
+    FlowUnblockBreakpoint(usize),
     /// A breakpoint on a `Value` being sent between two functions was encountered
     /// includes: source_process_id, output_route, value, destination_id, function_name,
     /// io_name, input_number));
@@ -96,6 +98,7 @@ impl fmt::Display for DebugServerMessage {
                 DebugServerMessage::Resetting => "Resetting",
                 DebugServerMessage::WaitingForCommand(_) => "WaitingForCommand",
                 DebugServerMessage::Invalid => "Invalid",
+                DebugServerMessage::FlowUnblockBreakpoint(_) => "FlowUnblockBreakpoint"
             }
         )
     }

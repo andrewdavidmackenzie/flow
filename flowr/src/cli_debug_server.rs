@@ -13,8 +13,7 @@ use flowrlib::server::DebugServer;
 use crate::{BlockBreakpoint, DataBreakpoint, ExecutionEnded, ExecutionStarted, ExitingDebugger,
             JobCompleted, JobError, Panic, PriorToSendingJob, Resetting, ServerConnection, WAIT,
             WaitingForCommand};
-use crate::DebugServerMessage::{BlockState, Error, Functions, FunctionStates, InputState,
-                                Message, OutputState, OverallState};
+use crate::DebugServerMessage::{BlockState, Error, FlowUnblockBreakpoint, Functions, FunctionStates, InputState, Message, OutputState, OverallState};
 
 pub(crate) struct  CliDebugServer {
     pub(crate) debug_server_connection: ServerConnection,
@@ -45,6 +44,12 @@ impl DebugServer for CliDebugServer {
         let _: flowcore::errors::Result<DebugCommand> = self
             .debug_server_connection
             .send_and_receive_response(BlockBreakpoint(block.clone()));
+    }
+
+    fn flow_unblock_breakpoint(&mut self, flow_id: usize) {
+        let _: flowcore::errors::Result<DebugCommand> = self
+            .debug_server_connection
+            .send_and_receive_response(FlowUnblockBreakpoint(flow_id));
     }
 
     // A breakpoint on sending a value from a specific function or to a specific function was hit

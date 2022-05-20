@@ -303,6 +303,9 @@ impl CliDebugClient {
                     println!("{}", block);
                 }
             }
+            FlowUnblockBreakpoint(flow_id) => {
+                println!("Flow #{flow_id} was busy and has now gone idle, unblocking senders to functions");
+            }
         }
 
         Ok(Ack)
