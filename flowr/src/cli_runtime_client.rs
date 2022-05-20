@@ -56,7 +56,7 @@ impl CliRuntimeClient {
                 Err(e) => {
                     // When debugging, a Control-C to break into the debugger will cause receive()
                     // to return an error. Ignore it so we continue to process events from server
-                    error!("Error receiving message from server: '{}'", e);
+                    bail!("Error receiving message from server: '{}'", e);
                 }
             }
         }
@@ -139,7 +139,9 @@ impl CliRuntimeClient {
             }
             ServerMessage::GetLine => {
                 let mut input = String::new();
-                match io::stdin().read_line(&mut input) {
+                let stdin = io::stdin();
+                let mut handle = stdin.lock();
+                match handle.read_line(&mut input) {
                     Ok(n) if n > 0 => ClientMessage::Line(input.trim().to_string()),
                     Ok(n) if n == 0 => ClientMessage::GetLineEof,
                     _ => ClientMessage::Error("Could not read Readline".into()),
