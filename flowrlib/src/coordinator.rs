@@ -123,7 +123,7 @@ impl<'a> Coordinator<'a> {
             #[cfg(feature = "metrics")]
             metrics.reset();
 
-            // If debugging then check if we should enter the debugger
+            // If debugging - then prior to starting execution - enter the debugger
             #[cfg(feature = "debugger")]
             if state.debug {
                 (display_next_output, restart, debugger_requested_exit) = self.debugger.wait_for_command(&state);
@@ -176,7 +176,7 @@ impl<'a> Coordinator<'a> {
                                 }
                             }
 
-                            state.complete_job(
+                            (display_next_output, restart, debugger_requested_exit) = state.complete_job(
                                 #[cfg(feature = "metrics")]
                                     &mut metrics,
                                 &job,
@@ -188,8 +188,14 @@ impl<'a> Coordinator<'a> {
                         #[cfg(feature = "debugger")]
                         Err(err) => {
                             if state.debug {
-                                self.debugger
+                                (display_next_output, restart, debugger_requested_exit) = self.debugger
                                     .panic(&state, format!("Error in job reception: '{}'", err));
+                                if restart {
+                                    break 'jobs;
+                                }
+                                if debugger_requested_exit {
+                                    return Ok(true); // User requested via debugger to exit execution
+                                }
                             }
                         }
                         #[cfg(not(feature = "debugger"))]
@@ -265,7 +271,7 @@ impl<'a> Coordinator<'a> {
                     debug!("{}", state);
 
                     #[cfg(feature = "debugger")]
-                    self.debugger.job_error(state, &job);
+                    return self.debugger.job_error(state, &job);
                 }
             }
         }
