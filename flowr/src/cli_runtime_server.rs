@@ -99,7 +99,7 @@ impl Server for CliServer {
 
     // The flow server is about to exit
     fn server_exiting(&mut self, result: Result<()>) -> Result<()> {
-        debug!("Server closing connection");
+        debug!("Server exiting");
         let mut connection = self.runtime_server_connection
             .lock()
             .map_err(|e| format!("Could not lock Server Connection: {}", e))?;
