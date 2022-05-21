@@ -54,14 +54,12 @@ impl<'a> Coordinator<'a> {
         let shared_job_receiver = Arc::new(Mutex::new(job_rx));
         execution::start_executors(num_threads, &shared_job_receiver, &output_tx);
 
-        #[cfg(feature = "debugger")] let debugger = Debugger::new(debug_server);
-
         Coordinator {
             job_tx,
             job_rx: output_rx,
             server,
             #[cfg(feature = "debugger")]
-            debugger,
+            debugger: Debugger::new(debug_server),
         }
     }
 
@@ -114,10 +112,9 @@ impl<'a> Coordinator<'a> {
             self.debugger.start();
         }
 
-        let (mut display_next_output, mut restart, mut debugger_requested_exit);
-        restart = false;
-        display_next_output = false;
-        debugger_requested_exit = false;
+        let mut restart = false;
+        let mut display_next_output = false;
+        let mut debugger_requested_exit = false;
 
         // This outer loop is just a way of restarting execution from scratch if the debugger requests it
         'flow_execution:
@@ -126,7 +123,7 @@ impl<'a> Coordinator<'a> {
             #[cfg(feature = "metrics")]
             metrics.reset();
 
-            // If debugging then check if we should enter the debugger
+            // If debugging - then prior to starting execution - enter the debugger
             #[cfg(feature = "debugger")]
             if state.debug {
                 (display_next_output, restart, debugger_requested_exit) = self.debugger.wait_for_command(&state);
@@ -179,7 +176,7 @@ impl<'a> Coordinator<'a> {
                                 }
                             }
 
-                            state.complete_job(
+                            (display_next_output, restart, debugger_requested_exit) = state.complete_job(
                                 #[cfg(feature = "metrics")]
                                     &mut metrics,
                                 &job,
@@ -191,8 +188,14 @@ impl<'a> Coordinator<'a> {
                         #[cfg(feature = "debugger")]
                         Err(err) => {
                             if state.debug {
-                                self.debugger
+                                (display_next_output, restart, debugger_requested_exit) = self.debugger
                                     .panic(&state, format!("Error in job reception: '{}'", err));
+                                if restart {
+                                    break 'jobs;
+                                }
+                                if debugger_requested_exit {
+                                    return Ok(true); // User requested via debugger to exit execution
+                                }
                             }
                         }
                         #[cfg(not(feature = "debugger"))]
@@ -268,7 +271,7 @@ impl<'a> Coordinator<'a> {
                     debug!("{}", state);
 
                     #[cfg(feature = "debugger")]
-                    self.debugger.job_error(state, &job);
+                    return self.debugger.job_error(state, &job);
                 }
             }
         }

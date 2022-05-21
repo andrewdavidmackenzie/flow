@@ -248,22 +248,18 @@ impl CliDebugClient {
             io_name,
                 input_number,
             ) => println!(
-                "Data breakpoint: Function #{} '{}{}' --{}-> Function #{}:{} '{}'/'{}'",
-                source_function_id, source_function_name, output_route, value, destination_id, input_number,
-                destination_name, io_name
+                "Data breakpoint: Function #{source_function_id} '{source_function_name}{output_route}' \
+                --{value}-> Function #{destination_id}:{input_number} '{destination_name}'/'{io_name}'",
             ),
             Panic(message, jobs_created) => {
-                println!(
-                    "Function panicked after {} jobs created: {}",
-                    jobs_created, message
-                );
+                println!("Function panicked after {jobs_created} jobs created: {message}");
                 return self.get_user_command(jobs_created);
             }
             JobError(job) => {
-                println!("Error occurred executing a Job: \n'{}'", job);
+                println!("Error occurred executing a Job: \n'{job}'");
                 return self.get_user_command(job.job_id);
             }
-            Deadlock(message) => println!("Deadlock detected{}", message),
+            Deadlock(message) => println!("Deadlock detected {message}"),
             EnteringDebugger => println!(
                 "Server is Entering Debugger. Use 'h' or 'help' for help on commands at the prompt"
             ),
@@ -272,26 +268,25 @@ impl CliDebugClient {
             ExecutionEnded => println!("Flow has completed"),
             Functions(functions) => Self::function_list(functions),
             SendingValue(source_process_id, value, destination_id, input_number) => println!(
-                "Function #{} sending '{}' to {}:{}",
-                source_process_id, value, destination_id, input_number
+                "Function #{source_process_id} sending '{value}' to {destination_id}:{input_number}",
             ),
             DebugServerMessage::Error(error_message) => println!("{}", error_message),
-            Message(message) => println!("{}", message),
+            Message(message) => println!("{message}"),
             Resetting => println!("Resetting state"),
             WaitingForCommand(job_id) => return self.get_user_command(job_id),
             DebugServerMessage::Invalid => println!("Invalid message received from debug server"),
             FunctionStates((function, state)) => {
-                print!("{}", function);
+                print!("{function}");
                 println!("\tState: {:?}", state);
             }
             OverallState(run_state) => Self::display_state(&run_state),
-            InputState(input) => println!("{}", input),
+            InputState(input) => println!("{input}"),
             OutputState(output_connections) => {
                 if output_connections.is_empty() {
                     println!("No output connections from that sub-route");
                 } else {
                     for connection in output_connections {
-                        println!("{}", connection)
+                        println!("{connection}")
                     }
                 }
             }
@@ -300,8 +295,11 @@ impl CliDebugClient {
                     println!("No blocks between functions matching the specification were found");
                 }
                 for block in blocks {
-                    println!("{}", block);
+                    println!("{block}");
                 }
+            }
+            FlowUnblockBreakpoint(flow_id) => {
+                println!("Flow #{flow_id} was busy and has now gone idle, unblocking senders to functions");
             }
         }
 
@@ -356,8 +354,6 @@ impl CliDebugClient {
 
 #[cfg(test)]
 mod test {
-    use std::collections::HashSet;
-
     use serde_json::json;
     use url::Url;
 
@@ -366,7 +362,7 @@ mod test {
     use flowcore::model::output_connection::{OutputConnection, Source};
     use flowcore::model::runtime_function::RuntimeFunction;
     use flowcore::model::submission::Submission;
-    use flowrlib::run_state::{RunState, State};
+    use flowrlib::run_state::RunState;
 
     use super::*;
 
@@ -422,41 +418,7 @@ mod test {
             1,
             true,
         );
-        let mut state = RunState::new(&functions, submission);
-
-        // Event
-        state.init();
-
-        // Test
-        assert_eq!(2, state.num_functions(), "There should be 2 functions");
-        assert!(
-            state.function_state_is_only(0, State::Blocked),
-            "f_a should be in Blocked state"
-        );
-        assert!(state.function_state_is_only(1, State::Ready), "f_b should be Ready");
-        assert_eq!(1, state.number_jobs_ready(), "There should be 1 job running");
-        let mut blocked = HashSet::new();
-        blocked.insert(0);
-
-        // Test
-        assert_eq!(
-            &blocked,
-            state.get_blocked(),
-            "Function with ID = 1 should be in 'blocked' list"
-        );
-        CliDebugClient::display_state(&state);
-
-        // Event
-        let job = state.next_job().expect("Couldn't get next job");
-        state.start(&job);
-
-        // Test
-        assert!(state.function_state_is_only(1, State::Running), "f_b should be Running");
-        assert_eq!(
-            1,
-            state.number_jobs_running(),
-            "There should be 1 job running"
-        );
+        let state = RunState::new(&functions, submission);
 
         CliDebugClient::display_state(&state);
     }

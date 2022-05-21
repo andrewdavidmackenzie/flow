@@ -59,6 +59,8 @@ pub trait DebugServer {
     fn job_breakpoint(&mut self, job: &Job, function: &RuntimeFunction, states: Vec<State>);
     /// A breakpoint set on creation of a `Block` matching `block` has been hit
     fn block_breakpoint(&mut self, block: &Block);
+    /// A breakpoint set on the unblocking of a flow has been hit
+    fn flow_unblock_breakpoint(&mut self, flow_id: usize);
     /// A breakpoint on sending a value from a specific function or to a specific function was hit
     #[allow(clippy::too_many_arguments)]
     fn send_breakpoint(&mut self, source_function_name: &str, source_function_id: usize,

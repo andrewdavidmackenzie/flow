@@ -231,7 +231,7 @@ impl RunState {
     }
 
     /// Get a reference to the vector of all functions
-    pub fn get_functions(&self) -> &Vec<RuntimeFunction> {
+    pub(crate) fn get_functions(&self) -> &Vec<RuntimeFunction> {
         &self.functions
     }
 
@@ -266,7 +266,7 @@ impl RunState {
     ///               `ready` nor `blocked` lists, so by omission it is in the `Waiting` state.
     ///               But the `block` will be created so when later it's inputs become full the fact
     ///               it is blocked will be detected and it can move to the `blocked` state
-    pub fn init(&mut self) {
+    pub(crate) fn init(&mut self) {
         #[cfg(feature = "debugger")]
         self.reset();
 
@@ -337,7 +337,7 @@ impl RunState {
         self.blocked = blocked;
     }
 
-    /// Figure out the states a function is in - based on it's presence or not in the different control lists
+    /// Return the states a function is in
     #[cfg(any(debug_assertions, feature = "debugger", test))]
     pub fn get_function_states(&self, function_id: usize) -> Vec<State> {
         let mut states = vec![];
@@ -365,16 +365,16 @@ impl RunState {
         states
     }
 
-    /// See if the function is in only the specified state
-    #[cfg(any(debug_assertions, feature = "debugger", test))]
-    pub fn function_state_is_only(&self, function_id: usize, state: State) -> bool {
+    // See if the function is in only the specified state
+    #[cfg(test)]
+    fn function_state_is_only(&self, function_id: usize, state: State) -> bool {
         let function_states = self.get_function_states(function_id);
         function_states.len() == 1 && function_states.contains(&state)
     }
 
     /// See if there is at least one instance of a function in the given state
-    #[cfg(any(debug_assertions, feature = "debugger", test))]
-    pub fn function_states_includes(&self, function_id: usize, state: State) -> bool {
+    #[cfg(any(debug_assertions, test))]
+    pub(crate) fn function_states_includes(&self, function_id: usize, state: State) -> bool {
         match state {
             State::Ready => self.ready.contains(&function_id),
             State::Blocked => self.blocked.contains(&function_id),
@@ -412,8 +412,8 @@ impl RunState {
         &self.functions[id]
     }
 
-    /// Get a mutable reference to the function with `id`
-    pub fn get_mut(&mut self, id: usize) -> &mut RuntimeFunction {
+    // Get a mutable reference to the function with `id`
+    fn get_mut(&mut self, id: usize) -> &mut RuntimeFunction {
         &mut self.functions[id]
     }
 
@@ -425,24 +425,25 @@ impl RunState {
 
     #[cfg(debug_assertions)]
     /// Return the list of busy flows and what functions in each flow are busy
-    pub(crate) fn get_busy_flows(&self) -> &MultiMap<usize, usize> {
+    pub fn get_busy_flows(&self) -> &MultiMap<usize, usize> {
         &self.busy_flows
     }
 
     #[cfg(debug_assertions)]
     /// Return the list of pending unblocks
-    pub(crate) fn get_pending_unblocks(&self) -> &HashMap<usize, HashSet<usize>> {
+    pub fn get_pending_unblocks(&self) -> &HashMap<usize, HashSet<usize>> {
         &self.pending_unblocks
     }
 
     /// Return the next job ready to be run, if there is one and there are not
     /// too many jobs already running
-    pub fn next_job(&mut self) -> Option<Job> {
+    pub(crate) fn next_job(&mut self) -> Option<Job> {
         if self.number_jobs_running() >= self.max_pending_jobs {
             trace!("Max Pending Job count of {} reached, skipping new jobs", self.max_pending_jobs);
             return None;
         }
 
+        // TODO do this all using map()?
         // create a job for the function_id at the head of the ready list
         match self.ready.remove(0) {
             Some(function_id) => {
@@ -452,7 +453,6 @@ impl RunState {
                 if let Some(ref j) = job {
                     self.unblock_internal_flow_senders(j.job_id, j.function_id, j.flow_id);
                 }
-
                 job
             }
             None => None,
@@ -549,12 +549,18 @@ impl RunState {
     /// Then take the output and send it to all destination IOs on different function it should be
     /// sent to, marking the source function as blocked because those others must consume the output
     /// if those other function have all their inputs, then mark them accordingly.
+    #[must_use]
+    #[allow(unused_variables, unused_assignments, unused_mut)]
     pub fn complete_job(
         &mut self,
         #[cfg(feature = "metrics")] metrics: &mut Metrics,
         job: &Job,
         #[cfg(feature = "debugger")] debugger: &mut Debugger,
-    ) {
+    ) -> (bool, bool, bool){
+        let mut display_next_output = false;
+        let mut restart = false;
+        let mut debugger_requested_exit = false;
+
         self.running.retain(|&_, &job_id| job_id != job.job_id);
         #[cfg(debug_assertions)]
         let job_id = job.job_id;
@@ -579,15 +585,14 @@ impl RunState {
                         };
 
                         if let Some(value) = value_to_send {
-                            self.send_a_value(
+                            (display_next_output, restart, debugger_requested_exit) =
+                                self.send_a_value(
                                 job.function_id,
                                 job.flow_id,
                                 destination,
                                 value,
-                                #[cfg(feature = "metrics")]
-                                    metrics,
-                                #[cfg(feature = "debugger")]
-                                    debugger,
+                                #[cfg(feature = "metrics")] metrics,
+                                #[cfg(feature = "debugger")] debugger,
                             );
                         } else {
                             trace!(
@@ -622,7 +627,11 @@ impl RunState {
         self.remove_from_busy(job.function_id);
 
         // need to do flow unblocks as that could affect other functions even if this one cannot run again
-        self.unblock_flows(job.flow_id, job.job_id);
+        (display_next_output, restart, debugger_requested_exit) =
+            self.unblock_flows(job.flow_id,
+                               job.job_id,
+                               #[cfg(feature = "debugger")] debugger,
+            );
 
         #[cfg(debug_assertions)]
         checks::check_invariants(self, job_id);
@@ -631,10 +640,13 @@ impl RunState {
             "Job #{}: Completed-----------------------",
             job.job_id,
         );
+
+        (display_next_output, restart, debugger_requested_exit)
     }
 
     // Send a value produced as part of an output of running a job to a destination function on
     // a specific input, update the metrics and potentially enter the debugger
+    #[must_use]
     fn send_a_value(
         &mut self,
         source_id: usize,
@@ -643,7 +655,11 @@ impl RunState {
         output_value: &Value,
         #[cfg(feature = "metrics")] metrics: &mut Metrics,
         #[cfg(feature = "debugger")] debugger: &mut Debugger,
-    ) {
+    ) -> (bool, bool, bool) {
+        let mut display_next_output = false;
+        let mut restart = false;
+        let mut debugger_requested_exit = false;
+
         let route_str = match &connection.source {
             Output(route) if route.is_empty() => "".into(),
             Output(route) => format!(" from output route '{}'", route),
@@ -662,7 +678,7 @@ impl RunState {
 
         #[cfg(feature = "debugger")]
         if let Output(route) = &connection.source {
-            debugger.check_prior_to_send(
+            (display_next_output, restart, debugger_requested_exit) = debugger.check_prior_to_send(
                 self,
                 source_id,
                 route,
@@ -687,7 +703,7 @@ impl RunState {
         // Avoid a function blocking on itself when sending itself a value via a loopback
         if block && !loopback {
             // TODO pass in destination and combine Block and OutputConnection?
-            self.create_block(
+            (display_next_output, restart, debugger_requested_exit) = self.create_block(
                 connection.flow_id,
                 connection.function_id,
                 connection.io_number,
@@ -705,6 +721,8 @@ impl RunState {
         if new_input_set_available && !loopback {
             self.make_ready_or_blocked(connection.function_id, connection.flow_id);
         }
+
+        (display_next_output, restart, debugger_requested_exit)
     }
 
     // Initialize any input of the sending function that has an initializer
@@ -867,7 +885,18 @@ impl RunState {
 
     // Remove blocks on functions sending to another function inside the `blocker_flow_id` flow
     // if that has just gone idle
-    fn unblock_flows(&mut self, blocker_flow_id: usize, job_id: usize) {
+    #[must_use]
+    #[allow(unused_variables, unused_assignments, unused_mut)]
+    fn unblock_flows(&mut self, blocker_flow_id: usize, job_id: usize,
+        #[cfg(feature = "debugger")] debugger: &mut Debugger
+        ) -> (bool, bool, bool) {
+        let mut display_next_output = false;
+        let mut restart = false;
+        let mut debugger_requested_exit = false;
+
+        (display_next_output, restart, debugger_requested_exit) =
+            debugger.check_prior_to_flow_unblock(self, blocker_flow_id);
+
         // if flow is now idle, remove any blocks on sending to functions in the flow
         if self.busy_flows.get(&blocker_flow_id).is_none() {
             trace!("Job #{job_id}:\tFlow #{blocker_flow_id} is now idle, \
@@ -882,6 +911,8 @@ impl RunState {
                 }
             }
         }
+
+        (display_next_output, restart, debugger_requested_exit)
     }
 
     // Mark a function (via its ID) as having run to completion
@@ -943,6 +974,7 @@ impl RunState {
     // Create a 'block" indicating that function `blocked_function_id` cannot run as it has sends
     // to an input on function 'blocking_function_id' that is already full.
     #[allow(clippy::too_many_arguments)]
+    #[must_use]
     fn create_block(
         &mut self,
         blocking_flow_id: usize,
@@ -952,7 +984,7 @@ impl RunState {
         blocked_flow_id: usize,
         priority: usize,
         #[cfg(feature = "debugger")] debugger: &mut Debugger,
-    ) {
+    ) -> (bool, bool, bool){
         let block = Block::new(
             blocking_flow_id,
             blocking_function_id,
@@ -963,9 +995,9 @@ impl RunState {
         );
 
         trace!("\t\t\t\t\tCreating Block {:?}", block);
+        self.blocks.insert(block.clone());
         #[cfg(feature = "debugger")]
-        debugger.check_on_block_creation(self, &block);
-        self.blocks.insert(block);
+        debugger.check_on_block_creation(self, &block)
     }
 }
 
@@ -1164,6 +1196,7 @@ mod test {
         fn start(&mut self) {}
         fn job_breakpoint(&mut self, _job: &Job, _function: &RuntimeFunction, _states: Vec<State>) {}
         fn block_breakpoint(&mut self, _block: &Block) {}
+        fn flow_unblock_breakpoint(&mut self, _flow_id: usize) {}
         fn send_breakpoint(&mut self, _: &str, _source_process_id: usize, _output_route: &str, _value: &Value,
                            _destination_id: usize, _destination_name:&str, _input_name: &str, _input_number: usize) {}
         fn job_error(&mut self, _job: &Job) {}
@@ -1567,7 +1600,7 @@ mod test {
 
             // Event
             let output = super::test_output(1, 0);
-            state.complete_job(
+            let _ = state.complete_job(
                 #[cfg(feature = "metrics")]
                 &mut metrics,
                 &output,
@@ -1632,7 +1665,7 @@ mod test {
             );
             output.connections = vec![no_such_out_conn];
 
-            state.complete_job(
+            let _ = state.complete_job(
                 #[cfg(feature = "metrics")]
                 &mut metrics,
                 &output,
@@ -1698,7 +1731,7 @@ mod test {
 
             // Event
             let job = test_job();
-            state.complete_job(
+            let _ = state.complete_job(
                 #[cfg(feature = "metrics")]
                 &mut metrics,
                 &job,
@@ -1743,7 +1776,7 @@ mod test {
 
             // Event
             let job = test_job();
-            state.complete_job(
+            let _ = state.complete_job(
                 #[cfg(feature = "metrics")]
                 &mut metrics,
                 &job,
@@ -1818,7 +1851,7 @@ mod test {
 
             // Event
             let output = super::test_output(0, 1);
-            state.complete_job(
+            let _ = state.complete_job(
                 #[cfg(feature = "metrics")]
                 &mut metrics,
                 &output,
@@ -1880,7 +1913,7 @@ mod test {
 
             // Event run f_b which will send to f_a
             let output = super::test_output(1, 0);
-            state.complete_job(
+            let _ = state.complete_job(
                 #[cfg(feature = "metrics")]
                 &mut metrics,
                 &output,
@@ -1957,7 +1990,7 @@ mod test {
 
             // create output from f_b as if it had run - will send to f_a
             let output = super::test_output(1, 0);
-            state.complete_job(
+            let _ = state.complete_job(
                 #[cfg(feature = "metrics")]
                 &mut metrics,
                 &output,
@@ -2048,7 +2081,7 @@ mod test {
             // Event: fake running of function fA
             job.result = Ok((Some(json!(1)), true));
 
-            state.complete_job(
+            let _ = state.complete_job(
                 #[cfg(feature = "metrics")]
                 &mut metrics,
                 &job,
@@ -2067,7 +2100,7 @@ mod test {
                 job.function_id, 1,
                 "next() should return function_id=1 (f_b) for running"
             );
-            state.complete_job(
+            let _ = state.complete_job(
                 #[cfg(feature = "metrics")]
                 &mut metrics,
                 &job,
@@ -2080,7 +2113,7 @@ mod test {
                 job.function_id, 0,
                 "next() should return function_id=0 (f_a) for running"
             );
-            state.complete_job(
+            let _ = state.complete_job(
                 #[cfg(feature = "metrics")]
                 &mut metrics,
                 &job,
@@ -2193,7 +2226,7 @@ mod test {
                 let mut debugger = super::dummy_debugger(&mut server);
 
             // Indicate that 0 is blocked by 1 on input 0
-            state.create_block(
+            let _ = state.create_block(
                 0,
                 1,
                 0,
@@ -2286,7 +2319,7 @@ mod test {
                 let mut debugger = super::dummy_debugger(&mut server);
 
             // Indicate that 0 is blocked by 1 on input 0
-            state.create_block(
+            let _ = state.create_block(
                 0,
                 1,
                 0,
@@ -2319,7 +2352,7 @@ mod test {
                 let mut debugger = super::dummy_debugger(&mut server);
 
             // Indicate that 0 is blocked by 1 and put 0 on the blocked list
-            state.create_block(
+            let _ = state.create_block(
                 0,
                 1,
                 0,
@@ -2361,7 +2394,7 @@ mod test {
                 let mut debugger = super::dummy_debugger(&mut server);
 
             // Indicate that 0 is blocked by 1 and 2
-            state.create_block(
+            let _ = state.create_block(
                 0,
                 1,
                 0,
@@ -2371,7 +2404,7 @@ mod test {
                 #[cfg(feature = "debugger")]
                 &mut debugger,
             );
-            state.create_block(
+            let _ = state.create_block(
                 0,
                 2,
                 0,
@@ -2459,7 +2492,7 @@ mod test {
             };
 
             // Test there is no problem producing an Output when no destinations to send it to
-            state.complete_job(
+            let _ = state.complete_job(
                 #[cfg(feature = "metrics")]
                 &mut metrics,
                 &job,
