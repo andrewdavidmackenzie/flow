@@ -4,33 +4,33 @@ use rustyline::error::ReadlineError;
 
 use flowcore::errors::*;
 use flowcore::model::runtime_function::RuntimeFunction;
+use flowrlib::breakpoint_spec::BreakpointSpec;
 use flowrlib::debug_command::DebugCommand;
 use flowrlib::debug_command::DebugCommand::*;
-use flowrlib::param::Param;
 use flowrlib::run_state::{RunState, State};
 
 use crate::client_server::ClientConnection;
-use crate::debug_messages::{DebugServerMessage, DebugServerMessage::*};
+use crate::debug_server_message::{DebugServerMessage, DebugServerMessage::*};
 
 const FLOWR_HISTORY_FILENAME: &str = ".flowr_history";
 
 const HELP_STRING: &str = "Debugger commands:
-'b' | 'breakpoint' {spec}    - Set a breakpoint on a function (by id), an output or an input using spec:
-                                - function_id (integer)
-                                - source_id/output_route ('source_id/' for default output route)
-                                - destination_id:input_number
-                                - blocked_process_id->blocking_process_id
-'c' | 'continue'             - Continue execution until next breakpoint
-'d' | 'delete' {spec} or '*' - Delete the breakpoint matching {spec} or all with '*'
-'e' | 'exit'                 - Stop flow execution and exit debugger
-'f' | 'functions'            - Show the list of functions
-'h' | 'help' | '?'           - Display this help message
-'i' | 'inspect' [n]          - Inspect the overall state, or the function number 'n'
-'l' | 'list'                 - List all breakpoints
-'q' | 'quit'                 - Stop flow execution and exit debugger
-'r' | 'run' or 'reset'       - run the flow or if running already then reset the state to initial state
-'s' | 'step' [n]             - Step over the next 'n' jobs (default = 1) then break
-'v' | 'validate'             - Validate the state of the flow by running a series of checks
+'b' | 'breakpoint' {spec}     - Set a breakpoint on a function (by id), an output or an input using spec:
+                                 - function_id (integer)
+                                 - source_id/output_route ('source_id/' for default output route)
+                                 - destination_id:input_number
+                                 - blocked_process_id->blocking_process_id
+'c' | 'continue'              - Continue execution until next breakpoint
+'d' | 'delete' {spec} or '*'  - Delete the breakpoint matching {spec} or all with '*'
+'e' | 'exit'                  - Stop flow execution and exit debugger
+'f' | 'functions'             - Show the list of functions
+'h' | 'help' | '?'            - Display this help message
+'i' | 'inspect' [n]           - Inspect the overall state, or the function number 'n'
+'l' | 'list'                  - List all breakpoints
+'q' | 'quit'                  - Stop flow execution and exit debugger
+'r' | 'reset' or 'run' {args} - If running already then reset the state, or run the flow with {args}
+'s' | 'step' [n]              - Step over the next 'n' jobs (default = 1) then break
+'v' | 'validate'              - Validate the state of the flow by running a series of checks
 ";
 
 /*
@@ -67,7 +67,7 @@ impl CliDebugClient {
         loop {
             match self.connection.receive() {
                 Ok(debug_server_message) => {
-                    if let Ok(response) = self.process_message(debug_server_message) {
+                    if let Ok(response) = self.process_server_message(debug_server_message) {
                         let _ = self.connection.send(response);
                     }
                 }
@@ -85,7 +85,7 @@ impl CliDebugClient {
         println!("{}", HELP_STRING);
     }
 
-    fn parse_command(&self, mut input: String) -> Result<(String, String, Option<Param>)> {
+    fn parse_command(&self, mut input: String) -> Result<(String, String, Option<Vec<String>>)> {
         input = input.trim().to_string();
         if input.is_empty() && !self.last_command.is_empty() {
             input = self.last_command.clone();
@@ -95,49 +95,86 @@ impl CliDebugClient {
         let parts: Vec<String> = input.split(' ').map(|s| s.to_string()).collect();
         let command = parts[0].to_string();
 
-        if parts.len() > 1 {
-            if parts[1] == "*" {
-                return Ok((input, command, Some(Param::Wildcard)));
-            }
-
-            if let Ok(integer) = parts[1].parse::<usize>() {
-                return Ok((input, command, Some(Param::Numeric(integer))));
-            }
-
-            if parts[1].contains('/') {
-                // is an output specified
-                let sub_parts: Vec<&str> = parts[1].split('/').collect();
-                if let Ok(source_process_id) = sub_parts[0].parse::<usize>() {
-                    return Ok((
-                        input, command,
-                        Some(Param::Output((
-                            source_process_id,
-                            format!("/{}", sub_parts[1]),
-                        ))),
-                    ));
-                }
-            } else if parts[1].contains(':') {
-                // is an input specifier
-                let sub_parts: Vec<&str> = parts[1].split(':').collect();
-                if let (Ok(destination_function_id), Ok(destination_input_number)) = (sub_parts[0].parse::<usize>(), sub_parts[1].parse::<usize>()) {
-                    return Ok((
-                        input, command,
-                        Some(Param::Input((
-                            destination_function_id,
-                            destination_input_number,
-                        ))),
-                    ));
-                }
-            } else if parts[1].contains("->") {
-                // is a block specifier
-                let sub_parts: Vec<&str> = parts[1].split("->").collect();
-                let source = sub_parts[0].parse::<usize>().ok();
-                let destination = sub_parts[1].parse::<usize>().ok();
-                return Ok((input, command, Some(Param::Block((source, destination)))));
-            }
+        if !parts.is_empty() {
+            return Ok((input, command, Some(parts[1..].to_vec())));
         };
 
         Ok((input, command, None))
+    }
+
+    fn parse_optional_int(params: Option<Vec<String>>) -> Option<usize> {
+        if let Some(param) = params {
+            if !param.is_empty() {
+                if let Ok(integer) = param[1].parse::<usize>() {
+                    return Some(integer);
+                }
+            }
+        }
+
+        None
+    }
+
+    fn parse_breakpoint_spec(specs: Option<Vec<String>>) -> Option<BreakpointSpec> {
+        if let Some(spec) = specs {
+            if !spec.is_empty() {
+                if spec[0] == "*" {
+                    return Some(BreakpointSpec::All);
+                }
+
+                if let Ok(integer) = spec[0].parse::<usize>() {
+                    return Some(BreakpointSpec::Numeric(integer));
+                }
+
+                if spec[0].contains('/') {
+                    // is an output specified
+                    let sub_parts: Vec<&str> = spec[0].split('/').collect();
+                    if let Ok(source_process_id) = sub_parts[0].parse::<usize>() {
+                        return Some(BreakpointSpec::Output((
+                                source_process_id,
+                                format!("/{}", sub_parts[1]),
+                            )));
+                    }
+                } else if spec[0].contains(':') {
+                    // is an input specifier
+                    let sub_parts: Vec<&str> = spec[0].split(':').collect();
+                    if let (Ok(destination_function_id), Ok(destination_input_number)) = (sub_parts[0].parse::<usize>(), sub_parts[1].parse::<usize>()) {
+                        return Some(BreakpointSpec::Input((
+                                destination_function_id,
+                                destination_input_number,
+                            )));
+                    }
+                } else if spec[0].contains("->") {
+                    // is a block specifier
+                    let sub_parts: Vec<&str> = spec[0].split("->").collect();
+                    let source = sub_parts[0].parse::<usize>().ok();
+                    let destination = sub_parts[1].parse::<usize>().ok();
+                    return Some(BreakpointSpec::Block((source, destination)));
+                }
+            }
+        }
+
+        println!("Not a valid breakpoint spec");
+        None
+    }
+
+    fn parse_inspect_spec(spec: Option<Vec<String>>) -> Option<DebugCommand> {
+        match Self::parse_breakpoint_spec(spec) {
+            None => Some(Inspect),
+            Some(BreakpointSpec::Numeric(function_id)) => Some(InspectFunction(function_id)),
+            Some(BreakpointSpec::Input((function_id, input_number))) => {
+                Some(InspectInput(function_id, input_number))
+            }
+            Some(BreakpointSpec::Output((function_id, sub_route))) => {
+                Some(InspectOutput(function_id, sub_route))
+            }
+            Some(BreakpointSpec::Block((source_function_id, destination_function_id))) => {
+                Some(InspectBlock(source_function_id, destination_function_id))
+            }
+            _ => {
+                println!("Unsupported format for 'inspect' command. Use 'h' or 'help' command for help");
+                None
+            }
+        }
     }
 
     /*
@@ -149,8 +186,8 @@ impl CliDebugClient {
             match self.editor.readline(&format!("Job #{}> ", job_number)) {
                 Ok(line) => {
                     match self.parse_command(line) {
-                        Ok((line, command, param)) => {
-                            if let Some(debugger_command) = self.get_server_command(&command, param) {
+                        Ok((line, command, params)) => {
+                            if let Some(debugger_command) = self.get_server_command(&command, params) {
                                 self.editor.add_history_entry(&line);
                                 self.last_command = line;
                                 return Ok(debugger_command);
@@ -178,12 +215,12 @@ impl CliDebugClient {
     fn get_server_command(
         &mut self,
         command: &str,
-        param: Option<Param>,
+        params: Option<Vec<String>>,
     ) -> Option<DebugCommand> {
         return match command {
-            "b" | "breakpoint" => Some(Breakpoint(param)),
+            "b" | "breakpoint" => Some(Breakpoint(Self::parse_breakpoint_spec(params))),
             "c" | "continue" => Some(Continue),
-            "d" | "delete" => Some(Delete(param)),
+            "d" | "delete" => Some(Delete(Self::parse_breakpoint_spec(params))),
             "e" | "exit" => Some(ExitDebugger),
             "f" | "functions" => Some(FunctionList),
             "h" | "?" | "help" => { // only command that doesn't send a message to debugger
@@ -191,27 +228,11 @@ impl CliDebugClient {
                 self.editor.add_history_entry(command);
                 None
             }
-            "i" | "inspect" => match param {
-                None => Some(Inspect),
-                Some(Param::Numeric(function_id)) => Some(InspectFunction(function_id)),
-                Some(Param::Input((function_id, input_number))) => {
-                    Some(InspectInput(function_id, input_number))
-                }
-                Some(Param::Output((function_id, sub_route))) => {
-                    Some(InspectOutput(function_id, sub_route))
-                }
-                Some(Param::Block((source_function_id, destination_function_id))) => {
-                    Some(InspectBlock(source_function_id, destination_function_id))
-                }
-                _ => {
-                    println!("Unsupported format for 'inspect' command. Use 'h' or 'help' command for help");
-                    None
-                }
-            },
+            "i" | "inspect" => Self::parse_inspect_spec(params),
             "l" | "list" => Some(List),
             "q" | "quit" => Some(ExitDebugger),
             "r" | "run" | "reset" => Some(RunReset),
-            "s" | "step" => Some(Step(param)),
+            "s" | "step" => Some(Step(Self::parse_optional_int(params))),
             "v" | "validate" => Some(Validate),
             _ => {
                 println!("Unknown debugger command '{}'\n", command);
@@ -225,7 +246,7 @@ impl CliDebugClient {
         A message may be generated by the debug server without any a request from the debug client
         Some messages expect the client to respond with a command for the debug server.
     */
-    fn process_message(&mut self, message: DebugServerMessage) -> Result<DebugCommand> {
+    fn process_server_message(&mut self, message: DebugServerMessage) -> Result<DebugCommand> {
         match message {
             JobCompleted(job) => {
                 println!("Job #{} completed by Function #{}", job.job_id, job.function_id);

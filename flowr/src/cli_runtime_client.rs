@@ -15,6 +15,7 @@ use crate::runtime_messages::{ClientMessage, FileMetaData, ServerMessage};
 #[derive(Debug, Clone)]
 pub struct CliRuntimeClient {
     args: Vec<String>,
+    override_args: Vec<String>,
     image_buffers: HashMap<String, ImageBuffer<Rgb<u8>, Vec<u8>>>,
     #[cfg(feature = "metrics")]
     display_metrics: bool,
@@ -25,6 +26,7 @@ impl CliRuntimeClient {
     pub fn new(args: Vec<String>, #[cfg(feature = "metrics")] display_metrics: bool) -> Self {
         CliRuntimeClient {
             args,
+            override_args: vec!(),
             image_buffers: HashMap::<String, ImageBuffer<Rgb<u8>, Vec<u8>>>::new(),
             #[cfg(feature = "metrics")]
             display_metrics,
@@ -195,7 +197,13 @@ impl CliRuntimeClient {
                 image.put_pixel(x, y, Rgb([r, g, b]));
                 ClientMessage::Ack
             },
-            ServerMessage::GetArgs => ClientMessage::Args(self.args.clone()),
+            ServerMessage::GetArgs => {
+                if self.override_args.is_empty() {
+                    ClientMessage::Args(self.args.clone())
+                } else {
+                    ClientMessage::Args(std::mem::take(&mut self.override_args))
+                }
+            },
             ServerMessage::StderrEof => ClientMessage::Ack,
             ServerMessage::Invalid => ClientMessage::Ack,
         }

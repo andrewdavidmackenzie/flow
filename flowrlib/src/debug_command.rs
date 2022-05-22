@@ -2,7 +2,7 @@ use std::fmt;
 
 use serde_derive::{Deserialize, Serialize};
 
-use crate::param::Param;
+use crate::breakpoint_spec::BreakpointSpec;
 
 /// A Command sent by the debug_client to the debugger
 #[derive(Serialize, Deserialize)]
@@ -10,13 +10,13 @@ pub enum DebugCommand {
     /// Acknowledge event processed correctly
     Ack,
     /// Set a `breakpoint` - with an optional parameter
-    Breakpoint(Option<Param>),
+    Breakpoint(Option<BreakpointSpec>),
     /// `continue` execution of the flow
     Continue,
     /// Debug client is starting
     DebugClientStarting,
     /// `delete` an existing breakpoint - with an optional parameter
-    Delete(Option<Param>),
+    Delete(Option<BreakpointSpec>),
     /// An error on the client side
     Error(String),
     /// `exit` the debugger and runtime
@@ -37,10 +37,10 @@ pub enum DebugCommand {
     Invalid,
     /// `list` existing breakpoints
     List,
-    /// `reset` flow execution back to the initial state
+    /// `reset` flow execution back to the initial state, or run the flow from the start
     RunReset,
     /// `step` forward in flow execution by executing one (default) or more `Jobs`
-    Step(Option<Param>),
+    Step(Option<usize>),
     /// `validate` the current state
     Validate,
 }

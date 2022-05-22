@@ -36,7 +36,7 @@ use crate::cli_runtime_client::CliRuntimeClient;
 use crate::cli_runtime_server::CliServer;
 use crate::client_server::{ClientConnection, DONT_WAIT, Method, ServerConnection, ServerInfo, WAIT};
 #[cfg(feature = "debugger")]
-use crate::debug_messages::DebugServerMessage;
+use crate::debug_server_message::DebugServerMessage;
 #[cfg(feature = "debugger")]
 use crate::DebugServerMessage::{BlockBreakpoint, DataBreakpoint, ExecutionEnded, ExecutionStarted,
                                 ExitingDebugger, JobCompleted, JobError, Panic, PriorToSendingJob,
@@ -72,7 +72,7 @@ mod context;
 /// 'debug' defines structs passed between the Server and the Client regarding debug events
 /// and client responses to them
 #[cfg(feature = "debugger")]
-mod debug_messages;
+mod debug_server_message;
 
 /// `RUNTIME_SERVICE_NAME` is the name of the runtime services and can be used to discover it by name
 pub const RUNTIME_SERVICE_NAME: &str = "runtime._flowr._tcp.local";
@@ -438,6 +438,12 @@ fn client(
         debug_this_flow,
     );
 
+    let runtime_client = CliRuntimeClient::new(
+        flow_args,
+        #[cfg(feature = "metrics")]
+        matches.is_present("metrics"),
+    );
+
     #[cfg(feature = "debugger")]
     if debug_this_flow {
         let debug_client_connection = ClientConnection::new(debug_server_info)?;
@@ -446,12 +452,6 @@ fn client(
             debug_client.debug_client_loop();
         });
     }
-
-    let runtime_client = CliRuntimeClient::new(
-        flow_args,
-        #[cfg(feature = "metrics")]
-        matches.is_present("metrics"),
-    );
 
     info!("Client sending submission to server");
     runtime_client_connection.send(ClientMessage::ClientSubmission(submission))?;
