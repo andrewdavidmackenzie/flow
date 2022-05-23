@@ -196,7 +196,7 @@ impl<'a> Debugger<'a> {
     #[must_use]
     pub fn job_completed(&mut self, state: &RunState, job: &Job) -> (bool, bool, bool) {
         if job.result.is_err() {
-            if state.debug {
+            if state.submission.debug {
                 let _ = self.job_error(state, job);
             }
         } else {
