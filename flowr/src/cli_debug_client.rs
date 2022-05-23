@@ -157,7 +157,6 @@ impl CliDebugClient {
             }
         }
 
-        println!("Not a valid breakpoint spec");
         None
     }
 
@@ -344,6 +343,7 @@ impl CliDebugClient {
         for function in functions {
             println!("\t#{} '{}' @ '{}'", function.id(), function.name(), function.route());
         }
+        println!("Use 'i #n' or 'inspect #n' to inspect the function number 'n'");
     }
 
     /*
