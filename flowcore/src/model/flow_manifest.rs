@@ -19,7 +19,7 @@ impl From<&FlowDefinition> for MetaData {
     }
 }
 
-#[derive(Clone, Deserialize, Serialize, PartialEq)]
+#[derive(Clone, Deserialize, Serialize, PartialEq, Eq)]
 /// `Cargo` meta-data that can be used as a source of meta-data
 pub struct Cargo {
     /// We are only interested in the `package` part - as a source of meta-data
