@@ -10,10 +10,7 @@ use flowcore::model::output_connection::Source::{Input, Output};
 use crate::block::Block;
 use crate::breakpoint_spec::BreakpointSpec;
 use crate::debug_command::DebugCommand;
-use crate::debug_command::DebugCommand::{Ack, Breakpoint, Continue, DebugClientStarting, Delete,
-                                         Error, ExitDebugger, Inspect, InspectBlock, InspectFunction, InspectInput,
-                                         InspectOutput, Invalid, List, RunReset, Step, Validate
-                                    };
+use crate::debug_command::DebugCommand::{Ack, Breakpoint, Continue, DebugClientStarting, Delete, Error, ExitDebugger, Inspect, InspectBlock, InspectFunction, InspectInput, InspectOutput, Invalid, List, Modify, RunReset, Step, Validate};
 use crate::job::Job;
 use crate::run_state::RunState;
 use crate::server::DebugServer;
@@ -89,7 +86,7 @@ impl<'a> Debugger<'a> {
     #[must_use]
     pub fn check_prior_to_job(
         &mut self,
-        state: &RunState,
+        state: &mut RunState,
         job: &Job,
     ) -> (bool, bool, bool) {
         if self.break_at_job == job.job_id || self.function_breakpoints.contains(&job.function_id) {
@@ -109,7 +106,7 @@ impl<'a> Debugger<'a> {
     #[must_use]
     pub fn check_on_block_creation(
         &mut self,
-        state: &RunState,
+        state: &mut RunState,
         block: &Block,
     ) -> (bool, bool, bool) {
         if self
@@ -130,7 +127,7 @@ impl<'a> Debugger<'a> {
     #[must_use]
     pub fn check_prior_to_send(
         &mut self,
-        state: &RunState,
+        state: &mut RunState,
         source_function_id: usize,
         output_route: &str,
         value: &Value,
@@ -164,7 +161,7 @@ impl<'a> Debugger<'a> {
     #[must_use]
     pub fn check_prior_to_flow_unblock(
         &mut self,
-        state: &RunState,
+        state: &mut RunState,
         flow_being_unblocked_id: usize,
     ) -> (bool, bool, bool) {
         if self
@@ -186,7 +183,7 @@ impl<'a> Debugger<'a> {
     /// breakpoint it will enter the debugger on an error and let the user inspect the flow's
     /// state etc.
     #[must_use]
-    pub fn job_error(&mut self, state: &RunState, job: &Job) -> (bool, bool, bool) {
+    pub fn job_error(&mut self, state: &mut RunState, job: &Job) -> (bool, bool, bool) {
         self.debug_server.job_error(job);
         self.wait_for_command(state)
     }
@@ -194,7 +191,7 @@ impl<'a> Debugger<'a> {
     /// Called from the flowrlib coordinator to inform the debug client that a job has completed
     /// Return values are (display next output, reset execution)
     #[must_use]
-    pub fn job_completed(&mut self, state: &RunState, job: &Job) -> (bool, bool, bool) {
+    pub fn job_completed(&mut self, state: &mut RunState, job: &Job) -> (bool, bool, bool) {
         if job.result.is_err() {
             if state.submission.debug {
                 let _ = self.job_error(state, job);
@@ -212,7 +209,7 @@ impl<'a> Debugger<'a> {
     /// breakpoint it will enter the debugger on an error and let the user inspect the flow's
     /// state etc.
     #[must_use]
-    pub fn panic(&mut self, state: &RunState, error_message: String) -> (bool, bool, bool) {
+    pub fn panic(&mut self, state: &mut RunState, error_message: String) -> (bool, bool, bool) {
         self.debug_server.panic(state, error_message);
         self.wait_for_command(state)
     }
@@ -220,7 +217,7 @@ impl<'a> Debugger<'a> {
     /// Execution of the flow ended, report it, check for deadlocks and wait for command
     /// Return values are (display next output, reset execution)
     #[must_use]
-    pub fn execution_ended(&mut self, state: &RunState) -> (bool, bool, bool) {
+    pub fn execution_ended(&mut self, state: &mut RunState) -> (bool, bool, bool) {
         self.debug_server.execution_ended();
         self.deadlock_check(state);
         self.wait_for_command(state)
@@ -235,7 +232,7 @@ impl<'a> Debugger<'a> {
     /// When exiting return a set of booleans for the Coordinator to determine what to do:
     /// (display next output, reset execution, exit_debugger)
     #[must_use]
-    pub fn wait_for_command(&mut self, state: &RunState) -> (bool, bool, bool) {
+    pub fn wait_for_command(&mut self, state: &mut RunState) -> (bool, bool, bool) {
         loop {
             match self.debug_server.get_command(state)
             {
@@ -313,12 +310,16 @@ impl<'a> Debugger<'a> {
                     let blocks = Self::inspect_blocks(state, from_function_id, to_function_id);
                     self.debug_server.blocks(blocks);
                 }
-                Ok(ExitDebugger) => {
-                    self.debug_server.debugger_exiting();
-                    return (false, false, true);
+                Ok(Modify(specs)) => self.modify_variables(state, specs),
+                Ok(Ack) => {}
+                Ok(DebugClientStarting) => { // TODO remove
+                    error!("Unexpected message 'DebugClientStarting' after started")
                 }
+                Ok(Error(_)) => { /* client error */ }
+                Ok(Invalid) => {}
+                Err(e) => error!("Error in Debug server getting command; {}", e),
 
-                // **************************      The following commands exit the command loop
+                // ************************** The following commands may exit the command loop
                 Ok(Continue) => {
                     if state.get_number_of_jobs_created() > 0 {
                         return (false, false, false);
@@ -338,13 +339,10 @@ impl<'a> Debugger<'a> {
                     self.step(state, param);
                     return (true, false, false);
                 }
-                Ok(Ack) => {}
-                Ok(DebugClientStarting) => { // TODO remove
-                    error!("Unexpected message 'DebugClientStarting' after started")
+                Ok(ExitDebugger) => {
+                    self.debug_server.debugger_exiting();
+                    return (false, false, true);
                 }
-                Ok(Error(_)) => { /* client error */ }
-                Ok(Invalid) => {}
-                Err(e) => error!("Error in Debug server getting command; {}", e),
             };
         }
     }
@@ -544,18 +542,53 @@ impl<'a> Debugger<'a> {
         response
     }
 
-    /*
-       Get ready to start execution (and debugging) from scratch at the start of the flow
-    */
+    // Get ready to start execution (and debugging) from scratch at the start of the flow
     fn reset(&mut self) {
         // Leave all the breakpoints untouched for the repeat run
         self.break_at_job = usize::MAX;
     }
 
-    /*
-       Take one step (execute one more job) in the flow. Do this by setting a breakpoint at the
-       next job execution and then returning - flow execution will continue until breakpoint fires
-    */
+    // Parse a series of specs to modify a state value
+    fn modify_variables(&mut self, state: &mut RunState, specs: Option<Vec<String>>) {
+        match specs {
+            None => self.debug_server.message("State variables that can be modified are:\
+            \n'jobs' - maximum number of parallel jobs (integer)".to_string()),
+            Some(specs) => {
+                if specs.is_empty() {
+                    self.debug_server.message("State variables that can be modified are:\
+                        \n'jobs' - maximum number of parallel jobs (integer)".to_string());
+                    return;
+                }
+
+                for spec in specs {
+                    let parts: Vec<&str> = spec.trim().split('=').collect();
+                    if parts.len() < 2 {
+                        self.debug_server.message(
+                            format!("Invalid modify command for state variables: '{}'", spec));
+                        return;
+                    }
+
+                    match parts[0] {
+                        "jobs" => {
+                            if let Ok(value) = parts[1].parse::<usize>() {
+                                state.submission.max_parallel_jobs = value;
+                                self.debug_server.message(format!("State variable '{}' set to {}",
+                                    parts[0], parts[1]));
+                            } else {
+                                self.debug_server.message(
+                                    format!("Invalid value '{}' for variable 'jobs'", parts[1]));
+                            }
+                        }
+                        _ => self.debug_server.message(
+                            format!("No known state variable with name '{}'", parts[0]))
+                    }
+                }
+            }
+        }
+    }
+
+    // Take one step (execute one more job) in the flow. Do this by setting a breakpoint at the
+    // next job execution and then returning - flow execution will continue until breakpoint fires
     fn step(&mut self, state: &RunState, steps: Option<usize>) {
         match steps {
             None => {

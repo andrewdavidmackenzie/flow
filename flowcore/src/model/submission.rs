@@ -1,3 +1,4 @@
+use std::fmt;
 use std::time::Duration;
 
 use log::info;
@@ -37,5 +38,13 @@ impl Submission {
             #[cfg(feature = "debugger")]
             debug,
         }
+    }
+}
+impl fmt::Display for Submission {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        writeln!(f, "Submission:")?;
+        writeln!(f, "         Manifest URL: {}", self.manifest_url)?;
+        writeln!(f, "Maximum Parallel Jobs: {}", self.max_parallel_jobs)?;
+        write!(f,   "          Job Timeout: {:?}", self.job_timeout)
     }
 }
