@@ -21,7 +21,7 @@ use flowcore::model::route::Route;
 use crate::errors::*;
 
 /// `LibType` describes what format the Flow Library is written in
-#[derive(PartialEq)]
+#[derive(PartialEq, Eq)]
 pub enum LibType {
     /// `RustLib` indicates that the library is written in rust with a FlowCargo.toml to compile it natively
     RustLib,

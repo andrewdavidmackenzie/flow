@@ -84,7 +84,7 @@ pub const DEBUG_SERVICE_NAME: &str = "debug._flowr._tcp.local";
 /// - `ClientOnly`      - only as a client to submit flows for execution to a server
 /// - `ServerOnly`      - only as a server waiting for submissions for execution from a client
 /// - `ClientAndServer` - as both Client and Server, in separate threads
-#[derive(PartialEq, Clone, Debug)]
+#[derive(PartialEq, Eq, Clone, Debug)]
 pub enum Mode {
     /// `Coordinator` mode where it runs as just a client for a server running in another process
     ClientOnly,

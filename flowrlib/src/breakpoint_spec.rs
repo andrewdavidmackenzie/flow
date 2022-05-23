@@ -1,7 +1,7 @@
 use serde_derive::{Deserialize, Serialize};
 
 /// Types of `Params` used in communications between the debugger and the debug_client
-#[derive(Serialize, Deserialize, PartialEq)]
+#[derive(Serialize, Deserialize, PartialEq, Eq)]
 pub enum BreakpointSpec {
     /// All existing breakpoints
     All,

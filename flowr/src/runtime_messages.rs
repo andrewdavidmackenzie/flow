@@ -83,7 +83,7 @@ unsafe impl Sync for ServerMessage {}
 
 /// A simple struct with File MetaData for passing from Client to Server - std::fs::MetaData
 /// Doesn't Serialize/Deserialize etc.
-#[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
+#[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone)]
 pub struct FileMetaData {
     /// Was the Path inspected a file or not
     pub is_file: bool,

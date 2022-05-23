@@ -262,7 +262,7 @@ mod test {
 
     use crate::client_server::{ClientConnection, DONT_WAIT, Method, ServerConnection, WAIT};
 
-    #[derive(Serialize, Deserialize, PartialEq, Debug)]
+    #[derive(Serialize, Deserialize, PartialEq, Eq, Debug)]
     enum ServerMessage {
         World,
     }
@@ -279,7 +279,7 @@ mod test {
         }
     }
 
-    #[derive(Serialize, Deserialize, PartialEq, Debug)]
+    #[derive(Serialize, Deserialize, PartialEq, Eq, Debug)]
     enum ClientMessage {
         Hello,
     }

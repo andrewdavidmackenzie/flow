@@ -25,7 +25,7 @@ use crate::job::Job;
 
 /// `State` represents the possible states it is possible for a function to be in
 #[cfg(any(debug_assertions, feature = "debugger", test))]
-#[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum State {
     /// Ready     - Function will be in Ready state when all of it's inputs are full and there are no inputs
     ///           it sends to that are full (unless that input is it's own)
