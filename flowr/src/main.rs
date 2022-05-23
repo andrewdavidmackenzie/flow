@@ -428,6 +428,9 @@ fn client(
     #[cfg(feature = "debugger")] debug_this_flow: bool,
     #[cfg(feature = "debugger")] debug_server_info: &mut ServerInfo,
 ) -> flowcore::errors::Result<()> {
+    // keep an Arc Mutex protected set of override args that debug client can override
+    let override_args = Arc::new(Mutex::new(vec!()));
+
     let flow_manifest_url = parse_flow_url(&matches)?;
     let flow_args = get_flow_args(&matches, &flow_manifest_url);
     let max_parallel_jobs = num_parallel_jobs(&matches);
@@ -440,6 +443,7 @@ fn client(
 
     let runtime_client = CliRuntimeClient::new(
         flow_args,
+        override_args.clone(),
         #[cfg(feature = "metrics")]
         matches.is_present("metrics"),
     );
@@ -447,7 +451,8 @@ fn client(
     #[cfg(feature = "debugger")]
     if debug_this_flow {
         let debug_client_connection = ClientConnection::new(debug_server_info)?;
-        let debug_client = CliDebugClient::new(debug_client_connection);
+        let debug_client = CliDebugClient::new(debug_client_connection,
+            override_args);
         let _ = thread::spawn(move || {
             debug_client.debug_client_loop();
         });

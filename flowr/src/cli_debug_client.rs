@@ -1,3 +1,5 @@
+use std::sync::{Arc, Mutex};
+
 use log::error;
 use rustyline::Editor;
 use rustyline::error::ReadlineError;
@@ -39,15 +41,17 @@ const HELP_STRING: &str = "Debugger commands:
 */
 pub struct CliDebugClient {
     connection: ClientConnection,
+    override_args: Arc<Mutex<Vec<String>>>,
     editor: Editor<()>,
     last_command: String,
 }
 
 impl CliDebugClient {
     /// Create a new debug client accepting the debug connection
-    pub fn new(connection: ClientConnection) -> Self {
+    pub fn new(connection: ClientConnection, override_args: Arc<Mutex<Vec<String>>>) -> Self {
         CliDebugClient {
             connection,
+            override_args,
             editor: Editor::<()>::new(), // `()` can be used when no completer is required
             last_command: "".to_string(),
         }
@@ -231,7 +235,15 @@ impl CliDebugClient {
             "i" | "inspect" => Self::parse_inspect_spec(params),
             "l" | "list" => Some(List),
             "q" | "quit" => Some(ExitDebugger),
-            "r" | "run" | "reset" => Some(RunReset),
+            "r" | "run" | "reset" => {
+                if let Some(mut overrides) = params {
+                    if let Ok(mut args) = self.override_args.lock() {
+                        args.clear();
+                        args.append(&mut overrides);
+                    }
+                }
+                Some(RunReset)
+            },
             "s" | "step" => Some(Step(Self::parse_optional_int(params))),
             "v" | "validate" => Some(Validate),
             _ => {

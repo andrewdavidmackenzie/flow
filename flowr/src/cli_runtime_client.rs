@@ -3,6 +3,7 @@ use std::fs::File;
 use std::io;
 use std::io::prelude::*;
 use std::path::Path;
+use std::sync::{Arc, Mutex};
 
 use image::{ImageBuffer, ImageFormat, Rgb, RgbImage};
 use log::{debug, error, info};
@@ -15,7 +16,7 @@ use crate::runtime_messages::{ClientMessage, FileMetaData, ServerMessage};
 #[derive(Debug, Clone)]
 pub struct CliRuntimeClient {
     args: Vec<String>,
-    override_args: Vec<String>,
+    override_args: Arc<Mutex<Vec<String>>>,
     image_buffers: HashMap<String, ImageBuffer<Rgb<u8>, Vec<u8>>>,
     #[cfg(feature = "metrics")]
     display_metrics: bool,
@@ -23,10 +24,12 @@ pub struct CliRuntimeClient {
 
 impl CliRuntimeClient {
     /// Create a new runtime client
-    pub fn new(args: Vec<String>, #[cfg(feature = "metrics")] display_metrics: bool) -> Self {
+    pub fn new(args: Vec<String>,
+               override_args: Arc<Mutex<Vec<String>>>,
+               #[cfg(feature = "metrics")] display_metrics: bool) -> Self {
         CliRuntimeClient {
             args,
-            override_args: vec!(),
+            override_args,
             image_buffers: HashMap::<String, ImageBuffer<Rgb<u8>, Vec<u8>>>::new(),
             #[cfg(feature = "metrics")]
             display_metrics,
@@ -198,10 +201,18 @@ impl CliRuntimeClient {
                 ClientMessage::Ack
             },
             ServerMessage::GetArgs => {
-                if self.override_args.is_empty() {
-                    ClientMessage::Args(self.args.clone())
+                if let Ok(override_args) = self.override_args.lock() {
+                    if override_args.is_empty() {
+                        ClientMessage::Args(self.args.clone())
+                    } else {
+                        // we want to retain arg[0] which is the flow name and replace  all others
+                        // with the override args supplied
+                        let mut one_time_args = vec!(self.args[0].clone());
+                        one_time_args.append(&mut override_args.to_vec());
+                        ClientMessage::Args(one_time_args)
+                    }
                 } else {
-                    ClientMessage::Args(std::mem::take(&mut self.override_args))
+                    ClientMessage::Args(self.args.clone())
                 }
             },
             ServerMessage::StderrEof => ClientMessage::Ack,
@@ -215,6 +226,7 @@ mod test {
     use std::fs;
     use std::fs::File;
     use std::io::prelude::*;
+    use std::sync::{Arc, Mutex};
 
     use tempdir::TempDir;
 
@@ -229,6 +241,7 @@ mod test {
     fn test_arg_passing() {
         let mut client = CliRuntimeClient::new(
             vec!["file:///test_flow.toml".to_string(), "1".to_string()],
+            Arc::new(Mutex::new(vec!())),
             #[cfg(feature = "metrics")]
             false,
         );
@@ -239,6 +252,31 @@ mod test {
                 args
             ),
             _ => panic!("Didn't get Args response as expected"),
+        }
+    }
+
+    #[test]
+    fn test_arg_overriding() {
+        let override_args = Arc::new(Mutex::new(vec!()));
+        let mut client = CliRuntimeClient::new(
+            vec!["file:///test_flow.toml".to_string(), "1".to_string()],
+            override_args.clone(),
+            #[cfg(feature = "metrics")]
+                false,
+        );
+
+        {
+            let mut overrides = override_args.lock()
+                .expect("Could not lock override args");
+            overrides.push("override".into());
+        }
+
+        match client.process_server_message(ServerMessage::GetArgs) {
+            ClientMessage::Args(args) => assert_eq!(
+                vec!("file:///test_flow.toml".to_string(), "override".to_string()),
+                args
+            ),
+            _ => panic!("Args override response was not as expected"),
         }
     }
 
@@ -257,6 +295,7 @@ mod test {
         }
         let mut client = CliRuntimeClient::new(
             vec!["file:///test_flow.toml".to_string()],
+            Arc::new(Mutex::new(vec!())),
             #[cfg(feature = "metrics")]
             false,
         );
@@ -279,6 +318,7 @@ mod test {
 
         let mut client = CliRuntimeClient::new(
             vec!["file:///test_flow.toml".to_string()],
+            Arc::new(Mutex::new(vec!())),
             #[cfg(feature = "metrics")]
             false,
         );
@@ -295,6 +335,7 @@ mod test {
     fn test_stdout() {
         let mut client = CliRuntimeClient::new(
             vec!["file:///test_flow.toml".to_string()],
+            Arc::new(Mutex::new(vec!())),
             #[cfg(feature = "metrics")]
             false,
         );
@@ -308,6 +349,7 @@ mod test {
     fn test_stderr() {
         let mut client = CliRuntimeClient::new(
             vec!["file:///test_flow.toml".to_string()],
+            Arc::new(Mutex::new(vec!())),
             #[cfg(feature = "metrics")]
             false,
         );
@@ -321,6 +363,7 @@ mod test {
     fn test_image_writing() {
         let mut client = CliRuntimeClient::new(
             vec!["file:///test_flow.toml".to_string()],
+            Arc::new(Mutex::new(vec!())),
             #[cfg(feature = "metrics")]
             false,
         );
@@ -353,6 +396,7 @@ mod test {
     fn server_exiting() {
         let mut client = CliRuntimeClient::new(
             vec!["file:///test_flow.toml".to_string()],
+            Arc::new(Mutex::new(vec!())),
             #[cfg(feature = "metrics")]
             false,
         );
