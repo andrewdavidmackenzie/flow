@@ -8,13 +8,13 @@ use serde_json::Value;
 use flowcore::model::output_connection::Source::{Input, Output};
 
 use crate::block::Block;
+use crate::breakpoint_spec::BreakpointSpec;
 use crate::debug_command::DebugCommand;
 use crate::debug_command::DebugCommand::{Ack, Breakpoint, Continue, DebugClientStarting, Delete,
                                          Error, ExitDebugger, Inspect, InspectBlock, InspectFunction, InspectInput,
                                          InspectOutput, Invalid, List, RunReset, Step, Validate
                                     };
 use crate::job::Job;
-use crate::param::Param;
 use crate::run_state::RunState;
 use crate::server::DebugServer;
 
@@ -378,12 +378,12 @@ impl<'a> Debugger<'a> {
     /*
        Add a breakpoint to the debugger according to the Optional `Param`
     */
-    fn add_breakpoint(&mut self, state: &RunState, param: Option<Param>) -> String {
+    fn add_breakpoint(&mut self, state: &RunState, param: Option<BreakpointSpec>) -> String {
         let mut response = String::new();
 
         match param {
             None => response.push_str("'break' command must specify a breakpoint\n"),
-            Some(Param::Numeric(process_id)) => {
+            Some(BreakpointSpec::Numeric(process_id)) => {
                 if process_id > state.num_functions() {
                     let _ = writeln!(response,
                         "There is no Function with id '{}' to set a breakpoint on",
@@ -398,7 +398,7 @@ impl<'a> Debugger<'a> {
                     );
                 }
             }
-            Some(Param::Input((destination_id, input_number))) => {
+            Some(BreakpointSpec::Input((destination_id, input_number))) => {
                 let function = state.get_function(destination_id);
                 let io_name = function.input(input_number).name();
                 let _ = writeln!(response,
@@ -407,17 +407,17 @@ impl<'a> Debugger<'a> {
                 self.input_breakpoints
                     .insert((destination_id, input_number));
             }
-            Some(Param::Block((Some(blocked_id), Some(blocking_id)))) => {
+            Some(BreakpointSpec::Block((Some(blocked_id), Some(blocking_id)))) => {
                 let _ = writeln!(response,
                     "Block breakpoint set on Function #{} being blocked by Function #{}",
                     blocked_id, blocking_id
                 );
                 self.block_breakpoints.insert((blocked_id, blocking_id));
             }
-            Some(Param::Block(_)) => {
+            Some(BreakpointSpec::Block(_)) => {
                 response.push_str("Invalid format to set a breakpoint on a block\n");
             }
-            Some(Param::Output((source_id, source_output_route))) => {
+            Some(BreakpointSpec::Output((source_id, source_output_route))) => {
                 let _ = writeln!(response,
                     "Data breakpoint set on Function #{} sending data via output: '{}'",
                     source_id, source_output_route
@@ -425,7 +425,7 @@ impl<'a> Debugger<'a> {
                 self.output_breakpoints
                     .insert((source_id, source_output_route));
             }
-            Some(Param::Wildcard) => {
+            Some(BreakpointSpec::All) => {
                 response.push_str(
                     "To break on every Function, you can just single step using 's' command\n",
                 );
@@ -438,12 +438,12 @@ impl<'a> Debugger<'a> {
     /*
        Delete debugger breakpoints related to Jobs or Blocks, etc according to the Spec.
     */
-    fn delete_breakpoint(&mut self, param: Option<Param>) -> String {
+    fn delete_breakpoint(&mut self, param: Option<BreakpointSpec>) -> String {
         let mut response = String::new();
 
         match param {
             None => response.push_str("No process id specified\n"),
-            Some(Param::Numeric(process_number)) => {
+            Some(BreakpointSpec::Numeric(process_number)) => {
                 if self.function_breakpoints.remove(&process_number) {
                     let _ = writeln!(response,
                         "Breakpoint on process #{} was deleted",
@@ -453,24 +453,24 @@ impl<'a> Debugger<'a> {
                     response.push_str("No breakpoint number '{}' exists\n");
                 }
             }
-            Some(Param::Input((destination_id, input_number))) => {
+            Some(BreakpointSpec::Input((destination_id, input_number))) => {
                 self.input_breakpoints
                     .remove(&(destination_id, input_number));
                 response.push_str("Inputs breakpoint removed\n");
             }
-            Some(Param::Block((Some(blocked_id), Some(blocking_id)))) => {
+            Some(BreakpointSpec::Block((Some(blocked_id), Some(blocking_id)))) => {
                 self.input_breakpoints.remove(&(blocked_id, blocking_id));
                 response.push_str("Inputs breakpoint removed\n");
             }
-            Some(Param::Block(_)) => {
+            Some(BreakpointSpec::Block(_)) => {
                 response.push_str("Invalid format to remove breakpoint\n");
             }
-            Some(Param::Output((source_id, source_output_route))) => {
+            Some(BreakpointSpec::Output((source_id, source_output_route))) => {
                 self.output_breakpoints
                     .remove(&(source_id, source_output_route));
                 response.push_str("Output breakpoint removed\n");
             }
-            Some(Param::Wildcard) => {
+            Some(BreakpointSpec::All) => {
                 self.output_breakpoints.clear();
                 self.input_breakpoints.clear();
                 self.function_breakpoints.clear();
@@ -556,16 +556,19 @@ impl<'a> Debugger<'a> {
        Take one step (execute one more job) in the flow. Do this by setting a breakpoint at the
        next job execution and then returning - flow execution will continue until breakpoint fires
     */
-    fn step(&mut self, state: &RunState, steps: Option<Param>) {
+    fn step(&mut self, state: &RunState, steps: Option<usize>) {
         match steps {
             None => {
                 self.break_at_job = state.get_number_of_jobs_created() + 1;
             }
-            Some(Param::Numeric(steps)) => {
-                self.break_at_job = state.get_number_of_jobs_created() + steps;
+            Some(steps) => {
+                if steps > 1 {
+                    self.break_at_job = state.get_number_of_jobs_created() + steps;
+                } else {
+                    self.debug_server.debugger_error(
+                        "Number of jobs to 'step' must be greater than 0\n".into());
+                }
             }
-            _ => self.debug_server.debugger_error(
-                "Did not understand step command parameter\n".into()),
         }
     }
 

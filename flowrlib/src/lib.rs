@@ -27,8 +27,8 @@ pub mod server;
 #[cfg(feature = "debugger")]
 mod debugger;
 #[cfg(feature = "debugger")]
-/// `param`module provides `Param`struct with different types of parameters for debugger commands
-pub mod param;
+/// struct with spec for specifying Breakpoints to debugger commands
+pub mod breakpoint_spec;
 #[cfg(feature = "debugger")]
 /// `debug_command` provides the `DebugCommand` enum for commands from debug client to debug server
 pub mod debug_command;

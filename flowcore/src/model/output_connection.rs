@@ -3,7 +3,7 @@ use std::fmt;
 use serde_derive::{Deserialize, Serialize};
 
 /// The `Conversion` enum defines what type of run-time conversion of types is to be done
-#[derive(Deserialize, Serialize, Clone, PartialEq, Debug)]
+#[derive(Deserialize, Serialize, Clone, PartialEq, Eq, Debug)]
 pub enum Conversion {
     /// Take value and send it wrapped in an array
     WrapAsArray,
@@ -12,7 +12,7 @@ pub enum Conversion {
 }
 
 /// This specifies the `Source` of an `OutputConnection` which can either be:
-#[derive(Deserialize, Serialize, Clone, PartialEq, Debug, Hash)]
+#[derive(Deserialize, Serialize, Clone, PartialEq, Eq, Debug, Hash)]
 pub enum Source {
     /// A subroute of an output of a function - used as JSON pointer to select part of the output
     Output(String),
@@ -21,7 +21,7 @@ pub enum Source {
 }
 
 /// `OutputConnection` contains information about a function's output connection to another function
-#[derive(Deserialize, Serialize, Clone, PartialEq, Debug)]
+#[derive(Deserialize, Serialize, Clone, PartialEq, Eq, Debug)]
 pub struct OutputConnection {
     /// Source of the value that should be forwarded
     #[serde(default = "Source::default", skip_serializing_if = "is_default_source")]
