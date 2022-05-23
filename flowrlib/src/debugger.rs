@@ -538,7 +538,7 @@ impl<'a> Debugger<'a> {
         let mut response = String::new();
 
         response.push_str("Validating flow state\n");
-        response.push_str("Running deadlock check\n");
+        response.push_str("Running deadlock check...  ");
         response.push_str(&self.deadlock_check(state));
 
         response
@@ -659,6 +659,10 @@ impl<'a> Debugger<'a> {
             if !deadlock_set.is_empty() {
                 let _ = writeln!(response, "{}", Self::display_set(&root_node, deadlock_set));
             }
+        }
+
+        if response.is_empty() {
+           let _ = writeln!(response, " No deadlocks found");
         }
 
         response
