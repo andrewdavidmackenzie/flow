@@ -435,20 +435,12 @@ impl RunState {
             return None;
         }
 
-        // TODO do this all using map()?
-        // create a job for the function_id at the head of the ready list
-        match self.ready.remove(0) {
-            Some(function_id) => {
-                let job = self.create_job(function_id);
+        let function_id = self.ready.remove(0)?;
 
-                // unblock senders blocked trying to send to this function's empty inputs
-                if let Some(ref j) = job {
-                    self.unblock_internal_flow_senders(j.job_id, j.function_id, j.flow_id);
-                }
-                job
-            }
-            None => None,
-        }
+        self.create_job(function_id).map(|job| {
+            self.unblock_internal_flow_senders(job.job_id, job.function_id, job.flow_id);
+            job
+        })
     }
 
     // The function with id `blocker_function_id` in the flow with id `blocked_flow_id` has had a
