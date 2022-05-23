@@ -12,7 +12,7 @@ use crate::model::name::HasName;
 #[cfg(feature = "debugger")]
 use crate::model::name::Name;
 
-#[derive(Clone, Debug, Serialize, PartialEq, Deserialize)]
+#[derive(Clone, Debug, Serialize, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "lowercase")]
 /// An `Input` can be initialized in one of two ways with an `InputInitializer`
 pub enum InputInitializer {

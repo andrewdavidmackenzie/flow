@@ -1,7 +1,6 @@
-
 use serde_derive::{Deserialize, Serialize};
 
-#[derive(Clone, Deserialize, Debug, Default, Serialize, PartialEq)]
+#[derive(Clone, Deserialize, Debug, Default, Serialize, PartialEq, Eq)]
 /// `MetaData` about a `flow` that will be used in the flow's description and `Manifest`
 pub struct MetaData {
     /// The human readable `name` of a `flow`

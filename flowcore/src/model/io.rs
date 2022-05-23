@@ -16,7 +16,7 @@ use crate::model::route::SetIORoutes;
 use crate::model::validation::Validate;
 
 /// `IOType` defines what type of IO this is
-#[derive(Deserialize, Serialize, Debug, Clone, PartialEq)]
+#[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
 #[allow(clippy::upper_case_acronyms)]
 pub enum IOType {
     /// The IO is an input of a Function

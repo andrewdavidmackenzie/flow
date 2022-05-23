@@ -6,7 +6,7 @@ use url::Url;
 
 /// A `Submission` is the struct used to send a flow to the Coordinator for execution. It contains
 /// all the information necessary to execute it:
-#[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
+#[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone)]
 pub struct Submission {
     /// The URL where the manifest of the flow to execute can be found
     pub manifest_url: Url,
