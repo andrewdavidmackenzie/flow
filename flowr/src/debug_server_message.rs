@@ -7,7 +7,6 @@ use flowcore::model::input::Input;
 use flowcore::model::output_connection::OutputConnection;
 use flowcore::model::runtime_function::RuntimeFunction;
 use flowrlib::block::Block;
-//use flowrlib::debug_command::DebugCommand;
 use flowrlib::job::Job;
 use flowrlib::run_state::{RunState, State};
 

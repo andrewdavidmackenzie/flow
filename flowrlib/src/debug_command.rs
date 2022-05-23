@@ -37,6 +37,8 @@ pub enum DebugCommand {
     Invalid,
     /// `list` existing breakpoints
     List,
+    /// `modify` a debugger or runtime state value e.g. jobs=1 to set parallel jobs to 1
+    Modify(Option<Vec<String>>),
     /// `reset` flow execution back to the initial state, or run the flow from the start
     RunReset,
     /// `step` forward in flow execution by executing one (default) or more `Jobs`
@@ -69,6 +71,7 @@ impl fmt::Display for DebugCommand {
                 DebugCommand::Step(_) => "Step",
                 DebugCommand::Validate => "Validate",
                 DebugCommand::DebugClientStarting => "DebugClientStarting",
+                DebugCommand::Modify(_) => "Modify"
             }
         )
     }

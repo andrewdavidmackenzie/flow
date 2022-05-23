@@ -2,7 +2,6 @@ use std::collections::{HashMap, HashSet};
 use std::collections::hash_map::Entry;
 use std::collections::VecDeque;
 use std::fmt;
-use std::time::Duration;
 
 use log::{debug, error, trace};
 use multimap::MultiMap;
@@ -195,18 +194,13 @@ pub struct RunState {
     completed: HashSet<usize>,
     /// number of jobs sent for execution to date
     number_of_jobs_created: usize,
-    /// limit on the number of jobs allowed to be pending to complete (i.e. running in parallel)
-    max_pending_jobs: usize,
-    #[cfg(feature = "debugger")]
-    /// if the submission includes a request to debug the flow execution
-    pub debug: bool,
-    /// The timeout to be used when waiting for a job to respond
-    pub job_timeout: Duration,
     /// Track which flow-function combinations are considered "busy" <flow_id, function_id>
     busy_flows: MultiMap<usize, usize>,
     /// Track which functions have finished and can be unblocked when flow goes not "busy"
     /// HashMap< <flow_id>, (function_id, vector of refilled io numbers of that function)>
     pending_unblocks: HashMap<usize, HashSet<usize>>,
+    /// The `Submission` that lead to this `RunState` object being created
+    pub(crate) submission: Submission,
 }
 
 impl RunState {
@@ -221,12 +215,10 @@ impl RunState {
             running: MultiMap::<usize, usize>::new(),
             completed: HashSet::<usize>::new(),
             number_of_jobs_created: 0,
-            max_pending_jobs: submission.max_parallel_jobs,
             #[cfg(feature = "debugger")]
-            debug: submission.debug,
-            job_timeout: submission.job_timeout,
             busy_flows: MultiMap::<usize, usize>::new(),
             pending_unblocks: HashMap::<usize, HashSet<usize>>::new(),
+            submission
         }
     }
 
@@ -438,25 +430,17 @@ impl RunState {
     /// Return the next job ready to be run, if there is one and there are not
     /// too many jobs already running
     pub(crate) fn next_job(&mut self) -> Option<Job> {
-        if self.number_jobs_running() >= self.max_pending_jobs {
-            trace!("Max Pending Job count of {} reached, skipping new jobs", self.max_pending_jobs);
+        if self.number_jobs_running() >= self.submission.max_parallel_jobs {
+            trace!("Max Pending Job count of {} reached, skipping new jobs", self.submission.max_parallel_jobs);
             return None;
         }
 
-        // TODO do this all using map()?
-        // create a job for the function_id at the head of the ready list
-        match self.ready.remove(0) {
-            Some(function_id) => {
-                let job = self.create_job(function_id);
+        let function_id = self.ready.remove(0)?;
 
-                // unblock senders blocked trying to send to this function's empty inputs
-                if let Some(ref j) = job {
-                    self.unblock_internal_flow_senders(j.job_id, j.function_id, j.flow_id);
-                }
-                job
-            }
-            None => None,
-        }
+        self.create_job(function_id).map(|job| {
+            self.unblock_internal_flow_senders(job.job_id, job.function_id, job.flow_id);
+            job
+        })
     }
 
     // The function with id `blocker_function_id` in the flow with id `blocked_flow_id` has had a
@@ -1003,6 +987,8 @@ impl RunState {
 
 impl fmt::Display for RunState {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        writeln!(f, "{}\n", self.submission)?;
+
         writeln!(f, "RunState:")?;
         writeln!(f, "       Jobs Created: {}", self.number_of_jobs_created)?;
         writeln!(f, ". Functions Blocked: {:?}", self.blocked)?;

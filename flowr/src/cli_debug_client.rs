@@ -17,18 +17,19 @@ use crate::debug_server_message::{DebugServerMessage, DebugServerMessage::*};
 const FLOWR_HISTORY_FILENAME: &str = ".flowr_history";
 
 const HELP_STRING: &str = "Debugger commands:
-'b' | 'breakpoint' {spec}     - Set a breakpoint on a function (by id), an output or an input using spec:
-                                 - function_id (integer)
-                                 - source_id/output_route ('source_id/' for default output route)
-                                 - destination_id:input_number
-                                 - blocked_process_id->blocking_process_id
-'c' | 'continue'              - Continue execution until next breakpoint
+'b' | 'breakpoint' {spec}     - Set a breakpoint using spec:
+                                 - on a function by function_id (integer)
+                                 - on an output by source_id/output_route ('source_id/' for default output)
+                                 - on an input by destination_id:input_number
+                                 - on block creation by blocked_process_id->blocking_process_id
+'c' | 'continue'              - Continue execution after a breakpoint
 'd' | 'delete' {spec} or '*'  - Delete the breakpoint matching {spec} or all with '*'
 'e' | 'exit'                  - Stop flow execution and exit debugger
 'f' | 'functions'             - Show the list of functions
 'h' | 'help' | '?'            - Display this help message
 'i' | 'inspect' [n]           - Inspect the overall state, or the function number 'n'
 'l' | 'list'                  - List all breakpoints
+'m' | 'modify' [name]=[value] - Modify a debugger or runtime variable named 'name' to value 'value'
 'q' | 'quit'                  - Stop flow execution and exit debugger
 'r' | 'reset' or 'run' {args} - If running already then reset the state, or run the flow with {args}
 's' | 'step' [n]              - Step over the next 'n' jobs (default = 1) then break
@@ -157,7 +158,6 @@ impl CliDebugClient {
             }
         }
 
-        println!("Not a valid breakpoint spec");
         None
     }
 
@@ -234,6 +234,7 @@ impl CliDebugClient {
             }
             "i" | "inspect" => Self::parse_inspect_spec(params),
             "l" | "list" => Some(List),
+            "m" | "modify" => Some(Modify(params)),
             "q" | "quit" => Some(ExitDebugger),
             "r" | "run" | "reset" => {
                 if let Some(mut overrides) = params {
@@ -344,6 +345,7 @@ impl CliDebugClient {
         for function in functions {
             println!("\t#{} '{}' @ '{}'", function.id(), function.name(), function.route());
         }
+        println!("Use 'i n' or 'inspect n' to inspect the function number 'n'");
     }
 
     /*
