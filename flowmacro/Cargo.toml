@@ -1,6 +1,6 @@
 [package]
 name = "flowmacro"
-version = "0.50.0"
+version = "0.60.0"
 description = "Definition of a 'flow' attribute macro to help write implementations"
 license = "MIT"
 documentation = "https://github.com/andrewdavidmackenzie/flow/flowmacro/README.md"
@@ -19,6 +19,6 @@ proc-macro = true
 [dependencies]
 syn = { version = "~1.0", features =["full"] } #Full is required for ItemFn in macro parsing
 quote = "~1.0"
-flowcore = {path = "../flowcore", version = "0.50.0"}
+flowcore = {path = "../flowcore", version = "0.60.0"}
 toml = "0.5.8"
 proc-macro2 = "1.0"
