@@ -162,10 +162,9 @@ fn execute_flow(
     (output, err)
 }
 
-fn test_args(test_dir: &Path, test_name: &str) -> Vec<String> {
-    let test_args = format!("{}.args", test_name);
+fn test_args(test_dir: &Path) -> Vec<String> {
     let mut args_file = test_dir.to_path_buf();
-    args_file.push(test_args);
+    args_file.push("test.args");
     let f = File::open(&args_file).expect("Could not open args file for test");
     let f = BufReader::new(f);
 
@@ -176,10 +175,9 @@ fn test_args(test_dir: &Path, test_name: &str) -> Vec<String> {
     args
 }
 
-fn load_flow(test_dir: &Path, test_name: &str, search_path: Simpath) -> Process {
-    let test_flow = format!("{}.toml", test_name);
+fn load_flow(test_dir: &Path, search_path: Simpath) -> Process {
     let mut flow_file = test_dir.to_path_buf();
-    flow_file.push(test_flow);
+    flow_file.push("root.toml");
     loader::load(
         &helper::absolute_file_url_from_relative_path(&flow_file.to_string_lossy()),
         &MetaProvider::new(search_path, helper::get_canonical_context_root()),
@@ -191,6 +189,10 @@ fn load_flow(test_dir: &Path, test_name: &str, search_path: Simpath) -> Process 
 fn get(test_dir: &Path, file_name: &str) -> String {
     let mut expected_file = test_dir.to_path_buf();
     expected_file.push(file_name);
+    if !expected_file.exists() {
+        return "".into();
+    }
+
     let mut f = File::open(&expected_file).expect("Could not open file");
     let mut buffer = Vec::new();
     f.read_to_end(&mut buffer).expect("Could not read from file");
@@ -203,7 +205,7 @@ fn execute_test(test_name: &str, separate_processes: bool) {
     root_dir.pop();
     let test_dir = root_dir.join(&format!("flowc/tests/test-flows/{}", test_name));
 
-    if let FlowProcess(ref flow) = load_flow(&test_dir, test_name, search_path) {
+    if let FlowProcess(ref flow) = load_flow(&test_dir, search_path) {
         let mut source_urls = HashSet::<(Url, Url)>::new();
         let output_dir = TempDir::new("flow-test").expect("A temp dir").into_path();
 
@@ -215,16 +217,14 @@ fn execute_test(test_name: &str, separate_processes: bool) {
             TempDir::new("flow").expect("Could not get temp dir");
         let manifest_path = write_manifest(flow, true, dir.into_path(), test_name, &tables)
             .expect("Could not write manifest file");
-        let test_args = test_args(&test_dir, test_name);
-        let input = get(&test_dir, &format!("{}.stdin", test_name));
+        let test_args = test_args(&test_dir);
+        let input = get(&test_dir, "test.stdin");
         let (actual_stdout, actual_stderr) =
             execute_flow(manifest_path, test_args, input, separate_processes);
-        let expected_output = get(&test_dir, &format!("{}.expected", test_name));
-        assert!(actual_stderr.is_empty(), "{}", actual_stderr);
-        assert_eq!(
-            expected_output, actual_stdout,
-            "Flow output did not match that in .expected file"
-        );
+        let expected_stdout = get(&test_dir, "expected.stdout");
+        assert_eq!(expected_stdout, actual_stdout, "STDOUT: {}", actual_stdout);
+        let expected_stderr = get(&test_dir, "expected.stderr");
+        assert_eq!(expected_stderr, actual_stderr, "STDERR: {}", actual_stderr);
     }
 }
 

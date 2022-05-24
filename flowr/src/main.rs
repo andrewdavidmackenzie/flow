@@ -21,6 +21,7 @@ use simpath::Simpath;
 use simplog::SimpleLogger;
 use url::Url;
 
+use flowcore::errors::*;
 use flowcore::meta_provider::{MetaProvider, Provider};
 use flowcore::model::submission::Submission;
 use flowcore::url_helper::url_from_string;
@@ -42,7 +43,6 @@ use crate::DebugServerMessage::{BlockBreakpoint, DataBreakpoint, ExecutionEnded,
                                 ExitingDebugger, JobCompleted, JobError, Panic, PriorToSendingJob,
                                 WaitingForCommand};
 use crate::DebugServerMessage::Resetting;
-use crate::errors::*;
 use crate::runtime_messages::{ClientMessage, ServerMessage};
 
 // Test helper functions
@@ -292,7 +292,7 @@ fn client_and_server(
     matches: ArgMatches,
     #[cfg(feature = "debugger")]
     debug_this_flow: bool,
-) -> flowcore::errors::Result<()> {
+) -> Result<()> {
     let runtime_server_connection = ServerConnection::new(RUNTIME_SERVICE_NAME, Method::InProc(None))?;
     #[cfg(feature = "debugger")]
     let debug_server_connection = ServerConnection::new(DEBUG_SERVICE_NAME, Method::InProc(None))?;
@@ -371,9 +371,7 @@ fn server(
         loader,
         provider,
         loop_forever,
-    )?;
-
-    Ok(())
+    )
 }
 
 // Start only a client in the calling thread. Since we are *only* starting a client in this
@@ -382,7 +380,7 @@ fn server(
 fn client_only(
     matches: ArgMatches,
     #[cfg(feature = "debugger")] debug_this_flow: bool,
-) -> flowcore::errors::Result<()> {
+) -> Result<()> {
     let mut runtime_server_info = ServerInfo::new(
         RUNTIME_SERVICE_NAME,
         Method::Tcp(
@@ -427,7 +425,7 @@ fn client(
     control_c_client_connection: Option<ClientConnection>,
     #[cfg(feature = "debugger")] debug_this_flow: bool,
     #[cfg(feature = "debugger")] debug_server_info: &mut ServerInfo,
-) -> flowcore::errors::Result<()> {
+) -> Result<()> {
     // keep an Arc Mutex protected set of override args that debug client can override
     let override_args = Arc::new(Mutex::new(vec!()));
 
@@ -610,7 +608,7 @@ fn get_matches<'a>() -> ArgMatches<'a> {
 }
 
 // Parse the command line arguments passed onto the flow itself
-fn parse_flow_url(matches: &ArgMatches) -> flowcore::errors::Result<Url> {
+fn parse_flow_url(matches: &ArgMatches) -> Result<Url> {
     let cwd_url = Url::from_directory_path(env::current_dir()?)
         .map_err(|_| "Could not form a Url for the current working directory")?;
     url_from_string(&cwd_url, matches.value_of("flow-manifest"))

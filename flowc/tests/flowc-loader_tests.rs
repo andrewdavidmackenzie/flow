@@ -35,10 +35,10 @@ fn malformed_connection() {
     let meta_provider = MetaProvider::new(helper::set_lib_search_path_to_project(),
                                           helper::get_canonical_context_root());
     let path = helper::absolute_file_url_from_relative_path(
-        "flowc/tests/test-flows/malformed-connection.toml",
+        "flowc/tests/test-flows/root.toml",
     );
     if loader::load(&path, &meta_provider, &mut HashSet::<(Url, Url)>::new()).is_ok() {
-        panic!("malformed-connection.toml should not load successfully");
+        panic!("root.toml should not load successfully");
     }
 }
 
@@ -46,9 +46,9 @@ fn malformed_connection() {
 fn invalid_toml() {
     let meta_provider = MetaProvider::new(helper::set_lib_search_path_to_project(),
                                           helper::get_canonical_context_root());
-    let path = helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/invalid.toml");
+    let path = helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/root.toml");
     if loader::load(&path, &meta_provider, &mut HashSet::<(Url, Url)>::new()).is_ok() {
-        panic!("invalid.toml should not load successfully");
+        panic!("root.toml should not load successfully");
     }
 }
 
@@ -57,10 +57,10 @@ fn invalid_process() {
     let meta_provider = MetaProvider::new(helper::set_lib_search_path_to_project(),
                                           helper::get_canonical_context_root());
     let path = helper::absolute_file_url_from_relative_path(
-        "flowc/tests/test-flows/invalid-process/invalid-process.toml",
+        "flowc/tests/test-flows/invalid-process/root.toml",
     );
     if loader::load(&path, &meta_provider, &mut HashSet::<(Url, Url)>::new()).is_ok() {
-        panic!("invalid.toml should not load successfully");
+        panic!("root.toml should not load successfully");
     }
 }
 
@@ -69,7 +69,7 @@ fn function_input_initialized() {
     let meta_provider = MetaProvider::new(helper::set_lib_search_path_to_project(),
                                           helper::get_canonical_context_root());
     let url = helper::absolute_file_url_from_relative_path(
-        "flowc/tests/test-flows/function_input_init/function_input_init.toml",
+        "flowc/tests/test-flows/function_input_init/root.toml",
     );
 
     match loader::load(&url, &meta_provider, &mut HashSet::<(Url, Url)>::new()) {
@@ -100,7 +100,7 @@ fn root_flow_takes_name_from_file() {
                                           helper::get_canonical_context_root());
     // Relative path from project root to the test file
     let url =
-        helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/names/names.toml");
+        helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/names/root.toml");
 
     match loader::load(&url, &meta_provider, &mut HashSet::<(Url, Url)>::new()) {
         Ok(FlowProcess(flow)) => assert_eq!(flow.name, Name::from("names")),

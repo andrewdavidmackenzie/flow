@@ -4,6 +4,7 @@ use std::sync::mpsc::{Receiver, Sender};
 
 use log::{debug, error, info, trace};
 
+use flowcore::errors::*;
 use flowcore::meta_provider::MetaProvider;
 use flowcore::model::flow_manifest::FlowManifest;
 #[cfg(feature = "metrics")]
@@ -12,7 +13,6 @@ use flowcore::model::submission::Submission;
 
 #[cfg(feature = "debugger")]
 use crate::debugger::Debugger;
-use crate::errors::*;
 use crate::execution;
 use crate::job::Job;
 use crate::loader::Loader;
@@ -73,24 +73,17 @@ impl<'a> Coordinator<'a> {
         while let Some(submission) = self.server.wait_for_submission()? {
             match loader.load_flow(&provider, &submission.manifest_url) {
                 Ok(manifest) => {
-                    // If an early exit then break out of submission loop
-                    if self.execute_flow(manifest, submission)? {
-                        break;
-                    }
-                }
+                    let r = self.execute_flow(manifest, submission);
+                    return self.server.server_exiting(r);
+                },
+                Err(e) if loop_forever => error!("{}", e),
                 Err(e) => {
-                    if loop_forever {
-                        error!("{}", e);
-                    } else {
-                        self.server.server_exiting(Err(e.clone()))?;
-                        bail!("{}", e);
-                    }
+                    return self.server.server_exiting(Err(e));
                 },
             }
         }
 
-        self.server.server_exiting(Ok(()))?;
-        Ok(())
+        self.server.server_exiting(Ok(()))
     }
 
     //noinspection RsReassignImmutable
@@ -101,7 +94,7 @@ impl<'a> Coordinator<'a> {
     #[allow(unused_variables, unused_assignments, unused_mut)]
     pub fn execute_flow(&mut self,
                         mut manifest: FlowManifest,
-                        submission: Submission,) -> Result<bool> {
+                        submission: Submission,) -> Result<()> {
         let mut state = RunState::new(manifest.get_functions(), submission);
 
         #[cfg(feature = "metrics")]
@@ -129,7 +122,7 @@ impl<'a> Coordinator<'a> {
                 (display_next_output, restart, debugger_requested_exit) = self.debugger.wait_for_command(&mut state);
 
                 if debugger_requested_exit {
-                    return Ok(true); // User requested via debugger to exit execution
+                    bail!("Debugger Exit");
                 }
             }
 
@@ -144,7 +137,7 @@ impl<'a> Coordinator<'a> {
                         break 'jobs;
                     }
                     if debugger_requested_exit {
-                        return Ok(true); // User requested via debugger to exit execution
+                        bail!("Debugger Exit");
                     }
                 }
 
@@ -158,7 +151,7 @@ impl<'a> Coordinator<'a> {
                     break 'jobs;
                 }
                 if debugger_requested_exit {
-                    return Ok(true); // User requested via debugger to exit execution
+                    bail!("Debugger Exit");
                 }
 
                 if state.number_jobs_running() > 0 {
@@ -172,7 +165,7 @@ impl<'a> Coordinator<'a> {
                                     break 'jobs;
                                 }
                                 if debugger_requested_exit {
-                                    return Ok(true); // User requested via debugger to exit execution
+                                    bail!("Debugger Exit");
                                 }
                             }
 
@@ -194,7 +187,7 @@ impl<'a> Coordinator<'a> {
                                     break 'jobs;
                                 }
                                 if debugger_requested_exit {
-                                    return Ok(true); // User requested via debugger to exit execution
+                                    bail!("Debugger Exit");
                                 }
                             }
                         }
@@ -219,11 +212,10 @@ impl<'a> Coordinator<'a> {
                     if state.submission.debug {
                         (display_next_output, restart, debugger_requested_exit) = self.debugger.execution_ended(&mut state);
                         if debugger_requested_exit {
-                            return Ok(true); // User requested via debugger to exit execution
+                            bail!("Debugger Exit");
                         }
                     }
                 }
-
             }
 
             // if no debugger then end execution always
@@ -240,7 +232,7 @@ impl<'a> Coordinator<'a> {
         #[cfg(not(feature = "metrics"))]
         self.server.flow_ended()?;
 
-        Ok(false) // Normal flow completion exit
+        Ok(()) // Normal flow completion exit
     }
 
     // Send as many jobs as possible for parallel execution.
