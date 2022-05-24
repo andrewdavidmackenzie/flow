@@ -4,6 +4,7 @@ use std::sync::mpsc::{Receiver, Sender};
 
 use log::{debug, error, info, trace};
 
+use flowcore::errors::*;
 use flowcore::meta_provider::MetaProvider;
 use flowcore::model::flow_manifest::FlowManifest;
 #[cfg(feature = "metrics")]
@@ -12,7 +13,6 @@ use flowcore::model::submission::Submission;
 
 #[cfg(feature = "debugger")]
 use crate::debugger::Debugger;
-use crate::errors::*;
 use crate::execution;
 use crate::job::Job;
 use crate::loader::Loader;
@@ -73,24 +73,17 @@ impl<'a> Coordinator<'a> {
         while let Some(submission) = self.server.wait_for_submission()? {
             match loader.load_flow(&provider, &submission.manifest_url) {
                 Ok(manifest) => {
-                    // If an early exit then break out of submission loop
-                    if self.execute_flow(manifest, submission)? {
-                        break;
-                    }
-                }
+                    let r = self.execute_flow(manifest, submission);
+                    return self.server.server_exiting(r);
+                },
+                Err(e) if loop_forever => error!("{}", e),
                 Err(e) => {
-                    if loop_forever {
-                        error!("{}", e);
-                    } else {
-                        self.server.server_exiting(Err(e.clone()))?;
-                        bail!("{}", e);
-                    }
+                    return self.server.server_exiting(Err(e));
                 },
             }
         }
 
-        self.server.server_exiting(Ok(()))?;
-        Ok(())
+        self.server.server_exiting(Ok(()))
     }
 
     //noinspection RsReassignImmutable
@@ -101,7 +94,7 @@ impl<'a> Coordinator<'a> {
     #[allow(unused_variables, unused_assignments, unused_mut)]
     pub fn execute_flow(&mut self,
                         mut manifest: FlowManifest,
-                        submission: Submission,) -> Result<bool> {
+                        submission: Submission,) -> Result<()> {
         let mut state = RunState::new(manifest.get_functions(), submission);
 
         #[cfg(feature = "metrics")]
@@ -114,7 +107,6 @@ impl<'a> Coordinator<'a> {
 
         let mut restart = false;
         let mut display_next_output = false;
-        let mut debugger_requested_exit = false;
 
         // This outer loop is just a way of restarting execution from scratch if the debugger requests it
         'flow_execution:
@@ -126,11 +118,7 @@ impl<'a> Coordinator<'a> {
             // If debugging - then prior to starting execution - enter the debugger
             #[cfg(feature = "debugger")]
             if state.submission.debug {
-                (display_next_output, restart, debugger_requested_exit) = self.debugger.wait_for_command(&mut state);
-
-                if debugger_requested_exit {
-                    return Ok(true); // User requested via debugger to exit execution
-                }
+                (display_next_output, restart) = self.debugger.wait_for_command(&mut state)?;
             }
 
             self.server.flow_starting()?;
@@ -139,26 +127,20 @@ impl<'a> Coordinator<'a> {
                 trace!("{}", state);
                 #[cfg(feature = "debugger")]
                 if state.submission.debug && self.server.should_enter_debugger()? {
-                    (display_next_output, restart, debugger_requested_exit) = self.debugger.wait_for_command(&mut state);
+                    (display_next_output, restart) = self.debugger.wait_for_command(&mut state)?;
                     if restart {
                         break 'jobs;
                     }
-                    if debugger_requested_exit {
-                        return Ok(true); // User requested via debugger to exit execution
-                    }
                 }
 
-                (display_next_output, restart, debugger_requested_exit) = self.send_jobs(
+                (display_next_output, restart) = self.send_jobs(
                     &mut state,
                     #[cfg(feature = "metrics")]
                     &mut metrics,
-                );
+                )?;
 
                 if restart {
                     break 'jobs;
-                }
-                if debugger_requested_exit {
-                    return Ok(true); // User requested via debugger to exit execution
                 }
 
                 if state.number_jobs_running() > 0 {
@@ -166,35 +148,29 @@ impl<'a> Coordinator<'a> {
                         Ok(job) => {
                             #[cfg(feature = "debugger")]
                             if display_next_output {
-                                (display_next_output, restart, debugger_requested_exit) =
-                                    self.debugger.job_completed(&mut state, &job);
+                                (display_next_output, restart) =
+                                    self.debugger.job_completed(&mut state, &job)?;
                                 if restart {
                                     break 'jobs;
                                 }
-                                if debugger_requested_exit {
-                                    return Ok(true); // User requested via debugger to exit execution
-                                }
                             }
 
-                            (display_next_output, restart, debugger_requested_exit) = state.complete_job(
+                            (display_next_output, restart) = state.complete_job(
                                 #[cfg(feature = "metrics")]
                                     &mut metrics,
                                 &job,
                                 #[cfg(feature = "debugger")]
                                     &mut self.debugger,
-                            );
+                            )?;
                         }
 
                         #[cfg(feature = "debugger")]
                         Err(err) => {
                             if state.submission.debug {
-                                (display_next_output, restart, debugger_requested_exit) = self.debugger
-                                    .panic(&mut state, format!("Error in job reception: '{}'", err));
+                                (display_next_output, restart) = self.debugger
+                                    .panic(&mut state, format!("Error in job reception: '{}'", err))?;
                                 if restart {
                                     break 'jobs;
-                                }
-                                if debugger_requested_exit {
-                                    return Ok(true); // User requested via debugger to exit execution
                                 }
                             }
                         }
@@ -217,13 +193,9 @@ impl<'a> Coordinator<'a> {
                 {
                     // If debugging then enter the debugger for a final time before ending flow execution
                     if state.submission.debug {
-                        (display_next_output, restart, debugger_requested_exit) = self.debugger.execution_ended(&mut state);
-                        if debugger_requested_exit {
-                            return Ok(true); // User requested via debugger to exit execution
-                        }
+                        (display_next_output, restart) = self.debugger.execution_ended(&mut state)?;
                     }
                 }
-
             }
 
             // if no debugger then end execution always
@@ -240,7 +212,7 @@ impl<'a> Coordinator<'a> {
         #[cfg(not(feature = "metrics"))]
         self.server.flow_ended()?;
 
-        Ok(false) // Normal flow completion exit
+        Ok(()) // Normal flow completion exit
     }
 
     // Send as many jobs as possible for parallel execution.
@@ -249,10 +221,9 @@ impl<'a> Coordinator<'a> {
         &mut self,
         state: &mut RunState,
         #[cfg(feature = "metrics")] metrics: &mut Metrics,
-    ) -> (bool, bool, bool) {
+    ) -> Result<(bool, bool)> {
         let mut display_output = false;
         let mut restart = false;
-        let mut abort = false;
 
         while let Some(job) = state.next_job() {
             match self.send_job(
@@ -261,10 +232,9 @@ impl<'a> Coordinator<'a> {
                 #[cfg(feature = "metrics")]
                 metrics,
             ) {
-                Ok((display, rest, leave)) => {
+                Ok((display, rest)) => {
                     display_output = display;
                     restart = rest;
-                    abort = leave;
                 }
                 Err(err) => {
                     error!("Error sending on 'job_tx': {}", err.to_string());
@@ -276,7 +246,7 @@ impl<'a> Coordinator<'a> {
             }
         }
 
-        (display_output, restart, abort)
+        Ok((display_output, restart))
     }
 
     // Send a job for execution
@@ -285,9 +255,9 @@ impl<'a> Coordinator<'a> {
         job: &Job,
         state: &mut RunState,
         #[cfg(feature = "metrics")] metrics: &mut Metrics,
-    ) -> Result<(bool, bool, bool)> {
+    ) -> Result<(bool, bool)> {
         #[cfg(not(feature = "debugger"))]
-        let debug_options = (false, false, false);
+        let debug_options = (false, false);
 
         state.start(job);
         #[cfg(feature = "metrics")]
@@ -296,7 +266,7 @@ impl<'a> Coordinator<'a> {
         #[cfg(feature = "debugger")]
         let debug_options = self
             .debugger
-            .check_prior_to_job(state, job);
+            .check_prior_to_job(state, job)?;
 
         // Jobs maybe sent to remote nodes over network so have to be self--contained - clone OK
         self.job_tx

@@ -48,8 +48,8 @@ fn run_sample(sample_dir: &Path, output_dir: &Path) -> io::Result<()> {
     let manifest_path = output_dir.join("manifest.json");
     println!("\n\tRunning Sample: {:?}", sample_dir.file_name());
     assert!(manifest_path.exists(), "Manifest not found at '{}'", manifest_path.display());
-    println!("\tSTDIN is read from test.input, Arguments are read from test.arguments");
-    println!("\tSTDOUT is sent to test.output, STDERR to test.err and file output to test.file");
+    println!("\tSTDIN is read from test.stdin, Arguments are read from test.args");
+    println!("\tSTDOUT is sent to test.stdout, STDERR to test.stderr and file output to test.file");
 
     let mut command_args: Vec<String> = vec!["--native".into(), manifest_path.display().to_string()];
 
@@ -71,7 +71,7 @@ fn run_sample(sample_dir: &Path, output_dir: &Path) -> io::Result<()> {
     {
         Ok(mut flowr_child) => {
             let _ = Command::new("cat")
-                .args(vec![sample_dir.join("test.input")])
+                .args(vec![sample_dir.join("test.stdin")])
                 .stdout(flowr_child.stdin.take().ok_or_else(|| {
                     io::Error::new(
                         io::ErrorKind::Other,
@@ -97,7 +97,7 @@ fn run_sample(sample_dir: &Path, output_dir: &Path) -> io::Result<()> {
 }
 
 fn args(sample_dir: &Path) -> io::Result<Vec<String>> {
-    let args_file = sample_dir.join("test.arguments");
+    let args_file = sample_dir.join("test.args");
     let f = File::open(&args_file)?;
     let f = BufReader::new(f);
 
@@ -168,7 +168,7 @@ mod test {
             }
         }
 
-        compare_and_fail(sample_dir.join("expected.output"), output_dir.join("test.output"));
+        compare_and_fail(sample_dir.join("expected.stdout"), output_dir.join("test.output"));
         compare_and_fail(sample_dir.join("expected.file"), output_dir.join("test.file"));
     }
 

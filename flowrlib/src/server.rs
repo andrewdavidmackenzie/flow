@@ -46,7 +46,7 @@ pub trait Server {
     fn wait_for_submission(&mut self) -> Result<Option<Submission>>;
 
     /// The flow server is about to exit
-    fn server_exiting(&mut self, result: Result<()>) -> flowcore::errors::Result<()>;
+    fn server_exiting(&mut self, result: Result<()>) -> Result<()>;
 }
 
 /// a `DebugServer` implements these "callbacks" in order to communicate between a CLI/UI
