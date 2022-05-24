@@ -8,6 +8,7 @@ use multimap::MultiMap;
 use serde_derive::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
+use flowcore::errors::*;
 #[cfg(feature = "metrics")]
 use flowcore::model::metrics::Metrics;
 use flowcore::model::output_connection::OutputConnection;
@@ -533,17 +534,15 @@ impl RunState {
     /// Then take the output and send it to all destination IOs on different function it should be
     /// sent to, marking the source function as blocked because those others must consume the output
     /// if those other function have all their inputs, then mark them accordingly.
-    #[must_use]
     #[allow(unused_variables, unused_assignments, unused_mut)]
     pub fn complete_job(
         &mut self,
         #[cfg(feature = "metrics")] metrics: &mut Metrics,
         job: &Job,
         #[cfg(feature = "debugger")] debugger: &mut Debugger,
-    ) -> (bool, bool, bool){
+    ) -> Result<(bool, bool)>{
         let mut display_next_output = false;
         let mut restart = false;
-        let mut debugger_requested_exit = false;
 
         self.running.retain(|&_, &job_id| job_id != job.job_id);
         #[cfg(debug_assertions)]
@@ -569,7 +568,7 @@ impl RunState {
                         };
 
                         if let Some(value) = value_to_send {
-                            (display_next_output, restart, debugger_requested_exit) =
+                            (display_next_output, restart) =
                                 self.send_a_value(
                                 job.function_id,
                                 job.flow_id,
@@ -577,7 +576,7 @@ impl RunState {
                                 value,
                                 #[cfg(feature = "metrics")] metrics,
                                 #[cfg(feature = "debugger")] debugger,
-                            );
+                            )?;
                         } else {
                             trace!(
                                 "Job #{}:\t\tNo value found at '{}'",
@@ -611,11 +610,11 @@ impl RunState {
         self.remove_from_busy(job.function_id);
 
         // need to do flow unblocks as that could affect other functions even if this one cannot run again
-        (display_next_output, restart, debugger_requested_exit) =
+        (display_next_output, restart) =
             self.unblock_flows(job.flow_id,
                                job.job_id,
                                #[cfg(feature = "debugger")] debugger,
-            );
+            )?;
 
         #[cfg(debug_assertions)]
         checks::check_invariants(self, job_id);
@@ -625,12 +624,11 @@ impl RunState {
             job.job_id,
         );
 
-        (display_next_output, restart, debugger_requested_exit)
+        Ok((display_next_output, restart))
     }
 
     // Send a value produced as part of an output of running a job to a destination function on
     // a specific input, update the metrics and potentially enter the debugger
-    #[must_use]
     fn send_a_value(
         &mut self,
         source_id: usize,
@@ -639,10 +637,9 @@ impl RunState {
         output_value: &Value,
         #[cfg(feature = "metrics")] metrics: &mut Metrics,
         #[cfg(feature = "debugger")] debugger: &mut Debugger,
-    ) -> (bool, bool, bool) {
+    ) -> Result<(bool, bool)> {
         let mut display_next_output = false;
         let mut restart = false;
-        let mut debugger_requested_exit = false;
 
         let route_str = match &connection.source {
             Output(route) if route.is_empty() => "".into(),
@@ -662,14 +659,14 @@ impl RunState {
 
         #[cfg(feature = "debugger")]
         if let Output(route) = &connection.source {
-            (display_next_output, restart, debugger_requested_exit) = debugger.check_prior_to_send(
+            (display_next_output, restart) = debugger.check_prior_to_send(
                 self,
                 source_id,
                 route,
                 output_value,
                 connection.function_id,
                 connection.io_number,
-            );
+            )?;
         }
 
         let function = self.get_mut(connection.function_id);
@@ -687,7 +684,7 @@ impl RunState {
         // Avoid a function blocking on itself when sending itself a value via a loopback
         if block && !loopback {
             // TODO pass in destination and combine Block and OutputConnection?
-            (display_next_output, restart, debugger_requested_exit) = self.create_block(
+            (display_next_output, restart) = self.create_block(
                 connection.flow_id,
                 connection.function_id,
                 connection.io_number,
@@ -696,7 +693,7 @@ impl RunState {
                 connection.get_priority(),
                 #[cfg(feature = "debugger")]
                     debugger,
-            );
+            )?;
         }
 
         // postpone the decision about making the sending function Ready due to a loopback
@@ -706,7 +703,7 @@ impl RunState {
             self.make_ready_or_blocked(connection.function_id, connection.flow_id);
         }
 
-        (display_next_output, restart, debugger_requested_exit)
+        Ok((display_next_output, restart))
     }
 
     // Initialize any input of the sending function that has an initializer
@@ -869,17 +866,15 @@ impl RunState {
 
     // Remove blocks on functions sending to another function inside the `blocker_flow_id` flow
     // if that has just gone idle
-    #[must_use]
     #[allow(unused_variables, unused_assignments, unused_mut)]
     fn unblock_flows(&mut self, blocker_flow_id: usize, job_id: usize,
         #[cfg(feature = "debugger")] debugger: &mut Debugger
-        ) -> (bool, bool, bool) {
+        ) -> Result<(bool, bool)> {
         let mut display_next_output = false;
         let mut restart = false;
-        let mut debugger_requested_exit = false;
 
-        (display_next_output, restart, debugger_requested_exit) =
-            debugger.check_prior_to_flow_unblock(self, blocker_flow_id);
+        (display_next_output, restart) =
+            debugger.check_prior_to_flow_unblock(self, blocker_flow_id)?;
 
         // if flow is now idle, remove any blocks on sending to functions in the flow
         if self.busy_flows.get(&blocker_flow_id).is_none() {
@@ -896,7 +891,7 @@ impl RunState {
             }
         }
 
-        (display_next_output, restart, debugger_requested_exit)
+        Ok((display_next_output, restart))
     }
 
     // Mark a function (via its ID) as having run to completion
@@ -958,7 +953,6 @@ impl RunState {
     // Create a 'block" indicating that function `blocked_function_id` cannot run as it has sends
     // to an input on function 'blocking_function_id' that is already full.
     #[allow(clippy::too_many_arguments)]
-    #[must_use]
     fn create_block(
         &mut self,
         blocking_flow_id: usize,
@@ -968,7 +962,7 @@ impl RunState {
         blocked_flow_id: usize,
         priority: usize,
         #[cfg(feature = "debugger")] debugger: &mut Debugger,
-    ) -> (bool, bool, bool){
+    ) -> Result<(bool, bool)>{
         let block = Block::new(
             blocking_flow_id,
             blocking_function_id,
