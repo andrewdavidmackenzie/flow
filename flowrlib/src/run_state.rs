@@ -216,7 +216,6 @@ impl RunState {
             running: MultiMap::<usize, usize>::new(),
             completed: HashSet::<usize>::new(),
             number_of_jobs_created: 0,
-            #[cfg(feature = "debugger")]
             busy_flows: MultiMap::<usize, usize>::new(),
             pending_unblocks: HashMap::<usize, HashSet<usize>>::new(),
             submission
@@ -867,14 +866,19 @@ impl RunState {
     // Remove blocks on functions sending to another function inside the `blocker_flow_id` flow
     // if that has just gone idle
     #[allow(unused_variables, unused_assignments, unused_mut)]
-    fn unblock_flows(&mut self, blocker_flow_id: usize, job_id: usize,
-        #[cfg(feature = "debugger")] debugger: &mut Debugger
+    fn unblock_flows(&mut self,
+                     blocker_flow_id: usize,
+                     job_id: usize,
+                     #[cfg(feature = "debugger")] debugger: &mut Debugger,
         ) -> Result<(bool, bool)> {
         let mut display_next_output = false;
         let mut restart = false;
 
-        (display_next_output, restart) =
-            debugger.check_prior_to_flow_unblock(self, blocker_flow_id)?;
+        #[cfg(feature = "debugger")]
+        {
+            (display_next_output, restart) = debugger.check_prior_to_flow_unblock(self,
+                                                                              blocker_flow_id)?;
+        }
 
         // if flow is now idle, remove any blocks on sending to functions in the flow
         if self.busy_flows.get(&blocker_flow_id).is_none() {
@@ -975,7 +979,9 @@ impl RunState {
         trace!("\t\t\t\t\tCreating Block {:?}", block);
         self.blocks.insert(block.clone());
         #[cfg(feature = "debugger")]
-        debugger.check_on_block_creation(self, &block)
+        return debugger.check_on_block_creation(self, &block);
+        #[cfg(not(feature = "debugger"))]
+        Ok((false, false))
     }
 }
 
