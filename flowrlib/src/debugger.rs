@@ -543,16 +543,10 @@ impl<'a> Debugger<'a> {
 
     // Parse a series of specs to modify a state value
     fn modify_variables(&mut self, state: &mut RunState, specs: Option<Vec<String>>) {
-        match specs {
-            None => self.debug_server.message("State variables that can be modified are:\
+        match specs.as_deref() {
+            None | Some([]) => self.debug_server.message("State variables that can be modified are:\
             \n'jobs' - maximum number of parallel jobs (integer)".to_string()),
             Some(specs) => {
-                if specs.is_empty() {
-                    self.debug_server.message("State variables that can be modified are:\
-                        \n'jobs' - maximum number of parallel jobs (integer)".to_string());
-                    return;
-                }
-
                 for spec in specs {
                     let parts: Vec<&str> = spec.trim().split('=').collect();
                     if parts.len() < 2 {
