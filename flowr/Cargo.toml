@@ -1,6 +1,6 @@
 [package]
 name = "flowr"
-version = "0.60.0"
+version = "0.61.0"
 authors = ["Andrew Mackenzie <andrew@mackenzie-serres.net>"]
 description = "A runner for compiled 'flow' programs"
 license = "MIT"
@@ -24,7 +24,7 @@ metrics = ["flowrlib/metrics"]  # feature for tracking of metrics during executi
 
 [dependencies]
 flowcore = {path = "../flowcore", version = "0.60.0"}
-flowrlib = {path = "../flowrlib", version = "0.60.0"}
+flowrlib = {path = "../flowrlib", version = "0.61.0"}
 clap = "~2"
 simplog = { version = "~1.5" }
 log = "0.4.6"

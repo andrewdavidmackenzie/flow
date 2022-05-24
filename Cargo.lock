@@ -572,7 +572,7 @@ dependencies = [
 
 [[package]]
 name = "flowr"
-version = "0.60.0"
+version = "0.61.0"
 dependencies = [
  "anyhow",
  "clap",
@@ -600,7 +600,7 @@ dependencies = [
 
 [[package]]
 name = "flowrlib"
-version = "0.60.0"
+version = "0.61.0"
 dependencies = [
  "anyhow",
  "error-chain 0.12.4",
