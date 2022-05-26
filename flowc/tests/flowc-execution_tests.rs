@@ -88,8 +88,7 @@ fn execute_flow(
         println!("Starting the 'flowr' server");
         let mut server_command = Command::new("cargo");
         // flowr args: -n for native libs, -s to get a server process
-        let server_command_args = vec!["run", "--quiet", "-p", "flowr", "--", "-n", "-s",
-        "-C", "flowr/src/context"];
+        let server_command_args = vec!["run", "--quiet", "-p", "flowr", "--", "-n", "-s"];
 
         // spawn the 'flowr' server child process
         Some(
@@ -289,7 +288,6 @@ fn two_destinations() {
     execute_test("two_destinations", false);
 }
 
-#[ignore]
 #[test]
 #[serial]
 fn hello_world_client_server() {
