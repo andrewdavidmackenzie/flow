@@ -11,8 +11,8 @@ use url::Url;
 pub struct Submission {
     /// The URL where the manifest of the flow to execute can be found
     pub manifest_url: Url,
-    /// The maximum number of jobs you want dispatched/executing in parallel
-    pub max_parallel_jobs: usize,
+    /// An optional maximum number of jobs you want dispatched/executing in parallel
+    pub max_parallel_jobs: Option<usize>,
     /// The Duration to wait before timing out when waiting for jobs to complete
     pub job_timeout: Duration,
     /// Whether to debug the flow while executing it
@@ -22,14 +22,16 @@ pub struct Submission {
 
 impl Submission {
     /// Create a new `Submission` of a `Flow` for execution with the specified `Manifest`
-    /// of `Functions`, executing it with a maximum of `mac_parallel_jobs` running in parallel
-    /// connecting via the optional `DebugClient`
+    /// of `Functions`, optionally setting a limit for the number of jobs running in parallel
+    /// via `max_parallel_jobs`
     pub fn new(
         manifest_url: &Url,
-        max_parallel_jobs: usize,
+        max_parallel_jobs: Option<usize>,
         #[cfg(feature = "debugger")] debug: bool,
     ) -> Submission {
-        info!("Maximum jobs in parallel limited to {}", max_parallel_jobs);
+        if let Some(limit) = max_parallel_jobs {
+            info!("Maximum jobs in parallel limited to {limit}");
+        }
 
         Submission {
             manifest_url: manifest_url.to_owned(),
@@ -44,7 +46,9 @@ impl fmt::Display for Submission {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         writeln!(f, "Submission:")?;
         writeln!(f, "         Manifest URL: {}", self.manifest_url)?;
-        writeln!(f, "Maximum Parallel Jobs: {}", self.max_parallel_jobs)?;
+        if let Some(limit) = self.max_parallel_jobs {
+            writeln!(f, "Maximum Parallel Jobs: {limit}")?;
+        }
         write!(f,   "          Job Timeout: {:?}", self.job_timeout)
     }
 }

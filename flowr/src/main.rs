@@ -431,7 +431,8 @@ fn client(
 
     let flow_manifest_url = parse_flow_url(&matches)?;
     let flow_args = get_flow_args(&matches, &flow_manifest_url);
-    let max_parallel_jobs = num_parallel_jobs(&matches);
+    let max_parallel_jobs: Option<usize> = matches.value_of("jobs")
+        .and_then(|value| value.parse::<usize>().ok());
     let submission = Submission::new(
         &flow_manifest_url,
         max_parallel_jobs,
@@ -487,32 +488,6 @@ fn num_threads(matches: &ArgMatches) -> usize {
     }
 
     num_threads
-}
-
-// Determine the number of parallel jobs to be run in parallel based on a default of 2 times
-// the number of cores in the device, or any override from the command line.
-fn num_parallel_jobs(
-    matches: &ArgMatches,
-) -> usize {
-    let mut num_jobs: usize = 0;
-
-    if let Some(value) = matches.value_of("jobs") {
-        if let Ok(jobs) = value.parse::<usize>() {
-            if jobs < 1 {
-                error!("Minimum number of parallel jobs is '0', \
-                so option of '{jobs}' has been overridden to be '1'");
-                num_jobs = 1;
-            } else {
-                num_jobs = jobs;
-            }
-        }
-    }
-
-    if num_jobs == 0 {
-        num_jobs = thread::available_parallelism().map(|n| 2 * n.get()).unwrap_or(1);
-    }
-
-    num_jobs
 }
 
 // Parse the command line arguments using clap

@@ -450,7 +450,7 @@ mod test {
         let functions = vec![f_b, f_a];
         let submission = Submission::new(
             &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
-            1,
+            None,
             true,
         );
         let state = RunState::new(&functions, submission);

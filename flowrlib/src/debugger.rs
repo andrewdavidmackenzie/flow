@@ -545,7 +545,7 @@ impl<'a> Debugger<'a> {
     fn modify_variables(&mut self, state: &mut RunState, specs: Option<Vec<String>>) {
         match specs.as_deref() {
             None | Some([]) => self.debug_server.message("State variables that can be modified are:\
-            \n'jobs' - maximum number of parallel jobs (integer)".to_string()),
+            \n'jobs' - maximum number of parallel jobs (integer) or 0 for no limit".to_string()),
             Some(specs) => {
                 for spec in specs {
                     let parts: Vec<&str> = spec.trim().split('=').collect();
@@ -558,7 +558,11 @@ impl<'a> Debugger<'a> {
                     match parts[0] {
                         "jobs" => {
                             if let Ok(value) = parts[1].parse::<usize>() {
-                                state.submission.max_parallel_jobs = value;
+                                if value == 0 {
+                                    state.submission.max_parallel_jobs = None;
+                                } else {
+                                    state.submission.max_parallel_jobs = Some(value);
+                                }
                                 self.debug_server.message(format!("State variable '{}' set to {}",
                                     parts[0], parts[1]));
                             } else {
