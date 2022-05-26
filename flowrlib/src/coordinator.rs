@@ -294,7 +294,7 @@ mod test {
         let manifest_url = Url::parse("file:///temp/fake/flow.toml").expect("Could not create Url");
         let _ = Submission::new(
             &manifest_url,
-            1,
+            Some(1),
             #[cfg(feature = "debugger")]
             false,
         );

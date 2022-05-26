@@ -430,9 +430,11 @@ impl RunState {
     /// Return the next job ready to be run, if there is one and there are not
     /// too many jobs already running
     pub(crate) fn next_job(&mut self) -> Option<Job> {
-        if self.number_jobs_running() >= self.submission.max_parallel_jobs {
-            trace!("Max Pending Job count of {} reached, skipping new jobs", self.submission.max_parallel_jobs);
-            return None;
+        if let Some(limit) = self.submission.max_parallel_jobs {
+            if self.number_jobs_running() >= limit {
+                trace!("Max Pending Job count of {limit} reached, skipping new jobs");
+                return None;
+            }
         }
 
         let function_id = self.ready.remove(0)?;
@@ -1229,7 +1231,7 @@ mod test {
             let functions = vec![f_a, f_b];
             let submission = Submission::new(
                 &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
-                1,
+                None,
                 #[cfg(feature = "debugger")]
                 true,
             );
@@ -1247,7 +1249,7 @@ mod test {
         fn jobs_created_zero_at_init() {
             let submission = Submission::new(
                 &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
-                1,
+                None,
                 #[cfg(feature = "debugger")]
                 true,
             );
@@ -1262,7 +1264,7 @@ mod test {
         fn zero_blocks_at_init() {
             let submission = Submission::new(
                 &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
-                1,
+                None,
                 #[cfg(feature = "debugger")]
                 true,
             );
@@ -1280,7 +1282,7 @@ mod test {
         fn zero_running_at_init() {
             let submission = Submission::new(
                 &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
-                1,
+                None,
                 #[cfg(feature = "debugger")]
                 true,
             );
@@ -1298,7 +1300,7 @@ mod test {
         fn zero_blocked_at_init() {
             let submission = Submission::new(
                 &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
-                1,
+                None,
                 #[cfg(feature = "debugger")]
                 true,
             );
@@ -1340,7 +1342,7 @@ mod test {
             let functions = vec![f_a, f_b];
             let submission = Submission::new(
                 &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
-                1,
+                None,
                 #[cfg(feature = "debugger")]
                 true,
             );
@@ -1365,7 +1367,7 @@ mod test {
             let functions = vec![f_a, f_b];
             let submission = Submission::new(
                 &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
-                1,
+                None,
                 #[cfg(feature = "debugger")]
                 true,
             );
@@ -1397,7 +1399,7 @@ mod test {
             let functions = vec![f_a, f_b];
             let submission = Submission::new(
                 &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
-                1,
+                None,
                 #[cfg(feature = "debugger")]
                 true,
             );
@@ -1416,7 +1418,7 @@ mod test {
             let functions = vec![f_a];
             let submission = Submission::new(
                 &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
-                1,
+                None,
                 #[cfg(feature = "debugger")]
                 true,
             );
@@ -1442,7 +1444,7 @@ mod test {
             let functions = vec![f_b, f_a];
             let submission = Submission::new(
                 &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
-                1,
+                None,
                 #[cfg(feature = "debugger")]
                 true,
             );
@@ -1487,7 +1489,7 @@ mod test {
             let functions = vec![f_a];
             let submission = Submission::new(
                 &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
-                1,
+                None,
                 #[cfg(feature = "debugger")]
                 true,
             );
@@ -1506,7 +1508,7 @@ mod test {
             let functions = vec![f_a];
             let submission = Submission::new(
                 &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
-                1,
+                None,
                 #[cfg(feature = "debugger")]
                 true,
             );
@@ -1532,7 +1534,7 @@ mod test {
             let functions = vec![f_a];
             let submission = Submission::new(
                 &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
-                1,
+                None,
                 #[cfg(feature = "debugger")]
                 true,
             );
@@ -1555,7 +1557,7 @@ mod test {
             let functions = vec![f_a, f_b];
             let submission = Submission::new(
                 &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
-                1,
+                None,
                 #[cfg(feature = "debugger")]
                 true,
             );
@@ -1606,7 +1608,7 @@ mod test {
             let functions = vec![f_a, f_b];
             let submission = Submission::new(
                 &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
-                1,
+                None,
                 #[cfg(feature = "debugger")]
                 true,
             );
@@ -1695,7 +1697,7 @@ mod test {
             let functions = vec![f_a];
             let submission = Submission::new(
                 &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
-                1,
+                None,
                 #[cfg(feature = "debugger")]
                 true,
             );
@@ -1740,7 +1742,7 @@ mod test {
             let functions = vec![f_a];
             let submission = Submission::new(
                 &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
-                1,
+                None,
                 #[cfg(feature = "debugger")]
                 true,
             );
@@ -1810,7 +1812,7 @@ mod test {
             let functions = vec![f_a, f_b];
             let submission = Submission::new(
                 &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
-                1,
+                None,
                 #[cfg(feature = "debugger")]
                 true,
             );
@@ -1882,7 +1884,7 @@ mod test {
             let functions = vec![f_a, f_b];
             let submission = Submission::new(
                 &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
-                1,
+                None,
                 #[cfg(feature = "debugger")]
                 true,
             );
@@ -1948,7 +1950,7 @@ mod test {
             let functions = vec![f_a, f_b];
             let submission = Submission::new(
                 &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
-                1,
+                None,
                 #[cfg(feature = "debugger")]
                 true,
             );
@@ -2042,7 +2044,7 @@ mod test {
             let functions = vec![f_a, f_b]; // NOTE the order!
             let submission = Submission::new(
                 &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
-                1,
+                None,
                 #[cfg(feature = "debugger")]
                 true,
             );
@@ -2201,7 +2203,7 @@ mod test {
         fn blocked_works() {
             let submission = Submission::new(
                 &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
-                1,
+                None,
                 #[cfg(feature = "debugger")]
                 true,
             );
@@ -2229,7 +2231,7 @@ mod test {
         fn get_works() {
             let submission = Submission::new(
                 &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
-                1,
+                None,
                 #[cfg(feature = "debugger")]
                 true,
             );
@@ -2242,7 +2244,7 @@ mod test {
         fn no_next_if_none_ready() {
             let submission = Submission::new(
                 &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
-                1,
+                None,
                 #[cfg(feature = "debugger")]
                 true,
             );
@@ -2255,7 +2257,7 @@ mod test {
         fn next_works() {
             let submission = Submission::new(
                 &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
-                1,
+                None,
                 #[cfg(feature = "debugger")]
                 true,
             );
@@ -2274,7 +2276,7 @@ mod test {
         fn inputs_ready_makes_ready() {
             let submission = Submission::new(
                 &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
-                1,
+                None,
                 #[cfg(feature = "debugger")]
                 true,
             );
@@ -2294,7 +2296,7 @@ mod test {
         fn blocked_is_not_ready() {
             let submission = Submission::new(
                 &Url::parse("file://temp/fake.toml").expect("Could not create Url"),
-                1,
+                None,
                 #[cfg(feature = "debugger")]
                 true,
             );
@@ -2327,7 +2329,7 @@ mod test {
         fn unblocking_makes_ready() {
             let submission = Submission::new(
                 &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
-                1,
+                None,
                 #[cfg(feature = "debugger")]
                 true,
             );
@@ -2368,7 +2370,7 @@ mod test {
         fn unblocking_doubly_blocked_functions_not_ready() {
             let submission = Submission::new(
                 &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
-                1,
+                None,
                 #[cfg(feature = "debugger")]
                 true,
             );
@@ -2417,7 +2419,7 @@ mod test {
         fn wont_return_too_many_jobs() {
             let submission = Submission::new(
                 &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
-                1,
+                None,
                 #[cfg(feature = "debugger")]
                 true,
             );
@@ -2447,7 +2449,7 @@ mod test {
             let functions = vec![f_a];
             let submission = Submission::new(
                 &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
-                1,
+                None,
                 #[cfg(feature = "debugger")]
                 true,
             );
