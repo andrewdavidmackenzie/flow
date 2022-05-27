@@ -344,7 +344,10 @@ fn server(
     loop_forever: bool,
 ) -> Result<()> {
     let mut loader = Loader::new();
-    let provider = MetaProvider::new(lib_search_path, PathBuf::from("/"));
+    let provider = MetaProvider::new(lib_search_path,
+                                                #[cfg(feature = "context")]
+                                                PathBuf::from("/")
+                                                );
 
     let server_connection = Arc::new(Mutex::new(runtime_server_connection));
 

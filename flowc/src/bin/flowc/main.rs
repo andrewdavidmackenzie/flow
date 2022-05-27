@@ -53,7 +53,7 @@ pub struct Options {
     stdin_file: Option<String>,
     lib_dirs: Vec<String>,
     native_only: bool,
-    context_root: Option<PathBuf>,
+    #[cfg(feature = "context")] context_root: Option<PathBuf>,
     verbosity: Option<String>,
     optimize: bool,
 }
@@ -107,10 +107,13 @@ fn run() -> Result<()> {
     let options = parse_args(get_matches())?;
 
     let lib_search_path = get_lib_search_path(&options.lib_dirs)?;
-    let context_root = options.context_root.clone()
-        .unwrap_or_else(|| PathBuf::from(""));
+    #[cfg(feature = "context")]
+    let context_root = options.context_root.clone().unwrap_or_else(|| PathBuf::from(""));
 
-    let provider = &MetaProvider::new(lib_search_path, context_root);
+    let provider = &MetaProvider::new(lib_search_path,
+                                      #[cfg(feature = "context")]
+                                      context_root
+    );
 
     if options.lib {
         build_lib(&options, provider).chain_err(|| "Could not build library")
@@ -158,14 +161,6 @@ fn get_matches<'a>() -> ArgMatches<'a> {
                 .multiple(true)
                 .value_name("LIB_DIR|BASE_URL")
                 .help("Add a directory or base Url to the Library Search path"),
-        )
-        .arg(
-            Arg::with_name("context_root")
-                .short("C")
-                .long("context_root")
-                .number_of_values(1)
-                .value_name("CONTEXT_DIRECTORY")
-                .help("Set the directory to use as the root dir for context functions definitions"),
         )
         .arg(
             Arg::with_name("tables")
@@ -241,6 +236,16 @@ fn get_matches<'a>() -> ArgMatches<'a> {
                 .multiple(true),
         );
 
+    #[cfg(feature = "context")]
+    let app = app.arg(
+        Arg::with_name("context_root")
+            .short("C")
+            .long("context_root")
+            .number_of_values(1)
+            .value_name("CONTEXT_DIRECTORY")
+            .help("Set the directory to use as the root dir for context functions definitions"),
+    );
+
     #[cfg(feature = "debugger")]
     let app = app.arg(
         Arg::with_name("debug")
@@ -291,6 +296,7 @@ fn parse_args(matches: ArgMatches) -> Result<Options> {
         vec![]
     };
 
+    #[cfg(feature = "context")]
     let context_root = if matches.is_present("context_root") {
         let root = PathBuf::from(matches.value_of("context_root")
                                          .chain_err(|| "Could not get the 'CONTEXT_DIRECTORY' option specified")?);
@@ -314,6 +320,7 @@ fn parse_args(matches: ArgMatches) -> Result<Options> {
         stdin_file: matches.value_of("stdin").map(String::from),
         lib_dirs,
         native_only: matches.is_present("native"),
+        #[cfg(feature = "context")]
         context_root,
         verbosity: verbosity.map(|v| v.to_string()),
         optimize: matches.is_present("optimize")

@@ -22,6 +22,7 @@ path = "src/lib.rs"
 
 [features]
 default = []  # by default include code not just the trait definition
+context = []  # whether this library is aware of the flow context or not
 debugger = [] # feature to add the debugger
 online_tests = []
 
