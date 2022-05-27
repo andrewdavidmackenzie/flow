@@ -20,7 +20,7 @@ path = "src/main.rs"
 [features]
 default = ["context", "debugger", "flowstdlib", "metrics"]
 # Make sure flowcore is compiled with "context" feature if we plan to use it
-context = ["flowcore/context", "ctrlc", "image"]
+context = ["flowcore/context", "flowrlib/context", "ctrlc", "image"]
 debugger = ["flowrlib/debugger", "flowcore/debugger", "rustyline"] # feature to add the debugger, requires flowrlib and flowcore crate to have feature enabled also
 metrics = ["flowrlib/metrics"]  # feature for tracking of metrics during execution - requires flowrlib with metrics also
 

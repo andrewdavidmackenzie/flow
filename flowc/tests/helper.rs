@@ -1,5 +1,7 @@
 use std::env;
-use std::path::{Path, PathBuf};
+use std::path::Path;
+#[cfg(feature = "context")]
+use std::path::PathBuf;
 
 use simpath::Simpath;
 use url::Url;
@@ -17,6 +19,7 @@ pub fn set_lib_search_path_to_project() -> Simpath {
     lib_search_path
 }
 
+#[cfg(feature = "context")]
 pub fn get_canonical_context_root() -> PathBuf {
     let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     let samples_dir = manifest_dir.parent().ok_or("Could not get parent dir")

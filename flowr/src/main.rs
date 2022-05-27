@@ -11,6 +11,7 @@
 //! terminal for STDIO and the File system for files.
 
 use std::{env, thread};
+#[cfg(feature = "context")]
 use std::path::PathBuf;
 use std::process::exit;
 use std::sync::{Arc, Mutex};
@@ -25,11 +26,21 @@ use url::Url;
 use context::cli_debug_client::CliDebugClient;
 #[cfg(feature = "debugger")]
 use context::cli_debug_server::CliDebugServer;
+#[cfg(feature = "context")]
 use context::cli_runtime_client::CliRuntimeClient;
+#[cfg(feature = "context")]
 use context::cli_runtime_server::CliServer;
+#[cfg(feature = "context")]
 use context::client_server::{ClientConnection, DONT_WAIT, Method, ServerConnection, ServerInfo, WAIT};
 #[cfg(feature = "debugger")]
 use context::debug_server_message::DebugServerMessage;
+#[cfg(feature = "debugger")]
+use context::debug_server_message::DebugServerMessage::{BlockBreakpoint, DataBreakpoint, ExecutionEnded, ExecutionStarted,
+                                                        ExitingDebugger, JobCompleted, JobError, Panic, PriorToSendingJob,
+                                                        WaitingForCommand};
+#[cfg(feature = "context")]
+use context::debug_server_message::DebugServerMessage::Resetting;
+#[cfg(feature = "context")]
 use context::runtime_messages::{ClientMessage, ServerMessage};
 use flowcore::errors::*;
 use flowcore::meta_provider::{MetaProvider, Provider};
@@ -38,14 +49,6 @@ use flowcore::url_helper::url_from_string;
 use flowrlib::coordinator::Coordinator;
 use flowrlib::info as flowrlib_info;
 use flowrlib::loader::Loader;
-
-#[cfg(feature = "debugger")]
-use crate::DebugServerMessage::{BlockBreakpoint, DataBreakpoint, ExecutionEnded, ExecutionStarted,
-                                ExitingDebugger, JobCompleted, JobError, Panic, PriorToSendingJob,
-                                WaitingForCommand};
-use crate::DebugServerMessage::Resetting;
-
-// TODO see if can keep private or even remove
 
 /// We'll put our errors in an `errors` module, and other modules in this crate will
 /// `use crate::errors::*;` to get access to everything `error_chain` creates.
@@ -216,6 +219,7 @@ fn load_native_libs(
     native_flowstdlib: bool,
     loader: &mut Loader,
     provider: &dyn Provider,
+    #[cfg(feature = "context")]
     server_connection: Arc<Mutex<ServerConnection>>,
 ) -> Result<()> {
     // Add the native context functions to functions available for use by the flow
@@ -244,6 +248,7 @@ fn load_native_libs(
 
 // Start just a server - by running a Coordinator in the calling thread.
 fn server_only(num_threads: usize, lib_search_path: Simpath, native_flowstdlib: bool) -> Result<()> {
+    #[cfg(feature = "context")]
     let runtime_server_connection = ServerConnection::new(RUNTIME_SERVICE_NAME, Method::Tcp(None))?;
     #[cfg(feature = "debugger")]
     let debug_server_connection = ServerConnection::new(DEBUG_SERVICE_NAME, Method::Tcp(None))?;
@@ -253,6 +258,7 @@ fn server_only(num_threads: usize, lib_search_path: Simpath, native_flowstdlib: 
         num_threads,
         lib_search_path,
         native_flowstdlib,
+        #[cfg(feature = "context")]
         runtime_server_connection,
         #[cfg(feature = "debugger")]
         debug_server_connection,
@@ -274,10 +280,12 @@ fn client_and_server(
     #[cfg(feature = "debugger")]
     debug_this_flow: bool,
 ) -> Result<()> {
+    #[cfg(feature = "context")]
     let runtime_server_connection = ServerConnection::new(RUNTIME_SERVICE_NAME, Method::InProc(None))?;
     #[cfg(feature = "debugger")]
     let debug_server_connection = ServerConnection::new(DEBUG_SERVICE_NAME, Method::InProc(None))?;
 
+    #[cfg(feature = "context")]
     let mut runtime_server_info = runtime_server_connection.get_server_info().clone();
     #[cfg(feature = "debugger")]
     let mut debug_server_info = debug_server_connection.get_server_info().clone();
@@ -288,6 +296,7 @@ fn client_and_server(
             num_threads,
             lib_search_path,
             native,
+            #[cfg(feature = "context")]
             runtime_server_connection,
             #[cfg(feature = "debugger")]
             debug_server_connection,
@@ -302,11 +311,12 @@ fn client_and_server(
         None
     };
 
+    #[cfg(feature = "context")]
     let runtime_client_connection = ClientConnection::new(&mut runtime_server_info)?;
 
     client(
         matches,
-        runtime_client_connection,
+        #[cfg(feature = "context")] runtime_client_connection,
         #[cfg(feature = "debugger")] control_c_client_connection,
         #[cfg(feature = "debugger")] debug_this_flow,
         #[cfg(feature = "debugger")] &mut debug_server_info,
@@ -320,25 +330,27 @@ fn server(
     num_threads: usize,
     lib_search_path: Simpath,
     native_flowstdlib: bool,
-    runtime_server_connection: ServerConnection,
+    #[cfg(feature = "context")] runtime_server_connection: ServerConnection,
     #[cfg(feature = "debugger")] debug_server_connection: ServerConnection,
     loop_forever: bool,
 ) -> Result<()> {
     let mut loader = Loader::new();
     let provider = MetaProvider::new(lib_search_path,
-                                                #[cfg(feature = "context")]
-                                                PathBuf::from("/")
+                                                #[cfg(feature = "context")] PathBuf::from("/")
                                                 );
 
+    #[cfg(feature = "context")]
     let server_connection = Arc::new(Mutex::new(runtime_server_connection));
 
     load_native_libs(
         native_flowstdlib,
         &mut loader,
         &provider,
+        #[cfg(feature = "context")]
         server_connection.clone(),
     )?;
 
+    #[cfg(feature = "context")]
     let mut server = CliServer {
         runtime_server_connection: server_connection,
     };
@@ -348,7 +360,8 @@ fn server(
         debug_server_connection
     };
 
-    let mut coordinator = Coordinator::new(num_threads, &mut server,
+    let mut coordinator = Coordinator::new(num_threads,
+                                           #[cfg(feature = "context")] &mut server,
                                            #[cfg(feature = "debugger")] &mut debug_server);
 
     coordinator.submission_loop(
@@ -365,6 +378,7 @@ fn client_only(
     matches: ArgMatches,
     #[cfg(feature = "debugger")] debug_this_flow: bool,
 ) -> Result<()> {
+    #[cfg(feature = "context")]
     let mut runtime_server_info = ServerInfo::new(
         RUNTIME_SERVICE_NAME,
         Method::Tcp(
@@ -390,10 +404,12 @@ fn client_only(
         None
     };
 
+    #[cfg(feature = "context")]
     let runtime_client_connection = ClientConnection::new(&mut runtime_server_info)?;
 
     client(
         matches,
+        #[cfg(feature = "context")]
         runtime_client_connection,
         #[cfg(feature = "debugger")] control_c_client_connection,
         #[cfg(feature = "debugger")] debug_this_flow,
@@ -404,14 +420,14 @@ fn client_only(
 // Start the clients that talks to the server thread or process
 fn client(
     matches: ArgMatches,
-    runtime_client_connection: ClientConnection,
+    #[cfg(feature = "context")] runtime_client_connection: ClientConnection,
     #[cfg(feature = "debugger")]
     control_c_client_connection: Option<ClientConnection>,
     #[cfg(feature = "debugger")] debug_this_flow: bool,
     #[cfg(feature = "debugger")] debug_server_info: &mut ServerInfo,
 ) -> Result<()> {
     // keep an Arc Mutex protected set of override args that debug client can override
-    let override_args = Arc::new(Mutex::new(vec!()));
+    let override_args = Arc::new(Mutex::new(Vec::<String>::new()));
 
     let flow_manifest_url = parse_flow_url(&matches)?;
     let flow_args = get_flow_args(&matches, &flow_manifest_url);
@@ -424,6 +440,7 @@ fn client(
         debug_this_flow,
     );
 
+    #[cfg(feature = "context")]
     let runtime_client = CliRuntimeClient::new(
         flow_args,
         override_args.clone(),
@@ -442,12 +459,18 @@ fn client(
     }
 
     info!("Client sending submission to server");
+    #[cfg(feature = "context")]
     runtime_client_connection.send(ClientMessage::ClientSubmission(submission))?;
 
-     runtime_client.event_loop(runtime_client_connection,
+    #[cfg(feature = "context")]
+    runtime_client.event_loop(
+                                #[cfg(feature = "context")]
+                                runtime_client_connection,
             #[cfg(feature = "debugger")]
                                control_c_client_connection
-     )
+    )?;
+
+    Ok(())
 }
 
 // Determine the number of threads to use to execute flows, with a default of the number of cores

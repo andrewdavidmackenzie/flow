@@ -1,3 +1,4 @@
+#[cfg(feature = "debugger")]
 use std::collections::HashSet;
 use std::fs::File;
 use std::io::Write;
@@ -11,6 +12,7 @@ use flowcore::model::flow_manifest::{DEFAULT_MANIFEST_FILENAME, FlowManifest};
 use flowcore::model::function_definition::FunctionDefinition;
 use flowcore::model::input::Input;
 use flowcore::model::metadata::MetaData;
+#[cfg(feature = "debugger")]
 use flowcore::model::name::HasName;
 #[cfg(feature = "debugger")]
 use flowcore::model::route::HasRoute;

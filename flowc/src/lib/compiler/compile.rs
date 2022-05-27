@@ -215,16 +215,16 @@ fn get_source(
         match source_routes.get(&source_route) {
             Some((Output(io_sub_route), function_index)) => {
                 return if io_sub_route.is_empty() {
-                    Some((Source::Output(format!("{}", sub_route)), *function_index))
+                    Some((Output(format!("{}", sub_route)), *function_index))
                 } else {
                     Some((
-                        Source::Output(format!("/{}{}", io_sub_route, sub_route)),
+                        Output(format!("/{}{}", io_sub_route, sub_route)),
                         *function_index,
                     ))
                 }
             }
             Some((Input(io_index), function_index)) => {
-                return Some((Source::Input(*io_index), *function_index));
+                return Some((Input(*io_index), *function_index));
             }
             _ => {}
         }
@@ -246,7 +246,9 @@ fn get_source(
 
 #[cfg(test)]
 mod test {
-    use std::collections::{HashMap, HashSet};
+    use std::collections::HashMap;
+    #[cfg(feature = "debugger")]
+    use std::collections::HashSet;
 
     use tempdir::TempDir;
     use url::Url;
@@ -271,15 +273,15 @@ mod test {
         use super::super::get_source;
 
         /*
-                                                                                    Create a HashTable of routes for use in tests.
-                                                                                    Each entry (K, V) is:
-                                                                                    - Key   - the route to a function's IO
-                                                                                    - Value - a tuple of
-                                                                                                - sub-route (or IO name) from the function to be used at runtime
-                                                                                                - the id number of the function in the functions table, to select it at runtime
+                    Create a HashTable of routes for use in tests.
+                    Each entry (K, V) is:
+                    - Key   - the route to a function's IO
+                    - Value - a tuple of
+                                - sub-route (or IO name) from the function to be used at runtime
+                                - the id number of the function in the functions table, to select it at runtime
 
-                                                                                    Plus a vector of test cases with the Route to search for and the expected function_id and output sub-route
-                                                                                */
+                    Plus a vector of test cases with the Route to search for and the expected function_id and output sub-route
+                */
         #[allow(clippy::type_complexity)]
         fn test_source_routes() -> (
             HashMap<Route, (Source, usize)>,
@@ -398,6 +400,7 @@ mod test {
             ..Default::default()
         };
 
+        #[cfg(feature = "debugger")]
         let mut source_urls = HashSet::<(Url, Url)>::new();
         let output_dir = TempDir::new("flow-test").expect("A temp dir").into_path();
 

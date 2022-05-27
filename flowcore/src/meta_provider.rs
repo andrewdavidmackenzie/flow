@@ -49,8 +49,7 @@ pub struct MetaProvider {
 /// use flowcore::meta_provider::{Provider, MetaProvider};
 /// let lib_search_path = Simpath::new_with_separator("FLOW_LIB_PATH", ',');
 /// let meta_provider = &mut MetaProvider::new(lib_search_path,
-///                                            #[cfg(feature = "context")]
-///                                             PathBuf::from("/")
+///                                            #[cfg(feature = "context")] PathBuf::from("/")
 ///                                             ) as &dyn Provider;
 /// let url = Url::parse("file://directory").unwrap();
 /// match meta_provider.resolve_url(&url, "default", &["toml"]) {
@@ -70,8 +69,7 @@ impl MetaProvider {
     /// - a search path where to look for libraries
     /// - the root of the context functions provided by the runtime (requires "context" feature
     pub fn new(lib_search_path: Simpath,
-               #[cfg(feature = "context")]
-                context_root: PathBuf
+               #[cfg(feature = "context")] context_root: PathBuf
                 ) -> Self {
         MetaProvider {
             lib_search_path,
