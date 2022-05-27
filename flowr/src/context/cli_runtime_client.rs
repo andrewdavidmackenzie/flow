@@ -10,8 +10,8 @@ use log::{debug, error, info};
 
 use flowcore::errors::*;
 
-use crate::client_server::ClientConnection;
-use crate::runtime_messages::{ClientMessage, FileMetaData, ServerMessage};
+use crate::context::client_server::ClientConnection;
+use crate::context::runtime_messages::{ClientMessage, FileMetaData, ServerMessage};
 
 #[derive(Debug, Clone)]
 pub struct CliRuntimeClient {
@@ -233,7 +233,7 @@ mod test {
     #[cfg(feature = "metrics")]
     use flowcore::model::metrics::Metrics;
 
-    use crate::runtime_messages::{ClientMessage, ServerMessage};
+    use crate::context::runtime_messages::{ClientMessage, ServerMessage};
 
     use super::CliRuntimeClient;
 

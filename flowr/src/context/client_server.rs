@@ -260,7 +260,7 @@ mod test {
     use serde_derive::{Deserialize, Serialize};
     use serial_test::serial;
 
-    use crate::client_server::{ClientConnection, DONT_WAIT, Method, ServerConnection, WAIT};
+    use crate::context::client_server::{ClientConnection, DONT_WAIT, Method, ServerConnection, WAIT};
 
     #[derive(Serialize, Deserialize, PartialEq, Eq, Debug)]
     enum ServerMessage {

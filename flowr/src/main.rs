@@ -21,6 +21,16 @@ use simpath::Simpath;
 use simplog::SimpleLogger;
 use url::Url;
 
+#[cfg(feature = "debugger")]
+use context::cli_debug_client::CliDebugClient;
+#[cfg(feature = "debugger")]
+use context::cli_debug_server::CliDebugServer;
+use context::cli_runtime_client::CliRuntimeClient;
+use context::cli_runtime_server::CliServer;
+use context::client_server::{ClientConnection, DONT_WAIT, Method, ServerConnection, ServerInfo, WAIT};
+#[cfg(feature = "debugger")]
+use context::debug_server_message::DebugServerMessage;
+use context::runtime_messages::{ClientMessage, ServerMessage};
 use flowcore::errors::*;
 use flowcore::meta_provider::{MetaProvider, Provider};
 use flowcore::model::submission::Submission;
@@ -30,49 +40,19 @@ use flowrlib::info as flowrlib_info;
 use flowrlib::loader::Loader;
 
 #[cfg(feature = "debugger")]
-use crate::cli_debug_client::CliDebugClient;
-#[cfg(feature = "debugger")]
-use crate::cli_debug_server::CliDebugServer;
-use crate::cli_runtime_client::CliRuntimeClient;
-use crate::cli_runtime_server::CliServer;
-use crate::client_server::{ClientConnection, DONT_WAIT, Method, ServerConnection, ServerInfo, WAIT};
-#[cfg(feature = "debugger")]
-use crate::debug_server_message::DebugServerMessage;
-#[cfg(feature = "debugger")]
 use crate::DebugServerMessage::{BlockBreakpoint, DataBreakpoint, ExecutionEnded, ExecutionStarted,
                                 ExitingDebugger, JobCompleted, JobError, Panic, PriorToSendingJob,
                                 WaitingForCommand};
 use crate::DebugServerMessage::Resetting;
-use crate::runtime_messages::{ClientMessage, ServerMessage};
 
-// Test helper functions
-pub(crate) mod test_helper;
-
-/// message_queue implementation of the communications between the runtime client, debug client and
-/// the runtime server and debug server.
-pub mod client_server;
-
-/// runtime_messages is the enum for the different messages sent back and fore between the client
-/// and server implementation of the CLI context functions
-pub mod runtime_messages; // TODO see if can keep private or even remove
-
-#[cfg(feature = "debugger")]
-mod cli_debug_client;
-mod cli_runtime_client;
-
-#[cfg(feature = "debugger")]
-mod cli_debug_server;
-mod cli_runtime_server;
+// TODO see if can keep private or even remove
 
 /// We'll put our errors in an `errors` module, and other modules in this crate will
 /// `use crate::errors::*;` to get access to everything `error_chain` creates.
 pub mod errors;
-mod context;
 
-/// 'debug' defines structs passed between the Server and the Client regarding debug events
-/// and client responses to them
-#[cfg(feature = "debugger")]
-mod debug_server_message;
+#[cfg(feature = "context")]
+mod context;
 
 /// `RUNTIME_SERVICE_NAME` is the name of the runtime services and can be used to discover it by name
 pub const RUNTIME_SERVICE_NAME: &str = "runtime._flowr._tcp.local";
@@ -239,6 +219,7 @@ fn load_native_libs(
     server_connection: Arc<Mutex<ServerConnection>>,
 ) -> Result<()> {
     // Add the native context functions to functions available for use by the flow
+    #[cfg(feature = "context")]
     loader.add_lib(
             provider,
             context::get_manifest(server_connection)?,
