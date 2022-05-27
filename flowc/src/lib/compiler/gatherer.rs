@@ -268,7 +268,7 @@ fn find_function_destinations(
             .sub_route_of(from_io_route)
         {
             let next_level = match *next_connection.from_io().io_type() {
-                // Can't escape the context!
+                // Can't escape the root!
                 IOType::FlowOutput if from_level > 0 => from_level - 1,
                 IOType::FlowOutput if from_level == 0 => usize::MAX,
                 IOType::FlowInput => from_level + 1,

@@ -9,7 +9,9 @@ use flowcore::model::submission::Submission;
 use flowrlib::run_state::RunState;
 use flowrlib::server::Server;
 
-use crate::{ClientMessage, DONT_WAIT, ServerConnection, ServerMessage, WAIT};
+use crate::{ClientMessage, ServerConnection};
+use crate::context::client_server::{DONT_WAIT, WAIT};
+use crate::context::runtime_messages::ServerMessage;
 
 /// Get and Send messages to/from the runtime client
 pub(crate) struct CliServer {

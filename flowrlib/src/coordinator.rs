@@ -1,4 +1,3 @@
-use std::marker::PhantomData;
 use std::sync::{Arc, Mutex};
 use std::sync::mpsc;
 use std::sync::mpsc::{Receiver, Sender};
@@ -20,7 +19,6 @@ use crate::loader::Loader;
 use crate::run_state::RunState;
 #[cfg(feature = "debugger")]
 use crate::server::DebugServer;
-#[cfg(feature = "context")]
 use crate::server::Server;
 
 /// The `Coordinator` is responsible for coordinating the dispatching of jobs (consisting
@@ -36,18 +34,15 @@ pub struct Coordinator<'a> {
     /// A channel used to receive Jobs back after execution (now including the job's output)
     job_rx: Receiver<Job>,
     /// A `Server` to communicate with clients
-    #[cfg(feature = "context")]
     server: &'a mut dyn Server,
     #[cfg(feature = "debugger")]
     /// A `Debugger` to communicate with debug clients
     debugger: Debugger<'a>,
-    phantom: PhantomData<&'a Job>,
 }
 
 impl<'a> Coordinator<'a> {
     /// Create a new `coordinator` with `num_threads` executor threads
-    pub fn new(num_threads: usize,
-               #[cfg(feature = "context")] server: &'a mut dyn Server,
+    pub fn new(num_threads: usize, server: &'a mut dyn Server,
                #[cfg(feature = "debugger")] debug_server: &'a mut dyn DebugServer
     ) -> Self {
         let (job_tx, job_rx) = mpsc::channel();
@@ -62,11 +57,9 @@ impl<'a> Coordinator<'a> {
         Coordinator {
             job_tx,
             job_rx: output_rx,
-            #[cfg(feature = "context")]
             server,
             #[cfg(feature = "debugger")]
             debugger: Debugger::new(debug_server),
-            phantom: PhantomData
         }
     }
 
@@ -77,6 +70,7 @@ impl<'a> Coordinator<'a> {
         provider: MetaProvider,
         loop_forever: bool,
     ) -> Result<()> {
+        // TODO without the client and context methods currently there is no other way to send a submission
         while let Some(submission) = self.server.wait_for_submission()? {
             match loader.load_flow(&provider, &submission.manifest_url) {
                 Ok(manifest) => {
@@ -90,7 +84,9 @@ impl<'a> Coordinator<'a> {
             }
         }
 
-        self.server.server_exiting(Ok(()))
+        self.server.server_exiting(Ok(()))?;
+
+        Ok(())
     }
 
     //noinspection RsReassignImmutable

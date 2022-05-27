@@ -54,11 +54,10 @@ mod test {
 
     use flowcore::{DONT_RUN_AGAIN, Implementation};
 
-    use crate::context::client_server::{Method, ServerConnection};
+    use crate::context::client_server::{Method, RUNTIME_SERVICE_NAME, ServerConnection};
     use crate::context::runtime_messages::ClientMessage::Args;
     use crate::context::runtime_messages::ServerMessage::GetArgs;
     use crate::context::test_helper::test::wait_for_then_send;
-    use crate::RUNTIME_SERVICE_NAME;
 
     use super::Get;
 

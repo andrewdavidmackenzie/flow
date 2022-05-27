@@ -388,6 +388,7 @@ mod test {
             .is_some())
     }
 
+    // ADM these should all be "root"?
     #[test]
     fn is_array_element_sub_subroute() {
         let route = Route::from("/context/function/input/1");

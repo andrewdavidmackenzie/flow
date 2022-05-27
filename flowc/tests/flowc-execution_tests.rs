@@ -295,6 +295,7 @@ fn two_destinations() {
     execute_test("two_destinations", false);
 }
 
+#[ignore]
 #[test]
 #[serial]
 fn hello_world_client_server() {

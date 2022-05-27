@@ -24,7 +24,7 @@ pub fn get_canonical_context_root() -> PathBuf {
     let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     let samples_dir = manifest_dir.parent().ok_or("Could not get parent dir")
         .expect("Could not get parent dir");
-    samples_dir.join("flowr/src/context").canonicalize().expect("Could not get absolute path")
+    samples_dir.join("flowr/src/cli_context").canonicalize().expect("Could not get absolute path")
 }
 
 pub fn absolute_file_url_from_relative_path(path: &str) -> Url {

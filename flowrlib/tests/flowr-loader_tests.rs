@@ -93,6 +93,7 @@ impl Implementation for Fake {
     }
 }
 
+// ADM
 fn get_manifest() -> LibraryManifest {
     let metadata = MetaData {
         name: "context".to_string(),
@@ -146,8 +147,7 @@ fn write_manifest(manifest: &FlowManifest, filename: &Path) -> Result<()> {
     Ok(())
 }
 
-// Setup a lib search path so that they can find the context library that is in
-// flowr/src/bin/flowr/context
+// ADM
 fn set_lib_search_path() -> Simpath {
     let mut lib_search_path = Simpath::new("lib_search_path");
     let flowr_path_str = Path::new(env!("CARGO_MANIFEST_DIR"))
@@ -191,7 +191,7 @@ fn load_manifest_from_file() {
         .add_lib(
             &provider,
             get_manifest(),
-            &Url::parse("lib://context").expect("Could not parse lib url"),
+            &Url::parse("lib://context").expect("Could not parse lib url"), // ADM
         )
         .expect("Could not add context library to loader");
 

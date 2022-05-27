@@ -549,6 +549,7 @@ mod test {
         assert_eq!(flow.route(), &Route::from("/test_flow"));
     }
 
+    // ADM should be "root"
     #[test]
     fn test_set_parent_route() {
         let mut flow = test_flow();
