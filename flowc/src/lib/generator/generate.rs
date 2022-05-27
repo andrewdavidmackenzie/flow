@@ -574,7 +574,7 @@ mod test {
 }";
         #[cfg(not(feature = "debugger"))]
         let expected = "{
-  'id': 0,
+  'function_id': 0,
   'flow_id': 0,
   'implementation_location': 'context://stdio/stdout',
   'output_connections': [
