@@ -21,7 +21,7 @@ use clap::{App, AppSettings, Arg, ArgMatches};
 use log::{error, info, warn};
 use simpath::Simpath;
 use simplog::SimpleLogger;
-#[cfg(feature = "context")]
+#[cfg(any(feature = "context", feature = "flowstdlib"))]
 use url::Url;
 
 #[cfg(feature = "debugger")]
