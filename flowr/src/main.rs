@@ -391,12 +391,9 @@ fn client_only(
     matches: ArgMatches,
     #[cfg(feature = "debugger")] debug_this_flow: bool,
 ) -> Result<()> {
-    let address = matches.value_of("address")
-        .ok_or("Client only mode must supply a server address to connect to")?;
-    let mut runtime_server_info = ServerInfo::new(address);
+    let mut runtime_server_info = ServerInfo::new(matches.value_of("address"));
     #[cfg(feature = "debugger")]
-
-    let mut debug_server_info = ServerInfo::debug_info(address);
+    let mut debug_server_info = ServerInfo::debug_info(matches.value_of("address"));
 
     #[cfg(feature = "debugger")]
         let control_c_client_connection = if debug_this_flow {

@@ -40,20 +40,24 @@ pub struct ServerInfo {
 
 impl ServerInfo {
     /// Create a new ServerInfo struct
-    pub fn new(address: &str) -> Self {
+    pub fn new(address: Option<&str>) -> Self {
         ServerInfo {
             service_name: RUNTIME_SERVICE_NAME.into(),
-            method: Method::Tcp(Some((address.to_string(), 5555)))
-        }
+            method: Method::Tcp(address
+                    .map(|s| s.to_string())
+                    .map(|name| (name, 5555)),
+            ) }
     }
 
     /// Create a ServerInfo struct for the debug service
     #[cfg(feature = "debugger")]
-    pub fn debug_info(address: &str) -> Self {
+    pub fn debug_info(address: Option<&str>) -> Self {
         ServerInfo {
             service_name: DEBUG_SERVICE_NAME.into(),
-            method: Method::Tcp(Some((address.to_string(), 5556)))
-        }
+            method: Method::Tcp(address
+                                    .map(|s| s.to_string())
+                                    .map(|name| (name, 5556)),
+            ) }
     }
 }
 
