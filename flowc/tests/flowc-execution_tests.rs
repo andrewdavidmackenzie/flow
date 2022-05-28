@@ -182,7 +182,6 @@ fn load_flow(test_dir: &Path, search_path: Simpath) -> Process {
     loader::load(
         &helper::absolute_file_url_from_relative_path(&flow_file.to_string_lossy()),
         &MetaProvider::new(search_path,
-                           #[cfg(feature = "context")]
                            helper::get_canonical_context_root()
         ),
         #[cfg(feature = "debugger")]

@@ -18,12 +18,11 @@ name = "flowclib"
 path = "src/lib/lib.rs"
 
 [features]
-default = ["debugger", "context"]
-context = ["flowcore/context"] # feature to add "context" awareness" to flowcore functions
+default = ["debugger"]
 debugger = ["flowcore/debugger"] # feature to add output for the debugger
 
 [dependencies]
-flowcore = {path = "../flowcore", version = "0.60.0"}
+flowcore = {path = "../flowcore", version = "0.60.0", features = ["context"]}
 clap = "~2"
 simplog = { version = "~1.5" }
 log = "0.4.6"

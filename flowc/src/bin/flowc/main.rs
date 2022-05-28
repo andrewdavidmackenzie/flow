@@ -53,7 +53,7 @@ pub struct Options {
     stdin_file: Option<String>,
     lib_dirs: Vec<String>,
     native_only: bool,
-    #[cfg(feature = "context")] context_root: Option<PathBuf>,
+    context_root: Option<PathBuf>,
     verbosity: Option<String>,
     optimize: bool,
 }
@@ -107,11 +107,9 @@ fn run() -> Result<()> {
     let options = parse_args(get_matches())?;
 
     let lib_search_path = get_lib_search_path(&options.lib_dirs)?;
-    #[cfg(feature = "context")]
     let context_root = options.context_root.clone().unwrap_or_else(|| PathBuf::from(""));
 
     let provider = &MetaProvider::new(lib_search_path,
-                                      #[cfg(feature = "context")]
                                       context_root
     );
 
@@ -236,7 +234,6 @@ fn get_matches<'a>() -> ArgMatches<'a> {
                 .multiple(true),
         );
 
-    #[cfg(feature = "context")]
     let app = app.arg(
         Arg::with_name("context_root")
             .short("C")
@@ -296,7 +293,6 @@ fn parse_args(matches: ArgMatches) -> Result<Options> {
         vec![]
     };
 
-    #[cfg(feature = "context")]
     let context_root = if matches.is_present("context_root") {
         let root = PathBuf::from(matches.value_of("context_root")
                                          .chain_err(|| "Could not get the 'CONTEXT_DIRECTORY' option specified")?);
@@ -320,7 +316,6 @@ fn parse_args(matches: ArgMatches) -> Result<Options> {
         stdin_file: matches.value_of("stdin").map(String::from),
         lib_dirs,
         native_only: matches.is_present("native"),
-        #[cfg(feature = "context")]
         context_root,
         verbosity: verbosity.map(|v| v.to_string()),
         optimize: matches.is_present("optimize")

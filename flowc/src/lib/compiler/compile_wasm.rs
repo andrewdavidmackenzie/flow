@@ -8,7 +8,7 @@ use std::process::Stdio;
 use log::{debug, info, warn};
 use simpath::{FileType, FoundType, Simpath};
 use tempdir::TempDir;
-#[cfg(feature = "context")]
+#[cfg(feature = "debugger")]
 use url::Url;
 
 use flowcore::model::function_definition::FunctionDefinition;

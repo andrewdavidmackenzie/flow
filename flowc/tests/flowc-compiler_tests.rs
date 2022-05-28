@@ -6,8 +6,7 @@ use tempdir::TempDir;
 #[cfg(feature = "debugger")]
 use url::Url;
 
-use flowclib::compiler::compile;
-use flowclib::compiler::loader;
+use flowclib::compiler::{compile, loader};
 use flowcore::meta_provider::MetaProvider;
 use flowcore::model::input::InputInitializer::Once;
 use flowcore::model::name::HasName;
@@ -35,35 +34,8 @@ mod helper;
 ///
 /// An interim solution could be to have the files in the code as Strings and parse from there.
 #[test]
-fn args() {
-    let meta_provider = MetaProvider::new(helper::set_lib_search_path_to_project(),
-                                          #[cfg(feature = "context")]
-                                              helper::get_canonical_context_root()
-    );
-    let path =
-        helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/args/root.toml");
-    let process = loader::load(&path, &meta_provider,
-                               #[cfg(feature = "debugger")]
-                               &mut HashSet::<(Url, Url)>::new()
-    )
-        .expect("Could not load test flow");
-    if let FlowProcess(ref flow) = process {
-        #[cfg(feature = "debugger")]
-        let mut source_urls = HashSet::<(Url, Url)>::new();
-        let output_dir = TempDir::new("flow-test").expect("A temp dir").into_path();
-
-        let _tables = compile::compile(flow, &output_dir, false, false,
-                                       #[cfg(feature = "debugger")] &mut source_urls
-        ).expect("Could not compile flow");
-    } else {
-        panic!("Process loaded was not a flow");
-    }
-}
-
-#[test]
 fn object_to_array_connection() {
     let meta_provider = MetaProvider::new(helper::set_lib_search_path_to_project(),
-                                          #[cfg(feature = "context")]
                                           helper::get_canonical_context_root()
     );
     let path = helper::absolute_file_url_from_relative_path(
@@ -91,7 +63,6 @@ fn object_to_array_connection() {
 #[test]
 fn context_with_io() {
     let meta_provider = MetaProvider::new(helper::set_lib_search_path_to_project(),
-                                          #[cfg(feature = "context")]
                                           helper::get_canonical_context_root()
     );
     let path = helper::absolute_file_url_from_relative_path(
@@ -122,7 +93,6 @@ fn context_with_io() {
 #[test]
 fn same_name_input_and_output() {
     let meta_provider = MetaProvider::new(helper::set_lib_search_path_to_project(),
-                                          #[cfg(feature = "context")]
                                           helper::get_canonical_context_root()
     );
     let path = helper::absolute_file_url_from_relative_path(
@@ -151,7 +121,6 @@ fn same_name_input_and_output() {
 #[test]
 fn same_name_flow_ids() {
     let meta_provider = MetaProvider::new(helper::set_lib_search_path_to_project(),
-                                          #[cfg(feature = "context")]
                                           helper::get_canonical_context_root()
     );
     let path = helper::absolute_file_url_from_relative_path(
@@ -190,7 +159,6 @@ fn same_name_flow_ids() {
 #[test]
 fn connection_to_input_with_constant_initializer() {
     let meta_provider = MetaProvider::new(helper::set_lib_search_path_to_project(),
-                                          #[cfg(feature = "context")]
                                           helper::get_canonical_context_root()
     );
     let path = helper::absolute_file_url_from_relative_path(
@@ -217,9 +185,33 @@ fn connection_to_input_with_constant_initializer() {
 }
 
 #[test]
+fn args() {
+    let meta_provider = MetaProvider::new(helper::set_lib_search_path_to_project(),
+                                              helper::get_canonical_context_root()
+    );
+    let path =
+        helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/args/root.toml");
+    let process = loader::load(&path, &meta_provider,
+                               #[cfg(feature = "debugger")]
+                                   &mut HashSet::<(Url, Url)>::new()
+    )
+        .expect("Could not load test flow");
+    if let FlowProcess(ref flow) = process {
+        #[cfg(feature = "debugger")]
+            let mut source_urls = HashSet::<(Url, Url)>::new();
+        let output_dir = TempDir::new("flow-test").expect("A temp dir").into_path();
+
+        let _tables = compile::compile(flow, &output_dir, false, false,
+                                       #[cfg(feature = "debugger")] &mut source_urls
+        ).expect("Could not compile flow");
+    } else {
+        panic!("Process loaded was not a flow");
+    }
+}
+
+#[test]
 fn no_side_effects() {
     let meta_provider = MetaProvider::new(helper::set_lib_search_path_to_project(),
-                                          #[cfg(feature = "context")]
                                           helper::get_canonical_context_root()
     );
     let path = helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/no_side_effects/root.toml");
@@ -248,7 +240,6 @@ fn no_side_effects() {
 #[test]
 fn compile_echo_ok() {
     let meta_provider = MetaProvider::new(helper::set_lib_search_path_to_project(),
-                                          #[cfg(feature = "context")]
                                           helper::get_canonical_context_root()
     );
     let process = loader::load(
@@ -273,7 +264,6 @@ fn compile_echo_ok() {
 #[test]
 fn compiler_detects_unused_input() {
     let meta_provider = MetaProvider::new(helper::set_lib_search_path_to_project(),
-                                          #[cfg(feature = "context")]
                                           helper::get_canonical_context_root()
     );
     let process = loader::load(
@@ -303,7 +293,6 @@ fn compiler_detects_unused_input() {
 #[test]
 fn compile_detects_connection_to_initialized_input() {
     let meta_provider = MetaProvider::new(helper::set_lib_search_path_to_project(),
-                                          #[cfg(feature = "context")]
                                           helper::get_canonical_context_root()
     );
     let process = loader::load(
@@ -337,7 +326,6 @@ fn compile_detects_connection_to_initialized_input() {
 #[test]
 fn flow_input_propagated_back_out() {
     let meta_provider = MetaProvider::new(helper::set_lib_search_path_to_project(),
-                                          #[cfg(feature = "context")]
                                           helper::get_canonical_context_root()
     );
     // Relative path from project root to the test file
@@ -378,7 +366,6 @@ fn flow_input_propagated_back_out() {
 #[test]
 fn initialized_output_propagated() {
     let meta_provider = MetaProvider::new(helper::set_lib_search_path_to_project(),
-                                          #[cfg(feature = "context")]
                                           helper::get_canonical_context_root()
     );
     // Relative path from project root to the test file
@@ -442,7 +429,6 @@ fn initialized_output_propagated() {
 #[test]
 fn initialized_input_to_subflow() {
     let meta_provider = MetaProvider::new(helper::set_lib_search_path_to_project(),
-                                          #[cfg(feature = "context")]
                                           helper::get_canonical_context_root()
     );
     // Relative path from project root to the test file

@@ -1,7 +1,7 @@
-#[cfg(feature = "context")]
+#[cfg(feature = "debugger")]
 use std::collections::HashSet;
 
-#[cfg(feature = "context")]
+#[cfg(feature = "debugger")]
 use url::Url;
 
 use flowclib::compiler::loader;
@@ -35,7 +35,6 @@ mod helper;
 #[test]
 fn malformed_connection() {
     let meta_provider = MetaProvider::new(helper::set_lib_search_path_to_project(),
-                                          #[cfg(feature = "context")]
                                           helper::get_canonical_context_root()
     );
     let path = helper::absolute_file_url_from_relative_path(
@@ -52,7 +51,6 @@ fn malformed_connection() {
 #[test]
 fn invalid_toml() {
     let meta_provider = MetaProvider::new(helper::set_lib_search_path_to_project(),
-                                          #[cfg(feature = "context")]
                                           helper::get_canonical_context_root()
     );
     let path = helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/root.toml");
@@ -67,7 +65,6 @@ fn invalid_toml() {
 #[test]
 fn invalid_process() {
     let meta_provider = MetaProvider::new(helper::set_lib_search_path_to_project(),
-                                          #[cfg(feature = "context")]
                                           helper::get_canonical_context_root()
     );
     let path = helper::absolute_file_url_from_relative_path(
@@ -84,7 +81,6 @@ fn invalid_process() {
 #[test]
 fn function_input_initialized() {
     let meta_provider = MetaProvider::new(helper::set_lib_search_path_to_project(),
-                                          #[cfg(feature = "context")]
                                           helper::get_canonical_context_root()
     );
     let url = helper::absolute_file_url_from_relative_path(
@@ -92,7 +88,7 @@ fn function_input_initialized() {
     );
 
     match loader::load(&url, &meta_provider,
-                       #[cfg(feature = "context")]
+                       #[cfg(feature = "debugger")]
                        &mut HashSet::<(Url, Url)>::new()
     ) {
         Ok(FlowProcess(mut flow)) => match flow.subprocesses.get_mut(&Name::from("print")) {
@@ -119,7 +115,6 @@ fn function_input_initialized() {
 #[test]
 fn root_flow_takes_name_from_file() {
     let meta_provider = MetaProvider::new(helper::set_lib_search_path_to_project(),
-                                          #[cfg(feature = "context")]
                                               helper::get_canonical_context_root()
     );
     // Relative path from project root to the test file
@@ -127,7 +122,7 @@ fn root_flow_takes_name_from_file() {
         helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/names/root.toml");
 
     match loader::load(&url, &meta_provider,
-                       #[cfg(feature = "context")]
+                       #[cfg(feature = "debugger")]
                            &mut HashSet::<(Url, Url)>::new()
     ) {
         Ok(FlowProcess(flow)) => assert_eq!(flow.name, Name::from("names")),
@@ -138,7 +133,6 @@ fn root_flow_takes_name_from_file() {
 #[test]
 fn load_library() {
     let meta_provider = MetaProvider::new(helper::set_lib_search_path_to_project(),
-                                          #[cfg(feature = "context")]
                                               helper::get_canonical_context_root()
     );
     let path = helper::absolute_file_url_from_relative_path("flowc/tests/test_libs/FlowCargo.toml");
