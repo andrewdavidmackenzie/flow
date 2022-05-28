@@ -146,23 +146,6 @@ fn write_manifest(manifest: &FlowManifest, filename: &Path) -> Result<()> {
     Ok(())
 }
 
-// Setup a lib search path so that they can find the context library that is in
-// flowr/src/bin/flowr/context
-fn set_lib_search_path() -> Simpath {
-    let mut lib_search_path = Simpath::new("lib_search_path");
-    let flowr_path_str = Path::new(env!("CARGO_MANIFEST_DIR"))
-        .parent()
-        .expect("Could not get project root dir")
-        .join("flowr/src/bin/flowr");
-    println!("flowr_path_str: {:?}", flowr_path_str);
-    lib_search_path.add_directory(
-        flowr_path_str
-            .to_str()
-            .expect("Could not get context parent directory path as string"),
-    );
-    lib_search_path
-}
-
 #[test]
 fn load_manifest_from_file() {
     let f_a = RuntimeFunction::new(
@@ -183,7 +166,7 @@ fn load_manifest_from_file() {
     let manifest_file = temp_dir.join("manifest.json");
     write_manifest(&manifest, &manifest_file).expect("Could not write manifest file");
     let manifest_url = Url::from_directory_path(manifest_file).expect("Could not create url from directory path");
-    let provider = MetaProvider::new(set_lib_search_path(),
+    let provider = MetaProvider::new(Simpath::new("FLOW_LIB_PATH"),
                                      PathBuf::from("/"));
 
     let mut loader = Loader::new();
@@ -216,7 +199,7 @@ fn resolve_lib_implementation_test() {
     );
     let functions = vec![f_a];
     let mut manifest = create_manifest(functions);
-    let provider = MetaProvider::new(set_lib_search_path(),
+    let provider = MetaProvider::new(Simpath::new("FLOW_LIB_PATH"),
                                      PathBuf::from("/"));
     let mut loader = Loader::new();
     let manifest_url = url_from_rel_path("manifest.json");
@@ -245,7 +228,7 @@ fn unresolved_lib_functions_test() {
     );
     let functions = vec![f_a];
     let mut manifest = create_manifest(functions);
-    let provider = MetaProvider::new(set_lib_search_path(),
+    let provider = MetaProvider::new(Simpath::new("FLOW_LIB_PATH"),
                                      PathBuf::from("/"));
     let mut loader = Loader::new();
     let manifest_url = url_from_rel_path("manifest.json");

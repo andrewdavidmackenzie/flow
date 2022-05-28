@@ -227,11 +227,11 @@ mod test {
 
     #[test]
     fn test_route_pop() {
-        let original = Route::from("/context/function/output/subroute");
+        let original = Route::from("/root/function/output/subroute");
         let (level_up, sub) = original.pop();
         assert_eq!(
             level_up.into_owned(),
-            Route::from("/context/function/output")
+            Route::from("/root/function/output")
         );
         assert_eq!(sub, Some(Route::from("subroute")));
     }
@@ -344,55 +344,55 @@ mod test {
 
     #[test]
     fn subroute_equal_route() {
-        let route = Route::from("/context/function");
+        let route = Route::from("/root/function");
         assert!(route
-            .sub_route_of(&Route::from("/context/function"))
+            .sub_route_of(&Route::from("/root/function"))
             .is_some())
     }
 
     #[test]
     fn subroute_distinct_route() {
-        let route = Route::from("/context/function");
-        assert!(route.sub_route_of(&Route::from("/context/foo")).is_none())
+        let route = Route::from("/root/function");
+        assert!(route.sub_route_of(&Route::from("/root/foo")).is_none())
     }
 
     #[test]
     fn subroute_extended_name_route() {
-        let route = Route::from("/context/function_foo");
+        let route = Route::from("/root/function_foo");
         assert!(route
-            .sub_route_of(&Route::from("/context/function"))
+            .sub_route_of(&Route::from("/root/function"))
             .is_none())
     }
 
     #[test]
     fn is_a_subroute() {
-        let route = Route::from("/context/function/input");
+        let route = Route::from("/root/function/input");
         assert!(route
-            .sub_route_of(&Route::from("/context/function"))
+            .sub_route_of(&Route::from("/root/function"))
             .is_some())
     }
 
     #[test]
     fn is_a_sub_subroute() {
-        let route = Route::from("/context/function/input/element");
+        let route = Route::from("/root/function/input/element");
         assert!(route
-            .sub_route_of(&Route::from("/context/function"))
+            .sub_route_of(&Route::from("/root/function"))
             .is_some())
     }
 
     #[test]
     fn is_array_element_subroute() {
-        let route = Route::from("/context/function/1");
+        let route = Route::from("/root/function/1");
         assert!(route
-            .sub_route_of(&Route::from("/context/function"))
+            .sub_route_of(&Route::from("/root/function"))
             .is_some())
     }
 
     #[test]
     fn is_array_element_sub_subroute() {
-        let route = Route::from("/context/function/input/1");
+        let route = Route::from("/root/function/input/1");
         assert!(route
-            .sub_route_of(&Route::from("/context/function"))
+            .sub_route_of(&Route::from("/root/function"))
             .is_some())
     }
 
@@ -414,17 +414,17 @@ mod test {
 
     #[test]
     fn extend_route() {
-        let mut route = Route::from("/context/function");
+        let mut route = Route::from("/root/function");
 
         route.extend(&Route::from("sub"));
-        assert_eq!(route, Route::from("/context/function/sub"));
+        assert_eq!(route, Route::from("/root/function/sub"));
     }
 
     #[test]
     fn extend_route_with_nothing() {
-        let mut route = Route::from("/context/function");
+        let mut route = Route::from("/root/function");
 
         route.extend(&Route::from(""));
-        assert_eq!(route, Route::from("/context/function"));
+        assert_eq!(route, Route::from("/root/function"));
     }
 }

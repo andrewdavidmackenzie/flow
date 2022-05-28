@@ -107,10 +107,11 @@ fn run() -> Result<()> {
     let options = parse_args(get_matches())?;
 
     let lib_search_path = get_lib_search_path(&options.lib_dirs)?;
-    let context_root = options.context_root.clone()
-        .unwrap_or_else(|| PathBuf::from(""));
+    let context_root = options.context_root.clone().unwrap_or_else(|| PathBuf::from(""));
 
-    let provider = &MetaProvider::new(lib_search_path, context_root);
+    let provider = &MetaProvider::new(lib_search_path,
+                                      context_root
+    );
 
     if options.lib {
         build_lib(&options, provider).chain_err(|| "Could not build library")
@@ -158,14 +159,6 @@ fn get_matches<'a>() -> ArgMatches<'a> {
                 .multiple(true)
                 .value_name("LIB_DIR|BASE_URL")
                 .help("Add a directory or base Url to the Library Search path"),
-        )
-        .arg(
-            Arg::with_name("context_root")
-                .short("C")
-                .long("context_root")
-                .number_of_values(1)
-                .value_name("CONTEXT_DIRECTORY")
-                .help("Set the directory to use as the root dir for context functions definitions"),
         )
         .arg(
             Arg::with_name("tables")
@@ -240,6 +233,15 @@ fn get_matches<'a>() -> ArgMatches<'a> {
                 .help("Arguments that will get passed onto the flow if it is executed")
                 .multiple(true),
         );
+
+    let app = app.arg(
+        Arg::with_name("context_root")
+            .short("C")
+            .long("context_root")
+            .number_of_values(1)
+            .value_name("CONTEXT_DIRECTORY")
+            .help("Set the directory to use as the root dir for context functions definitions"),
+    );
 
     #[cfg(feature = "debugger")]
     let app = app.arg(

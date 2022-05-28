@@ -8,6 +8,7 @@ use std::process::Stdio;
 use log::{debug, info, warn};
 use simpath::{FileType, FoundType, Simpath};
 use tempdir::TempDir;
+#[cfg(feature = "debugger")]
 use url::Url;
 
 use flowcore::model::function_definition::FunctionDefinition;
@@ -204,18 +205,15 @@ fn out_of_date(source: &Path, derived: &Path) -> Result<(bool, bool)> {
 
 #[cfg(test)]
 mod test {
-    use std::{env, fs};
     #[cfg(feature = "debugger")]
         use std::collections::HashSet;
+    use std::env;
     use std::fs::{File, remove_file, write};
     use std::path::Path;
     use std::time::Duration;
 
     use serial_test::serial;
     use tempdir::TempDir;
-    #[cfg(feature = "debugger")]
-    // use std::path::PathBuf;
-    #[cfg(feature = "debugger")]
     use url::Url;
 
     use flowcore::model::datatype::STRING_TYPE;
@@ -256,7 +254,7 @@ mod test {
 
     #[test]
     fn out_of_date_test() {
-        let output_dir = tempdir::TempDir::new("flow")
+        let output_dir = TempDir::new("flow")
             .expect("Could not create TempDir during testing")
             .into_path();
 
@@ -281,7 +279,7 @@ mod test {
 
     #[test]
     fn not_out_of_date_test() {
-        let output_dir = tempdir::TempDir::new("flow")
+        let output_dir = TempDir::new("flow")
             .expect("Could not create TempDir during testing")
             .into_path();
 
@@ -304,7 +302,7 @@ mod test {
 
     #[test]
     fn out_of_date_missing_test() {
-        let output_dir = tempdir::TempDir::new("flow")
+        let output_dir = TempDir::new("flow")
             .expect("Could not create TempDir during testing")
             .into_path();
 
@@ -366,7 +364,7 @@ mod test {
     fn paths_test() {
         let function = test_function();
 
-        let target_dir = tempdir::TempDir::new("flow")
+        let target_dir = TempDir::new("flow")
             .expect("Could not create TempDir during testing")
             .into_path();
         let expected_output_wasm = target_dir.join("test.wasm");
@@ -398,7 +396,7 @@ mod test {
         #[cfg(feature = "debugger")]
         let mut source_urls = HashSet::<(Url, Url)>::new();
 
-        let target_dir = tempdir::TempDir::new("flow")
+        let target_dir = TempDir::new("flow")
             .expect("Could not create TempDir during testing")
             .into_path();
         let expected_output_wasm = target_dir.join("test.wasm");
@@ -422,11 +420,11 @@ mod test {
     fn test_compile_implementation_skip_missing() {
         let mut function = test_function();
 
-        let target_dir = tempdir::TempDir::new("flow")
+        let target_dir = TempDir::new("flow")
             .expect("Could not create TempDir during testing")
             .into_path();
         let expected_output_wasm = target_dir.join("test.wasm");
-        let _ = fs::remove_file(&expected_output_wasm);
+        let _ = remove_file(&expected_output_wasm);
 
         #[cfg(feature = "debugger")]
         let mut source_urls = HashSet::<(Url, Url)>::new();
@@ -451,11 +449,11 @@ mod test {
         let mut function = test_function();
         function.build_type = "rust".into();
 
-        let target_dir = tempdir::TempDir::new("flow")
+        let target_dir = TempDir::new("flow")
             .expect("Could not create TempDir during testing")
             .into_path();
         let expected_output_wasm = target_dir.join("test.wasm");
-        let _ = fs::remove_file(&expected_output_wasm);
+        let _ = remove_file(&expected_output_wasm);
 
         #[cfg(feature = "debugger")]
         let mut source_urls = HashSet::<(Url, Url)>::new();
@@ -479,12 +477,12 @@ mod test {
     fn test_compile_implementation_not_needed() {
         let mut function = test_function();
 
-        let target_dir = tempdir::TempDir::new("flow")
+        let target_dir = TempDir::new("flow")
             .expect("Could not create TempDir during testing")
             .into_path();
         let expected_output_wasm = target_dir.join("test.wasm");
 
-        let _ = fs::remove_file(&expected_output_wasm);
+        let _ = remove_file(&expected_output_wasm);
         write(&expected_output_wasm, b"file touched during testing")
             .expect("Could not write to file during testing");
         #[cfg(feature = "debugger")]
@@ -513,7 +511,7 @@ mod test {
         #[cfg(feature = "debugger")]
         let mut source_urls = HashSet::<(Url, Url)>::new();
 
-        let target_dir = tempdir::TempDir::new("flow")
+        let target_dir = TempDir::new("flow")
             .expect("Could not create TempDir during testing")
             .into_path();
 

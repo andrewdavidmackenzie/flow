@@ -14,6 +14,12 @@ pub const WAIT:i32 = 0;
 /// Do NOT WAIT for a message to arrive when performing a receive()
 pub static DONT_WAIT:i32 = zmq::DONTWAIT;
 
+/// `RUNTIME_SERVICE_NAME` is the name of the runtime services and can be used to discover it by name
+pub const RUNTIME_SERVICE_NAME: &str = "runtime._flowr._tcp.local";
+/// `DEBUG_SERVICE_NAME` is the name of the runtime services and can be used to discover it by name
+#[cfg(feature = "debugger")]
+pub const DEBUG_SERVICE_NAME: &str = "debug._flowr._tcp.local";
+
 /// `Method` describes the communication method used between client and server
 #[derive(Clone)]
 pub enum Method {
@@ -34,11 +40,24 @@ pub struct ServerInfo {
 
 impl ServerInfo {
     /// Create a new ServerInfo struct
-    pub fn new(service_name: &str, method: Method) -> Self {
+    pub fn new(address: Option<&str>) -> Self {
         ServerInfo {
-            service_name: service_name.into(),
-            method
-        }
+            service_name: RUNTIME_SERVICE_NAME.into(),
+            method: Method::Tcp(address
+                    .map(|s| s.to_string())
+                    .map(|name| (name, 5555)),
+            ) }
+    }
+
+    /// Create a ServerInfo struct for the debug service
+    #[cfg(feature = "debugger")]
+    pub fn debug_info(address: Option<&str>) -> Self {
+        ServerInfo {
+            service_name: DEBUG_SERVICE_NAME.into(),
+            method: Method::Tcp(address
+                                    .map(|s| s.to_string())
+                                    .map(|name| (name, 5556)),
+            ) }
     }
 }
 
@@ -143,7 +162,7 @@ impl ClientConnection {
 /// needs to be sent or received.
 pub struct ServerConnection {
     server_info: ServerInfo,
-    responder: zmq::Socket,
+    responder: Socket,
 }
 
 /// Implement a `ServerConnection` for sending and receiving messages between client and server
@@ -183,6 +202,28 @@ impl ServerConnection {
             },
             responder
         })
+    }
+
+    /// Create a runtime connection
+    pub fn runtime() -> Result<Self> {
+        ServerConnection::new(RUNTIME_SERVICE_NAME, Method::Tcp(None))
+    }
+
+    /// Create a new local connection
+    pub fn local() -> Result<Self> {
+        ServerConnection::new(RUNTIME_SERVICE_NAME, Method::InProc(None))
+    }
+
+    /// Create a new local debug connection
+    #[cfg(feature = "debugger")]
+    pub fn debug_local() -> Result<Self> {
+        ServerConnection::new(DEBUG_SERVICE_NAME, Method::InProc(None))
+    }
+
+    /// Create a ServerConnection for the debug service
+    #[cfg(feature = "debugger")]
+    pub fn debug_service() -> Result<Self> {
+        ServerConnection::new(DEBUG_SERVICE_NAME, Method::Tcp(None))
     }
 
     /// Get the `ServerInfo` struct that clients use to connect to the server
@@ -260,7 +301,7 @@ mod test {
     use serde_derive::{Deserialize, Serialize};
     use serial_test::serial;
 
-    use crate::client_server::{ClientConnection, DONT_WAIT, Method, ServerConnection, WAIT};
+    use crate::context::client_server::{ClientConnection, DONT_WAIT, Method, ServerConnection, WAIT};
 
     #[derive(Serialize, Deserialize, PartialEq, Eq, Debug)]
     enum ServerMessage {

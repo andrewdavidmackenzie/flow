@@ -5,8 +5,8 @@ use serde_json::Value;
 use flowcore::{Implementation, RUN_AGAIN, RunAgain};
 use flowcore::errors::*;
 
-use crate::client_server::ServerConnection;
-use crate::runtime_messages::{ClientMessage, ServerMessage};
+use crate::context::client_server::ServerConnection;
+use crate::context::runtime_messages::{ClientMessage, ServerMessage};
 
 /// `Implementation` struct for the `Stderr` function
 pub struct Stderr {
@@ -48,9 +48,9 @@ mod test {
 
     use flowcore::{Implementation, RUN_AGAIN};
 
+    use crate::context::runtime_messages::{ClientMessage, ServerMessage};
     use crate::context::stdio::stderr::Stderr;
-    use crate::runtime_messages::{ClientMessage, ServerMessage};
-    use crate::test_helper::test::wait_for_then_send;
+    use crate::context::test_helper::test::wait_for_then_send;
 
     #[test]
     #[serial]

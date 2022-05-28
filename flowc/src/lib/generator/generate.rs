@@ -1,3 +1,4 @@
+#[cfg(feature = "debugger")]
 use std::collections::HashSet;
 use std::fs::File;
 use std::io::Write;
@@ -11,6 +12,7 @@ use flowcore::model::flow_manifest::{DEFAULT_MANIFEST_FILENAME, FlowManifest};
 use flowcore::model::function_definition::FunctionDefinition;
 use flowcore::model::input::Input;
 use flowcore::model::metadata::MetaData;
+#[cfg(feature = "debugger")]
 use flowcore::model::name::HasName;
 #[cfg(feature = "debugger")]
 use flowcore::model::route::HasRoute;
@@ -572,7 +574,7 @@ mod test {
 }";
         #[cfg(not(feature = "debugger"))]
         let expected = "{
-  'id': 0,
+  'function_id': 0,
   'flow_id': 0,
   'implementation_location': 'context://stdio/stdout',
   'output_connections': [

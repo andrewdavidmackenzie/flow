@@ -1,5 +1,6 @@
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::Path;
+use std::path::PathBuf;
 
 use colored::*;
 use log::{debug, info};
@@ -54,7 +55,8 @@ pub fn build_lib(options: &Options, provider: &dyn Provider) -> Result<()> {
             ("Library manifest file(s) exists, but implementations were built, writing new file(s)", true)
         } else {
             let provider = MetaProvider::new(Simpath::new(""),
-                                             PathBuf::from("/"));
+                                             PathBuf::from("/")
+            );
             let json_manifest_file_as_url =
                 Url::from_file_path(&manifest_json_file).map_err(|_| {
                     format!(

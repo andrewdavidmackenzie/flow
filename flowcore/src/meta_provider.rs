@@ -1,3 +1,4 @@
+#[cfg(feature = "context")]
 use std::path::PathBuf;
 
 use simpath::{FoundType, Simpath};
@@ -35,6 +36,7 @@ const HTTP_PROVIDER: &dyn Provider = &HttpProvider as &dyn Provider;
 /// to fetch the content (e.g. File or Http).
 pub struct MetaProvider {
     lib_search_path: Simpath,
+    #[cfg(feature = "context")]
     context_root: PathBuf,
 }
 
@@ -46,7 +48,9 @@ pub struct MetaProvider {
 /// use url::Url;
 /// use flowcore::meta_provider::{Provider, MetaProvider};
 /// let lib_search_path = Simpath::new_with_separator("FLOW_LIB_PATH", ',');
-/// let meta_provider = &mut MetaProvider::new(lib_search_path, PathBuf::from("/")) as &dyn Provider;
+/// let meta_provider = &mut MetaProvider::new(lib_search_path,
+///                                            #[cfg(feature = "context")] PathBuf::from("/")
+///                                             ) as &dyn Provider;
 /// let url = Url::parse("file://directory").unwrap();
 /// match meta_provider.resolve_url(&url, "default", &["toml"]) {
 ///     Ok((resolved_url, lib_ref)) => {
@@ -63,10 +67,14 @@ pub struct MetaProvider {
 impl MetaProvider {
     /// Create a new `MetaProvider` initializing it with:
     /// - a search path where to look for libraries
-    /// - the root of the context functions provided by the runtime
+    /// - the root of the context functions provided by the runtime (requires "context" feature
     pub fn new(lib_search_path: Simpath,
-                context_root: PathBuf) -> Self {
-        MetaProvider { lib_search_path, context_root }
+               #[cfg(feature = "context")] context_root: PathBuf
+                ) -> Self {
+        MetaProvider {
+            lib_search_path,
+            #[cfg(feature = "context")] context_root
+        }
     }
 
     // Determine which specific provider should be used based on the scheme of the Url of the content
@@ -91,6 +99,7 @@ impl MetaProvider {
     ///    - a string representation of the Url (file: or http: or https:) where the file can be found
     ///    - a string that is a reference to that module in the library, such as:
     ///        "context/stdio/stdout/stdout"
+    #[cfg(feature = "context")]
     fn resolve_context_url(&self, url: &Url) -> Result<(Url, Option<Url>)> {
         let dir = url.host_str()
             .chain_err(|| format!("context 'dir' could not be extracted from the url '{}'", url))?;
@@ -161,6 +170,7 @@ impl Provider for MetaProvider {
         // resolve a lib reference into either a file: or http: or https: reference
         let (content_url, reference) = match url.scheme() {
             "lib" => self.resolve_lib_url(url)?,
+            #[cfg(feature = "context")]
             "context" => self.resolve_context_url(url)?,
             _ => (url.clone(), None),
         };
@@ -193,7 +203,10 @@ mod test {
     #[test]
     fn get_invalid_provider() {
         let search_path = Simpath::new("TEST");
-        let meta = MetaProvider::new(search_path, PathBuf::from("/"));
+        let meta = MetaProvider::new(search_path,
+                                     #[cfg(feature = "context")]
+                                         PathBuf::from("/")
+        );
 
         assert!(meta.get_provider("fake://bla").is_err());
     }
@@ -201,7 +214,10 @@ mod test {
     #[test]
     fn get_http_provider() {
         let search_path = Simpath::new("TEST");
-        let meta = MetaProvider::new(search_path, PathBuf::from("/"));
+        let meta = MetaProvider::new(search_path,
+                                     #[cfg(feature = "context")]
+                                     PathBuf::from("/")
+        );
 
         assert!(meta.get_provider("http").is_ok());
     }
@@ -209,7 +225,10 @@ mod test {
     #[test]
     fn get_https_provider() {
         let search_path = Simpath::new("TEST");
-        let meta = MetaProvider::new(search_path, PathBuf::from("/"));
+        let meta = MetaProvider::new(search_path,
+                                     #[cfg(feature = "context")]
+                                     PathBuf::from("/")
+        );
 
         assert!(meta.get_provider("https").is_ok());
     }
@@ -217,7 +236,10 @@ mod test {
     #[test]
     fn get_file_provider() {
         let search_path = Simpath::new("TEST");
-        let meta = MetaProvider::new(search_path, PathBuf::from("/"));
+        let meta = MetaProvider::new(search_path,
+                                     #[cfg(feature = "context")]
+                                     PathBuf::from("/")
+        );
 
         assert!(meta.get_provider("file").is_ok());
     }
@@ -247,7 +269,9 @@ mod test {
         ))
         .expect("Could not create expected url");
         let provider = &MetaProvider::new(set_lib_search_path(),
-                                          PathBuf::from("/")) as &dyn Provider;
+                                          #[cfg(feature = "context")]
+                                          PathBuf::from("/")
+        ) as &dyn Provider;
         let lib_url = Url::parse("lib://flowstdlib/control/tap").expect("Couldn't form Url");
         match provider.resolve_url(&lib_url, "", &["toml"]) {
             Ok((url, lib_ref)) => {
@@ -274,7 +298,10 @@ mod test {
         let expected_url = Url::parse("https://raw.githubusercontent.com/andrewdavidmackenzie/flow/master/flowstdlib/control/tap/tap.toml")
             .expect("Couldn't parse expected Url");
 
-        let provider = &MetaProvider::new(search_path, PathBuf::from("/"));
+        let provider = &MetaProvider::new(search_path,
+                                          #[cfg(feature = "context")]
+                                          PathBuf::from("/")
+        );
 
         let lib_url = Url::parse("lib://flowstdlib/control/tap").expect("Couldn't create Url");
         let (resolved_url, _) = provider

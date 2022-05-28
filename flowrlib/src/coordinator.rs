@@ -70,6 +70,7 @@ impl<'a> Coordinator<'a> {
         provider: MetaProvider,
         loop_forever: bool,
     ) -> Result<()> {
+        // TODO without the client and context methods currently there is no other way to send a submission
         while let Some(submission) = self.server.wait_for_submission()? {
             match loader.load_flow(&provider, &submission.manifest_url) {
                 Ok(manifest) => {
@@ -83,7 +84,9 @@ impl<'a> Coordinator<'a> {
             }
         }
 
-        self.server.server_exiting(Ok(()))
+        self.server.server_exiting(Ok(()))?;
+
+        Ok(())
     }
 
     //noinspection RsReassignImmutable

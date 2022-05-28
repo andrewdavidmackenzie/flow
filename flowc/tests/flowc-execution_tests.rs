@@ -1,6 +1,7 @@
 #[macro_use]
 extern crate error_chain;
 
+#[cfg(feature = "debugger")]
 use std::collections::HashSet;
 use std::fmt::Write as FormatWrite;
 use std::fs::File;
@@ -64,6 +65,7 @@ fn write_manifest(
         debug_symbols,
         &out_dir_path,
         tables,
+        #[cfg(feature = "debugger")]
         &HashSet::<(Url, Url)>::new(),
     )?;
 
@@ -179,8 +181,11 @@ fn load_flow(test_dir: &Path, search_path: Simpath) -> Process {
     flow_file.push("root.toml");
     loader::load(
         &helper::absolute_file_url_from_relative_path(&flow_file.to_string_lossy()),
-        &MetaProvider::new(search_path, helper::get_canonical_context_root()),
-        &mut HashSet::<(Url, Url)>::new(),
+        &MetaProvider::new(search_path,
+                           helper::get_canonical_context_root()
+        ),
+        #[cfg(feature = "debugger")]
+            &mut HashSet::<(Url, Url)>::new(),
     )
     .expect("Could not load process")
 }
@@ -205,6 +210,7 @@ fn execute_test(test_name: &str, separate_processes: bool) {
     let test_dir = root_dir.join(&format!("flowc/tests/test-flows/{}", test_name));
 
     if let FlowProcess(ref flow) = load_flow(&test_dir, search_path) {
+        #[cfg(feature = "debugger")]
         let mut source_urls = HashSet::<(Url, Url)>::new();
         let output_dir = TempDir::new("flow-test").expect("A temp dir").into_path();
 
