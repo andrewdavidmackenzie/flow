@@ -174,7 +174,7 @@ fn load_manifest_from_file() {
         .add_lib(
             &provider,
             get_manifest(),
-            &Url::parse("lib://context").expect("Could not parse lib url"), // ADM
+            &Url::parse("lib://context").expect("Could not parse lib url"),
         )
         .expect("Could not add context library to loader");
 

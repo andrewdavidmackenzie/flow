@@ -538,8 +538,8 @@ mod test {
         let mut flow = FlowDefinition::default();
         let route = flow.route_mut();
         assert_eq!(route, &Route::default());
-        *route = Route::from("/context");
-        assert_eq!(route, &Route::from("/context"));
+        *route = Route::from("/root");
+        assert_eq!(route, &Route::from("/root"));
     }
 
     #[test]
@@ -549,12 +549,11 @@ mod test {
         assert_eq!(flow.route(), &Route::from("/test_flow"));
     }
 
-    // ADM should be "root"
     #[test]
     fn test_set_parent_route() {
         let mut flow = test_flow();
-        flow.set_routes_from_parent(&Route::from("/context"));
-        assert_eq!(flow.route(), &Route::from("/context/test_flow"));
+        flow.set_routes_from_parent(&Route::from("/root"));
+        assert_eq!(flow.route(), &Route::from("/root/test_flow"));
     }
 
     #[test]
