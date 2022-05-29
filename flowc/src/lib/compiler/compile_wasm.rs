@@ -41,8 +41,10 @@ pub fn compile_implementation(
     if missing || out_of_date {
         if native_only {
             if missing {
-                let message = format!("Implementation at '{}' is missing and you have selected to skip building, so flows relaying on this implementation will not execute correctly.\nYou can build it using 'flowc', using the '-p' option", wasm_destination.display());
-                warn!("{}", message);
+                warn!("Implementation at '{}' is missing and you have \
+                selected to skip building, so flows relaying on this implementation will not \
+                execute correctly.\nYou can build it using 'flowc', using the '-p' option",
+                                      wasm_destination.display());
             }
             if out_of_date {
                 info!(
@@ -212,7 +214,6 @@ mod test {
     use std::path::Path;
     use std::time::Duration;
 
-    use serial_test::serial;
     use tempdir::TempDir;
     use url::Url;
 
@@ -389,34 +390,6 @@ mod test {
     }
 
     #[test]
-    #[serial(stdio_wasm_compile)]
-    fn test_compile_implementation_skip() {
-        let mut function = test_function();
-
-        #[cfg(feature = "debugger")]
-        let mut source_urls = HashSet::<(Url, Url)>::new();
-
-        let target_dir = TempDir::new("flow")
-            .expect("Could not create TempDir during testing")
-            .into_path();
-        let expected_output_wasm = target_dir.join("test.wasm");
-
-        let (wasm_destination, built) = super::compile_implementation(
-            &target_dir,
-            &mut function,
-            true,
-            false,
-            #[cfg(feature = "debugger")]
-            &mut source_urls,
-        )
-        .expect("compile_implementation() failed");
-
-        assert!(!built);
-        assert_eq!(expected_output_wasm, wasm_destination);
-    }
-
-    #[test]
-    #[serial(stdio_wasm_compile)]
     fn test_compile_implementation_skip_missing() {
         let mut function = test_function();
 
@@ -444,36 +417,6 @@ mod test {
     }
 
     #[test]
-    #[serial(stdio_wasm_compile)]
-    fn test_compile_implementation() {
-        let mut function = test_function();
-        function.build_type = "rust".into();
-
-        let target_dir = TempDir::new("flow")
-            .expect("Could not create TempDir during testing")
-            .into_path();
-        let expected_output_wasm = target_dir.join("test.wasm");
-        let _ = remove_file(&expected_output_wasm);
-
-        #[cfg(feature = "debugger")]
-        let mut source_urls = HashSet::<(Url, Url)>::new();
-
-        let (wasm_destination, built) = super::compile_implementation(
-            &target_dir,
-            &mut function,
-            false,
-            false,
-            #[cfg(feature = "debugger")]
-            &mut source_urls,
-        )
-        .expect("compile_implementation() failed");
-
-        assert!(built);
-        assert_eq!(wasm_destination, expected_output_wasm);
-    }
-
-    #[test]
-    #[serial(stdio_wasm_compile)]
     fn test_compile_implementation_not_needed() {
         let mut function = test_function();
 
@@ -503,13 +446,38 @@ mod test {
     }
 
     #[test]
-    #[serial(stdio_wasm_compile)]
+    fn test_compile_implementation_skip() {
+        let mut function = test_function();
+
+        #[cfg(feature = "debugger")]
+            let mut source_urls = HashSet::<(Url, Url)>::new();
+
+        let target_dir = TempDir::new("flow")
+            .expect("Could not create TempDir during testing")
+            .into_path();
+        let expected_output_wasm = target_dir.join("test.wasm");
+
+        let (wasm_destination, built) = super::compile_implementation(
+            &target_dir,
+            &mut function,
+            true,
+            false,
+            #[cfg(feature = "debugger")]
+                &mut source_urls,
+        )
+            .expect("compile_implementation() failed");
+
+        assert!(!built);
+        assert_eq!(expected_output_wasm, wasm_destination);
+    }
+
+    #[test]
     fn test_compile_implementation_invalid_paths() {
         let mut function = test_function();
         function.set_source("does_not_exist");
 
         #[cfg(feature = "debugger")]
-        let mut source_urls = HashSet::<(Url, Url)>::new();
+            let mut source_urls = HashSet::<(Url, Url)>::new();
 
         let target_dir = TempDir::new("flow")
             .expect("Could not create TempDir during testing")
@@ -521,8 +489,36 @@ mod test {
             true,
             false,
             #[cfg(feature = "debugger")]
-            &mut source_urls,
+                &mut source_urls,
         )
-        .is_err());
+            .is_err());
+    }
+
+    #[test]
+    fn test_compile_implementation() {
+        let mut function = test_function();
+        function.build_type = "rust".into();
+
+        let target_dir = TempDir::new("flow")
+            .expect("Could not create TempDir during testing")
+            .into_path();
+        let expected_output_wasm = target_dir.join("test.wasm");
+        let _ = remove_file(&expected_output_wasm);
+
+        #[cfg(feature = "debugger")]
+            let mut source_urls = HashSet::<(Url, Url)>::new();
+
+        let (wasm_destination, built) = super::compile_implementation(
+            &target_dir,
+            &mut function,
+            false,
+            false,
+            #[cfg(feature = "debugger")]
+                &mut source_urls,
+        )
+            .expect("compile_implementation() failed");
+
+        assert!(built);
+        assert_eq!(wasm_destination, expected_output_wasm);
     }
 }

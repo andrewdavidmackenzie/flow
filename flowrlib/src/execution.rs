@@ -76,9 +76,8 @@ fn get_and_execute_job(
 
 fn execute(mut job: Job, job_tx: &Sender<Job>, name: &str) -> Result<()> {
     trace!("Job #{}: Started  executing on '{name}'", job.job_id);
-    let result = job.implementation.run(&job.input_set);
+    job.result = job.implementation.run(&job.input_set);
     trace!("Job #{}: Finished executing on '{name}'", job.job_id);
-    job.result = result;
     job_tx
         .send(job)
         .chain_err(|| "Error sending job result back after execution")

@@ -131,9 +131,7 @@ impl CliRuntimeClient {
             }
             ServerMessage::GetStdin => {
                 let mut buffer = String::new();
-                let stdin = io::stdin();
-                let mut handle = stdin.lock();
-                if let Ok(size) = handle.read_to_string(&mut buffer) {
+                if let Ok(size) = io::stdin().lock().read_to_string(&mut buffer) {
                     return if size > 0 {
                         ClientMessage::Stdin(buffer.trim().to_string())
                     } else {
@@ -144,9 +142,7 @@ impl CliRuntimeClient {
             }
             ServerMessage::GetLine => {
                 let mut input = String::new();
-                let stdin = io::stdin();
-                let mut handle = stdin.lock();
-                match handle.read_line(&mut input) {
+                match io::stdin().lock().read_line(&mut input) {
                     Ok(n) if n > 0 => ClientMessage::Line(input.trim().to_string()),
                     Ok(n) if n == 0 => ClientMessage::GetLineEof,
                     _ => ClientMessage::Error("Could not read Readline".into()),
