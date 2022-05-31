@@ -155,7 +155,7 @@ fn load_manifest_from_file() {
 
     let mut loader = Loader::new();
     loader
-        .add_lib(
+        .load_lib(
             &provider,
             create_test_context_manifest(),
             &Url::parse("context://").expect("Could not parse lib url"),
@@ -189,7 +189,7 @@ fn unresolved_references_test() {
 
     let mut loader = Loader::new();
     loader
-        .add_lib(
+        .load_lib(
             &provider,
             create_test_context_manifest(),
             &Url::parse("context://").expect("Could not parse lib url"),

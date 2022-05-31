@@ -236,7 +236,7 @@ fn load_native_libs(
 ) -> Result<()> {
     // Add the native context functions to functions available for use by the flow
     #[cfg(feature = "context")]
-    loader.add_lib(
+    loader.load_lib(
         provider,
         context::get_manifest(server_connection)?,
         &Url::parse("context://")?,
@@ -247,7 +247,7 @@ fn load_native_libs(
     // references will be resolved and those libraries (WASM implementations) will be loaded at runtime
     if native_flowstdlib {
         #[cfg(feature = "flowstdlib")]
-        loader.add_lib(
+        loader.load_lib(
                 provider,
                 flowstdlib::manifest::get_manifest()
                     .chain_err(|| "Could not get 'native' flowstdlib manifest")?,

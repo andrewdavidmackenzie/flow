@@ -31,7 +31,7 @@ pub enum ImplementationLocator {
     #[serde(skip_deserializing, skip_serializing)]
     /// A `Native` implementation is a reference to a trait object and linked with the library
     Native(Arc<dyn Implementation>),
-    /// A `Wasm` implementation is compiled to wasm and loaded to a file at the path indicated by the `String`
+    /// A `Wasm` implementation is compiled to a wasm file at the relative path indicated by the `String`
     Wasm(String),
 }
 
