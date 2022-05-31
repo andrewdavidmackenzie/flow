@@ -23,15 +23,12 @@ pub const DEFAULT_LIB_RUST_MANIFEST_FILENAME: &str = "manifest.rs";
 */
 #[derive(Deserialize, Serialize, Clone)]
 #[serde(untagged)]
-/// `ImplementationLocator` enum is used to describe where an implementation can be found.
-/// Implementations can be of two types:
-/// - `Native` - A statically linked function referenced via a function reference
-/// - `Wasm`   - A WASM bytecode file that is referenced via a string pointing to the .wasm file location
+/// `ImplementationLocator` describes where an implementation can be located.
 pub enum ImplementationLocator {
     #[serde(skip_deserializing, skip_serializing)]
-    /// A `Native` implementation is a reference to a trait object and linked with the library
+    /// A `Native` - A reference to a trait object statically linked with the library
     Native(Arc<dyn Implementation>),
-    /// A `Wasm` implementation is compiled to a wasm file at the relative path indicated by the `String`
+    /// A `Wasm` - `String` indicating where the wasm file of implementation is located
     Wasm(String),
 }
 
