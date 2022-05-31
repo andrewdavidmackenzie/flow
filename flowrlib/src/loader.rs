@@ -19,10 +19,10 @@ use crate::wasm;
 /// will be used to execute it.
 #[derive(Default)]
 pub struct Loader {
-    /// HashMap of libraries that have already had their manifests read. The key is the library
-    /// reference Url (e.g. lib:://flowstdlib) and the entry is a tuple of the LibraryManifest
+    /// HashMap of libraries already loaded. The key is the library reference Url
+    /// (e.g. lib:://flowstdlib) and the entry is a tuple of the LibraryManifest
     /// and the resolved Url of where the manifest was read from
-    loaded_libraries_manifests: HashMap<Url, (LibraryManifest, Url)>,
+    loaded_libraries: HashMap<Url, (LibraryManifest, Url)>,
     loaded_implementations: HashMap<Url, Arc<dyn Implementation>>,
 }
 
@@ -31,19 +31,13 @@ impl Loader {
     /// memory ready for execution
     pub fn new() -> Self {
         Loader {
-            loaded_libraries_manifests: HashMap::<Url, (LibraryManifest, Url)>::new(),
+            loaded_libraries: HashMap::<Url, (LibraryManifest, Url)>::new(),
             loaded_implementations: HashMap::<Url, Arc<dyn Implementation>>::new(),
         }
     }
 
-    /// Return a HashMap of the Implementations loaded, with the Url for the function
-    /// as the key
-    pub fn get_implementations(&self) -> &HashMap<Url, Arc<dyn Implementation>> {
-        &self.loaded_implementations
-    }
-
     /// Load all the functions defined in a manifest, and then find all the
-    /// implementations required for function execution later.
+    /// implementations required for function execution.
     ///
     /// A flow is dynamically loaded, so none of the implementations it brings can be static,
     /// they must all be dynamically loaded from WASM. Each one will be wrapped in a
@@ -67,44 +61,45 @@ impl Loader {
             FlowManifest::load(provider, flow_manifest_url)
                 .chain_err(|| format!("Could not load manifest from: '{}'", flow_manifest_url))?;
 
-        self.load_library_implementations(provider, &flow_manifest)
+        self.load_lib_implementations(provider, &flow_manifest)
             .chain_err(|| format!("Could not load libraries referenced by manifest at: {}",
                        resolved_url))?;
 
         // Find the implementations for all functions used in this flow
-        self.resolve_implementations(provider, &mut flow_manifest, &resolved_url)
+        self.resolve_function_implementations(provider, &mut flow_manifest, &resolved_url)
             .chain_err(|| "Could not resolve implementations required for flow execution")?;
 
         Ok(flow_manifest)
     }
 
-    /// Load the library manifest if not already loaded
-    fn load_manifest_if_needed(
+    // Load the library manifest if is not already loaded
+    fn load_lib_manifest_if_needed(
         &mut self,
         provider: &dyn Provider,
         lib_root_url: &Url,
     ) -> Result<()> {
-        if self.loaded_libraries_manifests.get(lib_root_url).is_none() {
+        if self.loaded_libraries.get(lib_root_url).is_none() {
             info!("Attempting to load library '{}'", lib_root_url);
             let new_manifest_tuple =
                 LibraryManifest::load(provider, lib_root_url).chain_err(|| {
                     format!("Could not load library with root url: '{}'", lib_root_url)
                 })?;
-            self.loaded_libraries_manifests
+            self.loaded_libraries
                 .insert(lib_root_url.clone(), new_manifest_tuple);
         }
         Ok(())
     }
 
-    fn get_manifest_tuple(
+    // Get the tuple of the lib manifest and the url from where it was loaded from
+    fn get_lib_manifest_tuple(
         &mut self,
         provider: &dyn Provider,
         lib_root_url: &Url,
     ) -> Result<(LibraryManifest, Url)> {
-        self.load_manifest_if_needed(provider, lib_root_url)?;
+        self.load_lib_manifest_if_needed(provider, lib_root_url)?;
 
         let tuple = self
-            .loaded_libraries_manifests
+            .loaded_libraries
             .get(lib_root_url)
             .ok_or_else(|| {
                 std::io::Error::new(
@@ -116,22 +111,22 @@ impl Loader {
         Ok(tuple.clone()) // TODO avoid the clone and return a reference
     }
 
-    /// Load libraries implementations referenced in the flow manifest
-    fn load_library_implementations(
+    // Load libraries implementations referenced in the flow manifest
+    fn load_lib_implementations(
         &mut self,
         provider: &dyn Provider,
-        manifest: &FlowManifest,
+        flow_manifest: &FlowManifest,
     ) -> Result<()> {
-        for library_implementation_reference in manifest.get_lib_references() {
+        for lib_reference in flow_manifest.get_lib_references() {
             // zero out the path to the implementation to get the root lib url
-            let mut lib_root_url = library_implementation_reference.clone();
+            let mut lib_root_url = lib_reference.clone();
             lib_root_url.set_path("");
 
-            let manifest_tuple = self.get_manifest_tuple(provider, &lib_root_url)?;
+            let manifest_tuple = self.get_lib_manifest_tuple(provider, &lib_root_url)?;
 
-            self.add_lib_implementation(
+            self.load_lib_implementation(
                 provider,
-                library_implementation_reference,
+                lib_reference,
                 &manifest_tuple,
             )?;
         }
@@ -139,9 +134,8 @@ impl Loader {
         Ok(())
     }
 
-    /// Add a library and all the implementations it contains to the run-time by adding
-    /// all its ImplementationLocators from the manifest to the
-    /// table for this run-time, so that then when we try to load a flow that references functions
+    /// Add a library and all the implementations it contains to the loader by adding
+    /// the ImplementationLocators, so that then when we try to load a flow that references functions
     /// in the library, they can be found.
     pub fn add_lib(
         &mut self,
@@ -150,13 +144,13 @@ impl Loader {
         lib_manifest_url: &Url,
     ) -> Result<()> {
         if self
-            .loaded_libraries_manifests
+            .loaded_libraries
             .get(lib_manifest_url)
             .is_none()
         {
             let lib_manifest_tuple = (lib_manifest.clone(), lib_manifest_url.clone());
 
-            // Load all the implementations in the library
+            // Load all the implementations in the library from their locators
             for (implementation_reference, locator) in lib_manifest.locators {
                 // if we don't already have an implementation loaded for that reference
                 if self
@@ -164,7 +158,6 @@ impl Loader {
                     .get(&implementation_reference)
                     .is_none()
                 {
-                    // create or find the implementation we need
                     let implementation = match locator {
                         Wasm(wasm_source_relative) => {
                             // Path to the wasm source could be relative to the URL where we loaded the manifest from
@@ -186,7 +179,7 @@ impl Loader {
             }
 
             // track the fact we have already loaded this library
-            self.loaded_libraries_manifests
+            self.loaded_libraries
                 .insert(lib_manifest_url.clone(), lib_manifest_tuple);
             info!("Loaded library: '{}'", lib_manifest_url);
         }
@@ -194,8 +187,8 @@ impl Loader {
         Ok(())
     }
 
-    /// Add a library implementation to the table for this run-time, for use in execution
-    pub fn add_lib_implementation(
+    // Add a library implementation to the loader
+    fn load_lib_implementation(
         &mut self,
         provider: &dyn Provider,
         implementation_reference: &Url,
@@ -224,7 +217,7 @@ impl Loader {
                         .1
                         .join(wasm_source_relative)
                         .map_err(|e| e.to_string())?;
-                    debug!("Looking for wasm source: '{}'", wasm_url);
+                    debug!("Attempting to load wasm from source file: '{}'", wasm_url);
                     // Wasm implementation being added. Wrap it with the Wasm Native Implementation
                     let wasm_executor = wasm::load(provider, &wasm_url)?;
                     Arc::new(wasm_executor) as Arc<dyn Implementation>
@@ -238,10 +231,10 @@ impl Loader {
         Ok(())
     }
 
-    // Resolve or "find" all the implementations of functions for a flow
-    // The `root_url` is the url of the manifest or the directory where the manifest is located
-    // and is used in resolving relative references to other files.
-    fn resolve_implementations(
+    // Find in previously loaded library functions or load a supplied implementation from file
+    // all the implementations of functions used in a flow.
+    // The `manifest_url` is used to resolve relative references to wasm source files.
+    fn resolve_function_implementations(
         &mut self,
         provider: &dyn Provider,
         flow_manifest: &mut FlowManifest,
@@ -276,12 +269,13 @@ impl Loader {
                         "Implementation at '{}' is not in loaded libraries",
                         implementation_location
                     ))?;
+                // TODO ^^^^ this is where we would load a library function on demand
                 trace!("\tFunction implementation loaded from '{}'", implementation_location);
 
                 Ok(implementation.clone()) // Only clone of an Arc, not the object
             }
 
-            /*** These below are not 'lib:' not 'context:' - hence are supplied implementations ***/
+            // These below are not 'lib:' not 'context:' - hence are supplied implementations
             _ => {
                 let implementation_url = manifest_url
                     .join(implementation_location)
@@ -291,7 +285,7 @@ impl Loader {
                             implementation_location, manifest_url
                         )
                     })?;
-                // load the actual implementation of the function from wasm in file referenced
+                // load the supplied implementation for the function from wasm file referenced
                 let wasm_executor = wasm::load(provider, &implementation_url)?;
                 Ok(Arc::new(wasm_executor) as Arc<dyn Implementation>)
             }

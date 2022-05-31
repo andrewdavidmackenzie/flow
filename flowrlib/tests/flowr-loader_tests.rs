@@ -162,11 +162,7 @@ fn load_manifest_from_file() {
         )
         .expect("Could not add context library to loader");
 
-    let _ = loader
-        .load_flow(&provider, &manifest_url)
-        .expect("Loader could not load flow");
-
-    assert_eq!(loader.get_implementations().len(), 6);
+    assert!(loader.load_flow(&provider, &manifest_url).is_ok());
 }
 
 #[test]
