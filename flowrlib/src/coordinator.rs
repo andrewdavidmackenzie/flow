@@ -1,8 +1,4 @@
-use std::sync::{Arc, Mutex};
-use std::sync::mpsc;
-use std::sync::mpsc::{Receiver, Sender};
-
-use log::{debug, error, info, trace};
+use log::{debug, error, trace};
 
 use flowcore::errors::*;
 use flowcore::meta_provider::MetaProvider;
@@ -13,7 +9,7 @@ use flowcore::model::submission::Submission;
 
 #[cfg(feature = "debugger")]
 use crate::debugger::Debugger;
-use crate::execution;
+use crate::execution::Executor;
 use crate::job::Job;
 use crate::loader::Loader;
 use crate::run_state::RunState;
@@ -29,10 +25,8 @@ use crate::server::Server;
 /// It accepts Flows to be executed in the form of a `Submission` struct that has the required
 /// information to execute the flow.
 pub struct Coordinator<'a> {
-    /// A channel used to send Jobs out for execution
-    job_tx: Sender<Job>,
-    /// A channel used to receive Jobs back after execution (now including the job's output)
-    job_rx: Receiver<Job>,
+    /// Executor
+    executor: Executor,
     /// A `Server` to communicate with clients
     server: &'a mut dyn Server,
     #[cfg(feature = "debugger")]
@@ -41,22 +35,12 @@ pub struct Coordinator<'a> {
 }
 
 impl<'a> Coordinator<'a> {
-    /// Create a new `coordinator` with `num_threads` executor threads
+    /// Create a new `coordinator` with `num_threads` local executor threads
     pub fn new(num_threads: usize, server: &'a mut dyn Server,
                #[cfg(feature = "debugger")] debug_server: &'a mut dyn DebugServer
     ) -> Self {
-        let (job_tx, job_rx) = mpsc::channel();
-        let (output_tx, output_rx) = mpsc::channel();
-
-        execution::set_panic_hook();
-
-        info!("Starting {} executor threads", num_threads);
-        let shared_job_receiver = Arc::new(Mutex::new(job_rx));
-        execution::start_executors(num_threads, &shared_job_receiver, &output_tx);
-
         Coordinator {
-            job_tx,
-            job_rx: output_rx,
+            executor: Executor::new(num_threads, None),
             server,
             #[cfg(feature = "debugger")]
             debugger: Debugger::new(debug_server),
@@ -98,6 +82,7 @@ impl<'a> Coordinator<'a> {
     pub fn execute_flow(&mut self,
                         mut manifest: FlowManifest,
                         submission: Submission,) -> Result<()> {
+        self.executor.set_timeout(Some(submission.job_timeout));
         let mut state = RunState::new(manifest.get_functions(), submission);
 
         #[cfg(feature = "metrics")]
@@ -147,7 +132,7 @@ impl<'a> Coordinator<'a> {
                 }
 
                 if state.number_jobs_running() > 0 {
-                    match self.job_rx.recv_timeout(state.submission.job_timeout) {
+                    match self.executor.get_next_result() {
                         Ok(job) => {
                             #[cfg(feature = "debugger")]
                             if display_next_output {
@@ -171,14 +156,14 @@ impl<'a> Coordinator<'a> {
                         Err(err) => {
                             if state.submission.debug {
                                 (display_next_output, restart) = self.debugger
-                                    .panic(&mut state, format!("Error in job reception: '{}'", err))?;
+                                    .panic(&mut state, err.to_string())?;
                                 if restart {
                                     break 'jobs;
                                 }
                             }
                         }
                         #[cfg(not(feature = "debugger"))]
-                        Err(e) => error!("\tError in Job reception: {}", e),
+                        Err(e) => error!("\t{}", e.to_string()),
                     }
                 }
 
@@ -271,16 +256,7 @@ impl<'a> Coordinator<'a> {
             .debugger
             .check_prior_to_job(state, job)?;
 
-        // Jobs maybe sent to remote nodes over network so have to be self--contained - clone OK
-        self.job_tx
-            .send(job.clone())
-            .chain_err(|| "Sending of job for execution failed")?;
-
-        trace!(
-            "Job #{}: Sent for Execution of Function #{}",
-            job.job_id,
-            job.function_id
-        );
+        self.executor.send_job_for_execution(job)?;
 
         Ok(debug_options)
     }
