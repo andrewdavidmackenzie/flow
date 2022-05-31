@@ -11,7 +11,7 @@ use url::Url;
 
 use flowclib::compiler::compile;
 use flowclib::compiler::compile::CompilerTables;
-use flowclib::compiler::loader;
+use flowclib::compiler::parser;
 use flowclib::dumper::{dump, dump_dot};
 use flowclib::generator::generate;
 use flowcore::meta_provider::Provider;
@@ -27,7 +27,7 @@ pub fn compile_and_execute_flow(options: &Options, provider: &dyn Provider) -> R
     #[cfg(feature = "debugger")]
     let mut source_urls = HashSet::<(Url, Url)>::new();
 
-    let root = loader::load(
+    let root = parser::parse(
         &options.source_url,
         provider,
         #[cfg(feature = "debugger")]

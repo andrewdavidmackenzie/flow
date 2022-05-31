@@ -65,15 +65,15 @@ pub enum LibType {
 /// let mut source_urls = HashSet::<(Url, Url)>::new();
 ///
 /// // load the flow from `url = file:///example.toml` using the `dummy_provider`
-/// flowclib::compiler::loader::load(&Url::parse("file:///example.toml").unwrap(), &dummy_provider, &mut source_urls).unwrap();
+/// flowclib::compiler::parser::parse(&Url::parse("file:///example.toml").unwrap(), &dummy_provider, &mut source_urls).unwrap();
 /// ```
-pub fn load(
+pub fn parse(
     url: &Url,
     provider: &dyn Provider,
     #[cfg(feature = "debugger")] source_urls: &mut HashSet<(Url, Url)>,
 ) -> Result<Process> {
     trace!("load()");
-    load_process(
+    parse_process(
         &Route::default(),
         &Name::default(),
         0,
@@ -88,7 +88,7 @@ pub fn load(
 }
 
 #[allow(clippy::too_many_arguments)]
-fn load_process(
+fn parse_process(
     parent_route: &Route,
     alias: &Name,
     parent_flow_id: usize,
@@ -142,7 +142,7 @@ fn load_process(
             )?;
             *flow_count += 1;
             debug!("Deserialized the Flow, now loading any sub-processes");
-            load_process_refs(
+            parse_process_refs(
                 flow,
                 flow_count,
                 provider,
@@ -171,7 +171,7 @@ fn load_process(
 /// load library metadata from the given url using the provider.
 /// Currently it uses the `package` table of FlowCargo.toml as a source but it could
 /// easily use another file as along as it has the required fields to satisfy `MetaData` struct
-pub fn load_metadata(url: &Url, provider: &dyn Provider) -> Result<(MetaData, LibType)> {
+pub fn parse_metadata(url: &Url, provider: &dyn Provider) -> Result<(MetaData, LibType)> {
     trace!("Loading Metadata");
     let (resolved_url, _) = provider
         .resolve_url(url, "Cargo", &["toml"])
@@ -194,9 +194,9 @@ pub fn load_metadata(url: &Url, provider: &dyn Provider) -> Result<(MetaData, Li
 }
 
 /*
-    Load sub-processes from the process_refs in a flow
+    Parse sub-processes from the process_refs in a flow
 */
-fn load_process_refs(
+fn parse_process_refs(
     flow: &mut FlowDefinition,
     flow_count: &mut usize,
     provider: &dyn Provider,
@@ -208,7 +208,7 @@ fn load_process_refs(
             .source_url
             .join(&process_ref.source)
             .map_err(|e| e.to_string())?;
-        let process = load_process(
+        let process = parse_process(
             &flow.route,
             process_ref.alias(),
             flow.id,

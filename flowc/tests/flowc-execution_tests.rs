@@ -16,7 +16,7 @@ use simpath::Simpath;
 use tempdir::TempDir;
 use url::Url;
 
-use flowclib::compiler::{compile, loader};
+use flowclib::compiler::{compile, parser};
 use flowclib::compiler::compile::CompilerTables;
 use flowclib::generator::generate;
 use flowcore::meta_provider::MetaProvider;
@@ -179,7 +179,7 @@ fn test_args(test_dir: &Path) -> Vec<String> {
 fn load_flow(test_dir: &Path, search_path: Simpath) -> Process {
     let mut flow_file = test_dir.to_path_buf();
     flow_file.push("root.toml");
-    loader::load(
+    parser::parse(
         &helper::absolute_file_url_from_relative_path(&flow_file.to_string_lossy()),
         &MetaProvider::new(search_path,
                            helper::get_canonical_context_root()

@@ -4,7 +4,7 @@ use std::collections::HashSet;
 #[cfg(feature = "debugger")]
 use url::Url;
 
-use flowclib::compiler::loader;
+use flowclib::compiler::parser;
 use flowcore::meta_provider::MetaProvider;
 use flowcore::model::input::InputInitializer::Once;
 use flowcore::model::io::IO;
@@ -40,8 +40,8 @@ fn malformed_connection() {
     let path = helper::absolute_file_url_from_relative_path(
         "flowc/tests/test-flows/root.toml",
     );
-    if loader::load(&path, &meta_provider,
-                    #[cfg(feature = "debugger")]
+    if parser::parse(&path, &meta_provider,
+                     #[cfg(feature = "debugger")]
                         &mut HashSet::<(Url, Url)>::new()
     ).is_ok() {
         panic!("root.toml should not load successfully");
@@ -54,8 +54,8 @@ fn invalid_toml() {
                                           helper::get_canonical_context_root()
     );
     let path = helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/root.toml");
-    if loader::load(&path, &meta_provider,
-                    #[cfg(feature = "debugger")]
+    if parser::parse(&path, &meta_provider,
+                     #[cfg(feature = "debugger")]
                     &mut HashSet::<(Url, Url)>::new()
     ).is_ok() {
         panic!("root.toml should not load successfully");
@@ -70,8 +70,8 @@ fn invalid_process() {
     let path = helper::absolute_file_url_from_relative_path(
         "flowc/tests/test-flows/invalid-process/root.toml",
     );
-    if loader::load(&path, &meta_provider,
-                    #[cfg(feature = "debugger")]
+    if parser::parse(&path, &meta_provider,
+                     #[cfg(feature = "debugger")]
                     &mut HashSet::<(Url, Url)>::new()
     ).is_ok() {
         panic!("root.toml should not load successfully");
@@ -87,8 +87,8 @@ fn function_input_initialized() {
         "flowc/tests/test-flows/function_input_init/root.toml",
     );
 
-    match loader::load(&url, &meta_provider,
-                       #[cfg(feature = "debugger")]
+    match parser::parse(&url, &meta_provider,
+                        #[cfg(feature = "debugger")]
                        &mut HashSet::<(Url, Url)>::new()
     ) {
         Ok(FlowProcess(mut flow)) => match flow.subprocesses.get_mut(&Name::from("print")) {
@@ -121,8 +121,8 @@ fn root_flow_takes_name_from_file() {
     let url =
         helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/names/root.toml");
 
-    match loader::load(&url, &meta_provider,
-                       #[cfg(feature = "debugger")]
+    match parser::parse(&url, &meta_provider,
+                        #[cfg(feature = "debugger")]
                            &mut HashSet::<(Url, Url)>::new()
     ) {
         Ok(FlowProcess(flow)) => assert_eq!(flow.name, Name::from("names")),
@@ -136,5 +136,5 @@ fn load_library() {
                                               helper::get_canonical_context_root()
     );
     let path = helper::absolute_file_url_from_relative_path("flowc/tests/test_libs/FlowCargo.toml");
-    loader::load_metadata(&path, &meta_provider).expect("Could not load metadata");
+    parser::parse_metadata(&path, &meta_provider).expect("Could not load metadata");
 }

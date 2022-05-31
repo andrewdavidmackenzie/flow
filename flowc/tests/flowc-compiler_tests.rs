@@ -6,7 +6,7 @@ use tempdir::TempDir;
 #[cfg(feature = "debugger")]
 use url::Url;
 
-use flowclib::compiler::{compile, loader};
+use flowclib::compiler::{compile, parser};
 use flowcore::meta_provider::MetaProvider;
 use flowcore::model::input::InputInitializer::Once;
 use flowcore::model::name::HasName;
@@ -41,8 +41,8 @@ fn object_to_array_connection() {
     let path = helper::absolute_file_url_from_relative_path(
         "flowc/tests/test-flows/object_to_array_connection/root.toml",
     );
-    let process = loader::load(&path, &meta_provider,
-                               #[cfg(feature = "debugger")]
+    let process = parser::parse(&path, &meta_provider,
+                                #[cfg(feature = "debugger")]
                                &mut HashSet::<(Url, Url)>::new()
     )
         .expect("Could not load test flow");
@@ -68,8 +68,8 @@ fn context_with_io() {
     let path = helper::absolute_file_url_from_relative_path(
         "flowc/tests/test-flows/context_with_io/root.toml",
     );
-    let process = loader::load(&path, &meta_provider,
-                               #[cfg(feature = "debugger")]
+    let process = parser::parse(&path, &meta_provider,
+                                #[cfg(feature = "debugger")]
                                &mut HashSet::<(Url, Url)>::new()
     )
         .expect("Could not load test flow");
@@ -98,8 +98,8 @@ fn same_name_input_and_output() {
     let path = helper::absolute_file_url_from_relative_path(
         "flowc/tests/test-flows/same-name-parent/root.toml",
     );
-    let process = loader::load(&path, &meta_provider,
-                               #[cfg(feature = "debugger")]
+    let process = parser::parse(&path, &meta_provider,
+                                #[cfg(feature = "debugger")]
                                &mut HashSet::<(Url, Url)>::new()
     )
         .expect("Could not load test flow");
@@ -126,8 +126,8 @@ fn same_name_flow_ids() {
     let path = helper::absolute_file_url_from_relative_path(
         "flowc/tests/test-flows/same-name-parent/root.toml",
     );
-    let process = loader::load(&path, &meta_provider,
-                               #[cfg(feature = "debugger")]
+    let process = parser::parse(&path, &meta_provider,
+                                #[cfg(feature = "debugger")]
                                &mut HashSet::<(Url, Url)>::new()
     )
         .expect("Could not load test flow");
@@ -164,8 +164,8 @@ fn connection_to_input_with_constant_initializer() {
     let path = helper::absolute_file_url_from_relative_path(
         "flowc/tests/test-flows/connect_to_constant/root.toml",
     );
-    let process = loader::load(&path, &meta_provider,
-                               #[cfg(feature = "debugger")]
+    let process = parser::parse(&path, &meta_provider,
+                                #[cfg(feature = "debugger")]
                                &mut HashSet::<(Url, Url)>::new()
     )
         .expect("Could not load test flow");
@@ -191,8 +191,8 @@ fn args() {
     );
     let path =
         helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/args/root.toml");
-    let process = loader::load(&path, &meta_provider,
-                               #[cfg(feature = "debugger")]
+    let process = parser::parse(&path, &meta_provider,
+                                #[cfg(feature = "debugger")]
                                    &mut HashSet::<(Url, Url)>::new()
     )
         .expect("Could not load test flow");
@@ -215,8 +215,8 @@ fn no_side_effects() {
                                           helper::get_canonical_context_root()
     );
     let path = helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/no_side_effects/root.toml");
-    let process = loader::load(&path, &meta_provider,
-                               #[cfg(feature = "debugger")]
+    let process = parser::parse(&path, &meta_provider,
+                                #[cfg(feature = "debugger")]
                                &mut HashSet::<(Url, Url)>::new()
     )
         .expect("Could not load test flow");
@@ -242,7 +242,7 @@ fn compile_echo_ok() {
     let meta_provider = MetaProvider::new(helper::set_lib_search_path_to_project(),
                                           helper::get_canonical_context_root()
     );
-    let process = loader::load(
+    let process = parser::parse(
         &helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/echo/root.toml"),
         &meta_provider,
         #[cfg(feature = "debugger")]
@@ -266,7 +266,7 @@ fn compiler_detects_unused_input() {
     let meta_provider = MetaProvider::new(helper::set_lib_search_path_to_project(),
                                           helper::get_canonical_context_root()
     );
-    let process = loader::load(
+    let process = parser::parse(
         &helper::absolute_file_url_from_relative_path(
             "flowc/tests/test-flows/unused_input/root.toml",
         ),
@@ -295,7 +295,7 @@ fn compile_detects_connection_to_initialized_input() {
     let meta_provider = MetaProvider::new(helper::set_lib_search_path_to_project(),
                                           helper::get_canonical_context_root()
     );
-    let process = loader::load(
+    let process = parser::parse(
         &helper::absolute_file_url_from_relative_path(
             "flowc/tests/test-flows/connect_to_constant/root.toml",
         ),
@@ -333,8 +333,8 @@ fn flow_input_propagated_back_out() {
         "flowc/tests/test-flows/flow_input_init/root.toml",
     );
 
-    match loader::load(&url, &meta_provider,
-                       #[cfg(feature = "debugger")]
+    match parser::parse(&url, &meta_provider,
+                        #[cfg(feature = "debugger")]
                        &mut HashSet::<(Url, Url)>::new()
     ) {
         Ok(FlowProcess(context)) => {
@@ -373,8 +373,8 @@ fn initialized_output_propagated() {
         "flowc/tests/test-flows/print_subflow_output/root.toml",
     );
 
-    match loader::load(&url, &meta_provider,
-                       #[cfg(feature = "debugger")]
+    match parser::parse(&url, &meta_provider,
+                        #[cfg(feature = "debugger")]
                            &mut HashSet::<(Url, Url)>::new()
     ) {
         Ok(FlowProcess(context)) => {
@@ -436,8 +436,8 @@ fn initialized_input_to_subflow() {
         "flowc/tests/test-flows/initialized_input_to_subflow/root.toml",
     );
 
-    match loader::load(&url, &meta_provider,
-                       #[cfg(feature = "debugger")]
+    match parser::parse(&url, &meta_provider,
+                        #[cfg(feature = "debugger")]
                        &mut HashSet::<(Url, Url)>::new()
     ) {
         Ok(FlowProcess(root)) => {

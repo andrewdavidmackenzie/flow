@@ -38,7 +38,7 @@ use crate::errors::*;
 /// let mut source_urls = HashSet::<(Url, Url)>::new();
 /// let output_dir = TempDir::new("flow-test").expect("A temp dir").into_path();
 ///
-/// if let Ok(FlowProcess(mut flow)) = flowclib::compiler::loader::load(&url,
+/// if let Ok(FlowProcess(mut flow)) = flowclib::compiler::parser::parse(&url,
 ///                                                           &provider,
 ///                                                           &mut source_urls) {
 ///     let tables = flowclib::compiler::compile::compile(&mut flow,
@@ -109,7 +109,7 @@ pub fn create_output_file(
 /// let mut source_urls = HashSet::<(Url, Url)>::new();
 /// let output_dir = tempdir::TempDir::new("flow").unwrap().into_path();
 ///
-/// if let Ok(FlowProcess(mut flow)) = flowclib::compiler::loader::load(&url,
+/// if let Ok(FlowProcess(mut flow)) = flowclib::compiler::parser::parse(&url,
 ///                                                           &provider,
 ///                                                           &mut source_urls) {
 ///     let tables = flowclib::compiler::compile::compile(&mut flow,
@@ -163,7 +163,7 @@ fn dump_table<C: Iterator>(table: C, writer: &mut dyn Write) -> std::io::Result<
 /// url = url.join("samples/hello-world/root.toml").unwrap();
 ///
 /// let mut source_urls = HashSet::<(Url, Url)>::new();
-/// if let Ok(FlowProcess(mut flow)) = flowclib::compiler::loader::load(&url,
+/// if let Ok(FlowProcess(mut flow)) = flowclib::compiler::parser::parse(&url,
 ///                                                    &provider,
 ///                                                    &mut source_urls) {
 ///
