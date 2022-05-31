@@ -8,7 +8,7 @@ use simpath::Simpath;
 use url::Url;
 use wax::Glob;
 
-use flowclib::compiler::{json_manifest, loader};
+use flowclib::compiler::{json_manifest, parser};
 use flowclib::compiler::compile_wasm;
 use flowclib::dumper::{dump, dump_dot};
 use flowcore::meta_provider::{MetaProvider, Provider};
@@ -21,7 +21,7 @@ use crate::Options;
 /// Build a library from source and generate a manifest for it so it can be used at runtime when
 /// a flow referencing it is loaded and ran
 pub fn build_lib(options: &Options, provider: &dyn Provider) -> Result<()> {
-    let (metadata, _) = loader::load_metadata(&options.source_url, provider)?;
+    let (metadata, _) = parser::parse_metadata(&options.source_url, provider)?;
 
     let name = metadata.name.clone();
     println!(
@@ -167,7 +167,7 @@ fn compile_implementations(
                 }
 
                 // Load the `FunctionProcess` or `FlowProcess` definition from the found `.toml` file
-                match loader::load(
+                match parser::parse(
                     &url,
                     provider,
                     #[cfg(feature = "debugger")]

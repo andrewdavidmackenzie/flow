@@ -54,7 +54,7 @@ use crate::errors::*;
 /// let mut source_urls = HashSet::<(Url, Url)>::new();
 /// let output_dir = TempDir::new("flow-test").expect("A temp dir").into_path();
 ///
-/// if let Ok(FlowProcess(mut flow)) = flowclib::compiler::loader::load(&url,
+/// if let Ok(FlowProcess(mut flow)) = flowclib::compiler::parser::parse(&url,
 ///                                                    &provider,
 ///                                                    &mut source_urls) {
 ///     let tables = flowclib::compiler::compile::compile(&flow, &output_dir, false, false,
@@ -122,7 +122,7 @@ pub fn dump_functions(
 ///
 /// let mut source_urls = HashSet::<(Url, Url)>::new();
 ///
-/// if let Ok(FlowProcess(mut flow)) = flowclib::compiler::loader::load(&url,
+/// if let Ok(FlowProcess(mut flow)) = flowclib::compiler::parser::parse(&url,
 ///                                                    &provider,
 ///                                                    &mut source_urls) {
 ///
