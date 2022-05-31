@@ -134,9 +134,8 @@ impl Loader {
         Ok(())
     }
 
-    /// Load a library and all the implementations it contains into to the loader by adding
-    /// the ImplementationLocators, so that then when we try to load a flow that references functions
-    /// in the library, they can be found.
+    /// Load a library and all the implementations it contains into the loader.
+    /// They are references by Url so they can be found when loading a flow that requires them.
     pub fn load_lib(
         &mut self,
         provider: &dyn Provider,
