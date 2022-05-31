@@ -1,4 +1,3 @@
-use std::env;
 use std::fs::File;
 use std::io::{self, Read};
 use std::io::Write;
@@ -36,19 +35,7 @@ use flowrlib::loader::Loader;
 /// An interim solution could be so have the files in the code as Strings and parse from there.
 ///
 
-// Helper function for tests
-fn url_from_rel_path(path: &str) -> Url {
-    let cwd = cwd_as_url();
-    let source_file = cwd.join(file!()).expect("Could not join paths");
-    source_file.join(path).expect("Could not join paths")
-}
-
-fn cwd_as_url() -> Url {
-    Url::from_directory_path(env::current_dir().expect("Could not get CWD"))
-        .expect("Could not create Url from path")
-}
-
-fn create_manifest(functions: Vec<RuntimeFunction>) -> FlowManifest {
+fn create_test_flow_manifest(functions: Vec<RuntimeFunction>) -> FlowManifest {
     let metadata = MetaData {
         name: "test manifest".into(),
         description: "test manifest".into(),
@@ -91,14 +78,14 @@ impl Implementation for Fake {
     }
 }
 
-fn get_manifest() -> LibraryManifest {
+fn create_test_context_manifest() -> LibraryManifest {
     let metadata = MetaData {
         name: "context".to_string(),
         description: "".into(),
         version: "0.1.0".into(),
         authors: vec!["".into()],
     };
-    let lib_url = Url::parse("lib://context").expect("Couldn't create lib url");
+    let lib_url = Url::parse("context://").expect("Couldn't create lib url");
     let mut manifest = LibraryManifest::new(lib_url, metadata);
 
     manifest.locators.insert(
@@ -157,8 +144,7 @@ fn load_manifest_from_file() {
         false,
     );
     let functions = vec![f_a];
-
-    let manifest = create_manifest(functions);
+    let manifest = create_test_flow_manifest(functions);
 
     let temp_dir = TempDir::new("flow").expect("Could not get temp dir").into_path();
     let manifest_file = temp_dir.join("manifest.json");
@@ -171,8 +157,8 @@ fn load_manifest_from_file() {
     loader
         .add_lib(
             &provider,
-            get_manifest(),
-            &Url::parse("lib://context").expect("Could not parse lib url"),
+            create_test_context_manifest(),
+            &Url::parse("context://").expect("Could not parse lib url"),
         )
         .expect("Could not add context library to loader");
 
@@ -180,15 +166,15 @@ fn load_manifest_from_file() {
         .load_flow(&provider, &manifest_url)
         .expect("Loader could not load flow");
 
-    assert!(!loader.get_lib_implementations().is_empty());
+    assert_eq!(loader.get_implementations().len(), 6);
 }
 
 #[test]
-fn resolve_lib_implementation_test() {
+fn unresolved_references_test() {
     let f_a = RuntimeFunction::new(
         #[cfg(feature = "debugger")] "fA",
         #[cfg(feature = "debugger")] "/fA",
-        "context://stdio/stdin/stdin",
+        "context://stdio/stdout/foo",
         vec![],
         0,
         0,
@@ -196,47 +182,24 @@ fn resolve_lib_implementation_test() {
         false,
     );
     let functions = vec![f_a];
-    let mut manifest = create_manifest(functions);
+    let manifest = create_test_flow_manifest(functions);
+
+    let temp_dir = TempDir::new("flow").expect("Could not get temp dir").into_path();
+    let manifest_file = temp_dir.join("manifest.json");
+    write_manifest(&manifest, &manifest_file).expect("Could not write manifest file");
+    let manifest_url = Url::from_directory_path(manifest_file).expect("Could not create url from directory path");
     let provider = MetaProvider::new(Simpath::new("FLOW_LIB_PATH"),
                                      PathBuf::from("/"));
+
     let mut loader = Loader::new();
-    let manifest_url = url_from_rel_path("manifest.json");
-
-    // Load library functions provided
     loader
-        .add_lib(&provider, get_manifest(), &cwd_as_url())
-        .expect("Could not add library");
-
-    loader
-        .resolve_implementations(&provider, &mut manifest, &manifest_url)
-        .expect("Could not add library");
-}
-
-#[test]
-fn unresolved_lib_functions_test() {
-    let f_a = RuntimeFunction::new(
-        #[cfg(feature = "debugger")] "fA",
-        #[cfg(feature = "debugger")] "/fA",
-        "context://stdio/stdin/foo",
-        vec![],
-        0,
-        0,
-        &[],
-        false,
-    );
-    let functions = vec![f_a];
-    let mut manifest = create_manifest(functions);
-    let provider = MetaProvider::new(Simpath::new("FLOW_LIB_PATH"),
-                                     PathBuf::from("/"));
-    let mut loader = Loader::new();
-    let manifest_url = url_from_rel_path("manifest.json");
-
-    // Load library functions provided
-    loader
-        .add_lib(&provider, get_manifest(), &cwd_as_url())
+        .add_lib(
+            &provider,
+            create_test_context_manifest(),
+            &Url::parse("context://").expect("Could not parse lib url"),
+        )
         .expect("Could not add context library to loader");
 
     assert!(loader
-        .resolve_implementations(&provider, &mut manifest, &manifest_url)
-        .is_err());
+        .load_flow(&provider, &manifest_url).is_err());
 }
