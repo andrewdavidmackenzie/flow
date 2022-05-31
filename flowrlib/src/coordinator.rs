@@ -156,14 +156,14 @@ impl<'a> Coordinator<'a> {
                         Err(err) => {
                             if state.submission.debug {
                                 (display_next_output, restart) = self.debugger
-                                    .panic(&mut state, format!("Error in job reception: '{}'", err))?;
+                                    .panic(&mut state, err.to_string())?;
                                 if restart {
                                     break 'jobs;
                                 }
                             }
                         }
                         #[cfg(not(feature = "debugger"))]
-                        Err(e) => error!("\tError in Job reception: {}", e),
+                        Err(e) => error!("\t{}", e.to_string()),
                     }
                 }
 
