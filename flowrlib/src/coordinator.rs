@@ -1,3 +1,6 @@
+#[cfg(all(not(feature = "debugger"), not(feature = "submission")))]
+use std::marker::PhantomData;
+
 use log::{debug, error, trace};
 
 use flowcore::errors::*;
@@ -13,6 +16,7 @@ use crate::job::Job;
 use crate::run_state::RunState;
 #[cfg(feature = "debugger")]
 use crate::server::DebuggerProtocol;
+#[cfg(feature = "submission")]
 use crate::server::SubmissionProtocol;
 
 /// The `Coordinator` is responsible for coordinating the dispatching of jobs (consisting
@@ -31,6 +35,8 @@ pub struct Coordinator<'a> {
     #[cfg(feature = "debugger")]
     /// A `Debugger` to communicate with debug clients
     debugger: Debugger<'a>,
+    #[cfg(all(not(feature = "debugger"), not(feature = "submission")))]
+    _data: PhantomData<&'a Executor>
 }
 
 impl<'a> Coordinator<'a> {
@@ -46,6 +52,8 @@ impl<'a> Coordinator<'a> {
             executor,
             #[cfg(feature = "debugger")]
             debugger: Debugger::new(debug_server),
+            #[cfg(all(not(feature = "debugger"), not(feature = "submission")))]
+            _data: PhantomData
         }
     }
 
@@ -110,6 +118,7 @@ impl<'a> Coordinator<'a> {
                 (display_next_output, restart) = self.debugger.wait_for_command(&mut state)?;
             }
 
+            #[cfg(feature = "submission")]
             self.submitter.flow_execution_starting()?;
 
             'jobs: loop {
@@ -196,10 +205,10 @@ impl<'a> Coordinator<'a> {
 
         #[cfg(feature = "metrics")]
         metrics.set_jobs_created(state.get_number_of_jobs_created());
-        #[cfg(feature = "metrics")]
+        #[cfg(all(feature = "submission", feature = "metrics"))]
         self.submitter.flow_execution_ended(&state, metrics)?;
-        #[cfg(not(feature = "metrics"))]
-        self.server.flow_ended()?;
+        #[cfg(all(feature = "submission", not(feature = "metrics")))]
+        self.submitter.flow_execution_ended(&state)?;
 
         Ok(()) // Normal flow completion exit
     }

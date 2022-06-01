@@ -4,14 +4,19 @@ use error_chain::bail;
 use log::{debug, error, info};
 
 use flowcore::errors::*;
+#[cfg(feature = "metrics")]
 use flowcore::model::metrics::Metrics;
 use flowcore::model::submission::Submission;
 use flowrlib::run_state::RunState;
 use flowrlib::server::SubmissionProtocol;
 
-use crate::{ClientMessage, ServerConnection};
-use crate::context::client_server::{DONT_WAIT, WAIT};
-use crate::context::runtime_messages::ServerMessage;
+#[cfg(feature = "debugger")]
+use crate::client_server::DONT_WAIT;
+use crate::client_server::WAIT;
+#[cfg(any(feature = "context", feature = "submission"))]
+use crate::runtime_messages::ClientMessage;
+use crate::runtime_messages::ServerMessage;
+use crate::ServerConnection;
 
 /// Get and Send messages to/from the runtime client
 pub(crate) struct CLISubmitter {
@@ -63,7 +68,7 @@ impl SubmissionProtocol for CLISubmitter {
     }
 
     #[cfg(not(feature = "metrics"))]
-    fn flow_ended(&mut self) -> flowcore::errors::Result<()> {
+    fn flow_execution_ended(&mut self, state: &RunState) -> Result<()> {
         self.runtime_server_connection
             .lock()
             .map_err(|_| "Could not lock server connection")?

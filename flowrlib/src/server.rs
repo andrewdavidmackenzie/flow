@@ -18,7 +18,6 @@ use crate::block::Block;
 use crate::debug_command::DebugCommand;
 #[cfg(feature = "debugger")]
 use crate::job::Job;
-#[cfg(any(feature = "debugger", feature="metrics"))]
 use crate::run_state::RunState;
 #[cfg(feature = "debugger")]
 use crate::run_state::State;
@@ -39,7 +38,7 @@ pub trait SubmissionProtocol {
     fn flow_execution_ended(&mut self, state: &RunState, metrics: Metrics) -> Result<()>;
     /// The flow has ended
     #[cfg(not(feature = "metrics"))]
-    fn flow_execution_ended(&mut self) -> Result<()>;
+    fn flow_execution_ended(&mut self, state: &RunState) -> Result<()>;
 
     /// Wait for a `Submission` to be sent to the `Coordinator` for execution
     fn wait_for_submission(&mut self) -> Result<Option<Submission>>;

@@ -14,7 +14,7 @@ use std::{env, thread};
 #[cfg(feature = "context")]
 use std::path::PathBuf;
 use std::process::exit;
-#[cfg(feature = "context")]
+#[cfg(any(feature = "context", feature = "submission"))]
 use std::sync::{Arc, Mutex};
 
 use clap::{App, AppSettings, Arg, ArgMatches};
@@ -24,14 +24,12 @@ use simplog::SimpleLogger;
 #[cfg(any(feature = "context", feature = "flowstdlib"))]
 use url::Url;
 
+#[cfg(any(feature = "context", feature = "submission"))]
+use client_server::ServerConnection;
 #[cfg(feature = "debugger")]
 use context::cli_debug_client::CliDebugClient;
 #[cfg(feature = "debugger")]
 use context::cli_debug_server::CliDebugServer;
-#[cfg(feature = "context")]
-use context::client_server::{ClientConnection, ServerInfo};
-#[cfg(feature = "context")]
-use context::client_server::ServerConnection;
 #[cfg(feature = "debugger")]
 use context::debug_server_message::DebugServerMessage;
 #[cfg(feature = "debugger")]
@@ -47,23 +45,32 @@ use flowcore::url_helper::url_from_string;
 use flowrlib::coordinator::Coordinator;
 use flowrlib::executor::Executor;
 use flowrlib::info as flowrlib_info;
+#[cfg(feature = "context")]
+use runtime_messages::ClientMessage;
 
 #[cfg(feature = "submission")]
 use crate::cli_submitter::CLISubmitter;
 #[cfg(feature = "context")]
 use crate::context::cli_runtime_client::CliRuntimeClient;
-#[cfg(feature = "context")]
-use crate::context::runtime_messages::ClientMessage;
 
 /// We'll put our errors in an `errors` module, and other modules in this crate will
 /// `use crate::errors::*;` to get access to everything `error_chain` creates.
 pub mod errors;
 
+#[cfg(feature = "context")]
 #[cfg_attr(feature = "context", path = "cli_context/mod.rs")]
 mod context;
 
 #[cfg(feature = "submission")]
 mod cli_submitter;
+
+#[cfg(any(feature = "submission", feature = "context"))]
+/// message_queue implementation of the communications between the runtime client, debug client and
+/// the runtime server and debug server.
+pub mod client_server;
+/// runtime_messages is the enum for the different messages sent back and fore between the client
+/// and server implementation of the CLI context functions
+pub mod runtime_messages;
 
 /// The `Coordinator` of flow execution can run in one of these three modes:
 /// - `ClientOnly`      - only as a client to submit flows for execution to a server
@@ -227,7 +234,7 @@ fn run() -> Result<()> {
 
 // Start just a server - by running a Coordinator in the calling thread.
 fn server_only(num_threads: usize, lib_search_path: Simpath, native_flowstdlib: bool) -> Result<()> {
-    #[cfg(feature = "context")]
+    #[cfg(any(feature = "context", feature = "submission"))]
     let runtime_server_connection = ServerConnection::runtime()?;
     #[cfg(feature = "debugger")]
     let debug_server_connection = ServerConnection::debug_service()?;
@@ -237,7 +244,7 @@ fn server_only(num_threads: usize, lib_search_path: Simpath, native_flowstdlib: 
         num_threads,
         lib_search_path,
         native_flowstdlib,
-        #[cfg(feature = "context")]
+        #[cfg(any(feature = "context", feature = "submission"))]
         runtime_server_connection,
         #[cfg(feature = "debugger")]
         debug_server_connection,
@@ -260,10 +267,12 @@ fn client_and_server(
     #[cfg(feature = "debugger")]
     debug_this_flow: bool,
 ) -> Result<()> {
+    #[cfg(any(feature = "context", feature = "submission"))]
     let runtime_server_connection = ServerConnection::local()?;
     #[cfg(feature = "debugger")]
     let debug_server_connection = ServerConnection::debug_local()?;
 
+    #[cfg(any(feature = "context", feature = "submission"))]
     let mut runtime_server_info = runtime_server_connection.get_server_info().clone();
     #[cfg(feature = "debugger")]
     let mut debug_server_info = debug_server_connection.get_server_info().clone();
@@ -274,6 +283,7 @@ fn client_and_server(
             num_threads,
             lib_search_path,
             native,
+            #[cfg(any(feature = "context", feature = "submission"))]
             runtime_server_connection,
             #[cfg(feature = "debugger")]
             debug_server_connection,
@@ -306,12 +316,12 @@ fn server(
     num_threads: usize,
     lib_search_path: Simpath,
     native_flowstdlib: bool,
-    #[cfg(feature = "context")]
+    #[cfg(any(feature = "context", feature = "submission"))]
     runtime_server_connection: ServerConnection,
     #[cfg(feature = "debugger")] debug_server_connection: ServerConnection,
-    loop_forever: bool,
+    #[allow(unused_variables)] loop_forever: bool,
 ) -> Result<()> {
-    #[cfg(any(feature = "context", feature = "submitter"))]
+    #[cfg(any(feature = "context", feature = "submission"))]
     let server_connection = Arc::new(Mutex::new(runtime_server_connection));
 
     #[cfg(feature = "debugger")]
@@ -320,9 +330,10 @@ fn server(
     };
 
     let provider = MetaProvider::new(lib_search_path,
-                                     #[cfg(any(feature = "context", feature = "submitter"))]
+                                     #[cfg(feature = "context")]
                                          PathBuf::from("/")
     );
+    #[allow(unused_mut)]
     let mut executor = Executor::new(provider, num_threads, None);
 
     // Add the native context functions to functions available for use by the executor
@@ -349,13 +360,17 @@ fn server(
         runtime_server_connection: server_connection,
     };
 
+    #[allow(unused_variables, unused_mut)]
     let mut coordinator = Coordinator::new(
         #[cfg(feature = "submission")] &mut submitter,
         executor,
-        #[cfg(feature = "debugger")] &mut debug_server);
+        #[cfg(feature = "debugger")] &mut debug_server
+    );
 
     #[cfg(feature = "submission")]
-    coordinator.submission_loop(loop_forever)
+    coordinator.submission_loop(loop_forever)?;
+
+    Ok(())
 }
 
 // Start only a client in the calling thread. Since we are *only* starting a client in this

@@ -5,8 +5,8 @@ use serde_json::Value;
 use flowcore::{DONT_RUN_AGAIN, Implementation, RUN_AGAIN, RunAgain};
 use flowcore::errors::*;
 
-use crate::context::client_server::ServerConnection;
-use crate::context::runtime_messages::{ClientMessage, ServerMessage};
+use crate::client_server::ServerConnection;
+use crate::runtime_messages::{ClientMessage, ServerMessage};
 
 /// `Implementation` struct for the `Stdin` function
 pub struct Stdin {
@@ -47,8 +47,8 @@ mod test {
 
     use flowcore::{DONT_RUN_AGAIN, Implementation, RUN_AGAIN};
 
-    use crate::context::runtime_messages::{ClientMessage, ServerMessage};
     use crate::context::test_helper::test::wait_for_then_send;
+    use crate::runtime_messages::{ClientMessage, ServerMessage};
 
     use super::Stdin;
 

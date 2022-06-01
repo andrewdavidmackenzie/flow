@@ -5,8 +5,8 @@ use serde_json::{json, Value};
 use flowcore::{DONT_RUN_AGAIN, Implementation, RunAgain};
 use flowcore::errors::Result;
 
-use crate::context::client_server::ServerConnection;
-use crate::context::runtime_messages::{ClientMessage, ServerMessage};
+use crate::client_server::ServerConnection;
+use crate::runtime_messages::{ClientMessage, ServerMessage};
 
 /// `Implementation` struct for the `get` function
 pub struct Get {
@@ -54,10 +54,10 @@ mod test {
 
     use flowcore::{DONT_RUN_AGAIN, Implementation};
 
-    use crate::context::client_server::{Method, RUNTIME_SERVICE_NAME, ServerConnection};
-    use crate::context::runtime_messages::ClientMessage::Args;
-    use crate::context::runtime_messages::ServerMessage::GetArgs;
+    use crate::client_server::{Method, RUNTIME_SERVICE_NAME, ServerConnection};
     use crate::context::test_helper::test::wait_for_then_send;
+    use crate::runtime_messages::ClientMessage::Args;
+    use crate::runtime_messages::ServerMessage::GetArgs;
 
     use super::Get;
 
