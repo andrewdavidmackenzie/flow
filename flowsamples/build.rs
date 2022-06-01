@@ -35,7 +35,7 @@ fn get_context_root() -> Result<String, String> {
         Err(_) => {
             let samples_dir = Path::new(env!("CARGO_MANIFEST_DIR")).parent()
                 .ok_or("Could not get parent dir")?;
-            samples_dir.join("../flowr/src/cli")
+            samples_dir.join("flowr/src/cli")
         }
     };
     assert!(context_root.exists(), "Context root directory '{}' does not exist",
