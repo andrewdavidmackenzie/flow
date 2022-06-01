@@ -47,7 +47,6 @@ use flowcore::url_helper::url_from_string;
 use flowrlib::coordinator::Coordinator;
 use flowrlib::executor::Executor;
 use flowrlib::info as flowrlib_info;
-use flowrlib::loader::Loader;
 
 #[cfg(feature = "context")]
 use crate::context::cli_runtime_client::CliRuntimeClient;
@@ -227,35 +226,6 @@ fn run() -> Result<()> {
     Ok(())
 }
 
-#[allow(unused_variables)]
-fn load_native_libs(
-    native_flowstdlib: bool,
-    loader: &mut Loader,
-    #[cfg(feature = "context")]
-    server_connection: Arc<Mutex<ServerConnection>>,
-) -> Result<()> {
-    // Add the native context functions to functions available for use by the flow
-    #[cfg(feature = "context")]
-    loader.load_lib(
-        context::get_manifest(server_connection)?,
-        &Url::parse("context://")?,
-        )?;
-
-    // if the command line options request loading native implementation of available native libs
-    // if not, the native implementation is not loaded and later when a flow is loaded it's library
-    // references will be resolved and those libraries (WASM implementations) will be loaded at runtime
-    if native_flowstdlib {
-        #[cfg(feature = "flowstdlib")]
-        loader.load_lib(
-                flowstdlib::manifest::get_manifest()
-                    .chain_err(|| "Could not get 'native' flowstdlib manifest")?,
-                &Url::parse("lib://flowstdlib")?,
-            )?;
-    }
-
-    Ok(())
-}
-
 // Start just a server - by running a Coordinator in the calling thread.
 fn server_only(num_threads: usize, lib_search_path: Simpath, native_flowstdlib: bool) -> Result<()> {
     #[cfg(feature = "context")]
@@ -342,37 +312,48 @@ fn server(
     #[cfg(feature = "debugger")] debug_server_connection: ServerConnection,
     loop_forever: bool,
 ) -> Result<()> {
-    let provider = MetaProvider::new(lib_search_path,
-                                                #[cfg(feature = "context")] PathBuf::from("/")
-                                                );
-    let mut loader = Loader::new(provider);
-
     #[cfg(feature = "context")]
     let server_connection = Arc::new(Mutex::new(runtime_server_connection));
-
-    load_native_libs(
-        native_flowstdlib,
-        &mut loader,
-        #[cfg(feature = "context")]
-        server_connection.clone(),
-    )?;
-
-    #[cfg(feature = "context")]
-    let mut server = CliServer {
-        runtime_server_connection: server_connection,
-    };
-    #[cfg(not(feature = "context"))]
-    let mut server = NullServer{};
 
     #[cfg(feature = "debugger")]
     let mut debug_server = CliDebugServer {
         debug_server_connection
     };
 
+    let provider = MetaProvider::new(lib_search_path,
+                                     #[cfg(feature = "context")] PathBuf::from("/")
+    );
+    let mut executor = Executor::new(provider, num_threads, None);
+
+    // Add the native context functions to functions available for use by the executor
+    #[cfg(feature = "context")]
+    executor.load_lib(
+        context::get_manifest(server_connection.clone())?,
+        &Url::parse("context://")?,
+    )?;
+
+    // if the command line options request loading native implementation of available native libs
+    // if not, the native implementation is not loaded and later when a flow is loaded it's library
+    // references will be resolved and those libraries (WASM implementations) will be loaded at runtime
+    if native_flowstdlib {
+        #[cfg(feature = "flowstdlib")]
+        executor.load_lib(
+            flowstdlib::manifest::get_manifest()
+                .chain_err(|| "Could not get 'native' flowstdlib manifest")?,
+            &Url::parse("lib://flowstdlib")?,
+        )?;
+    }
+
+    #[cfg(feature = "context")]
+        let mut server = CliServer {
+        runtime_server_connection: server_connection,
+    };
+    #[cfg(not(feature = "context"))]
+        let mut server = NullServer{};
+
     let mut coordinator = Coordinator::new(
                                            &mut server,
-                                           Executor::new(num_threads, None),
-                                           loader,
+                                           executor,
                                            #[cfg(feature = "debugger")] &mut debug_server);
 
     coordinator.submission_loop(loop_forever)
