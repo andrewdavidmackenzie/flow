@@ -14,39 +14,39 @@ pub enum ServerMessage {
     /// ** These messages are used to implement the `SubmissionProtocol` between the cli_runtime_server
     /// and the cli_runtime_client
     /// A flow has started executing
-    FlowStart,
+    #[cfg(feature = "submission")] FlowStart,
     /// A flow has stopped executing
-    #[cfg(feature = "metrics")]
+    #[cfg(all(feature = "submission", feature = "metrics"))]
     FlowEnd(Metrics),
     /// A flow has stopped executing
-    #[cfg(not(feature = "metrics"))]
+    #[cfg(all(feature = "submission", not(feature = "metrics")))]
     FlowEnd,
     /// Server is exiting, with a result (OK, or Err)
-    ServerExiting(Result<()>),
+    #[cfg(feature = "submission")] ServerExiting(Result<()>),
 
     /// ** These messages are used to implement the context functions between the cli_runtime_server
     /// that runs as part of the `Coordinator` and the cli_runtime_client that interacts with
     /// STDIO
     /// A String of contents was sent to stdout
-    Stdout(String),
+    #[cfg(feature = "context")] Stdout(String),
     /// A String of contents was sent to stderr
-    Stderr(String),
+    #[cfg(feature = "context")] Stderr(String),
     /// A Request to read from Stdin
-    GetStdin,
+    #[cfg(feature = "context")] GetStdin,
     /// A Request to read a line of characters from Stdin
-    GetLine,
+    #[cfg(feature = "context")] GetLine,
     /// A Request to get the arguments for the flow
-    GetArgs,
+    #[cfg(feature = "context")] GetArgs,
     /// A Request to read bytes from a file
-    Read(PathBuf),
+    #[cfg(feature = "context")] Read(PathBuf),
     /// A Request to write a series of bytes to a file
-    Write(String, Vec<u8>),
+    #[cfg(feature = "context")] Write(String, Vec<u8>),
     /// A Request to write a pixel to an ImageBuffer
-    PixelWrite((u32, u32), (u8, u8, u8), (u32, u32), String),
+    #[cfg(feature = "context")] PixelWrite((u32, u32), (u8, u8, u8), (u32, u32), String),
     /// A Request to snd EOF to Stdout
-    StdoutEof,
+    #[cfg(feature = "context")] StdoutEof,
     /// A Request to snd EOF to Stderr
-    StderrEof,
+    #[cfg(feature = "context")] StderrEof,
     /// Invalid - used when deserialization goes wrong
     Invalid,
 }
@@ -57,23 +57,25 @@ impl fmt::Display for ServerMessage {
             f,
             "ServerMessage {}",
             match self {
-                #[cfg(not(feature = "metrics"))]
-                ServerMessage::FlowEnd => "FlowEnd".into(),
-                #[cfg(feature = "metrics")]
+                #[cfg(all(feature = "submission", feature = "metrics"))]
                 ServerMessage::FlowEnd(_) => "FlowEnd".into(),
-                ServerMessage::FlowStart => "FlowStart".into(),
-                ServerMessage::ServerExiting(result) =>
+                #[cfg(all(feature = "submission", not(feature = "metrics")))]
+                ServerMessage::FlowEnd => "FlowEnd".into(),
+                #[cfg(feature = "submission")]ServerMessage::FlowStart => "FlowStart".into(),
+                #[cfg(feature = "submission")]ServerMessage::ServerExiting(result) =>
                     format!("ServerExiting with result: {:?}", result),
-                ServerMessage::Stdout(_) => "Stdout".into(),
-                ServerMessage::Stderr(_) => "Stderr".into(),
-                ServerMessage::GetStdin => "GetStdIn".into(),
-                ServerMessage::GetLine => "GetLine".into(),
-                ServerMessage::GetArgs => "GetArgs".into(),
-                ServerMessage::Read(_) => "Read".into(),
-                ServerMessage::Write(_, _) => "Write".into(),
-                ServerMessage::PixelWrite(_, _, _, _) => "PixelWrite".into(),
-                ServerMessage::StdoutEof => "StdOutEof".into(),
-                ServerMessage::StderrEof => "StdErrEof".into(),
+
+                #[cfg(feature = "context")] ServerMessage::Stdout(_) => "Stdout".into(),
+                #[cfg(feature = "context")] ServerMessage::Stderr(_) => "Stderr".into(),
+                #[cfg(feature = "context")] ServerMessage::GetStdin => "GetStdIn".into(),
+                #[cfg(feature = "context")] ServerMessage::GetLine => "GetLine".into(),
+                #[cfg(feature = "context")] ServerMessage::GetArgs => "GetArgs".into(),
+                #[cfg(feature = "context")] ServerMessage::Read(_) => "Read".into(),
+                #[cfg(feature = "context")] ServerMessage::Write(_, _) => "Write".into(),
+                #[cfg(feature = "context")] ServerMessage::PixelWrite(_, _, _, _) => "PixelWrite".into(),
+                #[cfg(feature = "context")] ServerMessage::StdoutEof => "StdOutEof".into(),
+                #[cfg(feature = "context")] ServerMessage::StderrEof => "StdErrEof".into(),
+
                 ServerMessage::Invalid => "Invalid".into(),
             }
         )

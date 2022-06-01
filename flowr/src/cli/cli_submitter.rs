@@ -11,11 +11,11 @@ use flowrlib::run_state::RunState;
 use flowrlib::server::SubmissionProtocol;
 
 #[cfg(feature = "debugger")]
-use crate::client_server::DONT_WAIT;
-use crate::client_server::WAIT;
+use crate::cli::client_server::DONT_WAIT;
+use crate::cli::client_server::WAIT;
 #[cfg(any(feature = "context", feature = "submission"))]
-use crate::runtime_messages::ClientMessage;
-use crate::runtime_messages::ServerMessage;
+use crate::cli::runtime_messages::ClientMessage;
+use crate::cli::runtime_messages::ServerMessage;
 use crate::ServerConnection;
 
 /// Get and Send messages to/from the runtime client

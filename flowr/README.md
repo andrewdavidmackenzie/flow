@@ -13,7 +13,7 @@ provides for flows to interact with the surrounding "context" it is being run in
 These are all impure functions, or functions with side effects, not part of the flow itself.
 
 Those functions are organized into the following modules, each with multiple functions:
-* [args](src/cli_context/args/args.md) - used to get arguments that flow was invoked with
-* [file](src/cli_context/file/file.md) - used to interact with the file system
-* [image](src/cli_context/image/image.md) - used to create image files
-* [stdio](src/cli_context/stdio/stdio.md) - used to interact with stdio
+* [args](src/cli/args/args.md) - used to get arguments that flow was invoked with
+* [file](src/cli/file/file.md) - used to interact with the file system
+* [image](src/cli/image/image.md) - used to create image files
+* [stdio](src/cli/stdio/stdio.md) - used to interact with stdio

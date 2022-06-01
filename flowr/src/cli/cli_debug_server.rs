@@ -13,7 +13,7 @@ use flowrlib::server::DebuggerProtocol;
 use crate::{BlockBreakpoint, DataBreakpoint, ExecutionEnded, ExecutionStarted, ExitingDebugger,
             JobCompleted, JobError, Panic, PriorToSendingJob, Resetting, ServerConnection,
             WaitingForCommand};
-use crate::client_server::WAIT;
+use crate::cli::client_server::WAIT;
 use crate::DebugServerMessage::{BlockState, Error, FlowUnblockBreakpoint, Functions, FunctionStates, InputState, Message, OutputState, OverallState};
 
 pub(crate) struct  CliDebugServer {

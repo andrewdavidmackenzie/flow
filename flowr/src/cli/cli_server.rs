@@ -7,7 +7,7 @@ use flowcore::model::lib_manifest::ImplementationLocator::Native;
 use flowcore::model::lib_manifest::LibraryManifest;
 use flowcore::model::metadata::MetaData;
 
-use crate::context::{args, file, image, stdio};
+use crate::cli::{args, file, image, stdio};
 use crate::ServerConnection;
 
 /// Return a `LibraryManifest` for the context functions
