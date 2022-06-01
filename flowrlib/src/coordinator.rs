@@ -12,7 +12,7 @@ use crate::executor::Executor;
 use crate::job::Job;
 use crate::run_state::RunState;
 #[cfg(feature = "debugger")]
-use crate::server::DebugServer;
+use crate::server::DebuggerProtocol;
 use crate::server::SubmissionProtocol;
 
 /// The `Coordinator` is responsible for coordinating the dispatching of jobs (consisting
@@ -24,7 +24,8 @@ use crate::server::SubmissionProtocol;
 /// information to execute the flow.
 pub struct Coordinator<'a> {
     /// A `Server` to communicate with clients
-    server: &'a mut dyn SubmissionProtocol,
+    #[cfg(feature = "submission")]
+    submitter: &'a mut dyn SubmissionProtocol,
     /// Executor to use to get jobs executed
     executor: Executor,
     #[cfg(feature = "debugger")]
@@ -34,12 +35,14 @@ pub struct Coordinator<'a> {
 
 impl<'a> Coordinator<'a> {
     /// Create a new `coordinator` with `num_threads` local executor threads
-    pub fn new(server: &'a mut dyn SubmissionProtocol,
-               executor: Executor,
-               #[cfg(feature = "debugger")] debug_server: &'a mut dyn DebugServer
+    pub fn new(
+        #[cfg(feature = "submission")] submitter: &'a mut dyn SubmissionProtocol,
+        executor: Executor,
+        #[cfg(feature = "debugger")] debug_server: &'a mut dyn DebuggerProtocol
     ) -> Self {
         Coordinator {
-            server,
+            #[cfg(feature = "submission")]
+            submitter,
             executor,
             #[cfg(feature = "debugger")]
             debugger: Debugger::new(debug_server),
@@ -47,25 +50,26 @@ impl<'a> Coordinator<'a> {
     }
 
     /// Enter a loop - waiting for a submission from the client, or disconnection of the client
+    #[cfg(feature = "submission")]
     pub fn submission_loop(
         &mut self,
         loop_forever: bool,
     ) -> Result<()> {
         // TODO without the client and context methods currently there is no other way to send a submission
-        while let Some(submission) = self.server.wait_for_submission()? {
+        while let Some(submission) = self.submitter.wait_for_submission()? {
             match self.executor.load_flow(&submission.manifest_url) {
                 Ok(manifest) => {
                     let r = self.execute_flow(manifest, submission);
-                    return self.server.coordinator_is_exiting(r);
+                    return self.submitter.coordinator_is_exiting(r);
                 },
                 Err(e) if loop_forever => error!("{}", e),
                 Err(e) => {
-                    return self.server.coordinator_is_exiting(Err(e));
+                    return self.submitter.coordinator_is_exiting(Err(e));
                 },
             }
         }
 
-        self.server.coordinator_is_exiting(Ok(()))?;
+        self.submitter.coordinator_is_exiting(Ok(()))?;
 
         Ok(())
     }
@@ -106,12 +110,12 @@ impl<'a> Coordinator<'a> {
                 (display_next_output, restart) = self.debugger.wait_for_command(&mut state)?;
             }
 
-            self.server.flow_execution_starting()?;
+            self.submitter.flow_execution_starting()?;
 
             'jobs: loop {
                 trace!("{}", state);
                 #[cfg(feature = "debugger")]
-                if state.submission.debug && self.server.should_enter_debugger()? {
+                if state.submission.debug && self.submitter.should_enter_debugger()? {
                     (display_next_output, restart) = self.debugger.wait_for_command(&mut state)?;
                     if restart {
                         break 'jobs;
@@ -193,7 +197,7 @@ impl<'a> Coordinator<'a> {
         #[cfg(feature = "metrics")]
         metrics.set_jobs_created(state.get_number_of_jobs_created());
         #[cfg(feature = "metrics")]
-        self.server.flow_execution_ended(&state, metrics)?;
+        self.submitter.flow_execution_ended(&state, metrics)?;
         #[cfg(not(feature = "metrics"))]
         self.server.flow_ended()?;
 

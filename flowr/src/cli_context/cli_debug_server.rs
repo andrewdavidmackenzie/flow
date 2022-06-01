@@ -8,7 +8,7 @@ use flowrlib::debug_command::DebugCommand;
 use flowrlib::job::Job;
 use flowrlib::run_state::{RunState, State};
 #[cfg(feature = "debugger")]
-use flowrlib::server::DebugServer;
+use flowrlib::server::DebuggerProtocol;
 
 use crate::{BlockBreakpoint, DataBreakpoint, ExecutionEnded, ExecutionStarted, ExitingDebugger,
             JobCompleted, JobError, Panic, PriorToSendingJob, Resetting, ServerConnection,
@@ -21,7 +21,7 @@ pub(crate) struct  CliDebugServer {
 }
 
 /// Implement a CLI debug server that implements the trait required by the runtime
-impl DebugServer for CliDebugServer {
+impl DebuggerProtocol for CliDebugServer {
     // Start the debugger - which swallows the first message to initialize the connection
     fn start(&mut self) {
         let _ = self.debug_server_connection.receive::<DebugCommand>(WAIT);

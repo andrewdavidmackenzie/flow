@@ -48,23 +48,22 @@ use flowrlib::coordinator::Coordinator;
 use flowrlib::executor::Executor;
 use flowrlib::info as flowrlib_info;
 
+#[cfg(feature = "submission")]
+use crate::cli_submitter::CLISubmitter;
 #[cfg(feature = "context")]
 use crate::context::cli_runtime_client::CliRuntimeClient;
 #[cfg(feature = "context")]
-use crate::context::cli_runtime_server::CliServer;
-#[cfg(feature = "context")]
 use crate::context::runtime_messages::ClientMessage;
-#[cfg(not(feature = "context"))]
-use crate::context::server::NullServer;
 
 /// We'll put our errors in an `errors` module, and other modules in this crate will
 /// `use crate::errors::*;` to get access to everything `error_chain` creates.
 pub mod errors;
 
-#[allow(unused_attributes)]
 #[cfg_attr(feature = "context", path = "cli_context/mod.rs")]
-#[cfg_attr(not(feature = "context"), path = "null_context/mod.rs")]
 mod context;
+
+#[cfg(feature = "submission")]
+mod cli_submitter;
 
 /// The `Coordinator` of flow execution can run in one of these three modes:
 /// - `ClientOnly`      - only as a client to submit flows for execution to a server
@@ -312,7 +311,7 @@ fn server(
     #[cfg(feature = "debugger")] debug_server_connection: ServerConnection,
     loop_forever: bool,
 ) -> Result<()> {
-    #[cfg(feature = "context")]
+    #[cfg(any(feature = "context", feature = "submitter"))]
     let server_connection = Arc::new(Mutex::new(runtime_server_connection));
 
     #[cfg(feature = "debugger")]
@@ -321,14 +320,15 @@ fn server(
     };
 
     let provider = MetaProvider::new(lib_search_path,
-                                     #[cfg(feature = "context")] PathBuf::from("/")
+                                     #[cfg(any(feature = "context", feature = "submitter"))]
+                                         PathBuf::from("/")
     );
     let mut executor = Executor::new(provider, num_threads, None);
 
     // Add the native context functions to functions available for use by the executor
     #[cfg(feature = "context")]
     executor.load_lib(
-        context::get_manifest(server_connection.clone())?,
+        context::cli_server::get_manifest(server_connection.clone())?,
         &Url::parse("context://")?,
     )?;
 
@@ -344,18 +344,17 @@ fn server(
         )?;
     }
 
-    #[cfg(feature = "context")]
-        let mut server = CliServer {
+    #[cfg(feature = "submission")]
+        let mut submitter = CLISubmitter {
         runtime_server_connection: server_connection,
     };
-    #[cfg(not(feature = "context"))]
-        let mut server = NullServer{};
 
     let mut coordinator = Coordinator::new(
-                                           &mut server,
-                                           executor,
-                                           #[cfg(feature = "debugger")] &mut debug_server);
+        #[cfg(feature = "submission")] &mut submitter,
+        executor,
+        #[cfg(feature = "debugger")] &mut debug_server);
 
+    #[cfg(feature = "submission")]
     coordinator.submission_loop(loop_forever)
 }
 

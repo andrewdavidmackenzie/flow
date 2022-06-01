@@ -48,10 +48,9 @@ pub trait SubmissionProtocol {
     fn coordinator_is_exiting(&mut self, result: Result<()>) -> Result<()>;
 }
 
-/// a `DebugServer` implements these "callbacks" in order to communicate between a CLI/UI
-/// implementation of one and the background flow coordinator executing the flow and debugger
+/// Programs that wish to offer a debugger (such as a CLI or UI) should implement this protocol
 #[cfg(feature = "debugger")]
-pub trait DebugServer {
+pub trait DebuggerProtocol {
     /// Start the debugger - which swallows the first message to initialize the connection
     fn start(&mut self);
     /// a breakpoint has been hit on a Job being created

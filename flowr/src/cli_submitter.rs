@@ -14,11 +14,11 @@ use crate::context::client_server::{DONT_WAIT, WAIT};
 use crate::context::runtime_messages::ServerMessage;
 
 /// Get and Send messages to/from the runtime client
-pub(crate) struct CliServer {
+pub(crate) struct CLISubmitter {
     pub(crate) runtime_server_connection: Arc<Mutex<ServerConnection>>,
 }
 
-impl SubmissionProtocol for CliServer {
+impl SubmissionProtocol for CLISubmitter {
     // The flow is starting
     fn flow_execution_starting(&mut self) -> Result<()> {
         let _ = self.runtime_server_connection
