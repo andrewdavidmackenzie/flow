@@ -20,7 +20,7 @@ use crate::job::Job;
 use crate::wasm;
 
 /// Executor structure holds information required to send jobs for execution and receive results back
-/// A `Loader` is responsible for loading a compiled `Flow` from it's `Manifest`, loading the required
+/// It can load a compiled `Flow` from it's `FlowManifest`, loading the required
 /// libraries needed by the flow and keeping track of the `Function` `Implementations` that
 /// will be used to execute it.
 pub struct Executor {
@@ -43,8 +43,6 @@ pub struct Executor {
 impl Executor {
     /// Create a new `Executor` specifying the number of local executor threads and a timeout
     /// for reception of results back to avoid blocking
-    /// Create a new `Loader` that will be used to parse the manifest file create structs in
-    /// memory ready for execution
     pub fn new(provider: MetaProvider, number_of_executors: usize, job_timeout: Option<Duration>) -> Self {
         let (job_tx, job_rx) = mpsc::channel();
         let (output_tx, output_rx) = mpsc::channel();
