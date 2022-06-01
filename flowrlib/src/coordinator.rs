@@ -13,7 +13,7 @@ use crate::job::Job;
 use crate::run_state::RunState;
 #[cfg(feature = "debugger")]
 use crate::server::DebugServer;
-use crate::server::Server;
+use crate::server::SubmissionProtocol;
 
 /// The `Coordinator` is responsible for coordinating the dispatching of jobs (consisting
 /// of a set of Input values and an Implementation of a Function) for execution,
@@ -24,7 +24,7 @@ use crate::server::Server;
 /// information to execute the flow.
 pub struct Coordinator<'a> {
     /// A `Server` to communicate with clients
-    server: &'a mut dyn Server,
+    server: &'a mut dyn SubmissionProtocol,
     /// Executor to use to get jobs executed
     executor: Executor,
     #[cfg(feature = "debugger")]
@@ -34,7 +34,7 @@ pub struct Coordinator<'a> {
 
 impl<'a> Coordinator<'a> {
     /// Create a new `coordinator` with `num_threads` local executor threads
-    pub fn new(server: &'a mut dyn Server,
+    pub fn new(server: &'a mut dyn SubmissionProtocol,
                executor: Executor,
                #[cfg(feature = "debugger")] debug_server: &'a mut dyn DebugServer
     ) -> Self {
@@ -56,16 +56,16 @@ impl<'a> Coordinator<'a> {
             match self.executor.load_flow(&submission.manifest_url) {
                 Ok(manifest) => {
                     let r = self.execute_flow(manifest, submission);
-                    return self.server.server_exiting(r);
+                    return self.server.coordinator_is_exiting(r);
                 },
                 Err(e) if loop_forever => error!("{}", e),
                 Err(e) => {
-                    return self.server.server_exiting(Err(e));
+                    return self.server.coordinator_is_exiting(Err(e));
                 },
             }
         }
 
-        self.server.server_exiting(Ok(()))?;
+        self.server.coordinator_is_exiting(Ok(()))?;
 
         Ok(())
     }
@@ -106,7 +106,7 @@ impl<'a> Coordinator<'a> {
                 (display_next_output, restart) = self.debugger.wait_for_command(&mut state)?;
             }
 
-            self.server.flow_starting()?;
+            self.server.flow_execution_starting()?;
 
             'jobs: loop {
                 trace!("{}", state);
@@ -193,7 +193,7 @@ impl<'a> Coordinator<'a> {
         #[cfg(feature = "metrics")]
         metrics.set_jobs_created(state.get_number_of_jobs_created());
         #[cfg(feature = "metrics")]
-        self.server.flow_ended(&state, metrics)?;
+        self.server.flow_execution_ended(&state, metrics)?;
         #[cfg(not(feature = "metrics"))]
         self.server.flow_ended()?;
 

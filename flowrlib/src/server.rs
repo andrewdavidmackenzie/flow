@@ -23,30 +23,29 @@ use crate::run_state::RunState;
 #[cfg(feature = "debugger")]
 use crate::run_state::State;
 
-/// A `Server` implements a number of "callbacks" to communicate between a CLI/UI and background
-/// flow coordinator executing the flow
-pub trait Server {
-    /// The flow is starting
-    fn flow_starting(&mut self) -> Result<()>;
+/// Programs linking `flowrlib` that wish to submit a flow for execution via a `Submission` and
+/// then track it's execution (such as a CLI or a UI) should implement this trait.
+pub trait SubmissionProtocol {
+    /// Execution of the flow is starting
+    fn flow_execution_starting(&mut self) -> Result<()>;
 
-    /// See if the runtime client has sent a message to request us to enter the debugger,
-    /// if so, return Ok(true).
-    /// A different message or Absence of a message returns Ok(false)
+    /// The `Coordinator` executing the flow periodically will check if there has been a request
+    /// to enter the debugger.
     #[cfg(feature = "debugger")]
     fn should_enter_debugger(&mut self) -> Result<bool>;
 
-    /// The flow has ended
+    /// The execution of the flow has ended
     #[cfg(feature = "metrics")]
-    fn flow_ended(&mut self, state: &RunState, metrics: Metrics) -> Result<()>;
+    fn flow_execution_ended(&mut self, state: &RunState, metrics: Metrics) -> Result<()>;
     /// The flow has ended
     #[cfg(not(feature = "metrics"))]
-    fn flow_ended(&mut self) -> Result<()>;
+    fn flow_execution_ended(&mut self) -> Result<()>;
 
-    /// Wait for a `Submission` to be sent for execution
+    /// Wait for a `Submission` to be sent to the `Coordinator` for execution
     fn wait_for_submission(&mut self) -> Result<Option<Submission>>;
 
-    /// The flow server is about to exit
-    fn server_exiting(&mut self, result: Result<()>) -> Result<()>;
+    /// The thread or process running the `Coordinator` to execute the flow is about to exit
+    fn coordinator_is_exiting(&mut self, result: Result<()>) -> Result<()>;
 }
 
 /// a `DebugServer` implements these "callbacks" in order to communicate between a CLI/UI

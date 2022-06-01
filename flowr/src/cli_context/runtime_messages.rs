@@ -11,6 +11,8 @@ use flowcore::model::submission::Submission;
 /// An Message sent from the runtime server to a runtime_client
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum ServerMessage {
+    /// ** These messages are used to implement the `SubmissionProtocol` between the cli_runtime_server
+    /// and the cli_runtime_client
     /// A flow has started executing
     FlowStart,
     /// A flow has stopped executing
@@ -21,6 +23,10 @@ pub enum ServerMessage {
     FlowEnd,
     /// Server is exiting, with a result (OK, or Err)
     ServerExiting(Result<()>),
+
+    /// ** These messages are used to implement the context functions between the cli_runtime_server
+    /// that runs as part of the `Coordinator` and the cli_runtime_client that interacts with
+    /// STDIO
     /// A String of contents was sent to stdout
     Stdout(String),
     /// A String of contents was sent to stderr
@@ -33,8 +39,6 @@ pub enum ServerMessage {
     GetArgs,
     /// A Request to read bytes from a file
     Read(PathBuf),
-    /// Request File Metadata on a file on the client
-    GetFileMetaData(PathBuf),
     /// A Request to write a series of bytes to a file
     Write(String, Vec<u8>),
     /// A Request to write a pixel to an ImageBuffer
@@ -66,7 +70,6 @@ impl fmt::Display for ServerMessage {
                 ServerMessage::GetLine => "GetLine".into(),
                 ServerMessage::GetArgs => "GetArgs".into(),
                 ServerMessage::Read(_) => "Read".into(),
-                ServerMessage::GetFileMetaData(_) => "GetFileMetaData".into(),
                 ServerMessage::Write(_, _) => "Write".into(),
                 ServerMessage::PixelWrite(_, _, _, _) => "PixelWrite".into(),
                 ServerMessage::StdoutEof => "StdOutEof".into(),
@@ -94,13 +97,22 @@ pub struct FileMetaData {
 /// A Message from the a runtime_client to the runtime server
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum ClientMessage {
-    /// Simple acknowledgement
+    /// ** These messages are used to implement the `SubmissionProtocol` between the cli_runtime_server
+    /// and the cli_runtime_client
+    /// A submission from the client for execution
+    ClientSubmission(Submission),
+    /// Client requests that server enters the ddebugger at the next opportunity
+    EnterDebugger,
+
+    /// ** These messages are used to implement the context functions between the cli_runtime_client
+    /// and the cli_runtime_server that runs as part of the `Coordinator`
+    /// Simple acknowledgement from Client to a ServerMessage
     Ack,
-    /// A String read from Stdin
+    /// A String read from Stdin on Client, sent to the Server
     Stdin(String),
-    /// A line of text read from Stdin using readline
+    /// A line of text read from Stdin using readline from Stdin on Client, sent to the Server
     Line(String),
-    /// A Vector of Strings that are the flow's arguments
+    /// A Vector of Strings that are the flow's arguments from Client, sent to the Server
     Args(Vec<String>),
     /// An Error occurred in the runtime_client
     Error(String),
@@ -108,18 +120,14 @@ pub enum ClientMessage {
     GetStdinEof,
     /// EOF was detected on input reading Stdin using Readline
     GetLineEof,
-    /// Client is exiting Event loop
-    ClientExiting(Result<()>),
-    /// A submission from the client for execution
-    ClientSubmission(Submission),
-    /// Client requests that server enters the ddebugger at the next opportunity
-    EnterDebugger,
     /// Invalid - used when deserialization goes wrong
     Invalid,
     /// Contents read from a file
     FileContents(PathBuf, Vec<u8>),
-    /// MetaData for a file on the client
-    FileMetaDate(PathBuf, FileMetaData),
+
+    /// ** This message is just internal to the client and not sent to the server
+    /// Client is exiting Event loop
+    ClientExiting(Result<()>),
 }
 
 impl fmt::Display for ClientMessage {
@@ -141,7 +149,6 @@ impl fmt::Display for ClientMessage {
                 ClientMessage::EnterDebugger => "EnterDebugger".into(),
                 ClientMessage::Invalid => "Invalid".into(),
                 ClientMessage::FileContents(_, _) => "FileContents".into(),
-                ClientMessage::FileMetaDate(_, _) => "FileMetaDate".into(),
             }
         )
     }
