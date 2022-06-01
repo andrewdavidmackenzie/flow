@@ -23,15 +23,12 @@ pub const DEFAULT_LIB_RUST_MANIFEST_FILENAME: &str = "manifest.rs";
 */
 #[derive(Deserialize, Serialize, Clone)]
 #[serde(untagged)]
-/// `ImplementationLocator` enum is used to describe where an implementation can be found.
-/// Implementations can be of two types:
-/// - `Native` - A statically linked function referenced via a function reference
-/// - `Wasm`   - A WASM bytecode file that is referenced via a string pointing to the .wasm file location
+/// `ImplementationLocator` describes where an implementation can be located.
 pub enum ImplementationLocator {
     #[serde(skip_deserializing, skip_serializing)]
-    /// A `Native` implementation is a reference to a trait object and linked with the library
+    /// A `Native` - A reference to a trait object statically linked with the library
     Native(Arc<dyn Implementation>),
-    /// A `Wasm` implementation is compiled to wasm and loaded to a file at the path indicated by the `String`
+    /// A `Wasm` - `String` indicating where the wasm file of implementation is located
     Wasm(String),
 }
 
@@ -170,7 +167,7 @@ mod test {
     use crate::Implementation;
     use crate::meta_provider::Provider;
     use crate::model::lib_manifest::{
-        ImplementationLocator, ImplementationLocator::Wasm, LibraryManifest,
+        ImplementationLocator, ImplementationLocator::Native, ImplementationLocator::Wasm, LibraryManifest,
     };
     use crate::model::metadata::MetaData;
 
@@ -221,16 +218,16 @@ mod test {
 
     #[test]
     fn wasm_locators_match() {
-        let loc0 = ImplementationLocator::Wasm("location".into());
-        let loc1 = ImplementationLocator::Wasm("location".into());
+        let loc0 = Wasm("location".into());
+        let loc1 = Wasm("location".into());
 
         assert!(loc0 == loc1);
     }
 
     #[test]
     fn wasm_locators_do_not_match() {
-        let loc0 = ImplementationLocator::Wasm("location0".into());
-        let loc1 = ImplementationLocator::Wasm("location1".into());
+        let loc0 = Wasm("location0".into());
+        let loc1 = Wasm("location1".into());
 
         assert!(loc0 != loc1);
     }
@@ -245,8 +242,8 @@ mod test {
                 unimplemented!()
             }
         }
-        let wasm_loc = ImplementationLocator::Wasm("wasm_location".into());
-        let native_loc = ImplementationLocator::Native(Arc::new(TestImpl {}));
+        let wasm_loc = Wasm("wasm_location".into());
+        let native_loc = Native(Arc::new(TestImpl {}));
 
         assert!(wasm_loc != native_loc);
     }

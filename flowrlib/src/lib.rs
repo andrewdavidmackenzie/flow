@@ -15,9 +15,6 @@ pub mod coordinator;
 /// `info` offers methods to get information about this library
 pub mod info;
 
-/// `loader` is responsible for loading a flow from it's manifest and loading libraries it uses
-pub mod loader;
-
 /// Structure that defines/tracks the current runtime state
 pub mod run_state;
 
@@ -33,7 +30,8 @@ pub mod breakpoint_spec;
 /// `debug_command` provides the `DebugCommand` enum for commands from debug client to debug server
 pub mod debug_command;
 
-mod execution;
+/// Executor module provides mechanisms for jobs to be executed
+pub mod executor;
 
 /// `wasm` module contains a number of implementations of the wasm execution
 #[allow(unused_attributes)]

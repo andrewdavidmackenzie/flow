@@ -1,7 +1,6 @@
 use log::{debug, error, trace};
 
 use flowcore::errors::*;
-use flowcore::meta_provider::MetaProvider;
 use flowcore::model::flow_manifest::FlowManifest;
 #[cfg(feature = "metrics")]
 use flowcore::model::metrics::Metrics;
@@ -9,9 +8,8 @@ use flowcore::model::submission::Submission;
 
 #[cfg(feature = "debugger")]
 use crate::debugger::Debugger;
-use crate::execution::Executor;
+use crate::executor::Executor;
 use crate::job::Job;
-use crate::loader::Loader;
 use crate::run_state::RunState;
 #[cfg(feature = "debugger")]
 use crate::server::DebugServer;
@@ -25,10 +23,10 @@ use crate::server::Server;
 /// It accepts Flows to be executed in the form of a `Submission` struct that has the required
 /// information to execute the flow.
 pub struct Coordinator<'a> {
-    /// Executor
-    executor: Executor,
     /// A `Server` to communicate with clients
     server: &'a mut dyn Server,
+    /// Executor to use to get jobs executed
+    executor: Executor,
     #[cfg(feature = "debugger")]
     /// A `Debugger` to communicate with debug clients
     debugger: Debugger<'a>,
@@ -36,12 +34,13 @@ pub struct Coordinator<'a> {
 
 impl<'a> Coordinator<'a> {
     /// Create a new `coordinator` with `num_threads` local executor threads
-    pub fn new(num_threads: usize, server: &'a mut dyn Server,
+    pub fn new(server: &'a mut dyn Server,
+               executor: Executor,
                #[cfg(feature = "debugger")] debug_server: &'a mut dyn DebugServer
     ) -> Self {
         Coordinator {
-            executor: Executor::new(num_threads, None),
             server,
+            executor,
             #[cfg(feature = "debugger")]
             debugger: Debugger::new(debug_server),
         }
@@ -50,13 +49,11 @@ impl<'a> Coordinator<'a> {
     /// Enter a loop - waiting for a submission from the client, or disconnection of the client
     pub fn submission_loop(
         &mut self,
-        mut loader: Loader,
-        provider: MetaProvider,
         loop_forever: bool,
     ) -> Result<()> {
         // TODO without the client and context methods currently there is no other way to send a submission
         while let Some(submission) = self.server.wait_for_submission()? {
-            match loader.load_flow(&provider, &submission.manifest_url) {
+            match self.executor.load_flow(&submission.manifest_url) {
                 Ok(manifest) => {
                     let r = self.execute_flow(manifest, submission);
                     return self.server.server_exiting(r);
