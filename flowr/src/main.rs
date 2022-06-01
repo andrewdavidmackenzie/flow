@@ -39,12 +39,13 @@ use context::debug_server_message::DebugServerMessage::{BlockBreakpoint, DataBre
                                                         ExitingDebugger, JobCompleted, JobError, Panic, PriorToSendingJob,
                                                         Resetting, WaitingForCommand};
 use flowcore::errors::*;
-use flowcore::meta_provider::{MetaProvider, Provider};
+use flowcore::meta_provider::MetaProvider;
 #[cfg(feature = "context")]
 use flowcore::model::submission::Submission;
 #[cfg(feature = "context")]
 use flowcore::url_helper::url_from_string;
 use flowrlib::coordinator::Coordinator;
+use flowrlib::executor::Executor;
 use flowrlib::info as flowrlib_info;
 use flowrlib::loader::Loader;
 
@@ -230,14 +231,12 @@ fn run() -> Result<()> {
 fn load_native_libs(
     native_flowstdlib: bool,
     loader: &mut Loader,
-    provider: &dyn Provider,
     #[cfg(feature = "context")]
     server_connection: Arc<Mutex<ServerConnection>>,
 ) -> Result<()> {
     // Add the native context functions to functions available for use by the flow
     #[cfg(feature = "context")]
     loader.load_lib(
-        provider,
         context::get_manifest(server_connection)?,
         &Url::parse("context://")?,
         )?;
@@ -248,7 +247,6 @@ fn load_native_libs(
     if native_flowstdlib {
         #[cfg(feature = "flowstdlib")]
         loader.load_lib(
-                provider,
                 flowstdlib::manifest::get_manifest()
                     .chain_err(|| "Could not get 'native' flowstdlib manifest")?,
                 &Url::parse("lib://flowstdlib")?,
@@ -344,10 +342,10 @@ fn server(
     #[cfg(feature = "debugger")] debug_server_connection: ServerConnection,
     loop_forever: bool,
 ) -> Result<()> {
-    let mut loader = Loader::new();
     let provider = MetaProvider::new(lib_search_path,
                                                 #[cfg(feature = "context")] PathBuf::from("/")
                                                 );
+    let mut loader = Loader::new(provider);
 
     #[cfg(feature = "context")]
     let server_connection = Arc::new(Mutex::new(runtime_server_connection));
@@ -355,7 +353,6 @@ fn server(
     load_native_libs(
         native_flowstdlib,
         &mut loader,
-        &provider,
         #[cfg(feature = "context")]
         server_connection.clone(),
     )?;
@@ -372,15 +369,13 @@ fn server(
         debug_server_connection
     };
 
-    let mut coordinator = Coordinator::new(num_threads,
+    let mut coordinator = Coordinator::new(
                                            &mut server,
+                                           Executor::new(num_threads, None),
+                                           loader,
                                            #[cfg(feature = "debugger")] &mut debug_server);
 
-    coordinator.submission_loop(
-        loader,
-        provider,
-        loop_forever,
-    )
+    coordinator.submission_loop(loop_forever)
 }
 
 // Start only a client in the calling thread. Since we are *only* starting a client in this

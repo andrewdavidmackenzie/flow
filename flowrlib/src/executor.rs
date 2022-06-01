@@ -11,6 +11,7 @@ use flowcore::errors::*;
 
 use crate::job::Job;
 
+/// Executor structure holds information required to send jobs for execution and receive results back
 pub struct Executor {
     /// A channel used to send Jobs out for execution
     job_tx: Sender<Job>,
@@ -22,6 +23,8 @@ pub struct Executor {
 
 /// Struct that takes care of execution of jobs, sending jobs for execution and receiving results
 impl Executor {
+    /// Create a new `Executor` specifying the number of local executor threads and a timeout
+    /// for reception of results back to avoid blocking
     pub fn new(number_of_executors: usize, job_timeout: Option<Duration>,) -> Self {
         let (job_tx, job_rx) = mpsc::channel();
         let (output_tx, output_rx) = mpsc::channel();
@@ -52,6 +55,7 @@ impl Executor {
         }
     }
 
+    /// Send a `Job` for execution to executors
     pub fn send_job_for_execution(&mut self, job: &Job) -> Result<()> {
         self.job_tx
             .send(job.clone())

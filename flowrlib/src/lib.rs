@@ -33,7 +33,8 @@ pub mod breakpoint_spec;
 /// `debug_command` provides the `DebugCommand` enum for commands from debug client to debug server
 pub mod debug_command;
 
-mod execution;
+/// Executor module provides mechanisms for jobs to be executed
+pub mod executor;
 
 /// `wasm` module contains a number of implementations of the wasm execution
 #[allow(unused_attributes)]
