@@ -221,7 +221,7 @@ impl Executor {
             // track the fact we have loaded this library manifest
             self.loaded_libraries
                 .insert(lib_manifest_url.clone(), lib_manifest_tuple);
-            info!("Loaded library: '{}'", lib_manifest_url);
+            info!("Loaded '{}'", lib_manifest_url);
         }
 
         Ok(())
