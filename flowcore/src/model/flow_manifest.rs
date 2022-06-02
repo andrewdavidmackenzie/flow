@@ -131,6 +131,11 @@ impl FlowManifest {
             .deserialize(&content, Some(&resolved_url))
             .chain_err(|| format!("Could not create a FlowManifest from '{}'", source))?;
 
+        // TODO normalize the relative ImplementationLocators into full file:// Urls here
+        // using the manifest's resolved Url as the base...see executor.rs and avoid the need to
+        // do there - then all locators can be treated equally. Maybe even add fields in the manifest
+        // of type Url for them, and stop using the &str versions deserialized. Customer deser for this?
+
         Ok((manifest, url))
     }
 }

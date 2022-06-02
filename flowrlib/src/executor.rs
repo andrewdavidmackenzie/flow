@@ -117,7 +117,7 @@ impl Executor {
             FlowManifest::load(&self.provider as &dyn Provider, flow_manifest_url)
                 .chain_err(|| format!("Could not load manifest from: '{}'", flow_manifest_url))?;
 
-        self.load_lib_implementations(&flow_manifest)
+        self.load_used_lib_implementations(&flow_manifest)
             .chain_err(|| format!("Could not load libraries referenced by manifest at: {}",
                                   resolved_url))?;
 
@@ -166,7 +166,7 @@ impl Executor {
     }
 
     // Load libraries implementations referenced in the flow manifest
-    fn load_lib_implementations(
+    fn load_used_lib_implementations(
         &mut self,
         flow_manifest: &FlowManifest,
     ) -> Result<()> {
@@ -243,30 +243,39 @@ impl Executor {
         {
             let lib_manifest_tuple = (lib_manifest.clone(), lib_manifest_url.clone());
 
-            // Load all the implementations in the library from their locators
-            for (implementation_reference, locator) in lib_manifest.locators {
-                let implementation = match locator {
-                    Wasm(wasm_source_relative) => {
-                        // Path to the wasm source could be relative to the URL where we loaded the manifest from
-                        let wasm_url = lib_manifest_url
-                            .join(&wasm_source_relative)
-                            .map_err(|e| e.to_string())?;
-                        debug!("Attempting to load wasm from: '{}'", wasm_url);
-                        // Wasm loaded, wrap it with the Wasm Native Implementation
-                        Arc::new(wasm::load(&self.provider as &dyn Provider, &wasm_url)?) as Arc<dyn Implementation>
-                    }
-
-                    // Native implementation from Lib
-                    Native(implementation) => implementation,
-                };
-                self.loaded_implementations
-                    .insert(implementation_reference, implementation);
-            }
+            self.load_library_implementations(lib_manifest, lib_manifest_url)?;
 
             // track the fact we have loaded this library manifest
             self.loaded_libraries
                 .insert(lib_manifest_url.clone(), lib_manifest_tuple);
             info!("Loaded '{}'", lib_manifest_url);
+        }
+
+        Ok(())
+    }
+
+    fn load_library_implementations(&mut self,
+                                    lib_manifest: LibraryManifest,
+                                    lib_manifest_url: &Url,
+    ) -> Result<()> {
+        // Load all the implementations in the library from their locators
+        for (implementation_reference, locator) in lib_manifest.locators {
+            let implementation = match locator {
+                Wasm(wasm_source_relative) => {
+                    // Path to the wasm source could be relative to the URL where we loaded the manifest from
+                    let wasm_url = lib_manifest_url
+                        .join(&wasm_source_relative)
+                        .map_err(|e| e.to_string())?;
+                    debug!("Attempting to load wasm from: '{}'", wasm_url);
+                    // Wasm loaded, wrap it with the Wasm Native Implementation
+                    Arc::new(wasm::load(&self.provider as &dyn Provider, &wasm_url)?) as Arc<dyn Implementation>
+                }
+
+                // Native implementation from Lib
+                Native(implementation) => implementation,
+            };
+            self.loaded_implementations
+                .insert(implementation_reference, implementation);
         }
 
         Ok(())
