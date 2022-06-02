@@ -295,7 +295,6 @@ impl Executor {
     // If it has been already loaded, then return the Implementation, if not, load it from
     // wasm, wrap it in a a wasm_executor native Implementation, then return that Implementation
     fn resolve_implementation(&mut self, implementation_url: Url) -> Result<Arc<dyn Implementation>> {
-        println!("implementation_url {}", implementation_url);
         match self
             .loaded_implementations
             .get(&implementation_url) {
