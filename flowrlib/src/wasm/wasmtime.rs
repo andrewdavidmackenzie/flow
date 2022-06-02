@@ -112,7 +112,7 @@ impl WasmExecutor {
 pub fn load(provider: &dyn Provider, source_url: &Url) -> Result<WasmExecutor> {
     let (resolved_url, _) = provider
         .resolve_url(source_url, DEFAULT_WASM_FILENAME, &["wasm"])
-        .chain_err(|| "Could not resolve url for manifest while attempting to load manifest")?;
+        .chain_err(|| format!("Could not resolve url '{}' for wasm file", source_url))?;
     let content = provider.get_contents(&resolved_url).chain_err(|| {
         format!(
             "Could not fetch content from url '{}' for loading wasm",
