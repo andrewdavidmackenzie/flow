@@ -24,10 +24,10 @@ use crate::wasm;
 /// libraries needed by the flow and keeping track of the `Function` `Implementations` that
 /// will be used to execute it.
 pub struct Executor {
-    /// A channel used to send Jobs out for execution
-    job_tx: Sender<Job>,
-    /// A channel used to receive Jobs back after execution (now including the job's output)
-    job_rx: Receiver<Job>,
+    /// A channel used to send Jobs out for execution locally
+    job_sender: Sender<Job>,
+    /// A channel used to receive Jobs back after local execution (now including the job's output)
+    results_receiver: Receiver<Job>,
     /// The timeout for waiting for results back from jobs being executed
     job_timeout: Option<Duration>,
     /// HashMap of libraries already loaded. The key is the library reference Url
@@ -44,16 +44,18 @@ impl Executor {
     /// Create a new `Executor` specifying the number of local executor threads and a timeout
     /// for reception of results back to avoid blocking
     pub fn new(provider: MetaProvider, number_of_executors: usize, job_timeout: Option<Duration>) -> Self {
-        let (job_tx, job_rx) = mpsc::channel();
-        let (output_tx, output_rx) = mpsc::channel();
+        let (job_sender, job_receiver) = mpsc::channel();
+        let (results_sender, results_receiver) = mpsc::channel();
 
         info!("Starting {} local executor threads", number_of_executors);
-        let shared_job_receiver = Arc::new(Mutex::new(job_rx));
-        start_executors(number_of_executors, &shared_job_receiver, &output_tx);
+        let shared_job_receiver = Arc::new(Mutex::new(job_receiver));
+        start_local_executors(number_of_executors, shared_job_receiver, results_sender);
+
+//        start_p2p_sender_receiver(shared_job_receiver, results_sender);
 
         Executor {
-            job_tx,
-            job_rx: output_rx,
+            job_sender,
+            results_receiver,
             job_timeout,
             loaded_libraries: HashMap::<Url, (LibraryManifest, Url)>::new(),
             loaded_implementations: HashMap::<Url, Arc<dyn Implementation>>::new(),
@@ -69,16 +71,16 @@ impl Executor {
     /// Wait for, then return the next Job with results returned from executors
     pub fn get_next_result(&mut self) -> Result<Job> {
         match self.job_timeout {
-            Some(t) => self.job_rx.recv_timeout(t)
+            Some(t) => self.results_receiver.recv_timeout(t)
                 .chain_err(|| "Timeout while waiting for Job result"),
-            None => self.job_rx.recv()
+            None => self.results_receiver.recv()
                 .chain_err(|| "Error while trying to receive Job results")
         }
     }
 
     /// Send a `Job` for execution to executors
     pub fn send_job_for_execution(&mut self, job: &Job) -> Result<()> {
-        self.job_tx
+        self.job_sender
             .send(job.clone())
             .chain_err(|| "Sending of job for execution failed")?;
 
@@ -115,13 +117,12 @@ impl Executor {
             FlowManifest::load(&self.provider as &dyn Provider, flow_manifest_url)
                 .chain_err(|| format!("Could not load manifest from: '{}'", flow_manifest_url))?;
 
-        self.load_lib_implementations(&flow_manifest)
+        self.load_referenced_implementations(&flow_manifest)
             .chain_err(|| format!("Could not load libraries referenced by manifest at: {}",
                                   resolved_url))?;
 
         // Find the implementations for all functions used in this flow
-        self.resolve_function_implementations(&mut flow_manifest, &resolved_url)
-            .chain_err(|| "Could not resolve implementations required for flow execution")?;
+        self.resolve_function_implementations(&mut flow_manifest, &resolved_url)?;
 
         Ok(flow_manifest)
     }
@@ -163,8 +164,8 @@ impl Executor {
         Ok(tuple.clone()) // TODO avoid the clone and return a reference
     }
 
-    // Load libraries implementations referenced in the flow manifest
-    fn load_lib_implementations(
+    // Load context or libraries implementations referenced in the flow manifest
+    fn load_referenced_implementations(
         &mut self,
         flow_manifest: &FlowManifest,
     ) -> Result<()> {
@@ -175,7 +176,7 @@ impl Executor {
 
             let manifest_tuple = self.get_lib_manifest_tuple(&lib_root_url)?;
 
-            self.load_lib_implementation(
+            self.load_referenced_implementation(
                 lib_reference,
                 &manifest_tuple,
             )?;
@@ -184,51 +185,8 @@ impl Executor {
         Ok(())
     }
 
-    /// Load a library and all the implementations it contains into the loader.
-    /// They are references by Url so they can be found when loading a flow that requires them.
-    pub fn load_lib(
-        &mut self,
-        lib_manifest: LibraryManifest,
-        lib_manifest_url: &Url,
-    ) -> Result<()> {
-        if self
-            .loaded_libraries
-            .get(lib_manifest_url)
-            .is_none()
-        {
-            let lib_manifest_tuple = (lib_manifest.clone(), lib_manifest_url.clone());
-
-            // Load all the implementations in the library from their locators
-            for (implementation_reference, locator) in lib_manifest.locators {
-                let implementation = match locator {
-                    Wasm(wasm_source_relative) => {
-                        // Path to the wasm source could be relative to the URL where we loaded the manifest from
-                        let wasm_url = lib_manifest_url
-                            .join(&wasm_source_relative)
-                            .map_err(|e| e.to_string())?;
-                        debug!("Attempting to load wasm from: '{}'", wasm_url);
-                        // Wasm loaded, wrap it with the Wasm Native Implementation
-                        Arc::new(wasm::load(&self.provider as &dyn Provider, &wasm_url)?) as Arc<dyn Implementation>
-                    }
-
-                    // Native implementation from Lib
-                    Native(implementation) => implementation,
-                };
-                self.loaded_implementations
-                    .insert(implementation_reference, implementation);
-            }
-
-            // track the fact we have loaded this library manifest
-            self.loaded_libraries
-                .insert(lib_manifest_url.clone(), lib_manifest_tuple);
-            info!("Loaded '{}'", lib_manifest_url);
-        }
-
-        Ok(())
-    }
-
     // Add a library implementation to the loader
-    fn load_lib_implementation(
+    fn load_referenced_implementation(
         &mut self,
         implementation_reference: &Url,
         lib_manifest_tuple: &(LibraryManifest, Url),
@@ -263,8 +221,45 @@ impl Executor {
                 }
                 Native(native_impl) => native_impl.clone(),
             };
+
             self.loaded_implementations
                 .insert(implementation_reference.clone(), implementation);
+        }
+
+        Ok(())
+    }
+
+    /// Load a library and all the implementations it contains into the loader.
+    /// They are references by Url so they can be found when loading a flow that requires them.
+    pub fn load_lib(
+        &mut self,
+        lib_manifest: LibraryManifest,
+        lib_manifest_url: &Url,
+    ) -> Result<()> {
+        if self
+            .loaded_libraries
+            .get(lib_manifest_url)
+            .is_none()
+        {
+            let lib_manifest_tuple = (lib_manifest.clone(), lib_manifest_url.clone());
+
+            self.load_native_library_implementations(lib_manifest)?;
+
+            // track the fact we have loaded this library manifest
+            self.loaded_libraries
+                .insert(lib_manifest_url.clone(), lib_manifest_tuple);
+            info!("Loaded '{}'", lib_manifest_url);
+        }
+
+        Ok(())
+    }
+
+    // Load statically linked native implementations now - delay wasm ones until actually used
+    fn load_native_library_implementations(&mut self, lib_manifest: LibraryManifest) -> Result<()> {
+        for (implementation_reference, locator) in lib_manifest.locators {
+            if let Native(implementation) =  locator {
+                self.loaded_implementations.insert(implementation_reference, implementation);
+            }
         }
 
         Ok(())
@@ -281,78 +276,78 @@ impl Executor {
         debug!("Resolving implementations");
         // find in a library, or load the supplied implementation - as specified by the source
         for function in flow_manifest.get_functions() {
-            let implementation =
-                self.resolve_implementation(manifest_url,function.implementation_location())?;
+            let implementation_url = Self::location_to_url(manifest_url,function.implementation_location())?;
+            let implementation = self.resolve_implementation(implementation_url)?;
             function.set_implementation(implementation);
         }
 
         Ok(())
     }
 
-    fn resolve_implementation(&mut self,
-                              manifest_url: &Url,
-                              implementation_location: &str)
-                              -> Result<Arc<dyn Implementation>> {
-        return match implementation_location.split_once(':') {
-            Some(("lib", _)) | Some(("context", _)) => {
-                let implementation_url = Url::parse(implementation_location)
-                    .chain_err(|| {
-                        "Could not create a Url from the implementation location"
-                    })?;
-                let implementation = self
-                    .loaded_implementations
-                    .get(&implementation_url)
-                    .ok_or_else(|| format!(
-                        "Implementation at '{}' is not in loaded libraries",
-                        implementation_location
-                    ))?;
-                // TODO ^^^^ this is where we would load a library function on demand
-                trace!("\tFunction implementation loaded from '{}'", implementation_location);
+    fn location_to_url(manifest_url: &Url, location: &str) -> Result<Url> {
+        Url::parse(location).or_else(|_| manifest_url.join(location))
+            .chain_err(|| "Could not create Url from 'manifest_url' and 'location'")
+    }
 
-                Ok(implementation.clone()) // Only clone of an Arc, not the object
-            }
+    // Find an implementation based on the implementation_url. It maybe from 'context://' or
+    // a library ('lib://{libname}') already loaded, or it maybe a reference to an implementation
+    // provided by the flow itself.
+    // If it has been already loaded, then return the Implementation, if not, load it from
+    // wasm, wrap it in a a wasm_executor native Implementation, then return that Implementation
+    fn resolve_implementation(&mut self, implementation_url: Url) -> Result<Arc<dyn Implementation>> {
+        match self
+            .loaded_implementations
+            .get(&implementation_url) {
+                Some(implementation) => {
+                    trace!("\tFunction implementation at '{}' loaded already", implementation_url);
+                    Ok(implementation.clone()) // Only clone of an Arc, not the object
+                    },
 
-            // These below are not 'lib:' not 'context:' - hence are supplied implementations
-            _ => {
-                let implementation_url = manifest_url
-                    .join(implementation_location)
-                    .map_err(|_| {
-                        format!(
-                            "Could not create supplied implementation url joining '{}' to manifest Url: {}",
-                            implementation_location, manifest_url
-                        )
-                    })?;
-                // load the supplied implementation for the function from wasm file referenced
-                let wasm_executor = wasm::load(&self.provider as &dyn Provider, &implementation_url)?;
-                Ok(Arc::new(wasm_executor) as Arc<dyn Implementation>)
-            }
+                None => {
+                    format!("Implementation at '{}' is not loaded", implementation_url);
+                    // load the supplied implementation for the function from wasm file referenced
+                    let wasm_executor = wasm::load(&self.provider as &dyn Provider, &implementation_url)?;
+                    Ok(Arc::new(wasm_executor) as Arc<dyn Implementation>)
+                }
         }
     }
 }
 
 // Start a number of executor threads that all listen on the 'job_rx' channel for
 // Jobs to execute and return the Outputs on the 'output_tx' channel
-fn start_executors(
+fn start_local_executors(
     number_of_executors: usize,
-    job_rx: &Arc<Mutex<Receiver<Job>>>,
-    job_tx: &Sender<Job>,
+    shared_job_receiver: Arc<Mutex<Receiver<Job>>>,
+    job_sender: Sender<Job>,
 ) {
     for executor_number in 0..number_of_executors {
         create_executor(
             format!("Executor #{}", executor_number),
-            job_rx.clone(),
-            job_tx.clone(),
+            shared_job_receiver.clone(),
+            job_sender.clone(),
         ); // clone of Arcs and Sender OK
     }
 }
 
-fn create_executor(name: String, job_rx: Arc<Mutex<Receiver<Job>>>, job_tx: Sender<Job>) {
+// Start a sender / receiver process that sends Jobs out for remote execution to peers and
+// receives them back (with results) and sends them back to coordinator
+/*fn start_p2p_sender_receiver(
+    job_get_receiver: Arc<Mutex<Receiver<Job>>>,
+    _job_tx: &Sender<Job>) {
+    let _ = thread::spawn(move || {
+        loop {
+            let _ = get_and_send_job(&job_get_receiver);
+        }
+    });
+}*/
+
+fn create_executor(name: String, job_receiver: Arc<Mutex<Receiver<Job>>>, job_sender: Sender<Job>) {
     let builder = thread::Builder::new();
     let _ = builder.spawn(move || {
         set_panic_hook();
 
         loop {
-            let _ = get_and_execute_job(&job_rx, &job_tx, &name);
+            let _ = get_and_execute_job(&job_receiver, &job_sender, &name);
         }
     });
 }
@@ -377,18 +372,32 @@ fn set_panic_hook() {
     }));
 }
 
+// Take a job from the channel and if possible, send it out for execution among peers
+/*fn get_and_send_job(
+    job_get_receiver: &Arc<Mutex<Receiver<Job>>>,
+) -> Result<()> {
+    let guard = job_get_receiver
+        .lock()
+        .map_err(|e| format!("Error locking receiver to get job: '{}'", e))?;
+    let _job = guard
+        .recv()
+        .map_err(|e| format!("Error receiving job for execution: '{}'", e))?;
+    //send(job, job_return_sender)
+    Ok(())
+}*/
+
 fn get_and_execute_job(
-    job_rx: &Arc<Mutex<Receiver<Job>>>,
-    job_tx: &Sender<Job>,
+    job_receiver: &Arc<Mutex<Receiver<Job>>>,
+    job_sender: &Sender<Job>,
     name: &str,
 ) -> Result<()> {
-    let guard = job_rx
+    let guard = job_receiver
         .lock()
         .map_err(|e| format!("Error locking receiver to get job: '{}'", e))?;
     let job = guard
         .recv()
         .map_err(|e| format!("Error receiving job for execution: '{}'", e))?;
-    execute(job, job_tx, name)
+    execute(job, job_sender, name)
 }
 
 fn execute(mut job: Job, job_tx: &Sender<Job>, name: &str) -> Result<()> {
