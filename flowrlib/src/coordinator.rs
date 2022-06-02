@@ -1,3 +1,6 @@
+#[cfg(all(not(feature = "debugger"), not(feature = "submission")))]
+use std::marker::PhantomData;
+
 use log::{debug, error, trace};
 
 use flowcore::errors::*;
@@ -12,8 +15,9 @@ use crate::executor::Executor;
 use crate::job::Job;
 use crate::run_state::RunState;
 #[cfg(feature = "debugger")]
-use crate::server::DebugServer;
-use crate::server::Server;
+use crate::server::DebuggerProtocol;
+#[cfg(feature = "submission")]
+use crate::server::SubmissionProtocol;
 
 /// The `Coordinator` is responsible for coordinating the dispatching of jobs (consisting
 /// of a set of Input values and an Implementation of a Function) for execution,
@@ -24,48 +28,56 @@ use crate::server::Server;
 /// information to execute the flow.
 pub struct Coordinator<'a> {
     /// A `Server` to communicate with clients
-    server: &'a mut dyn Server,
+    #[cfg(feature = "submission")]
+    submitter: &'a mut dyn SubmissionProtocol,
     /// Executor to use to get jobs executed
     executor: Executor,
     #[cfg(feature = "debugger")]
     /// A `Debugger` to communicate with debug clients
     debugger: Debugger<'a>,
+    #[cfg(all(not(feature = "debugger"), not(feature = "submission")))]
+    _data: PhantomData<&'a Executor>
 }
 
 impl<'a> Coordinator<'a> {
     /// Create a new `coordinator` with `num_threads` local executor threads
-    pub fn new(server: &'a mut dyn Server,
-               executor: Executor,
-               #[cfg(feature = "debugger")] debug_server: &'a mut dyn DebugServer
+    pub fn new(
+        #[cfg(feature = "submission")] submitter: &'a mut dyn SubmissionProtocol,
+        executor: Executor,
+        #[cfg(feature = "debugger")] debug_server: &'a mut dyn DebuggerProtocol
     ) -> Self {
         Coordinator {
-            server,
+            #[cfg(feature = "submission")]
+            submitter,
             executor,
             #[cfg(feature = "debugger")]
             debugger: Debugger::new(debug_server),
+            #[cfg(all(not(feature = "debugger"), not(feature = "submission")))]
+            _data: PhantomData
         }
     }
 
     /// Enter a loop - waiting for a submission from the client, or disconnection of the client
+    #[cfg(feature = "submission")]
     pub fn submission_loop(
         &mut self,
         loop_forever: bool,
     ) -> Result<()> {
         // TODO without the client and context methods currently there is no other way to send a submission
-        while let Some(submission) = self.server.wait_for_submission()? {
+        while let Some(submission) = self.submitter.wait_for_submission()? {
             match self.executor.load_flow(&submission.manifest_url) {
                 Ok(manifest) => {
                     let r = self.execute_flow(manifest, submission);
-                    return self.server.server_exiting(r);
+                    return self.submitter.coordinator_is_exiting(r);
                 },
                 Err(e) if loop_forever => error!("{}", e),
                 Err(e) => {
-                    return self.server.server_exiting(Err(e));
+                    return self.submitter.coordinator_is_exiting(Err(e));
                 },
             }
         }
 
-        self.server.server_exiting(Ok(()))?;
+        self.submitter.coordinator_is_exiting(Ok(()))?;
 
         Ok(())
     }
@@ -106,12 +118,13 @@ impl<'a> Coordinator<'a> {
                 (display_next_output, restart) = self.debugger.wait_for_command(&mut state)?;
             }
 
-            self.server.flow_starting()?;
+            #[cfg(feature = "submission")]
+            self.submitter.flow_execution_starting()?;
 
             'jobs: loop {
                 trace!("{}", state);
                 #[cfg(feature = "debugger")]
-                if state.submission.debug && self.server.should_enter_debugger()? {
+                if state.submission.debug && self.submitter.should_enter_debugger()? {
                     (display_next_output, restart) = self.debugger.wait_for_command(&mut state)?;
                     if restart {
                         break 'jobs;
@@ -192,10 +205,10 @@ impl<'a> Coordinator<'a> {
 
         #[cfg(feature = "metrics")]
         metrics.set_jobs_created(state.get_number_of_jobs_created());
-        #[cfg(feature = "metrics")]
-        self.server.flow_ended(&state, metrics)?;
-        #[cfg(not(feature = "metrics"))]
-        self.server.flow_ended()?;
+        #[cfg(all(feature = "submission", feature = "metrics"))]
+        self.submitter.flow_execution_ended(&state, metrics)?;
+        #[cfg(all(feature = "submission", not(feature = "metrics")))]
+        self.submitter.flow_execution_ended(&state)?;
 
         Ok(()) // Normal flow completion exit
     }

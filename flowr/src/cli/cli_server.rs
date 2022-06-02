@@ -7,32 +7,8 @@ use flowcore::model::lib_manifest::ImplementationLocator::Native;
 use flowcore::model::lib_manifest::LibraryManifest;
 use flowcore::model::metadata::MetaData;
 
+use crate::cli::{args, file, image, stdio};
 use crate::ServerConnection;
-
-/// Module of context functions for Cli Flowr Runner
-
-mod args;
-mod file;
-mod image;
-mod stdio;
-// Test helper functions
-pub(crate) mod test_helper;
-/// runtime_messages is the enum for the different messages sent back and fore between the client
-/// and server implementation of the CLI context functions
-pub mod runtime_messages;
-/// 'debug' defines structs passed between the Server and the Client regarding debug events
-/// and client responses to them
-#[cfg(feature = "debugger")]
-pub mod debug_server_message;
-/// message_queue implementation of the communications between the runtime client, debug client and
-/// the runtime server and debug server.
-pub mod client_server;
-#[cfg(feature = "debugger")]
-pub mod cli_debug_client;
-pub mod cli_runtime_client;
-#[cfg(feature = "debugger")]
-pub mod cli_debug_server;
-pub mod cli_runtime_server;
 
 /// Return a `LibraryManifest` for the context functions
 pub fn get_manifest(
@@ -44,7 +20,7 @@ pub fn get_manifest(
         description: "context functions for Flowr Cli Runner".into(),
         authors: vec!["Andrew Mackenzie".to_string()],
     };
-    let lib_url = Url::parse("lib://context")?;
+    let lib_url = Url::parse("context://")?;
     let mut manifest = LibraryManifest::new(lib_url, metadata);
 
     manifest.locators.insert(

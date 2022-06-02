@@ -19,7 +19,7 @@ endif
 
 ifeq ($(FLOW_CONTEXT_ROOT),)
   $(warning FLOW_CONTEXT_ROOT is not set. This maybe needed for builds and test and packaging to succeed.\
-  A suggested value for development would be '$(PWD)/flowr/src/cli_context')
+  A suggested value for development would be '$(PWD)/flowr/src/cli')
 endif
 
 .PHONY: all

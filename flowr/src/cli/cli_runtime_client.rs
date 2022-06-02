@@ -1,38 +1,47 @@
+#[cfg(feature = "context")]
 use std::collections::HashMap;
+#[cfg(feature = "context")]
 use std::fs::File;
+#[cfg(feature = "context")]
 use std::io;
+#[cfg(feature = "context")]
 use std::io::prelude::*;
+#[cfg(feature = "context")]
 use std::path::Path;
+#[cfg(feature = "context")]
 use std::sync::{Arc, Mutex};
 
+#[cfg(feature = "context")]
 use image::{ImageBuffer, ImageFormat, Rgb, RgbImage};
-use log::{debug, error, info};
+use log::debug;
+#[cfg(any(feature = "debugger", feature = "context"))]
+use log::error;
+#[cfg(feature = "debugger")]
+use log::info;
 
 use flowcore::errors::*;
 
-use crate::context::client_server::ClientConnection;
-use crate::context::runtime_messages::{ClientMessage, FileMetaData, ServerMessage};
+use crate::cli::client_server::ClientConnection;
+use crate::cli::runtime_messages::{ClientMessage, ServerMessage};
 
 #[derive(Debug, Clone)]
 pub struct CliRuntimeClient {
-    args: Vec<String>,
-    override_args: Arc<Mutex<Vec<String>>>,
-    image_buffers: HashMap<String, ImageBuffer<Rgb<u8>, Vec<u8>>>,
-    #[cfg(feature = "metrics")]
-    display_metrics: bool,
+    #[cfg(feature = "context")] args: Vec<String>,
+    #[cfg(feature = "context")] override_args: Arc<Mutex<Vec<String>>>,
+    #[cfg(feature = "context")] image_buffers: HashMap<String, ImageBuffer<Rgb<u8>, Vec<u8>>>,
+    #[cfg(feature = "metrics")] display_metrics: bool,
 }
 
 impl CliRuntimeClient {
     /// Create a new runtime client
-    pub fn new(args: Vec<String>,
-               override_args: Arc<Mutex<Vec<String>>>,
+    pub fn new(#[cfg(feature = "context")] args: Vec<String>,
+               #[cfg(feature = "context")] override_args: Arc<Mutex<Vec<String>>>,
                #[cfg(feature = "metrics")] display_metrics: bool) -> Self {
         CliRuntimeClient {
-            args,
-            override_args,
-            image_buffers: HashMap::<String, ImageBuffer<Rgb<u8>, Vec<u8>>>::new(),
-            #[cfg(feature = "metrics")]
-            display_metrics,
+            #[cfg(feature = "context")] args,
+            #[cfg(feature = "context")] override_args,
+            #[cfg(feature = "context")] image_buffers: HashMap::<String, ImageBuffer<Rgb<u8>, Vec<u8>>>::new(),
+            #[cfg(feature = "metrics")] display_metrics,
         }
     }
 
@@ -84,6 +93,7 @@ impl CliRuntimeClient {
         .expect("Error setting Ctrl-C handler");
     }
 
+    #[cfg(feature = "context")]
     fn flush_image_buffers(&mut self) {
         for (filename, image_buffer) in self.image_buffers.drain() {
             info!("Flushing ImageBuffer to file: {}", filename);
@@ -102,6 +112,7 @@ impl CliRuntimeClient {
                     println!("\nMetrics: \n {}", metrics);
                 }
 
+                #[cfg(feature = "context")]
                 self.flush_image_buffers();
                 ClientMessage::ClientExiting(Ok(()))
             }
@@ -109,8 +120,9 @@ impl CliRuntimeClient {
             #[cfg(not(feature = "metrics"))]
             ServerMessage::FlowEnd => {
                 debug!("=========================== Flow execution ended ======================================");
+                #[cfg(feature = "context")]
                 self.flush_image_buffers();
-                ClientMessage::ClientExiting
+                ClientMessage::ClientExiting(Ok(()))
             }
             ServerMessage::FlowStart => {
                 debug!("===========================    Starting flow execution =============================");
@@ -120,16 +132,16 @@ impl CliRuntimeClient {
                 debug!("Server is exiting");
                 ClientMessage::ClientExiting(result)
             }
-            ServerMessage::StdoutEof => ClientMessage::Ack,
-            ServerMessage::Stdout(contents) => {
+            #[cfg(feature = "context")] ServerMessage::StdoutEof => ClientMessage::Ack,
+            #[cfg(feature = "context")] ServerMessage::Stdout(contents) => {
                 println!("{}", contents);
                 ClientMessage::Ack
             }
-            ServerMessage::Stderr(contents) => {
+            #[cfg(feature = "context")] ServerMessage::Stderr(contents) => {
                 eprintln!("{}", contents);
                 ClientMessage::Ack
             }
-            ServerMessage::GetStdin => {
+            #[cfg(feature = "context")] ServerMessage::GetStdin => {
                 let mut buffer = String::new();
                 if let Ok(size) = io::stdin().lock().read_to_string(&mut buffer) {
                     return if size > 0 {
@@ -140,7 +152,7 @@ impl CliRuntimeClient {
                 }
                 ClientMessage::Error("Could not read Stdin".into())
             }
-            ServerMessage::GetLine => {
+            #[cfg(feature = "context")] ServerMessage::GetLine => {
                 let mut input = String::new();
                 match io::stdin().lock().read_line(&mut input) {
                     Ok(n) if n > 0 => ClientMessage::Line(input.trim().to_string()),
@@ -148,7 +160,7 @@ impl CliRuntimeClient {
                     _ => ClientMessage::Error("Could not read Readline".into()),
                 }
             }
-            ServerMessage::Read(file_path) => match File::open(&file_path) {
+            #[cfg(feature = "context")] ServerMessage::Read(file_path) => match File::open(&file_path) {
                 Ok(mut f) => {
                     let mut buffer = Vec::new();
                     match f.read_to_end(&mut buffer) {
@@ -161,19 +173,7 @@ impl CliRuntimeClient {
                 }
                 Err(_) => ClientMessage::Error(format!("Could not open file '{:?}'", file_path)),
             },
-            ServerMessage::GetFileMetaData(path) => match std::fs::metadata(&path) {
-                Ok(md) => ClientMessage::FileMetaDate(
-                    path,
-                    FileMetaData {
-                        is_file: md.is_file(),
-                        is_dir: md.is_dir(),
-                    },
-                ),
-                Err(_) => {
-                    ClientMessage::Error(format!("Could not read file metadata from '{:?}'", path))
-                }
-            },
-            ServerMessage::Write(filename, bytes) => match File::create(&filename) {
+            #[cfg(feature = "context")] ServerMessage::Write(filename, bytes) => match File::create(&filename) {
                 Ok(mut file) => match file.write_all(bytes.as_slice()) {
                     Ok(_) => ClientMessage::Ack,
                     Err(e) => {
@@ -188,6 +188,7 @@ impl CliRuntimeClient {
                     ClientMessage::Error(msg)
                 }
             },
+            #[cfg(feature = "context")]
             ServerMessage::PixelWrite((x, y), (r, g, b), (width, height), name) => {
                 let image = self
                     .image_buffers
@@ -196,7 +197,7 @@ impl CliRuntimeClient {
                 image.put_pixel(x, y, Rgb([r, g, b]));
                 ClientMessage::Ack
             },
-            ServerMessage::GetArgs => {
+            #[cfg(feature = "context")] ServerMessage::GetArgs => {
                 if let Ok(override_args) = self.override_args.lock() {
                     if override_args.is_empty() {
                         ClientMessage::Args(self.args.clone())
@@ -211,7 +212,7 @@ impl CliRuntimeClient {
                     ClientMessage::Args(self.args.clone())
                 }
             },
-            ServerMessage::StderrEof => ClientMessage::Ack,
+            #[cfg(feature = "context")] ServerMessage::StderrEof => ClientMessage::Ack,
             ServerMessage::Invalid => ClientMessage::Ack,
         }
     }
@@ -219,20 +220,26 @@ impl CliRuntimeClient {
 
 #[cfg(test)]
 mod test {
+    #[cfg(feature = "context")]
     use std::fs;
+    #[cfg(feature = "context")]
     use std::fs::File;
+    #[cfg(feature = "context")]
     use std::io::prelude::*;
+    #[cfg(feature = "context")]
     use std::sync::{Arc, Mutex};
 
+    #[cfg(feature = "context")]
     use tempdir::TempDir;
 
     #[cfg(feature = "metrics")]
     use flowcore::model::metrics::Metrics;
 
-    use crate::context::runtime_messages::{ClientMessage, ServerMessage};
+    use crate::cli::runtime_messages::{ClientMessage, ServerMessage};
 
     use super::CliRuntimeClient;
 
+    #[cfg(feature = "context")]
     #[test]
     fn test_arg_passing() {
         let mut client = CliRuntimeClient::new(
@@ -251,6 +258,7 @@ mod test {
         }
     }
 
+    #[cfg(feature = "context")]
     #[test]
     fn test_arg_overriding() {
         let override_args = Arc::new(Mutex::new(vec!()));
@@ -276,6 +284,7 @@ mod test {
         }
     }
 
+    #[cfg(feature = "context")]
     #[test]
     fn test_file_reading() {
         let test_contents = b"The quick brown fox jumped over the lazy dog";
@@ -305,6 +314,7 @@ mod test {
         }
     }
 
+    #[cfg(feature = "context")]
     #[test]
     fn test_file_writing() {
         let temp = TempDir::new("flow")
@@ -327,6 +337,7 @@ mod test {
         }
     }
 
+    #[cfg(feature = "context")]
     #[test]
     fn test_stdout() {
         let mut client = CliRuntimeClient::new(
@@ -341,6 +352,7 @@ mod test {
         }
     }
 
+    #[cfg(feature = "context")]
     #[test]
     fn test_stderr() {
         let mut client = CliRuntimeClient::new(
@@ -355,6 +367,7 @@ mod test {
         }
     }
 
+    #[cfg(feature = "context")]
     #[test]
     fn test_image_writing() {
         let mut client = CliRuntimeClient::new(
@@ -388,13 +401,13 @@ mod test {
         assert!(path.exists(), "Image file was not created");
     }
 
+    #[cfg(feature = "submission")]
     #[test]
     fn server_exiting() {
         let mut client = CliRuntimeClient::new(
-            vec!["file:///test_flow.toml".to_string()],
-            Arc::new(Mutex::new(vec!())),
-            #[cfg(feature = "metrics")]
-            false,
+            #[cfg(feature = "context")] vec!["file:///test_flow.toml".to_string()],
+            #[cfg(feature = "context")] Arc::new(Mutex::new(vec!())),
+            #[cfg(feature = "metrics")] false,
         );
 
         match client.process_server_message(ServerMessage::ServerExiting(Ok(()))) {

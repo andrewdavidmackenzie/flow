@@ -5,22 +5,22 @@ use serde_json::Value;
 use flowcore::{DONT_RUN_AGAIN, Implementation, RUN_AGAIN, RunAgain};
 use flowcore::errors::*;
 
-use crate::context::client_server::ServerConnection;
-use crate::context::runtime_messages::{ClientMessage, ServerMessage};
+use crate::cli::client_server::ServerConnection;
+use crate::cli::runtime_messages::{ClientMessage, ServerMessage};
 
-/// `Implementation` struct for the `Stdin` function
-pub struct Stdin {
+/// `Implementation` struct for the `readline` function
+pub struct Readline {
     /// It holds a reference to the runtime client in order to read input
     pub server_connection: Arc<Mutex<ServerConnection>>,
 }
 
-impl Implementation for Stdin {
+impl Implementation for Readline {
     fn run(&self, _inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
         let mut server = self.server_connection.lock()
             .map_err(|_| "Could not lock server")?;
 
-        match server.send_and_receive_response(ServerMessage::GetStdin) {
-            Ok(ClientMessage::Stdin(contents)) => {
+        match server.send_and_receive_response(ServerMessage::GetLine) {
+            Ok(ClientMessage::Line(contents)) => {
                 let mut output_map = serde_json::Map::new();
                 if let Ok(value) = serde_json::from_str(&contents) {
                     let _ = output_map.insert("json".into(), value);
@@ -28,7 +28,7 @@ impl Implementation for Stdin {
                 output_map.insert("string".into(), Value::String(contents));
                 Ok((Some(Value::Object(output_map)), RUN_AGAIN))
             }
-            Ok(ClientMessage::GetStdinEof) => {
+            Ok(ClientMessage::GetLineEof) => {
                 let mut output_map = serde_json::Map::new();
                 output_map.insert("string".into(), Value::Null);
                 output_map.insert("json".into(), Value::Null);
@@ -47,20 +47,20 @@ mod test {
 
     use flowcore::{DONT_RUN_AGAIN, Implementation, RUN_AGAIN};
 
-    use crate::context::runtime_messages::{ClientMessage, ServerMessage};
-    use crate::context::test_helper::test::wait_for_then_send;
+    use crate::cli::runtime_messages::{ClientMessage, ServerMessage};
+    use crate::cli::test_helper::test::wait_for_then_send;
 
-    use super::Stdin;
+    use super::Readline;
 
     #[test]
     #[serial]
     fn gets_a_line_of_text() {
         let server_connection = wait_for_then_send(
-            ServerMessage::GetStdin,
-            ClientMessage::Stdin("line of text".into()),
+            ServerMessage::GetLine,
+            ClientMessage::Line("line of text".into()),
         );
-        let stdin = &Stdin { server_connection } as &dyn Implementation;
-        let (value, run_again) = stdin.run(&[]).expect("_stdin() failed");
+        let reader = &Readline { server_connection } as &dyn Implementation;
+        let (value, run_again) = reader.run(&[]).expect("_readline() failed");
 
         assert_eq!(run_again, RUN_AGAIN);
 
@@ -74,24 +74,13 @@ mod test {
 
     #[test]
     #[serial]
-    fn bad_reply_message() {
-        let server_connection = wait_for_then_send(ServerMessage::GetStdin, ClientMessage::Ack);
-        let stdin = &Stdin { server_connection } as &dyn Implementation;
-        let (value, run_again) = stdin.run(&[]).expect("_stdin() failed");
-
-        assert_eq!(run_again, DONT_RUN_AGAIN);
-        assert_eq!(value, None);
-    }
-
-    #[test]
-    #[serial]
     fn gets_json() {
         let server_connection = wait_for_then_send(
-            ServerMessage::GetStdin,
-            ClientMessage::Stdin("\"json text\"".into()),
+            ServerMessage::GetLine,
+            ClientMessage::Line("\"json text\"".into()),
         );
-        let stdin = &Stdin { server_connection } as &dyn Implementation;
-        let (value, run_again) = stdin.run(&[]).expect("_stdin() failed");
+        let reader = &Readline { server_connection } as &dyn Implementation;
+        let (value, run_again) = reader.run(&[]).expect("_readline() failed");
 
         assert_eq!(run_again, RUN_AGAIN);
 
@@ -107,9 +96,9 @@ mod test {
     #[serial]
     fn get_eof() {
         let server_connection =
-            wait_for_then_send(ServerMessage::GetStdin, ClientMessage::GetStdinEof);
-        let stdin = &Stdin { server_connection } as &dyn Implementation;
-        let (value, run_again) = stdin.run(&[]).expect("_stdin() failed");
+            wait_for_then_send(ServerMessage::GetLine, ClientMessage::GetLineEof);
+        let reader = &Readline { server_connection } as &dyn Implementation;
+        let (value, run_again) = reader.run(&[]).expect("_readline() failed");
 
         assert_eq!(run_again, DONT_RUN_AGAIN);
         let val = value.expect("Could not get value returned from implementation");

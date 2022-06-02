@@ -15,12 +15,12 @@ use crate::debug_command::DebugCommand;
 use crate::debug_command::DebugCommand::{Ack, Breakpoint, Continue, DebugClientStarting, Delete, Error, ExitDebugger, Inspect, InspectBlock, InspectFunction, InspectInput, InspectOutput, Invalid, List, Modify, RunReset, Step, Validate};
 use crate::job::Job;
 use crate::run_state::RunState;
-use crate::server::DebugServer;
+use crate::server::DebuggerProtocol;
 
 /// Debugger struct contains all the info necessary to conduct a debugging session, storing
 /// set breakpoints, connections to the debug client etc
 pub struct Debugger<'a> {
-    debug_server: &'a mut dyn DebugServer,
+    debug_server: &'a mut dyn DebuggerProtocol,
     input_breakpoints: HashSet<(usize, usize)>,
     block_breakpoints: HashSet<(usize, usize)>,
     /* blocked_id -> blocking_id */
@@ -65,7 +65,7 @@ impl fmt::Display for BlockerNode {
 
 impl<'a> Debugger<'a> {
     pub fn new(
-        debug_server: &'a mut dyn DebugServer,
+        debug_server: &'a mut dyn DebuggerProtocol,
     ) -> Self {
         Debugger {
             debug_server,

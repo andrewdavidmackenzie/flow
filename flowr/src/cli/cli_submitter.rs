@@ -4,23 +4,28 @@ use error_chain::bail;
 use log::{debug, error, info};
 
 use flowcore::errors::*;
+#[cfg(feature = "metrics")]
 use flowcore::model::metrics::Metrics;
 use flowcore::model::submission::Submission;
 use flowrlib::run_state::RunState;
-use flowrlib::server::Server;
+use flowrlib::server::SubmissionProtocol;
 
-use crate::{ClientMessage, ServerConnection};
-use crate::context::client_server::{DONT_WAIT, WAIT};
-use crate::context::runtime_messages::ServerMessage;
+#[cfg(feature = "debugger")]
+use crate::cli::client_server::DONT_WAIT;
+use crate::cli::client_server::WAIT;
+#[cfg(any(feature = "context", feature = "submission"))]
+use crate::cli::runtime_messages::ClientMessage;
+use crate::cli::runtime_messages::ServerMessage;
+use crate::ServerConnection;
 
 /// Get and Send messages to/from the runtime client
-pub(crate) struct CliServer {
+pub(crate) struct CLISubmitter {
     pub(crate) runtime_server_connection: Arc<Mutex<ServerConnection>>,
 }
 
-impl Server for CliServer {
+impl SubmissionProtocol for CLISubmitter {
     // The flow is starting
-    fn flow_starting(&mut self) -> Result<()> {
+    fn flow_execution_starting(&mut self) -> Result<()> {
         let _ = self.runtime_server_connection
             .lock()
             .map_err(|_| "Could not lock server connection")?
@@ -53,7 +58,7 @@ impl Server for CliServer {
     }
 
     #[cfg(feature = "metrics")]
-    fn flow_ended(&mut self, state: &RunState, metrics: Metrics) -> Result<()> {
+    fn flow_execution_ended(&mut self, state: &RunState, metrics: Metrics) -> Result<()> {
         self.runtime_server_connection
             .lock()
             .map_err(|_| "Could not lock server connection")?
@@ -63,7 +68,7 @@ impl Server for CliServer {
     }
 
     #[cfg(not(feature = "metrics"))]
-    fn flow_ended(&mut self) -> flowcore::errors::Result<()> {
+    fn flow_execution_ended(&mut self, state: &RunState) -> Result<()> {
         self.runtime_server_connection
             .lock()
             .map_err(|_| "Could not lock server connection")?
@@ -100,7 +105,7 @@ impl Server for CliServer {
     }
 
     // The flow server is about to exit
-    fn server_exiting(&mut self, result: Result<()>) -> Result<()> {
+    fn coordinator_is_exiting(&mut self, result: Result<()>) -> Result<()> {
         debug!("Server exiting");
         let mut connection = self.runtime_server_connection
             .lock()

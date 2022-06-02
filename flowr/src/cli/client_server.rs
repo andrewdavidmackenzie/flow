@@ -210,6 +210,7 @@ impl ServerConnection {
     }
 
     /// Create a new local connection
+    #[cfg(feature = "context")]
     pub fn local() -> Result<Self> {
         ServerConnection::new(RUNTIME_SERVICE_NAME, Method::InProc(None))
     }
@@ -301,7 +302,7 @@ mod test {
     use serde_derive::{Deserialize, Serialize};
     use serial_test::serial;
 
-    use crate::context::client_server::{ClientConnection, DONT_WAIT, Method, ServerConnection, WAIT};
+    use crate::cli::client_server::{ClientConnection, DONT_WAIT, Method, ServerConnection, WAIT};
 
     #[derive(Serialize, Deserialize, PartialEq, Eq, Debug)]
     enum ServerMessage {
