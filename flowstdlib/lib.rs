@@ -36,7 +36,7 @@ pub mod test {
         let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         let samples_dir = manifest_dir.parent().ok_or("Could not get parent dir")
             .expect("Could not get parent dir");
-        samples_dir.join("../flowr/src/cli")
+        samples_dir.join("flowr/src/cli")
     }
 
     fn execute_flow(filepath: PathBuf) -> String {
