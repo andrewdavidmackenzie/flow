@@ -83,19 +83,23 @@ impl SubmissionProtocol for CLISubmitter {
     fn wait_for_submission(&mut self) -> Result<Option<Submission>> {
         loop {
             info!("Server is waiting to receive a 'Submission'");
-            match self.runtime_server_connection.lock() {
-                Ok(guard) => match guard.receive(WAIT) {
-                    Ok(ClientMessage::ClientSubmission(submission)) => {
-                        debug!(
-                            "Server received a submission for execution with manifest_url: '{}'",
-                            submission.manifest_url
-                        );
-                        return Ok(Some(submission));
+            let guard = self.runtime_server_connection.lock();
+            match guard {
+                Ok(locked) =>  {
+                    let received = locked.receive(WAIT);
+                    match received {
+                        Ok(ClientMessage::ClientSubmission(submission)) => {
+                            debug!(
+                                "Server received a submission for execution with manifest_url: '{}'",
+                                submission.manifest_url
+                            );
+                            return Ok(Some(submission));
+                        }
+                        Ok(ClientMessage::ClientExiting(_)) => return Ok(None),
+                        Ok(r) => error!("Server did not expect response from client: '{:?}'", r),
+                        Err(e) => bail!("Server error while waiting for submission: '{}'", e),
                     }
-                    Ok(ClientMessage::ClientExiting(_)) => return Ok(None),
-                    Ok(r) => error!("Server did not expect response from client: '{:?}'", r),
-                    Err(e) => bail!("Server error while waiting for submission: '{}'", e),
-                },
+                }
                 _ => {
                     error!("Server could not lock connection");
                     return Ok(None);

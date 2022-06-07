@@ -19,7 +19,9 @@ impl Implementation for Get {
         let mut guard = self.server_connection.lock()
             .map_err(|_| "Could not lock server")?;
 
-        match guard.send_and_receive_response(ServerMessage::GetArgs) {
+        let sent = guard.send_and_receive_response(ServerMessage::GetArgs);
+
+        match sent {
             Ok(ClientMessage::Args(arg_vec)) => {
                 let mut output_map = serde_json::Map::new();
 
