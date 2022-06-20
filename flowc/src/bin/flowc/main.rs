@@ -128,32 +128,32 @@ fn run() -> Result<()> {
 /*
     Parse the command line arguments using clap
 */
-fn get_matches<'a>() -> ArgMatches<'a> {
+fn get_matches() -> ArgMatches {
     let app = App::new(env!("CARGO_PKG_NAME"))
         .setting(AppSettings::TrailingVarArg)
         .version(env!("CARGO_PKG_VERSION"))
         .arg(
             Arg::with_name("compile")
-                .short("c")
+                .short('c')
                 .long("compile")
                 .help("Compile (only) flow and implementations, do not execute"),
         )
         .arg(
             Arg::with_name("lib")
-                .short("l")
+                .short('l')
                 .long("lib")
                 .help("Compile a flow library"),
         )
         .arg(
             Arg::with_name("native")
-                .short("n")
+                .short('n')
                 .long("native")
                 .help("Compile only native (not wasm) implementations when compiling a library")
                 .requires("lib"),
         )
         .arg(
             Arg::with_name("lib_dir")
-                .short("L")
+                .short('L')
                 .long("libdir")
                 .number_of_values(1)
                 .multiple(true)
@@ -162,45 +162,45 @@ fn get_matches<'a>() -> ArgMatches<'a> {
         )
         .arg(
             Arg::with_name("tables")
-                .short("t")
+                .short('t')
                 .long("tables")
                 .help("Write flow and compiler tables to .dump and .dot files"),
         )
         .arg(
             Arg::with_name("graphs")
-                .short("g")
+                .short('g')
                 .long("graphs")
                 .help("Create .dot files for graphs then generate SVGs with 'dot' command (if available)"),
         )
         .arg(
             Arg::with_name("metrics")
-                .short("m")
+                .short('m')
                 .long("metrics")
                 .conflicts_with("compile")
                 .help("Show flow execution metrics when execution ends"),
         )
         .arg(
             Arg::with_name("wasm")
-                .short("w")
+                .short('w')
                 .long("wasm")
                 .conflicts_with("compile")
                 .help("Use wasm library implementations when executing flow"),
         )
         .arg(
             Arg::with_name("optimize")
-                .short("O")
+                .short('O')
                 .long("optimize")
                 .help("Optimize generated output (flows and wasm)"),
         )
         .arg(
             Arg::with_name("provided")
-                .short("p")
+                .short('p')
                 .long("provided")
                 .help("Provided function implementations should NOT be compiled from source"),
         )
         .arg(
             Arg::with_name("output")
-                .short("o")
+                .short('o')
                 .long("output")
                 .takes_value(true)
                 .value_name("OUTPUT_DIR")
@@ -208,7 +208,7 @@ fn get_matches<'a>() -> ArgMatches<'a> {
         )
         .arg(
             Arg::with_name("verbosity")
-                .short("v")
+                .short('v')
                 .long("verbosity")
                 .takes_value(true)
                 .value_name("VERBOSITY_LEVEL")
@@ -216,27 +216,27 @@ fn get_matches<'a>() -> ArgMatches<'a> {
         )
         .arg(
             Arg::with_name("stdin")
-                .short("i")
+                .short('i')
                 .long("stdin")
                 .takes_value(true)
                 .value_name("STDIN_FILENAME")
                 .help("Read STDIN from the named file"),
         )
         .arg(
-            Arg::with_name("FLOW")
-                .help("the name of the 'flow' definition file to compile")
+            Arg::with_name("source_url")
+                .help("path/url for the 'flow' definition file or library")
                 .required(false)
-                .index(1),
         )
         .arg(
             Arg::with_name("flow_args")
                 .help("Arguments that will get passed onto the flow if it is executed")
-                .multiple(true),
+                .takes_value(true)
+                .multiple_values(true),
         );
 
     let app = app.arg(
         Arg::with_name("context_root")
-            .short("C")
+            .short('C')
             .long("context_root")
             .number_of_values(1)
             .value_name("CONTEXT_DIRECTORY")
@@ -246,7 +246,7 @@ fn get_matches<'a>() -> ArgMatches<'a> {
     #[cfg(feature = "debugger")]
     let app = app.arg(
         Arg::with_name("debug")
-            .short("d")
+            .short('d')
             .long("debug")
             .help("Generate names for debugging. If executing the flow, do so with the debugger"),
     );
@@ -277,7 +277,7 @@ fn parse_args(matches: ArgMatches) -> Result<Options> {
     let cwd_url = Url::from_directory_path(cwd)
         .map_err(|_| "Could not form a Url for the current working directory")?;
 
-    let url = url_from_string(&cwd_url, matches.value_of("FLOW"))
+    let url = url_from_string(&cwd_url, matches.value_of("source_url"))
         .chain_err(|| "Could not create a url for flow from the 'FLOW' command line parameter")?;
 
     let output_dir = source_arg::get_output_dir(&url, matches.value_of("output"))
