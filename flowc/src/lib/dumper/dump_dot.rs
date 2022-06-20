@@ -153,7 +153,7 @@ pub fn generate_svgs(root_dir: &Path, delete_dots: bool) -> Result<()> {
         info!("\n=== Dumper: Generating .dot.svg files from .dot files, using 'dot' command from $PATH");
 
         let glob = Glob::new("**/*.dot").map_err(|_| "Globbing error")?;
-        for entry in glob.walk(root_dir, usize::MAX) {
+        for entry in glob.walk(root_dir) {
             let entry = entry?;
             let path = entry.path();
             let path_name = path.to_string_lossy();

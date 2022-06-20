@@ -477,54 +477,54 @@ fn num_threads(matches: &ArgMatches) -> usize {
 }
 
 // Parse the command line arguments using clap
-fn get_matches<'a>() -> ArgMatches<'a> {
+fn get_matches() -> ArgMatches {
     let app = App::new(env!("CARGO_PKG_NAME"))
         .setting(AppSettings::TrailingVarArg)
         .version(env!("CARGO_PKG_VERSION"));
 
     let app = app.arg(Arg::with_name("jobs")
-        .short("j")
+        .short('j')
         .long("jobs")
         .takes_value(true)
         .value_name("MAX_JOBS")
         .help("Set maximum number of jobs that can be running in parallel)"))
         .arg(Arg::with_name("lib_dir")
-            .short("L")
+            .short('L')
             .long("libdir")
             .number_of_values(1)
             .multiple(true)
             .value_name("LIB_DIR|BASE_URL")
             .help("Add a directory or base Url to the Library Search path"))
         .arg(Arg::with_name("threads")
-            .short("t")
+            .short('t')
             .long("threads")
             .takes_value(true)
             .value_name("THREADS")
             .help("Set number of threads to use to execute jobs (min: 1, default: cores available)"))
         .arg(Arg::with_name("verbosity")
-            .short("v")
+            .short('v')
             .long("verbosity")
             .takes_value(true)
             .value_name("VERBOSITY_LEVEL")
             .help("Set verbosity level for output (trace, debug, info, warn, error (default))"))
         .arg(Arg::with_name("flow-manifest")
             .help("the file path of the 'flow' manifest file")
-            .required(false)
-            .index(1))
+            .required(false))
         .arg(Arg::with_name("flow-arguments")
-            .multiple(true)
-            .help("A list of arguments to pass to the flow when executed."));
+            .help("A list of arguments to pass to the flow when executed.")
+            .takes_value(true)
+            .multiple_values(true));
 
     let app = app.arg(
         Arg::with_name("server")
-            .short("s")
+            .short('s')
             .long("server")
             .help("Launch as flowr server"),
     );
 
     let app = app.arg(
         Arg::with_name("client")
-            .short("c")
+            .short('c')
             .long("client")
             .conflicts_with("server")
             .help("Start flowr as a client to connect to a flowr server"),
@@ -532,7 +532,7 @@ fn get_matches<'a>() -> ArgMatches<'a> {
 
     let app = app.arg(
         Arg::with_name("address")
-            .short("a")
+            .short('a')
             .long("address")
             .takes_value(true)
             .value_name("ADDRESS")
@@ -543,7 +543,7 @@ fn get_matches<'a>() -> ArgMatches<'a> {
     #[cfg(feature = "debugger")]
     let app = app.arg(
         Arg::with_name("debugger")
-            .short("d")
+            .short('d')
             .long("debugger")
             .help("Enable the debugger when running a flow"),
     );
@@ -551,7 +551,7 @@ fn get_matches<'a>() -> ArgMatches<'a> {
     #[cfg(feature = "metrics")]
     let app = app.arg(
         Arg::with_name("metrics")
-            .short("m")
+            .short('m')
             .long("metrics")
             .help("Calculate metrics during flow execution and print them out when done"),
     );
@@ -559,7 +559,7 @@ fn get_matches<'a>() -> ArgMatches<'a> {
     #[cfg(not(feature = "wasm"))]
     let app = app.arg(
         Arg::with_name("native")
-            .short("n")
+            .short('n')
             .long("native")
             .conflicts_with("client")
             .help("Link with native (not WASM) version of flowstdlib"),

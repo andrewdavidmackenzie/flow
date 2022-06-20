@@ -28,7 +28,7 @@ metrics = ["flowrlib/metrics"]  # feature for tracking of metrics during executi
 [dependencies]
 flowcore = {path = "../flowcore", version = "0.60.0"}
 flowrlib = {path = "../flowrlib", version = "0.61.0"}
-clap = "~2"
+clap = "~3"
 simplog = { version = "~1.5" }
 log = "0.4.6"
 simpath = { version = "~2.3", features = ["urls"]}
@@ -51,4 +51,4 @@ image = {version = "=0.24.2", optional = true}
 
 [dev-dependencies]
 tempdir = "~0.3.5"
-serial_test = "0.5.0"
+serial_test = "0.7.0"
