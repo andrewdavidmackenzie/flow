@@ -84,9 +84,9 @@ impl Implementation for WasmExecutor {
 
                             let mut result_data = Vec::<u8>::with_capacity(result_length as usize);
                             memory_ref.get_into(input_data_wasm_ptr, &mut result_data)
-                                .chain_err(|| "Could not get wasm memory")?;
+                                .chain_err(|| "Could not read wasm memory into owned slice")?;
                             let result = serde_json::from_slice(result_data.as_slice())
-                                .chain_err(|| "Could not convert returned data to json")?;
+                                .chain_err(|| "Could not convert returned data from wasm to json")?;
                             trace!("WASM run() function invocation Result = {:?}", result);
                             result
                         }
