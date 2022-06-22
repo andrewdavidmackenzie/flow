@@ -18,7 +18,7 @@ name = "flowrlib"
 path = "src/lib.rs"
 
 [features]
-default = ["wasmtime_runtime"]
+default = ["wasmi_runtime"]
 submission = []
 context = ["flowcore/context"]
 debugger = ["flowcore/debugger"] # feature to add the debugger, requires flowcore crate to have feature enabled also

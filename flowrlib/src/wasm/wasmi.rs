@@ -3,7 +3,6 @@ use flowcore::errors::*;
 use flowcore::meta_provider::Provider;
 use log::{info, trace};
 use serde_json::Value;
-use std::cmp::max;
 use std::sync::Arc;
 use std::sync::Mutex;
 use url::Url;
@@ -37,76 +36,68 @@ unsafe impl Send for WasmExecutor {}
 
 unsafe impl Sync for WasmExecutor {}
 
-/*
-    Allocate memory for array of bytes inside the wasm module and copy the array of bytes into it
-*/
-fn send_byte_array(instance: &ModuleRef, memory: &MemoryRef, bytes: &[u8]) -> u32 {
-    let alloc_size = max(bytes.len() as i32, MAX_RESULT_SIZE);
-    let result =
-        instance.invoke_export("alloc", &[RuntimeValue::I32(alloc_size)], &mut NopExternals);
-
-    match result {
-        Ok(Some(RuntimeValue::I32(pointer))) => match memory.set(pointer as u32, bytes) {
-            Ok(_) => pointer as u32,
-            _ => 0_u32,
-        },
-        _ => 0_u32,
+// Call the "alloc" wasm function
+// - input parameter is the length of block of memory to allocate
+// - returns the offset to the allocated memory
+fn alloc(length: i32, instance: &ModuleRef) -> Result<i32> {
+    match instance.invoke_export("alloc", &[RuntimeValue::I32(length)], &mut NopExternals) {
+        Ok(Some(RuntimeValue::I32(offset))) => Ok(offset as i32),
+        _ => bail!("Could not allocate memory in WASM with alloc()")
     }
+}
+
+// Serialize the inputs into JSON and then write them into the linear memory for WASM to read
+// Return the offset of the data in linear memory and the data size in bytes
+fn send_inputs(instance: &ModuleRef, memory: &MemoryRef, inputs: &[Value]) -> Result<(i32, i32)> {
+    let bytes: &[u8] = &serde_json::to_vec(&inputs)?;
+    let offset = alloc(bytes.len() as i32, instance)?;
+    memory.set(offset as u32, bytes).chain_err(|| "Could not set memory")?;
+    Ok((offset, bytes.len() as i32))
 }
 
 impl Implementation for WasmExecutor {
     fn run(&self, inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
-        if let (Ok(module_ref), Ok(memory_ref)) = (self.module.lock(), self.memory.lock()) {
-            // setup module memory with the serde serialization of `inputs: Vec<Vec<Value>>`
-            if let Ok(input_data) = serde_json::to_vec(&inputs) {
-                // Allocate a string for the input data inside wasm module
-                let input_data_wasm_ptr = send_byte_array(&module_ref, &memory_ref, &input_data);
+        let module_ref = self.module.lock().map_err(|_| "Could not lock WASM module")?;
+        let memory_ref = self.memory.lock().map_err(|_| "Could not lock WASM memory")?;
 
-                let result = module_ref.invoke_export(
-                    "run_wasm",
-                    &[
-                        RuntimeValue::I32(input_data_wasm_ptr as i32),
-                        RuntimeValue::I32(input_data.len() as i32),
-                    ],
-                    &mut NopExternals,
-                );
+        let (offset, length) = send_inputs(&module_ref, &memory_ref, inputs)?;
 
-                return match result {
-                    Ok(Some(value)) => match value {
-                        RuntimeValue::I32(result_length) => {
-                            trace!("Return length from wasm function of {}", result_length);
-                            if result_length > MAX_RESULT_SIZE {
-                                bail!(
-                                    "Return length from wasm function of {} exceed maximum allowed",
-                                    result_length
-                                );
-                            }
+        let result = module_ref.invoke_export(
+            "run_wasm",
+            &[
+                RuntimeValue::I32(offset as i32),
+                RuntimeValue::I32(length),
+            ],
+            &mut NopExternals,
+        );
 
-                            let mut result_data: Vec<u8> = vec![0x0; result_length as usize];
-                            memory_ref.get_into(input_data_wasm_ptr, &mut result_data)
-                                .chain_err(|| "Could not read wasm memory into owned slice")?;
-                            let result = serde_json::from_slice(result_data.as_slice())
-                                .chain_err(|| "Could not convert returned data from wasm to json")?;
-                            trace!("WASM run() function invocation Result = {:?}", result);
-                            result
-                        }
-                        _ => {
-                            bail!("Unexpected return value from wasm function on invoke_export()");
-                        }
-                    },
-                    Ok(None) => {
-                        bail!(format!("None value returned by Wasm invoke_export(): {:?}\nInputs:\n{:?}",
-                            self.source_url, inputs));
-                    }
-                    Err(err) => {
-                        bail!("Error returned by Wasm invoke_export() on '{}': {:?}\nInputs:\n{:?}",
-                            self.source_url, err, inputs);
-                    }
-                };
+        match result {
+            Ok(Some(RuntimeValue::I32(result_length))) => {
+                trace!("Return length from wasm function of {}", result_length);
+                if result_length > MAX_RESULT_SIZE {
+                    bail!(
+                        "Return length from wasm function of {} exceed maximum allowed",
+                        result_length
+                    );
+                }
+
+                let mut buffer: Vec<u8> = vec![0x0; result_length as usize];
+                memory_ref.get_into(offset as u32, &mut buffer)
+                    .chain_err(|| "Could not read wasm memory into owned slice")?;
+                let result_returned = serde_json::from_slice(buffer.as_slice())
+                    .chain_err(|| "Could not convert returned data from wasm to json")?;
+                trace!("WASM run() function invocation Result = {:?}", result_returned);
+                result_returned
+            },
+            Ok(_) => {
+                bail!(format!("Unexpected value returned by Wasm invoke_export(): {:?}\nInputs:\n{:?}",
+                    self.source_url, inputs));
+            }
+            Err(err) => {
+                bail!("Error returned by Wasm invoke_export() on '{}': {:?}\nInputs:\n{:?}",
+                    self.source_url, err, inputs);
             }
         }
-
-        Ok((None, true))
     }
 }
 
