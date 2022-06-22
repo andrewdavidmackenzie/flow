@@ -82,7 +82,7 @@ impl Implementation for WasmExecutor {
                                 );
                             }
 
-                            let mut result_data = Vec::<u8>::with_capacity(result_length as usize);
+                            let mut result_data: Vec<u8> = vec![0x0; result_length as usize];
                             memory_ref.get_into(input_data_wasm_ptr, &mut result_data)
                                 .chain_err(|| "Could not read wasm memory into owned slice")?;
                             let result = serde_json::from_slice(result_data.as_slice())
