@@ -86,11 +86,11 @@ fn run_sample(sample_dir: &Path, output_dir: &Path) -> io::Result<()> {
         Err(e) => match e.kind() {
             ErrorKind::NotFound => Err(io::Error::new(
                 io::ErrorKind::Other,
-                format!("`flowc` was not found! Check your $PATH. {}", e),
+                format!("`flowr` was not found! Check your $PATH. {}", e),
             )),
             _ => Err(io::Error::new(
                 io::ErrorKind::Other,
-                format!("Unexpected error running `flowc`: {}", e),
+                format!("Unexpected error running `flowr`: {}", e),
             )),
         },
     }
