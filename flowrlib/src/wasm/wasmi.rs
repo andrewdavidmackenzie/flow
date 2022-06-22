@@ -58,8 +58,8 @@ fn send_inputs(instance: &ModuleRef, memory: &MemoryRef, inputs: &[Value]) -> Re
 
 impl Implementation for WasmExecutor {
     fn run(&self, inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
-        let module_ref = self.module.lock().map_err(|_| "Could not lock WASM store")?;
-        let memory_ref = self.memory.lock().map_err(|_| "Could not lock WASM store")?;
+        let module_ref = self.module.lock().map_err(|_| "Could not lock WASM module")?;
+        let memory_ref = self.memory.lock().map_err(|_| "Could not lock WASM memory")?;
 
         let (offset, length) = send_inputs(&module_ref, &memory_ref, inputs)?;
 
