@@ -41,18 +41,18 @@ unsafe impl Sync for WasmExecutor {}
 // Return the offset of the data in linear memory and the data size in bytes
 fn send_inputs(instance: &ModuleRef, memory: &MemoryRef, inputs: &[Value]) -> Result<(u32, i32)> {
     let bytes: &[u8] = &serde_json::to_vec(&inputs)?;
-    let length = bytes.len() as i32;
+    let alloc_size = max(bytes.len() as i32, MAX_RESULT_SIZE); // Same memory will be used for result
+    let offset =
+        instance.invoke_export("alloc", &[RuntimeValue::I32(alloc_size)], &mut NopExternals)
+            .chain_err(|| "Could not call WASM alloc() function")?;
 
-    let alloc_size = max(bytes.len() as i32, MAX_RESULT_SIZE);
-    let result =
-        instance.invoke_export("alloc", &[RuntimeValue::I32(alloc_size)], &mut NopExternals);
-
-    match result {
-        Ok(Some(RuntimeValue::I32(pointer))) => match memory.set(pointer as u32, bytes) {
-            Ok(_) => Ok((pointer as u32, length)),
-            _ => Ok((0_u32, 0)),
+    match offset {
+        Some(RuntimeValue::I32(offset)) => {
+            memory.set(offset as u32, bytes)
+                .chain_err(|| "Could not set WASM memory")?;
+            Ok((offset as u32, bytes.len() as i32))
         },
-        _ => Ok((0_u32, 0)),
+        _ => bail!("Unknown return type from WASm alloc() function"),
     }
 }
 

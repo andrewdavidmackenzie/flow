@@ -5,6 +5,7 @@ use flowcore::meta_provider::Provider;
 use log::info;
 use log::trace;
 use serde_json::Value;
+use std::cmp::max;
 use std::sync::{Arc, Mutex};
 use url::Url;
 use wasmtime::*;
@@ -43,7 +44,8 @@ impl WasmExecutor {
     // Return the offset of the data in linear memory and the data size in bytes
     fn send_inputs(&self, store: &mut Store<()>, inputs: &[Value]) -> Result<(i32, i32)> {
         let input_data = serde_json::to_vec(&inputs)?;
-        let offset = self.alloc(input_data.len(), store)?;
+        let alloc_size = max(input_data.len() as i32, MAX_RESULT_SIZE);
+        let offset = self.alloc(alloc_size, store)?;
         self.memory
             .write(store, offset as usize, &input_data)
             .map_err(|_| "Could not write to WASM Linear Memory")?;
