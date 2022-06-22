@@ -3,6 +3,7 @@ use flowcore::errors::*;
 use flowcore::meta_provider::Provider;
 use log::{info, trace};
 use serde_json::Value;
+use std::cmp::max;
 use std::sync::Arc;
 use std::sync::Mutex;
 use url::Url;
@@ -36,29 +37,29 @@ unsafe impl Send for WasmExecutor {}
 
 unsafe impl Sync for WasmExecutor {}
 
-// Call the "alloc" wasm function
-// - input parameter is the length of block of memory to allocate
-// - returns the offset to the allocated memory
-fn alloc(length: i32, instance: &ModuleRef) -> Result<i32> {
-    match instance.invoke_export("alloc", &[RuntimeValue::I32(length)], &mut NopExternals) {
-        Ok(Some(RuntimeValue::I32(offset))) => Ok(offset as i32),
-        _ => bail!("Could not allocate memory in WASM with alloc()")
-    }
-}
-
 // Serialize the inputs into JSON and then write them into the linear memory for WASM to read
 // Return the offset of the data in linear memory and the data size in bytes
-fn send_inputs(instance: &ModuleRef, memory: &MemoryRef, inputs: &[Value]) -> Result<(i32, i32)> {
+fn send_inputs(instance: &ModuleRef, memory: &MemoryRef, inputs: &[Value]) -> Result<(u32, i32)> {
     let bytes: &[u8] = &serde_json::to_vec(&inputs)?;
-    let offset = alloc(bytes.len() as i32, instance)?;
-    memory.set(offset as u32, bytes).chain_err(|| "Could not set memory")?;
-    Ok((offset, bytes.len() as i32))
+    let length = bytes.len() as i32;
+
+    let alloc_size = max(bytes.len() as i32, MAX_RESULT_SIZE);
+    let result =
+        instance.invoke_export("alloc", &[RuntimeValue::I32(alloc_size)], &mut NopExternals);
+
+    match result {
+        Ok(Some(RuntimeValue::I32(pointer))) => match memory.set(pointer as u32, bytes) {
+            Ok(_) => Ok((pointer as u32, length)),
+            _ => Ok((0_u32, 0)),
+        },
+        _ => Ok((0_u32, 0)),
+    }
 }
 
 impl Implementation for WasmExecutor {
     fn run(&self, inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
-        let module_ref = self.module.lock().map_err(|_| "Could not lock WASM module")?;
-        let memory_ref = self.memory.lock().map_err(|_| "Could not lock WASM memory")?;
+        let module_ref = self.module.lock().map_err(|_| "Could not lock WASM store")?;
+        let memory_ref = self.memory.lock().map_err(|_| "Could not lock WASM store")?;
 
         let (offset, length) = send_inputs(&module_ref, &memory_ref, inputs)?;
 
@@ -82,7 +83,7 @@ impl Implementation for WasmExecutor {
                 }
 
                 let mut buffer: Vec<u8> = vec![0x0; result_length as usize];
-                memory_ref.get_into(offset as u32, &mut buffer)
+                memory_ref.get_into(offset, &mut buffer)
                     .chain_err(|| "Could not read wasm memory into owned slice")?;
                 let result_returned = serde_json::from_slice(buffer.as_slice())
                     .chain_err(|| "Could not convert returned data from wasm to json")?;
