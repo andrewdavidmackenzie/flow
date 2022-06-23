@@ -1,4 +1,3 @@
-use anyhow::Result as AnyhowResult;
 use flowcore::{Implementation, RunAgain};
 use flowcore::errors::*;
 use flowcore::meta_provider::Provider;
@@ -58,7 +57,8 @@ impl WasmExecutor {
     fn alloc(&self, length: i32, store: &mut Store<()>) -> Result<i32> {
         let mut results: [wasmtime::Val;1] = [Val::I32(0)];
         let params = [wasmtime::Val::I32(length)];
-        self.alloc.call(store, &params, &mut results)?;
+        self.alloc.call(store, &params, &mut results)
+            .map_err(|_| "WASM alloc() call failed")?;
 
         match results[0] {
             Val::I32(offset) => Ok(offset as i32),
@@ -75,11 +75,11 @@ impl WasmExecutor {
         let params = [Val::I32(offset), Val::I32(length)];
         self.implementation
             .call(store, &params, &mut results)
-            .chain_err(||
-                    "Error returned by WASM implementation.call()" )?;
+            .map_err(|_| format!("Error returned by WASM implementation.call() for {:?}",
+            self.source_url))?;
 
         match results[0] {
-            Ok(Val::I32(result_length)) => {
+            Val::I32(result_length) => {
                 trace!("Return length from wasm function of {}", result_length);
                 if result_length > MAX_RESULT_SIZE {
                     bail!(
