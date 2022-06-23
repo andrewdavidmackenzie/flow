@@ -68,6 +68,7 @@ impl WasmExecutor {
 
     // Call the "implementation" wasm function
     // - `offset` is the offset to the input values (json), and the length of the json
+    // - `length` is the length of the input json
     // - returns the length of the resulting json, at the same offset
     fn call(&self, offset: i32, length: i32, store: &mut Store<()>) -> AnyhowResult<Val> {
         let mut results: [wasmtime::Val;1] = [Val::I32(0)];
