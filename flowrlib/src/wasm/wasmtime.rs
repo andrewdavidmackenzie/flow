@@ -112,6 +112,20 @@ impl WasmExecutor {
     }
 }
 
+
+impl Implementation for WasmExecutor {
+    fn run(&self, inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
+        let mut store = self.store.lock().map_err(|_| "Could not lock WASM store")?;
+        let (offset, length) = self.send_inputs(&mut store, inputs)?;
+        let result_length = self.call(offset, length, &mut store)?;
+        self.get_result(result_length, offset as usize, &mut store)
+    }
+}
+
+unsafe impl Send for WasmExecutor {}
+
+unsafe impl Sync for WasmExecutor {}
+
 /// load a Wasm module from the specified Url.
 pub fn load(provider: &dyn Provider, source_url: &Url) -> Result<WasmExecutor> {
     let (resolved_url, _) = provider
@@ -150,17 +164,4 @@ pub fn load(provider: &dyn Provider, source_url: &Url) -> Result<WasmExecutor> {
         alloc,
         source_url,
     ))
-}
-
-unsafe impl Send for WasmExecutor {}
-
-unsafe impl Sync for WasmExecutor {}
-
-impl Implementation for WasmExecutor {
-    fn run(&self, inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
-        let mut store = self.store.lock().map_err(|_| "Could not lock WASM store")?;
-        let (offset, length) = self.send_inputs(&mut store, inputs)?;
-        let result_length = self.call(offset, length, &mut store)?;
-        self.get_result(result_length, offset as usize, &mut store)
-    }
 }
