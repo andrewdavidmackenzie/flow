@@ -70,54 +70,45 @@ impl WasmExecutor {
     // - `offset` is the offset to the input values (json), and the length of the json
     // - `length` is the length of the input json
     // - returns the length of the resulting json, at the same offset
-    fn call(&self, offset: i32, length: i32, store: &mut Store<()>) -> AnyhowResult<Val> {
+    fn call(&self, offset: i32, length: i32, store: &mut Store<()>) -> Result<i32> {
         let mut results: [wasmtime::Val;1] = [Val::I32(0)];
         let params = [Val::I32(offset), Val::I32(length)];
         self.implementation
-            .call(store, &params, &mut results)?;
-        Ok(results[0].clone())
-    }
+            .call(store, &params, &mut results)
+            .chain_err(||
+                    "Error returned by WASM implementation.call()" )?;
 
-    fn get_result(
-        &self,
-        result: anyhow::Result<Val>,
-        offset: usize,
-        store: &mut Store<()>,
-    ) -> Result<(Option<Value>, RunAgain)> {
-        match result {
+        match results[0] {
             Ok(Val::I32(result_length)) => {
                 trace!("Return length from wasm function of {}", result_length);
                 if result_length > MAX_RESULT_SIZE {
                     bail!(
-                        "Return length from wasm function of {} exceed maximum allowed",
-                        result_length
+                    "Return length from wasm function of {} exceed maximum allowed",
+                    result_length
                     );
                 }
-
-                let mut buffer: Vec<u8> = vec![0u8; result_length as usize];
-                self
-                    .memory
-                    .read(store, offset, &mut buffer)
-                    .map_err(|_| "could not read return value from WASM linear memory")?;
-
-                let result_returned = serde_json::from_slice(buffer.as_slice())
-                    .chain_err(|| "Could not convert returned data from wasm to json")?;
-                trace!("WASM run() function invocation Result = {:?}", result_returned);
-                result_returned
+                Ok(result_length)
             },
-            Ok(_) => {
-                bail!(
-                    "Unexpected return type returned by WASM implementation.call() on '{}'",
-                    self.source_url
-                );
-            }
-            Err(err) => {
-                bail!(
-                    "Error returned by WASM implementation.call() on '{}': {:?}",
-                    self.source_url, err
-                );
-            }
+            _ => bail!(format!("Unexpected value returned by WASM Func.call()()"))
         }
+    }
+
+    fn get_result(
+        &self,
+        result_length: i32,
+        offset: usize,
+        store: &mut Store<()>,
+    ) -> Result<(Option<Value>, RunAgain)> {
+        let mut buffer: Vec<u8> = vec![0u8; result_length as usize];
+        self
+            .memory
+            .read(store, offset, &mut buffer)
+            .map_err(|_| "could not read return value from WASM linear memory")?;
+
+        let result_returned = serde_json::from_slice(buffer.as_slice())
+            .chain_err(|| "Could not convert returned data from wasm to json")?;
+        trace!("WASM run() function invocation Result = {:?}", result_returned);
+        result_returned
     }
 }
 
@@ -169,7 +160,7 @@ impl Implementation for WasmExecutor {
     fn run(&self, inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
         let mut store = self.store.lock().map_err(|_| "Could not lock WASM store")?;
         let (offset, length) = self.send_inputs(&mut store, inputs)?;
-        let result = self.call(offset, length, &mut store);
-        self.get_result(result, offset as usize, &mut store)
+        let result_length = self.call(offset, length, &mut store)?;
+        self.get_result(result_length, offset as usize, &mut store)
     }
 }
