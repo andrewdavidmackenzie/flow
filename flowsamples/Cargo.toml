@@ -20,4 +20,4 @@ name = "flowsamples"
 path = "main.rs"
 
 [dev-dependencies]
-serial_test = "0.7.0"
+serial_test = "0.8.0"
