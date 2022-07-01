@@ -16,9 +16,10 @@ use crate::model::route::SetIORoutes;
 use crate::model::validation::Validate;
 
 /// `IOType` defines what type of IO this is
-#[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
+#[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq, Default)]
 #[allow(clippy::upper_case_acronyms)]
 pub enum IOType {
+    #[default]
     /// The IO is an input of a Function
     FunctionInput,
     /// The IO is an output of a Function
@@ -27,12 +28,6 @@ pub enum IOType {
     FlowInput,
     /// The IO is the output of a Flow
     FlowOutput,
-}
-
-impl Default for IOType {
-    fn default() -> Self {
-        IOType::FunctionInput
-    }
 }
 
 /// `IO` contains information about the Input or Output of a `Function` or `Flow`
