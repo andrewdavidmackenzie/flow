@@ -31,7 +31,7 @@ flowcore = {path = "../flowcore", version = "0.60.0"}
 log = "0.4.6"
 url = { version = "2.2", features = ["serde"] }
 serde_derive = "~1.0.27"
-serde = "~1.0.27"
+serde = "~1.0.139"
 serde_json = { version = "1.0", default-features = false }
 error-chain = "0.12.2"
 multimap = "~0.8"
