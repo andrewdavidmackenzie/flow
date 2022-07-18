@@ -26,19 +26,19 @@ jobs:
       uses: actions/cache@v1
       with:
         path: ~/.cargo
-        key: ${{ runner.os }}-cargo-${{ hashFiles('FlowCargo.toml') }}
+        key: ${{ runner.os }}-cargo_cache-${{ hashFiles('FlowCargo.toml') }}
         restore-keys: |
-          ${{ runner.os }}-cargo-${{ hashFiles('Cargo.toml') }}
-          ${{ runner.os }}-cargo-
+          ${{ runner.os }}-cargo_cache-${{ hashFiles('Cargo.toml') }}
+          ${{ runner.os }}-cargo_cache-
 
     - name: Cargo Target Cache
       uses: actions/cache@v1
       with:
         path: target
-        key: ${{ runner.os }}-cargo-target-${{ hashFiles('FlowCargo.toml') }}
+        key: ${{ runner.os }}-cargo_cache-target-${{ hashFiles('FlowCargo.toml') }}
         restore-keys: |
-          ${{ runner.os }}-cargo-target-${{ hashFiles('Cargo.toml') }}
-          ${{ runner.os }}-cargo-target
+          ${{ runner.os }}-cargo_cache-target-${{ hashFiles('Cargo.toml') }}
+          ${{ runner.os }}-cargo_cache-target
 
     - name: SetupFlowLibPath
       run: echo "FLOW_LIB_PATH=$GITHUB_WORKSPACE" >> "$GITHUB_ENV"
