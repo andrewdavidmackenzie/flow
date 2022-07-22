@@ -64,13 +64,13 @@ jobs:
     - name: InstallWasmTools
       run: cargo install wasm-gc wasm-snip
 
-    - name: ConfigureCoverage
-      if: matrix.os == 'ubuntu-latest'
-      run: |
-        cargo install grcov
-        rustup component add llvm-tools-preview
-        echo RUSTFLAGS="-C instrument-coverage" >> "$GITHUB_ENV"
-        echo LLVM_PROFILE_FILE="flow-%p-%m.profraw" >> "$GITHUB_ENV"
+#    - name: ConfigureCoverage
+      #      if: matrix.os == 'ubuntu-latest'
+        #run: |
+        #cargo install grcov
+        #rustup component add llvm-tools-preview
+        #echo RUSTFLAGS="-C instrument-coverage" >> "$GITHUB_ENV"
+      #echo LLVM_PROFILE_FILE="flow-%p-%m.profraw" >> "$GITHUB_ENV"
 
     - name: install-flowc
       run: cargo install --path flowc
@@ -97,12 +97,12 @@ jobs:
         mdbook build
         make trim-docs
 
-    - name: UploadCoverage
-      if: matrix.os == 'ubuntu-latest'
-      run: |
-        grcov . --binary-path target/debug/ -s . -t lcov --branch --ignore-not-existing --ignore "/*" -o lcov.info
-        bash <(curl -s https://codecov.io/bash) -f lcov.info
-        rm -f lcov.info
+      #    - name: UploadCoverage
+      #if: matrix.os == 'ubuntu-latest'
+        #run: |
+        #grcov . --binary-path target/debug/ -s . -t lcov --branch --ignore-not-existing --ignore "/*" -o lcov.info
+        #bash <(curl -s https://codecov.io/bash) -f lcov.info
+      #rm -f lcov.info
 
     - name: DeployDocsToGHPages
       uses: JamesIves/github-pages-deploy-action@4.1.4
