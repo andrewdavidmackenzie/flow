@@ -23,7 +23,7 @@ ifeq ($(FLOW_CONTEXT_ROOT),)
 endif
 
 .PHONY: all
-all: clippy build test docs trim-docs
+all: clippy build coverage-test coverage docs trim-docs
 
 # NOTE: I had some link problems with the flowmacro crate on _my_ mac, which was solved using zld
 # as per this post https://dsincl12.medium.com/speed-up-your-rust-compiler-macos-d9fbe0f32dbc
@@ -38,34 +38,38 @@ config:
 	@rustup --quiet target add wasm32-unknown-unknown
 ifneq ($(BREW),)
 	@echo "Installing Mac OS X specific dependencies using $(BREW)"
-	@brew install --quiet zmq graphviz binaryen
+	@brew install --quiet zmq graphviz binaryen lcov
 endif
 ifneq ($(DNF),)
 	@echo "Installing linux specific dependencies using $(DNF)"
 	@echo "To build OpenSSL you need perl installed"
 	@sudo dnf install perl
 	@sudo dnf install curl-devel elfutils-libelf-devel elfutils-devel openssl openssl-devel binutils-devel || true
-	@sudo dnf install zeromq zeromq-devel graphviz binaryen || true
+	@sudo dnf install zeromq zeromq-devel graphviz binaryen lcov || true
 endif
 ifneq ($(YUM),)
 	@echo "Installing linux specific dependencies using $(YUM)"
 	@echo "To build OpenSSL you need perl installed"
 	@sudo yum install perl
 	@sudo yum install curl-devel elfutils-libelf-devel elfutils-devel openssl openssl-devel binutils-devel || true
-	@sudo yum install zeromq zeromq-devel graphviz binaryen || true
+	@sudo yum install zeromq zeromq-devel graphviz binaryen lcov || true
 endif
 ifneq ($(APTGET),)
 	@echo "Installing linux specific dependencies using $(APTGET)"
 	@echo "To build OpenSSL you need perl installed"
 	@sudo apt-get install perl
 	@sudo apt-get -y install libcurl4-openssl-dev libelf-dev libdw-dev libssl-dev binutils-dev || true
-	@sudo apt-get -y install libzmq3-dev graphviz binaryen || true
+	@sudo apt-get -y install libzmq3-dev graphviz binaryen lcov || true
 endif
 	@echo "	Installing mdbook and mdbook-linkcheck using cargo"
 	@cargo install mdbook
 	@cargo install mdbook-linkcheck
 	@echo "installing wasm optimization tools"
 	@cargo install wasm-gc wasm-snip
+	@echo "Installing grcov for coverage, using cargo"
+	@cargo install grcov
+	@echo "Installing llvm preview tools for coverage, using rustup"
+	@rustup component add llvm-tools-preview
 
 .PHONY: clean
 clean:
@@ -92,6 +96,19 @@ build: install-flow
 test: install-flow
 	@echo "test<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
 	@cargo test $(features)
+
+.PHONY: coverage-test
+coverage-test: install-flow
+	@echo "coverage-test<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
+	@RUSTFLAGS="-C instrument-coverage" LLVM_PROFILE_FILE="flow-%p-%m.profraw" cargo test $(features)
+
+.PHONY: coverage
+coverage: coverage-test
+	@echo "Gathering coverage information"
+	@grcov . --binary-path target/debug/ -s . -t lcov --branch --ignore-not-existing --ignore "/*" -o coverage.info
+	@lcov --remove coverage.info '/Applications/*' '/usr*' '**/errors.rs' '*tests/*' '*cranelift*/*' '*target-lexicon*/*' -o coverage.info
+	@find . -name "*.profraw" | xargs rm -f
+	@genhtml -o coverage --quiet coverage.info
 
 .PHONY: docs
 docs:
@@ -133,6 +150,7 @@ trim-docs:
 	@rm -rf target/html/flowc/tests/test_libs
 	@rm -rf target/html/code/debug
 	@rm -rf target/html/Makefile
+	@rm -rf target/coverage target/coverage.info
 	@find target/html -depth -type d -empty -delete
 
 .PHONY: publish
