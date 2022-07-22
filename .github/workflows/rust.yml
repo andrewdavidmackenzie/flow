@@ -85,7 +85,7 @@ jobs:
       run: cargo build --features "wasm"
 
     - name: test
-      run: cargo test --features "online_tests","wasm"
+      run: RUSTFLAGS="-C instrument-coverage" LLVM_PROFILE_FILE="flow-%p-%m.profraw" cargo test --features "online_tests","wasm"
 
     - name: docs
       if: matrix.os == 'ubuntu-latest'
@@ -97,12 +97,12 @@ jobs:
         mdbook build
         make trim-docs
 
-      #    - name: UploadCoverage
-      #if: matrix.os == 'ubuntu-latest'
-        #run: |
-        #grcov . --binary-path target/debug/ -s . -t lcov --branch --ignore-not-existing --ignore "/*" -o lcov.info
-        #bash <(curl -s https://codecov.io/bash) -f lcov.info
-      #rm -f lcov.info
+    - name: UploadCoverage
+      if: matrix.os == 'ubuntu-latest'
+      run: |
+        grcov . --binary-path target/debug/ -s . -t lcov --branch --ignore-not-existing --ignore "/*" -o lcov.info
+        bash <(curl -s https://codecov.io/bash) -f lcov.info
+        rm -f lcov.info
 
     - name: DeployDocsToGHPages
       uses: JamesIves/github-pages-deploy-action@4.1.4
