@@ -53,11 +53,7 @@ mod test {
 
         let inputs = vec![left, right];
 
-        let (result, _) = _zip(&inputs).expect("_zip() failed");
-
-        let zipped_array = result.expect("Could not get the value from the output");
-
-        assert_eq!(zipped_array, json!(vec![(1,3), (2,4)]));
+        assert!(_zip(&inputs).is_err());
     }
 
     #[test]
@@ -67,11 +63,7 @@ mod test {
 
         let inputs = vec![left, right];
 
-        let (result, _) = _zip(&inputs).expect("_zip() failed");
-
-        let zipped_array = result.expect("Could not get the value from the output");
-
-        assert_eq!(zipped_array, json!(vec![(1,3), (2,4)]));
+        assert!(_zip(&inputs).is_err());
     }
 
     #[test]
