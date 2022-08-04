@@ -98,6 +98,7 @@ test: install-flow
 .PHONY: coverage
 coverage: install-flow
 	@echo "coverage<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
+	@find . -name "*.profraw"  | xargs rm -rf {}
 	@RUSTFLAGS="-C instrument-coverage" LLVM_PROFILE_FILE="flow-%p-%m.profraw" cargo test $(features)
 	@echo "Gathering covering information"
 	@grcov . --binary-path target/debug/ -s . -t lcov --branch --ignore-not-existing --ignore "/*" -o coverage.info
