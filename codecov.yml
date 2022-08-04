@@ -3,4 +3,4 @@ codecov:
 
 coverage:
   round: down
-  precision: 1
+  precision: 0
