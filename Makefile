@@ -36,6 +36,8 @@ config:
 	@rustup --quiet component add clippy
 	@echo "Installing wasm32 target using rustup"
 	@rustup --quiet target add wasm32-unknown-unknown
+	@echo "Installing llvm-tools-preview for coverage"
+	@rustup component add llvm-tools-preview
 ifneq ($(BREW),)
 	@echo "Installing Mac OS X specific dependencies using $(BREW)"
 	@brew install --quiet zmq graphviz binaryen
@@ -93,6 +95,17 @@ test: install-flow
 	@echo "test<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
 	@cargo test $(features)
 
+.PHONY: coverage
+coverage: install-flow
+	@echo "coverage<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
+	@RUSTFLAGS="-C instrument-coverage" LLVM_PROFILE_FILE="flow-%p-%m.profraw" cargo test $(features)
+	@echo "Gathering covering information"
+	@grcov . --binary-path target/debug/ -s . -t lcov --branch --ignore-not-existing --ignore "/*" -o coverage.info
+	@lcov --remove coverage.info '/Applications/*' '/usr*' '**/errors.rs' '*tests/*' -o coverage.info
+	@find . -name "*.profraw" | xargs rm -f
+	@echo "Generating coverage report in './target/coverage/index.html'"
+	@genhtml -o target/coverage --quiet coverage.info
+
 .PHONY: docs
 docs:
 	@echo "docs<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
@@ -124,6 +137,7 @@ trim-docs:
 	@find target/html -name \*.dot | xargs rm -rf {}
 	@find target/html -name \*.wasm | xargs rm -rf {}
 	@find target/html -name \*.lock  | xargs rm -rf {}
+	@find target/html -name \*.profraw  | xargs rm -rf {}
 	@rm -rf target/html/.mdbookignore
 	@rm -rf target/html/.DS_Store
 	@rm -rf target/html/book.toml

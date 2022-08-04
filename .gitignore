@@ -6,3 +6,4 @@
 **/*.profraw
 **/.rustc_info.json
 .cargo
+coverage.info
