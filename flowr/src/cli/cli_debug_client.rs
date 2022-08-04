@@ -53,7 +53,7 @@ impl CliDebugClient {
         CliDebugClient {
             connection,
             override_args,
-            editor: Editor::<()>::new(), // `()` can be used when no completer is required
+            editor: Editor::<()>::new().expect("Could not create Editor"), // `()` can be used when no completer is required
             last_command: "".to_string(),
         }
     }
