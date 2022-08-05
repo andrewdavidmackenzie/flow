@@ -1,18 +1,16 @@
-use flowmacro::flow_function;
 use serde_json::{json, Value};
 use serde_json::Value::Number;
 
+use flowmacro::flow_function;
+
 #[flow_function]
 fn _sqrt(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
-    let input = &inputs[0];
-    let mut value = None;
-
-    if let Number(ref a) = input {
+    if let Number(ref a) = &inputs[0] {
         let num = a.as_f64().ok_or("Could not get num")?;
-        value = Some(json!(num.sqrt()));
-    };
-
-    Ok((value, RUN_AGAIN))
+        Ok((Some(json!(num.sqrt())), RUN_AGAIN))
+    } else {
+        bail!("Input is not a number")
+    }
 }
 
 #[cfg(test)]
@@ -29,5 +27,11 @@ mod test {
 
         assert!(again);
         assert_eq!(test_9, root.expect("Could not get the value from the output"));
+    }
+
+    #[test]
+    fn test_not_a_number() {
+        let test_invalid_input = json!("Hello");
+        assert!(_sqrt(&[test_invalid_input]).is_err());
     }
 }
