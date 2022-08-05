@@ -3,11 +3,11 @@ ZMQ := $(shell brew ls --versions zmq 2> /dev/null)
 YUM := $(shell command -v yum 2> /dev/null)
 DNF := $(shell command -v dnf 2> /dev/null)
 BREW := $(shell command -v brew 2> /dev/null)
-ONLINE := $(shell ping -c 1 https://raw.githubusercontent.com 2> /dev/null)
+ONLINE := $(shell ping -c 1 https://raw.githubusercontent.com > /dev/null 2>&1 ; echo $$?)
 export SHELL := /bin/bash
 
-ifeq ($(ONLINE),true)
-features := --features "wasm" "online_tests"
+ifeq ($(ONLINE),0)
+features := --features "wasm","online_tests"
 else
 features := --features "wasm"
 endif
@@ -23,7 +23,15 @@ ifeq ($(FLOW_CONTEXT_ROOT),)
 endif
 
 .PHONY: all
-all: clippy build test docs trim-docs
+all: online clippy build test docs trim-docs
+
+.PHONY: online
+online:
+ifeq ($(ONLINE),0)
+	@echo "ONLINE, so including 'online_tests' feature"
+else
+	@echo "Not ONLINE, so not including 'online_tests' feature"
+endif
 
 # NOTE: I had some link problems with the flowmacro crate on _my_ mac, which was solved using zld
 # as per this post https://dsincl12.medium.com/speed-up-your-rust-compiler-macos-d9fbe0f32dbc
@@ -102,7 +110,7 @@ coverage: install-flow
 	@RUSTFLAGS="-C instrument-coverage" LLVM_PROFILE_FILE="flow-%p-%m.profraw" cargo test $(features)
 	@echo "Gathering covering information"
 	@grcov . --binary-path target/debug/ -s . -t lcov --branch --ignore-not-existing --ignore "/*" -o coverage.info
-	@lcov --remove coverage.info '/Applications/*' '/usr*' '**/errors.rs' '*tests/*' -o coverage.info
+	@lcov --remove coverage.info '/Applications/*' '/usr*' '**/errors.rs' '**/build.rs' '*tests/*' -o coverage.info
 	@find . -name "*.profraw" | xargs rm -f
 	@echo "Generating coverage report in './target/coverage/index.html'"
 	@genhtml -o target/coverage --quiet coverage.info
