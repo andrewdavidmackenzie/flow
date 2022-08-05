@@ -10,7 +10,7 @@ use flowcore::errors::*;
 use flowcore::model::output_connection::Source::{Input, Output};
 
 use crate::block::Block;
-use crate::breakpoint_spec::BreakpointSpec;
+use crate::debug_command::BreakpointSpec;
 use crate::debug_command::DebugCommand;
 use crate::debug_command::DebugCommand::{Ack, Breakpoint, Continue, DebugClientStarting, Delete, Error, ExitDebugger, Inspect, InspectBlock, InspectFunction, InspectInput, InspectOutput, Invalid, List, Modify, RunReset, Step, Validate};
 use crate::job::Job;
