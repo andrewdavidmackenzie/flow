@@ -7,7 +7,7 @@ ONLINE := $(shell ping -c 1 https://raw.githubusercontent.com > /dev/null 2>&1 ;
 export SHELL := /bin/bash
 
 ifeq ($(ONLINE),0)
-features := --features "wasm" "online_tests"
+features := --features "wasm","online_tests"
 else
 features := --features "wasm"
 endif
