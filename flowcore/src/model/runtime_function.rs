@@ -238,9 +238,10 @@ impl RuntimeFunction {
         num_input_sets
     }
 
-    /// Can this function run and produce an output, either because it has input sets to allow it
-    /// to run, or because it has no inputs (must be impure) and can produce values
-    pub fn can_produce_output(&self) -> bool {
+    /// Can this function run? Either because:
+    ///     - it has input sets to allow it to run
+    ///     - it has no inputs and so can always run
+    pub fn can_run(&self) -> bool {
         self.inputs.is_empty() || self.input_set_count() > 0
     }
 
