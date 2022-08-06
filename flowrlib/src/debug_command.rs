@@ -18,7 +18,7 @@ pub enum BreakpointSpec {
 }
 
 /// A Command sent by the debug_client to the debugger
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, PartialEq)]
 pub enum DebugCommand {
     /// Acknowledge event processed correctly
     Ack,
@@ -91,10 +91,10 @@ impl fmt::Display for DebugCommand {
 }
 
 impl From<DebugCommand> for String {
-    fn from(msg: DebugCommand) -> Self {
-        match serde_json::to_string(&msg) {
+    fn from(command: DebugCommand) -> Self {
+        match serde_json::to_string(&command) {
             Ok(message_string) => message_string,
-            _ => String::new(),
+            _ => String::new(), // Should never occur
         }
     }
 }
@@ -105,5 +105,45 @@ impl From<String> for DebugCommand {
             Ok(message) => message,
             _ => DebugCommand::Invalid,
         }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use crate::debug_command::DebugCommand;
+
+    #[test]
+    fn display_debug_command() {
+        println!("{}", DebugCommand::Ack);
+        println!("{}", DebugCommand::Breakpoint(None));
+        println!("{}", DebugCommand::Continue);
+        println!("{}", DebugCommand::Delete(None));
+        println!("{}", DebugCommand::Error("Hello".into()));
+        println!("{}", DebugCommand::ExitDebugger);
+        println!("{}", DebugCommand::FunctionList);
+        println!("{}", DebugCommand::InspectFunction(0));
+        println!("{}", DebugCommand::Inspect);
+        println!("{}", DebugCommand::InspectInput(0, 0));
+        println!("{}", DebugCommand::InspectOutput(0, "Hello".into()));
+        println!("{}", DebugCommand::InspectBlock(None, None));
+        println!("{}", DebugCommand::Invalid);
+        println!("{}", DebugCommand::List);
+        println!("{}", DebugCommand::RunReset);
+        println!("{}", DebugCommand::Step(None));
+        println!("{}", DebugCommand::Validate);
+        println!("{}", DebugCommand::DebugClientStarting);
+        println!("{}", DebugCommand::Modify(None));
+    }
+
+    #[test]
+    fn debug_command_from_string() {
+        let command: DebugCommand = "Ack".into();
+        assert_eq!(command, DebugCommand::Ack);
+    }
+
+    #[test]
+    fn invalid_debug_command_from_string() {
+        let command: DebugCommand = "Foo".into();
+        assert_eq!(command, DebugCommand::Invalid);
     }
 }
