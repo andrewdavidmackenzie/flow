@@ -62,31 +62,16 @@ pub enum DebugCommand {
 
 impl fmt::Display for DebugCommand {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(
-            f,
-            "DebugCommand {}",
-            match self {
-                DebugCommand::Ack => "Ack",
-                DebugCommand::Breakpoint(_) => "Breakpoint",
-                DebugCommand::Continue => "Continue",
-                DebugCommand::Delete(_) => "Delete",
-                DebugCommand::Error(_) => "Error",
-                DebugCommand::ExitDebugger => "ExitDebugger",
-                DebugCommand::FunctionList => "FunctionList",
-                DebugCommand::InspectFunction(_) => "InspectFunction",
-                DebugCommand::Inspect => "Inspect",
-                DebugCommand::InspectInput(_, _) => "InspectInput",
-                DebugCommand::InspectOutput(_, _) => "InspectOutput",
-                DebugCommand::InspectBlock(_, _) => "InspectBlock",
-                DebugCommand::Invalid => "Invalid",
-                DebugCommand::List => "List",
-                DebugCommand::RunReset => "RunReset",
-                DebugCommand::Step(_) => "Step",
-                DebugCommand::Validate => "Validate",
-                DebugCommand::DebugClientStarting => "DebugClientStarting",
-                DebugCommand::Modify(_) => "Modify"
-            }
-        )
+        write!(f, "DebugCommand {}", String::from(self))
+    }
+}
+
+impl From<&DebugCommand> for String {
+    fn from(command: &DebugCommand) -> Self {
+        match serde_json::to_string(command) {
+            Ok(command_string) => command_string,
+            _ => String::new(), // Should never occur
+        }
     }
 }
 
@@ -110,8 +95,6 @@ impl From<String> for DebugCommand {
 
 #[cfg(test)]
 mod test {
-    use flowcore::errors::Result;
-
     use crate::debug_command::DebugCommand;
 
     #[test]
