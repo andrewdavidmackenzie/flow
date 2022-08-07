@@ -414,7 +414,9 @@ mod test {
     use std::fs::File;
     use std::io::{self, Read};
     use std::io::Write;
-    use std::path::{Path, PathBuf};
+    use std::path::Path;
+    #[cfg(feature = "context")]
+    use std::path::PathBuf;
     use std::sync::Arc;
 
     use serde_json::Value;
@@ -548,7 +550,7 @@ mod test {
         write_manifest(&manifest, &manifest_file).expect("Could not write manifest file");
         let manifest_url = Url::from_directory_path(manifest_file).expect("Could not create url from directory path");
         let provider = MetaProvider::new(Simpath::new("FLOW_LIB_PATH"),
-                                         PathBuf::from("/"));
+                                         #[cfg(feature = "context")] PathBuf::from("/"));
 
         let mut executor = Executor::new(provider, 0, None);
         executor
@@ -581,7 +583,7 @@ mod test {
         write_manifest(&manifest, &manifest_file).expect("Could not write manifest file");
         let manifest_url = Url::from_directory_path(manifest_file).expect("Could not create url from directory path");
         let provider = MetaProvider::new(Simpath::new("FLOW_LIB_PATH"),
-                                         PathBuf::from("/"));
+                                         #[cfg(feature = "context")] PathBuf::from("/"));
 
         let mut executor = Executor::new(provider, 0, None);
         executor

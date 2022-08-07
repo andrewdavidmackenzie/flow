@@ -209,21 +209,30 @@ pub(crate) fn check_invariants(state: &RunState, job_id: usize) {
 
 #[cfg(test)]
 mod test {
+    #[cfg(feature = "debugger")]
     use serde_json::Value;
     use url::Url;
 
+    #[cfg(feature = "debugger")]
     use flowcore::errors::Result;
+    #[cfg(feature = "debugger")]
     use flowcore::model::input::Input;
+    #[cfg(feature = "debugger")]
     use flowcore::model::output_connection::OutputConnection;
     use flowcore::model::runtime_function::RuntimeFunction;
     use flowcore::model::submission::Submission;
 
+    #[cfg(feature = "debugger")]
     use crate::block::Block;
     use crate::checks::completed_check;
+    #[cfg(feature = "debugger")]
     use crate::debug_command::DebugCommand;
+    #[cfg(feature = "debugger")]
     use crate::debugger::Debugger;
+    #[cfg(feature = "debugger")]
     use crate::job::Job;
     use crate::run_state::{RunState, State};
+    #[cfg(feature = "debugger")]
     use crate::server::DebuggerProtocol;
 
     use super::blocked_check;
