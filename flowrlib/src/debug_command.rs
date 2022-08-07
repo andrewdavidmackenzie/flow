@@ -3,7 +3,7 @@ use std::fmt;
 use serde_derive::{Deserialize, Serialize};
 
 /// Types of `Params` used in communications between the debugger and the debug_client
-#[derive(Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, PartialEq, Eq, Debug)]
 pub enum BreakpointSpec {
     /// All existing breakpoints
     All,
@@ -18,7 +18,7 @@ pub enum BreakpointSpec {
 }
 
 /// A Command sent by the debug_client to the debugger
-#[derive(Serialize, Deserialize, PartialEq)]
+#[derive(Serialize, Deserialize, PartialEq, Eq, Debug)]
 pub enum DebugCommand {
     /// Acknowledge event processed correctly
     Ack,
@@ -93,16 +93,16 @@ impl fmt::Display for DebugCommand {
 impl From<DebugCommand> for String {
     fn from(command: DebugCommand) -> Self {
         match serde_json::to_string(&command) {
-            Ok(message_string) => message_string,
+            Ok(command_string) => command_string,
             _ => String::new(), // Should never occur
         }
     }
 }
 
 impl From<String> for DebugCommand {
-    fn from(msg: String) -> Self {
-        match serde_json::from_str(&msg) {
-            Ok(message) => message,
+    fn from(command_string: String) -> Self {
+        match serde_json::from_str(&command_string) {
+            Ok(command) => command,
             _ => DebugCommand::Invalid,
         }
     }
@@ -110,6 +110,8 @@ impl From<String> for DebugCommand {
 
 #[cfg(test)]
 mod test {
+    use flowcore::errors::Result;
+
     use crate::debug_command::DebugCommand;
 
     #[test]
@@ -136,14 +138,19 @@ mod test {
     }
 
     #[test]
+    fn test_command_to_string() {
+        assert_eq!(String::from(DebugCommand::Ack), "\"Ack\"".to_string());
+    }
+
+    #[test]
     fn debug_command_from_string() {
-        let command: DebugCommand = "Ack".into();
+        let command: DebugCommand = DebugCommand::from("\"Ack\"".to_string());
         assert_eq!(command, DebugCommand::Ack);
     }
 
     #[test]
     fn invalid_debug_command_from_string() {
-        let command: DebugCommand = "Foo".into();
+        let command: DebugCommand = DebugCommand::from("\"Foo\"".to_string());
         assert_eq!(command, DebugCommand::Invalid);
     }
 }
