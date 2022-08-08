@@ -721,6 +721,7 @@ mod test {
         send_breakpoint: (usize, usize), // (from id, to id)
         flow_unblock_breakpoint: usize,
         job_completed: bool,
+        job_errored: bool,
         panicked: bool,
     }
 
@@ -732,6 +733,7 @@ mod test {
                 send_breakpoint: (0, 0),
                 flow_unblock_breakpoint: usize::MAX,
                 job_completed: false,
+                job_errored: false,
                 panicked: false,
             }
         }
@@ -752,7 +754,9 @@ mod test {
                            destination_id: usize, _destination_name:&str, _input_name: &str, _input_number: usize) {
             self.send_breakpoint = (source_process_id, destination_id);
         }
-        fn job_error(&mut self, _job: &Job) {}
+        fn job_error(&mut self, _job: &Job) {
+            self.job_errored = true;
+        }
         fn job_completed(&mut self, _job: &Job) {
             self.job_completed = true;
         }
@@ -966,7 +970,7 @@ mod test {
 
         let _ = debugger.job_completed(&mut state, &job);
 
-        assert!(server.job_completed);
+        assert!(server.job_errored);
     }
 
     #[test]
