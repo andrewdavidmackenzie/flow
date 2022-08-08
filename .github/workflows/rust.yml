@@ -22,33 +22,27 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
-    - name: Cargo Cache
-      uses: actions/cache@v1
-      with:
-        path: ~/.cargo
-        key: ${{ runner.os }}-cargo_cache-${{ hashFiles('FlowCargo.toml') }}
-        restore-keys: |
-          ${{ runner.os }}-cargo_cache-${{ hashFiles('Cargo.toml') }}
-          ${{ runner.os }}-cargo_cache-
-
-    - name: Cargo Target Cache
-      uses: actions/cache@v1
-      with:
-        path: target
-        key: ${{ runner.os }}-cargo_cache-target-${{ hashFiles('FlowCargo.toml') }}
-        restore-keys: |
-          ${{ runner.os }}-cargo_cache-target-${{ hashFiles('Cargo.toml') }}
-          ${{ runner.os }}-cargo_cache-target
-
     - name: SetupFlowLibPath
       run: echo "FLOW_LIB_PATH=$GITHUB_WORKSPACE" >> "$GITHUB_ENV"
 
     - name: Install latest nightly
       uses: actions-rs/toolchain@v1
       with:
+        profile: minimal
         toolchain: nightly
         override: true
         components: clippy
+
+    - name: Cargo Cache
+      uses: actions/cache@v1
+      with:
+        path: |
+          ~/.cargo
+          target/
+        key: ${{ runner.os }}-cargo_cache-${{ hashFiles('FlowCargo.toml') }}
+        restore-keys: |
+          ${{ runner.os }}-cargo_cache-${{ hashFiles('Cargo.toml') }}
+          ${{ runner.os }}-cargo_cache-
 
     - name: InstallLinuxDependencies
       if: matrix.os == 'ubuntu-latest'
