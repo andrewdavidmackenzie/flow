@@ -984,4 +984,64 @@ mod test {
 
         assert!(server.panicked);
     }
+
+    #[test]
+    fn test_inspect_blocks() {
+        let functions = vec![test_function(0)];
+        let mut state = RunState::new(&functions, test_submission());
+        let mut server = DummyServer::new();
+        let mut debugger = Debugger::new(&mut server);
+
+        // zero_to_one
+        let _ = state.create_block(
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            &mut debugger,
+        );
+
+        // zero_to_two
+        let _ = state.create_block(
+            0,
+            2,
+            0,
+            0,
+            0,
+            0,
+            &mut debugger,
+        );
+
+
+        // three_to_two
+        let _ = state.create_block(
+            0,
+            2,
+            0,
+            3,
+            0,
+            0,
+            &mut debugger,
+        );
+
+        // three_to_one
+        let _ = state.create_block(
+            0,
+            1,
+            0,
+            3,
+            0,
+            0,
+            &mut debugger,
+        );
+
+        assert_eq!(Debugger::inspect_blocks(&state, Some(0), None).len(), 2);
+        assert_eq!(Debugger::inspect_blocks(&state, Some(0), Some(1)).len(), 1);
+        assert_eq!(Debugger::inspect_blocks(&state, Some(2), None).len(), 0);
+        assert_eq!(Debugger::inspect_blocks(&state, None, Some(2)).len(), 2);
+        assert_eq!(Debugger::inspect_blocks(&state, Some(3), Some(2)).len(), 1);
+        assert_eq!(Debugger::inspect_blocks(&state, None, Some(0)).len(), 0);
+    }
 }
