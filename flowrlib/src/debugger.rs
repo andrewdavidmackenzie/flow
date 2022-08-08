@@ -692,3 +692,153 @@ impl<'a> Debugger<'a> {
         response
     }
 }
+
+#[cfg(test)]
+mod test {
+    use std::sync::Arc;
+
+    use serde_json::{json, Value};
+    use url::Url;
+
+    use flowcore::{Implementation, RunAgain};
+    use flowcore::errors::Result;
+    use flowcore::model::input::Input;
+    use flowcore::model::input::InputInitializer::Once;
+    use flowcore::model::output_connection::OutputConnection;
+    use flowcore::model::runtime_function::RuntimeFunction;
+    use flowcore::model::submission::Submission;
+
+    use crate::block::Block;
+    use crate::debug_command::DebugCommand;
+    use crate::debugger::{BlockerNode, BlockType, Debugger};
+    use crate::job::Job;
+    use crate::run_state::{RunState, State};
+    use crate::server::DebuggerProtocol;
+
+    struct DummyServer {
+        job_breakpoint: usize,
+    }
+
+    impl DebuggerProtocol for DummyServer {
+        fn start(&mut self) {}
+        fn job_breakpoint(&mut self, job: &Job, _function: &RuntimeFunction, _states: Vec<State>) {
+            self.job_breakpoint = job.job_id;
+        }
+        fn block_breakpoint(&mut self, _block: &Block) {}
+        fn flow_unblock_breakpoint(&mut self, _flow_id: usize) {}
+        fn send_breakpoint(&mut self, _: &str, _source_process_id: usize, _output_route: &str, _value: &Value,
+                           _destination_id: usize, _destination_name:&str, _input_name: &str, _input_number: usize) {}
+        fn job_error(&mut self, _job: &Job) {}
+        fn job_completed(&mut self, _job: &Job) {}
+        fn blocks(&mut self, _blocks: Vec<Block>) {}
+        fn outputs(&mut self, _output: Vec<OutputConnection>) {}
+        fn input(&mut self, _input: Input) {}
+        fn function_list(&mut self, _functions: &[RuntimeFunction]) {}
+        fn function_states(&mut self, _function: RuntimeFunction, _function_states: Vec<State>) {}
+        fn run_state(&mut self, _run_state: &RunState) {}
+        fn message(&mut self, _message: String) {}
+        fn panic(&mut self, _state: &RunState, _error_message: String) {}
+        fn debugger_exiting(&mut self) {}
+        fn debugger_resetting(&mut self) {}
+        fn debugger_error(&mut self, _error: String) {}
+        fn execution_starting(&mut self) {}
+        fn execution_ended(&mut self) {}
+        fn get_command(&mut self, _state: &RunState) -> Result<DebugCommand> {
+            Ok(DebugCommand::Step(None))
+        }
+    }
+
+    fn test_function_a_init() -> RuntimeFunction {
+        RuntimeFunction::new(
+            #[cfg(feature = "debugger")]
+                "fA",
+            #[cfg(feature = "debugger")]
+                "/fA",
+            "file://fake/test",
+            vec![Input::new(
+                #[cfg(feature = "debugger")] "",
+                &Some(Once(json!(1))))],
+            0,
+            0,
+            &[],
+            false,
+        )
+    }
+
+    fn test_submission() -> Submission {
+        Submission::new(
+            &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
+            None,
+            #[cfg(feature = "debugger")]
+                true,
+        )
+    }
+
+    #[derive(Debug)]
+    struct TestImpl {}
+
+    impl Implementation for TestImpl {
+        fn run(&self, _inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
+            unimplemented!()
+        }
+    }
+
+    fn test_impl() -> Arc<dyn Implementation> {
+        Arc::new(TestImpl {})
+    }
+
+    fn test_job() -> Job {
+        Job {
+            job_id: 0,
+            function_id: 0,
+            flow_id: 0,
+            implementation: test_impl(),
+            input_set: vec![json!(1)],
+            result: Ok((Some(json!(1)), true)),
+            connections: vec![],
+        }
+    }
+
+    #[test]
+    fn test_display_blocker_node() {
+        let node = BlockerNode::new(0, BlockType::OutputBlocked);
+        println!("{}", node);
+        let node = BlockerNode::new(0, BlockType::UnreadySender);
+        println!("{}", node);
+    }
+
+    #[test]
+    fn test_check_prior_to_job() {
+        let functions = vec![test_function_a_init()];
+        let mut state = RunState::new(&functions, test_submission());
+        let mut server = DummyServer{
+            job_breakpoint: usize::MAX,
+        };
+        let job = test_job();
+        let mut debugger = Debugger::new(&mut server);
+
+        // configure the debugger to break at this job via it's ID
+        debugger.break_at_job = job.job_id;
+
+        // call the debugger check
+        let _ = debugger.check_prior_to_job(&mut state, &job);
+
+        // check the breakpoint triggered at this job_id as expected
+        assert_eq!(server.job_breakpoint, job.job_id)
+        }
+
+    #[test]
+    fn test_check_on_block_creation() {
+
+    }
+
+    #[test]
+    fn test_check_prior_to_send() {
+
+    }
+
+    #[test]
+    fn test_check_prior_to_flow_unblock() {
+
+    }
+}
