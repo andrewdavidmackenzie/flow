@@ -717,6 +717,24 @@ mod test {
 
     struct DummyServer {
         job_breakpoint: usize,
+        block_breakpoint: usize,
+        send_breakpoint: (usize, usize), // (from id, to id)
+        flow_unblock_breakpoint: usize,
+        job_completed: bool,
+        panicked: bool,
+    }
+
+    impl DummyServer {
+        fn new() -> Self {
+            DummyServer{
+                job_breakpoint: usize::MAX,
+                block_breakpoint: usize::MAX,
+                send_breakpoint: (0, 0),
+                flow_unblock_breakpoint: usize::MAX,
+                job_completed: false,
+                panicked: false,
+            }
+        }
     }
 
     impl DebuggerProtocol for DummyServer {
@@ -724,12 +742,20 @@ mod test {
         fn job_breakpoint(&mut self, job: &Job, _function: &RuntimeFunction, _states: Vec<State>) {
             self.job_breakpoint = job.job_id;
         }
-        fn block_breakpoint(&mut self, _block: &Block) {}
-        fn flow_unblock_breakpoint(&mut self, _flow_id: usize) {}
-        fn send_breakpoint(&mut self, _: &str, _source_process_id: usize, _output_route: &str, _value: &Value,
-                           _destination_id: usize, _destination_name:&str, _input_name: &str, _input_number: usize) {}
+        fn block_breakpoint(&mut self, block: &Block) {
+            self.block_breakpoint = block.blocked_function_id;
+        }
+        fn flow_unblock_breakpoint(&mut self, flow_id: usize) {
+            self.flow_unblock_breakpoint = flow_id;
+        }
+        fn send_breakpoint(&mut self, _: &str, source_process_id: usize, _output_route: &str, _value: &Value,
+                           destination_id: usize, _destination_name:&str, _input_name: &str, _input_number: usize) {
+            self.send_breakpoint = (source_process_id, destination_id);
+        }
         fn job_error(&mut self, _job: &Job) {}
-        fn job_completed(&mut self, _job: &Job) {}
+        fn job_completed(&mut self, _job: &Job) {
+            self.job_completed = true;
+        }
         fn blocks(&mut self, _blocks: Vec<Block>) {}
         fn outputs(&mut self, _output: Vec<OutputConnection>) {}
         fn input(&mut self, _input: Input) {}
@@ -737,7 +763,9 @@ mod test {
         fn function_states(&mut self, _function: RuntimeFunction, _function_states: Vec<State>) {}
         fn run_state(&mut self, _run_state: &RunState) {}
         fn message(&mut self, _message: String) {}
-        fn panic(&mut self, _state: &RunState, _error_message: String) {}
+        fn panic(&mut self, _state: &RunState, _error_message: String) {
+            self.panicked = true;
+        }
         fn debugger_exiting(&mut self) {}
         fn debugger_resetting(&mut self) {}
         fn debugger_error(&mut self, _error: String) {}
@@ -748,7 +776,7 @@ mod test {
         }
     }
 
-    fn test_function_a_init() -> RuntimeFunction {
+    fn test_function(id: usize) -> RuntimeFunction {
         RuntimeFunction::new(
             #[cfg(feature = "debugger")]
                 "fA",
@@ -758,7 +786,7 @@ mod test {
             vec![Input::new(
                 #[cfg(feature = "debugger")] "",
                 &Some(Once(json!(1))))],
-            0,
+            id,
             0,
             &[],
             false,
@@ -809,11 +837,9 @@ mod test {
 
     #[test]
     fn test_check_prior_to_job() {
-        let functions = vec![test_function_a_init()];
+        let functions = vec![test_function(0)];
         let mut state = RunState::new(&functions, test_submission());
-        let mut server = DummyServer{
-            job_breakpoint: usize::MAX,
-        };
+        let mut server = DummyServer::new();
         let job = test_job();
         let mut debugger = Debugger::new(&mut server);
 
@@ -825,20 +851,133 @@ mod test {
 
         // check the breakpoint triggered at this job_id as expected
         assert_eq!(server.job_breakpoint, job.job_id)
-        }
-
-    #[test]
-    fn test_check_on_block_creation() {
-
     }
 
     #[test]
-    fn test_check_prior_to_send() {
+    fn test_check_on_block_creation() {
+        let functions = vec![test_function(0)];
+        let mut state = RunState::new(&functions, test_submission());
+        let mut server = DummyServer::new();
+        let mut debugger = Debugger::new(&mut server);
 
+        // configer a break on block creation from function #0 to function #1
+        debugger.block_breakpoints.insert((0, 1));
+        let block = Block::new(0, 1, 0, 0, 0, 0);
+        let _ = debugger.check_on_block_creation(&mut state, &block);
+
+        // check the breakpoint triggered at this blocked function as expected
+        assert_eq!(server.block_breakpoint, 0)
+    }
+
+    #[test]
+    fn test_check_prior_to_send_output() {
+        let functions = vec![test_function(0), test_function(1)];
+        let mut state = RunState::new(&functions, test_submission());
+        let mut server = DummyServer::new();
+        let mut debugger = Debugger::new(&mut server);
+
+        // Setup a breakpoint on the output from function #0
+        debugger.output_breakpoints.insert((0, "".into()));
+
+        let _ = debugger.check_prior_to_send(&mut state, 0, "",
+                    &json!(1), 1, 0);
+
+        // check the breakpoint triggered upon sending from function/route
+        assert_eq!(server.send_breakpoint, (0, 1));
+    }
+
+    #[test]
+    fn test_check_prior_to_send_input() {
+        let functions = vec![test_function(0), test_function(1)];
+        let mut state = RunState::new(&functions, test_submission());
+        let mut server = DummyServer::new();
+        let mut debugger = Debugger::new(&mut server);
+
+        // Setup a breakpoint on the input to function #0, input #0
+        debugger.input_breakpoints.insert((0, 0));
+
+        // send from an imaginary function #1 to function #0 input #0
+        let _ = debugger.check_prior_to_send(&mut state, 1, "",
+                                             &json!(1), 0, 0);
+
+        // check the breakpoint triggered upon sending to the function/input
+        assert_eq!(server.send_breakpoint, (1, 0))
     }
 
     #[test]
     fn test_check_prior_to_flow_unblock() {
+        let functions = vec![test_function(0)];
+        let mut state = RunState::new(&functions, test_submission());
+        let mut server = DummyServer::new();
+        let mut debugger = Debugger::new(&mut server);
 
+        // Setup a breakpoint on the unblocking of flow #0
+        debugger.flow_unblock_breakpoints.insert(0);
+
+        let _ = debugger.check_prior_to_flow_unblock(&mut state, 0);
+
+        // check the breakpoint triggered when the flow was unblocked as expected
+        assert_eq!(server.flow_unblock_breakpoint, 0);
+    }
+
+    #[test]
+    fn test_debugger_reset() {
+        let mut server = DummyServer::new();
+        let job = test_job();
+        let mut debugger = Debugger::new(&mut server);
+
+        // configure the debugger to break at this job via it's ID
+        debugger.break_at_job = job.job_id;
+        debugger.block_breakpoints.insert((0, 1));
+        debugger.output_breakpoints.insert((0, "".into()));
+        debugger.input_breakpoints.insert((0, 0));
+        debugger.flow_unblock_breakpoints.insert(0);
+
+        debugger.reset();
+
+        assert_eq!(debugger.break_at_job, usize::MAX);
+        assert_eq!(debugger.block_breakpoints.len(), 1);
+        assert_eq!(debugger.output_breakpoints.len(), 1);
+        assert_eq!(debugger.input_breakpoints.len(), 1);
+        assert_eq!(debugger.flow_unblock_breakpoints.len(), 1);
+    }
+
+    #[test]
+    fn test_job_completed_ok() {
+        let functions = vec![test_function(0)];
+        let mut state = RunState::new(&functions, test_submission());
+        let mut server = DummyServer::new();
+        let mut debugger = Debugger::new(&mut server);
+        let job = test_job();
+
+        let _ = debugger.job_completed(&mut state, &job);
+
+        assert!(server.job_completed);
+    }
+
+    #[test]
+    fn test_job_completed_err() {
+        let functions = vec![test_function(0)];
+        let mut state = RunState::new(&functions, test_submission());
+        let mut server = DummyServer::new();
+        let mut debugger = Debugger::new(&mut server);
+        let mut job = test_job();
+        job.result = Err(flowcore::errors::Error::from("Test fake Error"));
+
+        let _ = debugger.job_completed(&mut state, &job);
+
+        assert!(server.job_completed);
+    }
+
+    #[test]
+    fn test_panic() {
+        let functions = vec![test_function(0)];
+        let mut state = RunState::new(&functions, test_submission());
+        let mut server = DummyServer::new();
+        let mut debugger = Debugger::new(&mut server);
+
+        let _ = debugger.panic(&mut state, "Test error".into());
+
+        assert!(server.panicked);
     }
 }
