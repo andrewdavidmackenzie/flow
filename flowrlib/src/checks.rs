@@ -1,18 +1,22 @@
+use error_chain::bail;
 use log::error;
 
+use flowcore::errors::Result;
 use flowcore::model::runtime_function::RuntimeFunction;
 
 use crate::block::Block;
 use crate::run_state::{RunState, State};
 
-fn runtime_error(state: &RunState, job_id: usize, message: &str, file: &str, line: u32) {
-    error!("Job #{job_id}: Runtime error: at file: {file}, line: {line}\n\t\t{message}");
-    error!("Job #{job_id}: Error State - {state}");
+fn runtime_error(state: &RunState, job_id: usize, message: &str, file: &str, line: u32) -> Result<()> {
+    let msg = format!("Job #{job_id}: Runtime error: at file: {file}, line: {line}\n
+                        \t\t{message}\nJob #{job_id}: Error State - {state}");
+    error!("{}", msg);
+    bail!(msg);
 }
 
-fn ready_check(state: &RunState, job_id: usize, function: &RuntimeFunction) {
+fn ready_check(state: &RunState, job_id: usize, function: &RuntimeFunction) -> Result<()> {
     if !state.get_busy_flows().contains_key(&function.get_flow_id()) {
-        runtime_error(
+        return runtime_error(
             state,
             job_id,
             &format!(
@@ -26,7 +30,7 @@ fn ready_check(state: &RunState, job_id: usize, function: &RuntimeFunction) {
     }
 
     if !function.can_run() {
-        runtime_error(
+        return runtime_error(
             state,
             job_id,
             &format!(
@@ -37,11 +41,13 @@ fn ready_check(state: &RunState, job_id: usize, function: &RuntimeFunction) {
             line!(),
         );
     }
+
+    Ok(())
 }
 
-fn running_check(state: &RunState, job_id: usize, function: &RuntimeFunction) {
+fn running_check(state: &RunState, job_id: usize, function: &RuntimeFunction) -> Result<()> {
     if !state.get_busy_flows().contains_key(&function.get_flow_id()) {
-        runtime_error(
+        return runtime_error(
             state,
             job_id,
             &format!(
@@ -53,11 +59,13 @@ fn running_check(state: &RunState, job_id: usize, function: &RuntimeFunction) {
             line!(),
         );
     }
+
+    Ok(())
 }
 
-fn blocked_check(state: &RunState, job_id: usize, function: &RuntimeFunction) {
+fn blocked_check(state: &RunState, job_id: usize, function: &RuntimeFunction) -> Result<()> {
     if !state.blocked_sending(function.id()) {
-        runtime_error(
+        return runtime_error(
             state,
             job_id,
             &format!(
@@ -70,7 +78,7 @@ fn blocked_check(state: &RunState, job_id: usize, function: &RuntimeFunction) {
     }
 
     if !function.can_run() {
-        runtime_error(
+        return runtime_error(
             state,
             job_id,
             &format!(
@@ -81,17 +89,21 @@ fn blocked_check(state: &RunState, job_id: usize, function: &RuntimeFunction) {
             line!(),
         );
     }
+
+    Ok(())
 }
 
 // Empty test for waiting state to have checks for all state
-fn waiting_check(_state: &RunState, _job_id: usize, _function: &RuntimeFunction) {}
+fn waiting_check(_state: &RunState, _job_id: usize, _function: &RuntimeFunction) -> Result<()> {
+    Ok(())
+}
 
 // If function has completed, its States should contain Completed and only Completed
 fn completed_check(state: &RunState, job_id: usize, function: &RuntimeFunction,
-                   function_states: &Vec<State>) {
+                   function_states: &Vec<State>) -> Result<()> {
     if !(function_states.contains(&State::Completed) && function_states.len() == 1)
     {
-        runtime_error(
+        return runtime_error(
             state,
             job_id,
             &format!(
@@ -102,12 +114,14 @@ fn completed_check(state: &RunState, job_id: usize, function: &RuntimeFunction,
             line!(),
         );
     }
+
+    Ok(())
 }
 
 // function should not be blocked on itself
-fn self_block_check(state: &RunState, job_id: usize, block: &Block) {
+fn self_block_check(state: &RunState, job_id: usize, block: &Block) -> Result<()> {
     if block.blocked_function_id == block.blocking_function_id {
-        runtime_error(
+        return runtime_error(
             state,
             job_id,
             &format!(
@@ -117,10 +131,12 @@ fn self_block_check(state: &RunState, job_id: usize, block: &Block) {
             line!(),
         );
     }
+
+    Ok(())
 }
 
 fn destination_block_state_check(state: &RunState, job_id: usize, block: &Block,
-                                 functions: &[RuntimeFunction]) {
+                                 functions: &[RuntimeFunction]) -> Result<()> {
     // For each block on a destination function, then either that input should be full or
     // the function should be running in parallel with the one that just completed
     // or it's flow should be busy and there should be a pending unblock on it
@@ -129,7 +145,7 @@ fn destination_block_state_check(state: &RunState, job_id: usize, block: &Block,
             || (state.get_busy_flows().contains_key(&block.blocking_flow_id)
             && state.get_pending_unblocks().contains_key(&block.blocking_flow_id)))
         {
-            runtime_error(
+            return runtime_error(
                 state,
                 job_id,
                 &format!("Block {} exists for function #{}, but Function #{}:{} input is not full",
@@ -137,10 +153,12 @@ fn destination_block_state_check(state: &RunState, job_id: usize, block: &Block,
                 file!(), line!());
         }
     }
+
+    Ok(())
 }
 
 // Check busy flow invariants
-fn flow_checks(state: &RunState, job_id: usize) {
+fn flow_checks(state: &RunState, job_id: usize) -> Result<()> {
     for (flow_id, function_id) in state.get_busy_flows().iter() {
         if !state.function_states_includes(*function_id, State::Ready) &&
             !state.function_states_includes(*function_id, State::Running) {
@@ -152,10 +170,12 @@ fn flow_checks(state: &RunState, job_id: usize) {
                 file!(), line!());
         }
     }
+
+    Ok(())
 }
 
 // Check pending unblock invariants
-fn pending_unblock_checks(state: &RunState, job_id: usize) {
+fn pending_unblock_checks(state: &RunState, job_id: usize) -> Result<()> {
     for pending_unblock_flow_id in state.get_pending_unblocks().keys() {
         // flow it's in must be busy
         if !state.get_busy_flows().contains_key(pending_unblock_flow_id) {
@@ -170,41 +190,47 @@ fn pending_unblock_checks(state: &RunState, job_id: usize) {
             );
         }
     }
+
+    Ok(())
 }
 
 // Check block invariants
-fn block_checks(state: &RunState, job_id: usize) {
+fn block_checks(state: &RunState, job_id: usize) -> Result<()> {
     let functions = state.get_functions();
     for block in state.get_blocks() {
-        self_block_check(state, job_id, block);
-        destination_block_state_check(state, job_id, block, functions);
+        self_block_check(state, job_id, block)?;
+        destination_block_state_check(state, job_id, block, functions)?;
     }
+
+    Ok(())
 }
 
-fn function_state_checks(state: &RunState, job_id: usize) {
+fn function_state_checks(state: &RunState, job_id: usize) -> Result<()> {
     let functions = state.get_functions();
     for function in functions {
         let function_states = &state.get_function_states(function.id());
         for function_state in function_states {
             match function_state {
-                State::Ready => ready_check(state, job_id, function),
-                State::Running => running_check(state, job_id, function),
-                State::Blocked => blocked_check(state, job_id, function),
-                State::Waiting => waiting_check(state, job_id, function),
-                State::Completed => completed_check(state, job_id, function, function_states),
+                State::Ready => ready_check(state, job_id, function)?,
+                State::Running => running_check(state, job_id, function)?,
+                State::Blocked => blocked_check(state, job_id, function)?,
+                State::Waiting => waiting_check(state, job_id, function)?,
+                State::Completed => completed_check(state, job_id, function, function_states)?,
             }
         }
     }
+
+    Ok(())
 }
 
 /// Check a number of "invariants" i.e. unbreakable rules about the state.
 /// If one is found to be broken, report a runtime error explaining it, which may
 /// trigger entry into the debugger.
-pub(crate) fn check_invariants(state: &RunState, job_id: usize) {
-    function_state_checks(state, job_id);
-    block_checks(state, job_id);
-    pending_unblock_checks(state, job_id);
-    flow_checks(state, job_id);
+pub(crate) fn check_invariants(state: &RunState, job_id: usize) -> Result<()> {
+    function_state_checks(state, job_id)?;
+    block_checks(state, job_id)?;
+    pending_unblock_checks(state, job_id)?;
+    flow_checks(state, job_id)
 }
 
 #[cfg(test)]
@@ -272,7 +298,7 @@ mod test {
         state.mark_ready(0, 0);
 
         // this ready_check() should pass
-        ready_check(&state, 0, state.get_function(0));
+        ready_check(&state, 0, state.get_function(0)).expect("Should pass")
     }
 
     #[test]
@@ -283,7 +309,7 @@ mod test {
         // Do not mark flow_id as busy - if a function is ready, the flow containing it should
         // be marked as busy, so this ready_check() should fail
 
-        ready_check(&state, 0, state.get_function(0));
+        assert!(ready_check(&state, 0, state.get_function(0)).is_err());
     }
 
     #[test]
@@ -296,7 +322,7 @@ mod test {
         state.mark_ready(0, 0);
 
         // this running check should fail
-        running_check(&state, 0, state.get_function(0));
+        running_check(&state, 0, state.get_function(0)).expect("Should pass");
     }
 
     #[test]
@@ -308,7 +334,7 @@ mod test {
         // should be in the list of busy flows
 
         // this running check should fail
-        running_check(&state, 0, state.get_function(0));
+        assert!(running_check(&state, 0, state.get_function(0)).is_err());
     }
 
     #[cfg(feature = "debugger")]
@@ -367,7 +393,7 @@ mod test {
             #[cfg(feature = "debugger")] &mut debugger);
 
         // this blocked check should pass
-        blocked_check(&state, 0, state.get_function(0));
+        blocked_check(&state, 0, state.get_function(0)).expect("Should pass");
     }
 
     #[test]
@@ -378,7 +404,7 @@ mod test {
         // Do NOT mark function #0 as blocked
 
         // this blocked check should fail
-        blocked_check(&state, 0, state.get_function(0));
+        assert!(blocked_check(&state, 0, state.get_function(0)).is_err());
     }
 
     #[test]
@@ -391,7 +417,8 @@ mod test {
         let functions_states = vec![State::Completed];
 
         // this completed check should pass
-        completed_check(&state, 0, state.get_function(0), &functions_states);
+        completed_check(&state, 0, state.get_function(0), &functions_states)
+            .expect("Should pass");
     }
 
     #[test]
@@ -403,6 +430,8 @@ mod test {
         let functions_states = vec![State::Ready];
 
         // this completed check should fail
-        completed_check(&state, 0, state.get_function(0), &functions_states);
+        assert!(completed_check(&state, 0,
+                                state.get_function(0), &functions_states)
+            .is_err());
     }
 }

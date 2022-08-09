@@ -618,7 +618,7 @@ impl RunState {
             )?;
 
         #[cfg(debug_assertions)]
-        checks::check_invariants(self, job_id);
+        checks::check_invariants(self, job_id)?;
 
         trace!(
             "Job #{}: Completed-----------------------",
