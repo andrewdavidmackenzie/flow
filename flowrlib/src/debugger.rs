@@ -231,11 +231,13 @@ impl<'a> Debugger<'a> {
             {
                 // *************************      The following are commands that send a response
                 Ok(Breakpoint(param)) => {
-                    let message = self.add_breakpoint(state, param);
+                    let result =  self.add_breakpoint(state, param);
+                    let message = result.unwrap_or_else(|e| e.to_string());
                     self.debug_server.message(message);
                 },
                 Ok(Delete(param)) => {
-                    let message = self.delete_breakpoint(param);
+                    let result = self.delete_breakpoint(state, param);
+                    let message = result.unwrap_or_else(|e| e.to_string());
                     self.debug_server.message(message);
                 },
                 Ok(Validate) => {
@@ -369,107 +371,125 @@ impl<'a> Debugger<'a> {
     /*
        Add a breakpoint to the debugger according to the Optional `Param`
     */
-    fn add_breakpoint(&mut self, state: &RunState, param: Option<BreakpointSpec>) -> String {
-        let mut response = String::new();
-
+    fn add_breakpoint(&mut self, state: &RunState, param: Option<BreakpointSpec>) -> Result<String> {
         match param {
-            None => response.push_str("'break' command must specify a breakpoint\n"),
+            None => bail!("'break' command must specify a breakpoint\n"),
+            Some(BreakpointSpec::All) =>
+                bail!("To break on every Function, you can just single step using 's' command\n"),
             Some(BreakpointSpec::Numeric(process_id)) => {
-                if process_id > state.num_functions() {
-                    let _ = writeln!(response,
-                        "There is no Function with id '{}' to set a breakpoint on",
-                        process_id
-                    );
-                } else {
-                    self.function_breakpoints.insert(process_id);
-                    let function = state.get_function(process_id);
-                    let _ = writeln!(response,
-                        "Breakpoint set on Function #{} ({}) @ '{}'",
-                        process_id, function.name(), function.route()
-                    );
+                if process_id >= state.num_functions() {
+                    bail!("There is no Function with id '{process_id}' to set a breakpoint on");
                 }
+
+                self.function_breakpoints.insert(process_id);
+                let function = state.get_function(process_id);
+                Ok(format!("Breakpoint set on Function #{} ({}) @ '{}'",
+                    process_id, function.name(), function.route()))
             }
             Some(BreakpointSpec::Input((destination_id, input_number))) => {
+                if destination_id >= state.num_functions() {
+                    bail!("There is no Function #{destination_id} to set a breakpoint on");
+                }
+
                 let function = state.get_function(destination_id);
+
+                if input_number >= function.inputs().len() {
+                    bail!("There is no Input :{input_number} on function #{destination_id}");
+                }
                 let io_name = function.input(input_number).name();
-                let _ = writeln!(response,
-                    "Data breakpoint set on Function #{}:{} '{}' receiving data on input '{}'",
-                    destination_id, input_number, function.name(), io_name);
-                self.input_breakpoints
-                    .insert((destination_id, input_number));
+                self.input_breakpoints.insert((destination_id, input_number));
+                Ok(format!(
+                    "Data breakpoint set on Function #{destination_id}:{input_number} '{}' receiving data on input '{}'",
+                    function.name(), io_name))
             }
             Some(BreakpointSpec::Block((Some(blocked_id), Some(blocking_id)))) => {
-                let _ = writeln!(response,
-                    "Block breakpoint set on Function #{} being blocked by Function #{}",
-                    blocked_id, blocking_id
-                );
+                if blocked_id >= state.num_functions() {
+                    bail!("There is no Function #{blocked_id} to set a Block breakpoint on");
+                }
+
+                if blocking_id >= state.num_functions() {
+                    bail!("There is no Function #{blocking_id} to set a Block breakpoint on");
+                }
+
                 self.block_breakpoints.insert((blocked_id, blocking_id));
+                Ok(format!(
+                    "Block breakpoint set on Function #{blocked_id} being blocked by Function #{blocking_id}"))
             }
-            Some(BreakpointSpec::Block(_)) => {
-                response.push_str("Invalid format to set a breakpoint on a block\n");
-            }
+            Some(BreakpointSpec::Block(_)) => bail!("Invalid format to set a breakpoint on a block\n"),
             Some(BreakpointSpec::Output((source_id, source_output_route))) => {
-                let _ = writeln!(response,
-                    "Data breakpoint set on Function #{} sending data via output: '{}'",
-                    source_id, source_output_route
-                );
-                self.output_breakpoints
-                    .insert((source_id, source_output_route));
-            }
-            Some(BreakpointSpec::All) => {
-                response.push_str(
-                    "To break on every Function, you can just single step using 's' command\n",
-                );
+                if source_id >= state.num_functions() {
+                    bail!("There is no Function #{source_id} to set a Output breakpoint on");
+                }
+
+                self.output_breakpoints.insert((source_id, source_output_route.clone()));
+                Ok(format!(
+                    "Data breakpoint set on Function #{source_id} sending data via output: '{source_output_route}'"
+                ))
             }
         }
-
-        response
     }
 
     /*
        Delete debugger breakpoints related to Jobs or Blocks, etc according to the Spec.
     */
-    fn delete_breakpoint(&mut self, param: Option<BreakpointSpec>) -> String {
-        let mut response = String::new();
-
+    fn delete_breakpoint(&mut self, state: &RunState, param: Option<BreakpointSpec>) -> Result<String> {
         match param {
-            None => response.push_str("No process id specified\n"),
-            Some(BreakpointSpec::Numeric(process_number)) => {
-                if self.function_breakpoints.remove(&process_number) {
-                    let _ = writeln!(response,
-                        "Breakpoint on process #{} was deleted",
-                        process_number
-                    );
-                } else {
-                    response.push_str("No breakpoint number '{}' exists\n");
-                }
-            }
-            Some(BreakpointSpec::Input((destination_id, input_number))) => {
-                self.input_breakpoints
-                    .remove(&(destination_id, input_number));
-                response.push_str("Inputs breakpoint removed\n");
-            }
-            Some(BreakpointSpec::Block((Some(blocked_id), Some(blocking_id)))) => {
-                self.input_breakpoints.remove(&(blocked_id, blocking_id));
-                response.push_str("Inputs breakpoint removed\n");
-            }
-            Some(BreakpointSpec::Block(_)) => {
-                response.push_str("Invalid format to remove breakpoint\n");
-            }
-            Some(BreakpointSpec::Output((source_id, source_output_route))) => {
-                self.output_breakpoints
-                    .remove(&(source_id, source_output_route));
-                response.push_str("Output breakpoint removed\n");
-            }
+            None => bail!("No process id specified\n"),
             Some(BreakpointSpec::All) => {
                 self.output_breakpoints.clear();
                 self.input_breakpoints.clear();
                 self.function_breakpoints.clear();
-                response.push_str("Deleted all breakpoints\n");
+                Ok("Deleted all breakpoints\n".into())
+            }
+            Some(BreakpointSpec::Numeric(process_number)) => {
+                if process_number >= state.num_functions() {
+                    bail!("There is no Function with id '{process_number}' to delete a breakpoint from");
+                }
+
+                if self.function_breakpoints.remove(&process_number) {
+                    Ok(format!("Breakpoint on process #{process_number} was deleted"))
+                } else {
+                    bail!("No breakpoint number '{}' exists\n")
+                }
+            }
+            Some(BreakpointSpec::Input((destination_id, input_number))) => {
+                if destination_id >= state.num_functions() {
+                    bail!("There is no Function #{destination_id} to delete a breakpoint from");
+                }
+
+                let function = state.get_function(destination_id);
+
+                if input_number >= function.inputs().len() {
+                    bail!("There is no Input :{input_number} on function #{destination_id}");
+                }
+
+                self.input_breakpoints
+                    .remove(&(destination_id, input_number));
+                Ok("Inputs breakpoint removed\n".into())
+            }
+            Some(BreakpointSpec::Block((Some(blocked_id), Some(blocking_id)))) => {
+                if blocked_id >= state.num_functions() {
+                    bail!("There is no Function #{blocked_id} to delete a Block breakpoint from");
+                }
+
+                if blocking_id >= state.num_functions() {
+                    bail!("There is no Function #{blocking_id} to delete a Block breakpoint from");
+                }
+
+                self.input_breakpoints.remove(&(blocked_id, blocking_id));
+                Ok("Inputs breakpoint removed\n".into())
+            }
+            Some(BreakpointSpec::Block(_)) => bail!("Invalid format to remove breakpoint\n"),
+            Some(BreakpointSpec::Output((source_id, source_output_route))) => {
+                if source_id >= state.num_functions() {
+                    bail!("There is no Function #{source_id} to delete a Output breakpoint from");
+                }
+
+                self.output_breakpoints
+                    .remove(&(source_id, source_output_route));
+                Ok("Output breakpoint removed\n".into())
             }
         }
-
-        response
     }
 
     /*
@@ -578,8 +598,10 @@ impl<'a> Debugger<'a> {
         }
     }
 
-    // Take one step (execute one more job) in the flow. Do this by setting a breakpoint at the
-    // next job execution and then returning - flow execution will continue until breakpoint fires
+    /*
+     Take one step (execute one more job) in the flow. Do this by setting a breakpoint at the
+     next job execution and then returning - flow execution will continue until breakpoint fires
+    */
     fn step(&mut self, state: &RunState, steps: Option<usize>) {
         match steps {
             None => {
@@ -709,7 +731,7 @@ mod test {
     use flowcore::model::submission::Submission;
 
     use crate::block::Block;
-    use crate::debug_command::DebugCommand;
+    use crate::debug_command::{BreakpointSpec, DebugCommand};
     use crate::debugger::{BlockerNode, BlockType, Debugger};
     use crate::job::Job;
     use crate::run_state::{RunState, State};
@@ -993,49 +1015,17 @@ mod test {
         let mut debugger = Debugger::new(&mut server);
 
         // zero_to_one
-        let _ = state.create_block(
-            0,
-            1,
-            0,
-            0,
-            0,
-            0,
-            &mut debugger,
-        );
+        let _ = state.create_block(0, 1, 0, 0, 0, 0, &mut debugger);
 
         // zero_to_two
-        let _ = state.create_block(
-            0,
-            2,
-            0,
-            0,
-            0,
-            0,
-            &mut debugger,
-        );
+        let _ = state.create_block(0, 2, 0, 0, 0, 0, &mut debugger);
 
 
         // three_to_two
-        let _ = state.create_block(
-            0,
-            2,
-            0,
-            3,
-            0,
-            0,
-            &mut debugger,
-        );
+        let _ = state.create_block(0, 2, 0, 3, 0, 0, &mut debugger);
 
         // three_to_one
-        let _ = state.create_block(
-            0,
-            1,
-            0,
-            3,
-            0,
-            0,
-            &mut debugger,
-        );
+        let _ = state.create_block(0, 1, 0, 3, 0, 0, &mut debugger);
 
         assert_eq!(Debugger::inspect_blocks(&state, Some(0), None).len(), 2);
         assert_eq!(Debugger::inspect_blocks(&state, Some(0), Some(1)).len(), 1);
@@ -1043,5 +1033,251 @@ mod test {
         assert_eq!(Debugger::inspect_blocks(&state, None, Some(2)).len(), 2);
         assert_eq!(Debugger::inspect_blocks(&state, Some(3), Some(2)).len(), 1);
         assert_eq!(Debugger::inspect_blocks(&state, None, Some(0)).len(), 0);
+    }
+
+    #[test]
+    fn test_none_breakpoint_spec_fails() {
+        let functions = vec![test_function(0)];
+        let state = RunState::new(&functions, test_submission());
+        let mut server = DummyServer::new();
+        let mut debugger = Debugger::new(&mut server);
+        assert!(debugger.add_breakpoint(&state, None).is_err());
+    }
+
+    #[test]
+    fn test_all_breakpoint_spec_fails() {
+        let functions = vec![test_function(0)];
+        let state = RunState::new(&functions, test_submission());
+        let mut server = DummyServer::new();
+        let mut debugger = Debugger::new(&mut server);
+        assert!(debugger.add_breakpoint(&state, Some(BreakpointSpec::All)).is_err());
+    }
+
+    #[test]
+    fn test_non_specific_block_breakpoint_spec_fails() {
+        let functions = vec![test_function(0)];
+        let state = RunState::new(&functions, test_submission());
+        let mut server = DummyServer::new();
+        let mut debugger = Debugger::new(&mut server);
+        assert!(debugger.add_breakpoint(&state, Some(BreakpointSpec::Block((None, None)))).is_err());
+        assert!(debugger.add_breakpoint(&state, Some(BreakpointSpec::Block((None, Some(0))))).is_err());
+        assert!(debugger.add_breakpoint(&state, Some(BreakpointSpec::Block((Some(0), None)))).is_err());
+    }
+
+    #[test]
+    fn test_specific_block_breakpoint_spec_passes() {
+        let functions = vec![test_function(0), test_function(1)];
+        let state = RunState::new(&functions, test_submission());
+        let mut server = DummyServer::new();
+        let mut debugger = Debugger::new(&mut server);
+        assert!(debugger.add_breakpoint(&state, Some(BreakpointSpec::Block((Some(0), Some(1))))).is_ok());
+    }
+
+    #[test]
+    fn test_numeric_breakpoint_no_such_function_fails() {
+        let functions = vec![test_function(0)];
+        let state = RunState::new(&functions, test_submission());
+        let mut server = DummyServer::new();
+        let mut debugger = Debugger::new(&mut server);
+        assert!(debugger.add_breakpoint(&state, Some(BreakpointSpec::Numeric(1))).is_err());
+    }
+
+    #[test]
+    fn test_numeric_breakpoint_existing_function_passes() {
+        let functions = vec![test_function(0)];
+        let state = RunState::new(&functions, test_submission());
+        let mut server = DummyServer::new();
+        let mut debugger = Debugger::new(&mut server);
+        assert!(debugger.add_breakpoint(&state, Some(BreakpointSpec::Numeric(0))).is_ok());
+    }
+
+    #[test]
+    fn test_input_breakpoint_no_such_function_fails() {
+        let functions = vec![test_function(0)];
+        let state = RunState::new(&functions, test_submission());
+        let mut server = DummyServer::new();
+        let mut debugger = Debugger::new(&mut server);
+        assert!(debugger.add_breakpoint(&state, Some(BreakpointSpec::Input((1, 0)))).is_err());
+    }
+
+    #[test]
+    fn test_input_breakpoint_no_such_input_fails() {
+        let functions = vec![test_function(0)];
+        let state = RunState::new(&functions, test_submission());
+        let mut server = DummyServer::new();
+        let mut debugger = Debugger::new(&mut server);
+        assert!(debugger.add_breakpoint(&state, Some(BreakpointSpec::Input((0, 1)))).is_err());
+    }
+
+    #[test]
+    fn test_input_breakpoint_passes() {
+        let functions = vec![test_function(0)];
+        let state = RunState::new(&functions, test_submission());
+        let mut server = DummyServer::new();
+        let mut debugger = Debugger::new(&mut server);
+        assert!(debugger.add_breakpoint(&state, Some(BreakpointSpec::Input((0, 0)))).is_ok());
+    }
+
+    #[test]
+    fn test_block_breakpoint_no_such_source_function_fails() {
+        let functions = vec![test_function(0)];
+        let state = RunState::new(&functions, test_submission());
+        let mut server = DummyServer::new();
+        let mut debugger = Debugger::new(&mut server);
+        assert!(debugger.add_breakpoint(&state, Some(BreakpointSpec::Block((Some(1), Some(0))))).is_err());
+    }
+
+    #[test]
+    fn test_block_breakpoint_no_such_destination_function_fails() {
+        let functions = vec![test_function(0)];
+        let state = RunState::new(&functions, test_submission());
+        let mut server = DummyServer::new();
+        let mut debugger = Debugger::new(&mut server);
+        assert!(debugger.add_breakpoint(&state, Some(BreakpointSpec::Block((Some(0), Some(1))))).is_err());
+    }
+
+    #[test]
+    fn test_output_breakpoint_no_such_function_fails() {
+        let functions = vec![test_function(0)];
+        let state = RunState::new(&functions, test_submission());
+        let mut server = DummyServer::new();
+        let mut debugger = Debugger::new(&mut server);
+        assert!(debugger.add_breakpoint(&state, Some(BreakpointSpec::Output((1, "".into())))).is_err());
+    }
+
+    #[test]
+    fn test_output_breakpoint_function_exists_passes() {
+        let functions = vec![test_function(0)];
+        let state = RunState::new(&functions, test_submission());
+        let mut server = DummyServer::new();
+        let mut debugger = Debugger::new(&mut server);
+        assert!(debugger.add_breakpoint(&state, Some(BreakpointSpec::Output((0, "".into())))).is_ok());
+    }
+
+    #[test]
+    fn test_delete_none_breakpoint_spec_fails() {
+        let functions = vec![test_function(0)];
+        let state = RunState::new(&functions, test_submission());
+        let mut server = DummyServer::new();
+        let mut debugger = Debugger::new(&mut server);
+        assert!(debugger.delete_breakpoint(&state, None).is_err());
+    }
+
+    #[test]
+    fn test_delete_all_breakpoint_spec_fails() {
+        let functions = vec![test_function(0)];
+        let state = RunState::new(&functions, test_submission());
+        let mut server = DummyServer::new();
+        let mut debugger = Debugger::new(&mut server);
+        assert!(debugger.delete_breakpoint(&state, Some(BreakpointSpec::All)).is_ok());
+    }
+
+    #[test]
+    fn test_delete_non_specific_block_breakpoint_spec_fails() {
+        let functions = vec![test_function(0)];
+        let state = RunState::new(&functions, test_submission());
+        let mut server = DummyServer::new();
+        let mut debugger = Debugger::new(&mut server);
+        assert!(debugger.delete_breakpoint(&state, Some(BreakpointSpec::Block((None, None)))).is_err());
+        assert!(debugger.delete_breakpoint(&state, Some(BreakpointSpec::Block((None, Some(0))))).is_err());
+        assert!(debugger.delete_breakpoint(&state, Some(BreakpointSpec::Block((Some(0), None)))).is_err());
+    }
+
+    #[test]
+    fn test_delete_specific_block_breakpoint_spec_passes() {
+        let functions = vec![test_function(0), test_function(1)];
+        let state = RunState::new(&functions, test_submission());
+        let mut server = DummyServer::new();
+        let mut debugger = Debugger::new(&mut server);
+        debugger.add_breakpoint(&state, Some(BreakpointSpec::Block((Some(0), Some(1)))))
+            .expect("Couldn't add breakpoint");
+        assert!(debugger.delete_breakpoint(&state, Some(BreakpointSpec::Block((Some(0), Some(1))))).is_ok());
+    }
+
+    #[test]
+    fn test_delete_numeric_breakpoint_no_such_function_fails() {
+        let functions = vec![test_function(0)];
+        let state = RunState::new(&functions, test_submission());
+        let mut server = DummyServer::new();
+        let mut debugger = Debugger::new(&mut server);
+        assert!(debugger.delete_breakpoint(&state, Some(BreakpointSpec::Numeric(1))).is_err());
+    }
+
+    #[test]
+    fn test_delete_numeric_breakpoint_existing_function_passes() {
+        let functions = vec![test_function(0)];
+        let state = RunState::new(&functions, test_submission());
+        let mut server = DummyServer::new();
+        let mut debugger = Debugger::new(&mut server);
+        debugger.add_breakpoint(&state, Some(BreakpointSpec::Numeric(0)))
+            .expect("Couldn't add breakpoint");
+        assert!(debugger.delete_breakpoint(&state, Some(BreakpointSpec::Numeric(0))).is_ok());
+    }
+
+    #[test]
+    fn test_delete_input_breakpoint_no_such_function_fails() {
+        let functions = vec![test_function(0)];
+        let state = RunState::new(&functions, test_submission());
+        let mut server = DummyServer::new();
+        let mut debugger = Debugger::new(&mut server);
+        assert!(debugger.delete_breakpoint(&state, Some(BreakpointSpec::Input((1, 0)))).is_err());
+    }
+
+    #[test]
+    fn test_delete_input_breakpoint_no_such_input_fails() {
+        let functions = vec![test_function(0)];
+        let state = RunState::new(&functions, test_submission());
+        let mut server = DummyServer::new();
+        let mut debugger = Debugger::new(&mut server);
+        assert!(debugger.delete_breakpoint(&state, Some(BreakpointSpec::Input((0, 1)))).is_err());
+    }
+
+    #[test]
+    fn test_delete_input_breakpoint_passes() {
+        let functions = vec![test_function(0)];
+        let state = RunState::new(&functions, test_submission());
+        let mut server = DummyServer::new();
+        let mut debugger = Debugger::new(&mut server);
+        debugger.add_breakpoint(&state, Some(BreakpointSpec::Input((0, 0))))
+            .expect("Couldn't add breakpoint");
+        assert!(debugger.delete_breakpoint(&state, Some(BreakpointSpec::Input((0, 0)))).is_ok());
+    }
+
+    #[test]
+    fn test_delete_block_breakpoint_no_such_source_function_fails() {
+        let functions = vec![test_function(0)];
+        let state = RunState::new(&functions, test_submission());
+        let mut server = DummyServer::new();
+        let mut debugger = Debugger::new(&mut server);
+        assert!(debugger.delete_breakpoint(&state, Some(BreakpointSpec::Block((Some(1), Some(0))))).is_err());
+    }
+
+    #[test]
+    fn test_delete_block_breakpoint_no_such_destination_function_fails() {
+        let functions = vec![test_function(0)];
+        let state = RunState::new(&functions, test_submission());
+        let mut server = DummyServer::new();
+        let mut debugger = Debugger::new(&mut server);
+        assert!(debugger.delete_breakpoint(&state, Some(BreakpointSpec::Block((Some(0), Some(1))))).is_err());
+    }
+
+    #[test]
+    fn test_delete_output_breakpoint_no_such_function_fails() {
+        let functions = vec![test_function(0)];
+        let state = RunState::new(&functions, test_submission());
+        let mut server = DummyServer::new();
+        let mut debugger = Debugger::new(&mut server);
+        assert!(debugger.delete_breakpoint(&state, Some(BreakpointSpec::Output((1, "".into())))).is_err());
+    }
+
+    #[test]
+    fn test_delete_output_breakpoint_function_exists_passes() {
+        let functions = vec![test_function(0)];
+        let state = RunState::new(&functions, test_submission());
+        let mut server = DummyServer::new();
+        let mut debugger = Debugger::new(&mut server);
+        debugger.add_breakpoint(&state, Some(BreakpointSpec::Output((0, "".into()))))
+            .expect("Couldn't add breakpoint");
+        assert!(debugger.delete_breakpoint(&state, Some(BreakpointSpec::Output((0, "".into())))).is_ok());
     }
 }
