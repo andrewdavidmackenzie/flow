@@ -5,7 +5,7 @@ use log::{debug, info};
 use serde_derive::Serialize;
 use url::Url;
 
-use flowcore::model::connection::{Connection, LOOPBACK_PRIORITY};
+use flowcore::model::connection::Connection;
 use flowcore::model::flow_definition::FlowDefinition;
 use flowcore::model::function_definition::FunctionDefinition;
 use flowcore::model::name::HasName;
@@ -76,7 +76,6 @@ pub fn compile(flow: &FlowDefinition, output_dir: &Path,
     checker::check_function_inputs(&mut tables)?;
     checker::check_side_effects(&mut tables)?;
     configuring_output_connections(&mut tables)?;
-    checker::check_priorities(&tables)?;
     compile_supplied_implementations(
         output_dir,
         &mut tables,
@@ -136,13 +135,6 @@ fn configuring_output_connections(tables: &mut CompilerTables) -> Result<()> {
                     debug!("  Source output route = '{}' --> function #{}:{}",
                            source, destination_function_id, destination_input_index);
 
-                    // Detect loopback connections and set their priority appropriately
-                    let priority = if source_id == destination_function_id {
-                        LOOPBACK_PRIORITY
-                    } else {
-                        connection.get_priority()
-                    };
-
                     let output_conn = OutputConnection::new(
                         source,
                         destination_function_id,
@@ -153,7 +145,6 @@ fn configuring_output_connections(tables: &mut CompilerTables) -> Result<()> {
                         connection.to_io().route().to_string(),
                         #[cfg(feature = "debugger")]
                             connection.name().to_string(),
-                        priority,
                     );
                     source_function.add_output_connection(output_conn);
                 }
@@ -273,15 +264,15 @@ mod test {
         use super::super::get_source;
 
         /*
-                                    Create a HashTable of routes for use in tests.
-                                    Each entry (K, V) is:
-                                    - Key   - the route to a function's IO
-                                    - Value - a tuple of
-                                                - sub-route (or IO name) from the function to be used at runtime
-                                                - the id number of the function in the functions table, to select it at runtime
+                                            Create a HashTable of routes for use in tests.
+                                            Each entry (K, V) is:
+                                            - Key   - the route to a function's IO
+                                            - Value - a tuple of
+                                                        - sub-route (or IO name) from the function to be used at runtime
+                                                        - the id number of the function in the functions table, to select it at runtime
 
-                                    Plus a vector of test cases with the Route to search for and the expected function_id and output sub-route
-                                */
+                                            Plus a vector of test cases with the Route to search for and the expected function_id and output sub-route
+                                        */
         #[allow(clippy::type_complexity)]
         fn test_source_routes() -> (
             HashMap<Route, (Source, usize)>,

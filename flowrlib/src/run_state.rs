@@ -314,7 +314,6 @@ impl RunState {
                             destination.io_number,
                             source_id,
                             source_flow_id,
-                            0 /* priority of an initializer */
                         ));
                         // only put source on the blocked list if it already has it's inputs full
                         if source_has_inputs_full {
@@ -691,7 +690,6 @@ impl RunState {
                 connection.io_number,
                 source_id,
                 source_flow_id,
-                connection.get_priority(),
                 #[cfg(feature = "debugger")]
                     debugger,
             )?;
@@ -934,9 +932,6 @@ impl RunState {
             }
         }
 
-        unblock_set.sort_by(|a, b| b.priority.cmp(&a.priority));
-        unblock_set.reverse();
-
         // update the state of the functions that have been unblocked
         // Note: they could be blocked on other functions apart from the the one that just unblocked
         for block in unblock_set {
@@ -966,7 +961,6 @@ impl RunState {
         blocking_io_number: usize,
         blocked_function_id: usize,
         blocked_flow_id: usize,
-        priority: usize,
         #[cfg(feature = "debugger")] debugger: &mut Debugger,
     ) -> Result<(bool, bool)>{
         let block = Block::new(
@@ -975,7 +969,6 @@ impl RunState {
             blocking_io_number,
             blocked_function_id,
             blocked_flow_id,
-            priority,
         );
 
         trace!("\t\t\t\t\tCreating Block {:?}", block);
@@ -1054,7 +1047,6 @@ mod test {
             "/fB".to_string(),
             #[cfg(feature = "debugger")]
             String::default(),
-            0,
         );
 
         RuntimeFunction::new(
@@ -1084,7 +1076,6 @@ mod test {
             "/fB".to_string(),
             #[cfg(feature = "debugger")]
             String::default(),
-            0,
         );
         RuntimeFunction::new(
             #[cfg(feature = "debugger")]
@@ -1164,7 +1155,6 @@ mod test {
             String::default(),
             #[cfg(feature = "debugger")]
             String::default(),
-            0,
         );
         Job {
             job_id: 1,
@@ -1649,7 +1639,6 @@ mod test {
                 String::default(),
                 #[cfg(feature = "debugger")]
                 String::default(),
-                0,
             );
             output.connections = vec![no_such_out_conn];
 
@@ -1792,7 +1781,6 @@ mod test {
                 String::default(),
                 #[cfg(feature = "debugger")]
                 String::default(),
-                0,
             );
             let f_a = RuntimeFunction::new(
                 #[cfg(feature = "debugger")]
@@ -1865,7 +1853,6 @@ mod test {
                 String::default(),
                 #[cfg(feature = "debugger")]
                 String::default(),
-                0,
             );
             let f_b = RuntimeFunction::new(
                 #[cfg(feature = "debugger")]
@@ -1931,7 +1918,6 @@ mod test {
                 String::default(),
                 #[cfg(feature = "debugger")]
                 String::default(),
-                0,
             );
             let f_b = RuntimeFunction::new(
                 #[cfg(feature = "debugger")]
@@ -2008,7 +1994,6 @@ mod test {
                 String::default(),
                 #[cfg(feature = "debugger")]
                 String::default(),
-                0,
             );
             let connection_to_1 = OutputConnection::new(
                 Source::default(),
@@ -2020,7 +2005,6 @@ mod test {
                 String::default(),
                 #[cfg(feature = "debugger")]
                 String::default(),
-                0,
             );
 
             let f_a = RuntimeFunction::new(
@@ -2141,7 +2125,6 @@ mod test {
                 String::default(),
                 #[cfg(feature = "debugger")]
                 String::default(),
-                0,
             );
             let out_conn2 = OutputConnection::new(
                 Source::default(),
@@ -2153,7 +2136,6 @@ mod test {
                 String::default(),
                 #[cfg(feature = "debugger")]
                 String::default(),
-                0,
             );
             let p0 = RuntimeFunction::new(
                 #[cfg(feature = "debugger")]
@@ -2217,7 +2199,6 @@ mod test {
             let _ = state.create_block(
                 0,
                 1,
-                0,
                 0,
                 0,
                 0,
@@ -2313,7 +2294,6 @@ mod test {
                 0,
                 0,
                 0,
-                0,
                 #[cfg(feature = "debugger")]
                 &mut debugger,
             );
@@ -2343,7 +2323,6 @@ mod test {
             let _ = state.create_block(
                 0,
                 1,
-                0,
                 0,
                 0,
                 0,
@@ -2388,14 +2367,12 @@ mod test {
                 0,
                 0,
                 0,
-                0,
                 #[cfg(feature = "debugger")]
                 &mut debugger,
             );
             let _ = state.create_block(
                 0,
                 2,
-                0,
                 0,
                 0,
                 0,
@@ -2650,7 +2627,6 @@ mod test {
                     String::default(),
                     #[cfg(feature = "debugger")]
                     String::default(),
-                    0,
                 );
 
                 // Test

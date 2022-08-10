@@ -106,8 +106,7 @@ impl Input {
         &self.name
     }
 
-    /// Take the first element of the highest priority from the Input and return it.
-    /// Remove a priority level if there are no values left with that priority
+    /// Take the first element from the Input and return it.
     pub fn take(&mut self) -> Result<Value> {
         if self.received.is_empty() {
             bail!("Trying to take from an empty Input");
