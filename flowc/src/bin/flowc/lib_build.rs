@@ -48,11 +48,29 @@ pub fn build_lib(options: &Options, provider: &dyn Provider) -> Result<()> {
     .chain_err(|| "Could not compile implementations in library")?;
 
     let manifest_json_file = json_manifest::manifest_filename(&options.output_dir);
-    let json_manifest_exists = manifest_json_file.exists() && manifest_json_file.is_file();
 
-    let (message, write_manifest) = if json_manifest_exists {
+    let (message, write_manifest) = check_manifest_status(&manifest_json_file, build_count,
+        &lib_manifest)?;
+
+    info!("{}", message);
+
+    if write_manifest {
+        json_manifest::write(&lib_manifest, &manifest_json_file)?;
+    }
+
+    println!("    {} {}", "Finished".green(), name);
+    Ok(())
+}
+
+/*
+    Check if a new manifest needs to be generated on disk based on timestamps and changed contents
+*/
+fn check_manifest_status(manifest_json_file: &PathBuf, build_count: i32,
+                         lib_manifest: &LibraryManifest) -> Result<(&'static str, bool)> {
+    let json_manifest_exists = manifest_json_file.exists() && manifest_json_file.is_file();
+    if json_manifest_exists {
         if build_count > 0 {
-            ("Library manifest file(s) exists, but implementations were built, writing new file(s)", true)
+            Ok(("Library manifest file(s) exists, but implementations were built, writing new file(s)", true))
         } else {
             let provider = MetaProvider::new(Simpath::new(""),
                                              PathBuf::from("/")
@@ -65,32 +83,20 @@ pub fn build_lib(options: &Options, provider: &dyn Provider) -> Result<()> {
                     )
                 })?;
             if let Ok((existing_json_manifest, _)) =
-                LibraryManifest::load(&provider, &json_manifest_file_as_url)
+            LibraryManifest::load(&provider, &json_manifest_file_as_url)
             {
-                if existing_json_manifest != lib_manifest {
-                    ("Library manifest exists, but new manifest has changes, writing new manifest file(s)", true)
+                if &existing_json_manifest != lib_manifest {
+                    Ok(("Library manifest exists, but new manifest has changes, writing new manifest file(s)", true))
                 } else {
-                    ("Existing manifest files are up to date", false)
+                    Ok(("Existing manifest files are up to date", false))
                 }
             } else {
-                ("Could not load existing Library manifest to compare, writing new manifest file(s)", true)
+                Ok(("Could not load existing Library manifest to compare, writing new manifest file(s)", true))
             }
         }
     } else {
-        (
-            "Library manifest file(s) missing, writing new manifest file(s)",
-            true,
-        )
-    };
-
-    info!("{}", message);
-
-    if write_manifest {
-        json_manifest::write(&lib_manifest, &manifest_json_file)?;
+        Ok(("Library manifest file(s) missing, writing new manifest file(s)", true))
     }
-
-    println!("    {} {}", "Finished".green(), name);
-    Ok(())
 }
 
 /*
