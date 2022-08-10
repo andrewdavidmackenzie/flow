@@ -6,7 +6,7 @@ use rustyline::error::ReadlineError;
 
 use flowcore::errors::*;
 use flowcore::model::runtime_function::RuntimeFunction;
-use flowrlib::breakpoint_spec::BreakpointSpec;
+use flowrlib::debug_command::BreakpointSpec;
 use flowrlib::debug_command::DebugCommand;
 use flowrlib::debug_command::DebugCommand::*;
 use flowrlib::run_state::{RunState, State};

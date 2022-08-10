@@ -2,10 +2,23 @@ use std::fmt;
 
 use serde_derive::{Deserialize, Serialize};
 
-use crate::breakpoint_spec::BreakpointSpec;
+/// Types of `Params` used in communications between the debugger and the debug_client
+#[derive(Serialize, Deserialize, PartialEq, Eq, Debug)]
+pub enum BreakpointSpec {
+    /// All existing breakpoints
+    All,
+    /// A positive integer was specified - could be a function or a job number
+    Numeric(usize),
+    /// A descriptor for the `Output` of a `Function` was specified
+    Output((usize, String)),
+    /// A descriptor for the `Inout` of a `Function` was specified
+    Input((usize, usize)),
+    /// A description of a "block" (when one function is blocked from running by another) was specified
+    Block((Option<usize>, Option<usize>)),
+}
 
 /// A Command sent by the debug_client to the debugger
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, PartialEq, Eq, Debug)]
 pub enum DebugCommand {
     /// Acknowledge event processed correctly
     Ack,
@@ -49,48 +62,78 @@ pub enum DebugCommand {
 
 impl fmt::Display for DebugCommand {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(
-            f,
-            "DebugCommand {}",
-            match self {
-                DebugCommand::Ack => "Ack",
-                DebugCommand::Breakpoint(_) => "Breakpoint",
-                DebugCommand::Continue => "Continue",
-                DebugCommand::Delete(_) => "Delete",
-                DebugCommand::Error(_) => "Error",
-                DebugCommand::ExitDebugger => "ExitDebugger",
-                DebugCommand::FunctionList => "FunctionList",
-                DebugCommand::InspectFunction(_) => "InspectFunction",
-                DebugCommand::Inspect => "Inspect",
-                DebugCommand::InspectInput(_, _) => "InspectInput",
-                DebugCommand::InspectOutput(_, _) => "InspectOutput",
-                DebugCommand::InspectBlock(_, _) => "InspectBlock",
-                DebugCommand::Invalid => "Invalid",
-                DebugCommand::List => "List",
-                DebugCommand::RunReset => "RunReset",
-                DebugCommand::Step(_) => "Step",
-                DebugCommand::Validate => "Validate",
-                DebugCommand::DebugClientStarting => "DebugClientStarting",
-                DebugCommand::Modify(_) => "Modify"
-            }
-        )
+        write!(f, "DebugCommand {}", String::from(self))
+    }
+}
+
+impl From<&DebugCommand> for String {
+    fn from(command: &DebugCommand) -> Self {
+        match serde_json::to_string(command) {
+            Ok(command_string) => command_string,
+            _ => String::new(), // Should never occur
+        }
     }
 }
 
 impl From<DebugCommand> for String {
-    fn from(msg: DebugCommand) -> Self {
-        match serde_json::to_string(&msg) {
-            Ok(message_string) => message_string,
-            _ => String::new(),
+    fn from(command: DebugCommand) -> Self {
+        match serde_json::to_string(&command) {
+            Ok(command_string) => command_string,
+            _ => String::new(), // Should never occur
         }
     }
 }
 
 impl From<String> for DebugCommand {
-    fn from(msg: String) -> Self {
-        match serde_json::from_str(&msg) {
-            Ok(message) => message,
+    fn from(command_string: String) -> Self {
+        match serde_json::from_str(&command_string) {
+            Ok(command) => command,
             _ => DebugCommand::Invalid,
         }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use crate::debug_command::DebugCommand;
+
+    #[test]
+    fn display_debug_command() {
+        println!("{}", DebugCommand::Ack);
+        println!("{}", DebugCommand::Breakpoint(None));
+        println!("{}", DebugCommand::Continue);
+        println!("{}", DebugCommand::Delete(None));
+        println!("{}", DebugCommand::Error("Hello".into()));
+        println!("{}", DebugCommand::ExitDebugger);
+        println!("{}", DebugCommand::FunctionList);
+        println!("{}", DebugCommand::InspectFunction(0));
+        println!("{}", DebugCommand::Inspect);
+        println!("{}", DebugCommand::InspectInput(0, 0));
+        println!("{}", DebugCommand::InspectOutput(0, "Hello".into()));
+        println!("{}", DebugCommand::InspectBlock(None, None));
+        println!("{}", DebugCommand::Invalid);
+        println!("{}", DebugCommand::List);
+        println!("{}", DebugCommand::RunReset);
+        println!("{}", DebugCommand::Step(None));
+        println!("{}", DebugCommand::Validate);
+        println!("{}", DebugCommand::DebugClientStarting);
+        println!("{}", DebugCommand::Modify(None));
+    }
+
+    #[test]
+    fn test_command_to_string() {
+        assert_eq!(String::from(DebugCommand::Ack), "\"Ack\"".to_string());
+    }
+
+    #[test]
+    fn debug_command_from_string() {
+        let command: DebugCommand = DebugCommand::from("\"Ack\"".to_string());
+        assert_eq!(command, DebugCommand::Ack);
+    }
+
+    #[test]
+    fn invalid_debug_command_from_string() {
+        let command: DebugCommand = DebugCommand::from("\"Foo\"".to_string());
+        assert_eq!(command, DebugCommand::Invalid);
     }
 }

@@ -33,8 +33,6 @@ else
 	@echo "Not ONLINE, so not including 'online_tests' feature"
 endif
 
-# NOTE: I had some link problems with the flowmacro crate on _my_ mac, which was solved using zld
-# as per this post https://dsincl12.medium.com/speed-up-your-rust-compiler-macos-d9fbe0f32dbc
 .PHONY: config
 config:
 	@echo "Installing clippy command using rustup"

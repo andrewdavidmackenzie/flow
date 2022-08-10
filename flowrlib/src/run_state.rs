@@ -267,7 +267,7 @@ impl RunState {
         debug!("Initializing inputs with initializers");
         for function in &mut self.functions {
             function.init_inputs(true);
-            if function.can_produce_output() {
+            if function.can_run() {
                 inputs_ready_list.push((function.id(), function.get_flow_id()));
             }
         }
@@ -295,7 +295,7 @@ impl RunState {
             let source_id = source_function.id();
             let source_flow_id = source_function.get_flow_id();
             let destinations = source_function.get_output_connections();
-            let source_has_inputs_full = source_function.can_produce_output();
+            let source_has_inputs_full = source_function.can_run();
 
             for destination in destinations {
                 if destination.function_id != source_id {
@@ -594,7 +594,7 @@ impl RunState {
 
                     // Only decide if the sender should be Ready after sending all values in case blocks created
                     let function = self.get_function(job.function_id);
-                    if function.can_produce_output() {
+                    if function.can_run() {
                         self.make_ready_or_blocked(
                             job.function_id,
                             job.flow_id,
@@ -618,7 +618,7 @@ impl RunState {
             )?;
 
         #[cfg(debug_assertions)]
-        checks::check_invariants(self, job_id);
+        checks::check_invariants(self, job_id)?;
 
         trace!(
             "Job #{}: Completed-----------------------",
@@ -844,7 +844,7 @@ impl RunState {
     }
 
     // Mark a function "ready" to run, by adding it's id to the ready list
-    fn mark_ready(&mut self, function_id: usize, flow_id: usize) {
+    pub(crate) fn mark_ready(&mut self, function_id: usize, flow_id: usize) {
         self.ready.push_back(function_id);
         self.busy_flows.insert(flow_id, function_id);
     }
@@ -901,7 +901,7 @@ impl RunState {
     }
 
     // Mark a function (via its ID) as having run to completion
-    fn mark_as_completed(&mut self, function_id: usize) {
+    pub(crate) fn mark_as_completed(&mut self, function_id: usize) {
         self.completed.insert(function_id);
     }
 
@@ -947,7 +947,7 @@ impl RunState {
                 trace!("\t\t\t\tFunction #{} removed from 'blocked' list", block.blocked_function_id);
                 self.blocked.remove(&block.blocked_function_id);
 
-                if self.get_function(block.blocked_function_id).can_produce_output() {
+                if self.get_function(block.blocked_function_id).can_run() {
                     trace!("\t\t\t\tFunction #{} has inputs ready, so added to 'ready' list",
                         block.blocked_function_id);
                     self.mark_ready(block.blocked_function_id, block.blocked_flow_id);
@@ -959,7 +959,7 @@ impl RunState {
     // Create a 'block" indicating that function `blocked_function_id` cannot run as it has sends
     // to an input on function 'blocking_function_id' that is already full.
     #[allow(clippy::too_many_arguments)]
-    fn create_block(
+    pub(crate) fn create_block(
         &mut self,
         blocking_flow_id: usize,
         blocking_function_id: usize,
