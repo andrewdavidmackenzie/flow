@@ -354,7 +354,6 @@ mod test {
                 String::default(),
                 #[cfg(feature = "debugger")]
                 String::default(),
-                0,
             )],
             0,
             0,

@@ -389,7 +389,6 @@ mod test {
             0,
             0, // <-- here
             0,
-            0,
             #[cfg(feature = "debugger")] &mut debugger);
 
         // this blocked check should pass

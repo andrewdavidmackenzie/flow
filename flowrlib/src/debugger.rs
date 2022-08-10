@@ -888,7 +888,7 @@ mod test {
 
         // configer a break on block creation from function #0 to function #1
         debugger.block_breakpoints.insert((0, 1));
-        let block = Block::new(0, 1, 0, 0, 0, 0);
+        let block = Block::new(0, 1, 0, 0, 0);
         let _ = debugger.check_on_block_creation(&mut state, &block);
 
         // check the breakpoint triggered at this blocked function as expected
@@ -1015,17 +1015,17 @@ mod test {
         let mut debugger = Debugger::new(&mut server);
 
         // zero_to_one
-        let _ = state.create_block(0, 1, 0, 0, 0, 0, &mut debugger);
+        let _ = state.create_block(0, 1, 0, 0, 0, &mut debugger);
 
         // zero_to_two
-        let _ = state.create_block(0, 2, 0, 0, 0, 0, &mut debugger);
+        let _ = state.create_block(0, 2, 0, 0, 0, &mut debugger);
 
 
         // three_to_two
-        let _ = state.create_block(0, 2, 0, 3, 0, 0, &mut debugger);
+        let _ = state.create_block(0, 2, 0, 3, 0, &mut debugger);
 
         // three_to_one
-        let _ = state.create_block(0, 1, 0, 3, 0, 0, &mut debugger);
+        let _ = state.create_block(0, 1, 0, 3, 0, &mut debugger);
 
         assert_eq!(Debugger::inspect_blocks(&state, Some(0), None).len(), 2);
         assert_eq!(Debugger::inspect_blocks(&state, Some(0), Some(1)).len(), 1);

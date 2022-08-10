@@ -3,7 +3,7 @@
 
 use log::{debug, info};
 
-use flowcore::model::connection::{Connection, INTERNAL_FLOW_PRIORITY};
+use flowcore::model::connection::Connection;
 use flowcore::model::flow_definition::FlowDefinition;
 use flowcore::model::function_definition::FunctionDefinition;
 use flowcore::model::io::{IO, IOType};
@@ -127,14 +127,10 @@ pub fn collapse_connections(tables: &mut CompilerTables) {
                 if connection.to_io().io_type() == &IOType::FunctionInput {
                     debug!("\tFound direct connection within the flow to a function input at '{}'",
                 connection.to_io().route());
-                    let mut collapsed_connection = connection.clone();
-                    // Note: This maybe to the same function. Loopback connections will be detected
-                    // and their priorities changed later in the process.
-                    collapsed_connection.set_priority(INTERNAL_FLOW_PRIORITY);
-                    collapsed_connections.push(collapsed_connection);
+                    collapsed_connections.push(connection.clone());
                 } else {
                     // If the connection enters or leaves this flow, then follow it to all destinations at function inputs
-                    for (source_subroute, outermost_level, innermost_level, destination_io) in find_function_destinations(
+                    for (source_subroute, destination_io) in find_function_destinations(
                         Route::from(""),
                         connection.to_io().route(),
                         connection.level(),
@@ -151,7 +147,6 @@ pub fn collapse_connections(tables: &mut CompilerTables) {
                         collapsed_connection
                             .from_io_mut()
                             .set_route(&from_route, &IOType::FunctionOutput);
-                        collapsed_connection.set_priority(innermost_level - outermost_level + 1);
                         *collapsed_connection.to_io_mut() = destination_io;
                         debug!("\tIndirect connection {}", collapsed_connection);
                         collapsed_connections.push(collapsed_connection);
@@ -165,7 +160,7 @@ pub fn collapse_connections(tables: &mut CompilerTables) {
                     // find the destination functions (the connection could split to multiple destinations)
                     let destinations = if connection.to_io().io_type() == &IOType::FunctionInput {
                         // Flow input (or output) (that has an initializer) connects directly to a function's Input
-                        vec!((Route::default(), 0, 0, connection.to_io().clone()))
+                        vec!((Route::default(), connection.to_io().clone()))
                     } else {
                         find_function_destinations(
                             Route::from(""),
@@ -175,7 +170,7 @@ pub fn collapse_connections(tables: &mut CompilerTables) {
                         )
                     };
 
-                    for (_, _, _, destination_io) in destinations {
+                    for (_, destination_io) in destinations {
                         // get a mutable reference to the destination function and set the initializer on it
                         if let Some(&(destination_function_id, destination_input_index, _)) =
                         tables.destination_routes.get(destination_io.route()) {
@@ -255,10 +250,8 @@ fn find_function_destinations(
     from_io_route: &Route,
     from_level: usize,
     connections: &[Connection],
-) -> Vec<(Route, usize, usize, IO)> {
+) -> Vec<(Route, IO)> {
     let mut destinations = vec![];
-    let mut outermost_level = from_level;
-    let mut innermost_level = 0;
 
     let mut found = false;
     for next_connection in connections {
@@ -277,11 +270,6 @@ fn find_function_destinations(
 
             // Avoid infinite recursion and stack overflow
             if next_connection.level() == next_level {
-                // keep track of the level of the outermost flow level this connection goes through
-                outermost_level = std::cmp::min(outermost_level, next_level);
-                // keep track of the level of the innermost flow level this connection goes through
-                innermost_level = std::cmp::max(innermost_level, next_level);
-
                 // Add any subroute from this connection to the origin subroute accumulated so far
                 let accumulated_source_subroute = prev_subroute.clone().extend(&subroute).clone();
 
@@ -292,8 +280,7 @@ fn find_function_destinations(
                         // Found a destination that is a function, add it to the list
                         // TODO accumulate the source subroute that builds up as we go
                         destinations
-                            .push((accumulated_source_subroute, outermost_level, innermost_level,
-                                   next_connection.to_io().clone()));
+                            .push((accumulated_source_subroute, next_connection.to_io().clone()));
                         found = true;
                     },
 
@@ -386,7 +373,6 @@ mod test {
         assert_eq!(tables.collapsed_connections.len(), 1);
         assert_eq!(*tables.collapsed_connections[0].from_io().route(), Route::from("/function1/out"));
         assert_eq!(*tables.collapsed_connections[0].to_io().route(), Route::from("/function1/in"));
-        assert_eq!(tables.collapsed_connections[0].get_priority(), 1); // Loopback set to 0 later in compilation
     }
 
     #[test]
@@ -408,7 +394,6 @@ mod test {
         assert_eq!(tables.collapsed_connections.len(), 1);
         assert_eq!(*tables.collapsed_connections[0].from_io().route(), Route::from("/function1/out"));
         assert_eq!(*tables.collapsed_connections[0].to_io().route(), Route::from("/function2/in"));
-        assert_eq!(tables.collapsed_connections[0].get_priority(), 1);
     }
 
     #[test]
@@ -453,7 +438,6 @@ mod test {
         assert_eq!(tables.collapsed_connections.len(), 1);
         assert_eq!(*tables.collapsed_connections[0].from_io().route(), Route::from("/function1"));
         assert_eq!(*tables.collapsed_connections[0].to_io().route(), Route::from("/flow2/function3"));
-        assert_eq!(tables.collapsed_connections[0].get_priority(), 2);
     }
 
     /*
@@ -501,11 +485,9 @@ mod test {
 
         assert_eq!(*tables.collapsed_connections[0].from_io().route(), Route::from("/f1"));
         assert_eq!(*tables.collapsed_connections[0].to_io().route(), Route::from("/f2/value1"));
-        assert_eq!(tables.collapsed_connections[0].get_priority(), 2);
 
         assert_eq!(*tables.collapsed_connections[1].from_io().route(), Route::from("/f1"));
         assert_eq!(*tables.collapsed_connections[1].to_io().route(), Route::from("/f2/value2"));
-        assert_eq!(tables.collapsed_connections[1].get_priority(), 2);
     }
 
     #[test]
@@ -551,7 +533,6 @@ mod test {
 
         assert_eq!(*tables.collapsed_connections[0].from_io().route(), Route::from("/function1/out"));
         assert_eq!(*tables.collapsed_connections[0].to_io().route(), Route::from("/flow1/flow2/func/in"));
-        assert_eq!(tables.collapsed_connections[0].get_priority(), 2);
     }
 
     #[test]
@@ -600,7 +581,6 @@ mod test {
                 String::default(),
                 #[cfg(feature = "debugger")]
                 String::default(),
-                0,
             )],
             99,
             0,

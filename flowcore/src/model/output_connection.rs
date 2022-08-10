@@ -48,15 +48,6 @@ pub struct OutputConnection {
     #[cfg(feature = "debugger")]
     #[serde(default, skip_serializing_if = "String::is_empty")]
     name: String,
-    /// `priority` depends on for how far "out" in the flow hierarchy from the destination the
-    /// connection comes.
-    ///     0 = loopback connection
-    ///     1 = from same flow
-    ///     2 = from next flow out
-    ///   MAX = priority was not set at compile time
-    /// It is used to prioritize the selection of input values queued up at an input using the
-    /// "innermost first" theory
-    priority: usize,
 }
 
 /// If the Source is an Output and the String for the subroute is empty then we can just
@@ -101,7 +92,6 @@ impl OutputConnection {
         generic: bool,
         route: String,
         #[cfg(feature = "debugger")] name: String,
-        priority: usize,
     ) -> Self {
         OutputConnection {
             source,
@@ -113,18 +103,12 @@ impl OutputConnection {
             destination: route,
             #[cfg(feature = "debugger")]
             name,
-            priority,
         }
     }
 
     /// Does the destination IO accept generic OBJECT_TYPE types
     pub fn is_generic(&self) -> bool {
         self.generic
-    }
-
-    /// get the priority of this connection
-    pub fn get_priority(&self) -> usize {
-        self.priority
     }
 }
 
@@ -189,7 +173,6 @@ mod test {
             String::default(),
             #[cfg(feature = "debugger")]
             "test-connection".into(),
-            0,
         );
         println!("Connection: {}", connection);
     }
@@ -206,7 +189,6 @@ mod test {
             "/flow1/input".into(),
             #[cfg(feature = "debugger")]
             "test-connection".into(),
-            0,
         );
         println!("Connection: {}", connection);
     }
