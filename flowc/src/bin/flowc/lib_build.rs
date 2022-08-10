@@ -232,3 +232,81 @@ fn compile_implementations(
 
     Ok(build_count)
 }
+
+#[cfg(test)]
+mod test {
+    use std::io::prelude::*;
+
+    use tempdir::TempDir;
+    use url::Url;
+
+    use flowcore::model::lib_manifest::LibraryManifest;
+    use flowcore::model::metadata::MetaData;
+
+    fn test_manifest() -> Url {
+        let dir = TempDir::new("flow").expect("Could not create temp dir");
+        let url = Url::from_directory_path(dir.into_path()).expect("Could not create Url");
+        url.join("manifest.json").expect("Could not join filename to Url")
+    }
+
+    #[test]
+    fn manifest_does_not_exist() {
+        let lib_metadata = MetaData::default();
+        let manifest_url = test_manifest();
+        let lib_manifest = LibraryManifest::new(manifest_url.clone(), lib_metadata);
+
+        let (_, generate) = super::check_manifest_status(
+            &manifest_url.to_file_path().expect("Could not get back to path"),
+        0, &lib_manifest).expect("Could not check manifest_status");
+
+        assert!(generate);
+    }
+
+    #[test]
+    fn manifest_exist_builds_done() {
+        let lib_metadata = MetaData::default();
+        let manifest_url = test_manifest();
+        let lib_manifest = LibraryManifest::new(manifest_url.clone(), lib_metadata);
+        let manifest_path = manifest_url.to_file_path().expect("Could not get back to path");
+        std::fs::File::create(&manifest_path).expect("Could not create file");
+        let (_, generate) = super::check_manifest_status(
+            &manifest_path,
+            1, &lib_manifest).expect("Could not check manifest_status");
+
+        assert!(generate);
+    }
+
+    #[test]
+    fn manifest_exist_builds_not_done_different_content() {
+        let lib_metadata = MetaData::default();
+        let manifest_url = test_manifest();
+        let lib_manifest = LibraryManifest::new(manifest_url.clone(), lib_metadata);
+        let manifest_path = manifest_url.to_file_path().expect("Could not get back to path");
+        std::fs::File::create(&manifest_path).expect("Could not create file");
+        let (_, generate) = super::check_manifest_status(
+            &manifest_path,
+            0, &lib_manifest).expect("Could not check manifest_status");
+
+        assert!(generate);
+    }
+
+    #[test]
+    fn manifest_exist_builds_not_done_same_content() {
+        let lib_metadata = MetaData::default();
+        let manifest_url = test_manifest();
+        let lib_manifest = LibraryManifest::new(manifest_url.clone(), lib_metadata);
+        let manifest_path = manifest_url.to_file_path().expect("Could not get back to path");
+        let mut file = std::fs::File::create(&manifest_path).expect("Could not create file");
+        file.write_all(
+            serde_json::to_string_pretty(&lib_manifest)
+                .expect("Could not pretty format the library manifest JSON contents")
+                .as_bytes(),
+        ).expect("Could not write to file");
+        let (_, generate) = super::check_manifest_status(
+            &manifest_path,
+            0, &lib_manifest).expect("Could not check manifest_status");
+
+        assert!(generate);
+    }
+
+}
