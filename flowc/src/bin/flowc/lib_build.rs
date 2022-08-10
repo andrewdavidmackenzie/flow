@@ -306,7 +306,6 @@ mod test {
             &manifest_path,
             0, &lib_manifest).expect("Could not check manifest_status");
 
-        assert!(generate);
+        assert!(!generate); // No need to generate the manifest again then!
     }
-
 }
