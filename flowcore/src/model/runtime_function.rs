@@ -253,8 +253,8 @@ impl RuntimeFunction {
 
     /// Inspect the value of the `input` of a `RuntimeFunction`.
     #[cfg(feature = "debugger")]
-    pub fn input(&self, id: usize) -> &Input {
-        &self.inputs[id]
+    pub fn input(&self, id: usize) -> Option<&Input> {
+        self.inputs.get(id)
     }
 
     /// Read the values from the inputs and return them for use in executing the `RuntimeFunction`

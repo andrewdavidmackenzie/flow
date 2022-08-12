@@ -91,7 +91,8 @@ impl<'a> Debugger<'a> {
         job: &Job,
     ) -> Result<(bool, bool)> {
         if self.break_at_job == job.job_id || self.function_breakpoints.contains(&job.function_id) {
-            self.debug_server.job_breakpoint(job, state.get_function(job.function_id),
+            self.debug_server.job_breakpoint(job, state.get_function(job.function_id)
+                .ok_or("Could not get function")?,
                                              state.get_function_states(job.function_id));
             return self.wait_for_command(state);
         }
@@ -140,9 +141,11 @@ impl<'a> Debugger<'a> {
                 .input_breakpoints
                 .contains(&(destination_id, input_number))
         {
-            let source_function = state.get_function(source_function_id);
-            let destination_function = state.get_function(destination_id);
-            let io_name = destination_function.input(input_number).name();
+            let source_function = state.get_function(source_function_id)
+                .ok_or("Could not get function")?;
+            let destination_function = state.get_function(destination_id)
+                .ok_or("Could not get function")?;
+            let io_name = destination_function.input(input_number).ok_or("Could not get input")?.name();
 
             self.debug_server.send_breakpoint(source_function.name(), source_function_id, output_route, value,
                                               destination_id, destination_function.name(),
@@ -213,7 +216,7 @@ impl<'a> Debugger<'a> {
     /// Return values are (display next output, reset execution)
     pub fn execution_ended(&mut self, state: &mut RunState) -> Result<(bool, bool)> {
         self.debug_server.execution_ended();
-        self.deadlock_check(state);
+        self.deadlock_check(state)?;
         self.wait_for_command(state)
     }
 
@@ -241,7 +244,7 @@ impl<'a> Debugger<'a> {
                     self.debug_server.message(message);
                 },
                 Ok(Validate) => {
-                    let message = self.validate(state);
+                    let message = self.validate(state)?;
                     self.debug_server.message(message);
                 },
                 Ok(List) => {
@@ -254,7 +257,8 @@ impl<'a> Debugger<'a> {
                 Ok(Inspect) => self.debug_server.run_state(state),
                 Ok(InspectFunction(function_id)) => {
                     if function_id < state.num_functions() {
-                        self.debug_server.function_states(state.get_function(function_id).clone(),
+                        self.debug_server.function_states(state.get_function(function_id)
+                                                              .ok_or("Could not get function")?.clone(),
                                                          state.get_function_states(function_id));
                     } else {
                         self.debug_server.debugger_error(format!("No function with id = {}", function_id));
@@ -262,10 +266,13 @@ impl<'a> Debugger<'a> {
                 }
                 Ok(InspectInput(function_id, input_number)) => {
                     if function_id < state.num_functions() {
-                        let function = state.get_function(function_id);
+                        let function = state.get_function(function_id)
+                            .ok_or("Could not get function")?;
 
                         if input_number < function.inputs().len() {
-                            self.debug_server.input(function.input(input_number).clone());
+                            self.debug_server.input(function.input(input_number)
+                                .ok_or("Could not get input")?
+                                .clone());
                         } else {
                             self.debug_server.debugger_error(format!(
                                 "Function #{} has no input number {}", function_id, input_number
@@ -277,7 +284,8 @@ impl<'a> Debugger<'a> {
                 }
                 Ok(InspectOutput(function_id, sub_route)) => {
                     if function_id < state.num_functions() {
-                        let function = state.get_function(function_id);
+                        let function = state.get_function(function_id)
+                            .ok_or("Could not get function")?;
 
                         let mut output_connections = vec![];
 
@@ -382,7 +390,8 @@ impl<'a> Debugger<'a> {
                 }
 
                 self.function_breakpoints.insert(process_id);
-                let function = state.get_function(process_id);
+                let function = state.get_function(process_id)
+                    .ok_or("Could not get function")?;
                 Ok(format!("Breakpoint set on Function #{} ({}) @ '{}'",
                     process_id, function.name(), function.route()))
             }
@@ -391,12 +400,13 @@ impl<'a> Debugger<'a> {
                     bail!("There is no Function #{destination_id} to set a breakpoint on");
                 }
 
-                let function = state.get_function(destination_id);
+                let function = state.get_function(destination_id)
+                    .ok_or("Could not get function")?;
 
                 if input_number >= function.inputs().len() {
                     bail!("There is no Input :{input_number} on function #{destination_id}");
                 }
-                let io_name = function.input(input_number).name();
+                let io_name = function.input(input_number).ok_or("Could not get input")?.name();
                 self.input_breakpoints.insert((destination_id, input_number));
                 Ok(format!(
                     "Data breakpoint set on Function #{destination_id}:{input_number} '{}' receiving data on input '{}'",
@@ -457,7 +467,8 @@ impl<'a> Debugger<'a> {
                     bail!("There is no Function #{destination_id} to delete a breakpoint from");
                 }
 
-                let function = state.get_function(destination_id);
+                let function = state.get_function(destination_id)
+                    .ok_or("Could not get function")?;
 
                 if input_number >= function.inputs().len() {
                     bail!("There is no Input :{input_number} on function #{destination_id}");
@@ -545,14 +556,14 @@ impl<'a> Debugger<'a> {
        Run checks on the current flow execution state to check if it is valid
        Currently deadlock check is the only check that exists.
     */
-    fn validate(&self, state: &RunState) -> String {
+    fn validate(&self, state: &RunState) -> Result<String> {
         let mut response = String::new();
 
         response.push_str("Validating flow state\n");
         response.push_str("Running deadlock check...  ");
-        response.push_str(&self.deadlock_check(state));
+        response.push_str(&self.deadlock_check(state)?);
 
-        response
+        Ok(response)
     }
 
     // Get ready to start execution (and debugging) from scratch at the start of the flow
@@ -575,23 +586,24 @@ impl<'a> Debugger<'a> {
                         return;
                     }
 
-                    match parts[0] {
-                        "jobs" => {
-                            if let Ok(value) = parts[1].parse::<usize>() {
-                                if value == 0 {
-                                    state.submission.max_parallel_jobs = None;
+                    match parts.first() {
+                        Some(&"jobs") => {
+                            if let Some(var) = parts.get(1) {
+                                if let Ok(value) = var.parse::<usize>() {
+                                    if value == 0 {
+                                        state.submission.max_parallel_jobs = None;
+                                    } else {
+                                        state.submission.max_parallel_jobs = Some(value);
+                                    }
+                                    self.debug_server.message(format!("State variable 'jobs' set to {}",
+                                                                      var));
                                 } else {
-                                    state.submission.max_parallel_jobs = Some(value);
+                                    self.debug_server.message(
+                                        format!("Invalid value '{}' for variable 'jobs'", var));
                                 }
-                                self.debug_server.message(format!("State variable '{}' set to {}",
-                                    parts[0], parts[1]));
-                            } else {
-                                self.debug_server.message(
-                                    format!("Invalid value '{}' for variable 'jobs'", parts[1]));
                             }
                         }
-                        _ => self.debug_server.message(
-                            format!("No known state variable with name '{}'", parts[0]))
+                        _ => self.debug_server.message("Unknown state variable".to_string())
                     }
                 }
             }
@@ -623,7 +635,7 @@ impl<'a> Debugger<'a> {
         - other process has input full and hence is blocking running of this process
         - other process is the only process that sends to an empty input of this process
     */
-    fn find_blockers(&self, state: &RunState, process_id: usize) -> Vec<BlockerNode> {
+    fn find_blockers(&self, state: &RunState, process_id: usize) -> Result<Vec<BlockerNode>> {
         let mut blockers: Vec<BlockerNode> = state
             .get_output_blockers(process_id)
             .iter()
@@ -631,14 +643,14 @@ impl<'a> Debugger<'a> {
             .collect();
 
         let input_blockers: Vec<BlockerNode> = state
-            .get_input_blockers(process_id)
+            .get_input_blockers(process_id)?
             .iter()
             .map(|(id, _)| BlockerNode::new(*id, BlockType::UnreadySender))
             .collect();
 
         blockers.extend(input_blockers);
 
-        blockers
+        Ok(blockers)
     }
 
     /*
@@ -654,29 +666,29 @@ impl<'a> Debugger<'a> {
         visited_nodes: &mut Vec<usize>,
         root_node_id: usize,
         node: &mut BlockerNode,
-    ) -> Vec<BlockerNode> {
+    ) -> Result<Vec<BlockerNode>> {
         visited_nodes.push(node.function_id);
-        node.blockers = self.find_blockers(state, node.function_id);
+        node.blockers = self.find_blockers(state, node.function_id)?;
 
         for blocker in &mut node.blockers {
             if blocker.function_id == root_node_id {
-                return vec![blocker.clone()]; // add the last node in the loop to end of trail
+                return Ok(vec![blocker.clone()]); // add the last node in the loop to end of trail
             }
 
             // if we've visited this blocking node before, then we've detected a loop
             if !visited_nodes.contains(&blocker.function_id) {
                 let mut blocker_subtree =
-                    self.traverse_blocker_tree(state, visited_nodes, root_node_id, blocker);
+                    self.traverse_blocker_tree(state, visited_nodes, root_node_id, blocker)?;
                 if !blocker_subtree.is_empty() {
                     // insert this node at the head of the list of blocking nodes
                     blocker_subtree.insert(0, blocker.clone());
-                    return blocker_subtree;
+                    return Ok(blocker_subtree);
                 }
             }
         }
 
         // no loop found
-        vec![]
+        Ok(vec![])
     }
 
     fn display_set(root_node: &BlockerNode, node_set: Vec<BlockerNode>) -> String {
@@ -688,7 +700,7 @@ impl<'a> Debugger<'a> {
         display_string
     }
 
-    fn deadlock_check(&self, state: &RunState) -> String {
+    fn deadlock_check(&self, state: &RunState) -> Result<String> {
         let mut response = String::new();
 
         for blocked_process_id in state.get_blocked() {
@@ -701,7 +713,7 @@ impl<'a> Debugger<'a> {
                 &mut visited_nodes,
                 *blocked_process_id,
                 &mut root_node,
-            );
+            )?;
             if !deadlock_set.is_empty() {
                 let _ = writeln!(response, "{}", Self::display_set(&root_node, deadlock_set));
             }
@@ -711,7 +723,7 @@ impl<'a> Debugger<'a> {
            let _ = writeln!(response, " No deadlocks found");
         }
 
-        response
+        Ok(response)
     }
 }
 
