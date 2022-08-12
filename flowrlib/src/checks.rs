@@ -298,7 +298,8 @@ mod test {
         state.mark_ready(0, 0);
 
         // this ready_check() should pass
-        ready_check(&state, 0, state.get_function(0)).expect("Should pass")
+        ready_check(&state, 0, state.get_function(0)
+            .ok_or("No function").expect("No function")).expect("Should pass")
     }
 
     #[test]
@@ -309,7 +310,8 @@ mod test {
         // Do not mark flow_id as busy - if a function is ready, the flow containing it should
         // be marked as busy, so this ready_check() should fail
 
-        assert!(ready_check(&state, 0, state.get_function(0)).is_err());
+        assert!(ready_check(&state, 0, state.get_function(0)
+            .ok_or("No function").expect("No function")).is_err());
     }
 
     #[test]
@@ -322,7 +324,8 @@ mod test {
         state.mark_ready(0, 0);
 
         // this running check should fail
-        running_check(&state, 0, state.get_function(0)).expect("Should pass");
+        running_check(&state, 0, state.get_function(0)
+            .ok_or("No function").expect("No function")).expect("Should pass");
     }
 
     #[test]
@@ -334,7 +337,8 @@ mod test {
         // should be in the list of busy flows
 
         // this running check should fail
-        assert!(running_check(&state, 0, state.get_function(0)).is_err());
+        assert!(running_check(&state, 0, state.get_function(0)
+            .ok_or("No function").expect("No function")).is_err());
     }
 
     #[cfg(feature = "debugger")]
@@ -392,7 +396,8 @@ mod test {
             #[cfg(feature = "debugger")] &mut debugger);
 
         // this blocked check should pass
-        blocked_check(&state, 0, state.get_function(0)).expect("Should pass");
+        blocked_check(&state, 0, state.get_function(0)
+            .ok_or("No function").expect("No function")).expect("Should pass");
     }
 
     #[test]
@@ -403,7 +408,8 @@ mod test {
         // Do NOT mark function #0 as blocked
 
         // this blocked check should fail
-        assert!(blocked_check(&state, 0, state.get_function(0)).is_err());
+        assert!(blocked_check(&state, 0, state.get_function(0)
+            .ok_or("No function").expect("No function")).is_err());
     }
 
     #[test]
@@ -416,7 +422,8 @@ mod test {
         let functions_states = vec![State::Completed];
 
         // this completed check should pass
-        completed_check(&state, 0, state.get_function(0), &functions_states)
+        completed_check(&state, 0, state.get_function(0)
+            .ok_or("No function").expect("No function"), &functions_states)
             .expect("Should pass");
     }
 
@@ -430,7 +437,8 @@ mod test {
 
         // this completed check should fail
         assert!(completed_check(&state, 0,
-                                state.get_function(0), &functions_states)
+                                state.get_function(0)
+                                    .ok_or("No function").expect("No function"), &functions_states)
             .is_err());
     }
 }

@@ -1,5 +1,6 @@
 #![deny(missing_docs)]
-#![warn(clippy::unwrap_used)]
+#![deny(clippy::unwrap_used)]
+#![deny(clippy::indexing_slicing)]
 //! Runtime library for flow execution. This will be linked with other code to produce a
 //! or runner, such as `flowr` command line runner.
 //!

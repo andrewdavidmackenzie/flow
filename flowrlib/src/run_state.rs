@@ -300,24 +300,25 @@ impl RunState {
             for destination in destinations {
                 if destination.function_id != source_id {
                     // don't block yourself!
-                    let destination_function = self.get_function(destination.function_id);
-                    if destination_function.input_count(destination.io_number) > 0 {
-                        trace!(
-                            "\tAdded block #{} -> #{}:{}",
-                            source_id,
-                            destination.function_id,
-                            destination.io_number
-                        );
-                        blocks.insert(Block::new(
-                            destination.flow_id,
-                            destination.function_id,
-                            destination.io_number,
-                            source_id,
-                            source_flow_id,
-                        ));
-                        // only put source on the blocked list if it already has it's inputs full
-                        if source_has_inputs_full {
-                            blocked.insert(source_id);
+                    if let Some(destination_function) = self.get_function(destination.function_id) {
+                        if destination_function.input_count(destination.io_number) > 0 {
+                            trace!(
+                                "\tAdded block #{} -> #{}:{}",
+                                source_id,
+                                destination.function_id,
+                                destination.io_number
+                            );
+                            blocks.insert(Block::new(
+                                destination.flow_id,
+                                destination.function_id,
+                                destination.io_number,
+                                source_id,
+                                source_flow_id,
+                            ));
+                            // only put source on the blocked list if it already has it's inputs full
+                            if source_has_inputs_full {
+                                blocked.insert(source_id);
+                            }
                         }
                     }
                 }
@@ -399,13 +400,13 @@ impl RunState {
     }
         
     /// Get a reference to the function with `id`
-    pub fn get_function(&self, id: usize) -> &RuntimeFunction {
-        &self.functions[id]
+    pub fn get_function(&self, id: usize) -> Option<&RuntimeFunction> {
+        self.functions.get(id)
     }
 
     // Get a mutable reference to the function with `id`
-    fn get_mut(&mut self, id: usize) -> &mut RuntimeFunction {
-        &mut self.functions[id]
+    fn get_mut(&mut self, id: usize) -> Option<&mut RuntimeFunction> {
+        self.functions.get_mut(id)
     }
 
     /// Get the HashSet of blocked function ids
@@ -439,7 +440,7 @@ impl RunState {
         let function_id = self.ready.remove(0)?;
 
         self.create_job(function_id).map(|job| {
-            self.unblock_internal_flow_senders(job.job_id, job.function_id, job.flow_id);
+            let _ = self.unblock_internal_flow_senders(job.job_id, job.function_id, job.flow_id);
             job
         })
     }
@@ -455,12 +456,12 @@ impl RunState {
         job_id: usize,
         blocker_function_id: usize,
         blocker_flow_id: usize,
-    ) {
+    ) -> Result<()>{
         // delete blocks to this function from other functions within the same flow
         let internal_senders_filter = |block: &Block|
             (block.blocking_flow_id == block.blocked_flow_id) &
                 (block.blocking_function_id == blocker_function_id);
-        self.unblock_senders_to_function(internal_senders_filter);
+        self.unblock_senders_to_function(internal_senders_filter)?;
 
         // Add this function to the pending unblock list for later when flow goes idle and senders
         // to it from *outside* this flow can be allowed to send to it.
@@ -482,6 +483,8 @@ impl RunState {
             }
         }
         trace!("Job #{job_id}:\t\tAdded a pending_unblock -> #{blocker_function_id}({blocker_flow_id})");
+
+        Ok(())
     }
 
     /// get the number of jobs created to date in the flow's execution
@@ -496,7 +499,7 @@ impl RunState {
         self.number_of_jobs_created += 1;
         let job_id = self.number_of_jobs_created;
 
-        let function = self.get_mut(function_id);
+        let function = self.get_mut(function_id)?;
 
         match function.take_input_set() {
             Ok(input_set) => {
@@ -555,7 +558,8 @@ impl RunState {
 
                 #[cfg(feature = "debugger")]
                 debug!("Job #{}: Function #{} '{}' {:?} -> {:?}", job.job_id, job.function_id,
-                        self.get_function(job.function_id).name(), job.input_set,  output_value);
+                        self.get_function(job.function_id).ok_or("No such function")?.name(),
+                    job.input_set,  output_value);
                 #[cfg(not(feature = "debugger"))]
                 debug!("Job #{}: Function #{} {:?} -> {:?}", job.job_id, job.function_id,
                         job.input_set,  output_value);
@@ -589,10 +593,11 @@ impl RunState {
                 if function_can_run_again {
                     // Once done sending values to other functions (and possibly itself via a loopback)
                     // if the function can run again, then refill any inputs with initializers
-                    self.init_inputs(job.function_id);
+                    self.init_inputs(job.function_id)?;
 
                     // Only decide if the sender should be Ready after sending all values in case blocks created
-                    let function = self.get_function(job.function_id);
+                    let function = self.get_function(job.function_id)
+                        .ok_or("No such function")?;
                     if function.can_run() {
                         self.make_ready_or_blocked(
                             job.function_id,
@@ -669,7 +674,8 @@ impl RunState {
             )?;
         }
 
-        let function = self.get_mut(connection.function_id);
+        let function = self.get_mut(connection.function_id)
+            .ok_or("Could not get function")?;
         let count_before = function.input_set_count();
         Self::type_convert_and_send(function, connection, output_value);
 
@@ -706,14 +712,21 @@ impl RunState {
     }
 
     // Initialize any input of the sending function that has an initializer
-    fn init_inputs(&mut self, function_id: usize) {
-        self.get_mut(function_id).init_inputs(false);
+    fn init_inputs(&mut self, function_id: usize) -> Result<()> {
+        self.get_mut(function_id).ok_or("Could not get function")?.init_inputs(false);
+        Ok(())
     }
 
     // Take a json data value and return the array order for it
     fn array_order(value: &Value) -> i32 {
         match value {
-            Value::Array(array) if !array.is_empty() => 1 + Self::array_order(&array[0]),
+            Value::Array(array) if !array.is_empty() => {
+                if let Some(value) = array.get(0) {
+                    1 + Self::array_order(value)
+                } else {
+                    1
+                }
+            },
             Value::Array(array) if array.is_empty() => 1,
             _ => 0,
         }
@@ -792,9 +805,10 @@ impl RunState {
     /// An input blocker is another function that is the only function connected to an empty input
     /// of target function, and which is not ready to run, hence target function cannot run.
     #[cfg(feature = "debugger")]
-    pub fn get_input_blockers(&self, target_id: usize) -> Vec<(usize, usize)> {
+    pub fn get_input_blockers(&self, target_id: usize) -> Result<Vec<(usize, usize)>> {
         let mut input_blockers = vec![];
-        let target_function = self.get_function(target_id);
+        let target_function = self.get_function(target_id)
+            .ok_or("No such function")?;
 
         // for each empty input of the target function
         for (target_io, input) in target_function.inputs().iter().enumerate() {
@@ -824,7 +838,7 @@ impl RunState {
             }
         }
 
-        input_blockers
+        Ok(input_blockers)
     }
 
     // A function may be able to produce output, either because:
@@ -890,7 +904,7 @@ impl RunState {
                     Flow #{blocker_flow_id} from other flows");
                 for unblock_function_id in pending_unblocks {
                     let all = |block: &Block| block.blocking_function_id == unblock_function_id;
-                    self.unblock_senders_to_function(all);
+                    self.unblock_senders_to_function(all)?;
                 }
             }
         }
@@ -919,9 +933,9 @@ impl RunState {
 
     // unblock all functions that were blocked trying to send to blocker_function_id by removing
     // entries in the `blocks` list where the first value (blocking_id) matches blocker_function_id.
-    fn unblock_senders_to_function<F>(&mut self, block_filter: F)
+    fn unblock_senders_to_function<F>(&mut self, block_filter: F) -> Result<()>
     where
-        F: Fn(&Block) -> bool,
+        F: Fn(&Block) -> bool
     {
         let mut unblock_set = vec![];
 
@@ -942,13 +956,15 @@ impl RunState {
                 trace!("\t\t\t\tFunction #{} removed from 'blocked' list", block.blocked_function_id);
                 self.blocked.remove(&block.blocked_function_id);
 
-                if self.get_function(block.blocked_function_id).can_run() {
+                if self.get_function(block.blocked_function_id).ok_or("No such function")?.can_run() {
                     trace!("\t\t\t\tFunction #{} has inputs ready, so added to 'ready' list",
                         block.blocked_function_id);
                     self.mark_ready(block.blocked_function_id, block.blocked_flow_id);
                 }
             }
         }
+
+        Ok(())
     }
 
     // Create a 'block" indicating that function `blocked_function_id` cannot run as it has sends
@@ -1377,7 +1393,7 @@ mod test {
             );
             #[cfg(feature = "debugger")]
             assert!(
-                state.get_input_blockers(1).contains(&(0, 0)),
+                state.get_input_blockers(1).expect("Could not get blockers").contains(&(0, 0)),
                 "f_b should be waiting for input from f_a"
             )
         }
@@ -2217,7 +2233,8 @@ mod test {
                 true,
             );
             let state = RunState::new(&test_functions(), submission);
-            let got = state.get_function(1);
+            let got = state.get_function(1)
+                .ok_or("Could not get function by id").expect("Could not get function with that id");
             assert_eq!(got.id(), 1)
         }
 
@@ -2335,7 +2352,8 @@ mod test {
             assert!(state.next_job().is_none());
 
             // now unblock senders to 1 (i.e. 0)
-            state.unblock_internal_flow_senders(0, 1, 0);
+            state.unblock_internal_flow_senders(0, 1, 0)
+                .expect("Could not unblock");
 
             // Now function with id 0 should be ready and served up by next
             assert_eq!(
@@ -2386,7 +2404,8 @@ mod test {
             assert!(state.next_job().is_none());
 
             // now unblock 0 by 1
-            state.unblock_internal_flow_senders(0, 1, 0);
+            state.unblock_internal_flow_senders(0, 1, 0)
+                .expect("Could not unblock");
 
             // Now function with id 0 should still not be ready as still blocked on 2
             assert!(state.next_job().is_none());
