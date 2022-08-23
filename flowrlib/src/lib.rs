@@ -31,10 +31,7 @@ pub mod debug_command;
 /// Executor module provides mechanisms for jobs to be executed
 pub mod executor;
 
-/// `wasm` module contains a number of implementations of the wasm execution
-#[allow(unused_attributes)]
-#[cfg_attr(feature = "wasmtime_runtime", path = "wasm/wasmtime.rs")]
-#[cfg_attr(feature = "wasmi_runtime", path = "wasm/wasmi.rs")]
+/// `wasmtime` module contains a number of implementations of the wasm execution
 mod wasm;
 
 /// We'll put our errors in an `errors` module, and other modules in this crate will `use errors::*;`
