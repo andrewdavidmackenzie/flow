@@ -111,7 +111,7 @@ mod test {
             .map(|s| s.to_string())
             .collect();
 
-        let server_connection = wait_for_then_send(GetArgs, Args(args.clone()));
+        let server_connection = wait_for_then_send(GetArgs, Args(args));
 
         let getter = &Get { server_connection } as &dyn Implementation;
 
@@ -134,7 +134,7 @@ mod test {
             .map(|s| s.to_string())
             .collect();
 
-        let server_connection = wait_for_then_send(GetArgs, Args(args.clone()));
+        let server_connection = wait_for_then_send(GetArgs, Args(args));
 
         let getter = &Get { server_connection } as &dyn Implementation;
 
@@ -157,7 +157,7 @@ mod test {
             .map(|s| s.to_string())
             .collect();
 
-        let server_connection = wait_for_then_send(GetArgs, Args(args.clone()));
+        let server_connection = wait_for_then_send(GetArgs, Args(args));
 
         let getter = &Get { server_connection } as &dyn Implementation;
 
