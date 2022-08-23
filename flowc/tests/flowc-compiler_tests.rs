@@ -1,5 +1,5 @@
 #[cfg(feature = "debugger")]
-use std::collections::HashSet;
+use std::collections::BTreeSet;
 
 use serde_json::json;
 use tempdir::TempDir;
@@ -43,12 +43,12 @@ fn object_to_array_connection() {
     );
     let process = parser::parse(&path, &meta_provider,
                                 #[cfg(feature = "debugger")]
-                               &mut HashSet::<(Url, Url)>::new()
+                               &mut BTreeSet::<(Url, Url)>::new()
     )
         .expect("Could not load test flow");
     if let FlowProcess(ref flow) = process {
         #[cfg(feature = "debugger")]
-        let mut source_urls = HashSet::<(Url, Url)>::new();
+        let mut source_urls = BTreeSet::<(Url, Url)>::new();
         let output_dir = TempDir::new("flow-test").expect("A temp dir").into_path();
 
         let _tables = compile::compile(flow,
@@ -70,12 +70,12 @@ fn context_with_io() {
     );
     let process = parser::parse(&path, &meta_provider,
                                 #[cfg(feature = "debugger")]
-                               &mut HashSet::<(Url, Url)>::new()
+                               &mut BTreeSet::<(Url, Url)>::new()
     )
         .expect("Could not load test flow");
     if let FlowProcess(ref flow) = process {
         #[cfg(feature = "debugger")]
-        let mut source_urls = HashSet::<(Url, Url)>::new();
+        let mut source_urls = BTreeSet::<(Url, Url)>::new();
         let output_dir = TempDir::new("flow-test").expect("A temp dir").into_path();
 
         if compile::compile(flow, &output_dir, false, false,
@@ -100,12 +100,12 @@ fn same_name_input_and_output() {
     );
     let process = parser::parse(&path, &meta_provider,
                                 #[cfg(feature = "debugger")]
-                               &mut HashSet::<(Url, Url)>::new()
+                               &mut BTreeSet::<(Url, Url)>::new()
     )
         .expect("Could not load test flow");
     if let FlowProcess(ref flow) = process {
         #[cfg(feature = "debugger")]
-        let mut source_urls = HashSet::<(Url, Url)>::new();
+        let mut source_urls = BTreeSet::<(Url, Url)>::new();
         let output_dir = TempDir::new("flow-test").expect("A temp dir").into_path();
 
         let tables = compile::compile(flow, &output_dir, false, false,
@@ -128,12 +128,12 @@ fn same_name_flow_ids() {
     );
     let process = parser::parse(&path, &meta_provider,
                                 #[cfg(feature = "debugger")]
-                               &mut HashSet::<(Url, Url)>::new()
+                               &mut BTreeSet::<(Url, Url)>::new()
     )
         .expect("Could not load test flow");
     if let FlowProcess(ref flow) = process {
         #[cfg(feature = "debugger")]
-        let mut source_urls = HashSet::<(Url, Url)>::new();
+        let mut source_urls = BTreeSet::<(Url, Url)>::new();
         let output_dir = TempDir::new("flow-test").expect("A temp dir").into_path();
 
         let tables = compile::compile(flow, &output_dir, false, false,
@@ -166,12 +166,12 @@ fn connection_to_input_with_constant_initializer() {
     );
     let process = parser::parse(&path, &meta_provider,
                                 #[cfg(feature = "debugger")]
-                               &mut HashSet::<(Url, Url)>::new()
+                               &mut BTreeSet::<(Url, Url)>::new()
     )
         .expect("Could not load test flow");
     if let FlowProcess(ref flow) = process {
         #[cfg(feature = "debugger")]
-        let mut source_urls = HashSet::<(Url, Url)>::new();
+        let mut source_urls = BTreeSet::<(Url, Url)>::new();
         let output_dir = TempDir::new("flow-test").expect("A temp dir").into_path();
 
         if compile::compile(flow, &output_dir, false, false,
@@ -193,12 +193,12 @@ fn args() {
         helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/args/root.toml");
     let process = parser::parse(&path, &meta_provider,
                                 #[cfg(feature = "debugger")]
-                                   &mut HashSet::<(Url, Url)>::new()
+                                   &mut BTreeSet::<(Url, Url)>::new()
     )
         .expect("Could not load test flow");
     if let FlowProcess(ref flow) = process {
         #[cfg(feature = "debugger")]
-            let mut source_urls = HashSet::<(Url, Url)>::new();
+            let mut source_urls = BTreeSet::<(Url, Url)>::new();
         let output_dir = TempDir::new("flow-test").expect("A temp dir").into_path();
 
         let _tables = compile::compile(flow, &output_dir, false, false,
@@ -217,13 +217,13 @@ fn no_side_effects() {
     let path = helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/no_side_effects/root.toml");
     let process = parser::parse(&path, &meta_provider,
                                 #[cfg(feature = "debugger")]
-                               &mut HashSet::<(Url, Url)>::new()
+                               &mut BTreeSet::<(Url, Url)>::new()
     )
         .expect("Could not load test flow");
     match process {
         FlowProcess(ref flow) => {
             #[cfg(feature = "debugger")]
-            let mut source_urls = HashSet::<(Url, Url)>::new();
+            let mut source_urls = BTreeSet::<(Url, Url)>::new();
             let output_dir = TempDir::new("flow-test").expect("A temp dir").into_path();
 
             match compile::compile(flow, &output_dir, false, false,
@@ -246,11 +246,11 @@ fn compile_echo_ok() {
         &helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/echo/root.toml"),
         &meta_provider,
         #[cfg(feature = "debugger")]
-        &mut HashSet::<(Url, Url)>::new(),
+        &mut BTreeSet::<(Url, Url)>::new(),
     ).expect("Could not load test flow");
     if let FlowProcess(ref flow) = process {
         #[cfg(feature = "debugger")]
-        let mut source_urls = HashSet::<(Url, Url)>::new();
+        let mut source_urls = BTreeSet::<(Url, Url)>::new();
         let output_dir = TempDir::new("flow-test").expect("A temp dir").into_path();
 
         let _tables = compile::compile(flow, &output_dir, false, false,
@@ -272,11 +272,11 @@ fn compiler_detects_unused_input() {
         ),
         &meta_provider,
         #[cfg(feature = "debugger")]
-        &mut HashSet::<(Url, Url)>::new(),
+        &mut BTreeSet::<(Url, Url)>::new(),
     ).expect("Could not load test flow");
     if let FlowProcess(ref flow) = process {
         #[cfg(feature = "debugger")]
-        let mut source_urls = HashSet::<(Url, Url)>::new();
+        let mut source_urls = BTreeSet::<(Url, Url)>::new();
         let output_dir = TempDir::new("flow-test").expect("A temp dir").into_path();
 
         assert!(
@@ -301,11 +301,11 @@ fn compile_detects_connection_to_initialized_input() {
         ),
         &meta_provider,
         #[cfg(feature = "debugger")]
-        &mut HashSet::<(Url, Url)>::new(),
+        &mut BTreeSet::<(Url, Url)>::new(),
     ).expect("Could not load test flow");
     if let FlowProcess(ref flow) = process {
         #[cfg(feature = "debugger")]
-        let mut source_urls = HashSet::<(Url, Url)>::new();
+        let mut source_urls = BTreeSet::<(Url, Url)>::new();
         let output_dir = TempDir::new("flow-test").expect("A temp dir").into_path();
 
         assert!(
@@ -335,11 +335,11 @@ fn flow_input_propagated_back_out() {
 
     match parser::parse(&url, &meta_provider,
                         #[cfg(feature = "debugger")]
-                       &mut HashSet::<(Url, Url)>::new()
+                       &mut BTreeSet::<(Url, Url)>::new()
     ) {
         Ok(FlowProcess(context)) => {
             #[cfg(feature = "debugger")]
-            let mut source_urls = HashSet::<(Url, Url)>::new();
+            let mut source_urls = BTreeSet::<(Url, Url)>::new();
             let output_dir = TempDir::new("flow-test").expect("A temp dir").into_path();
 
             match compile::compile(&context, &output_dir, false, false,
@@ -375,11 +375,11 @@ fn initialized_output_propagated() {
 
     match parser::parse(&url, &meta_provider,
                         #[cfg(feature = "debugger")]
-                           &mut HashSet::<(Url, Url)>::new()
+                           &mut BTreeSet::<(Url, Url)>::new()
     ) {
         Ok(FlowProcess(context)) => {
             #[cfg(feature = "debugger")]
-            let mut source_urls = HashSet::<(Url, Url)>::new();
+            let mut source_urls = BTreeSet::<(Url, Url)>::new();
             let output_dir = TempDir::new("flow-test").expect("A temp dir").into_path();
 
             match compile::compile(&context, &output_dir, false, false,
@@ -438,11 +438,11 @@ fn initialized_input_to_subflow() {
 
     match parser::parse(&url, &meta_provider,
                         #[cfg(feature = "debugger")]
-                       &mut HashSet::<(Url, Url)>::new()
+                       &mut BTreeSet::<(Url, Url)>::new()
     ) {
         Ok(FlowProcess(root)) => {
             #[cfg(feature = "debugger")]
-            let mut source_urls = HashSet::<(Url, Url)>::new();
+            let mut source_urls = BTreeSet::<(Url, Url)>::new();
             let output_dir = TempDir::new("flow-test").expect("A temp dir").into_path();
 
             match compile::compile(&root, &output_dir, false, false,

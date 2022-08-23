@@ -28,7 +28,7 @@ pub const NULL_TYPE: &str = "null";
 const DATA_TYPES: &[&str] = &[OBJECT_TYPE, STRING_TYPE, NUMBER_TYPE, BOOLEAN_TYPE, ARRAY_TYPE, NULL_TYPE];
 
 /// Datatype is just a string defining what data type is being used
-#[derive(Shrinkwrap, Hash, Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[derive(Shrinkwrap, Hash, Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize, Ord, PartialOrd)]
 pub struct DataType(String);
 
 impl From<&str> for DataType {

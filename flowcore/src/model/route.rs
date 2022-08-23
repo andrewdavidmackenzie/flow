@@ -11,7 +11,7 @@ use crate::model::validation::Validate;
 
 /// A `Route` is a String that refers to a particular location within the flow hierarchy
 /// and can be used to locate a function, flow, input or output uniquely
-#[derive(Shrinkwrap, Hash, Debug, PartialEq, Eq, Clone, Default, Serialize, Deserialize)]
+#[derive(Shrinkwrap, Hash, Debug, PartialEq, Ord, PartialOrd, Eq, Clone, Default, Serialize, Deserialize)]
 #[shrinkwrap(mutable)]
 pub struct Route(pub String);
 

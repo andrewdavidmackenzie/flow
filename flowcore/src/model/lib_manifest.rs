@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
 
 use log::debug;
@@ -54,11 +54,11 @@ pub struct LibraryManifest {
     pub metadata: MetaData,
     /// the `locators` map a reference to a function/implementation to the `ImplementationLocator`
     /// that can be used to load it or reference it
-    pub locators: HashMap<Url, ImplementationLocator>,
+    pub locators: BTreeMap<Url, ImplementationLocator>,
     /// source_files is a list of source files (location relative to library root) for functions
     /// (function definitions and source code) and process flow definitions that form part of it
     #[serde(default)]
-    pub source_urls: HashSet<(Url, Url)>,
+    pub source_urls: BTreeSet<(Url, Url)>,
 }
 
 impl LibraryManifest {
@@ -67,8 +67,8 @@ impl LibraryManifest {
         LibraryManifest {
             lib_url,
             metadata,
-            locators: HashMap::<Url, ImplementationLocator>::new(),
-            source_urls: HashSet::<(Url, Url)>::new(),
+            locators: BTreeMap::<Url, ImplementationLocator>::new(),
+            source_urls: BTreeSet::<(Url, Url)>::new(),
         }
     }
 

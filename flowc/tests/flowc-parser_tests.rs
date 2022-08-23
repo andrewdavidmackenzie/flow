@@ -1,5 +1,5 @@
 #[cfg(feature = "debugger")]
-use std::collections::HashSet;
+use std::collections::BTreeSet;
 
 #[cfg(feature = "debugger")]
 use url::Url;
@@ -42,7 +42,7 @@ fn malformed_connection() {
     );
     if parser::parse(&path, &meta_provider,
                      #[cfg(feature = "debugger")]
-                        &mut HashSet::<(Url, Url)>::new()
+                        &mut BTreeSet::<(Url, Url)>::new()
     ).is_ok() {
         panic!("root.toml should not load successfully");
     }
@@ -56,7 +56,7 @@ fn invalid_toml() {
     let path = helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/root.toml");
     if parser::parse(&path, &meta_provider,
                      #[cfg(feature = "debugger")]
-                    &mut HashSet::<(Url, Url)>::new()
+                    &mut BTreeSet::<(Url, Url)>::new()
     ).is_ok() {
         panic!("root.toml should not load successfully");
     }
@@ -72,7 +72,7 @@ fn invalid_process() {
     );
     if parser::parse(&path, &meta_provider,
                      #[cfg(feature = "debugger")]
-                    &mut HashSet::<(Url, Url)>::new()
+                    &mut BTreeSet::<(Url, Url)>::new()
     ).is_ok() {
         panic!("root.toml should not load successfully");
     }
@@ -89,7 +89,7 @@ fn function_input_initialized() {
 
     match parser::parse(&url, &meta_provider,
                         #[cfg(feature = "debugger")]
-                       &mut HashSet::<(Url, Url)>::new()
+                       &mut BTreeSet::<(Url, Url)>::new()
     ) {
         Ok(FlowProcess(mut flow)) => match flow.subprocesses.get_mut(&Name::from("print")) {
             Some(FunctionProcess(print_function)) => {
@@ -123,7 +123,7 @@ fn root_flow_takes_name_from_file() {
 
     match parser::parse(&url, &meta_provider,
                         #[cfg(feature = "debugger")]
-                           &mut HashSet::<(Url, Url)>::new()
+                           &mut BTreeSet::<(Url, Url)>::new()
     ) {
         Ok(FlowProcess(flow)) => assert_eq!(flow.name, Name::from("names")),
         _ => panic!("Flow could not be loaded"),

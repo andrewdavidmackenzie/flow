@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::collections::BTreeSet;
 
 use serde_derive::{Deserialize, Serialize};
 use url::Url;
@@ -33,14 +33,14 @@ pub struct FlowManifest {
     /// The `MetaData` about this flow
     metadata: MetaData,
     /// A list of the `lib_references` used by this flow
-    lib_references: HashSet<Url>,
+    lib_references: BTreeSet<Url>,
     /// A list of the `context_references` used by this flow
-    context_references: HashSet<Url>,
+    context_references: BTreeSet<Url>,
     /// A list of descriptors of the `Functions` used in this flow
     functions: Vec<RuntimeFunction>,
     #[cfg(feature = "debugger")]
     /// A list of the source files used to build this `flow`
-    source_urls: HashSet<(Url, Url)>,
+    source_urls: BTreeSet<(Url, Url)>,
 }
 
 impl FlowManifest {
@@ -48,11 +48,11 @@ impl FlowManifest {
     pub fn new(metadata: MetaData) -> Self {
         FlowManifest {
             metadata,
-            lib_references: HashSet::<Url>::new(),
-            context_references: HashSet::<Url>::new(),
+            lib_references: BTreeSet::<Url>::new(),
+            context_references: BTreeSet::<Url>::new(),
             functions: Vec::<RuntimeFunction>::new(),
             #[cfg(feature = "debugger")]
-            source_urls: HashSet::<(Url, Url)>::new(),
+            source_urls: BTreeSet::<(Url, Url)>::new(),
         }
     }
 
@@ -72,22 +72,22 @@ impl FlowManifest {
     }
 
     /// get the list of all library references in this manifest
-    pub fn get_lib_references(&self) -> &HashSet<Url> {
+    pub fn get_lib_references(&self) -> &BTreeSet<Url> {
         &self.lib_references
     }
 
     /// get the list of all context references in this manifest
-    pub fn get_context_references(&self) -> &HashSet<Url> {
+    pub fn get_context_references(&self) -> &BTreeSet<Url> {
         &self.context_references
     }
 
     /// set the list of all library references in this manifest
-    pub fn set_lib_references(&mut self, lib_references: &HashSet<Url>) {
+    pub fn set_lib_references(&mut self, lib_references: &BTreeSet<Url>) {
         self.lib_references = lib_references.clone();
     }
 
     /// set the list of all context references in this manifest
-    pub fn set_context_references(&mut self, context_references: &HashSet<Url>) {
+    pub fn set_context_references(&mut self, context_references: &BTreeSet<Url>) {
         self.context_references = context_references.clone();
     }
 
@@ -103,13 +103,13 @@ impl FlowManifest {
 
     /// set the list of all source urls used in the flow
     #[cfg(feature = "debugger")]
-    pub fn set_source_urls(&mut self, source_urls: HashSet<(Url, Url)>) {
+    pub fn set_source_urls(&mut self, source_urls: BTreeSet<(Url, Url)>) {
         self.source_urls = source_urls;
     }
 
     /// Get the list of source files used in the flow
     #[cfg(feature = "debugger")]
-    pub fn get_source_urls(&self) -> &HashSet<(Url, Url)> {
+    pub fn get_source_urls(&self) -> &BTreeSet<(Url, Url)> {
         &self.source_urls
     }
 
@@ -134,7 +134,8 @@ impl FlowManifest {
         // TODO normalize the relative ImplementationLocators into full file:// Urls here
         // using the manifest's resolved Url as the base...see executor.rs and avoid the need to
         // do there - then all locators can be treated equally. Maybe even add fields in the manifest
-        // of type Url for them, and stop using the &str versions deserialized. Customer deser for this?
+        // of type Url for them, and stop using the &str versions deserialized.
+        // Custom deserializer for this?
 
         Ok((manifest, url))
     }

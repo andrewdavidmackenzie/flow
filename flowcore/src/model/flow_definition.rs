@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
 use std::mem::take;
 
@@ -71,13 +71,13 @@ pub struct FlowDefinition {
     pub route: Route,
     /// `subprocesses` are the loaded definition of the processes reference (used) within this flow
     #[serde(skip)]
-    pub subprocesses: HashMap<Name, Process>,
+    pub subprocesses: BTreeMap<Name, Process>,
     /// `lib_references` is the set of library references used in this flow
     #[serde(skip)]
-    pub lib_references: HashSet<Url>,
+    pub lib_references: BTreeSet<Url>,
     /// `context_references` is the set of context functions used in this flow
     #[serde(skip)]
-    pub context_references: HashSet<Url>,
+    pub context_references: BTreeSet<Url>,
 }
 
 impl Validate for FlowDefinition {
@@ -218,7 +218,7 @@ impl FlowDefinition {
     }
 
     /// Set the initial values on the IOs in an IOSet using a set of Input Initializers
-    fn set_initial_values(&mut self, initializers: &HashMap<String, InputInitializer>) {
+    fn set_initial_values(&mut self, initializers: &BTreeMap<String, InputInitializer>) {
         for initializer in initializers {
             // initializer.0 is io name, initializer.1 is the initial value to set it to
             for (index, input) in self.inputs.iter_mut().enumerate() {
@@ -238,7 +238,7 @@ impl FlowDefinition {
         parent_route: &Route,
         alias_from_reference: &Name,
         id: usize,
-        initializations: &HashMap<String, InputInitializer>,
+        initializations: &BTreeMap<String, InputInitializer>,
     ) -> Result<()> {
         self.id = id;
         self.set_alias(alias_from_reference);
@@ -447,7 +447,7 @@ impl FlowDefinition {
 
 #[cfg(test)]
 mod test {
-    use std::collections::HashMap;
+    use std::collections::BTreeMap;
 
     use serde_json::json;
 
@@ -596,7 +596,7 @@ mod test {
     #[test]
     fn test_inputs_initializers() {
         let mut flow = test_flow();
-        let mut initializers = HashMap::new();
+        let mut initializers = BTreeMap::new();
         initializers.insert(STRING_TYPE.into(), Always(json!("Hello")));
         initializers.insert(NUMBER_TYPE.into(), Once(json!(42)));
         flow.set_initial_values(&initializers);

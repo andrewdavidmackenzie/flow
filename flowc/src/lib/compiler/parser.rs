@@ -1,6 +1,6 @@
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 #[cfg(feature = "debugger")]
-use std::collections::HashSet;
+use std::collections::BTreeSet;
 
 use log::{debug, info, trace};
 use url::Url;
@@ -62,7 +62,7 @@ pub enum LibType {
 /// let dummy_provider = DummyProvider{};
 ///
 /// // keep track of the source Urls loaded for this flow
-/// let mut source_urls = HashSet::<(Url, Url)>::new();
+/// let mut source_urls = BtreeSet::<(Url, Url)>::new();
 ///
 /// // load the flow from `url = file:///example.toml` using the `dummy_provider`
 /// flowclib::compiler::parser::parse(&Url::parse("file:///example.toml").unwrap(), &dummy_provider, &mut source_urls).unwrap();
@@ -70,7 +70,7 @@ pub enum LibType {
 pub fn parse(
     url: &Url,
     provider: &dyn Provider,
-    #[cfg(feature = "debugger")] source_urls: &mut HashSet<(Url, Url)>,
+    #[cfg(feature = "debugger")] source_urls: &mut BTreeSet<(Url, Url)>,
 ) -> Result<Process> {
     trace!("load()");
     parse_process(
@@ -80,7 +80,7 @@ pub fn parse(
         &mut 0,
         url,
         provider,
-        &HashMap::new(),
+        &BTreeMap::new(),
         #[cfg(feature = "debugger")]
         source_urls,
         0,
@@ -95,8 +95,8 @@ fn parse_process(
     flow_count: &mut usize,
     url: &Url,
     provider: &dyn Provider,
-    initializations: &HashMap<String, InputInitializer>,
-    #[cfg(feature = "debugger")] source_urls: &mut HashSet<(Url, Url)>,
+    initializations: &BTreeMap<String, InputInitializer>,
+    #[cfg(feature = "debugger")] source_urls: &mut BTreeSet<(Url, Url)>,
     level: usize,
 ) -> Result<Process> {
     trace!("load_process()");
@@ -200,7 +200,7 @@ fn parse_process_refs(
     flow: &mut FlowDefinition,
     flow_count: &mut usize,
     provider: &dyn Provider,
-    #[cfg(feature = "debugger")] source_urls: &mut HashSet<(Url, Url)>,
+    #[cfg(feature = "debugger")] source_urls: &mut BTreeSet<(Url, Url)>,
     level: usize,
 ) -> Result<()> {
     for process_ref in &mut flow.process_refs {

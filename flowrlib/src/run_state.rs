@@ -3,7 +3,7 @@ use std::collections::hash_map::Entry;
 use std::collections::VecDeque;
 use std::fmt;
 
-use log::{debug, error, trace};
+use log::{debug, error, info, trace};
 use multimap::MultiMap;
 use rand::Rng;
 use serde_derive::{Deserialize, Serialize};
@@ -680,10 +680,10 @@ impl RunState {
         let loopback = source_id == connection.function_id;
 
         if loopback {
-            trace!("\t\tFunction #{source_id} loopback of '{}'{} to Self:{}",
+            info!("\t\tFunction #{source_id} loopback of '{}'{} to Self:{}",
                     output_value, route_str, connection.io_number);
         } else {
-            trace!("\t\tFunction #{source_id} sending '{}'{} to Function #{}:{}",
+            info!("\t\tFunction #{source_id} sending '{}'{} to Function #{}:{}",
                     output_value, route_str, connection.function_id, connection.io_number);
         };
 
