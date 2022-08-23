@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
 
 use log::{debug, info};
@@ -26,18 +26,18 @@ use super::optimizer;
 pub struct CompilerTables {
     /// The set of connections between functions in the compiled flow
     pub connections: Vec<Connection>,
-    /// HashMap of sources of values and what route they are connected to
-    pub sources: HashMap<Route, (Source, usize)>,
-    /// HashMap from "route of the output of a function" --> (output name, source_function_id)
-    pub destination_routes: HashMap<Route, (usize, usize, usize)>,
+    /// Map of sources of values and what route they are connected to
+    pub sources: BTreeMap<Route, (Source, usize)>,
+    /// Map from "route of the output of a function" --> (output name, source_function_id)
+    pub destination_routes: BTreeMap<Route, (usize, usize, usize)>,
     /// HashMap from "route of the input of a function" --> (destination_function_id, input number, flow_id)
     pub collapsed_connections: Vec<Connection>,
     /// The set of functions left in a flow after it has been flattened, connected and optimized
     pub functions: Vec<FunctionDefinition>,
     /// The set of libraries used by a flow, from their Urls
-    pub libs: HashSet<Url>,
+    pub libs: BTreeSet<Url>,
     /// The set of context functions used by a flow, from their Urls
-    pub context_functions: HashSet<Url>,
+    pub context_functions: BTreeSet<Url>,
     /// The list of source files that were used in the flow definition
     pub source_files: Vec<String>,
 }
@@ -47,12 +47,12 @@ impl CompilerTables {
     pub fn new() -> Self {
         CompilerTables {
             connections: Vec::new(),
-            sources: HashMap::<Route, (Source, usize)>::new(),
-            destination_routes: HashMap::<Route, (usize, usize, usize)>::new(),
+            sources: BTreeMap::<Route, (Source, usize)>::new(),
+            destination_routes: BTreeMap::<Route, (usize, usize, usize)>::new(),
             collapsed_connections: Vec::new(),
             functions: Vec::new(),
-            libs: HashSet::new(),
-            context_functions: HashSet::new(),
+            libs: BTreeSet::new(),
+            context_functions: BTreeSet::new(),
             source_files: Vec::new(),
         }
     }
@@ -63,7 +63,7 @@ impl CompilerTables {
 pub fn compile(flow: &FlowDefinition, output_dir: &Path,
                skip_building: bool,
                optimize: bool,
-               #[cfg(feature = "debugger")] source_urls: &mut HashSet<(Url, Url)>,
+               #[cfg(feature = "debugger")] source_urls: &mut BTreeSet<(Url, Url)>,
     ) -> Result<CompilerTables> {
     let mut tables = CompilerTables::new();
 
@@ -94,7 +94,7 @@ fn compile_supplied_implementations(
     tables: &mut CompilerTables,
     skip_building: bool,
     release_build: bool,
-    #[cfg(feature = "debugger")] source_urls: &mut HashSet<(Url, Url)>,
+    #[cfg(feature = "debugger")] source_urls: &mut BTreeSet<(Url, Url)>,
 ) -> Result<String> {
     for function in &mut tables.functions {
         if function.get_lib_reference().is_none() && function.get_context_reference().is_none() {
@@ -194,7 +194,7 @@ fn configuring_output_connections(tables: &mut CompilerTables) -> Result<()> {
     -  (removing the array index first to find outputs that are arrays, but then adding it back into the subroute) TODO change
 */
 fn get_source(
-    source_routes: &HashMap<Route, (Source, usize)>,
+    source_routes: &BTreeMap<Route, (Source, usize)>,
     from_route: &Route,
 ) -> Option<(Source, usize)> {
     let mut source_route = from_route.clone();
@@ -237,9 +237,9 @@ fn get_source(
 
 #[cfg(test)]
 mod test {
-    use std::collections::HashMap;
+    use std::collections::BTreeMap;
     #[cfg(feature = "debugger")]
-    use std::collections::HashSet;
+    use std::collections::BTreeSet;
 
     use tempdir::TempDir;
     use url::Url;
@@ -255,7 +255,7 @@ mod test {
     use crate::compiler::compile::compile;
 
     mod get_source_tests {
-        use std::collections::HashMap;
+        use std::collections::BTreeMap;
 
         use flowcore::model::output_connection::Source;
         use flowcore::model::output_connection::Source::Output;
@@ -264,22 +264,22 @@ mod test {
         use super::super::get_source;
 
         /*
-                                            Create a HashTable of routes for use in tests.
-                                            Each entry (K, V) is:
-                                            - Key   - the route to a function's IO
-                                            - Value - a tuple of
-                                                        - sub-route (or IO name) from the function to be used at runtime
-                                                        - the id number of the function in the functions table, to select it at runtime
+                                                    Create a HashTable of routes for use in tests.
+                                                    Each entry (K, V) is:
+                                                    - Key   - the route to a function's IO
+                                                    - Value - a tuple of
+                                                                - sub-route (or IO name) from the function to be used at runtime
+                                                                - the id number of the function in the functions table, to select it at runtime
 
-                                            Plus a vector of test cases with the Route to search for and the expected function_id and output sub-route
-                                        */
+                                                    Plus a vector of test cases with the Route to search for and the expected function_id and output sub-route
+                                                */
         #[allow(clippy::type_complexity)]
         fn test_source_routes() -> (
-            HashMap<Route, (Source, usize)>,
+            BTreeMap<Route, (Source, usize)>,
             Vec<(&'static str, Route, Option<(Source, usize)>)>,
         ) {
             // make sure a corresponding entry (if applicable) is in the table to give the expected response
-            let mut test_sources = HashMap::<Route, (Source, usize)>::new();
+            let mut test_sources = BTreeMap::<Route, (Source, usize)>::new();
             test_sources.insert(Route::from("/root/f1"), (Source::default(), 0));
             test_sources.insert(
                 Route::from("/root/f2/output_value"),
@@ -378,7 +378,7 @@ mod test {
         let function_ref = ProcessReference {
             alias: function.alias().to_owned(),
             source: function.source_url.to_string(),
-            initializations: HashMap::new(),
+            initializations: BTreeMap::new(),
         };
 
         let _test_flow = FlowDefinition::default();
@@ -392,7 +392,7 @@ mod test {
         };
 
         #[cfg(feature = "debugger")]
-        let mut source_urls = HashSet::<(Url, Url)>::new();
+        let mut source_urls = BTreeSet::<(Url, Url)>::new();
         let output_dir = TempDir::new("flow-test").expect("A temp dir").into_path();
 
         // Optimizer should remove unconnected function leaving no side-effects

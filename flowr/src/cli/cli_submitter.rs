@@ -89,7 +89,7 @@ impl SubmissionProtocol for CLISubmitter {
                     let received = locked.receive(WAIT);
                     match received {
                         Ok(ClientMessage::ClientSubmission(submission)) => {
-                            debug!(
+                            info!(
                                 "Server received a submission for execution with manifest_url: '{}'",
                                 submission.manifest_url
                             );

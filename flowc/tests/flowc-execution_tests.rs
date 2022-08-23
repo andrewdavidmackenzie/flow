@@ -2,7 +2,7 @@
 extern crate error_chain;
 
 #[cfg(feature = "debugger")]
-use std::collections::HashSet;
+use std::collections::BTreeSet;
 use std::fmt::Write as FormatWrite;
 use std::fs::File;
 use std::io::{BufRead, BufReader, Write};
@@ -66,7 +66,7 @@ fn write_manifest(
         &out_dir_path,
         tables,
         #[cfg(feature = "debugger")]
-        &HashSet::<(Url, Url)>::new(),
+        &BTreeSet::<(Url, Url)>::new(),
     )?;
 
     manifest_file
@@ -185,7 +185,7 @@ fn load_flow(test_dir: &Path, search_path: Simpath) -> Process {
                            helper::get_canonical_context_root()
         ),
         #[cfg(feature = "debugger")]
-            &mut HashSet::<(Url, Url)>::new(),
+            &mut BTreeSet::<(Url, Url)>::new(),
     )
     .expect("Could not load process")
 }
@@ -211,7 +211,7 @@ fn execute_test(test_name: &str, separate_processes: bool) {
 
     if let FlowProcess(ref flow) = load_flow(&test_dir, search_path) {
         #[cfg(feature = "debugger")]
-        let mut source_urls = HashSet::<(Url, Url)>::new();
+        let mut source_urls = BTreeSet::<(Url, Url)>::new();
         let output_dir = TempDir::new("flow-test").expect("A temp dir").into_path();
 
         let tables = compile::compile(flow,

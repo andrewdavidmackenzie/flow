@@ -1,5 +1,5 @@
 #[cfg(feature = "debugger")]
-use std::collections::HashSet;
+use std::collections::BTreeSet;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -23,7 +23,7 @@ pub fn compile_implementation(
     function: &mut FunctionDefinition,
     native_only: bool,
     optimize: bool,
-    #[cfg(feature = "debugger")] source_urls: &mut HashSet<(Url, Url)>,
+    #[cfg(feature = "debugger")] source_urls: &mut BTreeSet<(Url, Url)>,
 ) -> Result<(PathBuf, bool)> {
     let mut built = false;
 
@@ -208,7 +208,7 @@ fn out_of_date(source: &Path, derived: &Path) -> Result<(bool, bool)> {
 #[cfg(test)]
 mod test {
     #[cfg(feature = "debugger")]
-        use std::collections::HashSet;
+    use std::collections::BTreeSet;
     use std::env;
     use std::fs::{File, remove_file, write};
     use std::path::Path;
@@ -399,7 +399,7 @@ mod test {
         let _ = remove_file(&expected_output_wasm);
 
         #[cfg(feature = "debugger")]
-        let mut source_urls = HashSet::<(Url, Url)>::new();
+        let mut source_urls = BTreeSet::<(Url, Url)>::new();
 
         let (wasm_destination, built) = super::compile_implementation(
             &target_dir,
@@ -428,7 +428,7 @@ mod test {
         write(&expected_output_wasm, b"file touched during testing")
             .expect("Could not write to file during testing");
         #[cfg(feature = "debugger")]
-        let mut source_urls = HashSet::<(Url, Url)>::new();
+        let mut source_urls = BTreeSet::<(Url, Url)>::new();
 
         let (wasm_destination, built) = super::compile_implementation(
             &target_dir,
@@ -449,7 +449,7 @@ mod test {
         let mut function = test_function();
 
         #[cfg(feature = "debugger")]
-            let mut source_urls = HashSet::<(Url, Url)>::new();
+            let mut source_urls = BTreeSet::<(Url, Url)>::new();
 
         let target_dir = TempDir::new("flow")
             .expect("Could not create TempDir during testing")
@@ -476,7 +476,7 @@ mod test {
         function.set_source("does_not_exist");
 
         #[cfg(feature = "debugger")]
-            let mut source_urls = HashSet::<(Url, Url)>::new();
+            let mut source_urls = BTreeSet::<(Url, Url)>::new();
 
         let target_dir = TempDir::new("flow")
             .expect("Could not create TempDir during testing")
@@ -505,7 +505,7 @@ mod test {
         let _ = remove_file(&expected_output_wasm);
 
         #[cfg(feature = "debugger")]
-            let mut source_urls = HashSet::<(Url, Url)>::new();
+            let mut source_urls = BTreeSet::<(Url, Url)>::new();
 
         let (wasm_destination, built) = super::compile_implementation(
             &target_dir,

@@ -9,7 +9,7 @@ use crate::model::route::Route;
 use crate::model::validation::Validate;
 
 /// `Name` is a String that names various types of objects
-#[derive(Shrinkwrap, Hash, Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[derive(Shrinkwrap, Hash, Debug, Clone, PartialEq, Ord, PartialOrd, Eq, Default, Serialize, Deserialize)]
 pub struct Name(String);
 
 /// Implement Name struct

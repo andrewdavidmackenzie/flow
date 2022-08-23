@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 use std::fmt;
 
 use serde_derive::{Deserialize, Serialize};
@@ -24,7 +24,7 @@ pub struct ProcessReference {
     /// When a process is references, each reference can set different initial values on the inputs
     /// of the referenced process.
     #[serde(default, rename = "input")]
-    pub initializations: HashMap<String, InputInitializer>,
+    pub initializations: BTreeMap<String, InputInitializer>,
 }
 
 impl ProcessReference {

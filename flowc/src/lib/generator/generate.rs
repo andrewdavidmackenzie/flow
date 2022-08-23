@@ -1,5 +1,5 @@
 #[cfg(feature = "debugger")]
-use std::collections::HashSet;
+use std::collections::BTreeSet;
 use std::fs::File;
 use std::io::Write;
 use std::path::{Path, PathBuf};
@@ -29,7 +29,7 @@ pub fn create_manifest(
     debug_symbols: bool,
     manifest_url: &Url,
     tables: &CompilerTables,
-    #[cfg(feature = "debugger")] source_urls: &HashSet<(Url, Url)>,
+    #[cfg(feature = "debugger")] source_urls: &BTreeSet<(Url, Url)>,
 ) -> Result<FlowManifest> {
     info!("Writing flow manifest to '{}'", manifest_url);
 
@@ -60,7 +60,7 @@ pub fn write_flow_manifest(
     debug_symbols: bool,
     destination: &Path,
     tables: &CompilerTables,
-    #[cfg(feature = "debugger")] source_urls: &HashSet<(Url, Url)>,
+    #[cfg(feature = "debugger")] source_urls: &BTreeSet<(Url, Url)>,
 ) -> Result<PathBuf> {
     info!("\n==== Generating Manifest");
 
