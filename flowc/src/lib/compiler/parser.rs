@@ -38,7 +38,7 @@ pub enum LibType {
 /// use flowcore::errors::Result;
 /// use std::env;
 /// use url::Url;
-/// use std::collections::HashSet;
+/// use std::collections::BTreeSet;
 ///
 /// // Clients need to provide a Provider of content for the loader as flowlibc is independent of
 /// // file systems and io.
