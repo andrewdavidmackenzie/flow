@@ -62,7 +62,7 @@ pub enum LibType {
 /// let dummy_provider = DummyProvider{};
 ///
 /// // keep track of the source Urls loaded for this flow
-/// let mut source_urls = BtreeSet::<(Url, Url)>::new();
+/// let mut source_urls = BTreeSet::<(Url, Url)>::new();
 ///
 /// // load the flow from `url = file:///example.toml` using the `dummy_provider`
 /// flowclib::compiler::parser::parse(&Url::parse("file:///example.toml").unwrap(), &dummy_provider, &mut source_urls).unwrap();
