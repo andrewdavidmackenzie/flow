@@ -46,10 +46,11 @@ pub enum State {
 
 /// Execution of of functions in the ready queue can be performed in different orders, using
 /// different strategies to select the next function to execute.
-#[derive(Deserialize, Serialize, Clone)]
+#[derive(Deserialize, Serialize, Clone, Default)]
 enum ExecutionStrategy {
     // Execute functions in the same order they complete and are put onto the queue
     InOrder,
+    #[default]
     // Execute ready functions in a random order. Used to check semantics are independent of order
     Random,
 }
@@ -223,6 +224,7 @@ impl RunState {
     pub fn new(functions: &[RuntimeFunction], submission: Submission) -> Self {
         RunState {
             functions: functions.to_vec(),
+            submission,
             blocked: HashSet::<usize>::new(),
             blocks: HashSet::<Block>::new(),
             ready: VecDeque::<usize>::new(),
@@ -231,7 +233,6 @@ impl RunState {
             number_of_jobs_created: 0,
             busy_flows: MultiMap::<usize, usize>::new(),
             pending_unblocks: HashMap::<usize, HashSet<usize>>::new(),
-            submission,
             strategy: ExecutionStrategy::Random,
         }
     }
