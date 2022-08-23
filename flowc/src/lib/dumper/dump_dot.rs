@@ -36,7 +36,7 @@ use crate::errors::*;
 /// use flowcore::errors::Result;
 /// use flowcore::model::process::Process::FlowProcess;
 /// use tempdir::TempDir;
-/// use std::collections::HashSet;
+/// use std::collections::BTreeSet;
 /// use simpath::Simpath;
 /// use std::path::Path;
 /// use std::path::PathBuf;
@@ -51,7 +51,7 @@ use crate::errors::*;
 /// let mut url = Url::from_file_path(env::current_dir().unwrap()).unwrap();
 /// url = url.join("flowc/tests/test-flows/hello-world/hello-world.toml").unwrap();
 ///
-/// let mut source_urls = HashSet::<(Url, Url)>::new();
+/// let mut source_urls = BTreeSet::<(Url, Url)>::new();
 /// let output_dir = TempDir::new("flow-test").expect("A temp dir").into_path();
 ///
 /// if let Ok(FlowProcess(mut flow)) = flowclib::compiler::parser::parse(&url,
@@ -110,7 +110,7 @@ pub fn dump_functions(
 /// use flowcore::errors::Result;
 /// use flowcore::model::process::Process::FlowProcess;
 /// use tempdir::TempDir;
-/// use std::collections::HashSet;
+/// use std::collections::BTreeSet;
 /// use simpath::Simpath;
 /// use std::path::PathBuf;
 ///
@@ -120,7 +120,7 @@ pub fn dump_functions(
 /// let mut url = Url::from_file_path(env::current_dir().unwrap()).unwrap();
 /// url = url.join("samples/hello-world/root.toml").unwrap();
 ///
-/// let mut source_urls = HashSet::<(Url, Url)>::new();
+/// let mut source_urls = BTreeSet::<(Url, Url)>::new();
 ///
 /// if let Ok(FlowProcess(mut flow)) = flowclib::compiler::parser::parse(&url,
 ///                                                    &provider,

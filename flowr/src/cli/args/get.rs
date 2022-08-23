@@ -31,7 +31,7 @@ impl Implementation for Get {
                     if let Ok(json) = serde_json::from_str(arg) {
                         json_arg_vec.push(json);
                     } else {
-                        json_arg_vec.push(serde_json::Value::String(arg.into()))
+                        json_arg_vec.push(Value::String(arg.into()))
                     }
                 }
                 // Add the json Array of args at the "/json" output route
@@ -96,10 +96,79 @@ mod test {
 
         let val = value.expect("Could not get value returned from implementation");
         let map = val.as_object().expect("Could not get map of output values");
-        assert!(map.contains_key("string"));
+        assert!(map.contains_key("json"));
         assert_eq!(
             map.get("json").expect("Could not get json args"),
             &json!(args)
         );
+    }
+
+    #[test]
+    #[serial]
+    fn gets_args_num() {
+        let args: Vec<String> = vec!["flow_name", "10"]
+            .iter()
+            .map(|s| s.to_string())
+            .collect();
+
+        let server_connection = wait_for_then_send(GetArgs, Args(args));
+
+        let getter = &Get { server_connection } as &dyn Implementation;
+
+        let (value, run_again) = getter.run(&[]).expect("_get() failed");
+
+        assert_eq!(run_again, DONT_RUN_AGAIN);
+
+        let val = value.expect("Could not get value returned from implementation");
+        let map = val.as_object().expect("Could not get map of output values");
+        let json = map.get("json").expect("Could not get json args")
+            .as_array().expect("Could not get json map as an array of values");
+        assert_eq!(json.get(1).expect("Could not get get element 1"), &json!(10));
+    }
+
+    #[test]
+    #[serial]
+    fn gets_args_array_num() {
+        let args: Vec<String> = vec!["flow_name", "[10,20]"]
+            .iter()
+            .map(|s| s.to_string())
+            .collect();
+
+        let server_connection = wait_for_then_send(GetArgs, Args(args));
+
+        let getter = &Get { server_connection } as &dyn Implementation;
+
+        let (value, run_again) = getter.run(&[]).expect("_get() failed");
+
+        assert_eq!(run_again, DONT_RUN_AGAIN);
+
+        let val = value.expect("Could not get value returned from implementation");
+        let map = val.as_object().expect("Could not get map of output values");
+        let json = map.get("json").expect("Could not get json args")
+            .as_array().expect("Could not get json map as an array of values");
+        assert_eq!(json.get(1).expect("Could not get get element 1"), &json!([10,20]));
+    }
+
+    #[test]
+    #[serial]
+    fn gets_args_array_array_num() {
+        let args: Vec<String> = vec!["flow_name", "[[10,20],[30,40]]"]
+            .iter()
+            .map(|s| s.to_string())
+            .collect();
+
+        let server_connection = wait_for_then_send(GetArgs, Args(args));
+
+        let getter = &Get { server_connection } as &dyn Implementation;
+
+        let (value, run_again) = getter.run(&[]).expect("_get() failed");
+
+        assert_eq!(run_again, DONT_RUN_AGAIN);
+
+        let val = value.expect("Could not get value returned from implementation");
+        let map = val.as_object().expect("Could not get map of output values");
+        let json = map.get("json").expect("Could not get json args")
+            .as_array().expect("Could not get json map as an array of values");
+        assert_eq!(json.get(1).expect("Could not get get element 1"), &json!([[10,20], [30,40]]));
     }
 }

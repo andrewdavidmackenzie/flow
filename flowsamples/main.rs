@@ -9,7 +9,7 @@ fn main() -> io::Result<()> {
     println!("`flowsample` version {}", env!("CARGO_PKG_VERSION"));
     println!(
         "Current Working Directory: `{}`",
-        std::env::current_dir().expect("Could not get working directory").display()
+        env::current_dir().expect("Could not get working directory").display()
     );
 
     let samples_root = env!("CARGO_MANIFEST_DIR");
@@ -74,7 +74,7 @@ fn run_sample(sample_dir: &Path, output_dir: &Path) -> io::Result<()> {
                 .args(vec![sample_dir.join("test.stdin")])
                 .stdout(flowr_child.stdin.take().ok_or_else(|| {
                     io::Error::new(
-                        io::ErrorKind::Other,
+                        ErrorKind::Other,
                         "Could not take STDIN of `flowr` process",
                     )
                 })?)
@@ -85,11 +85,11 @@ fn run_sample(sample_dir: &Path, output_dir: &Path) -> io::Result<()> {
         }
         Err(e) => match e.kind() {
             ErrorKind::NotFound => Err(io::Error::new(
-                io::ErrorKind::Other,
+                ErrorKind::Other,
                 format!("`flowr` was not found! Check your $PATH. {}", e),
             )),
             _ => Err(io::Error::new(
-                io::ErrorKind::Other,
+                ErrorKind::Other,
                 format!("Unexpected error running `flowr`: {}", e),
             )),
         },

@@ -3,8 +3,9 @@ use std::collections::hash_map::Entry;
 use std::collections::VecDeque;
 use std::fmt;
 
-use log::{debug, error, trace};
+use log::{debug, error, info, trace};
 use multimap::MultiMap;
+use rand::Rng;
 use serde_derive::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
@@ -41,6 +42,17 @@ pub enum State {
     /// Completed - Function has indicated that it no longer wants to be run, so it's execution
     ///           has completed.
     Completed,
+}
+
+/// Execution of of functions in the ready queue can be performed in different orders, using
+/// different strategies to select the next function to execute.
+#[derive(Deserialize, Serialize, Clone, Default)]
+enum ExecutionStrategy {
+    // Execute functions in the same order they complete and are put onto the queue
+    InOrder,
+    #[default]
+    // Execute ready functions in a random order. Used to check semantics are independent of order
+    Random,
 }
 
 /// `RunState` is a structure that maintains the state of all the functions in the currently
@@ -83,7 +95,7 @@ pub enum State {
 ///
 /// One-time Execution or Stopping repetitive execution
 /// ===================================================
-/// A function may need to only run once, or to stop being executed repeatedly at some point. 
+/// A function may need to only run once, or to stop being executed repeatedly at some point.
 /// So each implementation when ran returns a "run again" flag to indicate this.
 /// An example of functions that may decide to stop running are:
 /// - args: produces arguments from the command line execution of a flow once at start-up
@@ -157,7 +169,7 @@ pub enum State {
 ///
 /// Iteration and Recursion
 /// =======================
-/// A function may send values to itself using a loop-back connector, in order to perform something 
+/// A function may send values to itself using a loop-back connector, in order to perform something
 /// similar to iteration or recursion, in procedural programming.
 /// A function sending a value to itself will not create any blocks, and will not be marked as blocked
 /// due to the loop, and thus avoid deadlocks.
@@ -202,6 +214,8 @@ pub struct RunState {
     pending_unblocks: HashMap<usize, HashSet<usize>>,
     /// The `Submission` that lead to this `RunState` object being created
     pub(crate) submission: Submission,
+    /// The execution strategy being used
+    strategy: ExecutionStrategy,
 }
 
 impl RunState {
@@ -210,6 +224,7 @@ impl RunState {
     pub fn new(functions: &[RuntimeFunction], submission: Submission) -> Self {
         RunState {
             functions: functions.to_vec(),
+            submission,
             blocked: HashSet::<usize>::new(),
             blocks: HashSet::<Block>::new(),
             ready: VecDeque::<usize>::new(),
@@ -218,7 +233,7 @@ impl RunState {
             number_of_jobs_created: 0,
             busy_flows: MultiMap::<usize, usize>::new(),
             pending_unblocks: HashMap::<usize, HashSet<usize>>::new(),
-            submission
+            strategy: ExecutionStrategy::Random,
         }
     }
 
@@ -437,7 +452,18 @@ impl RunState {
             }
         }
 
-        let function_id = self.ready.remove(0)?;
+        if self.ready.is_empty() {
+            return None;
+        }
+
+        let function_id = match self.strategy {
+            ExecutionStrategy::InOrder => self.ready.remove(0)?,
+            ExecutionStrategy::Random => {
+                // Generate random index in the range [0, len()-1]
+                let index = rand::thread_rng().gen_range(0..self.ready.len());
+                self.ready.remove(index)?
+            },
+        };
 
         self.create_job(function_id).map(|job| {
             let _ = self.unblock_internal_flow_senders(job.job_id, job.function_id, job.flow_id);
@@ -655,10 +681,10 @@ impl RunState {
         let loopback = source_id == connection.function_id;
 
         if loopback {
-            trace!("\t\tFunction #{source_id} loopback of '{}'{} to Self:{}",
+            info!("\t\tFunction #{source_id} loopback of '{}'{} to Self:{}",
                     output_value, route_str, connection.io_number);
         } else {
-            trace!("\t\tFunction #{source_id} sending '{}'{} to Function #{}:{}",
+            info!("\t\tFunction #{source_id} sending '{}'{} to Function #{}:{}",
                     output_value, route_str, connection.function_id, connection.io_number);
         };
 
@@ -1524,10 +1550,6 @@ mod test {
 
             // Event
             let job = state.next_job().expect("Couldn't get next job");
-            assert_eq!(
-                0, job.function_id,
-                "next_job() should return function_id = 0"
-            );
             state.start(&job);
 
             // Test
@@ -1972,11 +1994,7 @@ mod test {
                 "f_a should be in Waiting"
             );
 
-            assert_eq!(
-                state.next_job().expect("Couldn't get next job").function_id,
-                1,
-                "next() should return function_id=1 (f_b) for running"
-            );
+            let _ = state.next_job().expect("Couldn't get next job");
 
             // create output from f_b as if it had run - will send to f_a
             let output = super::test_output(1, 0);
@@ -2064,6 +2082,7 @@ mod test {
             );
 
             let mut job = state.next_job().expect("Couldn't get next job");
+            // Assumes only function 0 can run
             assert_eq!(job.function_id, 0, "Expected job with function_id=0");
 
             // Event: fake running of function fA
@@ -2084,6 +2103,7 @@ mod test {
             );
 
             let job = state.next_job().expect("Couldn't get next job");
+            // Assumes only function 1 can run
             assert_eq!(
                 job.function_id, 1,
                 "next() should return function_id=1 (f_b) for running"
@@ -2097,6 +2117,7 @@ mod test {
             );
 
             let job = state.next_job().expect("Couldn't get next job");
+            // Assumes only function 0 will be ready
             assert_eq!(
                 job.function_id, 0,
                 "next() should return function_id=0 (f_a) for running"
@@ -2264,10 +2285,7 @@ mod test {
             // Put 0 on the blocked/ready
             state.make_ready_or_blocked(0, 0);
 
-            assert_eq!(
-                state.next_job().expect("Couldn't get next job").function_id,
-                0
-            );
+            state.next_job().expect("Couldn't get next job");
         }
 
         #[test]
@@ -2283,10 +2301,7 @@ mod test {
             // Put 0 on the blocked/ready list depending on blocked status
             state.make_ready_or_blocked(0, 0);
 
-            assert_eq!(
-                state.next_job().expect("Couldn't get next job").function_id,
-                0
-            );
+            state.next_job().expect("Couldn't get next job");
         }
 
         #[test]
@@ -2356,10 +2371,7 @@ mod test {
                 .expect("Could not unblock");
 
             // Now function with id 0 should be ready and served up by next
-            assert_eq!(
-                state.next_job().expect("Couldn't get next job").function_id,
-                0
-            );
+            state.next_job().expect("Couldn't get next job");
         }
 
         #[test]
@@ -2412,6 +2424,7 @@ mod test {
         }
 
         #[test]
+        #[serial]
         fn wont_return_too_many_jobs() {
             let submission = Submission::new(
                 &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
@@ -2419,18 +2432,15 @@ mod test {
                 #[cfg(feature = "debugger")]
                 true,
             );
+            // test_functions has 3 functions
             let mut state = RunState::new(&test_functions(), submission);
 
-            // Put 0 on the ready list
-            state.make_ready_or_blocked(0, 0);
-            // Put 1 on the ready list
-            state.make_ready_or_blocked(1, 0);
+            state.init();
 
             let job = state.next_job().expect("Couldn't get next job");
-            assert_eq!(0, job.function_id);
             state.start(&job);
 
-            assert!(state.next_job().is_none());
+            assert!(state.next_job().is_none(), "Did not expect a Ready job!");
         }
 
         /*
@@ -2459,10 +2469,7 @@ mod test {
 
             state.init();
 
-            assert_eq!(
-                state.next_job().expect("Couldn't get next job").function_id,
-                0
-            );
+            state.next_job().expect("Couldn't get next job");
 
             // Event run f_a
             let job = Job {

@@ -11,7 +11,7 @@ use flowcore::model::flow_definition::FlowDefinition;
 use flowcore::model::process::Process::FlowProcess;
 
 use crate::compiler::compile::CompilerTables;
-use crate::dumper::{dump, dump_dot};
+use crate::dumper::dump_dot;
 use crate::errors::*;
 
 /// Dump the compiler tables of a loaded flow in human readable format to a specified
@@ -24,7 +24,7 @@ use crate::errors::*;
 /// use flowcore::meta_provider::{Provider, MetaProvider};
 /// use flowcore::errors::Result;
 /// use flowcore::model::process::Process::FlowProcess;
-/// use std::collections::HashSet;
+/// use std::collections::{BTreeSet, HashSet};
 /// use simpath::Simpath;
 /// use std::path::PathBuf;
 /// use tempdir::TempDir;
@@ -32,10 +32,10 @@ use crate::errors::*;
 /// let lib_search_path = Simpath::new("FLOW_LIB_PATH");
 /// let provider = MetaProvider::new(lib_search_path, PathBuf::from("/"));
 ///
-/// let mut url = url::Url::from_file_path(env::current_dir().unwrap()).unwrap();
+/// let mut url = Url::from_file_path(env::current_dir().unwrap()).unwrap();
 /// url = url.join("samples/hello-world/root.toml").unwrap();
 ///
-/// let mut source_urls = HashSet::<(Url, Url)>::new();
+/// let mut source_urls = BTreeSet::<(Url, Url)>::new();
 /// let output_dir = TempDir::new("flow-test").expect("A temp dir").into_path();
 ///
 /// if let Ok(FlowProcess(mut flow)) = flowclib::compiler::parser::parse(&url,
@@ -97,16 +97,16 @@ pub fn create_output_file(
 /// use flowcore::meta_provider::{Provider, MetaProvider};
 /// use flowcore::errors::Result;
 /// use flowcore::model::process::Process::FlowProcess;
-/// use std::collections::HashSet;
+/// use std::collections::{BTreeSet, HashSet};
 /// use simpath::Simpath;
 /// use std::path::PathBuf;
 ///
 /// let lib_search_path = Simpath::new("FLOW_LIB_PATH");
 /// let provider = MetaProvider::new(lib_search_path, PathBuf::from("/"));
-/// let mut url = url::Url::from_file_path(env::current_dir().unwrap()).unwrap();
+/// let mut url = Url::from_file_path(env::current_dir().unwrap()).unwrap();
 /// url = url.join("samples/hello-world/root.toml").unwrap();
 ///
-/// let mut source_urls = HashSet::<(Url, Url)>::new();
+/// let mut source_urls = BTreeSet::<(Url, Url)>::new();
 /// let output_dir = tempdir::TempDir::new("flow").unwrap().into_path();
 ///
 /// if let Ok(FlowProcess(mut flow)) = flowclib::compiler::parser::parse(&url,
@@ -152,17 +152,17 @@ fn dump_table<C: Iterator>(table: C, writer: &mut dyn Write) -> std::io::Result<
 /// use flowcore::errors::Result;
 /// use flowcore::model::process::Process::FlowProcess;
 /// use tempdir::TempDir;
-/// use std::collections::HashSet;
+/// use std::collections::{BTreeSet, HashSet};
 /// use simpath::Simpath;
 /// use std::path::PathBuf;
 ///
 /// let lib_search_path = Simpath::new("FLOW_LIB_PATH");
 /// let provider = MetaProvider::new(lib_search_path, PathBuf::from("/"));
 ///
-/// let mut url = url::Url::from_file_path(env::current_dir().unwrap()).unwrap();
+/// let mut url = Url::from_file_path(env::current_dir().unwrap()).unwrap();
 /// url = url.join("samples/hello-world/root.toml").unwrap();
 ///
-/// let mut source_urls = HashSet::<(Url, Url)>::new();
+/// let mut source_urls = BTreeSet::<(Url, Url)>::new();
 /// if let Ok(FlowProcess(mut flow)) = flowclib::compiler::parser::parse(&url,
 ///                                                    &provider,
 ///                                                    &mut source_urls) {
@@ -216,7 +216,7 @@ fn _dump_flow(
         ))?;
 
     debug!("Dumping tables to {}", filename);
-    let mut writer = dump::create_output_file(target_dir, filename, "dump")?;
+    let mut writer = create_output_file(target_dir, filename, "dump")?;
     writer.write_all(format!("\nLevel={}\n{}", level, flow).as_bytes())?;
 
     // Dump sub-flows

@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 use std::fmt;
 
 use error_chain::bail;
@@ -67,10 +67,10 @@ pub struct FunctionDefinition {
     pub output_connections: Vec<OutputConnection>,
     /// A unique `id` assigned to the function as the flow is parsed hierarchically
     #[serde(skip_deserializing)]
-    pub function_id: usize,
+    pub(crate) function_id: usize,
     /// the `id` of the `FlowDefinition` that this `FunctionDefinition` lies within in the hierarchy
     #[serde(skip_deserializing)]
-    pub flow_id: usize,
+    pub(crate) flow_id: usize,
 }
 
 impl Default for FunctionDefinition {
@@ -166,7 +166,7 @@ impl FunctionDefinition {
         alias: &Name,
         flow_id: usize,
         reference: Option<Url>,
-        initializations: &HashMap<String, InputInitializer>,
+        initializations: &BTreeMap<String, InputInitializer>,
     ) -> Result<()> {
         self.set_flow_id(flow_id);
         self.set_alias(alias);
@@ -288,7 +288,7 @@ impl FunctionDefinition {
     }
 
     // Set the initial values on the IOs in an IOSet using a set of Input Initializers
-    fn set_initial_values(&mut self, initializers: &HashMap<String, InputInitializer>) {
+    fn set_initial_values(&mut self, initializers: &BTreeMap<String, InputInitializer>) {
         for initializer in initializers {
             // initializer.0 is io name, initializer.1 is the initial value to set it to
             for (index, input) in self.inputs.iter_mut().enumerate() {

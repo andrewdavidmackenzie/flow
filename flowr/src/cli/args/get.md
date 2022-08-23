@@ -16,5 +16,5 @@ source = "context://args/get"
 ### Inputs
 
 ### Output
-* text - Array of Strings of the command line arguments the flow was invoked with.
+* string - Array of Strings of the command line arguments the flow was invoked with.
 * json - Array of Json parsed values of the command line arguments the flow was invoked with.

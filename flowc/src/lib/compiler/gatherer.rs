@@ -5,7 +5,6 @@ use log::{debug, info};
 
 use flowcore::model::connection::Connection;
 use flowcore::model::flow_definition::FlowDefinition;
-use flowcore::model::function_definition::FunctionDefinition;
 use flowcore::model::io::{IO, IOType};
 use flowcore::model::name::HasName;
 use flowcore::model::output_connection::Source::{Input, Output};
@@ -23,7 +22,8 @@ pub fn gather_functions_and_connections(flow: &FlowDefinition, tables: &mut Comp
     info!("\n=== Compiler: Gathering Functions and Connections");
     _gather_functions_and_connections(flow, tables)?;
 
-    index_functions(&mut tables.functions);
+    // consistently order the functions so each compile produces the same numbering
+    tables.functions.sort_by_key(|f| f.get_id());
 
     create_routes_table(tables);
 
@@ -44,8 +44,10 @@ fn _gather_functions_and_connections(flow: &FlowDefinition, tables: &mut Compile
                 _gather_functions_and_connections(flow, tables)?; // recurse
             }
             FunctionProcess(ref function) => {
-                // Add Functions from this flow to the table of functions
-                tables.functions.push(function.clone());
+                // Give function a unique id and add to the table of functions
+                let mut table_function = function.clone();
+                table_function.set_id(tables.functions.len());
+                tables.functions.push(table_function);
             }
         }
     }
@@ -59,13 +61,6 @@ fn _gather_functions_and_connections(flow: &FlowDefinition, tables: &mut Compile
     tables.context_functions.extend(context_refs.iter().cloned());
 
     Ok(())
-}
-
-// Give each function a unique index
-fn index_functions(functions: &mut [FunctionDefinition]) {
-    for (index, function) in functions.iter_mut().enumerate() {
-        function.set_id(index);
-    }
 }
 
 // Construct two look-up tables that can be used to find the index of a function in the functions table,
@@ -325,14 +320,9 @@ fn find_function_destinations(
 
 #[cfg(test)]
 mod test {
-    use url::Url;
-
     use flowcore::model::connection::Connection;
     use flowcore::model::datatype::STRING_TYPE;
-    use flowcore::model::function_definition::FunctionDefinition;
     use flowcore::model::io::{IO, IOType};
-    use flowcore::model::name::Name;
-    use flowcore::model::output_connection::{OutputConnection, Source};
     use flowcore::model::route::HasRoute;
     use flowcore::model::route::Route;
 
@@ -551,50 +541,5 @@ mod test {
         tables.connections = vec![one, other];
         collapse_connections(&mut tables);
         assert_eq!(tables.collapsed_connections.len(), 2);
-    }
-
-    #[test]
-    fn empty_index_test() {
-        super::index_functions(&mut[]);
-    }
-
-    #[test]
-    fn index_test() {
-        let function = FunctionDefinition::new(
-            Name::from("Stdout"),
-            false,
-            "context://stdio/stdout".to_string(),
-            Name::from("print"),
-            vec![],
-            vec![IO::new(vec!(STRING_TYPE.into()), Route::default())],
-            Url::parse("file:///fake/file").expect("Could not parse Url"),
-            Route::from("/flow0/stdout"),
-            None,
-            Some(Url::parse("context://stdio/stdout").expect("Could not parse Url")),
-            vec![OutputConnection::new(
-                Source::default(),
-                1,
-                0,
-                0,
-                0,
-                false,
-                String::default(),
-                #[cfg(feature = "debugger")]
-                String::default(),
-            )],
-            99,
-            0,
-        );
-
-        let mut functions = vec![function.clone(), function];
-        super::index_functions(&mut functions);
-        assert_eq!(
-            functions.get(0).expect("Could not get function").get_id(),
-            0
-        );
-        assert_eq!(
-            functions.get(1).expect("Could not get function").get_id(),
-            1
-        );
     }
 }
