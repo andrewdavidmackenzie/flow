@@ -2107,9 +2107,9 @@ checksum = "6598dd0bd3c7d51095ff6531a5b23e02acdc81804e30d8f07afb77b7215a140a"
 
 [[package]]
 name = "wasmi"
-version = "0.14.0"
+version = "0.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ae73f0dc2c05c94f30cb04498c67574b7588d0e674cc9255b96a05d21345528c"
+checksum = "81a9c47f1785842298b082431a60d6c27bbceda84ff14558598ba44f5c609ccd"
 dependencies = [
  "spin",
  "wasmi_core",
@@ -2118,9 +2118,9 @@ dependencies = [
 
 [[package]]
 name = "wasmi_core"
-version = "0.2.0"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e0a088e8c4c59c6f2b9eae169bf86328adccc477c00b56d3661e3e9fb397b184"
+checksum = "6a53379aecfee3604c2423dddbbecf1d65e0327b0249812dcc2737e5a1db43b5"
 dependencies = [
  "downcast-rs",
  "libm",
