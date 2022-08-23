@@ -103,7 +103,7 @@
     - [factorial](flowsamples/factorial/DESCRIPTION.md)
     - [fibonacci](flowsamples/fibonacci/DESCRIPTION.md)
     - [hello-world](flowsamples/hello-world/DESCRIPTION.md)
-    - [mandlebrot sample](flowsamples/mandlebrot/DESCRIPTION.md)
+    - [mandlebrot](flowsamples/mandlebrot/DESCRIPTION.md)
     - [matrix multiplication](flowsamples/matrix_mult/DESCRIPTION.md)
     - [pipeline](flowsamples/pipeline/DESCRIPTION.md)
     - [prime](flowsamples/prime/DESCRIPTION.md)
