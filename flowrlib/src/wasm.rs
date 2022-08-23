@@ -1,13 +1,15 @@
-use flowcore::{Implementation, RunAgain};
-use flowcore::errors::*;
-use flowcore::meta_provider::Provider;
+use std::cmp::max;
+use std::sync::{Arc, Mutex};
+
 use log::info;
 use log::trace;
 use serde_json::Value;
-use std::cmp::max;
-use std::sync::{Arc, Mutex};
 use url::Url;
 use wasmtime::*;
+
+use flowcore::{Implementation, RunAgain};
+use flowcore::errors::*;
+use flowcore::meta_provider::Provider;
 
 const DEFAULT_WASM_FILENAME: &str = "module";
 
@@ -55,8 +57,8 @@ impl WasmExecutor {
     // - `length` is the length of block of memory to allocate
     // - returns the offset to the allocated memory
     fn alloc(&self, length: i32, store: &mut Store<()>) -> Result<i32> {
-        let mut results: [wasmtime::Val;1] = [Val::I32(0)];
-        let params = [wasmtime::Val::I32(length)];
+        let mut results: [Val;1] = [Val::I32(0)];
+        let params = [Val::I32(length)];
         self.alloc.call(store, &params, &mut results)
             .map_err(|_| "WASM alloc() call failed")?;
 
@@ -71,7 +73,7 @@ impl WasmExecutor {
     // - `length` is the length of the input json
     // - returns the length of the resulting json, at the same offset
     fn call(&self, offset: i32, length: i32, store: &mut Store<()>) -> Result<i32> {
-        let mut results: [wasmtime::Val;1] = [Val::I32(0)];
+        let mut results: [Val;1] = [Val::I32(0)];
         let params = [Val::I32(offset), Val::I32(length)];
         self.implementation
             .call(store, &params, &mut results)
