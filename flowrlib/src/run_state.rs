@@ -287,61 +287,11 @@ impl RunState {
             }
         }
 
-        // Due to initialization of some inputs other functions attempting to send to it should block
-        self.create_init_blocks();
-
         // Put all functions that have their inputs ready and are not blocked on the `ready` list
         debug!("Readying initial functions: inputs full and not blocked on output");
         for (id, flow_id) in inputs_ready_list {
             self.make_ready_or_blocked(id, flow_id);
         }
-    }
-
-    // Scan through all functions and output routes for each, if the destination input is already
-    // full due to the init process, then create a block for the sender and added sender to blocked
-    // list.
-    fn create_init_blocks(&mut self) {
-        let mut blocks = HashSet::<Block>::new();
-        let mut blocked = HashSet::<usize>::new();
-
-        debug!("Creating any initial block entries that are needed");
-
-        for source_function in &self.functions {
-            let source_id = source_function.id();
-            let source_flow_id = source_function.get_flow_id();
-            let destinations = source_function.get_output_connections();
-            let source_has_inputs_full = source_function.can_run();
-
-            for destination in destinations {
-                if destination.function_id != source_id {
-                    // don't block yourself!
-                    if let Some(destination_function) = self.get_function(destination.function_id) {
-                        if destination_function.input_count(destination.io_number) > 0 {
-                            trace!(
-                                "\tAdded block #{} -> #{}:{}",
-                                source_id,
-                                destination.function_id,
-                                destination.io_number
-                            );
-                            blocks.insert(Block::new(
-                                destination.flow_id,
-                                destination.function_id,
-                                destination.io_number,
-                                source_id,
-                                source_flow_id,
-                            ));
-                            // only put source on the blocked list if it already has it's inputs full
-                            if source_has_inputs_full {
-                                blocked.insert(source_id);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        self.blocks = blocks;
-        self.blocked = blocked;
     }
 
     /// Return the states a function is in
@@ -1463,41 +1413,6 @@ mod test {
             assert!(state.function_state_is_only(0, State::Ready), "f_a should be Ready");
         }
 
-        /*
-            FunctionA -> FunctionB
-            But FunctionB has an initializer on that same input and FunctionB is initialized before
-            FunctionA, so the input should be full and when FunctionA initializes it should go to blocked
-            status
-        */
-        #[test]
-        fn to_blocked_on_init() {
-            let f_a = super::test_function_a_to_b();
-            let f_b = super::test_function_b_init();
-            let functions = vec![f_b, f_a];
-            let submission = Submission::new(
-                &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
-                None,
-                #[cfg(feature = "debugger")]
-                true,
-            );
-            let mut state = RunState::new(&functions, submission);
-
-            // Event
-            state.init();
-
-            // Test
-            assert!(state.function_state_is_only(1, State::Ready), "f_b should be Ready");
-            assert!(
-                state.function_state_is_only(0, State::Blocked),
-                "f_a should be in Blocked state"
-            );
-            #[cfg(feature = "debugger")]
-            assert!(
-                state.get_output_blockers(0).contains(&(1, 0)),
-                "f_a should be blocked by f_b, input 0"
-            );
-        }
-
         fn test_function_a_not_init() -> RuntimeFunction {
             RuntimeFunction::new(
                 #[cfg(feature = "debugger")]
@@ -1577,57 +1492,6 @@ mod test {
             assert!(state.function_state_is_only(0, State::Waiting), "f_a should be Waiting");
         }
 
-        #[serial]
-        #[test]
-        fn blocked_to_ready_on_done() {
-            let f_a = super::test_function_a_to_b();
-            let f_b = super::test_function_b_init();
-            let functions = vec![f_a, f_b];
-            let submission = Submission::new(
-                &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
-                None,
-                #[cfg(feature = "debugger")]
-                true,
-            );
-            let mut state = RunState::new(&functions, submission);
-            #[cfg(feature = "metrics")]
-            let mut metrics = Metrics::new(2);
-            #[cfg(feature = "debugger")]
-            let mut server = super::DummyServer{};
-            #[cfg(feature = "debugger")]
-            let mut debugger = super::dummy_debugger(&mut server);
-
-            // Initial state
-            state.init();
-            assert!(state.function_state_is_only(1, State::Ready), "f_b should be Ready");
-            assert!(
-                state.function_state_is_only(0, State::Blocked),
-                "f_a should be in Blocked state, by f_b"
-            );
-
-            // First job
-            let job = state.next_job().expect("Couldn't get next job");
-            assert_eq!(
-                1, job.function_id,
-                "next() should return function_id=1 (f_b) for running"
-            );
-            state.start(&job);
-            assert!(state.function_state_is_only(1, State::Running), "f_b should be Running");
-
-            // Event
-            let output = super::test_output(1, 0);
-            let _ = state.complete_job(
-                #[cfg(feature = "metrics")]
-                &mut metrics,
-                &output,
-                #[cfg(feature = "debugger")]
-                &mut debugger,
-            );
-
-            // Test
-            assert!(state.function_state_is_only(0, State::Ready), "f_a should be Ready");
-        }
-
         #[test]
         #[serial]
         fn output_not_found() {
@@ -1651,9 +1515,6 @@ mod test {
             // Initial state
             state.init();
             assert!(state.function_state_is_only(1, State::Ready), "f_b should be Ready");
-            assert!(state.function_state_is_only(0, State::Blocked),
-                    "f_a should be in Blocked state, by f_b"
-            );
 
             let job = state.next_job().expect("Couldn't get next job");
             assert_eq!(
