@@ -1119,23 +1119,6 @@ mod test {
         )
     }
 
-    fn test_function_b_init() -> RuntimeFunction {
-        RuntimeFunction::new(
-            #[cfg(feature = "debugger")]
-            "fB",
-            #[cfg(feature = "debugger")]
-            "/fB",
-            "file://fake/test",
-            vec![Input::new(
-                #[cfg(feature = "debugger")] "",
-                &Some(Once(json!(1))))],
-            1,
-            0,
-            &[],
-            false,
-        )
-    }
-
     fn test_output(source_function_id: usize, destination_function_id: usize) -> Job {
         let out_conn = OutputConnection::new(
             Source::default(),
@@ -1307,7 +1290,6 @@ mod test {
         #[cfg(feature = "metrics")]
         use flowcore::model::metrics::Metrics;
         use flowcore::model::output_connection::{OutputConnection, Source};
-        use flowcore::model::output_connection::Source::Output;
         use flowcore::model::runtime_function::RuntimeFunction;
         use flowcore::model::submission::Submission;
 
@@ -1490,67 +1472,6 @@ mod test {
 
             // Test
             assert!(state.function_state_is_only(0, State::Waiting), "f_a should be Waiting");
-        }
-
-        #[test]
-        #[serial]
-        fn output_not_found() {
-            let f_a = super::test_function_a_to_b();
-            let f_b = super::test_function_b_init();
-            let functions = vec![f_a, f_b];
-            let submission = Submission::new(
-                &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
-                None,
-                #[cfg(feature = "debugger")]
-                true,
-            );
-            let mut state = RunState::new(&functions, submission);
-            #[cfg(feature = "metrics")]
-            let mut metrics = Metrics::new(2);
-            #[cfg(feature = "debugger")]
-                let mut server = super::DummyServer{};
-            #[cfg(feature = "debugger")]
-                let mut debugger = super::dummy_debugger(&mut server);
-
-            // Initial state
-            state.init();
-            assert!(state.function_state_is_only(1, State::Ready), "f_b should be Ready");
-
-            let job = state.next_job().expect("Couldn't get next job");
-            assert_eq!(
-                1, job.function_id,
-                "next() should return function_id=1 (f_b) for running"
-            );
-            state.start(&job);
-            assert!(state.function_state_is_only(1, State::Running), "f_b should be Running");
-
-            // Event
-            let mut output = super::test_output(1, 0);
-
-            // Modify test output to use a route that doesn't exist
-            let no_such_out_conn = OutputConnection::new(
-                Output("/fake".into()),
-                0,
-                0,
-                0,
-                0,
-                false,
-                String::default(),
-                #[cfg(feature = "debugger")]
-                String::default(),
-            );
-            output.connections = vec![no_such_out_conn];
-
-            let _ = state.complete_job(
-                #[cfg(feature = "metrics")]
-                &mut metrics,
-                &output,
-                #[cfg(feature = "debugger")]
-                &mut debugger,
-            );
-
-            // Test
-            assert!(state.function_state_is_only(0, State::Ready), "f_a should be Ready");
         }
 
         fn test_job() -> Job {
