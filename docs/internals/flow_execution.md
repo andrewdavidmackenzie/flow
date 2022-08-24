@@ -158,11 +158,10 @@ they are loaded from the library reference (either a pre-loaded native implement
 If they are WASM implementations supplied by the flow itself, then they are also loaded.
 
 ### Initialization
-Any functions with "Input Initializers" ("Once" or "Constant" types) have the relevant inputs initialized 
+Any functions with "Input Initializers" ("Once" or "Constant" types) will have the relevant inputs initialized 
 with the specified value.
 
-This may satisfy the function's need for input data. If it is not blocked sending to some destination then it
-will be set into the `Ready` state.
+This may satisfy the function's need for input data and then it will be set into the `Ready` state.
 
 Since the function's input is full, this may cause a block on other functions pending to send to that input.
 
