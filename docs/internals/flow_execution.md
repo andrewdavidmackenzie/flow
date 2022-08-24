@@ -136,7 +136,10 @@ hence Job completion time. So, beyond the different execution orders mentioned a
 guarantees about job completion order. Flow programs should be programmed to be robust to this.
 
 ### Execution States
-Functions can be in one or more of the following states (see `State` struct in `run_state.rs`):
+Prior to initialization, all functions will be in the `Initial` state. 
+
+The Initialization step described below is run, after which all functions will be in one or more of the 
+following states (see `State` struct in `run_state.rs`):
 - `Ready` - Inputs are satisfied, the Output destinations are free and it can be run
 - `Blocked`- One or more destination inputs this functions sends to is full, blocking execution
 - `Waiting` - One or more of the inputs lack data, so the function cannot run

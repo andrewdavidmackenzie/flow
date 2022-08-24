@@ -140,4 +140,5 @@
     - [Flow Loading](docs/internals/flow_loading.md)
     - [Flow Compiling](docs/internals/flow_compiling.md)
     - [Flow Execution](docs/internals/flow_execution.md)
+    - [Flow Execution State Transitions](docs/internals/state_transitions.md)
 
