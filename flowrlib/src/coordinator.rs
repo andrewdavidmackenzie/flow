@@ -147,13 +147,13 @@ impl<'a> Coordinator<'a> {
                             #[cfg(feature = "debugger")]
                             if display_next_output {
                                 (display_next_output, restart) =
-                                    self.debugger.job_completed(&mut state, &job)?;
+                                    self.debugger.job_done(&mut state, &job)?;
                                 if restart {
                                     break 'jobs;
                                 }
                             }
 
-                            (display_next_output, restart) = state.complete_job(
+                            (display_next_output, restart) = state.job_done(
                                 #[cfg(feature = "metrics")]
                                     &mut metrics,
                                 &job,
@@ -165,8 +165,8 @@ impl<'a> Coordinator<'a> {
                         #[cfg(feature = "debugger")]
                         Err(err) => {
                             if state.submission.debug {
-                                (display_next_output, restart) = self.debugger
-                                    .panic(&mut state, err.to_string())?;
+                                (display_next_output, restart) = self.debugger.error(
+                                    &mut state, err.to_string())?;
                                 if restart {
                                     break 'jobs;
                                 }

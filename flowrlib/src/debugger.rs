@@ -190,7 +190,7 @@ impl<'a> Debugger<'a> {
 
     /// Called from the flowrlib coordinator to inform the debug client that a job has completed
     /// Return values are (display next output, reset execution)
-    pub fn job_completed(&mut self, state: &mut RunState, job: &Job) -> Result<(bool, bool)> {
+    pub fn job_done(&mut self, state: &mut RunState, job: &Job) -> Result<(bool, bool)> {
         if job.result.is_err() {
             if state.submission.debug {
                 let _ = self.job_error(state, job);
@@ -201,13 +201,13 @@ impl<'a> Debugger<'a> {
         Ok((false, false))
     }
 
-    /// A panic occurred while executing a flow. Let the debug client know, enter the client
+    /// An error occurred while executing a flow. Let the debug client know, enter the client
     /// and wait for a user command.
     ///
     /// This is useful for debugging a flow that has an error. Without setting any explicit
     /// breakpoint it will enter the debugger on an error and let the user inspect the flow's
     /// state etc.
-    pub fn panic(&mut self, state: &mut RunState, error_message: String) -> Result<(bool, bool)> {
+    pub fn error(&mut self, state: &mut RunState, error_message: String) -> Result<(bool, bool)> {
         self.debug_server.panic(state, error_message);
         self.wait_for_command(state)
     }
@@ -988,7 +988,7 @@ mod test {
         let mut debugger = Debugger::new(&mut server);
         let job = test_job();
 
-        let _ = debugger.job_completed(&mut state, &job);
+        let _ = debugger.job_done(&mut state, &job);
 
         assert!(server.job_completed);
     }
@@ -1002,7 +1002,7 @@ mod test {
         let mut job = test_job();
         job.result = Err(flowcore::errors::Error::from("Test fake Error"));
 
-        let _ = debugger.job_completed(&mut state, &job);
+        let _ = debugger.job_done(&mut state, &job);
 
         assert!(server.job_errored);
     }
@@ -1014,7 +1014,7 @@ mod test {
         let mut server = DummyServer::new();
         let mut debugger = Debugger::new(&mut server);
 
-        let _ = debugger.panic(&mut state, "Test error".into());
+        let _ = debugger.error(&mut state, "Test error".into());
 
         assert!(server.panicked);
     }

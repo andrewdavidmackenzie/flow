@@ -513,7 +513,7 @@ impl RunState {
     /// sent to, marking the source function as blocked because those others must consume the output
     /// if those other function have all their inputs, then mark them accordingly.
     #[allow(unused_variables, unused_assignments, unused_mut)]
-    pub fn complete_job(
+    pub fn job_done(
         &mut self,
         #[cfg(feature = "metrics")] metrics: &mut Metrics,
         job: &Job,
@@ -540,8 +540,8 @@ impl RunState {
                         job.input_set,  output_value);
 
                 if let Some(output_v) = output_value {
-                    for destination in &job.connections {
-                        let value_to_send = match &destination.source {
+                    for connection in &job.connections {
+                        let value_to_send = match &connection.source {
                             Output(route) => output_v.pointer(route),
                             Input(index) => job.input_set.get(*index),
                         };
@@ -549,17 +549,17 @@ impl RunState {
                         if let Some(value) = value_to_send {
                             (display_next_output, restart) =
                                 self.send_a_value(
-                                job.function_id,
-                                job.flow_id,
-                                destination,
-                                value,
-                                #[cfg(feature = "metrics")] metrics,
-                                #[cfg(feature = "debugger")] debugger,
+                                    job.function_id,
+                                    job.flow_id,
+                                    connection,
+                                    value,
+                                    #[cfg(feature = "metrics")] metrics,
+                                    #[cfg(feature = "debugger")] debugger,
                             )?;
                         } else {
                             trace!(
                                 "Job #{}:\t\tNo value found at '{}'",
-                                job.job_id, &destination.source
+                                job.job_id, &connection.source
                             );
                         }
                     }
@@ -1515,7 +1515,7 @@ mod test {
 
             // Event
             let job = test_job();
-            let _ = state.complete_job(
+            let _ = state.job_done(
                 #[cfg(feature = "metrics")]
                 &mut metrics,
                 &job,
@@ -1559,7 +1559,7 @@ mod test {
 
             // Event
             let job = test_job();
-            let _ = state.complete_job(
+            let _ = state.job_done(
                 #[cfg(feature = "metrics")]
                 &mut metrics,
                 &job,
@@ -1632,7 +1632,7 @@ mod test {
 
             // Event
             let output = super::test_output(0, 1);
-            let _ = state.complete_job(
+            let _ = state.job_done(
                 #[cfg(feature = "metrics")]
                 &mut metrics,
                 &output,
@@ -1693,7 +1693,7 @@ mod test {
 
             // Event run f_b which will send to f_a
             let output = super::test_output(1, 0);
-            let _ = state.complete_job(
+            let _ = state.job_done(
                 #[cfg(feature = "metrics")]
                 &mut metrics,
                 &output,
@@ -1765,7 +1765,7 @@ mod test {
 
             // create output from f_b as if it had run - will send to f_a
             let output = super::test_output(1, 0);
-            let _ = state.complete_job(
+            let _ = state.job_done(
                 #[cfg(feature = "metrics")]
                 &mut metrics,
                 &output,
@@ -1855,7 +1855,7 @@ mod test {
             // Event: fake running of function fA
             job.result = Ok((Some(json!(1)), true));
 
-            let _ = state.complete_job(
+            let _ = state.job_done(
                 #[cfg(feature = "metrics")]
                 &mut metrics,
                 &job,
@@ -1875,7 +1875,7 @@ mod test {
                 job.function_id, 1,
                 "next() should return function_id=1 (f_b) for running"
             );
-            let _ = state.complete_job(
+            let _ = state.job_done(
                 #[cfg(feature = "metrics")]
                 &mut metrics,
                 &job,
@@ -1889,7 +1889,7 @@ mod test {
                 job.function_id, 0,
                 "next() should return function_id=0 (f_a) for running"
             );
-            let _ = state.complete_job(
+            let _ = state.job_done(
                 #[cfg(feature = "metrics")]
                 &mut metrics,
                 &job,
@@ -2249,7 +2249,7 @@ mod test {
             };
 
             // Test there is no problem producing an Output when no destinations to send it to
-            let _ = state.complete_job(
+            let _ = state.job_done(
                 #[cfg(feature = "metrics")]
                 &mut metrics,
                 &job,
