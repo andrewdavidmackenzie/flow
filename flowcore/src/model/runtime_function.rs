@@ -215,24 +215,24 @@ impl RuntimeFunction {
         connection: &OutputConnection,
         value: &Value) -> bool {
         if connection.is_generic() {
-            self.send(connection.io_number, value);
+            self.send(connection.destination_io_number, value);
         } else {
             match (
                 (Self::array_order(value) - connection.destination_array_order),
                 value,
             ) {
-                (0, _) => self.send(connection.io_number, value),
-                (1, Value::Array(array)) => self.send_iter(connection.io_number,
-                                                               array),
+                (0, _) => self.send(connection.destination_io_number, value),
+                (1, Value::Array(array)) => self.send_iter(connection.destination_io_number,
+                                                           array),
                 (2, Value::Array(array_2)) => {
                     for array in array_2.iter() {
                         if let Value::Array(sub_array) = array {
-                            self.send_iter(connection.io_number, sub_array)
+                            self.send_iter(connection.destination_io_number, sub_array)
                         }
                     }
                 }
-                (-1, _) => self.send(connection.io_number, &json!([value])),
-                (-2, _) => self.send(connection.io_number, &json!([[value]])),
+                (-1, _) => self.send(connection.destination_io_number, &json!([value])),
+                (-2, _) => self.send(connection.destination_io_number, &json!([[value]])),
                 _ => {
                     error!("Unable to handle difference in array order");
                     return false;
@@ -242,13 +242,13 @@ impl RuntimeFunction {
         true // a value was sent!
     }
 
-    /// write a value to a `RuntimeFunction`'s `input`
-    pub fn send(&mut self, input_number: usize, value: &Value) {
+    // write a value to a `RuntimeFunction`'s `input`
+    fn send(&mut self, input_number: usize, value: &Value) {
         self.inputs[input_number].push(value.clone());
     }
 
-    /// write an array of values to a `RuntimeFunction` `input`
-    pub fn send_iter(&mut self, input_number: usize, array: &[Value]) {
+    // write an array of values to a `RuntimeFunction` `input`
+    fn send_iter(&mut self, input_number: usize, array: &[Value]) {
         self.inputs[input_number].push_array(array.iter());
     }
 

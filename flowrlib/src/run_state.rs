@@ -623,14 +623,14 @@ impl RunState {
             Input(index) => format!(" from Job value at input #{}", index),
         };
 
-        let loopback = source_id == connection.function_id;
+        let loopback = source_id == connection.destination_id;
 
         if loopback {
             info!("\t\tFunction #{source_id} loopback of '{}'{} to Self:{}",
-                    output_value, route_str, connection.io_number);
+                    output_value, route_str, connection.destination_io_number);
         } else {
             info!("\t\tFunction #{source_id} sending '{}'{} to Function #{}:{}",
-                    output_value, route_str, connection.function_id, connection.io_number);
+                    output_value, route_str, connection.destination_id, connection.destination_io_number);
         };
 
         #[cfg(feature = "debugger")]
@@ -640,12 +640,12 @@ impl RunState {
                 source_id,
                 route,
                 output_value,
-                connection.function_id,
-                connection.io_number,
+                connection.destination_id,
+                connection.destination_io_number,
             )?;
         }
 
-        let function = self.get_mut(connection.function_id)
+        let function = self.get_mut(connection.destination_id)
             .ok_or("Could not get function")?;
         let count_before = function.input_set_count();
         function.type_convert_and_send(connection, output_value);
@@ -653,18 +653,16 @@ impl RunState {
         #[cfg(feature = "metrics")]
         metrics.increment_outputs_sent(); // not distinguishing array serialization / wrapping etc
 
-        let block = function.input_count(connection.io_number) > 0;
-        // NOTE: We have just sent a value to this functions inputs, so it *has* inputs
-        // the the impure function without inputs case for input_set_count() does not apply
-        let new_input_set_available = function.input_set_count() > count_before;
-
         // Avoid a function blocking on itself when sending itself a value via a loopback
-        if block && !loopback {
+        let block = (function.input_count(connection.destination_io_number) > 0)
+            && !loopback;
+        let new_input_set_available = function.input_set_count() > count_before;
+        if block {
             // TODO pass in connection and combine Block and OutputConnection?
             (display_next_output, restart) = self.create_block(
                 connection.flow_id,
-                connection.function_id,
-                connection.io_number,
+                connection.destination_id,
+                connection.destination_io_number,
                 source_id,
                 source_flow_id,
                 #[cfg(feature = "debugger")]
@@ -676,7 +674,7 @@ impl RunState {
         // value sent to itself, as it may send to other functions and be blocked.
         // But for all other receivers of values, possibly make them Ready now
         if new_input_set_available && !loopback {
-            self.make_ready_or_blocked(connection.function_id, connection.flow_id);
+            self.make_ready_or_blocked(connection.destination_id, connection.flow_id);
         }
 
         Ok((display_next_output, restart))
@@ -731,8 +729,8 @@ impl RunState {
                         // for each output route of sending function, see if it is sending to the target function and input
                         //(ref _output_route, destination_id, io_number, _destination_path)
                         for destination in sender_function.get_output_connections() {
-                            if (destination.function_id == target_id)
-                                && (destination.io_number == target_io)
+                            if (destination.destination_id == target_id)
+                                && (destination.destination_io_number == target_io)
                             {
                                 senders.push((sender_function.id(), target_io));
                             }

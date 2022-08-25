@@ -238,16 +238,16 @@ mod test {
   'implementation_location': 'context://stdio/stdout',
   'output_connections': [
     {
-      'function_id': 1,
-      'io_number': 0,
+      'destination_id': 1,
+      'destination_io_number': 0,
       'flow_id': 0
     },
     {
       'source': {
         'Output': 'sub_route'
       },
-      'function_id': 2,
-      'io_number': 0,
+      'destination_id': 2,
+      'destination_io_number': 0,
       'flow_id': 0
     }
   ]
@@ -301,8 +301,8 @@ mod test {
   'implementation_location': 'context://stdio/stdout',
   'output_connections': [
     {
-      'function_id': 1,
-      'io_number': 0,
+      'destination_id': 1,
+      'destination_io_number': 0,
       'flow_id': 0
     }
   ]
@@ -356,8 +356,8 @@ mod test {
   'implementation_location': 'context://stdio/stdout',
   'output_connections': [
     {
-      'function_id': 1,
-      'io_number': 0,
+      'destination_id': 1,
+      'destination_io_number': 0,
       'flow_id': 0,
       'destination_array_order': 1
     }
@@ -556,8 +556,8 @@ mod test {
   'implementation_location': 'context://stdio/stdout',
   'output_connections': [
     {
-      'function_id': 1,
-      'io_number': 0,
+      'destination_id': 1,
+      'destination_io_number': 0,
       'flow_id': 0
     }
   ]
@@ -569,8 +569,8 @@ mod test {
   'implementation_location': 'context://stdio/stdout',
   'output_connections': [
     {
-      'function_id': 1,
-      'io_number': 0,
+      'destination_id': 1,
+      'destination_io_number': 0,
       'flow_id': 0
     }
   ]
@@ -626,8 +626,8 @@ mod test {
       'source': {
         'Output': '/0'
       },
-      'function_id': 1,
-      'io_number': 0,
+      'destination_id': 1,
+      'destination_io_number': 0,
       'flow_id': 0
     }
   ]
