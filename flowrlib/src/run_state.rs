@@ -527,10 +527,7 @@ impl RunState {
         let job_id = job.job_id;
 
         match &job.result {
-            Ok(result) => {
-                let output_value = &result.0;
-                let function_can_run_again = result.1;
-
+            Ok((output_value, function_can_run_again)) => {
                 #[cfg(feature = "debugger")]
                 debug!("Job #{}: Function #{} '{}' {:?} -> {:?}", job.job_id, job.function_id,
                         self.get_function(job.function_id).ok_or("No such function")?.name(),
@@ -565,14 +562,13 @@ impl RunState {
                     }
                 }
 
-                if function_can_run_again {
-                    // Once done sending values to other functions (and possibly itself via a loopback)
-                    // if the function can run again, then refill any inputs with initializers
-                    self.init_inputs(job.function_id)?;
-
-                    // Only decide if the sender should be Ready after sending all values in case blocks created
-                    let function = self.get_function(job.function_id)
+                if *function_can_run_again {
+                    let function = self.get_mut(job.function_id)
                         .ok_or("No such function")?;
+
+                    // Refill any inputs with initializers
+                    function.init_inputs(false);
+
                     if function.can_run() {
                         self.make_ready_or_blocked(
                             job.function_id,
@@ -605,12 +601,6 @@ impl RunState {
         );
 
         Ok((display_next_output, restart))
-    }
-
-    // Initialize any input of the sending function that has an initializer
-    fn init_inputs(&mut self, function_id: usize) -> Result<()> {
-        self.get_mut(function_id).ok_or("Could not get function")?.init_inputs(false);
-        Ok(())
     }
 
     // Send a value produced as part of an output of running a job to a destination function on
