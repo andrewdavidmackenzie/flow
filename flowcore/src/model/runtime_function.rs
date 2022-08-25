@@ -167,7 +167,7 @@ impl RuntimeFunction {
     pub fn init_inputs(&mut self, first_time: bool) -> bool {
         let mut inputs_initialized = false;
         for (io_number, input) in &mut self.inputs.iter_mut().enumerate() {
-            if input.is_empty() && input.init(first_time, io_number) {
+            if input.init(first_time) {
                 #[cfg(feature = "debugger")]
                 debug!(
                     "\tInitialized Input #{}({}):{} '{}' ",
@@ -195,14 +195,12 @@ impl RuntimeFunction {
 
     /// write a value to a `RuntimeFunction`'s `input`
     pub fn send(&mut self, input_number: usize, value: &Value) {
-        let input = &mut self.inputs[input_number];
-        input.push(value.clone());
+        self.inputs[input_number].push(value.clone());
     }
 
     /// write an array of values to a `RuntimeFunction` `input`
     pub fn send_iter(&mut self, input_number: usize, array: &[Value]) {
-        let input = &mut self.inputs[input_number];
-        input.push_array(array.iter());
+        self.inputs[input_number].push_array(array.iter());
     }
 
     /// Accessor for a `RuntimeFunction` `output_connections` field

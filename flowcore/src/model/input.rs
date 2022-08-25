@@ -118,20 +118,17 @@ impl Input {
     /// Initialize an input with the InputInitializer if it has one.
     /// When called at start-up    it will initialize      if it's a OneTime or Constant initializer
     /// When called after start-up it will initialize only if it's a            Constant initializer
-    pub fn init(&mut self, first_time: bool, io_number: usize) -> bool {
-        let init_value = match (first_time, &self.initializer) {
-            (true, Some(InputInitializer::Once(one_time))) => Some(one_time.clone()),
-            (_, Some(InputInitializer::Always(constant))) => Some(constant.clone()),
-            (_, None) | (false, Some(InputInitializer::Once(_))) => None,
-        };
-
-        match init_value {
-            Some(value) => {
-                trace!("\t\tInputInitializer on Input:{} '{:?}'", io_number, value);
-                self.push(value);
+    pub fn init(&mut self, first_time: bool) -> bool {
+        match (first_time, &self.initializer) {
+            (true, Some(InputInitializer::Once(one_time))) => {
+                self.push(one_time.clone());
                 true
-            }
-            _ => false,
+            },
+            (_, Some(InputInitializer::Always(constant))) => {
+                self.push(constant.clone());
+                true
+            },
+            (_, None) | (false, Some(InputInitializer::Once(_))) => false,
         }
     }
 
