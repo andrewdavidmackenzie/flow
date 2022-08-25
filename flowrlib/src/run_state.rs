@@ -211,7 +211,7 @@ pub struct RunState {
     busy_flows: MultiMap<usize, usize>,
     /// Track which functions have finished and can be unblocked when flow goes not "busy"
     /// HashMap< <flow_id>, (function_id, vector of refilled io numbers of that function)>
-    pending_unblocks: HashMap<usize, HashSet<usize>>,
+    flow_blocks: HashMap<usize, HashSet<usize>>,
     /// The `Submission` that lead to this `RunState` object being created
     pub(crate) submission: Submission,
     /// The execution strategy being used
@@ -232,7 +232,7 @@ impl RunState {
             completed: HashSet::<usize>::new(),
             number_of_jobs_created: 0,
             busy_flows: MultiMap::<usize, usize>::new(),
-            pending_unblocks: HashMap::<usize, HashSet<usize>>::new(),
+            flow_blocks: HashMap::<usize, HashSet<usize>>::new(),
             strategy: ExecutionStrategy::Random,
         }
     }
@@ -256,7 +256,7 @@ impl RunState {
         self.completed.clear();
         self.number_of_jobs_created = 0;
         self.busy_flows.clear();
-        self.pending_unblocks.clear();
+        self.flow_blocks.clear();
     }
 
     /// The `ìnit()` function is responsible for initializing all functions, and it returns a boolean
@@ -388,7 +388,7 @@ impl RunState {
     #[cfg(debug_assertions)]
     /// Return the list of pending unblocks
     pub fn get_pending_unblocks(&self) -> &HashMap<usize, HashSet<usize>> {
-        &self.pending_unblocks
+        &self.flow_blocks
     }
 
     /// Return a new job to run, if there is one and there are not too many jobs already running
@@ -436,13 +436,13 @@ impl RunState {
         let internal_senders_filter = |block: &Block|
             (block.blocking_flow_id == block.blocked_flow_id) &
                 (block.blocking_function_id == blocker_function_id);
-        self.unblock_senders_to_function(internal_senders_filter)?;
+        self.remove_blocks(internal_senders_filter)?;
 
         // Add this function to the pending unblock list for later when flow goes idle and senders
         // to it from *outside* this flow can be allowed to send to it.
         // The entry key is the blocker_flow_id and the entry all blocker_function_ids in that flow
         // that are pending to have senders to them unblocked
-        match self.pending_unblocks.entry(blocker_flow_id) {
+        match self.flow_blocks.entry(blocker_flow_id) {
             Entry::Occupied(mut o) => {
                 // Add the `blocker_function_id` to the list of function in `blocker_flow_id` that
                 // should be free to send to, once the flow eventually goes idle
@@ -657,6 +657,7 @@ impl RunState {
         let block = (function.input_count(connection.destination_io_number) > 0)
             && !loopback;
         let new_input_set_available = function.input_set_count() > count_before;
+
         if block {
             // TODO pass in connection and combine Block and OutputConnection?
             (display_next_output, restart) = self.create_block(
@@ -670,9 +671,9 @@ impl RunState {
             )?;
         }
 
-        // postpone the decision about making the sending function Ready due to a loopback
-        // value sent to itself, as it may send to other functions and be blocked.
-        // But for all other receivers of values, possibly make them Ready now
+        // postpone the decision about making the sending function Ready when we have a loopback
+        // connection that sends a value to itself, as it may also send to other functions and need
+        // to be blocked. But for all other receivers of values, make them Ready or Blocked
         if new_input_set_available && !loopback {
             self.make_ready_or_blocked(connection.destination_id, connection.flow_id);
         }
@@ -801,12 +802,12 @@ impl RunState {
             trace!("Job #{job_id}:\tFlow #{blocker_flow_id} is now idle, \
                 so removing pending_unblocks for flow #{blocker_flow_id}");
 
-            if let Some(pending_unblocks) = self.pending_unblocks.remove(&blocker_flow_id) {
+            if let Some(pending_unblocks) = self.flow_blocks.remove(&blocker_flow_id) {
                 trace!("Job #{job_id}:\tRemoving pending unblocks to functions in \
                     Flow #{blocker_flow_id} from other flows");
                 for unblock_function_id in pending_unblocks {
                     let all = |block: &Block| block.blocking_function_id == unblock_function_id;
-                    self.unblock_senders_to_function(all)?;
+                    self.remove_blocks(all)?;
                 }
             }
         }
@@ -833,9 +834,9 @@ impl RunState {
         trace!("\t\t\tUpdated busy_flows list to: {:?}", self.busy_flows);
     }
 
-    // unblock all functions that were blocked trying to send to blocker_function_id by removing
-    // entries in the `blocks` list where the first value (blocking_id) matches blocker_function_id.
-    fn unblock_senders_to_function<F>(&mut self, block_filter: F) -> Result<()>
+    // Remove blocks between functions using the provided block filter.
+    // If a sending function has no remaining blocks preventing it from sending then unblock that function
+    fn remove_blocks<F>(&mut self, block_filter: F) -> Result<()>
     where
         F: Fn(&Block) -> bool
     {
@@ -848,8 +849,9 @@ impl RunState {
             }
         }
 
-        // update the state of the functions that have been unblocked
-        // Note: they could be blocked on other functions apart from the the one that just unblocked
+        // Remove blocks between the sender and the destination. Not that a sender can send to
+        // multiple destinations and so could still be blocked sending to other functions
+        // If the sender is now not blocked on *any* destination then unblock it
         for block in unblock_set {
             self.blocks.remove(&block);
             trace!("\t\t\tBlock removed {:?}", block);
@@ -858,9 +860,8 @@ impl RunState {
                 trace!("\t\t\t\tFunction #{} removed from 'blocked' list", block.blocked_function_id);
                 self.blocked.remove(&block.blocked_function_id);
 
-                if self.get_function(block.blocked_function_id).ok_or("No such function")?.can_run() {
-                    trace!("\t\t\t\tFunction #{} has inputs ready, so added to 'ready' list",
-                        block.blocked_function_id);
+                let function = self.get_function(block.blocked_function_id).ok_or("No such function")?;
+                if function.can_run() {
                     self.make_ready_or_blocked(block.blocked_function_id, block.blocked_flow_id);
                 }
             }
@@ -910,7 +911,7 @@ impl fmt::Display for RunState {
         writeln!(f, "  Functions Running: {:?}", self.running)?;
         writeln!(f, "Functions Completed: {:?}", self.completed)?;
         writeln!(f, "         Flows Busy: {:?}", self.busy_flows)?;
-        write!(f, "     Pending Unblocks: {:?}", self.pending_unblocks)
+        write!(f, "     Pending Unblocks: {:?}", self.flow_blocks)
     }
 }
 
