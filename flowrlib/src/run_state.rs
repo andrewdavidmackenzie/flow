@@ -288,7 +288,6 @@ impl RunState {
         }
 
         // Put all functions that have their inputs ready and are not blocked on the `ready` list
-        debug!("Readying initial functions: inputs full and not blocked on output");
         for (id, flow_id) in inputs_ready_list {
             self.make_ready_or_blocked(id, flow_id);
         }
@@ -392,9 +391,8 @@ impl RunState {
         &self.pending_unblocks
     }
 
-    /// Return the next job ready to be run, if there is one and there are not
-    /// too many jobs already running
-    pub(crate) fn next_job(&mut self) -> Option<Job> {
+    /// Return a new job to run, if there is one and there are not too many jobs already running
+    pub(crate) fn new_job(&mut self) -> Option<Job> {
         if let Some(limit) = self.submission.max_parallel_jobs {
             if self.number_jobs_running() >= limit {
                 trace!("Max Pending Job count of {limit} reached, skipping new jobs");
@@ -416,6 +414,7 @@ impl RunState {
         };
 
         self.create_job(function_id).map(|job| {
+            self.running.insert(job.function_id, job.job_id);
             let _ = self.unblock_internal_flow_senders(job.job_id, job.function_id, job.flow_id);
             job
         })
@@ -744,11 +743,6 @@ impl RunState {
         true // a value was sent!
     }
 
-    /// Start executing `Job`
-    pub fn start(&mut self, job: &Job) {
-        self.running.insert(job.function_id, job.job_id);
-    }
-
     /// Get the set of (blocking_function_id, function's IO number causing the block)
     /// of blockers for a specific function of `id`
     #[cfg(feature = "debugger")]
@@ -821,20 +815,15 @@ impl RunState {
     // - it has a full set of inputs, so can be run and produce an output
     // - it has no input and is impure, so can run and produce an output
     // In which case it should transition to one of two states: Ready or Blocked
-    fn make_ready_or_blocked(&mut self, id: usize, flow_id: usize) {
-        if self.blocked_sending(id) {
-            trace!( "\t\t\tFunction #{} blocked on output. State set to 'Blocked'", id);
-            self.blocked.insert(id);
+    pub(crate) fn make_ready_or_blocked(&mut self, function_id: usize, flow_id: usize) {
+        if self.blocked_sending(function_id) {
+            trace!( "\t\t\tFunction #{function_id} blocked on output. State set to 'Blocked'");
+            self.blocked.insert(function_id);
         } else {
-            trace!("\t\t\tFunction #{} not blocked on output. State set to 'Ready'", id);
-            self.mark_ready(id, flow_id);
+            trace!("\t\t\tFunction #{function_id} not blocked on output. State set to 'Ready'");
+            self.ready.push_back(function_id);
+            self.busy_flows.insert(flow_id, function_id);
         }
-    }
-
-    // Mark a function "ready" to run, by adding it's id to the ready list
-    pub(crate) fn mark_ready(&mut self, function_id: usize, flow_id: usize) {
-        self.ready.push_back(function_id);
-        self.busy_flows.insert(flow_id, function_id);
     }
 
     // See if there is any block where the blocked function is the one we're looking for
@@ -935,7 +924,7 @@ impl RunState {
                 if self.get_function(block.blocked_function_id).ok_or("No such function")?.can_run() {
                     trace!("\t\t\t\tFunction #{} has inputs ready, so added to 'ready' list",
                         block.blocked_function_id);
-                    self.mark_ready(block.blocked_function_id, block.blocked_flow_id);
+                    self.make_ready_or_blocked(block.blocked_function_id, block.blocked_flow_id);
                 }
             }
         }
@@ -1020,7 +1009,7 @@ mod test {
 
     impl Implementation for TestImpl {
         fn run(&self, _inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
-            unimplemented!()
+            Ok((None, true))
         }
     }
 
@@ -1446,8 +1435,7 @@ mod test {
             assert!(state.function_state_is_only(0, State::Ready), "f_a should be Ready");
 
             // Event
-            let job = state.next_job().expect("Couldn't get next job");
-            state.start(&job);
+            let _ = state.new_job().expect("Couldn't get next job");
 
             // Test
             assert!(state.function_state_is_only(0, State::Running), "f_a should be Running");
@@ -1468,7 +1456,7 @@ mod test {
             assert!(state.function_state_is_only(0, State::Waiting), "f_a should be Waiting");
 
             // Event
-            assert!(state.next_job().is_none(), "next_job() should return None");
+            assert!(state.new_job().is_none(), "next_job() should return None");
 
             // Test
             assert!(state.function_state_is_only(0, State::Waiting), "f_a should be Waiting");
@@ -1520,9 +1508,8 @@ mod test {
 
             state.init();
             assert!(state.function_state_is_only(0, State::Ready), "f_a should be Ready");
-            let job = state.next_job().expect("Couldn't get next job");
+            let job = state.new_job().expect("Couldn't get next job");
             assert_eq!(0, job.function_id, "next() should return function_id = 0");
-            state.start(&job);
 
             assert!(state.function_state_is_only(0, State::Running), "f_a should be Running");
 
@@ -1565,9 +1552,8 @@ mod test {
 
             state.init();
             assert!(state.function_state_is_only(0, State::Ready), "f_a should be Ready");
-            let job = state.next_job().expect("Couldn't get next job");
+            let job = state.new_job().expect("Couldn't get next job");
             assert_eq!(0, job.function_id, "next() should return function_id = 0");
-            state.start(&job);
 
             assert!(state.function_state_is_only(0, State::Running), "f_a should be Running");
 
@@ -1636,12 +1622,11 @@ mod test {
 
             assert!(state.function_state_is_only(0, State::Ready), "f_a should be Ready");
 
-            let job = state.next_job().expect("Couldn't get next job");
+            let job = state.new_job().expect("Couldn't get next job");
             assert_eq!(
                 0, job.function_id,
                 "next() should return function_id=0 (f_a) for running"
             );
-            state.start(&job);
 
             assert!(state.function_state_is_only(0, State::Running), "f_a should be Running");
 
@@ -1776,7 +1761,7 @@ mod test {
                 "f_a should be in Waiting"
             );
 
-            let _ = state.next_job().expect("Couldn't get next job");
+            let _ = state.new_job().expect("Couldn't get next job");
 
             // create output from f_b as if it had run - will send to f_a
             let output = super::test_output(1, 0);
@@ -1863,7 +1848,7 @@ mod test {
                     "f_b should be in Waiting"
             );
 
-            let mut job = state.next_job().expect("Couldn't get next job");
+            let mut job = state.new_job().expect("Couldn't get next job");
             // Assumes only function 0 can run
             assert_eq!(job.function_id, 0, "Expected job with function_id=0");
 
@@ -1884,7 +1869,7 @@ mod test {
                     "f_a should be Blocked on f_b"
             );
 
-            let job = state.next_job().expect("Couldn't get next job");
+            let job = state.new_job().expect("Couldn't get next job");
             // Assumes only function 1 can run
             assert_eq!(
                 job.function_id, 1,
@@ -1898,7 +1883,7 @@ mod test {
                 &mut debugger,
             );
 
-            let job = state.next_job().expect("Couldn't get next job");
+            let job = state.new_job().expect("Couldn't get next job");
             // Assumes only function 0 will be ready
             assert_eq!(
                 job.function_id, 0,
@@ -2051,7 +2036,7 @@ mod test {
             );
             let mut state = RunState::new(&test_functions(), submission);
 
-            assert!(state.next_job().is_none());
+            assert!(state.new_job().is_none());
         }
 
         #[test]
@@ -2067,7 +2052,7 @@ mod test {
             // Put 0 on the blocked/ready
             state.make_ready_or_blocked(0, 0);
 
-            state.next_job().expect("Couldn't get next job");
+            state.new_job().expect("Couldn't get next job");
         }
 
         #[test]
@@ -2083,7 +2068,7 @@ mod test {
             // Put 0 on the blocked/ready list depending on blocked status
             state.make_ready_or_blocked(0, 0);
 
-            state.next_job().expect("Couldn't get next job");
+            state.new_job().expect("Couldn't get next job");
         }
 
         #[test]
@@ -2115,7 +2100,7 @@ mod test {
             // Put 0 on the blocked/ready list depending on blocked status
             state.make_ready_or_blocked(0, 0);
 
-            assert!(state.next_job().is_none());
+            assert!(state.new_job().is_none());
         }
 
         #[test]
@@ -2146,14 +2131,14 @@ mod test {
             // 0's inputs are now full, so it would be ready if it weren't blocked on output
             state.make_ready_or_blocked(0, 0);
             // 0 does not show as ready.
-            assert!(state.next_job().is_none());
+            assert!(state.new_job().is_none());
 
             // now unblock senders to 1 (i.e. 0)
             state.unblock_internal_flow_senders(0, 1, 0)
                 .expect("Could not unblock");
 
             // Now function with id 0 should be ready and served up by next
-            state.next_job().expect("Couldn't get next job");
+            state.new_job().expect("Couldn't get next job");
         }
 
         #[test]
@@ -2195,14 +2180,14 @@ mod test {
             // Put 0 on the blocked/ready list depending on blocked status
             state.make_ready_or_blocked(0, 0);
 
-            assert!(state.next_job().is_none());
+            assert!(state.new_job().is_none());
 
             // now unblock 0 by 1
             state.unblock_internal_flow_senders(0, 1, 0)
                 .expect("Could not unblock");
 
             // Now function with id 0 should still not be ready as still blocked on 2
-            assert!(state.next_job().is_none());
+            assert!(state.new_job().is_none());
         }
 
         #[test]
@@ -2219,10 +2204,9 @@ mod test {
 
             state.init();
 
-            let job = state.next_job().expect("Couldn't get next job");
-            state.start(&job);
+            let _ = state.new_job().expect("Couldn't get next job");
 
-            assert!(state.next_job().is_none(), "Did not expect a Ready job!");
+            assert!(state.new_job().is_none(), "Did not expect a Ready job!");
         }
 
         /*
@@ -2251,7 +2235,7 @@ mod test {
 
             state.init();
 
-            state.next_job().expect("Couldn't get next job");
+            state.new_job().expect("Couldn't get next job");
 
             // Event run f_a
             let job = Job {
@@ -2272,7 +2256,7 @@ mod test {
                 #[cfg(feature = "debugger")]
                 &mut debugger,
             );
-            assert!(state.function_state_is_only(0, State::Waiting), "f_a should be Waiting");
+            assert!(state.function_state_is_only(0, State::Running), "f_a should be Running");
         }
     }
 

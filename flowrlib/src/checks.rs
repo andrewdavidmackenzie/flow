@@ -295,7 +295,7 @@ mod test {
         let mut state = test_state(&[function]);
 
         // Mark the flow the function is in as busy via ready
-        state.mark_ready(0, 0);
+        state.make_ready_or_blocked(0, 0);
 
         // this ready_check() should pass
         ready_check(&state, 0, state.get_function(0)
@@ -321,7 +321,7 @@ mod test {
 
         // mark flow_id as busy - to pass the running check a running function's flow_id
         // should be in the list of busy flows
-        state.mark_ready(0, 0);
+        state.make_ready_or_blocked(0, 0);
 
         // this running check should fail
         running_check(&state, 0, state.get_function(0)
