@@ -7,7 +7,7 @@ use log::{debug, error, info, trace};
 use multimap::MultiMap;
 use rand::Rng;
 use serde_derive::{Deserialize, Serialize};
-use serde_json::{json, Value};
+use serde_json::Value;
 
 use flowcore::errors::*;
 #[cfg(feature = "metrics")]
@@ -607,6 +607,12 @@ impl RunState {
         Ok((display_next_output, restart))
     }
 
+    // Initialize any input of the sending function that has an initializer
+    fn init_inputs(&mut self, function_id: usize) -> Result<()> {
+        self.get_mut(function_id).ok_or("Could not get function")?.init_inputs(false);
+        Ok(())
+    }
+
     // Send a value produced as part of an output of running a job to a destination function on
     // a specific input, update the metrics and potentially enter the debugger
     fn send_a_value(
@@ -652,7 +658,7 @@ impl RunState {
         let function = self.get_mut(connection.function_id)
             .ok_or("Could not get function")?;
         let count_before = function.input_set_count();
-        Self::type_convert_and_send(function, connection, output_value);
+        function.type_convert_and_send(connection, output_value);
 
         #[cfg(feature = "metrics")]
         metrics.increment_outputs_sent(); // not distinguishing array serialization / wrapping etc
@@ -664,7 +670,7 @@ impl RunState {
 
         // Avoid a function blocking on itself when sending itself a value via a loopback
         if block && !loopback {
-            // TODO pass in destination and combine Block and OutputConnection?
+            // TODO pass in connection and combine Block and OutputConnection?
             (display_next_output, restart) = self.create_block(
                 connection.flow_id,
                 connection.function_id,
@@ -684,63 +690,6 @@ impl RunState {
         }
 
         Ok((display_next_output, restart))
-    }
-
-    // Initialize any input of the sending function that has an initializer
-    fn init_inputs(&mut self, function_id: usize) -> Result<()> {
-        self.get_mut(function_id).ok_or("Could not get function")?.init_inputs(false);
-        Ok(())
-    }
-
-    // Take a json data value and return the array order for it
-    fn array_order(value: &Value) -> i32 {
-        match value {
-            Value::Array(array) if !array.is_empty() => {
-                if let Some(value) = array.get(0) {
-                    1 + Self::array_order(value)
-                } else {
-                    1
-                }
-            },
-            Value::Array(array) if array.is_empty() => 1,
-            _ => 0,
-        }
-    }
-
-    // Do the necessary serialization of an array to values, or wrapping of a value into an array
-    // in order to convert the value on expected by the destination, if possible, send the value
-    // and return true. If the conversion cannot be done and no value is sent, return false.
-    fn type_convert_and_send(
-        function: &mut RuntimeFunction,
-        connection: &OutputConnection,
-        value: &Value,
-    ) -> bool {
-        if connection.is_generic() {
-            function.send(connection.io_number, value);
-        } else {
-            match (
-                (Self::array_order(value) - connection.destination_array_order),
-                value,
-            ) {
-                (0, _) => function.send(connection.io_number, value),
-                (1, Value::Array(array)) => function.send_iter(connection.io_number,
-                                                               array),
-                (2, Value::Array(array_2)) => {
-                    for array in array_2.iter() {
-                        if let Value::Array(sub_array) = array {
-                            function.send_iter(connection.io_number, sub_array)
-                        }
-                    }
-                }
-                (-1, _) => function.send(connection.io_number, &json!([value])),
-                (-2, _) => function.send(connection.io_number, &json!([[value]])),
-                _ => {
-                    error!("Unable to handle difference in array order");
-                    return false;
-                },
-            }
-        }
-        true // a value was sent!
     }
 
     /// Get the set of (blocking_function_id, function's IO number causing the block)
@@ -2257,183 +2206,6 @@ mod test {
                 &mut debugger,
             );
             assert!(state.function_state_is_only(0, State::Running), "f_a should be Running");
-        }
-    }
-
-    mod misc {
-        use serde_json::{json, Value};
-
-        use flowcore::model::input::Input;
-        use flowcore::model::output_connection::{OutputConnection, Source};
-        use flowcore::model::runtime_function::RuntimeFunction;
-
-        use super::super::RunState;
-
-        #[test]
-        fn test_array_order_0() {
-            let value = json!(1);
-            assert_eq!(RunState::array_order(&value), 0);
-        }
-
-        #[test]
-        fn test_array_order_1_empty_array() {
-            let value = json!([]);
-            assert_eq!(RunState::array_order(&value), 1);
-        }
-
-        #[test]
-        fn test_array_order_1() {
-            let value = json!([1, 2, 3]);
-            assert_eq!(RunState::array_order(&value), 1);
-        }
-
-        #[test]
-        fn test_array_order_2() {
-            let value = json!([[1, 2, 3], [2, 3, 4]]);
-            assert_eq!(RunState::array_order(&value), 2);
-        }
-
-        fn test_function() -> RuntimeFunction {
-            RuntimeFunction::new(
-                #[cfg(feature = "debugger")]
-                "test",
-                #[cfg(feature = "debugger")]
-                "/test",
-                "file://fake/test",
-                vec![Input::new(
-                    #[cfg(feature = "debugger")] "",
-                    &None)],
-                0,
-                0,
-                &[],
-                false,
-            )
-        }
-
-        // Test type conversion and sending
-        //                         |                   Destination
-        //                         |Generic     Non-Array       Array       Array of Arrays
-        // Value       Value order |    N/A         0               1       2      <---- Array Order
-        //  Non-Array       (0)    |   send     (0) send        (-1) wrap   (-2) wrap in array of arrays
-        //  Array           (1)    |   send     (1) iter        (0) send    (-1) wrap in array
-        //  Array of Arrays (2)    |   send     (2) iter/iter   (1) iter    (0) send
-        #[test]
-        fn test_sending() {
-            #[derive(Debug)]
-            struct TestCase {
-                value: Value,
-                destination_is_generic: bool,
-                destination_array_order: i32,
-                value_expected: Value,
-            }
-
-            let test_cases = vec![
-                // Column 0 test cases
-                TestCase {
-                    value: json!(1),
-                    destination_is_generic: true,
-                    destination_array_order: 0,
-                    value_expected: json!(1),
-                },
-                TestCase {
-                    value: json!([1]),
-                    destination_is_generic: true,
-                    destination_array_order: 0,
-                    value_expected: json!([1]),
-                },
-                TestCase {
-                    value: json!([[1, 2], [3, 4]]),
-                    destination_is_generic: true,
-                    destination_array_order: 0,
-                    value_expected: json!([[1, 2], [3, 4]]),
-                },
-                // Column 1 Test Cases
-                TestCase {
-                    value: json!(1),
-                    destination_is_generic: false,
-                    destination_array_order: 0,
-                    value_expected: json!(1),
-                },
-                TestCase {
-                    value: json!([1, 2]),
-                    destination_is_generic: false,
-                    destination_array_order: 0,
-                    value_expected: json!(1),
-                },
-                TestCase {
-                    value: json!([[1, 2], [3, 4]]),
-                    destination_is_generic: false,
-                    destination_array_order: 0,
-                    value_expected: json!(1),
-                },
-                // Column 2 Test Cases
-                TestCase {
-                    value: json!(1),
-                    destination_is_generic: false,
-                    destination_array_order: 1,
-                    value_expected: json!([1]),
-                },
-                TestCase {
-                    value: json!([1, 2]),
-                    destination_is_generic: false,
-                    destination_array_order: 1,
-                    value_expected: json!([1, 2]),
-                },
-                TestCase {
-                    value: json!([[1, 2], [3, 4]]),
-                    destination_is_generic: false,
-                    destination_array_order: 1,
-                    value_expected: json!([1, 2]),
-                },
-                // Column 3 Test Cases
-                TestCase {
-                    value: json!(1),
-                    destination_is_generic: false,
-                    destination_array_order: 2,
-                    value_expected: json!([[1]]),
-                },
-                TestCase {
-                    value: json!([1, 2]),
-                    destination_is_generic: false,
-                    destination_array_order: 2,
-                    value_expected: json!([[1, 2]]),
-                },
-                TestCase {
-                    value: json!([[1, 2], [3, 4]]),
-                    destination_is_generic: false,
-                    destination_array_order: 2,
-                    value_expected: json!([[1, 2], [3, 4]]),
-                },
-            ];
-
-            for test_case in test_cases {
-                // Setup
-                let mut function = test_function();
-                let destination = OutputConnection::new(
-                    Source::default(),
-                    0,
-                    0,
-                    0,
-                    test_case.destination_array_order,
-                    test_case.destination_is_generic,
-                    String::default(),
-                    #[cfg(feature = "debugger")]
-                    String::default(),
-                );
-
-                // Test
-                assert!(RunState::type_convert_and_send(&mut function,
-                    &destination, &test_case.value));
-
-                // Check
-                assert_eq!(
-                    test_case.value_expected,
-                    function
-                        .take_input_set()
-                        .expect("Couldn't get input set")
-                        .remove(0)
-                );
-            }
         }
     }
 }
