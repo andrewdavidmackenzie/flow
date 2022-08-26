@@ -8,8 +8,8 @@ use simpath::Simpath;
 use url::Url;
 use wax::Glob;
 
-use flowclib::compiler::{json_manifest, parser};
 use flowclib::compiler::compile_wasm;
+use flowclib::compiler::parser;
 use flowclib::dumper::{dump, dump_dot};
 use flowcore::meta_provider::{MetaProvider, Provider};
 use flowcore::model::lib_manifest::LibraryManifest;
@@ -47,7 +47,7 @@ pub fn build_lib(options: &Options, provider: &dyn Provider) -> Result<()> {
     )
     .chain_err(|| "Could not compile implementations in library")?;
 
-    let manifest_json_file = json_manifest::manifest_filename(&options.output_dir);
+    let manifest_json_file = LibraryManifest::manifest_filename(&options.output_dir);
 
     let (message, write_manifest) = check_manifest_status(&manifest_json_file, build_count,
         &lib_manifest)?;
@@ -55,7 +55,7 @@ pub fn build_lib(options: &Options, provider: &dyn Provider) -> Result<()> {
     info!("{}", message);
 
     if write_manifest {
-        json_manifest::write(&lib_manifest, &manifest_json_file)?;
+        lib_manifest.write_json(&manifest_json_file)?;
     }
 
     println!("    {} {}", "Finished".green(), name);
