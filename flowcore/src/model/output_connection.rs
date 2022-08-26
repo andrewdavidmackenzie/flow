@@ -26,10 +26,10 @@ pub struct OutputConnection {
     /// Source of the value that should be forwarded
     #[serde(default = "Source::default", skip_serializing_if = "is_default_source")]
     pub source: Source,
-    /// `function_id` is the id of the destination function of this `OutputConnection`
-    pub function_id: usize,
+    /// id of the destination function of this `OutputConnection`
+    pub destination_id: usize,
     /// `io_number` is the IO number the connection is connected to on the destination function
-    pub io_number: usize,
+    pub destination_io_number: usize,
     /// `flow_id` is the flow_id of the target function
     pub flow_id: usize,
     /// `array_order` defines how many levels of arrays of non-array values does the destination accept
@@ -85,22 +85,22 @@ impl OutputConnection {
     #[allow(clippy::too_many_arguments)]
     pub fn new(
         source: Source,
-        function_id: usize,
-        io_number: usize,
+        destination_id: usize,
+        destination_io_number: usize,
         flow_id: usize,
-        array_level_serde: i32,
+        destination_array_order: i32,
         generic: bool,
-        route: String,
+        destination: String,
         #[cfg(feature = "debugger")] name: String,
     ) -> Self {
         OutputConnection {
             source,
-            function_id,
-            io_number,
+            destination_id,
+            destination_io_number,
             flow_id,
-            destination_array_order: array_level_serde,
+            destination_array_order,
             generic,
-            destination: route,
+            destination,
             #[cfg(feature = "debugger")]
             name,
         }
@@ -125,7 +125,7 @@ impl fmt::Display for Source {
 impl fmt::Display for OutputConnection {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "Output '{}' -> Function #{}({}):{}", self.source,
-            self.function_id, self.flow_id, self.io_number)?;
+               self.destination_id, self.flow_id, self.destination_io_number)?;
         if !self.destination.is_empty() {
             write!(f, " @ '{}'", self.destination)?;
         }

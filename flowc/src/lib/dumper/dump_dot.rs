@@ -441,23 +441,23 @@ fn function_to_dot(function: &FunctionDefinition, functions: &[FunctionDefinitio
 
     // Add edges for each of the outputs of this function to other ones
     for destination in function.get_output_connections() {
-        let input_port = INPUT_PORTS[destination.io_number % INPUT_PORTS.len()];
-        let destination_function = &functions[destination.function_id];
+        let input_port = INPUT_PORTS[destination.destination_io_number % INPUT_PORTS.len()];
+        let destination_function = &functions[destination.destination_id];
         let source_port = output_name_to_port(&destination.source);
         let destination_name = destination_function
             .get_inputs()
-            .get(destination.io_number)
+            .get(destination.destination_io_number)
             .expect("Could not get input")
             .name()
             .to_string();
         let _ = writeln!(function_string,
-            "r{}:{} -> r{}:{} [taillabel = \"{}\", headlabel = \"{}\"];",
-            function.get_id(),
-            source_port,
-            destination.function_id,
-            input_port,
-            destination.source,
-            destination_name
+                         "r{}:{} -> r{}:{} [taillabel = \"{}\", headlabel = \"{}\"];",
+                         function.get_id(),
+                         source_port,
+                         destination.destination_id,
+                         input_port,
+                         destination.source,
+                         destination_name
         );
     }
 

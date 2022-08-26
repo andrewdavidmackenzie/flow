@@ -2,9 +2,9 @@
 use std::fmt;
 use std::sync::Arc;
 
-use log::debug;
+use log::{debug, error};
 use serde_derive::{Deserialize, Serialize};
-use serde_json::Value;
+use serde_json::{json, Value};
 
 use crate::{Implementation, RunAgain};
 use crate::errors::*;
@@ -167,7 +167,7 @@ impl RuntimeFunction {
     pub fn init_inputs(&mut self, first_time: bool) -> bool {
         let mut inputs_initialized = false;
         for (io_number, input) in &mut self.inputs.iter_mut().enumerate() {
-            if input.is_empty() && input.init(first_time, io_number) {
+            if input.init(first_time) {
                 #[cfg(feature = "debugger")]
                 debug!(
                     "\tInitialized Input #{}({}):{} '{}' ",
@@ -193,16 +193,63 @@ impl RuntimeFunction {
         &self.implementation_location
     }
 
-    /// write a value to a `RuntimeFunction`'s `input`
-    pub fn send(&mut self, input_number: usize, value: &Value) {
-        let input = &mut self.inputs[input_number];
-        input.push(value.clone());
+    // Take a json data value and return the array order for it
+    fn array_order(value: &Value) -> i32 {
+        match value {
+            Value::Array(array) if !array.is_empty() => {
+                if let Some(value) = array.get(0) {
+                    1 + Self::array_order(value)
+                } else {
+                    1
+                }
+            },
+            Value::Array(array) if array.is_empty() => 1,
+            _ => 0,
+        }
     }
 
-    /// write an array of values to a `RuntimeFunction` `input`
-    pub fn send_iter(&mut self, input_number: usize, array: &[Value]) {
-        let input = &mut self.inputs[input_number];
-        input.push_array(array.iter());
+    /// Do the necessary serialization of an array to values, or wrapping of a value into an array
+    /// in order to convert the value on expected by the destination, if possible, send the value
+    /// and return true. If the conversion cannot be done and no value is sent, return false.
+    pub fn type_convert_and_send(&mut self,
+        connection: &OutputConnection,
+        value: &Value) -> bool {
+        if connection.is_generic() {
+            self.send(connection.destination_io_number, value);
+        } else {
+            match (
+                (Self::array_order(value) - connection.destination_array_order),
+                value,
+            ) {
+                (0, _) => self.send(connection.destination_io_number, value),
+                (1, Value::Array(array)) => self.send_iter(connection.destination_io_number,
+                                                           array),
+                (2, Value::Array(array_2)) => {
+                    for array in array_2.iter() {
+                        if let Value::Array(sub_array) = array {
+                            self.send_iter(connection.destination_io_number, sub_array)
+                        }
+                    }
+                }
+                (-1, _) => self.send(connection.destination_io_number, &json!([value])),
+                (-2, _) => self.send(connection.destination_io_number, &json!([[value]])),
+                _ => {
+                    error!("Unable to handle difference in array order");
+                    return false;
+                },
+            }
+        }
+        true // a value was sent!
+    }
+
+    // write a value to a `RuntimeFunction`'s `input`
+    fn send(&mut self, input_number: usize, value: &Value) {
+        self.inputs[input_number].push(value.clone());
+    }
+
+    // write an array of values to a `RuntimeFunction` `input`
+    fn send_iter(&mut self, input_number: usize, array: &[Value]) {
+        self.inputs[input_number].push_array(array.iter());
     }
 
     /// Accessor for a `RuntimeFunction` `output_connections` field
@@ -471,5 +518,179 @@ mod test {
         let inf = Arc::new(ImplementationNotFound {});
         function.set_implementation(inf);
         let _ = function.get_implementation();
+    }
+
+    mod misc {
+        use serde_json::{json, Value};
+
+        use crate::model::input::Input;
+        use crate::model::output_connection::{OutputConnection, Source};
+        use crate::model::runtime_function::RuntimeFunction;
+
+        #[test]
+        fn test_array_order_0() {
+            let value = json!(1);
+            assert_eq!(RuntimeFunction::array_order(&value), 0);
+        }
+
+        #[test]
+        fn test_array_order_1_empty_array() {
+            let value = json!([]);
+            assert_eq!(RuntimeFunction::array_order(&value), 1);
+        }
+
+        #[test]
+        fn test_array_order_1() {
+            let value = json!([1, 2, 3]);
+            assert_eq!(RuntimeFunction::array_order(&value), 1);
+        }
+
+        #[test]
+        fn test_array_order_2() {
+            let value = json!([[1, 2, 3], [2, 3, 4]]);
+            assert_eq!(RuntimeFunction::array_order(&value), 2);
+        }
+
+        fn test_function() -> RuntimeFunction {
+            RuntimeFunction::new(
+                #[cfg(feature = "debugger")]
+                    "test",
+                #[cfg(feature = "debugger")]
+                    "/test",
+                "file://fake/test",
+                vec![Input::new(
+                    #[cfg(feature = "debugger")] "",
+                    &None)],
+                0,
+                0,
+                &[],
+                false,
+            )
+        }
+
+        // Test type conversion and sending
+        //                         |                   Destination
+        //                         |Generic     Non-Array       Array       Array of Arrays
+        // Value       Value order |    N/A         0               1       2      <---- Array Order
+        //  Non-Array       (0)    |   send     (0) send        (-1) wrap   (-2) wrap in array of arrays
+        //  Array           (1)    |   send     (1) iter        (0) send    (-1) wrap in array
+        //  Array of Arrays (2)    |   send     (2) iter/iter   (1) iter    (0) send
+        #[test]
+        fn test_sending() {
+            #[derive(Debug)]
+            struct TestCase {
+                value: Value,
+                destination_is_generic: bool,
+                destination_array_order: i32,
+                value_expected: Value,
+            }
+
+            let test_cases = vec![
+                // Column 0 test cases
+                TestCase {
+                    value: json!(1),
+                    destination_is_generic: true,
+                    destination_array_order: 0,
+                    value_expected: json!(1),
+                },
+                TestCase {
+                    value: json!([1]),
+                    destination_is_generic: true,
+                    destination_array_order: 0,
+                    value_expected: json!([1]),
+                },
+                TestCase {
+                    value: json!([[1, 2], [3, 4]]),
+                    destination_is_generic: true,
+                    destination_array_order: 0,
+                    value_expected: json!([[1, 2], [3, 4]]),
+                },
+                // Column 1 Test Cases
+                TestCase {
+                    value: json!(1),
+                    destination_is_generic: false,
+                    destination_array_order: 0,
+                    value_expected: json!(1),
+                },
+                TestCase {
+                    value: json!([1, 2]),
+                    destination_is_generic: false,
+                    destination_array_order: 0,
+                    value_expected: json!(1),
+                },
+                TestCase {
+                    value: json!([[1, 2], [3, 4]]),
+                    destination_is_generic: false,
+                    destination_array_order: 0,
+                    value_expected: json!(1),
+                },
+                // Column 2 Test Cases
+                TestCase {
+                    value: json!(1),
+                    destination_is_generic: false,
+                    destination_array_order: 1,
+                    value_expected: json!([1]),
+                },
+                TestCase {
+                    value: json!([1, 2]),
+                    destination_is_generic: false,
+                    destination_array_order: 1,
+                    value_expected: json!([1, 2]),
+                },
+                TestCase {
+                    value: json!([[1, 2], [3, 4]]),
+                    destination_is_generic: false,
+                    destination_array_order: 1,
+                    value_expected: json!([1, 2]),
+                },
+                // Column 3 Test Cases
+                TestCase {
+                    value: json!(1),
+                    destination_is_generic: false,
+                    destination_array_order: 2,
+                    value_expected: json!([[1]]),
+                },
+                TestCase {
+                    value: json!([1, 2]),
+                    destination_is_generic: false,
+                    destination_array_order: 2,
+                    value_expected: json!([[1, 2]]),
+                },
+                TestCase {
+                    value: json!([[1, 2], [3, 4]]),
+                    destination_is_generic: false,
+                    destination_array_order: 2,
+                    value_expected: json!([[1, 2], [3, 4]]),
+                },
+            ];
+
+            for test_case in test_cases {
+                // Setup
+                let mut function = test_function();
+                let destination = OutputConnection::new(
+                    Source::default(),
+                    0,
+                    0,
+                    0,
+                    test_case.destination_array_order,
+                    test_case.destination_is_generic,
+                    String::default(),
+                    #[cfg(feature = "debugger")]
+                        String::default(),
+                );
+
+                // Test
+                assert!(function.type_convert_and_send(&destination, &test_case.value));
+
+                // Check
+                assert_eq!(
+                    test_case.value_expected,
+                    function
+                        .take_input_set()
+                        .expect("Couldn't get input set")
+                        .remove(0)
+                );
+            }
+        }
     }
 }

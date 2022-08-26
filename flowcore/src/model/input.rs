@@ -118,41 +118,34 @@ impl Input {
     /// Initialize an input with the InputInitializer if it has one.
     /// When called at start-up    it will initialize      if it's a OneTime or Constant initializer
     /// When called after start-up it will initialize only if it's a            Constant initializer
-    pub fn init(&mut self, first_time: bool, io_number: usize) -> bool {
-        if !self.received.is_empty() {
-            return false;
-        }
-
-        let init_value = match (first_time, &self.initializer) {
-            (true, Some(InputInitializer::Once(one_time))) => Some(one_time.clone()),
-            (_, Some(InputInitializer::Always(constant))) => Some(constant.clone()),
-            (_, None) | (false, Some(InputInitializer::Once(_))) => None,
-        };
-
-        match init_value {
-            Some(value) => {
-                trace!("\t\tInput:{} initialized with '{:?}'", io_number, value);
-                self.push(value);
+    pub fn init(&mut self, first_time: bool) -> bool {
+        match (first_time, &self.initializer) {
+            (true, Some(InputInitializer::Once(one_time))) => {
+                self.push(one_time.clone());
                 true
-            }
-            _ => false,
+            },
+            (_, Some(InputInitializer::Always(constant))) => {
+                self.push(constant.clone());
+                true
+            },
+            (_, None) | (false, Some(InputInitializer::Once(_))) => false,
+        }
+    }
+
+    /// Add an array of values to this `Input`, by pushing them one by one
+    pub fn push_array<'a, I>(&mut self, iter: I)
+        where
+            I: Iterator<Item = &'a Value>,
+    {
+        for value in iter {
+            trace!("\t\t\tPushing array element '{}'", value);
+            self.push(value.clone());
         }
     }
 
     /// Add a `value` to this `Input`
     pub fn push(&mut self, value: Value) {
         self.received.push(value);
-    }
-
-    /// Add an array of values to this `Input`, by pushing them one by one
-    pub fn push_array<'a, I>(&mut self, iter: I)
-    where
-        I: Iterator<Item = &'a Value>,
-    {
-        for value in iter {
-            trace!("\t\t\tPushing array element '{}'", value);
-            self.push(value.clone());
-        }
     }
 
     /// Return the total number of values queued up, across all priorities, in this input

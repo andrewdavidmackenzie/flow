@@ -147,13 +147,13 @@ impl<'a> Coordinator<'a> {
                             #[cfg(feature = "debugger")]
                             if display_next_output {
                                 (display_next_output, restart) =
-                                    self.debugger.job_completed(&mut state, &job)?;
+                                    self.debugger.job_done(&mut state, &job)?;
                                 if restart {
                                     break 'jobs;
                                 }
                             }
 
-                            (display_next_output, restart) = state.complete_job(
+                            (display_next_output, restart) = state.job_done(
                                 #[cfg(feature = "metrics")]
                                     &mut metrics,
                                 &job,
@@ -165,8 +165,8 @@ impl<'a> Coordinator<'a> {
                         #[cfg(feature = "debugger")]
                         Err(err) => {
                             if state.submission.debug {
-                                (display_next_output, restart) = self.debugger
-                                    .panic(&mut state, err.to_string())?;
+                                (display_next_output, restart) = self.debugger.error(
+                                    &mut state, err.to_string())?;
                                 if restart {
                                     break 'jobs;
                                 }
@@ -223,9 +223,10 @@ impl<'a> Coordinator<'a> {
         let mut display_output = false;
         let mut restart = false;
 
-        while let Some(job) = state.next_job() {
+        while let Some(job) = state.new_job() {
             match self.send_job(
                 &job,
+                #[cfg(feature = "metrics")]
                 state,
                 #[cfg(feature = "metrics")]
                 metrics,
@@ -251,13 +252,12 @@ impl<'a> Coordinator<'a> {
     fn send_job(
         &mut self,
         job: &Job,
-        state: &mut RunState,
+        #[cfg(feature = "metrics")] state: &mut RunState,
         #[cfg(feature = "metrics")] metrics: &mut Metrics,
     ) -> Result<(bool, bool)> {
         #[cfg(not(feature = "debugger"))]
         let debug_options = (false, false);
 
-        state.start(job);
         #[cfg(feature = "metrics")]
         metrics.track_max_jobs(state.number_jobs_running());
 
