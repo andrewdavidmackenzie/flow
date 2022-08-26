@@ -8,33 +8,6 @@ use flowcore::model::route::Route;
 use crate::compiler::compile::CompilerTables;
 use crate::errors::*;
 
-/// Check for a series of potential problems in connections
-pub fn check_connections(tables: &mut CompilerTables) -> Result<()> {
-    info!("\n=== Compiler: Checking connections");
-    check_for_competing_inputs(tables)?;
-    info!("No problems found in connections");
-    Ok(())
-}
-
-/*
-    Check for a problems that lead to competition for inputs causing input overflow:
-    - a function connects to an input that has a constant initializer
-*/
-fn check_for_competing_inputs(tables: &CompilerTables) -> Result<()> {
-    for connection in &tables.collapsed_connections {
-        // check for `Always` type of Initializer at destination
-        if let Some(Always(_)) = connection.to_io().get_initializer() {
-            bail!(
-                "Connection from '{}' to input at '{}' that also has a `always` initializer",
-                connection.from_io().route(),
-                connection.to_io().route()
-            );
-        }
-    }
-
-    Ok(())
-}
-
 /// Check that all Functions have connections to all their inputs or return an error
 /// All inputs must be connected and receive values at run-time or a function can never run
 /// This is different from Outputs can be used selectively, and so if one is not connected that
