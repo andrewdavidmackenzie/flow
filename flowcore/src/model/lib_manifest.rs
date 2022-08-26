@@ -1,7 +1,10 @@
 use std::collections::{BTreeMap, BTreeSet};
+use std::fs::File;
+use std::io::prelude::*;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use log::debug;
+use log::{debug, info};
 use serde_derive::{Deserialize, Serialize};
 use url::Url;
 
@@ -126,6 +129,30 @@ impl LibraryManifest {
             lib_reference,
             ImplementationLocator::Wasm(wasm_relative_path.to_owned()),
         );
+
+        Ok(())
+    }
+
+    /// Given an output directory, return a PathBuf to the json format manifest that should be
+    /// generated inside it
+    pub fn manifest_filename(base_dir: &Path) -> PathBuf {
+        let mut filename = base_dir.to_path_buf();
+        filename.push(DEFAULT_LIB_JSON_MANIFEST_FILENAME);
+        filename.set_extension("json");
+        filename
+    }
+
+    /// Generate a manifest for the library in JSON
+    pub fn write_json(&self, json_manifest_filename: &Path) -> Result<()> {
+        let mut manifest_file = File::create(&json_manifest_filename)?;
+
+        manifest_file.write_all(
+            serde_json::to_string_pretty(self)
+                .chain_err(|| "Could not pretty format the library manifest JSON contents")?
+                .as_bytes(),
+        )?;
+
+        info!("Generated library JSON manifest at '{}'", json_manifest_filename.display());
 
         Ok(())
     }
