@@ -387,7 +387,7 @@ impl RunState {
 
     #[cfg(debug_assertions)]
     /// Return the list of pending unblocks
-    pub fn get_pending_unblocks(&self) -> &HashMap<usize, HashSet<usize>> {
+    pub fn get_flow_blocks(&self) -> &HashMap<usize, HashSet<usize>> {
         &self.flow_blocks
     }
 
