@@ -143,7 +143,7 @@ fn destination_block_state_check(state: &RunState, job_id: usize, block: &Block,
     if let Some(function) = functions.get(block.blocking_function_id) {
         if !(function.input_count(block.blocking_io_number) > 0
             || (state.get_busy_flows().contains_key(&block.blocking_flow_id)
-            && state.get_pending_unblocks().contains_key(&block.blocking_flow_id)))
+            && state.get_flow_blocks().contains_key(&block.blocking_flow_id)))
         {
             return runtime_error(
                 state,
@@ -176,7 +176,7 @@ fn flow_checks(state: &RunState, job_id: usize) -> Result<()> {
 
 // Check pending unblock invariants
 fn pending_unblock_checks(state: &RunState, job_id: usize) -> Result<()> {
-    for pending_unblock_flow_id in state.get_pending_unblocks().keys() {
+    for pending_unblock_flow_id in state.get_flow_blocks().keys() {
         // flow it's in must be busy
         if !state.get_busy_flows().contains_key(pending_unblock_flow_id) {
             return runtime_error(

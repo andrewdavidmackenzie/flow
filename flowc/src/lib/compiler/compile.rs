@@ -56,6 +56,55 @@ impl CompilerTables {
             source_files: Vec::new(),
         }
     }
+
+    // TODO limit lifetime to table lifetime and return a reference
+    // TODO make collapsed_connections a Map and just try and get by to_io.route()
+    /// Return an optional connection found to a destination input
+    pub fn connection_to(&self, input: &Route) -> Option<Connection> {
+        for connection in &self.collapsed_connections {
+            if connection.to_io().route() == input {
+                return Some(connection.clone());
+            }
+        }
+        None
+    }
+
+    /// consistently order the functions so each compile produces the same numbering
+    pub fn sort_functions(&mut self) {
+        self.functions.sort_by_key(|f| f.get_id());
+    }
+
+
+    /// Construct two look-up tables that can be used to find the index of a function in the functions table,
+    /// and the index of it's input - using the input route or it's output route
+    pub fn create_routes_table(&mut self) {
+        for function in &mut self.functions {
+            // Add inputs to functions to the table as a possible source of connections from a
+            // job that completed using this function
+            for (input_number, input) in function.get_inputs().iter().enumerate() {
+                self.sources.insert(
+                    input.route().clone(),
+                    (Input(input_number), function.get_id()),
+                );
+            }
+
+            // Add any output routes it has to the source routes table
+            for output in function.get_outputs() {
+                self.sources.insert(
+                    output.route().clone(),
+                    (Output(output.name().to_string()), function.get_id()),
+                );
+            }
+
+            // Add any inputs it has to the destination routes table
+            for (input_index, input) in function.get_inputs().iter().enumerate() {
+                self.destination_routes.insert(
+                    input.route().clone(),
+                    (function.get_id(), input_index, function.get_flow_id()),
+                );
+            }
+        }
+    }
 }
 
 /// Take a hierarchical flow definition in memory and compile it, generating a manifest for execution
@@ -68,13 +117,13 @@ pub fn compile(flow: &FlowDefinition, output_dir: &Path,
     let mut tables = CompilerTables::new();
 
     gatherer::gather_functions_and_connections(flow, &mut tables)?;
-    gatherer::collapse_connections(&mut tables);
+    gatherer::collapse_connections(&mut tables)?;
     if optimize {
         optimizer::optimize(&mut tables);
     }
     checker::check_function_inputs(&mut tables)?;
     checker::check_side_effects(&mut tables)?;
-    configuring_output_connections(&mut tables)?;
+    configure_output_connections(&mut tables)?;
     compile_supplied_implementations(
         output_dir,
         &mut tables,
@@ -111,71 +160,45 @@ fn compile_supplied_implementations(
 }
 
 // Go through all connections, finding:
-// - source process (process id and the output route the connection is from)
-// - destination process (process id and input number the connection is to)
+// - source function (function id and the output route the connection is from)
+// - destination function (function id and input number the connection is to)
 //
-// Then add an output route to the source process's list of output routes
+// Then add an output route to the source function's list of output routes
 // (according to each function's output route in the original description plus each connection from
 // that route, which could be to multiple destinations)
-fn configuring_output_connections(tables: &mut CompilerTables) -> Result<()> {
+fn configure_output_connections(tables: &mut CompilerTables) -> Result<()> {
     info!("\n=== Compiler: Configuring Output Connections");
     for connection in &tables.collapsed_connections {
-        if let Some((source, source_id)) = get_source(&tables.sources, connection.from_io().route())
-        {
-            if let Some(&(destination_function_id, destination_input_index, destination_flow_id)) =
+        let (source, source_id) = get_source(&tables.sources, connection.from_io().route())
+            .ok_or(format!("Connection source for route '{}' was not found", connection.from_io().route()))?;
+
+        let (destination_function_id, destination_input_index, destination_flow_id) =
             tables.destination_routes.get(connection.to_io().route())
-            {
-                if let Some(source_function) = tables.functions.get_mut(source_id) {
-                    debug!(
-                        "Connection: from '{}' to '{}'",
-                        &connection.from_io().route(),
-                        &connection.to_io().route()
-                    );
-                    debug!("  Source output route = '{}' --> function #{}:{}",
-                           source, destination_function_id, destination_input_index);
+                .ok_or(format!("Connection destination for route '{}' was not found", connection.to_io().route()))?;
 
-                    let output_conn = OutputConnection::new(
-                        source,
-                        destination_function_id,
-                        destination_input_index,
-                        destination_flow_id,
-                        connection.to_io().datatypes()[0].array_order()?, // TODO
-                        connection.to_io().datatypes()[0].is_generic(), // TODO
-                        connection.to_io().route().to_string(),
-                        #[cfg(feature = "debugger")]
-                            connection.name().to_string(),
-                    );
-                    source_function.add_output_connection(output_conn);
-                }
+        let source_function = tables.functions.get_mut(source_id)
+            .ok_or("Could not find function with id: {source_id}")?;
 
-                // TODO when connection uses references to real IOs then we maybe able to remove this
-                if connection.to_io().get_initializer().is_some() {
-                    if let Some(destination_function) =
-                    tables.functions.get_mut(destination_function_id)
-                    {
-                        let destination_input = destination_function
-                            .get_mut_inputs()
-                            .get_mut(destination_input_index)
-                            .ok_or("Could not get inputs")?;
-                        if destination_input.get_initializer().is_none() {
-                            destination_input.set_initializer(connection.to_io().get_initializer());
-                            debug!("Set initializer on destination function '{}' input at '{}' from connection",
-                                       destination_function.name(), connection.to_io().route());
-                        }
-                    }
-                }
-            } else {
-                bail!(
-                    "Connection destination for route '{}' was not found",
-                    connection.to_io().route()
-                );
-            }
-        } else {
-            bail!(
-                "Connection source for route '{}' was not found",
-                connection.from_io().route()
-            );
-        }
+        debug!(
+            "Connection: from '{}' to '{}'",
+            &connection.from_io().route(),
+            &connection.to_io().route()
+        );
+        debug!("  Source output route = '{}' --> function #{}:{}",
+               source, destination_function_id, destination_input_index);
+
+        let output_conn = OutputConnection::new(
+            source,
+            *destination_function_id,
+            *destination_input_index,
+            *destination_flow_id,
+            connection.to_io().datatypes()[0].array_order()?, // TODO
+            connection.to_io().datatypes()[0].is_generic(), // TODO
+            connection.to_io().route().to_string(),
+            #[cfg(feature = "debugger")]
+                connection.name().to_string(),
+        );
+        source_function.add_output_connection(output_conn);
     }
 
     info!("Output Connections set on all functions");
@@ -263,15 +286,15 @@ mod test {
         use super::super::get_source;
 
         /*
-                                                            Create a HashTable of routes for use in tests.
-                                                            Each entry (K, V) is:
-                                                            - Key   - the route to a function's IO
-                                                            - Value - a tuple of
-                                                                        - sub-route (or IO name) from the function to be used at runtime
-                                                                        - the id number of the function in the functions table, to select it at runtime
+                                                                                    Create a HashTable of routes for use in tests.
+                                                                                    Each entry (K, V) is:
+                                                                                    - Key   - the route to a function's IO
+                                                                                    - Value - a tuple of
+                                                                                                - sub-route (or IO name) from the function to be used at runtime
+                                                                                                - the id number of the function in the functions table, to select it at runtime
 
-                                                            Plus a vector of test cases with the Route to search for and the expected function_id and output sub-route
-                                                        */
+                                                                                    Plus a vector of test cases with the Route to search for and the expected function_id and output sub-route
+                                                                                */
         #[allow(clippy::type_complexity)]
         fn test_source_routes() -> (
             BTreeMap<Route, (Source, usize)>,

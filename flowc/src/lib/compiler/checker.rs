@@ -2,8 +2,8 @@ use error_chain::bail;
 use log::info;
 
 use flowcore::model::input::InputInitializer::Always;
+use flowcore::model::io::IO;
 use flowcore::model::route::HasRoute;
-use flowcore::model::route::Route;
 
 use crate::compiler::compile::CompilerTables;
 use crate::errors::*;
@@ -16,27 +16,25 @@ pub fn check_function_inputs(tables: &mut CompilerTables) -> Result<()> {
     info!("\n=== Compiler: Checking all Function Inputs are connected");
     for function in &tables.functions {
         for input in function.get_inputs() {
-            match input.get_initializer() {
-                None => {
-                    if !connection_to(tables, input.route()) {
-                        bail!("Input at route '{}' is not used", input.route());
-                    }
-                }
-                Some(Always(_)) => {
-                    // Has a constant initializer and there is another
-                    // connections to this input then flag that as an error
-                    if connection_to(tables, input.route()) {
-                        bail!("Input at route '{}' has a 'constant' initializer and a connection to it",
-                                               input.route());
-                    }
-                }
-                _ => {}
+            if input.get_initializer().is_none() && input.get_flow_initializer().is_none()
+                && tables.connection_to(input.route()).is_none() {
+                bail!("Input at route '{}' is not connected to nor initialized", input.route());
+            }
+
+            // If has a Constant initializer and a connections then flag that as an error
+            if got_constant_initializer(input) && tables.connection_to(input.route()).is_some() {
+                bail!("Input at route '{}' has a 'Constant' initializer and a connection to it",
+                                       input.route());
             }
         }
     }
 
     info!("No problems found. All functions have connections to all their inputs");
     Ok(())
+}
+
+fn got_constant_initializer(input: &IO) -> bool {
+    matches!(input.get_initializer(), Some(Always(_)))
 }
 
 /// Check that some impure function producing a side effect is called or return an error
@@ -52,13 +50,4 @@ pub fn check_side_effects(tables: &mut CompilerTables) -> Result<()> {
     }
 
     bail!("Flow has no side-effects")
-}
-
-fn connection_to(tables: &CompilerTables, input: &Route) -> bool {
-    for connection in &tables.collapsed_connections {
-        if connection.to_io().route() == input {
-            return true;
-        }
-    }
-    false
 }
