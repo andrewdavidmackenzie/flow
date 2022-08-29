@@ -430,7 +430,7 @@ mod test {
             #[cfg(feature = "debugger")]
             "/test",
             "file://fake/implementation",
-            vec![Input::new("", &None)],
+            vec![Input::new("", None, None)],
             1,
             0,
             &[out_conn],
@@ -484,7 +484,7 @@ mod test {
             #[cfg(feature = "debugger")]
             "/test",
             "file://fake/test",
-            vec![Input::new("", &None)],
+            vec![Input::new("", None, None)],
             0,
             0,
             &[output_route.clone()],
@@ -560,7 +560,7 @@ mod test {
                 "file://fake/test",
                 vec![Input::new(
                     #[cfg(feature = "debugger")] "",
-                    &None)],
+                    None, None)],
                 0,
                 0,
                 &[],

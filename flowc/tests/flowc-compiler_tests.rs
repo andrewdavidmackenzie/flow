@@ -290,35 +290,6 @@ fn compiler_detects_unused_input() {
     }
 }
 
-#[test]
-fn compile_detects_connection_to_initialized_input() {
-    let meta_provider = MetaProvider::new(helper::set_lib_search_path_to_project(),
-                                          helper::get_canonical_context_root()
-    );
-    let process = parser::parse(
-        &helper::absolute_file_url_from_relative_path(
-            "flowc/tests/test-flows/connect_to_constant/root.toml",
-        ),
-        &meta_provider,
-        #[cfg(feature = "debugger")]
-        &mut BTreeSet::<(Url, Url)>::new(),
-    ).expect("Could not load test flow");
-    if let FlowProcess(ref flow) = process {
-        #[cfg(feature = "debugger")]
-        let mut source_urls = BTreeSet::<(Url, Url)>::new();
-        let output_dir = TempDir::new("flow-test").expect("A temp dir").into_path();
-
-        assert!(
-            compile::compile(flow, &output_dir, false, false,
-                             #[cfg(feature = "debugger")] &mut source_urls
-            ).is_err(),
-            "Should not compile due to connection to constant initialized input"
-        );
-    } else {
-        panic!("Process loaded was not a flow");
-    }
-}
-
 /*
     This tests that an initializer on an input to a flow sub-process is passed into it and
     back out via a connection
@@ -394,13 +365,13 @@ fn initialized_output_propagated() {
                         Some(print_function) => {
                             let in_input = print_function.get_inputs().get(0)
                                 .expect("Could not get inputs");
-                            let initial_value = in_input.get_initializer();
-                            match initial_value {
-                                Some(Once(one_time)) => assert_eq!(one_time, &json!("Hello")), // PASS
-                                _ => panic!(
-                                    "Initializer should have been a Once initializer, was {:?}",
-                                    initial_value
-                                ),
+                            match in_input.get_flow_initializer() {
+                                Some(flow_init) => {
+                                    match flow_init.get_initializer() {
+                                        Once(one_time) => assert_eq!(one_time, &json!("Hello")), // PASS
+                                        _ => panic!("Initializer should have been a Once initializer")
+                                    }},
+                                _ => panic!("Expected a FlowInputInitializer to be present")
                             }
                         }
                         None => {
@@ -457,13 +428,14 @@ fn initialized_input_to_subflow() {
                         Some(print_function) => {
                             let in_input = print_function.get_inputs().get(0)
                                 .expect("Could not get inputs");
-                            let initial_value = in_input.get_initializer();
-                            match initial_value {
-                                Some(Once(one_time)) => assert_eq!(one_time, &json!("Hello")), // PASS
-                                _ => panic!(
-                                    "Initializer should have been a Once initializer, was {:?}",
-                                    initial_value
-                                ),
+
+                            match in_input.get_flow_initializer() {
+                                Some(flow_init) => {
+                                    match flow_init.get_initializer() {
+                                        Once(one_time) => assert_eq!(one_time, &json!("Hello")), // PASS
+                                        _ => panic!("Initializer should have been a Once initializer")
+                                    }},
+                                _ => panic!("Expected a FlowInputInitializer to be present")
                             }
                         }
                         None => {

@@ -791,22 +791,22 @@ impl RunState {
         let mut display_next_output = false;
         let mut restart = false;
 
-        #[cfg(feature = "debugger")]
-        {
-            (display_next_output, restart) = debugger.check_prior_to_flow_unblock(self,
-                                                                              blocker_flow_id)?;
-        }
-
         // if flow is now idle, remove any blocks on sending to functions in the flow
         if self.busy_flows.get(&blocker_flow_id).is_none() {
+            #[cfg(feature = "debugger")]
+            {
+                (display_next_output, restart) = debugger.check_prior_to_flow_unblock(self,
+                                                                                      blocker_flow_id)?;
+            }
+
             trace!("Job #{job_id}:\tFlow #{blocker_flow_id} is now idle, \
                 so removing pending_unblocks for flow #{blocker_flow_id}");
 
-            if let Some(pending_unblocks) = self.flow_blocks.remove(&blocker_flow_id) {
+            if let Some(blockers) = self.flow_blocks.remove(&blocker_flow_id) {
                 trace!("Job #{job_id}:\tRemoving pending unblocks to functions in \
                     Flow #{blocker_flow_id} from other flows");
-                for unblock_function_id in pending_unblocks {
-                    let all = |block: &Block| block.blocking_function_id == unblock_function_id;
+                for blocker_function_id in blockers {
+                    let all = |block: &Block| block.blocking_function_id == blocker_function_id;
                     self.remove_blocks(all)?;
                 }
             }
@@ -976,7 +976,7 @@ mod test {
             "file://fake/test",
             vec![Input::new(
                         #[cfg(feature = "debugger")] "",
-                            &None)],
+                            None, None)],
             0,
             0,
             &[connection_to_f1],
@@ -1004,7 +1004,7 @@ mod test {
             "file://fake/test",
             vec![Input::new(
                             #[cfg(feature = "debugger")] "",
-                            &Some(Once(json!(1))))],
+                            Some(Once(json!(1))), None)],
             0,
             0,
             &[connection_to_f1],
@@ -1021,7 +1021,7 @@ mod test {
             "file://fake/test",
             vec![Input::new(
                 #[cfg(feature = "debugger")] "",
-                &Some(Once(json!(1))))],
+                Some(Once(json!(1))), None)],
             0,
             0,
             &[],
@@ -1038,7 +1038,7 @@ mod test {
             "file://fake/test",
             vec![Input::new(
                 #[cfg(feature = "debugger")] "",
-                &None)],
+                None, None)],
             1,
             0,
             &[],
@@ -1331,7 +1331,7 @@ mod test {
                 "file://fake/test",
                 vec![Input::new(
                     #[cfg(feature = "debugger")] "",
-                    &None)],
+                    None, None)],
                 0,
                 0,
                 &[],
@@ -1423,7 +1423,7 @@ mod test {
                 "file://fake/test",
                 vec![Input::new(
                     #[cfg(feature = "debugger")] "",
-                    &Some(Always(json!(1))))],
+                    Some(Always(json!(1))), None)],
                 0,
                 0,
                 &[],
@@ -1534,7 +1534,7 @@ mod test {
                 "file://fake/test",
                 vec![Input::new(
                     #[cfg(feature = "debugger")] "",
-                    &Some(Always(json!(1))))],
+                    Some(Always(json!(1))), None)],
                 0,
                 0,
                 &[out_conn],
@@ -1605,7 +1605,7 @@ mod test {
                 "file://fake/test",
                 vec![Input::new(
                     #[cfg(feature = "debugger")] "",
-                    &None)],
+                    None, None)],
                 1,
                 0,
                 &[out_conn],
@@ -1670,7 +1670,7 @@ mod test {
                 "file://fake/test",
                 vec![Input::new(
                     #[cfg(feature = "debugger")] "",
-                    &Some(Always(json!(1))))],
+                    Some(Always(json!(1))), None)],
                 1,
                 0,
                 &[connection_to_f0],
@@ -1754,7 +1754,7 @@ mod test {
                 "file://fake/test",
                 vec![Input::new(
                     #[cfg(feature = "debugger")] "",
-                    &Some(Once(json!(1))))],
+                    Some(Once(json!(1))), None)],
                 0,
                 0,
                 &[
@@ -1899,7 +1899,7 @@ mod test {
                 "file://fake/test/p1",
                 vec![Input::new(
                     #[cfg(feature = "debugger")] "",
-                    &None)], // inputs array
+                    None, None)], // inputs array
                 1,
                 0,
                 &[],
@@ -1913,7 +1913,7 @@ mod test {
                 "file://fake/test/p2",
                 vec![Input::new(
                     #[cfg(feature = "debugger")] "",
-                    &None)], // inputs array
+                    None, None)], // inputs array
                 2,
                 0,
                 &[],

@@ -24,15 +24,45 @@ pub enum InputInitializer {
     Once(Value),
 }
 
+/// A `FlowInputInitializer` is an `InputInitializer` that has been propagated from a flow's
+/// input down into a function's input
+#[derive(Clone, Debug, Serialize, PartialEq, Eq, Deserialize)]
+pub struct FlowInputInitializer {
+    flow_id: usize,
+    input_initializer: InputInitializer
+}
+
+impl FlowInputInitializer {
+    /// Create an optional new `FlowInputInitializer` depending on the optional `InputInitializer`
+    pub fn new(flow_id: usize, input_initializer: &Option<InputInitializer>) -> Option<Self> {
+        input_initializer.as_ref().map(|initializer| FlowInputInitializer {
+                    flow_id,
+                    input_initializer: initializer.clone()
+                })
+    }
+
+    /// Accessor for the contained input initializer
+    pub fn get_initializer(&self) -> &InputInitializer {
+        &self.input_initializer
+    }
+}
+
 #[derive(Deserialize, Serialize, Clone, Debug)]
 /// An `Input` to a `RuntimeFunction`
 pub struct Input {
     #[serde(
-        default = "default_initial_value",
+        default = "default_initializer",
         skip_serializing_if = "Option::is_none"
     )]
     // An optional `InputInitializer` associated with this input
     initializer: Option<InputInitializer>,
+
+    #[serde(
+    default = "default_flow_initializer",
+    skip_serializing_if = "Option::is_none"
+    )]
+    // An optional `FlowInputInitializer` propagated from a flow input's initializer
+    flow_initializer: Option<FlowInputInitializer>,
 
     // The queue of values received so far as an ordered vector of entries,
     // with first will be at the head and last at the tail
@@ -49,7 +79,8 @@ impl From<&IO> for Input {
         Input::new(
             #[cfg(feature = "debugger")]
             io.name(),
-            io.get_initializer())
+            io.get_initializer().clone(),
+        io.get_flow_initializer().clone())
     }
 }
 
@@ -66,7 +97,11 @@ impl fmt::Display for Input {
     }
 }
 
-fn default_initial_value() -> Option<InputInitializer> {
+fn default_initializer() -> Option<InputInitializer> {
+    None
+}
+
+fn default_flow_initializer() -> Option<FlowInputInitializer> {
     None
 }
 
@@ -74,12 +109,15 @@ impl Input {
     /// Create a new `Input` with an optional `InputInitializer`
     #[cfg(feature = "debugger")]
     pub fn new<S>(
-                name: S,
-               initial_value: &Option<InputInitializer>) -> Self
+        name: S,
+        initializer: Option<InputInitializer>,
+        flow_initializer: Option<FlowInputInitializer>,
+    ) -> Self
     where S: Into<Name> {
         Input {
             name: name.into(),
-            initializer: initial_value.clone(),
+            initializer,
+            flow_initializer,
             received: Vec::new(),
         }
     }
@@ -87,9 +125,11 @@ impl Input {
     /// Create a new `Input` with an optional `InputInitializer`
     #[cfg(not(feature = "debugger"))]
     pub fn new(
-        initial_value: &Option<InputInitializer>) -> Self {
+        initial_value: Option<InputInitializer>,
+        flow_initializer: Option<FlowInputInitializer>) -> Self {
         Input {
-            initializer: initial_value.clone(),
+            initializer: initial_value,
+            flow_initializer,
             received: Vec::new(),
         }
     }
@@ -167,39 +207,39 @@ mod test {
     use super::Input;
 
     #[test]
-    fn default_initial_value_is_none() {
-        assert!(super::default_initial_value().is_none());
+    fn default_initializer_is_none() {
+        assert!(super::default_initializer().is_none());
     }
 
     #[test]
     fn no_inputs_initially() {
-        let input = Input::new("", &None);
+        let input = Input::new("", None, None);
         assert!(input.is_empty());
     }
 
     #[test]
     fn take_from_empty_fails() {
-        let mut input = Input::new("", &None);
+        let mut input = Input::new("", None, None);
         assert!(input.take().is_err());
     }
 
     #[test]
     fn accepts_value() {
-        let mut input = Input::new("", &None);
+        let mut input = Input::new("", None, None);
         input.push(Value::Null);
         assert!(!input.is_empty());
     }
 
     #[test]
     fn accepts_array() {
-        let mut input = Input::new("", &None);
+        let mut input = Input::new("", None, None);
         input.push_array(vec![json!(5), json!(10), json!(15)].iter());
         assert!(!input.is_empty());
     }
 
     #[test]
     fn take_empties() {
-        let mut input = Input::new("", &None);
+        let mut input = Input::new("", None, None);
         input.push(json!(10));
         assert!(!input.is_empty());
         let _value = input.take().expect("Could not take the input value as expected");
@@ -209,7 +249,7 @@ mod test {
     #[cfg(feature = "debugger")]
     #[test]
     fn reset_empties() {
-        let mut input = Input::new("", &None);
+        let mut input = Input::new("", None, None);
         input.push(json!(10));
         assert!(!input.is_empty());
         input.reset();
