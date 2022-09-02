@@ -76,7 +76,7 @@ fn check_manifest_status(manifest_json_file: &PathBuf, build_count: i32,
                                              PathBuf::from("/")
             );
             let json_manifest_file_as_url =
-                Url::from_file_path(&manifest_json_file).map_err(|_| {
+                Url::from_file_path(manifest_json_file).map_err(|_| {
                     format!(
                         "Could not parse Url from file path: {}",
                         manifest_json_file.display()
@@ -105,7 +105,7 @@ fn check_manifest_status(manifest_json_file: &PathBuf, build_count: i32,
 fn copy_sources_to_target_dir(toml_path: &Path, target_dir: &Path, docs: &str) -> Result<()> {
     // copy the definition toml to target directory
     fs::copy(
-        &toml_path,
+        toml_path,
         &target_dir.join(
             toml_path
                 .file_name()
@@ -151,7 +151,7 @@ fn compile_implementations(
             Ok(walk_entry) => {
                 let toml_path = walk_entry.path();
 
-                let url = Url::from_file_path(&toml_path).map_err(|_| {
+                let url = Url::from_file_path(toml_path).map_err(|_| {
                     format!(
                         "Could not create url from file path '{}'",
                         toml_path.display()
@@ -163,7 +163,7 @@ fn compile_implementations(
                 let relative_dir = toml_path
                     .parent()
                     .ok_or("Could not get toml path parent dir")?
-                    .strip_prefix(&lib_root_path)
+                    .strip_prefix(lib_root_path)
                     .map_err(|_| "Could not calculate relative_dir")?;
                 // calculate the target directory for generating output using the relative path from the
                 // lib_root appended to the root of the output directory

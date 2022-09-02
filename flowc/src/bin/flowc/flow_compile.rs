@@ -77,7 +77,7 @@ pub fn compile_and_execute_flow(options: &Options, provider: &dyn Provider) -> R
 fn make_writeable(output_dir: &PathBuf) -> Result<()> {
     // Now make sure the directory exists, if not create it, and is writable
     if output_dir.exists() {
-        let md = fs::metadata(&output_dir).chain_err(|| {
+        let md = fs::metadata(output_dir).chain_err(|| {
             format!(
                 "Could not read metadata of the existing output directory '{}'",
                 output_dir.display()
@@ -96,7 +96,7 @@ fn make_writeable(output_dir: &PathBuf) -> Result<()> {
             bail!("Output directory '{}' is read only", output_dir.display());
         }
     } else {
-        fs::create_dir_all(&output_dir)
+        fs::create_dir_all(output_dir)
             .chain_err(|| format!("Could not create directory '{}'", output_dir.display()))?;
     }
 
