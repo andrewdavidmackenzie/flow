@@ -517,7 +517,7 @@ mod test {
 
     fn write_manifest(manifest: &FlowManifest, filename: &Path) -> Result<()> {
         let mut manifest_file =
-            File::create(&filename).map_err(|_| "Could not create lib manifest file")?;
+            File::create(filename).map_err(|_| "Could not create lib manifest file")?;
 
         manifest_file
             .write_all(
