@@ -52,7 +52,7 @@ fn cargo_test(manifest_path: PathBuf, build_dir: PathBuf) -> Result<()> {
 
     debug!("\tRunning command = '{}', args = {:?}", command, test_args);
 
-    let output = Command::new(&command)
+    let output = Command::new(command)
         .args(&test_args)
         .stdin(Stdio::inherit())
         .stdout(Stdio::piped())
@@ -109,7 +109,7 @@ fn cargo_build(
         command, command_args
     );
 
-    let output = Command::new(&command)
+    let output = Command::new(command)
         .args(&command_args)
         .stdin(Stdio::inherit())
         .stdout(Stdio::piped())
@@ -146,7 +146,7 @@ fn cargo_build(
         &wasm_build_location.display(),
         &wasm_destination.display()
     );
-    fs::rename(&wasm_build_location, &wasm_destination)
+    fs::rename(&wasm_build_location, wasm_destination)
         .chain_err(|| "Could not move WASM to destination")
 }
 
