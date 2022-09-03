@@ -11,7 +11,7 @@ use crate::errors::*;
 
 /// Generate a manifest for the library in JSON that can be used to load it using 'flowr'
 pub fn write(lib_manifest: &LibraryManifest, json_manifest_filename: &Path) -> Result<()> {
-    let mut manifest_file = File::create(&json_manifest_filename)?;
+    let mut manifest_file = File::create(json_manifest_filename)?;
 
     manifest_file.write_all(
         serde_json::to_string_pretty(lib_manifest)

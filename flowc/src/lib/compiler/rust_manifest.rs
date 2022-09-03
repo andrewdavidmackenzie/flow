@@ -31,7 +31,7 @@ pub fn get_manifest() -> Result<LibraryManifest> {
 #[allow(clippy::unnecessary_wraps)]
 pub fn write(lib_root: &Path, lib_manifest: &LibraryManifest, filename: &Path) -> Result<()> {
     // Create the file we will be writing to
-    let mut manifest_file = File::create(&filename)?;
+    let mut manifest_file = File::create(filename)?;
 
     // Create the list of top level modules
     let mut modules = HashSet::<&str>::new();
