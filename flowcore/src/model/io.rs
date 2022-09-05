@@ -8,7 +8,7 @@ use serde_derive::{Deserialize, Serialize};
 use crate::errors::*;
 use crate::model::datatype::{DataType, OBJECT_TYPE};
 use crate::model::datatype::HasDataTypes;
-use crate::model::input::{FlowInputInitializer, InputInitializer};
+use crate::model::input::InputInitializer;
 use crate::model::name::HasName;
 use crate::model::name::Name;
 use crate::model::route::HasRoute;
@@ -52,7 +52,7 @@ pub struct IO {
 
     /// An input initializer that is propagated from a flow's input initializer
     #[serde(skip_deserializing)]
-    flow_initializer: Option<FlowInputInitializer>,
+    flow_initializer: Option<InputInitializer>,
 
     /// `route` defines where in the full flow hierarchy this IO is located, including it's `name`
     /// as the last segment
@@ -139,7 +139,7 @@ impl IO {
     }
 
     /// Get a reference to the flow propagated input initializer of this IO
-    pub fn get_flow_initializer(&self) -> &Option<FlowInputInitializer> {
+    pub fn get_flow_initializer(&self) -> &Option<InputInitializer> {
         &self.flow_initializer
     }
 
@@ -153,10 +153,10 @@ impl IO {
     }
 
     /// Set the flow input initializer of this IO
-    pub fn set_flow_initializer(&mut self, flow_initializer: Option<FlowInputInitializer>)
+    pub fn set_flow_initializer(&mut self, flow_initializer: Option<InputInitializer>)
     -> Result<()> {
         match self.flow_initializer {
-            Some(_) => bail!("Attempt to set two FlowInputInitializers on same IO"),
+            Some(_) => bail!("Attempt to set two InputInitializers on same IO"),
             None => self.flow_initializer = flow_initializer
         }
         Ok(())
