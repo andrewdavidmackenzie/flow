@@ -144,7 +144,7 @@ impl LibraryManifest {
 
     /// Generate a manifest for the library in JSON
     pub fn write_json(&self, json_manifest_filename: &Path) -> Result<()> {
-        let mut manifest_file = File::create(&json_manifest_filename)?;
+        let mut manifest_file = File::create(json_manifest_filename)?;
 
         manifest_file.write_all(
             serde_json::to_string_pretty(self)
