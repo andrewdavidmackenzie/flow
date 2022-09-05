@@ -513,7 +513,7 @@ impl RunState {
     /// sent to, marking the source function as blocked because those others must consume the output
     /// if those other function have all their inputs, then mark them accordingly.
     #[allow(unused_variables, unused_assignments, unused_mut)]
-    pub fn job_done(
+    pub fn retire_job(
         &mut self,
         #[cfg(feature = "metrics")] metrics: &mut Metrics,
         job: &Job,
@@ -566,9 +566,10 @@ impl RunState {
                     let function = self.get_mut(job.function_id)
                         .ok_or("No such function")?;
 
-                    // Refill any inputs with initializers
+                    // Refill any inputs with function initializers
                     function.init_inputs(false);
 
+                    // NOTE: May have input sets due to sending to self via a loopback
                     if function.can_run() {
                         self.make_ready_or_blocked(
                             job.function_id,
@@ -793,6 +794,7 @@ impl RunState {
 
         // if flow is now idle, remove any blocks on sending to functions in the flow
         if self.busy_flows.get(&blocker_flow_id).is_none() {
+            debug!("Job #{}: Flow #{} has done idle", job_id, blocker_flow_id);
             #[cfg(feature = "debugger")]
             {
                 (display_next_output, restart) = debugger.check_prior_to_flow_unblock(self,
@@ -809,6 +811,24 @@ impl RunState {
                     let all = |block: &Block| block.blocking_function_id == blocker_function_id;
                     self.remove_blocks(all)?;
                 }
+            }
+
+            // do flow initializers on functions in the flow that has just gone idle
+            let mut initialized_functions = Vec::<usize>::new();
+            for function in &mut self.functions {
+                if function.get_flow_id() == blocker_flow_id {
+                    let could_run_before = function.can_run();
+                    function.init_inputs(false);
+                    let can_run_now = function.can_run();
+
+                    if can_run_now && !could_run_before {
+                        initialized_functions.push(function.id());
+                    }
+                }
+            }
+
+            for function_id in initialized_functions {
+                self.make_ready_or_blocked(function_id, blocker_flow_id);
             }
         }
 
@@ -1453,7 +1473,7 @@ mod test {
 
             // Event
             let job = test_job();
-            let _ = state.job_done(
+            let _ = state.retire_job(
                 #[cfg(feature = "metrics")]
                 &mut metrics,
                 &job,
@@ -1497,7 +1517,7 @@ mod test {
 
             // Event
             let job = test_job();
-            let _ = state.job_done(
+            let _ = state.retire_job(
                 #[cfg(feature = "metrics")]
                 &mut metrics,
                 &job,
@@ -1570,7 +1590,7 @@ mod test {
 
             // Event
             let output = super::test_output(0, 1);
-            let _ = state.job_done(
+            let _ = state.retire_job(
                 #[cfg(feature = "metrics")]
                 &mut metrics,
                 &output,
@@ -1631,7 +1651,7 @@ mod test {
 
             // Event run f_b which will send to f_a
             let output = super::test_output(1, 0);
-            let _ = state.job_done(
+            let _ = state.retire_job(
                 #[cfg(feature = "metrics")]
                 &mut metrics,
                 &output,
@@ -1703,7 +1723,7 @@ mod test {
 
             // create output from f_b as if it had run - will send to f_a
             let output = super::test_output(1, 0);
-            let _ = state.job_done(
+            let _ = state.retire_job(
                 #[cfg(feature = "metrics")]
                 &mut metrics,
                 &output,
@@ -1764,7 +1784,7 @@ mod test {
                 false,
             );
             let f_b = test_function_b_not_init();
-            let functions = vec![f_a, f_b]; // NOTE the order!
+            let functions = vec![f_a, f_b];
             let submission = Submission::new(
                 &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
                 None,
@@ -1787,13 +1807,11 @@ mod test {
             );
 
             let mut job = state.new_job().expect("Couldn't get next job");
-            // Assumes only function 0 can run
             assert_eq!(job.function_id, 0, "Expected job with function_id=0");
 
-            // Event: fake running of function fA
+            // fake the running of function fA
             job.result = Ok((Some(json!(1)), true));
-
-            let _ = state.job_done(
+            let _ = state.retire_job(
                 #[cfg(feature = "metrics")]
                 &mut metrics,
                 &job,
@@ -1802,18 +1820,17 @@ mod test {
             );
 
             // Test
-            assert!(state.function_state_is_only(1, State::Ready), "f_b should be Ready");
             assert!(state.function_state_is_only(0, State::Blocked),
                     "f_a should be Blocked on f_b"
             );
+            assert!(state.function_state_is_only(1, State::Ready), "f_b should be Ready");
 
             let job = state.new_job().expect("Couldn't get next job");
-            // Assumes only function 1 can run
             assert_eq!(
                 job.function_id, 1,
                 "next() should return function_id=1 (f_b) for running"
             );
-            let _ = state.job_done(
+            let _ = state.retire_job(
                 #[cfg(feature = "metrics")]
                 &mut metrics,
                 &job,
@@ -1822,12 +1839,11 @@ mod test {
             );
 
             let job = state.new_job().expect("Couldn't get next job");
-            // Assumes only function 0 will be ready
             assert_eq!(
                 job.function_id, 0,
                 "next() should return function_id=0 (f_a) for running"
             );
-            let _ = state.job_done(
+            let _ = state.retire_job(
                 #[cfg(feature = "metrics")]
                 &mut metrics,
                 &job,
@@ -2187,7 +2203,7 @@ mod test {
             };
 
             // Test there is no problem producing an Output when no destinations to send it to
-            let _ = state.job_done(
+            let _ = state.retire_job(
                 #[cfg(feature = "metrics")]
                 &mut metrics,
                 &job,

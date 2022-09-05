@@ -5,7 +5,6 @@ use log::{debug, error, info};
 
 use flowcore::model::connection::Connection;
 use flowcore::model::flow_definition::FlowDefinition;
-use flowcore::model::input::FlowInputInitializer;
 use flowcore::model::io::{IO, IOType};
 use flowcore::model::process::Process::FlowProcess;
 use flowcore::model::process::Process::FunctionProcess;
@@ -141,8 +140,7 @@ pub fn collapse_connections(tables: &mut CompilerTables) -> Result<()> {
                         let destination_function = tables.functions.get_mut(*destination_function_id)
                             .ok_or(format!("Could not find a function #{destination_function_id}"))?;
 
-                        let flow_initializer = FlowInputInitializer::new(connection.get_origin_flow_id(),
-                            connection.from_io().get_initializer());
+                        let flow_initializer = connection.from_io().get_initializer().clone();
                         destination_function.
                             set_flow_initializer(*destination_input_index, flow_initializer)?;
                     }

@@ -6,7 +6,7 @@ use serde_derive::{Deserialize, Serialize};
 use url::Url;
 
 use crate::errors::*;
-use crate::model::input::{FlowInputInitializer, InputInitializer};
+use crate::model::input::InputInitializer;
 use crate::model::io::IOSet;
 use crate::model::io::IOType;
 use crate::model::name::HasName;
@@ -306,7 +306,7 @@ impl FunctionDefinition {
     }
 
     /// Set a flow initializer on the specified input
-    pub fn set_flow_initializer(&mut self, io_number: usize, flow_initializer: Option<FlowInputInitializer>) -> Result<()> {
+    pub fn set_flow_initializer(&mut self, io_number: usize, flow_initializer: Option<InputInitializer>) -> Result<()> {
         self.inputs.get_mut(io_number).ok_or("No such input")?
             .set_flow_initializer(flow_initializer)
     }

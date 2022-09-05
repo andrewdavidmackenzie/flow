@@ -366,12 +366,8 @@ fn initialized_output_propagated() {
                             let in_input = print_function.get_inputs().get(0)
                                 .expect("Could not get inputs");
                             match in_input.get_flow_initializer() {
-                                Some(flow_init) => {
-                                    match flow_init.get_initializer() {
-                                        Once(one_time) => assert_eq!(one_time, &json!("Hello")), // PASS
-                                        _ => panic!("Initializer should have been a Once initializer")
-                                    }},
-                                _ => panic!("Expected a FlowInputInitializer to be present")
+                                Some(Once(one_time)) => assert_eq!(one_time, &json!("Hello")), // PASS
+                                _ => panic!("Expected a InputInitializer to be present")
                             }
                         }
                         None => {
@@ -430,12 +426,8 @@ fn initialized_input_to_subflow() {
                                 .expect("Could not get inputs");
 
                             match in_input.get_flow_initializer() {
-                                Some(flow_init) => {
-                                    match flow_init.get_initializer() {
-                                        Once(one_time) => assert_eq!(one_time, &json!("Hello")), // PASS
-                                        _ => panic!("Initializer should have been a Once initializer")
-                                    }},
-                                _ => panic!("Expected a FlowInputInitializer to be present")
+                                Some(Once(one_time)) => assert_eq!(one_time, &json!("Hello")), // PASS
+                                _ => panic!("Expected a InputInitializer to be present")
                             }
                         }
                         None => {

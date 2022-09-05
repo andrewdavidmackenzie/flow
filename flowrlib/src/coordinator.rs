@@ -153,7 +153,7 @@ impl<'a> Coordinator<'a> {
                                 }
                             }
 
-                            (display_next_output, restart) = state.job_done(
+                            (display_next_output, restart) = state.retire_job(
                                 #[cfg(feature = "metrics")]
                                     &mut metrics,
                                 &job,

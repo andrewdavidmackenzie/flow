@@ -24,45 +24,16 @@ pub enum InputInitializer {
     Once(Value),
 }
 
-/// A `FlowInputInitializer` is an `InputInitializer` that has been propagated from a flow's
-/// input down into a function's input
-#[derive(Clone, Debug, Serialize, PartialEq, Eq, Deserialize)]
-pub struct FlowInputInitializer {
-    flow_id: usize,
-    input_initializer: InputInitializer
-}
-
-impl FlowInputInitializer {
-    /// Create an optional new `FlowInputInitializer` depending on the optional `InputInitializer`
-    pub fn new(flow_id: usize, input_initializer: &Option<InputInitializer>) -> Option<Self> {
-        input_initializer.as_ref().map(|initializer| FlowInputInitializer {
-                    flow_id,
-                    input_initializer: initializer.clone()
-                })
-    }
-
-    /// Accessor for the contained input initializer
-    pub fn get_initializer(&self) -> &InputInitializer {
-        &self.input_initializer
-    }
-}
-
 #[derive(Deserialize, Serialize, Clone, Debug)]
 /// An `Input` to a `RuntimeFunction`
 pub struct Input {
-    #[serde(
-        default = "default_initializer",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     // An optional `InputInitializer` associated with this input
     initializer: Option<InputInitializer>,
 
-    #[serde(
-    default = "default_flow_initializer",
-    skip_serializing_if = "Option::is_none"
-    )]
-    // An optional `FlowInputInitializer` propagated from a flow input's initializer
-    flow_initializer: Option<FlowInputInitializer>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    // An optional `InputInitializer` propagated from a flow input's initializer
+    flow_initializer: Option<InputInitializer>,
 
     // The queue of values received so far as an ordered vector of entries,
     // with first will be at the head and last at the tail
@@ -97,21 +68,13 @@ impl fmt::Display for Input {
     }
 }
 
-fn default_initializer() -> Option<InputInitializer> {
-    None
-}
-
-fn default_flow_initializer() -> Option<FlowInputInitializer> {
-    None
-}
-
 impl Input {
     /// Create a new `Input` with an optional `InputInitializer`
     #[cfg(feature = "debugger")]
     pub fn new<S>(
         name: S,
         initializer: Option<InputInitializer>,
-        flow_initializer: Option<FlowInputInitializer>,
+        flow_initializer: Option<InputInitializer>,
     ) -> Self
     where S: Into<Name> {
         Input {
@@ -125,10 +88,10 @@ impl Input {
     /// Create a new `Input` with an optional `InputInitializer`
     #[cfg(not(feature = "debugger"))]
     pub fn new(
-        initial_value: Option<InputInitializer>,
-        flow_initializer: Option<FlowInputInitializer>) -> Self {
+        initializer: Option<InputInitializer>,
+        flow_initializer: Option<InputInitializer>) -> Self {
         Input {
-            initializer: initial_value,
+            initializer,
             flow_initializer,
             received: Vec::new(),
         }
@@ -155,21 +118,36 @@ impl Input {
         Ok(self.received.remove(0))
     }
 
-    /// Initialize an input with the InputInitializer if it has one.
-    /// When called at start-up    it will initialize      if it's a OneTime or Constant initializer
-    /// When called after start-up it will initialize only if it's a            Constant initializer
+    /// Initialize an input with the InputInitializer if it has one, either on the function directly
+    /// or via a connection from a flow input
+    /// When called at start-up    it will initialize      if it's a OneTime or Always initializer
+    /// When called after start-up it will initialize only if it's a            Always initializer
     pub fn init(&mut self, first_time: bool) -> bool {
         match (first_time, &self.initializer) {
             (true, Some(InputInitializer::Once(one_time))) => {
                 self.push(one_time.clone());
-                true
+                return true;
             },
             (_, Some(InputInitializer::Always(constant))) => {
                 self.push(constant.clone());
-                true
+                return true;
             },
-            (_, None) | (false, Some(InputInitializer::Once(_))) => false,
+            (_, None) | (false, Some(InputInitializer::Once(_))) => {},
         }
+
+        match (first_time, &self.flow_initializer) {
+            (true, Some(InputInitializer::Once(one_time))) => {
+                self.push(one_time.clone());
+                return true;
+            },
+            (_, Some(InputInitializer::Always(constant))) => {
+                self.push(constant.clone());
+                return true;
+            },
+            (_, None) | (false, Some(InputInitializer::Once(_))) => {},
+        }
+
+        false
     }
 
     /// Add an array of values to this `Input`, by pushing them one by one
@@ -205,11 +183,6 @@ mod test {
     use serde_json::Value;
 
     use super::Input;
-
-    #[test]
-    fn default_initializer_is_none() {
-        assert!(super::default_initializer().is_none());
-    }
 
     #[test]
     fn no_inputs_initially() {
