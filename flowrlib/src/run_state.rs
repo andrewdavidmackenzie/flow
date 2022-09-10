@@ -794,7 +794,7 @@ impl RunState {
 
         // if flow is now idle, remove any blocks on sending to functions in the flow
         if self.busy_flows.get(&blocker_flow_id).is_none() {
-            debug!("Job #{}: Flow #{} has done idle", job_id, blocker_flow_id);
+            debug!("Job #{}: Flow #{} has gone idle", job_id, blocker_flow_id);
             #[cfg(feature = "debugger")]
             {
                 (display_next_output, restart) = debugger.check_prior_to_flow_unblock(self,
