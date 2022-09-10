@@ -167,7 +167,7 @@ impl RuntimeFunction {
     pub fn init_inputs(&mut self, first_time: bool) {
         for (io_number, input) in &mut self.inputs.iter_mut().enumerate() {
             if input.init(first_time) {
-                debug!("\tInitialized Input #{}({}):{io_number}", self.function_id, self.flow_id);
+                debug!("\tInitialized Input #{}:{io_number} in Flow #{}", self.function_id, self.flow_id);
             }
         }
     }

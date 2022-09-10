@@ -132,7 +132,7 @@ impl Input {
                 self.push(constant.clone());
                 return true;
             },
-            (_, None) | (false, Some(InputInitializer::Once(_))) => {},
+            (_, _) => {},
         }
 
         match (first_time, &self.flow_initializer) {
@@ -144,7 +144,7 @@ impl Input {
                 self.push(constant.clone());
                 return true;
             },
-            (_, None) | (false, Some(InputInitializer::Once(_))) => {},
+            (_, _) => {},
         }
 
         false
