@@ -10,6 +10,15 @@ input.start = {once =  1}
 input.limit = {once =  9}
 input.step = {once =  1}
 
+[[process]] # a Buffer between the constant starting point of 0 and the 'start' input to avoid priority issues for the input
+alias = "start-of-each"
+source = "lib://flowstdlib/data/buffer"
+input.default = {always =  0}
+
+[[connection]]
+from = "start-of-each"
+to = "sequence-of-sequences/start"
+
 # Generate a sequence of sequence from 0 upto the limit value, with step of limit value also
 # 0 1
 # 0 2
@@ -18,7 +27,6 @@ input.step = {once =  1}
 [[process]]
 alias = "sequence-of-sequences"
 source = "lib://flowstdlib/math/sequence"
-input.start = {always =  0}
 
 # Connect the list of limits to use for each sequence to the generator of the sequence of sequences
 # use the limit as the step and the limit, so sequences will all be 0..'n' where 'n' is the limit
