@@ -7,7 +7,7 @@ docs = "DESCRIPTION.md"
 alias = "limit-sequence"
 source = "lib://flowstdlib/math/sequence"
 input.start = {once =  1}
-input.limit = {once =  1}
+input.limit = {once =  9}
 input.step = {once =  1}
 
 # Generate a sequence of sequence from 0 upto the limit value, with step of limit value also
