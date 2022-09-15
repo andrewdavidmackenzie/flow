@@ -164,9 +164,9 @@ impl RuntimeFunction {
     }
 
     /// Initialize all of a `RuntimeFunction` `Inputs` that have initializers on them
-    pub fn init_inputs(&mut self, first_time: bool) {
+    pub fn init_inputs(&mut self, first_time: bool, flow_idle: bool) {
         for (io_number, input) in &mut self.inputs.iter_mut().enumerate() {
-            if input.init(first_time) {
+            if input.init(first_time, flow_idle) {
                 debug!("\tInitialized Input #{}:{io_number} in Flow #{}", self.function_id, self.flow_id);
             }
         }
@@ -354,7 +354,7 @@ mod test {
     #[test]
     fn can_send_simple_object() {
         let mut function = test_function();
-        function.init_inputs(true);
+        function.init_inputs(true, false);
         function.send(0, &json!(1));
         assert_eq!(
             json!(1),
@@ -369,7 +369,7 @@ mod test {
     #[test]
     fn can_send_array_object() {
         let mut function = test_function();
-        function.init_inputs(true);
+        function.init_inputs(true,  false);
         function.send(0, &json!([1, 2]));
         assert_eq!(
             json!([1, 2]),
@@ -384,7 +384,7 @@ mod test {
     #[test]
     fn test_array_to_non_array() {
         let mut function = test_function();
-        function.init_inputs(true);
+        function.init_inputs(true,  false);
         function.send(0, &json!([1, 2]));
         assert_eq!(
             function
@@ -426,7 +426,7 @@ mod test {
     #[test]
     fn debugger_can_inspect_non_full_input() {
         let mut function = test_function();
-        function.init_inputs(true);
+        function.init_inputs(true,  false);
         function.send(0, &json!(1));
         assert_eq!(
             function.inputs().len(),
@@ -474,7 +474,7 @@ mod test {
             &[output_route.clone()],
             false,
         );
-        function.init_inputs(true);
+        function.init_inputs(true,  false);
         function.send(0, &json!(1));
         let _ = format!("{}", function);
         assert_eq!(

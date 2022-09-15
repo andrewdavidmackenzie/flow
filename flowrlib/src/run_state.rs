@@ -281,7 +281,7 @@ impl RunState {
 
         debug!("Initializing inputs with initializers");
         for function in &mut self.functions {
-            function.init_inputs(true);
+            function.init_inputs(true, false);
             if function.can_run() {
                 inputs_ready_list.push((function.id(), function.get_flow_id()));
             }
@@ -567,7 +567,7 @@ impl RunState {
                         .ok_or("No such function")?;
 
                     // Refill any inputs with function initializers
-                    function.init_inputs(false);
+                    function.init_inputs(false, false);
 
                     // NOTE: May have input sets due to sending to self via a loopback
                     if function.can_run() {
@@ -818,7 +818,7 @@ impl RunState {
             for function in &mut self.functions {
                 if function.get_flow_id() == blocker_flow_id {
                     let could_run_before = function.can_run();
-                    function.init_inputs(false);
+                    function.init_inputs(false, true);
                     let can_run_now = function.can_run();
 
                     if can_run_now && !could_run_before {

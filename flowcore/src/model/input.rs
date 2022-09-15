@@ -122,7 +122,7 @@ impl Input {
     /// or via a connection from a flow input
     /// When called at start-up    it will initialize      if it's a OneTime or Always initializer
     /// When called after start-up it will initialize only if it's a            Always initializer
-    pub fn init(&mut self, first_time: bool) -> bool {
+    pub fn init(&mut self, first_time: bool, flow_idle: bool) -> bool {
         match (first_time, &self.initializer) {
             (true, Some(InputInitializer::Once(one_time))) => {
                 self.push(one_time.clone());
@@ -140,11 +140,16 @@ impl Input {
                 self.push(one_time.clone());
                 return true;
             },
-            (_, Some(InputInitializer::Always(constant))) => {
+            (true, Some(InputInitializer::Always(constant))) => {
                 self.push(constant.clone());
                 return true;
             },
             (_, _) => {},
+        }
+
+        if let (true, Some(InputInitializer::Always(constant))) = (flow_idle, &self.flow_initializer) {
+            self.push(constant.clone());
+            return true;
         }
 
         false
