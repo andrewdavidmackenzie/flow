@@ -2388,11 +2388,11 @@ type = &quot;number&quot;
 name = &quot;last&quot;
 type = &quot;number&quot;
 
-# compare will pass all numbers that are less than the limit on the &quot;right-lte&quot; output
+# compare_switch will pass all numbers that are less than the limit on the &quot;right-lte&quot; output
 [[process]]
 source = &quot;lib://flowstdlib/control/compare_switch&quot;
 
-# For the first time around, pass the start number of the sequence into the &quot;compare&quot; process
+# For the first time around, pass the start number of the sequence into &quot;compare_switch&quot;
 [[connection]]
 from = &quot;input/start&quot;
 to = &quot;compare_switch/right&quot;
