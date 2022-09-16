@@ -538,7 +538,6 @@ impl RunState {
 
                 for connection in &job.connections {
                     let value_to_send = match &connection.source {
-                        // ADM could use map() ??
                         Output(route) => {
                             match output_value {
                                 Some(output_v) => output_v.pointer(route),
