@@ -21,38 +21,22 @@ type = "array/number" # Workaround
 alias = "p2p"
 source = "pixel_to_point/pixel_to_point"
 
-# Buffer and Loop back the bounds for each pixel
-[[process]]
-alias = "buffer_bounds"
-source = "lib://flowstdlib/data/buffer"
-
 [[connection]]
 from = "input/bounds"
-to = "buffer_bounds"
-
-[[connection]]
-from = "buffer_bounds"
-to = "buffer_bounds"
-
-[[connection]]
-from = "buffer_bounds"
 to = "p2p/bounds"
 
-# Buffer and Loop back the size for each pixel
-[[process]]
-alias = "buffer_size"
-source = "lib://flowstdlib/data/buffer"
+# Loop back the bounds for each pixel
+[[connection]]
+from = "p2p/bounds"
+to = "p2p/bounds"
 
 [[connection]]
 from = "input/size"
-to = "buffer_size"
+to = "p2p/size"
 
+# Loop back the size for each pixel
 [[connection]]
-from = "buffer_size"
-to = "buffer_size"
-
-[[connection]]
-from = "buffer_size"
+from = "p2p/size"
 to = "p2p/size"
 
 [[connection]]
@@ -73,37 +57,22 @@ to = "p2v/pixel_point"
 [[process]]
 source = "context://image/image_buffer"
 
-# connect up the image buffer with filename and size - buffering them for each pixel
-[[process]]
-alias = "filename_buffer"
-source = "lib://flowstdlib/data/buffer"
-
 [[connection]]
 from = "input/filename"
-to = "filename_buffer"
-
-[[connection]]
-from = "filename_buffer"
-to = "filename_buffer"
-
-[[connection]]
-from = "filename_buffer"
 to = "image_buffer/filename"
 
-[[process]]
-alias = "size_buffer"
-source = "lib://flowstdlib/data/buffer"
+# Loopback the filename for use in each pixel
+[[connection]]
+from = "image_buffer/filename"
+to = "image_buffer/filename"
 
 [[connection]]
 from = "input/size"
-to = "size_buffer"
+to = "image_buffer/size"
 
+# Loopback the size for reuse in next pixel
 [[connection]]
-from = "size_buffer"
-to = "size_buffer"
-
-[[connection]]
-from = "size_buffer"
+from = "image_buffer/size"
 to = "image_buffer/size"
 
 # send each pixel from [pixel, value] pair from p2v to the image buffer

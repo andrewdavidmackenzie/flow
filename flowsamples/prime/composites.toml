@@ -19,13 +19,6 @@ input.step = {once =  1}
 [[connection]]
 from = "sqrt"
 to = "divisors/limit"
-# buffer the output
-[[process]]
-alias = "divisors-buffer"
-source = "lib://flowstdlib/data/buffer"
-[[connection]]
-from = "divisors/sequence"
-to = "divisors-buffer"
 
 ## generate a sequence of composites - i.e. non-primes
 
@@ -35,7 +28,7 @@ to = "divisors-buffer"
 source = "lib://flowstdlib/math/multiply"
 input.i2 = {always =  2}
 [[connection]]
-from = "divisors-buffer"
+from = "divisors/sequence"
 to = "multiply/i1"
 [[connection]]
 from = "multiply"
@@ -43,7 +36,7 @@ to = "composite-sequence/start"
 
 # the step each time will be the divisors. e.g. 2, 3
 [[connection]]
-from = "divisors-buffer"
+from = "divisors/sequence"
 to = "composite-sequence/step"
 
 # buffer the limit so it can be reused each time
