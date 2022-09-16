@@ -195,9 +195,7 @@ impl RuntimeFunction {
     /// Do the necessary serialization of an array to values, or wrapping of a value into an array
     /// in order to convert the value on expected by the destination, if possible, send the value
     /// and return true. If the conversion cannot be done and no value is sent, return false.
-    pub fn type_convert_and_send(&mut self,
-        connection: &OutputConnection,
-        value: &Value) -> bool {
+    pub fn type_convert_and_send(&mut self, connection: &OutputConnection, value: &Value) -> bool {
         if connection.is_generic() {
             self.send(connection.destination_io_number, value);
         } else {
@@ -206,12 +204,12 @@ impl RuntimeFunction {
                 value,
             ) {
                 (0, _) => self.send(connection.destination_io_number, value),
-                (1, Value::Array(array)) => self.send_iter(connection.destination_io_number,
-                                                           array),
+                (1, Value::Array(array)) => self.send_array(connection.destination_io_number,
+                                                            array),
                 (2, Value::Array(array_2)) => {
                     for array in array_2.iter() {
                         if let Value::Array(sub_array) = array {
-                            self.send_iter(connection.destination_io_number, sub_array)
+                            self.send_array(connection.destination_io_number, sub_array)
                         }
                     }
                 }
@@ -226,14 +224,14 @@ impl RuntimeFunction {
         true // a value was sent!
     }
 
-    // write a value to a `RuntimeFunction`'s `input`
+    // Send a value to a `RuntimeFunction`'s `input`'s `Input` numbered `input_number`
     fn send(&mut self, input_number: usize, value: &Value) {
-        self.inputs[input_number].push(value.clone());
+        self.inputs[input_number].send(value.clone());
     }
 
-    // write an array of values to a `RuntimeFunction` `input`
-    fn send_iter(&mut self, input_number: usize, array: &[Value]) {
-        self.inputs[input_number].push_array(array.iter());
+    // Send an array of values to this `RuntimeFunction`'s `Input` numbered `input_number`
+    fn send_array(&mut self, input_number: usize, array: &[Value]) {
+        self.inputs[input_number].send_array(array);
     }
 
     /// Accessor for a `RuntimeFunction` `output_connections` field

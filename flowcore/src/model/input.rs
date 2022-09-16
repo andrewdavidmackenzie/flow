@@ -125,11 +125,11 @@ impl Input {
     pub fn init(&mut self, first_time: bool, flow_idle: bool) -> bool {
         match (first_time, &self.initializer) {
             (true, Some(InputInitializer::Once(one_time))) => {
-                self.push(one_time.clone());
+                self.send(one_time.clone());
                 return true;
             },
             (_, Some(InputInitializer::Always(constant))) => {
-                self.push(constant.clone());
+                self.send(constant.clone());
                 return true;
             },
             (_, _) => {},
@@ -137,37 +137,35 @@ impl Input {
 
         match (first_time, &self.flow_initializer) {
             (true, Some(InputInitializer::Once(one_time))) => {
-                self.push(one_time.clone());
+                self.send(one_time.clone());
                 return true;
             },
             (true, Some(InputInitializer::Always(constant))) => {
-                self.push(constant.clone());
+                self.send(constant.clone());
                 return true;
             },
             (_, _) => {},
         }
 
         if let (true, Some(InputInitializer::Always(constant))) = (flow_idle, &self.flow_initializer) {
-            self.push(constant.clone());
+            self.send(constant.clone());
             return true;
         }
 
         false
     }
 
-    /// Add an array of values to this `Input`, by pushing them one by one
-    pub fn push_array<'a, I>(&mut self, iter: I)
-        where
-            I: Iterator<Item = &'a Value>,
+    /// Send an array of values to this `Input`, by sending them one by one
+    pub fn send_array(&mut self, array: &[Value])
     {
-        for value in iter {
-            trace!("\t\t\tPushing array element '{}'", value);
-            self.push(value.clone());
+        for value in array {
+            trace!("\t\t\tPushing array element '{value}'");
+            self.send(value.clone());
         }
     }
 
-    /// Add a `value` to this `Input`
-    pub fn push(&mut self, value: Value) {
+    /// Send a `value` to this `Input`
+    pub fn send(&mut self, value: Value) {
         self.received.push(value);
     }
 
@@ -204,21 +202,21 @@ mod test {
     #[test]
     fn accepts_value() {
         let mut input = Input::new("", None, None);
-        input.push(Value::Null);
+        input.send(Value::Null);
         assert!(!input.is_empty());
     }
 
     #[test]
     fn accepts_array() {
         let mut input = Input::new("", None, None);
-        input.push_array(vec![json!(5), json!(10), json!(15)].iter());
+        input.send_array(&[json!(5), json!(10), json!(15)]);
         assert!(!input.is_empty());
     }
 
     #[test]
     fn take_empties() {
         let mut input = Input::new("", None, None);
-        input.push(json!(10));
+        input.send(json!(10));
         assert!(!input.is_empty());
         let _value = input.take().expect("Could not take the input value as expected");
         assert!(input.is_empty());
@@ -228,7 +226,7 @@ mod test {
     #[test]
     fn reset_empties() {
         let mut input = Input::new("", None, None);
-        input.push(json!(10));
+        input.send(json!(10));
         assert!(!input.is_empty());
         input.reset();
         assert!(input.is_empty());
