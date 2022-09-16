@@ -410,7 +410,7 @@ mod test {
             #[cfg(feature = "debugger")]
             "/fB",
             "file://fake/test",
-            vec![Input::new("", &Some(Once(json!(1))))],
+            vec![Input::new("", Some(Once(json!(1))), None)],
             1,
             0,
             &[],
@@ -436,7 +436,7 @@ mod test {
             #[cfg(feature = "debugger")]
             "/fA",
             "file://fake/test",
-            vec![Input::new("", &Some(Once(json!(1))))],
+            vec![Input::new("", Some(Once(json!(1))), None)],
             0,
             0,
             &[connection_to_f1],

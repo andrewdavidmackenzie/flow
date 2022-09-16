@@ -1,13 +1,11 @@
 //! This module is responsible for parsing the flow tree and gathering information into a set of
 //! flat tables that the compiler can use for code generation.
 
-use log::{debug, info};
+use log::{debug, error, info};
 
 use flowcore::model::connection::Connection;
 use flowcore::model::flow_definition::FlowDefinition;
 use flowcore::model::io::{IO, IOType};
-use flowcore::model::name::HasName;
-use flowcore::model::output_connection::Source::{Input, Output};
 use flowcore::model::process::Process::FlowProcess;
 use flowcore::model::process::Process::FunctionProcess;
 use flowcore::model::route::HasRoute;
@@ -22,10 +20,9 @@ pub fn gather_functions_and_connections(flow: &FlowDefinition, tables: &mut Comp
     info!("\n=== Compiler: Gathering Functions and Connections");
     _gather_functions_and_connections(flow, tables)?;
 
-    // consistently order the functions so each compile produces the same numbering
-    tables.functions.sort_by_key(|f| f.get_id());
+    tables.sort_functions();
 
-    create_routes_table(tables);
+    tables.create_routes_table();
 
     info!("Gathered {} functions and {} connections", tables.functions.len(), tables.connections.len());
 
@@ -63,37 +60,6 @@ fn _gather_functions_and_connections(flow: &FlowDefinition, tables: &mut Compile
     Ok(())
 }
 
-// Construct two look-up tables that can be used to find the index of a function in the functions table,
-// and the index of it's input - using the input route or it's output route
-fn create_routes_table(tables: &mut CompilerTables) {
-    for function in &mut tables.functions {
-        // Add inputs to functions to the table as a possible source of connections from a
-        // job that completed using this function
-        for (input_number, input) in function.get_inputs().iter().enumerate() {
-            tables.sources.insert(
-                input.route().clone(),
-                (Input(input_number), function.get_id()),
-            );
-        }
-
-        // Add any output routes it has to the source routes table
-        for output in function.get_outputs() {
-            tables.sources.insert(
-                output.route().clone(),
-                (Output(output.name().to_string()), function.get_id()),
-            );
-        }
-
-        // Add any inputs it has to the destination routes table
-        for (input_index, input) in function.get_inputs().iter().enumerate() {
-            tables.destination_routes.insert(
-                input.route().clone(),
-                (function.get_id(), input_index, function.get_flow_id()),
-            );
-        }
-    }
-}
-
 /// Take the original table of connections as gathered from the flow hierarchy, and for each one
 /// follow it through any intermediate connections (sub-flow boundaries) to arrive at the final
 /// destination. Then create a new direct connection from source to destination and add that
@@ -109,7 +75,7 @@ fn create_routes_table(tables: &mut CompilerTables) {
 /// - `tables.functions` functions must be indexed by `gather_functions_and_connections`
 /// - `tables.connections`is populated by `gather_functions_and_connections`
 /// - `tables.destination_routes` is populated by `create_routes_table`
-pub fn collapse_connections(tables: &mut CompilerTables) {
+pub fn collapse_connections(tables: &mut CompilerTables) -> Result<()> {
     info!("\n=== Compiler: Collapsing {} flow connections", tables.connections.len());
     let mut collapsed_connections: Vec<Connection> = Vec::new();
 
@@ -117,15 +83,15 @@ pub fn collapse_connections(tables: &mut CompilerTables) {
         match connection.from_io().io_type() {
             // connection starts at a Function output, or is a connection from a value at a Function's input
             &IOType::FunctionOutput | &IOType::FunctionInput => {
-                debug!("Trying to create connection from function output at '{}'",
+                debug!("Trying to create connection from function IO at '{}'",
                        connection.from_io().route());
                 if connection.to_io().io_type() == &IOType::FunctionInput {
-                    debug!("\tFound direct connection within the flow to a function input at '{}'",
-                connection.to_io().route());
+                    debug!("\tFound direct connection to function input at '{}'",
+                        connection.to_io().route());
                     collapsed_connections.push(connection.clone());
                 } else {
                     // If the connection enters or leaves this flow, then follow it to all destinations at function inputs
-                    for (source_subroute, destination_io) in find_function_destinations(
+                    for (source_subroute, destination_io) in find_connection_destinations(
                         Route::from(""),
                         connection.to_io().route(),
                         connection.level(),
@@ -149,7 +115,7 @@ pub fn collapse_connections(tables: &mut CompilerTables) {
                 }
             },
 
-            // connection starts at a flow input or output that has an initializer on it
+            // connection starts at a flow's input via a FlowInputInitializer - propagate to destination function
             IOType::FlowInput | IOType::FlowOutput => {
                 if connection.from_io().get_initializer().is_some() {
                     // find the destination functions (the connection could split to multiple destinations)
@@ -157,7 +123,7 @@ pub fn collapse_connections(tables: &mut CompilerTables) {
                         // Flow input (or output) (that has an initializer) connects directly to a function's Input
                         vec!((Route::default(), connection.to_io().clone()))
                     } else {
-                        find_function_destinations(
+                        find_connection_destinations(
                             Route::from(""),
                             connection.to_io().route(),
                             connection.level(),
@@ -166,13 +132,17 @@ pub fn collapse_connections(tables: &mut CompilerTables) {
                     };
 
                     for (_, destination_io) in destinations {
+                        let (destination_function_id, destination_input_index, _) =
+                        tables.destination_routes.get(destination_io.route())
+                            .ok_or(format!("Could not find a destination route matching '{}'", destination_io.route()))?;
+
                         // get a mutable reference to the destination function and set the initializer on it
-                        if let Some(&(destination_function_id, destination_input_index, _)) =
-                        tables.destination_routes.get(destination_io.route()) {
-                            if let Some(destination_function) = tables.functions.get_mut(destination_function_id) {
-                                let _ = destination_function.set_initial_value(destination_input_index, connection.from_io().get_initializer());
-                            }
-                        }
+                        let destination_function = tables.functions.get_mut(*destination_function_id)
+                            .ok_or(format!("Could not find a function #{destination_function_id}"))?;
+
+                        let flow_initializer = connection.from_io().get_initializer().clone();
+                        destination_function.
+                            set_flow_initializer(*destination_input_index, flow_initializer)?;
                     }
                 }
             }
@@ -180,8 +150,9 @@ pub fn collapse_connections(tables: &mut CompilerTables) {
     }
 
     info!("{} connections collapsed down to {}", tables.connections.len(), collapsed_connections.len());
-
     tables.collapsed_connections = collapsed_connections;
+
+    Ok(())
 }
 
 /*
@@ -240,7 +211,7 @@ pub fn collapse_connections(tables: &mut CompilerTables) {
 
          Output is: source_subroute: Route, final_destination: Route
 */
-fn find_function_destinations(
+fn find_connection_destinations(
     prev_subroute: Route,
     from_io_route: &Route,
     from_level: usize,
@@ -265,45 +236,40 @@ fn find_function_destinations(
 
             // Avoid infinite recursion and stack overflow
             if next_connection.level() == next_level {
-                // Add any subroute from this connection to the origin subroute accumulated so far
+                // Accumulate any subroute from this connection to the origin subroute
                 let accumulated_source_subroute = prev_subroute.clone().extend(&subroute).clone();
 
                 match *next_connection.to_io().io_type() {
                     IOType::FunctionInput => {
                         debug!("\t\tFound destination function input at '{}'",
                             next_connection.to_io().route());
-                        // Found a destination that is a function, add it to the list
-                        // TODO accumulate the source subroute that builds up as we go
                         destinations
                             .push((accumulated_source_subroute, next_connection.to_io().clone()));
                         found = true;
                     },
 
-                    IOType::FunctionOutput => {
-                        // TODO report an error - destination is a functions output!
-                    },
+                    IOType::FunctionOutput => error!("Error - destination of {:?} is a functions output!",
+                        next_connection),
 
                     IOType::FlowInput => {
                         debug!("\t\tFollowing connection into sub-flow via '{}'", from_io_route);
-                        let new_destinations = &mut find_function_destinations(
+                        let new_destinations = &mut find_connection_destinations(
                             accumulated_source_subroute,
                             next_connection.to_io().route(),
                             next_connection.level(),
                             connections,
                         );
-                        // TODO accumulate the source subroute that builds up as we go
                         destinations.append(new_destinations);
                     },
 
                     IOType::FlowOutput => {
                         debug!("\t\tFollowing connection out of flow via '{}'", from_io_route);
-                        let new_destinations = &mut find_function_destinations(
+                        let new_destinations = &mut find_connection_destinations(
                             accumulated_source_subroute,
                             next_connection.to_io().route(),
                             next_connection.level(),
                             connections,
                         );
-                        // TODO accumulate the source subroute that builds up as we go
                         destinations.append(new_destinations);
                     }
                 }
@@ -341,7 +307,7 @@ mod test {
 
         let mut tables = CompilerTables::new();
         tables.connections = vec![unused];
-        collapse_connections(&mut tables);
+        collapse_connections(&mut tables).expect("Could not collapse connections");
         assert_eq!(tables.collapsed_connections.len(), 0);
     }
 
@@ -359,7 +325,7 @@ mod test {
 
         let mut tables = CompilerTables::new();
         tables.connections = vec![only_connection];
-        collapse_connections(&mut tables);
+        collapse_connections(&mut tables).expect("Could not collapse connections");
         assert_eq!(tables.collapsed_connections.len(), 1);
         assert_eq!(*tables.collapsed_connections[0].from_io().route(), Route::from("/function1/out"));
         assert_eq!(*tables.collapsed_connections[0].to_io().route(), Route::from("/function1/in"));
@@ -380,7 +346,7 @@ mod test {
 
         let mut tables = CompilerTables::new();
         tables.connections = vec![only_connection];
-        collapse_connections(&mut tables);
+        collapse_connections(&mut tables).expect("Could not collapse connections");
         assert_eq!(tables.collapsed_connections.len(), 1);
         assert_eq!(*tables.collapsed_connections[0].from_io().route(), Route::from("/function1/out"));
         assert_eq!(*tables.collapsed_connections[0].to_io().route(), Route::from("/function2/in"));
@@ -424,7 +390,7 @@ mod test {
 
         let mut tables = CompilerTables::new();
         tables.connections = vec![left_side, extra_one, right_side];
-        collapse_connections(&mut tables);
+        collapse_connections(&mut tables).expect("Could not collapse connections");
         assert_eq!(tables.collapsed_connections.len(), 1);
         assert_eq!(*tables.collapsed_connections[0].from_io().route(), Route::from("/function1"));
         assert_eq!(*tables.collapsed_connections[0].to_io().route(), Route::from("/flow2/function3"));
@@ -470,7 +436,7 @@ mod test {
 
         let mut tables = CompilerTables::new();
         tables.connections = vec![left_side, right_side_one, right_side_two];
-        collapse_connections(&mut tables);
+        collapse_connections(&mut tables).expect("Could not collapse connections");
         assert_eq!(2, tables.collapsed_connections.len());
 
         assert_eq!(*tables.collapsed_connections[0].from_io().route(), Route::from("/f1"));
@@ -518,7 +484,7 @@ mod test {
         let mut tables = CompilerTables::new();
         tables.connections = vec![first_level, second_level, third_level];
 
-        collapse_connections(&mut tables);
+        collapse_connections(&mut tables).expect("Could not collapse connections");
         assert_eq!(1, tables.collapsed_connections.len());
 
         assert_eq!(*tables.collapsed_connections[0].from_io().route(), Route::from("/function1/out"));
@@ -539,7 +505,7 @@ mod test {
             .expect("Could not connect IOs");
         let mut tables = CompilerTables::new();
         tables.connections = vec![one, other];
-        collapse_connections(&mut tables);
+        collapse_connections(&mut tables).expect("Could not collapse connections");
         assert_eq!(tables.collapsed_connections.len(), 2);
     }
 }

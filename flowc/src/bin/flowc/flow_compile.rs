@@ -43,7 +43,7 @@ pub fn compile_and_execute_flow(options: &Options, provider: &dyn Provider) -> R
                                               options.provided_implementations,
                                               options.optimize,
                                               #[cfg(feature = "debugger")] &mut source_urls,
-            ).chain_err(|| format!("Could not compile flow from '{}'", options.source_url))?;
+            ).chain_err(|| format!("Could not compile the flow '{}'", options.source_url))?;
 
             make_writeable(&options.output_dir)?;
 

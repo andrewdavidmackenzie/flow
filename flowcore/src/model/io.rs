@@ -2,6 +2,7 @@ use std::collections::HashSet;
 use std::fmt;
 
 use error_chain::bail;
+//use log::warn;
 use serde_derive::{Deserialize, Serialize};
 
 use crate::errors::*;
@@ -48,6 +49,10 @@ pub struct IO {
     /// If an input, does it have an initializer that puts an initial value on the Input
     #[serde(rename = "value")]
     initializer: Option<InputInitializer>,
+
+    /// An input initializer that is propagated from a flow's input initializer
+    #[serde(skip_deserializing)]
+    flow_initializer: Option<InputInitializer>,
 
     /// `route` defines where in the full flow hierarchy this IO is located, including it's `name`
     /// as the last segment
@@ -133,12 +138,28 @@ impl IO {
         &self.initializer
     }
 
+    /// Get a reference to the flow propagated input initializer of this IO
+    pub fn get_flow_initializer(&self) -> &Option<InputInitializer> {
+        &self.flow_initializer
+    }
+
     /// Set the input initializer of this IO
-    pub fn set_initializer(&mut self, initial_value: &Option<InputInitializer>) {
-        // Avoid overwriting a possibly Some() value with a None value
-        if initial_value.is_some() && self.initializer.is_none() {
-            self.initializer = initial_value.clone();
+    pub fn set_initializer(&mut self, initializer: Option<InputInitializer>) -> Result<()> {
+        match self.initializer {
+            Some(_) => bail!("Attempt to set two InputInitializers on IO @ {}", self.route),
+            None => self.initializer = initializer
         }
+        Ok(())
+    }
+
+    /// Set the flow input initializer of this IO
+    pub fn set_flow_initializer(&mut self, flow_initializer: Option<InputInitializer>)
+    -> Result<()> {
+        match self.flow_initializer {
+            Some(_) => bail!("Attempt to set two InputInitializers on same IO"),
+            None => self.flow_initializer = flow_initializer
+        }
+        Ok(())
     }
 }
 
@@ -228,20 +249,18 @@ impl SetIORoutes for IOSet {
 /// using it's Name or Route
 pub trait Find {
     /// Find IO using it's sub-Route and set the input initializer on it
-    fn find_by_subroute_and_set_initializer(
+    fn find_by_subroute(
         &mut self,
         subroute: &Route,
-        initial_value: &Option<InputInitializer>,
     ) -> Result<IO>;
 }
 
 impl Find for IOSet {
     // TODO improve the Route handling of this - maybe moving into Router
     // TODO return a reference to the IO, with same lifetime as IOSet?
-    fn find_by_subroute_and_set_initializer(
+    fn find_by_subroute(
         &mut self,
         sub_route: &Route,
-        initial_value: &Option<InputInitializer>,
     ) -> Result<IO> {
         for io in self {
             for datatype in io.datatypes().clone() {
@@ -249,8 +268,6 @@ impl Find for IOSet {
                     let (array_route, index, array_index) = sub_route.without_trailing_array_index();
                     if array_index && (Route::from(io.name()) == array_route.into_owned())
                     {
-                        io.set_initializer(initial_value);
-
                         let mut found = io.clone();
 
                         // Set the datatype of the found IO to be the type within the array of types
@@ -264,7 +281,6 @@ impl Find for IOSet {
                 }
 
                 if Route::from(io.name()) == *sub_route {
-                    io.set_initializer(initial_value);
                     return Ok(io.clone());
                 }
             }
@@ -475,7 +491,7 @@ mod test {
         // Test
         // Try and get the output using a route to a specific element of the output
         let output = outputs
-            .find_by_subroute_and_set_initializer(&Route::from("/0"), &None)
+            .find_by_subroute(&Route::from("/0"))
             .expect("Expected to find an IO");
         assert_eq!(*output.name(), Name::default());
     }

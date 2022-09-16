@@ -179,7 +179,7 @@ impl FunctionDefinition {
             }
         }
         self.set_routes_from_parent(parent_route);
-        self.set_initial_values(initializations);
+        self.set_initializers(initializations)?;
         self.check_impurity(original_url)?;
         self.validate()
     }
@@ -287,24 +287,28 @@ impl FunctionDefinition {
         }
     }
 
-    // Set the initial values on the IOs in an IOSet using a set of Input Initializers
-    fn set_initial_values(&mut self, initializers: &BTreeMap<String, InputInitializer>) {
-        for initializer in initializers {
+    // Set the InputInitializers on the IOs in an IOSet
+    fn set_initializers(&mut self, initializer_map: &BTreeMap<String, InputInitializer>)
+    -> Result<()> {
+        for (input_name, initializer) in initializer_map {
             // initializer.0 is io name, initializer.1 is the initial value to set it to
             for (index, input) in self.inputs.iter_mut().enumerate() {
-                if *input.name() == Name::from(initializer.0)
-                    || (initializer.0.as_str() == "default" && index == 0)
+                if *input.name() == Name::from(input_name)
+                    || (input_name.as_str() == "default" && index == 0)
                 {
-                    input.set_initializer(&Some(initializer.1.clone()));
+                    input.set_initializer(Some(initializer.clone()))
+                        .chain_err(|| format!("Failed to set initializers on IO#{index} on function {}",
+                                            self.route))?;
                 }
             }
         }
+        Ok(())
     }
 
-    /// Set the initial value on one of the IOs
-    pub fn set_initial_value(&mut self, io_number: usize, initializer: &Option<InputInitializer>) -> Result<()> {
-        self.inputs.get_mut(io_number).ok_or("No such input")?.set_initializer(initializer);
-        Ok(())
+    /// Set a flow initializer on the specified input
+    pub fn set_flow_initializer(&mut self, io_number: usize, flow_initializer: Option<InputInitializer>) -> Result<()> {
+        self.inputs.get_mut(io_number).ok_or("No such input")?
+            .set_flow_initializer(flow_initializer)
     }
 
     // Set the lib reference of this function

@@ -217,18 +217,28 @@ impl FlowDefinition {
         &self.outputs
     }
 
+    /// Set the origin id of all connections to be this flow
+    pub fn set_connection_origin_flow_ids(&mut self) {
+        for connection in &mut self.connections {
+            connection.set_origin_flow_id(self.id);
+        }
+    }
+
     /// Set the initial values on the IOs in an IOSet using a set of Input Initializers
-    fn set_initial_values(&mut self, initializers: &BTreeMap<String, InputInitializer>) {
-        for initializer in initializers {
-            // initializer.0 is io name, initializer.1 is the initial value to set it to
+    fn set_initializers(&mut self, initializer_map: &BTreeMap<String, InputInitializer>)
+    -> Result<()> {
+        for (input_name, initializer) in initializer_map {
+            // Go through all inputs matching names with names used in initializers
             for (index, input) in self.inputs.iter_mut().enumerate() {
-                if *input.name() == Name::from(initializer.0)
-                    || (initializer.0.as_str() == "default" && index == 0)
+                if *input.name() == Name::from(input_name)
+                    || (input_name.as_str() == "default" && index == 0)
                 {
-                    input.set_initializer(&Some(initializer.1.clone()));
+                    input.set_initializer(Some(initializer.clone()))
+                        .chain_err(|| "Failed to set initializers in flow")?;
                 }
             }
         }
+        Ok(())
     }
 
     /// Configure a flow with additional information after it is deserialized from file
@@ -243,7 +253,8 @@ impl FlowDefinition {
         self.id = id;
         self.set_alias(alias_from_reference);
         self.source_url = source_url.to_owned();
-        self.set_initial_values(initializations);
+        self.set_initializers(initializations)?;
+        self.set_connection_origin_flow_ids();
         self.set_routes_from_parent(parent_route);
         self.validate()
     }
@@ -253,12 +264,11 @@ impl FlowDefinition {
         self.inputs().is_empty() && self.outputs().is_empty()
     }
 
-    fn get_subprocess_io_and_set_initializer(
+    fn get_subprocess_io(
         &mut self,
         subprocess_alias: &Name,
         direction: Direction,
         sub_route: &Route,
-        initial_value: &Option<InputInitializer>,
     ) -> Result<IO> {
         debug!(
             "\tLooking for subprocess with alias = '{}'",
@@ -282,10 +292,10 @@ impl FlowDefinition {
                 match direction {
                     TO => sub_flow
                         .inputs
-                        .find_by_subroute_and_set_initializer(sub_route, initial_value),
+                        .find_by_subroute(sub_route),
                     FROM => sub_flow
                         .outputs
-                        .find_by_subroute_and_set_initializer(sub_route, &None),
+                        .find_by_subroute(sub_route),
                 }
             },
 
@@ -295,16 +305,10 @@ impl FlowDefinition {
                     subprocess_alias
                 );
                 match direction {
-                    TO => function
-                        .inputs
-                        .find_by_subroute_and_set_initializer(sub_route, initial_value),
-                    FROM => function
-                        .get_outputs()
-                        .find_by_subroute_and_set_initializer(sub_route, &None)
+                    TO => function.inputs.find_by_subroute(sub_route),
+                    FROM => function.get_outputs().find_by_subroute(sub_route)
                         .or_else(|_| { // for connections from the Input value copied at the output
-                            function
-                                .inputs
-                                .find_by_subroute_and_set_initializer(sub_route, &None)
+                            function.inputs.find_by_subroute(sub_route)
                         }),
                 }
             }
@@ -325,7 +329,6 @@ impl FlowDefinition {
         &mut self,
         direction: Direction,
         route: &Route,
-        initial_value: &Option<InputInitializer>,
     ) -> Result<IO> {
         debug!("Looking for connection {:?} '{}'", direction, route);
         match (&direction, route.route_type()?) {
@@ -333,18 +336,18 @@ impl FlowDefinition {
                 // make sure the sub-route of the input is added to the source of the connection
                 let mut from = self
                     .inputs
-                    .find_by_subroute_and_set_initializer(&Route::from(input_name.to_string()), &None)?;
+                    .find_by_subroute(&Route::from(input_name.to_string()))?;
                 // accumulate any subroute within the input
                 from.route_mut().extend(&sub_route);
                 Ok(from)
             },
 
             (&TO, RouteType::FlowOutput(output_name)) => {
-                self.outputs.find_by_subroute_and_set_initializer(&Route::from(output_name.to_string()), initial_value)
+                self.outputs.find_by_subroute(&Route::from(output_name.to_string()))
             },
 
             (_, RouteType::SubProcess(process_name, sub_route)) => {
-                self.get_subprocess_io_and_set_initializer(&process_name, direction, &sub_route, initial_value)
+                self.get_subprocess_io(&process_name, direction, &sub_route)
             },
 
             (&FROM, RouteType::FlowOutput(output_name)) => {
@@ -401,46 +404,30 @@ impl FlowDefinition {
     //
     // Propagate any initializers on a flow output to the input (subflow or function) it is connected to
     fn build_connection(&mut self, connection: &mut Connection, level: usize) -> Result<()> {
-        match self.get_io_by_route(FROM, connection.from(), &None) {
-            Ok(from_io) => {
-                trace!("Found connection source:\n{:#?}", from_io);
-                // if connection is from a flow IO with an initializer, then propagate it to the destination
-                let destination_initializer = if from_io.flow_io() {
-                    from_io.get_initializer()
-                } else {
-                    &None
-                };
+        let from_io = self.get_io_by_route(FROM, connection.from())
+            .chain_err(|| format!("Did not find connection source: '{}' specified in flow '{}'\n",
+                   connection.from_io().route(), self.source_url))?;
+        trace!("Found connection source:\n{:#?}", from_io);
 
-                // Iterate over all the destinations for this connection
-                for to_route in connection.to() {
-                    match self.get_io_by_route(TO, to_route, destination_initializer) {
-                        Ok(to_io) => {
-                            trace!("Found connection destination:\n{:#?}", to_io);
-                            let mut new_connection = connection.clone();
-                            new_connection.connect(from_io.clone(), to_io, level)?;
-                            self.connections.push(new_connection);
-                        }
-                        Err(error) => {
-                            bail!(
-                                "Did not find connection destination: '{}' in flow '{}'\n\t\t{}",
-                                to_route,
-                                self.source_url,
-                                error
-                            );
-                        }
-                    }
+        // Connection can specify multiple destinations within flow - iterate over them all
+        for to_route in connection.to() {
+            match self.get_io_by_route(TO, to_route) {
+                Ok(to_io) => {
+                    trace!("Found connection destination:\n{:#?}", to_io);
+                    let mut new_connection = connection.clone();
+                    new_connection.connect(from_io.clone(), to_io, level)?;
+                    self.connections.push(new_connection);
+                }
+                Err(error) => {
+                    bail!(
+                        "Did not find connection destination: '{}' in flow '{}'\n\t\t{}",
+                        to_route,
+                        self.source_url,
+                        error
+                    );
                 }
             }
-            Err(error) => {
-                bail!(
-                    "Did not find connection source: '{}' specified in flow '{}'\n\t{}",
-                    connection.from_io().route(),
-                    self.source_url,
-                    error
-                );
-            }
         }
-
         Ok(())
     }
 }
@@ -599,7 +586,7 @@ mod test {
         let mut initializers = BTreeMap::new();
         initializers.insert(STRING_TYPE.into(), Always(json!("Hello")));
         initializers.insert(NUMBER_TYPE.into(), Once(json!(42)));
-        flow.set_initial_values(&initializers);
+        flow.set_initializers(&initializers).expect("Could not set initializers");
 
         assert_eq!(
             flow.inputs()
