@@ -21,21 +21,13 @@ type = "array/number" # Workaround
 alias = "p2p"
 source = "pixel_to_point/pixel_to_point"
 
-# Buffer and Loop back the bounds for each pixel
-[[process]]
-alias = "buffer_bounds"
-source = "lib://flowstdlib/data/buffer"
-
 [[connection]]
 from = "input/bounds"
-to = "buffer_bounds"
+to = "p2p/bounds"
 
+# Loop back the bounds for each pixel
 [[connection]]
-from = "buffer_bounds"
-to = "buffer_bounds"
-
-[[connection]]
-from = "buffer_bounds"
+from = "p2p/bounds"
 to = "p2p/bounds"
 
 # Buffer and Loop back the size for each pixel
