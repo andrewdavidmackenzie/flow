@@ -536,29 +536,33 @@ impl RunState {
                 debug!("Job #{}: Function #{} {:?} -> {:?}", job.job_id, job.function_id,
                         job.input_set,  output_value);
 
-                if let Some(output_v) = output_value {
-                    for connection in &job.connections {
-                        let value_to_send = match &connection.source {
-                            Output(route) => output_v.pointer(route),
-                            Input(index) => job.input_set.get(*index),
-                        };
+                for connection in &job.connections {
+                    let value_to_send = match &connection.source {
+                        // ADM could use map() ??
+                        Output(route) => {
+                            match output_value {
+                                Some(output_v) => output_v.pointer(route),
+                                None => None
+                            }
+                        },
+                        Input(index) => job.input_set.get(*index),
+                    };
 
-                        if let Some(value) = value_to_send {
-                            (display_next_output, restart) =
-                                self.send_a_value(
-                                    job.function_id,
-                                    job.flow_id,
-                                    connection,
-                                    value,
-                                    #[cfg(feature = "metrics")] metrics,
-                                    #[cfg(feature = "debugger")] debugger,
-                            )?;
-                        } else {
-                            trace!(
-                                "Job #{}:\t\tNo value found at '{}'",
-                                job.job_id, &connection.source
-                            );
-                        }
+                    if let Some(value) = value_to_send {
+                        (display_next_output, restart) =
+                            self.send_a_value(
+                                job.function_id,
+                                job.flow_id,
+                                connection,
+                                value,
+                                #[cfg(feature = "metrics")] metrics,
+                                #[cfg(feature = "debugger")] debugger,
+                        )?;
+                    } else {
+                        trace!(
+                            "Job #{}:\t\tNo value found at '{}'",
+                            job.job_id, &connection.source
+                        );
                     }
                 }
 
