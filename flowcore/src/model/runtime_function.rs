@@ -195,26 +195,26 @@ impl RuntimeFunction {
     /// Do the necessary serialization of an array to values, or wrapping of a value into an array
     /// in order to convert the value on expected by the destination, if possible, send the value
     /// and return true. If the conversion cannot be done and no value is sent, return false.
-    pub fn type_convert_and_send(&mut self, connection: &OutputConnection, value: &Value) -> bool {
-        if connection.is_generic() {
-            self.send(connection.destination_io_number, value);
+    pub fn send(&mut self, connection: &OutputConnection, value: &Value) -> bool {
+        if self.inputs[connection.destination_io_number].is_generic() {
+            self.input_send(connection.destination_io_number, value);
         } else {
             match (
-                (Self::array_order(value) - connection.destination_array_order),
+                (Self::array_order(value) - self.inputs[connection.destination_io_number].array_order()),
                 value,
             ) {
-                (0, _) => self.send(connection.destination_io_number, value),
-                (1, Value::Array(array)) => self.send_array(connection.destination_io_number,
-                                                            array),
+                (0, _) => self.input_send(connection.destination_io_number, value),
+                (1, Value::Array(array)) => self.input_send_array(connection.destination_io_number,
+                                                                  array),
                 (2, Value::Array(array_2)) => {
                     for array in array_2.iter() {
                         if let Value::Array(sub_array) = array {
-                            self.send_array(connection.destination_io_number, sub_array)
+                            self.input_send_array(connection.destination_io_number, sub_array)
                         }
                     }
                 }
-                (-1, _) => self.send(connection.destination_io_number, &json!([value])),
-                (-2, _) => self.send(connection.destination_io_number, &json!([[value]])),
+                (-1, _) => self.input_send(connection.destination_io_number, &json!([value])),
+                (-2, _) => self.input_send(connection.destination_io_number, &json!([[value]])),
                 _ => {
                     error!("Unable to handle difference in array order");
                     return false;
@@ -225,12 +225,12 @@ impl RuntimeFunction {
     }
 
     // Send a value to a `RuntimeFunction`'s `input`'s `Input` numbered `input_number`
-    fn send(&mut self, input_number: usize, value: &Value) {
+    fn input_send(&mut self, input_number: usize, value: &Value) {
         self.inputs[input_number].send(value.clone());
     }
 
     // Send an array of values to this `RuntimeFunction`'s `Input` numbered `input_number`
-    fn send_array(&mut self, input_number: usize, array: &[Value]) {
+    fn input_send_array(&mut self, input_number: usize, array: &[Value]) {
         self.inputs[input_number].send_array(array);
     }
 
@@ -353,7 +353,7 @@ mod test {
     fn can_send_simple_object() {
         let mut function = test_function();
         function.init_inputs(true, false);
-        function.send(0, &json!(1));
+        function.input_send(0, &json!(1));
         assert_eq!(
             json!(1),
             function
@@ -368,7 +368,7 @@ mod test {
     fn can_send_array_object() {
         let mut function = test_function();
         function.init_inputs(true,  false);
-        function.send(0, &json!([1, 2]));
+        function.input_send(0, &json!([1, 2]));
         assert_eq!(
             json!([1, 2]),
             function
@@ -383,7 +383,7 @@ mod test {
     fn test_array_to_non_array() {
         let mut function = test_function();
         function.init_inputs(true,  false);
-        function.send(0, &json!([1, 2]));
+        function.input_send(0, &json!([1, 2]));
         assert_eq!(
             function
                 .take_input_set()
@@ -400,8 +400,6 @@ mod test {
             1,
             1,
             0,
-            0,
-            false,
             String::default(),
             #[cfg(feature = "debugger")]
             String::default(),
@@ -412,7 +410,7 @@ mod test {
             #[cfg(feature = "debugger")]
             "/test",
             "file://fake/implementation",
-            vec![Input::new("", None, None)],
+            vec![Input::new("", 0, false, None, None)],
             1,
             0,
             &[out_conn],
@@ -425,7 +423,7 @@ mod test {
     fn debugger_can_inspect_non_full_input() {
         let mut function = test_function();
         function.init_inputs(true,  false);
-        function.send(0, &json!(1));
+        function.input_send(0, &json!(1));
         assert_eq!(
             function.inputs().len(),
             1,
@@ -454,8 +452,6 @@ mod test {
             1,
             1,
             0,
-            0,
-            false,
             String::default(),
             #[cfg(feature = "debugger")]
             String::default(),
@@ -466,14 +462,14 @@ mod test {
             #[cfg(feature = "debugger")]
             "/test",
             "file://fake/test",
-            vec![Input::new("", None, None)],
+            vec![Input::new("", 0, false, None, None)],
             0,
             0,
             &[output_route.clone()],
             false,
         );
         function.init_inputs(true,  false);
-        function.send(0, &json!(1));
+        function.input_send(0, &json!(1));
         let _ = format!("{}", function);
         assert_eq!(
             &vec!(output_route),
@@ -533,7 +529,7 @@ mod test {
             assert_eq!(RuntimeFunction::array_order(&value), 2);
         }
 
-        fn test_function() -> RuntimeFunction {
+        fn test_function(array_order: i32, generic: bool) -> RuntimeFunction {
             RuntimeFunction::new(
                 #[cfg(feature = "debugger")]
                     "test",
@@ -541,7 +537,7 @@ mod test {
                     "/test",
                 "file://fake/test",
                 vec![Input::new(
-                    #[cfg(feature = "debugger")] "",
+                    #[cfg(feature = "debugger")] "", array_order, generic,
                     None, None)],
                 0,
                 0,
@@ -648,21 +644,20 @@ mod test {
 
             for test_case in test_cases {
                 // Setup
-                let mut function = test_function();
+                let mut function = test_function(test_case.destination_array_order,
+                test_case.destination_is_generic);
                 let destination = OutputConnection::new(
                     Source::default(),
                     0,
                     0,
                     0,
-                    test_case.destination_array_order,
-                    test_case.destination_is_generic,
                     String::default(),
                     #[cfg(feature = "debugger")]
                         String::default(),
                 );
 
                 // Test
-                assert!(function.type_convert_and_send(&destination, &test_case.value));
+                assert!(function.send(&destination, &test_case.value));
 
                 // Check
                 assert_eq!(

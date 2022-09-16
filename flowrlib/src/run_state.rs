@@ -496,8 +496,7 @@ impl RunState {
             }
             Err(e) => {
                 error!(
-                    "Job #{}: Error '{}' while creating job for Function #{}",
-                    job_id, e, function_id
+                    "Job #{job_id}: Error '{e}' while creating job for Function #{function_id}"
                 );
                 None
             }
@@ -584,7 +583,7 @@ impl RunState {
                     self.mark_as_completed(job.function_id);
                 }
             },
-            Err(e) => error!("Error in Job#{}: {}", job.job_id, e)
+            Err(e) => error!("Error in Job#{}: {e}", job.job_id)
         }
 
         self.remove_from_busy(job.function_id);
@@ -630,11 +629,11 @@ impl RunState {
         let loopback = source_id == connection.destination_id;
 
         if loopback {
-            info!("\t\tFunction #{source_id} loopback of '{}'{} to Self:{}",
-                    output_value, route_str, connection.destination_io_number);
+            info!("\t\tFunction #{source_id} loopback of '{output_value}'{route_str} to Self:{}",
+                    connection.destination_io_number);
         } else {
-            info!("\t\tFunction #{source_id} sending '{}'{} to Function #{}:{}",
-                    output_value, route_str, connection.destination_id, connection.destination_io_number);
+            info!("\t\tFunction #{source_id} sending '{output_value}'{route_str} to Function #{}:{}",
+                    connection.destination_id, connection.destination_io_number);
         };
 
         #[cfg(feature = "debugger")]
@@ -652,7 +651,7 @@ impl RunState {
         let function = self.get_mut(connection.destination_id)
             .ok_or("Could not get function")?;
         let count_before = function.input_set_count();
-        function.type_convert_and_send(connection, output_value);
+        function.send(connection, output_value);
 
         #[cfg(feature = "metrics")]
         metrics.increment_outputs_sent(); // not distinguishing array serialization / wrapping etc
@@ -797,7 +796,7 @@ impl RunState {
 
         // if flow is now idle, remove any blocks on sending to functions in the flow
         if self.busy_flows.get(&blocker_flow_id).is_none() {
-            debug!("Job #{}: Flow #{} has gone idle", job_id, blocker_flow_id);
+            debug!("Job #{job_id}: Flow #{blocker_flow_id} has gone idle");
             #[cfg(feature = "debugger")]
             {
                 (display_next_output, restart) = debugger.check_prior_to_flow_unblock(self,
@@ -984,8 +983,6 @@ mod test {
             1,
             0,
             0,
-            0,
-            false,
             "/fB".to_string(),
             #[cfg(feature = "debugger")]
             String::default(),
@@ -998,7 +995,7 @@ mod test {
             "/fA",
             "file://fake/test",
             vec![Input::new(
-                        #[cfg(feature = "debugger")] "",
+                        #[cfg(feature = "debugger")] "", 0, false,
                             None, None)],
             0,
             0,
@@ -1013,8 +1010,6 @@ mod test {
             1,
             0,
             0,
-            0,
-            false,
             "/fB".to_string(),
             #[cfg(feature = "debugger")]
             String::default(),
@@ -1026,7 +1021,7 @@ mod test {
             "/fA",
             "file://fake/test",
             vec![Input::new(
-                            #[cfg(feature = "debugger")] "",
+                            #[cfg(feature = "debugger")] "", 0, false,
                             Some(Once(json!(1))), None)],
             0,
             0,
@@ -1043,7 +1038,7 @@ mod test {
             "/fA",
             "file://fake/test",
             vec![Input::new(
-                #[cfg(feature = "debugger")] "",
+                #[cfg(feature = "debugger")] "", 0, false,
                 Some(Once(json!(1))), None)],
             0,
             0,
@@ -1060,7 +1055,7 @@ mod test {
             "/fB",
             "file://fake/test",
             vec![Input::new(
-                #[cfg(feature = "debugger")] "",
+                #[cfg(feature = "debugger")] "", 0, false,
                 None, None)],
             1,
             0,
@@ -1075,8 +1070,6 @@ mod test {
             destination_function_id,
             0,
             0,
-            0,
-            false,
             String::default(),
             #[cfg(feature = "debugger")]
             String::default(),
@@ -1353,7 +1346,7 @@ mod test {
                 "/fA",
                 "file://fake/test",
                 vec![Input::new(
-                    #[cfg(feature = "debugger")] "",
+                    #[cfg(feature = "debugger")] "", 0, false,
                     None, None)],
                 0,
                 0,
@@ -1445,7 +1438,7 @@ mod test {
                 "/fA",
                 "file://fake/test",
                 vec![Input::new(
-                    #[cfg(feature = "debugger")] "",
+                    #[cfg(feature = "debugger")] "", 0, false,
                     Some(Always(json!(1))), None)],
                 0,
                 0,
@@ -1543,8 +1536,6 @@ mod test {
                 1,
                 0,
                 0,
-                0,
-                false,
                 String::default(),
                 #[cfg(feature = "debugger")]
                 String::default(),
@@ -1556,7 +1547,7 @@ mod test {
                 "/fA",
                 "file://fake/test",
                 vec![Input::new(
-                    #[cfg(feature = "debugger")] "",
+                    #[cfg(feature = "debugger")] "", 0, false,
                     Some(Always(json!(1))), None)],
                 0,
                 0,
@@ -1614,8 +1605,6 @@ mod test {
                 0,
                 0,
                 0,
-                0,
-                false,
                 String::default(),
                 #[cfg(feature = "debugger")]
                 String::default(),
@@ -1627,7 +1616,7 @@ mod test {
                 "/fB",
                 "file://fake/test",
                 vec![Input::new(
-                    #[cfg(feature = "debugger")] "",
+                    #[cfg(feature = "debugger")] "", 0, false,
                     None, None)],
                 1,
                 0,
@@ -1679,8 +1668,6 @@ mod test {
                 0,
                 0,
                 0,
-                0,
-                false,
                 String::default(),
                 #[cfg(feature = "debugger")]
                 String::default(),
@@ -1692,7 +1679,7 @@ mod test {
                 "/fB",
                 "file://fake/test",
                 vec![Input::new(
-                    #[cfg(feature = "debugger")] "",
+                    #[cfg(feature = "debugger")] "", 0, false,
                     Some(Always(json!(1))), None)],
                 1,
                 0,
@@ -1751,8 +1738,6 @@ mod test {
                 0,
                 0,
                 0,
-                0,
-                false,
                 String::default(),
                 #[cfg(feature = "debugger")]
                 String::default(),
@@ -1762,8 +1747,6 @@ mod test {
                 1,
                 0,
                 0,
-                0,
-                false,
                 String::default(),
                 #[cfg(feature = "debugger")]
                 String::default(),
@@ -1776,7 +1759,7 @@ mod test {
                 "/fA",
                 "file://fake/test",
                 vec![Input::new(
-                    #[cfg(feature = "debugger")] "",
+                    #[cfg(feature = "debugger")] "", 0, false,
                     Some(Once(json!(1))), None)],
                 0,
                 0,
@@ -1881,8 +1864,6 @@ mod test {
                 1,
                 0,
                 0,
-                0,
-                false,
                 String::default(),
                 #[cfg(feature = "debugger")]
                 String::default(),
@@ -1892,8 +1873,6 @@ mod test {
                 2,
                 0,
                 0,
-                0,
-                false,
                 String::default(),
                 #[cfg(feature = "debugger")]
                 String::default(),
@@ -1917,7 +1896,7 @@ mod test {
                 "/p1",
                 "file://fake/test/p1",
                 vec![Input::new(
-                    #[cfg(feature = "debugger")] "",
+                    #[cfg(feature = "debugger")] "", 0, false,
                     None, None)], // inputs array
                 1,
                 0,
@@ -1931,7 +1910,7 @@ mod test {
                 "/p2",
                 "file://fake/test/p2",
                 vec![Input::new(
-                    #[cfg(feature = "debugger")] "",
+                    #[cfg(feature = "debugger")] "", 0, false,
                     None, None)], // inputs array
                 2,
                 0,

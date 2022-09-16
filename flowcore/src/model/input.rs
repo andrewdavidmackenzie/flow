@@ -27,6 +27,17 @@ pub enum InputInitializer {
 #[derive(Deserialize, Serialize, Clone, Debug)]
 /// An `Input` to a `RuntimeFunction`
 pub struct Input {
+    /// `array_order` defines how many levels of arrays of non-array values does the destination accept
+    #[serde(
+    default,
+    skip_serializing_if = "is_default_array_order"
+    )]
+    array_order: i32,
+
+    /// `generic` defines if the input accepts generic OBJECT_TYPEs
+    #[serde(default, skip_serializing_if = "is_not_generic")]
+    generic: bool,
+
     #[serde(default, skip_serializing_if = "Option::is_none")]
     // An optional `InputInitializer` associated with this input
     initializer: Option<InputInitializer>,
@@ -45,11 +56,22 @@ pub struct Input {
     name: Name
 }
 
+#[allow(clippy::trivially_copy_pass_by_ref)] // As this is imposed on us by serde
+fn is_default_array_order(order: &i32) -> bool {
+    *order == 0
+}
+
+#[allow(clippy::trivially_copy_pass_by_ref)] // As this is imposed on us by serde
+fn is_not_generic(generic: &bool) -> bool {
+    !*generic
+}
+
 impl From<&IO> for Input {
     fn from(io: &IO) -> Self {
         Input::new(
             #[cfg(feature = "debugger")]
-            io.name(),
+            io.name(), io.datatypes()[0].array_order().unwrap_or(0),
+            io.datatypes()[0].is_generic(),
             io.get_initializer().clone(),
         io.get_flow_initializer().clone())
     }
@@ -73,12 +95,16 @@ impl Input {
     #[cfg(feature = "debugger")]
     pub fn new<S>(
         name: S,
+        array_order: i32,
+        generic: bool,
         initializer: Option<InputInitializer>,
         flow_initializer: Option<InputInitializer>,
     ) -> Self
     where S: Into<Name> {
         Input {
             name: name.into(),
+            array_order,
+            generic,
             initializer,
             flow_initializer,
             received: Vec::new(),
@@ -107,6 +133,16 @@ impl Input {
     /// Return the name of the input
     pub fn name(&self) -> &str {
         &self.name
+    }
+
+    /// return the array_order of this input
+    pub(crate) fn array_order(&self) -> i32 {
+        self.array_order
+    }
+
+    /// return if this input is Generic
+    pub(crate) fn is_generic(&self) -> bool {
+        self.generic
     }
 
     /// Take the first element from the Input and return it.
@@ -189,33 +225,33 @@ mod test {
 
     #[test]
     fn no_inputs_initially() {
-        let input = Input::new("", None, None);
+        let input = Input::new("", 0, false, None, None);
         assert!(input.is_empty());
     }
 
     #[test]
     fn take_from_empty_fails() {
-        let mut input = Input::new("", None, None);
+        let mut input = Input::new("", 0, false,  None, None);
         assert!(input.take().is_err());
     }
 
     #[test]
     fn accepts_value() {
-        let mut input = Input::new("", None, None);
+        let mut input = Input::new("", 0, false,  None, None);
         input.send(Value::Null);
         assert!(!input.is_empty());
     }
 
     #[test]
     fn accepts_array() {
-        let mut input = Input::new("", None, None);
+        let mut input = Input::new("", 0, false,  None, None);
         input.send_array(&[json!(5), json!(10), json!(15)]);
         assert!(!input.is_empty());
     }
 
     #[test]
     fn take_empties() {
-        let mut input = Input::new("", None, None);
+        let mut input = Input::new("", 0, false,  None, None);
         input.send(json!(10));
         assert!(!input.is_empty());
         let _value = input.take().expect("Could not take the input value as expected");
@@ -225,7 +261,7 @@ mod test {
     #[cfg(feature = "debugger")]
     #[test]
     fn reset_empties() {
-        let mut input = Input::new("", None, None);
+        let mut input = Input::new("", 0,  false, None, None);
         input.send(json!(10));
         assert!(!input.is_empty());
         input.reset();
