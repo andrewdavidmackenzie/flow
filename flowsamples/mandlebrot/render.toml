@@ -30,21 +30,13 @@ to = "p2p/bounds"
 from = "p2p/bounds"
 to = "p2p/bounds"
 
-# Buffer and Loop back the size for each pixel
-[[process]]
-alias = "buffer_size"
-source = "lib://flowstdlib/data/buffer"
-
 [[connection]]
 from = "input/size"
-to = "buffer_size"
+to = "p2p/size"
 
+# Loop back the size for each pixel
 [[connection]]
-from = "buffer_size"
-to = "buffer_size"
-
-[[connection]]
-from = "buffer_size"
+from = "p2p/size"
 to = "p2p/size"
 
 [[connection]]
@@ -65,7 +57,7 @@ to = "p2v/pixel_point"
 [[process]]
 source = "context://image/image_buffer"
 
-# connect up the image buffer with filename and size - buffering them for each pixel
+# Loopback the filename each pixel
 [[process]]
 alias = "filename_buffer"
 source = "lib://flowstdlib/data/buffer"
