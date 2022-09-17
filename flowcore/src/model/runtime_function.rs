@@ -299,7 +299,7 @@ mod test {
 
     #[test]
     fn can_send_simple_object() {
-        let mut function = test_function();
+        let mut function = test_function(0);
         function.init_inputs(true, false);
         function.send(0, json!(1));
         assert_eq!(
@@ -314,7 +314,7 @@ mod test {
 
     #[test]
     fn can_send_array_object() {
-        let mut function = test_function();
+        let mut function = test_function(1);
         function.init_inputs(true,  false);
         function.send(0, json!([1, 2]));
         assert_eq!(
@@ -329,7 +329,7 @@ mod test {
 
     #[test]
     fn test_array_to_non_array() {
-        let mut function = test_function();
+        let mut function = test_function(0);
         function.init_inputs(true,  false);
         function.send(0, json!([1, 2]));
         assert_eq!(
@@ -342,7 +342,7 @@ mod test {
         );
     }
 
-    fn test_function() -> RuntimeFunction {
+    fn test_function(array_order: i32) -> RuntimeFunction {
         let out_conn = OutputConnection::new(
             Output("/other/input/1".into()),
             1,
@@ -359,7 +359,7 @@ mod test {
             "/test",
             "file://fake/implementation",
             vec![Input::new(#[cfg(feature = "debugger")] "",
-                            0, false, None, None)],
+                            array_order, false, None, None)],
             1,
             0,
             &[out_conn],
@@ -370,7 +370,7 @@ mod test {
     #[cfg(feature = "debugger")]
     #[test]
     fn debugger_can_inspect_non_full_input() {
-        let mut function = test_function();
+        let mut function = test_function(0);
         function.init_inputs(true,  false);
         function.send(0, json!(1));
         assert_eq!(
@@ -389,7 +389,7 @@ mod test {
     #[cfg(feature = "debugger")]
     #[test]
     fn can_display_function() {
-        let function = test_function();
+        let function = test_function(0);
         let _ = format!("{}", function);
     }
 
@@ -429,7 +429,7 @@ mod test {
 
     #[test]
     fn can_get_function_name_and_id_and_location() {
-        let function = test_function();
+        let function = test_function(0);
         #[cfg(feature = "debugger")]
         assert_eq!("test".to_string(), function.name());
         assert_eq!(1, function.id());
@@ -441,7 +441,7 @@ mod test {
 
     #[test]
     fn can_set_and_get_implementation() {
-        let mut function = test_function();
+        let mut function = test_function(0);
         let inf = Arc::new(ImplementationNotFound {});
         function.set_implementation(inf);
         let _ = function.get_implementation();
