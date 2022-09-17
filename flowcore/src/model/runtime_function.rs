@@ -337,7 +337,7 @@ mod test {
                 .take_input_set()
                 .expect("Couldn't get input set")
                 .remove(0),
-            json!([1, 2]),
+            json!(1),
             "The value from input set wasn't what was expected"
         );
     }
@@ -358,7 +358,8 @@ mod test {
             #[cfg(feature = "debugger")]
             "/test",
             "file://fake/implementation",
-            vec![Input::new("", 0, false, None, None)],
+            vec![Input::new(#[cfg(feature = "debugger")] "",
+                            0, false, None, None)],
             1,
             0,
             &[out_conn],

@@ -114,9 +114,13 @@ impl Input {
     /// Create a new `Input` with an optional `InputInitializer`
     #[cfg(not(feature = "debugger"))]
     pub fn new(
+        array_order: i32,
+        generic: bool,
         initializer: Option<InputInitializer>,
         flow_initializer: Option<InputInitializer>) -> Self {
         Input {
+            array_order,
+            generic,
             initializer,
             flow_initializer,
             received: Vec::new(),
@@ -258,33 +262,33 @@ mod test {
 
     #[test]
     fn no_inputs_initially() {
-        let input = Input::new("", 0, false, None, None);
+        let input = Input::new(#[cfg(feature = "debugger")] "", 0, false, None, None);
         assert!(input.is_empty());
     }
 
     #[test]
     fn take_from_empty_fails() {
-        let mut input = Input::new("", 0, false,  None, None);
+        let mut input = Input::new(#[cfg(feature = "debugger")] "", 0, false,  None, None);
         assert!(input.take().is_err());
     }
 
     #[test]
     fn accepts_value() {
-        let mut input = Input::new("", 0, false,  None, None);
+        let mut input = Input::new(#[cfg(feature = "debugger")] "", 0, false,  None, None);
         input.send(Value::Null);
         assert!(!input.is_empty());
     }
 
     #[test]
     fn accepts_array() {
-        let mut input = Input::new("", 0, false,  None, None);
+        let mut input = Input::new(#[cfg(feature = "debugger")] "", 0, false,  None, None);
         input.send_array(vec![json!(5), json!(10), json!(15)]);
         assert!(!input.is_empty());
     }
 
     #[test]
     fn take_empties() {
-        let mut input = Input::new("", 0, false,  None, None);
+        let mut input = Input::new(#[cfg(feature = "debugger")] "", 0, false,  None, None);
         input.send(json!(10));
         assert!(!input.is_empty());
         let _value = input.take().expect("Could not take the input value as expected");
@@ -294,7 +298,7 @@ mod test {
     #[cfg(feature = "debugger")]
     #[test]
     fn reset_empties() {
-        let mut input = Input::new("", 0,  false, None, None);
+        let mut input = Input::new(#[cfg(feature = "debugger")] "", 0,  false, None, None);
         input.send(json!(10));
         assert!(!input.is_empty());
         input.reset();
