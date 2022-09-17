@@ -3,7 +3,7 @@ use std::fmt;
 
 use log::trace;
 use serde_derive::{Deserialize, Serialize};
-use serde_json::Value;
+use serde_json::{json, Value};
 
 use crate::errors::*;
 use crate::model::io::IO;
@@ -135,11 +135,6 @@ impl Input {
         &self.name
     }
 
-    /// return the array_order of this input
-    pub(crate) fn array_order(&self) -> i32 {
-        self.array_order
-    }
-
     /// return if this input is Generic
     pub(crate) fn is_generic(&self) -> bool {
         self.generic
@@ -191,18 +186,56 @@ impl Input {
         false
     }
 
-    /// Send an array of values to this `Input`, by sending them one by one
-    pub fn send_array(&mut self, array: &[Value])
-    {
-        for value in array {
-            trace!("\t\t\tPushing array element '{value}'");
-            self.send(value.clone());
+    // return the array_order of this input
+    fn array_order(&self) -> i32 {
+        self.array_order
+    }
+
+    // Take a json data value and return the array order for it
+    fn value_array_order(value: &Value) -> i32 {
+        match value {
+            Value::Array(array) if !array.is_empty() => {
+                if let Some(value) = array.get(0) {
+                    1 + Self::value_array_order(value)
+                } else {
+                    1
+                }
+            },
+            Value::Array(array) if array.is_empty() => 1,
+            _ => 0,
         }
     }
 
-    /// Send a `value` to this `Input`
-    pub fn send(&mut self, value: Value) {
-        self.received.push(value);
+    /// Send a Value or array of Values to this input
+    pub(crate) fn send(&mut self, value: Value) -> bool {
+        if self.is_generic() {
+            self.received.push(value);
+        } else {
+            match (Self::value_array_order(&value) - self.array_order(), &value) {
+                (0, _) => self.received.push(value),
+                (1, Value::Array(array)) => self.send_array(array.clone()),
+                (2, Value::Array(array_2)) => {
+                    for array in array_2.iter() {
+                        if let Value::Array(sub_array) = array {
+                            self.send_array(sub_array.clone())
+                        }
+                    }
+                }
+                (-1, _) => self.received.push(json!([value])),
+                (-2, _) => self.received.push(json!([[value]])),
+                _ => return false,
+            }
+        }
+        true // a value was sent!
+    }
+
+    // Send an array of values to this `Input`, by sending them one by one
+    fn send_array(&mut self, array: Vec<Value>)
+    {
+        for value in array {
+            trace!("\t\t\tPushing array element '{value}'");
+            self.received.push(value.clone());
+        }
     }
 
     /// Return the total number of values queued up, across all priorities, in this input
@@ -245,7 +278,7 @@ mod test {
     #[test]
     fn accepts_array() {
         let mut input = Input::new("", 0, false,  None, None);
-        input.send_array(&[json!(5), json!(10), json!(15)]);
+        input.send_array(vec![json!(5), json!(10), json!(15)]);
         assert!(!input.is_empty());
     }
 
@@ -266,5 +299,29 @@ mod test {
         assert!(!input.is_empty());
         input.reset();
         assert!(input.is_empty());
+    }
+
+    #[test]
+    fn test_array_order_0() {
+        let value = json!(1);
+        assert_eq!(Input::value_array_order(&value), 0);
+    }
+
+    #[test]
+    fn test_array_order_1_empty_array() {
+        let value = json!([]);
+        assert_eq!(Input::value_array_order(&value), 1);
+    }
+
+    #[test]
+    fn test_array_order_1() {
+        let value = json!([1, 2, 3]);
+        assert_eq!(Input::value_array_order(&value), 1);
+    }
+
+    #[test]
+    fn test_array_order_2() {
+        let value = json!([[1, 2, 3], [2, 3, 4]]);
+        assert_eq!(Input::value_array_order(&value), 2);
     }
 }

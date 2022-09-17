@@ -2,9 +2,9 @@
 use std::fmt;
 use std::sync::Arc;
 
-use log::{debug, error};
+use log::debug;
 use serde_derive::{Deserialize, Serialize};
-use serde_json::{json, Value};
+use serde_json::Value;
 
 use crate::{Implementation, RunAgain};
 use crate::errors::*;
@@ -177,61 +177,9 @@ impl RuntimeFunction {
         &self.implementation_location
     }
 
-    // Take a json data value and return the array order for it
-    fn array_order(value: &Value) -> i32 {
-        match value {
-            Value::Array(array) if !array.is_empty() => {
-                if let Some(value) = array.get(0) {
-                    1 + Self::array_order(value)
-                } else {
-                    1
-                }
-            },
-            Value::Array(array) if array.is_empty() => 1,
-            _ => 0,
-        }
-    }
-
-    /// Do the necessary serialization of an array to values, or wrapping of a value into an array
-    /// in order to convert the value on expected by the destination, if possible, send the value
-    /// and return true. If the conversion cannot be done and no value is sent, return false.
-    pub fn send(&mut self, connection: &OutputConnection, value: &Value) -> bool {
-        if self.inputs[connection.destination_io_number].is_generic() {
-            self.input_send(connection.destination_io_number, value);
-        } else {
-            match (
-                (Self::array_order(value) - self.inputs[connection.destination_io_number].array_order()),
-                value,
-            ) {
-                (0, _) => self.input_send(connection.destination_io_number, value),
-                (1, Value::Array(array)) => self.input_send_array(connection.destination_io_number,
-                                                                  array),
-                (2, Value::Array(array_2)) => {
-                    for array in array_2.iter() {
-                        if let Value::Array(sub_array) = array {
-                            self.input_send_array(connection.destination_io_number, sub_array)
-                        }
-                    }
-                }
-                (-1, _) => self.input_send(connection.destination_io_number, &json!([value])),
-                (-2, _) => self.input_send(connection.destination_io_number, &json!([[value]])),
-                _ => {
-                    error!("Unable to handle difference in array order");
-                    return false;
-                },
-            }
-        }
-        true // a value was sent!
-    }
-
-    // Send a value to a `RuntimeFunction`'s `input`'s `Input` numbered `input_number`
-    fn input_send(&mut self, input_number: usize, value: &Value) {
-        self.inputs[input_number].send(value.clone());
-    }
-
-    // Send an array of values to this `RuntimeFunction`'s `Input` numbered `input_number`
-    fn input_send_array(&mut self, input_number: usize, array: &[Value]) {
-        self.inputs[input_number].send_array(array);
+    /// Send a value or array of values to the specified input of this function
+    pub fn send(&mut self, io_number: usize, value: Value) -> bool {
+        self.inputs[io_number].send(value)
     }
 
     /// Accessor for a `RuntimeFunction` `output_connections` field
@@ -353,7 +301,7 @@ mod test {
     fn can_send_simple_object() {
         let mut function = test_function();
         function.init_inputs(true, false);
-        function.input_send(0, &json!(1));
+        function.send(0, json!(1));
         assert_eq!(
             json!(1),
             function
@@ -368,7 +316,7 @@ mod test {
     fn can_send_array_object() {
         let mut function = test_function();
         function.init_inputs(true,  false);
-        function.input_send(0, &json!([1, 2]));
+        function.send(0, json!([1, 2]));
         assert_eq!(
             json!([1, 2]),
             function
@@ -383,7 +331,7 @@ mod test {
     fn test_array_to_non_array() {
         let mut function = test_function();
         function.init_inputs(true,  false);
-        function.input_send(0, &json!([1, 2]));
+        function.send(0, json!([1, 2]));
         assert_eq!(
             function
                 .take_input_set()
@@ -423,7 +371,7 @@ mod test {
     fn debugger_can_inspect_non_full_input() {
         let mut function = test_function();
         function.init_inputs(true,  false);
-        function.input_send(0, &json!(1));
+        function.send(0, json!(1));
         assert_eq!(
             function.inputs().len(),
             1,
@@ -469,7 +417,7 @@ mod test {
             false,
         );
         function.init_inputs(true,  false);
-        function.input_send(0, &json!(1));
+        function.send(0, json!(1));
         let _ = format!("{}", function);
         assert_eq!(
             &vec!(output_route),
@@ -502,32 +450,7 @@ mod test {
         use serde_json::{json, Value};
 
         use crate::model::input::Input;
-        use crate::model::output_connection::{OutputConnection, Source};
         use crate::model::runtime_function::RuntimeFunction;
-
-        #[test]
-        fn test_array_order_0() {
-            let value = json!(1);
-            assert_eq!(RuntimeFunction::array_order(&value), 0);
-        }
-
-        #[test]
-        fn test_array_order_1_empty_array() {
-            let value = json!([]);
-            assert_eq!(RuntimeFunction::array_order(&value), 1);
-        }
-
-        #[test]
-        fn test_array_order_1() {
-            let value = json!([1, 2, 3]);
-            assert_eq!(RuntimeFunction::array_order(&value), 1);
-        }
-
-        #[test]
-        fn test_array_order_2() {
-            let value = json!([[1, 2, 3], [2, 3, 4]]);
-            assert_eq!(RuntimeFunction::array_order(&value), 2);
-        }
 
         fn test_function(array_order: i32, generic: bool) -> RuntimeFunction {
             RuntimeFunction::new(
@@ -646,18 +569,9 @@ mod test {
                 // Setup
                 let mut function = test_function(test_case.destination_array_order,
                 test_case.destination_is_generic);
-                let destination = OutputConnection::new(
-                    Source::default(),
-                    0,
-                    0,
-                    0,
-                    String::default(),
-                    #[cfg(feature = "debugger")]
-                        String::default(),
-                );
 
                 // Test
-                assert!(function.send(&destination, &test_case.value));
+                assert!(function.send(0, test_case.value));
 
                 // Check
                 assert_eq!(

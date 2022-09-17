@@ -552,7 +552,7 @@ impl RunState {
                                 job.function_id,
                                 job.flow_id,
                                 connection,
-                                value,
+                                value.clone(),
                                 #[cfg(feature = "metrics")] metrics,
                                 #[cfg(feature = "debugger")] debugger,
                         )?;
@@ -613,7 +613,7 @@ impl RunState {
         source_id: usize,
         source_flow_id: usize,
         connection: &OutputConnection,
-        output_value: &Value,
+        output_value: Value,
         #[cfg(feature = "metrics")] metrics: &mut Metrics,
         #[cfg(feature = "debugger")] debugger: &mut Debugger,
     ) -> Result<(bool, bool)> {
@@ -642,7 +642,7 @@ impl RunState {
                 self,
                 source_id,
                 route,
-                output_value,
+                &output_value,
                 connection.destination_id,
                 connection.destination_io_number,
             )?;
@@ -651,7 +651,7 @@ impl RunState {
         let function = self.get_mut(connection.destination_id)
             .ok_or("Could not get function")?;
         let count_before = function.input_set_count();
-        function.send(connection, output_value);
+        function.send(connection.destination_io_number, output_value);
 
         #[cfg(feature = "metrics")]
         metrics.increment_outputs_sent(); // not distinguishing array serialization / wrapping etc
