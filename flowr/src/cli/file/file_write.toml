@@ -9,4 +9,4 @@ type = "string"
 
 [[input]]
 name = "bytes"
-type = "array"
+type = "array/number"
