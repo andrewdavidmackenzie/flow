@@ -32,15 +32,6 @@ pub struct OutputConnection {
     pub destination_io_number: usize,
     /// `flow_id` is the flow_id of the target function
     pub flow_id: usize,
-    /// `array_order` defines how many levels of arrays of non-array values does the destination accept
-    #[serde(
-        default = "default_array_order",
-        skip_serializing_if = "is_default_array_order"
-    )]
-    pub destination_array_order: i32,
-    /// `generic` defines if the input accepts generic OBJECT_TYPEs
-    #[serde(default = "default_generic", skip_serializing_if = "is_not_generic")]
-    generic: bool,
     /// `destination` is the full route to the destination input
     #[serde(default, skip_serializing_if = "String::is_empty")]
     pub destination: String,
@@ -62,24 +53,6 @@ impl Default for Source {
     }
 }
 
-fn default_array_order() -> i32 {
-    0
-}
-
-#[allow(clippy::trivially_copy_pass_by_ref)] // As this is imposed on us by serde
-fn is_default_array_order(order: &i32) -> bool {
-    *order == 0
-}
-
-fn default_generic() -> bool {
-    false
-}
-
-#[allow(clippy::trivially_copy_pass_by_ref)] // As this is imposed on us by serde
-fn is_not_generic(generic: &bool) -> bool {
-    !*generic
-}
-
 impl OutputConnection {
     /// Create a new `OutputConnection`
     #[allow(clippy::too_many_arguments)]
@@ -88,8 +61,6 @@ impl OutputConnection {
         destination_id: usize,
         destination_io_number: usize,
         flow_id: usize,
-        destination_array_order: i32,
-        generic: bool,
         destination: String,
         #[cfg(feature = "debugger")] name: String,
     ) -> Self {
@@ -98,17 +69,10 @@ impl OutputConnection {
             destination_id,
             destination_io_number,
             flow_id,
-            destination_array_order,
-            generic,
             destination,
             #[cfg(feature = "debugger")]
             name,
         }
-    }
-
-    /// Does the destination IO accept generic OBJECT_TYPE types
-    pub fn is_generic(&self) -> bool {
-        self.generic
     }
 }
 
@@ -116,8 +80,8 @@ impl fmt::Display for Source {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Source::Output(subroute) if subroute.is_empty() => Ok(()),
-            Source::Output(subroute) => write!(f, "{}", subroute),
-            Source::Input(index) => write!(f, ":{}", index),
+            Source::Output(subroute) => write!(f, "{subroute}"),
+            Source::Input(index) => write!(f, ":{index}"),
         }
     }
 }
@@ -137,55 +101,12 @@ impl fmt::Display for OutputConnection {
 #[cfg(test)]
 mod test {
     #[test]
-    fn default_array_order_test() {
-        assert_eq!(super::default_array_order(), 0)
-    }
-
-    #[test]
-    fn is_default_array_order_test() {
-        assert!(super::is_default_array_order(&0));
-    }
-
-    #[test]
-    fn is_not_default_array_order_test() {
-        assert!(!super::is_default_array_order(&1));
-    }
-
-    #[test]
-    fn default_generic_test() {
-        assert!(!super::default_generic());
-    }
-
-    #[test]
-    fn default_not_generic_test() {
-        assert!(super::is_not_generic(&false));
-    }
-
-    #[test]
-    fn display_test() {
-        let connection = super::OutputConnection::new(
-            super::Source::Output("/".into()),
-            1,
-            1,
-            1,
-            0,
-            false,
-            String::default(),
-            #[cfg(feature = "debugger")]
-            "test-connection".into(),
-        );
-        println!("Connection: {}", connection);
-    }
-
-    #[test]
     fn display_with_route_test() {
         let connection = super::OutputConnection::new(
             super::Source::Output("/".into()),
             1,
             1,
             1,
-            0,
-            false,
             "/flow1/input".into(),
             #[cfg(feature = "debugger")]
             "test-connection".into(),

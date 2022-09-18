@@ -149,12 +149,7 @@ fn implementation_location_relative(function: &FunctionDefinition, manifest_url:
     } else {
         let implementation_path = function.get_implementation();
         let implementation_url = Url::from_file_path(implementation_path)
-            .map_err(|_| {
-                format!(
-                    "Could not create Url from file path: {}",
-                    implementation_path
-                )
-            })?
+            .map_err(|_| { format!("Could not create Url from file path: {implementation_path}") })?
             .to_string();
 
         let mut manifest_base_url = manifest_url.clone();
@@ -164,7 +159,7 @@ fn implementation_location_relative(function: &FunctionDefinition, manifest_url:
             .pop();
 
         info!("Manifest base = '{}'", manifest_base_url.to_string());
-        info!("Absolute implementation path = '{}'", implementation_path);
+        info!("Absolute implementation path = '{implementation_path}'");
         let relative_path =
             implementation_url.replace(&format!("{}/", manifest_base_url.as_str()), "");
         info!("Relative implementation path = '{}'", relative_path);
@@ -210,8 +205,6 @@ mod test {
                     1,
                     0,
                     0,
-                    0,
-                    false,
                     String::default(),
                     #[cfg(feature = "debugger")]
                     String::default(),
@@ -221,8 +214,6 @@ mod test {
                     2,
                     0,
                     0,
-                    0,
-                    false,
                     String::default(),
                     #[cfg(feature = "debugger")]
                     String::default(),
@@ -285,8 +276,6 @@ mod test {
                 1,
                 0,
                 0,
-                0,
-                false,
                 String::default(),
                 #[cfg(feature = "debugger")]
                 String::default(),
@@ -304,62 +293,6 @@ mod test {
       'destination_id': 1,
       'destination_io_number': 0,
       'flow_id': 0
-    }
-  ]
-}";
-
-        let br = Box::new(function) as Box<FunctionDefinition>;
-
-        let process = function_to_runtimefunction(
-            &Url::parse("file://test").expect("Couldn't parse test Url"),
-            &br,
-            false,
-        )
-        .expect("Could not convert compile time function to runtime function");
-
-        let serialized_process = serde_json::to_string_pretty(&process)
-            .expect("Could not convert function content to json");
-        assert_eq!(serialized_process, expected.replace('\'', "\""));
-    }
-
-    #[test]
-    fn function_generation_with_array_order() {
-        let function = FunctionDefinition::new(
-            Name::from("Stdout"),
-            false,
-            "context://stdio/stdout".to_string(),
-            Name::from("print"),
-            vec![],
-            vec![IO::new(vec!(STRING_TYPE.into()), Route::default())],
-            Url::parse("file:///fake/file").expect("Could not parse Url"),
-            Route::from("/flow0/stdout"),
-            None,
-            Some(Url::parse("context://stdio/stdout").expect("Could not parse Url")),
-            vec![OutputConnection::new(
-                Source::default(),
-                1,
-                0,
-                0,
-                1,
-                false,
-                String::default(),
-                #[cfg(feature = "debugger")]
-                String::default(),
-            )],
-            0,
-            0,
-        );
-
-        let expected = "{
-  'function_id': 0,
-  'flow_id': 0,
-  'implementation_location': 'context://stdio/stdout',
-  'output_connections': [
-    {
-      'destination_id': 1,
-      'destination_io_number': 0,
-      'flow_id': 0,
-      'destination_array_order': 1
     }
   ]
 }";
@@ -497,7 +430,9 @@ mod test {
   'flow_id': 0,
   'implementation_location': 'context://stdio/stdout',
   'inputs': [
-    {}
+    {
+      'array_order': 1
+    }
   ]
 }";
 
@@ -532,8 +467,6 @@ mod test {
                 1,
                 0,
                 0,
-                0,
-                false,
                 String::default(),
                 #[cfg(feature = "debugger")]
                 String::default(),
@@ -607,8 +540,6 @@ mod test {
                 1,
                 0,
                 0,
-                0,
-                false,
                 String::default(),
                 #[cfg(feature = "debugger")]
                 String::default(),

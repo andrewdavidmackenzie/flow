@@ -193,7 +193,9 @@ impl Provider for MetaProvider {
 
 #[cfg(test)]
 mod test {
-    use std::path::{Path, PathBuf};
+    use std::path::Path;
+    #[cfg(feature = "context")]
+    use std::path::PathBuf;
 
     use simpath::Simpath;
     use url::Url;

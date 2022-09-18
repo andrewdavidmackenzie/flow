@@ -822,7 +822,7 @@ mod test {
                 "/fA",
             "file://fake/test",
             vec![Input::new(
-                #[cfg(feature = "debugger")] "",
+                #[cfg(feature = "debugger")] "", 0, false,
                 Some(Once(json!(1))), None)],
             id,
             0,

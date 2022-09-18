@@ -217,7 +217,7 @@ impl FunctionDefinition {
     // A function can only be impure if it is provided by 'context'
     fn check_impurity(&self, url: &Url) -> Result<()> {
         if self.impure && url.scheme() != "context" {
-            bail!("Only functions provided by 'context' can be impure ('{}')", url);
+            bail!("Only functions provided by 'context' can be impure ('{url}')");
         }
 
         Ok(())
@@ -429,8 +429,6 @@ mod test {
                 0,
                 0,
                 0,
-                0,
-                false,
                 String::default(),
                 #[cfg(feature = "debugger")]
                 String::default(),
