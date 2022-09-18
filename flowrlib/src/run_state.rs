@@ -203,6 +203,8 @@ pub struct RunState {
     ready: VecDeque<usize>,
     /// running: MultiMap<function_id, job_id> - a list of functions and jobs ids that are running
     running: MultiMap<usize, usize>,
+    /// maintain a count of the number of jobs running
+    num_running: usize,
     /// completed: functions that have run to completion and won't run again
     completed: HashSet<usize>,
     /// number of jobs sent for execution to date
@@ -223,7 +225,6 @@ pub struct RunState {
 // - track the states a function is in, without looking at all queues
 // - get blocks using the blocked function id (get_output_blockers()) - make blocks a HashMap?
 // - blocked_sending iterates over blocks to see if function is blocked
-// - number of jobs running - maintain a counter instead of counting each time. new job increments
 // retire job decrements. Run in parallel and compare then remove old one
 // - get_input_blockers has to iterate through functions to find senders to a function:IO pair
 // - unblock_flows iterates over functions to see if in the flow unblocked
@@ -241,6 +242,7 @@ impl RunState {
             blocks: HashSet::<Block>::new(),
             ready: VecDeque::<usize>::new(),
             running: MultiMap::<usize, usize>::new(),
+            num_running: 0,
             completed: HashSet::<usize>::new(),
             number_of_jobs_created: 0,
             busy_flows: MultiMap::<usize, usize>::new(),
@@ -265,6 +267,7 @@ impl RunState {
         self.blocks.clear();
         self.ready.clear();
         self.running.clear();
+        self.num_running = 0;
         self.completed.clear();
         self.number_of_jobs_created = 0;
         self.busy_flows.clear();
@@ -410,6 +413,7 @@ impl RunState {
 
         self.create_job(function_id).map(|job| {
             self.running.insert(job.function_id, job.job_id);
+            self.num_running += 1;
             let _ = self.unblock_internal_flow_senders(job.job_id, job.function_id, job.flow_id);
             job
         })
@@ -516,7 +520,9 @@ impl RunState {
         let mut display_next_output = false;
         let mut restart = false;
 
+        // ADM any way to remove directly
         self.running.retain(|&_, &job_id| job_id != job.job_id);
+        self.num_running -= 1;
         #[cfg(debug_assertions)]
         let job_id = job.job_id;
 
@@ -696,11 +702,7 @@ impl RunState {
 
     /// Return how many jobs are currently running
     pub fn number_jobs_running(&self) -> usize {
-        let mut num_running_jobs = 0;
-        for (_, vector) in self.running.iter_all() {
-            num_running_jobs += vector.len()
-        }
-        num_running_jobs
+        self.num_running
     }
 
     /// Return how many jobs are ready to be run, but not running yet
@@ -922,6 +924,7 @@ impl fmt::Display for RunState {
 
         writeln!(f, "RunState:")?;
         writeln!(f, "       Jobs Created: {}", self.number_of_jobs_created)?;
+        writeln!(f, "       Jobs Running: {}", self.num_running)?;
         writeln!(f, ". Functions Blocked: {:?}", self.blocked)?;
         writeln!(f, "             Blocks: {:?}", self.blocks)?;
         writeln!(f, "    Functions Ready: {:?}", self.ready)?;
@@ -953,11 +956,12 @@ mod test {
     #[cfg(feature = "debugger")]
     use crate::debugger::Debugger;
     #[cfg(feature = "debugger")]
-    use crate::run_state::{RunState, State};
+    use crate::run_state::State;
     #[cfg(feature = "debugger")]
     use crate::server::DebuggerProtocol;
 
     use super::Job;
+    use super::RunState;
 
     #[derive(Debug)]
     struct TestImpl {}
@@ -1059,7 +1063,7 @@ mod test {
         )
     }
 
-    fn test_output(source_function_id: usize, destination_function_id: usize) -> Job {
+    fn test_job(state: &mut RunState, source_function_id: usize, destination_function_id: usize) -> Job {
         let out_conn = OutputConnection::new(
             Source::default(),
             destination_function_id,
@@ -1069,6 +1073,7 @@ mod test {
             #[cfg(feature = "debugger")]
             String::default(),
         );
+        state.num_running += 1;
         Job {
             job_id: 1,
             function_id: source_function_id,
@@ -1578,7 +1583,7 @@ mod test {
             assert!(state.function_state_is_only(0, State::Running), "f_a should be Running");
 
             // Event
-            let output = super::test_output(0, 1);
+            let output = super::test_job(&mut state, 0, 1);
             let _ = state.retire_job(
                 #[cfg(feature = "metrics")]
                 &mut metrics,
@@ -1637,11 +1642,12 @@ mod test {
             assert!(state.function_state_is_only(0, State::Waiting), "f_a should be Waiting");
 
             // Event run f_b which will send to f_a
-            let output = super::test_output(1, 0);
+            let job = super::test_job(&mut state, 1, 0);
+
             let _ = state.retire_job(
                 #[cfg(feature = "metrics")]
                 &mut metrics,
-                &output,
+                &job,
                 #[cfg(feature = "debugger")]
                 &mut debugger,
             );
@@ -1704,14 +1710,12 @@ mod test {
                 "f_a should be in Waiting"
             );
 
-            let _ = state.new_job().expect("Couldn't get next job");
-
             // create output from f_b as if it had run - will send to f_a
-            let output = super::test_output(1, 0);
+            let job = super::test_job(&mut state, 1, 0);
             let _ = state.retire_job(
                 #[cfg(feature = "metrics")]
                 &mut metrics,
-                &output,
+                &job,
                 #[cfg(feature = "debugger")]
                 &mut debugger,
             );
