@@ -64,7 +64,7 @@ fn running_check(state: &RunState, job_id: usize, function: &RuntimeFunction) ->
 }
 
 fn blocked_check(state: &RunState, job_id: usize, function: &RuntimeFunction) -> Result<()> {
-    if !state.blocked(function.id()) {
+    if state.get_output_blockers(function.id()).is_empty() {
         return runtime_error(
             state,
             job_id,

@@ -223,13 +223,17 @@ pub struct RunState {
 // Missing struct capabilities
 // - iterate over functions that have an initializer, not all
 // - track the states a function is in, without looking at all queues
-// - get blocks using the blocked function id (get_output_blockers()) - make blocks a HashMap?
 // - blocked_sending iterates over blocks to see if function is blocked
-//   retire job decrements. Run in parallel and compare then remove old one
 // - get_input_blockers has to iterate through functions to find senders to a function:IO pair
 // - unblock_flows iterates over functions to see if in the flow unblocked
+
+// - get blocks using the blocked function id (get_output_blockers()) - make blocks a HashMap?
 // - remove_blocks iterates over all blocks with the filter, look at both filters to see what is
 //   actually needed
+//        let internal_senders_filter = |block: &Block|
+//             (block.blocking_flow_id == block.blocked_flow_id) &
+//                 (block.blocking_function_id == blocker_function_id);
+//        let all = |block: &Block| block.blocking_function_id == blocker_function_id;
 
 impl RunState {
     /// Create a new `RunState` struct from the list of functions provided and the `Submission`
@@ -687,7 +691,7 @@ impl RunState {
 
     /// Get the set of (blocking_function_id, function's IO number causing the block)
     /// of blockers for a specific function of `id`
-    #[cfg(feature = "debugger")]
+    #[cfg(any(feature = "debugger", debug_assertions))]
     pub fn get_output_blockers(&self, id: usize) -> Vec<usize> {
         let mut blockers = vec![];
 
@@ -701,7 +705,7 @@ impl RunState {
     }
 
     // See if there is any block where the blocked function is the one we're looking for
-    pub(crate) fn blocked(&self, id: usize) -> bool {
+    pub(crate) fn block_exists(&self, id: usize) -> bool {
         for block in &self.blocks {
             if block.blocked_function_id == id {
                 return true;
@@ -764,7 +768,7 @@ impl RunState {
     // - it has no input and is impure, so can run and produce an output
     // In which case it should transition to one of two states: Ready or Blocked
     pub(crate) fn make_ready_or_blocked(&mut self, function_id: usize, flow_id: usize) {
-        if self.blocked(function_id) {
+        if self.block_exists(function_id) {
             trace!( "\t\t\tFunction #{function_id} blocked on output. State set to 'Blocked'");
             self.blocked.insert(function_id);
         } else {
@@ -859,23 +863,23 @@ impl RunState {
     where
         F: Fn(&Block) -> bool
     {
-        let mut unblock_set = vec![];
+        let mut potential_unblock_set = vec![];
 
         // Remove matching blocks and maintain a list of sender functions to unblock
         for block in &self.blocks {
             if block_filter(block) {
-                unblock_set.push(block.clone());
+                potential_unblock_set.push(block.clone());
             }
         }
 
-        // Remove blocks between the sender and the destination. Not that a sender can send to
+        // Remove blocks between the sender and the destination. Note that a sender can send to
         // multiple destinations and so could still be blocked sending to other functions
         // If the sender is now not blocked on *any* destination then unblock it
-        for block in unblock_set {
+        for block in potential_unblock_set {
             self.blocks.remove(&block);
             trace!("\t\t\tBlock removed {:?}", block);
 
-            if self.blocked.contains(&block.blocked_function_id) && !self.blocked(block.blocked_function_id) {
+            if self.blocked.contains(&block.blocked_function_id) && !self.block_exists(block.blocked_function_id) {
                 trace!("\t\t\t\tFunction #{} removed from 'blocked' list", block.blocked_function_id);
                 self.blocked.remove(&block.blocked_function_id);
 
@@ -1944,7 +1948,7 @@ mod test {
                 #[cfg(feature = "debugger")]
                 &mut debugger,
             );
-            assert!(state.blocked(0));
+            assert!(!state.get_output_blockers(0).is_empty());
         }
 
         #[test]
