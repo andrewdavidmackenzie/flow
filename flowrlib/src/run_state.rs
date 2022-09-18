@@ -221,6 +221,14 @@ pub struct RunState {
 // Missing struct capabilities
 // - iterate over functions that have an initializer, not all
 // - track the states a function is in, without looking at all queues
+// - get blocks using the blocked function id (get_output_blockers()) - make blocks a HashMap?
+// - blocked_sending iterates over blocks to see if function is blocked
+// - number of jobs running - maintain a counter instead of counting each time. new job increments
+// retire job decrements. Run in parallel and compare then remove old one
+// - get_input_blockers has to iterate through functions to find senders to a function:IO pair
+// - unblock_flows iterates over functions to see if in the flow unblocked
+// - remove_blocks iterates over all blocks with the filter, look at both filters to see what is
+//   actually needed
 
 impl RunState {
     /// Create a new `RunState` struct from the list of functions provided and the `Submission`
@@ -713,7 +721,7 @@ impl RunState {
             if input.count() == 0 {
                 let mut senders = Vec::<(usize, usize)>::new();
 
-                // go through all functions to see if sends to the target function on input
+                // go through all functions to see if sends to the target function on this input
                 for sender_function in &self.functions {
                     // if the sender function is not ready to run
                     if !self.ready.contains(&sender_function.id()) {
