@@ -94,11 +94,6 @@ pub fn get_manifest() -> Result<LibraryManifest> {
         );
 
     manifest.locators.insert(
-            Url::parse("lib://flowstdlib/data/buffer")?,
-            Native(Arc::new(data::buffer::Buffer)),
-        );
-
-    manifest.locators.insert(
             Url::parse("lib://flowstdlib/data/ordered_split")?,
             Native(Arc::new(data::ordered_split::OrderedSplit)),
         );
