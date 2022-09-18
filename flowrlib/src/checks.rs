@@ -160,8 +160,8 @@ fn destination_block_state_check(state: &RunState, job_id: usize, block: &Block,
 // Check busy flow invariants
 fn flow_checks(state: &RunState, job_id: usize) -> Result<()> {
     for (flow_id, function_id) in state.get_busy_flows().iter() {
-        if !state.function_states_includes(*function_id, State::Ready) &&
-            !state.function_states_includes(*function_id, State::Running) {
+        let function_states = state.get_function_states(*function_id);
+        if !function_states.contains(&State::Ready) && !function_states.contains(&State::Running) {
             return runtime_error(
                 state,
                 job_id,

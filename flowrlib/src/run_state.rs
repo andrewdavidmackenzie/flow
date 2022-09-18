@@ -218,6 +218,10 @@ pub struct RunState {
     strategy: ExecutionStrategy,
 }
 
+// Missing struct capabilities
+// - iterate over functions that have an initializer, not all
+// - track the states a function is in, without looking at all queues
+
 impl RunState {
     /// Create a new `RunState` struct from the list of functions provided and the `Submission`
     /// that was sent to be executed
@@ -328,23 +332,6 @@ impl RunState {
         function_states.len() == 1 && function_states.contains(&state)
     }
 
-    /// See if there is at least one instance of a function in the given state
-    #[cfg(any(debug_assertions, test))]
-    pub(crate) fn function_states_includes(&self, function_id: usize, state: State) -> bool {
-        match state {
-            State::Ready => self.ready.contains(&function_id),
-            State::Blocked => self.blocked.contains(&function_id),
-            State::Running => self.running.contains_key(&function_id),
-            State::Completed => self.completed.contains(&function_id),
-            State::Waiting => {
-                !self.ready.contains(&function_id) &&
-                    !self.blocked.contains(&function_id) &&
-                    !self.running.contains_key(&function_id) &&
-                    !self.completed.contains(&function_id)
-            }
-        }
-    }
-
     /// Get the list of blocked function ids
     #[cfg(feature = "debugger")]
     pub fn get_blocked(&self) -> &HashSet<usize> {
@@ -391,7 +378,7 @@ impl RunState {
         &self.flow_blocks
     }
 
-    /// Return a new job to run, if there is one and there are not too many jobs already running
+    // Return a new job to run, if there is one and there are not too many jobs already running
     pub(crate) fn new_job(&mut self) -> Option<Job> {
         if let Some(limit) = self.submission.max_parallel_jobs {
             if self.number_jobs_running() >= limit {
@@ -503,16 +490,16 @@ impl RunState {
         }
     }
 
-    /// Complete a Job by taking its output and updating the run-list accordingly.
-    ///
-    /// If other functions were blocked trying to send to this one - we can now unblock them
-    /// as it has consumed it's inputs and they are free to be sent to again.
-    ///
-    /// Then take the output and send it to all destination IOs on different function it should be
-    /// sent to, marking the source function as blocked because those others must consume the output
-    /// if those other function have all their inputs, then mark them accordingly.
+    // Complete a Job by taking its output and updating the run-list accordingly.
+    //
+    // If other functions were blocked trying to send to this one - we can now unblock them
+    // as it has consumed it's inputs and they are free to be sent to again.
+    //
+    // Then take the output and send it to all destination IOs on different function it should be
+    // sent to, marking the source function as blocked because those others must consume the output
+    // if those other function have all their inputs, then mark them accordingly.
     #[allow(unused_variables, unused_assignments, unused_mut)]
-    pub fn retire_job(
+    pub(crate) fn retire_job(
         &mut self,
         #[cfg(feature = "metrics")] metrics: &mut Metrics,
         job: &Job,
