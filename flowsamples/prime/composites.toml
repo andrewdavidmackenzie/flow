@@ -20,9 +20,9 @@ input.step = {once =  1}
 from = "sqrt"
 to = "divisors/limit"
 
-## generate a sequence of composites - i.e. non-primes
+## generate a sequence of composites - i.e. All the non-primes upto the limit
 
-# start at at 2 x divisor - no point in generating composites from the divisor itself
+# start at 2 x divisor - no point in generating composites from the divisor itself
 # e.g. if start = 2, first composite will be 4
 [[process]]
 source = "lib://flowstdlib/math/multiply"
@@ -39,20 +39,8 @@ to = "composite-sequence/start"
 from = "divisors/sequence"
 to = "composite-sequence/step"
 
-# buffer the limit so it can be reused each time
-[[process]]
-alias = "limit-buffer"
-source = "lib://flowstdlib/data/buffer"
-#
 [[connection]]
 from = "input/limit"
-to = "limit-buffer"
-[[connection]] # loopback
-from = "limit-buffer"
-to = "limit-buffer"
-# and send to sequence as upper limit
-[[connection]]
-from = "limit-buffer"
 to = "composite-sequence/limit"
 
 # generate the sequence-of-sequences of composites as an output

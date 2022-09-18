@@ -4,7 +4,6 @@ Some generic processes that act on data.
 ## List of Functions and Flows
 * [`accumulate`](accumulate/accumulate.md)
 * [`append`](append/append.md)
-* [`buffer`](buffer/buffer.md)
 * [`count`](count/count.md)
 * [`duplicate`](duplicate/duplicate.md)
 * [`duplicate_rows`](duplicate_rows/duplicate_rows.md)

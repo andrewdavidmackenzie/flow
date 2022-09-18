@@ -27,7 +27,7 @@ pub fn main() -> io::Result<()>{
 }
 
 fn check_flow_lib_path(parent: &Path) {
-    match std::env::var("FLOW_LIB_PATH") {
+    match env::var("FLOW_LIB_PATH") {
         Err(_) => {
             println!("'FLOW_LIB_PATH' is not set. \n\
                     For this 'flowstdlib' to be found by 'flowc' or 'flowr' the '-L {}' option must be used", parent.display());
@@ -83,6 +83,6 @@ mod test {
     #[test]
     fn get_manifest_test() {
         let manifest = flowstdlib::manifest::get_manifest().expect("Could not get manifest");
-        assert_eq!(manifest.locators.len(), 31);
+        assert_eq!(manifest.locators.len(), 30);
     }
 }

@@ -68,7 +68,6 @@
 - [data](flowstdlib/data/data.md)
     - [accumulate](flowstdlib/data/accumulate/accumulate.md)
     - [append](flowstdlib/data/append/append.md)
-    - [buffer](flowstdlib/data/buffer/buffer.md)
     - [count](flowstdlib/data/count/count.md)
     - [duplicate](flowstdlib/data/duplicate/duplicate.md)
     - [duplicate_rows](flowstdlib/data/duplicate_rows/duplicate_rows.md)

@@ -7,9 +7,6 @@ pub mod append;
 /// A module that implements accumulating an array from a number of elements
 #[path = "accumulate/accumulate.rs"]
 pub mod accumulate;
-/// A module that implements a data buffer
-#[path = "buffer/buffer.rs"]
-pub mod buffer;
 /// A module that counts data passed thru it
 #[path = "count/count.rs"]
 pub mod count;
