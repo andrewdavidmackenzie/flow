@@ -225,7 +225,7 @@ pub struct RunState {
 // - track the states a function is in, without looking at all queues
 // - get blocks using the blocked function id (get_output_blockers()) - make blocks a HashMap?
 // - blocked_sending iterates over blocks to see if function is blocked
-// retire job decrements. Run in parallel and compare then remove old one
+//   retire job decrements. Run in parallel and compare then remove old one
 // - get_input_blockers has to iterate through functions to find senders to a function:IO pair
 // - unblock_flows iterates over functions to see if in the flow unblocked
 // - remove_blocks iterates over all blocks with the filter, look at both filters to see what is
@@ -688,16 +688,26 @@ impl RunState {
     /// Get the set of (blocking_function_id, function's IO number causing the block)
     /// of blockers for a specific function of `id`
     #[cfg(feature = "debugger")]
-    pub fn get_output_blockers(&self, id: usize) -> Vec<(usize, usize)> {
+    pub fn get_output_blockers(&self, id: usize) -> Vec<usize> {
         let mut blockers = vec![];
 
         for block in &self.blocks {
             if block.blocked_function_id == id {
-                blockers.push((block.blocking_function_id, block.blocking_io_number));
+                blockers.push(block.blocking_function_id);
             }
         }
 
         blockers
+    }
+
+    // See if there is any block where the blocked function is the one we're looking for
+    pub(crate) fn blocked(&self, id: usize) -> bool {
+        for block in &self.blocks {
+            if block.blocked_function_id == id {
+                return true;
+            }
+        }
+        false
     }
 
     /// Return how many jobs are currently running
@@ -713,7 +723,7 @@ impl RunState {
     /// An input blocker is another function that is the only function connected to an empty input
     /// of target function, and which is not ready to run, hence target function cannot run.
     #[cfg(feature = "debugger")]
-    pub fn get_input_blockers(&self, target_id: usize) -> Result<Vec<(usize, usize)>> {
+    pub fn get_input_blockers(&self, target_id: usize) -> Result<Vec<usize>> {
         let mut input_blockers = vec![];
         let target_function = self.get_function(target_id)
             .ok_or("No such function")?;
@@ -721,7 +731,7 @@ impl RunState {
         // for each empty input of the target function
         for (target_io, input) in target_function.inputs().iter().enumerate() {
             if input.count() == 0 {
-                let mut senders = Vec::<(usize, usize)>::new();
+                let mut senders = Vec::<usize>::new();
 
                 // go through all functions to see if sends to the target function on this input
                 for sender_function in &self.functions {
@@ -733,7 +743,7 @@ impl RunState {
                             if (destination.destination_id == target_id)
                                 && (destination.destination_io_number == target_io)
                             {
-                                senders.push((sender_function.id(), target_io));
+                                senders.push(sender_function.id());
                             }
                         }
                     }
@@ -754,7 +764,7 @@ impl RunState {
     // - it has no input and is impure, so can run and produce an output
     // In which case it should transition to one of two states: Ready or Blocked
     pub(crate) fn make_ready_or_blocked(&mut self, function_id: usize, flow_id: usize) {
-        if self.blocked_sending(function_id) {
+        if self.blocked(function_id) {
             trace!( "\t\t\tFunction #{function_id} blocked on output. State set to 'Blocked'");
             self.blocked.insert(function_id);
         } else {
@@ -762,16 +772,6 @@ impl RunState {
             self.ready.push_back(function_id);
             self.busy_flows.insert(flow_id, function_id);
         }
-    }
-
-    // See if there is any block where the blocked function is the one we're looking for
-    pub(crate) fn blocked_sending(&self, id: usize) -> bool {
-        for block in &self.blocks {
-            if block.blocked_function_id == id {
-                return true;
-            }
-        }
-        false
     }
 
     /// Return how many functions exist in this flow being executed
@@ -875,7 +875,7 @@ impl RunState {
             self.blocks.remove(&block);
             trace!("\t\t\tBlock removed {:?}", block);
 
-            if self.blocked.contains(&block.blocked_function_id) && !self.blocked_sending(block.blocked_function_id) {
+            if self.blocked.contains(&block.blocked_function_id) && !self.blocked(block.blocked_function_id) {
                 trace!("\t\t\t\tFunction #{} removed from 'blocked' list", block.blocked_function_id);
                 self.blocked.remove(&block.blocked_function_id);
 
@@ -1294,7 +1294,7 @@ mod test {
             );
             #[cfg(feature = "debugger")]
             assert!(
-                state.get_input_blockers(1).expect("Could not get blockers").contains(&(0, 0)),
+                state.get_input_blockers(1).expect("Could not get blockers").contains(&0),
                 "f_b should be waiting for input from f_a"
             )
         }
@@ -1944,7 +1944,7 @@ mod test {
                 #[cfg(feature = "debugger")]
                 &mut debugger,
             );
-            assert!(state.blocked_sending(0));
+            assert!(state.blocked(0));
         }
 
         #[test]

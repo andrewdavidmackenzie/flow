@@ -639,13 +639,13 @@ impl<'a> Debugger<'a> {
         let mut blockers: Vec<BlockerNode> = state
             .get_output_blockers(process_id)
             .iter()
-            .map(|(id, _)| BlockerNode::new(*id, BlockType::OutputBlocked))
+            .map(|id| BlockerNode::new(*id, BlockType::OutputBlocked))
             .collect();
 
         let input_blockers: Vec<BlockerNode> = state
             .get_input_blockers(process_id)?
             .iter()
-            .map(|(id, _)| BlockerNode::new(*id, BlockType::UnreadySender))
+            .map(|id| BlockerNode::new(*id, BlockType::UnreadySender))
             .collect();
 
         blockers.extend(input_blockers);
