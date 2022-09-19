@@ -197,7 +197,7 @@ pub struct RunState {
     functions: Vec<RuntimeFunction>,
     /// blocked: HashSet<function_id> - list of functions by id that are blocked on sending
     blocked: HashSet<usize>,
-    /// blocks: Vec<(blocking_id, blocking_io_number, blocked_id, blocked_flow_id)> - a list of blocks between functions
+    /// blocks: - a list of blocks between functions
     blocks: HashSet<Block>,
     /// ready: Vec<function_id> - a list of functions by id that are ready to run
     ready: VecDeque<usize>,
@@ -222,10 +222,12 @@ pub struct RunState {
 
 // Missing struct capabilities
 // - iterate over functions that have an initializer, not all
+
 // - track the states a function is in, without looking at all queues
-// - blocked_sending iterates over blocks to see if function is blocked
 // - get_input_blockers has to iterate through functions to find senders to a function:IO pair
 // - unblock_flows iterates over functions to see if in the flow unblocked
+
+// - block_exists() iterates over blocks to see if function is blocked
 
 // - get blocks using the blocked function id (get_output_blockers()) - make blocks a HashMap?
 // - remove_blocks iterates over all blocks with the filter, look at both filters to see what is
@@ -306,9 +308,9 @@ impl RunState {
             }
         }
 
-        // Put all functions that have their inputs ready and are not blocked on the `ready` list
+        // Put all functions that have their inputs ready on the `ready` list
         for (id, flow_id) in inputs_ready_list {
-            self.make_ready_or_blocked(id, flow_id);
+            self.make_ready(id, flow_id);
         }
     }
 
@@ -669,7 +671,7 @@ impl RunState {
         if block {
             // TODO pass in connection and combine Block and OutputConnection?
             (display_next_output, restart) = self.create_block(
-                connection.flow_id,
+                connection.destination_flow_id,
                 connection.destination_id,
                 connection.destination_io_number,
                 source_id,
@@ -683,7 +685,7 @@ impl RunState {
         // connection that sends a value to itself, as it may also send to other functions and need
         // to be blocked. But for all other receivers of values, make them Ready or Blocked
         if new_input_set_available && !loopback {
-            self.make_ready_or_blocked(connection.destination_id, connection.flow_id);
+            self.make_ready_or_blocked(connection.destination_id, connection.destination_flow_id);
         }
 
         Ok((display_next_output, restart))
@@ -772,10 +774,15 @@ impl RunState {
             trace!( "\t\t\tFunction #{function_id} blocked on output. State set to 'Blocked'");
             self.blocked.insert(function_id);
         } else {
-            trace!("\t\t\tFunction #{function_id} not blocked on output. State set to 'Ready'");
-            self.ready.push_back(function_id);
-            self.busy_flows.insert(flow_id, function_id);
+            self.make_ready(function_id, flow_id);
         }
+    }
+
+    fn make_ready(&mut self, function_id: usize, flow_id: usize) {
+        trace!("\t\t\tFunction #{function_id} State set to 'Ready'");
+        self.ready.push_back(function_id);
+        self.busy_flows.insert(flow_id, function_id);
+
     }
 
     /// Return how many functions exist in this flow being executed
