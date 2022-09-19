@@ -66,6 +66,11 @@ impl FlowManifest {
         &mut self.functions
     }
 
+    /// Take the vector of functions out of this manifest
+    pub fn take_functions(self) -> Vec<RuntimeFunction> {
+        self.functions
+    }
+
     /// Get the metadata structure for this manifest
     pub fn get_metadata(&self) -> &MetaData {
         &self.metadata

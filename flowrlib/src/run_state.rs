@@ -242,9 +242,9 @@ pub struct RunState {
 impl RunState {
     /// Create a new `RunState` struct from the list of functions provided and the `Submission`
     /// that was sent to be executed
-    pub fn new(functions: &[RuntimeFunction], submission: Submission) -> Self {
+    pub fn new(functions: Vec<RuntimeFunction>, submission: Submission) -> Self {
         RunState {
-            functions: functions.to_vec(),
+            functions,
             submission,
             blocked: HashSet::<usize>::new(),
             blocks: HashSet::<Block>::new(),
@@ -1154,7 +1154,7 @@ mod test {
                 #[cfg(feature = "debugger")]
                 true,
             );
-            let mut state = RunState::new(&functions, submission);
+            let mut state = RunState::new(functions, submission);
             state.init();
 
             #[cfg(any(feature = "debugger", feature = "metrics"))]
@@ -1172,7 +1172,7 @@ mod test {
                 #[cfg(feature = "debugger")]
                 true,
             );
-            let mut state = RunState::new(&[], submission);
+            let mut state = RunState::new(vec![], submission);
             state.init();
             assert_eq!(0, state.get_number_of_jobs_created(), "At init jobs() should be 0");
             assert_eq!(0, state.number_jobs_ready());
@@ -1187,7 +1187,7 @@ mod test {
                 #[cfg(feature = "debugger")]
                 true,
             );
-            let mut state = RunState::new(&[], submission);
+            let mut state = RunState::new(vec![], submission);
             state.init();
             assert_eq!(
                 &HashSet::new(),
@@ -1205,7 +1205,7 @@ mod test {
                 #[cfg(feature = "debugger")]
                 true,
             );
-            let mut state = RunState::new(&[], submission);
+            let mut state = RunState::new(vec![], submission);
             state.init();
             assert_eq!(
                 &MultiMap::new(),
@@ -1223,7 +1223,7 @@ mod test {
                 #[cfg(feature = "debugger")]
                 true,
             );
-            let mut state = RunState::new(&[], submission);
+            let mut state = RunState::new(vec![], submission);
             state.init();
             assert_eq!(
                 &HashSet::new(),
@@ -1264,7 +1264,7 @@ mod test {
                 #[cfg(feature = "debugger")]
                 true,
             );
-            let mut state = RunState::new(&functions, submission);
+            let mut state = RunState::new(functions, submission);
 
             // Event
             state.init();
@@ -1289,7 +1289,7 @@ mod test {
                 #[cfg(feature = "debugger")]
                 true,
             );
-            let mut state = RunState::new(&functions, submission);
+            let mut state = RunState::new(functions, submission);
 
             // Event
             state.init();
@@ -1321,7 +1321,7 @@ mod test {
                 #[cfg(feature = "debugger")]
                 true,
             );
-            let mut state = RunState::new(&functions, submission);
+            let mut state = RunState::new(functions, submission);
 
             // Event
             state.init();
@@ -1340,7 +1340,7 @@ mod test {
                 #[cfg(feature = "debugger")]
                 true,
             );
-            let mut state = RunState::new(&functions, submission);
+            let mut state = RunState::new(functions, submission);
 
             // Event
             state.init();
@@ -1376,7 +1376,7 @@ mod test {
                 #[cfg(feature = "debugger")]
                 true,
             );
-            let mut state = RunState::new(&functions, submission);
+            let mut state = RunState::new(functions, submission);
 
             // Event
             state.init();
@@ -1395,7 +1395,7 @@ mod test {
                 #[cfg(feature = "debugger")]
                 true,
             );
-            let mut state = RunState::new(&functions, submission);
+            let mut state = RunState::new(functions, submission);
             state.init();
             assert!(state.function_state_is_only(0, State::Ready), "f_a should be Ready");
 
@@ -1416,7 +1416,7 @@ mod test {
                 #[cfg(feature = "debugger")]
                 true,
             );
-            let mut state = RunState::new(&functions, submission);
+            let mut state = RunState::new(functions, submission);
             state.init();
             assert!(state.function_state_is_only(0, State::Waiting), "f_a should be Waiting");
 
@@ -1463,7 +1463,7 @@ mod test {
                 #[cfg(feature = "debugger")]
                 true,
             );
-            let mut state = RunState::new(&functions, submission);
+            let mut state = RunState::new(functions, submission);
             #[cfg(feature = "metrics")]
             let mut metrics = Metrics::new(1);
             #[cfg(feature = "debugger")]
@@ -1507,7 +1507,7 @@ mod test {
                 #[cfg(feature = "debugger")]
                 true,
             );
-            let mut state = RunState::new(&functions, submission);
+            let mut state = RunState::new(functions, submission);
             #[cfg(feature = "metrics")]
             let mut metrics = Metrics::new(1);
             #[cfg(feature = "debugger")]
@@ -1573,7 +1573,7 @@ mod test {
                 #[cfg(feature = "debugger")]
                 true,
             );
-            let mut state = RunState::new(&functions, submission);
+            let mut state = RunState::new(functions, submission);
             #[cfg(feature = "metrics")]
             let mut metrics = Metrics::new(1);
             #[cfg(feature = "debugger")]
@@ -1641,7 +1641,7 @@ mod test {
                 #[cfg(feature = "debugger")]
                 true,
             );
-            let mut state = RunState::new(&functions, submission);
+            let mut state = RunState::new(functions, submission);
             #[cfg(feature = "metrics")]
             let mut metrics = Metrics::new(1);
             #[cfg(feature = "debugger")]
@@ -1705,7 +1705,7 @@ mod test {
                 #[cfg(feature = "debugger")]
                 true,
             );
-            let mut state = RunState::new(&functions, submission);
+            let mut state = RunState::new(functions, submission);
             #[cfg(feature = "metrics")]
             let mut metrics = Metrics::new(1);
             #[cfg(feature = "debugger")]
@@ -1787,7 +1787,7 @@ mod test {
                 #[cfg(feature = "debugger")]
                 true,
             );
-            let mut state = RunState::new(&functions, submission);
+            let mut state = RunState::new(functions, submission);
             #[cfg(feature = "metrics")]
             let mut metrics = Metrics::new(2);
             #[cfg(feature = "debugger")]
@@ -1939,7 +1939,7 @@ mod test {
                 #[cfg(feature = "debugger")]
                 true,
             );
-            let mut state = RunState::new(&test_functions(), submission);
+            let mut state = RunState::new(test_functions(), submission);
             #[cfg(feature = "debugger")]
                 let mut server = super::DummyServer{};
             #[cfg(feature = "debugger")]
@@ -1966,7 +1966,7 @@ mod test {
                 #[cfg(feature = "debugger")]
                 true,
             );
-            let state = RunState::new(&test_functions(), submission);
+            let state = RunState::new(test_functions(), submission);
             let got = state.get_function(1)
                 .ok_or("Could not get function by id").expect("Could not get function with that id");
             assert_eq!(got.id(), 1)
@@ -1980,7 +1980,7 @@ mod test {
                 #[cfg(feature = "debugger")]
                 true,
             );
-            let mut state = RunState::new(&test_functions(), submission);
+            let mut state = RunState::new(test_functions(), submission);
 
             assert!(state.new_job().is_none());
         }
@@ -1993,7 +1993,7 @@ mod test {
                 #[cfg(feature = "debugger")]
                 true,
             );
-            let mut state = RunState::new(&test_functions(), submission);
+            let mut state = RunState::new(test_functions(), submission);
 
             // Put 0 on the blocked/ready
             state.make_ready_or_blocked(0, 0);
@@ -2009,7 +2009,7 @@ mod test {
                 #[cfg(feature = "debugger")]
                 true,
             );
-            let mut state = RunState::new(&test_functions(), submission);
+            let mut state = RunState::new(test_functions(), submission);
 
             // Put 0 on the blocked/ready list depending on blocked status
             state.make_ready_or_blocked(0, 0);
@@ -2026,7 +2026,7 @@ mod test {
                 #[cfg(feature = "debugger")]
                 true,
             );
-            let mut state = RunState::new(&test_functions(), submission);
+            let mut state = RunState::new(test_functions(), submission);
             #[cfg(feature = "debugger")]
                 let mut server = super::DummyServer{};
             #[cfg(feature = "debugger")]
@@ -2058,7 +2058,7 @@ mod test {
                 #[cfg(feature = "debugger")]
                 true,
             );
-            let mut state = RunState::new(&test_functions(), submission);
+            let mut state = RunState::new(test_functions(), submission);
             #[cfg(feature = "debugger")]
                 let mut server = super::DummyServer{};
             #[cfg(feature = "debugger")]
@@ -2096,7 +2096,7 @@ mod test {
                 #[cfg(feature = "debugger")]
                 true,
             );
-            let mut state = RunState::new(&test_functions(), submission);
+            let mut state = RunState::new(test_functions(), submission);
 
             #[cfg(feature = "debugger")]
                 let mut server = super::DummyServer{};
@@ -2146,7 +2146,7 @@ mod test {
                 true,
             );
             // test_functions has 3 functions
-            let mut state = RunState::new(&test_functions(), submission);
+            let mut state = RunState::new(test_functions(), submission);
 
             state.init();
 
@@ -2171,7 +2171,7 @@ mod test {
                 #[cfg(feature = "debugger")]
                 true,
             );
-            let mut state = RunState::new(&functions, submission);
+            let mut state = RunState::new(functions, submission);
             #[cfg(feature = "metrics")]
             let mut metrics = Metrics::new(1);
             #[cfg(feature = "debugger")]
