@@ -221,8 +221,6 @@ pub struct RunState {
 }
 
 // Missing struct capabilities
-// - iterate over functions that have an initializer, not all
-
 // - track the states a function is in, without looking at all queues
 
 // - get_input_blockers has to iterate through functions to find senders to a function:IO pair
@@ -302,9 +300,9 @@ impl RunState {
 
         let mut inputs_ready_list = Vec::<(usize, usize)>::new();
 
-        debug!("Initializing inputs with initializers");
+        debug!("Initializing all functions");
         for function in &mut self.functions {
-            function.init_inputs(true, false);
+            function.init();
             if function.can_run() {
                 inputs_ready_list.push((function.id(), function.get_flow_id()));
             }
