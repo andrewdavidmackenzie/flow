@@ -298,19 +298,14 @@ impl RunState {
         #[cfg(feature = "debugger")]
         self.reset();
 
-        let mut inputs_ready_list = Vec::<(usize, usize)>::new();
-
         debug!("Initializing all functions");
         for function in &mut self.functions {
             function.init();
             if function.can_run() {
-                inputs_ready_list.push((function.id(), function.get_flow_id()));
+                trace!("\t\t\tFunction #{} State set to 'Ready'", function.id());
+                self.ready.push_back(function.id());
+                self.busy_flows.insert(function.get_flow_id(), function.id());
             }
-        }
-
-        // Put all functions that have their inputs ready on the `ready` list
-        for (id, flow_id) in inputs_ready_list {
-            self.make_ready(id, flow_id);
         }
     }
 
@@ -779,7 +774,6 @@ impl RunState {
         trace!("\t\t\tFunction #{function_id} State set to 'Ready'");
         self.ready.push_back(function_id);
         self.busy_flows.insert(flow_id, function_id);
-
     }
 
     /// Return how many functions exist in this flow being executed
