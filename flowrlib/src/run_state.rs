@@ -224,7 +224,9 @@ pub struct RunState {
 // - iterate over functions that have an initializer, not all
 
 // - track the states a function is in, without looking at all queues
+
 // - get_input_blockers has to iterate through functions to find senders to a function:IO pair
+
 // - unblock_flows iterates over functions to see if in the flow unblocked
 
 // - block_exists() iterates over blocks to see if function is blocked
@@ -593,12 +595,9 @@ impl RunState {
             Err(e) => error!("Error in Job#{}: {e}", job.job_id)
         }
 
-        self.remove_from_busy(job.function_id);
-
         // need to do flow unblocks as that could affect other functions even if this one cannot run again
         (display_next_output, restart) =
-            self.unblock_flows(job.flow_id,
-                               job.job_id,
+            self.unblock_flows(job,
                                #[cfg(feature = "debugger")] debugger,
             )?;
 
@@ -795,28 +794,29 @@ impl RunState {
     // if that has just gone idle
     #[allow(unused_variables, unused_assignments, unused_mut)]
     fn unblock_flows(&mut self,
-                     blocker_flow_id: usize,
-                     job_id: usize,
+                     job: &Job,
                      #[cfg(feature = "debugger")] debugger: &mut Debugger,
         ) -> Result<(bool, bool)> {
         let mut display_next_output = false;
         let mut restart = false;
 
+        self.remove_from_busy(job.function_id);
+
         // if flow is now idle, remove any blocks on sending to functions in the flow
-        if self.busy_flows.get(&blocker_flow_id).is_none() {
-            debug!("Job #{job_id}: Flow #{blocker_flow_id} has gone idle");
+        if self.busy_flows.get(&job.flow_id).is_none() {
+            debug!("Job #{}: Flow #{} has gone idle", job.job_id, job.flow_id);
             #[cfg(feature = "debugger")]
             {
                 (display_next_output, restart) = debugger.check_prior_to_flow_unblock(self,
-                                                                                      blocker_flow_id)?;
+                                                                                      job.flow_id)?;
             }
 
-            trace!("Job #{job_id}:\tFlow #{blocker_flow_id} is now idle, \
-                so removing pending_unblocks for flow #{blocker_flow_id}");
+            trace!("Job #{}:\tFlow #{} is now idle, so removing pending_unblocks for flow #{}",
+                job.job_id, job.flow_id, job.flow_id);
 
-            if let Some(blockers) = self.flow_blocks.remove(&blocker_flow_id) {
-                trace!("Job #{job_id}:\tRemoving pending unblocks to functions in \
-                    Flow #{blocker_flow_id} from other flows");
+            if let Some(blockers) = self.flow_blocks.remove(&job.flow_id) {
+                trace!("Job #{}:\tRemoving pending unblocks to functions in \
+                    Flow #{} from other flows", job.job_id, job.flow_id);
                 for blocker_function_id in blockers {
                     let all = |block: &Block| block.blocking_function_id == blocker_function_id;
                     self.remove_blocks(all)?;
@@ -826,7 +826,7 @@ impl RunState {
             // do flow initializers on functions in the flow that has just gone idle
             let mut initialized_functions = Vec::<usize>::new();
             for function in &mut self.functions {
-                if function.get_flow_id() == blocker_flow_id {
+                if function.get_flow_id() == job.flow_id {
                     let could_run_before = function.can_run();
                     function.init_inputs(false, true);
                     let can_run_now = function.can_run();
@@ -838,7 +838,7 @@ impl RunState {
             }
 
             for function_id in initialized_functions {
-                self.make_ready_or_blocked(function_id, blocker_flow_id);
+                self.make_ready_or_blocked(function_id, job.flow_id);
             }
         }
 
