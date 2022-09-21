@@ -34,7 +34,7 @@ serde_json = { version = "1.0", default-features = false }
 error-chain = "0.12.2"
 multimap = "~0.8"
 rand = "0.8"
-wasmtime = { version = "0.40.1", default-features = false, features = ["cranelift"] }
+wasmtime = { version = "1.0.0", default-features = false, features = ["cranelift"] }
 
 [dev-dependencies]
 tempdir = "~0.3.5"
