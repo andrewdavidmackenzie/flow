@@ -504,11 +504,8 @@ impl RunState {
         let mut display_next_output = false;
         let mut restart = false;
 
-        // ADM any way to remove directly
         self.running.retain(|&_, &job_id| job_id != job.job_id);
         self.num_running -= 1;
-        #[cfg(debug_assertions)]
-        let job_id = job.job_id;
 
         match &job.result {
             Ok((output_value, function_can_run_again)) => {
@@ -578,7 +575,7 @@ impl RunState {
             )?;
 
         #[cfg(debug_assertions)]
-        checks::check_invariants(self, job_id)?;
+        checks::check_invariants(self, job.job_id)?;
 
         trace!(
             "Job #{}: Completed-----------------------",
