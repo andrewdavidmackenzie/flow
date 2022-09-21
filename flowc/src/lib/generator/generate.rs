@@ -231,7 +231,7 @@ mod test {
     {
       'destination_id': 1,
       'destination_io_number': 0,
-      'flow_id': 0
+      'destination_flow_id': 0
     },
     {
       'source': {
@@ -239,7 +239,7 @@ mod test {
       },
       'destination_id': 2,
       'destination_io_number': 0,
-      'flow_id': 0
+      'destination_flow_id': 0
     }
   ]
 }";
@@ -292,7 +292,7 @@ mod test {
     {
       'destination_id': 1,
       'destination_io_number': 0,
-      'flow_id': 0
+      'destination_flow_id': 0
     }
   ]
 }";
@@ -491,7 +491,7 @@ mod test {
     {
       'destination_id': 1,
       'destination_io_number': 0,
-      'flow_id': 0
+      'destination_flow_id': 0
     }
   ]
 }";
@@ -504,7 +504,7 @@ mod test {
     {
       'destination_id': 1,
       'destination_io_number': 0,
-      'flow_id': 0
+      'destination_flow_id': 0
     }
   ]
 }";
@@ -559,7 +559,7 @@ mod test {
       },
       'destination_id': 1,
       'destination_io_number': 0,
-      'flow_id': 0
+      'destination_flow_id': 0
     }
   ]
 }";

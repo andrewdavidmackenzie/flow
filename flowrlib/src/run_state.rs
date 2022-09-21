@@ -197,12 +197,14 @@ pub struct RunState {
     functions: Vec<RuntimeFunction>,
     /// blocked: HashSet<function_id> - list of functions by id that are blocked on sending
     blocked: HashSet<usize>,
-    /// blocks: Vec<(blocking_id, blocking_io_number, blocked_id, blocked_flow_id)> - a list of blocks between functions
+    /// blocks: - a list of blocks between functions
     blocks: HashSet<Block>,
     /// ready: Vec<function_id> - a list of functions by id that are ready to run
     ready: VecDeque<usize>,
     /// running: MultiMap<function_id, job_id> - a list of functions and jobs ids that are running
     running: MultiMap<usize, usize>,
+    /// maintain a count of the number of jobs running
+    num_running: usize,
     /// completed: functions that have run to completion and won't run again
     completed: HashSet<usize>,
     /// number of jobs sent for execution to date
@@ -221,14 +223,15 @@ pub struct RunState {
 impl RunState {
     /// Create a new `RunState` struct from the list of functions provided and the `Submission`
     /// that was sent to be executed
-    pub fn new(functions: &[RuntimeFunction], submission: Submission) -> Self {
+    pub fn new(functions: Vec<RuntimeFunction>, submission: Submission) -> Self {
         RunState {
-            functions: functions.to_vec(),
+            functions,
             submission,
             blocked: HashSet::<usize>::new(),
             blocks: HashSet::<Block>::new(),
             ready: VecDeque::<usize>::new(),
             running: MultiMap::<usize, usize>::new(),
+            num_running: 0,
             completed: HashSet::<usize>::new(),
             number_of_jobs_created: 0,
             busy_flows: MultiMap::<usize, usize>::new(),
@@ -253,6 +256,7 @@ impl RunState {
         self.blocks.clear();
         self.ready.clear();
         self.running.clear();
+        self.num_running = 0;
         self.completed.clear();
         self.number_of_jobs_created = 0;
         self.busy_flows.clear();
@@ -277,19 +281,14 @@ impl RunState {
         #[cfg(feature = "debugger")]
         self.reset();
 
-        let mut inputs_ready_list = Vec::<(usize, usize)>::new();
-
-        debug!("Initializing inputs with initializers");
+        debug!("Initializing all functions");
         for function in &mut self.functions {
-            function.init_inputs(true, false);
+            function.init();
             if function.can_run() {
-                inputs_ready_list.push((function.id(), function.get_flow_id()));
+                trace!("\t\t\tFunction #{} State set to 'Ready'", function.id());
+                self.ready.push_back(function.id());
+                self.busy_flows.insert(function.get_flow_id(), function.id());
             }
-        }
-
-        // Put all functions that have their inputs ready and are not blocked on the `ready` list
-        for (id, flow_id) in inputs_ready_list {
-            self.make_ready_or_blocked(id, flow_id);
         }
     }
 
@@ -326,23 +325,6 @@ impl RunState {
     fn function_state_is_only(&self, function_id: usize, state: State) -> bool {
         let function_states = self.get_function_states(function_id);
         function_states.len() == 1 && function_states.contains(&state)
-    }
-
-    /// See if there is at least one instance of a function in the given state
-    #[cfg(any(debug_assertions, test))]
-    pub(crate) fn function_states_includes(&self, function_id: usize, state: State) -> bool {
-        match state {
-            State::Ready => self.ready.contains(&function_id),
-            State::Blocked => self.blocked.contains(&function_id),
-            State::Running => self.running.contains_key(&function_id),
-            State::Completed => self.completed.contains(&function_id),
-            State::Waiting => {
-                !self.ready.contains(&function_id) &&
-                    !self.blocked.contains(&function_id) &&
-                    !self.running.contains_key(&function_id) &&
-                    !self.completed.contains(&function_id)
-            }
-        }
     }
 
     /// Get the list of blocked function ids
@@ -391,7 +373,7 @@ impl RunState {
         &self.flow_blocks
     }
 
-    /// Return a new job to run, if there is one and there are not too many jobs already running
+    // Return a new job to run, if there is one and there are not too many jobs already running
     pub(crate) fn new_job(&mut self) -> Option<Job> {
         if let Some(limit) = self.submission.max_parallel_jobs {
             if self.number_jobs_running() >= limit {
@@ -415,6 +397,7 @@ impl RunState {
 
         self.create_job(function_id).map(|job| {
             self.running.insert(job.function_id, job.job_id);
+            self.num_running += 1;
             let _ = self.unblock_internal_flow_senders(job.job_id, job.function_id, job.flow_id);
             job
         })
@@ -503,16 +486,16 @@ impl RunState {
         }
     }
 
-    /// Complete a Job by taking its output and updating the run-list accordingly.
-    ///
-    /// If other functions were blocked trying to send to this one - we can now unblock them
-    /// as it has consumed it's inputs and they are free to be sent to again.
-    ///
-    /// Then take the output and send it to all destination IOs on different function it should be
-    /// sent to, marking the source function as blocked because those others must consume the output
-    /// if those other function have all their inputs, then mark them accordingly.
+    // Complete a Job by taking its output and updating the run-list accordingly.
+    //
+    // If other functions were blocked trying to send to this one - we can now unblock them
+    // as it has consumed it's inputs and they are free to be sent to again.
+    //
+    // Then take the output and send it to all destination IOs on different function it should be
+    // sent to, marking the source function as blocked because those others must consume the output
+    // if those other function have all their inputs, then mark them accordingly.
     #[allow(unused_variables, unused_assignments, unused_mut)]
-    pub fn retire_job(
+    pub(crate) fn retire_job(
         &mut self,
         #[cfg(feature = "metrics")] metrics: &mut Metrics,
         job: &Job,
@@ -521,7 +504,9 @@ impl RunState {
         let mut display_next_output = false;
         let mut restart = false;
 
+        // ADM any way to remove directly
         self.running.retain(|&_, &job_id| job_id != job.job_id);
+        self.num_running -= 1;
         #[cfg(debug_assertions)]
         let job_id = job.job_id;
 
@@ -586,12 +571,9 @@ impl RunState {
             Err(e) => error!("Error in Job#{}: {e}", job.job_id)
         }
 
-        self.remove_from_busy(job.function_id);
-
         // need to do flow unblocks as that could affect other functions even if this one cannot run again
         (display_next_output, restart) =
-            self.unblock_flows(job.flow_id,
-                               job.job_id,
+            self.unblock_flows(job,
                                #[cfg(feature = "debugger")] debugger,
             )?;
 
@@ -664,7 +646,7 @@ impl RunState {
         if block {
             // TODO pass in connection and combine Block and OutputConnection?
             (display_next_output, restart) = self.create_block(
-                connection.flow_id,
+                connection.destination_flow_id,
                 connection.destination_id,
                 connection.destination_io_number,
                 source_id,
@@ -678,7 +660,7 @@ impl RunState {
         // connection that sends a value to itself, as it may also send to other functions and need
         // to be blocked. But for all other receivers of values, make them Ready or Blocked
         if new_input_set_available && !loopback {
-            self.make_ready_or_blocked(connection.destination_id, connection.flow_id);
+            self.make_ready_or_blocked(connection.destination_id, connection.destination_flow_id);
         }
 
         Ok((display_next_output, restart))
@@ -686,26 +668,32 @@ impl RunState {
 
     /// Get the set of (blocking_function_id, function's IO number causing the block)
     /// of blockers for a specific function of `id`
-    #[cfg(feature = "debugger")]
-    pub fn get_output_blockers(&self, id: usize) -> Vec<(usize, usize)> {
+    #[cfg(any(feature = "debugger", debug_assertions))]
+    pub fn get_output_blockers(&self, id: usize) -> Vec<usize> {
         let mut blockers = vec![];
 
         for block in &self.blocks {
             if block.blocked_function_id == id {
-                blockers.push((block.blocking_function_id, block.blocking_io_number));
+                blockers.push(block.blocking_function_id);
             }
         }
 
         blockers
     }
 
+    // See if there is any block where the blocked function is the one we're looking for
+    pub(crate) fn block_exists(&self, id: usize) -> bool {
+        for block in &self.blocks {
+            if block.blocked_function_id == id {
+                return true;
+            }
+        }
+        false
+    }
+
     /// Return how many jobs are currently running
     pub fn number_jobs_running(&self) -> usize {
-        let mut num_running_jobs = 0;
-        for (_, vector) in self.running.iter_all() {
-            num_running_jobs += vector.len()
-        }
-        num_running_jobs
+        self.num_running
     }
 
     /// Return how many jobs are ready to be run, but not running yet
@@ -716,7 +704,7 @@ impl RunState {
     /// An input blocker is another function that is the only function connected to an empty input
     /// of target function, and which is not ready to run, hence target function cannot run.
     #[cfg(feature = "debugger")]
-    pub fn get_input_blockers(&self, target_id: usize) -> Result<Vec<(usize, usize)>> {
+    pub fn get_input_blockers(&self, target_id: usize) -> Result<Vec<usize>> {
         let mut input_blockers = vec![];
         let target_function = self.get_function(target_id)
             .ok_or("No such function")?;
@@ -724,9 +712,9 @@ impl RunState {
         // for each empty input of the target function
         for (target_io, input) in target_function.inputs().iter().enumerate() {
             if input.count() == 0 {
-                let mut senders = Vec::<(usize, usize)>::new();
+                let mut senders = Vec::<usize>::new();
 
-                // go through all functions to see if sends to the target function on input
+                // go through all functions to see if sends to the target function on this input
                 for sender_function in &self.functions {
                     // if the sender function is not ready to run
                     if !self.ready.contains(&sender_function.id()) {
@@ -736,7 +724,7 @@ impl RunState {
                             if (destination.destination_id == target_id)
                                 && (destination.destination_io_number == target_io)
                             {
-                                senders.push((sender_function.id(), target_io));
+                                senders.push(sender_function.id());
                             }
                         }
                     }
@@ -757,24 +745,18 @@ impl RunState {
     // - it has no input and is impure, so can run and produce an output
     // In which case it should transition to one of two states: Ready or Blocked
     pub(crate) fn make_ready_or_blocked(&mut self, function_id: usize, flow_id: usize) {
-        if self.blocked_sending(function_id) {
+        if self.block_exists(function_id) {
             trace!( "\t\t\tFunction #{function_id} blocked on output. State set to 'Blocked'");
             self.blocked.insert(function_id);
         } else {
-            trace!("\t\t\tFunction #{function_id} not blocked on output. State set to 'Ready'");
-            self.ready.push_back(function_id);
-            self.busy_flows.insert(flow_id, function_id);
+            self.make_ready(function_id, flow_id);
         }
     }
 
-    // See if there is any block where the blocked function is the one we're looking for
-    pub(crate) fn blocked_sending(&self, id: usize) -> bool {
-        for block in &self.blocks {
-            if block.blocked_function_id == id {
-                return true;
-            }
-        }
-        false
+    fn make_ready(&mut self, function_id: usize, flow_id: usize) {
+        trace!("\t\t\tFunction #{function_id} State set to 'Ready'");
+        self.ready.push_back(function_id);
+        self.busy_flows.insert(flow_id, function_id);
     }
 
     /// Return how many functions exist in this flow being executed
@@ -787,28 +769,29 @@ impl RunState {
     // if that has just gone idle
     #[allow(unused_variables, unused_assignments, unused_mut)]
     fn unblock_flows(&mut self,
-                     blocker_flow_id: usize,
-                     job_id: usize,
+                     job: &Job,
                      #[cfg(feature = "debugger")] debugger: &mut Debugger,
         ) -> Result<(bool, bool)> {
         let mut display_next_output = false;
         let mut restart = false;
 
+        self.remove_from_busy(job.function_id);
+
         // if flow is now idle, remove any blocks on sending to functions in the flow
-        if self.busy_flows.get(&blocker_flow_id).is_none() {
-            debug!("Job #{job_id}: Flow #{blocker_flow_id} has gone idle");
+        if self.busy_flows.get(&job.flow_id).is_none() {
+            debug!("Job #{}: Flow #{} has gone idle", job.job_id, job.flow_id);
             #[cfg(feature = "debugger")]
             {
                 (display_next_output, restart) = debugger.check_prior_to_flow_unblock(self,
-                                                                                      blocker_flow_id)?;
+                                                                                      job.flow_id)?;
             }
 
-            trace!("Job #{job_id}:\tFlow #{blocker_flow_id} is now idle, \
-                so removing pending_unblocks for flow #{blocker_flow_id}");
+            trace!("Job #{}:\tFlow #{} is now idle, so removing pending_unblocks for flow #{}",
+                job.job_id, job.flow_id, job.flow_id);
 
-            if let Some(blockers) = self.flow_blocks.remove(&blocker_flow_id) {
-                trace!("Job #{job_id}:\tRemoving pending unblocks to functions in \
-                    Flow #{blocker_flow_id} from other flows");
+            if let Some(blockers) = self.flow_blocks.remove(&job.flow_id) {
+                trace!("Job #{}:\tRemoving pending unblocks to functions in \
+                    Flow #{} from other flows", job.job_id, job.flow_id);
                 for blocker_function_id in blockers {
                     let all = |block: &Block| block.blocking_function_id == blocker_function_id;
                     self.remove_blocks(all)?;
@@ -818,7 +801,7 @@ impl RunState {
             // do flow initializers on functions in the flow that has just gone idle
             let mut initialized_functions = Vec::<usize>::new();
             for function in &mut self.functions {
-                if function.get_flow_id() == blocker_flow_id {
+                if function.get_flow_id() == job.flow_id {
                     let could_run_before = function.can_run();
                     function.init_inputs(false, true);
                     let can_run_now = function.can_run();
@@ -830,7 +813,7 @@ impl RunState {
             }
 
             for function_id in initialized_functions {
-                self.make_ready_or_blocked(function_id, blocker_flow_id);
+                self.make_ready_or_blocked(function_id, job.flow_id);
             }
         }
 
@@ -862,23 +845,23 @@ impl RunState {
     where
         F: Fn(&Block) -> bool
     {
-        let mut unblock_set = vec![];
+        let mut potential_unblock_set = vec![];
 
         // Remove matching blocks and maintain a list of sender functions to unblock
         for block in &self.blocks {
             if block_filter(block) {
-                unblock_set.push(block.clone());
+                potential_unblock_set.push(block.clone());
             }
         }
 
-        // Remove blocks between the sender and the destination. Not that a sender can send to
+        // Remove blocks between the sender and the destination. Note that a sender can send to
         // multiple destinations and so could still be blocked sending to other functions
         // If the sender is now not blocked on *any* destination then unblock it
-        for block in unblock_set {
+        for block in potential_unblock_set {
             self.blocks.remove(&block);
             trace!("\t\t\tBlock removed {:?}", block);
 
-            if self.blocked.contains(&block.blocked_function_id) && !self.blocked_sending(block.blocked_function_id) {
+            if self.blocked.contains(&block.blocked_function_id) && !self.block_exists(block.blocked_function_id) {
                 trace!("\t\t\t\tFunction #{} removed from 'blocked' list", block.blocked_function_id);
                 self.blocked.remove(&block.blocked_function_id);
 
@@ -927,6 +910,7 @@ impl fmt::Display for RunState {
 
         writeln!(f, "RunState:")?;
         writeln!(f, "       Jobs Created: {}", self.number_of_jobs_created)?;
+        writeln!(f, "       Jobs Running: {}", self.num_running)?;
         writeln!(f, ". Functions Blocked: {:?}", self.blocked)?;
         writeln!(f, "             Blocks: {:?}", self.blocks)?;
         writeln!(f, "    Functions Ready: {:?}", self.ready)?;
@@ -958,11 +942,12 @@ mod test {
     #[cfg(feature = "debugger")]
     use crate::debugger::Debugger;
     #[cfg(feature = "debugger")]
-    use crate::run_state::{RunState, State};
+    use crate::run_state::State;
     #[cfg(feature = "debugger")]
     use crate::server::DebuggerProtocol;
 
     use super::Job;
+    use super::RunState;
 
     #[derive(Debug)]
     struct TestImpl {}
@@ -1064,7 +1049,7 @@ mod test {
         )
     }
 
-    fn test_output(source_function_id: usize, destination_function_id: usize) -> Job {
+    fn test_job(state: &mut RunState, source_function_id: usize, destination_function_id: usize) -> Job {
         let out_conn = OutputConnection::new(
             Source::default(),
             destination_function_id,
@@ -1074,6 +1059,7 @@ mod test {
             #[cfg(feature = "debugger")]
             String::default(),
         );
+        state.num_running += 1;
         Job {
             job_id: 1,
             function_id: source_function_id,
@@ -1143,7 +1129,7 @@ mod test {
                 #[cfg(feature = "debugger")]
                 true,
             );
-            let mut state = RunState::new(&functions, submission);
+            let mut state = RunState::new(functions, submission);
             state.init();
 
             #[cfg(any(feature = "debugger", feature = "metrics"))]
@@ -1161,7 +1147,7 @@ mod test {
                 #[cfg(feature = "debugger")]
                 true,
             );
-            let mut state = RunState::new(&[], submission);
+            let mut state = RunState::new(vec![], submission);
             state.init();
             assert_eq!(0, state.get_number_of_jobs_created(), "At init jobs() should be 0");
             assert_eq!(0, state.number_jobs_ready());
@@ -1176,7 +1162,7 @@ mod test {
                 #[cfg(feature = "debugger")]
                 true,
             );
-            let mut state = RunState::new(&[], submission);
+            let mut state = RunState::new(vec![], submission);
             state.init();
             assert_eq!(
                 &HashSet::new(),
@@ -1194,7 +1180,7 @@ mod test {
                 #[cfg(feature = "debugger")]
                 true,
             );
-            let mut state = RunState::new(&[], submission);
+            let mut state = RunState::new(vec![], submission);
             state.init();
             assert_eq!(
                 &MultiMap::new(),
@@ -1212,7 +1198,7 @@ mod test {
                 #[cfg(feature = "debugger")]
                 true,
             );
-            let mut state = RunState::new(&[], submission);
+            let mut state = RunState::new(vec![], submission);
             state.init();
             assert_eq!(
                 &HashSet::new(),
@@ -1253,7 +1239,7 @@ mod test {
                 #[cfg(feature = "debugger")]
                 true,
             );
-            let mut state = RunState::new(&functions, submission);
+            let mut state = RunState::new(functions, submission);
 
             // Event
             state.init();
@@ -1278,7 +1264,7 @@ mod test {
                 #[cfg(feature = "debugger")]
                 true,
             );
-            let mut state = RunState::new(&functions, submission);
+            let mut state = RunState::new(functions, submission);
 
             // Event
             state.init();
@@ -1294,7 +1280,7 @@ mod test {
             );
             #[cfg(feature = "debugger")]
             assert!(
-                state.get_input_blockers(1).expect("Could not get blockers").contains(&(0, 0)),
+                state.get_input_blockers(1).expect("Could not get blockers").contains(&0),
                 "f_b should be waiting for input from f_a"
             )
         }
@@ -1310,7 +1296,7 @@ mod test {
                 #[cfg(feature = "debugger")]
                 true,
             );
-            let mut state = RunState::new(&functions, submission);
+            let mut state = RunState::new(functions, submission);
 
             // Event
             state.init();
@@ -1329,7 +1315,7 @@ mod test {
                 #[cfg(feature = "debugger")]
                 true,
             );
-            let mut state = RunState::new(&functions, submission);
+            let mut state = RunState::new(functions, submission);
 
             // Event
             state.init();
@@ -1365,7 +1351,7 @@ mod test {
                 #[cfg(feature = "debugger")]
                 true,
             );
-            let mut state = RunState::new(&functions, submission);
+            let mut state = RunState::new(functions, submission);
 
             // Event
             state.init();
@@ -1384,7 +1370,7 @@ mod test {
                 #[cfg(feature = "debugger")]
                 true,
             );
-            let mut state = RunState::new(&functions, submission);
+            let mut state = RunState::new(functions, submission);
             state.init();
             assert!(state.function_state_is_only(0, State::Ready), "f_a should be Ready");
 
@@ -1405,7 +1391,7 @@ mod test {
                 #[cfg(feature = "debugger")]
                 true,
             );
-            let mut state = RunState::new(&functions, submission);
+            let mut state = RunState::new(functions, submission);
             state.init();
             assert!(state.function_state_is_only(0, State::Waiting), "f_a should be Waiting");
 
@@ -1452,7 +1438,7 @@ mod test {
                 #[cfg(feature = "debugger")]
                 true,
             );
-            let mut state = RunState::new(&functions, submission);
+            let mut state = RunState::new(functions, submission);
             #[cfg(feature = "metrics")]
             let mut metrics = Metrics::new(1);
             #[cfg(feature = "debugger")]
@@ -1496,7 +1482,7 @@ mod test {
                 #[cfg(feature = "debugger")]
                 true,
             );
-            let mut state = RunState::new(&functions, submission);
+            let mut state = RunState::new(functions, submission);
             #[cfg(feature = "metrics")]
             let mut metrics = Metrics::new(1);
             #[cfg(feature = "debugger")]
@@ -1562,7 +1548,7 @@ mod test {
                 #[cfg(feature = "debugger")]
                 true,
             );
-            let mut state = RunState::new(&functions, submission);
+            let mut state = RunState::new(functions, submission);
             #[cfg(feature = "metrics")]
             let mut metrics = Metrics::new(1);
             #[cfg(feature = "debugger")]
@@ -1583,7 +1569,7 @@ mod test {
             assert!(state.function_state_is_only(0, State::Running), "f_a should be Running");
 
             // Event
-            let output = super::test_output(0, 1);
+            let output = super::test_job(&mut state, 0, 1);
             let _ = state.retire_job(
                 #[cfg(feature = "metrics")]
                 &mut metrics,
@@ -1630,7 +1616,7 @@ mod test {
                 #[cfg(feature = "debugger")]
                 true,
             );
-            let mut state = RunState::new(&functions, submission);
+            let mut state = RunState::new(functions, submission);
             #[cfg(feature = "metrics")]
             let mut metrics = Metrics::new(1);
             #[cfg(feature = "debugger")]
@@ -1642,11 +1628,12 @@ mod test {
             assert!(state.function_state_is_only(0, State::Waiting), "f_a should be Waiting");
 
             // Event run f_b which will send to f_a
-            let output = super::test_output(1, 0);
+            let job = super::test_job(&mut state, 1, 0);
+
             let _ = state.retire_job(
                 #[cfg(feature = "metrics")]
                 &mut metrics,
-                &output,
+                &job,
                 #[cfg(feature = "debugger")]
                 &mut debugger,
             );
@@ -1693,7 +1680,7 @@ mod test {
                 #[cfg(feature = "debugger")]
                 true,
             );
-            let mut state = RunState::new(&functions, submission);
+            let mut state = RunState::new(functions, submission);
             #[cfg(feature = "metrics")]
             let mut metrics = Metrics::new(1);
             #[cfg(feature = "debugger")]
@@ -1709,14 +1696,12 @@ mod test {
                 "f_a should be in Waiting"
             );
 
-            let _ = state.new_job().expect("Couldn't get next job");
-
             // create output from f_b as if it had run - will send to f_a
-            let output = super::test_output(1, 0);
+            let job = super::test_job(&mut state, 1, 0);
             let _ = state.retire_job(
                 #[cfg(feature = "metrics")]
                 &mut metrics,
-                &output,
+                &job,
                 #[cfg(feature = "debugger")]
                 &mut debugger,
             );
@@ -1777,7 +1762,7 @@ mod test {
                 #[cfg(feature = "debugger")]
                 true,
             );
-            let mut state = RunState::new(&functions, submission);
+            let mut state = RunState::new(functions, submission);
             #[cfg(feature = "metrics")]
             let mut metrics = Metrics::new(2);
             #[cfg(feature = "debugger")]
@@ -1929,7 +1914,7 @@ mod test {
                 #[cfg(feature = "debugger")]
                 true,
             );
-            let mut state = RunState::new(&test_functions(), submission);
+            let mut state = RunState::new(test_functions(), submission);
             #[cfg(feature = "debugger")]
                 let mut server = super::DummyServer{};
             #[cfg(feature = "debugger")]
@@ -1945,7 +1930,7 @@ mod test {
                 #[cfg(feature = "debugger")]
                 &mut debugger,
             );
-            assert!(state.blocked_sending(0));
+            assert!(!state.get_output_blockers(0).is_empty());
         }
 
         #[test]
@@ -1956,7 +1941,7 @@ mod test {
                 #[cfg(feature = "debugger")]
                 true,
             );
-            let state = RunState::new(&test_functions(), submission);
+            let state = RunState::new(test_functions(), submission);
             let got = state.get_function(1)
                 .ok_or("Could not get function by id").expect("Could not get function with that id");
             assert_eq!(got.id(), 1)
@@ -1970,7 +1955,7 @@ mod test {
                 #[cfg(feature = "debugger")]
                 true,
             );
-            let mut state = RunState::new(&test_functions(), submission);
+            let mut state = RunState::new(test_functions(), submission);
 
             assert!(state.new_job().is_none());
         }
@@ -1983,7 +1968,7 @@ mod test {
                 #[cfg(feature = "debugger")]
                 true,
             );
-            let mut state = RunState::new(&test_functions(), submission);
+            let mut state = RunState::new(test_functions(), submission);
 
             // Put 0 on the blocked/ready
             state.make_ready_or_blocked(0, 0);
@@ -1999,7 +1984,7 @@ mod test {
                 #[cfg(feature = "debugger")]
                 true,
             );
-            let mut state = RunState::new(&test_functions(), submission);
+            let mut state = RunState::new(test_functions(), submission);
 
             // Put 0 on the blocked/ready list depending on blocked status
             state.make_ready_or_blocked(0, 0);
@@ -2016,7 +2001,7 @@ mod test {
                 #[cfg(feature = "debugger")]
                 true,
             );
-            let mut state = RunState::new(&test_functions(), submission);
+            let mut state = RunState::new(test_functions(), submission);
             #[cfg(feature = "debugger")]
                 let mut server = super::DummyServer{};
             #[cfg(feature = "debugger")]
@@ -2048,7 +2033,7 @@ mod test {
                 #[cfg(feature = "debugger")]
                 true,
             );
-            let mut state = RunState::new(&test_functions(), submission);
+            let mut state = RunState::new(test_functions(), submission);
             #[cfg(feature = "debugger")]
                 let mut server = super::DummyServer{};
             #[cfg(feature = "debugger")]
@@ -2086,7 +2071,7 @@ mod test {
                 #[cfg(feature = "debugger")]
                 true,
             );
-            let mut state = RunState::new(&test_functions(), submission);
+            let mut state = RunState::new(test_functions(), submission);
 
             #[cfg(feature = "debugger")]
                 let mut server = super::DummyServer{};
@@ -2136,7 +2121,7 @@ mod test {
                 true,
             );
             // test_functions has 3 functions
-            let mut state = RunState::new(&test_functions(), submission);
+            let mut state = RunState::new(test_functions(), submission);
 
             state.init();
 
@@ -2161,7 +2146,7 @@ mod test {
                 #[cfg(feature = "debugger")]
                 true,
             );
-            let mut state = RunState::new(&functions, submission);
+            let mut state = RunState::new(functions, submission);
             #[cfg(feature = "metrics")]
             let mut metrics = Metrics::new(1);
             #[cfg(feature = "debugger")]

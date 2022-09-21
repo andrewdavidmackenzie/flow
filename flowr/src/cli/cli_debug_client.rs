@@ -452,7 +452,7 @@ mod test {
             None,
             true,
         );
-        let state = RunState::new(&functions, submission);
+        let state = RunState::new(functions, submission);
 
         CliDebugClient::display_state(&state);
     }

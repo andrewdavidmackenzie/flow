@@ -92,7 +92,7 @@ impl<'a> Coordinator<'a> {
                         mut manifest: FlowManifest,
                         submission: Submission,) -> Result<()> {
         self.executor.set_timeout(Some(submission.job_timeout));
-        let mut state = RunState::new(manifest.get_functions(), submission);
+        let mut state = RunState::new(manifest.take_functions(), submission);
 
         #[cfg(feature = "metrics")]
         let mut metrics = Metrics::new(state.num_functions());

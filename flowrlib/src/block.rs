@@ -86,6 +86,5 @@ mod test {
         assert_eq!(block.blocking_function_id, 2);
         assert_eq!(block.blocking_io_number, 0);
         assert_eq!(block.blocked_function_id, 1);
-        assert_eq!(block.blocked_flow_id, 0);
     }
 }

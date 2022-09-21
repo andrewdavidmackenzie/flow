@@ -64,7 +64,7 @@ fn running_check(state: &RunState, job_id: usize, function: &RuntimeFunction) ->
 }
 
 fn blocked_check(state: &RunState, job_id: usize, function: &RuntimeFunction) -> Result<()> {
-    if !state.blocked_sending(function.id()) {
+    if state.get_output_blockers(function.id()).is_empty() {
         return runtime_error(
             state,
             job_id,
@@ -160,8 +160,8 @@ fn destination_block_state_check(state: &RunState, job_id: usize, block: &Block,
 // Check busy flow invariants
 fn flow_checks(state: &RunState, job_id: usize) -> Result<()> {
     for (flow_id, function_id) in state.get_busy_flows().iter() {
-        if !state.function_states_includes(*function_id, State::Ready) &&
-            !state.function_states_includes(*function_id, State::Running) {
+        let function_states = state.get_function_states(*function_id);
+        if !function_states.contains(&State::Ready) && !function_states.contains(&State::Running) {
             return runtime_error(
                 state,
                 job_id,
@@ -265,7 +265,7 @@ mod test {
     use super::ready_check;
     use super::running_check;
 
-    fn test_state(functions: &[RuntimeFunction]) -> RunState {
+    fn test_state(functions: Vec<RuntimeFunction>) -> RunState {
         let submission = Submission::new(
             &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
             None,
@@ -292,7 +292,7 @@ mod test {
     #[test]
     fn test_ready_passes() {
         let function = test_function(0, 0);
-        let mut state = test_state(&[function]);
+        let mut state = test_state(vec![function]);
 
         // Mark the flow the function is in as busy via ready
         state.make_ready_or_blocked(0, 0);
@@ -305,7 +305,7 @@ mod test {
     #[test]
     fn test_ready_fails() {
         let function = test_function(0, 0);
-        let state = test_state(&[function]);
+        let state = test_state(vec![function]);
 
         // Do not mark flow_id as busy - if a function is ready, the flow containing it should
         // be marked as busy, so this ready_check() should fail
@@ -317,7 +317,7 @@ mod test {
     #[test]
     fn test_running_passes() {
         let function = test_function(0, 0);
-        let mut state = test_state(&[function]);
+        let mut state = test_state(vec![function]);
 
         // mark flow_id as busy - to pass the running check a running function's flow_id
         // should be in the list of busy flows
@@ -331,7 +331,7 @@ mod test {
     #[test]
     fn test_running_fails() {
         let function = test_function(0, 0);
-        let state = test_state(&[function]);
+        let state = test_state(vec![function]);
 
         // do NOT mark flow_id as busy - to pass the running check a running function's flow_id
         // should be in the list of busy flows
@@ -379,7 +379,7 @@ mod test {
     #[test]
     fn test_blocked_passes() {
         let function = test_function(0, 0);
-        let mut state = test_state(&[function]);
+        let mut state = test_state(vec![function]);
 
         #[cfg(feature = "debugger")]
             let mut server = DummyServer{};
@@ -403,7 +403,7 @@ mod test {
     #[test]
     fn test_blocked_fails() {
         let function = test_function(0, 0);
-        let state = test_state(&[function]);
+        let state = test_state(vec![function]);
 
         // Do NOT mark function #0 as blocked
 
@@ -415,7 +415,7 @@ mod test {
     #[test]
     fn test_completed_passes() {
         let function = test_function(0, 0);
-        let mut state = test_state(&[function]);
+        let mut state = test_state(vec![function]);
 
         // Mark function #0 as completed
         state.mark_as_completed(0);
@@ -430,7 +430,7 @@ mod test {
     #[test]
     fn test_completed_fails() {
         let function = test_function(0, 0);
-        let state = test_state(&[function]);
+        let state = test_state(vec![function]);
 
         // Do NOT mark function #0 as completed, use Ready state
         let functions_states = vec![State::Ready];
