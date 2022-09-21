@@ -804,7 +804,7 @@ impl RunState {
             }
 
             for function_id in initialized_functions {
-                self.make_ready_or_blocked(function_id, job.flow_id);
+                self.make_ready(function_id, job.flow_id);
             }
         }
 
