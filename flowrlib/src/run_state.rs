@@ -220,23 +220,6 @@ pub struct RunState {
     strategy: ExecutionStrategy,
 }
 
-// Missing struct capabilities
-// - track the states a function is in, without looking at all queues
-
-// - get_input_blockers has to iterate through functions to find senders to a function:IO pair
-
-// - unblock_flows iterates over functions to see if in the flow unblocked
-
-// - block_exists() iterates over blocks to see if function is blocked
-
-// - get blocks using the blocked function id (get_output_blockers()) - make blocks a HashMap?
-// - remove_blocks iterates over all blocks with the filter, look at both filters to see what is
-//   actually needed
-//        let internal_senders_filter = |block: &Block|
-//             (block.blocking_flow_id == block.blocked_flow_id) &
-//                 (block.blocking_function_id == blocker_function_id);
-//        let all = |block: &Block| block.blocking_function_id == blocker_function_id;
-
 impl RunState {
     /// Create a new `RunState` struct from the list of functions provided and the `Submission`
     /// that was sent to be executed
