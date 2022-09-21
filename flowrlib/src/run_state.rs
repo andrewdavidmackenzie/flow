@@ -577,10 +577,7 @@ impl RunState {
         #[cfg(debug_assertions)]
         checks::check_invariants(self, job.job_id)?;
 
-        trace!(
-            "Job #{}: Completed-----------------------",
-            job.job_id,
-        );
+        trace!("Job #{}: Completed-----------------------", job.job_id);
 
         Ok((display_next_output, restart))
     }

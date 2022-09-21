@@ -131,7 +131,7 @@ impl<'a> Coordinator<'a> {
                     }
                 }
 
-                (display_next_output, restart) = self.send_jobs(
+                (display_next_output, restart) = self.dispatch_jobs(
                     &mut state,
                     #[cfg(feature = "metrics")]
                     &mut metrics,
@@ -213,9 +213,9 @@ impl<'a> Coordinator<'a> {
         Ok(()) // Normal flow completion exit
     }
 
-    // Send as many jobs as possible for parallel execution.
-    // Return 'true' if the debugger is requesting a restart
-    fn send_jobs(
+    // Dispatch as many jobs as possible for parallel execution.
+    // Return if the debugger is requesting (display output, restart)
+    fn dispatch_jobs(
         &mut self,
         state: &mut RunState,
         #[cfg(feature = "metrics")] metrics: &mut Metrics,
@@ -224,7 +224,7 @@ impl<'a> Coordinator<'a> {
         let mut restart = false;
 
         while let Some(job) = state.new_job() {
-            match self.send_job(
+            match self.dispatch_a_job(
                 &job,
                 #[cfg(feature = "metrics")]
                 state,
@@ -248,8 +248,8 @@ impl<'a> Coordinator<'a> {
         Ok((display_output, restart))
     }
 
-    // Send a job for execution
-    fn send_job(
+    // Dispatch a job for execution
+    fn dispatch_a_job(
         &mut self,
         job: &Job,
         #[cfg(feature = "metrics")] state: &mut RunState,
