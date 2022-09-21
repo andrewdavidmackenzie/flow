@@ -555,10 +555,7 @@ impl RunState {
 
                     // NOTE: May have input sets due to sending to self via a loopback
                     if function.can_run() {
-                        self.make_ready_or_blocked(
-                            job.function_id,
-                            job.flow_id,
-                        );
+                        self.make_ready(job.function_id, job.flow_id);
                     }
                 } else {
                     // otherwise mark it as completed as it will never run again
@@ -569,8 +566,7 @@ impl RunState {
         }
 
         // need to do flow unblocks as that could affect other functions even if this one cannot run again
-        (display_next_output, restart) =
-            self.unblock_flows(job,
+        (display_next_output, restart) = self.unblock_flows(job,
                                #[cfg(feature = "debugger")] debugger,
             )?;
 
@@ -1209,7 +1205,7 @@ mod test {
         use url::Url;
 
         use flowcore::model::input::Input;
-        use flowcore::model::input::InputInitializer::{Always, Once};
+        use flowcore::model::input::InputInitializer::Always;
         #[cfg(feature = "metrics")]
         use flowcore::model::metrics::Metrics;
         use flowcore::model::output_connection::{OutputConnection, Source};
@@ -1507,75 +1503,6 @@ mod test {
             );
         }
 
-        // Done: at least one destination input is full, so can't run  running_to_blocked_on_done
-        #[test]
-        #[serial]
-        fn running_to_blocked_on_done() {
-            let out_conn = OutputConnection::new(
-                Source::default(),
-                1,
-                0,
-                0,
-                String::default(),
-                #[cfg(feature = "debugger")]
-                String::default(),
-            );
-            let f_a = RuntimeFunction::new(
-                #[cfg(feature = "debugger")]
-                "fA",
-                #[cfg(feature = "debugger")]
-                "/fA",
-                "file://fake/test",
-                vec![Input::new(
-                    #[cfg(feature = "debugger")] "", 0, false,
-                    Some(Always(json!(1))), None)],
-                0,
-                0,
-                &[out_conn],
-                false,
-            ); // outputs to fB:0
-            let f_b = test_function_b_not_init();
-            let functions = vec![f_a, f_b];
-            let submission = Submission::new(
-                &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
-                None,
-                #[cfg(feature = "debugger")]
-                true,
-            );
-            let mut state = RunState::new(functions, submission);
-            #[cfg(feature = "metrics")]
-            let mut metrics = Metrics::new(1);
-            #[cfg(feature = "debugger")]
-                let mut server = super::DummyServer{};
-            #[cfg(feature = "debugger")]
-                let mut debugger = super::dummy_debugger(&mut server);
-
-            state.init();
-
-            assert!(state.function_state_is_only(0, State::Ready), "f_a should be Ready");
-
-            let job = state.new_job().expect("Couldn't get next job");
-            assert_eq!(
-                0, job.function_id,
-                "next() should return function_id=0 (f_a) for running"
-            );
-
-            assert!(state.function_state_is_only(0, State::Running), "f_a should be Running");
-
-            // Event
-            let output = super::test_job(&mut state, 0, 1);
-            let _ = state.retire_job(
-                #[cfg(feature = "metrics")]
-                &mut metrics,
-                &output,
-                #[cfg(feature = "debugger")]
-                &mut debugger,
-            );
-
-            // Test f_a should transition to Blocked on f_b
-            assert!(state.function_state_is_only(0, State::Blocked), "f_a should be Blocked");
-        }
-
         #[test]
         #[serial]
         fn waiting_to_ready_on_input() {
@@ -1702,119 +1629,6 @@ mod test {
 
             // Test
             assert!(state.function_state_is_only(0, State::Ready), "f_a should be Ready");
-        }
-
-        /*
-            This tests that if a function that has a loop back sending to itself, runs the first time
-            due to a OnceInitializer, that after running it sends output back to itself and is ready
-            (not waiting for an input from elsewhere and no deadlock due to blocking itself occurs
-        */
-        #[test]
-        #[serial]
-        fn not_block_on_self() {
-            let connection_to_0 = OutputConnection::new(
-                Source::default(),
-                0,
-                0,
-                0,
-                String::default(),
-                #[cfg(feature = "debugger")]
-                String::default(),
-            );
-            let connection_to_1 = OutputConnection::new(
-                Source::default(),
-                1,
-                0,
-                0,
-                String::default(),
-                #[cfg(feature = "debugger")]
-                String::default(),
-            );
-
-            let f_a = RuntimeFunction::new(
-                #[cfg(feature = "debugger")]
-                "fA",
-                #[cfg(feature = "debugger")]
-                "/fA",
-                "file://fake/test",
-                vec![Input::new(
-                    #[cfg(feature = "debugger")] "", 0, false,
-                    Some(Once(json!(1))), None)],
-                0,
-                0,
-                &[
-                    connection_to_0, // outputs to self:0
-                    connection_to_1, // outputs to f_b:0
-                ],
-                false,
-            );
-            let f_b = test_function_b_not_init();
-            let functions = vec![f_a, f_b];
-            let submission = Submission::new(
-                &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
-                None,
-                #[cfg(feature = "debugger")]
-                true,
-            );
-            let mut state = RunState::new(functions, submission);
-            #[cfg(feature = "metrics")]
-            let mut metrics = Metrics::new(2);
-            #[cfg(feature = "debugger")]
-                let mut server = super::DummyServer{};
-            #[cfg(feature = "debugger")]
-                let mut debugger = super::dummy_debugger(&mut server);
-
-            state.init();
-
-            assert!(state.function_state_is_only(0, State::Ready), "f_a should be Ready");
-            assert!(state.function_state_is_only(1, State::Waiting),
-                    "f_b should be in Waiting"
-            );
-
-            let mut job = state.new_job().expect("Couldn't get next job");
-            assert_eq!(job.function_id, 0, "Expected job with function_id=0");
-
-            // fake the running of function fA
-            job.result = Ok((Some(json!(1)), true));
-            let _ = state.retire_job(
-                #[cfg(feature = "metrics")]
-                &mut metrics,
-                &job,
-                #[cfg(feature = "debugger")]
-                &mut debugger,
-            );
-
-            // Test
-            assert!(state.function_state_is_only(0, State::Blocked),
-                    "f_a should be Blocked on f_b"
-            );
-            assert!(state.function_state_is_only(1, State::Ready), "f_b should be Ready");
-
-            let job = state.new_job().expect("Couldn't get next job");
-            assert_eq!(
-                job.function_id, 1,
-                "next() should return function_id=1 (f_b) for running"
-            );
-            let _ = state.retire_job(
-                #[cfg(feature = "metrics")]
-                &mut metrics,
-                &job,
-                #[cfg(feature = "debugger")]
-                &mut debugger,
-            );
-
-            let job = state.new_job().expect("Couldn't get next job");
-            assert_eq!(
-                job.function_id, 0,
-                "next() should return function_id=0 (f_a) for running"
-            );
-            let _ = state.retire_job(
-                #[cfg(feature = "metrics")]
-                &mut metrics,
-                &job,
-                #[cfg(feature = "debugger")]
-                &mut debugger,
-            );
         }
     }
 
