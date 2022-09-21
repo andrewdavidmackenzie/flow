@@ -433,14 +433,15 @@ impl RunState {
             },
             Entry::Vacant(v) => {
                 let mut new_set = HashSet::new();
-                // Add the `blocker_function_id` to the list of function in `blocker_flow_id` that
+                // Create a new list of function in `blocker_flow_id` that
                 // should be free to send to, once the flow eventually goes idle
+                // and add the `blocker_function_id` to it
                 new_set.insert(blocker_function_id);
-                // Add the entry for `blocker_flow_id` for when it goes idle later, to pending_unblocks
+                // Add the entry for `blocker_flow_id` for when it goes idle later, to flow_blocks
                 v.insert(new_set);
             }
         }
-        trace!("Job #{job_id}:\t\tAdded a pending_unblock -> #{blocker_function_id}({blocker_flow_id})");
+        trace!("Job #{job_id}:\t\tAdded a flow_block -> #{blocker_function_id}({blocker_flow_id})");
 
         Ok(())
     }
