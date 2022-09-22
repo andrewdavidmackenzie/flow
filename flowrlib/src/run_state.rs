@@ -770,45 +770,46 @@ impl RunState {
 
         // if flow is now idle, remove any blocks on sending to functions in the flow
         if self.busy_flows.get(&job.flow_id).is_none() {
-            debug!("Job #{}: Flow #{} has gone idle", job.job_id, job.flow_id);
+            debug!("Job #{}:\tFlow #{} is now idle, so removing blocks on external functions to it",
+                job.job_id, job.flow_id);
+
             #[cfg(feature = "debugger")]
             {
                 (display_next_output, restart) = debugger.check_prior_to_flow_unblock(self,
                                                                                       job.flow_id)?;
             }
 
-            trace!("Job #{}:\tFlow #{} is now idle, so removing pending_unblocks for flow #{}",
-                job.job_id, job.flow_id, job.flow_id);
-
-            if let Some(blockers) = self.flow_blocks.remove(&job.flow_id) {
-                trace!("Job #{}:\tRemoving pending unblocks to functions in \
-                    Flow #{} from other flows", job.job_id, job.flow_id);
-                for blocker_function_id in blockers {
+            if let Some(functions_to_unblock) = self.flow_blocks.remove(&job.flow_id) {
+                for blocker_function_id in functions_to_unblock {
                     let all = |block: &Block| block.blocking_function_id == blocker_function_id;
                     self.remove_blocks(all)?;
                 }
             }
 
-            // do flow initializers on functions in the flow that has just gone idle
-            let mut initialized_functions = Vec::<usize>::new();
-            for function in &mut self.functions {
-                if function.get_flow_id() == job.flow_id {
-                    let could_run_before = function.can_run();
-                    function.init_inputs(false, true);
-                    let can_run_now = function.can_run();
-
-                    if can_run_now && !could_run_before {
-                        initialized_functions.push(function.id());
-                    }
-                }
-            }
-
-            for function_id in initialized_functions {
-                self.make_ready(function_id, job.flow_id);
-            }
+            // run flow initializers on functions in the flow that has just gone idle
+            self.run_flow_initializers(job.flow_id);
         }
 
         Ok((display_next_output, restart))
+    }
+
+    fn run_flow_initializers(&mut self, flow_id: usize) {
+        let mut initialized_functions = Vec::<usize>::new();
+        for function in &mut self.functions {
+            if function.get_flow_id() == flow_id {
+                let could_run_before = function.can_run();
+                function.init_inputs(false, true);
+                let can_run_now = function.can_run();
+
+                if can_run_now && !could_run_before {
+                    initialized_functions.push(function.id());
+                }
+            }
+        }
+
+        for function_id in initialized_functions {
+            self.make_ready_or_blocked(function_id, flow_id);
+        }
     }
 
     // Mark a function (via its ID) as having run to completion
