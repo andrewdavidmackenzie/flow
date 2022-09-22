@@ -398,7 +398,7 @@ impl RunState {
         self.create_job(function_id).map(|job| {
             self.running.insert(job.function_id, job.job_id);
             self.num_running += 1;
-            let _ = self.unblock_internal_flow_senders(job.job_id, job.function_id, job.flow_id);
+            let _ = self.block_external_flow_senders(job.job_id, job.function_id, job.flow_id);
             job
         })
     }
@@ -409,18 +409,12 @@ impl RunState {
     //
     // But we don't want to unblock them to send to it, until all other functions inside the same
     // flow are idle, and hence the flow becomes idle.
-    fn unblock_internal_flow_senders(
+    fn block_external_flow_senders(
         &mut self,
         job_id: usize,
         blocker_function_id: usize,
         blocker_flow_id: usize,
-    ) -> Result<()>{
-        // delete blocks to this function from other functions within the same flow
-        let internal_senders_filter = |block: &Block|
-            (block.blocking_flow_id == block.blocked_flow_id) &
-                (block.blocking_function_id == blocker_function_id);
-        self.remove_blocks(internal_senders_filter)?;
-
+    ) -> Result<()> {
         // Add this function to the pending unblock list for later when flow goes idle and senders
         // to it from *outside* this flow can be allowed to send to it.
         // The entry key is the blocker_flow_id and the entry all blocker_function_ids in that flow
@@ -566,7 +560,8 @@ impl RunState {
             Err(e) => error!("Error in Job#{}: {e}", job.job_id)
         }
 
-        // need to do flow unblocks as that could affect other functions even if this one cannot run again
+        // unblock any senders from other flows that can now run due to this function completing
+        // causing the flow to be idle now
         (display_next_output, restart) = self.unblock_flows(job,
                                #[cfg(feature = "debugger")] debugger,
             )?;
@@ -600,6 +595,7 @@ impl RunState {
         };
 
         let loopback = source_id == connection.destination_id;
+        let same_flow = source_flow_id == connection.destination_flow_id;
 
         if loopback {
             info!("\t\tFunction #{source_id} loopback of '{output_value}'{route_str} to Self:{}",
@@ -629,13 +625,14 @@ impl RunState {
         #[cfg(feature = "metrics")]
         metrics.increment_outputs_sent(); // not distinguishing array serialization / wrapping etc
 
-        // Avoid a function blocking on itself when sending itself a value via a loopback
+        // Avoid a function blocking on itself when sending itself a value via a loopback and avoid
+        // blocking sending internally within a flow
         let block = (function.input_count(connection.destination_io_number) > 0)
-            && !loopback;
+            && !loopback && !same_flow;
         let new_input_set_available = function.input_set_count() > count_before;
 
         if block {
-            // TODO pass in connection and combine Block and OutputConnection?
+            // TODO pass in connection
             (display_next_output, restart) = self.create_block(
                 connection.destination_flow_id,
                 connection.destination_id,
@@ -779,10 +776,9 @@ impl RunState {
                                                                                       job.flow_id)?;
             }
 
-            if let Some(functions_to_unblock) = self.flow_blocks.remove(&job.flow_id) {
-                for blocker_function_id in functions_to_unblock {
-                    let all = |block: &Block| block.blocking_function_id == blocker_function_id;
-                    self.remove_blocks(all)?;
+            if let Some(blocker_functions) = self.flow_blocks.remove(&job.flow_id) {
+                for blocker_function_id in blocker_functions {
+                    self.remove_blocks(blocker_function_id)?;
                 }
             }
 
@@ -791,6 +787,53 @@ impl RunState {
         }
 
         Ok((display_next_output, restart))
+    }
+
+    // Remove ONE entry of <flow_id, function_id> from the busy_flows multi-map
+    fn remove_from_busy(&mut self, blocker_function_id: usize) {
+        let mut count = 0;
+        self.busy_flows.retain(|&_flow_id, &function_id| {
+            if function_id == blocker_function_id && count == 0 {
+                count += 1;
+                false // remove it
+            } else {
+                true // retain it
+            }
+        });
+        trace!("\t\t\tUpdated busy_flows list to: {:?}", self.busy_flows);
+    }
+
+    // Remove blocks on functions blocked sending to `blocker_function_id`
+    // If a sending function has no remaining blocks preventing it from sending then unblock that function
+    fn remove_blocks(&mut self, blocker_function_id: usize) -> Result<()>
+    {
+        let mut blocks_to_remove = vec![];
+
+        // Remove matching blocks and maintain a list of sender functions to unblock
+        for block in &self.blocks {
+            if block.blocking_function_id == blocker_function_id {
+                blocks_to_remove.push(block.clone());
+            }
+        }
+
+        // Remove blocks between the sender and the destination. Note that a sender can send to
+        // multiple destinations and so could still be blocked sending to other functions
+        for block in blocks_to_remove {
+            self.blocks.remove(&block);
+            trace!("\t\t\tBlock removed {:?}", block);
+
+            if self.blocked.contains(&block.blocked_function_id) && !self.block_exists(block.blocked_function_id) {
+                trace!("\t\t\t\tFunction #{} removed from 'blocked' list", block.blocked_function_id);
+                self.blocked.remove(&block.blocked_function_id);
+
+                let function = self.get_function(block.blocked_function_id).ok_or("No such function")?;
+                if function.can_run() {
+                    self.make_ready_or_blocked(block.blocked_function_id, block.blocked_flow_id);
+                }
+            }
+        }
+
+        Ok(())
     }
 
     fn run_flow_initializers(&mut self, flow_id: usize) {
@@ -815,56 +858,6 @@ impl RunState {
     // Mark a function (via its ID) as having run to completion
     pub(crate) fn mark_as_completed(&mut self, function_id: usize) {
         self.completed.insert(function_id);
-    }
-
-    // Remove ONE entry of <flow_id, function_id> from the busy_flows multi-map
-    fn remove_from_busy(&mut self, blocker_function_id: usize) {
-        let mut count = 0;
-        self.busy_flows.retain(|&_flow_id, &function_id| {
-            if function_id == blocker_function_id && count == 0 {
-                count += 1;
-                false // remove it
-            } else {
-                true // retain it
-            }
-        });
-        trace!("\t\t\tUpdated busy_flows list to: {:?}", self.busy_flows);
-    }
-
-    // Remove blocks between functions using the provided block filter.
-    // If a sending function has no remaining blocks preventing it from sending then unblock that function
-    fn remove_blocks<F>(&mut self, block_filter: F) -> Result<()>
-    where
-        F: Fn(&Block) -> bool
-    {
-        let mut potential_unblock_set = vec![];
-
-        // Remove matching blocks and maintain a list of sender functions to unblock
-        for block in &self.blocks {
-            if block_filter(block) {
-                potential_unblock_set.push(block.clone());
-            }
-        }
-
-        // Remove blocks between the sender and the destination. Note that a sender can send to
-        // multiple destinations and so could still be blocked sending to other functions
-        // If the sender is now not blocked on *any* destination then unblock it
-        for block in potential_unblock_set {
-            self.blocks.remove(&block);
-            trace!("\t\t\tBlock removed {:?}", block);
-
-            if self.blocked.contains(&block.blocked_function_id) && !self.block_exists(block.blocked_function_id) {
-                trace!("\t\t\t\tFunction #{} removed from 'blocked' list", block.blocked_function_id);
-                self.blocked.remove(&block.blocked_function_id);
-
-                let function = self.get_function(block.blocked_function_id).ok_or("No such function")?;
-                if function.can_run() {
-                    self.make_ready_or_blocked(block.blocked_function_id, block.blocked_flow_id);
-                }
-            }
-        }
-
-        Ok(())
     }
 
     // Create a 'block" indicating that function `blocked_function_id` cannot run as it has sends
@@ -1836,44 +1829,6 @@ mod test {
 
         #[test]
         #[serial]
-        fn unblocking_makes_ready() {
-            let submission = Submission::new(
-                &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
-                None,
-                #[cfg(feature = "debugger")]
-                true,
-            );
-            let mut state = RunState::new(test_functions(), submission);
-            #[cfg(feature = "debugger")]
-                let mut server = super::DummyServer{};
-            #[cfg(feature = "debugger")]
-                let mut debugger = super::dummy_debugger(&mut server);
-
-            // Indicate that 0 is blocked by 1 and put 0 on the blocked list
-            let _ = state.create_block(
-                0,
-                1,
-                0,
-                0,
-                0,
-                #[cfg(feature = "debugger")]
-                &mut debugger,
-            );
-            // 0's inputs are now full, so it would be ready if it weren't blocked on output
-            state.make_ready_or_blocked(0, 0);
-            // 0 does not show as ready.
-            assert!(state.new_job().is_none());
-
-            // now unblock senders to 1 (i.e. 0)
-            state.unblock_internal_flow_senders(0, 1, 0)
-                .expect("Could not unblock");
-
-            // Now function with id 0 should be ready and served up by next
-            state.new_job().expect("Couldn't get next job");
-        }
-
-        #[test]
-        #[serial]
         fn unblocking_doubly_blocked_functions_not_ready() {
             let submission = Submission::new(
                 &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
@@ -1914,7 +1869,7 @@ mod test {
             assert!(state.new_job().is_none());
 
             // now unblock 0 by 1
-            state.unblock_internal_flow_senders(0, 1, 0)
+            state.block_external_flow_senders(0, 1, 0)
                 .expect("Could not unblock");
 
             // Now function with id 0 should still not be ready as still blocked on 2
