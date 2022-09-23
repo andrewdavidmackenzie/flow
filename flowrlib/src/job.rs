@@ -9,7 +9,7 @@ use flowcore::RunAgain;
 
 /// A `Job` contains the information necessary to manage the execution of a function in the
 /// flow on a set of input values, and then where to send the outputs that maybe produces.
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct Job {
     /// Each `Job` has a unique id that increments as jobs are executed
     pub job_id: usize,
@@ -43,26 +43,6 @@ impl fmt::Display for Job {
         writeln!(f, "Inputs: {:?}", self.input_set)?;
         writeln!(f, "Connections: {:?}", self.connections)?;
         writeln!(f, "Result: {:?}", self.result)
-    }
-}
-
-// ADM check this is needed
-impl Clone for Job {
-    fn clone(&self) -> Self {
-        let result = match &self.result {
-            Ok(r) => Ok(r.clone()),
-            Err(e) => Err(flowcore::errors::Error::from(e.to_string()))
-        };
-
-        Job {
-            job_id: self.job_id,
-            function_id: self.function_id,
-            flow_id: self.flow_id,
-            input_set: self.input_set.clone(),
-            connections: self.connections.clone(),
-            implementation_location: self.implementation_location.clone(),
-            result
-        }
     }
 }
 
