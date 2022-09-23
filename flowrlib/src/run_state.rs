@@ -398,7 +398,7 @@ impl RunState {
         self.create_job(function_id).map(|job| {
             self.running.insert(job.function_id, job.job_id);
             self.num_running += 1;
-            let _ = self.unblock_internal_flow_senders(job.job_id, job.function_id, job.flow_id);
+            let _ = self.block_external_flow_senders(job.job_id, job.function_id, job.flow_id);
             job
         })
     }
@@ -409,18 +409,12 @@ impl RunState {
     //
     // But we don't want to unblock them to send to it, until all other functions inside the same
     // flow are idle, and hence the flow becomes idle.
-    fn unblock_internal_flow_senders(
+    fn block_external_flow_senders(
         &mut self,
         job_id: usize,
         blocker_function_id: usize,
         blocker_flow_id: usize,
-    ) -> Result<()>{
-        // delete blocks to this function from other functions within the same flow
-        let internal_senders_filter = |block: &Block|
-            (block.blocking_flow_id == block.blocked_flow_id) &
-                (block.blocking_function_id == blocker_function_id);
-        self.remove_blocks(internal_senders_filter)?;
-
+    ) -> Result<()> {
         // Add this function to the pending unblock list for later when flow goes idle and senders
         // to it from *outside* this flow can be allowed to send to it.
         // The entry key is the blocker_flow_id and the entry all blocker_function_ids in that flow
@@ -433,14 +427,15 @@ impl RunState {
             },
             Entry::Vacant(v) => {
                 let mut new_set = HashSet::new();
-                // Add the `blocker_function_id` to the list of function in `blocker_flow_id` that
+                // Create a new list of function in `blocker_flow_id` that
                 // should be free to send to, once the flow eventually goes idle
+                // and add the `blocker_function_id` to it
                 new_set.insert(blocker_function_id);
-                // Add the entry for `blocker_flow_id` for when it goes idle later, to pending_unblocks
+                // Add the entry for `blocker_flow_id` for when it goes idle later, to flow_blocks
                 v.insert(new_set);
             }
         }
-        trace!("Job #{job_id}:\t\tAdded a pending_unblock -> #{blocker_function_id}({blocker_flow_id})");
+        trace!("Job #{job_id}:\t\tAdded a flow_block -> #{blocker_function_id}({blocker_flow_id})");
 
         Ok(())
     }
@@ -504,11 +499,8 @@ impl RunState {
         let mut display_next_output = false;
         let mut restart = false;
 
-        // ADM any way to remove directly
         self.running.retain(|&_, &job_id| job_id != job.job_id);
         self.num_running -= 1;
-        #[cfg(debug_assertions)]
-        let job_id = job.job_id;
 
         match &job.result {
             Ok((output_value, function_can_run_again)) => {
@@ -558,10 +550,7 @@ impl RunState {
 
                     // NOTE: May have input sets due to sending to self via a loopback
                     if function.can_run() {
-                        self.make_ready_or_blocked(
-                            job.function_id,
-                            job.flow_id,
-                        );
+                        self.make_ready(job.function_id, job.flow_id);
                     }
                 } else {
                     // otherwise mark it as completed as it will never run again
@@ -571,19 +560,16 @@ impl RunState {
             Err(e) => error!("Error in Job#{}: {e}", job.job_id)
         }
 
-        // need to do flow unblocks as that could affect other functions even if this one cannot run again
-        (display_next_output, restart) =
-            self.unblock_flows(job,
+        // unblock any senders from other flows that can now run due to this function completing
+        // causing the flow to be idle now
+        (display_next_output, restart) = self.unblock_flows(job,
                                #[cfg(feature = "debugger")] debugger,
             )?;
 
         #[cfg(debug_assertions)]
-        checks::check_invariants(self, job_id)?;
+        checks::check_invariants(self, job.job_id)?;
 
-        trace!(
-            "Job #{}: Completed-----------------------",
-            job.job_id,
-        );
+        trace!("Job #{}: Completed-----------------------", job.job_id);
 
         Ok((display_next_output, restart))
     }
@@ -609,6 +595,7 @@ impl RunState {
         };
 
         let loopback = source_id == connection.destination_id;
+        let same_flow = source_flow_id == connection.destination_flow_id;
 
         if loopback {
             info!("\t\tFunction #{source_id} loopback of '{output_value}'{route_str} to Self:{}",
@@ -638,13 +625,14 @@ impl RunState {
         #[cfg(feature = "metrics")]
         metrics.increment_outputs_sent(); // not distinguishing array serialization / wrapping etc
 
-        // Avoid a function blocking on itself when sending itself a value via a loopback
+        // Avoid a function blocking on itself when sending itself a value via a loopback and avoid
+        // blocking sending internally within a flow
         let block = (function.input_count(connection.destination_io_number) > 0)
-            && !loopback;
+            && !loopback && !same_flow;
         let new_input_set_available = function.input_set_count() > count_before;
 
         if block {
-            // TODO pass in connection and combine Block and OutputConnection?
+            // TODO pass in connection
             (display_next_output, restart) = self.create_block(
                 connection.destination_flow_id,
                 connection.destination_id,
@@ -779,50 +767,26 @@ impl RunState {
 
         // if flow is now idle, remove any blocks on sending to functions in the flow
         if self.busy_flows.get(&job.flow_id).is_none() {
-            debug!("Job #{}: Flow #{} has gone idle", job.job_id, job.flow_id);
+            debug!("Job #{}:\tFlow #{} is now idle, so removing blocks on external functions to it",
+                job.job_id, job.flow_id);
+
             #[cfg(feature = "debugger")]
             {
                 (display_next_output, restart) = debugger.check_prior_to_flow_unblock(self,
                                                                                       job.flow_id)?;
             }
 
-            trace!("Job #{}:\tFlow #{} is now idle, so removing pending_unblocks for flow #{}",
-                job.job_id, job.flow_id, job.flow_id);
-
-            if let Some(blockers) = self.flow_blocks.remove(&job.flow_id) {
-                trace!("Job #{}:\tRemoving pending unblocks to functions in \
-                    Flow #{} from other flows", job.job_id, job.flow_id);
-                for blocker_function_id in blockers {
-                    let all = |block: &Block| block.blocking_function_id == blocker_function_id;
-                    self.remove_blocks(all)?;
+            if let Some(blocker_functions) = self.flow_blocks.remove(&job.flow_id) {
+                for blocker_function_id in blocker_functions {
+                    self.remove_blocks(blocker_function_id)?;
                 }
             }
 
-            // do flow initializers on functions in the flow that has just gone idle
-            let mut initialized_functions = Vec::<usize>::new();
-            for function in &mut self.functions {
-                if function.get_flow_id() == job.flow_id {
-                    let could_run_before = function.can_run();
-                    function.init_inputs(false, true);
-                    let can_run_now = function.can_run();
-
-                    if can_run_now && !could_run_before {
-                        initialized_functions.push(function.id());
-                    }
-                }
-            }
-
-            for function_id in initialized_functions {
-                self.make_ready_or_blocked(function_id, job.flow_id);
-            }
+            // run flow initializers on functions in the flow that has just gone idle
+            self.run_flow_initializers(job.flow_id);
         }
 
         Ok((display_next_output, restart))
-    }
-
-    // Mark a function (via its ID) as having run to completion
-    pub(crate) fn mark_as_completed(&mut self, function_id: usize) {
-        self.completed.insert(function_id);
     }
 
     // Remove ONE entry of <flow_id, function_id> from the busy_flows multi-map
@@ -839,25 +803,22 @@ impl RunState {
         trace!("\t\t\tUpdated busy_flows list to: {:?}", self.busy_flows);
     }
 
-    // Remove blocks between functions using the provided block filter.
+    // Remove blocks on functions blocked sending to `blocker_function_id`
     // If a sending function has no remaining blocks preventing it from sending then unblock that function
-    fn remove_blocks<F>(&mut self, block_filter: F) -> Result<()>
-    where
-        F: Fn(&Block) -> bool
+    fn remove_blocks(&mut self, blocker_function_id: usize) -> Result<()>
     {
-        let mut potential_unblock_set = vec![];
+        let mut blocks_to_remove = vec![];
 
         // Remove matching blocks and maintain a list of sender functions to unblock
         for block in &self.blocks {
-            if block_filter(block) {
-                potential_unblock_set.push(block.clone());
+            if block.blocking_function_id == blocker_function_id {
+                blocks_to_remove.push(block.clone());
             }
         }
 
         // Remove blocks between the sender and the destination. Note that a sender can send to
         // multiple destinations and so could still be blocked sending to other functions
-        // If the sender is now not blocked on *any* destination then unblock it
-        for block in potential_unblock_set {
+        for block in blocks_to_remove {
             self.blocks.remove(&block);
             trace!("\t\t\tBlock removed {:?}", block);
 
@@ -873,6 +834,30 @@ impl RunState {
         }
 
         Ok(())
+    }
+
+    fn run_flow_initializers(&mut self, flow_id: usize) {
+        let mut initialized_functions = Vec::<usize>::new();
+        for function in &mut self.functions {
+            if function.get_flow_id() == flow_id {
+                let could_run_before = function.can_run();
+                function.init_inputs(false, true);
+                let can_run_now = function.can_run();
+
+                if can_run_now && !could_run_before {
+                    initialized_functions.push(function.id());
+                }
+            }
+        }
+
+        for function_id in initialized_functions {
+            self.make_ready_or_blocked(function_id, flow_id);
+        }
+    }
+
+    // Mark a function (via its ID) as having run to completion
+    pub(crate) fn mark_as_completed(&mut self, function_id: usize) {
+        self.completed.insert(function_id);
     }
 
     // Create a 'block" indicating that function `blocked_function_id` cannot run as it has sends
@@ -1215,7 +1200,7 @@ mod test {
         use url::Url;
 
         use flowcore::model::input::Input;
-        use flowcore::model::input::InputInitializer::{Always, Once};
+        use flowcore::model::input::InputInitializer::Always;
         #[cfg(feature = "metrics")]
         use flowcore::model::metrics::Metrics;
         use flowcore::model::output_connection::{OutputConnection, Source};
@@ -1513,75 +1498,6 @@ mod test {
             );
         }
 
-        // Done: at least one destination input is full, so can't run  running_to_blocked_on_done
-        #[test]
-        #[serial]
-        fn running_to_blocked_on_done() {
-            let out_conn = OutputConnection::new(
-                Source::default(),
-                1,
-                0,
-                0,
-                String::default(),
-                #[cfg(feature = "debugger")]
-                String::default(),
-            );
-            let f_a = RuntimeFunction::new(
-                #[cfg(feature = "debugger")]
-                "fA",
-                #[cfg(feature = "debugger")]
-                "/fA",
-                "file://fake/test",
-                vec![Input::new(
-                    #[cfg(feature = "debugger")] "", 0, false,
-                    Some(Always(json!(1))), None)],
-                0,
-                0,
-                &[out_conn],
-                false,
-            ); // outputs to fB:0
-            let f_b = test_function_b_not_init();
-            let functions = vec![f_a, f_b];
-            let submission = Submission::new(
-                &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
-                None,
-                #[cfg(feature = "debugger")]
-                true,
-            );
-            let mut state = RunState::new(functions, submission);
-            #[cfg(feature = "metrics")]
-            let mut metrics = Metrics::new(1);
-            #[cfg(feature = "debugger")]
-                let mut server = super::DummyServer{};
-            #[cfg(feature = "debugger")]
-                let mut debugger = super::dummy_debugger(&mut server);
-
-            state.init();
-
-            assert!(state.function_state_is_only(0, State::Ready), "f_a should be Ready");
-
-            let job = state.new_job().expect("Couldn't get next job");
-            assert_eq!(
-                0, job.function_id,
-                "next() should return function_id=0 (f_a) for running"
-            );
-
-            assert!(state.function_state_is_only(0, State::Running), "f_a should be Running");
-
-            // Event
-            let output = super::test_job(&mut state, 0, 1);
-            let _ = state.retire_job(
-                #[cfg(feature = "metrics")]
-                &mut metrics,
-                &output,
-                #[cfg(feature = "debugger")]
-                &mut debugger,
-            );
-
-            // Test f_a should transition to Blocked on f_b
-            assert!(state.function_state_is_only(0, State::Blocked), "f_a should be Blocked");
-        }
-
         #[test]
         #[serial]
         fn waiting_to_ready_on_input() {
@@ -1708,119 +1624,6 @@ mod test {
 
             // Test
             assert!(state.function_state_is_only(0, State::Ready), "f_a should be Ready");
-        }
-
-        /*
-            This tests that if a function that has a loop back sending to itself, runs the first time
-            due to a OnceInitializer, that after running it sends output back to itself and is ready
-            (not waiting for an input from elsewhere and no deadlock due to blocking itself occurs
-        */
-        #[test]
-        #[serial]
-        fn not_block_on_self() {
-            let connection_to_0 = OutputConnection::new(
-                Source::default(),
-                0,
-                0,
-                0,
-                String::default(),
-                #[cfg(feature = "debugger")]
-                String::default(),
-            );
-            let connection_to_1 = OutputConnection::new(
-                Source::default(),
-                1,
-                0,
-                0,
-                String::default(),
-                #[cfg(feature = "debugger")]
-                String::default(),
-            );
-
-            let f_a = RuntimeFunction::new(
-                #[cfg(feature = "debugger")]
-                "fA",
-                #[cfg(feature = "debugger")]
-                "/fA",
-                "file://fake/test",
-                vec![Input::new(
-                    #[cfg(feature = "debugger")] "", 0, false,
-                    Some(Once(json!(1))), None)],
-                0,
-                0,
-                &[
-                    connection_to_0, // outputs to self:0
-                    connection_to_1, // outputs to f_b:0
-                ],
-                false,
-            );
-            let f_b = test_function_b_not_init();
-            let functions = vec![f_a, f_b];
-            let submission = Submission::new(
-                &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
-                None,
-                #[cfg(feature = "debugger")]
-                true,
-            );
-            let mut state = RunState::new(functions, submission);
-            #[cfg(feature = "metrics")]
-            let mut metrics = Metrics::new(2);
-            #[cfg(feature = "debugger")]
-                let mut server = super::DummyServer{};
-            #[cfg(feature = "debugger")]
-                let mut debugger = super::dummy_debugger(&mut server);
-
-            state.init();
-
-            assert!(state.function_state_is_only(0, State::Ready), "f_a should be Ready");
-            assert!(state.function_state_is_only(1, State::Waiting),
-                    "f_b should be in Waiting"
-            );
-
-            let mut job = state.new_job().expect("Couldn't get next job");
-            assert_eq!(job.function_id, 0, "Expected job with function_id=0");
-
-            // fake the running of function fA
-            job.result = Ok((Some(json!(1)), true));
-            let _ = state.retire_job(
-                #[cfg(feature = "metrics")]
-                &mut metrics,
-                &job,
-                #[cfg(feature = "debugger")]
-                &mut debugger,
-            );
-
-            // Test
-            assert!(state.function_state_is_only(0, State::Blocked),
-                    "f_a should be Blocked on f_b"
-            );
-            assert!(state.function_state_is_only(1, State::Ready), "f_b should be Ready");
-
-            let job = state.new_job().expect("Couldn't get next job");
-            assert_eq!(
-                job.function_id, 1,
-                "next() should return function_id=1 (f_b) for running"
-            );
-            let _ = state.retire_job(
-                #[cfg(feature = "metrics")]
-                &mut metrics,
-                &job,
-                #[cfg(feature = "debugger")]
-                &mut debugger,
-            );
-
-            let job = state.new_job().expect("Couldn't get next job");
-            assert_eq!(
-                job.function_id, 0,
-                "next() should return function_id=0 (f_a) for running"
-            );
-            let _ = state.retire_job(
-                #[cfg(feature = "metrics")]
-                &mut metrics,
-                &job,
-                #[cfg(feature = "debugger")]
-                &mut debugger,
-            );
         }
     }
 
@@ -2026,44 +1829,6 @@ mod test {
 
         #[test]
         #[serial]
-        fn unblocking_makes_ready() {
-            let submission = Submission::new(
-                &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
-                None,
-                #[cfg(feature = "debugger")]
-                true,
-            );
-            let mut state = RunState::new(test_functions(), submission);
-            #[cfg(feature = "debugger")]
-                let mut server = super::DummyServer{};
-            #[cfg(feature = "debugger")]
-                let mut debugger = super::dummy_debugger(&mut server);
-
-            // Indicate that 0 is blocked by 1 and put 0 on the blocked list
-            let _ = state.create_block(
-                0,
-                1,
-                0,
-                0,
-                0,
-                #[cfg(feature = "debugger")]
-                &mut debugger,
-            );
-            // 0's inputs are now full, so it would be ready if it weren't blocked on output
-            state.make_ready_or_blocked(0, 0);
-            // 0 does not show as ready.
-            assert!(state.new_job().is_none());
-
-            // now unblock senders to 1 (i.e. 0)
-            state.unblock_internal_flow_senders(0, 1, 0)
-                .expect("Could not unblock");
-
-            // Now function with id 0 should be ready and served up by next
-            state.new_job().expect("Couldn't get next job");
-        }
-
-        #[test]
-        #[serial]
         fn unblocking_doubly_blocked_functions_not_ready() {
             let submission = Submission::new(
                 &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
@@ -2104,7 +1869,7 @@ mod test {
             assert!(state.new_job().is_none());
 
             // now unblock 0 by 1
-            state.unblock_internal_flow_senders(0, 1, 0)
+            state.block_external_flow_senders(0, 1, 0)
                 .expect("Could not unblock");
 
             // Now function with id 0 should still not be ready as still blocked on 2
