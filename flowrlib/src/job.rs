@@ -29,6 +29,9 @@ pub struct Job {
     pub result: Result<(Option<Value>, RunAgain)>,
 }
 
+unsafe impl Send for Job{}
+unsafe impl Sync for Job{}
+
 impl fmt::Display for Job {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         writeln!(
