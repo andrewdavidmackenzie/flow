@@ -83,8 +83,8 @@ impl Executor {
         }
     }
 
-    /// Send a `Job` for execution to executors
-    pub fn send_job_for_execution(&mut self, job: &Job) -> Result<()> {
+    // Send a `Job` for execution to executors
+    pub(crate) fn send_job_for_execution(&mut self, job: &Job) -> Result<()> {
         self.job_sender
             .send(job.clone())
             .chain_err(|| "Sending of job for execution failed")?;
