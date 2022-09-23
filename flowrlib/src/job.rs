@@ -1,13 +1,11 @@
 use std::fmt;
-use std::sync::Arc;
 
 use serde_derive::{Deserialize, Serialize};
 use serde_json::Value;
 
-use flowcore::{Implementation, RunAgain};
 use flowcore::errors::*;
 use flowcore::model::output_connection::OutputConnection;
-use flowcore::model::runtime_function::RuntimeFunction;
+use flowcore::RunAgain;
 
 /// A `Job` contains the information necessary to manage the execution of a function in the
 /// flow on a set of input values, and then where to send the outputs that maybe produces.
@@ -24,10 +22,8 @@ pub struct Job {
     /// The set of destinations (other function's inputs) where the output produced by the function
     /// should be sent
     pub connections: Vec<OutputConnection>,
-    /// The implementation to be used in executing the job
-    #[serde(skip)]
-    #[serde(default = "RuntimeFunction::default_implementation")]
-    pub implementation: Arc<dyn Implementation>,
+    /// The location of the function to be run for this job
+    pub implementation_location: String,
     /// The result of the execution with optional output Value and if the function should be run
     /// again in the future
     pub result: Result<(Option<Value>, RunAgain)>,
@@ -40,12 +36,14 @@ impl fmt::Display for Job {
             "Job Id: {}, Function Id: {}, Flow Id: {}",
             self.job_id, self.function_id, self.flow_id
         )?;
+        writeln!(f, "Implementation Location: {}", self.implementation_location)?;
         writeln!(f, "Inputs: {:?}", self.input_set)?;
         writeln!(f, "Connections: {:?}", self.connections)?;
         writeln!(f, "Result: {:?}", self.result)
     }
 }
 
+// ADM check this is needed
 impl Clone for Job {
     fn clone(&self) -> Self {
         let result = match &self.result {
@@ -59,7 +57,7 @@ impl Clone for Job {
             flow_id: self.flow_id,
             input_set: self.input_set.clone(),
             connections: self.connections.clone(),
-            implementation: self.implementation.clone(),
+            implementation_location: self.implementation_location.clone(),
             result
         }
     }
@@ -72,7 +70,6 @@ mod test {
     use serde_json::json;
 
     use flowcore::model::datatype::ARRAY_TYPE;
-    use flowcore::model::runtime_function::RuntimeFunction;
 
     #[test]
     fn display_job_test() {
@@ -82,7 +79,7 @@ mod test {
             flow_id: 0,
             input_set: vec![],
             connections: vec![],
-            implementation: RuntimeFunction::default_implementation(),
+            implementation_location: "lib://flowstdlib/math/add".into(),
             result: Ok((None, false)),
         };
         println!("Job: {}", job);
@@ -96,7 +93,7 @@ mod test {
             flow_id: 0,
             input_set: vec![],
             connections: vec![],
-            implementation: RuntimeFunction::default_implementation(),
+            implementation_location: "lib://flowstdlib/math/add".into(),
             result: Ok((Some(json!(42u64)), false)),
         };
 
@@ -122,7 +119,7 @@ mod test {
             flow_id: 0,
             input_set: vec![],
             connections: vec![],
-            implementation: RuntimeFunction::default_implementation(),
+            implementation_location: "lib://flowstdlib/math/add".into(),
             result: Ok((Some(json!(value)), false)),
         };
 

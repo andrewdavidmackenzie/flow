@@ -457,8 +457,6 @@ impl RunState {
         match function.take_input_set() {
             Ok(input_set) => {
                 let flow_id = function.get_flow_id();
-                let implementation = function.get_implementation();
-                let connections = function.get_output_connections().clone();
 
                 trace!("Job #{job_id}: NEW Job Created for Function #{function_id}({flow_id})");
 
@@ -466,9 +464,9 @@ impl RunState {
                     job_id,
                     function_id,
                     flow_id,
-                    implementation,
+                    implementation_location: function.get_implementation_location().to_string(),
                     input_set,
-                    connections,
+                    connections: function.get_output_connections().clone(),
                     result: Ok((None, false)),
                 })
             }
@@ -908,12 +906,9 @@ impl fmt::Display for RunState {
 
 #[cfg(test)]
 mod test {
-    use std::sync::Arc;
-
     use serde_json::json;
     use serde_json::Value;
 
-    use flowcore::{Implementation, RunAgain};
     use flowcore::errors::Result;
     use flowcore::model::input::Input;
     use flowcore::model::input::InputInitializer::Once;
@@ -933,19 +928,6 @@ mod test {
 
     use super::Job;
     use super::RunState;
-
-    #[derive(Debug)]
-    struct TestImpl {}
-
-    impl Implementation for TestImpl {
-        fn run(&self, _inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
-            Ok((None, true))
-        }
-    }
-
-    fn test_impl() -> Arc<dyn Implementation> {
-        Arc::new(TestImpl {})
-    }
 
     fn test_function_a_to_b_not_init() -> RuntimeFunction {
         let connection_to_f1 = OutputConnection::new(
@@ -1049,7 +1031,7 @@ mod test {
             job_id: 1,
             function_id: source_function_id,
             flow_id: 0,
-            implementation: test_impl(),
+            implementation_location: "test".into(),
             input_set: vec![json!(1)],
             result: Ok((Some(json!(1)), true)),
             connections: vec![out_conn],
@@ -1392,7 +1374,7 @@ mod test {
                 job_id: 1,
                 function_id: 0,
                 flow_id: 0,
-                implementation: super::test_impl(),
+                implementation_location: "test".into(),
                 input_set: vec![json!(1)],
                 result: Ok((None, true)),
                 connections: vec![],
@@ -1928,7 +1910,7 @@ mod test {
                 job_id: 0,
                 function_id: 0,
                 flow_id: 0,
-                implementation: super::test_impl(),
+                implementation_location: "test".into(),
                 input_set: vec![json!(1)],
                 result: Ok((Some(json!(1)), true)),
                 connections: vec![],
