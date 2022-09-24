@@ -842,7 +842,7 @@ mod test {
             job_id: 0,
             function_id: 0,
             flow_id: 0,
-            implementation_location: "test".into(),
+            implementation_url: Url::parse("file://test").expect("Could not parse Url"),
             input_set: vec![json!(1)],
             result: Ok((Some(json!(1)), true)),
             connections: vec![],

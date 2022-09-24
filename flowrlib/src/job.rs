@@ -2,6 +2,7 @@ use std::fmt;
 
 use serde_derive::{Deserialize, Serialize};
 use serde_json::Value;
+use url::Url;
 
 use flowcore::errors::*;
 use flowcore::model::output_connection::OutputConnection;
@@ -23,7 +24,7 @@ pub struct Job {
     /// should be sent
     pub connections: Vec<OutputConnection>,
     /// The location of the function to be run for this job
-    pub implementation_location: String,
+    pub implementation_url: Url,
     /// The result of the execution with optional output Value and if the function should be run
     /// again in the future
     pub result: Result<(Option<Value>, RunAgain)>,
@@ -39,7 +40,7 @@ impl fmt::Display for Job {
             "Job Id: {}, Function Id: {}, Flow Id: {}",
             self.job_id, self.function_id, self.flow_id
         )?;
-        writeln!(f, "Implementation Location: {}", self.implementation_location)?;
+        writeln!(f, "Implementation Url: {}", self.implementation_url)?;
         writeln!(f, "Inputs: {:?}", self.input_set)?;
         writeln!(f, "Connections: {:?}", self.connections)?;
         writeln!(f, "Result: {:?}", self.result)
@@ -51,6 +52,7 @@ mod test {
     use std::collections::HashMap;
 
     use serde_json::json;
+    use url::Url;
 
     use flowcore::model::datatype::ARRAY_TYPE;
 
@@ -62,7 +64,7 @@ mod test {
             flow_id: 0,
             input_set: vec![],
             connections: vec![],
-            implementation_location: "lib://flowstdlib/math/add".into(),
+            implementation_url: Url::parse("lib://flowstdlib/math/add").expect("Could not parse Url"),
             result: Ok((None, false)),
         };
         println!("Job: {}", job);
@@ -76,7 +78,7 @@ mod test {
             flow_id: 0,
             input_set: vec![],
             connections: vec![],
-            implementation_location: "lib://flowstdlib/math/add".into(),
+            implementation_url: Url::parse("lib://flowstdlib/math/add").expect("Could not parse Url"),
             result: Ok((Some(json!(42u64)), false)),
         };
 
@@ -102,7 +104,7 @@ mod test {
             flow_id: 0,
             input_set: vec![],
             connections: vec![],
-            implementation_location: "lib://flowstdlib/math/add".into(),
+            implementation_url: Url::parse("lib://flowstdlib/math/add").expect("Could not parse Url"),
             result: Ok((Some(json!(value)), false)),
         };
 

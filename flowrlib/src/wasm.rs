@@ -25,22 +25,6 @@ pub struct WasmExecutor {
 }
 
 impl WasmExecutor {
-    pub fn new(
-        store: Store<()>,
-        memory: Memory,
-        implementation: Func,
-        alloc: Func,
-        source_url: &Url,
-    ) -> Self {
-        WasmExecutor {
-            store: Arc::new(Mutex::new(store)),
-            memory,
-            implementation,
-            alloc,
-            source_url: source_url.clone(),
-        }
-    }
-
     // Serialize the inputs into JSON and then write them into the linear memory for WASM to read
     // Return the offset of the data in linear memory and the data size in bytes
     fn send_inputs(&self, store: &mut Store<()>, inputs: &[Value]) -> Result<(i32, i32)> {
@@ -128,7 +112,7 @@ unsafe impl Send for WasmExecutor {}
 
 unsafe impl Sync for WasmExecutor {}
 
-/// load a Wasm module from the specified Url.
+/// load a Wasm module from the specified Url and return it wrapped in a WasmExecutor `Implementation`
 pub fn load(provider: &dyn Provider, source_url: &Url) -> Result<WasmExecutor> {
     let (resolved_url, _) = provider
         .resolve_url(source_url, DEFAULT_WASM_FILENAME, &["wasm"])
@@ -159,11 +143,11 @@ pub fn load(provider: &dyn Provider, source_url: &Url) -> Result<WasmExecutor> {
 
     info!("Loaded wasm module from: '{}'", source_url);
 
-    Ok(WasmExecutor::new(
-        store,
+    Ok(WasmExecutor {
+        store: Arc::new(Mutex::new(store)),
         memory,
         implementation,
         alloc,
-        source_url,
-    ))
+        source_url: source_url.clone(),
+    })
 }
