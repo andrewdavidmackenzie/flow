@@ -123,7 +123,7 @@ impl Executor {
             FlowManifest::load(&*self.provider as &dyn Provider, flow_manifest_url)
                 .chain_err(|| format!("Could not load manifest from: '{}'", flow_manifest_url))?;
 
-        self.load_referenced_implementations(&flow_manifest)
+        self.load_referenced_lib_implementations(&flow_manifest)
             .chain_err(|| format!("Could not load libraries referenced by manifest at: {}",
                                   resolved_url))?;
 
@@ -193,7 +193,7 @@ impl Executor {
     }
 
     // Load context or libraries implementations referenced in the flow manifest
-    fn load_referenced_implementations(
+    fn load_referenced_lib_implementations(
         &mut self,
         flow_manifest: &FlowManifest,
     ) -> Result<()> {
