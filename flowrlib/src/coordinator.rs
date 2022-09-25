@@ -63,16 +63,18 @@ impl<'a> Coordinator<'a> {
         &mut self,
         loop_forever: bool,
     ) -> Result<()> {
-        // TODO without the client and context methods currently there is no other way to send a submission
         while let Some(submission) = self.submitter.wait_for_submission()? {
             match self.executor.load_flow(&submission.manifest_url) {
                 Ok(manifest) => {
                     let r = self.execute_flow(manifest, submission);
                     return self.submitter.coordinator_is_exiting(r);
                 },
-                Err(e) if loop_forever => error!("{}", e),
                 Err(e) => {
-                    return self.submitter.coordinator_is_exiting(Err(e));
+                    if loop_forever {
+                        error!("{}", e)
+                    } else {
+                        return self.submitter.coordinator_is_exiting(Err(e));
+                    }
                 },
             }
         }

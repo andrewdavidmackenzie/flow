@@ -729,12 +729,9 @@ impl<'a> Debugger<'a> {
 
 #[cfg(test)]
 mod test {
-    use std::sync::Arc;
-
     use serde_json::{json, Value};
     use url::Url;
 
-    use flowcore::{Implementation, RunAgain};
     use flowcore::errors::Result;
     use flowcore::model::input::Input;
     use flowcore::model::input::InputInitializer::Once;
@@ -840,25 +837,12 @@ mod test {
         )
     }
 
-    #[derive(Debug)]
-    struct TestImpl {}
-
-    impl Implementation for TestImpl {
-        fn run(&self, _inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
-            unimplemented!()
-        }
-    }
-
-    fn test_impl() -> Arc<dyn Implementation> {
-        Arc::new(TestImpl {})
-    }
-
     fn test_job() -> Job {
         Job {
             job_id: 0,
             function_id: 0,
             flow_id: 0,
-            implementation: test_impl(),
+            implementation_url: Url::parse("file://test").expect("Could not parse Url"),
             input_set: vec![json!(1)],
             result: Ok((Some(json!(1)), true)),
             connections: vec![],
@@ -898,7 +882,7 @@ mod test {
         let mut server = DummyServer::new();
         let mut debugger = Debugger::new(&mut server);
 
-        // configer a break on block creation from function #0 to function #1
+        // configure a break on block creation from function #0 to function #1
         debugger.block_breakpoints.insert((0, 1));
         let block = Block::new(0, 1, 0, 0, 0);
         let _ = debugger.check_on_block_creation(&mut state, &block);

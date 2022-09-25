@@ -1,12 +1,10 @@
 #[cfg(feature = "debugger")]
 use std::fmt;
-use std::sync::Arc;
 
 use log::debug;
 use serde_derive::{Deserialize, Serialize};
 use serde_json::Value;
 
-use crate::{Implementation, RunAgain};
 use crate::errors::*;
 use crate::model::input::Input;
 use crate::model::output_connection::OutputConnection;
@@ -29,9 +27,10 @@ pub struct RuntimeFunction {
     /// The unique id of the flow this function was in at definition time
     flow_id: usize,
 
-    /// Implementation location can be a "lib://lib_name/path/to/implementation" reference
-    /// or a "context://stdio/stdout" context function reference
-    /// or a path relative to the manifest location where a supplied implementation file can be found
+    /// Implementation location valid formats are:
+    /// - "lib://lib_name/path/to/implementation" - library function reference
+    /// - "context://stdio/stdout"                - context function reference
+    /// - A path relative to the manifest location where a supplied implementation file can be found
     implementation_location: String,
 
     // TODO skip serializing this, if the vector ONLY contains objects that can be serialized
@@ -41,19 +40,6 @@ pub struct RuntimeFunction {
 
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     output_connections: Vec<OutputConnection>,
-
-    #[serde(skip)]
-    #[serde(default = "RuntimeFunction::default_implementation")]
-    implementation: Arc<dyn Implementation>,
-}
-
-#[derive(Debug)]
-struct ImplementationNotFound;
-
-impl Implementation for ImplementationNotFound {
-    fn run(&self, _inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
-        bail!("Implementation not found");
-    }
 }
 
 #[cfg(feature = "debugger")]
@@ -121,7 +107,6 @@ impl RuntimeFunction {
             function_id: id,
             flow_id,
             implementation_location: implementation_location.into(),
-            implementation: RuntimeFunction::default_implementation(),
             output_connections: connections,
             inputs,
         }
@@ -134,11 +119,6 @@ impl RuntimeFunction {
         for input in &mut self.inputs {
             input.reset();
         }
-    }
-
-    /// A default `Function` - used in deserialization of a `Manifest`
-    pub fn default_implementation() -> Arc<dyn Implementation> {
-        Arc::new(ImplementationNotFound {})
     }
 
     /// Accessor for a `RuntimeFunction` `name`
@@ -192,14 +172,9 @@ impl RuntimeFunction {
         &self.output_connections
     }
 
-    /// Get a clone of the `RuntimeFunction` `implementation`
-    pub fn get_implementation(&self) -> Arc<dyn Implementation> {
-        self.implementation.clone()
-    }
-
-    /// Set a `RuntimeFunction` `implementation`
-    pub fn set_implementation(&mut self, implementation: Arc<dyn Implementation>) {
-        self.implementation = implementation;
+    /// Get a reference to the implementation_location
+    pub fn get_implementation_location(&self) -> &str {
+        &self.implementation_location
     }
 
     /// Determine if the `RuntimeFunction` `input` number `input_number` is full or not
@@ -251,17 +226,13 @@ impl RuntimeFunction {
 
 #[cfg(test)]
 mod test {
-    use std::sync::Arc;
-
     use serde_json::json;
     use serde_json::value::Value;
 
-    use crate::Implementation;
     use crate::model::input::Input;
     use crate::model::output_connection::OutputConnection;
     use crate::model::output_connection::Source::Output;
 
-    use super::ImplementationNotFound;
     use super::RuntimeFunction;
 
     /*************** Below are tests for basic json.pointer functionality *************************/
@@ -385,12 +356,6 @@ mod test {
         );
     }
 
-    #[test]
-    fn implementation_not_found() {
-        let inf = ImplementationNotFound {};
-        assert!(inf.run(&[]).is_err());
-    }
-
     #[cfg(feature = "debugger")]
     #[test]
     fn can_display_function() {
@@ -442,14 +407,6 @@ mod test {
             "file://fake/implementation",
             function.implementation_location()
         );
-    }
-
-    #[test]
-    fn can_set_and_get_implementation() {
-        let mut function = test_function(0);
-        let inf = Arc::new(ImplementationNotFound {});
-        function.set_implementation(inf);
-        let _ = function.get_implementation();
     }
 
     mod misc {

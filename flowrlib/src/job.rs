@@ -1,17 +1,16 @@
 use std::fmt;
-use std::sync::Arc;
 
 use serde_derive::{Deserialize, Serialize};
 use serde_json::Value;
+use url::Url;
 
-use flowcore::{Implementation, RunAgain};
 use flowcore::errors::*;
 use flowcore::model::output_connection::OutputConnection;
-use flowcore::model::runtime_function::RuntimeFunction;
+use flowcore::RunAgain;
 
 /// A `Job` contains the information necessary to manage the execution of a function in the
 /// flow on a set of input values, and then where to send the outputs that maybe produces.
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct Job {
     /// Each `Job` has a unique id that increments as jobs are executed
     pub job_id: usize,
@@ -21,17 +20,17 @@ pub struct Job {
     pub flow_id: usize,
     /// The set of input values to be used by the function when executing this job
     pub input_set: Vec<Value>,
-    /// The set of destinations (other function's inputs) where the output produced by the function
-    /// should be sent
+    /// The destinations (other function's inputs) where any output should be sent
     pub connections: Vec<OutputConnection>,
-    /// The implementation to be used in executing the job
-    #[serde(skip)]
-    #[serde(default = "RuntimeFunction::default_implementation")]
-    pub implementation: Arc<dyn Implementation>,
+    /// The url of the implementation to be run for this job
+    pub implementation_url: Url,
     /// The result of the execution with optional output Value and if the function should be run
     /// again in the future
     pub result: Result<(Option<Value>, RunAgain)>,
 }
+
+unsafe impl Send for Job{}
+unsafe impl Sync for Job{}
 
 impl fmt::Display for Job {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -40,28 +39,10 @@ impl fmt::Display for Job {
             "Job Id: {}, Function Id: {}, Flow Id: {}",
             self.job_id, self.function_id, self.flow_id
         )?;
+        writeln!(f, "Implementation Url: {}", self.implementation_url)?;
         writeln!(f, "Inputs: {:?}", self.input_set)?;
         writeln!(f, "Connections: {:?}", self.connections)?;
         writeln!(f, "Result: {:?}", self.result)
-    }
-}
-
-impl Clone for Job {
-    fn clone(&self) -> Self {
-        let result = match &self.result {
-            Ok(r) => Ok(r.clone()),
-            Err(e) => Err(flowcore::errors::Error::from(e.to_string()))
-        };
-
-        Job {
-            job_id: self.job_id,
-            function_id: self.function_id,
-            flow_id: self.flow_id,
-            input_set: self.input_set.clone(),
-            connections: self.connections.clone(),
-            implementation: self.implementation.clone(),
-            result
-        }
     }
 }
 
@@ -70,9 +51,9 @@ mod test {
     use std::collections::HashMap;
 
     use serde_json::json;
+    use url::Url;
 
     use flowcore::model::datatype::ARRAY_TYPE;
-    use flowcore::model::runtime_function::RuntimeFunction;
 
     #[test]
     fn display_job_test() {
@@ -82,7 +63,7 @@ mod test {
             flow_id: 0,
             input_set: vec![],
             connections: vec![],
-            implementation: RuntimeFunction::default_implementation(),
+            implementation_url: Url::parse("lib://flowstdlib/math/add").expect("Could not parse Url"),
             result: Ok((None, false)),
         };
         println!("Job: {}", job);
@@ -96,7 +77,7 @@ mod test {
             flow_id: 0,
             input_set: vec![],
             connections: vec![],
-            implementation: RuntimeFunction::default_implementation(),
+            implementation_url: Url::parse("lib://flowstdlib/math/add").expect("Could not parse Url"),
             result: Ok((Some(json!(42u64)), false)),
         };
 
@@ -122,7 +103,7 @@ mod test {
             flow_id: 0,
             input_set: vec![],
             connections: vec![],
-            implementation: RuntimeFunction::default_implementation(),
+            implementation_url: Url::parse("lib://flowstdlib/math/add").expect("Could not parse Url"),
             result: Ok((Some(json!(value)), false)),
         };
 
