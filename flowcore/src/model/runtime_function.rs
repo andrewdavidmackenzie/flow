@@ -4,12 +4,13 @@ use std::fmt;
 use log::debug;
 use serde_derive::{Deserialize, Serialize};
 use serde_json::Value;
+use url::Url;
 
 use crate::errors::*;
 use crate::model::input::Input;
 use crate::model::output_connection::OutputConnection;
 
-#[derive(Deserialize, Serialize, Clone)]
+#[derive(Deserialize, Serialize, Clone, PartialEq, Eq, Debug,)]
 /// `RuntimeFunction` contains all the information needed about a function and its implementation
 /// to be able to execute a flow using it.
 pub struct RuntimeFunction {
@@ -27,11 +28,18 @@ pub struct RuntimeFunction {
     /// The unique id of the flow this function was in at definition time
     flow_id: usize,
 
-    /// Implementation location valid formats are:
-    /// - "lib://lib_name/path/to/implementation" - library function reference
-    /// - "context://stdio/stdout"                - context function reference
-    /// - A path relative to the manifest location where a supplied implementation file can be found
+    // Implementation location formats are:
+    // - "lib://lib_name/path/to/implementation" - library implementation reference
+    // - "context://stdio/stdout"                - context implementation reference
+    // - path relative to the manifest where the provided implementation file can be found
     implementation_location: String,
+
+    // Implementation Urls formats are:
+    // - "lib://lib_name/path/to/implementation" - library implementation reference
+    // - "context://stdio/stdout"                - context implementation reference
+    // - "file://{manifest_url}/{relative_path}  - provided implementation reference
+    #[serde(skip_serializing_if = "is_default_url", default = "default_url")]
+    implementation_url: Url,
 
     // TODO skip serializing this, if the vector ONLY contains objects that can be serialized
     // to "{}" and hence contain no info. I think the number of inputs is not needed?
@@ -40,6 +48,14 @@ pub struct RuntimeFunction {
 
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     output_connections: Vec<OutputConnection>,
+}
+
+fn is_default_url(url: &Url) -> bool {
+   url == &default_url()
+}
+
+fn default_url() -> Url {
+    Url::parse("file:///").expect("Could not create default_url")
 }
 
 #[cfg(feature = "debugger")]
@@ -107,6 +123,7 @@ impl RuntimeFunction {
             function_id: id,
             flow_id,
             implementation_location: implementation_location.into(),
+            implementation_url: default_url(),
             output_connections: connections,
             inputs,
         }
@@ -175,6 +192,23 @@ impl RuntimeFunction {
     /// Get a reference to the implementation_location
     pub fn get_implementation_location(&self) -> &str {
         &self.implementation_location
+    }
+
+    /// Set the implementation_location, as an absolute Url relative to the manifest_url
+    pub fn set_implementation_url(&mut self, manifest_url: &Url) -> Result<()> {
+        self.implementation_url = Self::location_to_url(manifest_url,
+                                                        self.implementation_location())?;
+        Ok(())
+    }
+
+    /// Get a reference to the implementation_url
+    pub fn get_implementation_url(&self) -> &Url {
+        &self.implementation_url
+    }
+
+    fn location_to_url(manifest_url: &Url, location: &str) -> Result<Url> {
+        Url::parse(location).or_else(|_| manifest_url.clone().join(location))
+            .chain_err(|| "Could not create Url from 'manifest_url' and 'location'")
     }
 
     /// Determine if the `RuntimeFunction` `input` number `input_number` is full or not

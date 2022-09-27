@@ -8,7 +8,6 @@ use multimap::MultiMap;
 use rand::Rng;
 use serde_derive::{Deserialize, Serialize};
 use serde_json::Value;
-use url::Url;
 
 use flowcore::errors::*;
 #[cfg(feature = "metrics")]
@@ -194,8 +193,8 @@ enum ExecutionStrategy {
 /// launched in parallel. The minimum value for this is 1
 #[derive(Deserialize, Serialize, Clone)]
 pub struct RunState {
-    /// The vector of all functions in the flow loaded from manifest
-    functions: Vec<RuntimeFunction>,
+    /// The `Submission` that lead to this `RunState` object being created
+    pub(crate) submission: Submission,
     /// blocked: HashSet<function_id> - list of functions by id that are blocked on sending
     blocked: HashSet<usize>,
     /// blocks: - a list of blocks between functions
@@ -215,8 +214,6 @@ pub struct RunState {
     /// Track which functions have finished and can be unblocked when flow goes not "busy"
     /// HashMap< <flow_id>, (function_id, vector of refilled io numbers of that function)>
     flow_blocks: HashMap<usize, HashSet<usize>>,
-    /// The `Submission` that lead to this `RunState` object being created
-    pub(crate) submission: Submission,
     /// The execution strategy being used
     strategy: ExecutionStrategy,
 }
@@ -224,9 +221,8 @@ pub struct RunState {
 impl RunState {
     /// Create a new `RunState` struct from the list of functions provided and the `Submission`
     /// that was sent to be executed
-    pub fn new(functions: Vec<RuntimeFunction>, submission: Submission) -> Self {
+    pub fn new(submission: Submission) -> Self {
         RunState {
-            functions,
             submission,
             blocked: HashSet::<usize>::new(),
             blocks: HashSet::<Block>::new(),
@@ -243,14 +239,14 @@ impl RunState {
 
     /// Get a reference to the vector of all functions
     pub(crate) fn get_functions(&self) -> &Vec<RuntimeFunction> {
-        &self.functions
+        self.submission.manifest.functions()
     }
 
     // Reset all values back to initial ones to enable debugging to restart from the initial state
     #[cfg(feature = "debugger")]
     fn reset(&mut self) {
         debug!("Resetting RunState");
-        for function in &mut self.functions {
+        for function in self.submission.manifest.get_functions() {
             function.reset()
         }
         self.blocked.clear();
@@ -283,7 +279,7 @@ impl RunState {
         self.reset();
 
         debug!("Initializing all functions");
-        for function in &mut self.functions {
+        for function in &mut self.submission.manifest.get_functions().iter_mut() {
             function.init();
             if function.can_run() {
                 trace!("\t\t\tFunction #{} State set to 'Ready'", function.id());
@@ -348,12 +344,12 @@ impl RunState {
         
     /// Get a reference to the function with `id`
     pub fn get_function(&self, id: usize) -> Option<&RuntimeFunction> {
-        self.functions.get(id)
+        self.submission.manifest.functions().get(id)
     }
 
     // Get a mutable reference to the function with `id`
     fn get_mut(&mut self, id: usize) -> Option<&mut RuntimeFunction> {
-        self.functions.get_mut(id)
+        self.submission.manifest.get_functions().get_mut(id)
     }
 
     /// Get the HashSet of blocked function ids
@@ -455,7 +451,6 @@ impl RunState {
         self.number_of_jobs_created += 1;
         let job_id = self.number_of_jobs_created;
 
-        let manifest_url = self.submission.manifest_url.clone();
         let function = self.get_mut(function_id)?;
 
         match function.take_input_set() {
@@ -468,9 +463,7 @@ impl RunState {
                     job_id,
                     function_id,
                     flow_id,
-                    implementation_url: Self::location_to_url(manifest_url,
-                                                              function.get_implementation_location())
-                        .ok()?,
+                    implementation_url: function.get_implementation_url().clone(),
                     input_set,
                     connections: function.get_output_connections().clone(),
                     result: Ok((None, false)),
@@ -483,11 +476,6 @@ impl RunState {
                 None
             }
         }
-    }
-
-    fn location_to_url(manifest_url: Url, location: &str) -> Result<Url> {
-        Url::parse(location).or_else(|_| manifest_url.join(location))
-            .chain_err(|| "Could not create Url from 'manifest_url' and 'location'")
     }
 
     // Complete a Job by taking its output and updating the run-list accordingly.
@@ -712,7 +700,7 @@ impl RunState {
                 let mut senders = Vec::<usize>::new();
 
                 // go through all functions to see if sends to the target function on this input
-                for sender_function in &self.functions {
+                for sender_function in self.submission.manifest.functions().iter() {
                     // if the sender function is not ready to run
                     if !self.ready.contains(&sender_function.id()) {
                         // for each output route of sending function, see if it is sending to the target function and input
@@ -759,7 +747,7 @@ impl RunState {
     /// Return how many functions exist in this flow being executed
     #[cfg(any(feature = "debugger", feature = "metrics"))]
     pub fn num_functions(&self) -> usize {
-        self.functions.len()
+        self.submission.manifest.functions().len()
     }
 
     // Remove blocks on functions sending to another function inside the `blocker_flow_id` flow
@@ -847,7 +835,7 @@ impl RunState {
 
     fn run_flow_initializers(&mut self, flow_id: usize) {
         let mut initialized_functions = Vec::<usize>::new();
-        for function in &mut self.functions {
+        for function in &mut self.submission.manifest.get_functions().iter_mut() {
             if function.get_flow_id() == flow_id {
                 let could_run_before = function.can_run();
                 function.init_inputs(false, true);
@@ -922,10 +910,13 @@ mod test {
     use url::Url;
 
     use flowcore::errors::Result;
+    use flowcore::model::flow_manifest::FlowManifest;
     use flowcore::model::input::Input;
     use flowcore::model::input::InputInitializer::Once;
+    use flowcore::model::metadata::MetaData;
     use flowcore::model::output_connection::{OutputConnection, Source};
     use flowcore::model::runtime_function::RuntimeFunction;
+    use flowcore::model::submission::Submission;
 
     #[cfg(feature = "debugger")]
     use crate::block::Block;
@@ -1085,15 +1076,38 @@ mod test {
         Debugger::new(server)
     }
 
+    fn test_meta_data() -> MetaData {
+        MetaData {
+            name: "test".into(),
+            version: "0.0.0".into(),
+            description: "a test".into(),
+            authors: vec!["me".into()],
+        }
+    }
+
+    fn test_manifest(functions: Vec<RuntimeFunction>) -> FlowManifest {
+        let mut manifest = FlowManifest::new(test_meta_data());
+        for function in functions {
+            manifest.add_function(function);
+        }
+        manifest
+    }
+
+    fn test_submission(functions: Vec<RuntimeFunction>) -> Submission {
+        Submission::new(
+            test_manifest(functions),
+            None,
+            #[cfg(feature = "debugger")]
+                true,
+        )
+    }
+
     mod general_run_state_tests {
         #[cfg(feature = "debugger")]
                 use std::collections::HashSet;
 
         #[cfg(feature = "debugger")]
                 use multimap::MultiMap;
-        use url::Url;
-
-        use flowcore::model::submission::Submission;
 
         use super::super::RunState;
 
@@ -1101,14 +1115,7 @@ mod test {
         fn display_run_state_test() {
             let f_a = super::test_function_a_to_b();
             let f_b = super::test_function_b_not_init();
-            let functions = vec![f_a, f_b];
-            let submission = Submission::new(
-                &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
-                None,
-                #[cfg(feature = "debugger")]
-                true,
-            );
-            let mut state = RunState::new(functions, submission);
+            let mut state = RunState::new(super::test_submission(vec![f_a, f_b]));
             state.init();
 
             #[cfg(any(feature = "debugger", feature = "metrics"))]
@@ -1120,13 +1127,7 @@ mod test {
         #[cfg(feature = "metrics")]
         #[test]
         fn jobs_created_zero_at_init() {
-            let submission = Submission::new(
-                &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
-                None,
-                #[cfg(feature = "debugger")]
-                true,
-            );
-            let mut state = RunState::new(vec![], submission);
+            let mut state = RunState::new(super::test_submission(vec![]));
             state.init();
             assert_eq!(0, state.get_number_of_jobs_created(), "At init jobs() should be 0");
             assert_eq!(0, state.number_jobs_ready());
@@ -1135,13 +1136,7 @@ mod test {
         #[cfg(feature = "debugger")]
         #[test]
         fn zero_blocks_at_init() {
-            let submission = Submission::new(
-                &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
-                None,
-                #[cfg(feature = "debugger")]
-                true,
-            );
-            let mut state = RunState::new(vec![], submission);
+            let mut state = RunState::new(super::test_submission(vec![]));
             state.init();
             assert_eq!(
                 &HashSet::new(),
@@ -1153,13 +1148,7 @@ mod test {
         #[cfg(feature = "debugger")]
         #[test]
         fn zero_running_at_init() {
-            let submission = Submission::new(
-                &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
-                None,
-                #[cfg(feature = "debugger")]
-                true,
-            );
-            let mut state = RunState::new(vec![], submission);
+            let mut state = RunState::new(super::test_submission(vec![]));
             state.init();
             assert_eq!(
                 &MultiMap::new(),
@@ -1171,13 +1160,7 @@ mod test {
         #[cfg(feature = "debugger")]
         #[test]
         fn zero_blocked_at_init() {
-            let submission = Submission::new(
-                &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
-                None,
-                #[cfg(feature = "debugger")]
-                true,
-            );
-            let mut state = RunState::new(vec![], submission);
+            let mut state = RunState::new(super::test_submission(vec![]));
             state.init();
             assert_eq!(
                 &HashSet::new(),
@@ -1199,7 +1182,6 @@ mod test {
         use flowcore::model::metrics::Metrics;
         use flowcore::model::output_connection::{OutputConnection, Source};
         use flowcore::model::runtime_function::RuntimeFunction;
-        use flowcore::model::submission::Submission;
 
         use crate::run_state::test::test_function_b_not_init;
 
@@ -1211,14 +1193,7 @@ mod test {
         fn to_ready_1_on_init() {
             let f_a = super::test_function_a_to_b();
             let f_b = test_function_b_not_init();
-            let functions = vec![f_a, f_b];
-            let submission = Submission::new(
-                &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
-                None,
-                #[cfg(feature = "debugger")]
-                true,
-            );
-            let mut state = RunState::new(functions, submission);
+            let mut state = RunState::new(super::test_submission(vec![f_a, f_b]));
 
             // Event
             state.init();
@@ -1236,14 +1211,7 @@ mod test {
         fn input_blocker() {
             let f_a = super::test_function_a_to_b_not_init();
             let f_b = test_function_b_not_init();
-            let functions = vec![f_a, f_b];
-            let submission = Submission::new(
-                &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
-                None,
-                #[cfg(feature = "debugger")]
-                true,
-            );
-            let mut state = RunState::new(functions, submission);
+            let mut state = RunState::new(super::test_submission(vec![f_a, f_b]));
 
             // Event
             state.init();
@@ -1268,14 +1236,7 @@ mod test {
         fn to_ready_2_on_init() {
             let f_a = super::test_function_a_to_b();
             let f_b = test_function_b_not_init();
-            let functions = vec![f_a, f_b];
-            let submission = Submission::new(
-                &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
-                None,
-                #[cfg(feature = "debugger")]
-                true,
-            );
-            let mut state = RunState::new(functions, submission);
+            let mut state = RunState::new(super::test_submission(vec![f_a, f_b]));
 
             // Event
             state.init();
@@ -1287,14 +1248,7 @@ mod test {
         #[test]
         fn to_ready_3_on_init() {
             let f_a = super::test_function_a_init();
-            let functions = vec![f_a];
-            let submission = Submission::new(
-                &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
-                None,
-                #[cfg(feature = "debugger")]
-                true,
-            );
-            let mut state = RunState::new(functions, submission);
+            let mut state = RunState::new(super::test_submission(vec![f_a]));
 
             // Event
             state.init();
@@ -1323,14 +1277,7 @@ mod test {
         #[test]
         fn to_waiting_on_init() {
             let f_a = test_function_a_not_init();
-            let functions = vec![f_a];
-            let submission = Submission::new(
-                &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
-                None,
-                #[cfg(feature = "debugger")]
-                true,
-            );
-            let mut state = RunState::new(functions, submission);
+            let mut state = RunState::new(super::test_submission(vec![f_a]));
 
             // Event
             state.init();
@@ -1342,14 +1289,7 @@ mod test {
         #[test]
         fn ready_to_running_on_next() {
             let f_a = super::test_function_a_init();
-            let functions = vec![f_a];
-            let submission = Submission::new(
-                &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
-                None,
-                #[cfg(feature = "debugger")]
-                true,
-            );
-            let mut state = RunState::new(functions, submission);
+            let mut state = RunState::new(super::test_submission(vec![f_a]));
             state.init();
             assert!(state.function_state_is_only(0, State::Ready), "f_a should be Ready");
 
@@ -1363,14 +1303,7 @@ mod test {
         #[test]
         fn unready_not_to_running_on_next() {
             let f_a = test_function_a_not_init();
-            let functions = vec![f_a];
-            let submission = Submission::new(
-                &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
-                None,
-                #[cfg(feature = "debugger")]
-                true,
-            );
-            let mut state = RunState::new(functions, submission);
+            let mut state = RunState::new(super::test_submission(vec![f_a]));
             state.init();
             assert!(state.function_state_is_only(0, State::Waiting), "f_a should be Waiting");
 
@@ -1410,14 +1343,7 @@ mod test {
                 &[],
                 false,
             );
-            let functions = vec![f_a];
-            let submission = Submission::new(
-                &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
-                None,
-                #[cfg(feature = "debugger")]
-                true,
-            );
-            let mut state = RunState::new(functions, submission);
+            let mut state = RunState::new(super::test_submission(vec![f_a]));
             #[cfg(feature = "metrics")]
             let mut metrics = Metrics::new(1);
             #[cfg(feature = "debugger")]
@@ -1454,14 +1380,7 @@ mod test {
         #[serial]
         fn running_to_waiting_on_done() {
             let f_a = super::test_function_a_init();
-            let functions = vec![f_a];
-            let submission = Submission::new(
-                &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
-                None,
-                #[cfg(feature = "debugger")]
-                true,
-            );
-            let mut state = RunState::new(functions, submission);
+            let mut state = RunState::new(super::test_submission(vec![f_a]));
             #[cfg(feature = "metrics")]
             let mut metrics = Metrics::new(1);
             #[cfg(feature = "debugger")]
@@ -1519,14 +1438,7 @@ mod test {
                 &[out_conn],
                 false,
             );
-            let functions = vec![f_a, f_b];
-            let submission = Submission::new(
-                &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
-                None,
-                #[cfg(feature = "debugger")]
-                true,
-            );
-            let mut state = RunState::new(functions, submission);
+            let mut state = RunState::new(super::test_submission(vec![f_a, f_b]));
             #[cfg(feature = "metrics")]
             let mut metrics = Metrics::new(1);
             #[cfg(feature = "debugger")]
@@ -1583,14 +1495,7 @@ mod test {
                 &[connection_to_f0],
                 false,
             );
-            let functions = vec![f_a, f_b];
-            let submission = Submission::new(
-                &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
-                None,
-                #[cfg(feature = "debugger")]
-                true,
-            );
-            let mut state = RunState::new(functions, submission);
+            let mut state = RunState::new(super::test_submission(vec![f_a, f_b]));
             #[cfg(feature = "metrics")]
             let mut metrics = Metrics::new(1);
             #[cfg(feature = "debugger")]
@@ -1634,7 +1539,6 @@ mod test {
         use flowcore::model::metrics::Metrics;
         use flowcore::model::output_connection::{OutputConnection, Source};
         use flowcore::model::runtime_function::RuntimeFunction;
-        use flowcore::model::submission::Submission;
 
         use super::super::Job;
         use super::super::RunState;
@@ -1705,13 +1609,7 @@ mod test {
         #[test]
         #[serial]
         fn blocked_works() {
-            let submission = Submission::new(
-                &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
-                None,
-                #[cfg(feature = "debugger")]
-                true,
-            );
-            let mut state = RunState::new(test_functions(), submission);
+            let mut state = RunState::new(super::test_submission(test_functions()));
             #[cfg(feature = "debugger")]
                 let mut server = super::DummyServer{};
             #[cfg(feature = "debugger")]
@@ -1732,13 +1630,7 @@ mod test {
 
         #[test]
         fn get_works() {
-            let submission = Submission::new(
-                &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
-                None,
-                #[cfg(feature = "debugger")]
-                true,
-            );
-            let state = RunState::new(test_functions(), submission);
+            let state = RunState::new(super::test_submission(test_functions()));
             let got = state.get_function(1)
                 .ok_or("Could not get function by id").expect("Could not get function with that id");
             assert_eq!(got.id(), 1)
@@ -1746,26 +1638,13 @@ mod test {
 
         #[test]
         fn no_next_if_none_ready() {
-            let submission = Submission::new(
-                &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
-                None,
-                #[cfg(feature = "debugger")]
-                true,
-            );
-            let mut state = RunState::new(test_functions(), submission);
-
+            let mut state = RunState::new(super::test_submission(test_functions()));
             assert!(state.new_job().is_none());
         }
 
         #[test]
         fn next_works() {
-            let submission = Submission::new(
-                &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
-                None,
-                #[cfg(feature = "debugger")]
-                true,
-            );
-            let mut state = RunState::new(test_functions(), submission);
+            let mut state = RunState::new(super::test_submission(test_functions()));
 
             // Put 0 on the blocked/ready
             state.make_ready_or_blocked(0, 0);
@@ -1775,13 +1654,7 @@ mod test {
 
         #[test]
         fn inputs_ready_makes_ready() {
-            let submission = Submission::new(
-                &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
-                None,
-                #[cfg(feature = "debugger")]
-                true,
-            );
-            let mut state = RunState::new(test_functions(), submission);
+            let mut state = RunState::new(super::test_submission(test_functions()));
 
             // Put 0 on the blocked/ready list depending on blocked status
             state.make_ready_or_blocked(0, 0);
@@ -1792,13 +1665,7 @@ mod test {
         #[test]
         #[serial]
         fn blocked_is_not_ready() {
-            let submission = Submission::new(
-                &Url::parse("file://temp/fake.toml").expect("Could not create Url"),
-                None,
-                #[cfg(feature = "debugger")]
-                true,
-            );
-            let mut state = RunState::new(test_functions(), submission);
+            let mut state = RunState::new(super::test_submission(test_functions()));
             #[cfg(feature = "debugger")]
                 let mut server = super::DummyServer{};
             #[cfg(feature = "debugger")]
@@ -1824,13 +1691,7 @@ mod test {
         #[test]
         #[serial]
         fn unblocking_doubly_blocked_functions_not_ready() {
-            let submission = Submission::new(
-                &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
-                None,
-                #[cfg(feature = "debugger")]
-                true,
-            );
-            let mut state = RunState::new(test_functions(), submission);
+            let mut state = RunState::new(super::test_submission(test_functions()));
 
             #[cfg(feature = "debugger")]
                 let mut server = super::DummyServer{};
@@ -1873,14 +1734,7 @@ mod test {
         #[test]
         #[serial]
         fn wont_return_too_many_jobs() {
-            let submission = Submission::new(
-                &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
-                None,
-                #[cfg(feature = "debugger")]
-                true,
-            );
-            // test_functions has 3 functions
-            let mut state = RunState::new(test_functions(), submission);
+            let mut state = RunState::new(super::test_submission(test_functions()));
 
             state.init();
 
@@ -1897,15 +1751,7 @@ mod test {
         #[serial]
         fn pure_function_no_destinations() {
             let f_a = super::test_function_a_init();
-
-            let functions = vec![f_a];
-            let submission = Submission::new(
-                &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
-                None,
-                #[cfg(feature = "debugger")]
-                true,
-            );
-            let mut state = RunState::new(functions, submission);
+            let mut state = RunState::new(super::test_submission(vec![f_a]));
             #[cfg(feature = "metrics")]
             let mut metrics = Metrics::new(1);
             #[cfg(feature = "debugger")]

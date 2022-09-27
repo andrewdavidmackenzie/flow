@@ -733,8 +733,10 @@ mod test {
     use url::Url;
 
     use flowcore::errors::Result;
+    use flowcore::model::flow_manifest::FlowManifest;
     use flowcore::model::input::Input;
     use flowcore::model::input::InputInitializer::Once;
+    use flowcore::model::metadata::MetaData;
     use flowcore::model::output_connection::OutputConnection;
     use flowcore::model::runtime_function::RuntimeFunction;
     use flowcore::model::submission::Submission;
@@ -811,6 +813,32 @@ mod test {
         }
     }
 
+    fn test_meta_data() -> MetaData {
+        MetaData {
+            name: "test".into(),
+            version: "0.0.0".into(),
+            description: "a test".into(),
+            authors: vec!["me".into()],
+        }
+    }
+
+    fn test_manifest(functions: Vec<RuntimeFunction>) -> FlowManifest {
+        let mut manifest = FlowManifest::new(test_meta_data());
+        for function in functions {
+            manifest.add_function(function);
+        }
+        manifest
+    }
+
+    fn test_submission(functions: Vec<RuntimeFunction>) -> Submission {
+        Submission::new(
+            test_manifest(functions),
+            None,
+            #[cfg(feature = "debugger")]
+                true,
+        )
+    }
+
     fn test_function(id: usize) -> RuntimeFunction {
         RuntimeFunction::new(
             #[cfg(feature = "debugger")]
@@ -825,15 +853,6 @@ mod test {
             0,
             &[],
             false,
-        )
-    }
-
-    fn test_submission() -> Submission {
-        Submission::new(
-            &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
-            None,
-            #[cfg(feature = "debugger")]
-                true,
         )
     }
 
@@ -859,8 +878,7 @@ mod test {
 
     #[test]
     fn test_check_prior_to_job() {
-        let functions = vec![test_function(0)];
-        let mut state = RunState::new(functions, test_submission());
+        let mut state = RunState::new( test_submission(vec![test_function(0)]));
         let mut server = DummyServer::new();
         let job = test_job();
         let mut debugger = Debugger::new(&mut server);
@@ -877,8 +895,7 @@ mod test {
 
     #[test]
     fn test_check_on_block_creation() {
-        let functions = vec![test_function(0)];
-        let mut state = RunState::new(functions, test_submission());
+        let mut state = RunState::new(test_submission(vec![test_function(0)]));
         let mut server = DummyServer::new();
         let mut debugger = Debugger::new(&mut server);
 
@@ -893,8 +910,7 @@ mod test {
 
     #[test]
     fn test_check_prior_to_send_output() {
-        let functions = vec![test_function(0), test_function(1)];
-        let mut state = RunState::new(functions, test_submission());
+        let mut state = RunState::new(test_submission(vec![test_function(0), test_function(1)]));
         let mut server = DummyServer::new();
         let mut debugger = Debugger::new(&mut server);
 
@@ -910,8 +926,7 @@ mod test {
 
     #[test]
     fn test_check_prior_to_send_input() {
-        let functions = vec![test_function(0), test_function(1)];
-        let mut state = RunState::new(functions, test_submission());
+        let mut state = RunState::new(test_submission(vec![test_function(0), test_function(1)]));
         let mut server = DummyServer::new();
         let mut debugger = Debugger::new(&mut server);
 
@@ -928,8 +943,7 @@ mod test {
 
     #[test]
     fn test_check_prior_to_flow_unblock() {
-        let functions = vec![test_function(0)];
-        let mut state = RunState::new(functions, test_submission());
+        let mut state = RunState::new(test_submission(vec![test_function(0)]));
         let mut server = DummyServer::new();
         let mut debugger = Debugger::new(&mut server);
 
@@ -966,8 +980,7 @@ mod test {
 
     #[test]
     fn test_job_completed_ok() {
-        let functions = vec![test_function(0)];
-        let mut state = RunState::new(functions, test_submission());
+        let mut state = RunState::new(test_submission(vec![test_function(0)]));
         let mut server = DummyServer::new();
         let mut debugger = Debugger::new(&mut server);
         let job = test_job();
@@ -979,8 +992,7 @@ mod test {
 
     #[test]
     fn test_job_completed_err() {
-        let functions = vec![test_function(0)];
-        let mut state = RunState::new(functions, test_submission());
+        let mut state = RunState::new(test_submission(vec![test_function(0)]));
         let mut server = DummyServer::new();
         let mut debugger = Debugger::new(&mut server);
         let mut job = test_job();
@@ -993,8 +1005,7 @@ mod test {
 
     #[test]
     fn test_panic() {
-        let functions = vec![test_function(0)];
-        let mut state = RunState::new(functions, test_submission());
+        let mut state = RunState::new(test_submission(vec![test_function(0)]));
         let mut server = DummyServer::new();
         let mut debugger = Debugger::new(&mut server);
 
@@ -1005,8 +1016,7 @@ mod test {
 
     #[test]
     fn test_inspect_blocks() {
-        let functions = vec![test_function(0)];
-        let mut state = RunState::new(functions, test_submission());
+        let mut state = RunState::new(test_submission(vec![test_function(0)]));
         let mut server = DummyServer::new();
         let mut debugger = Debugger::new(&mut server);
 
@@ -1033,8 +1043,7 @@ mod test {
 
     #[test]
     fn test_none_breakpoint_spec_fails() {
-        let functions = vec![test_function(0)];
-        let state = RunState::new(functions, test_submission());
+        let state = RunState::new(test_submission(vec![test_function(0)]));
         let mut server = DummyServer::new();
         let mut debugger = Debugger::new(&mut server);
         assert!(debugger.add_breakpoint(&state, None).is_err());
@@ -1042,8 +1051,7 @@ mod test {
 
     #[test]
     fn test_all_breakpoint_spec_fails() {
-        let functions = vec![test_function(0)];
-        let state = RunState::new(functions, test_submission());
+        let state = RunState::new(test_submission(vec![test_function(0)]));
         let mut server = DummyServer::new();
         let mut debugger = Debugger::new(&mut server);
         assert!(debugger.add_breakpoint(&state, Some(BreakpointSpec::All)).is_err());
@@ -1051,8 +1059,7 @@ mod test {
 
     #[test]
     fn test_non_specific_block_breakpoint_spec_fails() {
-        let functions = vec![test_function(0)];
-        let state = RunState::new(functions, test_submission());
+        let state = RunState::new(test_submission(vec![test_function(0)]));
         let mut server = DummyServer::new();
         let mut debugger = Debugger::new(&mut server);
         assert!(debugger.add_breakpoint(&state, Some(BreakpointSpec::Block((None, None)))).is_err());
@@ -1062,8 +1069,7 @@ mod test {
 
     #[test]
     fn test_specific_block_breakpoint_spec_passes() {
-        let functions = vec![test_function(0), test_function(1)];
-        let state = RunState::new(functions, test_submission());
+        let state = RunState::new(test_submission(vec![test_function(0), test_function(1)]));
         let mut server = DummyServer::new();
         let mut debugger = Debugger::new(&mut server);
         assert!(debugger.add_breakpoint(&state, Some(BreakpointSpec::Block((Some(0), Some(1))))).is_ok());
@@ -1071,8 +1077,7 @@ mod test {
 
     #[test]
     fn test_numeric_breakpoint_no_such_function_fails() {
-        let functions = vec![test_function(0)];
-        let state = RunState::new(functions, test_submission());
+        let state = RunState::new(test_submission(vec![test_function(0)]));
         let mut server = DummyServer::new();
         let mut debugger = Debugger::new(&mut server);
         assert!(debugger.add_breakpoint(&state, Some(BreakpointSpec::Numeric(1))).is_err());
@@ -1080,8 +1085,7 @@ mod test {
 
     #[test]
     fn test_numeric_breakpoint_existing_function_passes() {
-        let functions = vec![test_function(0)];
-        let state = RunState::new(functions, test_submission());
+        let state = RunState::new(test_submission(vec![test_function(0)]));
         let mut server = DummyServer::new();
         let mut debugger = Debugger::new(&mut server);
         assert!(debugger.add_breakpoint(&state, Some(BreakpointSpec::Numeric(0))).is_ok());
@@ -1089,8 +1093,7 @@ mod test {
 
     #[test]
     fn test_input_breakpoint_no_such_function_fails() {
-        let functions = vec![test_function(0)];
-        let state = RunState::new(functions, test_submission());
+        let state = RunState::new(test_submission(vec![test_function(0)]));
         let mut server = DummyServer::new();
         let mut debugger = Debugger::new(&mut server);
         assert!(debugger.add_breakpoint(&state, Some(BreakpointSpec::Input((1, 0)))).is_err());
@@ -1098,8 +1101,7 @@ mod test {
 
     #[test]
     fn test_input_breakpoint_no_such_input_fails() {
-        let functions = vec![test_function(0)];
-        let state = RunState::new(functions, test_submission());
+        let state = RunState::new(test_submission(vec![test_function(0)]));
         let mut server = DummyServer::new();
         let mut debugger = Debugger::new(&mut server);
         assert!(debugger.add_breakpoint(&state, Some(BreakpointSpec::Input((0, 1)))).is_err());
@@ -1107,8 +1109,7 @@ mod test {
 
     #[test]
     fn test_input_breakpoint_passes() {
-        let functions = vec![test_function(0)];
-        let state = RunState::new(functions, test_submission());
+        let state = RunState::new(test_submission(vec![test_function(0)]));
         let mut server = DummyServer::new();
         let mut debugger = Debugger::new(&mut server);
         assert!(debugger.add_breakpoint(&state, Some(BreakpointSpec::Input((0, 0)))).is_ok());
@@ -1116,8 +1117,7 @@ mod test {
 
     #[test]
     fn test_block_breakpoint_no_such_source_function_fails() {
-        let functions = vec![test_function(0)];
-        let state = RunState::new(functions, test_submission());
+        let state = RunState::new(test_submission(vec![test_function(0)]));
         let mut server = DummyServer::new();
         let mut debugger = Debugger::new(&mut server);
         assert!(debugger.add_breakpoint(&state, Some(BreakpointSpec::Block((Some(1), Some(0))))).is_err());
@@ -1125,8 +1125,7 @@ mod test {
 
     #[test]
     fn test_block_breakpoint_no_such_destination_function_fails() {
-        let functions = vec![test_function(0)];
-        let state = RunState::new(functions, test_submission());
+        let state = RunState::new(test_submission(vec![test_function(0)]));
         let mut server = DummyServer::new();
         let mut debugger = Debugger::new(&mut server);
         assert!(debugger.add_breakpoint(&state, Some(BreakpointSpec::Block((Some(0), Some(1))))).is_err());
@@ -1134,8 +1133,7 @@ mod test {
 
     #[test]
     fn test_output_breakpoint_no_such_function_fails() {
-        let functions = vec![test_function(0)];
-        let state = RunState::new(functions, test_submission());
+        let state = RunState::new(test_submission(vec![test_function(0)]));
         let mut server = DummyServer::new();
         let mut debugger = Debugger::new(&mut server);
         assert!(debugger.add_breakpoint(&state, Some(BreakpointSpec::Output((1, "".into())))).is_err());
@@ -1143,8 +1141,7 @@ mod test {
 
     #[test]
     fn test_output_breakpoint_function_exists_passes() {
-        let functions = vec![test_function(0)];
-        let state = RunState::new(functions, test_submission());
+        let state = RunState::new(test_submission(vec![test_function(0)]));
         let mut server = DummyServer::new();
         let mut debugger = Debugger::new(&mut server);
         assert!(debugger.add_breakpoint(&state, Some(BreakpointSpec::Output((0, "".into())))).is_ok());
@@ -1152,8 +1149,7 @@ mod test {
 
     #[test]
     fn test_delete_none_breakpoint_spec_fails() {
-        let functions = vec![test_function(0)];
-        let state = RunState::new(functions, test_submission());
+        let state = RunState::new(test_submission(vec![test_function(0)]));
         let mut server = DummyServer::new();
         let mut debugger = Debugger::new(&mut server);
         assert!(debugger.delete_breakpoint(&state, None).is_err());
@@ -1161,8 +1157,7 @@ mod test {
 
     #[test]
     fn test_delete_all_breakpoint_spec_fails() {
-        let functions = vec![test_function(0)];
-        let state = RunState::new(functions, test_submission());
+        let state = RunState::new(test_submission(vec![test_function(0)]));
         let mut server = DummyServer::new();
         let mut debugger = Debugger::new(&mut server);
         assert!(debugger.delete_breakpoint(&state, Some(BreakpointSpec::All)).is_ok());
@@ -1170,8 +1165,7 @@ mod test {
 
     #[test]
     fn test_delete_non_specific_block_breakpoint_spec_fails() {
-        let functions = vec![test_function(0)];
-        let state = RunState::new(functions, test_submission());
+        let state = RunState::new(test_submission(vec![test_function(0)]));
         let mut server = DummyServer::new();
         let mut debugger = Debugger::new(&mut server);
         assert!(debugger.delete_breakpoint(&state, Some(BreakpointSpec::Block((None, None)))).is_err());
@@ -1181,8 +1175,7 @@ mod test {
 
     #[test]
     fn test_delete_specific_block_breakpoint_spec_passes() {
-        let functions = vec![test_function(0), test_function(1)];
-        let state = RunState::new(functions, test_submission());
+        let state = RunState::new(test_submission(vec![test_function(0), test_function(1)]));
         let mut server = DummyServer::new();
         let mut debugger = Debugger::new(&mut server);
         debugger.add_breakpoint(&state, Some(BreakpointSpec::Block((Some(0), Some(1)))))
@@ -1192,8 +1185,7 @@ mod test {
 
     #[test]
     fn test_delete_numeric_breakpoint_no_such_function_fails() {
-        let functions = vec![test_function(0)];
-        let state = RunState::new(functions, test_submission());
+        let state = RunState::new(test_submission(vec![test_function(0)]));
         let mut server = DummyServer::new();
         let mut debugger = Debugger::new(&mut server);
         assert!(debugger.delete_breakpoint(&state, Some(BreakpointSpec::Numeric(1))).is_err());
@@ -1201,8 +1193,7 @@ mod test {
 
     #[test]
     fn test_delete_numeric_breakpoint_existing_function_passes() {
-        let functions = vec![test_function(0)];
-        let state = RunState::new(functions, test_submission());
+        let state = RunState::new(test_submission(vec![test_function(0)]));
         let mut server = DummyServer::new();
         let mut debugger = Debugger::new(&mut server);
         debugger.add_breakpoint(&state, Some(BreakpointSpec::Numeric(0)))
@@ -1212,8 +1203,7 @@ mod test {
 
     #[test]
     fn test_delete_input_breakpoint_no_such_function_fails() {
-        let functions = vec![test_function(0)];
-        let state = RunState::new(functions, test_submission());
+        let state = RunState::new(test_submission(vec![test_function(0)]));
         let mut server = DummyServer::new();
         let mut debugger = Debugger::new(&mut server);
         assert!(debugger.delete_breakpoint(&state, Some(BreakpointSpec::Input((1, 0)))).is_err());
@@ -1221,8 +1211,7 @@ mod test {
 
     #[test]
     fn test_delete_input_breakpoint_no_such_input_fails() {
-        let functions = vec![test_function(0)];
-        let state = RunState::new(functions, test_submission());
+        let state = RunState::new(test_submission(vec![test_function(0)]));
         let mut server = DummyServer::new();
         let mut debugger = Debugger::new(&mut server);
         assert!(debugger.delete_breakpoint(&state, Some(BreakpointSpec::Input((0, 1)))).is_err());
@@ -1230,8 +1219,7 @@ mod test {
 
     #[test]
     fn test_delete_input_breakpoint_passes() {
-        let functions = vec![test_function(0)];
-        let state = RunState::new(functions, test_submission());
+        let state = RunState::new( test_submission(vec![test_function(0)]));
         let mut server = DummyServer::new();
         let mut debugger = Debugger::new(&mut server);
         debugger.add_breakpoint(&state, Some(BreakpointSpec::Input((0, 0))))
@@ -1241,8 +1229,7 @@ mod test {
 
     #[test]
     fn test_delete_block_breakpoint_no_such_source_function_fails() {
-        let functions = vec![test_function(0)];
-        let state = RunState::new(functions, test_submission());
+        let state = RunState::new(test_submission(vec![test_function(0)]));
         let mut server = DummyServer::new();
         let mut debugger = Debugger::new(&mut server);
         assert!(debugger.delete_breakpoint(&state, Some(BreakpointSpec::Block((Some(1), Some(0))))).is_err());
@@ -1250,8 +1237,7 @@ mod test {
 
     #[test]
     fn test_delete_block_breakpoint_no_such_destination_function_fails() {
-        let functions = vec![test_function(0)];
-        let state = RunState::new(functions, test_submission());
+        let state = RunState::new(test_submission(vec![test_function(0)]));
         let mut server = DummyServer::new();
         let mut debugger = Debugger::new(&mut server);
         assert!(debugger.delete_breakpoint(&state, Some(BreakpointSpec::Block((Some(0), Some(1))))).is_err());
@@ -1259,8 +1245,7 @@ mod test {
 
     #[test]
     fn test_delete_output_breakpoint_no_such_function_fails() {
-        let functions = vec![test_function(0)];
-        let state = RunState::new(functions, test_submission());
+        let state = RunState::new(test_submission(vec![test_function(0)]));
         let mut server = DummyServer::new();
         let mut debugger = Debugger::new(&mut server);
         assert!(debugger.delete_breakpoint(&state, Some(BreakpointSpec::Output((1, "".into())))).is_err());
@@ -1268,8 +1253,7 @@ mod test {
 
     #[test]
     fn test_delete_output_breakpoint_function_exists_passes() {
-        let functions = vec![test_function(0)];
-        let state = RunState::new(functions, test_submission());
+        let state = RunState::new(test_submission(vec![test_function(0)]));
         let mut server = DummyServer::new();
         let mut debugger = Debugger::new(&mut server);
         debugger.add_breakpoint(&state, Some(BreakpointSpec::Output((0, "".into()))))

@@ -237,12 +237,13 @@ pub(crate) fn check_invariants(state: &RunState, job_id: usize) -> Result<()> {
 mod test {
     #[cfg(feature = "debugger")]
     use serde_json::Value;
-    use url::Url;
 
     #[cfg(feature = "debugger")]
     use flowcore::errors::Result;
+    use flowcore::model::flow_manifest::FlowManifest;
     #[cfg(feature = "debugger")]
     use flowcore::model::input::Input;
+    use flowcore::model::metadata::MetaData;
     #[cfg(feature = "debugger")]
     use flowcore::model::output_connection::OutputConnection;
     use flowcore::model::runtime_function::RuntimeFunction;
@@ -265,15 +266,34 @@ mod test {
     use super::ready_check;
     use super::running_check;
 
-    fn test_state(functions: Vec<RuntimeFunction>) -> RunState {
-        let submission = Submission::new(
-            &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
+    fn test_meta_data() -> MetaData {
+        MetaData {
+            name: "test".into(),
+            version: "0.0.0".into(),
+            description: "a test".into(),
+            authors: vec!["me".into()],
+        }
+    }
+
+    fn test_manifest(functions: Vec<RuntimeFunction>) -> FlowManifest {
+        let mut manifest = FlowManifest::new(test_meta_data());
+        for function in functions {
+            manifest.add_function(function);
+        }
+        manifest
+    }
+
+    fn test_submission(functions: Vec<RuntimeFunction>) -> Submission {
+        Submission::new(
+            test_manifest(functions),
             None,
             #[cfg(feature = "debugger")]
                 true,
-        );
+        )
+    }
 
-        RunState::new(functions, submission)
+    fn test_state(functions: Vec<RuntimeFunction>) -> RunState {
+        RunState::new(test_submission(functions))
     }
 
     fn test_function(function_id: usize, flow_id: usize) -> RuntimeFunction {

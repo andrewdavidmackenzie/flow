@@ -24,7 +24,7 @@ pub enum InputInitializer {
     Once(Value),
 }
 
-#[derive(Deserialize, Serialize, Clone, Debug)]
+#[derive(Deserialize, Serialize, Clone, PartialEq, Eq, Debug)]
 /// An `Input` to a `RuntimeFunction`
 pub struct Input {
     /// `array_order` defines how many levels of arrays of non-array values does the destination accept

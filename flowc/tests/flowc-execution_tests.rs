@@ -236,6 +236,7 @@ fn execute_test(test_name: &str, separate_processes: bool) {
 }
 
 #[cfg(feature = "debugger")]
+#[ignore] // ADM
 #[test]
 #[serial]
 fn debug_print_args() {
