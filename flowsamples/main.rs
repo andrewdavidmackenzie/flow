@@ -232,7 +232,6 @@ mod test {
         test_sample("sequence-of-sequences");
     }
 
-    #[ignore] // unreliable as it varies with execution order and the "45" line in output moves
     #[test]
     #[serial]
     fn test_router() {

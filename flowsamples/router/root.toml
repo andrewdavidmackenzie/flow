@@ -92,16 +92,29 @@ to = "B_tracker/other_distance"
 from = "B_tracker/distance"
 to = "A_tracker/other_distance"
 
-######## Print out the shortest route and it's length to each point 'A' - and the last one is the destination
-
-[[process]]
-alias = "print"
-source = "context://stdio/stdout"
-
+# combine the distance and route into a line
 [[connection]]
 from = "A_tracker/route"
-to = "print"
+to = "append/s1"
 
 [[connection]]
 from = "A_tracker/distance"
-to = "print"
+to = "to_string"
+
+[[process]]
+source = "lib://flowstdlib/fmt/to_string"
+
+[[connection]]
+from = "to_string"
+to = "append/s2"
+
+[[process]]
+source = "lib://flowstdlib/data/append"
+
+######## Print out the shortest route and it's length to each point 'A' - and the last one is the destination
+[[connection]]
+from = "append"
+to = "stdout"
+
+[[process]]
+source = "context://stdio/stdout"
