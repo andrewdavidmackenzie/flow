@@ -90,7 +90,7 @@ fn execute_flow(
 ) -> (String, String) {
     let server = if separate_processes {
         let mut server_command = Command::new("flowr");
-        // flowr args: -n for native libs, -s to get a server process
+        // separate 'flowr' server process args: -n for native libs, -s to get a server process
         let server_command_args = vec!["-n", "-s"];
 
         println!("Starting 'flowr' with command line: 'flowr {}'",
@@ -112,7 +112,7 @@ fn execute_flow(
 
     let mut command = Command::new("flowr");
     let mut command_args = if separate_processes {
-        // start another 'flowr' process in client mode
+        // separate 'flowr' client process args
         vec!["-c"]
     } else {
         // when running client_and_server in same process we want to use native libs
