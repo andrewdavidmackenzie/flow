@@ -1,7 +1,7 @@
 use std::sync::{Arc, Mutex};
 
 use error_chain::bail;
-use log::{debug, error, info};
+use log::{debug, error, info, trace};
 
 use flowcore::errors::*;
 #[cfg(feature = "metrics")]
@@ -89,10 +89,8 @@ impl SubmissionProtocol for CLISubmitter {
                     let received = locked.receive(WAIT);
                     match received {
                         Ok(ClientMessage::ClientSubmission(submission)) => {
-                            info!(
-                                "Server received a submission for execution with manifest_url: '{}'",
-                                submission.manifest_url
-                            );
+                            info!("Server received a submission for execution");
+                            trace!("\n{}", submission);
                             return Ok(Some(submission));
                         }
                         Ok(ClientMessage::ClientExiting(_)) => return Ok(None),

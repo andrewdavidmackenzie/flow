@@ -1,4 +1,6 @@
 use std::collections::BTreeSet;
+use std::fmt;
+use std::fmt::Display;
 
 use serde_derive::{Deserialize, Serialize};
 use url::Url;
@@ -26,7 +28,7 @@ pub struct Cargo {
     pub package: MetaData,
 }
 
-#[derive(Deserialize, Serialize, Clone)]
+#[derive(Deserialize, Serialize, Clone, PartialEq, Eq, Debug,)]
 /// A `flows` `Manifest` describes it and describes all the `Functions` it uses as well as
 /// a list of references to libraries.
 pub struct FlowManifest {
@@ -36,11 +38,20 @@ pub struct FlowManifest {
     lib_references: BTreeSet<Url>,
     /// A list of the `context_references` used by this flow
     context_references: BTreeSet<Url>,
-    /// A list of descriptors of the `Functions` used in this flow
+    /// A list of `RuntimeFunctions` in this flow
     functions: Vec<RuntimeFunction>,
     #[cfg(feature = "debugger")]
     /// A list of the source files used to build this `flow`
     source_urls: BTreeSet<(Url, Url)>,
+}
+
+impl Display for FlowManifest {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        for (id, function) in self.functions.iter().enumerate() {
+            writeln!(f, "         Function #{} Implementation: {}", id, function.get_implementation_url())?;
+        }
+        write!(f, "")
+    }
 }
 
 impl FlowManifest {
@@ -59,6 +70,11 @@ impl FlowManifest {
     /// Add a run-time Function to the manifest for use in serialization
     pub fn add_function(&mut self, function: RuntimeFunction) {
         self.functions.push(function);
+    }
+
+    /// Get the list of functions in this manifest
+    pub fn functions(&self) -> &Vec<RuntimeFunction> {
+        &self.functions
     }
 
     /// Get the list of functions in this manifest
@@ -119,9 +135,10 @@ impl FlowManifest {
     }
 
     /// Load, or Deserialize, a manifest from a `source` Url using `provider`
-    pub fn load(provider: &dyn Provider, source: &Url) -> Result<(FlowManifest, Url)> {
+    /// Sets all location_url fields to be URLs, a file URL for provided implementations
+    pub fn load(provider: &dyn Provider, manifest_url: &Url) -> Result<(FlowManifest, Url)> {
         let (resolved_url, _) = provider
-            .resolve_url(source, DEFAULT_MANIFEST_FILENAME, &["json"])
+            .resolve_url(manifest_url, DEFAULT_MANIFEST_FILENAME, &["json"])
             .chain_err(|| "Could not resolve url for manifest.json")?;
 
         let contents = provider
@@ -132,15 +149,16 @@ impl FlowManifest {
         let content =
             String::from_utf8(contents).chain_err(|| "Could not convert from utf8 to String")?;
         let deserializer = get_deserializer::<FlowManifest>(&resolved_url)?;
-        let manifest = deserializer
+        let mut manifest = deserializer
             .deserialize(&content, Some(&resolved_url))
-            .chain_err(|| format!("Could not create a FlowManifest from '{}'", source))?;
+            .chain_err(|| format!("Could not create a FlowManifest from '{}'", manifest_url))?;
 
-        // TODO normalize the relative ImplementationLocators into full file:// Urls here
-        // using the manifest's resolved Url as the base...see executor.rs and avoid the need to
-        // do there - then all locators can be treated equally. Maybe even add fields in the manifest
-        // of type Url for them, and stop using the &str versions deserialized.
-        // Custom deserializer for this?
+        // normalize the implementation_locations into URLs.
+        // context: and lib: URLs will be untouched
+        // relative path locations to the manifest_url to file:// using the manifest Url as the base
+        for function in &mut manifest.functions {
+            function.set_implementation_url(manifest_url)?;
+        }
 
         Ok((manifest, url))
     }
