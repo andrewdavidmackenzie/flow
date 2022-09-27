@@ -89,12 +89,14 @@ fn execute_flow(
     separate_processes: bool,
 ) -> (String, String) {
     let server = if separate_processes {
-        println!("Starting the 'flowr' server");
-        let mut server_command = Command::new("cargo");
-        // flowr args: -n for native libs, -s to get a server process
-        let server_command_args = vec!["run", "--quiet", "-p", "flowr", "--", "-n", "-s"];
+        let mut server_command = Command::new("flowr");
+        // separate 'flowr' server process args: -n for native libs, -s to get a server process
+        let server_command_args = vec!["-n", "-s"];
 
-        // spawn the 'flowr' server child process
+        println!("Starting 'flowr' with command line: 'flowr {}'",
+                server_command_args.join(" "));
+
+        // spawn the 'flowr' server process
         Some(
             server_command
                 .args(server_command_args)
@@ -102,22 +104,20 @@ fn execute_flow(
                 .stdout(Stdio::piped())
                 .stderr(Stdio::piped())
                 .spawn()
-                .expect("Failed to spawn flowc as server"),
+                .expect("Failed to spawn flowr"),
         )
     } else {
         None
     };
 
-    let mut command = Command::new("cargo");
-    let mut command_args = vec!["run", "--quiet", "-p", "flowr", "--"];
-
-    if separate_processes {
-        // start another 'flowr' process in client mode
-        command_args.push("-c");
+    let mut command = Command::new("flowr");
+    let mut command_args = if separate_processes {
+        // separate 'flowr' client process args
+        vec!["-c"]
     } else {
         // when running client_and_server in same process we want to use native libs
-        command_args.push("-n");
-    }
+        vec!["-n"]
+    };
 
     // Append the file path to the manifest to run to the command line args
     command_args.push(filepath.to_str().expect("Could not convert path to string"));
@@ -127,14 +127,17 @@ fn execute_flow(
         command_args.push(test_arg);
     }
 
-    // spawn the 'flowr' child process
+    println!("Starting 'flowr' with command line: 'flowr {}'",
+             command_args.join(" "));
+
+    // spawn the 'flowr' process
     let mut runner = command
         .args(command_args)
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .spawn()
-        .expect("Could not spawn flowr child process");
+        .expect("Could not spawn flowr process");
 
     // send it stdin from the "${testname}.stdin" file
     write!(runner.stdin.expect("Could not get stdin"), "{}", input)
@@ -236,7 +239,6 @@ fn execute_test(test_name: &str, separate_processes: bool) {
 }
 
 #[cfg(feature = "debugger")]
-#[ignore] // ADM
 #[test]
 #[serial]
 fn debug_print_args() {
