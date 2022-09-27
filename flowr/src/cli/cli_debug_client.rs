@@ -392,10 +392,11 @@ impl CliDebugClient {
 #[cfg(test)]
 mod test {
     use serde_json::json;
-    use url::Url;
 
+    use flowcore::model::flow_manifest::FlowManifest;
     use flowcore::model::input::Input;
     use flowcore::model::input::InputInitializer::Once;
+    use flowcore::model::metadata::MetaData;
     use flowcore::model::output_connection::{OutputConnection, Source};
     use flowcore::model::runtime_function::RuntimeFunction;
     use flowcore::model::submission::Submission;
@@ -442,17 +443,37 @@ mod test {
         ) // outputs to fB:0
     }
 
+    fn test_meta_data() -> MetaData {
+        MetaData {
+            name: "test".into(),
+            version: "0.0.0".into(),
+            description: "a test".into(),
+            authors: vec!["me".into()],
+        }
+    }
+
+    fn test_manifest(functions: Vec<RuntimeFunction>) -> FlowManifest {
+        let mut manifest = FlowManifest::new(test_meta_data());
+        for function in functions {
+            manifest.add_function(function);
+        }
+        manifest
+    }
+
+    fn test_submission(functions: Vec<RuntimeFunction>) -> Submission {
+        Submission::new(
+            test_manifest(functions),
+            None,
+            #[cfg(feature = "debugger")]
+                true,
+        )
+    }
+
     #[test]
     fn display_run_state() {
         let f_a = test_function_a_to_b();
         let f_b = test_function_b_init();
-        let functions = vec![f_b, f_a];
-        let submission = Submission::new(
-            &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
-            None,
-            true,
-        );
-        let state = RunState::new(functions, submission);
+        let state = RunState::new(test_submission(vec![f_b, f_a]));
 
         CliDebugClient::display_state(&state);
     }

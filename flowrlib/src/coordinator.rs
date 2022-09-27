@@ -4,7 +4,6 @@ use std::marker::PhantomData;
 use log::{debug, error, trace};
 
 use flowcore::errors::*;
-use flowcore::model::flow_manifest::FlowManifest;
 #[cfg(feature = "metrics")]
 use flowcore::model::metrics::Metrics;
 use flowcore::model::submission::Submission;
@@ -64,18 +63,9 @@ impl<'a> Coordinator<'a> {
         loop_forever: bool,
     ) -> Result<()> {
         while let Some(submission) = self.submitter.wait_for_submission()? {
-            match self.executor.load_flow(&submission.manifest_url) {
-                Ok(manifest) => {
-                    let r = self.execute_flow(manifest, submission);
-                    return self.submitter.coordinator_is_exiting(r);
-                },
-                Err(e) => {
-                    if loop_forever {
-                        error!("{}", e)
-                    } else {
-                        return self.submitter.coordinator_is_exiting(Err(e));
-                    }
-                },
+            let _ = self.execute_flow(submission);
+            if !loop_forever {
+                break;
             }
         }
 
@@ -91,10 +81,9 @@ impl<'a> Coordinator<'a> {
     /// execution again from the initial state
     #[allow(unused_variables, unused_assignments, unused_mut)]
     pub fn execute_flow(&mut self,
-                        mut manifest: FlowManifest,
                         submission: Submission,) -> Result<()> {
         self.executor.set_timeout(Some(submission.job_timeout));
-        let mut state = RunState::new(manifest.take_functions(), submission);
+        let mut state = RunState::new(submission);
 
         #[cfg(feature = "metrics")]
         let mut metrics = Metrics::new(state.num_functions());
@@ -271,23 +260,5 @@ impl<'a> Coordinator<'a> {
         self.executor.send_job_for_execution(job)?;
 
         Ok(debug_options)
-    }
-}
-
-#[cfg(test)]
-mod test {
-    use url::Url;
-
-    use crate::coordinator::Submission;
-
-    #[test]
-    fn create_submission() {
-        let manifest_url = Url::parse("file:///temp/fake/flow.toml").expect("Could not create Url");
-        let _ = Submission::new(
-            &manifest_url,
-            Some(1),
-            #[cfg(feature = "debugger")]
-            false,
-        );
     }
 }

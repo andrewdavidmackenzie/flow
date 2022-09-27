@@ -48,6 +48,7 @@ use cli::debug_server_message::DebugServerMessage::{BlockBreakpoint, DataBreakpo
 use cli::runtime_messages::ClientMessage;
 use flowcore::errors::*;
 use flowcore::meta_provider::MetaProvider;
+use flowcore::model::flow_manifest::FlowManifest;
 #[cfg(feature = "submission")]
 use flowcore::model::submission::Submission;
 #[cfg(feature = "submission")]
@@ -206,6 +207,7 @@ fn run() -> Result<()> {
         #[cfg(any(feature = "context", feature = "submission", feature = "debugger"))]
         Mode::ClientOnly => client_only(
             matches,
+            lib_search_path,
             #[cfg(feature = "debugger")]
             debug_this_flow,
         )?,
@@ -268,11 +270,13 @@ fn client_and_server(
     #[cfg(feature = "debugger")]
     let mut debug_server_info = debug_server_connection.get_server_info().clone();
 
+    let server_lib_search_path = lib_search_path.clone();
+
     thread::spawn(move || {
         info!("Starting 'flowr' server in background thread");
         let _ = server(
             num_threads,
-            lib_search_path,
+            server_lib_search_path,
             native,
             #[cfg(any(feature = "context", feature = "submission"))]
             runtime_server_connection,
@@ -293,6 +297,7 @@ fn client_and_server(
 
     client(
         matches,
+        lib_search_path,
         runtime_client_connection,
         #[cfg(feature = "debugger")] control_c_client_connection,
         #[cfg(feature = "debugger")] debug_this_flow,
@@ -329,9 +334,9 @@ fn server(
 
     // Add the native context functions to functions available for use by the executor
     #[cfg(feature = "context")]
-    executor.load_lib(
+    executor.add_lib(
         cli::cli_server::get_manifest(server_connection.clone())?,
-        &Url::parse("context://")?,
+        Url::parse("memory://")? // Statically linked library has no resolved Url
     )?;
 
     // if the command line options request loading native implementation of available native libs
@@ -339,15 +344,15 @@ fn server(
     // references will be resolved and those libraries (WASM implementations) will be loaded at runtime
     if native_flowstdlib {
         #[cfg(feature = "flowstdlib")]
-        executor.load_lib(
+        executor.add_lib(
             flowstdlib::manifest::get_manifest()
                 .chain_err(|| "Could not get 'native' flowstdlib manifest")?,
-            &Url::parse("lib://flowstdlib")?,
+            Url::parse("memory://")? // Statically linked library has no resolved Url
         )?;
     }
 
     #[cfg(feature = "submission")]
-        let mut submitter = CLISubmitter {
+    let mut submitter = CLISubmitter {
         runtime_server_connection: server_connection,
     };
 
@@ -370,6 +375,7 @@ fn server(
 #[cfg(any(feature = "context", feature = "submission", feature = "debugger"))]
 fn client_only(
     matches: ArgMatches,
+    lib_search_path: Simpath,
     #[cfg(feature = "debugger")] debug_this_flow: bool,
 ) -> Result<()> {
     #[cfg(any(feature = "context", feature = "submission"))]
@@ -388,6 +394,7 @@ fn client_only(
 
     client(
         matches,
+        lib_search_path,
         runtime_client_connection,
         #[cfg(feature = "debugger")] control_c_client_connection,
         #[cfg(feature = "debugger")] debug_this_flow,
@@ -399,6 +406,7 @@ fn client_only(
 #[cfg(any(feature = "context", feature = "submission", feature = "debugger"))]
 fn client(
     matches: ArgMatches,
+    lib_search_path: Simpath,
     runtime_client_connection: ClientConnection,
     #[cfg(feature = "debugger")]
     control_c_client_connection: Option<ClientConnection>,
@@ -411,13 +419,21 @@ fn client(
 
     #[cfg(feature = "submission")]
     let flow_manifest_url = parse_flow_url(&matches)?;
+    #[cfg(feature = "submission")]
+    let provider = MetaProvider::new(lib_search_path,
+                                     #[cfg(feature = "context")]
+                                         PathBuf::from("/")
+    );
+    #[cfg(feature = "submission")]
+    let (flow_manifest, _) = FlowManifest::load(&provider, &flow_manifest_url)?;
+
     #[cfg(feature = "context")]
     let flow_args = get_flow_args(&matches, &flow_manifest_url);
     let max_parallel_jobs: Option<usize> = matches.value_of("jobs")
         .and_then(|value| value.parse::<usize>().ok());
     #[cfg(feature = "submission")]
     let submission = Submission::new(
-        &flow_manifest_url,
+        flow_manifest,
         max_parallel_jobs,
         #[cfg(feature = "debugger")] debug_this_flow,
     );
