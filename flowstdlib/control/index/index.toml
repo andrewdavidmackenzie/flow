@@ -5,11 +5,9 @@ type = "rust"
 
 [[input]]
 name = "value" # - the stream of input values to select from
-type = "object"
 
 [[input]]
 name = "previous_value" # - the loop-backed previous value to enable selecting "last"
-type = "object"
 
 [[input]]
 name = "previous_index" # - the loop-backed previous index to enable counting
@@ -25,8 +23,6 @@ type = "number"
 
 [[output]]
 name = "value" # the value just processed
-type = "object"
 
 [[output]]
 name = "selected_value" # the value selected by index - only output when selected
-type = "object"

@@ -4,16 +4,16 @@ docs = "DESCRIPTION.md"
 [[process]]
 source = "context://stdio/readline"
 
-[[process]]
-source = "reverse/reverse"
-
-[[process]]
-source = "context://stdio/stdout"
-
 [[connection]]
 from = "readline/string"
 to = "reverse"
 
+[[process]]
+source = "reverse/reverse"
+
 [[connection]]
 from = "reverse"
 to = "stdout"
+
+[[process]]
+source = "context://stdio/stdout"

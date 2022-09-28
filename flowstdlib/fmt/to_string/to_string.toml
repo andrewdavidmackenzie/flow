@@ -4,7 +4,6 @@ docs = "to_string.md"
 type = "rust"
 
 [[input]]
-type = "object"
 
 [[output]]
 type = "string" # The String equivalent of the input value

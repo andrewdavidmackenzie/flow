@@ -4,12 +4,11 @@ docs = "duplicate.md"
 type = "rust"
 
 [[input]]
-name = "value" # - the value to duplicate
-type = "object"
+name = "value" # - the value to duplicate, generic type (i.e. all types accepted)
 
 [[input]]
 name = "factor" # - how many times to duplicate the value in the output
 type = "number"
 
 [[output]]
-type = "array/object" # - the array of duplicate values
+type = "array/" # - the array of duplicate values, of generic type (i.e. the same type as input)
