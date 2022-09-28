@@ -1086,7 +1086,7 @@ type = &quot;array/string&quot;
 
 [[output]]
 name = &quot;json&quot;
-type = &quot;array/object&quot;
+type = &quot;array/&quot;
 </code></pre>
 <h3 id="include-using"><a class="header" href="#include-using">Include using</a></h3>
 <pre><code class="language-toml">[[process]]
@@ -1201,7 +1201,6 @@ type = &quot;string&quot;
 
 [[output]]
 name = &quot;json&quot;
-type = &quot;object&quot;
 </code></pre>
 <h3 id="include-using-3"><a class="header" href="#include-using-3">Include using</a></h3>
 <pre><code class="language-toml">[[process]]
@@ -1229,7 +1228,6 @@ type = &quot;string&quot;
 
 [[output]]
 name = &quot;json&quot;
-type = &quot;object&quot;
 </code></pre>
 <h3 id="include-using-4"><a class="header" href="#include-using-4">Include using</a></h3>
 <pre><code class="language-toml">[[process]]
@@ -1252,7 +1250,6 @@ docs = &quot;stdout.md&quot;
 impure = true
 
 [[input]]
-type = &quot;object&quot;
 </code></pre>
 <h3 id="include-using-5"><a class="header" href="#include-using-5">Include using</a></h3>
 <pre><code class="language-toml">[[process]]
@@ -1274,7 +1271,6 @@ docs = &quot;stderr.md&quot;
 impure = true
 
 [[input]]
-type = &quot;object&quot;
 </code></pre>
 <h3 id="include-using-6"><a class="header" href="#include-using-6">Include using</a></h3>
 <pre><code class="language-toml">[[process]]
@@ -1466,11 +1462,9 @@ type = &quot;rust&quot;
 
 [[input]]
 name = &quot;value&quot; # - the stream of input values to select from
-type = &quot;object&quot;
 
 [[input]]
 name = &quot;previous_value&quot; # - the loop-backed previous value to enable selecting &quot;last&quot;
-type = &quot;object&quot;
 
 [[input]]
 name = &quot;previous_index&quot; # - the loop-backed previous index to enable counting
@@ -1486,11 +1480,9 @@ type = &quot;number&quot;
 
 [[output]]
 name = &quot;value&quot; # the value just processed
-type = &quot;object&quot;
 
 [[output]]
 name = &quot;selected_value&quot; # the value selected by index - only output when selected
-type = &quot;object&quot;
 </code></pre>
 <h3 id="include-using-7"><a class="header" href="#include-using-7">Include using</a></h3>
 <pre><code class="language-toml">[[process]]
@@ -1508,7 +1500,6 @@ description = &quot;A wrapper flow to simplify the use of the index function for
 
 [[input]]
 name = &quot;value&quot;
-type = &quot;object&quot;
 
 [[input]]
 name = &quot;select_index&quot;
@@ -1516,7 +1507,6 @@ type = &quot;number&quot;
 
 [[output]]
 name = &quot;selected_value&quot;
-type = &quot;object&quot;
 
 # the index function we wrap
 [[process]]
@@ -1561,14 +1551,11 @@ type = &quot;rust&quot;
 
 [[input]]
 name = &quot;data&quot; # - the data we wish to control the flow of
-type = &quot;object&quot;
 
 [[input]]
 name = &quot;control&quot; # - a second value we wait on
-type = &quot;object&quot;
 
 [[output]]
-type = &quot;object&quot;
 </code></pre>
 <h3 id="include-using-9"><a class="header" href="#include-using-9">Include using</a></h3>
 <pre><code class="language-toml">[[process]]
@@ -1584,7 +1571,6 @@ type = &quot;rust&quot;
 
 [[input]]
 name = &quot;data&quot; # - the data flow we wish to control the flow if
-type = &quot;object&quot;
 
 [[input]]
 name = &quot;control&quot; # - a boolean value to determine which output roue `data` is passed to
@@ -1592,11 +1578,9 @@ type = &quot;boolean&quot;
 
 [[output]]
 name = &quot;true&quot; # `if `control` is true `data` is routed here
-type = &quot;object&quot;
 
 [[output]]
 name = &quot;false&quot; # if `control` is false `data` is routed here
-type = &quot;object&quot;
 </code></pre>
 <h3 id="include-using-10"><a class="header" href="#include-using-10">Include using</a></h3>
 <pre><code class="language-toml">[[process]]
@@ -1612,11 +1596,9 @@ type = &quot;rust&quot;
 
 [[input]]
 name = &quot;i1&quot;
-type = &quot;object&quot;
 
 [[input]]
 name = &quot;i2&quot;
-type = &quot;object&quot;
 
 [[input]]
 name = &quot;control&quot; # - a boolean value to selection of inputs passed to outputs
@@ -1624,11 +1606,9 @@ type = &quot;boolean&quot;
 
 [[output]]
 name = &quot;select_i1&quot; # if `control` is true `i1` is selected for this output else `i2` is selected
-type = &quot;object&quot;
 
 [[output]]
 name = &quot;select_i2&quot; # if `control` is true `i2` is selected for this output else `i1` is selected
-type = &quot;object&quot;
 </code></pre>
 <h3 id="include-using-11"><a class="header" href="#include-using-11">Include using</a></h3>
 <pre><code class="language-toml">[[process]]
@@ -1644,14 +1624,12 @@ type = &quot;rust&quot;
 
 [[input]]
 name = &quot;data&quot; # - the data flow we wish to control the flow if
-type = &quot;object&quot;
 
 [[input]]
 name = &quot;control&quot; # - a boolean value to determine in `data` is passed on or not
 type = &quot;boolean&quot;
 
-[[output]]
-type = &quot;object&quot; # `data` is output if `control` is true, nothing if `control` is false
+[[output]] # `data` is output if `control` is true, nothing if `control` is false
 </code></pre>
 <h3 id="include-using-12"><a class="header" href="#include-using-12">Include using</a></h3>
 <pre><code class="language-toml">[[process]]
@@ -1686,11 +1664,9 @@ type = &quot;rust&quot;
 
 [[input]]
 name = &quot;values&quot; # - The stream of input values to accumulate into an array
-type = &quot;object&quot;
 
 [[input]]
 name = &quot;partial&quot; # - A partial array, to use in the accumulation, adding next input `value` to it
-type = &quot;object&quot;
 
 [[input]]
 name = &quot;chunk_size&quot; # - The size of the array we want to create
@@ -1698,11 +1674,10 @@ type = &quot;number&quot;
 
 [[output]]
 name = &quot;chunk&quot; # - The accumulated array of inputs of size `limit` or more
-type = &quot;array/object&quot;
+type = &quot;array/&quot;
 
 [[output]]
 name = &quot;partial&quot; # - The partially accumulated array, of size smaller than `chunk_size`
-type = &quot;object&quot;
 
 [[output]]
 name = &quot;chunk_size&quot; # - The chunk-size, output for use downstream or in loop-back
@@ -1746,19 +1721,15 @@ type = &quot;rust&quot;
 
 [[input]]
 name = &quot;data&quot; # the value to count and pass on
-type = &quot;object&quot;
 
 [[input]]
 name = &quot;count&quot; # - the count before this data item
-type = &quot;object&quot;
 
 [[output]]
 name = &quot;data&quot; # - the value passed on
-type = &quot;object&quot;
 
 [[output]]
 name = &quot;count&quot; # - the incremented count of values passed thru
-type = &quot;object&quot;
 </code></pre>
 <h3 id="include-using-15"><a class="header" href="#include-using-15">Include using</a></h3>
 <pre><code class="language-toml">[[process]]
@@ -1773,15 +1744,14 @@ docs = &quot;duplicate.md&quot;
 type = &quot;rust&quot;
 
 [[input]]
-name = &quot;value&quot; # - the value to duplicate
-type = &quot;object&quot;
+name = &quot;value&quot; # - the value to duplicate, generic type (i.e. all types accepted)
 
 [[input]]
 name = &quot;factor&quot; # - how many times to duplicate the value in the output
 type = &quot;number&quot;
 
 [[output]]
-type = &quot;array/object&quot; # - the array of duplicate values
+type = &quot;array/&quot; # - the array of duplicate values, of generic type (i.e. the same type as input)
 </code></pre>
 <h3 id="include-using-16"><a class="header" href="#include-using-16">Include using</a></h3>
 <pre><code class="language-toml">[[process]]
@@ -1915,10 +1885,10 @@ name = &quot;value&quot; # - The value to remove from the array
 
 [[input]]
 name = &quot;array&quot; # - An array, to remove `value` from
-type = &quot;array/object&quot;
+type = &quot;array/&quot;
 
 [[output]]
-type = &quot;array/object&quot; # - The resulting array
+type = &quot;array/&quot; # - The resulting array
 </code></pre>
 <h3 id="include-using-22"><a class="header" href="#include-using-22">Include using</a></h3>
 <pre><code class="language-toml">[[process]]
@@ -2032,15 +2002,15 @@ type = &quot;rust&quot;
 
 [[input]]
 name = &quot;left&quot; # - the 'left' array
-type = &quot;array/object&quot;
+type = &quot;array/&quot;
 
 [[input]]
 name = &quot;right&quot; # - the 'right' array
-type = &quot;array/object&quot;
+type = &quot;array/&quot;
 
 [[output]]
 name = &quot;tuples&quot; # - tuples - the array of tuples of (left, right)
-type = &quot;array/object&quot;
+type = &quot;array/&quot;
 </code></pre>
 <h3 id="include-using-26"><a class="header" href="#include-using-26">Include using</a></h3>
 <pre><code class="language-toml">[[process]]
@@ -2089,7 +2059,6 @@ type = &quot;rust&quot;
 type = &quot;string&quot; # The String to convert
 
 [[output]]
-type = &quot;object&quot; # The Json equivalent of String input
 </code></pre>
 <h3 id="include-using-28"><a class="header" href="#include-using-28">Include using</a></h3>
 <pre><code class="language-toml">[[process]]
@@ -2113,7 +2082,6 @@ docs = &quot;to_string.md&quot;
 type = &quot;rust&quot;
 
 [[input]]
-type = &quot;object&quot;
 
 [[output]]
 type = &quot;string&quot; # The String equivalent of the input value

@@ -152,14 +152,12 @@ type = &quot;rust&quot;
 
 [[input]]
 name = &quot;data&quot; # - the data flow we wish to control the flow if
-type = &quot;object&quot;
 
 [[input]]
 name = &quot;control&quot; # - a boolean value to determine in `data` is passed on or not
 type = &quot;boolean&quot;
 
-[[output]]
-type = &quot;object&quot; # `data` is output if `control` is true, nothing if `control` is false
+[[output]] # `data` is output if `control` is true, nothing if `control` is false
 </code></pre>
 <h3 id="include-using"><a class="header" href="#include-using">Include using</a></h3>
 <pre><code class="language-toml">[[process]]

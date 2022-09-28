@@ -151,15 +151,14 @@ docs = &quot;duplicate.md&quot;
 type = &quot;rust&quot;
 
 [[input]]
-name = &quot;value&quot; # - the value to duplicate
-type = &quot;object&quot;
+name = &quot;value&quot; # - the value to duplicate, generic type (i.e. all types accepted)
 
 [[input]]
 name = &quot;factor&quot; # - how many times to duplicate the value in the output
 type = &quot;number&quot;
 
 [[output]]
-type = &quot;array/object&quot; # - the array of duplicate values
+type = &quot;array/&quot; # - the array of duplicate values, of generic type (i.e. the same type as input)
 </code></pre>
 <h3 id="include-using"><a class="header" href="#include-using">Include using</a></h3>
 <pre><code class="language-toml">[[process]]
