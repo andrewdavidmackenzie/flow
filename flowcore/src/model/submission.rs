@@ -22,8 +22,8 @@ pub struct Submission {
 }
 
 impl Submission {
-    /// Create a new `Submission` of a `Flow` for execution with the specified `Manifest`
-    /// of `Functions`, optionally setting a limit for the number of jobs running in parallel
+    /// Create a new `Submission` of a flow for execution with the specified `FlowManifest`
+    /// optionally setting a limit for the number of jobs running in parallel
     /// via `max_parallel_jobs`
     pub fn new(
         manifest: FlowManifest,

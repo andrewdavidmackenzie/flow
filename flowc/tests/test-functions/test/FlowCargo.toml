@@ -18,8 +18,8 @@ panic = 'abort' # About unwinding code
 strip = "debuginfo"
 
 [dependencies]
-flowcore = {path = "../../../../flowcore", version = "0.61.0"}
-flowmacro = {path = "../../../../flowmacro", version = "0.61.0"}
+flowcore = "0.60.0"  # Latest published version
+flowmacro = "0.60.0" # Latest published version
 serde_json = { version = "1.0", default-features = false }
 
 [workspace]
