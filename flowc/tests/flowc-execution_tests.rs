@@ -313,9 +313,8 @@ fn doesnt_create_if_not_exist() {
     let non_existent = dir.join("__nope");
     assert!(!non_existent.exists());
 
-    let mut command = Command::new("cargo");
-    let command_args = vec!["run", "--quiet", "-p", "flowc", "--",
-                            non_existent.to_str().expect("Could not get test file path")];
+    let mut command = Command::new("flowc");
+    let command_args = vec![non_existent.to_str().expect("Could not get test file path")];
 
     let _ = command
         .args(command_args)
