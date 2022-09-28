@@ -8,8 +8,10 @@ export SHELL := /bin/bash
 
 ifeq ($(ONLINE),0)
 features := --features "wasm","online_tests"
+cargo_options :=
 else
 features := --features "wasm"
+cargo_options := --offline
 endif
 
 ifeq ($(FLOW_LIB_PATH),)
@@ -83,8 +85,8 @@ clean:
 .PHONY: install-flow
 install-flow:
 	@echo "install-flow<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
-	@cargo install --path flowc
-	@cargo install --path flowr
+	@cargo install --path flowc $(cargo_options)
+	@cargo install --path flowr $(cargo_options)
 
 .PHONY: clippy
 clippy: install-flow
@@ -94,18 +96,18 @@ clippy: install-flow
 .PHONY: build
 build: install-flow
 	@echo "build<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
-	@cargo build $(features)
+	@cargo build $(features) $(cargo_options)
 
 .PHONY: test
 test: install-flow
 	@echo "test<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
-	@cargo test $(features)
+	@cargo test $(features) $(cargo_options)
 
 .PHONY: coverage
 coverage: install-flow
 	@echo "coverage<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
 	@find . -name "*.profraw"  | xargs rm -rf {}
-	@RUSTFLAGS="-C instrument-coverage" LLVM_PROFILE_FILE="flow-%p-%m.profraw" cargo test $(features)
+	@RUSTFLAGS="-C instrument-coverage" LLVM_PROFILE_FILE="flow-%p-%m.profraw" cargo test $(features) $(cargo_options)
 	@echo "Gathering covering information"
 	@grcov . --binary-path target/debug/ -s . -t lcov --branch --ignore-not-existing --ignore "/*" -o coverage.info
 	@lcov --remove coverage.info '/Applications/*' '/usr*' '**/errors.rs' '**/build.rs' '*tests/*' -o coverage.info
@@ -116,7 +118,7 @@ coverage: install-flow
 .PHONY: docs
 docs:
 	@echo "docs<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
-	@cargo doc --no-deps --target-dir=target/html/code
+	@cargo doc --no-deps --target-dir=target/html/code $(cargo_options)
 	@mdbook build
 
 .PHONY: trim-docs
