@@ -1,16 +1,15 @@
 [package]
 name = "flowsamples"
-version = "0.60.0"
-authors = ["Andrew Mackenzie <andrew@mackenzie-serres.net>"]
-readme = "README.md"
 description = "A set of sample 'flow' programs"
-license = "MIT"
-documentation = "https://github.com/andrewdavidmackenzie/flow/samples/README.md"
-homepage = "https://andrewdavidmackenzie.github.io/flow/"
-repository = "https://github.com/andrewdavidmackenzie/flow/"
-edition = "2021"
-
 build = "build.rs"
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+documentation.workspace = true
+homepage.workspace = true
+repository.workspace = true
+readme.workspace = true
+edition.workspace = true
 
 [badges]
 maintenance = { status = "actively-developed" }

@@ -1,14 +1,14 @@
 [package]
 name = "flowc"
-version = "0.60.0"
-authors = ["Andrew Mackenzie <andrew@mackenzie-serres.net>"]
 description = "A compiler for 'flow' programs"
-license = "MIT"
-documentation = "https://github.com/andrewdavidmackenzie/flow/README.md"
-homepage = "http://andrewdavidmackenzie.github.io/flow/"
-repository = "https://github.com/andrewdavidmackenzie/flow/"
-readme = "README.md"
-edition = "2021"
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+documentation.workspace = true
+homepage.workspace = true
+repository.workspace = true
+readme.workspace = true
+edition.workspace = true
 
 [badges]
 maintenance = { status = "actively-developed" }
@@ -22,7 +22,7 @@ default = ["debugger"]
 debugger = ["flowcore/debugger"] # feature to add output for the debugger
 
 [dependencies]
-flowcore = {path = "../flowcore", version = "0.60.0", features = ["context"]}
+flowcore = {path = "../flowcore", version = "0.61.0", features = ["context"]}
 clap = "~3"
 simplog = { version = "~1.5" }
 log = "0.4.6"
@@ -37,7 +37,7 @@ serde = "~1.0.145"
 colored = "2"
 
 [dev-dependencies]
-flowcore = {path = "../flowcore", version = "0.60.0", features = ["context"]}
+flowcore = {path = "../flowcore", version = "0.61.0", features = ["context"]}
 tempdir = "~0.3.5"
 simpath = { version = "~2.3", features = ["urls"]}
 serial_test = "0.9.0"

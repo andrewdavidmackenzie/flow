@@ -1,14 +1,14 @@
 [package]
 name = "flowrlib"
-version = "0.61.0"
-authors = ["Andrew Mackenzie <andrew@mackenzie-serres.net>"]
 description = "Flow Runner Library (flowrlib) for 'flow' programs"
-license = "MIT"
-documentation = "https://github.com/andrewdavidmackenzie/flow/README.md"
-homepage = "https://andrewdavidmackenzie.github.io/flow/"
-repository = "https://github.com/andrewdavidmackenzie/flow/"
-readme = "README.md"
-edition = "2021"
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+documentation.workspace = true
+homepage.workspace = true
+repository.workspace = true
+readme.workspace = true
+edition.workspace = true
 
 [badges]
 maintenance = { status = "actively-developed" }
@@ -25,7 +25,7 @@ debugger = ["flowcore/debugger"] # feature to add the debugger, requires flowcor
 metrics = []  # feature for tracking of metrics during execution
 
 [dependencies]
-flowcore = {path = "../flowcore", version = "0.60.0"}
+flowcore = {path = "../flowcore", version = "0.61.0"}
 log = "0.4.6"
 url = { version = "2.2", features = ["serde"] }
 serde_derive = "~1.0.27"
