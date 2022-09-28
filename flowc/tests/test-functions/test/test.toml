@@ -4,7 +4,6 @@ type = "rust"
 impure = true
 
 [[input]]
-type = "object"
 
 [[Output]]
 type = "string"

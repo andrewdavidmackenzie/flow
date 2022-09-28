@@ -4,4 +4,3 @@ docs = "stderr.md"
 impure = true
 
 [[input]]
-type = "object"

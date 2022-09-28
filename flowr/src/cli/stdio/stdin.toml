@@ -9,4 +9,3 @@ type = "string"
 
 [[output]]
 name = "json"
-type = "object"

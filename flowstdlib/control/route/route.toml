@@ -5,7 +5,6 @@ type = "rust"
 
 [[input]]
 name = "data" # - the data flow we wish to control the flow if
-type = "object"
 
 [[input]]
 name = "control" # - a boolean value to determine which output roue `data` is passed to
@@ -13,8 +12,6 @@ type = "boolean"
 
 [[output]]
 name = "true" # `if `control` is true `data` is routed here
-type = "object"
 
 [[output]]
 name = "false" # if `control` is false `data` is routed here
-type = "object"

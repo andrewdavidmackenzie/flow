@@ -7,4 +7,3 @@ type = "rust"
 type = "string" # The String to convert
 
 [[output]]
-type = "object" # The Json equivalent of String input

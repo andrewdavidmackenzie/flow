@@ -6,8 +6,12 @@ use serde_json::Value;
 use shrinkwraprs::Shrinkwrap;
 
 use crate::errors::*;
+use crate::model::route::Route;
 
-/// Json "object" data type
+/// Generic type is represented as an empty string
+pub const GENERIC_TYPE: &str = "";
+
+/// Json "object" data type (a Map in other languages)
 pub const OBJECT_TYPE: &str = "object";
 
 /// Json "string" data type
@@ -25,10 +29,11 @@ pub const ARRAY_TYPE: &str = "array";
 /// Json "null" data type
 pub const NULL_TYPE: &str = "null";
 
-const DATA_TYPES: &[&str] = &[OBJECT_TYPE, STRING_TYPE, NUMBER_TYPE, BOOLEAN_TYPE, ARRAY_TYPE, NULL_TYPE];
+const DATA_TYPES: &[&str] = &[OBJECT_TYPE, STRING_TYPE, NUMBER_TYPE, BOOLEAN_TYPE, ARRAY_TYPE,
+    NULL_TYPE, GENERIC_TYPE];
 
 /// Datatype is just a string defining what data type is being used
-#[derive(Shrinkwrap, Hash, Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize, Ord, PartialOrd)]
+#[derive(Shrinkwrap, Hash, Clone, PartialEq, Eq, Default, Serialize, Deserialize, Ord, PartialOrd)]
 pub struct DataType(String);
 
 impl From<&str> for DataType {
@@ -44,6 +49,12 @@ impl From<String> for DataType {
 }
 
 impl fmt::Display for DataType {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+impl fmt::Debug for DataType {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.0)
     }
@@ -71,6 +82,10 @@ pub trait HasDataTypes {
 impl DataType {
     /// Determine if a datatype specified in a flow is a valid datatype or not
     pub fn valid(&self) -> Result<()> {
+        if self.is_empty() {  // generic type
+            return Ok(());
+        }
+
         // Split the type hierarchy and check all levels are valid
         let type_levels = self.split('/');
 
@@ -90,7 +105,7 @@ impl DataType {
     /// Return true if this datatype is generic (not specified at compile time and can contain
     /// any other datatype) or not
     pub fn is_generic(&self) -> bool {
-        self == &DataType::from(OBJECT_TYPE)
+        self.is_empty()
     }
 
     /// Determine if this data type is an array of the `second` type
@@ -119,7 +134,7 @@ impl DataType {
                 if let Some(map_entry) = map.values().next() {
                     format!("{}/{}", OBJECT_TYPE, Self::type_string(map_entry))
                 } else {
-                    OBJECT_TYPE.to_owned()
+                    OBJECT_TYPE.into()
                 }
             }
             Value::Null => NULL_TYPE.into(),
@@ -135,6 +150,82 @@ impl DataType {
         } else {
             Ok(0)
         }
+    }
+
+
+    /// For a set of output types to be compatible with a destination's set of types
+    /// ALL of the output_types must have a compatible input type, to guarantee that any
+    /// of the valid types produced can be handled by the destination
+    pub fn compatible_types(from: &[DataType], to: &[DataType], from_subroute: &Route) -> bool {
+        if from.is_empty() || to.is_empty() {
+            return false;
+        }
+
+        for output_type in from {
+            let mut compatible_destination_type = false;
+            for input_type in to {
+                if Self::two_compatible_types(output_type, input_type, from_subroute) {
+                    compatible_destination_type = true;
+                }
+            }
+            if !compatible_destination_type {
+                return false; // we could not find a compatible_destination_type for this output_type
+            }
+        }
+
+        true // all output_types found a compatible destination type
+    }
+
+    /// Determine if a source type and a destination type are compatible, counting on
+    /// serialization of arrays of types to types.
+    fn two_compatible_types(from: &DataType, to: &DataType, from_subroute: &Route) -> bool {
+        // TODO get the real datatype using `from` DataType and `from_subroute`
+
+        // from and too types are the same - hence compatible
+        if from == to && from_subroute.is_empty() {
+            return true;
+        }
+
+        // TODO make this invalid, this is when we have a gate process that accepts a number and
+        // passes a number at runtime, but the definition doesn't know the input type and so can
+        // only state the output type as generic fix with #1187
+        if from.is_generic() && from_subroute.is_empty() {
+            return true;
+        }
+
+        // destination can accept any type - with or without the runtime serializing the from objects
+        if to.is_generic() || to.array_of(&DataType::from("")) {
+            return true;
+        }
+
+        if to.array_of(from) {
+            return true;
+        }
+
+        // to select an element from an array source, it must be an array
+        if from_subroute.is_array_selector() && !from.is_array() {
+            return false;
+        }
+
+        // the source is an array of the destination type - runtime can serialize the elements
+        if from.array_of(to) {
+            return true;
+        }
+
+        // Relies on serialization of an array of generics into an input of some type
+        // TODO remove when we implement pass-through of types through generic i/os
+        if from.array_of(&DataType::from(GENERIC_TYPE)) && !to.is_array() {
+            return true;
+        }
+
+        // Relies on array of generics into an input of array of some type
+        // hence relies on generic to something working
+        // TODO remove when we implement pass-through of types through generic i/os
+        if from.array_of(&DataType::from(GENERIC_TYPE)) && to.is_array() {
+            return true;
+        }
+
+        false
     }
 }
 
@@ -174,5 +265,362 @@ mod test {
     fn is_array_false() {
         let string_type = DataType::from(STRING_TYPE);
         assert!(!string_type.is_array());
+    }
+
+
+    mod type_conversion {
+        use crate::model::datatype::{ARRAY_TYPE, BOOLEAN_TYPE, DataType, GENERIC_TYPE, NULL_TYPE, NUMBER_TYPE, OBJECT_TYPE, STRING_TYPE};
+        use crate::model::io::IO;
+        use crate::model::route::Route;
+
+        /// # Array serialization and {type} to array wrapping
+        ///
+        /// ## {type} being sent
+        ///   Value Type   Input Type
+        /// * {type}   --> {type} (is_array = false) - input and sent to the function as an array
+        /// * {type}   --> array (is_array = true)   - {type} will be converted to a one element array
+        ///
+        /// ## array of {type} being sent
+        ///   Value Type        Input Type
+        /// * array/{type}  --> array (is_array = true)
+        /// * array/{type}  --> object (is_array = false) - values in Array will be serialized
+        ///                     and sent to input one by one)
+
+        #[test]
+        fn valid_type_conversions() {
+            let valid_type_conversions: Vec<(String, String, &str)> = vec![
+                // equal types are compatible (equality)
+                (OBJECT_TYPE.into(), OBJECT_TYPE.into(), ""),
+                (NUMBER_TYPE.into(), NUMBER_TYPE.into(), ""),
+                (NULL_TYPE.into(), NULL_TYPE.into(), ""),
+                (STRING_TYPE.into(), STRING_TYPE.into(), ""),
+                (BOOLEAN_TYPE.into(), BOOLEAN_TYPE.into(), ""),
+
+                // any type is compatible with a generic destination (generic)
+                (NUMBER_TYPE.into(), GENERIC_TYPE.into(), ""),
+                (NULL_TYPE.into(), GENERIC_TYPE.into(), ""),
+                (STRING_TYPE.into(), GENERIC_TYPE.into(), ""),
+                (BOOLEAN_TYPE.into(), GENERIC_TYPE.into(), ""),
+                (format!("{}/{}", ARRAY_TYPE, NUMBER_TYPE), GENERIC_TYPE.into(), ""),
+                (format!("{}/{}/{}", ARRAY_TYPE, ARRAY_TYPE, NUMBER_TYPE), GENERIC_TYPE.into(), ""),
+
+                // any type is compatible with a destination of array of same type (wrapping)
+                (NUMBER_TYPE.into(), format!("{}/{}", ARRAY_TYPE, NUMBER_TYPE), ""),
+                (NULL_TYPE.into(), format!("{}/{}", ARRAY_TYPE, NULL_TYPE), ""),
+                (STRING_TYPE.into(), format!("{}/{}", ARRAY_TYPE, STRING_TYPE), ""),
+                (BOOLEAN_TYPE.into(), format!("{}/{}", ARRAY_TYPE, BOOLEAN_TYPE), ""),
+
+                // any type is compatible with a destination of array of generic (wrapping + generic)
+                // runtime wraps object to array of type, destination can accept any type in array
+                (NUMBER_TYPE.into(), format!("{}/{}", ARRAY_TYPE, GENERIC_TYPE), ""),
+                (NULL_TYPE.into(), format!("{}/{}", ARRAY_TYPE, GENERIC_TYPE), ""),
+                (STRING_TYPE.into(), format!("{}/{}", ARRAY_TYPE, GENERIC_TYPE), ""),
+                (BOOLEAN_TYPE.into(), format!("{}/{}", ARRAY_TYPE, GENERIC_TYPE), ""),
+
+                // an array of types can be serialized to a destination of same type (array serialization)
+                (format!("{}/{}", ARRAY_TYPE, OBJECT_TYPE), OBJECT_TYPE.into(), ""),
+                (format!("{}/{}", ARRAY_TYPE, NUMBER_TYPE), NUMBER_TYPE.into(), ""),
+                (format!("{}/{}", ARRAY_TYPE, NULL_TYPE), NULL_TYPE.into(), ""),
+                (format!("{}/{}", ARRAY_TYPE, STRING_TYPE), STRING_TYPE.into(), ""),
+                (format!("{}/{}", ARRAY_TYPE, BOOLEAN_TYPE), BOOLEAN_TYPE.into(), ""),
+
+                // A type can be selected from an array of same type (array selection)
+                (format!("{}/{}", ARRAY_TYPE, NUMBER_TYPE), NUMBER_TYPE.into(), "/0"),
+                (format!("{}/{}", ARRAY_TYPE, NULL_TYPE), NULL_TYPE.into(), "/0"),
+                (format!("{}/{}", ARRAY_TYPE, ARRAY_TYPE), ARRAY_TYPE.into(), "/0"),
+                (format!("{}/{}", ARRAY_TYPE, STRING_TYPE), STRING_TYPE.into(), "/0"),
+                (format!("{}/{}", ARRAY_TYPE, BOOLEAN_TYPE), BOOLEAN_TYPE.into(), "/0"),
+                (format!("{}/{}", ARRAY_TYPE, OBJECT_TYPE), OBJECT_TYPE.into(), "/0"),
+
+                // equality of first order arrays of types
+                (format!("{}/{}", ARRAY_TYPE, NUMBER_TYPE), format!("{}/{}", ARRAY_TYPE, NUMBER_TYPE), ""),
+                (format!("{}/{}", ARRAY_TYPE, NULL_TYPE), format!("{}/{}", ARRAY_TYPE, NULL_TYPE), ""),
+                (format!("{}/{}", ARRAY_TYPE, STRING_TYPE), format!("{}/{}", ARRAY_TYPE, STRING_TYPE), ""),
+                (format!("{}/{}", ARRAY_TYPE, BOOLEAN_TYPE), format!("{}/{}", ARRAY_TYPE, BOOLEAN_TYPE), ""),
+                (format!("{}/{}", ARRAY_TYPE, OBJECT_TYPE), format!("{}/{}", ARRAY_TYPE, OBJECT_TYPE), ""),
+
+
+                // serialization of second order arrays to first order arrays of same type
+                (format!("{}/{}/{}", ARRAY_TYPE, ARRAY_TYPE, NUMBER_TYPE), format!("{}/{}", ARRAY_TYPE, NUMBER_TYPE), ""),
+                (format!("{}/{}/{}", ARRAY_TYPE, ARRAY_TYPE, NULL_TYPE), format!("{}/{}", ARRAY_TYPE, NULL_TYPE), ""),
+                (format!("{}/{}/{}", ARRAY_TYPE, ARRAY_TYPE, STRING_TYPE), format!("{}/{}", ARRAY_TYPE, STRING_TYPE), ""),
+                (format!("{}/{}/{}", ARRAY_TYPE, ARRAY_TYPE, BOOLEAN_TYPE), format!("{}/{}", ARRAY_TYPE, BOOLEAN_TYPE), ""),
+                (format!("{}/{}/{}", ARRAY_TYPE, ARRAY_TYPE, OBJECT_TYPE), format!("{}/{}", ARRAY_TYPE, OBJECT_TYPE), ""),
+
+                // TODO maybe make illegal all those Null types that don't make much sense?
+
+                // TODO make invalid - cannot guarantee that an object can convert to array of number
+                (format!("{}/{}", ARRAY_TYPE, GENERIC_TYPE), format!("{}/{}/{}", ARRAY_TYPE, ARRAY_TYPE, NUMBER_TYPE), ""),
+
+                // TODO make invalid - object cannot be guaranteed to convert to number
+                (format!("{}/{}", ARRAY_TYPE, GENERIC_TYPE), format!("{}/{}", ARRAY_TYPE, NUMBER_TYPE), ""),
+                // TODO make invalid - not it's used to get a generic object from get/json/1 and pass it as a number to another input
+                (format!("{}/{}", ARRAY_TYPE, GENERIC_TYPE), format!("{}/{}", ARRAY_TYPE, NUMBER_TYPE), "/1"),
+                // TODO make invalid - array should need subtype
+                (ARRAY_TYPE.into(), ARRAY_TYPE.into(), ""),
+                // TODO make invalid - array should need subtype
+                (ARRAY_TYPE.into(), GENERIC_TYPE.into(), ""),
+                // TODO make invalid - array should need subtype
+                (ARRAY_TYPE.into(), format!("{}/{}", ARRAY_TYPE, ARRAY_TYPE), ""),
+                (ARRAY_TYPE.into(), format!("{}/{}", ARRAY_TYPE, GENERIC_TYPE), ""),
+            ];
+
+            for test in valid_type_conversions.iter() {
+                assert!(DataType::compatible_types(
+                    &[DataType::from(&test.0 as &str)],
+                    &[DataType::from(&test.1 as &str)],
+                    &Route::from(test.2)),
+                        "Invalid Type Conversion: '{}' --> '{}' using route = '{}'", test.0, test.1, test.2);
+            }
+        }
+
+        #[test]
+        fn invalid_type_conversions() {
+            let invalid_type_conversions: Vec<(String, String, &str)> = vec![
+            // object source is only compatible with object destination or array of
+            (OBJECT_TYPE.into(), NUMBER_TYPE.into(), ""  ), // cannot convert object to number
+            (OBJECT_TYPE.into(), NULL_TYPE.into(), ""  ), // cannot convert object to null
+            (OBJECT_TYPE.into(), ARRAY_TYPE.into(), ""  ), // cannot convert object to array
+            (OBJECT_TYPE.into(), STRING_TYPE.into(), ""  ), // cannot convert object to string
+            (OBJECT_TYPE.into(), BOOLEAN_TYPE.into(), ""  ), // cannot convert object to boolean
+
+            // selecting from an array not allowed on non-array types
+            (NUMBER_TYPE.into(), NUMBER_TYPE.into(), "/0"), // cannot select from a non-array
+            (OBJECT_TYPE.into(), NUMBER_TYPE.into(), "/0"), // cannot select from a non-array
+            (NULL_TYPE.into(), NUMBER_TYPE.into(), "/0"), // cannot select from a non-array
+            (STRING_TYPE.into(), NUMBER_TYPE.into(), "/0"), // cannot select from a non-array
+            (BOOLEAN_TYPE.into(), NUMBER_TYPE.into(), "/0"), // cannot select from a non-array
+            ];
+
+            for test in invalid_type_conversions.iter() {
+                assert!(!DataType::compatible_types(
+                    &[DataType::from(&test.0 as &str)],
+                    &[DataType::from(&test.1 as &str)],
+                    &Route::from(test.2)),
+                        "Type Conversion should be invalid: '{}' --> '{}' using route = '{}'", test.0, test.1, test.2
+                );
+            }
+        }
+
+        #[test]
+        fn simple_to_simple() {
+            let from_io = IO::new(vec!(STRING_TYPE.into()), "/p1/output");
+            let to_io = IO::new(vec!(STRING_TYPE.into()), "/p2");
+            assert!(DataType::compatible_types(
+                from_io.datatypes(),
+                to_io.datatypes(),
+                &Route::default()
+            ));
+        }
+
+        #[test]
+        fn simple_indexed_to_simple() {
+            let from_io = IO::new(vec!(STRING_TYPE.into()), "/p1/output/0");
+            let to_io = IO::new(vec!(STRING_TYPE.into()), "/p2");
+            assert!(DataType::compatible_types(
+                from_io.datatypes(),
+                to_io.datatypes(),
+                &Route::default()
+            ));
+        }
+
+        #[test]
+        fn simple_to_simple_mismatch() {
+            let from_io = IO::new(vec!(STRING_TYPE.into()), "/p1/output");
+            let to_io = IO::new(vec!(NUMBER_TYPE.into()), "/p2");
+            assert!(!DataType::compatible_types(
+                from_io.datatypes(),
+                to_io.datatypes(),
+                &Route::default()
+            ));
+        }
+
+        #[test]
+        fn simple_indexed_to_array() {
+            let from_io = IO::new(vec!(STRING_TYPE.into()), "/p1/output/0");
+            let to_io = IO::new(vec!("array/string".into()), "/p2");
+            assert!(DataType::compatible_types(
+                from_io.datatypes(),
+                to_io.datatypes(),
+                &Route::default()
+            ));
+        }
+
+        #[test]
+        fn simple_to_array() {
+            let from_io = IO::new(vec!(STRING_TYPE.into()), "/p1/output");
+            let to_io = IO::new(vec!("array/string".into()), "/p2");
+            assert!(DataType::compatible_types(
+                from_io.datatypes(),
+                to_io.datatypes(),
+                &Route::default()
+            ));
+        }
+
+        #[test]
+        fn simple_to_array_mismatch() {
+            let from_io = IO::new(vec!(STRING_TYPE.into()), "/p1/output");
+            let to_io = IO::new(vec!("array/number".into()), "/p2");
+            assert!(!DataType::compatible_types(
+                from_io.datatypes(),
+                to_io.datatypes(),
+                &Route::default()
+            ));
+        }
+
+        #[test]
+        fn array_to_array() {
+            let from_io = IO::new(vec!(ARRAY_TYPE.into()), "/p1/output");
+            let to_io = IO::new(vec!(ARRAY_TYPE.into()), "/p2");
+            assert!(DataType::compatible_types(
+                from_io.datatypes(),
+                to_io.datatypes(),
+                &Route::default()
+            ));
+        }
+
+        #[test]
+        fn array_to_simple() {
+            let from_io = IO::new(vec!("array/string".into()), "/p1/output");
+            let to_io = IO::new(vec!(STRING_TYPE.into()), "/p2");
+            assert!(DataType::compatible_types(
+                from_io.datatypes(),
+                to_io.datatypes(),
+                &Route::default()
+            ));
+        }
+
+        #[test]
+        fn multiple_output_type_to_single_input_type() {
+            let from_io = IO::new(vec!(STRING_TYPE.into(), NUMBER_TYPE.into()), "/p1/output");
+            let to_io = IO::new(vec!(STRING_TYPE.into()), "/p2");
+            assert!(!DataType::compatible_types(
+                from_io.datatypes(),
+                to_io.datatypes(),
+                &Route::default()
+            ));
+        }
+
+        #[test]
+        fn multiple_output_type_to_generic_input_type() {
+            let from_io = IO::new(vec!(STRING_TYPE.into(), NUMBER_TYPE.into()),
+                                  "/p1/output");
+            let to_io = IO::new(vec!(GENERIC_TYPE.into()), "/p2");
+            assert!(DataType::compatible_types(
+                from_io.datatypes(),
+                to_io.datatypes(),
+                &Route::default()
+            ));
+        }
+
+        #[test]
+        fn multiple_output_type_to_matching_input_types() {
+            let from_io = IO::new(vec!(STRING_TYPE.into(), NUMBER_TYPE.into()), "/p1/output");
+            let to_io = IO::new(vec!(STRING_TYPE.into(), NUMBER_TYPE.into()), "/p2");
+            assert!(DataType::compatible_types(
+                from_io.datatypes(),
+                to_io.datatypes(),
+                &Route::default()
+            ));
+        }
+
+        #[test]
+        fn single_output_type_to_superset_input_types() {
+            let from_io = IO::new(vec!(STRING_TYPE.into()), "/p1/output");
+            let to_io = IO::new(vec!(STRING_TYPE.into(), NUMBER_TYPE.into()), "/p2");
+            assert!(DataType::compatible_types(
+                from_io.datatypes(),
+                to_io.datatypes(),
+                &Route::default()
+            ));
+        }
+
+        #[test]
+        fn multiple_output_type_to_superset_input_types() {
+            let from_io = IO::new(vec!(STRING_TYPE.into(), NUMBER_TYPE.into()), "/p1/output");
+            let to_io = IO::new(vec!(STRING_TYPE.into(), NUMBER_TYPE.into(), ARRAY_TYPE.into()), "/p2");
+            assert!(DataType::compatible_types(
+                from_io.datatypes(),
+                to_io.datatypes(),
+                &Route::default()
+            ));
+        }
+
+        #[test]
+        fn multiple_output_type_to_non_matching_input_types() {
+            let from_io = IO::new(vec!(STRING_TYPE.into(), NUMBER_TYPE.into()), "/p1/output");
+            let to_io = IO::new(vec!(STRING_TYPE.into(), ARRAY_TYPE.into()), "/p2");
+            assert!(!DataType::compatible_types(
+                from_io.datatypes(),
+                to_io.datatypes(),
+                &Route::default()
+            ));
+        }
+
+        #[test]
+        fn single_output_type_to_non_matching_input_types() {
+            let from_io = IO::new(vec!(STRING_TYPE.into()), "/p1/output");
+            let to_io = IO::new(vec!(ARRAY_TYPE.into(), NUMBER_TYPE.into()), "/p2");
+            assert!(!DataType::compatible_types(
+                from_io.datatypes(),
+                to_io.datatypes(),
+                &Route::default()
+            ));
+        }
+
+        #[test]
+        fn multiple_output_type_to_generic_input_types() {
+            let from_io = IO::new(vec!(STRING_TYPE.into(), NUMBER_TYPE.into()), "/p1/output");
+            let to_io = IO::new(vec!(ARRAY_TYPE.into(), GENERIC_TYPE.into()), "/p2");
+            assert!(DataType::compatible_types(
+                from_io.datatypes(),
+                to_io.datatypes(),
+                &Route::default()
+            ));
+        }
+
+        #[test]
+        fn single_output_type_to_generic_input_types() {
+            let from_io = IO::new(vec!(STRING_TYPE.into()), "/p1/output");
+            let to_io = IO::new(vec!(ARRAY_TYPE.into(), GENERIC_TYPE.into()), "/p2");
+            assert!(DataType::compatible_types(
+                from_io.datatypes(),
+                to_io.datatypes(),
+                &Route::default()
+            ));
+        }
+
+        #[test]
+        fn null_output_type_to_valid_input_types() {
+            let from_io = IO::new(vec!(), "/p1/output");
+            let to_io = IO::new(vec!(OBJECT_TYPE.into()), "/p2");
+            assert!(!DataType::compatible_types(
+                from_io.datatypes(),
+                to_io.datatypes(),
+                &Route::default()
+            ));
+        }
+
+        #[test]
+        fn valid_output_type_to_null_input_types() {
+            let from_io = IO::new(vec!(OBJECT_TYPE.into()), "/p1/output");
+            let to_io = IO::new(vec!(), "/p2");
+            assert!(!DataType::compatible_types(
+                from_io.datatypes(),
+                to_io.datatypes(),
+                &Route::default()
+            ));
+        }
+
+        #[test]
+        fn null_output_type_to_null_input_types() {
+            let from_io = IO::new(vec!(), "/p1/output");
+            let to_io = IO::new(vec!(), "/p2");
+            assert!(!DataType::compatible_types(
+                from_io.datatypes(),
+                to_io.datatypes(),
+                &Route::default()
+            ));
+        }
     }
 }

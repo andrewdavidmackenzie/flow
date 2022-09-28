@@ -49,6 +49,7 @@ impl fmt::Display for Submission {
             writeln!(f, "Maximum Parallel Jobs: {limit}")?;
         }
         writeln!(f,   "          Job Timeout: {:?}", self.job_timeout)?;
+        #[cfg(feature = "debugger")]
         writeln!(f,   "                Debug: {}", self.debug)?;
         write!(f,     "             Manifest: {}", self.manifest)
     }

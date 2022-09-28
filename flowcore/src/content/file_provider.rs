@@ -40,18 +40,17 @@ impl Provider for FileProvider {
                         return Ok((file_found_url, None));
                     }
 
-                    trace!(
-                        "'{}' is a directory, so attempting to find file with same name inside it",
-                        path.display()
-                    );
-                    if let Some(dir_os_name) = path.file_name() {
-                        let dir_name = dir_os_name.to_string_lossy();
+                    let dir_os_name = path.file_name().ok_or("Could not get directory name")?;
+                    let dir_name = dir_os_name.to_string_lossy();
+                        trace!(
+                            "'{}' is a directory, so attempting to find file named '{}' inside it",
+                            path.display(), dir_name);
                         if let Ok(file_found_url) = Self::find_file(&path, &dir_name, extensions) {
                             return Ok((file_found_url, None));
-                        }
                     }
 
-                    bail!("No default or same named file found in directory")
+                    bail!("No file named '{}' or '{}' with extension '{}' found in directory '{}'",
+                        default_filename, dir_name, extensions.join(" or "), path.display())
                 } else if md.is_file() {
                     Ok((url.clone(), None))
                 } else {

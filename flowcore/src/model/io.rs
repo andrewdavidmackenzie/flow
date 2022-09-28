@@ -6,7 +6,7 @@ use error_chain::bail;
 use serde_derive::{Deserialize, Serialize};
 
 use crate::errors::*;
-use crate::model::datatype::{DataType, OBJECT_TYPE};
+use crate::model::datatype::{DataType, GENERIC_TYPE};
 use crate::model::datatype::HasDataTypes;
 use crate::model::input::InputInitializer;
 use crate::model::name::HasName;
@@ -195,7 +195,7 @@ impl HasRoute for IO {
 }
 
 fn default_types() -> Vec<DataType> {
-    vec!(DataType::from(OBJECT_TYPE))
+    vec!(DataType::from(GENERIC_TYPE))
 }
 
 /*fn default_io_type() -> IOType {
@@ -295,7 +295,7 @@ mod test {
 
     use crate::deserializers::deserializer::get_deserializer;
     use crate::errors::*;
-    use crate::model::datatype::{DataType, OBJECT_TYPE, STRING_TYPE};
+    use crate::model::datatype::{DataType, GENERIC_TYPE, STRING_TYPE};
     use crate::model::io::{IOSet, IOType};
     use crate::model::name::HasName;
     use crate::model::name::Name;
@@ -318,7 +318,7 @@ mod test {
             Err(_) => panic!("TOML does not parse"),
         };
         assert!(output.validate().is_ok(), "IO does not validate()");
-        assert_eq!(output.datatypes[0], DataType::from(OBJECT_TYPE));
+        assert_eq!(output.datatypes[0], DataType::from(GENERIC_TYPE));
         assert_eq!(output.name, Name::default());
     }
 
@@ -486,7 +486,7 @@ mod test {
 
     #[test]
     fn get_array_element_of_root_output() {
-        let mut outputs = vec![IO::new(vec![DataType::from("array/integer")], "")] as IOSet;
+        let mut outputs = vec![IO::new(vec![DataType::from("array/number")], "")] as IOSet;
 
         // Test
         // Try and get the output using a route to a specific element of the output

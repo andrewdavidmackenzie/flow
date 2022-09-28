@@ -4,4 +4,3 @@ docs = "stdout.md"
 impure = true
 
 [[input]]
-type = "object"

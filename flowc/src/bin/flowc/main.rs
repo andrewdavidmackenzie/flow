@@ -106,23 +106,14 @@ pub fn get_lib_search_path(search_path_additions: &[String]) -> Result<Simpath> 
 */
 fn run() -> Result<()> {
     let options = parse_args(get_matches())?;
-
     let lib_search_path = get_lib_search_path(&options.lib_dirs)?;
     let context_root = options.context_root.clone().unwrap_or_else(|| PathBuf::from(""));
-
-    let provider = &MetaProvider::new(lib_search_path,
-                                      context_root
-    );
+    let provider = &MetaProvider::new(lib_search_path, context_root);
 
     if options.lib {
         build_lib(&options, provider).chain_err(|| "Could not build library")
     } else {
-        compile_and_execute_flow(&options, provider).chain_err(|| {
-            format!(
-                "flowc could not compile and execute the flow '{}'",
-                &options.source_url
-            )
-        })
+        compile_and_execute_flow(&options, provider)
     }
 }
 

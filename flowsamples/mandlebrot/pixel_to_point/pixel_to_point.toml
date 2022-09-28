@@ -20,4 +20,3 @@ type = "array/number"
 
 # Pixel and point are output together
 [[output]]
-type = "object"

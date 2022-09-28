@@ -32,8 +32,7 @@ pub fn compile_and_execute_flow(options: &Options, provider: &dyn Provider) -> R
         provider,
         #[cfg(feature = "debugger")]
         &mut source_urls,
-    )
-    .chain_err(|| format!("Could not load flow using '{}'", options.source_url))?;
+    )?;
 
     match root {
         FlowProcess(flow) => {

@@ -172,7 +172,7 @@ mod test {
     use serde_json::json;
     use url::Url;
 
-    use flowcore::model::datatype::{ARRAY_TYPE, OBJECT_TYPE, STRING_TYPE};
+    use flowcore::model::datatype::{ARRAY_TYPE, GENERIC_TYPE, STRING_TYPE};
     use flowcore::model::function_definition::FunctionDefinition;
     use flowcore::model::input::InputInitializer;
     use flowcore::model::io::IO;
@@ -192,7 +192,7 @@ mod test {
             Name::from("print"),
             vec![],
             vec![
-                IO::new(vec!(OBJECT_TYPE.into()), Route::default()),
+                IO::new(vec!(GENERIC_TYPE.into()), Route::default()),
                 IO::new(vec!(STRING_TYPE.into()), Route::default()),
             ],
             Url::parse("file:///fake/file").expect("Could not parse Url"),
