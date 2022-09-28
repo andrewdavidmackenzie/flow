@@ -1,14 +1,14 @@
 [package]
 name = "flowcore"
-version = "0.60.0"
-authors = ["Andrew Mackenzie <andrew@mackenzie-serres.net>"]
 description = "Structures shared between runtime and clients"
-license = "MIT"
-documentation = "https://github.com/andrewdavidmackenzie/flow/README.md"
-homepage = "https://andrewdavidmackenzie.github.io/flow/"
-repository = "https://github.com/andrewdavidmackenzie/flow/"
-readme = "README.md"
-edition = "2021"
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+documentation.workspace = true
+homepage.workspace = true
+repository.workspace = true
+readme.workspace = true
+edition.workspace = true
 
 # Files to exclude from packaging and publishing
 exclude = [".gitignore", "Cargo.lock"]

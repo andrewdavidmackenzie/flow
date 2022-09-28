@@ -1,14 +1,17 @@
 [package]
+# Don't inherit from workspace as this is parsed by flowc for MetaData and it is not workspace inheritance aware
 name = "flowstdlib"
-version = "0.60.0"
-authors = ["Andrew Mackenzie <andrew@mackenzie-serres.net>"]
 description = "The standard library of functions and flows for 'flow' programs"
-license = "MIT"
-documentation = "https://github.com/andrewdavidmackenzie/flow/README.md"
-homepage = "https://andrewdavidmackenzie.github.io/flow/"
-repository = "https://github.com/andrewdavidmackenzie/flow/"
-readme = "README.md"
-edition = "2021"
+version = "0.61.0"
+authors = ["Andrew Mackenzie <andrew@mackenzie-serres.net>"]
+# Inherit the others that is not parsed by flowc
+license.workspace = true
+documentation.workspace = true
+homepage.workspace = true
+repository.workspace = true
+readme.workspace = true
+edition.workspace = true
+
 build = "build.rs"
 
 [badges]
@@ -27,8 +30,8 @@ default = []
 wasm = []
 
 [dependencies]
-flowmacro = {path = "../flowmacro", version = "0.60.0" }
-flowcore = {path = "../flowcore", version = "0.60.0" }
+flowmacro = {path = "../flowmacro", version = "0.61.0" }
+flowcore = {path = "../flowcore", version = "0.61.0" }
 simpath = { version = "~2.3", features = ["urls"]}
 url = { version = "2.2", features = ["serde"] }
 serde_json = "1.0"
