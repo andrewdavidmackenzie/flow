@@ -107,21 +107,23 @@ impl Connection {
         // are we selecting from a sub-route of an IO, such as an array index or element of output object?
         // TODO this requires the accumulation of the subroute to be done during connection building #1192
         let from_io_subroute = "";
-        if DataType::compatible_types(from_io.datatypes(), to_io.datatypes(), &Route::from(from_io_subroute)) {
-            debug!(
-                "Connection built from '{}' to '{}'",
-                from_io.route(),
-                to_io.route()
-            );
-            self.from_io = from_io;
-            self.to_io = to_io;
-            self.level = level;
-            return Ok(());
-        }
-
-        bail!("Incompatible source and destination types:\nSource:      '{}/{}' of types {:?}\nDestination: '{}' of types {:?}",
+        DataType::compatible_types(from_io.datatypes(), to_io.datatypes(),
+                                   &Route::from(from_io_subroute))
+            .chain_err(|| format!("Incompatible source and destination types:\n\
+            Source:      '{}/{}' of types {:?}\n\
+            Destination: '{}' of types {:?}",
             from_io.route(), from_io_subroute, from_io.datatypes(),
-            to_io.route(), to_io.datatypes())
+            to_io.route(), to_io.datatypes()))?;
+        debug!(
+            "Connection built from '{}' to '{}'",
+            from_io.route(),
+            to_io.route()
+        );
+        self.from_io = from_io;
+        self.to_io = to_io;
+        self.level = level;
+
+        Ok(())
     }
 
     /// Return the `from` Route specified in this connection

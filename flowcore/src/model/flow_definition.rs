@@ -301,7 +301,7 @@ impl FlowDefinition {
 
             FunctionProcess(ref mut function) => {
                 debug!(
-                    "\tFunction sub-process with matching name found, name = '{}'",
+                    "\tFunction sub-process with name = '{}' found",
                     subprocess_alias
                 );
                 match direction {

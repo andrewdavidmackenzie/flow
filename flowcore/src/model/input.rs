@@ -6,6 +6,8 @@ use serde_derive::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
 use crate::errors::*;
+use crate::model::datatype::DataType;
+use crate::model::input::InputInitializer::{Always, Once};
 use crate::model::io::IO;
 #[cfg(feature = "debugger")]
 use crate::model::name::HasName;
@@ -22,6 +24,16 @@ pub enum InputInitializer {
     /// A `OneTimeInputInitializer` initializes an `Input` once - at start-up before any
     /// functions are run. Then it is not initialized again, unless a reset if done for debugging
     Once(Value),
+}
+
+impl InputInitializer {
+    /// Get the Value of the initializer
+    pub fn get_value(&self) -> &Value {
+        match self {
+            Always(value) => value,
+            Once(value) => value
+        }
+    }
 }
 
 #[derive(Deserialize, Serialize, Clone, PartialEq, Eq, Debug)]
@@ -70,7 +82,7 @@ impl From<&IO> for Input {
     fn from(io: &IO) -> Self {
         Input::new(
             #[cfg(feature = "debugger")]
-            io.name(), io.datatypes()[0].array_order().unwrap_or(0),
+            io.name(), io.datatypes()[0].array_order(),
             io.datatypes()[0].is_generic(),
             io.get_initializer().clone(),
         io.get_flow_initializer().clone())
@@ -139,11 +151,6 @@ impl Input {
         &self.name
     }
 
-    /// return if this input is Generic
-    pub(crate) fn is_generic(&self) -> bool {
-        self.generic
-    }
-
     /// Take the first element from the Input and return it.
     pub fn take(&mut self) -> Result<Value> {
         if self.received.is_empty() {
@@ -159,11 +166,11 @@ impl Input {
     /// When called after start-up it will initialize only if it's a            Always initializer
     pub fn init(&mut self, first_time: bool, flow_idle: bool) -> bool {
         match (first_time, &self.initializer) {
-            (true, Some(InputInitializer::Once(one_time))) => {
+            (true, Some(Once(one_time))) => {
                 self.send(one_time.clone());
                 return true;
             },
-            (_, Some(InputInitializer::Always(constant))) => {
+            (_, Some(Always(constant))) => {
                 self.send(constant.clone());
                 return true;
             },
@@ -171,18 +178,18 @@ impl Input {
         }
 
         match (first_time, &self.flow_initializer) {
-            (true, Some(InputInitializer::Once(one_time))) => {
+            (true, Some(Once(one_time))) => {
                 self.send(one_time.clone());
                 return true;
             },
-            (true, Some(InputInitializer::Always(constant))) => {
+            (true, Some(Always(constant))) => {
                 self.send(constant.clone());
                 return true;
             },
             (_, _) => {},
         }
 
-        if let (true, Some(InputInitializer::Always(constant))) = (flow_idle, &self.flow_initializer) {
+        if let (true, Some(Always(constant))) = (flow_idle, &self.flow_initializer) {
             self.send(constant.clone());
             return true;
         }
@@ -195,27 +202,12 @@ impl Input {
         self.array_order
     }
 
-    // Take a json data value and return the array order for it
-    fn value_array_order(value: &Value) -> i32 {
-        match value {
-            Value::Array(array) if !array.is_empty() => {
-                if let Some(value) = array.get(0) {
-                    1 + Self::value_array_order(value)
-                } else {
-                    1
-                }
-            },
-            Value::Array(array) if array.is_empty() => 1,
-            _ => 0,
-        }
-    }
-
     /// Send a Value or array of Values to this input
     pub(crate) fn send(&mut self, value: Value) -> bool {
-        if self.is_generic() {
+        if self.generic {
             self.received.push(value);
         } else {
-            match (Self::value_array_order(&value) - self.array_order(), &value) {
+            match (DataType::value_array_order(&value) - self.array_order(), &value) {
                 (0, _) => self.received.push(value),
                 (1, Value::Array(array)) => self.send_array(array.clone()),
                 (2, Value::Array(array_2)) => {
@@ -273,7 +265,7 @@ mod test {
     }
 
     #[test]
-    fn accepts_value() {
+    fn accepts_null() {
         let mut input = Input::new(#[cfg(feature = "debugger")] "", 0, false,  None, None);
         input.send(Value::Null);
         assert!(!input.is_empty());
@@ -303,29 +295,5 @@ mod test {
         assert!(!input.is_empty());
         input.reset();
         assert!(input.is_empty());
-    }
-
-    #[test]
-    fn test_array_order_0() {
-        let value = json!(1);
-        assert_eq!(Input::value_array_order(&value), 0);
-    }
-
-    #[test]
-    fn test_array_order_1_empty_array() {
-        let value = json!([]);
-        assert_eq!(Input::value_array_order(&value), 1);
-    }
-
-    #[test]
-    fn test_array_order_1() {
-        let value = json!([1, 2, 3]);
-        assert_eq!(Input::value_array_order(&value), 1);
-    }
-
-    #[test]
-    fn test_array_order_2() {
-        let value = json!([[1, 2, 3], [2, 3, 4]]);
-        assert_eq!(Input::value_array_order(&value), 2);
     }
 }

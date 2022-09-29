@@ -6,8 +6,7 @@ type = "string"
 
 [[output]]
 name = "size"
-# Workaround for https://github.com/andrewdavidmackenzie/flow/issues/747
-#type = "array/number"
+type = "array/number"
 
 [[output]]
 name = "bounds"

@@ -144,10 +144,17 @@ impl IO {
     }
 
     /// Set the input initializer of this IO
-    pub fn set_initializer(&mut self, initializer: Option<InputInitializer>) -> Result<()> {
+    pub fn set_initializer(&mut self, function_initializer: Option<InputInitializer>) -> Result<()> {
         match self.initializer {
             Some(_) => bail!("Attempt to set two InputInitializers on IO @ {}", self.route),
-            None => self.initializer = initializer
+            None => {
+                if let Some(initializer) = &function_initializer {
+                    DataType::compatible_types( &[DataType::value_type(initializer.get_value())], self.datatypes(), &Route::default())
+                        .chain_err(|| "Incompatible type of initializer and Input")?;
+                }
+
+                self.initializer = function_initializer
+            }
         }
         Ok(())
     }
@@ -157,7 +164,13 @@ impl IO {
     -> Result<()> {
         match self.flow_initializer {
             Some(_) => bail!("Attempt to set two InputInitializers on same IO"),
-            None => self.flow_initializer = flow_initializer
+            None => {
+                if let Some(initializer) = &flow_initializer {
+                    DataType::compatible_types( &[DataType::value_type(initializer.get_value())], self.datatypes(), &Route::default())
+                        .chain_err(|| "Incompatible type of flow initializer and Input")?;
+                }
+                self.flow_initializer = flow_initializer
+            }
         }
         Ok(())
     }
@@ -165,7 +178,7 @@ impl IO {
 
 impl fmt::Display for IO {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "'{}' @ '{}'", self.name, self.route)
+        write!(f, "{} @ {}", self.name, self.route)
     }
 }
 
@@ -272,7 +285,8 @@ impl Find for IOSet {
 
                         // Set the datatype of the found IO to be the type within the array of types
                         // and this will be converted by the runtime during execution
-                        found.set_datatypes(&[datatype.within_array()?]);
+                        found.set_datatypes(&[datatype.array_type()
+                            .ok_or("No type within array")?]);
 
                         let new_route = Route::from(format!("{}/{}", found.route(), index));
                         found.set_route(&new_route, &io.io_type);

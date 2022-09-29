@@ -314,7 +314,7 @@ mod test {
     #[test]
     fn function_with_initialized_input_generation() {
         let mut io = IO::new(vec!(STRING_TYPE.into()), Route::default());
-        io.set_initializer(Some(InputInitializer::Once(json!(1)))).expect("Could not set initializer");
+        io.set_initializer(Some(InputInitializer::Once(json!("Hello")))).expect("Could not set initializer");
 
         let function = FunctionDefinition::new(
             Name::from("Stdout"),
@@ -339,7 +339,7 @@ mod test {
   'inputs': [
     {
       'initializer': {
-        'once': 1
+        'once': 'Hello'
       }
     }
   ]
@@ -361,7 +361,7 @@ mod test {
     #[test]
     fn function_with_constant_input_generation() {
         let mut io = IO::new(vec!(STRING_TYPE.into()), Route::default());
-        io.set_initializer(Some(InputInitializer::Always(json!(1)))).expect("Could not set initializer");
+        io.set_initializer(Some(InputInitializer::Always(json!("Hello")))).expect("Could not set initializer");
 
         let function = FunctionDefinition::new(
             Name::from("Stdout"),
@@ -386,7 +386,7 @@ mod test {
   'inputs': [
     {
       'initializer': {
-        'always': 1
+        'always': 'Hello'
       }
     }
   ]

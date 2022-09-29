@@ -3,7 +3,9 @@
 
 use log::{debug, error, info};
 
+use flowcore::errors::ResultExt;
 use flowcore::model::connection::Connection;
+use flowcore::model::datatype::DataType;
 use flowcore::model::flow_definition::FlowDefinition;
 use flowcore::model::io::{IO, IOType};
 use flowcore::model::process::Process::FlowProcess;
@@ -93,9 +95,9 @@ pub fn collapse_connections(tables: &mut CompilerTables) -> Result<()> {
                     // If the connection enters or leaves this flow, then follow it to all destinations at function inputs
                     for (source_subroute, destination_io) in find_connection_destinations(
                         Route::from(""),
-                        connection.to_io().route(),
+                        connection.to_io(),
                         connection.level(),
-                        &tables.connections,) {
+                        &tables.connections)? {
                         let mut collapsed_connection = connection.clone();
                         // append the subroute from the origin function IO - to select from with in that IO
                         // as prescribed by the connections along the way
@@ -109,6 +111,10 @@ pub fn collapse_connections(tables: &mut CompilerTables) -> Result<()> {
                             .from_io_mut()
                             .set_route(&from_route, &IOType::FunctionOutput);
                         *collapsed_connection.to_io_mut() = destination_io;
+                        DataType::compatible_types(collapsed_connection.from_io().datatypes(),
+                        collapsed_connection.to_io().datatypes(), &source_subroute)
+                            .chain_err(|| format!("Incompatible types in collapsed connection from '{}' to '{}'",
+                            collapsed_connection.from_io().route(), collapsed_connection.to_io().route()))?;
                         debug!("\tIndirect connection {}", collapsed_connection);
                         collapsed_connections.push(collapsed_connection);
                     }
@@ -125,10 +131,10 @@ pub fn collapse_connections(tables: &mut CompilerTables) -> Result<()> {
                     } else {
                         find_connection_destinations(
                             Route::from(""),
-                            connection.to_io().route(),
+                            connection.to_io(),
                             connection.level(),
                             &tables.connections,
-                        )
+                        )?
                     };
 
                     for (_, destination_io) in destinations {
@@ -141,6 +147,9 @@ pub fn collapse_connections(tables: &mut CompilerTables) -> Result<()> {
                             .ok_or(format!("Could not find a function #{destination_function_id}"))?;
 
                         let flow_initializer = connection.from_io().get_initializer().clone();
+
+                        // ADM check types
+
                         destination_function.
                             set_flow_initializer(*destination_input_index, flow_initializer)?;
                     }
@@ -213,18 +222,17 @@ pub fn collapse_connections(tables: &mut CompilerTables) -> Result<()> {
 */
 fn find_connection_destinations(
     prev_subroute: Route,
-    from_io_route: &Route,
+    from_io: &IO,
     from_level: usize,
     connections: &[Connection],
-) -> Vec<(Route, IO)> {
+) -> Result<Vec<(Route, IO)>> {
     let mut destinations = vec![];
 
-    let mut found = false;
     for next_connection in connections {
         if let Some(subroute) = next_connection
             .from_io()
             .route()
-            .sub_route_of(from_io_route)
+            .sub_route_of(from_io.route())
         {
             let next_level = match *next_connection.from_io().io_type() {
                 // Can't escape the root!
@@ -245,31 +253,30 @@ fn find_connection_destinations(
                             next_connection.to_io().route());
                         destinations
                             .push((accumulated_source_subroute, next_connection.to_io().clone()));
-                        found = true;
                     },
 
                     IOType::FunctionOutput => error!("Error - destination of {:?} is a functions output!",
                         next_connection),
 
                     IOType::FlowInput => {
-                        debug!("\t\tFollowing connection into sub-flow via '{}'", from_io_route);
+                        debug!("\t\tFollowing connection into sub-flow via '{}'", from_io.route());
                         let new_destinations = &mut find_connection_destinations(
                             accumulated_source_subroute,
-                            next_connection.to_io().route(),
+                            next_connection.to_io(),
                             next_connection.level(),
                             connections,
-                        );
+                        )?;
                         destinations.append(new_destinations);
                     },
 
                     IOType::FlowOutput => {
-                        debug!("\t\tFollowing connection out of flow via '{}'", from_io_route);
+                        debug!("\t\tFollowing connection out of flow via '{}'", from_io.route());
                         let new_destinations = &mut find_connection_destinations(
                             accumulated_source_subroute,
-                            next_connection.to_io().route(),
+                            next_connection.to_io(),
                             next_connection.level(),
                             connections,
-                        );
+                        )?;
                         destinations.append(new_destinations);
                     }
                 }
@@ -277,11 +284,19 @@ fn find_connection_destinations(
         }
     }
 
-    if !found { // Some chains or sub-chains of connections maybe dead ends, without that being an error
-        info!("Connection from '{}' : did not find a destination Function Input", from_io_route);
+    // Some chains or sub-chains of connections maybe dead ends, without that being an error
+    if destinations.is_empty() {
+        info!("Connection from '{}' : did not find a destination Function Input", from_io.route());
+    } else {
+        // check that the partial connection has compatible source and destinations types
+        for (sub_route, destination_io) in &destinations {
+            DataType::compatible_types(from_io.datatypes(), destination_io.datatypes(), sub_route)
+                .chain_err(|| format!("Failed to connect '{}{}' to '{}' due to incompatible types",
+                from_io.route(), sub_route, destination_io.route()))?;
+        }
     }
 
-    destinations
+    Ok(destinations)
 }
 
 #[cfg(test)]
