@@ -424,7 +424,6 @@ mod test {
                 (format!("{}/{}", ARRAY_TYPE, BOOLEAN_TYPE), format!("{}/{}", ARRAY_TYPE, BOOLEAN_TYPE), ""),
                 (format!("{}/{}", ARRAY_TYPE, OBJECT_TYPE), format!("{}/{}", ARRAY_TYPE, OBJECT_TYPE), ""),
 
-
                 // serialization of second order arrays to first order arrays of same type
                 (format!("{}/{}/{}", ARRAY_TYPE, ARRAY_TYPE, NUMBER_TYPE), format!("{}/{}", ARRAY_TYPE, NUMBER_TYPE), ""),
                 (format!("{}/{}/{}", ARRAY_TYPE, ARRAY_TYPE, NULL_TYPE), format!("{}/{}", ARRAY_TYPE, NULL_TYPE), ""),
@@ -432,20 +431,11 @@ mod test {
                 (format!("{}/{}/{}", ARRAY_TYPE, ARRAY_TYPE, BOOLEAN_TYPE), format!("{}/{}", ARRAY_TYPE, BOOLEAN_TYPE), ""),
                 (format!("{}/{}/{}", ARRAY_TYPE, ARRAY_TYPE, OBJECT_TYPE), format!("{}/{}", ARRAY_TYPE, OBJECT_TYPE), ""),
 
-                // TODO maybe make illegal all those Null types that don't make much sense?
-
-                // TODO make invalid - cannot guarantee that an object can convert to array of number
                 (format!("{}/{}", ARRAY_TYPE, GENERIC_TYPE), format!("{}/{}/{}", ARRAY_TYPE, ARRAY_TYPE, NUMBER_TYPE), ""),
-
-                // TODO make invalid - object cannot be guaranteed to convert to number
                 (format!("{}/{}", ARRAY_TYPE, GENERIC_TYPE), format!("{}/{}", ARRAY_TYPE, NUMBER_TYPE), ""),
-                // TODO make invalid - not it's used to get a generic object from get/json/1 and pass it as a number to another input
                 (format!("{}/{}", ARRAY_TYPE, GENERIC_TYPE), format!("{}/{}", ARRAY_TYPE, NUMBER_TYPE), "/1"),
-                // TODO make invalid - array should need subtype
                 (ARRAY_TYPE.into(), ARRAY_TYPE.into(), ""),
-                // TODO make invalid - array should need subtype
                 (ARRAY_TYPE.into(), GENERIC_TYPE.into(), ""),
-                // TODO make invalid - array should need subtype
                 (ARRAY_TYPE.into(), format!("{}/{}", ARRAY_TYPE, ARRAY_TYPE), ""),
                 (ARRAY_TYPE.into(), format!("{}/{}", ARRAY_TYPE, GENERIC_TYPE), ""),
             ];
@@ -474,6 +464,13 @@ mod test {
             (NULL_TYPE.into(), NUMBER_TYPE.into(), "/0"), // cannot select from a non-array
             (STRING_TYPE.into(), NUMBER_TYPE.into(), "/0"), // cannot select from a non-array
             (BOOLEAN_TYPE.into(), NUMBER_TYPE.into(), "/0"), // cannot select from a non-array
+
+            // selecting a type from an array to send to an incompatible input
+            (format!("{}/{}", ARRAY_TYPE, NUMBER_TYPE), STRING_TYPE.into(), "/0"),
+            (format!("{}/{}", ARRAY_TYPE, NULL_TYPE), STRING_TYPE.into(), "/0"),
+            (format!("{}/{}", ARRAY_TYPE, STRING_TYPE), NUMBER_TYPE.into(), "/0"),
+            (format!("{}/{}", ARRAY_TYPE, BOOLEAN_TYPE), OBJECT_TYPE.into(), "/0"),
+            (format!("{}/{}", ARRAY_TYPE, OBJECT_TYPE), BOOLEAN_TYPE.into(), "/0"),
             ];
 
             for test in invalid_type_conversions.iter() {
