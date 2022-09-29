@@ -189,7 +189,9 @@ impl DataType {
         for output_type in from {
             let mut compatible_destination_type = false;
             for input_type in to {
-                if Self::two_compatible_types(output_type, input_type, from_subroute) {
+                let from_sub_type = Self::subtype_using_subroute(output_type, from_subroute)?;
+                if Self::two_compatible_types(&from_sub_type, input_type)
+                    .is_ok() {
                     compatible_destination_type = true;
                 }
             }
@@ -202,71 +204,121 @@ impl DataType {
         Ok(()) // all output_types found a compatible destination type
     }
 
-    /// Determine if a source type and a destination type are compatible, counting on
-    /// serialization of arrays of types to types.
-    fn two_compatible_types(from: &DataType, to: &DataType, from_subroute: &Route) -> bool {
-        // TODO get the real datatype using `from` DataType and `from_subroute`
-
-        // from and to types are the same - hence compatible
-        if from == to && from_subroute.is_empty() {
-            return true;
+    fn subtype_using_subroute(full_type: &DataType, subroute: &Route) -> Result<DataType> {
+        if subroute.is_empty() || !subroute.contains('/') {
+            return Ok(full_type.clone());
         }
 
-        // TODO make this invalid, this is when we have a gate process that accepts a number and
-        // passes a number at runtime, but the definition doesn't know the input type and so can
-        // only state the output type as generic fix with #1187
-        if from.is_generic() && from_subroute.is_empty() {
-            return true;
+        /*
+        // to select an element from a source, the source must be an array
+        if from_subroute.is_array_selector() && !from.is_array() {
+            bail!("Incompatible types - {}, {} - is array = {}", from, from_subroute, from.is_array());
+        }
+        */
+
+        if full_type.is_generic() {
+            return Ok(full_type.clone());
+        }
+
+        let depth = subroute.split('/').count() -1;
+
+        let full_type_split = full_type.split('/').collect::<Vec<&str>>();
+
+        if depth >= full_type_split.len() {
+            bail!("Depth of subroute '{}' is greater than the depth of the type '{}'",
+                subroute, full_type)
+        }
+
+        Ok(DataType::from(full_type_split[depth]))
+    }
+
+    /// Determine if a source type and a destination type are compatible, counting on
+    /// serialization of arrays of types to types.
+    fn two_compatible_types(from: &DataType, to: &DataType) -> Result<()> {
+        // from and to types are the same - hence compatible
+        if from == to {
+            return Ok(());
+        }
+
+        // generic at compile time, can't assume it won't be compatible with the destination
+        if from.is_generic() {
+            return Ok(());
         }
 
         // destination can accept any type - with or without the runtime serializing the from objects
         if to.is_generic() || to.array_of(&DataType::from("")) {
-            return true;
+            return Ok(());
         }
 
+        // Runtime can encapsulate a type in an array of the same type
         if to.array_of(from) {
-            return true;
-        }
-
-        // we do not in fact know if the generic source will produce arrays or not until runtime
-        if from.is_generic() && from_subroute.is_array_selector() {
-            return true;
-        }
-
-        // to select an element from a source, the source must be an array
-        if from_subroute.is_array_selector() && !from.is_array() {
-            // ADM need to find sub type...
-            println!("Incompatible types - {}, {} - is array = {}", from, from_subroute, from.is_array());
-            return false;
+            return Ok(());
         }
 
         // the source is an array of the destination type - runtime can serialize the elements
         if from.array_of(to) {
-            return true;
+            return Ok(());
         }
 
         // Relies on serialization of an array of generics into an input of some type
-        // TODO remove when we implement pass-through of types through generic i/os
         if from.array_of(&DataType::from(GENERIC_TYPE)) && !to.is_array() {
-            return true;
+            return Ok(());
         }
 
         // Relies on array of generics into an input of array of some type
-        // hence relies on generic to something working
-        // TODO remove when we implement pass-through of types through generic i/os
+        // hence relies on generic to something working at runtime
         if from.array_of(&DataType::from(GENERIC_TYPE)) && to.is_array() {
-            return true;
+            return Ok(());
         }
 
-        false
+        bail!("Could not find compatibility of types")
     }
 }
 
 #[cfg(test)]
 mod test {
-    use crate::model::datatype::{ARRAY_TYPE, OBJECT_TYPE, STRING_TYPE};
+    use crate::model::datatype::{ARRAY_TYPE, GENERIC_TYPE, NUMBER_TYPE, OBJECT_TYPE, STRING_TYPE};
+    use crate::model::route::Route;
 
     use super::DataType;
+
+    #[test]
+    fn subtype_empty_route() {
+        let array_of_numbers_type = DataType::from(format!("{}/{}", ARRAY_TYPE, NUMBER_TYPE));
+        assert_eq!(DataType::subtype_using_subroute(&array_of_numbers_type,
+                                                    &Route::from(""))
+            .expect("Could not get subtype"), array_of_numbers_type);
+    }
+
+    #[test]
+    fn invalid_subtype_route() {
+        assert!(DataType::subtype_using_subroute(&DataType::from(NUMBER_TYPE),
+                                                 &Route::from("/1")).is_err());
+    }
+
+    #[test]
+    fn subtype_of_generic() {
+        assert!(DataType::subtype_using_subroute(&DataType::from(GENERIC_TYPE),
+                                                 &Route::from("/1")).is_ok());
+    }
+
+    #[test]
+    fn array_of_numbers_subtype() {
+        let subtype = DataType::subtype_using_subroute(
+            &DataType::from(format!("{}/{}", ARRAY_TYPE, NUMBER_TYPE)),
+                                                       &Route::from("/1"))
+                                                           .expect("Could not get subtype");
+        assert_eq!(subtype, DataType::from(NUMBER_TYPE));
+    }
+
+    #[test]
+    fn array_of_array_of_strings_subtype() {
+        let subtype = DataType::subtype_using_subroute(
+            &DataType::from(format!("{}/{}/{}", ARRAY_TYPE, STRING_TYPE, STRING_TYPE)),
+                                                       &Route::from("/2/1"))
+            .expect("Could not get subtype");
+        assert_eq!(subtype, DataType::from(STRING_TYPE));
+    }
 
     #[test]
     fn valid_data_string_type() {
