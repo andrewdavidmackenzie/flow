@@ -111,6 +111,10 @@ pub fn collapse_connections(tables: &mut CompilerTables) -> Result<()> {
                             .from_io_mut()
                             .set_route(&from_route, &IOType::FunctionOutput);
                         *collapsed_connection.to_io_mut() = destination_io;
+                        DataType::compatible_types(collapsed_connection.from_io().datatypes(),
+                        collapsed_connection.to_io().datatypes(), &source_subroute)
+                            .chain_err(|| format!("Incompatible types in collapsed connection from '{}' to '{}'",
+                            collapsed_connection.from_io().route(), collapsed_connection.to_io().route()))?;
                         debug!("\tIndirect connection {}", collapsed_connection);
                         collapsed_connections.push(collapsed_connection);
                     }
@@ -143,6 +147,9 @@ pub fn collapse_connections(tables: &mut CompilerTables) -> Result<()> {
                             .ok_or(format!("Could not find a function #{destination_function_id}"))?;
 
                         let flow_initializer = connection.from_io().get_initializer().clone();
+
+                        // ADM check types
+
                         destination_function.
                             set_flow_initializer(*destination_input_index, flow_initializer)?;
                     }
