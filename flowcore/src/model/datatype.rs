@@ -182,7 +182,7 @@ impl DataType {
     fn two_compatible_types(from: &DataType, to: &DataType, from_subroute: &Route) -> bool {
         // TODO get the real datatype using `from` DataType and `from_subroute`
 
-        // from and too types are the same - hence compatible
+        // from and to types are the same - hence compatible
         if from == to && from_subroute.is_empty() {
             return true;
         }
@@ -203,8 +203,15 @@ impl DataType {
             return true;
         }
 
-        // to select an element from an array source, it must be an array
+        // we do not in fact know if the generic source will produce arrays or not until runtime
+        if from.is_generic() && from_subroute.is_array_selector() {
+            return true;
+        }
+
+        // to select an element from a source, the source must be an array
         if from_subroute.is_array_selector() && !from.is_array() {
+            // ADM need to find sub type...
+            println!("Incompatible types - {}, {} - is array = {}", from, from_subroute, from.is_array());
             return false;
         }
 
