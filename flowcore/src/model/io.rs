@@ -285,7 +285,8 @@ impl Find for IOSet {
 
                         // Set the datatype of the found IO to be the type within the array of types
                         // and this will be converted by the runtime during execution
-                        found.set_datatypes(&[datatype.within_array()?]);
+                        found.set_datatypes(&[datatype.array_type()
+                            .ok_or("No type within array")?]);
 
                         let new_route = Route::from(format!("{}/{}", found.route(), index));
                         found.set_route(&new_route, &io.io_type);

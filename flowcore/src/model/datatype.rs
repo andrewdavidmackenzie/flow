@@ -109,36 +109,13 @@ impl DataType {
     }
 
     /// Determine if this data type is an array of the `second` type
-    pub fn array_of(&self, second: &Self) -> bool {
+    pub fn is_array_of(&self, second: &Self) -> bool {
         &DataType::from(format!("{}/{}", ARRAY_TYPE, second).as_str()) == self
     }
 
-    /// Get the data type the array holds
-    pub fn within_array(&self) -> Result<DataType> {
-        self.strip_prefix(&format!("{}/", ARRAY_TYPE)).map(DataType::from).ok_or_else(||
-            {
-                Error::from("DataType is not an array of Types")
-            })
-    }
-
-    /// Take a json data value and return the type string for it, recursively
-    /// going down when the type is a container type (array or object)
-    pub fn type_string(value: &Value) -> String {
-        match value {
-            Value::String(_) => STRING_TYPE.into(),
-            Value::Bool(_) => BOOLEAN_TYPE.into(),
-            Value::Number(_) => NUMBER_TYPE.into(),
-            Value::Array(array) => format!("{}/{}",
-                                           ARRAY_TYPE, Self::type_string(&array[0])),
-            Value::Object(map) => {
-                if let Some(map_entry) = map.values().next() {
-                    format!("{}/{}", OBJECT_TYPE, Self::type_string(map_entry))
-                } else {
-                    OBJECT_TYPE.into()
-                }
-            }
-            Value::Null => NULL_TYPE.into(),
-        }
+    /// Return Option of the data type the array holds, or None if not an array
+    pub fn array_type(&self) -> Option<DataType> {
+        self.strip_prefix(&format!("{}/", ARRAY_TYPE)).map(DataType::from)
     }
 
     /// Return the `DataType` for a Json `Value`, including nested values in arrays or maps
@@ -166,17 +143,30 @@ impl DataType {
         }
     }
 
-    /// Take a string description of a DataType and determine how deeply nested in arrays it is
-    pub fn array_order(&self) -> Result<i32> {
-        if self.is_array() {
-            let array_contents = self.within_array()?;
-            let sub_order = array_contents.array_order()?;
-            Ok(1 + sub_order)
+    /// Determine how deeply nested in arrays this data type is. Not an array = 0
+    pub fn array_order(&self) -> i32 {
+        if let Some(array_contents) = self.array_type() {
+            let sub_order = array_contents.array_order();
+            1 + sub_order
         } else {
-            Ok(0)
+            0
         }
     }
 
+    /// Determine how deeply nested in arrays this Value is. Not an array = 0
+    pub fn value_array_order(value: &Value) -> i32 {
+        match value {
+            Value::Array(array) if !array.is_empty() => {
+                if let Some(value) = array.get(0) {
+                    1 + Self::value_array_order(value)
+                } else {
+                    1
+                }
+            },
+            Value::Array(array) if array.is_empty() => 1,
+            _ => 0,
+        }
+    }
 
     /// For a set of output types to be compatible with a destination's set of types
     /// ALL of the output_types must have a compatible input type, to guarantee that any
@@ -186,12 +176,11 @@ impl DataType {
             bail!("Either from or to IO does nopt specify any types")
         }
 
-        for output_type in from {
+        for from_type in from {
             let mut compatible_destination_type = false;
-            for input_type in to {
-                let from_sub_type = Self::subtype_using_subroute(output_type, from_subroute)?;
-                if Self::two_compatible_types(&from_sub_type, input_type)
-                    .is_ok() {
+            for to_type in to {
+                let from_sub_type = Self::subtype_using_subroute(from_type, from_subroute)?;
+                if Self::two_compatible_types(&from_sub_type, to_type).is_ok() {
                     compatible_destination_type = true;
                 }
             }
@@ -201,7 +190,7 @@ impl DataType {
             }
         }
 
-        Ok(()) // all output_types found a compatible destination type
+        Ok(()) // found a compatible source and destination type pair
     }
 
     fn subtype_using_subroute(full_type: &DataType, subroute: &Route) -> Result<DataType> {
@@ -222,56 +211,59 @@ impl DataType {
 
         let depth = subroute.split('/').count() -1;
 
-        let full_type_split = full_type.split('/').collect::<Vec<&str>>();
+        let mut full_type_split = full_type.split('/').collect::<Vec<&str>>();
 
         if depth >= full_type_split.len() {
             bail!("Depth of subroute '{}' is greater than the depth of the type '{}'",
                 subroute, full_type)
         }
 
-        Ok(DataType::from(full_type_split[depth]))
+        // drop the first 'depth' segments
+        Ok(DataType::from(full_type_split.split_off(depth).join("/")))
     }
 
     /// Determine if a source type and a destination type are compatible, counting on
     /// serialization of arrays of types to types.
     fn two_compatible_types(from: &DataType, to: &DataType) -> Result<()> {
-        // from and to types are the same - hence compatible
-        if from == to {
-            return Ok(());
-        }
-
         // generic at compile time, can't assume it won't be compatible with the destination
-        if from.is_generic() {
+        // Relies on serialization of an array of generics into an input of some type or
+        // array of generics sent to array of some specific type (runtime conversion)
+        if from.is_generic() || from.is_array_of(&DataType::from(GENERIC_TYPE)) {
             return Ok(());
         }
 
-        // destination can accept any type - with or without the runtime serializing the from objects
-        if to.is_generic() || to.array_of(&DataType::from("")) {
+        // destination can accept any type - with or without the runtime serializing
+        if to.is_generic() || to.is_array_of(&DataType::from(GENERIC_TYPE)) {
             return Ok(());
         }
 
-        // Runtime can encapsulate a type in an array of the same type
-        if to.array_of(from) {
-            return Ok(());
+        match from.array_order() - to.array_order() {
+            0 => if from == to { // from and to types are the same - hence compatible
+                    return Ok(());
+                },
+
+            1 => return Self::two_compatible_types(&from.array_type().ok_or("From type is not an array!")?,
+                                                  to),
+
+            -1 => return Self::two_compatible_types(from,
+                                                  &to.array_type().ok_or("To type is not an array!")?),
+
+            2 => {
+                let from = from.array_type().ok_or("From type is not an array!")?;
+                let from = from.array_type().ok_or("From type is not an array!")?;
+                return Self::two_compatible_types(&from, to);
+            }
+
+            -2 => {
+                let to = to.array_type().ok_or("To type is not an array!")?;
+                let to = to.array_type().ok_or("To type is not an array!")?;
+                return Self::two_compatible_types(from, &to);
+            }
+
+            _ => bail!("Cannot encapsulate/serialize arrays with a order difference of more than two")
         }
 
-        // the source is an array of the destination type - runtime can serialize the elements
-        if from.array_of(to) {
-            return Ok(());
-        }
-
-        // Relies on serialization of an array of generics into an input of some type
-        if from.array_of(&DataType::from(GENERIC_TYPE)) && !to.is_array() {
-            return Ok(());
-        }
-
-        // Relies on array of generics into an input of array of some type
-        // hence relies on generic to something working at runtime
-        if from.array_of(&DataType::from(GENERIC_TYPE)) && to.is_array() {
-            return Ok(());
-        }
-
-        bail!("Could not find compatibility of types")
+        bail!("The types '{}' and '{}' are incompatible", from, to)
     }
 }
 
@@ -354,9 +346,35 @@ mod test {
 
 
     mod type_conversion {
+        use serde_json::json;
+
         use crate::model::datatype::{ARRAY_TYPE, BOOLEAN_TYPE, DataType, GENERIC_TYPE, NULL_TYPE, NUMBER_TYPE, OBJECT_TYPE, STRING_TYPE};
         use crate::model::io::IO;
         use crate::model::route::Route;
+
+        #[test]
+        fn test_array_order_0() {
+            let value = json!(1);
+            assert_eq!(DataType::value_array_order(&value), 0);
+        }
+
+        #[test]
+        fn test_array_order_1_empty_array() {
+            let value = json!([]);
+            assert_eq!(DataType::value_array_order(&value), 1);
+        }
+
+        #[test]
+        fn test_array_order_1() {
+            let value = json!([1, 2, 3]);
+            assert_eq!(DataType::value_array_order(&value), 1);
+        }
+
+        #[test]
+        fn test_array_order_2() {
+            let value = json!([[1, 2, 3], [2, 3, 4]]);
+            assert_eq!(DataType::value_array_order(&value), 2);
+        }
 
         /// # Array serialization and {type} to array wrapping
         ///
@@ -409,7 +427,7 @@ mod test {
                 (format!("{}/{}", ARRAY_TYPE, STRING_TYPE), STRING_TYPE.into(), ""),
                 (format!("{}/{}", ARRAY_TYPE, BOOLEAN_TYPE), BOOLEAN_TYPE.into(), ""),
 
-                // A type can be selected from an array of same type (array selection)
+                // Selection from an array of same type
                 (format!("{}/{}", ARRAY_TYPE, NUMBER_TYPE), NUMBER_TYPE.into(), "/0"),
                 (format!("{}/{}", ARRAY_TYPE, NULL_TYPE), NULL_TYPE.into(), "/0"),
                 (format!("{}/{}", ARRAY_TYPE, ARRAY_TYPE), ARRAY_TYPE.into(), "/0"),
@@ -424,12 +442,29 @@ mod test {
                 (format!("{}/{}", ARRAY_TYPE, BOOLEAN_TYPE), format!("{}/{}", ARRAY_TYPE, BOOLEAN_TYPE), ""),
                 (format!("{}/{}", ARRAY_TYPE, OBJECT_TYPE), format!("{}/{}", ARRAY_TYPE, OBJECT_TYPE), ""),
 
+                // equality of second order arrays to second order arrays of same type
+                (format!("{}/{}/{}", ARRAY_TYPE, ARRAY_TYPE, NUMBER_TYPE), format!("{}/{}/{}", ARRAY_TYPE, ARRAY_TYPE, NUMBER_TYPE), ""),
+                (format!("{}/{}/{}", ARRAY_TYPE, ARRAY_TYPE, NULL_TYPE), format!("{}/{}/{}", ARRAY_TYPE, ARRAY_TYPE, NULL_TYPE), ""),
+                (format!("{}/{}/{}", ARRAY_TYPE, ARRAY_TYPE, STRING_TYPE), format!("{}/{}/{}", ARRAY_TYPE, ARRAY_TYPE, STRING_TYPE), ""),
+                (format!("{}/{}/{}", ARRAY_TYPE, ARRAY_TYPE, BOOLEAN_TYPE), format!("{}/{}/{}", ARRAY_TYPE, ARRAY_TYPE, BOOLEAN_TYPE), ""),
+                (format!("{}/{}/{}", ARRAY_TYPE, ARRAY_TYPE, OBJECT_TYPE), format!("{}/{}/{}", ARRAY_TYPE, ARRAY_TYPE, OBJECT_TYPE), ""),
+
+                // Selection of second order arrays to first order arrays of same type
+                (format!("{}/{}/{}", ARRAY_TYPE, ARRAY_TYPE, NUMBER_TYPE), format!("{}/{}", ARRAY_TYPE, NUMBER_TYPE), "/0"),
+                (format!("{}/{}/{}", ARRAY_TYPE, ARRAY_TYPE, NULL_TYPE), format!("{}/{}", ARRAY_TYPE, NULL_TYPE), "/0"),
+                (format!("{}/{}/{}", ARRAY_TYPE, ARRAY_TYPE, STRING_TYPE), format!("{}/{}", ARRAY_TYPE, STRING_TYPE), "/0"),
+                (format!("{}/{}/{}", ARRAY_TYPE, ARRAY_TYPE, BOOLEAN_TYPE), format!("{}/{}", ARRAY_TYPE, BOOLEAN_TYPE), "/0"),
+                (format!("{}/{}/{}", ARRAY_TYPE, ARRAY_TYPE, OBJECT_TYPE), format!("{}/{}", ARRAY_TYPE, OBJECT_TYPE), "/0"),
+
                 // serialization of second order arrays to first order arrays of same type
                 (format!("{}/{}/{}", ARRAY_TYPE, ARRAY_TYPE, NUMBER_TYPE), format!("{}/{}", ARRAY_TYPE, NUMBER_TYPE), ""),
                 (format!("{}/{}/{}", ARRAY_TYPE, ARRAY_TYPE, NULL_TYPE), format!("{}/{}", ARRAY_TYPE, NULL_TYPE), ""),
                 (format!("{}/{}/{}", ARRAY_TYPE, ARRAY_TYPE, STRING_TYPE), format!("{}/{}", ARRAY_TYPE, STRING_TYPE), ""),
                 (format!("{}/{}/{}", ARRAY_TYPE, ARRAY_TYPE, BOOLEAN_TYPE), format!("{}/{}", ARRAY_TYPE, BOOLEAN_TYPE), ""),
                 (format!("{}/{}/{}", ARRAY_TYPE, ARRAY_TYPE, OBJECT_TYPE), format!("{}/{}", ARRAY_TYPE, OBJECT_TYPE), ""),
+
+                // serialization of second order array of generic to first order arrays of same type
+                (format!("{}/{}/{}", ARRAY_TYPE, ARRAY_TYPE, GENERIC_TYPE), format!("{}/{}", ARRAY_TYPE, NUMBER_TYPE), ""),
 
                 (format!("{}/{}", ARRAY_TYPE, GENERIC_TYPE), format!("{}/{}/{}", ARRAY_TYPE, ARRAY_TYPE, NUMBER_TYPE), ""),
                 (format!("{}/{}", ARRAY_TYPE, GENERIC_TYPE), format!("{}/{}", ARRAY_TYPE, NUMBER_TYPE), ""),
@@ -440,11 +475,13 @@ mod test {
                 (ARRAY_TYPE.into(), format!("{}/{}", ARRAY_TYPE, GENERIC_TYPE), ""),
             ];
 
-            for test in valid_type_conversions.iter() {
-                assert!(DataType::compatible_types(
+            for (case_number, test) in valid_type_conversions.iter().enumerate() {
+                if DataType::compatible_types(
                     &[DataType::from(&test.0 as &str)],
                     &[DataType::from(&test.1 as &str)],
-                    &Route::from(test.2)).is_ok());
+                    &Route::from(test.2)).is_err() {
+                    panic!("Test Case #{} failed", case_number);
+                }
             }
         }
 
