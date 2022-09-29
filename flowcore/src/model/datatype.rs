@@ -156,9 +156,9 @@ impl DataType {
     /// For a set of output types to be compatible with a destination's set of types
     /// ALL of the output_types must have a compatible input type, to guarantee that any
     /// of the valid types produced can be handled by the destination
-    pub fn compatible_types(from: &[DataType], to: &[DataType], from_subroute: &Route) -> bool {
+    pub fn compatible_types(from: &[DataType], to: &[DataType], from_subroute: &Route) -> Result<()> {
         if from.is_empty() || to.is_empty() {
-            return false;
+            bail!("Either from or to IO does nopt specify any types")
         }
 
         for output_type in from {
@@ -169,11 +169,12 @@ impl DataType {
                 }
             }
             if !compatible_destination_type {
-                return false; // we could not find a compatible_destination_type for this output_type
+                bail!("Could not find a compatible destination type in '{:?}' for '{:?}'",
+                from, to)
             }
         }
 
-        true // all output_types found a compatible destination type
+        Ok(()) // all output_types found a compatible destination type
     }
 
     /// Determine if a source type and a destination type are compatible, counting on
@@ -369,8 +370,7 @@ mod test {
                 assert!(DataType::compatible_types(
                     &[DataType::from(&test.0 as &str)],
                     &[DataType::from(&test.1 as &str)],
-                    &Route::from(test.2)),
-                        "Invalid Type Conversion: '{}' --> '{}' using route = '{}'", test.0, test.1, test.2);
+                    &Route::from(test.2)).is_ok());
             }
         }
 
@@ -393,12 +393,10 @@ mod test {
             ];
 
             for test in invalid_type_conversions.iter() {
-                assert!(!DataType::compatible_types(
+                assert!(DataType::compatible_types(
                     &[DataType::from(&test.0 as &str)],
                     &[DataType::from(&test.1 as &str)],
-                    &Route::from(test.2)),
-                        "Type Conversion should be invalid: '{}' --> '{}' using route = '{}'", test.0, test.1, test.2
-                );
+                    &Route::from(test.2)).is_err());
             }
         }
 
@@ -410,7 +408,7 @@ mod test {
                 from_io.datatypes(),
                 to_io.datatypes(),
                 &Route::default()
-            ));
+            ).is_ok());
         }
 
         #[test]
@@ -421,18 +419,18 @@ mod test {
                 from_io.datatypes(),
                 to_io.datatypes(),
                 &Route::default()
-            ));
+            ).is_ok());
         }
 
         #[test]
         fn simple_to_simple_mismatch() {
             let from_io = IO::new(vec!(STRING_TYPE.into()), "/p1/output");
             let to_io = IO::new(vec!(NUMBER_TYPE.into()), "/p2");
-            assert!(!DataType::compatible_types(
+            assert!(DataType::compatible_types(
                 from_io.datatypes(),
                 to_io.datatypes(),
                 &Route::default()
-            ));
+            ).is_err());
         }
 
         #[test]
@@ -443,7 +441,7 @@ mod test {
                 from_io.datatypes(),
                 to_io.datatypes(),
                 &Route::default()
-            ));
+            ).is_ok());
         }
 
         #[test]
@@ -454,18 +452,18 @@ mod test {
                 from_io.datatypes(),
                 to_io.datatypes(),
                 &Route::default()
-            ));
+            ).is_ok());
         }
 
         #[test]
         fn simple_to_array_mismatch() {
             let from_io = IO::new(vec!(STRING_TYPE.into()), "/p1/output");
             let to_io = IO::new(vec!("array/number".into()), "/p2");
-            assert!(!DataType::compatible_types(
+            assert!(DataType::compatible_types(
                 from_io.datatypes(),
                 to_io.datatypes(),
                 &Route::default()
-            ));
+            ).is_err());
         }
 
         #[test]
@@ -476,7 +474,7 @@ mod test {
                 from_io.datatypes(),
                 to_io.datatypes(),
                 &Route::default()
-            ));
+            ).is_ok());
         }
 
         #[test]
@@ -487,18 +485,18 @@ mod test {
                 from_io.datatypes(),
                 to_io.datatypes(),
                 &Route::default()
-            ));
+            ).is_ok());
         }
 
         #[test]
         fn multiple_output_type_to_single_input_type() {
             let from_io = IO::new(vec!(STRING_TYPE.into(), NUMBER_TYPE.into()), "/p1/output");
             let to_io = IO::new(vec!(STRING_TYPE.into()), "/p2");
-            assert!(!DataType::compatible_types(
+            assert!(DataType::compatible_types(
                 from_io.datatypes(),
                 to_io.datatypes(),
                 &Route::default()
-            ));
+            ).is_err());
         }
 
         #[test]
@@ -510,7 +508,7 @@ mod test {
                 from_io.datatypes(),
                 to_io.datatypes(),
                 &Route::default()
-            ));
+            ).is_ok());
         }
 
         #[test]
@@ -521,7 +519,7 @@ mod test {
                 from_io.datatypes(),
                 to_io.datatypes(),
                 &Route::default()
-            ));
+            ).is_ok());
         }
 
         #[test]
@@ -532,7 +530,7 @@ mod test {
                 from_io.datatypes(),
                 to_io.datatypes(),
                 &Route::default()
-            ));
+            ).is_ok());
         }
 
         #[test]
@@ -543,29 +541,29 @@ mod test {
                 from_io.datatypes(),
                 to_io.datatypes(),
                 &Route::default()
-            ));
+            ).is_ok());
         }
 
         #[test]
         fn multiple_output_type_to_non_matching_input_types() {
             let from_io = IO::new(vec!(STRING_TYPE.into(), NUMBER_TYPE.into()), "/p1/output");
             let to_io = IO::new(vec!(STRING_TYPE.into(), ARRAY_TYPE.into()), "/p2");
-            assert!(!DataType::compatible_types(
+            assert!(DataType::compatible_types(
                 from_io.datatypes(),
                 to_io.datatypes(),
                 &Route::default()
-            ));
+            ).is_err());
         }
 
         #[test]
         fn single_output_type_to_non_matching_input_types() {
             let from_io = IO::new(vec!(STRING_TYPE.into()), "/p1/output");
             let to_io = IO::new(vec!(ARRAY_TYPE.into(), NUMBER_TYPE.into()), "/p2");
-            assert!(!DataType::compatible_types(
+            assert!(DataType::compatible_types(
                 from_io.datatypes(),
                 to_io.datatypes(),
                 &Route::default()
-            ));
+            ).is_err());
         }
 
         #[test]
@@ -576,7 +574,7 @@ mod test {
                 from_io.datatypes(),
                 to_io.datatypes(),
                 &Route::default()
-            ));
+            ).is_ok());
         }
 
         #[test]
@@ -587,40 +585,40 @@ mod test {
                 from_io.datatypes(),
                 to_io.datatypes(),
                 &Route::default()
-            ));
+            ).is_ok());
         }
 
         #[test]
         fn null_output_type_to_valid_input_types() {
             let from_io = IO::new(vec!(), "/p1/output");
             let to_io = IO::new(vec!(OBJECT_TYPE.into()), "/p2");
-            assert!(!DataType::compatible_types(
+            assert!(DataType::compatible_types(
                 from_io.datatypes(),
                 to_io.datatypes(),
                 &Route::default()
-            ));
+            ).is_err());
         }
 
         #[test]
         fn valid_output_type_to_null_input_types() {
             let from_io = IO::new(vec!(OBJECT_TYPE.into()), "/p1/output");
             let to_io = IO::new(vec!(), "/p2");
-            assert!(!DataType::compatible_types(
+            assert!(DataType::compatible_types(
                 from_io.datatypes(),
                 to_io.datatypes(),
                 &Route::default()
-            ));
+            ).is_err());
         }
 
         #[test]
         fn null_output_type_to_null_input_types() {
             let from_io = IO::new(vec!(), "/p1/output");
             let to_io = IO::new(vec!(), "/p2");
-            assert!(!DataType::compatible_types(
+            assert!(DataType::compatible_types(
                 from_io.datatypes(),
                 to_io.datatypes(),
                 &Route::default()
-            ));
+            ).is_err());
         }
     }
 }

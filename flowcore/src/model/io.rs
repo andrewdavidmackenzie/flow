@@ -165,7 +165,7 @@ impl IO {
 
 impl fmt::Display for IO {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "'{}' @ '{}'", self.name, self.route)
+        write!(f, "{} @ {}", self.name, self.route)
     }
 }
 
