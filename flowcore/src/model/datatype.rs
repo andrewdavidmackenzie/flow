@@ -141,6 +141,31 @@ impl DataType {
         }
     }
 
+    /// Return the `DataType` for a Json `Value`, including nested values in arrays or maps
+    pub fn value_type(value: &Value) -> DataType {
+        match value {
+            Value::String(_) => STRING_TYPE.into(),
+            Value::Bool(_) => BOOLEAN_TYPE.into(),
+            Value::Number(_) => NUMBER_TYPE.into(),
+            Value::Array(array) => {
+                if array.is_empty() {
+                    DataType(format!("{}/{}", ARRAY_TYPE, GENERIC_TYPE))
+                } else {
+                    DataType(format!("{}/{}",
+                                     ARRAY_TYPE, Self::value_type(&array[0])))
+                }
+            },
+            Value::Object(map) => {
+                if let Some(map_entry) = map.values().next() {
+                    DataType(format!("{}/{}", OBJECT_TYPE, Self::value_type(map_entry)))
+                } else {
+                    OBJECT_TYPE.into()
+                }
+            }
+            Value::Null => NULL_TYPE.into(),
+        }
+    }
+
     /// Take a string description of a DataType and determine how deeply nested in arrays it is
     pub fn array_order(&self) -> Result<i32> {
         if self.is_array() {

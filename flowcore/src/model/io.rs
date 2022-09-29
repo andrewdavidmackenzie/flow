@@ -144,10 +144,17 @@ impl IO {
     }
 
     /// Set the input initializer of this IO
-    pub fn set_initializer(&mut self, initializer: Option<InputInitializer>) -> Result<()> {
+    pub fn set_initializer(&mut self, function_initializer: Option<InputInitializer>) -> Result<()> {
         match self.initializer {
             Some(_) => bail!("Attempt to set two InputInitializers on IO @ {}", self.route),
-            None => self.initializer = initializer
+            None => {
+                if let Some(initializer) = &function_initializer {
+                    DataType::compatible_types( &[DataType::value_type(initializer.get_value())], self.datatypes(), &Route::default())
+                        .chain_err(|| "Incompatible type of initializer and Input")?;
+                }
+
+                self.initializer = function_initializer
+            }
         }
         Ok(())
     }
@@ -157,7 +164,13 @@ impl IO {
     -> Result<()> {
         match self.flow_initializer {
             Some(_) => bail!("Attempt to set two InputInitializers on same IO"),
-            None => self.flow_initializer = flow_initializer
+            None => {
+                if let Some(initializer) = &flow_initializer {
+                    DataType::compatible_types( &[DataType::value_type(initializer.get_value())], self.datatypes(), &Route::default())
+                        .chain_err(|| "Incompatible type of flow initializer and Input")?;
+                }
+                self.flow_initializer = flow_initializer
+            }
         }
         Ok(())
     }
