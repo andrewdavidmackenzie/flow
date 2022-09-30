@@ -11,7 +11,6 @@ use serde_json::Value;
 use simpath::{FileType, FoundType, Simpath};
 use wax::Glob;
 
-use flowcore::meta_provider::Provider;
 use flowcore::model::connection::Connection;
 use flowcore::model::flow_definition::FlowDefinition;
 use flowcore::model::function_definition::FunctionDefinition;
@@ -20,6 +19,7 @@ use flowcore::model::io::IOSet;
 use flowcore::model::name::{HasName, Name};
 use flowcore::model::process::Process::{FlowProcess, FunctionProcess};
 use flowcore::model::route::{HasRoute, Route};
+use flowcore::provider::Provider;
 
 use crate::compiler::compile::CompilerTables;
 use crate::dumper::dump;
@@ -32,7 +32,8 @@ use crate::errors::*;
 /// ```
 /// use std::env;
 /// use url::Url;
-/// use flowcore::meta_provider::{Provider, MetaProvider};
+/// use flowcore::provider::Provider;
+/// use flowcore::meta_provider::MetaProvider;
 /// use flowcore::errors::Result;
 /// use flowcore::model::process::Process::FlowProcess;
 /// use tempdir::TempDir;
@@ -106,7 +107,8 @@ pub fn dump_functions(
 /// ```
 /// use std::env;
 /// use url::Url;
-/// use flowcore::meta_provider::{Provider, MetaProvider};
+/// use flowcore::provider::Provider;
+/// use flowcore::meta_provider::MetaProvider;
 /// use flowcore::errors::Result;
 /// use flowcore::model::process::Process::FlowProcess;
 /// use tempdir::TempDir;

@@ -14,9 +14,9 @@ use flowclib::compiler::compile::CompilerTables;
 use flowclib::compiler::parser;
 use flowclib::dumper::{dump, dump_dot};
 use flowclib::generator::generate;
-use flowcore::meta_provider::Provider;
 use flowcore::model::flow_definition::FlowDefinition;
 use flowcore::model::process::Process::FlowProcess;
+use flowcore::provider::Provider;
 
 use crate::errors::*;
 use crate::Options;

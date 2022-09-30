@@ -10,10 +10,11 @@ use url::Url;
 
 use flowcore::errors::*;
 use flowcore::Implementation;
-use flowcore::meta_provider::{MetaProvider, Provider};
+use flowcore::meta_provider::MetaProvider;
 use flowcore::model::lib_manifest::{
     ImplementationLocator::Native, ImplementationLocator::Wasm, LibraryManifest,
 };
+use flowcore::provider::Provider;
 
 use crate::job::Job;
 use crate::wasm;

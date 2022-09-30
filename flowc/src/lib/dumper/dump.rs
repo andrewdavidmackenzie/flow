@@ -6,9 +6,9 @@ use std::path::PathBuf;
 
 use log::{debug, info};
 
-use flowcore::meta_provider::Provider;
 use flowcore::model::flow_definition::FlowDefinition;
 use flowcore::model::process::Process::FlowProcess;
+use flowcore::provider::Provider;
 
 use crate::compiler::compile::CompilerTables;
 use crate::dumper::dump_dot;
@@ -21,7 +21,8 @@ use crate::errors::*;
 /// ```
 /// use std::env;
 /// use url::Url;
-/// use flowcore::meta_provider::{Provider, MetaProvider};
+/// use flowcore::provider::Provider;
+/// use flowcore::meta_provider::MetaProvider;
 /// use flowcore::errors::Result;
 /// use flowcore::model::process::Process::FlowProcess;
 /// use std::collections::{BTreeSet, HashSet};
@@ -94,7 +95,8 @@ pub fn create_output_file(
 /// ```
 /// use std::env;
 /// use url::Url;
-/// use flowcore::meta_provider::{Provider, MetaProvider};
+/// use flowcore::provider::Provider;
+/// use flowcore::meta_provider::MetaProvider;
 /// use flowcore::errors::Result;
 /// use flowcore::model::process::Process::FlowProcess;
 /// use std::collections::{BTreeSet, HashSet};
@@ -148,7 +150,8 @@ fn dump_table<C: Iterator>(table: C, writer: &mut dyn Write) -> std::io::Result<
 /// ```
 /// use std::env;
 /// use url::Url;
-/// use flowcore::meta_provider::{Provider, MetaProvider};
+/// use flowcore::provider::Provider;
+/// use flowcore::meta_provider::MetaProvider;
 /// use flowcore::errors::Result;
 /// use flowcore::model::process::Process::FlowProcess;
 /// use tempdir::TempDir;

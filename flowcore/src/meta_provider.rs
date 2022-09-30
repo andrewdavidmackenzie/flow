@@ -7,26 +7,7 @@ use url::Url;
 use crate::content::file_provider::FileProvider;
 use crate::content::http_provider::HttpProvider;
 use crate::errors::*;
-
-/// A content provider is responsible with interfacing with the environment and doing IO
-/// or what is required to supply content related with flows - isolating other libraries
-/// from the File SSystem or IO. It must implement the `Provider` trait
-pub trait Provider: Sync + Send {
-    /// Take a URL and uses it to determine a url where actual content can be read from
-    /// using some provider specific logic. This may involve looking for default files in a
-    /// directory (a file provider) or a server path (an http provider), or it may involve
-    /// translating a library URL into a real on where content can be found.
-    fn resolve_url(
-        &self,
-        url: &Url,
-        default_file: &str,
-        extensions: &[&str],
-    ) -> Result<(Url, Option<Url>)>;
-
-    /// Fetches content from a URL. It resolves the URL internally before attempting to
-    /// fetch actual content
-    fn get_contents(&self, url: &Url) -> Result<Vec<u8>>;
-}
+use crate::provider::Provider;
 
 const FILE_PROVIDER: &dyn Provider = &FileProvider as &dyn Provider;
 const HTTP_PROVIDER: &dyn Provider = &HttpProvider as &dyn Provider;
@@ -46,7 +27,8 @@ pub struct MetaProvider {
 /// use std::path::PathBuf;
 /// use simpath::Simpath;
 /// use url::Url;
-/// use flowcore::meta_provider::{Provider, MetaProvider};
+/// use flowcore::provider::Provider;
+/// use flowcore::meta_provider::MetaProvider;
 /// let lib_search_path = Simpath::new_with_separator("FLOW_LIB_PATH", ',');
 /// let meta_provider = &mut MetaProvider::new(lib_search_path,
 ///                                            #[cfg(feature = "context")] PathBuf::from("/")
@@ -80,12 +62,11 @@ impl MetaProvider {
     // Determine which specific provider should be used based on the scheme of the Url of the content
     fn get_provider(&self, scheme: &str) -> Result<&dyn Provider> {
         match scheme {
+            #[cfg(not(target_arch = "wasm32"))]
             "file" => Ok(FILE_PROVIDER),
+            #[cfg(not(target_arch = "wasm32"))]
             "http" | "https" => Ok(HTTP_PROVIDER),
-            _ => bail!(
-                "Cannot determine which provider to use for url with scheme: '{}'",
-                scheme
-            ),
+            _ => bail!("Cannot determine which provider to use for url with scheme: 'scheme'"),
         }
     }
 

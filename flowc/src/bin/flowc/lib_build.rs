@@ -11,9 +11,10 @@ use wax::Glob;
 use flowclib::compiler::compile_wasm;
 use flowclib::compiler::parser;
 use flowclib::dumper::{dump, dump_dot};
-use flowcore::meta_provider::{MetaProvider, Provider};
+use flowcore::meta_provider::MetaProvider;
 use flowcore::model::lib_manifest::LibraryManifest;
 use flowcore::model::process::Process::{FlowProcess, FunctionProcess};
+use flowcore::provider::Provider;
 
 use crate::errors::*;
 use crate::Options;

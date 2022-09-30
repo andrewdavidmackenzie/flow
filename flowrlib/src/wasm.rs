@@ -9,7 +9,7 @@ use wasmtime::*;
 
 use flowcore::{Implementation, RunAgain};
 use flowcore::errors::*;
-use flowcore::meta_provider::Provider;
+use flowcore::provider::Provider;
 
 const DEFAULT_WASM_FILENAME: &str = "module";
 

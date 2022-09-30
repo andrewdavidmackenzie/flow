@@ -20,6 +20,9 @@ pub mod model;
 /// Utility functions related to Urls
 pub mod url_helper;
 
+/// A trait definition for Providers of content
+pub mod provider;
+
 /// `content` module contains the content providers for files and http/https
 #[cfg(not(target_arch = "wasm32"))]
 pub(crate) mod content;

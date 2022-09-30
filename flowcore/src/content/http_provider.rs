@@ -3,7 +3,7 @@ use log::debug;
 use url::Url;
 
 use crate::errors::*;
-use crate::meta_provider::Provider;
+use crate::provider::Provider;
 
 /// The `HttpProvider` implements the `Provider` trait and takes care of fetching content via http
 pub struct HttpProvider;
@@ -119,7 +119,7 @@ impl HttpProvider {
 mod test {
     use url::Url;
 
-    use crate::meta_provider::Provider;
+    use crate::provider::Provider;
 
     use super::HttpProvider;
 

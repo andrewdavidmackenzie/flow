@@ -7,10 +7,10 @@ use url::Url;
 
 use crate::deserializers::deserializer::get_deserializer;
 use crate::errors::*;
-use crate::meta_provider::Provider;
 use crate::model::flow_definition::FlowDefinition;
 use crate::model::metadata::MetaData;
 use crate::model::runtime_function::RuntimeFunction;
+use crate::provider::Provider;
 
 /// The default name used for a flow Manifest file if none is specified
 pub const DEFAULT_MANIFEST_FILENAME: &str = "manifest";
@@ -169,9 +169,9 @@ mod test {
     use url::Url;
 
     use crate::errors::Result;
-    use crate::meta_provider::Provider;
     use crate::model::input::Input;
     use crate::model::runtime_function::RuntimeFunction;
+    use crate::provider::Provider;
 
     use super::{FlowManifest, MetaData};
 

@@ -37,7 +37,7 @@ serde = "~1.0.145"
 colored = "2"
 
 [dev-dependencies]
-flowcore = {path = "../flowcore", version = "0.61.0", features = ["context"]}
+flowcore = {path = "../flowcore", version = "0.70.0", features = ["context"]}
 tempdir = "~0.3.5"
 simpath = { version = "~2.3", features = ["urls"]}
 serial_test = "0.9.0"

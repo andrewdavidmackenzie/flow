@@ -7,7 +7,7 @@ use log::{debug, trace};
 use url::Url;
 
 use crate::errors::*;
-use crate::meta_provider::Provider;
+use crate::provider::Provider;
 
 /// The `FileProvider` implements the `Provider` trait and takes care of fetching content located
 /// on the local file system.
@@ -149,7 +149,7 @@ mod test {
 
         use url::Url;
 
-        use crate::meta_provider::Provider;
+        use crate::provider::Provider;
 
         use super::super::FileProvider;
 
