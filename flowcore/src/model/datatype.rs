@@ -473,6 +473,9 @@ mod test {
                 (ARRAY_TYPE.into(), GENERIC_TYPE.into(), ""),
                 (ARRAY_TYPE.into(), format!("{}/{}", ARRAY_TYPE, ARRAY_TYPE), ""),
                 (ARRAY_TYPE.into(), format!("{}/{}", ARRAY_TYPE, GENERIC_TYPE), ""),
+
+                // Maps (Objects) of type with a selector
+                (format!("{}/{}", OBJECT_TYPE, NUMBER_TYPE), NUMBER_TYPE.into(), "/name"),
             ];
 
             for (case_number, test) in valid_type_conversions.iter().enumerate() {
@@ -508,6 +511,10 @@ mod test {
             (format!("{}/{}", ARRAY_TYPE, STRING_TYPE), NUMBER_TYPE.into(), "/0"),
             (format!("{}/{}", ARRAY_TYPE, BOOLEAN_TYPE), OBJECT_TYPE.into(), "/0"),
             (format!("{}/{}", ARRAY_TYPE, OBJECT_TYPE), BOOLEAN_TYPE.into(), "/0"),
+
+            // Invalid object contents
+            (format!("{}/{}", OBJECT_TYPE, NUMBER_TYPE), STRING_TYPE.into(), "/name"),
+            (format!("{}/{}", OBJECT_TYPE, STRING_TYPE), STRING_TYPE.into(), ""),
             ];
 
             for test in invalid_type_conversions.iter() {
