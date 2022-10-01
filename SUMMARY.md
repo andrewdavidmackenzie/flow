@@ -31,8 +31,6 @@
 - [Flow Libraries](docs/describing/flow_libraries.md)
 
 # Running Flows
-- [flowr library](flowrlib/README.md)
-- [flowr runner](flowr/README.md)
 - [Running flows](docs/running/running.md)
 - [flowc Command Line Arguments](docs/running/flowc.md)
 - [Passing command line arguments to flows](docs/running/arguments.md)
@@ -56,7 +54,7 @@
 - [The Debugger](docs/debugging/debugger.md)
 
 # The `flowstdlib` Standard Library
-- [flowstdlib](flowstdlib/README.md)
+- [flowstdlib](docs/developing/flowstdlib.md)
 - [control](flowstdlib/control/control.md)
     - [compare_switch](flowstdlib/control/compare_switch/compare_switch.md)
     - [index](flowstdlib/control/index/index.md)
@@ -96,7 +94,7 @@
     - [subtract](flowstdlib/math/subtract/subtract.md)
     
 # Sample flows
-- [Samples Intro](flowsamples/README.md)
+- [Samples Intro](docs/developing/flowsamples.md)
     - [args](flowsamples/args/DESCRIPTION.md)
     - [arrays](flowsamples/arrays/DESCRIPTION.md)
     - [factorial](flowsamples/factorial/DESCRIPTION.md)
@@ -118,20 +116,24 @@
 # Developing `flow`
 - [Developing flow](docs/developing/overview.md)
 - [Pre-requisites](docs/developing/prereqs.md)
-    - [flowcore](flowcore/README.md)
-    - [flowmacro](flowmacro/README.md)
-    - [flowc](flowc/README.md)
+- [Crates](docs/developing/crates.md)
+    - [flowcore](docs/developing/flowcore.md)
+    - [flowmacro](docs/developing/flowmacro.md)
+    - [flowrlib](docs/developing/flowrlib.md)
+    - [flowr](docs/developing/flowr.md)
+    - [flowc](docs/developing/flowc.md)
         - [Test flows](flowc/tests/test-flows/README.md)
             - [hello-world](flowc/tests/test-flows/hello-world/hello-world.md)
             - [line-echo](flowc/tests/test-flows/line-echo/line-echo.md)
             - [print-args](flowc/tests/test-flows/print-args/print-args.md)
             <!--- TODO add Markdown docs for other test flows explaining what they test -->
-    -[flowrlib](flowrlib/README.md) - The flow runner library that loads and executes compiled flows.
+    - [flowstdlib](docs/developing/flowstdlib.md)
+    - [flowsamples](docs/developing/flowsamples.md)
 - [Makefile targets](docs/developing/make.md)
 - [Ways to contribute](docs/developing/contributing.md)
     - [Issues](docs/developing/issues.md)
     - [PRs](docs/developing/prs.md)
-    - [Developing a sample](flowsamples/README.md)
+    - [Developing a sample](docs/developing/flowsamples.md)
     - [Continuous Integration Tests](docs/developing/ci.md)
         
 # Internals of the `flow` Project

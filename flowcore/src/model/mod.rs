@@ -41,8 +41,6 @@ pub mod submission;
 /// `metrics` defines a struct for runtime execution metrics
 pub mod metrics;
 /// `flow_manifest` is the struct that specifies the manifest of functions in a flow
-#[cfg(not(target_arch = "wasm32"))]
 pub mod flow_manifest;
 /// `lib_manifest` defines the structs for specifying a Library's manifest and methods to load it
-#[cfg(not(target_arch = "wasm32"))]
 pub mod lib_manifest;

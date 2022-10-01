@@ -11,8 +11,8 @@ use url::Url;
 use crate::deserializers::deserializer::get_deserializer;
 use crate::errors::*;
 use crate::Implementation;
-use crate::meta_provider::Provider;
 use crate::model::metadata::MetaData;
+use crate::provider::Provider;
 
 /// The default name used for a Library  Manifest file if none is specified
 pub const DEFAULT_LIB_JSON_MANIFEST_FILENAME: &str = "manifest";
@@ -192,11 +192,11 @@ mod test {
 
     use crate::errors::Result;
     use crate::Implementation;
-    use crate::meta_provider::Provider;
     use crate::model::lib_manifest::{
         ImplementationLocator, ImplementationLocator::Native, ImplementationLocator::Wasm, LibraryManifest,
     };
     use crate::model::metadata::MetaData;
+    use crate::provider::Provider;
 
     pub struct TestProvider {
         test_content: &'static str,

@@ -21,6 +21,9 @@ Lastly it generates a manifest describing the flow, which can be executed by `fl
 It then may (depending on the command line options used) invoke `flowr` (using cargo to ensure
 it is up to date and built).
 
+It is structured as a library with a thin CLI wrapper around it that offers command line arguments
+and then uses the library to compile and optionally run the compiled flow.
+
 # `flowclib`
 This library contains most of the compilation and linking logic for `flowc`. 
 

@@ -6,7 +6,6 @@ use log::{debug, info, trace};
 use url::Url;
 
 use flowcore::deserializers::deserializer::get_deserializer;
-use flowcore::meta_provider::Provider;
 use flowcore::model::flow_definition::FlowDefinition;
 use flowcore::model::flow_manifest::Cargo;
 use flowcore::model::input::InputInitializer;
@@ -17,6 +16,7 @@ use flowcore::model::process::Process;
 use flowcore::model::process::Process::FlowProcess;
 use flowcore::model::process::Process::FunctionProcess;
 use flowcore::model::route::Route;
+use flowcore::provider::Provider;
 
 use crate::errors::*;
 
@@ -34,7 +34,7 @@ pub enum LibType {
 ///
 /// # Example
 /// ```
-/// use flowcore::meta_provider::Provider;
+/// use flowcore::provider::Provider;
 /// use flowcore::errors::Result;
 /// use std::env;
 /// use url::Url;

@@ -1,5 +1,5 @@
-# Sample flows
-This crate and folder contains a number of sample 'flows' that have been developed during the development
+# Flow Samples
+This crate contains a number of sample 'flows' that have been developed during the development
 of the compiler and the run-time to drive the project development and demonstrate it working. 
 
 They also serve as a type of regression test to make sure we don't break any of the 
