@@ -181,6 +181,7 @@ fn compile_implementations(
                         &mut lib_manifest.source_urls,
                 ) {
                     Ok(FunctionProcess(ref mut function)) => {
+                        println!("Compiling {} to WASM", function.source);
                         let (wasm_abs_path, built) = compile_wasm::compile_implementation(
                             &target_dir,
                             function,

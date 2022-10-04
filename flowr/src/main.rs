@@ -51,6 +51,7 @@ use flowcore::meta_provider::MetaProvider;
 use flowcore::model::flow_manifest::FlowManifest;
 #[cfg(feature = "submission")]
 use flowcore::model::submission::Submission;
+use flowcore::provider::Provider;
 #[cfg(feature = "submission")]
 use flowcore::url_helper::url_from_string;
 use flowrlib::coordinator::Coordinator;
@@ -325,10 +326,10 @@ fn server(
         debug_server_connection
     };
 
-    let provider = MetaProvider::new(lib_search_path,
+    let provider = Arc::new(MetaProvider::new(lib_search_path,
                                      #[cfg(feature = "context")]
                                          PathBuf::from("/")
-    );
+    )) as Arc<dyn Provider>;
     #[allow(unused_mut)]
     let mut executor = Executor::new(provider, num_threads, None);
 

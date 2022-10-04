@@ -1,7 +1,7 @@
 use std::env;
 use std::io;
 use std::path::Path;
-use std::process::{Command, Stdio};
+use std::process::Command;
 
 // Build script to compile the flowstdlib library (compile WASM files and generate manifest) using flowc
 fn main() -> io::Result<()> {
@@ -28,23 +28,5 @@ fn main() -> io::Result<()> {
     #[cfg(not(feature = "wasm"))]
     let command_args = vec!["-v", "info", "-d", "-g", "-l", "-o", out_dir, "-n", lib_root_dir];
 
-    let flowc_command = command
-        .args(command_args)
-        .stdin(Stdio::inherit())
-        .stdout(Stdio::inherit())
-        .stderr(Stdio::inherit());
-
-    let flowc_output = flowc_command.output()?;
-
-    match flowc_output.status.code() {
-        Some(0) | None => {}
-        Some(_) => {
-            return Err(io::Error::new(
-                io::ErrorKind::Other,
-                "`flowc` exited with non-zero status code",
-            ))
-        }
-    }
-
-    Ok(())
+    command.args(command_args).status().map(|_| ())
 }
