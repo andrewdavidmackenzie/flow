@@ -97,6 +97,7 @@ clippy: install-flow
 build: install-flow
 	@echo "build<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
 	@cargo build $(features) $(cargo_options)
+	@cargo build $(cargo_options) --manifest-path flowrex/Cargo.toml
 
 .PHONY: test
 test: install-flow
@@ -156,6 +157,14 @@ trim-docs:
 	@rm -rf target/html/flowc/tests/test_libs
 	@rm -rf target/html/code/debug
 	@rm -rf target/html/Makefile
+	@rm -rf target/html/.nojekyll
+	@rm -rf target/html/.github
+	@rm -rf target/html/.git
+	@rm -rf target/html/coverage.info
+	@rm -rf target/html/flowsamples/build.rs
+	@rm -rf target/html/flowsamples/main.rs
+	@rm -rf target/html/flowsamples/Cargo.toml
+	@rm -rf target/html/flowsamples/mandlebrot/project
 	@find target/html -depth -type d -empty -delete
 
 .PHONY: publish
