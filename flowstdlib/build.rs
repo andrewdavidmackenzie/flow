@@ -18,12 +18,14 @@ fn main() -> io::Result<()> {
     //                      -n      : only build native implementations and not compile WASM files
     //                      -d      : to generate debug symbols in some output files (e.g. manifest.json)
     //                      -g      : to dump 'dot' graphs for documentation
+    //                      -O      : optimize the generated WASM output files
     //                      -o      : generate files in $out_dir instead of current working directory
+    //                      -n      : do not compile to WASM, only compile a native version of the lib
     //                      -l $dir : build the flow library found in $dir
 
     // If the "wasm" feature is activated, then don't set "-n" and flowc will compile implementations to wasm.
     #[cfg(feature = "wasm")]
-    let command_args = vec!["-v", "info", "-d", "-g", "-l", "-o", out_dir, lib_root_dir];
+    let command_args = vec!["-v", "info", "-d", "-g", "-l", "-O", "-o", out_dir, lib_root_dir];
     // If the "wasm" feature is NOT activated, then set "-n" (native only) flag so flowc will not compile to wasm
     #[cfg(not(feature = "wasm"))]
     let command_args = vec!["-v", "info", "-d", "-g", "-l", "-o", out_dir, "-n", lib_root_dir];
