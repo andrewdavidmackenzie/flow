@@ -19,14 +19,14 @@ fn check_cargo_error(command: &str, args: Vec<&str>, output: Output) -> Result<(
             if !&output.stdout.is_empty() {
                 println!(
                     "{}\n{}",
-                    "Process STDOUT:".green(),
+                    "STDOUT:".green(),
                     String::from_utf8_lossy(&output.stdout).green()
                 );
             }
             if !&output.stderr.is_empty() {
                 eprintln!(
                     "{}\n{}",
-                    "Process STDERR:".red(),
+                    "STDERR:".red(),
                     String::from_utf8_lossy(&output.stderr).red()
                 );
             }

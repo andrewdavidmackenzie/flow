@@ -56,9 +56,7 @@ pub fn compile_implementation(
         } else {
             match function.build_type.as_str() {
                 "rust" => cargo_build::run(&source_path, &wasm_destination,
-                                           optimize)
-                    .chain_err(|| format!("Cargo build of project at '{}' failed",
-                                       source_path.display()))?,
+                                           optimize)?,
                 _ => bail!(
                     "Unknown build type '{}' for function at '{}'",
                     function.build_type,

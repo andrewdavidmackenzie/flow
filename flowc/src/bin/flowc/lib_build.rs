@@ -189,7 +189,7 @@ fn compile_implementations(
                             #[cfg(feature = "debugger")]
                                 &mut lib_manifest.source_urls,
                         )
-                            .chain_err(|| "Could not compile supplied implementation to wasm")?;
+                            .chain_err(|| "Could not compile implementation to wasm")?;
 
                         let wasm_relative_path = wasm_abs_path
                             .strip_prefix(&options.output_dir)
