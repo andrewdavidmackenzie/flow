@@ -237,6 +237,7 @@ impl RunState {
         }
     }
 
+    #[cfg(any(debug_assertions, feature = "debugger"))]
     /// Get a reference to the vector of all functions
     pub(crate) fn get_functions(&self) -> &Vec<RuntimeFunction> {
         self.submission.manifest.functions()
