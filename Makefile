@@ -87,6 +87,7 @@ install-flow:
 	@echo "install-flow<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
 	@cargo install --path flowc $(cargo_options)
 	@cargo install --path flowr $(cargo_options)
+	@cargo install --path flowrex $(cargo_options)
 
 .PHONY: clippy
 clippy: install-flow
