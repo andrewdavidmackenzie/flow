@@ -983,6 +983,7 @@ version = "0.70.0"
 dependencies = [
  "error-chain",
  "flowcore",
+ "libp2p",
  "log",
  "multimap",
  "rand 0.8.5",

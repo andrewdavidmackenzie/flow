@@ -67,7 +67,7 @@ fn run() -> Result<()> {
 fn server(num_threads: usize) -> Result<()> {
     let provider = Arc::new(P2pProvider::new()) as Arc<dyn Provider>;
     #[allow(unused_mut)]
-    let mut executor = Executor::new(provider, num_threads, None);
+    let mut executor = Executor::new(None);
 
     #[cfg(feature = "flowstdlib")]
     executor.add_lib(
@@ -75,6 +75,8 @@ fn server(num_threads: usize) -> Result<()> {
             .chain_err(|| "Could not get 'native' flowstdlib manifest")?,
         Url::parse("memory://")? // Statically linked library has no resolved Url
     )?;
+
+    executor.start(provider, num_threads);
 
     Ok(())
 }

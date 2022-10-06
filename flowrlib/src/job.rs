@@ -46,6 +46,23 @@ impl fmt::Display for Job {
     }
 }
 
+// use as_bytes() to get a &[u8] from the String Result
+impl TryFrom<Job> for String {
+    type Error = flowcore::errors::Error;
+
+    fn try_from(job: Job) -> Result<Self> {
+        serde_json::to_string(&job).map_err(|e| e.into())
+    }
+}
+
+impl TryFrom<&Vec<u8>> for Job {
+    type Error = flowcore::errors::Error;
+
+    fn try_from(bytes: &Vec<u8>) -> Result<Self> {
+        serde_json::from_str(&String::from_utf8_lossy(bytes)).map_err(|e| e.into())
+    }
+}
+
 #[cfg(test)]
 mod test {
     use std::collections::HashMap;

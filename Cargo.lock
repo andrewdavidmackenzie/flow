@@ -1219,6 +1219,7 @@ version = "0.70.0"
 dependencies = [
  "error-chain 0.12.4",
  "flowcore",
+ "libp2p",
  "log",
  "multimap",
  "rand 0.8.5",

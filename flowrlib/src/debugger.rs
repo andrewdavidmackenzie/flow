@@ -591,9 +591,9 @@ impl<'a> Debugger<'a> {
                             if let Some(var) = parts.get(1) {
                                 if let Ok(value) = var.parse::<usize>() {
                                     if value == 0 {
-                                        state.submission.max_parallel_jobs = None;
+                                        state.submission.parallel_jobs_limit = None;
                                     } else {
-                                        state.submission.max_parallel_jobs = Some(value);
+                                        state.submission.parallel_jobs_limit = Some(value);
                                     }
                                     self.debug_server.message(format!("State variable 'jobs' set to {}",
                                                                       var));

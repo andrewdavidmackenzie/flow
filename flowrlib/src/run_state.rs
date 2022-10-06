@@ -373,9 +373,9 @@ impl RunState {
 
     // Return a new job to run, if there is one and there are not too many jobs already running
     pub(crate) fn new_job(&mut self) -> Option<Job> {
-        if let Some(limit) = self.submission.max_parallel_jobs {
+        if let Some(limit) = self.submission.parallel_jobs_limit {
             if self.number_jobs_running() >= limit {
-                trace!("Max Pending Job count of {limit} reached, skipping new jobs");
+                trace!("Limit of parallel jobs of {limit} reached, not creating new jobs");
                 return None;
             }
         }

@@ -326,12 +326,9 @@ fn server(
         debug_server_connection
     };
 
-    let provider = Arc::new(MetaProvider::new(lib_search_path,
-                                     #[cfg(feature = "context")]
-                                         PathBuf::from("/")
-    )) as Arc<dyn Provider>;
     #[allow(unused_mut)]
-    let mut executor = Executor::new(provider, num_threads, None);
+    let mut executor = Executor::new(None);
+
 
     // Add the native context functions to functions available for use by the executor
     #[cfg(feature = "context")]
@@ -351,6 +348,12 @@ fn server(
             Url::parse("memory://")? // Statically linked library has no resolved Url
         )?;
     }
+
+    let provider = Arc::new(MetaProvider::new(lib_search_path,
+                                     #[cfg(feature = "context")]
+                                         PathBuf::from("/")
+    )) as Arc<dyn Provider>;
+    executor.start(provider, num_threads);
 
     #[cfg(feature = "submission")]
     let mut submitter = CLISubmitter {
