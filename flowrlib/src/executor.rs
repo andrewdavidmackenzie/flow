@@ -10,7 +10,6 @@ use url::Url;
 
 use flowcore::errors::*;
 use flowcore::Implementation;
-use flowcore::meta_provider::MetaProvider;
 use flowcore::model::lib_manifest::{
     ImplementationLocator::Native, ImplementationLocator::Wasm, LibraryManifest,
 };
@@ -40,10 +39,9 @@ pub struct Executor {
 impl Executor {
     /// Create a new `Executor` specifying the number of local executor threads and a timeout
     /// for reception of results
-    pub fn new(metaprovider: MetaProvider, number_of_executors: usize, job_timeout: Option<Duration>) -> Self {
+    pub fn new(provider: Arc<dyn Provider>, number_of_executors: usize, job_timeout: Option<Duration>) -> Self {
         let (job_sender, job_receiver) = mpsc::channel();
         let (results_sender, results_receiver) = mpsc::channel();
-        let provider = Arc::new(metaprovider);
 
         info!("Starting {} local executor threads", number_of_executors);
         let shared_job_receiver = Arc::new(Mutex::new(job_receiver));

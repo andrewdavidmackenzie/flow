@@ -15,22 +15,22 @@ fn check_cargo_error(command: &str, args: Vec<&str>, output: Output) -> Result<(
     match output.status.code() {
         Some(0) | None => Ok(()),
         Some(code) => {
-            println!(
-                "{}\n{}",
-                "Process STDOUT:".green(),
-                String::from_utf8_lossy(&output.stdout).green()
-            );
-            println!(
-                "{}\n{}",
-                "Process STDERR:".red(),
-                String::from_utf8_lossy(&output.stderr).red()
-            );
-            bail!(
-                "cargo exited with status code: {}\nCommand Line: {} {}",
-                code,
-                command,
-                args.join(" ")
-            )
+            println!("Command Line: {command} {}", args.join(" "));
+            if !&output.stdout.is_empty() {
+                println!(
+                    "{}\n{}",
+                    "STDOUT:".green(),
+                    String::from_utf8_lossy(&output.stdout).green()
+                );
+            }
+            if !&output.stderr.is_empty() {
+                eprintln!(
+                    "{}\n{}",
+                    "STDERR:".red(),
+                    String::from_utf8_lossy(&output.stderr).red()
+                );
+            }
+            bail!("cargo exited with status code: {}", code)
         }
     }
 }
@@ -89,8 +89,7 @@ fn cargo_build(
         implementation_source_path.display()
     );
 
-    let mut command_args = vec![
-        "build"];
+    let mut command_args = vec!["build"];
 
     if release_build {
         command_args.push("--release");
@@ -104,10 +103,7 @@ fn cargo_build(
         ]
     );
 
-    debug!(
-        "\tRunning command = '{}', command_args = {:?}",
-        command, command_args
-    );
+    debug!("\tRunning command = '{command}', command_args = {command_args:?}");
 
     let output = Command::new(command)
         .args(&command_args)

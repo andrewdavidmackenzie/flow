@@ -25,7 +25,8 @@ debugger = ["flowcore/debugger"] # feature to add the debugger, requires flowcor
 metrics = []  # feature for tracking of metrics during execution
 
 [dependencies]
-flowcore = {path = "../flowcore", version = "0.70.0"}
+flowcore = {path = "../flowcore", version = "0.70.0", features = ["file_provider", "http_provider", "p2p_provider",
+"context", "meta_provider"]}
 log = "0.4.6"
 url = { version = "2.2", features = ["serde"] }
 serde_derive = "~1.0.27"

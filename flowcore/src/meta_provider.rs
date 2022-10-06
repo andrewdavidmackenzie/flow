@@ -1,21 +1,31 @@
-#[cfg(feature = "context")]
+#[cfg(any(feature = "context"))]
 use std::path::PathBuf;
 
+#[cfg(feature = "file_provider")]
 use simpath::{FoundType, Simpath};
 use url::Url;
 
+#[cfg(feature = "file_provider")]
 use crate::content::file_provider::FileProvider;
+#[cfg(feature = "http_provider")]
 use crate::content::http_provider::HttpProvider;
+#[cfg(feature = "p2p_provider")]
+use crate::content::p2p_provider::P2pProvider;
 use crate::errors::*;
 use crate::provider::Provider;
 
+#[cfg(feature = "file_provider")]
 const FILE_PROVIDER: &dyn Provider = &FileProvider as &dyn Provider;
+#[cfg(feature = "http_provider")]
 const HTTP_PROVIDER: &dyn Provider = &HttpProvider as &dyn Provider;
+#[cfg(feature = "p2p_provider")]
+const P2P_PROVIDER: &dyn Provider = &P2pProvider as &dyn Provider;
 
 /// The `MetaProvider` implements the `Provider` trait and based on the url and it's
 /// resolution to a real location for content invokes one of the child providers it has
 /// to fetch the content (e.g. File or Http).
 pub struct MetaProvider {
+    #[cfg(feature = "file_provider")]
     lib_search_path: Simpath,
     #[cfg(feature = "context")]
     context_root: PathBuf,
@@ -24,14 +34,17 @@ pub struct MetaProvider {
 /// Instantiate MetaProvider and then use the Provider trait methods on it to resolve and fetch
 /// content depending on the URL scheme.
 /// ```
+/// #[cfg(feature = "context")]
 /// use std::path::PathBuf;
 /// use simpath::Simpath;
 /// use url::Url;
 /// use flowcore::provider::Provider;
 /// use flowcore::meta_provider::MetaProvider;
+/// #[cfg(feature = "file_provider")]
 /// let lib_search_path = Simpath::new_with_separator("FLOW_LIB_PATH", ',');
-/// let meta_provider = &mut MetaProvider::new(lib_search_path,
-///                                            #[cfg(feature = "context")] PathBuf::from("/")
+/// let meta_provider = &mut MetaProvider::new(
+///                                             #[cfg(feature = "file_provider")]lib_search_path,
+///                                             #[cfg(feature = "context")] PathBuf::from("/")
 ///                                             ) as &dyn Provider;
 /// let url = Url::parse("file://directory").unwrap();
 /// match meta_provider.resolve_url(&url, "default", &["toml"]) {
@@ -50,11 +63,12 @@ impl MetaProvider {
     /// Create a new `MetaProvider` initializing it with:
     /// - a search path where to look for libraries
     /// - the root of the context functions provided by the runtime (requires "context" feature
-    pub fn new(lib_search_path: Simpath,
-               #[cfg(feature = "context")] context_root: PathBuf
+    pub fn new(
+                #[cfg(feature = "file_provider")] lib_search_path: Simpath,
+                #[cfg(feature = "context")] context_root: PathBuf
                 ) -> Self {
         MetaProvider {
-            lib_search_path,
+            #[cfg(feature = "file_provider")] lib_search_path,
             #[cfg(feature = "context")] context_root
         }
     }
@@ -62,10 +76,12 @@ impl MetaProvider {
     // Determine which specific provider should be used based on the scheme of the Url of the content
     fn get_provider(&self, scheme: &str) -> Result<&dyn Provider> {
         match scheme {
-            #[cfg(not(target_arch = "wasm32"))]
+            #[cfg(all(not(target_arch = "wasm32"), feature = "file_provider"))]
             "file" => Ok(FILE_PROVIDER),
-            #[cfg(not(target_arch = "wasm32"))]
+            #[cfg(all(not(target_arch = "wasm32"), feature = "http_provider"))]
             "http" | "https" => Ok(HTTP_PROVIDER),
+            #[cfg(all(not(target_arch = "wasm32"), feature = "p2p_provider"))]
+            "p2p" => Ok(P2P_PROVIDER),
             _ => bail!("Cannot determine which provider to use for url with scheme: 'scheme'"),
         }
     }
@@ -106,6 +122,7 @@ impl MetaProvider {
     ///    - a string representation of the Url (file: or http: or https:) where the file can be found
     ///    - a string that is a reference to that module in the library, such as:
     ///        "flowstdlib/math/add"
+    #[cfg(feature = "file_provider")]
     fn resolve_lib_url(&self, url: &Url) -> Result<(Url, Option<Url>)> {
         let lib_name = url.host_str()
             .chain_err(|| format!("'lib_name' could not be extracted from the url '{}'", url))?;
@@ -145,11 +162,12 @@ impl Provider for MetaProvider {
     fn resolve_url(
         &self,
         url: &Url,
-        default_filename: &str,
+        default_name: &str,
         extensions: &[&str],
     ) -> Result<(Url, Option<Url>)> {
         // resolve a lib reference into either a file: or http: or https: reference
         let (content_url, reference) = match url.scheme() {
+            #[cfg(feature = "file_provider")]
             "lib" => self.resolve_lib_url(url)?,
             #[cfg(feature = "context")]
             "context" => self.resolve_context_url(url)?,
@@ -157,7 +175,7 @@ impl Provider for MetaProvider {
         };
 
         let provider = self.get_provider(content_url.scheme())?;
-        let (resolved_url, _) = provider.resolve_url(&content_url, default_filename, extensions)?;
+        let (resolved_url, _) = provider.resolve_url(&content_url, default_name, extensions)?;
 
         Ok((resolved_url, reference))
     }
@@ -174,26 +192,34 @@ impl Provider for MetaProvider {
 
 #[cfg(test)]
 mod test {
+    #[cfg(feature = "file_provider")]
     use std::path::Path;
     #[cfg(feature = "context")]
     use std::path::PathBuf;
 
+    #[cfg(feature = "file_provider")]
     use simpath::Simpath;
+    #[cfg(any(feature = "file_provider", feature = "http_provider"))]
     use url::Url;
 
-    use super::{MetaProvider, Provider};
+    use super::MetaProvider;
+    #[cfg(any(feature = "file_provider", feature = "http_provider"))]
+    use super::Provider;
 
     #[test]
     fn get_invalid_provider() {
+        #[cfg(feature = "file_provider")]
         let search_path = Simpath::new("TEST");
-        let meta = MetaProvider::new(search_path,
-                                     #[cfg(feature = "context")]
+        let meta = MetaProvider::new(
+                                    #[cfg(feature = "file_provider")] search_path,
+                                        #[cfg(feature = "context")]
                                          PathBuf::from("/")
         );
 
         assert!(meta.get_provider("fake://bla").is_err());
     }
 
+    #[cfg(feature = "http_provider")]
     #[test]
     fn get_http_provider() {
         let search_path = Simpath::new("TEST");
@@ -205,6 +231,7 @@ mod test {
         assert!(meta.get_provider("http").is_ok());
     }
 
+    #[cfg(feature = "http_provider")]
     #[test]
     fn get_https_provider() {
         let search_path = Simpath::new("TEST");
@@ -216,6 +243,7 @@ mod test {
         assert!(meta.get_provider("https").is_ok());
     }
 
+    #[cfg(feature = "file_provider")]
     #[test]
     fn get_file_provider() {
         let search_path = Simpath::new("TEST");
@@ -227,6 +255,7 @@ mod test {
         assert!(meta.get_provider("file").is_ok());
     }
 
+    #[cfg(feature = "file_provider")]
     fn set_lib_search_path() -> Simpath {
         let mut lib_search_path = Simpath::new("lib_search_path");
         let root_str = Path::new(env!("CARGO_MANIFEST_DIR"))
@@ -241,6 +270,7 @@ mod test {
         lib_search_path
     }
 
+    #[cfg(feature = "file_provider")]
     #[test]
     fn resolve_path() {
         let root_str = Path::new(env!("CARGO_MANIFEST_DIR"))
@@ -266,8 +296,8 @@ mod test {
         }
     }
 
+    #[cfg(all(feature = "http_provider", feature = "online_tests"))]
     #[test]
-    #[cfg(feature = "online_tests")]
     fn resolve_web_path() {
         let mut search_path = Simpath::new("web_path");
         // `flowstdlib` can be found under the root of the project at `tree/master/flowstdlib` on github

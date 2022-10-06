@@ -13,7 +13,7 @@ pub trait Provider: Sync + Send {
     fn resolve_url(
         &self,
         url: &Url,
-        default_file: &str,
+        default_name: &str,
         extensions: &[&str],
     ) -> Result<(Url, Option<Url>)>;
 

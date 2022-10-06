@@ -28,8 +28,12 @@ pub mod provider;
 pub(crate) mod content;
 
 /// `lib_provider` is used to resolve library references of the type "lib://" using lib search path
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(all(not(target_arch = "wasm32"), feature = "meta_provider"))]
 pub mod meta_provider;
+
+/// Export a p2p provider for direct use when needed
+#[cfg(all(not(target_arch = "wasm32"), feature = "p2p_provider"))]
+pub use crate::content::p2p_provider;
 
 /// Implementations should return a value of type `RunAgain` to indicate if it should be
 /// executed more times in the future.

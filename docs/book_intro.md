@@ -2,7 +2,7 @@
 Welcome to `flow`, a system for defining and running parallel, 
 [dataflow programs](https://en.wikipedia.org/wiki/Dataflow_programming) like this one:
 
-![First flow](../first.svg)
+![First flow](first_flow/first.svg)
 
 Page through this guide using the '>' and '<' buttons on the side of the page or navigating directly
 to a section using the Table of Contents on the left.
