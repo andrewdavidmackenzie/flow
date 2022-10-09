@@ -54,20 +54,10 @@ fn run() -> Result<()> {
 
     let num_threads = num_threads(&matches);
 
-    server(num_threads)?;
 
-    info!("'{}' has exited", env!("CARGO_PKG_NAME"));
-
-    Ok(())
-}
-
-// Create a new `Coordinator`, pre-load any libraries in native format that we want to have before
-// loading a flow and it's library references, then enter the `submission_loop()` accepting and
-// executing flows submitted for execution, executing each one using the `Coordinator`
-fn server(num_threads: usize) -> Result<()> {
     let provider = Arc::new(P2pProvider::new()) as Arc<dyn Provider>;
     #[allow(unused_mut)]
-    let mut executor = Executor::new(None);
+    let mut executor = Executor::new();
 
     #[cfg(feature = "flowstdlib")]
     executor.add_lib(
@@ -76,7 +66,11 @@ fn server(num_threads: usize) -> Result<()> {
         Url::parse("memory://")? // Statically linked library has no resolved Url
     )?;
 
-    executor.start(provider, num_threads);
+    executor.start(provider, num_threads)?;
+
+    thread::park();
+
+    info!("'{}' has exited", env!("CARGO_PKG_NAME"));
 
     Ok(())
 }

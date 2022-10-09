@@ -47,11 +47,11 @@ impl fmt::Display for Job {
 }
 
 // use as_bytes() to get a &[u8] from the String Result
-impl TryFrom<Job> for String {
+impl TryFrom<&Job> for String {
     type Error = flowcore::errors::Error;
 
-    fn try_from(job: Job) -> Result<Self> {
-        serde_json::to_string(&job).map_err(|e| e.into())
+    fn try_from(job: &Job) -> Result<Self> {
+        serde_json::to_string(job).map_err(|e| e.into())
     }
 }
 

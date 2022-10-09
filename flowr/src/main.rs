@@ -327,7 +327,7 @@ fn server(
     };
 
     #[allow(unused_mut)]
-    let mut executor = Executor::new(None);
+    let mut executor = Executor::new();
 
 
     // Add the native context functions to functions available for use by the executor
@@ -353,7 +353,7 @@ fn server(
                                      #[cfg(feature = "context")]
                                          PathBuf::from("/")
     )) as Arc<dyn Provider>;
-    executor.start(provider, num_threads);
+    executor.start(provider, num_threads)?;
 
     #[cfg(feature = "submission")]
     let mut submitter = CLISubmitter {
