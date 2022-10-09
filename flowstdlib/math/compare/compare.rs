@@ -120,8 +120,8 @@ mod test {
                 false, // gte
             ),
             (
-                json!((i64::MAX as u64 + 10) as u64), // force a u64
-                json!((i64::MAX as u64 + 20) as u64), // force a u64
+                json!((i64::MAX as u64 + 10)), // force a u64
+                json!((i64::MAX as u64 + 20)), // force a u64
                 false,                                // eq
                 true,                                // ne
                 true,                                 // lt

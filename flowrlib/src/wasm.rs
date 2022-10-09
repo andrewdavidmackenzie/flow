@@ -34,7 +34,7 @@ impl WasmExecutor {
         self.memory
             .write(store, offset as usize, &input_data)
             .map_err(|_| "Could not write to WASM Linear Memory")?;
-        Ok((offset as i32, input_data.len() as i32))
+        Ok((offset, input_data.len() as i32))
     }
 
     // Call the "alloc" wasm function
@@ -47,7 +47,7 @@ impl WasmExecutor {
             .map_err(|_| "WASM alloc() call failed")?;
 
         match results[0] {
-            Val::I32(offset) => Ok(offset as i32),
+            Val::I32(offset) => Ok(offset),
             _ => bail!("WASM alloc() failed"),
         }
     }

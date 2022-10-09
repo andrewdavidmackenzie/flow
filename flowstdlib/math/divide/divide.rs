@@ -41,7 +41,7 @@ mod test {
         assert_eq!(divisor, &json!(test_data.1 as f64));
 
         let result = outputs.pointer("/result").expect("Could not get /result");
-        assert_eq!(result, &json!(test_data.2 as f64));
+        assert_eq!(result, &json!(test_data.2 ));
 
         let remainder = outputs
             .pointer("/remainder")

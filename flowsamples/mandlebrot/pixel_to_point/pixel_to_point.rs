@@ -20,12 +20,12 @@ fn pixel_run(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
     let bounds = inputs[0].as_array().ok_or("Could not get array")?;
 
     let upper_left = bounds[0].as_array().ok_or("Could not get array")?;
-    let upper_left_c = [upper_left[0].as_f64().ok_or("Could not get f64")? as f64,
-                                upper_left[1].as_f64().ok_or("Could not get f64")? as f64];
+    let upper_left_c = [upper_left[0].as_f64().ok_or("Could not get f64")?,
+                                upper_left[1].as_f64().ok_or("Could not get f64")?];
 
     let lower_right = bounds[1].as_array().ok_or("Could not get array")?;
-    let lower_right_c = [lower_right[0].as_f64().ok_or("Could not get f64")? as f64,
-                                lower_right[1].as_f64().ok_or("Could not get f64")? as f64];
+    let lower_right_c = [lower_right[0].as_f64().ok_or("Could not get f64")?,
+                                lower_right[1].as_f64().ok_or("Could not get f64")?];
 
     let pixel = inputs[1].as_array().ok_or("Could not get array")?;
     let x = pixel[0].as_i64().ok_or("Could not get i64")? as usize;
