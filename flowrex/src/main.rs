@@ -10,7 +10,7 @@ use std::{env, thread};
 use std::process::exit;
 use std::sync::Arc;
 
-use clap::{App, AppSettings, Arg, ArgMatches};
+use clap::{Arg, ArgMatches, Command};
 use log::{error, info, warn};
 use simplog::SimpleLogger;
 #[cfg(feature = "flowstdlib")]
@@ -50,7 +50,9 @@ fn run() -> Result<()> {
 
     let matches = get_matches();
 
-    SimpleLogger::init_prefix_timestamp(matches.value_of("verbosity"), true, false);
+    SimpleLogger::init_prefix_timestamp(
+        matches.get_one::<String>("verbosity").map(|s| s.as_str()),
+        true, false);
 
     let num_threads = num_threads(&matches);
 
@@ -84,15 +86,13 @@ fn server(num_threads: usize) -> Result<()> {
 fn num_threads(matches: &ArgMatches) -> usize {
     let mut num_threads: usize = 0;
 
-    if let Some(value) = matches.value_of("threads") {
-        if let Ok(threads) = value.parse::<usize>() {
-            if threads < 1 {
-                error!("Minimum number of additional threads is '1', \
-                so option has been overridden to be '1'");
-                num_threads = 1;
-            } else {
-                num_threads = threads;
-            }
+    if let Some(threads) = matches.get_one::<usize>("threads") {
+        if threads < &1 {
+            error!("Minimum number of additional threads is '1', \
+            so option has been overridden to be '1'");
+            num_threads = 1;
+        } else {
+            num_threads = *threads;
         }
     }
 
@@ -105,29 +105,22 @@ fn num_threads(matches: &ArgMatches) -> usize {
 
 // Parse the command line arguments using clap
 fn get_matches() -> ArgMatches {
-    let app = App::new(env!("CARGO_PKG_NAME"))
-        .setting(AppSettings::TrailingVarArg)
+    let app = Command::new(env!("CARGO_PKG_NAME"))
         .version(env!("CARGO_PKG_VERSION"));
 
     let app = app
-        .arg(Arg::with_name("threads")
+        .arg(Arg::new("threads")
             .short('t')
             .long("threads")
-            .takes_value(true)
+            .number_of_values(1)
             .value_name("THREADS")
             .help("Set number of threads to use to execute jobs (min: 1, default: cores available)"))
-        .arg(Arg::with_name("verbosity")
+        .arg(Arg::new("verbosity")
             .short('v')
             .long("verbosity")
-            .takes_value(true)
+            .number_of_values(1)
             .value_name("VERBOSITY_LEVEL")
-            .help("Set verbosity level for output (trace, debug, info, warn, error (default))"))
-        .arg(
-        Arg::with_name("native")
-            .short('n')
-            .long("native")
-            .help("Link with native (not WASM) version of flowstdlib"),
-    );
+            .help("Set verbosity level for output (trace, debug, info, warn, error (default))"));
 
     app.get_matches()
 }
