@@ -17,7 +17,7 @@ use std::process::exit;
 #[cfg(any(feature = "context", feature = "submission"))]
 use std::sync::{Arc, Mutex};
 
-use clap::{App, AppSettings, Arg, ArgMatches};
+use clap::{Arg, ArgMatches, Command};
 use log::{error, info, warn};
 use simpath::Simpath;
 use simplog::SimpleLogger;
@@ -172,14 +172,15 @@ fn run() -> Result<()> {
 
     let matches = get_matches();
 
-    SimpleLogger::init_prefix_timestamp(matches.value_of("verbosity"), true, false);
+    let verbosity = matches.get_one::<String>("verbosity").map(|s| s.as_str());
+    SimpleLogger::init_prefix_timestamp(verbosity, true, false);
 
     #[cfg(feature = "debugger")]
-    let debug_this_flow = matches.is_present("debugger");
-    let native_flowstdlib = matches.is_present("native");
-    let lib_dirs = if matches.is_present("lib_dir") {
+    let debug_this_flow = matches.get_flag("debugger");
+    let native_flowstdlib = matches.get_flag("native");
+    let lib_dirs = if matches.contains_id("lib_dir") {
         matches
-            .values_of("lib_dir")
+            .get_many::<String>("lib_dir")
             .chain_err(|| "Could not get the list of 'LIB_DIR' options specified")?
             .map(|s| s.to_string())
             .collect()
@@ -189,9 +190,9 @@ fn run() -> Result<()> {
     let lib_search_path = set_lib_search_path(&lib_dirs)?;
 
     #[cfg(feature = "context")]
-    let mode = if matches.is_present("client") {
+    let mode = if matches.get_flag("client") {
         Mode::ClientOnly
-    } else if matches.is_present("server") {
+    } else if matches.get_flag("server") {
         Mode::ServerOnly
     } else {
         Mode::ClientAndServer
@@ -380,9 +381,13 @@ fn client_only(
     #[cfg(feature = "debugger")] debug_this_flow: bool,
 ) -> Result<()> {
     #[cfg(any(feature = "context", feature = "submission"))]
-    let mut runtime_server_info = ServerInfo::new(matches.value_of("address"));
+    let mut runtime_server_info = ServerInfo::new(
+        matches.get_one::<String>("address")
+            .map(|s| s.as_str()));
     #[cfg(feature = "debugger")]
-    let mut debug_server_info = ServerInfo::debug_info(matches.value_of("address"));
+    let mut debug_server_info = ServerInfo::debug_info(
+        matches.get_one::<String>("address")
+            .map(|s| s.as_str()));
 
     #[cfg(feature = "debugger")]
         let control_c_client_connection = if debug_this_flow {
@@ -430,12 +435,12 @@ fn client(
 
     #[cfg(feature = "context")]
     let flow_args = get_flow_args(&matches, &flow_manifest_url);
-    let max_parallel_jobs: Option<usize> = matches.value_of("jobs")
-        .and_then(|value| value.parse::<usize>().ok());
+    let parallel_jobs_limit = matches.get_one::<usize>("jobs")
+        .map(|i| i.to_owned());
     #[cfg(feature = "submission")]
     let submission = Submission::new(
         flow_manifest,
-        max_parallel_jobs,
+        parallel_jobs_limit,
         #[cfg(feature = "debugger")] debug_this_flow,
     );
 
@@ -443,7 +448,7 @@ fn client(
     let runtime_client = CliRuntimeClient::new(
         #[cfg(feature = "context")] flow_args,
         #[cfg(feature = "context")] override_args.clone(),
-        #[cfg(feature = "metrics")] matches.is_present("metrics"),
+        #[cfg(feature = "metrics")] matches.get_flag("metrics"),
     );
 
     #[cfg(feature = "debugger")]
@@ -474,15 +479,13 @@ fn client(
 fn num_threads(matches: &ArgMatches) -> usize {
     let mut num_threads: usize = 0;
 
-    if let Some(value) = matches.value_of("threads") {
-        if let Ok(threads) = value.parse::<usize>() {
-            if threads < 1 {
-                error!("Minimum number of additional threads is '1', \
-                so option has been overridden to be '1'");
-                num_threads = 1;
-            } else {
-                num_threads = threads;
-            }
+    if let Some(threads) = matches.get_one::<usize>("threads") {
+        if threads < &1 {
+            error!("Minimum number of additional threads is '1', \
+            so option has been overridden to be '1'");
+            num_threads = 1;
+        } else {
+            num_threads = *threads;
         }
     }
 
@@ -495,92 +498,92 @@ fn num_threads(matches: &ArgMatches) -> usize {
 
 // Parse the command line arguments using clap
 fn get_matches() -> ArgMatches {
-    let app = App::new(env!("CARGO_PKG_NAME"))
-        .setting(AppSettings::TrailingVarArg)
+    let app = Command::new(env!("CARGO_PKG_NAME"))
         .version(env!("CARGO_PKG_VERSION"));
 
-    let app = app.arg(Arg::with_name("jobs")
-        .short('j')
-        .long("jobs")
-        .takes_value(true)
-        .value_name("MAX_JOBS")
-        .help("Set maximum number of jobs that can be running in parallel)"))
-        .arg(Arg::with_name("lib_dir")
-            .short('L')
-            .long("libdir")
-            .number_of_values(1)
-            .multiple(true)
-            .value_name("LIB_DIR|BASE_URL")
-            .help("Add a directory or base Url to the Library Search path"))
-        .arg(Arg::with_name("threads")
-            .short('t')
-            .long("threads")
-            .takes_value(true)
-            .value_name("THREADS")
-            .help("Set number of threads to use to execute jobs (min: 1, default: cores available)"))
-        .arg(Arg::with_name("verbosity")
-            .short('v')
-            .long("verbosity")
-            .takes_value(true)
-            .value_name("VERBOSITY_LEVEL")
-            .help("Set verbosity level for output (trace, debug, info, warn, error (default))"))
-        .arg(Arg::with_name("flow-manifest")
-            .help("the file path of the 'flow' manifest file")
-            .required(false))
-        .arg(Arg::with_name("flow-arguments")
-            .help("A list of arguments to pass to the flow when executed.")
-            .takes_value(true)
-            .multiple_values(true));
-
-    let app = app.arg(
-        Arg::with_name("server")
-            .short('s')
-            .long("server")
-            .help("Launch as flowr server"),
-    );
-
-    let app = app.arg(
-        Arg::with_name("client")
-            .short('c')
-            .long("client")
-            .conflicts_with("server")
-            .help("Start flowr as a client to connect to a flowr server"),
-    );
-
-    let app = app.arg(
-        Arg::with_name("address")
-            .short('a')
-            .long("address")
-            .takes_value(true)
-            .value_name("ADDRESS")
-            .conflicts_with("server")
-            .help("The IP address of the flowr server to connect to"),
-    );
-
     #[cfg(feature = "debugger")]
-    let app = app.arg(
-        Arg::with_name("debugger")
+        let app = app.arg(
+        Arg::new("debugger")
             .short('d')
             .long("debugger")
+            .action(clap::ArgAction::SetTrue)
             .help("Enable the debugger when running a flow"),
     );
 
     #[cfg(feature = "metrics")]
-    let app = app.arg(
-        Arg::with_name("metrics")
+        let app = app.arg(
+        Arg::new("metrics")
             .short('m')
             .long("metrics")
+            .action(clap::ArgAction::SetTrue)
             .help("Calculate metrics during flow execution and print them out when done"),
     );
 
     #[cfg(not(feature = "wasm"))]
-    let app = app.arg(
-        Arg::with_name("native")
+        let app = app.arg(
+        Arg::new("native")
             .short('n')
             .long("native")
+            .action(clap::ArgAction::SetTrue)
             .conflicts_with("client")
             .help("Link with native (not WASM) version of flowstdlib"),
     );
+
+    let app = app
+        .arg(Arg::new("server")
+             .short('s')
+            .long("server")
+            .action(clap::ArgAction::SetTrue)
+            .help("Launch as flowr server"),
+        )
+        .arg(Arg::new("client")
+            .short('c')
+            .long("client")
+            .action(clap::ArgAction::SetTrue)
+            .conflicts_with("server")
+            .help("Start flowr as a client to connect to a flowr server"),
+        )
+        .arg(Arg::new("address")
+            .short('a')
+            .long("address")
+            .number_of_values(1)
+            .value_name("ADDRESS")
+            .conflicts_with("server")
+            .help("The IP address of the flowr server to connect to"),
+        )
+        .arg(Arg::new("jobs")
+            .short('j')
+            .long("jobs")
+            .number_of_values(1)
+            .value_name("MAX_JOBS")
+            .help("Set maximum number of jobs that can be running in parallel)"))
+        .arg(Arg::new("lib_dir")
+            .short('L')
+            .long("libdir")
+            .num_args(0..)
+            .number_of_values(1)
+            .value_name("LIB_DIR|BASE_URL")
+            .help("Add a directory or base Url to the Library Search path"))
+        .arg(Arg::new("threads")
+            .short('t')
+            .long("threads")
+            .number_of_values(1)
+            .value_name("THREADS")
+            .help("Set number of threads to use to execute jobs (min: 1, default: cores available)"))
+        .arg(Arg::new("verbosity")
+            .short('v')
+            .long("verbosity")
+            .number_of_values(1)
+            .value_name("VERBOSITY_LEVEL")
+            .help("Set verbosity level for output (trace, debug, info, warn, default: error)"))
+        .arg(Arg::new("flow-manifest")
+            .num_args(1)
+            .required(true)
+            .help("the file path of the 'flow' manifest file"))
+        .arg(Arg::new("flow_args")
+            .num_args(0..)
+            .trailing_var_arg(true)
+            .help("A list of arguments to pass to the flow."));
 
     app.get_matches()
 }
@@ -590,7 +593,8 @@ fn get_matches() -> ArgMatches {
 fn parse_flow_url(matches: &ArgMatches) -> Result<Url> {
     let cwd_url = Url::from_directory_path(env::current_dir()?)
         .map_err(|_| "Could not form a Url for the current working directory")?;
-    url_from_string(&cwd_url, matches.value_of("flow-manifest"))
+    url_from_string(&cwd_url, matches.get_one::<String>("flow-manifest")
+        .map(|s| s.as_str()))
 }
 
 // Set environment variable with the args this will not be unique, but it will be used very
@@ -601,9 +605,12 @@ fn get_flow_args(matches: &ArgMatches, flow_manifest_url: &Url) -> Vec<String> {
     let mut flow_args: Vec<String> = vec![flow_manifest_url.to_string()];
 
     // append any other arguments for the flow passed from the command line
-    if let Some(args) = matches.values_of("flow-arguments") {
-        flow_args.extend(args.map(|arg| arg.to_string()));
-    }
+    let additional_args = match matches.get_many::<String>("flow_args") {
+        Some(strings) => strings.map(|s| s.to_string()).collect(),
+        None => vec![]
+    };
+
+    flow_args.extend(additional_args);
 
     flow_args
 }

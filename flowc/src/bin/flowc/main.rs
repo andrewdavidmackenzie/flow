@@ -12,7 +12,7 @@ use std::env;
 use std::path::PathBuf;
 use std::process::exit;
 
-use clap::{App, AppSettings, Arg, ArgMatches};
+use clap::{Arg, ArgMatches, Command};
 use colored::*;
 use log::{debug, error, info, warn};
 use simpath::Simpath;
@@ -121,127 +121,141 @@ fn run() -> Result<()> {
     Parse the command line arguments using clap
 */
 fn get_matches() -> ArgMatches {
-    let app = App::new(env!("CARGO_PKG_NAME"))
-        .setting(AppSettings::TrailingVarArg)
-        .version(env!("CARGO_PKG_VERSION"))
+    let app = Command::new(env!("CARGO_PKG_NAME"))
+        .version(env!("CARGO_PKG_VERSION"));
+
+    #[cfg(feature = "debugger")]
+    let app = app.arg(
+        Arg::new("debug")
+            .short('d')
+            .long("debug")
+            .action(clap::ArgAction::SetTrue)
+            .help("Generate symbols for debugging. If executing the flow, do so with the debugger"),
+    );
+
+    let app = app
         .arg(
-            Arg::with_name("compile")
+            Arg::new("compile")
                 .short('c')
                 .long("compile")
-                .help("Compile (only) flow and implementations, do not execute"),
+                .action(clap::ArgAction::SetTrue)
+                .help("Compile the flow and implementations, but do not execute"),
         )
         .arg(
-            Arg::with_name("lib")
+            Arg::new("context_root")
+                .short('C')
+                .long("context_root")
+                .num_args(0..1)
+                .number_of_values(1)
+                .value_name("CONTEXT_DIRECTORY")
+                .help("Set the directory to use as the root dir for context function definitions"),
+        )
+        .arg(
+            Arg::new("lib")
                 .short('l')
                 .long("lib")
+                .action(clap::ArgAction::SetTrue)
                 .help("Compile a flow library"),
         )
         .arg(
-            Arg::with_name("native")
+            Arg::new("native")
                 .short('n')
                 .long("native")
+                .action(clap::ArgAction::SetTrue)
                 .help("Compile only native (not wasm) implementations when compiling a library")
                 .requires("lib"),
         )
         .arg(
-            Arg::with_name("lib_dir")
+            Arg::new("lib_dir")
                 .short('L')
                 .long("libdir")
+                .num_args(0..)
                 .number_of_values(1)
-                .multiple(true)
                 .value_name("LIB_DIR|BASE_URL")
                 .help("Add a directory or base Url to the Library Search path"),
         )
         .arg(
-            Arg::with_name("tables")
+            Arg::new("tables")
                 .short('t')
                 .long("tables")
+                .action(clap::ArgAction::SetTrue)
                 .help("Write flow and compiler tables to .dump and .dot files"),
         )
         .arg(
-            Arg::with_name("graphs")
+            Arg::new("graphs")
                 .short('g')
                 .long("graphs")
+                .action(clap::ArgAction::SetTrue)
                 .help("Create .dot files for graphs then generate SVGs with 'dot' command (if available)"),
         )
         .arg(
-            Arg::with_name("metrics")
+            Arg::new("metrics")
                 .short('m')
                 .long("metrics")
                 .conflicts_with("compile")
+                .action(clap::ArgAction::SetTrue)
                 .help("Show flow execution metrics when execution ends"),
         )
         .arg(
-            Arg::with_name("wasm")
+            Arg::new("wasm")
                 .short('w')
                 .long("wasm")
+                .action(clap::ArgAction::SetTrue)
                 .conflicts_with("compile")
                 .help("Use wasm library implementations when executing flow"),
         )
         .arg(
-            Arg::with_name("optimize")
+            Arg::new("optimize")
                 .short('O')
                 .long("optimize")
+                .action(clap::ArgAction::SetTrue)
                 .help("Optimize generated output (flows and wasm)"),
         )
         .arg(
-            Arg::with_name("provided")
+            Arg::new("provided")
                 .short('p')
                 .long("provided")
+                .action(clap::ArgAction::SetTrue)
                 .help("Provided function implementations should NOT be compiled from source"),
         )
         .arg(
-            Arg::with_name("output")
+            Arg::new("output")
                 .short('o')
                 .long("output")
-                .takes_value(true)
+                .num_args(0..1)
+                .number_of_values(1)
                 .value_name("OUTPUT_DIR")
                 .help("Specify the output directory for generated manifest"),
         )
         .arg(
-            Arg::with_name("verbosity")
+            Arg::new("verbosity")
                 .short('v')
                 .long("verbosity")
-                .takes_value(true)
+                .num_args(0..1)
+                .number_of_values(1)
                 .value_name("VERBOSITY_LEVEL")
                 .help("Set verbosity level for output (trace, debug, info, warn, error (default))"),
         )
         .arg(
-            Arg::with_name("stdin")
+            Arg::new("stdin")
                 .short('i')
                 .long("stdin")
-                .takes_value(true)
+                .num_args(0..1)
+                .number_of_values(1)
                 .value_name("STDIN_FILENAME")
                 .help("Read STDIN from the named file"),
         )
         .arg(
-            Arg::with_name("source_url")
-                .help("path/url for the 'flow' definition file or library")
-                .required(false)
+            Arg::new("source_url")
+                .num_args(1)
+                .help("path or url for the flow or library to compile")
         )
         .arg(
-            Arg::with_name("flow_args")
-                .help("Arguments that will get passed onto the flow if it is executed")
-                .takes_value(true)
-                .multiple_values(true),
+            Arg::new("flow_args")
+                .num_args(0..)
+                .trailing_var_arg(true)
+                .help("List of arguments get passed to the flow when executed")
         );
-
-    let app = app.arg(
-        Arg::with_name("context_root")
-            .short('C')
-            .long("context_root")
-            .number_of_values(1)
-            .value_name("CONTEXT_DIRECTORY")
-            .help("Set the directory to use as the root dir for context functions definitions"),
-    );
-
-    #[cfg(feature = "debugger")]
-    let app = app.arg(
-        Arg::with_name("debug")
-            .short('d')
-            .long("debug")
-            .help("Generate names for debugging. If executing the flow, do so with the debugger"),
-    );
 
     app.get_matches()
 }
@@ -250,12 +264,7 @@ fn get_matches() -> ArgMatches {
     Parse the command line arguments
 */
 fn parse_args(matches: ArgMatches) -> Result<Options> {
-    let mut flow_args: Vec<String> = vec![];
-    if let Some(args) = matches.values_of("flow_args") {
-        flow_args = args.map(|a| a.to_string()).collect();
-    }
-
-    let verbosity = matches.value_of("verbosity");
+    let verbosity = matches.get_one::<String>("verbosity").map(|s| s.as_str());
     SimpleLogger::init_prefix(verbosity, false);
 
     debug!(
@@ -269,15 +278,19 @@ fn parse_args(matches: ArgMatches) -> Result<Options> {
     let cwd_url = Url::from_directory_path(cwd)
         .map_err(|_| "Could not form a Url for the current working directory")?;
 
-    let url = url_from_string(&cwd_url, matches.value_of("source_url"))
+    let url = url_from_string(&cwd_url,
+                              matches.get_one::<String>("source_url")
+                                  .map(|s| s.as_str()))
         .chain_err(|| "Could not create a url for flow from the 'FLOW' command line parameter")?;
 
-    let output_dir = source_arg::get_output_dir(&url, matches.value_of("output"))
+    let output_dir = source_arg::get_output_dir(&url,
+                                                matches.get_one::<String>("output")
+                                                    .map(|s| s.as_str()))
         .chain_err(|| "Could not get or create the output directory")?;
 
-    let lib_dirs = if matches.is_present("lib_dir") {
+    let lib_dirs = if matches.contains_id("lib_dir") {
         matches
-            .values_of("lib_dir")
+            .get_many::<String>("lib_dir")
             .chain_err(|| "Could not get the list of 'LIB_DIR' options specified")?
             .map(|s| s.to_string())
             .collect()
@@ -285,31 +298,37 @@ fn parse_args(matches: ArgMatches) -> Result<Options> {
         vec![]
     };
 
-    let context_root = if matches.is_present("context_root") {
-        let root = PathBuf::from(matches.value_of("context_root")
-                                         .chain_err(|| "Could not get the 'CONTEXT_DIRECTORY' option specified")?);
+    let context_root = if matches.contains_id("context_root") {
+        let root_string = matches.get_one::<String>("context_root")
+            .ok_or("Could not get the 'CONTEXT_DIRECTORY' option specified")?;
+        let root = PathBuf::from(root_string);
         Some(root.canonicalize()?)
     } else {
         None
     };
 
+    let flow_args = match matches.get_many::<String>("flow_args") {
+        Some(strings) => strings.map(|s| s.to_string()).collect(),
+        None => vec![]
+    };
+
     Ok(Options {
-        lib: matches.is_present("lib"),
+        lib: matches.get_flag("lib"),
         source_url: url,
         flow_args,
-        tables_dump: matches.is_present("tables"),
-        graphs: matches.is_present("graphs"),
-        wasm_execution: matches.is_present("wasm"),
-        execution_metrics: matches.is_present("metrics"),
-        compile_only: matches.is_present("compile"),
-        debug_symbols: matches.is_present("debug"),
-        provided_implementations: matches.is_present("provided"),
+        tables_dump: matches.get_flag("tables"),
+        graphs: matches.get_flag("graphs"),
+        wasm_execution: matches.get_flag("wasm"),
+        execution_metrics: matches.get_flag("metrics"),
+        compile_only: matches.get_flag("compile"),
+        debug_symbols: matches.get_flag("debug"),
+        provided_implementations: matches.get_flag("provided"),
         output_dir,
-        stdin_file: matches.value_of("stdin").map(String::from),
+        stdin_file: matches.get_one::<String>("stdin").map(|s| s.to_string()),
         lib_dirs,
-        native_only: matches.is_present("native"),
+        native_only: matches.get_flag("native"),
         context_root,
-        verbosity: verbosity.map(|v| v.to_string()),
-        optimize: matches.is_present("optimize")
+        verbosity: verbosity.map(|s| s.to_string()),
+        optimize: matches.get_flag("optimize")
     })
 }
