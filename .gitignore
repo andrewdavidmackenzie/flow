@@ -7,3 +7,4 @@
 **/.rustc_info.json
 .cargo
 coverage.info
+coverage
