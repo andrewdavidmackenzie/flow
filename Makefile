@@ -3,7 +3,7 @@ ZMQ := $(shell brew ls --versions zmq 2> /dev/null)
 YUM := $(shell command -v yum 2> /dev/null)
 DNF := $(shell command -v dnf 2> /dev/null)
 BREW := $(shell command -v brew 2> /dev/null)
-ONLINE := $(shell ping -c 1 https://raw.githubusercontent.com > /dev/null 2>&1 ; echo $$?)
+ONLINE := $(shell ping -c 1 github.com > /dev/null 2>&1 ; echo $$?)
 export SHELL := /bin/bash
 
 ifeq ($(ONLINE),0)
