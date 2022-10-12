@@ -360,13 +360,6 @@ impl CliDebugClient {
                 let function_states = run_state.get_function_states(id);
                 println!("\tStates: {:?}", function_states);
 
-                if function_states.contains(&State::Running) {
-                    println!(
-                        "\t\tJob Numbers Running: {:?}",
-                        run_state.get_running().get_vec(&id)
-                    );
-                }
-
                 if function_states.contains(&State::Blocked) {
                     for block in run_state.get_blocks() {
                         if block.blocked_function_id == id {

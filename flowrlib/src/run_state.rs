@@ -201,8 +201,8 @@ pub struct RunState {
     blocks: HashSet<Block>,
     /// ready: Vec<function_id> - a list of functions by id that are ready to run
     ready: VecDeque<usize>,
-    /// running: MultiMap<function_id, job_id> - a list of functions and jobs ids that are running
-    running: MultiMap<usize, usize>,
+    /// running: HashMap<job_id, function_id> - a list of jobs and functions ids that are running
+    running: HashMap<usize, usize>,
     /// maintain a count of the number of jobs running
     num_running: usize,
     /// completed: functions that have run to completion and won't run again
@@ -227,7 +227,7 @@ impl RunState {
             blocked: HashSet::<usize>::new(),
             blocks: HashSet::<Block>::new(),
             ready: VecDeque::<usize>::new(),
-            running: MultiMap::<usize, usize>::new(),
+            running: HashMap::<usize, usize>::new(),
             num_running: 0,
             completed: HashSet::<usize>::new(),
             number_of_jobs_created: 0,
@@ -307,10 +307,6 @@ impl RunState {
             states.push(State::Blocked);
         }
 
-        if self.running.contains_key(&function_id) {
-            states.push(State::Running);
-        }
-
         if states.is_empty() {
             states.push(State::Waiting);
         }
@@ -331,9 +327,9 @@ impl RunState {
         &self.blocked
     }
 
-    /// Get a MultiMap (flow_id, function_id) of the currently running functions
-    #[cfg(feature = "debugger")]
-    pub fn get_running(&self) -> &MultiMap<usize, usize> {
+    /// Get a MultiMap (job_id, function_id) of the currently running jobs and functions
+    #[cfg(any(feature = "debugger", debug_assertions))]
+    pub fn get_running(&self) -> &HashMap<usize, usize> {
         &self.running
     }
 
@@ -394,7 +390,7 @@ impl RunState {
         };
 
         self.create_job(function_id).map(|job| {
-            self.running.insert(job.function_id, job.job_id);
+            self.running.insert(job.job_id, job.function_id);
             self.num_running += 1;
             let _ = self.block_external_flow_senders(job.job_id, job.function_id, job.flow_id);
             job
@@ -497,7 +493,7 @@ impl RunState {
         let mut display_next_output = false;
         let mut restart = false;
 
-        self.running.retain(|&_, &job_id| job_id != job.job_id);
+        self.running.remove(&job.job_id);
         self.num_running -= 1;
 
         match &job.result {
@@ -906,8 +902,7 @@ impl fmt::Display for RunState {
 
 #[cfg(test)]
 mod test {
-    use serde_json::json;
-    use serde_json::Value;
+    use serde_json::{json, Value};
     use url::Url;
 
     use flowcore::errors::Result;
@@ -1105,10 +1100,7 @@ mod test {
 
     mod general_run_state_tests {
         #[cfg(feature = "debugger")]
-                use std::collections::HashSet;
-
-        #[cfg(feature = "debugger")]
-                use multimap::MultiMap;
+        use std::collections::HashSet;
 
         use super::super::RunState;
 
@@ -1151,11 +1143,7 @@ mod test {
         fn zero_running_at_init() {
             let mut state = RunState::new(super::test_submission(vec![]));
             state.init();
-            assert_eq!(
-                &MultiMap::new(),
-                state.get_running(),
-                "At init get_running() should be empty"
-            );
+            assert!(state.get_running().is_empty(), "At init get_running() should be empty");
         }
 
         #[cfg(feature = "debugger")]
@@ -1290,15 +1278,18 @@ mod test {
         #[test]
         fn ready_to_running_on_next() {
             let f_a = super::test_function_a_init();
+            let id = f_a.id();
             let mut state = RunState::new(super::test_submission(vec![f_a]));
             state.init();
             assert!(state.function_state_is_only(0, State::Ready), "f_a should be Ready");
 
             // Event
-            let _ = state.new_job().expect("Couldn't get next job");
+            let job = state.new_job().expect("Couldn't get next job");
 
             // Test
-            assert!(state.function_state_is_only(0, State::Running), "f_a should be Running");
+            let function_id = state.running.get(&job.job_id)
+                .expect("Job should have been running");
+            assert_eq!(function_id, &id, "f_a should be the Running function");
         }
 
         #[test]
@@ -1344,6 +1335,8 @@ mod test {
                 &[],
                 false,
             );
+            let id = f_a.id();
+
             let mut state = RunState::new(super::test_submission(vec![f_a]));
             #[cfg(feature = "metrics")]
             let mut metrics = Metrics::new(1);
@@ -1357,7 +1350,8 @@ mod test {
             let job = state.new_job().expect("Couldn't get next job");
             assert_eq!(0, job.function_id, "next() should return function_id = 0");
 
-            assert!(state.function_state_is_only(0, State::Running), "f_a should be Running");
+            let function_id = state.running.get(&job.job_id).expect("Job with f_a should be Running");
+            assert_eq!(function_id, &id, "f_a should be the job running");
 
             // Event
             let job = test_job();
@@ -1381,6 +1375,8 @@ mod test {
         #[serial]
         fn running_to_waiting_on_done() {
             let f_a = super::test_function_a_init();
+            let id = f_a.id();
+
             let mut state = RunState::new(super::test_submission(vec![f_a]));
             #[cfg(feature = "metrics")]
             let mut metrics = Metrics::new(1);
@@ -1394,7 +1390,8 @@ mod test {
             let job = state.new_job().expect("Couldn't get next job");
             assert_eq!(0, job.function_id, "next() should return function_id = 0");
 
-            assert!(state.function_state_is_only(0, State::Running), "f_a should be Running");
+            let function_id = state.running.get(&job.job_id).expect("Job with f_a should be Running");
+            assert_eq!(function_id, &id, "f_a should be the job running");
 
             // Event
             let job = test_job();
@@ -1529,11 +1526,9 @@ mod test {
 
     /****************************** Miscellaneous tests **************************/
     mod functional_tests {
-        use serde_json::json;
         // Tests using Debugger (and hence Client/Server connection) need to be executed in parallel
         // to avoid multiple trying to bind to the same socket at the same time
         use serial_test::serial;
-        use url::Url;
 
         use flowcore::model::input::Input;
         #[cfg(feature = "metrics")]
@@ -1541,9 +1536,7 @@ mod test {
         use flowcore::model::output_connection::{OutputConnection, Source};
         use flowcore::model::runtime_function::RuntimeFunction;
 
-        use super::super::Job;
         use super::super::RunState;
-        use super::super::State;
 
         fn test_functions() -> Vec<RuntimeFunction> {
             let out_conn1 = OutputConnection::new(
@@ -1752,6 +1745,8 @@ mod test {
         #[serial]
         fn pure_function_no_destinations() {
             let f_a = super::test_function_a_init();
+            let _id = f_a.id();
+
             let mut state = RunState::new(super::test_submission(vec![f_a]));
             #[cfg(feature = "metrics")]
             let mut metrics = Metrics::new(1);
@@ -1762,28 +1757,16 @@ mod test {
 
             state.init();
 
-            state.new_job().expect("Couldn't get next job");
-
-            // Event run f_a
-            let job = Job {
-                job_id: 0,
-                function_id: 0,
-                flow_id: 0,
-                implementation_url: Url::parse("file://test").expect("Could not parse Url"),
-                input_set: vec![json!(1)],
-                result: Ok((Some(json!(1)), true)),
-                connections: vec![],
-            };
+            let job = state.new_job().expect("Couldn't get next job");
 
             // Test there is no problem producing an Output when no destinations to send it to
-            let _ = state.retire_job(
+            state.retire_job(
                 #[cfg(feature = "metrics")]
                 &mut metrics,
                 &job,
                 #[cfg(feature = "debugger")]
                 &mut debugger,
-            );
-            assert!(state.function_state_is_only(0, State::Running), "f_a should be Running");
+            ).expect("Failed to retire job correctly");
         }
     }
 }
