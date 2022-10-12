@@ -46,7 +46,7 @@ fn ready_check(state: &RunState, job_id: usize, function: &RuntimeFunction) -> R
 }
 
 fn running_check(state: &RunState, job_id: usize, function: &RuntimeFunction) -> Result<()> {
-    if !state.get_busy_flows().contains_key(&function.get_flow_id()) {
+    if state.get_running().contains(&job_id) && !state.get_busy_flows().contains_key(&function.get_flow_id()) {
         return runtime_error(
             state,
             job_id,
@@ -161,7 +161,7 @@ fn destination_block_state_check(state: &RunState, job_id: usize, block: &Block,
 fn flow_checks(state: &RunState, job_id: usize) -> Result<()> {
     for (flow_id, function_id) in state.get_busy_flows().iter() {
         let function_states = state.get_function_states(*function_id);
-        if !function_states.contains(&State::Ready) && !function_states.contains(&State::Running) {
+        if !function_states.contains(&State::Ready) && !state.get_running().contains(&job_id) {
             return runtime_error(
                 state,
                 job_id,
@@ -206,16 +206,17 @@ fn block_checks(state: &RunState, job_id: usize) -> Result<()> {
 }
 
 fn function_state_checks(state: &RunState, job_id: usize) -> Result<()> {
-    let functions = state.get_functions();
-    for function in functions {
+    for function in state.get_functions() {
+        running_check(state, job_id, function)?;
+
         let function_states = &state.get_function_states(function.id());
         for function_state in function_states {
             match function_state {
                 State::Ready => ready_check(state, job_id, function)?,
-                State::Running => running_check(state, job_id, function)?,
                 State::Blocked => blocked_check(state, job_id, function)?,
                 State::Waiting => waiting_check(state, job_id, function)?,
                 State::Completed => completed_check(state, job_id, function, function_states)?,
+                _ => {}
             }
         }
     }
@@ -348,21 +349,9 @@ mod test {
             .ok_or("No function").expect("No function")).expect("Should pass");
     }
 
-    #[test]
-    fn test_running_fails() {
-        let function = test_function(0, 0);
-        let state = test_state(vec![function]);
-
-        // do NOT mark flow_id as busy - to pass the running check a running function's flow_id
-        // should be in the list of busy flows
-
-        // this running check should fail
-        assert!(running_check(&state, 0, state.get_function(0)
-            .ok_or("No function").expect("No function")).is_err());
-    }
-
     #[cfg(feature = "debugger")]
     struct DummyServer;
+
     #[cfg(feature = "debugger")]
     impl DebuggerProtocol for DummyServer {
         fn start(&mut self) {}
