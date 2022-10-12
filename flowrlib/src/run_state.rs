@@ -201,8 +201,8 @@ pub struct RunState {
     blocks: HashSet<Block>,
     /// ready: Vec<function_id> - a list of functions by id that are ready to run
     ready: VecDeque<usize>,
-    /// running: HashMap<job_id, function_id> - a list of jobs and functions ids that are running
-    running: HashMap<usize, usize>,
+    /// running: set of jobs that are running
+    running: HashSet<usize>,
     /// maintain a count of the number of jobs running
     num_running: usize,
     /// completed: functions that have run to completion and won't run again
@@ -227,7 +227,7 @@ impl RunState {
             blocked: HashSet::<usize>::new(),
             blocks: HashSet::<Block>::new(),
             ready: VecDeque::<usize>::new(),
-            running: HashMap::<usize, usize>::new(),
+            running: HashSet::<usize>::new(),
             num_running: 0,
             completed: HashSet::<usize>::new(),
             number_of_jobs_created: 0,
@@ -327,9 +327,9 @@ impl RunState {
         &self.blocked
     }
 
-    /// Get a MultiMap (job_id, function_id) of the currently running jobs and functions
+    /// Get a Set (job_id) of the currently running jobs
     #[cfg(any(feature = "debugger", debug_assertions))]
-    pub fn get_running(&self) -> &HashMap<usize, usize> {
+    pub fn get_running(&self) -> &HashSet<usize> {
         &self.running
     }
 
@@ -390,7 +390,7 @@ impl RunState {
         };
 
         self.create_job(function_id).map(|job| {
-            self.running.insert(job.job_id, job.function_id);
+            self.running.insert(job.job_id);
             self.num_running += 1;
             let _ = self.block_external_flow_senders(job.job_id, job.function_id, job.flow_id);
             job
@@ -1278,7 +1278,6 @@ mod test {
         #[test]
         fn ready_to_running_on_next() {
             let f_a = super::test_function_a_init();
-            let id = f_a.id();
             let mut state = RunState::new(super::test_submission(vec![f_a]));
             state.init();
             assert!(state.function_state_is_only(0, State::Ready), "f_a should be Ready");
@@ -1287,9 +1286,8 @@ mod test {
             let job = state.new_job().expect("Couldn't get next job");
 
             // Test
-            let function_id = state.running.get(&job.job_id)
+            state.running.get(&job.job_id)
                 .expect("Job should have been running");
-            assert_eq!(function_id, &id, "f_a should be the Running function");
         }
 
         #[test]
@@ -1335,7 +1333,6 @@ mod test {
                 &[],
                 false,
             );
-            let id = f_a.id();
 
             let mut state = RunState::new(super::test_submission(vec![f_a]));
             #[cfg(feature = "metrics")]
@@ -1350,8 +1347,7 @@ mod test {
             let job = state.new_job().expect("Couldn't get next job");
             assert_eq!(0, job.function_id, "next() should return function_id = 0");
 
-            let function_id = state.running.get(&job.job_id).expect("Job with f_a should be Running");
-            assert_eq!(function_id, &id, "f_a should be the job running");
+            state.running.get(&job.job_id).expect("Job with f_a should be Running");
 
             // Event
             let job = test_job();
@@ -1375,7 +1371,6 @@ mod test {
         #[serial]
         fn running_to_waiting_on_done() {
             let f_a = super::test_function_a_init();
-            let id = f_a.id();
 
             let mut state = RunState::new(super::test_submission(vec![f_a]));
             #[cfg(feature = "metrics")]
@@ -1390,8 +1385,7 @@ mod test {
             let job = state.new_job().expect("Couldn't get next job");
             assert_eq!(0, job.function_id, "next() should return function_id = 0");
 
-            let function_id = state.running.get(&job.job_id).expect("Job with f_a should be Running");
-            assert_eq!(function_id, &id, "f_a should be the job running");
+            state.running.get(&job.job_id).expect("Job with f_a should be Running");
 
             // Event
             let job = test_job();
