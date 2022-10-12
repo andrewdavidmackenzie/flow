@@ -889,7 +889,7 @@ impl RunState {
 
 impl fmt::Display for RunState {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        writeln!(f, "{}\n", self.submission)?;
+        writeln!(f, "         Submission:\n{}", self.submission)?;
 
         writeln!(f, "RunState:")?;
         writeln!(f, "       Jobs Created: {}", self.number_of_jobs_created)?;
