@@ -153,8 +153,9 @@ impl<'a> Coordinator<'a> {
                             )?;
                         }
 
-                        #[cfg(feature = "debugger")]
                         Err(err) => {
+                            error!("\t{}", e.to_string());
+                            #[cfg(feature = "debugger")]
                             if state.submission.debug {
                                 (display_next_output, restart) = self.debugger.error(
                                     &mut state, err.to_string())?;
@@ -163,8 +164,6 @@ impl<'a> Coordinator<'a> {
                                 }
                             }
                         }
-                        #[cfg(not(feature = "debugger"))]
-                        Err(e) => error!("\t{}", e.to_string()),
                     }
                 }
 
