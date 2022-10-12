@@ -154,7 +154,7 @@ impl<'a> Coordinator<'a> {
                         }
 
                         Err(err) => {
-                            error!("\t{}", e.to_string());
+                            error!("\t{}", err.to_string());
                             #[cfg(feature = "debugger")]
                             if state.submission.debug {
                                 (display_next_output, restart) = self.debugger.error(
