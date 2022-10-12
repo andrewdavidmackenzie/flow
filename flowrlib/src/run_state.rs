@@ -368,7 +368,7 @@ impl RunState {
     }
 
     // Return a new job to run, if there is one and there are not too many jobs already running
-    pub(crate) fn new_job(&mut self) -> Option<Job> {
+    pub(crate) fn get_job(&mut self) -> Option<Job> {
         if let Some(limit) = self.submission.max_parallel_jobs {
             if self.number_jobs_running() >= limit {
                 trace!("Max Pending Job count of {limit} reached, skipping new jobs");
@@ -389,12 +389,14 @@ impl RunState {
             },
         };
 
-        self.create_job(function_id).map(|job| {
-            self.running.insert(job.job_id);
-            self.num_running += 1;
-            let _ = self.block_external_flow_senders(job.job_id, job.function_id, job.flow_id);
-            job
-        })
+        self.create_job(function_id)
+    }
+
+    // Update the run_state to reflect that the job is now running
+    pub(crate) fn start_job(&mut self, job: &Job) -> Result<()>{
+        self.running.insert(job.job_id);
+        self.num_running += 1;
+        self.block_external_flow_senders(job.job_id, job.function_id, job.flow_id)
     }
 
     // The function with id `blocker_function_id` in the flow with id `blocked_flow_id` has had a
@@ -493,7 +495,9 @@ impl RunState {
         let mut display_next_output = false;
         let mut restart = false;
 
-        self.running.remove(&job.job_id);
+        if !self.running.remove(&job.job_id) {
+            bail!("Job#{} was not running, so not applying results returned", job.job_id)
+        }
         self.num_running -= 1;
 
         match &job.result {
@@ -1283,7 +1287,8 @@ mod test {
             assert!(state.function_state_is_only(0, State::Ready), "f_a should be Ready");
 
             // Event
-            let job = state.new_job().expect("Couldn't get next job");
+            let job = state.get_job().expect("Couldn't get next job");
+            state.start_job(&job).expect("Could not start job");
 
             // Test
             state.running.get(&job.job_id)
@@ -1298,7 +1303,7 @@ mod test {
             assert!(state.function_state_is_only(0, State::Waiting), "f_a should be Waiting");
 
             // Event
-            assert!(state.new_job().is_none(), "next_job() should return None");
+            assert!(state.get_job().is_none(), "next_job() should return None");
 
             // Test
             assert!(state.function_state_is_only(0, State::Waiting), "f_a should be Waiting");
@@ -1344,20 +1349,21 @@ mod test {
 
             state.init();
             assert!(state.function_state_is_only(0, State::Ready), "f_a should be Ready");
-            let job = state.new_job().expect("Couldn't get next job");
+            let job = state.get_job().expect("Couldn't get next job");
             assert_eq!(0, job.function_id, "next() should return function_id = 0");
+            state.start_job(&job).expect("Could not start job");
 
             state.running.get(&job.job_id).expect("Job with f_a should be Running");
 
             // Event
             let job = test_job();
-            let _ = state.retire_job(
+            state.retire_job(
                 #[cfg(feature = "metrics")]
                 &mut metrics,
                 &job,
                 #[cfg(feature = "debugger")]
                 &mut debugger,
-            );
+            ).expect("Problem retiring job");
 
             // Test
             assert!(
@@ -1382,20 +1388,21 @@ mod test {
 
             state.init();
             assert!(state.function_state_is_only(0, State::Ready), "f_a should be Ready");
-            let job = state.new_job().expect("Couldn't get next job");
+            let job = state.get_job().expect("Couldn't get next job");
             assert_eq!(0, job.function_id, "next() should return function_id = 0");
+            state.start_job(&job).expect("Could not start job");
 
             state.running.get(&job.job_id).expect("Job with f_a should be Running");
 
             // Event
             let job = test_job();
-            let _ = state.retire_job(
+            state.retire_job(
                 #[cfg(feature = "metrics")]
                 &mut metrics,
                 &job,
                 #[cfg(feature = "debugger")]
                 &mut debugger,
-            );
+            ).expect("Problem retiring job");
 
             // Test
             assert!(state.function_state_is_only(0, State::Waiting),
@@ -1443,14 +1450,15 @@ mod test {
 
             // Event run f_b which will send to f_a
             let job = super::test_job(&mut state, 1, 0);
+            state.start_job(&job).expect("Could not start job");
 
-            let _ = state.retire_job(
+            state.retire_job(
                 #[cfg(feature = "metrics")]
                 &mut metrics,
                 &job,
                 #[cfg(feature = "debugger")]
                 &mut debugger,
-            );
+            ).expect("Problem retiring job");
 
             // Test
             assert!(state.function_state_is_only(0, State::Ready), "f_a should be Ready");
@@ -1505,13 +1513,15 @@ mod test {
 
             // create output from f_b as if it had run - will send to f_a
             let job = super::test_job(&mut state, 1, 0);
-            let _ = state.retire_job(
+            state.start_job(&job).expect("Could not start job");
+
+            state.retire_job(
                 #[cfg(feature = "metrics")]
                 &mut metrics,
                 &job,
                 #[cfg(feature = "debugger")]
                 &mut debugger,
-            );
+            ).expect("Problem retiring job");
 
             // Test
             assert!(state.function_state_is_only(0, State::Ready), "f_a should be Ready");
@@ -1627,7 +1637,7 @@ mod test {
         #[test]
         fn no_next_if_none_ready() {
             let mut state = RunState::new(super::test_submission(test_functions()));
-            assert!(state.new_job().is_none());
+            assert!(state.get_job().is_none());
         }
 
         #[test]
@@ -1637,7 +1647,7 @@ mod test {
             // Put 0 on the blocked/ready
             state.make_ready_or_blocked(0, 0);
 
-            state.new_job().expect("Couldn't get next job");
+            state.get_job().expect("Couldn't get next job");
         }
 
         #[test]
@@ -1647,7 +1657,7 @@ mod test {
             // Put 0 on the blocked/ready list depending on blocked status
             state.make_ready_or_blocked(0, 0);
 
-            state.new_job().expect("Couldn't get next job");
+            state.get_job().expect("Couldn't get next job");
         }
 
         #[test]
@@ -1673,7 +1683,7 @@ mod test {
             // Put 0 on the blocked/ready list depending on blocked status
             state.make_ready_or_blocked(0, 0);
 
-            assert!(state.new_job().is_none());
+            assert!(state.get_job().is_none());
         }
 
         #[test]
@@ -1709,14 +1719,14 @@ mod test {
             // Put 0 on the blocked/ready list depending on blocked status
             state.make_ready_or_blocked(0, 0);
 
-            assert!(state.new_job().is_none());
+            assert!(state.get_job().is_none());
 
             // now unblock 0 by 1
             state.block_external_flow_senders(0, 1, 0)
                 .expect("Could not unblock");
 
             // Now function with id 0 should still not be ready as still blocked on 2
-            assert!(state.new_job().is_none());
+            assert!(state.get_job().is_none());
         }
 
         #[test]
@@ -1726,9 +1736,9 @@ mod test {
 
             state.init();
 
-            let _ = state.new_job().expect("Couldn't get next job");
+            let _ = state.get_job().expect("Couldn't get next job");
 
-            assert!(state.new_job().is_none(), "Did not expect a Ready job!");
+            assert!(state.get_job().is_none(), "Did not expect a Ready job!");
         }
 
         /*
@@ -1751,7 +1761,8 @@ mod test {
 
             state.init();
 
-            let job = state.new_job().expect("Couldn't get next job");
+            let job = state.get_job().expect("Couldn't get next job");
+            state.start_job(&job).expect("Could not start job");
 
             // Test there is no problem producing an Output when no destinations to send it to
             state.retire_job(

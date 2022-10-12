@@ -214,10 +214,9 @@ impl<'a> Coordinator<'a> {
         let mut display_output = false;
         let mut restart = false;
 
-        while let Some(job) = state.new_job() {
+        while let Some(job) = state.get_job() {
             match self.dispatch_a_job(
                 &job,
-                #[cfg(feature = "metrics")]
                 state,
                 #[cfg(feature = "metrics")]
                 metrics,
@@ -243,11 +242,13 @@ impl<'a> Coordinator<'a> {
     fn dispatch_a_job(
         &mut self,
         job: &Job,
-        #[cfg(feature = "metrics")] state: &mut RunState,
+        state: &mut RunState,
         #[cfg(feature = "metrics")] metrics: &mut Metrics,
     ) -> Result<(bool, bool)> {
         #[cfg(not(feature = "debugger"))]
         let debug_options = (false, false);
+
+        state.start_job(job)?;
 
         #[cfg(feature = "metrics")]
         metrics.track_max_jobs(state.number_jobs_running());
