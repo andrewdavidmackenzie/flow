@@ -16,7 +16,6 @@ use std::path::PathBuf;
 use std::process::exit;
 #[cfg(any(feature = "context", feature = "submission"))]
 use std::sync::{Arc, Mutex};
-use std::time::Duration;
 
 use clap::{Arg, ArgMatches, Command};
 use log::{error, info, warn};
