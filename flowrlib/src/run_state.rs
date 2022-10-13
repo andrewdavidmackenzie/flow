@@ -892,15 +892,15 @@ impl fmt::Display for RunState {
         writeln!(f, "         Submission:\n{}", self.submission)?;
 
         writeln!(f, "RunState:")?;
-        writeln!(f, "       Jobs Created: {}", self.number_of_jobs_created)?;
-        writeln!(f, "       Jobs Running: {}", self.num_running)?;
-        writeln!(f, ". Functions Blocked: {:?}", self.blocked)?;
-        writeln!(f, "             Blocks: {:?}", self.blocks)?;
-        writeln!(f, "    Functions Ready: {:?}", self.ready)?;
-        writeln!(f, "  Functions Running: {:?}", self.running)?;
-        writeln!(f, "Functions Completed: {:?}", self.completed)?;
-        writeln!(f, "         Flows Busy: {:?}", self.busy_flows)?;
-        write!(f, "     Pending Unblocks: {:?}", self.flow_blocks)
+        writeln!(f, "          Jobs Created: {}", self.number_of_jobs_created)?;
+        writeln!(f, "Number of Jobs Running: {}", self.num_running)?;
+        writeln!(f, "          Jobs Running: {:?}", self.running)?;
+        writeln!(f, "     Functions Blocked: {:?}", self.blocked)?;
+        writeln!(f, "                Blocks: {:?}", self.blocks)?;
+        writeln!(f, "       Functions Ready: {:?}", self.ready)?;
+        writeln!(f, "   Functions Completed: {:?}", self.completed)?;
+        writeln!(f, "            Flows Busy: {:?}", self.busy_flows)?;
+        write!(f, "        Pending Unblocks: {:?}", self.flow_blocks)
     }
 }
 
@@ -1096,6 +1096,7 @@ mod test {
     fn test_submission(functions: Vec<RuntimeFunction>) -> Submission {
         Submission::new(
             test_manifest(functions),
+            None,
             None,
             #[cfg(feature = "debugger")]
                 true,

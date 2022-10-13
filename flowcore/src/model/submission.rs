@@ -15,7 +15,7 @@ pub struct Submission {
     /// An optional maximum number of jobs you want dispatched/executing in parallel
     pub max_parallel_jobs: Option<usize>,
     /// The Duration to wait before timing out when waiting for jobs to complete
-    pub job_timeout: Duration,
+    pub job_timeout: Option<Duration>,
     /// Whether to debug the flow while executing it
     #[cfg(feature = "debugger")]
     pub debug: bool,
@@ -28,6 +28,7 @@ impl Submission {
     pub fn new(
         manifest: FlowManifest,
         max_parallel_jobs: Option<usize>,
+        job_timeout: Option<Duration>,
         #[cfg(feature = "debugger")] debug: bool,
     ) -> Submission {
         if let Some(limit) = max_parallel_jobs {
@@ -37,7 +38,7 @@ impl Submission {
         Submission {
             manifest,
             max_parallel_jobs,
-            job_timeout: Duration::from_secs(60),
+            job_timeout,
             #[cfg(feature = "debugger")]
             debug,
         }

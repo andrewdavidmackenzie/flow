@@ -441,6 +441,7 @@ fn client(
     let submission = Submission::new(
         flow_manifest,
         parallel_jobs_limit,
+        None, // No timeout waiting for job results
         #[cfg(feature = "debugger")] debug_this_flow,
     );
 

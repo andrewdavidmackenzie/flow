@@ -134,18 +134,6 @@ fn start_local_executors(
     }
 }
 
-// Start a sender / receiver process that sends Jobs out for remote execution to peers and
-// receives them back (with results) and sends them back to coordinator
-/*fn start_p2p_sender_receiver(
-    job_get_receiver: Arc<Mutex<Receiver<Job>>>,
-    _job_tx: &Sender<Job>) {
-    let _ = thread::spawn(move || {
-        loop {
-            let _ = get_and_send_job(&job_get_receiver);
-        }
-    });
-}*/
-
 fn create_executor_thread(
                     provider: Arc<dyn Provider>,
                     name: String,
@@ -156,14 +144,18 @@ fn create_executor_thread(
 ) {
     let builder = thread::Builder::new();
     let _ = builder.spawn(move || {
+        let mut process_jobs = true;
+
         set_panic_hook();
 
-        loop {
-            let _ = get_and_execute_job(provider.clone(), &job_receiver, &job_sender,
+        while process_jobs {
+            match get_and_execute_job(provider.clone(), &job_receiver, &job_sender,
                                         &name,
                                         loaded_implementations.clone(),
-                                            loaded_lib_manifests.clone()
-                );
+                                            loaded_lib_manifests.clone()) {
+                Ok(keep_processing) => process_jobs = keep_processing,
+                Err(e) => error!("{}", e)
+            }
         }
     });
 }
@@ -187,22 +179,7 @@ fn set_panic_hook() {
     }));
 }
 
-// Take a job from the channel and if possible, send it out for execution among peers
-/*fn get_and_send_job(
-    job_get_receiver: &Arc<Mutex<Receiver<Job>>>,
-) -> Result<()> {
-    let guard = job_get_receiver
-        .lock()
-        .map_err(|e| format!("Error locking receiver to get job: '{}'", e))?;
-    let _job = guard
-        .recv()
-        .map_err(|e| format!("Error receiving job for execution: '{}'", e))?;
-        // TODO replace implementation_location with content digest so others on the network can
-        // TODO request the content for it's implementation
-    //send(job, job_return_sender)
-    Ok(())
-}*/
-
+/// Return Ok(keep_processing) flag as true or false to keep processing
 fn get_and_execute_job(
     provider: Arc<dyn Provider>,
     job_receiver: &Arc<Mutex<Receiver<Job>>>,
@@ -210,18 +187,21 @@ fn get_and_execute_job(
     name: &str,
     loaded_implementations: Arc<RwLock<HashMap<Url, Arc<dyn Implementation>>>>,
     loaded_lib_manifests: Arc<RwLock<HashMap<Url, (LibraryManifest, Url)>>>,
-) -> Result<()> {
+) -> Result<bool> {
     let guard = job_receiver
         .lock()
         .map_err(|e| format!("Error locking receiver to get job: '{}'", e))?;
-    let job = guard
-        .recv()
-        .map_err(|e| format!("Error receiving job for execution: '{}'", e))?;
+    // return Ok(false) to end processing loop if channel is shut down by parent process
+    let job = match guard.recv() {
+        Ok(j) => j,
+        Err(_) => return Ok(false)
+    };
 
-    trace!("Job received for execution: {}", job);
+    trace!("Job #{} received for execution: {}", job.job_id, job);
     let mut implementations = loaded_implementations.try_write()
         .map_err(|_| "Could not gain write access to loaded implementations map")?;
     if implementations.get(&job.implementation_url).is_none() {
+        trace!("Implementation at '{}' is not loaded", job.implementation_url);
         let implementation = match job.implementation_url.scheme() {
             "lib" => {
                 let mut lib_root_url = job.implementation_url.clone();
@@ -244,12 +224,15 @@ fn get_and_execute_job(
             _ => bail!("Unsupported scheme on implementation_url")
         };
         implementations.insert(job.implementation_url.clone(), implementation);
+        trace!("Implementation '{}' added to executor", job.implementation_url);
     }
 
     let implementation = implementations.get(&job.implementation_url)
         .ok_or("Could not find implementation")?;
 
-    execute_job(job, job_sender, name, implementation)
+    execute_job(job, job_sender, name, implementation)?;
+
+    Ok(true)
 }
 
 fn execute_job(
@@ -264,12 +247,10 @@ fn execute_job(
     job_tx.send(job).chain_err(|| "Error sending job result back after execution")
 }
 
-// Load a WASM Implementation from a "file://" Url
+// Load a WASM `Implementation` from the `implementation_url` using the supplied `Provider`
 fn resolve_implementation(provider: Arc<dyn Provider>,
                           implementation_url: &Url,
 ) -> Result<Arc<dyn Implementation>> {
-    format!("Implementation at '{}' is not loaded", implementation_url);
-    // load the supplied implementation for the function from wasm file referenced
     let wasm_executor = wasm::load(&* provider, implementation_url)?;
     Ok(Arc::new(wasm_executor) as Arc<dyn Implementation>)
 }
