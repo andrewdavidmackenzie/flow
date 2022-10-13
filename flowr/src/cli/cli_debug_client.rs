@@ -457,6 +457,7 @@ mod test {
         Submission::new(
             test_manifest(functions),
             None,
+            None,
             #[cfg(feature = "debugger")]
                 true,
         )

@@ -159,11 +159,13 @@ fn create_executor_thread(
         set_panic_hook();
 
         loop {
-            let _ = get_and_execute_job(provider.clone(), &job_receiver, &job_sender,
+            if let Err(e) = get_and_execute_job(provider.clone(), &job_receiver, &job_sender,
                                         &name,
                                         loaded_implementations.clone(),
                                             loaded_lib_manifests.clone()
-                );
+                ) {
+                error!("{}", e);
+            }
         }
     });
 }
@@ -218,7 +220,7 @@ fn get_and_execute_job(
         .recv()
         .map_err(|e| format!("Error receiving job for execution: '{}'", e))?;
 
-    trace!("Job received for execution: {}", job);
+    trace!("Job #{} received for execution: {}", job.job_id, job);
     let mut implementations = loaded_implementations.try_write()
         .map_err(|_| "Could not gain write access to loaded implementations map")?;
     if implementations.get(&job.implementation_url).is_none() {
@@ -244,6 +246,7 @@ fn get_and_execute_job(
             _ => bail!("Unsupported scheme on implementation_url")
         };
         implementations.insert(job.implementation_url.clone(), implementation);
+        trace!("Implementation '{}' added to executor", job.implementation_url);
     }
 
     let implementation = implementations.get(&job.implementation_url)
@@ -268,9 +271,10 @@ fn execute_job(
 fn resolve_implementation(provider: Arc<dyn Provider>,
                           implementation_url: &Url,
 ) -> Result<Arc<dyn Implementation>> {
-    format!("Implementation at '{}' is not loaded", implementation_url);
+    trace!("Implementation at '{}' is not loaded", implementation_url);
     // load the supplied implementation for the function from wasm file referenced
     let wasm_executor = wasm::load(&* provider, implementation_url)?;
+    trace!("Implementation at '{}' is now loaded", implementation_url);
     Ok(Arc::new(wasm_executor) as Arc<dyn Implementation>)
 }
 

@@ -3,7 +3,7 @@ use std::fs::File;
 use std::io::prelude::*;
 use std::path::Path;
 
-use log::{debug, trace};
+use log::trace;
 use url::Url;
 
 use crate::errors::*;
@@ -96,7 +96,7 @@ impl FileProvider {
         // for that file path, try with all the allowed file extensions
         for extension in extensions {
             file_with_extension.set_extension(extension);
-            debug!("Looking for file '{}'", file_with_extension.display());
+            trace!("Looking for file '{}'", file_with_extension.display());
             if let Ok(md) = fs::metadata(&file_with_extension) {
                 if md.is_file() {
                     let file_path_as_url =
@@ -111,12 +111,10 @@ impl FileProvider {
                 }
             }
         }
-
-        bail!(
-            "No file found at path '{}' with any of these extensions '{:?}'",
-            file.display(),
-            extensions
-        )
+        let msg = format!("No file found at path '{}' with any of these extensions '{:?}'",
+                            file.display(), extensions);
+        trace!("{}", msg);
+        bail!(msg)
     }
 }
 

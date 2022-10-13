@@ -441,6 +441,7 @@ fn client(
     let submission = Submission::new(
         flow_manifest,
         parallel_jobs_limit,
+        None,
         #[cfg(feature = "debugger")] debug_this_flow,
     );
 
