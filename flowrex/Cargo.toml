@@ -21,8 +21,8 @@ path = "src/main.rs"
 default = ["flowstdlib"]
 
 [dependencies]
-# Build a minimal flowcore crate with just a p2p_provider in it
-flowcore = {path = "../flowcore", version = "0.70.0", default-features = false, features = ["p2p_provider"]}
+# Build a minimal flowcore crate
+flowcore = {path = "../flowcore", version = "0.70.0", default-features = false, features = []}
 flowrlib = {path = "../flowrlib", version = "0.70.0"}
 flowstdlib = {path = "../flowstdlib", version = "0.70.0", optional = true }
 simplog = { version = "~1.5" }
