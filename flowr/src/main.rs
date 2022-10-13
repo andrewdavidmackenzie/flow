@@ -16,6 +16,7 @@ use std::path::PathBuf;
 use std::process::exit;
 #[cfg(any(feature = "context", feature = "submission"))]
 use std::sync::{Arc, Mutex};
+use std::time::Duration;
 
 use clap::{Arg, ArgMatches, Command};
 use log::{error, info, warn};
@@ -441,7 +442,7 @@ fn client(
     let submission = Submission::new(
         flow_manifest,
         parallel_jobs_limit,
-        None,
+        None, // No timeout waiting for job results
         #[cfg(feature = "debugger")] debug_this_flow,
     );
 

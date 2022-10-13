@@ -157,7 +157,7 @@ impl FlowManifest {
         // context: and lib: URLs will be untouched
         // relative path locations to the manifest_url to file:// using the manifest Url as the base
         for function in &mut manifest.functions {
-            function.set_implementation_url(manifest_url)?;
+            function.set_implementation_url(&resolved_url)?;
         }
 
         Ok((manifest, url))
