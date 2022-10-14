@@ -28,7 +28,6 @@ online_tests = []
 meta_provider = []
 file_provider = []
 http_provider = []
-p2p_provider = ["libp2p"]
 
 [dependencies]
 serde_json = { version = "1.0", default-features = false, features = ["alloc"] }
@@ -40,8 +39,6 @@ shrinkwraprs = { version = "0.3.0" }
 serde = { version = "~1.0.147"}
 toml = { version = "0.5.8" }
 serde_yaml = { version = "~0.9" }
-
-libp2p = {version = "0.44.0", features = ["mdns"], optional = true}
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 curl = {version = "~0.4" }
