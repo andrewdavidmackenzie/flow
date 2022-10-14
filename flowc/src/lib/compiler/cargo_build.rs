@@ -42,7 +42,7 @@ fn cargo_test(manifest_path: PathBuf, build_dir: PathBuf) -> Result<()> {
 
     let manifest_arg = format!("--manifest-path={}", manifest_path.display());
     let target_dir_arg = format!("--target-dir={}", build_dir.display());
-    let test_args = vec!["test", &manifest_arg, &target_dir_arg];
+    let test_args = vec!["+nightly", "test", &manifest_arg, &target_dir_arg];
 
     println!(
         "   {} {} WASM Project",
@@ -89,7 +89,7 @@ fn cargo_build(
         implementation_source_path.display()
     );
 
-    let mut command_args = vec!["build"];
+    let mut command_args = vec!["+nightly", "build"];
 
     if release_build {
         command_args.push("--release");

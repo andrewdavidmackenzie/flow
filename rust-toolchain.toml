@@ -1,4 +1,0 @@
-[toolchain]
-# force a working nightly for minimal-lexical dependency
-# see: https://github.com/Alexhuszagh/minimal-lexical/issues/14#issuecomment-1186389682
-channel = "nightly"
