@@ -7,17 +7,19 @@
 /// from peers.
 
 use std::{env, thread};
+use std::path::PathBuf;
 use std::process::exit;
 use std::sync::Arc;
 
 use clap::{Arg, ArgMatches, Command};
 use log::{error, info, warn};
+use simpath::Simpath;
 use simplog::SimpleLogger;
 #[cfg(feature = "flowstdlib")]
 use url::Url;
 
 use flowcore::errors::*;
-use flowcore::p2p_provider::P2pProvider;
+use flowcore::meta_provider::MetaProvider;
 use flowcore::provider::Provider;
 use flowrlib::executor::Executor;
 use flowrlib::info as flowrlib_info;
@@ -67,7 +69,8 @@ fn run() -> Result<()> {
 // loading a flow and it's library references, then enter the `submission_loop()` accepting and
 // executing flows submitted for execution, executing each one using the `Coordinator`
 fn server(num_threads: usize) -> Result<()> {
-    let provider = Arc::new(P2pProvider::new()) as Arc<dyn Provider>;
+    let provider = Arc::new(MetaProvider::new(Simpath::new(""),
+        PathBuf::from("/"))) as Arc<dyn Provider>;
     #[allow(unused_mut)]
     let mut executor = Executor::new(provider, num_threads, None);
 
