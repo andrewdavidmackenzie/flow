@@ -1,0 +1,32 @@
+# Internal workspace under /src/ dir of flowstdlib to be able to share target directory for
+# all the compilations of all the projects to WASM
+[workspace]
+members = ["control/compare_switch", "control/index", "control/join", "control/route", "control/select", "control/tap",
+    "data/accumulate", "data/append", "data/count", "data/duplicate", "data/duplicate_rows", "data/enumerate",
+    "data/info", "data/multiply_row", "data/ordered_split", "data/remove", "data/sort", "data/split", "data/transpose",
+    "data/zip", "fmt/reverse", "fmt/to_json", "fmt/to_string", "math/add", "math/compare", "math/divide",
+    "math/multiply", "math/range_split", "math/sqrt", "math/subtract"
+]
+
+[workspace.package]
+name = "flow-stdlib-wasm"
+description = "The standard library of functions and flows for 'flow' programs"
+version = "0.70.0"
+authors = ["Andrew Mackenzie <andrew@mackenzie-serres.net>"]
+license = "MIT"
+documentation = "https://github.com/andrewdavidmackenzie/flow/README.md"
+homepage = "http://andrewdavidmackenzie.github.io/flow/"
+repository = "https://github.com/andrewdavidmackenzie/flow/"
+readme = "README.md"
+edition = "2021"
+
+[profile.dev]
+split-debuginfo = "unpacked"
+
+[dependencies]
+flowcore = {path = "../../../../flowcore", version = "0.70.0"}
+flowmacro = {path = "../../../../flowmacro", version = "0.70.0"}
+serde_json = { version = "1.0", default-features = false }
+
+[workspace]
+exclude = [".."]

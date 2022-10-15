@@ -39,6 +39,9 @@ error-chain = "0.12.2"
 
 [dev-dependencies]
 tempdir = "~0.3.5"
+flowcore = {path = "../flowcore", version = "0.70.0"}
+flowmacro = {path = "../flowmacro", version = "0.70.0"}
+serde_json = { version = "1.0", default-features = false }
 
 [build-dependencies]
 simpath = { version = "~2.3", features = ["urls"]}
