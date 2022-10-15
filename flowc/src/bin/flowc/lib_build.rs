@@ -41,7 +41,7 @@ pub fn build_lib(options: &Options, provider: &dyn Provider) -> Result<()> {
         .map_err(|_| "Could not convert Url to File path")?;
 
     let build_count = compile_implementations(
-        &lib_root_path,
+        &lib_root_path.join("src"),
         options,
         &mut lib_manifest,
         provider,
@@ -147,7 +147,7 @@ fn compile_implementations(
     );
 
     let glob = Glob::new("**/*.toml").map_err(|_| "Globbing error")?;
-    for entry in glob.walk(lib_root_path.join("src")) {
+    for entry in glob.walk(lib_root_path) {
         match &entry {
             Ok(walk_entry) => {
                 let toml_path = walk_entry.path();
