@@ -19,11 +19,11 @@ maintenance = { status = "actively-developed" }
 
 [[bin]]
 name = "flowstdlib"
-path = "main.rs"
+path = "src/main.rs"
 
 [lib]
 name = "flowstdlib"
-path = "lib.rs"
+path = "src/lib.rs"
 
 [features]
 default = []

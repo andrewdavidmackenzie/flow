@@ -147,7 +147,7 @@ fn compile_implementations(
     );
 
     let glob = Glob::new("**/*.toml").map_err(|_| "Globbing error")?;
-    for entry in glob.walk(lib_root_path) {
+    for entry in glob.walk(lib_root_path.join("src")) {
         match &entry {
             Ok(walk_entry) => {
                 let toml_path = walk_entry.path();
