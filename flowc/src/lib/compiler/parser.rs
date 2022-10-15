@@ -23,7 +23,7 @@ use crate::errors::*;
 /// `LibType` describes what format the Flow Library is written in
 #[derive(PartialEq, Eq)]
 pub enum LibType {
-    /// `RustLib` indicates that the library is written in rust with a FlowCargo.toml to compile it natively
+    /// `RustLib` indicates that the library is written in rust with a Cargo.toml to compile it natively
     RustLib,
 }
 
@@ -169,7 +169,7 @@ fn parse_process(
 }
 
 /// load library metadata from the given url using the provider.
-/// Currently it uses the `package` table of FlowCargo.toml as a source but it could
+/// Currently it uses the `package` table of Cargo.toml as a source but it could
 /// easily use another file as along as it has the required fields to satisfy `MetaData` struct
 pub fn parse_metadata(url: &Url, provider: &dyn Provider) -> Result<(MetaData, LibType)> {
     trace!("Loading Metadata");

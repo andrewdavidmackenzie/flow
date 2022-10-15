@@ -135,6 +135,6 @@ fn load_library() {
     let meta_provider = MetaProvider::new(helper::set_lib_search_path_to_project(),
                                               helper::get_canonical_context_root()
     );
-    let path = helper::absolute_file_url_from_relative_path("flowc/tests/test_libs/FlowCargo.toml");
+    let path = helper::absolute_file_url_from_relative_path("flowc/tests/test_libs/Cargo.toml");
     parser::parse_metadata(&path, &meta_provider).expect("Could not load metadata");
 }

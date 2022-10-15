@@ -39,7 +39,7 @@ jobs:
         path: |
           ~/.cargo
           target/
-        key: ${{ runner.os }}-cargo_cache-${{ hashFiles('FlowCargo.toml') }}
+        key: ${{ runner.os }}-cargo_cache-${{ hashFiles('Cargo.toml') }}
         restore-keys: |
           ${{ runner.os }}-cargo_cache-${{ hashFiles('Cargo.toml') }}
           ${{ runner.os }}-cargo_cache-
