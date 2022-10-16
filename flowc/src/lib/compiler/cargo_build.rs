@@ -64,6 +64,7 @@ fn cargo_test(manifest_path: PathBuf) -> Result<()> {
 */
 fn cargo_build(
     manifest_path: PathBuf,
+    mut cargo_target_dir: PathBuf, // where binary is built by cargo
     release_build: bool,
     implementation_source_path: &Path,
     wasm_destination: &Path,
@@ -115,40 +116,31 @@ fn cargo_build(
     // no error occurred, so move the built files to final destination and clean-up
     let mut wasm_filename = implementation_source_path.to_path_buf();
     wasm_filename.set_extension("wasm");
-    let mut wasm_build_location = manifest_path.parent()
-        .chain_err(|| "Could not get directory where Cargo.toml resides")?
-        .to_path_buf();
 
-    if release_build {
-        wasm_build_location.push("target/wasm32-unknown-unknown/release/");
-    } else {
-        wasm_build_location.push("target/wasm32-unknown-unknown/debug/");
-    }
-
-    wasm_build_location.push(
-        wasm_filename
-            .file_name()
-            .ok_or("Could not convert filename to str")?,
-    );
+    cargo_target_dir.push(wasm_filename.file_name().ok_or("Could not convert filename to str")?);
 
     // move compiled wasm output into destination location
     debug!(
         "\tMoving built wasm file from '{}' to '{}'",
-        &wasm_build_location.display(),
+        &cargo_target_dir.display(),
         &wasm_destination.display()
     );
-    fs::rename(&wasm_build_location, wasm_destination)
-        .chain_err(|| "Could not move WASM to destination")
+    fs::rename(&cargo_target_dir, wasm_destination)
+        .chain_err(|| format!("Could not move WASM from '{}' to '{}'",
+                              cargo_target_dir.display(),
+                              wasm_destination.display()))
 }
 
 /// Run the cargo build to compile wasm from function source
-pub fn run(implementation_source_path: &Path, wasm_destination: &Path, release_build: bool) -> Result<()> {
+pub fn run(implementation_source_path: &Path, target_dir: PathBuf, wasm_destination: &Path, release_build: bool) -> Result<()> {
     let mut cargo_toml = implementation_source_path.to_path_buf();
     cargo_toml.set_file_name("Cargo.toml");
 
     cargo_test(cargo_toml.clone())?;
+
     cargo_build(
         cargo_toml.clone(),
+        target_dir,
         release_build,
         implementation_source_path,
         wasm_destination,

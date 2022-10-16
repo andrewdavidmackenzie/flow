@@ -20,13 +20,18 @@ repository = "https://github.com/andrewdavidmackenzie/flow/"
 readme = "README.md"
 edition = "2021"
 
-[profile.dev]
+[workspace.profile.release]
+debug = false
+lto = true
+codegen-units = 1
+opt-level = 's' # Optimize for size
+panic = 'abort' # About unwinding code
+strip = "debuginfo"
+
+[workspace.profile.dev]
 split-debuginfo = "unpacked"
 
-[dependencies]
-flowcore = {path = "../../../../flowcore", version = "0.70.0"}
-flowmacro = {path = "../../../../flowmacro", version = "0.70.0"}
+[workspace.dependencies]
+flowcore = {path = "../../flowcore", version = "0.70.0"}
+flowmacro = {path = "../../flowmacro", version = "0.70.0"}
 serde_json = { version = "1.0", default-features = false }
-
-[workspace]
-exclude = [".."]
