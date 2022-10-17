@@ -302,12 +302,12 @@ mod test {
         // `flowstdlib` can be found under the root of the project at `tree/master/flowstdlib` on github
         search_path.add_url(
             &Url::parse(
-                "https://raw.githubusercontent.com/andrewdavidmackenzie/flow/master/flowstdlib",
+                "https://raw.githubusercontent.com/andrewdavidmackenzie/flow/master/flowstdlib/src",
             )
             .expect("Could not parse the url for Simpath"),
         );
 
-        let expected_url = Url::parse("https://raw.githubusercontent.com/andrewdavidmackenzie/flow/master/flowstdlib/control/tap/tap.toml")
+        let expected_url = Url::parse("https://raw.githubusercontent.com/andrewdavidmackenzie/flow/master/flowstdlib/src/control/tap/tap.toml")
             .expect("Couldn't parse expected Url");
 
         let provider = &MetaProvider::new(search_path,
@@ -315,7 +315,7 @@ mod test {
                                           PathBuf::from("/")
         );
 
-        let lib_url = Url::parse("lib://flowstdlib/control/tap").expect("Couldn't create Url");
+        let lib_url = Url::parse("lib://src/control/tap").expect("Couldn't create Url");
         let (resolved_url, _) = provider
             .resolve_url(&lib_url, "", &["toml"])
             .expect("Couldn't resolve library on the web");
