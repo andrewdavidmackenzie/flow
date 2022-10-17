@@ -1,0 +1,15 @@
+[package]
+name = "ordered_split"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+
+[lib]
+name = "ordered_split"
+crate-type = ["cdylib"]
+path = "ordered_split.rs"
+
+[dependencies]
+flowcore = { workspace = true }
+flowmacro = { workspace = true }
+serde_json = { workspace = true, default-features = false }

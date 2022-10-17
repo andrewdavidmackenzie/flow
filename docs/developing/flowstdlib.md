@@ -6,10 +6,10 @@ See also: [Code docs](http://andrewdavidmackenzie.github.io/flow/code/doc/flowst
 
 ## Modules
 `flowstdlib` contains the following modules:
-  * [`control`](../../flowstdlib/control/control.md)
-  * [`data`](../../flowstdlib/data/data.md)
-  * [`fmt`](../../flowstdlib/fmt/fmt.md)
-  * [`math`](../../flowstdlib/math/math.md)
+  * [`control`](../../flowstdlib/src/control/control.md)
+  * [`data`](../../flowstdlib/src/data/data.md)
+  * [`fmt`](../../flowstdlib/src/fmt/fmt.md)
+  * [`math`](../../flowstdlib/src/math/math.md)
 
 ## Use by the Compiler
 In order for the compiler to be able to find the library's `flow` and `function` definitions, the directory containing

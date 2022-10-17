@@ -143,7 +143,7 @@ impl MetaProvider {
                 Ok((lib_root_url, lib_reference))
             }
             _ => bail!(
-                "Could not resolve library Url '{}' using library search path: {}",
+                "Could not resolve library Url '{}' using {}",
                 url,
                 self.lib_search_path
             ),
@@ -256,15 +256,14 @@ mod test {
     }
 
     #[cfg(feature = "file_provider")]
-    fn set_lib_search_path() -> Simpath {
+    fn get_lib_search_path() -> Simpath {
         let mut lib_search_path = Simpath::new("lib_search_path");
-        let root_str = Path::new(env!("CARGO_MANIFEST_DIR"))
-            .parent()
-            .expect("Could not get project root dir");
+        let tests_str = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("tests");
         lib_search_path.add_directory(
-            root_str
+            tests_str
                 .to_str()
-                .expect("Could not get root path as string"),
+                .expect("Could not get tests/ path as string"),
         );
         println!("{}", lib_search_path);
         lib_search_path
@@ -277,19 +276,19 @@ mod test {
             .parent()
             .expect("Could not get project root dir");
         let expected_url = Url::parse(&format!(
-            "file://{}/flowstdlib/control/tap/tap.toml",
+            "file://{}/flowcore/tests/test-flows/control/compare_switch/compare_switch.toml",
             root_str.display()
         ))
         .expect("Could not create expected url");
-        let provider = &MetaProvider::new(set_lib_search_path(),
+        let provider = &MetaProvider::new(get_lib_search_path(),
                                           #[cfg(feature = "context")]
                                           PathBuf::from("/")
         ) as &dyn Provider;
-        let lib_url = Url::parse("lib://flowstdlib/control/tap").expect("Couldn't form Url");
+        let lib_url = Url::parse("lib://test-flows/control/compare_switch").expect("Couldn't form Url");
         match provider.resolve_url(&lib_url, "", &["toml"]) {
             Ok((url, lib_ref)) => {
                 assert_eq!(url, expected_url);
-                assert_eq!(lib_ref, Some(Url::parse("lib://flowstdlib/control/tap")
+                assert_eq!(lib_ref, Some(Url::parse("lib://test-flows/control/compare_switch")
                     .expect("Could not parse Url")));
             }
             Err(_) => panic!("Error trying to resolve url"),

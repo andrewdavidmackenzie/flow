@@ -1,0 +1,15 @@
+[package]
+name = "sqrt"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+
+[lib]
+name = "sqrt"
+crate-type = ["cdylib"]
+path = "sqrt.rs"
+
+[dependencies]
+flowcore = { workspace = true }
+flowmacro = { workspace = true }
+serde_json = { workspace = true, default-features = false }

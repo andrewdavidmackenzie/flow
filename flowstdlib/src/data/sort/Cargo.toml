@@ -1,0 +1,15 @@
+[package]
+name = "sort"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+
+[lib]
+name = "sort"
+crate-type = ["cdylib"]
+path = "sort.rs"
+
+[dependencies]
+flowcore = { workspace = true }
+flowmacro = { workspace = true }
+serde_json = { workspace = true, default-features = false }

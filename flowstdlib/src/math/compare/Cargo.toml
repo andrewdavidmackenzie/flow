@@ -1,0 +1,15 @@
+[package]
+name = "compare"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+
+[lib]
+name = "compare"
+crate-type = ["cdylib"]
+path = "compare.rs"
+
+[dependencies]
+flowcore = { workspace = true }
+flowmacro = { workspace = true }
+serde_json = { workspace = true, default-features = false }

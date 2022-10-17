@@ -1,5 +1,5 @@
 use std::collections::{BTreeMap, BTreeSet};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use log::{debug, info};
 use serde_derive::Serialize;
@@ -109,7 +109,8 @@ impl CompilerTables {
 
 /// Take a hierarchical flow definition in memory and compile it, generating a manifest for execution
 /// of the flow, including references to libraries required.
-pub fn compile(flow: &FlowDefinition, output_dir: &Path,
+pub fn compile(flow: &FlowDefinition,
+               output_dir: &Path,
                skip_building: bool,
                optimize: bool,
                #[cfg(feature = "debugger")] source_urls: &mut BTreeSet<(Url, Url)>,
@@ -135,6 +136,22 @@ pub fn compile(flow: &FlowDefinition, output_dir: &Path,
     Ok(tables)
 }
 
+/// Calculate the paths to the source file of the implementation of the function to be compiled
+/// and where to output the compiled wasm.
+/// out_dir optionally overrides the destination directory where the wasm should end up
+pub fn get_paths(wasm_output_dir: &Path, function: &FunctionDefinition) -> Result<(PathBuf, PathBuf)> {
+    let source_url = function.get_source_url().join(function.get_source())?;
+
+    let source_path = source_url
+        .to_file_path()
+        .map_err(|_| "Could not convert source url to file path")?;
+
+    let mut wasm_path = wasm_output_dir.join(function.get_source());
+    wasm_path.set_extension("wasm");
+
+    Ok((source_path, wasm_path))
+}
+
 // For any function that provides an implementation - compile the source to wasm and modify the
 // implementation to indicate it is the wasm file
 fn compile_supplied_implementations(
@@ -146,8 +163,19 @@ fn compile_supplied_implementations(
 ) -> Result<String> {
     for function in &mut tables.functions {
         if function.get_lib_reference().is_none() && function.get_context_reference().is_none() {
+            let (implementation_source_path, wasm_destination) = get_paths(out_dir, function)?;
+            let mut cargo_target_dir = implementation_source_path.parent()
+                .ok_or("Could not get directory where Cargo.toml resides")?.to_path_buf();
+            if release_build {
+                cargo_target_dir.push("target/wasm32-unknown-unknown/release/");
+            } else {
+                cargo_target_dir.push("target/wasm32-unknown-unknown/debug/");
+            }
+
             compile_wasm::compile_implementation(
-                out_dir,
+                cargo_target_dir,
+                &wasm_destination,
+                implementation_source_path,
                 function,
                 skip_building,
                 release_build,
@@ -260,6 +288,7 @@ mod test {
     use std::collections::BTreeMap;
     #[cfg(feature = "debugger")]
     use std::collections::BTreeSet;
+    use std::path::Path;
 
     use tempdir::TempDir;
     use url::Url;
@@ -269,10 +298,11 @@ mod test {
     use flowcore::model::function_definition::FunctionDefinition;
     use flowcore::model::io::IO;
     use flowcore::model::name::{HasName, Name};
+    use flowcore::model::output_connection::{OutputConnection, Source};
     use flowcore::model::process_reference::ProcessReference;
     use flowcore::model::route::Route;
 
-    use crate::compiler::compile::compile;
+    use crate::compiler::compile::{compile, get_paths};
 
     mod get_source_tests {
         use std::collections::BTreeMap;
@@ -284,15 +314,15 @@ mod test {
         use super::super::get_source;
 
         /*
-                                                                                            Create a HashTable of routes for use in tests.
-                                                                                            Each entry (K, V) is:
-                                                                                            - Key   - the route to a function's IO
-                                                                                            - Value - a tuple of
-                                                                                                        - sub-route (or IO name) from the function to be used at runtime
-                                                                                                        - the id number of the function in the functions table, to select it at runtime
+                    Create a HashTable of routes for use in tests.
+                    Each entry (K, V) is:
+                    - Key   - the route to a function's IO
+                    - Value - a tuple of
+                                - sub-route (or IO name) from the function to be used at runtime
+                                - the id number of the function in the functions table, to select it at runtime
 
-                                                                                            Plus a vector of test cases with the Route to search for and the expected function_id and output sub-route
-                                                                                        */
+                    Plus a vector of test cases with the Route to search for and the expected function_id and output sub-route
+                */
         #[allow(clippy::type_complexity)]
         fn test_source_routes() -> (
             BTreeMap<Route, (Source, usize)>,
@@ -425,5 +455,65 @@ mod test {
             Ok(_tables) => panic!("Flow should not compile when it has no side-effects"),
             Err(e) => assert_eq!("Flow has no side-effects", e.description()),
         }
+    }
+
+    fn test_function() -> FunctionDefinition {
+        FunctionDefinition::new(
+            "Stdout".into(),
+            false,
+            "test.rs".to_string(),
+            "print".into(),
+            vec![IO::new(vec!(STRING_TYPE.into()), Route::default())],
+            vec![IO::new(vec!(STRING_TYPE.into()), Route::default())],
+            Url::parse(&format!(
+                "file://{}/{}",
+                env!("CARGO_MANIFEST_DIR"),
+                "tests/test-functions/test/test"
+            ))
+                .expect("Could not create source Url"),
+            Route::from("/flow0/stdout"),
+            Some(Url::parse("lib::/tests/test-functions/test/test")
+                .expect("Could not parse Url")),
+            None,
+            vec![OutputConnection::new(
+                Source::default(),
+                1,
+                0,
+                0,
+                String::default(),
+                #[cfg(feature = "debugger")]
+                    String::default(),
+            )],
+            0,
+            0,
+        )
+    }
+
+    #[test]
+    fn paths_test() {
+        let function = test_function();
+
+        let target_dir = TempDir::new("flow")
+            .expect("Could not create TempDir during testing")
+            .into_path();
+        let expected_output_wasm = target_dir.join("test.wasm");
+
+        let (impl_source_path, impl_wasm_path) =
+            get_paths(&target_dir, &function).expect("Error in 'get_paths'");
+
+        assert_eq!(
+            format!(
+                "{}/{}",
+                Path::new(env!("CARGO_MANIFEST_DIR"))
+                    .parent()
+                    .expect("Error getting Manifest Dir")
+                    .display(),
+                "flowc/tests/test-functions/test/test.rs"
+            ),
+            impl_source_path
+                .to_str()
+                .expect("Error converting path to str")
+        );
+        assert_eq!(expected_output_wasm, impl_wasm_path);
     }
 }

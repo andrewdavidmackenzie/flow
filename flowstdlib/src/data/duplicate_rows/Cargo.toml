@@ -1,0 +1,15 @@
+[package]
+name = "duplicate_rows"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+
+[lib]
+name = "duplicate_rows"
+crate-type = ["cdylib"]
+path = "duplicate_rows.rs"
+
+[dependencies]
+flowcore = { workspace = true }
+flowmacro = { workspace = true }
+serde_json = { workspace = true, default-features = false }
