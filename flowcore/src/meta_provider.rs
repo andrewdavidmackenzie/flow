@@ -143,7 +143,7 @@ impl MetaProvider {
                 Ok((lib_root_url, lib_reference))
             }
             _ => bail!(
-                "Could not resolve library Url '{}' using library search path: {}",
+                "Could not resolve library Url '{}' using {}",
                 url,
                 self.lib_search_path
             ),

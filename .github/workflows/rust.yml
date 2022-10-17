@@ -23,7 +23,7 @@ jobs:
     - uses: actions/checkout@v2
 
     - name: SetupFlowLibPath
-      run: echo "FLOW_LIB_PATH/target=$GITHUB_WORKSPACE" >> "$GITHUB_ENV"
+      run: echo "FLOW_LIB_PATH=$GITHUB_WORKSPACE/target" >> "$GITHUB_ENV"
 
     - name: Install latest nightly
       uses: actions-rs/toolchain@v1
