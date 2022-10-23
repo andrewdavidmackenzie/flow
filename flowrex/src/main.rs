@@ -72,7 +72,7 @@ fn server(num_threads: usize) -> Result<()> {
     let provider = Arc::new(MetaProvider::new(Simpath::new(""),
         PathBuf::from("/"))) as Arc<dyn Provider>;
     #[allow(unused_mut)]
-    let mut executor = Executor::new(provider, num_threads, None);
+    let mut executor = Executor::new(provider, num_threads, None)?;
 
     #[cfg(feature = "flowstdlib")]
     executor.add_lib(
