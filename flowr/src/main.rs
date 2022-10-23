@@ -331,8 +331,9 @@ fn server(
                                      #[cfg(feature = "context")]
                                          PathBuf::from("/")
     )) as Arc<dyn Provider>;
+
     #[allow(unused_mut)]
-    let mut executor = Executor::new(provider, num_threads, None);
+    let mut executor = Executor::new(provider, num_threads, None)?;
 
     // Add the native context functions to functions available for use by the executor
     #[cfg(feature = "context")]

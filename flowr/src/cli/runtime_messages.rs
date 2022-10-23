@@ -170,8 +170,8 @@ impl From<ServerMessage> for String {
 }
 
 impl From<String> for ServerMessage {
-    fn from(msg: String) -> Self {
-        match serde_json::from_str(&msg) {
+    fn from(string: String) -> Self {
+        match serde_json::from_str(&string) {
             Ok(message) => message,
             _ => ServerMessage::Invalid,
         }
@@ -188,8 +188,8 @@ impl From<ClientMessage> for String {
 }
 
 impl From<String> for ClientMessage {
-    fn from(msg: String) -> Self {
-        match serde_json::from_str(&msg) {
+    fn from(string: String) -> Self {
+        match serde_json::from_str(&string) {
             Ok(message) => message,
             _ => ClientMessage::Invalid,
         }
