@@ -167,6 +167,7 @@ fn create_executor_thread(
         set_panic_hook();
 
         while process_jobs {
+            debug!("{name} waiting for a job to execute");
             match get_and_execute_job(provider.clone(),
                                         &job_source,
                                         &results_sink,
@@ -208,10 +209,11 @@ fn get_and_execute_job(
     let message_string = msg.as_str().ok_or("Could not get message as str")?;
     let mut job: Job = serde_json::from_str(message_string).map_err(|_| "Could not deserialize Message to Job")?;
 
-    trace!("Job #{} received for execution: {}", job.job_id, job);
+    trace!("Job #{}: Received for execution: {}", job.job_id, job);
 
-    let mut implementations = loaded_implementations.try_write()
-        .map_err(|_| "Could not gain write access to loaded implementations map")?;
+    // ADM see if we can avoid write access until we know it's needed
+    let mut implementations = loaded_implementations.write()
+        .map_err(|_| "Could not gain read access to loaded implementations map")?;
     if implementations.get(&job.implementation_url).is_none() {
         trace!("Implementation at '{}' is not loaded", job.implementation_url);
         let implementation = match job.implementation_url.scheme() {
