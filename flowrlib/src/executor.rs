@@ -17,6 +17,9 @@ use flowcore::provider::Provider;
 use crate::job::Job;
 use crate::wasm;
 
+const JOB_SOURCE_NAME: &str  = "inproc://job-source";
+const RESULTS_SINK_NAME: &str  = "inproc://results-sink";
+
 /// Executor structure holds information required to send jobs for execution and receive results back
 /// It can load libraries and keep track of the `Function` `Implementations` used in execution.
 pub struct Executor {
@@ -46,13 +49,13 @@ impl Executor {
         let mut context = zmq::Context::new();
         let job_source = context.socket(zmq::PUSH)
             .map_err(|_| "Could not create job source socket")?;
-        job_source.bind("inproc://job-source")
+        job_source.bind(JOB_SOURCE_NAME)
             .map_err(|_| "Could not connect to job-source socket")?;
         //push_socket.connect("tcp://127.0.0.1:3456").unwrap();
 
         let results_sink = context.socket(zmq::PULL)
             .map_err(|_| "Could not create results sink socket")?;
-        results_sink.bind("inproc://results-sink")
+        results_sink.bind(RESULTS_SINK_NAME)
             .map_err(|_| "Could not connect to results-sink socket")?;
         //pull_socket.connect("tcp://127.0.0.1:3457").unwrap();
 
@@ -138,13 +141,19 @@ fn start_executors(
 ) -> Result<()> {
     info!("Starting {} executor threads", number_of_executors);
     for executor_number in 0..number_of_executors {
-        create_executor_thread(
-                    provider.clone(),
-            format!("Executor #{executor_number}"),
-            context.clone(),
-            loaded_implementations.clone(),
-            loaded_lib_manifests.clone(),
-        )?; // clone of Arcs and Sender OK
+        let thread_provider = provider.clone();
+        let thread_context = context.clone();
+        let thread_implementations = loaded_implementations.clone();
+        let thread_loaded_manifests = loaded_lib_manifests.clone();
+        thread::spawn(move || {
+            create_executor_thread(
+                        thread_provider,
+                format!("Executor #{executor_number}"),
+                thread_context,
+                thread_implementations,
+                thread_loaded_manifests,
+            ) // clone of Arcs and Sender OK
+        });
     }
 
     Ok(())
@@ -157,34 +166,33 @@ fn create_executor_thread(
                    loaded_implementations: Arc<RwLock<HashMap<Url, Arc<dyn Implementation>>>>,
                    loaded_lib_manifests: Arc<RwLock<HashMap<Url, (LibraryManifest, Url)>>>,
 ) -> Result<()> {
-    let _ = thread::spawn(move || {
-        let job_source = context.socket(zmq::PULL)
-            .expect("Could not create PULL end of job-source socket");
-        job_source.connect("inproc://job-source")
-            .expect("Could not bind to PULL end of job-source  socket");
+    let job_source = context.socket(zmq::PULL)
+        .map_err(|_| "Could not create PULL end of job-source socket")?;
+    job_source.connect(JOB_SOURCE_NAME)
+        .map_err(|_| "Could not bind to PULL end of job-source  socket")?;
 
-        let results_sink = context.socket(zmq::PUSH)
-            .expect("Could not createPUSH end of results-sink socket");
-        results_sink.connect("inproc://results-sink")
-            .expect("Could not connect to PULL end of results-sink socket");
+    let results_sink = context.socket(zmq::PUSH)
+        .map_err(|_| "Could not createPUSH end of results-sink socket")?;
+    results_sink.connect(RESULTS_SINK_NAME)
+        .map_err(|_| "Could not connect to PULL end of results-sink socket")?;
 
-        let mut process_jobs = true;
+    let mut process_jobs = true;
 
-        set_panic_hook();
+    set_panic_hook();
 
-        while process_jobs {
-            debug!("{name} waiting for a job to execute");
-            match get_and_execute_job(provider.clone(),
-                                        &job_source,
-                                        &results_sink,
-                                        &name,
-                                        loaded_implementations.clone(),
-                                            loaded_lib_manifests.clone()) {
-                Ok(keep_processing) => process_jobs = keep_processing,
-                Err(e) => error!("{}", e)
-            }
+    while process_jobs {
+        trace!("{name} waiting for a job to execute");
+        match get_and_execute_job(provider.clone(),
+                                    &job_source,
+                                    &results_sink,
+                                    &name,
+                                    loaded_implementations.clone(),
+                                        loaded_lib_manifests.clone()) {
+            Ok(keep_processing) => process_jobs = keep_processing,
+            Err(e) => error!("{}", e)
         }
-    });
+        trace!("{name} finished executing job");
+    }
 
     Ok(())
 }
