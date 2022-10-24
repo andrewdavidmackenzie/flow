@@ -18,12 +18,13 @@ name = "flowr"
 path = "src/main.rs"
 
 [features]
-default = ["context", "submission", "debugger", "flowstdlib", "metrics"]
+default = ["context", "submission", "debugger", "flowstdlib", "metrics", "executor"]
 # Make sure flowcore is compiled with "context" feature if we plan to use it
 context = ["flowcore/context", "flowrlib/context", "ctrlc", "image"]
 submission = ["flowrlib/submission"] # Client functionality to send a submission to the Coordinator
 debugger = ["flowrlib/debugger", "flowcore/debugger", "rustyline"] # feature to add the debugger, requires flowrlib and flowcore crate to have feature enabled also
 metrics = ["flowrlib/metrics"]  # feature for tracking of metrics during execution - requires flowrlib with metrics also
+executor = [] # Include an executor for jobs
 
 [dependencies]
 flowcore = {path = "../flowcore", version = "0.70.0"}
