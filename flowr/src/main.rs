@@ -236,14 +236,13 @@ fn server_only(num_threads: usize, lib_search_path: Simpath, native_flowstdlib: 
 
     info!("Starting 'flowr' server process in main thread");
     server(
-        num_threads,
-        lib_search_path,
-        native_flowstdlib,
+        #[cfg(feature = "executor")] num_threads,
+        #[cfg(feature = "executor")] lib_search_path,
+        #[cfg(feature = "executor")] native_flowstdlib,
         #[cfg(any(feature = "context", feature = "submission"))]
         runtime_server_connection,
-        #[cfg(feature = "debugger")]
-        debug_server_connection,
-        true,
+        #[cfg(feature = "debugger")] debug_server_connection,
+        #[cfg(feature = "submission")] true,
     )?;
 
     info!("'flowr' server process has exited");
@@ -277,14 +276,12 @@ fn client_and_server(
     thread::spawn(move || {
         info!("Starting 'flowr' server in background thread");
         let _ = server(
-            num_threads,
-            server_lib_search_path,
-            native,
-            #[cfg(any(feature = "context", feature = "submission"))]
-            runtime_server_connection,
-            #[cfg(feature = "debugger")]
-            debug_server_connection,
-            false,
+            #[cfg(feature = "executor")] num_threads,
+            #[cfg(feature = "executor")] server_lib_search_path,
+            #[cfg(feature = "executor")] native,
+            #[cfg(any(feature = "context", feature = "submission"))] runtime_server_connection,
+            #[cfg(feature = "debugger")] debug_server_connection,
+            #[cfg(feature = "submission")] false,
         );
     });
 
@@ -311,13 +308,12 @@ fn client_and_server(
 // loading a flow and it's library references, then enter the `submission_loop()` accepting and
 // executing flows submitted for execution, executing each one using the `Coordinator`
 fn server(
-    num_threads: usize,
-    lib_search_path: Simpath,
-    native_flowstdlib: bool,
-    #[cfg(any(feature = "context", feature = "submission"))]
-    runtime_server_connection: ServerConnection,
+    #[cfg(feature = "executor")] num_threads: usize,
+    #[cfg(feature = "executor")] lib_search_path: Simpath,
+    #[cfg(feature = "executor")] native_flowstdlib: bool,
+    #[cfg(any(feature = "context", feature = "submission"))] runtime_server_connection: ServerConnection,
     #[cfg(feature = "debugger")] debug_server_connection: ServerConnection,
-    #[allow(unused_variables)] loop_forever: bool,
+    #[cfg(feature = "submission")] loop_forever: bool,
 ) -> Result<()> {
     #[cfg(any(feature = "context", feature = "submission"))]
     let server_connection = Arc::new(Mutex::new(runtime_server_connection));
@@ -327,16 +323,18 @@ fn server(
         debug_server_connection
     };
 
+    #[cfg(feature = "executor")]
     let provider = Arc::new(MetaProvider::new(lib_search_path,
                                      #[cfg(feature = "context")]
                                          PathBuf::from("/")
     )) as Arc<dyn Provider>;
 
+    #[cfg(feature = "executor")]
     #[allow(unused_mut)]
     let mut executor = Executor::new(provider, num_threads, None)?;
 
     // Add the native context functions to functions available for use by the executor
-    #[cfg(feature = "context")]
+    #[cfg(all(feature = "context", feature = "executor"))]
     executor.add_lib(
         cli::cli_server::get_manifest(server_connection.clone())?,
         Url::parse("memory://")? // Statically linked library has no resolved Url
@@ -345,6 +343,7 @@ fn server(
     // if the command line options request loading native implementation of available native libs
     // if not, the native implementation is not loaded and later when a flow is loaded it's library
     // references will be resolved and those libraries (WASM implementations) will be loaded at runtime
+    #[cfg(feature = "executor")]
     if native_flowstdlib {
         #[cfg(feature = "flowstdlib")]
         executor.add_lib(
