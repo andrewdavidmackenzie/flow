@@ -73,9 +73,12 @@ impl Executor {
     }
 
     /// Set the timeout to use when waiting for job results
-    pub fn set_timeout(&mut self, timeout: Option<Duration>) {
+    pub fn set_results_timeout(&mut self, timeout: Option<Duration>) {
         self.job_timeout = timeout;
-        // ADM set receive timeout on results_sink socket
+        let _ = match timeout {
+            Some(time) => self.results_sink.set_rcvtimeo(time.as_millis() as i32),
+            None => self.results_sink.set_rcvtimeo(0),
+        };
     }
 
     /// Wait for, then return the next Job with results returned from executors
@@ -212,7 +215,7 @@ fn get_and_execute_job(
 
     trace!("Job #{}: Received for execution: {}", job.job_id, job);
 
-    // ADM see if we can avoid write access until we know it's needed
+    // TODO see if we can avoid write access until we know it's needed
     let mut implementations = loaded_implementations.write()
         .map_err(|_| "Could not gain read access to loaded implementations map")?;
     if implementations.get(&job.implementation_url).is_none() {
@@ -235,10 +238,7 @@ fn get_and_execute_job(
                                                loaded_lib_manifests,
                                                &job.implementation_url)?
             },
-            "file" => {
-                Arc::new(wasm::load(&* provider,
-                                               &job.implementation_url)?)
-            },
+            "file" => Arc::new(wasm::load(&* provider,&job.implementation_url)?),
             _ => bail!("Unsupported scheme on implementation_url")
         };
         implementations.insert(job.implementation_url.clone(), implementation);
@@ -299,8 +299,7 @@ fn get_lib_manifest_tuple(
     loaded_lib_manifests: Arc<RwLock<HashMap<Url, (LibraryManifest, Url)>>>,
     lib_root_url: &Url,
 ) -> Result<(LibraryManifest, Url)> {
-
-    let mut lib_manifests = loaded_lib_manifests.try_write()
+    let mut lib_manifests = loaded_lib_manifests.write()
         .map_err(|_| "Could not get write access to the loaded lib manifests")?;
 
     if lib_manifests.get(lib_root_url).is_none() {
@@ -312,15 +311,9 @@ fn get_lib_manifest_tuple(
             .insert(lib_root_url.clone(), manifest_tuple);
     }
 
-    let tuple = lib_manifests
+    // TODO avoid this clone and return references
+    lib_manifests
         .get(lib_root_url)
-        .ok_or_else(|| {
-            std::io::Error::new(
-                std::io::ErrorKind::Other,
-                "Could not find (supposedly already loaded) library manifest",
-            )
-        })?;
-
-    // TODO try and avoid clone
-    Ok(tuple.clone())
+        .ok_or_else(|| "Could not find (supposedly already loaded) library manifest".into())
+        .clone().cloned()
 }
