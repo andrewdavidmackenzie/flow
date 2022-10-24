@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 use std::panic;
-use std::sync::{Arc, mpsc, Mutex, RwLock};
-use std::sync::mpsc::{Receiver, Sender};
+use std::sync::{Arc, RwLock};
 use std::thread;
 use std::time::Duration;
 
@@ -19,15 +18,13 @@ use crate::job::Job;
 use crate::wasm;
 
 /// Executor structure holds information required to send jobs for execution and receive results back
-/// It can load a compiled `Flow` from it's `FlowManifest`, loading the required
-/// libraries needed by the flow and keeping track of the `Function` `Implementations` that
-/// will be used to execute it.
+/// It can load libraries and keep track of the `Function` `Implementations` used in execution.
 pub struct Executor {
-    // A channel used to send Jobs out for execution locally
-    job_sender: Sender<Job>,
-    // A channel used to receive Jobs back after local execution (now including the job's output)
-    results_receiver: Receiver<Job>,
-    // The timeout for waiting for results back from jobs being executed
+    // A source of jobs to be processed
+    job_source: zmq::Socket,
+    // A sink where to send jobs (with results)
+    results_sink: zmq::Socket,
+    // An optional timeout for waiting for results back from jobs being executed
     job_timeout: Option<Duration>,
     // HashMap of library manifests already loaded. The key is the library reference Url
     // (e.g. lib:://flowstdlib) and the entry is a tuple of the LibraryManifest
@@ -35,53 +32,71 @@ pub struct Executor {
     loaded_lib_manifests: Arc<RwLock<HashMap<Url, (LibraryManifest, Url)>>>,
 }
 
-/// Struct that takes care of execution of jobs, sending jobs for execution and receiving results
+
+/// `Executor` struct takes care of ending jobs for execution and receiving results
 impl Executor {
-    /// Create a new `Executor` specifying the number of local executor threads and a timeout
+    /// Create a new `Executor` specifying the number of executor threads and an optional timeout
     /// for reception of results
-    pub fn new(provider: Arc<dyn Provider>, number_of_executors: usize, job_timeout: Option<Duration>) -> Self {
-        let (job_sender, job_receiver) = mpsc::channel();
-        let (results_sender, results_receiver) = mpsc::channel();
-
-        info!("Starting {} local executor threads", number_of_executors);
-        let shared_job_receiver = Arc::new(Mutex::new(job_receiver));
-
-//        start_p2p_sender_receiver(shared_job_receiver, results_sender);
-
+    pub fn new(provider: Arc<dyn Provider>,
+               number_of_executors: usize,
+               job_timeout: Option<Duration>) -> Result<Self> {
         let loaded_implementations = Arc::new(RwLock::new(HashMap::<Url, Arc<dyn Implementation>>::new()));
         let loaded_lib_manifests = Arc::new(RwLock::new(HashMap::<Url, (LibraryManifest, Url)>::new()));
 
-        start_local_executors(provider, number_of_executors, shared_job_receiver, results_sender,
-                              loaded_implementations, loaded_lib_manifests.clone());
+        let mut context = zmq::Context::new();
+        let job_source = context.socket(zmq::PUSH)
+            .map_err(|_| "Could not create job source socket")?;
+        job_source.bind("inproc://job-source")
+            .map_err(|_| "Could not connect to job-source socket")?;
+        //push_socket.connect("tcp://127.0.0.1:3456").unwrap();
 
-        Executor {
-            job_sender,
-            results_receiver,
+        let results_sink = context.socket(zmq::PULL)
+            .map_err(|_| "Could not create results sink socket")?;
+        results_sink.bind("inproc://results-sink")
+            .map_err(|_| "Could not connect to results-sink socket")?;
+        //pull_socket.connect("tcp://127.0.0.1:3457").unwrap();
+
+        start_executors(provider, number_of_executors, &mut context,
+                              loaded_implementations,
+                        loaded_lib_manifests.clone())?;
+
+        Ok(Executor {
+            job_source,
+            results_sink,
             job_timeout,
             loaded_lib_manifests,
-        }
+        })
     }
 
-    /// Set the timeout to use when waiting for job results after execution
-    pub fn set_timeout(&mut self, timeout: Option<Duration>) {
+    /// Set the timeout to use when waiting for job results
+    /// Setting to `None` will disable timeouts and block forever
+    pub fn set_results_timeout(&mut self, timeout: Option<Duration>) -> Result<()> {
         self.job_timeout = timeout;
+        match timeout {
+            Some(time) => {
+                debug!("Setting results timeout to: {}ms", time.as_millis());
+                self.results_sink.set_rcvtimeo(time.as_millis() as i32)
+            },
+            None => {
+                debug!("Disabling results timeout");
+                self.results_sink.set_rcvtimeo(-1)
+            },
+        }.map_err(|e| format!("Error setting results timeout: {}", e).into())
     }
 
     /// Wait for, then return the next Job with results returned from executors
     pub fn get_next_result(&mut self) -> Result<Job> {
-        match self.job_timeout {
-            Some(t) => self.results_receiver.recv_timeout(t)
-                .chain_err(|| "Timeout while waiting for Job result"),
-            None => self.results_receiver.recv()
-                .chain_err(|| "Error while trying to receive Job results")
-        }
+        let msg = self.results_sink.recv_msg(0)
+            .map_err(|_| "Error receiving result")?;
+        let message_string = msg.as_str().ok_or("Could not get message as str")?;
+        serde_json::from_str(message_string)
+            .map_err(|_| "Could not Deserialize Job from zmq message string".into())
     }
 
     // Send a `Job` for execution to executors
     pub(crate) fn send_job_for_execution(&mut self, job: &Job) -> Result<()> {
-        self.job_sender
-            .send(job.clone())
-            .chain_err(|| "Sending of job for execution failed")?;
+        self.job_source.send(serde_json::to_string(job)?.as_bytes(), 0)
+            .map_err(|_| "Could not send Job for execution")?;
 
         trace!(
             "Job #{}: Sent for execution of Function #{}",
@@ -114,42 +129,54 @@ impl Executor {
 
 // Start a number of executor threads that all listen on the 'job_rx' channel for
 // Jobs to execute and return the Outputs on the 'output_tx' channel
-fn start_local_executors(
+fn start_executors(
     provider: Arc<dyn Provider>,
     number_of_executors: usize,
-    shared_job_receiver: Arc<Mutex<Receiver<Job>>>,
-    job_sender: Sender<Job>,
+    context: &mut zmq::Context,
     loaded_implementations: Arc<RwLock<HashMap<Url, Arc<dyn Implementation>>>>,
     loaded_lib_manifests: Arc<RwLock<HashMap<Url, (LibraryManifest, Url)>>>,
-) {
+) -> Result<()> {
+    info!("Starting {} executor threads", number_of_executors);
     for executor_number in 0..number_of_executors {
         create_executor_thread(
                     provider.clone(),
             format!("Executor #{}", executor_number),
-            shared_job_receiver.clone(),
-            job_sender.clone(),
+            context.clone(),
             loaded_implementations.clone(),
             loaded_lib_manifests.clone(),
-        ); // clone of Arcs and Sender OK
+        )?; // clone of Arcs and Sender OK
     }
+
+    Ok(())
 }
 
 fn create_executor_thread(
                     provider: Arc<dyn Provider>,
                     name: String,
-                   job_receiver: Arc<Mutex<Receiver<Job>>>,
-                   job_sender: Sender<Job>,
+                   context: zmq::Context,
                    loaded_implementations: Arc<RwLock<HashMap<Url, Arc<dyn Implementation>>>>,
                    loaded_lib_manifests: Arc<RwLock<HashMap<Url, (LibraryManifest, Url)>>>,
-) {
-    let builder = thread::Builder::new();
-    let _ = builder.spawn(move || {
+) -> Result<()> {
+    let _ = thread::spawn(move || {
+        let job_source = context.socket(zmq::PULL)
+            .expect("Could not create PULL end of job-source socket");
+        job_source.connect("inproc://job-source")
+            .expect("Could not bind to PULL end of job-source  socket");
+
+        let results_sink = context.socket(zmq::PUSH)
+            .expect("Could not createPUSH end of results-sink socket");
+        results_sink.connect("inproc://results-sink")
+            .expect("Could not connect to PULL end of results-sink socket");
+
         let mut process_jobs = true;
 
         set_panic_hook();
 
         while process_jobs {
-            match get_and_execute_job(provider.clone(), &job_receiver, &job_sender,
+            debug!("{name} waiting for a job to execute");
+            match get_and_execute_job(provider.clone(),
+                                        &job_source,
+                                        &results_sink,
                                         &name,
                                         loaded_implementations.clone(),
                                             loaded_lib_manifests.clone()) {
@@ -158,17 +185,13 @@ fn create_executor_thread(
             }
         }
     });
+
+    Ok(())
 }
 
 // Replace the standard panic hook with one that just outputs the file and line of any panic.
 fn set_panic_hook() {
     panic::set_hook(Box::new(|panic_info| {
-        /* Only available on 'nightly'
-        if let Some(message) = panic_info.message() {
-            error!("Message: {:?}", message);
-        }
-        */
-
         if let Some(location) = panic_info.location() {
             error!(
                 "Panic in file '{}' at line {}",
@@ -182,24 +205,22 @@ fn set_panic_hook() {
 /// Return Ok(keep_processing) flag as true or false to keep processing
 fn get_and_execute_job(
     provider: Arc<dyn Provider>,
-    job_receiver: &Arc<Mutex<Receiver<Job>>>,
-    job_sender: &Sender<Job>,
+    job_source: &zmq::Socket,
+    results_sink: &zmq::Socket,
     name: &str,
     loaded_implementations: Arc<RwLock<HashMap<Url, Arc<dyn Implementation>>>>,
     loaded_lib_manifests: Arc<RwLock<HashMap<Url, (LibraryManifest, Url)>>>,
 ) -> Result<bool> {
-    let guard = job_receiver
-        .lock()
-        .map_err(|e| format!("Error locking receiver to get job: '{}'", e))?;
-    // return Ok(false) to end processing loop if channel is shut down by parent process
-    let job = match guard.recv() {
-        Ok(j) => j,
-        Err(_) => return Ok(false)
-    };
+    let msg = job_source.recv_msg(0).map_err(|_| "Error receiving Job for execution")?;
+    let message_string = msg.as_str().ok_or("Could not get message as str")?;
+    let mut job: Job = serde_json::from_str(message_string)
+        .map_err(|_| "Could not deserialize Message to Job")?;
 
-    trace!("Job #{} received for execution: {}", job.job_id, job);
-    let mut implementations = loaded_implementations.try_write()
-        .map_err(|_| "Could not gain write access to loaded implementations map")?;
+    trace!("Job #{}: Received for execution: {}", job.job_id, job);
+
+    // TODO see if we can avoid write access until we know it's needed
+    let mut implementations = loaded_implementations.write()
+        .map_err(|_| "Could not gain read access to loaded implementations map")?;
     if implementations.get(&job.implementation_url).is_none() {
         trace!("Implementation at '{}' is not loaded", job.implementation_url);
         let implementation = match job.implementation_url.scheme() {
@@ -220,7 +241,7 @@ fn get_and_execute_job(
                                                loaded_lib_manifests,
                                                &job.implementation_url)?
             },
-            "file" => resolve_implementation(provider, &job.implementation_url)?,
+            "file" => Arc::new(wasm::load(&* provider,&job.implementation_url)?),
             _ => bail!("Unsupported scheme on implementation_url")
         };
         implementations.insert(job.implementation_url.clone(), implementation);
@@ -230,29 +251,14 @@ fn get_and_execute_job(
     let implementation = implementations.get(&job.implementation_url)
         .ok_or("Could not find implementation")?;
 
-    execute_job(job, job_sender, name, implementation)?;
-
-    Ok(true)
-}
-
-fn execute_job(
-    mut job: Job,
-    job_tx: &Sender<Job>,
-    name: &str,
-    implementation: &Arc<dyn Implementation>,
-) -> Result<()> {
     trace!("Job #{}: Started executing on '{name}'", job.job_id);
     job.result = implementation.run(&job.input_set);
     trace!("Job #{}: Finished executing on '{name}'", job.job_id);
-    job_tx.send(job).chain_err(|| "Error sending job result back after execution")
-}
 
-// Load a WASM `Implementation` from the `implementation_url` using the supplied `Provider`
-fn resolve_implementation(provider: Arc<dyn Provider>,
-                          implementation_url: &Url,
-) -> Result<Arc<dyn Implementation>> {
-    let wasm_executor = wasm::load(&* provider, implementation_url)?;
-    Ok(Arc::new(wasm_executor) as Arc<dyn Implementation>)
+    results_sink.send(serde_json::to_string(&job)?.as_bytes(), 0)
+        .map_err(|_| "Could not send result of Job")?;
+
+    Ok(true)
 }
 
 // Load a context or library implementation
@@ -296,29 +302,21 @@ fn get_lib_manifest_tuple(
     loaded_lib_manifests: Arc<RwLock<HashMap<Url, (LibraryManifest, Url)>>>,
     lib_root_url: &Url,
 ) -> Result<(LibraryManifest, Url)> {
-
-    let mut lib_manifests = loaded_lib_manifests.try_write()
+    let mut lib_manifests = loaded_lib_manifests.write()
         .map_err(|_| "Could not get write access to the loaded lib manifests")?;
 
     if lib_manifests.get(lib_root_url).is_none() {
         info!("Attempting to load library manifest'{}'", lib_root_url);
         let manifest_tuple =
-            LibraryManifest::load(&*provider as &dyn Provider, lib_root_url).chain_err(|| {
-                format!("Could not load library with root url: '{}'", lib_root_url)
-            })?;
+            LibraryManifest::load(&*provider as &dyn Provider, lib_root_url)
+                .chain_err(|| format!("Could not load library with root url: '{}'", lib_root_url))?;
         lib_manifests
             .insert(lib_root_url.clone(), manifest_tuple);
     }
 
-    let tuple = lib_manifests
+    // TODO avoid this clone and return references
+    lib_manifests
         .get(lib_root_url)
-        .ok_or_else(|| {
-            std::io::Error::new(
-                std::io::ErrorKind::Other,
-                "Could not find (supposedly already loaded) library manifest",
-            )
-        })?;
-
-    // TODO try and avoid clone
-    Ok(tuple.clone())
+        .ok_or_else(|| "Could not find (supposedly already loaded) library manifest".into())
+        .clone().cloned()
 }
