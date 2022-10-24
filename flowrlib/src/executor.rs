@@ -17,8 +17,11 @@ use flowcore::provider::Provider;
 use crate::job::Job;
 use crate::wasm;
 
-const JOB_SOURCE_NAME: &str  = "inproc://job-source";
-const RESULTS_SINK_NAME: &str  = "inproc://results-sink";
+//const JOB_SOURCE_NAME: &str  = "inproc://job-source";
+const JOB_SOURCE_NAME: &str  = "tcp://127.0.0.1:3456";
+
+//const RESULTS_SINK_NAME: &str  = "inproc://results-sink";
+const RESULTS_SINK_NAME: &str  = "tcp://127.0.0.1:3457";
 
 /// Executor structure holds information required to send jobs for execution and receive results back
 /// It can load libraries and keep track of the `Function` `Implementations` used in execution.
@@ -51,13 +54,11 @@ impl Executor {
             .map_err(|_| "Could not create job source socket")?;
         job_source.bind(JOB_SOURCE_NAME)
             .map_err(|_| "Could not connect to job-source socket")?;
-        //push_socket.connect("tcp://127.0.0.1:3456").unwrap();
 
         let results_sink = context.socket(zmq::PULL)
             .map_err(|_| "Could not create results sink socket")?;
         results_sink.bind(RESULTS_SINK_NAME)
             .map_err(|_| "Could not connect to results-sink socket")?;
-        //pull_socket.connect("tcp://127.0.0.1:3457").unwrap();
 
         start_executors(provider, number_of_executors, &mut context,
                               loaded_implementations,
