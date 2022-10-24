@@ -73,12 +73,19 @@ impl Executor {
     }
 
     /// Set the timeout to use when waiting for job results
-    pub fn set_results_timeout(&mut self, timeout: Option<Duration>) {
+    /// Setting to `None` will disable timeouts and block forever
+    pub fn set_results_timeout(&mut self, timeout: Option<Duration>) -> Result<()> {
         self.job_timeout = timeout;
-        let _ = match timeout {
-            Some(time) => self.results_sink.set_rcvtimeo(time.as_millis() as i32),
-            None => self.results_sink.set_rcvtimeo(0),
-        };
+        match timeout {
+            Some(time) => {
+                debug!("Setting results timeout to: {}ms", time.as_millis());
+                self.results_sink.set_rcvtimeo(time.as_millis() as i32)
+            },
+            None => {
+                debug!("Disabling results timeout");
+                self.results_sink.set_rcvtimeo(-1)
+            },
+        }.map_err(|e| format!("Error setting results timeout: {}", e).into())
     }
 
     /// Wait for, then return the next Job with results returned from executors

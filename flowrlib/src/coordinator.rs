@@ -82,7 +82,7 @@ impl<'a> Coordinator<'a> {
     #[allow(unused_variables, unused_assignments, unused_mut)]
     pub fn execute_flow(&mut self,
                         submission: Submission,) -> Result<()> {
-        self.executor.set_results_timeout(submission.job_timeout);
+        self.executor.set_results_timeout(submission.job_timeout)?;
         let mut state = RunState::new(submission);
 
         #[cfg(feature = "metrics")]
