@@ -30,9 +30,6 @@ pub struct Executor {
     // (e.g. lib:://flowstdlib) and the entry is a tuple of the LibraryManifest
     // and the resolved Url of where the manifest was read from
     loaded_lib_manifests: Arc<RwLock<HashMap<Url, (LibraryManifest, Url)>>>,
-    // Avoid dropping the context
-    #[allow(dead_code)]
-    context: zmq::Context,
 }
 
 
@@ -68,7 +65,6 @@ impl Executor {
             results_sink,
             job_timeout,
             loaded_lib_manifests,
-            context,
         })
     }
 
