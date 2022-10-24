@@ -207,7 +207,8 @@ fn get_and_execute_job(
 ) -> Result<bool> {
     let msg = job_source.recv_msg(0).map_err(|_| "Error receiving Job for execution")?;
     let message_string = msg.as_str().ok_or("Could not get message as str")?;
-    let mut job: Job = serde_json::from_str(message_string).map_err(|_| "Could not deserialize Message to Job")?;
+    let mut job: Job = serde_json::from_str(message_string)
+        .map_err(|_| "Could not deserialize Message to Job")?;
 
     trace!("Job #{}: Received for execution: {}", job.job_id, job);
 
@@ -234,7 +235,10 @@ fn get_and_execute_job(
                                                loaded_lib_manifests,
                                                &job.implementation_url)?
             },
-            "file" => resolve_implementation(provider, &job.implementation_url)?,
+            "file" => {
+                Arc::new(wasm::load(&* provider,
+                                               &job.implementation_url)?)
+            },
             _ => bail!("Unsupported scheme on implementation_url")
         };
         implementations.insert(job.implementation_url.clone(), implementation);
@@ -252,14 +256,6 @@ fn get_and_execute_job(
         .map_err(|_| "Could not send result of Job")?;
 
     Ok(true)
-}
-
-// Load a WASM `Implementation` from the `implementation_url` using the supplied `Provider`
-fn resolve_implementation(provider: Arc<dyn Provider>,
-                          implementation_url: &Url,
-) -> Result<Arc<dyn Implementation>> {
-    let wasm_executor = wasm::load(&* provider, implementation_url)?;
-    Ok(Arc::new(wasm_executor) as Arc<dyn Implementation>)
 }
 
 // Load a context or library implementation
