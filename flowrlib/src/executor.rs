@@ -38,7 +38,6 @@ pub struct Executor {
     loaded_lib_manifests: Arc<RwLock<HashMap<Url, (LibraryManifest, Url)>>>,
 }
 
-
 /// `Executor` struct takes care of ending jobs for execution and receiving results
 impl Executor {
     /// Create a new `Executor` specifying the number of executor threads and an optional timeout
