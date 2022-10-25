@@ -2,7 +2,7 @@
 pub mod test {
     use std::sync::{Arc, Mutex};
 
-    use crate::cli::client_server::{ClientConnection, Method, RUNTIME_SERVICE_NAME, ServerConnection, WAIT};
+    use crate::cli::client_server::{ClientConnection, Method, ServerConnection, WAIT};
     use crate::cli::runtime_messages::{ClientMessage, ServerMessage};
 
     pub fn wait_for_then_send(
@@ -10,7 +10,7 @@ pub mod test {
         then_send: ClientMessage,
     ) -> Arc<Mutex<ServerConnection>> {
         let server_connection = Arc::new(Mutex::new(
-            ServerConnection::new(RUNTIME_SERVICE_NAME, Method::InProc(None))
+            ServerConnection::new("foo", Method::InProc(None))
                 .expect("Could not create server connection"),
         ));
 

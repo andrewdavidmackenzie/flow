@@ -81,6 +81,15 @@ pub enum Mode {
     ClientAndServer,
 }
 
+// `RUNTIME_SERVICE_NAME` is the name of the runtime services and can be used to discover it by name
+const RUNTIME_SERVICE_NAME: &str = "runtime._flowr._tcp.local";
+const RUNTIME_SERVICE_PORT: u16 = 5555;
+
+// `DEBUG_SERVICE_NAME` is the name of the runtime services and can be used to discover it by name
+#[cfg(feature = "debugger")]
+const DEBUG_SERVICE_NAME: &str = "debug._flowr._tcp.local";
+const DEBUG_SERVICE_PORT: u16 = 5556;
+
 /// Main for flowr binary - call `run()` and print any error that results or exit silently if OK
 fn main() {
     match run() {
@@ -127,19 +136,19 @@ fn set_lib_search_path(search_path_additions: &[String]) -> Result<Simpath> {
 /// use std::sync::{Arc, Mutex};
 /// use std::io;
 /// use std::io::Write;
-/// use flowrlib::coordinator::{Coordinator, Submission, Mode, RUNTIME_SERVICE_NAME, DEBUG_SERVICE_NAME};
+/// use flowrlib::coordinator::{Coordinator, Submission, Mode};
 /// use std::process::exit;
 /// use flowcore::model::flow_manifest::FlowManifest;
 /// use flowcore::model::metadata::MetaData;
-/// use flowcontext_cli::runtime_messages::ClientMessage::ClientSubmission; // TODO
+/// use flowr::cli::runtime_messages::ClientMessage::ClientSubmission;
 /// use simpath::Simpath;
 /// use url::Url;
-/// use flowcontext_cli::client_server::{ClientConnection, ServerConnection, ServerInfo, Method};
-/// use flowrlib::runtime_messages::{ServerMessage, ClientMessage};
+/// use flowr::cli::client_server::{ClientConnection, ServerConnection, ServerInfo, Method};
+/// use flowr::cli::runtime_messages::{ServerMessage, ClientMessage};
 ///
-/// let runtime_server_connection = ServerConnection::new(RUNTIME_SERVICE_NAME, Method::Tcp(None)).unwrap();
-/// let debug_server_connection = ServerConnection::new(DEBUG_SERVICE_NAME, Method::Tcp(None)).unwrap();
-/// let mut runtime_server_info = runtime_server_connection.get_server_info().clone();///
+/// let runtime_server_connection = ServerConnection::new("runtime", Method::Tcp(None)).unwrap();
+/// let debug_server_connection = ServerConnection::new("debug"", Method::Tcp(None)).unwrap();
+/// let mut runtime_server_info = runtime_server_connection.get_server_info().clone();
 ///
 /// // Spawn a thread where we will run the submission loop to receive submissions and execute them
 /// std::thread::spawn(move || {
@@ -230,9 +239,9 @@ fn run() -> Result<()> {
 // Start just a server - by running a Coordinator in the calling thread.
 fn server_only(num_threads: usize, lib_search_path: Simpath, native_flowstdlib: bool) -> Result<()> {
     #[cfg(any(feature = "context", feature = "submission"))]
-    let runtime_server_connection = ServerConnection::runtime()?;
+    let runtime_server_connection = ServerConnection::runtime(RUNTIME_SERVICE_NAME)?;
     #[cfg(feature = "debugger")]
-    let debug_server_connection = ServerConnection::debug_service()?;
+    let debug_server_connection = ServerConnection::debug_service(DEBUG_SERVICE_NAME)?;
 
     info!("Starting 'flowr' server process in main thread");
     server(
@@ -262,9 +271,9 @@ fn client_and_server(
     debug_this_flow: bool,
 ) -> Result<()> {
     #[cfg(feature = "submission")]
-    let runtime_server_connection = ServerConnection::local()?;
+    let runtime_server_connection = ServerConnection::local(RUNTIME_SERVICE_NAME)?;
     #[cfg(feature = "debugger")]
-    let debug_server_connection = ServerConnection::debug_local()?;
+    let debug_server_connection = ServerConnection::debug_local(DEBUG_SERVICE_NAME)?;
 
     #[cfg(feature = "submission")]
     let mut runtime_server_info = runtime_server_connection.get_server_info().clone();
@@ -382,12 +391,16 @@ fn client_only(
 ) -> Result<()> {
     #[cfg(any(feature = "context", feature = "submission"))]
     let mut runtime_server_info = ServerInfo::new(
+        RUNTIME_SERVICE_NAME,
         matches.get_one::<String>("address")
-            .map(|s| s.as_str()));
+            .map(|s| s.as_str()),
+        RUNTIME_SERVICE_PORT);
     #[cfg(feature = "debugger")]
     let mut debug_server_info = ServerInfo::debug_info(
+        DEBUG_SERVICE_NAME,
         matches.get_one::<String>("address")
-            .map(|s| s.as_str()));
+            .map(|s| s.as_str()),
+        DEBUG_SERVICE_PORT);
 
     #[cfg(feature = "debugger")]
         let control_c_client_connection = if debug_this_flow {
