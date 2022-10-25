@@ -42,18 +42,6 @@ impl ServerInfo {
                     .map(|name| (name, port)),
             ) }
     }
-
-    // ADM combine this with new?
-    /// Create a ServerInfo struct for the debug service
-    #[cfg(feature = "debugger")]
-    pub fn debug_info(service_name: &str, address: Option<&str>, port: u16) -> Self {
-        ServerInfo {
-            service_name: service_name.into(),
-            method: Method::Tcp(address
-                                    .map(|s| s.to_string())
-                                    .map(|name| (name, port)),
-            ) }
-    }
 }
 
 /// `ClientConnection` stores information related to the connection from a runtime client

@@ -396,7 +396,7 @@ fn client_only(
             .map(|s| s.as_str()),
         RUNTIME_SERVICE_PORT);
     #[cfg(feature = "debugger")]
-    let mut debug_server_info = ServerInfo::debug_info(
+    let mut debug_server_info = ServerInfo::new(
         DEBUG_SERVICE_NAME,
         matches.get_one::<String>("address")
             .map(|s| s.as_str()),
