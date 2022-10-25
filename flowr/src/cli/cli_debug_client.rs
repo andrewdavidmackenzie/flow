@@ -87,14 +87,14 @@ impl CliDebugClient {
     }
 
     fn help() {
-        println!("{}", HELP_STRING);
+        println!("{HELP_STRING}");
     }
 
     fn parse_command(&self, mut input: String) -> Result<(String, String, Option<Vec<String>>)> {
         input = input.trim().to_string();
         if input.is_empty() && !self.last_command.is_empty() {
             input = self.last_command.clone();
-            println!("Repeating last valid command: '{}'", input);
+            println!("Repeating last valid command: '{input}'");
         }
 
         let parts: Vec<String> = input.split(' ').map(|s| s.to_string()).collect();
@@ -187,7 +187,7 @@ impl CliDebugClient {
     */
     fn get_user_command(&mut self, job_number: usize) -> Result<DebugCommand> {
         loop {
-            match self.editor.readline(&format!("Job #{}> ", job_number)) {
+            match self.editor.readline(&format!("Job #{job_number}> ")) {
                 Ok(line) => {
                     match self.parse_command(line) {
                         Ok((line, command, params)) => {
@@ -199,7 +199,7 @@ impl CliDebugClient {
                                 self.last_command = "".into();
                             }
                         },
-                        Err(e) => eprintln!("{}", e)
+                        Err(e) => eprintln!("{e}")
                     }
                 }
                 Err(ReadlineError::Interrupted) => {
@@ -248,7 +248,7 @@ impl CliDebugClient {
             "s" | "step" => Some(Step(Self::parse_optional_int(params))),
             "v" | "validate" => Some(Validate),
             _ => {
-                println!("Unknown debugger command '{}'\n", command);
+                println!("Unknown debugger command '{command}'\n");
                 None
             }
         };
@@ -271,7 +271,7 @@ impl CliDebugClient {
                 println!("About to send Job #{} to Function #{}", job.job_id, job.function_id);
                 println!("\tInputs: {:?}", job.input_set);
             }
-            BlockBreakpoint(block) => println!("Block breakpoint: {:?}", block),
+            BlockBreakpoint(block) => println!("Block breakpoint: {block:?}"),
             DataBreakpoint(
                 source_function_name,
                 source_function_id,
@@ -304,14 +304,14 @@ impl CliDebugClient {
             SendingValue(source_process_id, value, destination_id, input_number) => println!(
                 "Function #{source_process_id} sending '{value}' to {destination_id}:{input_number}",
             ),
-            DebugServerMessage::Error(error_message) => println!("{}", error_message),
+            DebugServerMessage::Error(error_message) => println!("{error_message}"),
             Message(message) => println!("{message}"),
             Resetting => println!("Resetting state"),
             WaitingForCommand(job_id) => return self.get_user_command(job_id),
             DebugServerMessage::Invalid => println!("Invalid message received from debug server"),
             FunctionStates((function, state)) => {
                 print!("{function}");
-                println!("\tState: {:?}", state);
+                println!("\tState: {state:?}");
             }
             OverallState(run_state) => Self::display_state(&run_state),
             InputState(input) => println!("{input}"),
@@ -352,18 +352,18 @@ impl CliDebugClient {
        Display information to the user about the current RunState
     */
     fn display_state(run_state: &RunState) {
-        println!("{}\n", run_state);
+        println!("{run_state}\n");
 
         for id in 0..run_state.num_functions() {
             if let Some(function) = run_state.get_function(id) {
                 print!("{function}", );
                 let function_states = run_state.get_function_states(id);
-                println!("\tStates: {:?}", function_states);
+                println!("\tStates: {function_states:?}");
 
                 if function_states.contains(&State::Blocked) {
                     for block in run_state.get_blocks() {
                         if block.blocked_function_id == id {
-                            println!("\t\t{:?}", block);
+                            println!("\t\t{block:?}");
                         }
                     }
                 }

@@ -124,7 +124,7 @@ impl IO {
         if self.name().is_empty() {
             self.set_route(parent, io_type);
         } else {
-            self.set_route(&Route::from(&format!("{}/{}", parent, self.name)), io_type);
+            self.set_route(&Route::from(&format!("{parent}/{}", self.name)), io_type);
         }
     }
 
@@ -288,7 +288,7 @@ impl Find for IOSet {
                         found.set_datatypes(&[datatype.array_type()
                             .ok_or("No type within array")?]);
 
-                        let new_route = Route::from(format!("{}/{}", found.route(), index));
+                        let new_route = Route::from(format!("{}/{index}", found.route()));
                         found.set_route(&new_route, &io.io_type);
                         return Ok(found);
                     }

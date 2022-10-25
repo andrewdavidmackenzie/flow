@@ -111,7 +111,7 @@ impl SubmissionProtocol for CLISubmitter {
         debug!("Server exiting");
         let mut connection = self.runtime_server_connection
             .lock()
-            .map_err(|e| format!("Could not lock Server Connection: {}", e))?;
+            .map_err(|e| format!("Could not lock Server Connection: {e}"))?;
         connection.send(ServerMessage::ServerExiting(result))?;
         Ok(())
     }

@@ -110,12 +110,12 @@ impl DataType {
 
     /// Determine if this data type is an array of the `second` type
     pub fn is_array_of(&self, second: &Self) -> bool {
-        &DataType::from(format!("{}/{}", ARRAY_TYPE, second).as_str()) == self
+        &DataType::from(format!("{ARRAY_TYPE}/{second}").as_str()) == self
     }
 
     /// Return Option of the data type the array holds, or None if not an array
     pub fn array_type(&self) -> Option<DataType> {
-        self.strip_prefix(&format!("{}/", ARRAY_TYPE)).map(DataType::from)
+        self.strip_prefix(&format!("{ARRAY_TYPE}/")).map(DataType::from)
     }
 
     /// Return the `DataType` for a Json `Value`, including nested values in arrays or maps
@@ -126,15 +126,14 @@ impl DataType {
             Value::Number(_) => NUMBER_TYPE.into(),
             Value::Array(array) => {
                 if array.is_empty() {
-                    DataType(format!("{}/{}", ARRAY_TYPE, GENERIC_TYPE))
+                    DataType(format!("{ARRAY_TYPE}/{GENERIC_TYPE}"))
                 } else {
-                    DataType(format!("{}/{}",
-                                     ARRAY_TYPE, Self::value_type(&array[0])))
+                    DataType(format!("{ARRAY_TYPE}/{}", Self::value_type(&array[0])))
                 }
             },
             Value::Object(map) => {
                 if let Some(map_entry) = map.values().next() {
-                    DataType(format!("{}/{}", OBJECT_TYPE, Self::value_type(map_entry)))
+                    DataType(format!("{OBJECT_TYPE}/{}", Self::value_type(map_entry)))
                 } else {
                     OBJECT_TYPE.into()
                 }
@@ -276,7 +275,7 @@ mod test {
 
     #[test]
     fn subtype_empty_route() {
-        let array_of_numbers_type = DataType::from(format!("{}/{}", ARRAY_TYPE, NUMBER_TYPE));
+        let array_of_numbers_type = DataType::from(format!("{ARRAY_TYPE}/{NUMBER_TYPE}"));
         assert_eq!(DataType::subtype_using_subroute(&array_of_numbers_type,
                                                     &Route::from(""))
             .expect("Could not get subtype"), array_of_numbers_type);
@@ -297,7 +296,7 @@ mod test {
     #[test]
     fn array_of_numbers_subtype() {
         let subtype = DataType::subtype_using_subroute(
-            &DataType::from(format!("{}/{}", ARRAY_TYPE, NUMBER_TYPE)),
+            &DataType::from(format!("{ARRAY_TYPE}/{NUMBER_TYPE}")),
                                                        &Route::from("/1"))
                                                            .expect("Could not get subtype");
         assert_eq!(subtype, DataType::from(NUMBER_TYPE));
@@ -306,7 +305,7 @@ mod test {
     #[test]
     fn array_of_array_of_strings_subtype() {
         let subtype = DataType::subtype_using_subroute(
-            &DataType::from(format!("{}/{}/{}", ARRAY_TYPE, STRING_TYPE, STRING_TYPE)),
+            &DataType::from(format!("{ARRAY_TYPE}/{STRING_TYPE}/{STRING_TYPE}")),
                                                        &Route::from("/2/1"))
             .expect("Could not get subtype");
         assert_eq!(subtype, DataType::from(STRING_TYPE));
@@ -404,78 +403,78 @@ mod test {
                 (NULL_TYPE.into(), GENERIC_TYPE.into(), ""),
                 (STRING_TYPE.into(), GENERIC_TYPE.into(), ""),
                 (BOOLEAN_TYPE.into(), GENERIC_TYPE.into(), ""),
-                (format!("{}/{}", ARRAY_TYPE, NUMBER_TYPE), GENERIC_TYPE.into(), ""),
-                (format!("{}/{}/{}", ARRAY_TYPE, ARRAY_TYPE, NUMBER_TYPE), GENERIC_TYPE.into(), ""),
+                (format!("{ARRAY_TYPE}/{NUMBER_TYPE}"), GENERIC_TYPE.into(), ""),
+                (format!("{ARRAY_TYPE}/{ARRAY_TYPE}/{NUMBER_TYPE}"), GENERIC_TYPE.into(), ""),
 
                 // any type is compatible with a destination of array of same type (wrapping)
-                (NUMBER_TYPE.into(), format!("{}/{}", ARRAY_TYPE, NUMBER_TYPE), ""),
-                (NULL_TYPE.into(), format!("{}/{}", ARRAY_TYPE, NULL_TYPE), ""),
-                (STRING_TYPE.into(), format!("{}/{}", ARRAY_TYPE, STRING_TYPE), ""),
-                (BOOLEAN_TYPE.into(), format!("{}/{}", ARRAY_TYPE, BOOLEAN_TYPE), ""),
+                (NUMBER_TYPE.into(), format!("{ARRAY_TYPE}/{NUMBER_TYPE}"), ""),
+                (NULL_TYPE.into(), format!("{ARRAY_TYPE}/{NULL_TYPE}"), ""),
+                (STRING_TYPE.into(), format!("{ARRAY_TYPE}/{STRING_TYPE}"), ""),
+                (BOOLEAN_TYPE.into(), format!("{ARRAY_TYPE}/{BOOLEAN_TYPE}"), ""),
 
                 // any type is compatible with a destination of array of generic (wrapping + generic)
                 // runtime wraps object to array of type, destination can accept any type in array
-                (NUMBER_TYPE.into(), format!("{}/{}", ARRAY_TYPE, GENERIC_TYPE), ""),
-                (NULL_TYPE.into(), format!("{}/{}", ARRAY_TYPE, GENERIC_TYPE), ""),
-                (STRING_TYPE.into(), format!("{}/{}", ARRAY_TYPE, GENERIC_TYPE), ""),
-                (BOOLEAN_TYPE.into(), format!("{}/{}", ARRAY_TYPE, GENERIC_TYPE), ""),
+                (NUMBER_TYPE.into(), format!("{ARRAY_TYPE}/{GENERIC_TYPE}"), ""),
+                (NULL_TYPE.into(), format!("{ARRAY_TYPE}/{GENERIC_TYPE}"), ""),
+                (STRING_TYPE.into(), format!("{ARRAY_TYPE}/{GENERIC_TYPE}"), ""),
+                (BOOLEAN_TYPE.into(), format!("{ARRAY_TYPE}/{GENERIC_TYPE}"), ""),
 
                 // an array of types can be serialized to a destination of same type (array serialization)
-                (format!("{}/{}", ARRAY_TYPE, OBJECT_TYPE), OBJECT_TYPE.into(), ""),
-                (format!("{}/{}", ARRAY_TYPE, NUMBER_TYPE), NUMBER_TYPE.into(), ""),
-                (format!("{}/{}", ARRAY_TYPE, NULL_TYPE), NULL_TYPE.into(), ""),
-                (format!("{}/{}", ARRAY_TYPE, STRING_TYPE), STRING_TYPE.into(), ""),
-                (format!("{}/{}", ARRAY_TYPE, BOOLEAN_TYPE), BOOLEAN_TYPE.into(), ""),
+                (format!("{ARRAY_TYPE}/{OBJECT_TYPE}"), OBJECT_TYPE.into(), ""),
+                (format!("{ARRAY_TYPE}/{NUMBER_TYPE}"), NUMBER_TYPE.into(), ""),
+                (format!("{ARRAY_TYPE}/{NULL_TYPE}"), NULL_TYPE.into(), ""),
+                (format!("{ARRAY_TYPE}/{STRING_TYPE}"), STRING_TYPE.into(), ""),
+                (format!("{ARRAY_TYPE}/{BOOLEAN_TYPE}"), BOOLEAN_TYPE.into(), ""),
 
                 // Selection from an array of same type
-                (format!("{}/{}", ARRAY_TYPE, NUMBER_TYPE), NUMBER_TYPE.into(), "/0"),
-                (format!("{}/{}", ARRAY_TYPE, NULL_TYPE), NULL_TYPE.into(), "/0"),
-                (format!("{}/{}", ARRAY_TYPE, ARRAY_TYPE), ARRAY_TYPE.into(), "/0"),
-                (format!("{}/{}", ARRAY_TYPE, STRING_TYPE), STRING_TYPE.into(), "/0"),
-                (format!("{}/{}", ARRAY_TYPE, BOOLEAN_TYPE), BOOLEAN_TYPE.into(), "/0"),
-                (format!("{}/{}", ARRAY_TYPE, OBJECT_TYPE), OBJECT_TYPE.into(), "/0"),
+                (format!("{ARRAY_TYPE}/{NUMBER_TYPE}"), NUMBER_TYPE.into(), "/0"),
+                (format!("{ARRAY_TYPE}/{NULL_TYPE}"), NULL_TYPE.into(), "/0"),
+                (format!("{ARRAY_TYPE}/{ARRAY_TYPE}"), ARRAY_TYPE.into(), "/0"),
+                (format!("{ARRAY_TYPE}/{STRING_TYPE}"), STRING_TYPE.into(), "/0"),
+                (format!("{ARRAY_TYPE}/{BOOLEAN_TYPE}"), BOOLEAN_TYPE.into(), "/0"),
+                (format!("{ARRAY_TYPE}/{OBJECT_TYPE}"), OBJECT_TYPE.into(), "/0"),
 
                 // equality of first order arrays of types
-                (format!("{}/{}", ARRAY_TYPE, NUMBER_TYPE), format!("{}/{}", ARRAY_TYPE, NUMBER_TYPE), ""),
-                (format!("{}/{}", ARRAY_TYPE, NULL_TYPE), format!("{}/{}", ARRAY_TYPE, NULL_TYPE), ""),
-                (format!("{}/{}", ARRAY_TYPE, STRING_TYPE), format!("{}/{}", ARRAY_TYPE, STRING_TYPE), ""),
-                (format!("{}/{}", ARRAY_TYPE, BOOLEAN_TYPE), format!("{}/{}", ARRAY_TYPE, BOOLEAN_TYPE), ""),
-                (format!("{}/{}", ARRAY_TYPE, OBJECT_TYPE), format!("{}/{}", ARRAY_TYPE, OBJECT_TYPE), ""),
+                (format!("{ARRAY_TYPE}/{NUMBER_TYPE}"), format!("{ARRAY_TYPE}/{NUMBER_TYPE}"), ""),
+                (format!("{ARRAY_TYPE}/{NULL_TYPE}"), format!("{ARRAY_TYPE}/{NULL_TYPE}"), ""),
+                (format!("{ARRAY_TYPE}/{STRING_TYPE}"), format!("{ARRAY_TYPE}/{STRING_TYPE}"), ""),
+                (format!("{ARRAY_TYPE}/{BOOLEAN_TYPE}"), format!("{ARRAY_TYPE}/{BOOLEAN_TYPE}"), ""),
+                (format!("{ARRAY_TYPE}/{OBJECT_TYPE}"), format!("{ARRAY_TYPE}/{OBJECT_TYPE}"), ""),
 
                 // equality of second order arrays to second order arrays of same type
-                (format!("{}/{}/{}", ARRAY_TYPE, ARRAY_TYPE, NUMBER_TYPE), format!("{}/{}/{}", ARRAY_TYPE, ARRAY_TYPE, NUMBER_TYPE), ""),
-                (format!("{}/{}/{}", ARRAY_TYPE, ARRAY_TYPE, NULL_TYPE), format!("{}/{}/{}", ARRAY_TYPE, ARRAY_TYPE, NULL_TYPE), ""),
-                (format!("{}/{}/{}", ARRAY_TYPE, ARRAY_TYPE, STRING_TYPE), format!("{}/{}/{}", ARRAY_TYPE, ARRAY_TYPE, STRING_TYPE), ""),
-                (format!("{}/{}/{}", ARRAY_TYPE, ARRAY_TYPE, BOOLEAN_TYPE), format!("{}/{}/{}", ARRAY_TYPE, ARRAY_TYPE, BOOLEAN_TYPE), ""),
-                (format!("{}/{}/{}", ARRAY_TYPE, ARRAY_TYPE, OBJECT_TYPE), format!("{}/{}/{}", ARRAY_TYPE, ARRAY_TYPE, OBJECT_TYPE), ""),
+                (format!("{ARRAY_TYPE}/{ARRAY_TYPE}/{NUMBER_TYPE}"), format!("{ARRAY_TYPE}/{ARRAY_TYPE}/{NUMBER_TYPE}"), ""),
+                (format!("{ARRAY_TYPE}/{ARRAY_TYPE}/{NULL_TYPE}"), format!("{ARRAY_TYPE}/{ARRAY_TYPE}/{NULL_TYPE}"), ""),
+                (format!("{ARRAY_TYPE}/{ARRAY_TYPE}/{STRING_TYPE}"), format!("{ARRAY_TYPE}/{ARRAY_TYPE}/{STRING_TYPE}"), ""),
+                (format!("{ARRAY_TYPE}/{ARRAY_TYPE}/{BOOLEAN_TYPE}"), format!("{ARRAY_TYPE}/{ARRAY_TYPE}/{BOOLEAN_TYPE}"), ""),
+                (format!("{ARRAY_TYPE}/{ARRAY_TYPE}/{OBJECT_TYPE}"), format!("{ARRAY_TYPE}/{ARRAY_TYPE}/{OBJECT_TYPE}"), ""),
 
                 // Selection of second order arrays to first order arrays of same type
-                (format!("{}/{}/{}", ARRAY_TYPE, ARRAY_TYPE, NUMBER_TYPE), format!("{}/{}", ARRAY_TYPE, NUMBER_TYPE), "/0"),
-                (format!("{}/{}/{}", ARRAY_TYPE, ARRAY_TYPE, NULL_TYPE), format!("{}/{}", ARRAY_TYPE, NULL_TYPE), "/0"),
-                (format!("{}/{}/{}", ARRAY_TYPE, ARRAY_TYPE, STRING_TYPE), format!("{}/{}", ARRAY_TYPE, STRING_TYPE), "/0"),
-                (format!("{}/{}/{}", ARRAY_TYPE, ARRAY_TYPE, BOOLEAN_TYPE), format!("{}/{}", ARRAY_TYPE, BOOLEAN_TYPE), "/0"),
-                (format!("{}/{}/{}", ARRAY_TYPE, ARRAY_TYPE, OBJECT_TYPE), format!("{}/{}", ARRAY_TYPE, OBJECT_TYPE), "/0"),
+                (format!("{ARRAY_TYPE}/{ARRAY_TYPE}/{NUMBER_TYPE}"), format!("{ARRAY_TYPE}/{NUMBER_TYPE}"), "/0"),
+                (format!("{ARRAY_TYPE}/{ARRAY_TYPE}/{NULL_TYPE}"), format!("{ARRAY_TYPE}/{NULL_TYPE}"), "/0"),
+                (format!("{ARRAY_TYPE}/{ARRAY_TYPE}/{STRING_TYPE}"), format!("{ARRAY_TYPE}/{STRING_TYPE}"), "/0"),
+                (format!("{ARRAY_TYPE}/{ARRAY_TYPE}/{BOOLEAN_TYPE}"), format!("{ARRAY_TYPE}/{BOOLEAN_TYPE}"), "/0"),
+                (format!("{ARRAY_TYPE}/{ARRAY_TYPE}/{OBJECT_TYPE}"), format!("{ARRAY_TYPE}/{OBJECT_TYPE}"), "/0"),
 
                 // serialization of second order arrays to first order arrays of same type
-                (format!("{}/{}/{}", ARRAY_TYPE, ARRAY_TYPE, NUMBER_TYPE), format!("{}/{}", ARRAY_TYPE, NUMBER_TYPE), ""),
-                (format!("{}/{}/{}", ARRAY_TYPE, ARRAY_TYPE, NULL_TYPE), format!("{}/{}", ARRAY_TYPE, NULL_TYPE), ""),
-                (format!("{}/{}/{}", ARRAY_TYPE, ARRAY_TYPE, STRING_TYPE), format!("{}/{}", ARRAY_TYPE, STRING_TYPE), ""),
-                (format!("{}/{}/{}", ARRAY_TYPE, ARRAY_TYPE, BOOLEAN_TYPE), format!("{}/{}", ARRAY_TYPE, BOOLEAN_TYPE), ""),
-                (format!("{}/{}/{}", ARRAY_TYPE, ARRAY_TYPE, OBJECT_TYPE), format!("{}/{}", ARRAY_TYPE, OBJECT_TYPE), ""),
+                (format!("{ARRAY_TYPE}/{ARRAY_TYPE}/{NUMBER_TYPE}"), format!("{ARRAY_TYPE}/{NUMBER_TYPE}"), ""),
+                (format!("{ARRAY_TYPE}/{ARRAY_TYPE}/{NULL_TYPE}"), format!("{ARRAY_TYPE}/{NULL_TYPE}"), ""),
+                (format!("{ARRAY_TYPE}/{ARRAY_TYPE}/{STRING_TYPE}"), format!("{ARRAY_TYPE}/{STRING_TYPE}"), ""),
+                (format!("{ARRAY_TYPE}/{ARRAY_TYPE}/{BOOLEAN_TYPE}"), format!("{ARRAY_TYPE}/{BOOLEAN_TYPE}"), ""),
+                (format!("{ARRAY_TYPE}/{ARRAY_TYPE}/{OBJECT_TYPE}"), format!("{ARRAY_TYPE}/{OBJECT_TYPE}"), ""),
 
                 // serialization of second order array of generic to first order arrays of same type
-                (format!("{}/{}/{}", ARRAY_TYPE, ARRAY_TYPE, GENERIC_TYPE), format!("{}/{}", ARRAY_TYPE, NUMBER_TYPE), ""),
+                (format!("{ARRAY_TYPE}/{ARRAY_TYPE}/{GENERIC_TYPE}"), format!("{ARRAY_TYPE}/{NUMBER_TYPE}"), ""),
 
-                (format!("{}/{}", ARRAY_TYPE, GENERIC_TYPE), format!("{}/{}/{}", ARRAY_TYPE, ARRAY_TYPE, NUMBER_TYPE), ""),
-                (format!("{}/{}", ARRAY_TYPE, GENERIC_TYPE), format!("{}/{}", ARRAY_TYPE, NUMBER_TYPE), ""),
-                (format!("{}/{}", ARRAY_TYPE, GENERIC_TYPE), format!("{}/{}", ARRAY_TYPE, NUMBER_TYPE), "/1"),
+                (format!("{ARRAY_TYPE}/{GENERIC_TYPE}"), format!("{ARRAY_TYPE}/{ARRAY_TYPE}/{NUMBER_TYPE}"), ""),
+                (format!("{ARRAY_TYPE}/{GENERIC_TYPE}"), format!("{ARRAY_TYPE}/{NUMBER_TYPE}"), ""),
+                (format!("{ARRAY_TYPE}/{GENERIC_TYPE}"), format!("{ARRAY_TYPE}/{NUMBER_TYPE}"), "/1"),
                 (ARRAY_TYPE.into(), ARRAY_TYPE.into(), ""),
                 (ARRAY_TYPE.into(), GENERIC_TYPE.into(), ""),
-                (ARRAY_TYPE.into(), format!("{}/{}", ARRAY_TYPE, ARRAY_TYPE), ""),
-                (ARRAY_TYPE.into(), format!("{}/{}", ARRAY_TYPE, GENERIC_TYPE), ""),
+                (ARRAY_TYPE.into(), format!("{ARRAY_TYPE}/{ARRAY_TYPE}"), ""),
+                (ARRAY_TYPE.into(), format!("{ARRAY_TYPE}/{GENERIC_TYPE}"), ""),
 
                 // Maps (Objects) of type with a selector
-                (format!("{}/{}", OBJECT_TYPE, NUMBER_TYPE), NUMBER_TYPE.into(), "/name"),
+                (format!("{OBJECT_TYPE}/{NUMBER_TYPE}"), NUMBER_TYPE.into(), "/name"),
             ];
 
             for (case_number, test) in valid_type_conversions.iter().enumerate() {
@@ -483,7 +482,7 @@ mod test {
                     &[DataType::from(&test.0 as &str)],
                     &[DataType::from(&test.1 as &str)],
                     &Route::from(test.2)).is_err() {
-                    panic!("Test Case #{} failed", case_number);
+                    panic!("Test Case #{case_number} failed");
                 }
             }
         }
@@ -506,15 +505,15 @@ mod test {
             (BOOLEAN_TYPE.into(), NUMBER_TYPE.into(), "/0"), // cannot select from a non-array
 
             // selecting a type from an array to send to an incompatible input
-            (format!("{}/{}", ARRAY_TYPE, NUMBER_TYPE), STRING_TYPE.into(), "/0"),
-            (format!("{}/{}", ARRAY_TYPE, NULL_TYPE), STRING_TYPE.into(), "/0"),
-            (format!("{}/{}", ARRAY_TYPE, STRING_TYPE), NUMBER_TYPE.into(), "/0"),
-            (format!("{}/{}", ARRAY_TYPE, BOOLEAN_TYPE), OBJECT_TYPE.into(), "/0"),
-            (format!("{}/{}", ARRAY_TYPE, OBJECT_TYPE), BOOLEAN_TYPE.into(), "/0"),
+            (format!("{ARRAY_TYPE}/{NUMBER_TYPE}"), STRING_TYPE.into(), "/0"),
+            (format!("{ARRAY_TYPE}/{NULL_TYPE}"), STRING_TYPE.into(), "/0"),
+            (format!("{ARRAY_TYPE}/{STRING_TYPE}"), NUMBER_TYPE.into(), "/0"),
+            (format!("{ARRAY_TYPE}/{BOOLEAN_TYPE}"), OBJECT_TYPE.into(), "/0"),
+            (format!("{ARRAY_TYPE}/{OBJECT_TYPE}"), BOOLEAN_TYPE.into(), "/0"),
 
             // Invalid object contents
-            (format!("{}/{}", OBJECT_TYPE, NUMBER_TYPE), STRING_TYPE.into(), "/name"),
-            (format!("{}/{}", OBJECT_TYPE, STRING_TYPE), STRING_TYPE.into(), ""),
+            (format!("{OBJECT_TYPE}/{NUMBER_TYPE}"), STRING_TYPE.into(), "/name"),
+            (format!("{OBJECT_TYPE}/{STRING_TYPE}"), STRING_TYPE.into(), ""),
             ];
 
             for test in invalid_type_conversions.iter() {

@@ -39,15 +39,15 @@ pub fn flow_function(_attr: TokenStream, implementation: proc_macro::TokenStream
 // Load a FunctionDefinition from the file at `path`
 fn load_function_definition(path: &Path) -> FunctionDefinition {
     let mut f = File::open(path)
-        .unwrap_or_else(|e| panic!("the 'flow' macro could not open the function definition file '{}'\n{}",
-                                      path.display(), e));
+        .unwrap_or_else(|e| panic!("the 'flow' macro could not open the function definition file '{}'\n{e}",
+                                      path.display()));
     let mut buffer = Vec::new();
     f.read_to_end(&mut buffer)
-        .unwrap_or_else(|e| panic!("the 'flow' macro could not read from the function definition file '{}'\n{}",
-                                   path.display(), e));
+        .unwrap_or_else(|e| panic!("the 'flow' macro could not read from the function definition file '{}'\n{e}",
+                                   path.display()));
     toml::from_slice(&buffer)
         .unwrap_or_else(|e| panic!("the 'flow' macro could not deserialize the Toml function definition file
-        '{}'\n{}", path.display(), e))
+        '{}'\n{e}", path.display()))
 }
 
 // If the function accepts inputs as &[serde_json::Value] then there is no need to extract

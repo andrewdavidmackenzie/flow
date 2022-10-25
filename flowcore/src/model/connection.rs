@@ -110,9 +110,9 @@ impl Connection {
         DataType::compatible_types(from_io.datatypes(), to_io.datatypes(),
                                    &Route::from(from_io_subroute))
             .chain_err(|| format!("Incompatible source and destination types:\n\
-            Source:      '{}/{}' of types {:?}\n\
+            Source:      '{}/{from_io_subroute}' of types {:?}\n\
             Destination: '{}' of types {:?}",
-            from_io.route(), from_io_subroute, from_io.datatypes(),
+            from_io.route(), from_io.datatypes(),
             to_io.route(), to_io.datatypes()))?;
         debug!(
             "Connection built from '{}' to '{}'",
@@ -210,7 +210,7 @@ mod test {
     #[test]
     fn display_connection() {
         let connection1 = Connection::new("input/number", "process_1");
-        println!("Connection: {}", connection1);
+        println!("Connection: {connection1}");
     }
 
     #[test]

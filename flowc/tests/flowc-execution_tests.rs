@@ -56,7 +56,7 @@ fn write_manifest(
     tables: &CompilerTables,
 ) -> Result<PathBuf> {
     let mut filename = out_dir;
-    filename.push(&format!("{}.json", test_name));
+    filename.push(&format!("{test_name}.json"));
     let mut manifest_file =
         File::create(&filename).chain_err(|| "Could not create manifest file")?;
     let out_dir_path =
@@ -140,7 +140,7 @@ fn execute_flow(
         .expect("Could not spawn flowr process");
 
     // send it stdin from the "${testname}.stdin" file
-    write!(runner.stdin.expect("Could not get stdin"), "{}", input)
+    write!(runner.stdin.expect("Could not get stdin"), "{input}")
         .expect("Could not write to stdin");
 
     // read it's stdout
@@ -212,7 +212,7 @@ fn execute_test(test_name: &str, separate_processes: bool) {
     let search_path = helper::set_lib_search_path_to_project();
     let mut root_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     root_dir.pop();
-    let test_dir = root_dir.join(&format!("flowc/tests/test-flows/{}", test_name));
+    let test_dir = root_dir.join(format!("flowc/tests/test-flows/{test_name}"));
 
     if let FlowProcess(ref flow) = load_flow(&test_dir, search_path) {
         #[cfg(feature = "debugger")]
@@ -232,9 +232,9 @@ fn execute_test(test_name: &str, separate_processes: bool) {
         let (actual_stdout, actual_stderr) =
             execute_flow(manifest_path, test_args, input, separate_processes);
         let expected_stdout = get(&test_dir, "expected.stdout");
-        assert_eq!(expected_stdout, actual_stdout, "STDOUT: {}", actual_stdout);
+        assert_eq!(expected_stdout, actual_stdout, "STDOUT: {actual_stdout}");
         let expected_stderr = get(&test_dir, "expected.stderr");
-        assert_eq!(expected_stderr, actual_stderr, "STDERR: {}", actual_stderr);
+        assert_eq!(expected_stderr, actual_stderr, "STDERR: {actual_stderr}");
     }
 }
 

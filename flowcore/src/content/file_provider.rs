@@ -22,7 +22,7 @@ impl Provider for FileProvider {
     ) -> Result<(Url, Option<Url>)> {
         let path = url
             .to_file_path()
-            .map_err(|_| format!("Could not convert '{}' to a file path", url))?;
+            .map_err(|_| format!("Could not convert '{url}' to a file path"))?;
         let md_result = fs::metadata(&path)
             .chain_err(|| format!("Error getting file metadata for path: '{}'", path.display()));
 
@@ -71,10 +71,10 @@ impl Provider for FileProvider {
             .to_file_path()
             .map_err(|_| "Could not convert Url to file path")?;
         let mut f =
-            File::open(&file_path).map_err(|_| format!("Could not open file '{:?}'", file_path))?;
+            File::open(&file_path).map_err(|_| format!("Could not open file '{file_path:?}'"))?;
         let mut buffer = Vec::new();
         f.read_to_end(&mut buffer)
-            .chain_err(|| format!("Could not read content from '{:?}'", file_path))?;
+            .chain_err(|| format!("Could not read content from '{file_path:?}'"))?;
         Ok(buffer)
     }
 }
@@ -111,8 +111,8 @@ impl FileProvider {
                 }
             }
         }
-        let msg = format!("No file found at path '{}' with any of these extensions '{:?}'",
-                            file.display(), extensions);
+        let msg = format!("No file found at path '{}' with any of these extensions '{extensions:?}'",
+                            file.display());
         trace!("{}", msg);
         bail!(msg)
     }

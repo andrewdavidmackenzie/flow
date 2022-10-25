@@ -117,19 +117,16 @@ pub fn load(provider: &dyn Provider, source_url: &Url) -> Result<WasmExecutor> {
     trace!("Attempting to load WASM module from '{}'", source_url);
     let (resolved_url, _) = provider
         .resolve_url(source_url, DEFAULT_WASM_FILENAME, &["wasm"])
-        .chain_err(|| format!("Could not resolve url '{}' for wasm file", source_url))?;
+        .chain_err(|| format!("Could not resolve url '{source_url}' for wasm file"))?;
     let content = provider.get_contents(&resolved_url).chain_err(|| {
-        format!(
-            "Could not fetch content from url '{}' for loading wasm",
-            resolved_url
-        )
+        format!("Could not fetch content from url '{resolved_url}' for loading wasm")
     })?;
 
     let mut store: Store<()> = Store::default();
     let module = Module::new(store.engine(), content)
-        .map_err(|e| format!("Could not create WASM Module: {}", e))?;
+        .map_err(|e| format!("Could not create WASM Module: {e}"))?;
     let instance = Instance::new(&mut store, &module, &[])
-        .map_err(|e| format!("Could not create WASM Instance: {}", e))?;
+        .map_err(|e| format!("Could not create WASM Instance: {e}"))?;
     let memory = instance
         .get_memory(&mut store, "memory")
         .ok_or("Could not get WASM linear memory")?;
@@ -142,7 +139,7 @@ pub fn load(provider: &dyn Provider, source_url: &Url) -> Result<WasmExecutor> {
         .get_func(&mut store, "alloc")
         .ok_or("Could not get the WASM alloc() function")?;
 
-    info!("Loaded wasm module from: '{}'", source_url);
+    info!("Loaded wasm module from: '{source_url}'");
 
     Ok(WasmExecutor {
         store: Arc::new(Mutex::new(store)),

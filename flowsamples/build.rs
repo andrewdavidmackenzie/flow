@@ -10,7 +10,7 @@ fn main() -> io::Result<()> {
 
     println!("cargo:rerun-if-env-changed=FLOW_LIB_PATH");
     // Tell Cargo that if any file in the flowsamples directory changes it should rerun this build script
-    println!("cargo:rerun-if-changed={}", samples_root);
+    println!("cargo:rerun-if-changed={samples_root}");
 
     // find all sample sub-folders at have a "root.toml" flow definition file
     for entry in fs::read_dir(samples_root)? {

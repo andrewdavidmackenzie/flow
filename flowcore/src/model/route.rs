@@ -36,7 +36,7 @@ pub enum RouteType {
 /// "/my-flow/sub-flow/function/input_1/1" -> An array element at index 1 of the Array output from "input_1"
 /// "/my-flow/sub-flow/function/input_2/part_a" -> A part of the Json structure output by "input_2" called "part_a"
 impl Route {
-    /// `sub_route_of` returns an Option<Route> indicating if `self` is a subroute of `other`
+    /// `sub_route_of` returns an `Option<Route`> indicating if `self` is a subroute of `other`
     /// (i.e. `self` is a longer route to an element under the `other` route)
     /// Return values
     ///     None                    - `self` is not a sub-route of `other`
@@ -51,7 +51,7 @@ impl Route {
             return Some(Route::from(""));
         }
 
-        self.strip_prefix(&format!("{}/", other)).map(Route::from)
+        self.strip_prefix(&format!("{other}/")).map(Route::from)
     }
 
     /// Insert another Route at the front of this Route

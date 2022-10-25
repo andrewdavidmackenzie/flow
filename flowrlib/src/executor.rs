@@ -81,7 +81,7 @@ impl Executor {
                 debug!("Disabling results timeout");
                 self.results_sink.set_rcvtimeo(-1)
             },
-        }.map_err(|e| format!("Error setting results timeout: {}", e).into())
+        }.map_err(|e| format!("Error setting results timeout: {e}").into())
     }
 
     /// Wait for, then return the next Job with results returned from executors
@@ -140,7 +140,7 @@ fn start_executors(
     for executor_number in 0..number_of_executors {
         create_executor_thread(
                     provider.clone(),
-            format!("Executor #{}", executor_number),
+            format!("Executor #{executor_number}"),
             context.clone(),
             loaded_implementations.clone(),
             loaded_lib_manifests.clone(),
@@ -309,7 +309,7 @@ fn get_lib_manifest_tuple(
         info!("Attempting to load library manifest'{}'", lib_root_url);
         let manifest_tuple =
             LibraryManifest::load(&*provider as &dyn Provider, lib_root_url)
-                .chain_err(|| format!("Could not load library with root url: '{}'", lib_root_url))?;
+                .chain_err(|| format!("Could not load library with root url: '{lib_root_url}'"))?;
         lib_manifests
             .insert(lib_root_url.clone(), manifest_tuple);
     }

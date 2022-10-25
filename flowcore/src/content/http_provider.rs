@@ -35,7 +35,7 @@ impl Provider for HttpProvider {
         }
 
         // Attempting to find default file under this path, with any of the valid extensions
-        let default_filename_url = Url::parse(&format!("{}/{}", url, default_filename))
+        let default_filename_url = Url::parse(&format!("{url}/{default_filename}"))
             .chain_err(|| "Could not append default_filename to url")?;
         if let Ok(found) = Self::resource_by_extensions(&default_filename_url, extensions) {
             return Ok((found, None));
@@ -46,7 +46,7 @@ impl Provider for HttpProvider {
         let file_name = segments
             .next_back()
             .ok_or("Could not get last path segment")?;
-        let filename_url = Url::parse(&format!("{}/{}", url, file_name))
+        let filename_url = Url::parse(&format!("{url}/{file_name}"))
             .chain_err(|| "Could not append filename after directory in Url")?;
         if let Ok(found) = Self::resource_by_extensions(&filename_url, extensions) {
             return Ok((found, None));
@@ -99,7 +99,7 @@ impl HttpProvider {
         // for that file path, try with all the allowed file extensions
         for extension in extensions {
             let resource_with_extension =
-                Url::parse(&format!("{}.{}", resource.as_str(), extension))
+                Url::parse(&format!("{}.{extension}", resource.as_str(), ))
                     .chain_err(|| "Could not parse Url with extension added")?;
             if Self::resource_exists(&resource_with_extension).is_ok() {
                 return Ok(resource_with_extension);

@@ -103,7 +103,7 @@ impl LibraryManifest {
         let deserializer = get_deserializer::<LibraryManifest>(&resolved_url)?;
         let manifest = deserializer
             .deserialize(&content, Some(&resolved_url))
-            .chain_err(|| format!("Could not create a LibraryManifest from '{}'", resolved_url))?;
+            .chain_err(|| format!("Could not create a LibraryManifest from '{resolved_url}'"))?;
 
         Ok((manifest, url))
     }
@@ -116,8 +116,8 @@ impl LibraryManifest {
         relative_dir: &str,
     ) -> Result<()> {
         let lib_reference = Url::parse(&format!(
-            "lib://{}/{}",
-            self.metadata.name, relative_dir
+            "lib://{}/{relative_dir}",
+            self.metadata.name
         ))
         .chain_err(|| "Could not form library Url to add to the manifest")?;
 

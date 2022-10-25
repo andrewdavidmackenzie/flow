@@ -106,22 +106,22 @@ impl fmt::Display for FlowDefinition {
 
         writeln!(f, "\tinputs:")?;
         for input in &self.inputs {
-            writeln!(f, "\t\t\t\t\t{:#?}", input)?;
+            writeln!(f, "\t\t\t\t\t{input:#?}")?;
         }
 
         writeln!(f, "\toutputs:")?;
         for output in &self.outputs {
-            writeln!(f, "\t\t\t\t\t{:#?}", output)?;
+            writeln!(f, "\t\t\t\t\t{output:#?}")?;
         }
 
         writeln!(f, "\tprocesses:")?;
         for flow_ref in &self.process_refs {
-            writeln!(f, "\t{}", flow_ref)?;
+            writeln!(f, "\t{flow_ref}")?;
         }
 
         writeln!(f, "\tconnections:")?;
         for connection in &self.connections {
-            writeln!(f, "\t\t\t\t\t{}", connection)?;
+            writeln!(f, "\t\t\t\t\t{connection}")?;
         }
 
         Ok(())
@@ -173,7 +173,7 @@ impl SetRoute for FlowDefinition {
         if parent_route.is_empty() {
             self.route = Route::from(format!("/{}", self.alias));
         } else {
-            self.route = Route::from(format!("{}/{}", parent_route, self.alias));
+            self.route = Route::from(format!("{parent_route}/{}", self.alias));
         }
         self.inputs
             .set_io_routes_from_parent(&self.route, IOType::FlowInput);
@@ -614,7 +614,7 @@ mod test {
         let mut flow = test_flow();
         let connection = Connection::new("process_1", "process_2");
         flow.connections = vec![connection];
-        println!("flow: {}", flow);
+        println!("flow: {flow}");
     }
 
     mod build_connection_tests {

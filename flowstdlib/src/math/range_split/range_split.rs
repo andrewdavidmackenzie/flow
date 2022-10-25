@@ -66,7 +66,7 @@ mod test {
         let mut acquired_set: Vec<Value> = vec!();
 
         while let Some(next) = requires_further_splitting.pop() {
-            println!("Splitting: {:?}", next);
+            println!("Splitting: {next:?}");
             let (output, again) = _range_split(&[next]).expect("_range_split() failed");
             assert!(again);
             let result = output.expect("Could not get value from output");

@@ -66,7 +66,7 @@ mod test {
             implementation_url: Url::parse("lib://flowstdlib/math/add").expect("Could not parse Url"),
             result: Ok((None, false)),
         };
-        println!("Job: {}", job);
+        println!("Job: {job}");
     }
 
     #[test]

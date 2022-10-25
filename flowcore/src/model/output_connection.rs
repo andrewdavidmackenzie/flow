@@ -111,6 +111,6 @@ mod test {
             #[cfg(feature = "debugger")]
             "test-connection".into(),
         );
-        println!("Connection: {}", connection);
+        println!("Connection: {connection}");
     }
 }

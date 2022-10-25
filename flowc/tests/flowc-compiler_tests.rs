@@ -323,11 +323,8 @@ fn flow_input_propagated_back_out() {
                 ),
             }
         },
-        Ok(FunctionProcess(_)) => panic!("Unexpected compile result from test file at '{}'", url),
-        Err(error) => panic!(
-            "Couldn't load the flow from test file at '{}'.\n{}",
-            url, error
-        ),
+        Ok(FunctionProcess(_)) => panic!("Unexpected compile result from test file at '{url}'"),
+        Err(error) => panic!("Couldn't load the flow from test file at '{url}'.\n{error}"),
     }
 }
 
@@ -381,10 +378,8 @@ fn initialized_output_propagated() {
                 ),
             }
         }
-        Ok(FunctionProcess(_)) => panic!("Unexpected compile result from test file at '{}'", url),
-        Err(error) => panic!(
-            "Couldn't load the flow from test file at '{}'.\n{}",
-            url, error
+        Ok(FunctionProcess(_)) => panic!("Unexpected compile result from test file at '{url}'"),
+        Err(error) => panic!("Couldn't load the flow from test file at '{url}'.\n{error}"
         ),
     }
 }
@@ -441,10 +436,7 @@ fn initialized_input_to_subflow() {
                 ),
             }
         }
-        Ok(FunctionProcess(_)) => panic!("Unexpected compile result from test file at '{}'", url),
-        Err(error) => panic!(
-            "Couldn't load the flow from test file at '{}'.\n{}",
-            url, error
-        ),
+        Ok(FunctionProcess(_)) => panic!("Unexpected compile result from test file at '{url}'"),
+        Err(error) => panic!("Couldn't load the flow from test file at '{url}'.\n{error}"),
     }
 }
