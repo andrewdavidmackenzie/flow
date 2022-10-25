@@ -8,7 +8,7 @@ fn _append(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
 
     let s1 = v1.as_str().ok_or("Could not get s1")?;
     let s2 = v2.as_str().ok_or("Could not get s2")?;
-    Ok((Some(json!(format!("{}{}", s1, s2))), RUN_AGAIN))
+    Ok((Some(json!(format!("{s1}{s2}"))), RUN_AGAIN))
 }
 
 #[cfg(test)]

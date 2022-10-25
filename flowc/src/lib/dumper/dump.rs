@@ -139,7 +139,7 @@ fn dump_table<C: Iterator>(table: C, writer: &mut dyn Write) -> std::io::Result<
         <C as Iterator>::Item: fmt::Display,
 {
     for function in table {
-        writer.write_all(format!("{}\n", function).as_bytes())?;
+        writer.write_all(format!("{function}\n").as_bytes())?;
     }
     writer.write_all(b"\n")
 }
@@ -220,7 +220,7 @@ fn _dump_flow(
 
     debug!("Dumping tables to {}", filename);
     let mut writer = create_output_file(target_dir, filename, "dump")?;
-    writer.write_all(format!("\nLevel={}\n{}", level, flow).as_bytes())?;
+    writer.write_all(format!("\nLevel={level}\n{flow}").as_bytes())?;
 
     // Dump sub-flows
     for subprocess in &flow.subprocesses {

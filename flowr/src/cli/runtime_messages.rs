@@ -63,8 +63,7 @@ impl fmt::Display for ServerMessage {
                 ServerMessage::FlowEnd => "FlowEnd".into(),
                 #[cfg(feature = "submission")]ServerMessage::FlowStart => "FlowStart".into(),
                 #[cfg(feature = "submission")]ServerMessage::ServerExiting(result) =>
-                    format!("ServerExiting with result: {:?}", result),
-
+                    format!("ServerExiting with result: {result:?}"),
                 #[cfg(feature = "context")] ServerMessage::Stdout(_) => "Stdout".into(),
                 #[cfg(feature = "context")] ServerMessage::Stderr(_) => "Stderr".into(),
                 #[cfg(feature = "context")] ServerMessage::GetStdin => "GetStdIn".into(),
@@ -146,7 +145,7 @@ impl fmt::Display for ClientMessage {
                 ClientMessage::GetStdinEof => "GetStdinEof".into(),
                 ClientMessage::GetLineEof => "GetLineEof".into(),
                 ClientMessage::ClientExiting(result) =>
-                    format!("ClientExiting with server result: {:?}", result),
+                    format!("ClientExiting with server result: {result:?}"),
                 ClientMessage::ClientSubmission(_) => "ClientSubmission".into(),
                 ClientMessage::EnterDebugger => "EnterDebugger".into(),
                 ClientMessage::Invalid => "Invalid".into(),

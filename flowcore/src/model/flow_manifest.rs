@@ -48,7 +48,7 @@ pub struct FlowManifest {
 impl Display for FlowManifest {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         for (id, function) in self.functions.iter().enumerate() {
-            writeln!(f, "         Function #{} Implementation: {}", id, function.get_implementation_url())?;
+            writeln!(f, "         Function #{id} Implementation: {}", function.get_implementation_url())?;
         }
         write!(f, "")
     }
@@ -151,7 +151,7 @@ impl FlowManifest {
         let deserializer = get_deserializer::<FlowManifest>(&resolved_url)?;
         let mut manifest = deserializer
             .deserialize(&content, Some(&resolved_url))
-            .chain_err(|| format!("Could not create a FlowManifest from '{}'", manifest_url))?;
+            .chain_err(|| format!("Could not create a FlowManifest from '{manifest_url}'"))?;
 
         // normalize the implementation_locations into URLs.
         // context: and lib: URLs will be untouched

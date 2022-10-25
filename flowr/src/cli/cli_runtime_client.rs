@@ -109,7 +109,7 @@ impl CliRuntimeClient {
             ServerMessage::FlowEnd(metrics) => {
                 debug!("=========================== Flow execution ended ======================================");
                 if self.display_metrics {
-                    println!("\nMetrics: \n {}", metrics);
+                    println!("\nMetrics: \n {metrics}");
                 }
 
                 #[cfg(feature = "context")]
@@ -134,11 +134,11 @@ impl CliRuntimeClient {
             }
             #[cfg(feature = "context")] ServerMessage::StdoutEof => ClientMessage::Ack,
             #[cfg(feature = "context")] ServerMessage::Stdout(contents) => {
-                println!("{}", contents);
+                println!("{contents}");
                 ClientMessage::Ack
             }
             #[cfg(feature = "context")] ServerMessage::Stderr(contents) => {
-                eprintln!("{}", contents);
+                eprintln!("{contents}");
                 ClientMessage::Ack
             }
             #[cfg(feature = "context")] ServerMessage::GetStdin => {
@@ -172,20 +172,20 @@ impl CliRuntimeClient {
                         )),
                     }
                 }
-                Err(_) => ClientMessage::Error(format!("Could not open file '{:?}'", file_path)),
+                Err(_) => ClientMessage::Error(format!("Could not open file '{file_path:?}'")),
             },
             #[cfg(feature = "context")] ServerMessage::Write(filename, bytes) => match File::create(&filename) {
                 Ok(mut file) => match file.write_all(bytes.as_slice()) {
                     Ok(_) => ClientMessage::Ack,
                     Err(e) => {
-                        let msg = format!("Error writing to file: '{}': '{}'", filename, e);
-                        error!("{}", msg);
+                        let msg = format!("Error writing to file: '{filename}': '{e}'");
+                        error!("{msg}");
                         ClientMessage::Error(msg)
                     }
                 },
                 Err(e) => {
-                    let msg = format!("Error creating file: '{}': '{}'", filename, e);
-                    error!("{}", msg);
+                    let msg = format!("Error creating file: '{filename}': '{e}'");
+                    error!("{msg}");
                     ClientMessage::Error(msg)
                 }
             },

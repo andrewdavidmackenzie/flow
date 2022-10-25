@@ -26,7 +26,7 @@ pub fn url_from_string(base_url: &Url, string: Option<&str>) -> Result<Url> {
         }
         Some(url_string) => base_url
             .join(url_string)
-            .chain_err(|| format!("Problem joining url '{}' with '{}'", base_url, url_string)),
+            .chain_err(|| format!("Problem joining url '{base_url}' with '{url_string}'")),
     }
 }
 
@@ -57,7 +57,7 @@ mod test {
     fn file_scheme_in_arg_absolute_path_preserved() {
         let cwd = cwd_as_url();
         let path = "/some/file";
-        let arg = format!("file:{}", path);
+        let arg = format!("file:{path}");
 
         let url = url_from_string(&cwd, Some(&arg)).expect("Could not form URL");
 
@@ -69,7 +69,7 @@ mod test {
     fn http_scheme_in_arg_absolute_path_preserved() {
         let cwd = cwd_as_url();
         let path = "/some/file";
-        let arg = format!("http://test.com{}", path);
+        let arg = format!("http://test.com{path}");
 
         let url = url_from_string(&cwd, Some(&arg)).expect("Could not form URL");
 
@@ -100,7 +100,7 @@ mod test {
 
         let url =
             url_from_string(&root_url, Some(relative_path_to_file)).expect("Could not form URL");
-        let abs_path = format!("{}/{}", root.display(), relative_path_to_file);
+        let abs_path = format!("{}/{relative_path_to_file}", root.display());
 
         assert_eq!(url.scheme(), "file");
         assert_eq!(url.path(), abs_path);

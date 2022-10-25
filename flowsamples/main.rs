@@ -17,7 +17,7 @@ fn main() -> io::Result<()> {
     let root_dir = samples_dir.parent().expect("Could not get parent directory");
     let samples_out_dir = root_dir.join("target/flowsamples");
 
-    println!("Samples Root Directory: `{}`", samples_root);
+    println!("Samples Root Directory: `{samples_root}`");
 
     let args: Vec<String> = env::args().collect();
 
@@ -86,11 +86,11 @@ fn run_sample(sample_dir: &Path, output_dir: &Path) -> io::Result<()> {
         Err(e) => match e.kind() {
             ErrorKind::NotFound => Err(io::Error::new(
                 ErrorKind::Other,
-                format!("`flowr` was not found! Check your $PATH. {}", e),
+                format!("`flowr` was not found! Check your $PATH. {e}"),
             )),
             _ => Err(io::Error::new(
                 ErrorKind::Other,
-                format!("Unexpected error running `flowr`: {}", e),
+                format!("Unexpected error running `flowr`: {e}"),
             )),
         },
     }
@@ -98,7 +98,7 @@ fn run_sample(sample_dir: &Path, output_dir: &Path) -> io::Result<()> {
 
 fn args(sample_dir: &Path) -> io::Result<Vec<String>> {
     let args_file = sample_dir.join("test.args");
-    let f = File::open(&args_file)?;
+    let f = File::open(args_file)?;
     let f = BufReader::new(f);
 
     let mut args = Vec::new();
@@ -161,10 +161,9 @@ mod test {
 
             if !contents.is_empty() {
                 panic!(
-                    "Sample {:?} produced output to STDERR written to '{}'\n{}",
+                    "Sample {:?} produced output to STDERR written to '{}'\n{contents}",
                     sample_dir.file_name().expect("Could not get directory file name"),
-                    error_output.display(), contents
-                );
+                    error_output.display());
             }
         }
 

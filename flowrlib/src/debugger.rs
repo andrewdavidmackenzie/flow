@@ -261,7 +261,7 @@ impl<'a> Debugger<'a> {
                                                               .ok_or("Could not get function")?.clone(),
                                                          state.get_function_states(function_id));
                     } else {
-                        self.debug_server.debugger_error(format!("No function with id = {}", function_id));
+                        self.debug_server.debugger_error(format!("No function with id = {function_id}"));
                     };
                 }
                 Ok(InspectInput(function_id, input_number)) => {
@@ -275,11 +275,10 @@ impl<'a> Debugger<'a> {
                                 .clone());
                         } else {
                             self.debug_server.debugger_error(format!(
-                                "Function #{} has no input number {}", function_id, input_number
-                            ));
+                                "Function #{function_id} has no input number {input_number}"));
                         }
                     } else {
-                        self.debug_server.debugger_error(format!("No function with id = {}", function_id));
+                        self.debug_server.debugger_error(format!("No function with id = {function_id}"));
                     };
                 }
                 Ok(InspectOutput(function_id, sub_route)) => {
@@ -306,7 +305,7 @@ impl<'a> Debugger<'a> {
                         }
                         self.debug_server.outputs(output_connections);
                     } else {
-                        self.debug_server.debugger_error(format!("No function with id = {}", function_id));
+                        self.debug_server.debugger_error(format!("No function with id = {function_id}"));
                     };
                 }
                 Ok(InspectBlock(from_function_id, to_function_id)) => {
@@ -320,7 +319,7 @@ impl<'a> Debugger<'a> {
                 }
                 Ok(Error(_)) => { /* client error */ }
                 Ok(Invalid) => {}
-                Err(e) => error!("Error in Debug server getting command; {}", e),
+                Err(e) => error!("Error in Debug server getting command; {e}"),
 
                 // ************************** The following commands may exit the command loop
                 Ok(Continue) => {
@@ -409,8 +408,8 @@ impl<'a> Debugger<'a> {
                 let io_name = function.input(input_number).ok_or("Could not get input")?.name();
                 self.input_breakpoints.insert((destination_id, input_number));
                 Ok(format!(
-                    "Data breakpoint set on Function #{destination_id}:{input_number} '{}' receiving data on input '{}'",
-                    function.name(), io_name))
+                    "Data breakpoint set on Function #{destination_id}:{input_number} '{}' receiving data on input '{io_name}'",
+                    function.name()))
             }
             Some(BreakpointSpec::Block((Some(blocked_id), Some(blocking_id)))) => {
                 if blocked_id >= state.num_functions() {
@@ -515,7 +514,7 @@ impl<'a> Debugger<'a> {
             breakpoints = true;
             response.push_str("Function Breakpoints: \n");
             for process_id in &self.function_breakpoints {
-                let _ = writeln!(response, "\tFunction #{}", process_id);
+                let _ = writeln!(response, "\tFunction #{process_id}");
             }
         }
 
@@ -523,7 +522,7 @@ impl<'a> Debugger<'a> {
             breakpoints = true;
             response.push_str("Output Breakpoints: \n");
             for (process_id, route) in &self.output_breakpoints {
-                let _ = writeln!(response, "\tOutput #{}/{}", process_id, route);
+                let _ = writeln!(response, "\tOutput #{process_id}/{route}");
             }
         }
 
@@ -531,7 +530,7 @@ impl<'a> Debugger<'a> {
             breakpoints = true;
             response.push_str("Input Breakpoints: \n");
             for (process_id, input_number) in &self.input_breakpoints {
-                let _ = writeln!(response, "\tInput #{}:{}", process_id, input_number);
+                let _ = writeln!(response, "\tInput #{process_id}:{input_number}");
             }
         }
 
@@ -539,7 +538,7 @@ impl<'a> Debugger<'a> {
             breakpoints = true;
             response.push_str("Block Breakpoints: \n");
             for (blocked_id, blocking_id) in &self.block_breakpoints {
-                let _ = writeln!(response, "\tBlock #{}->#{}", blocked_id, blocking_id);
+                let _ = writeln!(response, "\tBlock #{blocked_id}->#{blocking_id}");
             }
         }
 
@@ -582,7 +581,7 @@ impl<'a> Debugger<'a> {
                     let parts: Vec<&str> = spec.trim().split('=').collect();
                     if parts.len() < 2 {
                         self.debug_server.message(
-                            format!("Invalid modify command for state variables: '{}'", spec));
+                            format!("Invalid modify command for state variables: '{spec}'"));
                         return;
                     }
 
@@ -595,11 +594,10 @@ impl<'a> Debugger<'a> {
                                     } else {
                                         state.submission.max_parallel_jobs = Some(value);
                                     }
-                                    self.debug_server.message(format!("State variable 'jobs' set to {}",
-                                                                      var));
+                                    self.debug_server.message(format!("State variable 'jobs' set to {var}"));
                                 } else {
                                     self.debug_server.message(
-                                        format!("Invalid value '{}' for variable 'jobs'", var));
+                                        format!("Invalid value '{var}' for variable 'jobs'"));
                                 }
                             }
                         }
@@ -695,7 +693,7 @@ impl<'a> Debugger<'a> {
         let mut display_string = String::new();
         let _ = write!(display_string, "#{}", root_node.function_id);
         for node in node_set {
-            let _ = write!(display_string, "{}", node);
+            let _ = write!(display_string, "{node}");
         }
         display_string
     }
@@ -872,9 +870,9 @@ mod test {
     #[test]
     fn test_display_blocker_node() {
         let node = BlockerNode::new(0, BlockType::OutputBlocked);
-        println!("{}", node);
+        println!("{node}");
         let node = BlockerNode::new(0, BlockType::UnreadySender);
-        println!("{}", node);
+        println!("{node}");
     }
 
     #[test]

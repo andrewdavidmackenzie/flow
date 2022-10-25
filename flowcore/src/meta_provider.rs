@@ -99,13 +99,13 @@ impl MetaProvider {
     #[cfg(feature = "context")]
     fn resolve_context_url(&self, url: &Url) -> Result<(Url, Option<Url>)> {
         let dir = url.host_str()
-            .chain_err(|| format!("context 'dir' could not be extracted from the url '{}'", url))?;
+            .chain_err(|| format!("context 'dir' could not be extracted from the url '{url}'"))?;
         let sub_dir = url.path().trim_start_matches('/');
         let context_function_path = self.context_root.join(dir).join(sub_dir);
         Ok((
             Url::from_file_path(context_function_path)
                 .map_err(|_| "Could not convert context function's path to a Url")?,
-            Some(Url::parse(&format!("context://{}/{}", dir, sub_dir))?),
+            Some(Url::parse(&format!("context://{dir}/{sub_dir}"))?),
         ))
     }
 
@@ -125,9 +125,9 @@ impl MetaProvider {
     #[cfg(feature = "file_provider")]
     fn resolve_lib_url(&self, url: &Url) -> Result<(Url, Option<Url>)> {
         let lib_name = url.host_str()
-            .chain_err(|| format!("'lib_name' could not be extracted from the url '{}'", url))?;
+            .chain_err(|| format!("'lib_name' could not be extracted from the url '{url}'"))?;
         let path_under_lib = url.path().trim_start_matches('/');
-        let lib_reference = Some(Url::parse(&format!("lib://{}/{}", lib_name, path_under_lib))?);
+        let lib_reference = Some(Url::parse(&format!("lib://{lib_name}/{path_under_lib}"))?);
 
         match self.lib_search_path.find(lib_name) {
             Ok(FoundType::File(lib_root_path)) => {
@@ -139,7 +139,7 @@ impl MetaProvider {
                 ))
             }
             Ok(FoundType::Resource(mut lib_root_url)) => {
-                lib_root_url.set_path(&format!("{}/{}", lib_root_url.path(), path_under_lib));
+                lib_root_url.set_path(&format!("{}/{path_under_lib}", lib_root_url.path()));
                 Ok((lib_root_url, lib_reference))
             }
             _ => bail!(
@@ -265,7 +265,7 @@ mod test {
                 .to_str()
                 .expect("Could not get tests/ path as string"),
         );
-        println!("{}", lib_search_path);
+        println!("{lib_search_path}");
         lib_search_path
     }
 

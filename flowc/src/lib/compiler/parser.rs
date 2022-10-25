@@ -103,29 +103,26 @@ fn parse_process(
 
     let (resolved_url, reference) = provider
         .resolve_url(url, "root", &["toml"])
-        .chain_err(|| format!("Could not resolve the url: '{}'", url))?;
+        .chain_err(|| format!("Could not resolve the url: '{url}'"))?;
     if &resolved_url != url {
-        debug!("Source URL '{}' resolved to: '{}'", url, resolved_url);
+        debug!("Source URL '{url}' resolved to: '{resolved_url}'");
     }
 
     let contents = provider
         .get_contents(&resolved_url)
-        .chain_err(|| format!("Could not get contents of resolved url: '{}'", resolved_url))?;
+        .chain_err(|| format!("Could not get contents of resolved url: '{resolved_url}'"))?;
 
     if !alias.is_empty() {
-        info!("Loading process with alias = '{}'", alias);
+        info!("Loading process with alias = '{alias}'");
     }
 
     let content = String::from_utf8(contents).chain_err(|| "Could not read UTF8 contents")?;
     let deserializer = get_deserializer::<Process>(&resolved_url)?;
     debug!(
-        "Loading process from url = '{}' with deserializer: '{}'",
-        resolved_url,
-        deserializer.name()
-    );
+        "Loading process from url = '{resolved_url}' with deserializer: '{}'", deserializer.name());
     let mut process = deserializer
         .deserialize(&content, Some(url))
-        .chain_err(|| format!("Could not deserialize process from content in '{}'", url))?;
+        .chain_err(|| format!("Could not deserialize process from content in '{url}'"))?;
 
     // Track the source file involved and what it resolved to
     #[cfg(feature = "debugger")]
@@ -175,15 +172,15 @@ pub fn parse_metadata(url: &Url, provider: &dyn Provider) -> Result<(MetaData, L
     trace!("Loading Metadata");
     let (resolved_url, _) = provider
         .resolve_url(url, "Cargo", &["toml"])
-        .chain_err(|| format!("Could not resolve the url: '{}'", url))?;
+        .chain_err(|| format!("Could not resolve the url: '{url}'"))?;
 
     if &resolved_url != url {
-        debug!("Source URL '{}' resolved to: '{}'", url, resolved_url);
+        debug!("Source URL '{url}' resolved to: '{resolved_url}'");
     }
 
     let contents = provider
         .get_contents(&resolved_url)
-        .chain_err(|| format!("Could not get contents of resolved url: '{}'", resolved_url))?;
+        .chain_err(|| format!("Could not get contents of resolved url: '{resolved_url}'"))?;
     let content = String::from_utf8(contents).chain_err(|| "Could not read UTF8 contents")?;
 
     let deserializer = get_deserializer::<Cargo>(&resolved_url)?;

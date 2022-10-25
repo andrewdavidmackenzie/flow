@@ -159,14 +159,15 @@ pub fn generate_svgs(root_dir: &Path, delete_dots: bool) -> Result<()> {
             let entry = entry?;
             let path = entry.path();
             let path_name = path.to_string_lossy();
+            #[allow(clippy::needless_borrow)]
             if Command::new(&dot)
                 .args(vec!["-Tsvg", "-O", &path_name])
                 .status()?.success() {
                 if delete_dots {
                     fs::remove_file(path)?;
-                    debug!("Source file {} was removed after SVG generation", path_name)
+                    debug!("Source file {path_name} was removed after SVG generation")
                 } else {
-                    debug!(".dot.svg successfully generated from {}", path_name);
+                    debug!(".dot.svg successfully generated from {path_name}");
                 }
             } else {
                 bail!("Error executing 'dot'");
@@ -289,8 +290,8 @@ fn write_flow_to_dot(
                             "Could not absolute flow_source to a relative path",
                         )
                     })?;
-                let flow = format!("\t\"{}\" [label=\"{}\", style=filled, fillcolor=aquamarine, width=2, height=2, URL=\"{}.dot.svg\"];\n",
-                                   flow.route(), process_ref.alias, relative_path);
+                let flow = format!("\t\"{}\" [label=\"{}\", style=filled, fillcolor=aquamarine, width=2, height=2, URL=\"{relative_path}.dot.svg\"];\n",
+                                   flow.route(), process_ref.alias);
                 contents.push_str(&flow);
             }
             FunctionProcess(ref function) => {
@@ -482,9 +483,9 @@ fn input_initializers(function: &FunctionDefinition, function_identifier: &str) 
             };
 
             let value_string = if let Value::String(value_str) = value {
-                format!("\\\"{}\\\"", value_str)
+                format!("\\\"{value_str}\\\"")
             } else {
-                format!("{}", value)
+                format!("{value}")
             };
 
             let line_style = if is_constant { "solid" } else { "dotted" };

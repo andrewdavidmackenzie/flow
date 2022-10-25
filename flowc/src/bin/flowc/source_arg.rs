@@ -25,7 +25,7 @@ pub fn get_output_dir(url: &Url, option: Option<&str>) -> Result<PathBuf> {
             "file" => {
                 let dir = url
                     .to_file_path()
-                    .map_err(|_| format!("Error converting url to file path\nurl = '{}'", url))?;
+                    .map_err(|_| format!("Error converting url to file path\nurl = '{url}'"))?;
                 output_dir = dir;
                 if output_dir.is_file() {
                     output_dir.pop(); // remove trailing filename
@@ -89,11 +89,11 @@ mod test {
         let flow_dir = temp_dir
             .to_str()
             .expect("Could not convert temp dir name to string");
-        let flow_path = format!("{}/fake.toml", flow_dir);
+        let flow_path = format!("{flow_dir}/fake.toml");
         let mut file = fs::File::create(&flow_path).expect("Could not create file");
         file.write_all(b"flow = 'test'")
             .expect("Could not write to file");
-        let url = Url::parse(&format!("file://{}", flow_path)).expect("Could not parse test Url");
+        let url = Url::parse(&format!("file://{flow_path}")).expect("Could not parse test Url");
 
         let dir = super::get_output_dir(&url, None).expect("Could not get output dir");
 
@@ -115,8 +115,8 @@ mod test {
             .to_str()
             .expect("Could not convert temp dir name to string");
 
-        let flow_path = format!("{}/fake.toml", flow_dir);
-        let url = Url::parse(&format!("file:/{}", flow_path)).expect("Could not parse test Url");
+        let flow_path = format!("{flow_dir}/fake.toml");
+        let url = Url::parse(&format!("file:/{flow_path}")).expect("Could not parse test Url");
 
         // Output dir arg
         let temp_dir = TempDir::new("flow")

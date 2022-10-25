@@ -394,7 +394,7 @@ mod test {
     #[test]
     fn can_display_function() {
         let function = test_function(0);
-        let _ = format!("{}", function);
+        let _ = format!("{function}");
     }
 
     #[cfg(feature = "debugger")]
@@ -423,7 +423,7 @@ mod test {
         );
         function.init();
         function.send(0, json!(1));
-        let _ = format!("{}", function);
+        let _ = format!("{function}");
         assert_eq!(
             &vec!(output_route),
             function.get_output_connections(),

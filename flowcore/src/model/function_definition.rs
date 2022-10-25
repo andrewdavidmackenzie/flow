@@ -379,12 +379,12 @@ impl fmt::Display for FunctionDefinition {
 
         writeln!(f, "inputs:")?;
         for input in &self.inputs {
-            writeln!(f, "\t{:#?}", input)?;
+            writeln!(f, "\t{input:#?}")?;
         }
 
         writeln!(f, "outputs:")?;
         for output in &self.outputs {
-            writeln!(f, "\t{:#?}", output)?;
+            writeln!(f, "\t{output:#?}")?;
         }
 
         Ok(())
@@ -393,7 +393,7 @@ impl fmt::Display for FunctionDefinition {
 
 impl SetRoute for FunctionDefinition {
     fn set_routes_from_parent(&mut self, parent_route: &Route) {
-        self.route = Route::from(format!("{}/{}", parent_route, self.alias));
+        self.route = Route::from(format!("{parent_route}/{}", self.alias));
         self.inputs
             .set_io_routes_from_parent(&self.route, IOType::FunctionInput);
         self.outputs

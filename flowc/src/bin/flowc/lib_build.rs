@@ -59,7 +59,7 @@ pub fn build_lib(options: &Options, provider: &dyn Provider) -> Result<()> {
         lib_manifest.write_json(&manifest_json_file)?;
     }
 
-    println!("    {} {}", "Finished".green(), name);
+    println!("    {} {name}", "Finished".green());
     Ok(())
 }
 
@@ -107,7 +107,7 @@ fn copy_sources_to_target_dir(toml_path: &Path, target_dir: &Path, docs: &str) -
     // copy the definition toml to target directory
     fs::copy(
         toml_path,
-        &target_dir.join(
+        target_dir.join(
             toml_path
                 .file_name()
                 .ok_or("Could not get Toml file filename")?,
@@ -119,7 +119,7 @@ fn copy_sources_to_target_dir(toml_path: &Path, target_dir: &Path, docs: &str) -
         let docs_path = toml_path.with_file_name(docs);
         fs::copy(
             &docs_path,
-            &target_dir.join(docs_path.file_name().ok_or("Could not get docs filename")?),
+            target_dir.join(docs_path.file_name().ok_or("Could not get docs filename")?),
         )?;
     }
 

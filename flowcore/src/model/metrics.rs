@@ -113,6 +113,6 @@ mod test {
     #[test]
     fn test_metrics_display() {
         let metrics = Metrics::new(10);
-        println!("{}", metrics);
+        println!("{metrics}");
     }
 }

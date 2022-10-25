@@ -291,8 +291,8 @@ fn find_connection_destinations(
         // check that the partial connection has compatible source and destinations types
         for (sub_route, destination_io) in &destinations {
             DataType::compatible_types(from_io.datatypes(), destination_io.datatypes(), sub_route)
-                .chain_err(|| format!("Failed to connect '{}{}' to '{}' due to incompatible types",
-                from_io.route(), sub_route, destination_io.route()))?;
+                .chain_err(|| format!("Failed to connect '{}{sub_route}' to '{}' due to incompatible types",
+                from_io.route(), destination_io.route()))?;
         }
     }
 

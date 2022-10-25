@@ -100,7 +100,7 @@ authors: [\"Andrew <andrew@foo.com>\"]
                 assert_eq!(md.description, "ok".to_string());
                 assert_eq!(md.authors, vec!("Andrew <andrew@foo.com>".to_string()));
             }
-            Err(e) => panic!("Deserialization error: {:?}", e),
+            Err(e) => panic!("Deserialization error: {e:?}"),
         }
     }
 }

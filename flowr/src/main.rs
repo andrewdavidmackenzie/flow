@@ -85,9 +85,9 @@ pub enum Mode {
 fn main() {
     match run() {
         Err(ref e) => {
-            eprintln!("{}", e);
+            eprintln!("{e}");
             for e in e.iter().skip(1) {
-                eprintln!("caused by: {}", e);
+                eprintln!("caused by: {e}");
             }
             exit(1);
         }

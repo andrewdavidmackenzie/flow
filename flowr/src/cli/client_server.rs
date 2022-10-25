@@ -137,7 +137,7 @@ impl ClientConnection {
         let msg = self
             .requester
             .recv_msg(0)
-            .map_err(|e| format!("Error receiving from service: {}", e))?;
+            .map_err(|e| format!("Error receiving from service: {e}"))?;
 
         let message_string = msg.as_str().ok_or("Could not get message as str")?
             .to_string();
@@ -179,7 +179,7 @@ impl ServerConnection {
             Method::InProc(None) => {
                 method = Method::InProc(Some(context));
                 responder
-                    .bind(&format!("inproc://{}", service_name))
+                    .bind(&format!("inproc://{service_name}"))
                     .chain_err(|| "Server Connection - could not bind on TCO Socket")?;
             },
             Method::Tcp(host) => {
@@ -261,7 +261,7 @@ impl ServerConnection {
         let msg = self
             .responder
             .recv_msg(flags)
-            .map_err(|e| format!("Server error getting message: '{}'", e))?;
+            .map_err(|e| format!("Server error getting message: '{e}'"))?;
 
         let message_string = msg.as_str().ok_or("Could not get message as str")?
             .to_string();
@@ -287,7 +287,7 @@ impl ServerConnection {
 
         self.responder
             .send(&message.into(), 0)
-            .map_err(|e| format!("Server error sending to client: '{}'", e))?;
+            .map_err(|e| format!("Server error sending to client: '{e}'"))?;
 
         Ok(())
     }

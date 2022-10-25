@@ -186,7 +186,7 @@ authors = [\"Andrew <andrew@foo.com>\"]
                 );
             }
             Ok(_) => panic!("Deserialization didn't detect a flow"),
-            Err(e) => panic!("Deserialization error: {:?}", e),
+            Err(e) => panic!("Deserialization error: {e:?}"),
         }
     }
 
@@ -206,7 +206,7 @@ version = \"1.1.1\"
                 assert_eq!(flow.metadata.description, String::default());
             }
             Ok(_) => panic!("Deserialization didn't detect a flow"),
-            Err(e) => panic!("Deserialization error: {:?}", e),
+            Err(e) => panic!("Deserialization error: {e:?}"),
         }
     }
 

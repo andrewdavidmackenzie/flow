@@ -588,8 +588,8 @@ impl RunState {
 
         let route_str = match &connection.source {
             Output(route) if route.is_empty() => "".into(),
-            Output(route) => format!(" from output route '{}'", route),
-            Input(index) => format!(" from Job value at input #{}", index),
+            Output(route) => format!(" from output route '{route}'"),
+            Input(index) => format!(" from Job value at input #{index}"),
         };
 
         let loopback = source_id == connection.destination_id;
@@ -1119,7 +1119,7 @@ mod test {
             #[cfg(any(feature = "debugger", feature = "metrics"))]
             assert_eq!(state.num_functions(), 2);
 
-            println!("Run state: {}", state);
+            println!("Run state: {state}");
         }
 
         #[cfg(feature = "metrics")]
