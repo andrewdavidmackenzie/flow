@@ -55,7 +55,7 @@ use flowcore::provider::Provider;
 #[cfg(feature = "submission")]
 use flowcore::url_helper::url_from_string;
 use flowrlib::coordinator::Coordinator;
-use flowrlib::executor::Executor;
+use flowrlib::dispatcher::{Dispatcher, Executor};
 use flowrlib::info as flowrlib_info;
 
 /// We'll put our errors in an `errors` module, and other modules in this crate will
@@ -126,17 +126,17 @@ fn set_lib_search_path(search_path_additions: &[String]) -> Result<Simpath> {
 }
 
 fn run() -> Result<()> {
+    let matches = get_matches();
+
+    let verbosity = matches.get_one::<String>("verbosity").map(|s| s.as_str());
+    SimpleLogger::init_prefix_timestamp(verbosity, true, false);
+
     info!(
         "'{}' version {}",
         env!("CARGO_PKG_NAME"),
         env!("CARGO_PKG_VERSION")
     );
     info!("'flowrlib' version {}", flowrlib_info::version());
-
-    let matches = get_matches();
-
-    let verbosity = matches.get_one::<String>("verbosity").map(|s| s.as_str());
-    SimpleLogger::init_prefix_timestamp(verbosity, true, false);
 
     #[cfg(feature = "debugger")]
     let debug_this_flow = matches.get_flag("debugger");
@@ -199,9 +199,9 @@ fn server_only(num_threads: usize, lib_search_path: Simpath, native_flowstdlib: 
 
     info!("Starting 'flowr' server process in main thread");
     server(
-        #[cfg(feature = "executor")] num_threads,
-        #[cfg(feature = "executor")] lib_search_path,
-        #[cfg(feature = "executor")] native_flowstdlib,
+        num_threads,
+        lib_search_path,
+        native_flowstdlib,
         #[cfg(any(feature = "context", feature = "submission"))]
         runtime_server_connection,
         #[cfg(feature = "debugger")] debug_server_connection,
@@ -239,9 +239,9 @@ fn client_and_server(
     thread::spawn(move || {
         info!("Starting 'flowr' server in background thread");
         let _ = server(
-            #[cfg(feature = "executor")] num_threads,
-            #[cfg(feature = "executor")] server_lib_search_path,
-            #[cfg(feature = "executor")] native,
+            num_threads,
+            server_lib_search_path,
+            native,
             #[cfg(any(feature = "context", feature = "submission"))] runtime_server_connection,
             #[cfg(feature = "debugger")] debug_server_connection,
             #[cfg(feature = "submission")] false,
@@ -271,9 +271,9 @@ fn client_and_server(
 // loading a flow and it's library references, then enter the `submission_loop()` accepting and
 // executing flows submitted for execution, executing each one using the `Coordinator`
 fn server(
-    #[cfg(feature = "executor")] num_threads: usize,
-    #[cfg(feature = "executor")] lib_search_path: Simpath,
-    #[cfg(feature = "executor")] native_flowstdlib: bool,
+    num_threads: usize,
+    lib_search_path: Simpath,
+    native_flowstdlib: bool,
     #[cfg(any(feature = "context", feature = "submission"))] runtime_server_connection: ServerConnection,
     #[cfg(feature = "debugger")] debug_server_connection: ServerConnection,
     #[cfg(feature = "submission")] loop_forever: bool,
@@ -286,18 +286,18 @@ fn server(
         debug_server_connection
     };
 
-    #[cfg(feature = "executor")]
     let provider = Arc::new(MetaProvider::new(lib_search_path,
                                      #[cfg(feature = "context")]
                                          PathBuf::from("/")
     )) as Arc<dyn Provider>;
 
-    #[cfg(feature = "executor")]
+    let dispatcher = Dispatcher::new()?;
+
     #[allow(unused_mut)]
-    let mut executor = Executor::new(provider, num_threads, None)?;
+    let mut executor = Executor::new()?;
 
     // Add the native context functions to functions available for use by the executor
-    #[cfg(all(feature = "context", feature = "executor"))]
+    #[cfg(feature = "context")]
     executor.add_lib(
         cli::cli_server::get_manifest(server_connection.clone())?,
         Url::parse("memory://")? // Statically linked library has no resolved Url
@@ -306,7 +306,6 @@ fn server(
     // if the command line options request loading native implementation of available native libs
     // if not, the native implementation is not loaded and later when a flow is loaded it's library
     // references will be resolved and those libraries (WASM implementations) will be loaded at runtime
-    #[cfg(feature = "executor")]
     if native_flowstdlib {
         #[cfg(feature = "flowstdlib")]
         executor.add_lib(
@@ -316,7 +315,9 @@ fn server(
         )?;
     }
 
-    #[cfg(feature = "submission")]
+    executor.start(provider, num_threads)?;
+
+        #[cfg(feature = "submission")]
     let mut submitter = CLISubmitter {
         runtime_server_connection: server_connection,
     };
@@ -324,7 +325,7 @@ fn server(
     #[allow(unused_variables, unused_mut)]
     let mut coordinator = Coordinator::new(
         #[cfg(feature = "submission")] &mut submitter,
-        executor,
+        dispatcher,
         #[cfg(feature = "debugger")] &mut debug_server
     );
 

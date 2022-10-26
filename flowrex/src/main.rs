@@ -12,7 +12,7 @@ use std::process::exit;
 use std::sync::Arc;
 
 use clap::{Arg, ArgMatches, Command};
-use log::{error, info, warn};
+use log::{debug, info, trace, warn};
 use simpath::Simpath;
 use simplog::SimpleLogger;
 #[cfg(feature = "flowstdlib")]
@@ -21,7 +21,7 @@ use url::Url;
 use flowcore::errors::*;
 use flowcore::meta_provider::MetaProvider;
 use flowcore::provider::Provider;
-use flowrlib::executor::Executor;
+use flowrlib::dispatcher::Executor;
 use flowrlib::info as flowrlib_info;
 
 /// We'll put our errors in an `errors` module, and other modules in this crate will
@@ -43,6 +43,12 @@ fn main() {
 }
 
 fn run() -> Result<()> {
+    let matches = get_matches();
+
+    SimpleLogger::init_prefix_timestamp(
+        matches.get_one::<String>("verbosity").map(|s| s.as_str()),
+        true, false);
+
     info!(
         "'{}' version {}",
         env!("CARGO_PKG_NAME"),
@@ -50,15 +56,7 @@ fn run() -> Result<()> {
     );
     info!("'flowrlib' version {}", flowrlib_info::version());
 
-    let matches = get_matches();
-
-    SimpleLogger::init_prefix_timestamp(
-        matches.get_one::<String>("verbosity").map(|s| s.as_str()),
-        true, false);
-
-    let num_threads = num_threads(&matches);
-
-    server(num_threads)?;
+    server(num_threads(&matches))?;
 
     info!("'{}' has exited", env!("CARGO_PKG_NAME"));
 
@@ -72,8 +70,10 @@ fn server(num_threads: usize) -> Result<()> {
     let provider = Arc::new(MetaProvider::new(Simpath::new(""),
         PathBuf::from("/"))) as Arc<dyn Provider>;
     #[allow(unused_mut)]
-    let mut executor = Executor::new(provider, num_threads, None)?;
+    let mut executor = Executor::new()?;
 
+    #[cfg(feature = "flowstdlib")]
+    trace!("Adding flowstdlib to executor");
     #[cfg(feature = "flowstdlib")]
     executor.add_lib(
         flowstdlib::manifest::get_manifest()
@@ -81,29 +81,22 @@ fn server(num_threads: usize) -> Result<()> {
         Url::parse("memory://")? // Statically linked library has no resolved Url
     )?;
 
+    trace!("Starting executor");
+    executor.start(provider, num_threads)?;
+
+    debug!("Parking main thread");
+    thread::park();
+
     Ok(())
 }
 
-// Determine the number of threads to use to execute flows, with a default of the number of cores
-// in the device, or any override from the command line.
+// Determine the number of threads to use to execute flows
+// - default (if value is not provided on the command line)of the number of cores
 fn num_threads(matches: &ArgMatches) -> usize {
-    let mut num_threads: usize = 0;
-
-    if let Some(threads) = matches.get_one::<usize>("threads") {
-        if threads < &1 {
-            error!("Minimum number of additional threads is '1', \
-            so option has been overridden to be '1'");
-            num_threads = 1;
-        } else {
-            num_threads = *threads;
-        }
+    match matches.get_one::<usize>("threads") {
+        Some(num_threads) => *num_threads,
+        None => thread::available_parallelism().map(|n| n.get()).unwrap_or(1)
     }
-
-    if num_threads == 0 {
-        num_threads = thread::available_parallelism().map(|n| n.get()).unwrap_or(1);
-    }
-
-    num_threads
 }
 
 // Parse the command line arguments using clap

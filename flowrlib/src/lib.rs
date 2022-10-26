@@ -29,7 +29,7 @@ mod debugger;
 pub mod debug_command;
 
 /// Executor module provides mechanisms for jobs to be executed
-pub mod executor;
+pub mod dispatcher;
 
 /// `wasmtime` module contains a number of implementations of the wasm execution
 mod wasm;

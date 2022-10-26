@@ -23,58 +23,108 @@ const JOB_SOURCE_NAME: &str  = "tcp://127.0.0.1:3456";
 //const RESULTS_SINK_NAME: &str  = "inproc://results-sink";
 const RESULTS_SINK_NAME: &str  = "tcp://127.0.0.1:3457";
 
-/// Executor structure holds information required to send jobs for execution and receive results back
 /// It can load libraries and keep track of the `Function` `Implementations` used in execution.
 pub struct Executor {
-    // A source of jobs to be processed
-    job_source: zmq::Socket,
-    // A sink where to send jobs (with results)
-    results_sink: zmq::Socket,
-    // An optional timeout for waiting for results back from jobs being executed
-    job_timeout: Option<Duration>,
     // HashMap of library manifests already loaded. The key is the library reference Url
     // (e.g. lib:://flowstdlib) and the entry is a tuple of the LibraryManifest
     // and the resolved Url of where the manifest was read from
     loaded_lib_manifests: Arc<RwLock<HashMap<Url, (LibraryManifest, Url)>>>,
 }
 
-/// `Executor` struct takes care of ending jobs for execution and receiving results
 impl Executor {
-    /// Create a new `Executor` specifying the number of executor threads and an optional timeout
-    /// for reception of results
-    pub fn new(provider: Arc<dyn Provider>,
-               number_of_executors: usize,
-               job_timeout: Option<Duration>) -> Result<Self> {
-        let loaded_implementations = Arc::new(RwLock::new(HashMap::<Url, Arc<dyn Implementation>>::new()));
-        let loaded_lib_manifests = Arc::new(RwLock::new(HashMap::<Url, (LibraryManifest, Url)>::new()));
+    /// Create a new executor that receives jobs, executes them and returns results.
+    pub fn new() -> Result<Self> {
+        Ok(Executor{
+            loaded_lib_manifests: Arc::new(RwLock::new(HashMap::<Url, (LibraryManifest, Url)>::new()))
+        })
+    }
 
-        let mut context = zmq::Context::new();
+    /// Start executing jobs, specifying:
+    ///- the `Provider` to use to fetch implementation content
+    ///- optional timeout for waiting for results
+    ///- the number of executor threads
+    pub fn start(&mut self,
+                 provider: Arc<dyn Provider>,
+                 number_of_executors: usize,
+    ) -> Result<()> {
+        let loaded_implementations = Arc::new(RwLock::new(HashMap::<Url, Arc<dyn Implementation>>::new()));
+
+        info!("Starting {} executor threads", number_of_executors);
+        for executor_number in 0..number_of_executors {
+            let thread_provider = provider.clone();
+            let thread_context = zmq::Context::new();
+            let thread_implementations = loaded_implementations.clone();
+            let thread_loaded_manifests = self.loaded_lib_manifests.clone();
+            thread::spawn(move || {
+                create_executor_thread(
+                    thread_provider,
+                    format!("Executor #{executor_number}"),
+                    thread_context,
+                    thread_implementations,
+                    thread_loaded_manifests,
+                ) // clone of Arcs and Sender OK
+            });
+        }
+
+        Ok(())
+    }
+
+    /// Add a library's manifest to the set of those to reference later. This is mainly for use
+    /// prior to running a flow to ensure that the preferred libraries (e.g. flowstdlib native
+    /// version) is pre-loaded.
+    pub fn add_lib(
+        &mut self,
+        lib_manifest: LibraryManifest,
+        resolved_url: Url
+    ) -> Result<()> {
+        let mut lib_manifests = self.loaded_lib_manifests.write()
+            .map_err(|_| "Could not gain write access to loaded library manifests map")?;
+
+        debug!("Manifest of library {} loaded from {} and added to Executor",
+            lib_manifest.lib_url, resolved_url);
+
+        lib_manifests.insert(lib_manifest.lib_url.clone(), (lib_manifest, resolved_url));
+
+        Ok(())
+    }
+}
+
+/// `Dispatcher` structure holds information required to send jobs for execution and receive results back
+pub struct Dispatcher {
+    #[allow(dead_code)]
+    // Context for message queues for jobs and results
+    context: zmq::Context,
+    // A source of jobs to be processed
+    job_source: zmq::Socket,
+    // A sink where to send jobs (with results)
+    results_sink: zmq::Socket,
+}
+
+/// `Dispatcher` struct takes care of ending jobs for execution and receiving results
+impl Dispatcher {
+    /// Create a new `Executor`
+    pub fn new() -> Result<Self> {
+        let context = zmq::Context::new();
         let job_source = context.socket(zmq::PUSH)
             .map_err(|_| "Could not create job source socket")?;
         job_source.bind(JOB_SOURCE_NAME)
-            .map_err(|_| "Could not connect to job-source socket")?;
+            .map_err(|_| "Could not bind to job-source socket")?;
 
         let results_sink = context.socket(zmq::PULL)
             .map_err(|_| "Could not create results sink socket")?;
         results_sink.bind(RESULTS_SINK_NAME)
-            .map_err(|_| "Could not connect to results-sink socket")?;
+            .map_err(|_| "Could not bind to results-sink socket")?;
 
-        start_executors(provider, number_of_executors, &mut context,
-                              loaded_implementations,
-                        loaded_lib_manifests.clone())?;
-
-        Ok(Executor {
+        Ok(Dispatcher {
+            context,
             job_source,
             results_sink,
-            job_timeout,
-            loaded_lib_manifests,
         })
     }
 
     /// Set the timeout to use when waiting for job results
     /// Setting to `None` will disable timeouts and block forever
     pub fn set_results_timeout(&mut self, timeout: Option<Duration>) -> Result<()> {
-        self.job_timeout = timeout;
         match timeout {
             Some(time) => {
                 debug!("Setting results timeout to: {}ms", time.as_millis());
@@ -109,54 +159,6 @@ impl Executor {
 
         Ok(())
     }
-
-    /// Add a library's manifest to the set of those to reference later. This is mainly for use
-    /// prior to running a flow to ensure that the preferred libraries (e.g. flowstdlib native
-    /// version) is pre-loaded.
-    pub fn add_lib(
-        &mut self,
-        lib_manifest: LibraryManifest,
-        resolved_url: Url
-    ) -> Result<()> {
-        let mut lib_manifests = self.loaded_lib_manifests.try_write()
-            .map_err(|_| "Could not gain write access to loaded library manifests map")?;
-
-        debug!("Manifest of library {} loaded from {} and added to Executor",
-            lib_manifest.lib_url, resolved_url);
-
-        lib_manifests.insert(lib_manifest.lib_url.clone(), (lib_manifest, resolved_url));
-
-        Ok(())
-    }
-}
-
-// Start a number of executor threads that all listen on the 'job_rx' channel for
-// Jobs to execute and return the Outputs on the 'output_tx' channel
-fn start_executors(
-    provider: Arc<dyn Provider>,
-    number_of_executors: usize,
-    context: &mut zmq::Context,
-    loaded_implementations: Arc<RwLock<HashMap<Url, Arc<dyn Implementation>>>>,
-    loaded_lib_manifests: Arc<RwLock<HashMap<Url, (LibraryManifest, Url)>>>,
-) -> Result<()> {
-    info!("Starting {} executor threads", number_of_executors);
-    for executor_number in 0..number_of_executors {
-        let thread_provider = provider.clone();
-        let thread_context = context.clone();
-        let thread_implementations = loaded_implementations.clone();
-        let thread_loaded_manifests = loaded_lib_manifests.clone();
-        thread::spawn(move || {
-            create_executor_thread(
-                        thread_provider,
-                format!("Executor #{executor_number}"),
-                thread_context,
-                thread_implementations,
-                thread_loaded_manifests,
-            ) // clone of Arcs and Sender OK
-        });
-    }
-
-    Ok(())
 }
 
 fn create_executor_thread(
