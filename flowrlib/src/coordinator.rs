@@ -42,18 +42,17 @@ impl<'a> Coordinator<'a> {
     /// Create a new `coordinator` with `num_threads` local executor threads
     pub fn new(
         #[cfg(feature = "submission")] submitter: &'a mut dyn SubmissionProtocol,
-        dispatcher: Dispatcher,
         #[cfg(feature = "debugger")] debug_server: &'a mut dyn DebuggerProtocol
-    ) -> Self {
-        Coordinator {
+    ) -> Result<Self> {
+        Ok(Coordinator {
             #[cfg(feature = "submission")]
             submitter,
-            dispatcher,
+            dispatcher: Dispatcher::new()?,
             #[cfg(feature = "debugger")]
             debugger: Debugger::new(debug_server),
             #[cfg(all(not(feature = "debugger"), not(feature = "submission")))]
             _data: PhantomData
-        }
+        })
     }
 
     /// Enter a loop - waiting for a submission from the client, or disconnection of the client

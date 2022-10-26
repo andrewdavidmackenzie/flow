@@ -55,7 +55,7 @@ use flowcore::provider::Provider;
 #[cfg(feature = "submission")]
 use flowcore::url_helper::url_from_string;
 use flowrlib::coordinator::Coordinator;
-use flowrlib::dispatcher::{Dispatcher, Executor};
+use flowrlib::executor::Executor;
 use flowrlib::info as flowrlib_info;
 
 /// We'll put our errors in an `errors` module, and other modules in this crate will
@@ -291,8 +291,6 @@ fn server(
                                          PathBuf::from("/")
     )) as Arc<dyn Provider>;
 
-    let dispatcher = Dispatcher::new()?;
-
     #[allow(unused_mut)]
     let mut executor = Executor::new()?;
 
@@ -325,9 +323,8 @@ fn server(
     #[allow(unused_variables, unused_mut)]
     let mut coordinator = Coordinator::new(
         #[cfg(feature = "submission")] &mut submitter,
-        dispatcher,
         #[cfg(feature = "debugger")] &mut debug_server
-    );
+    )?;
 
     #[cfg(feature = "submission")]
     coordinator.submission_loop(loop_forever)?;

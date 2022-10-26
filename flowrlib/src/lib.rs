@@ -28,8 +28,11 @@ mod debugger;
 /// `debug_command` provides the `DebugCommand` enum for commands from debug client to debug server
 pub mod debug_command;
 
-/// Executor module provides mechanisms for jobs to be executed
-pub mod dispatcher;
+/// Dispatcher module takes care of dispatching jobs for execution and gathering results
+mod dispatcher;
+
+/// Executor module receives jobs for execution, executes them and returns results
+pub mod executor;
 
 /// `wasmtime` module contains a number of implementations of the wasm execution
 mod wasm;

@@ -1,6 +1,6 @@
 #![deny(missing_docs)]
 #![warn(clippy::unwrap_used)]
-//! `flowrex` is the minimal flow executor for remote nodes.
+//! `flowrex` is the minimal executor of flow jobs.
 /// It attempts to be as small as possible, and only accepts jobs for execution over the network
 /// and does not load flows, accept flow submissions run a coordinator or access the file system.
 /// Any implementations are either preloaded static linked binary functions or loaded from WASM
@@ -21,7 +21,7 @@ use url::Url;
 use flowcore::errors::*;
 use flowcore::meta_provider::MetaProvider;
 use flowcore::provider::Provider;
-use flowrlib::dispatcher::Executor;
+use flowrlib::executor::Executor;
 use flowrlib::info as flowrlib_info;
 
 /// We'll put our errors in an `errors` module, and other modules in this crate will
