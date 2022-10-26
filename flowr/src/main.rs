@@ -18,7 +18,7 @@ use std::process::exit;
 use std::sync::{Arc, Mutex};
 
 use clap::{Arg, ArgMatches, Command};
-use log::{error, info, warn};
+use log::{info, warn};
 use simpath::Simpath;
 use simplog::SimpleLogger;
 #[cfg(any(feature = "context", feature = "flowstdlib", feature = "submission"))]
@@ -442,26 +442,13 @@ fn client(
     Ok(())
 }
 
-// Determine the number of threads to use to execute flows, with a default of the number of cores
-// in the device, or any override from the command line.
+// Determine the number of threads to use to execute flows
+// - default (if value is not provided on the command line)of the number of cores
 fn num_threads(matches: &ArgMatches) -> usize {
-    let mut num_threads: usize = 0;
-
-    if let Some(threads) = matches.get_one::<usize>("threads") {
-        if threads < &1 {
-            error!("Minimum number of additional threads is '1', \
-            so option has been overridden to be '1'");
-            num_threads = 1;
-        } else {
-            num_threads = *threads;
-        }
+    match matches.get_one::<usize>("threads") {
+        Some(num_threads) => *num_threads,
+        None => thread::available_parallelism().map(|n| n.get()).unwrap_or(1)
     }
-
-    if num_threads == 0 {
-        num_threads = thread::available_parallelism().map(|n| n.get()).unwrap_or(1);
-    }
-
-    num_threads
 }
 
 // Parse the command line arguments using clap
@@ -523,6 +510,7 @@ fn get_matches() -> ArgMatches {
             .short('j')
             .long("jobs")
             .number_of_values(1)
+            .value_parser(clap::value_parser!(usize))
             .value_name("MAX_JOBS")
             .help("Set maximum number of jobs that can be running in parallel)"))
         .arg(Arg::new("lib_dir")
@@ -536,6 +524,7 @@ fn get_matches() -> ArgMatches {
             .short('t')
             .long("threads")
             .number_of_values(1)
+            .value_parser(clap::value_parser!(usize))
             .value_name("THREADS")
             .help("Set number of threads to use to execute jobs (min: 1, default: cores available)"))
         .arg(Arg::new("verbosity")

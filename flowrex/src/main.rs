@@ -116,6 +116,7 @@ fn get_matches() -> ArgMatches {
             .short('t')
             .long("threads")
             .number_of_values(1)
+            .value_parser(clap::value_parser!(usize))
             .value_name("THREADS")
             .help("Set number of threads to use to execute jobs (min: 1, default: cores available)"))
         .arg(Arg::new("verbosity")
