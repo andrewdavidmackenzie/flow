@@ -125,52 +125,6 @@ fn set_lib_search_path(search_path_additions: &[String]) -> Result<Simpath> {
     Ok(lib_search_path)
 }
 
-/// # Example Submission of a flow for execution to the Coordinator
-///
-/// Instantiate the Coordinator server that receives the submitted flows to be executed, specifying
-/// Create a `Submission` for the flow to be executed.
-/// Create a `ClientConnection` to the `Coordinator` server
-/// Send a `Submission` to the Coordinator to be executed
-///
-/// ```no_run
-/// use std::sync::{Arc, Mutex};
-/// use std::io;
-/// use std::io::Write;
-/// use flowrlib::coordinator::{Coordinator, Submission, Mode};
-/// use std::process::exit;
-/// use flowcore::model::flow_manifest::FlowManifest;
-/// use flowcore::model::metadata::MetaData;
-/// use flowr::cli::runtime_messages::ClientMessage::ClientSubmission;
-/// use simpath::Simpath;
-/// use url::Url;
-/// use flowr::cli::client_server::{ClientConnection, ServerConnection, ServerInfo, Method};
-/// use flowr::cli::runtime_messages::{ServerMessage, ClientMessage};
-///
-/// let runtime_server_connection = ServerConnection::new("runtime", Method::Tcp(None)).unwrap();
-/// let debug_server_connection = ServerConnection::new("debug"", Method::Tcp(None)).unwrap();
-/// let mut runtime_server_info = runtime_server_connection.get_server_info().clone();
-///
-/// // Spawn a thread where we will run the submission loop to receive submissions and execute them
-/// std::thread::spawn(move || {
-///     let mut coordinator = Coordinator::new(
-///                                 runtime_server_connection,
-///                                 #[cfg(feature = "debugger")] debug_server_connection,
-///                                 1 /* num_threads */);
-///
-///     coordinator.submission_loop(
-///         Simpath::new("fake path") /* lib_search_path */,
-///         true /* native */,
-///         false /* loop_forever */
-///     ).expect("Problem in Submission loop");
-///     });
-///
-/// let mut submission = Submission::new(&Url::parse("file:///temp/fake.toml").unwrap(),
-///                                     1 /* num_parallel_jobs */,
-///                                     true /* debug this flow's execution */);
-/// let runtime_client_connection = ClientConnection::new(&mut runtime_server_info).unwrap();
-/// runtime_client_connection.send(ClientSubmission(submission)).unwrap();
-/// exit(0);
-/// ```
 fn run() -> Result<()> {
     info!(
         "'{}' version {}",
