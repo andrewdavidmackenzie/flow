@@ -533,7 +533,6 @@ fn get_matches() -> ArgMatches {
             .help("Set verbosity level for output (trace, debug, info, warn, default: error)"))
         .arg(Arg::new("flow-manifest")
             .num_args(1)
-            .required(true)
             .help("the file path of the 'flow' manifest file"))
         .arg(Arg::new("flow_args")
             .num_args(0..)
