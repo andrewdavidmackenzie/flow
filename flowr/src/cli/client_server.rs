@@ -14,6 +14,8 @@ pub const WAIT:i32 = 0;
 /// Do NOT WAIT for a message to arrive when performing a receive()
 pub static DONT_WAIT:i32 = zmq::DONTWAIT;
 
+const DISCOVERY_PORT:u16 = 9002;
+
 /// `Method` describes the communication method used between client and server
 #[derive(Clone)]
 pub enum Method {
@@ -101,7 +103,8 @@ impl ClientConnection {
 
     // Try to discover a server offering a particular service by name
      fn discover_service(name: &str) -> Result<(String, u16)> {
-        let listener = BeaconListener::new(name.as_bytes())?;
+        trace!("Creating beacon");
+        let listener = BeaconListener::new(name.as_bytes(), DISCOVERY_PORT)?;
         info!("Client is waiting for a Service Discovery beacon for service with name '{}'", name);
         let beacon = listener.wait(Some(Duration::from_secs(10)))?;
         info!(
@@ -221,7 +224,7 @@ impl ServerConnection {
        Start a background thread that sends out beacons for service discovery by a client every second
     */
     fn enable_service_discovery(name: &str, port: u16) -> Result<()> {
-        match BeaconSender::new(port, name.as_bytes()) {
+        match BeaconSender::new(port, name.as_bytes(), DISCOVERY_PORT) {
             Ok(beacon) => {
                 info!(
                     "Discovery beacon announcing service named '{}', on port: {}",

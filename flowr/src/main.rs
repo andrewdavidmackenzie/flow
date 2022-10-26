@@ -18,7 +18,7 @@ use std::process::exit;
 use std::sync::{Arc, Mutex};
 
 use clap::{Arg, ArgMatches, Command};
-use log::{info, warn};
+use log::{info, trace, warn};
 use simpath::Simpath;
 use simplog::SimpleLogger;
 #[cfg(any(feature = "context", feature = "flowstdlib", feature = "submission"))]
@@ -342,7 +342,7 @@ fn client_only(
     #[cfg(feature = "debugger")] debug_this_flow: bool,
 ) -> Result<()> {
     #[cfg(any(feature = "context", feature = "submission"))]
-    let mut runtime_server_info = ServerInfo::new(
+    let mut context_server_info = ServerInfo::new(
         RUNTIME_SERVICE_NAME,
         matches.get_one::<String>("address")
             .map(|s| s.as_str()),
@@ -356,17 +356,17 @@ fn client_only(
 
     #[cfg(feature = "debugger")]
         let control_c_client_connection = if debug_this_flow {
-        Some(ClientConnection::new(&mut runtime_server_info)?)
+        Some(ClientConnection::new(&mut context_server_info)?)
     } else {
         None
     };
 
-    let runtime_client_connection = ClientConnection::new(&mut runtime_server_info)?;
+    let context_client_connection = ClientConnection::new(&mut context_server_info)?;
 
     client(
         matches,
         lib_search_path,
-        runtime_client_connection,
+        context_client_connection,
         #[cfg(feature = "debugger")] control_c_client_connection,
         #[cfg(feature = "debugger")] debug_this_flow,
         #[cfg(feature = "debugger")] &mut debug_server_info,
@@ -410,6 +410,7 @@ fn client(
         #[cfg(feature = "debugger")] debug_this_flow,
     );
 
+    trace!("Creating CliRuntimeClient");
     #[cfg(any(feature = "context", feature = "submission"))]
     let runtime_client = CliRuntimeClient::new(
         #[cfg(feature = "context")] flow_args,

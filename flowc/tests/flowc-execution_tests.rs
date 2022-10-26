@@ -307,7 +307,6 @@ fn two_destinations() {
 
 #[cfg(not(target_os = "linux"))]
 #[test]
-#[ignore]
 #[serial]
 fn hello_world_client_server() {
     execute_test("hello-world", true);
