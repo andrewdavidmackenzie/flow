@@ -76,7 +76,7 @@ impl Executor {
         let mut lib_manifests = self.loaded_lib_manifests.write()
             .map_err(|_| "Could not gain write access to loaded library manifests map")?;
 
-        debug!("Manifest of library {} loaded from {} and added to Executor",
+        debug!("Manifest of library '{}' loaded from '{}' and added to Executor",
             lib_manifest.lib_url, resolved_url);
 
         lib_manifests.insert(lib_manifest.lib_url.clone(), (lib_manifest, resolved_url));
