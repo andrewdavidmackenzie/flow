@@ -10,7 +10,7 @@ use flowcore::model::submission::Submission;
 
 #[cfg(feature = "debugger")]
 use crate::debugger::Debugger;
-use crate::executor::Executor;
+use crate::dispatcher::Dispatcher;
 use crate::job::Job;
 use crate::run_state::RunState;
 #[cfg(feature = "debugger")]
@@ -29,31 +29,30 @@ pub struct Coordinator<'a> {
     /// A `Server` to communicate with clients
     #[cfg(feature = "submission")]
     submitter: &'a mut dyn SubmissionProtocol,
-    /// Executor to use to get jobs executed
-    executor: Executor,
+    /// Dispatcher todispatch jobs for execution
+    dispatcher: Dispatcher,
     #[cfg(feature = "debugger")]
     /// A `Debugger` to communicate with debug clients
     debugger: Debugger<'a>,
     #[cfg(all(not(feature = "debugger"), not(feature = "submission")))]
-    _data: PhantomData<&'a Executor>
+    _data: PhantomData<&'a Dispatcher>
 }
 
 impl<'a> Coordinator<'a> {
     /// Create a new `coordinator` with `num_threads` local executor threads
     pub fn new(
         #[cfg(feature = "submission")] submitter: &'a mut dyn SubmissionProtocol,
-        executor: Executor,
         #[cfg(feature = "debugger")] debug_server: &'a mut dyn DebuggerProtocol
-    ) -> Self {
-        Coordinator {
+    ) -> Result<Self> {
+        Ok(Coordinator {
             #[cfg(feature = "submission")]
             submitter,
-            executor,
+            dispatcher: Dispatcher::new()?,
             #[cfg(feature = "debugger")]
             debugger: Debugger::new(debug_server),
             #[cfg(all(not(feature = "debugger"), not(feature = "submission")))]
             _data: PhantomData
-        }
+        })
     }
 
     /// Enter a loop - waiting for a submission from the client, or disconnection of the client
@@ -82,7 +81,7 @@ impl<'a> Coordinator<'a> {
     #[allow(unused_variables, unused_assignments, unused_mut)]
     pub fn execute_flow(&mut self,
                         submission: Submission,) -> Result<()> {
-        self.executor.set_results_timeout(submission.job_timeout)?;
+        self.dispatcher.set_results_timeout(submission.job_timeout)?;
         let mut state = RunState::new(submission);
 
         #[cfg(feature = "metrics")]
@@ -133,7 +132,7 @@ impl<'a> Coordinator<'a> {
                 }
 
                 if state.number_jobs_running() > 0 {
-                    match self.executor.get_next_result() {
+                    match self.dispatcher.get_next_result() {
                         Ok(job) => {
                             #[cfg(feature = "debugger")]
                             if display_next_output {
@@ -257,7 +256,7 @@ impl<'a> Coordinator<'a> {
             .debugger
             .check_prior_to_job(state, job)?;
 
-        self.executor.send_job_for_execution(job)?;
+        self.dispatcher.send_job_for_execution(job)?;
 
         Ok(debug_options)
     }

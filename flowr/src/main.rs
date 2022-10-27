@@ -18,7 +18,7 @@ use std::process::exit;
 use std::sync::{Arc, Mutex};
 
 use clap::{Arg, ArgMatches, Command};
-use log::{error, info, warn};
+use log::{debug, info, trace, warn};
 use simpath::Simpath;
 use simplog::SimpleLogger;
 #[cfg(any(feature = "context", feature = "flowstdlib", feature = "submission"))]
@@ -81,6 +81,15 @@ pub enum Mode {
     ClientAndServer,
 }
 
+// `RUNTIME_SERVICE_NAME` is the name of the runtime services and can be used to discover it by name
+const RUNTIME_SERVICE_NAME: &str = "runtime._flowr._tcp.local";
+const RUNTIME_SERVICE_PORT: u16 = 5555;
+
+// `DEBUG_SERVICE_NAME` is the name of the runtime services and can be used to discover it by name
+#[cfg(feature = "debugger")]
+const DEBUG_SERVICE_NAME: &str = "debug._flowr._tcp.local";
+const DEBUG_SERVICE_PORT: u16 = 5556;
+
 /// Main for flowr binary - call `run()` and print any error that results or exit silently if OK
 fn main() {
     match run() {
@@ -116,64 +125,18 @@ fn set_lib_search_path(search_path_additions: &[String]) -> Result<Simpath> {
     Ok(lib_search_path)
 }
 
-/// # Example Submission of a flow for execution to the Coordinator
-///
-/// Instantiate the Coordinator server that receives the submitted flows to be executed, specifying
-/// Create a `Submission` for the flow to be executed.
-/// Create a `ClientConnection` to the `Coordinator` server
-/// Send a `Submission` to the Coordinator to be executed
-///
-/// ```no_run
-/// use std::sync::{Arc, Mutex};
-/// use std::io;
-/// use std::io::Write;
-/// use flowrlib::coordinator::{Coordinator, Submission, Mode, RUNTIME_SERVICE_NAME, DEBUG_SERVICE_NAME};
-/// use std::process::exit;
-/// use flowcore::model::flow_manifest::FlowManifest;
-/// use flowcore::model::metadata::MetaData;
-/// use flowcontext_cli::runtime_messages::ClientMessage::ClientSubmission; // TODO
-/// use simpath::Simpath;
-/// use url::Url;
-/// use flowcontext_cli::client_server::{ClientConnection, ServerConnection, ServerInfo, Method};
-/// use flowrlib::runtime_messages::{ServerMessage, ClientMessage};
-///
-/// let runtime_server_connection = ServerConnection::new(RUNTIME_SERVICE_NAME, Method::Tcp(None)).unwrap();
-/// let debug_server_connection = ServerConnection::new(DEBUG_SERVICE_NAME, Method::Tcp(None)).unwrap();
-/// let mut runtime_server_info = runtime_server_connection.get_server_info().clone();///
-///
-/// // Spawn a thread where we will run the submission loop to receive submissions and execute them
-/// std::thread::spawn(move || {
-///     let mut coordinator = Coordinator::new(
-///                                 runtime_server_connection,
-///                                 #[cfg(feature = "debugger")] debug_server_connection,
-///                                 1 /* num_threads */);
-///
-///     coordinator.submission_loop(
-///         Simpath::new("fake path") /* lib_search_path */,
-///         true /* native */,
-///         false /* loop_forever */
-///     ).expect("Problem in Submission loop");
-///     });
-///
-/// let mut submission = Submission::new(&Url::parse("file:///temp/fake.toml").unwrap(),
-///                                     1 /* num_parallel_jobs */,
-///                                     true /* debug this flow's execution */);
-/// let runtime_client_connection = ClientConnection::new(&mut runtime_server_info).unwrap();
-/// runtime_client_connection.send(ClientSubmission(submission)).unwrap();
-/// exit(0);
-/// ```
 fn run() -> Result<()> {
+    let matches = get_matches();
+
+    let verbosity = matches.get_one::<String>("verbosity").map(|s| s.as_str());
+    SimpleLogger::init_prefix_timestamp(verbosity, true, false);
+
     info!(
         "'{}' version {}",
         env!("CARGO_PKG_NAME"),
         env!("CARGO_PKG_VERSION")
     );
     info!("'flowrlib' version {}", flowrlib_info::version());
-
-    let matches = get_matches();
-
-    let verbosity = matches.get_one::<String>("verbosity").map(|s| s.as_str());
-    SimpleLogger::init_prefix_timestamp(verbosity, true, false);
 
     #[cfg(feature = "debugger")]
     let debug_this_flow = matches.get_flag("debugger");
@@ -230,9 +193,9 @@ fn run() -> Result<()> {
 // Start just a server - by running a Coordinator in the calling thread.
 fn server_only(num_threads: usize, lib_search_path: Simpath, native_flowstdlib: bool) -> Result<()> {
     #[cfg(any(feature = "context", feature = "submission"))]
-    let runtime_server_connection = ServerConnection::runtime()?;
+    let runtime_server_connection = ServerConnection::new(RUNTIME_SERVICE_NAME, None)?;
     #[cfg(feature = "debugger")]
-    let debug_server_connection = ServerConnection::debug_service()?;
+    let debug_server_connection = ServerConnection::new(DEBUG_SERVICE_NAME, None)?;
 
     info!("Starting 'flowr' server process in main thread");
     server(
@@ -241,9 +204,8 @@ fn server_only(num_threads: usize, lib_search_path: Simpath, native_flowstdlib: 
         native_flowstdlib,
         #[cfg(any(feature = "context", feature = "submission"))]
         runtime_server_connection,
-        #[cfg(feature = "debugger")]
-        debug_server_connection,
-        true,
+        #[cfg(feature = "debugger")] debug_server_connection,
+        #[cfg(feature = "submission")] true,
     )?;
 
     info!("'flowr' server process has exited");
@@ -263,14 +225,15 @@ fn client_and_server(
     debug_this_flow: bool,
 ) -> Result<()> {
     #[cfg(feature = "submission")]
-    let runtime_server_connection = ServerConnection::local()?;
+    let runtime_server_connection = ServerConnection::new(RUNTIME_SERVICE_NAME, None)?;
     #[cfg(feature = "debugger")]
-    let debug_server_connection = ServerConnection::debug_local()?;
+    let debug_server_connection = ServerConnection::new(DEBUG_SERVICE_NAME, None)?;
 
     #[cfg(feature = "submission")]
-    let mut runtime_server_info = runtime_server_connection.get_server_info().clone();
+    let mut context_server_info = ServerInfo::new(RUNTIME_SERVICE_NAME, None, RUNTIME_SERVICE_PORT);
+    debug!("context_server_info: {context_server_info:?}");
     #[cfg(feature = "debugger")]
-    let mut debug_server_info = debug_server_connection.get_server_info().clone();
+    let mut debug_server_info = ServerInfo::new(DEBUG_SERVICE_NAME, None, DEBUG_SERVICE_PORT);
 
     let server_lib_search_path = lib_search_path.clone();
 
@@ -280,22 +243,20 @@ fn client_and_server(
             num_threads,
             server_lib_search_path,
             native,
-            #[cfg(any(feature = "context", feature = "submission"))]
-            runtime_server_connection,
-            #[cfg(feature = "debugger")]
-            debug_server_connection,
-            false,
+            #[cfg(any(feature = "context", feature = "submission"))] runtime_server_connection,
+            #[cfg(feature = "debugger")] debug_server_connection,
+            #[cfg(feature = "submission")] false,
         );
     });
 
     #[cfg(feature = "debugger")]
     let control_c_client_connection = if debug_this_flow {
-        Some(ClientConnection::new(&mut runtime_server_info)?)
+        Some(ClientConnection::new(&mut context_server_info)?)
     } else {
         None
     };
 
-    let runtime_client_connection = ClientConnection::new(&mut runtime_server_info)?;
+    let runtime_client_connection = ClientConnection::new(&mut context_server_info)?;
 
     client(
         matches,
@@ -314,10 +275,9 @@ fn server(
     num_threads: usize,
     lib_search_path: Simpath,
     native_flowstdlib: bool,
-    #[cfg(any(feature = "context", feature = "submission"))]
-    runtime_server_connection: ServerConnection,
+    #[cfg(any(feature = "context", feature = "submission"))] runtime_server_connection: ServerConnection,
     #[cfg(feature = "debugger")] debug_server_connection: ServerConnection,
-    #[allow(unused_variables)] loop_forever: bool,
+    #[cfg(feature = "submission")] loop_forever: bool,
 ) -> Result<()> {
     #[cfg(any(feature = "context", feature = "submission"))]
     let server_connection = Arc::new(Mutex::new(runtime_server_connection));
@@ -333,7 +293,7 @@ fn server(
     )) as Arc<dyn Provider>;
 
     #[allow(unused_mut)]
-    let mut executor = Executor::new(provider, num_threads, None)?;
+    let mut executor = Executor::new()?;
 
     // Add the native context functions to functions available for use by the executor
     #[cfg(feature = "context")]
@@ -354,7 +314,9 @@ fn server(
         )?;
     }
 
-    #[cfg(feature = "submission")]
+    executor.start(provider, num_threads)?;
+
+        #[cfg(feature = "submission")]
     let mut submitter = CLISubmitter {
         runtime_server_connection: server_connection,
     };
@@ -362,9 +324,8 @@ fn server(
     #[allow(unused_variables, unused_mut)]
     let mut coordinator = Coordinator::new(
         #[cfg(feature = "submission")] &mut submitter,
-        executor,
         #[cfg(feature = "debugger")] &mut debug_server
-    );
+    )?;
 
     #[cfg(feature = "submission")]
     coordinator.submission_loop(loop_forever)?;
@@ -382,27 +343,31 @@ fn client_only(
     #[cfg(feature = "debugger")] debug_this_flow: bool,
 ) -> Result<()> {
     #[cfg(any(feature = "context", feature = "submission"))]
-    let mut runtime_server_info = ServerInfo::new(
+    let mut context_server_info = ServerInfo::new(
+        RUNTIME_SERVICE_NAME,
         matches.get_one::<String>("address")
-            .map(|s| s.as_str()));
+            .map(|s| s.as_str()),
+        RUNTIME_SERVICE_PORT);
     #[cfg(feature = "debugger")]
-    let mut debug_server_info = ServerInfo::debug_info(
+    let mut debug_server_info = ServerInfo::new(
+        DEBUG_SERVICE_NAME,
         matches.get_one::<String>("address")
-            .map(|s| s.as_str()));
+            .map(|s| s.as_str()),
+        DEBUG_SERVICE_PORT);
 
     #[cfg(feature = "debugger")]
         let control_c_client_connection = if debug_this_flow {
-        Some(ClientConnection::new(&mut runtime_server_info)?)
+        Some(ClientConnection::new(&mut context_server_info)?)
     } else {
         None
     };
 
-    let runtime_client_connection = ClientConnection::new(&mut runtime_server_info)?;
+    let context_client_connection = ClientConnection::new(&mut context_server_info)?;
 
     client(
         matches,
         lib_search_path,
-        runtime_client_connection,
+        context_client_connection,
         #[cfg(feature = "debugger")] control_c_client_connection,
         #[cfg(feature = "debugger")] debug_this_flow,
         #[cfg(feature = "debugger")] &mut debug_server_info,
@@ -446,6 +411,7 @@ fn client(
         #[cfg(feature = "debugger")] debug_this_flow,
     );
 
+    trace!("Creating CliRuntimeClient");
     #[cfg(any(feature = "context", feature = "submission"))]
     let runtime_client = CliRuntimeClient::new(
         #[cfg(feature = "context")] flow_args,
@@ -476,26 +442,13 @@ fn client(
     Ok(())
 }
 
-// Determine the number of threads to use to execute flows, with a default of the number of cores
-// in the device, or any override from the command line.
+// Determine the number of threads to use to execute flows
+// - default (if value is not provided on the command line)of the number of cores
 fn num_threads(matches: &ArgMatches) -> usize {
-    let mut num_threads: usize = 0;
-
-    if let Some(threads) = matches.get_one::<usize>("threads") {
-        if threads < &1 {
-            error!("Minimum number of additional threads is '1', \
-            so option has been overridden to be '1'");
-            num_threads = 1;
-        } else {
-            num_threads = *threads;
-        }
+    match matches.get_one::<usize>("threads") {
+        Some(num_threads) => *num_threads,
+        None => thread::available_parallelism().map(|n| n.get()).unwrap_or(1)
     }
-
-    if num_threads == 0 {
-        num_threads = thread::available_parallelism().map(|n| n.get()).unwrap_or(1);
-    }
-
-    num_threads
 }
 
 // Parse the command line arguments using clap
@@ -557,6 +510,7 @@ fn get_matches() -> ArgMatches {
             .short('j')
             .long("jobs")
             .number_of_values(1)
+            .value_parser(clap::value_parser!(usize))
             .value_name("MAX_JOBS")
             .help("Set maximum number of jobs that can be running in parallel)"))
         .arg(Arg::new("lib_dir")
@@ -570,6 +524,7 @@ fn get_matches() -> ArgMatches {
             .short('t')
             .long("threads")
             .number_of_values(1)
+            .value_parser(clap::value_parser!(usize))
             .value_name("THREADS")
             .help("Set number of threads to use to execute jobs (min: 1, default: cores available)"))
         .arg(Arg::new("verbosity")
@@ -580,7 +535,6 @@ fn get_matches() -> ArgMatches {
             .help("Set verbosity level for output (trace, debug, info, warn, default: error)"))
         .arg(Arg::new("flow-manifest")
             .num_args(1)
-            .required(true)
             .help("the file path of the 'flow' manifest file"))
         .arg(Arg::new("flow_args")
             .num_args(0..)

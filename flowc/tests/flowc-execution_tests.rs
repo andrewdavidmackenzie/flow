@@ -232,9 +232,15 @@ fn execute_test(test_name: &str, separate_processes: bool) {
         let (actual_stdout, actual_stderr) =
             execute_flow(manifest_path, test_args, input, separate_processes);
         let expected_stdout = get(&test_dir, "expected.stdout");
-        assert_eq!(expected_stdout, actual_stdout, "STDOUT: {actual_stdout}");
+        if expected_stdout != actual_stdout {
+            println!("STDOUT: {actual_stdout}");
+        }
         let expected_stderr = get(&test_dir, "expected.stderr");
-        assert_eq!(expected_stderr, actual_stderr, "STDERR: {actual_stderr}");
+        if expected_stderr != actual_stderr {
+            eprintln!("STDERR: {actual_stderr}");
+        }
+        assert_eq!(expected_stdout, actual_stdout);
+        assert_eq!(expected_stderr, actual_stderr);
     }
 }
 
@@ -299,9 +305,7 @@ fn two_destinations() {
     execute_test("two_destinations", false);
 }
 
-#[cfg(not(target_os = "linux"))]
 #[test]
-#[ignore]
 #[serial]
 fn hello_world_client_server() {
     execute_test("hello-world", true);
