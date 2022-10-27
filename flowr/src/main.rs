@@ -18,7 +18,7 @@ use std::process::exit;
 use std::sync::{Arc, Mutex};
 
 use clap::{Arg, ArgMatches, Command};
-use log::{info, trace, warn};
+use log::{debug, info, trace, warn};
 use simpath::Simpath;
 use simplog::SimpleLogger;
 #[cfg(any(feature = "context", feature = "flowstdlib", feature = "submission"))]
@@ -193,9 +193,9 @@ fn run() -> Result<()> {
 // Start just a server - by running a Coordinator in the calling thread.
 fn server_only(num_threads: usize, lib_search_path: Simpath, native_flowstdlib: bool) -> Result<()> {
     #[cfg(any(feature = "context", feature = "submission"))]
-    let runtime_server_connection = ServerConnection::runtime(RUNTIME_SERVICE_NAME)?;
+    let runtime_server_connection = ServerConnection::new(RUNTIME_SERVICE_NAME, None)?;
     #[cfg(feature = "debugger")]
-    let debug_server_connection = ServerConnection::debug_service(DEBUG_SERVICE_NAME)?;
+    let debug_server_connection = ServerConnection::new(DEBUG_SERVICE_NAME, None)?;
 
     info!("Starting 'flowr' server process in main thread");
     server(
@@ -225,14 +225,15 @@ fn client_and_server(
     debug_this_flow: bool,
 ) -> Result<()> {
     #[cfg(feature = "submission")]
-    let runtime_server_connection = ServerConnection::local(RUNTIME_SERVICE_NAME)?;
+    let runtime_server_connection = ServerConnection::new(RUNTIME_SERVICE_NAME, None)?;
     #[cfg(feature = "debugger")]
-    let debug_server_connection = ServerConnection::debug_local(DEBUG_SERVICE_NAME)?;
+    let debug_server_connection = ServerConnection::new(DEBUG_SERVICE_NAME, None)?;
 
     #[cfg(feature = "submission")]
-    let mut runtime_server_info = runtime_server_connection.get_server_info().clone();
+    let mut context_server_info = ServerInfo::new(RUNTIME_SERVICE_NAME, None, RUNTIME_SERVICE_PORT);
+    debug!("context_server_info: {context_server_info:?}");
     #[cfg(feature = "debugger")]
-    let mut debug_server_info = debug_server_connection.get_server_info().clone();
+    let mut debug_server_info = ServerInfo::new(DEBUG_SERVICE_NAME, None, DEBUG_SERVICE_PORT);
 
     let server_lib_search_path = lib_search_path.clone();
 
@@ -250,12 +251,12 @@ fn client_and_server(
 
     #[cfg(feature = "debugger")]
     let control_c_client_connection = if debug_this_flow {
-        Some(ClientConnection::new(&mut runtime_server_info)?)
+        Some(ClientConnection::new(&mut context_server_info)?)
     } else {
         None
     };
 
-    let runtime_client_connection = ClientConnection::new(&mut runtime_server_info)?;
+    let runtime_client_connection = ClientConnection::new(&mut context_server_info)?;
 
     client(
         matches,
