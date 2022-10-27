@@ -39,7 +39,7 @@ serde_json = { version = "1.0", default-features = false }
 error-chain = "0.12.2"
 multimap = "~0.8"
 portpicker = "0.1.1"
-simpdiscover = "~0.3"
+simpdiscover = "~0.4"
 zmq = "0.9.2"
 
 # Optional dependencies

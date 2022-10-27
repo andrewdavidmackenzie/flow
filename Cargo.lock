@@ -1732,11 +1732,12 @@ dependencies = [
 
 [[package]]
 name = "simpdiscover"
-version = "0.3.1"
+version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7bc4a787768b76b9a347ebd57b09c8d398e213b28f922fdcac9f50099d14deb4"
+checksum = "774ab503bfb277184af0ef3fac84d085d8350dd15ffe5f7aa23874d013d992e0"
 dependencies = [
  "log",
+ "portpicker",
  "simplog",
 ]
 
