@@ -132,8 +132,7 @@ fn execution_loop(
         #[cfg(feature = "context")]
         if items[0].is_readable() {
             source = &job_source;
-        } else
-        if items[1].is_readable() {
+        } else if items[1].is_readable() {
             source = &context_job_source;
         } else {
             continue;
