@@ -6,19 +6,18 @@ use flowcore::errors::*;
 
 use crate::job::Job;
 
-//const JOB_SOURCE_NAME: &str  = "inproc://job-source";
 pub(crate) const JOB_SOURCE_NAME: &str  = "tcp://127.0.0.1:3456";
-
-//const RESULTS_SINK_NAME: &str  = "inproc://results-sink";
-pub(crate) const RESULTS_SINK_NAME: &str  = "tcp://127.0.0.1:3457";
-
+pub(crate) const CONTEXT_JOB_SOURCE_NAME: &str  = "tcp://127.0.0.1:3457";
+pub(crate) const RESULTS_SINK_NAME: &str  = "tcp://127.0.0.1:3458";
 
 /// `Dispatcher` structure holds information required to send jobs for execution and receive results back
 pub struct Dispatcher {
     #[allow(dead_code)]
     // Context for message queues for jobs and results
     context: zmq::Context,
-    // A source of jobs to be processed
+    // A source of jobs to be executed for context:// functions
+    context_job_source: zmq::Socket,
+    // A source of other (non-context) jobs to be executed
     job_source: zmq::Socket,
     // A sink where to send jobs (with results)
     results_sink: zmq::Socket,
@@ -34,6 +33,11 @@ impl Dispatcher {
         job_source.bind(JOB_SOURCE_NAME)
             .map_err(|_| "Could not bind to job-source socket")?;
 
+        let context_job_source = context.socket(zmq::PUSH)
+            .map_err(|_| "Could not create context job source socket")?;
+        context_job_source.bind(CONTEXT_JOB_SOURCE_NAME)
+            .map_err(|_| "Could not bind to context-job-source socket")?;
+
         let results_sink = context.socket(zmq::PULL)
             .map_err(|_| "Could not create results sink socket")?;
         results_sink.bind(RESULTS_SINK_NAME)
@@ -42,6 +46,7 @@ impl Dispatcher {
         Ok(Dispatcher {
             context,
             job_source,
+            context_job_source,
             results_sink,
         })
     }
@@ -72,8 +77,13 @@ impl Dispatcher {
 
     // Send a `Job` for execution to executors
     pub(crate) fn send_job_for_execution(&mut self, job: &Job) -> Result<()> {
-        self.job_source.send(serde_json::to_string(job)?.as_bytes(), 0)
-            .map_err(|_| "Could not send Job for execution")?;
+        if job.implementation_url.scheme() == "context" {
+            self.context_job_source.send(serde_json::to_string(job)?.as_bytes(), 0)
+                .map_err(|_| "Could not send context Job for execution")?;
+        } else {
+            self.job_source.send(serde_json::to_string(job)?.as_bytes(), 0)
+                .map_err(|_| "Could not send Job for execution")?;
+        }
 
         trace!(
             "Job #{}: Sent for execution of Function #{}",
