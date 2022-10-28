@@ -13,6 +13,7 @@ use flowcore::model::lib_manifest::{
 };
 
 use crate::dispatcher::JOB_SOURCE_NAME;
+#[cfg(feature = "context")]
 use crate::dispatcher::CONTEXT_JOB_SOURCE_NAME;
 use crate::dispatcher::RESULTS_SINK_NAME;
 
@@ -53,7 +54,7 @@ impl Executor {
             let thread_implementations = loaded_implementations.clone();
             let thread_loaded_manifests = self.loaded_lib_manifests.clone();
             thread::spawn(move || {
-                create_executor_thread(
+                execution_loop(
                     thread_provider,
                     format!("Executor #{executor_number}"),
                     thread_context,
@@ -86,7 +87,7 @@ impl Executor {
     }
 }
 
-fn create_executor_thread(
+fn execution_loop(
     provider: Arc<dyn Provider>,
     name: String,
     context: zmq::Context,
@@ -98,8 +99,10 @@ fn create_executor_thread(
     job_source.connect(JOB_SOURCE_NAME)
         .map_err(|_| "Could not bind to PULL end of job-source  socket")?;
 
+    #[cfg(feature = "context")]
     let context_job_source = context.socket(zmq::PULL)
         .map_err(|_| "Could not create PULL end of context-job-source socket")?;
+    #[cfg(feature = "context")]
     context_job_source.connect(CONTEXT_JOB_SOURCE_NAME)
         .map_err(|_| "Could not bind to PULL end of context-job-source  socket")?;
 
@@ -112,25 +115,33 @@ fn create_executor_thread(
 
     set_panic_hook();
 
+    #[cfg(feature = "context")]
     let mut items = [
         job_source.as_poll_item(zmq::POLLIN),
         context_job_source.as_poll_item(zmq::POLLIN),
-    ];
+        ];
 
     while process_jobs {
         trace!("{name} waiting for a job to execute");
 
+        #[cfg(feature = "context")]
         zmq::poll(&mut items, -1).map_err(|_| "Polling for Jobs failed")?;
 
+        #[cfg(feature = "context")]
         let source;
+        #[cfg(feature = "context")]
         if items[0].is_readable() {
             source = &job_source;
-        } else if items[1].is_readable() {
+        } else
+        if items[1].is_readable() {
             source = &context_job_source;
         } else {
             continue;
         }
+        #[cfg(not(feature = "context"))]
+        let source = &job_source;
 
+        trace!("{name} waiting a job");
         let msg = source.recv_msg(0).map_err(|_| "Error receiving Job for execution")?;
         let message_string = msg.as_str().ok_or("Could not get message as str")?;
         let mut job: Job = serde_json::from_str(message_string)
