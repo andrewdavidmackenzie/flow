@@ -18,7 +18,7 @@ use std::process::exit;
 use std::sync::{Arc, Mutex};
 
 use clap::{Arg, ArgMatches, Command};
-use log::{debug, info, trace, warn};
+use log::{info, trace, warn};
 use simpath::Simpath;
 use simplog::SimpleLogger;
 #[cfg(any(feature = "context", feature = "flowstdlib", feature = "submission"))]
@@ -231,7 +231,6 @@ fn client_and_server(
 
     #[cfg(feature = "submission")]
     let mut context_server_info = ServerInfo::new(RUNTIME_SERVICE_NAME, None, RUNTIME_SERVICE_PORT);
-    debug!("context_server_info: {context_server_info:?}");
     #[cfg(feature = "debugger")]
     let mut debug_server_info = ServerInfo::new(DEBUG_SERVICE_NAME, None, DEBUG_SERVICE_PORT);
 
