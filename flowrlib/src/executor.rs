@@ -103,12 +103,21 @@ fn execution_loop(
     job_source.connect(JOB_SOURCE_NAME)
         .map_err(|_| "Could not bind to PULL end of job-source socket")?;
 
+    #[allow(unused_mut)]
+    let mut sockets = vec![&job_source];
+    let mut items = vec![job_source.as_poll_item(zmq::POLLIN)];
+
     #[cfg(feature = "context")]
-    let context_job_source = context.socket(zmq::PULL)
-        .map_err(|_| "Could not create PULL end of context-job-source socket")?;
+    let context_job_source : zmq::Socket;
     #[cfg(feature = "context")]
-    context_job_source.connect(CONTEXT_JOB_SOURCE_NAME)
-        .map_err(|_| "Could not bind to PULL end of context-job-source  socket")?;
+    if context_jobs {
+        context_job_source = context.socket(zmq::PULL)
+            .map_err(|_| "Could not create PULL end of context-job-source socket")?;
+        context_job_source.connect(CONTEXT_JOB_SOURCE_NAME)
+            .map_err(|_| "Could not bind to PULL end of context-job-source  socket")?;
+        sockets.push(&context_job_source);
+        items.push(context_job_source.as_poll_item(zmq::POLLIN));
+    }
 
     let results_sink = context.socket(zmq::PUSH)
         .map_err(|_| "Could not createPUSH end of results-sink socket")?;
@@ -119,47 +128,31 @@ fn execution_loop(
 
     set_panic_hook();
 
-    let mut items = vec![job_source.as_poll_item(zmq::POLLIN)];
-
-    #[cfg(feature = "context")]
-    if context_jobs {
-        items.push(context_job_source.as_poll_item(zmq::POLLIN));
-    }
-
     while process_jobs {
         trace!("{name} waiting for a job to execute");
         zmq::poll(&mut items, -1).map_err(|_| "Error while polling for Jobs to execute")?;
 
-        #[cfg(feature = "context")]
-        let source;
-        #[cfg(feature = "context")]
-        if items.get(0).ok_or("No such source socket")?.is_readable() {
-            source = &job_source;
-        } else if context_jobs && items.get(1).ok_or("No such source socket")?.is_readable() {
-            source = &context_job_source;
-        } else {
-            continue;
-        }
-        #[cfg(not(feature = "context"))]
-        let source = &job_source;
+        for (index, item) in items.iter().enumerate() {
+            if item.is_readable() {
+                let socket = sockets.get(index).ok_or("Could not get that socket")?;
+                let msg = socket.recv_msg(0).map_err(|_| "Error receiving Job for execution")?;
+                let message_string = msg.as_str().ok_or("Could not get message as str")?;
+                let mut job: Job = serde_json::from_str(message_string)
+                    .map_err(|_| "Could not deserialize Message to Job")?;
 
-        trace!("{name} waiting a job");
-        let msg = source.recv_msg(0).map_err(|_| "Error receiving Job for execution")?;
-        let message_string = msg.as_str().ok_or("Could not get message as str")?;
-        let mut job: Job = serde_json::from_str(message_string)
-            .map_err(|_| "Could not deserialize Message to Job")?;
-
-        trace!("Job #{}: Received for execution: {}", job.job_id, job);
-        match execute_job(provider.clone(),
+                trace!("Job #{}: Received for execution: {}", job.job_id, job);
+                match execute_job(provider.clone(),
                                   &mut job,
                                   &results_sink,
                                   &name,
                                   loaded_implementations.clone(),
                                   loaded_lib_manifests.clone()) {
-            Ok(keep_processing) => process_jobs = keep_processing,
-            Err(e) => error!("{}", e)
+                    Ok(keep_processing) => process_jobs = keep_processing,
+                    Err(e) => error!("{}", e)
+                }
+                trace!("{name} finished executing job");
+            }
         }
-        trace!("{name} finished executing job");
     }
 
     Ok(())

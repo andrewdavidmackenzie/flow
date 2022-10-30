@@ -303,7 +303,6 @@ fn server(
         runtime_server_connection: server_connection,
     };
 
-    #[allow(unused_variables, unused_mut)]
     let mut coordinator = Coordinator::new(
         &mut submitter,
         #[cfg(feature = "debugger")] &mut debug_server

@@ -12,9 +12,6 @@ pub(crate) const RESULTS_SINK_NAME: &str  = "tcp://127.0.0.1:3458";
 
 /// `Dispatcher` structure holds information required to send jobs for execution and receive results back
 pub struct Dispatcher {
-    #[allow(dead_code)]
-    // Context for message queues for jobs and results
-    context: zmq::Context,
     // A source of jobs to be executed for context:// functions
     context_job_source: zmq::Socket,
     // A source of other (non-context) jobs to be executed
@@ -44,7 +41,6 @@ impl Dispatcher {
             .map_err(|_| "Could not bind to results-sink socket")?;
 
         Ok(Dispatcher {
-            context,
             job_source,
             context_job_source,
             results_sink,
