@@ -13,7 +13,6 @@ use flowcore::model::lib_manifest::{
 };
 
 use crate::dispatcher::JOB_SOURCE_NAME;
-#[cfg(feature = "context")]
 use crate::dispatcher::CONTEXT_JOB_SOURCE_NAME;
 use crate::dispatcher::RESULTS_SINK_NAME;
 
@@ -64,7 +63,8 @@ impl Executor {
     pub fn start(&mut self,
                  provider: Arc<dyn Provider>,
                  number_of_executors: usize,
-                 #[cfg(feature = "context")] context_jobs: bool,
+                 lib_jobs: bool,
+                 context_jobs: bool,
     ) -> Result<()> {
         let loaded_implementations = Arc::new(RwLock::new(HashMap::<Url, Arc<dyn Implementation>>::new()));
 
@@ -81,7 +81,8 @@ impl Executor {
                     thread_context,
                     thread_implementations,
                     thread_loaded_manifests,
-                    #[cfg(feature = "context")]  context_jobs,
+                    lib_jobs,
+                    context_jobs,
                 ) // clone of Arcs and Sender OK
             });
         }
@@ -96,20 +97,23 @@ fn execution_loop(
     context: zmq::Context,
     loaded_implementations: Arc<RwLock<HashMap<Url, Arc<dyn Implementation>>>>,
     loaded_lib_manifests: Arc<RwLock<HashMap<Url, (LibraryManifest, Url)>>>,
-    #[cfg(feature = "context")] context_jobs: bool,
+    lib_jobs: bool,
+    context_jobs: bool,
 ) -> Result<()> {
-    let job_source = context.socket(zmq::PULL)
-        .map_err(|_| "Could not create PULL end of job-source socket")?;
-    job_source.connect(JOB_SOURCE_NAME)
-        .map_err(|_| "Could not bind to PULL end of job-source socket")?;
+    let mut sockets : Vec<&zmq::Socket> = vec![];
+    let mut items : Vec<zmq::PollItem> = vec![];
 
-    #[allow(unused_mut)]
-    let mut sockets = vec![&job_source];
-    let mut items = vec![job_source.as_poll_item(zmq::POLLIN)];
+    let job_source : zmq::Socket;
+    if lib_jobs {
+        job_source = context.socket(zmq::PULL)
+            .map_err(|_| "Could not create PULL end of job-source socket")?;
+        job_source.connect(JOB_SOURCE_NAME)
+            .map_err(|_| "Could not bind to PULL end of job-source socket")?;
+        sockets.push(&job_source);
+        items.push(job_source.as_poll_item(zmq::POLLIN));
+    }
 
-    #[cfg(feature = "context")]
     let context_job_source : zmq::Socket;
-    #[cfg(feature = "context")]
     if context_jobs {
         context_job_source = context.socket(zmq::PULL)
             .map_err(|_| "Could not create PULL end of context-job-source socket")?;

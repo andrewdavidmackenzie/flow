@@ -269,35 +269,24 @@ fn server(
                                          PathBuf::from("/")
     )) as Arc<dyn Provider>;
 
-    #[allow(unused_mut)]
-    let mut general_executor = Executor::new()?;
+    let mut executor = Executor::new()?;
 
     // if the command line options request loading native implementation of available native libs
     // if not, the native implementation is not loaded and later when a flow is loaded it's library
     // references will be resolved and those libraries (WASM implementations) will be loaded at runtime
     if native_flowstdlib {
-        general_executor.add_lib(
+        executor.add_lib(
             flowstdlib::manifest::get_manifest()
                 .chain_err(|| "Could not get 'native' flowstdlib manifest")?,
             Url::parse("memory://")? // Statically linked library has no resolved Url
         )?;
     }
 
-    general_executor.add_lib(
-        cli::cli_server::get_manifest(server_connection.clone())?,
+    executor.add_lib(
+        cli::cli_context::get_manifest(server_connection.clone())?,
         Url::parse("memory://")? // Statically linked library has no resolved Url
     )?;
-    general_executor.start(provider.clone(), num_threads, true)?;
-
-    /*
-    let mut context_executor = Executor::new()?;
-    // Add the native context functions to functions available for use by the executor
-    context_executor.add_lib(
-        cli::cli_server::get_manifest(server_connection.clone())?,
-        Url::parse("memory://")? // Statically linked library has no resolved Url
-    )?;
-    context_executor.start(provider, 1, true)?;
-    */
+    executor.start(provider.clone(), num_threads, true, true)?;
 
     let mut submitter = CLISubmitter {
         runtime_server_connection: server_connection,

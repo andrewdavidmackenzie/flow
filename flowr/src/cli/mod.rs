@@ -16,7 +16,7 @@ pub mod debug_server_message;
 pub mod cli_debug_client;
 #[cfg(feature = "debugger")]
 pub mod cli_debug_server;
-pub mod cli_server;
+pub mod cli_context;
 pub mod cli_submitter;
 /// message_queue implementation of the communications between the runtime client, debug client and
 /// the runtime server and debug server.

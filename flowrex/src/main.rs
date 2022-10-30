@@ -82,7 +82,7 @@ fn server(num_threads: usize) -> Result<()> {
     )?;
 
     trace!("Starting executor");
-    executor.start(provider, num_threads)?;
+    executor.start(provider, num_threads, true, false)?;
 
     debug!("Parking main thread");
     thread::park();
