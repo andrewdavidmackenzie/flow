@@ -37,36 +37,6 @@ impl Executor {
         })
     }
 
-    /// Start executing jobs, specifying:
-    ///- the `Provider` to use to fetch implementation content
-    ///- optional timeout for waiting for results
-    ///- the number of executor threads
-    pub fn start(&mut self,
-                 provider: Arc<dyn Provider>,
-                 number_of_executors: usize,
-    ) -> Result<()> {
-        let loaded_implementations = Arc::new(RwLock::new(HashMap::<Url, Arc<dyn Implementation>>::new()));
-
-        info!("Starting {} executor threads", number_of_executors);
-        for executor_number in 0..number_of_executors {
-            let thread_provider = provider.clone();
-            let thread_context = zmq::Context::new();
-            let thread_implementations = loaded_implementations.clone();
-            let thread_loaded_manifests = self.loaded_lib_manifests.clone();
-            thread::spawn(move || {
-                execution_loop(
-                    thread_provider,
-                    format!("Executor #{executor_number}"),
-                    thread_context,
-                    thread_implementations,
-                    thread_loaded_manifests,
-                ) // clone of Arcs and Sender OK
-            });
-        }
-
-        Ok(())
-    }
-
     /// Add a library's manifest to the set of those to reference later. This is mainly for use
     /// prior to running a flow to ensure that the preferred libraries (e.g. flowstdlib native
     /// version) is pre-loaded.
@@ -85,6 +55,39 @@ impl Executor {
 
         Ok(())
     }
+
+    /// Start executing jobs, specifying:
+    ///- the `Provider` to use to fetch implementation content
+    ///- optional timeout for waiting for results
+    ///- the number of executor threads
+    /// - whether to poll for context jobs also
+    pub fn start(&mut self,
+                 provider: Arc<dyn Provider>,
+                 number_of_executors: usize,
+                 #[cfg(feature = "context")] context_jobs: bool,
+    ) -> Result<()> {
+        let loaded_implementations = Arc::new(RwLock::new(HashMap::<Url, Arc<dyn Implementation>>::new()));
+
+        info!("Starting {} executor threads", number_of_executors);
+        for executor_number in 0..number_of_executors {
+            let thread_provider = provider.clone();
+            let thread_context = zmq::Context::new();
+            let thread_implementations = loaded_implementations.clone();
+            let thread_loaded_manifests = self.loaded_lib_manifests.clone();
+            thread::spawn(move || {
+                execution_loop(
+                    thread_provider,
+                    format!("Executor #{executor_number}"),
+                    thread_context,
+                    thread_implementations,
+                    thread_loaded_manifests,
+                    #[cfg(feature = "context")]  context_jobs,
+                ) // clone of Arcs and Sender OK
+            });
+        }
+
+        Ok(())
+    }
 }
 
 fn execution_loop(
@@ -93,11 +96,12 @@ fn execution_loop(
     context: zmq::Context,
     loaded_implementations: Arc<RwLock<HashMap<Url, Arc<dyn Implementation>>>>,
     loaded_lib_manifests: Arc<RwLock<HashMap<Url, (LibraryManifest, Url)>>>,
+    #[cfg(feature = "context")] context_jobs: bool,
 ) -> Result<()> {
     let job_source = context.socket(zmq::PULL)
         .map_err(|_| "Could not create PULL end of job-source socket")?;
     job_source.connect(JOB_SOURCE_NAME)
-        .map_err(|_| "Could not bind to PULL end of job-source  socket")?;
+        .map_err(|_| "Could not bind to PULL end of job-source socket")?;
 
     #[cfg(feature = "context")]
     let context_job_source = context.socket(zmq::PULL)
@@ -115,24 +119,23 @@ fn execution_loop(
 
     set_panic_hook();
 
+    let mut items = vec![job_source.as_poll_item(zmq::POLLIN)];
+
     #[cfg(feature = "context")]
-    let mut items = [
-        job_source.as_poll_item(zmq::POLLIN),
-        context_job_source.as_poll_item(zmq::POLLIN),
-        ];
+    if context_jobs {
+        items.push(context_job_source.as_poll_item(zmq::POLLIN));
+    }
 
     while process_jobs {
         trace!("{name} waiting for a job to execute");
-
-        #[cfg(feature = "context")]
-        zmq::poll(&mut items, -1).map_err(|_| "Polling for Jobs failed")?;
+        zmq::poll(&mut items, -1).map_err(|_| "Error while polling for Jobs to execute")?;
 
         #[cfg(feature = "context")]
         let source;
         #[cfg(feature = "context")]
-        if items[0].is_readable() {
+        if items.get(0).ok_or("No such source socket")?.is_readable() {
             source = &job_source;
-        } else if items[1].is_readable() {
+        } else if context_jobs && items.get(1).ok_or("No such source socket")?.is_readable() {
             source = &context_job_source;
         } else {
             continue;

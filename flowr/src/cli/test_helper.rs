@@ -11,13 +11,13 @@ pub mod test {
         then_send: ClientMessage,
     ) -> Arc<Mutex<ServerConnection>> {
         let server_connection = Arc::new(Mutex::new(
-            ServerConnection::new("foo", None)
+            ServerConnection::new("foo", Some(("127.0.0.1".into(), RUNTIME_SERVICE_PORT)))
                 .expect("Could not create server connection"),
         ));
 
         let connection = server_connection.lock()
             .expect("Could not get access to server connection");
-        let mut server_info = ServerInfo::new("foo", None, RUNTIME_SERVICE_PORT);
+        let mut server_info = ServerInfo::new("foo", Some("127.0.0.1"), RUNTIME_SERVICE_PORT);
         let client_connection = ClientConnection::new(&mut server_info)
             .expect("Could not create ClientConnection");
 

@@ -13,7 +13,6 @@ use flowrlib::server::SubmissionProtocol;
 #[cfg(feature = "debugger")]
 use crate::cli::client_server::DONT_WAIT;
 use crate::cli::client_server::WAIT;
-#[cfg(any(feature = "context", feature = "submission"))]
 use crate::cli::runtime_messages::ClientMessage;
 use crate::cli::runtime_messages::ServerMessage;
 use crate::ServerConnection;

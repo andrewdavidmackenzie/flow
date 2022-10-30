@@ -11,32 +11,25 @@
 //! terminal for STDIO and the File system for files.
 
 use std::{env, thread};
-#[cfg(feature = "context")]
 use std::path::PathBuf;
 use std::process::exit;
-#[cfg(any(feature = "context", feature = "submission"))]
 use std::sync::{Arc, Mutex};
 
 use clap::{Arg, ArgMatches, Command};
 use log::{info, trace, warn};
 use simpath::Simpath;
 use simplog::SimpleLogger;
-#[cfg(any(feature = "context", feature = "flowstdlib", feature = "submission"))]
 use url::Url;
 
 #[cfg(feature = "debugger")]
 use cli::cli_debug_client::CliDebugClient;
 #[cfg(feature = "debugger")]
 use cli::cli_debug_server::CliDebugServer;
-#[cfg(any(feature = "context", feature = "submission"))]
 use cli::cli_runtime_client::CliRuntimeClient;
-#[cfg(feature = "submission")]
 use cli::cli_submitter::CLISubmitter;
-#[cfg(any(feature = "context", feature = "submission", feature = "debugger"))]
+#[cfg(feature = "debugger")]
 use cli::client_server::ClientConnection;
-#[cfg(any(feature = "context", feature = "submission"))]
 use cli::client_server::ServerConnection;
-#[cfg(any(feature = "context", feature = "submission"))]
 use cli::client_server::ServerInfo;
 #[cfg(feature = "debugger")]
 use cli::debug_server_message::DebugServerMessage;
@@ -44,15 +37,12 @@ use cli::debug_server_message::DebugServerMessage;
 use cli::debug_server_message::DebugServerMessage::{BlockBreakpoint, DataBreakpoint, ExecutionEnded, ExecutionStarted,
                                                     ExitingDebugger, JobCompleted, JobError, Panic, PriorToSendingJob,
                                                     Resetting, WaitingForCommand};
-#[cfg(any(feature = "context", feature = "submission"))]
 use cli::runtime_messages::ClientMessage;
 use flowcore::errors::*;
 use flowcore::meta_provider::MetaProvider;
 use flowcore::model::flow_manifest::FlowManifest;
-#[cfg(feature = "submission")]
 use flowcore::model::submission::Submission;
 use flowcore::provider::Provider;
-#[cfg(feature = "submission")]
 use flowcore::url_helper::url_from_string;
 use flowrlib::coordinator::Coordinator;
 use flowrlib::executor::Executor;
@@ -62,7 +52,7 @@ use flowrlib::info as flowrlib_info;
 /// `use crate::errors::*;` to get access to everything `error_chain` creates.
 pub mod errors;
 
-#[cfg(any(feature = "context", feature = "submission", feature = "debugger"))]
+#[cfg(feature = "debugger")]
 mod cli;
 
 /// The `Coordinator` of flow execution can run in one of these three modes:
@@ -71,12 +61,11 @@ mod cli;
 /// - `ClientAndServer` - as both Client and Server, in separate threads
 #[derive(PartialEq, Eq, Clone, Debug)]
 pub enum Mode {
-    #[cfg(any(feature = "context", feature = "submission", feature = "debugger"))]
+    #[cfg(feature = "debugger")]
     /// `Coordinator` mode where it runs as just a client for a server running in another process
     ClientOnly,
     /// `Coordinator` mode where it runs as just a server, clients must run in another process
     ServerOnly,
-    #[cfg(feature = "context")]
     /// `Coordinator` mode where a single process runs as a client and s server in different threads
     ClientAndServer,
 }
@@ -152,7 +141,6 @@ fn run() -> Result<()> {
     };
     let lib_search_path = set_lib_search_path(&lib_dirs)?;
 
-    #[cfg(feature = "context")]
     let mode = if matches.get_flag("client") {
         Mode::ClientOnly
     } else if matches.get_flag("server") {
@@ -160,8 +148,6 @@ fn run() -> Result<()> {
     } else {
         Mode::ClientAndServer
     };
-    #[cfg(not(feature = "context"))]
-    let mode = Mode::ServerOnly;
 
     info!("Starting 'flowr' in {:?} mode", mode);
 
@@ -169,14 +155,13 @@ fn run() -> Result<()> {
 
     match mode {
         Mode::ServerOnly => server_only(num_threads, lib_search_path, native_flowstdlib)?,
-        #[cfg(any(feature = "context", feature = "submission", feature = "debugger"))]
+        #[cfg(feature = "debugger")]
         Mode::ClientOnly => client_only(
             matches,
             lib_search_path,
             #[cfg(feature = "debugger")]
             debug_this_flow,
         )?,
-        #[cfg(feature = "context")]
         Mode::ClientAndServer => client_and_server(
             num_threads,
             lib_search_path,
@@ -192,7 +177,6 @@ fn run() -> Result<()> {
 
 // Start just a server - by running a Coordinator in the calling thread.
 fn server_only(num_threads: usize, lib_search_path: Simpath, native_flowstdlib: bool) -> Result<()> {
-    #[cfg(any(feature = "context", feature = "submission"))]
     let runtime_server_connection = ServerConnection::new(RUNTIME_SERVICE_NAME, None)?;
     #[cfg(feature = "debugger")]
     let debug_server_connection = ServerConnection::new(DEBUG_SERVICE_NAME, None)?;
@@ -202,10 +186,9 @@ fn server_only(num_threads: usize, lib_search_path: Simpath, native_flowstdlib: 
         num_threads,
         lib_search_path,
         native_flowstdlib,
-        #[cfg(any(feature = "context", feature = "submission"))]
         runtime_server_connection,
         #[cfg(feature = "debugger")] debug_server_connection,
-        #[cfg(feature = "submission")] true,
+        true,
     )?;
 
     info!("'flowr' server process has exited");
@@ -215,7 +198,6 @@ fn server_only(num_threads: usize, lib_search_path: Simpath, native_flowstdlib: 
 
 // Start a Server by running a Coordinator in a background thread, then start clients in the
 // calling thread
-#[cfg(feature = "context")]
 fn client_and_server(
     num_threads: usize,
     lib_search_path: Simpath,
@@ -224,12 +206,10 @@ fn client_and_server(
     #[cfg(feature = "debugger")]
     debug_this_flow: bool,
 ) -> Result<()> {
-    #[cfg(feature = "submission")]
     let runtime_server_connection = ServerConnection::new(RUNTIME_SERVICE_NAME, None)?;
     #[cfg(feature = "debugger")]
     let debug_server_connection = ServerConnection::new(DEBUG_SERVICE_NAME, None)?;
 
-    #[cfg(feature = "submission")]
     let mut context_server_info = ServerInfo::new(RUNTIME_SERVICE_NAME, None, RUNTIME_SERVICE_PORT);
     #[cfg(feature = "debugger")]
     let mut debug_server_info = ServerInfo::new(DEBUG_SERVICE_NAME, None, DEBUG_SERVICE_PORT);
@@ -242,9 +222,9 @@ fn client_and_server(
             num_threads,
             server_lib_search_path,
             native,
-            #[cfg(any(feature = "context", feature = "submission"))] runtime_server_connection,
+            runtime_server_connection,
             #[cfg(feature = "debugger")] debug_server_connection,
-            #[cfg(feature = "submission")] false,
+            false,
         );
     });
 
@@ -274,11 +254,10 @@ fn server(
     num_threads: usize,
     lib_search_path: Simpath,
     native_flowstdlib: bool,
-    #[cfg(any(feature = "context", feature = "submission"))] runtime_server_connection: ServerConnection,
+    runtime_server_connection: ServerConnection,
     #[cfg(feature = "debugger")] debug_server_connection: ServerConnection,
-    #[cfg(feature = "submission")] loop_forever: bool,
+    loop_forever: bool,
 ) -> Result<()> {
-    #[cfg(any(feature = "context", feature = "submission"))]
     let server_connection = Arc::new(Mutex::new(runtime_server_connection));
 
     #[cfg(feature = "debugger")]
@@ -287,46 +266,49 @@ fn server(
     };
 
     let provider = Arc::new(MetaProvider::new(lib_search_path,
-                                     #[cfg(feature = "context")]
                                          PathBuf::from("/")
     )) as Arc<dyn Provider>;
 
     #[allow(unused_mut)]
-    let mut executor = Executor::new()?;
-
-    // Add the native context functions to functions available for use by the executor
-    #[cfg(feature = "context")]
-    executor.add_lib(
-        cli::cli_server::get_manifest(server_connection.clone())?,
-        Url::parse("memory://")? // Statically linked library has no resolved Url
-    )?;
+    let mut general_executor = Executor::new()?;
 
     // if the command line options request loading native implementation of available native libs
     // if not, the native implementation is not loaded and later when a flow is loaded it's library
     // references will be resolved and those libraries (WASM implementations) will be loaded at runtime
     if native_flowstdlib {
-        #[cfg(feature = "flowstdlib")]
-        executor.add_lib(
+        general_executor.add_lib(
             flowstdlib::manifest::get_manifest()
                 .chain_err(|| "Could not get 'native' flowstdlib manifest")?,
             Url::parse("memory://")? // Statically linked library has no resolved Url
         )?;
     }
 
-    executor.start(provider, num_threads)?;
+    general_executor.add_lib(
+        cli::cli_server::get_manifest(server_connection.clone())?,
+        Url::parse("memory://")? // Statically linked library has no resolved Url
+    )?;
+    general_executor.start(provider.clone(), num_threads, true)?;
 
-        #[cfg(feature = "submission")]
+    /*
+    let mut context_executor = Executor::new()?;
+    // Add the native context functions to functions available for use by the executor
+    context_executor.add_lib(
+        cli::cli_server::get_manifest(server_connection.clone())?,
+        Url::parse("memory://")? // Statically linked library has no resolved Url
+    )?;
+    context_executor.start(provider, 1, true)?;
+    */
+
     let mut submitter = CLISubmitter {
         runtime_server_connection: server_connection,
     };
 
     #[allow(unused_variables, unused_mut)]
     let mut coordinator = Coordinator::new(
-        #[cfg(feature = "submission")] &mut submitter,
+        &mut submitter,
         #[cfg(feature = "debugger")] &mut debug_server
     )?;
 
-    #[cfg(feature = "submission")]
     coordinator.submission_loop(loop_forever)?;
 
     Ok(())
@@ -335,13 +317,12 @@ fn server(
 // Start only a client in the calling thread. Since we are *only* starting a client in this
 // process, we don't have server information, so we create a set of ServerInfo from command
 // line options for the server address and known service names and ports.
-#[cfg(any(feature = "context", feature = "submission", feature = "debugger"))]
+#[cfg(feature = "debugger")]
 fn client_only(
     matches: ArgMatches,
     lib_search_path: Simpath,
     #[cfg(feature = "debugger")] debug_this_flow: bool,
 ) -> Result<()> {
-    #[cfg(any(feature = "context", feature = "submission"))]
     let mut context_server_info = ServerInfo::new(
         RUNTIME_SERVICE_NAME,
         matches.get_one::<String>("address")
@@ -374,7 +355,7 @@ fn client_only(
 }
 
 // Start the clients that talks to the server thread or process
-#[cfg(any(feature = "context", feature = "submission", feature = "debugger"))]
+#[cfg(feature = "debugger")]
 fn client(
     matches: ArgMatches,
     lib_search_path: Simpath,
@@ -385,24 +366,15 @@ fn client(
     #[cfg(feature = "debugger")] debug_server_info: &mut ServerInfo,
 ) -> Result<()> {
     // keep an Arc Mutex protected set of override args that debug client can override
-    #[cfg(feature = "context")]
     let override_args = Arc::new(Mutex::new(Vec::<String>::new()));
 
-    #[cfg(feature = "submission")]
     let flow_manifest_url = parse_flow_url(&matches)?;
-    #[cfg(feature = "submission")]
-    let provider = MetaProvider::new(lib_search_path,
-                                     #[cfg(feature = "context")]
-                                         PathBuf::from("/")
-    );
-    #[cfg(feature = "submission")]
+    let provider = MetaProvider::new(lib_search_path, PathBuf::from("/"));
     let (flow_manifest, _) = FlowManifest::load(&provider, &flow_manifest_url)?;
 
-    #[cfg(feature = "context")]
     let flow_args = get_flow_args(&matches, &flow_manifest_url);
     let parallel_jobs_limit = matches.get_one::<usize>("jobs")
         .map(|i| i.to_owned());
-    #[cfg(feature = "submission")]
     let submission = Submission::new(
         flow_manifest,
         parallel_jobs_limit,
@@ -411,10 +383,9 @@ fn client(
     );
 
     trace!("Creating CliRuntimeClient");
-    #[cfg(any(feature = "context", feature = "submission"))]
     let runtime_client = CliRuntimeClient::new(
-        #[cfg(feature = "context")] flow_args,
-        #[cfg(feature = "context")] override_args.clone(),
+        flow_args,
+        override_args.clone(),
         #[cfg(feature = "metrics")] matches.get_flag("metrics"),
     );
 
@@ -428,9 +399,7 @@ fn client(
         });
     }
 
-    #[cfg(feature = "submission")]
     info!("Client sending submission to server");
-    #[cfg(feature = "submission")]
     runtime_client_connection.send(ClientMessage::ClientSubmission(submission))?;
 
     runtime_client.event_loop(
@@ -544,7 +513,6 @@ fn get_matches() -> ArgMatches {
 }
 
 // Parse the command line arguments passed onto the flow itself
-#[cfg(feature = "submission")]
 fn parse_flow_url(matches: &ArgMatches) -> Result<Url> {
     let cwd_url = Url::from_directory_path(env::current_dir()?)
         .map_err(|_| "Could not form a Url for the current working directory")?;
@@ -554,7 +522,6 @@ fn parse_flow_url(matches: &ArgMatches) -> Result<Url> {
 
 // Set environment variable with the args this will not be unique, but it will be used very
 // soon and removed
-#[cfg(feature = "context")]
 fn get_flow_args(matches: &ArgMatches, flow_manifest_url: &Url) -> Vec<String> {
     // arg #0 is the flow url
     let mut flow_args: Vec<String> = vec![flow_manifest_url.to_string()];
