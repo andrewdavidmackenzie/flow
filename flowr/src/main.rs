@@ -281,12 +281,14 @@ fn server(
             Url::parse("memory://")? // Statically linked library has no resolved Url
         )?;
     }
+    executor.start(provider.clone(), num_threads, true, false)?;
 
-    executor.add_lib(
+    let mut context_executor = Executor::new()?;
+    context_executor.add_lib(
         cli::cli_context::get_manifest(server_connection.clone())?,
         Url::parse("memory://")? // Statically linked library has no resolved Url
     )?;
-    executor.start(provider.clone(), num_threads, true, true)?;
+    context_executor.start(provider, 1, false, true)?;
 
     let mut submitter = CLISubmitter {
         runtime_server_connection: server_connection,
