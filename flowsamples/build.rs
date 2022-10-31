@@ -21,7 +21,8 @@ fn main() -> io::Result<()> {
                      e.path().display(),
                      sample_out_dir.display());
             fs::create_dir_all(sample_out_dir).expect("Could not create output dir");
-            compile_sample(&e.path().to_string_lossy(), &sample_out_dir.to_string_lossy());
+            compile_sample(&e.path().to_string_lossy(),
+                           &sample_out_dir.to_string_lossy());
             println!("cargo:rerun-if-changed={}", &sample_out_dir.to_string_lossy());
         }
     }
