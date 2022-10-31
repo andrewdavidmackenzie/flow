@@ -74,7 +74,7 @@ jobs:
       run: cargo install --path flowr
 
     - name: install-flowrex
-      run: cargo install --manifest-path=flowrex/Cargo.toml flowrex
+      run: cargo install --path flowrex
 
     - name: clippy
       run: cargo clippy --tests -- -D warnings
