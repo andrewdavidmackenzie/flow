@@ -286,3 +286,75 @@ fn get_lib_manifest_tuple(
         .ok_or_else(|| "Could not find (supposedly already loaded) library manifest".into())
         .clone().cloned()
 }
+
+#[cfg(test)]
+mod test {
+    use std::sync::Arc;
+    use url::Url;
+    use super::Executor;
+    use flowcore::model::metadata::MetaData;
+    use flowcore::model::lib_manifest::LibraryManifest;
+    use flowcore::provider::Provider;
+    use flowcore::errors::Result;
+
+    fn test_meta_data() -> MetaData {
+        MetaData {
+            name: "test".into(),
+            version: "0.0.0".into(),
+            description: "a test".into(),
+            authors: vec!["me".into()],
+        }
+    }
+
+    pub struct TestProvider {
+        test_content: &'static str,
+    }
+
+    impl Provider for TestProvider {
+        fn resolve_url(
+            &self,
+            source: &Url,
+            _default_filename: &str,
+            _extensions: &[&str],
+        ) -> Result<(Url, Option<Url>)> {
+            Ok((source.clone(), None))
+        }
+
+        fn get_contents(&self, _url: &Url) -> Result<Vec<u8>> {
+            Ok(self.test_content.as_bytes().to_owned())
+        }
+    }
+
+    #[test]
+    fn test_constructor() {
+        let executor = Executor::new();
+        assert!(executor.is_ok())
+    }
+
+    #[test]
+    fn add_a_lib() {
+        let library = LibraryManifest::new(
+            Url::parse("lib://testlib").expect("Could not parse lib url"),
+            test_meta_data(),
+        );
+
+        let mut executor = Executor::new().expect("New failed");
+        assert!(executor.add_lib(library,
+                         Url::parse("file://fake/lib/location")
+                             .expect("Could not parse Url")).is_ok());
+    }
+
+    #[test]
+    fn start_zero_executors() {
+        let mut executor = Executor::new().expect("Could not create executor");
+        let provider = Arc::new(TestProvider{test_content: ""});
+        assert!(executor.start(provider, 0, true, true).is_ok());
+    }
+
+    #[test]
+    fn start_one_executor() {
+        let mut executor = Executor::new().expect("Could not create executor");
+        let provider = Arc::new(TestProvider{test_content: ""});
+        assert!(executor.start(provider, 1, true, true).is_ok());
+    }
+}
