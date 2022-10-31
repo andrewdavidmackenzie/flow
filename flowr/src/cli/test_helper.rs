@@ -4,20 +4,19 @@ pub mod test {
 
     use crate::cli::client_server::{ClientConnection, ServerConnection, ServerInfo, WAIT};
     use crate::cli::runtime_messages::{ClientMessage, ServerMessage};
-    use crate::RUNTIME_SERVICE_PORT;
 
     pub fn wait_for_then_send(
         wait_for_message: ServerMessage,
         then_send: ClientMessage,
     ) -> Arc<Mutex<ServerConnection>> {
         let server_connection = Arc::new(Mutex::new(
-            ServerConnection::new("foo", None)
+            ServerConnection::new("foo", Some(("127.0.0.1".into(), 6666)))
                 .expect("Could not create server connection"),
         ));
 
         let connection = server_connection.lock()
             .expect("Could not get access to server connection");
-        let mut server_info = ServerInfo::new("foo", None, RUNTIME_SERVICE_PORT);
+        let mut server_info = ServerInfo::new("foo", Some("127.0.0.1"), 6666);
         let client_connection = ClientConnection::new(&mut server_info)
             .expect("Could not create ClientConnection");
 
