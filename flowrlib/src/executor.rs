@@ -289,13 +289,16 @@ fn get_lib_manifest_tuple(
 
 #[cfg(test)]
 mod test {
-    use std::sync::Arc;
     use url::Url;
     use super::Executor;
     use flowcore::model::metadata::MetaData;
     use flowcore::model::lib_manifest::LibraryManifest;
     use flowcore::provider::Provider;
     use flowcore::errors::Result;
+    use crate::job::Job;
+    use std::sync::{Arc, RwLock};
+    use std::collections::HashMap;
+    use flowcore::Implementation;
 
     fn test_meta_data() -> MetaData {
         MetaData {
@@ -356,5 +359,35 @@ mod test {
         let mut executor = Executor::new().expect("Could not create executor");
         let provider = Arc::new(TestProvider{test_content: ""});
         assert!(executor.start(provider, 1, true, true).is_ok());
+    }
+
+    #[test]
+    fn execute_job() {
+        let mut job = Job {
+            job_id: 0,
+            function_id: 1,
+            flow_id: 0,
+            input_set: vec![],
+            connections: vec![],
+            implementation_url: Url::parse("lib://flowstdlib/math/add").expect("Could not parse Url"),
+            result: Ok((None, false)),
+        };
+
+        let loaded_implementations = Arc::new(RwLock::new(HashMap::<Url, Arc<dyn Implementation>>::new()));
+        let loaded_lib_manifests = Arc::new(RwLock::new(HashMap::<Url, (LibraryManifest, Url)>::new()));
+        let provider = Arc::new(TestProvider{test_content: ""});
+        let context = zmq::Context::new();
+        let results_sink = context.socket(zmq::PUSH)
+            .expect("Could not createPUSH end of results-sink socket");
+        results_sink.connect("tcp://127.0.0.1:3458")
+            .expect("Could not connect to PULL end of results-sink socket");
+
+        assert!(super::execute_job(provider,
+                                   &mut job,
+                                   &results_sink,
+                                   "test executor",
+                                   loaded_implementations,
+                                   loaded_lib_manifests,
+        ).is_err());
     }
 }
