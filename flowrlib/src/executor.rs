@@ -363,7 +363,7 @@ mod test {
 
     #[test]
     fn execute_job() {
-        let mut job = Job {
+        let job1 = Job {
             job_id: 0,
             function_id: 1,
             flow_id: 0,
@@ -373,21 +373,43 @@ mod test {
             result: Ok((None, false)),
         };
 
-        let loaded_implementations = Arc::new(RwLock::new(HashMap::<Url, Arc<dyn Implementation>>::new()));
-        let loaded_lib_manifests = Arc::new(RwLock::new(HashMap::<Url, (LibraryManifest, Url)>::new()));
-        let provider = Arc::new(TestProvider{test_content: ""});
-        let context = zmq::Context::new();
-        let results_sink = context.socket(zmq::PUSH)
-            .expect("Could not createPUSH end of results-sink socket");
-        results_sink.connect("tcp://127.0.0.1:3458")
-            .expect("Could not connect to PULL end of results-sink socket");
+        let job2 = Job {
+            job_id: 0,
+            function_id: 1,
+            flow_id: 0,
+            input_set: vec![],
+            connections: vec![],
+            implementation_url: Url::parse("context://stdio/stdout").expect("Could not parse Url"),
+            result: Ok((None, false)),
+        };
 
-        assert!(super::execute_job(provider,
-                                   &mut job,
-                                   &results_sink,
-                                   "test executor",
-                                   loaded_implementations,
-                                   loaded_lib_manifests,
-        ).is_err());
+        let job3 = Job {
+            job_id: 0,
+            function_id: 1,
+            flow_id: 0,
+            input_set: vec![],
+            connections: vec![],
+            implementation_url: Url::parse("file://fake/path").expect("Could not parse Url"),
+            result: Ok((None, false)),
+        };
+
+        for mut job in vec![job1, job2, job3] {
+            let loaded_implementations = Arc::new(RwLock::new(HashMap::<Url, Arc<dyn Implementation>>::new()));
+            let loaded_lib_manifests = Arc::new(RwLock::new(HashMap::<Url, (LibraryManifest, Url)>::new()));
+            let provider = Arc::new(TestProvider{test_content: ""});
+            let context = zmq::Context::new();
+            let results_sink = context.socket(zmq::PUSH)
+                .expect("Could not createPUSH end of results-sink socket");
+            results_sink.connect("tcp://127.0.0.1:3458")
+                .expect("Could not connect to PULL end of results-sink socket");
+
+            assert!(super::execute_job(provider,
+                                       &mut job,
+                                       &results_sink,
+                                       "test executor",
+                                       loaded_implementations,
+                                       loaded_lib_manifests,
+            ).is_err());
+        }
     }
 }
