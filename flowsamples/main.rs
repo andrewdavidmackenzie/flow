@@ -7,9 +7,9 @@ use std::process::{Command, Stdio};
 
 const STDOUT_FILENAME : &str = "test.output";
 const STDIN_FILENAME : &str = "test.stdin";
-const STDERR_FILENAME : &str = "test.file";
-const FILE_FILENAME : &str = "test.output";
-const ARGS_FILENAME : &str = "test.stdin";
+const STDERR_FILENAME : &str = "test.err";
+const FILE_FILENAME : &str = "test.file";
+const ARGS_FILENAME : &str = "test.args";
 
 fn main() -> io::Result<()> {
     println!("`flowsample` version {}", env!("CARGO_PKG_VERSION"));
