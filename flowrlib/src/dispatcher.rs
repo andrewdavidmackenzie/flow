@@ -22,23 +22,23 @@ pub struct Dispatcher {
 
 /// `Dispatcher` struct takes care of ending jobs for execution and receiving results
 impl Dispatcher {
-    /// Create a new `Executor`
+    /// Create a new `Dispatcher` of `Job`s
     pub fn new() -> Result<Self> {
         let context = zmq::Context::new();
         let job_source = context.socket(zmq::PUSH)
             .map_err(|_| "Could not create job source socket")?;
         job_source.bind(JOB_SOURCE_NAME)
-            .map_err(|_| "Could not bind to job-source socket")?;
+            .map_err(|_| "Could not bind to job socket")?;
 
         let context_job_source = context.socket(zmq::PUSH)
             .map_err(|_| "Could not create context job source socket")?;
         context_job_source.bind(CONTEXT_JOB_SOURCE_NAME)
-            .map_err(|_| "Could not bind to context-job-source socket")?;
+            .map_err(|_| "Could not bind to context job socket")?;
 
         let results_sink = context.socket(zmq::PULL)
             .map_err(|_| "Could not create results sink socket")?;
         results_sink.bind(RESULTS_SINK_NAME)
-            .map_err(|_| "Could not bind to results-sink socket")?;
+            .map_err(|_| "Could not bind to results socket")?;
 
         Ok(Dispatcher {
             job_source,
