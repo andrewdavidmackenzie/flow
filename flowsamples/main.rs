@@ -5,9 +5,9 @@ use std::io::{BufRead, BufReader, ErrorKind};
 use std::path::Path;
 use std::process::{Command, Stdio};
 
-const STDOUT_FILENAME : &str = "test.output";
+const STDOUT_FILENAME : &str = "test.stdout";
 const STDIN_FILENAME : &str = "test.stdin";
-const STDERR_FILENAME : &str = "test.err";
+const STDERR_FILENAME : &str = "test.stderr";
 const FILE_FILENAME : &str = "test.file";
 const ARGS_FILENAME : &str = "test.args";
 
@@ -130,12 +130,16 @@ fn run_sample(sample_dir: &Path, output_dir: &Path, flowrex: bool) -> io::Result
 
 fn args(sample_dir: &Path) -> io::Result<Vec<String>> {
     let args_file = sample_dir.join(ARGS_FILENAME);
-    let f = File::open(args_file)?;
-    let f = BufReader::new(f);
 
     let mut args = Vec::new();
-    for line in f.lines() {
-        args.push(line?);
+
+    // read args from the file if it exists, otherwise no args
+    if let Ok(f) = File::open(args_file) {
+        let f = BufReader::new(f);
+
+        for line in f.lines() {
+            args.push(line?);
+        }
     }
 
     Ok(args)
@@ -161,9 +165,9 @@ mod test {
         let output_dir = samples_out_dir.join(name);
 
         // Remove any previous output
-        let _ = fs::remove_file(output_dir.join(super::STDERR_FILENAME));
-        let _ = fs::remove_file(output_dir.join(super::FILE_FILENAME));
-        let _ = fs::remove_file(output_dir.join(super::STDOUT_FILENAME));
+        let _ = fs::remove_file(output_dir.join(STDERR_FILENAME));
+        let _ = fs::remove_file(output_dir.join(FILE_FILENAME));
+        let _ = fs::remove_file(output_dir.join(STDOUT_FILENAME));
 
         super::run_sample(&sample_dir, &output_dir, flowrex)
             .expect("Running of test sample failed");
@@ -171,9 +175,9 @@ mod test {
         check_test_output(&sample_dir, &output_dir);
 
         // if test passed, remove output
-        let _ = fs::remove_file(output_dir.join(super::STDERR_FILENAME));
-        let _ = fs::remove_file(output_dir.join(super::FILE_FILENAME));
-        let _ = fs::remove_file(output_dir.join(super::STDOUT_FILENAME));
+        let _ = fs::remove_file(output_dir.join(STDERR_FILENAME));
+        let _ = fs::remove_file(output_dir.join(FILE_FILENAME));
+        let _ = fs::remove_file(output_dir.join(STDOUT_FILENAME));
     }
 
     fn compare_and_fail(expected_path: PathBuf, actual_path: PathBuf) {
