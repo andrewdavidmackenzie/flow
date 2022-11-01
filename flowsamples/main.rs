@@ -5,6 +5,12 @@ use std::io::{BufRead, BufReader, ErrorKind};
 use std::path::Path;
 use std::process::{Command, Stdio};
 
+const STDOUT_FILENAME : &str = "test.output";
+const STDIN_FILENAME : &str = "test.stdin";
+const STDERR_FILENAME : &str = "test.file";
+const FILE_FILENAME : &str = "test.output";
+const ARGS_FILENAME : &str = "test.stdin";
+
 fn main() -> io::Result<()> {
     println!("`flowsample` version {}", env!("CARGO_PKG_VERSION"));
     println!(
@@ -40,16 +46,11 @@ fn main() -> io::Result<()> {
 }
 
 fn run_sample(sample_dir: &Path, output_dir: &Path, flowrex: bool) -> io::Result<()> {
-    // Remove any previous output
-    let _ = fs::remove_file(output_dir.join("test.err"));
-    let _ = fs::remove_file(output_dir.join("test.file"));
-    let _ = fs::remove_file(output_dir.join("test.output"));
-
     let manifest_path = output_dir.join("manifest.json");
     println!("\n\tRunning Sample: {:?}", sample_dir.file_name());
     assert!(manifest_path.exists(), "Manifest not found at '{}'", manifest_path.display());
-    println!("\tSTDIN is read from test.stdin, Arguments are read from test.args");
-    println!("\tSTDOUT is sent to test.stdout, STDERR to test.stderr and file output to test.file");
+    println!("\tSTDIN is read from {STDIN_FILENAME}, Arguments are read from {ARGS_FILENAME}");
+    println!("\tSTDOUT is sent to {STDOUT_FILENAME}, STDERR to {STDERR_FILENAME} and file output to {FILE_FILENAME}");
 
     let mut command_args: Vec<String> = vec!["--native".into()];
 
@@ -61,9 +62,9 @@ fn run_sample(sample_dir: &Path, output_dir: &Path, flowrex: bool) -> io::Result
 
     command_args.append(&mut args(sample_dir)?);
 
-    let output = File::create(output_dir.join("test.output"))
+    let output = File::create(output_dir.join(STDOUT_FILENAME))
         .expect("Could not get directory as string");
-    let error = File::create(output_dir.join("test.err"))
+    let error = File::create(output_dir.join(STDERR_FILENAME))
         .expect("Could not get directory as string");
 
     let flowrex_child = if flowrex {
@@ -95,7 +96,7 @@ fn run_sample(sample_dir: &Path, output_dir: &Path, flowrex: bool) -> io::Result
     {
         Ok(mut flowr_child) => {
             let _ = Command::new("cat")
-                .args(vec![sample_dir.join("test.stdin")])
+                .args(vec![sample_dir.join(STDIN_FILENAME)])
                 .stdout(flowr_child.stdin.take().ok_or_else(|| {
                     io::Error::new(
                         ErrorKind::Other,
@@ -128,7 +129,7 @@ fn run_sample(sample_dir: &Path, output_dir: &Path, flowrex: bool) -> io::Result
 }
 
 fn args(sample_dir: &Path) -> io::Result<Vec<String>> {
-    let args_file = sample_dir.join("test.args");
+    let args_file = sample_dir.join(ARGS_FILENAME);
     let f = File::open(args_file)?;
     let f = BufReader::new(f);
 
@@ -148,6 +149,8 @@ mod test {
 
     use serial_test::serial;
 
+    use crate::{FILE_FILENAME, STDERR_FILENAME, STDOUT_FILENAME};
+
     fn test_sample(name: &str, flowrex: bool) {
         let samples_root = env!("CARGO_MANIFEST_DIR");
         let samples_dir = Path::new(samples_root);
@@ -157,15 +160,20 @@ mod test {
         let samples_out_dir = root_dir.join("target/flowsamples");
         let output_dir = samples_out_dir.join(name);
 
+        // Remove any previous output
+        let _ = fs::remove_file(output_dir.join(super::STDERR_FILENAME));
+        let _ = fs::remove_file(output_dir.join(super::FILE_FILENAME));
+        let _ = fs::remove_file(output_dir.join(super::STDOUT_FILENAME));
+
         super::run_sample(&sample_dir, &output_dir, flowrex)
             .expect("Running of test sample failed");
 
         check_test_output(&sample_dir, &output_dir);
 
         // if test passed, remove output
-        let _ = fs::remove_file(output_dir.join("test.err"));
-        let _ = fs::remove_file(output_dir.join("test.file"));
-        let _ = fs::remove_file(output_dir.join("test.output"));
+        let _ = fs::remove_file(output_dir.join(super::STDERR_FILENAME));
+        let _ = fs::remove_file(output_dir.join(super::FILE_FILENAME));
+        let _ = fs::remove_file(output_dir.join(super::STDOUT_FILENAME));
     }
 
     fn compare_and_fail(expected_path: PathBuf, actual_path: PathBuf) {
@@ -187,9 +195,9 @@ mod test {
     }
 
     fn check_test_output(sample_dir: &Path, output_dir: &Path) {
-        let error_output = output_dir.join("test.err");
+        let error_output = output_dir.join(STDERR_FILENAME);
         if error_output.exists() {
-            let contents = fs::read_to_string(&error_output).expect("Could not read from 'test.err' file");
+            let contents = fs::read_to_string(&error_output).expect("Could not read from {STDERR_FILENAME} file");
 
             if !contents.is_empty() {
                 panic!(
@@ -199,8 +207,8 @@ mod test {
             }
         }
 
-        compare_and_fail(sample_dir.join("expected.stdout"), output_dir.join("test.output"));
-        compare_and_fail(sample_dir.join("expected.file"), output_dir.join("test.file"));
+        compare_and_fail(sample_dir.join("expected.stdout"), output_dir.join(STDOUT_FILENAME));
+        compare_and_fail(sample_dir.join("expected.file"), output_dir.join(FILE_FILENAME));
     }
 
     #[test]
