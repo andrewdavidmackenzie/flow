@@ -95,15 +95,18 @@ fn run_sample(sample_dir: &Path, output_dir: &Path, flowrex: bool) -> io::Result
         .spawn()
     {
         Ok(mut flowr_child) => {
-            let _ = Command::new("cat")
-                .args(vec![sample_dir.join(STDIN_FILENAME)])
-                .stdout(flowr_child.stdin.take().ok_or_else(|| {
-                    io::Error::new(
-                        ErrorKind::Other,
-                        "Could not take STDIN of `flowr` process",
-                    )
-                })?)
-                .spawn();
+            let stdin_file = sample_dir.join(STDIN_FILENAME);
+            if stdin_file.exists() {
+                let _ = Command::new("cat")
+                    .args(vec![stdin_file])
+                    .stdout(flowr_child.stdin.take().ok_or_else(|| {
+                        io::Error::new(
+                            ErrorKind::Other,
+                            "Could not take STDIN of `flowr` process",
+                        )
+                    })?)
+                    .spawn();
+            }
 
             flowr_child.wait_with_output()?;
         }

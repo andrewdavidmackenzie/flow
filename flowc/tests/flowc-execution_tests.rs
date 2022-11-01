@@ -169,21 +169,21 @@ fn execute_flow(
 }
 
 fn test_args(test_dir: &Path) -> Vec<String> {
-    let mut args_file = test_dir.to_path_buf();
-    args_file.push("test.args");
-    let f = File::open(&args_file).expect("Could not open args file for test");
-    let f = BufReader::new(f);
-
+    let args_file = test_dir.join("test.args");
     let mut args = Vec::new();
-    for line in f.lines() {
-        args.push(line.expect("Could not get line to append to"));
+
+    if let Ok(f) = File::open(args_file) {
+        let f = BufReader::new(f);
+
+        for line in f.lines() {
+            args.push(line.expect("Could not get line to append to"));
+        }
     }
     args
 }
 
 fn load_flow(test_dir: &Path, search_path: Simpath) -> Process {
-    let mut flow_file = test_dir.to_path_buf();
-    flow_file.push("root.toml");
+    let flow_file = test_dir.join("root.toml");
     parser::parse(
         &helper::absolute_file_url_from_relative_path(&flow_file.to_string_lossy()),
         &MetaProvider::new(search_path,
@@ -195,9 +195,8 @@ fn load_flow(test_dir: &Path, search_path: Simpath) -> Process {
     .expect("Could not load process")
 }
 
-fn get(test_dir: &Path, file_name: &str) -> String {
-    let mut expected_file = test_dir.to_path_buf();
-    expected_file.push(file_name);
+fn get_stdin(test_dir: &Path, file_name: &str) -> String {
+    let expected_file = test_dir.join(file_name);
     if !expected_file.exists() {
         return "".into();
     }
@@ -228,14 +227,14 @@ fn execute_test(test_name: &str, separate_processes: bool) {
         let manifest_path = write_manifest(flow, true, dir.into_path(), test_name, &tables)
             .expect("Could not write manifest file");
         let test_args = test_args(&test_dir);
-        let input = get(&test_dir, "test.stdin");
+        let input = get_stdin(&test_dir, "test.stdin");
         let (actual_stdout, actual_stderr) =
             execute_flow(manifest_path, test_args, input, separate_processes);
-        let expected_stdout = get(&test_dir, "expected.stdout");
+        let expected_stdout = get_stdin(&test_dir, "expected.stdout");
         if expected_stdout != actual_stdout {
             println!("STDOUT: {actual_stdout}");
         }
-        let expected_stderr = get(&test_dir, "expected.stderr");
+        let expected_stderr = get_stdin(&test_dir, "expected.stderr");
         if expected_stderr != actual_stderr {
             eprintln!("STDERR: {actual_stderr}");
         }
