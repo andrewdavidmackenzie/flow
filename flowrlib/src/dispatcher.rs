@@ -91,7 +91,6 @@ impl Dispatcher {
     }
 }
 
-/*
 #[cfg(test)]
 mod test {
     use url::Url;
@@ -178,4 +177,3 @@ mod test {
         assert!(dispatcher.get_next_result().is_ok());
     }
 }
- */
