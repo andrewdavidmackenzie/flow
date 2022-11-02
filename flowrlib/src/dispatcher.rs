@@ -22,23 +22,23 @@ pub struct Dispatcher {
 
 /// `Dispatcher` struct takes care of ending jobs for execution and receiving results
 impl Dispatcher {
-    /// Create a new `Executor`
+    /// Create a new `Dispatcher` of `Job`s
     pub fn new() -> Result<Self> {
         let context = zmq::Context::new();
         let job_source = context.socket(zmq::PUSH)
             .map_err(|_| "Could not create job source socket")?;
         job_source.bind(JOB_SOURCE_NAME)
-            .map_err(|_| "Could not bind to job-source socket")?;
+            .map_err(|_| "Could not bind to job socket")?;
 
         let context_job_source = context.socket(zmq::PUSH)
             .map_err(|_| "Could not create context job source socket")?;
         context_job_source.bind(CONTEXT_JOB_SOURCE_NAME)
-            .map_err(|_| "Could not bind to context-job-source socket")?;
+            .map_err(|_| "Could not bind to context job socket")?;
 
         let results_sink = context.socket(zmq::PULL)
             .map_err(|_| "Could not create results sink socket")?;
         results_sink.bind(RESULTS_SINK_NAME)
-            .map_err(|_| "Could not bind to results-sink socket")?;
+            .map_err(|_| "Could not bind to results socket")?;
 
         Ok(Dispatcher {
             job_source,
@@ -90,3 +90,93 @@ impl Dispatcher {
         Ok(())
     }
 }
+
+/*
+#[cfg(test)]
+mod test {
+    use url::Url;
+    use std::time::Duration;
+    use serial_test::serial;
+    use crate::job::Job;
+
+    #[test]
+    #[serial]
+    fn test_constructor() {
+        assert!(super::Dispatcher::new().is_ok());
+    }
+
+    #[test]
+    #[serial]
+    fn set_timeout_to_none() {
+        let mut dispatcher = super::Dispatcher::new().expect("Could not create dispatcher");
+        assert!(dispatcher.set_results_timeout(None).is_ok());
+    }
+
+    #[test]
+    #[serial]
+    fn set_timeout() {
+        let mut dispatcher = super::Dispatcher::new().expect("Could not create dispatcher");
+        assert!(dispatcher.set_results_timeout(Some(Duration::from_millis(10))).is_ok());
+    }
+
+    #[test]
+    #[serial]
+    fn send_lib_job() {
+        let job = Job {
+            job_id: 0,
+            function_id: 1,
+            flow_id: 0,
+            input_set: vec![],
+            connections: vec![],
+            implementation_url: Url::parse("lib://flowstdlib/math/add").expect("Could not parse Url"),
+            result: Ok((None, false)),
+        };
+        let mut dispatcher = super::Dispatcher::new().expect("Could not create dispatcher");
+
+        assert!(dispatcher.send_job_for_execution(&job).is_ok());
+    }
+
+    #[test]
+    #[serial]
+    fn send_context_job() {
+        let job = Job {
+            job_id: 0,
+            function_id: 1,
+            flow_id: 0,
+            input_set: vec![],
+            connections: vec![],
+            implementation_url: Url::parse("context://stdio/stdout").expect("Could not parse Url"),
+            result: Ok((None, false)),
+        };
+        let mut dispatcher = super::Dispatcher::new().expect("Could not create dispatcher");
+
+        assert!(dispatcher.send_job_for_execution(&job).is_ok());
+    }
+
+    #[test]
+    #[serial]
+    fn get_job() {
+        let job = Job {
+            job_id: 0,
+            function_id: 1,
+            flow_id: 0,
+            input_set: vec![],
+            connections: vec![],
+            implementation_url: Url::parse("context://stdio/stdout").expect("Could not parse Url"),
+            result: Ok((None, false)),
+        };
+        let mut dispatcher = super::Dispatcher::new().expect("Could not create dispatcher");
+
+        let context = zmq::Context::new();
+        let results_sink = context.socket(zmq::PUSH)
+            .expect("Could not createPUSH end of results-sink socket");
+        results_sink.connect(super::RESULTS_SINK_NAME)
+            .expect("Could not connect to PULL end of results-sink socket");
+        results_sink.send(serde_json::to_string(&job).expect("Could not convert to serde")
+                              .as_bytes(), 0).expect("Could not send result of Job");
+
+        assert!(dispatcher.get_next_result().is_ok());
+    }
+}
+
+ */

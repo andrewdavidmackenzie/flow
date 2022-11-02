@@ -286,3 +286,130 @@ fn get_lib_manifest_tuple(
         .ok_or_else(|| "Could not find (supposedly already loaded) library manifest".into())
         .clone().cloned()
 }
+
+#[cfg(test)]
+mod test {
+    use url::Url;
+    use super::Executor;
+    use flowcore::model::metadata::MetaData;
+    use flowcore::model::lib_manifest::LibraryManifest;
+    use flowcore::provider::Provider;
+    use flowcore::errors::Result;
+    use crate::job::Job;
+    use std::sync::{Arc, RwLock};
+    use std::collections::HashMap;
+    use flowcore::Implementation;
+
+    fn test_meta_data() -> MetaData {
+        MetaData {
+            name: "test".into(),
+            version: "0.0.0".into(),
+            description: "a test".into(),
+            authors: vec!["me".into()],
+        }
+    }
+
+    pub struct TestProvider {
+        test_content: &'static str,
+    }
+
+    impl Provider for TestProvider {
+        fn resolve_url(
+            &self,
+            source: &Url,
+            _default_filename: &str,
+            _extensions: &[&str],
+        ) -> Result<(Url, Option<Url>)> {
+            Ok((source.clone(), None))
+        }
+
+        fn get_contents(&self, _url: &Url) -> Result<Vec<u8>> {
+            Ok(self.test_content.as_bytes().to_owned())
+        }
+    }
+
+    #[test]
+    fn test_constructor() {
+        let executor = Executor::new();
+        assert!(executor.is_ok())
+    }
+
+    #[test]
+    fn add_a_lib() {
+        let library = LibraryManifest::new(
+            Url::parse("lib://testlib").expect("Could not parse lib url"),
+            test_meta_data(),
+        );
+
+        let mut executor = Executor::new().expect("New failed");
+        assert!(executor.add_lib(library,
+                         Url::parse("file://fake/lib/location")
+                             .expect("Could not parse Url")).is_ok());
+    }
+
+    #[test]
+    fn start_zero_executors() {
+        let mut executor = Executor::new().expect("Could not create executor");
+        let provider = Arc::new(TestProvider{test_content: ""});
+        assert!(executor.start(provider, 0, true, true).is_ok());
+    }
+
+    #[test]
+    fn start_one_executor() {
+        let mut executor = Executor::new().expect("Could not create executor");
+        let provider = Arc::new(TestProvider{test_content: ""});
+        assert!(executor.start(provider, 1, true, true).is_ok());
+    }
+
+    #[test]
+    fn execute_job() {
+        let job1 = Job {
+            job_id: 0,
+            function_id: 1,
+            flow_id: 0,
+            input_set: vec![],
+            connections: vec![],
+            implementation_url: Url::parse("lib://flowstdlib/math/add").expect("Could not parse Url"),
+            result: Ok((None, false)),
+        };
+
+        let job2 = Job {
+            job_id: 0,
+            function_id: 1,
+            flow_id: 0,
+            input_set: vec![],
+            connections: vec![],
+            implementation_url: Url::parse("context://stdio/stdout").expect("Could not parse Url"),
+            result: Ok((None, false)),
+        };
+
+        let job3 = Job {
+            job_id: 0,
+            function_id: 1,
+            flow_id: 0,
+            input_set: vec![],
+            connections: vec![],
+            implementation_url: Url::parse("file://fake/path").expect("Could not parse Url"),
+            result: Ok((None, false)),
+        };
+
+        for mut job in vec![job1, job2, job3] {
+            let loaded_implementations = Arc::new(RwLock::new(HashMap::<Url, Arc<dyn Implementation>>::new()));
+            let loaded_lib_manifests = Arc::new(RwLock::new(HashMap::<Url, (LibraryManifest, Url)>::new()));
+            let provider = Arc::new(TestProvider{test_content: ""});
+            let context = zmq::Context::new();
+            let results_sink = context.socket(zmq::PUSH)
+                .expect("Could not createPUSH end of results-sink socket");
+            results_sink.connect("tcp://127.0.0.1:3458")
+                .expect("Could not connect to PULL end of results-sink socket");
+
+            assert!(super::execute_job(provider,
+                                       &mut job,
+                                       &results_sink,
+                                       "test executor",
+                                       loaded_implementations,
+                                       loaded_lib_manifests,
+            ).is_err());
+        }
+    }
+}
