@@ -28,6 +28,9 @@ use flowrlib::info as flowrlib_info;
 /// `use crate::errors::*;` to get access to everything `error_chain` creates.
 pub mod errors;
 
+pub(crate) const JOB_SOURCE_NAME: &str  = "tcp://127.0.0.1:3456";
+pub(crate) const RESULTS_SINK_NAME: &str  = "tcp://127.0.0.1:3458";
+
 /// Main for flowr binary - call `run()` and print any error that results or exit silently if OK
 fn main() {
     match run() {
@@ -82,7 +85,8 @@ fn server(num_threads: usize) -> Result<()> {
     )?;
 
     trace!("Starting executor");
-    executor.start(provider, num_threads, true, false)?;
+    executor.start(provider, num_threads,
+    Some(JOB_SOURCE_NAME), None, RESULTS_SINK_NAME)?;
 
     debug!("Parking main thread");
     thread::park();

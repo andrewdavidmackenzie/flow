@@ -645,6 +645,7 @@ dependencies = [
  "flowcore",
  "log",
  "multimap",
+ "portpicker",
  "rand 0.8.5",
  "serde",
  "serde_derive",

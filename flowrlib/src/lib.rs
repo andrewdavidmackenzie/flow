@@ -29,7 +29,7 @@ mod debugger;
 pub mod debug_command;
 
 /// Dispatcher module takes care of dispatching jobs for execution and gathering results
-mod dispatcher;
+pub mod dispatcher;
 
 /// Executor module receives jobs for execution, executes them and returns results
 pub mod executor;
