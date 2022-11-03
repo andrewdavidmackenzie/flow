@@ -16,7 +16,7 @@ endif
 
 ifeq ($(FLOW_LIB_PATH),)
   $(warning FLOW_LIB_PATH is not set. This maybe needed for builds and test and packaging to succeed.\
-  A suggested value for development would be '$(PWD)')
+  A suggested value for development would be '$(PWD)/target')
 endif
 
 ifeq ($(FLOW_CONTEXT_ROOT),)
