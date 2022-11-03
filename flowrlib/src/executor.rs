@@ -12,10 +12,6 @@ use flowcore::model::lib_manifest::{
     ImplementationLocator::Native, ImplementationLocator::Wasm, LibraryManifest,
 };
 
-use crate::dispatcher::JOB_SOURCE_NAME;
-use crate::dispatcher::CONTEXT_JOB_SOURCE_NAME;
-use crate::dispatcher::RESULTS_SINK_NAME;
-
 use flowcore::errors::*;
 
 use flowcore::provider::Provider;
@@ -63,8 +59,9 @@ impl Executor {
     pub fn start(&mut self,
                  provider: Arc<dyn Provider>,
                  number_of_executors: usize,
-                 lib_jobs: bool,
-                 context_jobs: bool,
+                 job_source_name: Option<&str>,
+                 context_job_source_name: Option<&str>,
+                 results_sink_name: &str,
     ) -> Result<()> {
         let loaded_implementations = Arc::new(RwLock::new(HashMap::<Url, Arc<dyn Implementation>>::new()));
 
@@ -74,6 +71,9 @@ impl Executor {
             let thread_context = zmq::Context::new();
             let thread_implementations = loaded_implementations.clone();
             let thread_loaded_manifests = self.loaded_lib_manifests.clone();
+            let job_source = job_source_name.map(|s| s.into());
+            let context_job_source = context_job_source_name.map(|s| s.into());
+            let results_sink = results_sink_name.into();
             thread::spawn(move || {
                 execution_loop(
                     thread_provider,
@@ -81,8 +81,9 @@ impl Executor {
                     thread_context,
                     thread_implementations,
                     thread_loaded_manifests,
-                    lib_jobs,
-                    context_jobs,
+                    job_source,
+                    context_job_source,
+                    results_sink,
                 ) // clone of Arcs and Sender OK
             });
         }
@@ -91,33 +92,35 @@ impl Executor {
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn execution_loop(
     provider: Arc<dyn Provider>,
     name: String,
     context: zmq::Context,
     loaded_implementations: Arc<RwLock<HashMap<Url, Arc<dyn Implementation>>>>,
     loaded_lib_manifests: Arc<RwLock<HashMap<Url, (LibraryManifest, Url)>>>,
-    lib_jobs: bool,
-    context_jobs: bool,
+    job_source_name: Option<String>,
+    context_job_source_name: Option<String>,
+    results_sink_name: String,
 ) -> Result<()> {
     let mut sockets : Vec<&zmq::Socket> = vec![];
     let mut items : Vec<zmq::PollItem> = vec![];
 
     let job_source : zmq::Socket;
-    if lib_jobs {
+    if let Some(job_source_n) = job_source_name {
         job_source = context.socket(zmq::PULL)
             .map_err(|_| "Could not create PULL end of job-source socket")?;
-        job_source.connect(JOB_SOURCE_NAME)
+        job_source.connect(&job_source_n)
             .map_err(|_| "Could not bind to PULL end of job-source socket")?;
         sockets.push(&job_source);
         items.push(job_source.as_poll_item(zmq::POLLIN));
     }
 
     let context_job_source : zmq::Socket;
-    if context_jobs {
+    if let Some(context_job_source_n) = context_job_source_name {
         context_job_source = context.socket(zmq::PULL)
             .map_err(|_| "Could not create PULL end of context-job-source socket")?;
-        context_job_source.connect(CONTEXT_JOB_SOURCE_NAME)
+        context_job_source.connect(&context_job_source_n)
             .map_err(|_| "Could not bind to PULL end of context-job-source  socket")?;
         sockets.push(&context_job_source);
         items.push(context_job_source.as_poll_item(zmq::POLLIN));
@@ -125,7 +128,7 @@ fn execution_loop(
 
     let results_sink = context.socket(zmq::PUSH)
         .map_err(|_| "Could not createPUSH end of results-sink socket")?;
-    results_sink.connect(RESULTS_SINK_NAME)
+    results_sink.connect(&results_sink_name)
         .map_err(|_| "Could not connect to PULL end of results-sink socket")?;
 
     let mut process_jobs = true;
@@ -300,6 +303,10 @@ mod test {
     use std::collections::HashMap;
     use flowcore::Implementation;
 
+    const JOB_SOURCE_NAME: &str  = "tcp://127.0.0.1:3456";
+    const CONTEXT_JOB_SOURCE_NAME: &str  = "tcp://127.0.0.1:3457";
+    const RESULTS_SINK_NAME: &str  = "tcp://127.0.0.1:3458";
+
     fn test_meta_data() -> MetaData {
         MetaData {
             name: "test".into(),
@@ -351,14 +358,20 @@ mod test {
     fn start_zero_executors() {
         let mut executor = Executor::new().expect("Could not create executor");
         let provider = Arc::new(TestProvider{test_content: ""});
-        assert!(executor.start(provider, 0, true, true).is_ok());
+        assert!(executor.start(provider, 0,
+                               Some(JOB_SOURCE_NAME),
+                               Some(CONTEXT_JOB_SOURCE_NAME),
+                               RESULTS_SINK_NAME).is_ok());
     }
 
     #[test]
     fn start_one_executor() {
         let mut executor = Executor::new().expect("Could not create executor");
         let provider = Arc::new(TestProvider{test_content: ""});
-        assert!(executor.start(provider, 1, true, true).is_ok());
+        assert!(executor.start(provider, 1,
+                               Some(JOB_SOURCE_NAME),
+                               Some(CONTEXT_JOB_SOURCE_NAME),
+                               RESULTS_SINK_NAME).is_ok());
     }
 
     #[test]

@@ -6,10 +6,6 @@ use flowcore::errors::*;
 
 use crate::job::Job;
 
-pub(crate) const JOB_SOURCE_NAME: &str  = "tcp://127.0.0.1:3456";
-pub(crate) const CONTEXT_JOB_SOURCE_NAME: &str  = "tcp://127.0.0.1:3457";
-pub(crate) const RESULTS_SINK_NAME: &str  = "tcp://127.0.0.1:3458";
-
 /// `Dispatcher` structure holds information required to send jobs for execution and receive results back
 pub struct Dispatcher {
     // A source of jobs to be executed for context:// functions
@@ -23,21 +19,21 @@ pub struct Dispatcher {
 /// `Dispatcher` struct takes care of ending jobs for execution and receiving results
 impl Dispatcher {
     /// Create a new `Dispatcher` of `Job`s
-    pub fn new() -> Result<Self> {
+    pub fn new(job_source_name: &str, context_job_source_name: &str, results_sink_name: &str) -> Result<Self> {
         let context = zmq::Context::new();
         let job_source = context.socket(zmq::PUSH)
             .map_err(|_| "Could not create job source socket")?;
-        job_source.bind(JOB_SOURCE_NAME)
+        job_source.bind(job_source_name)
             .map_err(|_| "Could not bind to job socket")?;
 
         let context_job_source = context.socket(zmq::PUSH)
             .map_err(|_| "Could not create context job source socket")?;
-        context_job_source.bind(CONTEXT_JOB_SOURCE_NAME)
+        context_job_source.bind(context_job_source_name)
             .map_err(|_| "Could not bind to context job socket")?;
 
         let results_sink = context.socket(zmq::PULL)
             .map_err(|_| "Could not create results sink socket")?;
-        results_sink.bind(RESULTS_SINK_NAME)
+        results_sink.bind(results_sink_name)
             .map_err(|_| "Could not bind to results socket")?;
 
         Ok(Dispatcher {
@@ -91,31 +87,55 @@ impl Dispatcher {
     }
 }
 
-/*
 #[cfg(test)]
 mod test {
     use url::Url;
     use std::time::Duration;
     use serial_test::serial;
     use crate::job::Job;
+    use portpicker::pick_unused_port;
+
+    fn job_source_name() -> String {
+        format!("tcp://127.0.0.1:{}", pick_unused_port().expect("Could not get unused port"))
+    }
+
+    fn context_job_source_name() -> String {
+        format!("tcp://127.0.0.1:{}", pick_unused_port().expect("Could not get unused port"))
+    }
+
+    fn results_sink_name() -> String {
+        format!("tcp://127.0.0.1:{}", pick_unused_port().expect("Could not get unused port"))
+    }
 
     #[test]
     #[serial]
     fn test_constructor() {
-        assert!(super::Dispatcher::new().is_ok());
+        assert!(super::Dispatcher::new(
+            &job_source_name(),
+            &context_job_source_name(),
+            &results_sink_name(),
+        ).is_ok());
     }
 
     #[test]
     #[serial]
     fn set_timeout_to_none() {
-        let mut dispatcher = super::Dispatcher::new().expect("Could not create dispatcher");
+        let mut dispatcher = super::Dispatcher::new(
+            &job_source_name(),
+            &context_job_source_name(),
+            &results_sink_name(),
+        ).expect("Could not create dispatcher");
         assert!(dispatcher.set_results_timeout(None).is_ok());
     }
 
     #[test]
     #[serial]
     fn set_timeout() {
-        let mut dispatcher = super::Dispatcher::new().expect("Could not create dispatcher");
+        let mut dispatcher = super::Dispatcher::new(
+            &job_source_name(),
+            &context_job_source_name(),
+            &results_sink_name(),
+        ).expect("Could not create dispatcher");
         assert!(dispatcher.set_results_timeout(Some(Duration::from_millis(10))).is_ok());
     }
 
@@ -131,7 +151,20 @@ mod test {
             implementation_url: Url::parse("lib://flowstdlib/math/add").expect("Could not parse Url"),
             result: Ok((None, false)),
         };
-        let mut dispatcher = super::Dispatcher::new().expect("Could not create dispatcher");
+
+        let job_source_name = job_source_name();
+
+        let mut dispatcher = super::Dispatcher::new(
+            &job_source_name,
+            &context_job_source_name(),
+            &results_sink_name(),
+        ).expect("Could not create dispatcher");
+
+        let context = zmq::Context::new();
+        let job_source = context.socket(zmq::PULL)
+            .expect("Could not create PULL end of job-source socket");
+        job_source.connect(&job_source_name)
+            .expect("Could not bind to PULL end of job-source socket");
 
         assert!(dispatcher.send_job_for_execution(&job).is_ok());
     }
@@ -148,7 +181,20 @@ mod test {
             implementation_url: Url::parse("context://stdio/stdout").expect("Could not parse Url"),
             result: Ok((None, false)),
         };
-        let mut dispatcher = super::Dispatcher::new().expect("Could not create dispatcher");
+
+        let context_job_source_name = context_job_source_name();
+
+        let mut dispatcher = super::Dispatcher::new(
+            &job_source_name(),
+            &context_job_source_name,
+            &results_sink_name(),
+        ).expect("Could not create dispatcher");
+
+        let context = zmq::Context::new();
+        let context_job_source = context.socket(zmq::PULL)
+            .expect("Could not create PULL end of context-job-source socket");
+        context_job_source.connect(&context_job_source_name)
+            .expect("Could not bind to PULL end of job-source socket");
 
         assert!(dispatcher.send_job_for_execution(&job).is_ok());
     }
@@ -165,12 +211,19 @@ mod test {
             implementation_url: Url::parse("context://stdio/stdout").expect("Could not parse Url"),
             result: Ok((None, false)),
         };
-        let mut dispatcher = super::Dispatcher::new().expect("Could not create dispatcher");
+
+        let results_name = &results_sink_name();
+
+        let mut dispatcher = super::Dispatcher::new(
+            &job_source_name(),
+            &context_job_source_name(),
+            results_name,
+        ).expect("Could not create dispatcher");
 
         let context = zmq::Context::new();
         let results_sink = context.socket(zmq::PUSH)
             .expect("Could not createPUSH end of results-sink socket");
-        results_sink.connect(super::RESULTS_SINK_NAME)
+        results_sink.connect(results_name)
             .expect("Could not connect to PULL end of results-sink socket");
         results_sink.send(serde_json::to_string(&job).expect("Could not convert to serde")
                               .as_bytes(), 0).expect("Could not send result of Job");
@@ -178,5 +231,3 @@ mod test {
         assert!(dispatcher.get_next_result().is_ok());
     }
 }
-
- */

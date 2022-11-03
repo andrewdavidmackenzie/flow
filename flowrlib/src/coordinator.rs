@@ -41,13 +41,14 @@ pub struct Coordinator<'a> {
 impl<'a> Coordinator<'a> {
     /// Create a new `coordinator` with `num_threads` local executor threads
     pub fn new(
+        dispatcher: Dispatcher,
         #[cfg(feature = "submission")] submitter: &'a mut dyn SubmissionProtocol,
         #[cfg(feature = "debugger")] debug_server: &'a mut dyn DebuggerProtocol
     ) -> Result<Self> {
         Ok(Coordinator {
             #[cfg(feature = "submission")]
             submitter,
-            dispatcher: Dispatcher::new()?,
+            dispatcher,
             #[cfg(feature = "debugger")]
             debugger: Debugger::new(debug_server),
             #[cfg(all(not(feature = "debugger"), not(feature = "submission")))]

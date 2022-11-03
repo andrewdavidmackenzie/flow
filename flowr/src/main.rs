@@ -45,6 +45,7 @@ use flowcore::model::submission::Submission;
 use flowcore::provider::Provider;
 use flowcore::url_helper::url_from_string;
 use flowrlib::coordinator::Coordinator;
+use flowrlib::dispatcher::Dispatcher;
 use flowrlib::executor::Executor;
 use flowrlib::info as flowrlib_info;
 
@@ -54,6 +55,10 @@ pub mod errors;
 
 #[cfg(feature = "debugger")]
 mod cli;
+
+pub(crate) const JOB_SOURCE_NAME: &str  = "tcp://127.0.0.1:3456";
+pub(crate) const CONTEXT_JOB_SOURCE_NAME: &str  = "tcp://127.0.0.1:3457";
+pub(crate) const RESULTS_SINK_NAME: &str  = "tcp://127.0.0.1:3458";
 
 /// The `Coordinator` of flow execution can run in one of these three modes:
 /// - `ClientOnly`      - only as a client to submit flows for execution to a server
@@ -297,7 +302,10 @@ fn server(
                 Url::parse("memory://")? // Statically linked library has no resolved Url
             )?;
         }
-        executor.start(provider.clone(), num_threads, true, false)?;
+        executor.start(provider.clone(), num_threads,
+                       Some(JOB_SOURCE_NAME),
+                       None,
+        RESULTS_SINK_NAME)?;
     }
 
     let mut context_executor = Executor::new()?;
@@ -305,13 +313,21 @@ fn server(
         cli::cli_context::get_manifest(server_connection.clone())?,
         Url::parse("memory://")? // Statically linked library has no resolved Url
     )?;
-    context_executor.start(provider, 1, false, true)?;
+    context_executor.start(provider, 1,
+                           None,
+                           Some(CONTEXT_JOB_SOURCE_NAME),
+        RESULTS_SINK_NAME,
+    )?;
 
     let mut submitter = CLISubmitter {
         runtime_server_connection: server_connection,
     };
 
+    let dispatcher = Dispatcher::new(JOB_SOURCE_NAME,
+                                     CONTEXT_JOB_SOURCE_NAME,
+                                     RESULTS_SINK_NAME)?;
     let mut coordinator = Coordinator::new(
+        dispatcher,
         &mut submitter,
         #[cfg(feature = "debugger")] &mut debug_server
     )?;
