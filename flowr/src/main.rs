@@ -17,7 +17,7 @@ use std::sync::{Arc, Mutex};
 
 use clap::{Arg, ArgMatches, Command};
 use log::{info, trace, warn};
-//use portpicker::pick_unused_port;
+use portpicker::pick_unused_port;
 use simpath::Simpath;
 use simplog::SimpleLogger;
 use url::Url;
@@ -263,12 +263,9 @@ fn client_and_server(
 // - results sink
 fn get_addresses() -> Result<(String, String, String)> {
     Ok((
-        format!("tcp://127.0.0.1:{}", "3456"),
-        format!("tcp://127.0.0.1:{}", "3457"),
-        format!("tcp://127.0.0.1:{}", "3458"),
-/*        format!("tcp://127.0.0.1:{}", pick_unused_port().chain_err(|| "No ports free")?),
         format!("tcp://127.0.0.1:{}", pick_unused_port().chain_err(|| "No ports free")?),
-        format!("tcp://127.0.0.1:{}", pick_unused_port().chain_err(|| "No ports free")?),*/
+        format!("tcp://127.0.0.1:{}", pick_unused_port().chain_err(|| "No ports free")?),
+        format!("tcp://127.0.0.1:{}", pick_unused_port().chain_err(|| "No ports free")?),
     ))
 }
 
