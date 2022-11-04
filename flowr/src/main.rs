@@ -501,14 +501,6 @@ fn get_matches() -> ArgMatches {
                  .conflicts_with("client")
                  .help("Only execute 'context' jobs in the server"),
         )
-        .arg(Arg::new("address")
-            .short('a')
-            .long("address")
-            .number_of_values(1)
-            .value_name("ADDRESS")
-            .conflicts_with("server")
-            .help("The IP address of the flowr server to connect to"),
-        )
         .arg(Arg::new("jobs")
             .short('j')
             .long("jobs")
