@@ -261,11 +261,18 @@ fn client_and_server(
 // - (general) job source
 // - context job source
 // - results sink
-fn get_addresses() -> Result<(String, String, String)> {
-    Ok((
-        format!("tcp://127.0.0.1:{}", pick_unused_port().chain_err(|| "No ports free")?),
-        format!("tcp://127.0.0.1:{}", pick_unused_port().chain_err(|| "No ports free")?),
-        format!("tcp://127.0.0.1:{}", pick_unused_port().chain_err(|| "No ports free")?),
+fn get_connect_addresses(ports: (u16, u16, u16)) -> (String, String, String) {
+    (
+        format!("tcp://127.0.0.1:{}", ports.0),
+        format!("tcp://127.0.0.1:{}", ports.1),
+        format!("tcp://127.0.0.1:{}", ports.2),
+    )
+}
+
+fn get_three_ports() -> Result<(u16, u16, u16)> {
+    Ok((pick_unused_port().chain_err(|| "No ports free")?,
+        pick_unused_port().chain_err(|| "No ports free")?,
+        pick_unused_port().chain_err(|| "No ports free")?,
     ))
 }
 
@@ -292,7 +299,9 @@ fn server(
                                          PathBuf::from("/")
     )) as Arc<dyn Provider>;
 
-    let (job_source_name, context_job_source_name, results_sink) = get_addresses()?;
+    let ports = get_three_ports()?;
+    let (job_source_name, context_job_source_name, results_sink) =
+        get_connect_addresses(ports);
 
     if !context_only {
         let mut executor = Executor::new()?;
@@ -327,9 +336,7 @@ fn server(
         runtime_server_connection: server_connection,
     };
 
-    let dispatcher = Dispatcher::new(&job_source_name,
-                                     &context_job_source_name,
-                                     &results_sink)?;
+    let dispatcher = Dispatcher::new(ports)?;
     let mut coordinator = Coordinator::new(
         dispatcher,
         &mut submitter,
