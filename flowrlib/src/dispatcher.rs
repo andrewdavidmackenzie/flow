@@ -95,14 +95,6 @@ mod test {
     use crate::job::Job;
     use portpicker::pick_unused_port;
 
-    fn get_bind_addresses(ports: (u16, u16, u16)) -> (String, String, String) {
-        (
-            format!("tcp://*:{}", ports.0),
-            format!("tcp://*:{}", ports.1),
-            format!("tcp://*:{}", ports.2),
-        )
-    }
-
     fn get_three_ports() -> (u16, u16, u16) {
         (pick_unused_port().expect("No ports free"),
             pick_unused_port().expect("No ports free"),

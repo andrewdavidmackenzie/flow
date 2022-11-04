@@ -78,6 +78,10 @@ const RUNTIME_SERVICE_NAME: &str = "runtime._flowr._tcp.local";
 #[cfg(feature = "debugger")]
 const DEBUG_SERVICE_NAME: &str = "debug._flowr._tcp.local";
 
+const JOB_SERVICE_NAME: &str = "jobs._flowr._tcp.local";
+const CONTEXT_JOB_SERVICE_NAME: &str = "context_jobs._flowr._tcp.local";
+const RESULTS_JOB_SERVICE_NAME: &str = "results._flowr._tcp.local";
+
 /// Main for flowr binary - call `run()` and print any error that results or exit silently if OK
 fn main() {
     match run() {
@@ -269,6 +273,14 @@ fn get_connect_addresses(ports: (u16, u16, u16)) -> (String, String, String) {
     )
 }
 
+fn get_bind_addresses(ports: (u16, u16, u16)) -> (String, String, String) {
+    (
+        format!("tcp://*:{}", ports.0),
+        format!("tcp://*:{}", ports.1),
+        format!("tcp://*:{}", ports.2),
+    )
+}
+
 fn get_three_ports() -> Result<(u16, u16, u16)> {
     Ok((pick_unused_port().chain_err(|| "No ports free")?,
         pick_unused_port().chain_err(|| "No ports free")?,
@@ -291,13 +303,10 @@ fn server(
     let server_connection = Arc::new(Mutex::new(runtime_server_connection));
 
     #[cfg(feature = "debugger")]
-    let mut debug_server = CliDebugServer {
-        debug_server_connection
-    };
+    let mut debug_server = CliDebugServer { debug_server_connection };
 
     let provider = Arc::new(MetaProvider::new(lib_search_path,
-                                         PathBuf::from("/")
-    )) as Arc<dyn Provider>;
+                                         PathBuf::from("/"))) as Arc<dyn Provider>;
 
     let ports = get_three_ports()?;
     let (job_source_name, context_job_source_name, results_sink) =
