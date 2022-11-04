@@ -166,7 +166,6 @@ fn execution_loop(
                     Ok(keep_processing) => process_jobs = keep_processing,
                     Err(e) => error!("{}", e)
                 }
-                trace!("{name} finished executing job");
             }
         }
     }

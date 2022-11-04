@@ -42,7 +42,7 @@ impl fmt::Display for Job {
         writeln!(f, "Implementation Url: {}", self.implementation_url)?;
         writeln!(f, "Inputs: {:?}", self.input_set)?;
         writeln!(f, "Connections: {:?}", self.connections)?;
-        writeln!(f, "Result: {:?}", self.result)
+        write!(f, "Result: {:?}", self.result)
     }
 }
 
