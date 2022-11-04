@@ -14,6 +14,7 @@ pub const WAIT:i32 = 0;
 /// Do NOT WAIT for a message to arrive when performing a receive()
 pub static DONT_WAIT:i32 = zmq::DONTWAIT;
 
+// This should be a "well known" port, common across clients/servers that want discovery
 const DISCOVERY_PORT:u16 = 9002;
 
 /// Structure that holds information about the Server to help clients connect to it
@@ -21,19 +22,17 @@ const DISCOVERY_PORT:u16 = 9002;
 pub struct ServerInfo {
     /// Name of the service name to connect to on the server
     service_name: String,
-    /// What communication method is used to communicate between client and server
-    server_address: Option<(String, u16)>
+    /// optional address:port formatted string
+    server_address: Option<String>
 }
 
 impl ServerInfo {
     /// Create a new ServerInfo struct
-    pub fn new(service_name: &str, address: Option<&str>, port: u16) -> Self {
+    pub fn new(service_name: &str) -> Self {
         ServerInfo {
             service_name: service_name.into(),
-            server_address: address
-                    .map(|s| s.to_string())
-                    .map(|name| (name, port),
-            ) }
+            server_address: None
+        }
     }
 }
 
@@ -48,13 +47,11 @@ impl ClientConnection {
     pub fn new(server_info: &mut ServerInfo) -> Result<Self> {
         let requester;
 
-        let host_port = server_info.server_address.clone().unwrap_or(
-            Self::discover_service(&server_info.service_name)?
-        );
+        let host_port = Self::discover_service(&server_info.service_name)?;
 
         info!(
-            "Client will attempt to connect to service '{}' at: '{}:{}'",
-            server_info.service_name, host_port.0, host_port.1
+            "Client will attempt to connect to service '{}' at: '{host_port}'",
+            server_info.service_name
         );
 
         let context = zmq::Context::new();
@@ -64,28 +61,24 @@ impl ClientConnection {
             .chain_err(|| "Runtime client could not connect to service")?;
 
         requester
-            .connect(&format!("tcp://{}:{}", host_port.0, host_port.1))
+            .connect(&format!("tcp://{}", host_port))
             .chain_err(|| "Could not connect to service")?;
 
-        info!("Client connected to service '{}' on {}:{}",
-                    server_info.service_name, host_port.0, host_port.1
-                );
+        info!("Client connected to service '{}' at '{host_port}'", server_info.service_name);
         server_info.server_address = Some(host_port);
 
         Ok(ClientConnection { requester })
     }
 
     // Try to discover a server offering a particular service by name
-     fn discover_service(name: &str) -> Result<(String, u16)> {
+     fn discover_service(name: &str) -> Result<String> {
         trace!("Creating beacon");
         let listener = BeaconListener::new(name.as_bytes(), DISCOVERY_PORT)?;
         info!("Client is waiting for a Service Discovery beacon for service with name '{}'", name);
         let beacon = listener.wait(Some(Duration::from_secs(10)))?;
-        info!(
-            "Service '{}' discovered at IP: {}, Port: {}",
-            name, beacon.service_ip, beacon.service_port
-        );
-        Ok((beacon.service_ip, beacon.service_port))
+        let server_address = format!("{}:{}", beacon.service_ip, beacon.service_port);
+        info!("Service '{name}' discovered at {server_address}");
+        Ok(server_address)
     }
 
     /// Receive a ServerMessage from the server
@@ -127,20 +120,19 @@ pub struct ServerConnection {
 /// Implement a `ServerConnection` for sending and receiving messages between client and server
 impl ServerConnection {
     /// Create a new Server side of the client/server Connection
-    pub fn new(service_name: &'static str, host: Option<(String, u16)>) -> Result<Self> {
+    pub fn new(service_name: &'static str) -> Result<Self> {
         let context = zmq::Context::new();
         let responder = context
             .socket(zmq::REP)
             .chain_err(|| "Server Connection - could not create Socket")?;
 
-        let host_port = host.unwrap_or(("*".into(), pick_unused_port()
-            .chain_err(|| "No ports free")?));
+        let port = pick_unused_port().chain_err(|| "No ports free")?;
 
-        responder.bind(&format!("tcp://{}:{}", host_port.0, host_port.1))
-            .chain_err(|| "Server Connection - could not bind on TCO Socket")?;
+        responder.bind(&format!("tcp://*:{}", port))
+            .chain_err(|| "Server Connection - could not bind on TCP Socket")?;
 
-        Self::enable_service_discovery(service_name, host_port.1)?;
-        info!("Service '{}' listening on {}:{}", service_name, host_port.0, host_port.1);
+        Self::enable_service_discovery(service_name, port)?;
+        info!("Service '{}' listening on *:{}", service_name, port);
 
         Ok(ServerConnection {
             responder
@@ -273,9 +265,9 @@ mod test {
     #[test]
     #[serial]
     fn server_receive_wait_get_reply() {
-        let mut server = ServerConnection::new("test", None)
+        let mut server = ServerConnection::new("test")
             .expect("Could not create ServerConnection");
-        let mut server_info = ServerInfo::new("test", None, 0);
+        let mut server_info = ServerInfo::new("test");
         let client = ClientConnection::new(&mut server_info)
             .expect("Could not create ClientConnection");
 
@@ -305,9 +297,9 @@ mod test {
     #[test]
     #[serial]
     fn server_receive_nowait_get_reply() {
-        let mut server = ServerConnection::new("test", None)
+        let mut server = ServerConnection::new("test")
             .expect("Could not create ServerConnection");
-        let mut server_info = ServerInfo::new("test", None, 0);
+        let mut server_info = ServerInfo::new("test");
         let client = ClientConnection::new(&mut server_info)
             .expect("Could not create ClientConnection");
 

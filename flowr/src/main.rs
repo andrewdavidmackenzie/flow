@@ -17,6 +17,7 @@ use std::sync::{Arc, Mutex};
 
 use clap::{Arg, ArgMatches, Command};
 use log::{info, trace, warn};
+//use portpicker::pick_unused_port;
 use simpath::Simpath;
 use simplog::SimpleLogger;
 use url::Url;
@@ -56,10 +57,6 @@ pub mod errors;
 #[cfg(feature = "debugger")]
 mod cli;
 
-pub(crate) const JOB_SOURCE_NAME: &str  = "tcp://127.0.0.1:3456";
-pub(crate) const CONTEXT_JOB_SOURCE_NAME: &str  = "tcp://127.0.0.1:3457";
-pub(crate) const RESULTS_SINK_NAME: &str  = "tcp://127.0.0.1:3458";
-
 /// The `Coordinator` of flow execution can run in one of these three modes:
 /// - `ClientOnly`      - only as a client to submit flows for execution to a server
 /// - `ServerOnly`      - only as a server waiting for submissions for execution from a client
@@ -77,12 +74,10 @@ pub enum Mode {
 
 // `RUNTIME_SERVICE_NAME` is the name of the runtime services and can be used to discover it by name
 const RUNTIME_SERVICE_NAME: &str = "runtime._flowr._tcp.local";
-const RUNTIME_SERVICE_PORT: u16 = 5555;
 
 // `DEBUG_SERVICE_NAME` is the name of the runtime services and can be used to discover it by name
 #[cfg(feature = "debugger")]
 const DEBUG_SERVICE_NAME: &str = "debug._flowr._tcp.local";
-const DEBUG_SERVICE_PORT: u16 = 5556;
 
 /// Main for flowr binary - call `run()` and print any error that results or exit silently if OK
 fn main() {
@@ -194,9 +189,9 @@ fn server_only(
                 native_flowstdlib: bool,
                 context_only: bool,
                 ) -> Result<()> {
-    let runtime_server_connection = ServerConnection::new(RUNTIME_SERVICE_NAME, None)?;
+    let runtime_server_connection = ServerConnection::new(RUNTIME_SERVICE_NAME)?;
     #[cfg(feature = "debugger")]
-    let debug_server_connection = ServerConnection::new(DEBUG_SERVICE_NAME, None)?;
+    let debug_server_connection = ServerConnection::new(DEBUG_SERVICE_NAME)?;
 
     info!("Starting 'flowr' server process in main thread");
     server(
@@ -225,13 +220,9 @@ fn client_and_server(
     debug_this_flow: bool,
     context_only: bool,
 ) -> Result<()> {
-    let runtime_server_connection = ServerConnection::new(RUNTIME_SERVICE_NAME, None)?;
+    let runtime_server_connection = ServerConnection::new(RUNTIME_SERVICE_NAME)?;
     #[cfg(feature = "debugger")]
-    let debug_server_connection = ServerConnection::new(DEBUG_SERVICE_NAME, None)?;
-
-    let mut context_server_info = ServerInfo::new(RUNTIME_SERVICE_NAME, None, RUNTIME_SERVICE_PORT);
-    #[cfg(feature = "debugger")]
-    let mut debug_server_info = ServerInfo::new(DEBUG_SERVICE_NAME, None, DEBUG_SERVICE_PORT);
+    let debug_server_connection = ServerConnection::new(DEBUG_SERVICE_NAME)?;
 
     let server_lib_search_path = lib_search_path.clone();
 
@@ -247,6 +238,10 @@ fn client_and_server(
             context_only,
         );
     });
+
+    let mut context_server_info = ServerInfo::new(RUNTIME_SERVICE_NAME);
+    #[cfg(feature = "debugger")]
+        let mut debug_server_info = ServerInfo::new(DEBUG_SERVICE_NAME);
 
     #[cfg(feature = "debugger")]
     let control_c_client_connection = if debug_this_flow {
@@ -265,6 +260,21 @@ fn client_and_server(
         #[cfg(feature = "debugger")] debug_this_flow,
         #[cfg(feature = "debugger")] &mut debug_server_info,
     )
+}
+
+// Return addresses and ports to be used for each of the three queues
+// - (general) job source
+// - context job source
+// - results sink
+fn get_addresses() -> Result<(String, String, String)> {
+    Ok((
+        format!("tcp://127.0.0.1:{}", "3456"),
+        format!("tcp://127.0.0.1:{}", "3457"),
+        format!("tcp://127.0.0.1:{}", "3458"),
+/*        format!("tcp://127.0.0.1:{}", pick_unused_port().chain_err(|| "No ports free")?),
+        format!("tcp://127.0.0.1:{}", pick_unused_port().chain_err(|| "No ports free")?),
+        format!("tcp://127.0.0.1:{}", pick_unused_port().chain_err(|| "No ports free")?),*/
+    ))
 }
 
 // Create a new `Coordinator`, pre-load any libraries in native format that we want to have before
@@ -290,6 +300,8 @@ fn server(
                                          PathBuf::from("/")
     )) as Arc<dyn Provider>;
 
+    let (job_source_name, context_job_source_name, results_sink) = get_addresses()?;
+
     if !context_only {
         let mut executor = Executor::new()?;
         // if the command line options request loading native implementation of available native libs
@@ -303,9 +315,9 @@ fn server(
             )?;
         }
         executor.start(provider.clone(), num_threads,
-                       Some(JOB_SOURCE_NAME),
+                       Some(&job_source_name),
                        None,
-        RESULTS_SINK_NAME)?;
+                       &results_sink)?;
     }
 
     let mut context_executor = Executor::new()?;
@@ -315,17 +327,17 @@ fn server(
     )?;
     context_executor.start(provider, 1,
                            None,
-                           Some(CONTEXT_JOB_SOURCE_NAME),
-        RESULTS_SINK_NAME,
+                           Some(&context_job_source_name),
+                           &results_sink,
     )?;
 
     let mut submitter = CLISubmitter {
         runtime_server_connection: server_connection,
     };
 
-    let dispatcher = Dispatcher::new(JOB_SOURCE_NAME,
-                                     CONTEXT_JOB_SOURCE_NAME,
-                                     RESULTS_SINK_NAME)?;
+    let dispatcher = Dispatcher::new(&job_source_name,
+                                     &context_job_source_name,
+                                     &results_sink)?;
     let mut coordinator = Coordinator::new(
         dispatcher,
         &mut submitter,
@@ -346,17 +358,9 @@ fn client_only(
     lib_search_path: Simpath,
     #[cfg(feature = "debugger")] debug_this_flow: bool,
 ) -> Result<()> {
-    let mut context_server_info = ServerInfo::new(
-        RUNTIME_SERVICE_NAME,
-        matches.get_one::<String>("address")
-            .map(|s| s.as_str()),
-        RUNTIME_SERVICE_PORT);
+    let mut context_server_info = ServerInfo::new(RUNTIME_SERVICE_NAME);
     #[cfg(feature = "debugger")]
-    let mut debug_server_info = ServerInfo::new(
-        DEBUG_SERVICE_NAME,
-        matches.get_one::<String>("address")
-            .map(|s| s.as_str()),
-        DEBUG_SERVICE_PORT);
+    let mut debug_server_info = ServerInfo::new(DEBUG_SERVICE_NAME);
 
     #[cfg(feature = "debugger")]
         let control_c_client_connection = if debug_this_flow {
