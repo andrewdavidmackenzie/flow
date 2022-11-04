@@ -383,6 +383,7 @@ dependencies = [
  "serde",
  "serde_derive",
  "serde_json",
+ "simpdiscover",
  "url",
  "wasmtime",
  "zmq",
@@ -845,6 +846,14 @@ checksum = "cdb3eae8e7fa87ca118667ebdd5cae288922dbccc0244737ea6fcb136aba4eaa"
 dependencies = [
  "curl",
  "url",
+]
+
+[[package]]
+name = "simpdiscover"
+version = "0.5.1"
+dependencies = [
+ "log",
+ "simplog",
 ]
 
 [[package]]

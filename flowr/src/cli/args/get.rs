@@ -68,7 +68,7 @@ mod test {
     fn gets_args_no_client() {
         let getter = &Get {
             server_connection: Arc::new(Mutex::new(
-                ServerConnection::new("foo", None)
+                ServerConnection::new("foo")
                     .expect("Could not create server connection"),
             )),
         } as &dyn Implementation;

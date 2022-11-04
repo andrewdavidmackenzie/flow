@@ -1,41 +1,12 @@
 use std::fmt::Display;
-use std::time::Duration;
 
 /// This is the message-queue implementation of the lib.client_server communications
 use log::{info, trace};
 use portpicker::pick_unused_port;
-use simpdiscoverylib::{BeaconListener, BeaconSender};
 use zmq::Socket;
 
 use flowcore::errors::*;
-
-/// WAIT for a message to arrive when performing a receive()
-pub const WAIT:i32 = 0;
-/// Do NOT WAIT for a message to arrive when performing a receive()
-pub static DONT_WAIT:i32 = zmq::DONTWAIT;
-
-const DISCOVERY_PORT:u16 = 9002;
-
-/// Structure that holds information about the Server to help clients connect to it
-#[derive(Clone, Debug)]
-pub struct ServerInfo {
-    /// Name of the service name to connect to on the server
-    service_name: String,
-    /// What communication method is used to communicate between client and server
-    server_address: Option<(String, u16)>
-}
-
-impl ServerInfo {
-    /// Create a new ServerInfo struct
-    pub fn new(service_name: &str, address: Option<&str>, port: u16) -> Self {
-        ServerInfo {
-            service_name: service_name.into(),
-            server_address: address
-                    .map(|s| s.to_string())
-                    .map(|name| (name, port),
-            ) }
-    }
-}
+use flowrlib::services::{CLIENT_SERVER_DISCOVERY_PORT, discover_service, enable_service_discovery, WAIT};
 
 /// `ClientConnection` stores information related to the connection from a runtime client
 /// to the runtime server and is used each time a message is to be sent or received.
@@ -45,47 +16,24 @@ pub struct ClientConnection {
 
 impl ClientConnection {
     /// Create a new connection between client and server
-    pub fn new(server_info: &mut ServerInfo) -> Result<Self> {
-        let requester;
+    pub fn new(service_name: &str) -> Result<Self> {
+        let server_address = discover_service(CLIENT_SERVER_DISCOVERY_PORT, service_name)?;
 
-        let host_port = server_info.server_address.clone().unwrap_or(
-            Self::discover_service(&server_info.service_name)?
-        );
-
-        info!(
-            "Client will attempt to connect to service '{}' at: '{}:{}'",
-            server_info.service_name, host_port.0, host_port.1
-        );
+        info!("Client will attempt to connect to service '{service_name}' at: '{server_address}'");
 
         let context = zmq::Context::new();
 
-        requester = context
+        let requester = context
             .socket(zmq::REQ)
             .chain_err(|| "Runtime client could not connect to service")?;
 
         requester
-            .connect(&format!("tcp://{}:{}", host_port.0, host_port.1))
+            .connect(&format!("tcp://{}", server_address))
             .chain_err(|| "Could not connect to service")?;
 
-        info!("Client connected to service '{}' on {}:{}",
-                    server_info.service_name, host_port.0, host_port.1
-                );
-        server_info.server_address = Some(host_port);
+        info!("Client connected to service '{service_name}' at '{server_address}'");
 
         Ok(ClientConnection { requester })
-    }
-
-    // Try to discover a server offering a particular service by name
-     fn discover_service(name: &str) -> Result<(String, u16)> {
-        trace!("Creating beacon");
-        let listener = BeaconListener::new(name.as_bytes(), DISCOVERY_PORT)?;
-        info!("Client is waiting for a Service Discovery beacon for service with name '{}'", name);
-        let beacon = listener.wait(Some(Duration::from_secs(10)))?;
-        info!(
-            "Service '{}' discovered at IP: {}, Port: {}",
-            name, beacon.service_ip, beacon.service_port
-        );
-        Ok((beacon.service_ip, beacon.service_port))
     }
 
     /// Receive a ServerMessage from the server
@@ -127,44 +75,23 @@ pub struct ServerConnection {
 /// Implement a `ServerConnection` for sending and receiving messages between client and server
 impl ServerConnection {
     /// Create a new Server side of the client/server Connection
-    pub fn new(service_name: &'static str, host: Option<(String, u16)>) -> Result<Self> {
+    pub fn new(service_name: &'static str) -> Result<Self> {
         let context = zmq::Context::new();
         let responder = context
             .socket(zmq::REP)
             .chain_err(|| "Server Connection - could not create Socket")?;
 
-        let host_port = host.unwrap_or(("*".into(), pick_unused_port()
-            .chain_err(|| "No ports free")?));
+        let port = pick_unused_port().chain_err(|| "No ports free")?;
 
-        responder.bind(&format!("tcp://{}:{}", host_port.0, host_port.1))
-            .chain_err(|| "Server Connection - could not bind on TCO Socket")?;
+        responder.bind(&format!("tcp://*:{}", port))
+            .chain_err(|| "Server Connection - could not bind on TCP Socket")?;
 
-        Self::enable_service_discovery(service_name, host_port.1)?;
-        info!("Service '{}' listening on {}:{}", service_name, host_port.0, host_port.1);
+        enable_service_discovery(CLIENT_SERVER_DISCOVERY_PORT, service_name, port)?;
+        info!("Service '{}' listening on *:{}", service_name, port);
 
         Ok(ServerConnection {
             responder
         })
-    }
-
-    /*
-       Start a background thread that sends out beacons for service discovery by a client every second
-    */
-    fn enable_service_discovery(name: &str, port: u16) -> Result<()> {
-        match BeaconSender::new(port, name.as_bytes(), DISCOVERY_PORT) {
-            Ok(beacon) => {
-                info!(
-                    "Discovery beacon announcing service named '{}', on port: {}",
-                    name, port
-                );
-                std::thread::spawn(move || {
-                    let _ = beacon.send_loop(Duration::from_secs(1));
-                });
-            }
-            Err(e) => bail!("Error starting discovery beacon: {}", e.to_string()),
-        }
-
-        Ok(())
     }
 
     /// Receive a Message sent from the client to the server
@@ -216,7 +143,9 @@ mod test {
     use serde_derive::{Deserialize, Serialize};
     use serial_test::serial;
 
-    use crate::cli::client_server::{ClientConnection, DONT_WAIT, ServerConnection, ServerInfo, WAIT};
+    use flowrlib::services::{DONT_WAIT, WAIT};
+
+    use crate::cli::client_server::{ClientConnection, ServerConnection};
 
     #[derive(Serialize, Deserialize, PartialEq, Eq, Debug)]
     enum ServerMessage {
@@ -273,10 +202,9 @@ mod test {
     #[test]
     #[serial]
     fn server_receive_wait_get_reply() {
-        let mut server = ServerConnection::new("test", None)
+        let mut server = ServerConnection::new("test")
             .expect("Could not create ServerConnection");
-        let mut server_info = ServerInfo::new("test", None, 0);
-        let client = ClientConnection::new(&mut server_info)
+        let client = ClientConnection::new("test")
             .expect("Could not create ClientConnection");
 
         // Open the connection by sending the first message from the client
@@ -305,10 +233,9 @@ mod test {
     #[test]
     #[serial]
     fn server_receive_nowait_get_reply() {
-        let mut server = ServerConnection::new("test", None)
+        let mut server = ServerConnection::new("test")
             .expect("Could not create ServerConnection");
-        let mut server_info = ServerInfo::new("test", None, 0);
-        let client = ClientConnection::new(&mut server_info)
+        let client = ClientConnection::new("test")
             .expect("Could not create ClientConnection");
 
         // Open the connection by sending the first message from the client

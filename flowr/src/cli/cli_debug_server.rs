@@ -6,14 +6,14 @@ use flowcore::model::runtime_function::RuntimeFunction;
 use flowrlib::block::Block;
 use flowrlib::debug_command::DebugCommand;
 use flowrlib::job::Job;
-use flowrlib::run_state::{RunState, State};
 #[cfg(feature = "debugger")]
-use flowrlib::server::DebuggerProtocol;
+use flowrlib::protocols::DebuggerProtocol;
+use flowrlib::run_state::{RunState, State};
+use flowrlib::services::WAIT;
 
 use crate::{BlockBreakpoint, DataBreakpoint, ExecutionEnded, ExecutionStarted, ExitingDebugger,
             JobCompleted, JobError, Panic, PriorToSendingJob, Resetting, ServerConnection,
             WaitingForCommand};
-use crate::cli::client_server::WAIT;
 use crate::DebugServerMessage::{BlockState, Error, FlowUnblockBreakpoint, Functions, FunctionStates, InputState, Message, OutputState, OverallState};
 
 pub(crate) struct  CliDebugServer {

@@ -17,6 +17,7 @@ use std::sync::{Arc, Mutex};
 
 use clap::{Arg, ArgMatches, Command};
 use log::{info, trace, warn};
+use portpicker::pick_unused_port;
 use simpath::Simpath;
 use simplog::SimpleLogger;
 use url::Url;
@@ -30,7 +31,6 @@ use cli::cli_submitter::CLISubmitter;
 #[cfg(feature = "debugger")]
 use cli::client_server::ClientConnection;
 use cli::client_server::ServerConnection;
-use cli::client_server::ServerInfo;
 #[cfg(feature = "debugger")]
 use cli::debug_server_message::DebugServerMessage;
 #[cfg(feature = "debugger")]
@@ -48,6 +48,7 @@ use flowrlib::coordinator::Coordinator;
 use flowrlib::dispatcher::Dispatcher;
 use flowrlib::executor::Executor;
 use flowrlib::info as flowrlib_info;
+use flowrlib::services::{DEBUG_SERVICE_NAME, enable_service_discovery, JOB_QUEUES_DISCOVERY_PORT, JOB_SERVICE_NAME, RESULTS_JOB_SERVICE_NAME, RUNTIME_SERVICE_NAME};
 
 /// We'll put our errors in an `errors` module, and other modules in this crate will
 /// `use crate::errors::*;` to get access to everything `error_chain` creates.
@@ -55,10 +56,6 @@ pub mod errors;
 
 #[cfg(feature = "debugger")]
 mod cli;
-
-pub(crate) const JOB_SOURCE_NAME: &str  = "tcp://127.0.0.1:3456";
-pub(crate) const CONTEXT_JOB_SOURCE_NAME: &str  = "tcp://127.0.0.1:3457";
-pub(crate) const RESULTS_SINK_NAME: &str  = "tcp://127.0.0.1:3458";
 
 /// The `Coordinator` of flow execution can run in one of these three modes:
 /// - `ClientOnly`      - only as a client to submit flows for execution to a server
@@ -74,15 +71,6 @@ pub enum Mode {
     /// `Coordinator` mode where a single process runs as a client and s server in different threads
     ClientAndServer,
 }
-
-// `RUNTIME_SERVICE_NAME` is the name of the runtime services and can be used to discover it by name
-const RUNTIME_SERVICE_NAME: &str = "runtime._flowr._tcp.local";
-const RUNTIME_SERVICE_PORT: u16 = 5555;
-
-// `DEBUG_SERVICE_NAME` is the name of the runtime services and can be used to discover it by name
-#[cfg(feature = "debugger")]
-const DEBUG_SERVICE_NAME: &str = "debug._flowr._tcp.local";
-const DEBUG_SERVICE_PORT: u16 = 5556;
 
 /// Main for flowr binary - call `run()` and print any error that results or exit silently if OK
 fn main() {
@@ -194,9 +182,9 @@ fn server_only(
                 native_flowstdlib: bool,
                 context_only: bool,
                 ) -> Result<()> {
-    let runtime_server_connection = ServerConnection::new(RUNTIME_SERVICE_NAME, None)?;
+    let runtime_server_connection = ServerConnection::new(RUNTIME_SERVICE_NAME)?;
     #[cfg(feature = "debugger")]
-    let debug_server_connection = ServerConnection::new(DEBUG_SERVICE_NAME, None)?;
+    let debug_server_connection = ServerConnection::new(DEBUG_SERVICE_NAME)?;
 
     info!("Starting 'flowr' server process in main thread");
     server(
@@ -225,13 +213,9 @@ fn client_and_server(
     debug_this_flow: bool,
     context_only: bool,
 ) -> Result<()> {
-    let runtime_server_connection = ServerConnection::new(RUNTIME_SERVICE_NAME, None)?;
+    let runtime_server_connection = ServerConnection::new(RUNTIME_SERVICE_NAME)?;
     #[cfg(feature = "debugger")]
-    let debug_server_connection = ServerConnection::new(DEBUG_SERVICE_NAME, None)?;
-
-    let mut context_server_info = ServerInfo::new(RUNTIME_SERVICE_NAME, None, RUNTIME_SERVICE_PORT);
-    #[cfg(feature = "debugger")]
-    let mut debug_server_info = ServerInfo::new(DEBUG_SERVICE_NAME, None, DEBUG_SERVICE_PORT);
+    let debug_server_connection = ServerConnection::new(DEBUG_SERVICE_NAME)?;
 
     let server_lib_search_path = lib_search_path.clone();
 
@@ -250,12 +234,12 @@ fn client_and_server(
 
     #[cfg(feature = "debugger")]
     let control_c_client_connection = if debug_this_flow {
-        Some(ClientConnection::new(&mut context_server_info)?)
+        Some(ClientConnection::new(RUNTIME_SERVICE_NAME)?)
     } else {
         None
     };
 
-    let runtime_client_connection = ClientConnection::new(&mut context_server_info)?;
+    let runtime_client_connection = ClientConnection::new(RUNTIME_SERVICE_NAME)?;
 
     client(
         matches,
@@ -263,8 +247,35 @@ fn client_and_server(
         runtime_client_connection,
         #[cfg(feature = "debugger")] control_c_client_connection,
         #[cfg(feature = "debugger")] debug_this_flow,
-        #[cfg(feature = "debugger")] &mut debug_server_info,
+        #[cfg(feature = "debugger")] DEBUG_SERVICE_NAME,
     )
+}
+
+// Return addresses and ports to be used for each of the three queues
+// - (general) job source
+// - context job source
+// - results sink
+fn get_connect_addresses(ports: (u16, u16, u16)) -> (String, String, String) {
+    (
+        format!("tcp://127.0.0.1:{}", ports.0),
+        format!("tcp://127.0.0.1:{}", ports.1),
+        format!("tcp://127.0.0.1:{}", ports.2),
+    )
+}
+
+fn get_bind_addresses(ports: (u16, u16, u16)) -> (String, String, String) {
+    (
+        format!("tcp://*:{}", ports.0),
+        format!("tcp://*:{}", ports.1),
+        format!("tcp://*:{}", ports.2),
+    )
+}
+
+fn get_three_ports() -> Result<(u16, u16, u16)> {
+    Ok((pick_unused_port().chain_err(|| "No ports free")?,
+        pick_unused_port().chain_err(|| "No ports free")?,
+        pick_unused_port().chain_err(|| "No ports free")?,
+    ))
 }
 
 // Create a new `Coordinator`, pre-load any libraries in native format that we want to have before
@@ -282,13 +293,20 @@ fn server(
     let server_connection = Arc::new(Mutex::new(runtime_server_connection));
 
     #[cfg(feature = "debugger")]
-    let mut debug_server = CliDebugServer {
-        debug_server_connection
-    };
+    let mut debug_server = CliDebugServer { debug_server_connection };
 
     let provider = Arc::new(MetaProvider::new(lib_search_path,
-                                         PathBuf::from("/")
-    )) as Arc<dyn Provider>;
+                                         PathBuf::from("/"))) as Arc<dyn Provider>;
+
+    let ports = get_three_ports()?;
+    trace!("Announcing three job queues on ports: {ports:?}");
+    let job_queues = get_bind_addresses(ports);
+    let dispatcher = Dispatcher::new(job_queues)?;
+    enable_service_discovery(JOB_QUEUES_DISCOVERY_PORT, JOB_SERVICE_NAME, ports.0)?;
+    enable_service_discovery(JOB_QUEUES_DISCOVERY_PORT, RESULTS_JOB_SERVICE_NAME, ports.2)?;
+
+    let (job_source_name, context_job_source_name, results_sink) =
+        get_connect_addresses(ports);
 
     if !context_only {
         let mut executor = Executor::new()?;
@@ -303,9 +321,9 @@ fn server(
             )?;
         }
         executor.start(provider.clone(), num_threads,
-                       Some(JOB_SOURCE_NAME),
+                       Some(&job_source_name),
                        None,
-        RESULTS_SINK_NAME)?;
+                       &results_sink);
     }
 
     let mut context_executor = Executor::new()?;
@@ -315,17 +333,14 @@ fn server(
     )?;
     context_executor.start(provider, 1,
                            None,
-                           Some(CONTEXT_JOB_SOURCE_NAME),
-        RESULTS_SINK_NAME,
-    )?;
+                           Some(&context_job_source_name),
+                           &results_sink,
+    );
 
     let mut submitter = CLISubmitter {
         runtime_server_connection: server_connection,
     };
 
-    let dispatcher = Dispatcher::new(JOB_SOURCE_NAME,
-                                     CONTEXT_JOB_SOURCE_NAME,
-                                     RESULTS_SINK_NAME)?;
     let mut coordinator = Coordinator::new(
         dispatcher,
         &mut submitter,
@@ -346,26 +361,14 @@ fn client_only(
     lib_search_path: Simpath,
     #[cfg(feature = "debugger")] debug_this_flow: bool,
 ) -> Result<()> {
-    let mut context_server_info = ServerInfo::new(
-        RUNTIME_SERVICE_NAME,
-        matches.get_one::<String>("address")
-            .map(|s| s.as_str()),
-        RUNTIME_SERVICE_PORT);
-    #[cfg(feature = "debugger")]
-    let mut debug_server_info = ServerInfo::new(
-        DEBUG_SERVICE_NAME,
-        matches.get_one::<String>("address")
-            .map(|s| s.as_str()),
-        DEBUG_SERVICE_PORT);
-
     #[cfg(feature = "debugger")]
         let control_c_client_connection = if debug_this_flow {
-        Some(ClientConnection::new(&mut context_server_info)?)
+        Some(ClientConnection::new(RUNTIME_SERVICE_NAME)?)
     } else {
         None
     };
 
-    let context_client_connection = ClientConnection::new(&mut context_server_info)?;
+    let context_client_connection = ClientConnection::new(RUNTIME_SERVICE_NAME)?;
 
     client(
         matches,
@@ -373,7 +376,7 @@ fn client_only(
         context_client_connection,
         #[cfg(feature = "debugger")] control_c_client_connection,
         #[cfg(feature = "debugger")] debug_this_flow,
-        #[cfg(feature = "debugger")] &mut debug_server_info,
+        #[cfg(feature = "debugger")] DEBUG_SERVICE_NAME,
     )
 }
 
@@ -386,7 +389,7 @@ fn client(
     #[cfg(feature = "debugger")]
     control_c_client_connection: Option<ClientConnection>,
     #[cfg(feature = "debugger")] debug_this_flow: bool,
-    #[cfg(feature = "debugger")] debug_server_info: &mut ServerInfo,
+    #[cfg(feature = "debugger")] debug_service_name: &str,
 ) -> Result<()> {
     // keep an Arc Mutex protected set of override args that debug client can override
     let override_args = Arc::new(Mutex::new(Vec::<String>::new()));
@@ -414,7 +417,7 @@ fn client(
 
     #[cfg(feature = "debugger")]
     if debug_this_flow {
-        let debug_client_connection = ClientConnection::new(debug_server_info)?;
+        let debug_client_connection = ClientConnection::new(debug_service_name)?;
         let debug_client = CliDebugClient::new(debug_client_connection,
             override_args);
         let _ = thread::spawn(move || {
@@ -496,14 +499,6 @@ fn get_matches() -> ArgMatches {
                  .action(clap::ArgAction::SetTrue)
                  .conflicts_with("client")
                  .help("Only execute 'context' jobs in the server"),
-        )
-        .arg(Arg::new("address")
-            .short('a')
-            .long("address")
-            .number_of_values(1)
-            .value_name("ADDRESS")
-            .conflicts_with("server")
-            .help("The IP address of the flowr server to connect to"),
         )
         .arg(Arg::new("jobs")
             .short('j')

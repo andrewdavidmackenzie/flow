@@ -261,7 +261,7 @@ mod test {
     use crate::job::Job;
     use crate::run_state::{RunState, State};
     #[cfg(feature = "debugger")]
-    use crate::server::DebuggerProtocol;
+    use crate::protocols::DebuggerProtocol;
 
     use super::blocked_check;
     use super::ready_check;

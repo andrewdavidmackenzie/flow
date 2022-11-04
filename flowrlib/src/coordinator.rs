@@ -14,9 +14,9 @@ use crate::dispatcher::Dispatcher;
 use crate::job::Job;
 use crate::run_state::RunState;
 #[cfg(feature = "debugger")]
-use crate::server::DebuggerProtocol;
+use crate::protocols::DebuggerProtocol;
 #[cfg(feature = "submission")]
-use crate::server::SubmissionProtocol;
+use crate::protocols::SubmissionProtocol;
 
 /// The `Coordinator` is responsible for coordinating the dispatching of jobs (consisting
 /// of a set of Input values and an Implementation of a Function) for execution,

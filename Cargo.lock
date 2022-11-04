@@ -630,7 +630,6 @@ dependencies = [
  "serde_json",
  "serial_test",
  "simpath",
- "simpdiscover",
  "simplog",
  "tempdir",
  "url",
@@ -652,6 +651,7 @@ dependencies = [
  "serde_json",
  "serial_test",
  "simpath",
+ "simpdiscover",
  "tempdir",
  "url",
  "wasmtime",
@@ -1730,12 +1730,9 @@ dependencies = [
 
 [[package]]
 name = "simpdiscover"
-version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "774ab503bfb277184af0ef3fac84d085d8350dd15ffe5f7aa23874d013d992e0"
+version = "0.5.1"
 dependencies = [
  "log",
- "portpicker",
  "simplog",
 ]
 
