@@ -1,5 +1,5 @@
 use std::time::Duration;
-use log::{info, trace};
+use log::info;
 use simpdiscoverylib::{BeaconListener, BeaconSender};
 use flowcore::errors::*;
 
@@ -24,27 +24,27 @@ pub const WAIT:i32 = 0;
 /// Do NOT WAIT for a message to arrive when performing a receive()
 pub static DONT_WAIT:i32 = zmq::DONTWAIT;
 
-// This should be a "well known" port, common across clients/servers that want discovery
-const DISCOVERY_PORT:u16 = 9002;
+/// This is a "well known" port for announcing and discovering the client/server services
+pub const CLIENT_SERVER_DISCOVERY_PORT:u16 = 9002;
+
+/// This is a "well known" port for announcing and discovering the job queues
+pub const JOB_QUEUES_DISCOVERY_PORT:u16 = 9003;
 
 /// Try to discover a server offering a particular service by name
-pub fn discover_service(name: &str) -> Result<String> {
-    trace!("Creating beacon");
-    let listener = BeaconListener::new(name.as_bytes(), DISCOVERY_PORT)?;
-    info!("Client is waiting for a Service Discovery beacon for service with name '{}'", name);
-    let beacon = listener.wait(Some(Duration::from_secs(10)))?;
+pub fn discover_service(discovery_port: u16, name: &str) -> Result<String> {
+    let listener = BeaconListener::new(name.as_bytes(), discovery_port)?;
+    let beacon = listener.wait(None)?;
     let server_address = format!("{}:{}", beacon.service_ip, beacon.service_port);
-    info!("Service '{name}' discovered at {server_address}");
     Ok(server_address)
 }
 
 /// Start a background thread that sends out beacons for service discovery by a client every second
-pub fn enable_service_discovery(name: &str, port: u16) -> Result<()> {
-    match BeaconSender::new(port, name.as_bytes(), DISCOVERY_PORT) {
+pub fn enable_service_discovery(discovery_port: u16, name: &str, service_port: u16) -> Result<()> {
+    match BeaconSender::new(service_port, name.as_bytes(), discovery_port) {
         Ok(beacon) => {
             info!(
                     "Discovery beacon announcing service named '{}', on port: {}",
-                    name, port
+                    name, service_port
                 );
             std::thread::spawn(move || {
                 let _ = beacon.send_loop(Duration::from_secs(1));

@@ -23,7 +23,7 @@ use flowcore::meta_provider::MetaProvider;
 use flowcore::provider::Provider;
 use flowrlib::executor::Executor;
 use flowrlib::info as flowrlib_info;
-use flowrlib::services::{discover_service, JOB_SERVICE_NAME, RESULTS_JOB_SERVICE_NAME};
+use flowrlib::services::{discover_service, JOB_QUEUES_DISCOVERY_PORT, JOB_SERVICE_NAME, RESULTS_JOB_SERVICE_NAME};
 
 /// We'll put our errors in an `errors` module, and other modules in this crate will
 /// `use crate::errors::*;` to get access to everything `error_chain` creates.
@@ -70,8 +70,10 @@ fn run() -> Result<()> {
 fn server(num_threads: usize) -> Result<()> {
     let provider = Arc::new(MetaProvider::new(Simpath::new(""),
         PathBuf::from("/"))) as Arc<dyn Provider>;
-    let job_service = discover_service(JOB_SERVICE_NAME)?;
-    let results_service = discover_service(RESULTS_JOB_SERVICE_NAME)?;
+    let job_service = format!("tcp://{}",
+                              discover_service(JOB_QUEUES_DISCOVERY_PORT, JOB_SERVICE_NAME)?);
+    let results_service = format!("tcp://{}",
+                                  discover_service(JOB_QUEUES_DISCOVERY_PORT, RESULTS_JOB_SERVICE_NAME)?);
 
     #[allow(unused_mut)]
     let mut executor = Executor::new()?;
@@ -83,9 +85,9 @@ fn server(num_threads: usize) -> Result<()> {
         Url::parse("memory://")? // Statically linked library has no resolved Url
     )?;
 
-    trace!("Starting executor");
+    trace!("Starting flowrex executors");
     executor.start(provider, num_threads,
-    Some(&job_service), None, &results_service)?;
+    Some(&job_service), None, &results_service);
 
     debug!("Parking main thread");
     thread::park();

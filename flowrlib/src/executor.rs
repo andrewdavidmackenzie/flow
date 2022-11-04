@@ -62,7 +62,7 @@ impl Executor {
                  job_service: Option<&str>,
                  context_job_service: Option<&str>,
                  results_service: &str,
-    ) -> Result<()> {
+    ) {
         let loaded_implementations = Arc::new(RwLock::new(HashMap::<Url, Arc<dyn Implementation>>::new()));
 
         info!("Starting {} executor threads", number_of_executors);
@@ -75,7 +75,11 @@ impl Executor {
             let context_job_source = context_job_service.map(|s| s.into());
             let results_sink = results_service.into();
             thread::spawn(move || {
-                execution_loop(
+                trace!("Executor #{executor_number} entering execution loop");
+                trace!("Job Service: {job_source:?}");
+                trace!("Context Job Service: {context_job_source:?}");
+                trace!("Results Job Service: {results_sink}");
+                if let Err(e) = execution_loop(
                     thread_provider,
                     format!("Executor #{executor_number}"),
                     thread_context,
@@ -84,11 +88,11 @@ impl Executor {
                     job_source,
                     context_job_source,
                     results_sink,
-                ) // clone of Arcs and Sender OK
+                ) {
+                    error!("Execution loop error: {e}");
+                }
             });
         }
-
-        Ok(())
     }
 }
 
@@ -109,9 +113,11 @@ fn execution_loop(
     let job_source : zmq::Socket;
     if let Some(job_source_n) = job_service {
         job_source = context.socket(zmq::PULL)
-            .map_err(|_| "Could not create PULL end of job-source socket")?;
+            .map_err(|e|
+                format!("Could not create PULL end of job socket: {e}"))?;
         job_source.connect(&job_source_n)
-            .map_err(|_| "Could not bind to PULL end of job-source socket")?;
+            .map_err(|e|
+                format!("Could not connect to PULL end of job socket: '{job_source_n}' {e}", ))?;
         sockets.push(&job_source);
         items.push(job_source.as_poll_item(zmq::POLLIN));
     }
@@ -119,17 +125,20 @@ fn execution_loop(
     let context_job_source : zmq::Socket;
     if let Some(context_job_source_n) = context_job_service {
         context_job_source = context.socket(zmq::PULL)
-            .map_err(|_| "Could not create PULL end of context-job-source socket")?;
+            .map_err(|e|
+                format!("Could not create PULL end of context job socket: {e}"))?;
         context_job_source.connect(&context_job_source_n)
-            .map_err(|_| "Could not bind to PULL end of context-job-source  socket")?;
+            .map_err(|e|
+                format!("Could not connect to PULL end of context job socket: '{context_job_source_n}' {e}",
+                ))?;
         sockets.push(&context_job_source);
         items.push(context_job_source.as_poll_item(zmq::POLLIN));
     }
 
     let results_sink = context.socket(zmq::PUSH)
-        .map_err(|_| "Could not createPUSH end of results-sink socket")?;
+        .map_err(|e| format!("Could not create PUSH end of results socket: {e}"))?;
     results_sink.connect(&results_service)
-        .map_err(|_| "Could not connect to PULL end of results-sink socket")?;
+        .map_err(|e| format!("Could not connect to PUSH end of results socket: {e}"))?;
 
     let mut process_jobs = true;
 
@@ -303,10 +312,6 @@ mod test {
     use std::collections::HashMap;
     use flowcore::Implementation;
 
-    const JOB_SOURCE_NAME: &str  = "tcp://127.0.0.1:3456";
-    const CONTEXT_JOB_SOURCE_NAME: &str  = "tcp://127.0.0.1:3457";
-    const RESULTS_SINK_NAME: &str  = "tcp://127.0.0.1:3458";
-
     fn test_meta_data() -> MetaData {
         MetaData {
             name: "test".into(),
@@ -352,26 +357,6 @@ mod test {
         assert!(executor.add_lib(library,
                          Url::parse("file://fake/lib/location")
                              .expect("Could not parse Url")).is_ok());
-    }
-
-    #[test]
-    fn start_zero_executors() {
-        let mut executor = Executor::new().expect("Could not create executor");
-        let provider = Arc::new(TestProvider{test_content: ""});
-        assert!(executor.start(provider, 0,
-                               Some(JOB_SOURCE_NAME),
-                               Some(CONTEXT_JOB_SOURCE_NAME),
-                               RESULTS_SINK_NAME).is_ok());
-    }
-
-    #[test]
-    fn start_one_executor() {
-        let mut executor = Executor::new().expect("Could not create executor");
-        let provider = Arc::new(TestProvider{test_content: ""});
-        assert!(executor.start(provider, 1,
-                               Some(JOB_SOURCE_NAME),
-                               Some(CONTEXT_JOB_SOURCE_NAME),
-                               RESULTS_SINK_NAME).is_ok());
     }
 
     #[test]

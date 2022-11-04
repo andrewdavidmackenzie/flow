@@ -6,7 +6,7 @@ use portpicker::pick_unused_port;
 use zmq::Socket;
 
 use flowcore::errors::*;
-use flowrlib::services::{discover_service, enable_service_discovery, WAIT};
+use flowrlib::services::{CLIENT_SERVER_DISCOVERY_PORT, discover_service, enable_service_discovery, WAIT};
 
 /// `ClientConnection` stores information related to the connection from a runtime client
 /// to the runtime server and is used each time a message is to be sent or received.
@@ -17,7 +17,7 @@ pub struct ClientConnection {
 impl ClientConnection {
     /// Create a new connection between client and server
     pub fn new(service_name: &str) -> Result<Self> {
-        let server_address = discover_service(service_name)?;
+        let server_address = discover_service(CLIENT_SERVER_DISCOVERY_PORT, service_name)?;
 
         info!("Client will attempt to connect to service '{service_name}' at: '{server_address}'");
 
@@ -86,7 +86,7 @@ impl ServerConnection {
         responder.bind(&format!("tcp://*:{}", port))
             .chain_err(|| "Server Connection - could not bind on TCP Socket")?;
 
-        enable_service_discovery(service_name, port)?;
+        enable_service_discovery(CLIENT_SERVER_DISCOVERY_PORT, service_name, port)?;
         info!("Service '{}' listening on *:{}", service_name, port);
 
         Ok(ServerConnection {

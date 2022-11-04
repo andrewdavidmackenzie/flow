@@ -48,7 +48,7 @@ use flowrlib::coordinator::Coordinator;
 use flowrlib::dispatcher::Dispatcher;
 use flowrlib::executor::Executor;
 use flowrlib::info as flowrlib_info;
-use flowrlib::services::{CONTEXT_JOB_SERVICE_NAME, DEBUG_SERVICE_NAME, enable_service_discovery, JOB_SERVICE_NAME, RESULTS_JOB_SERVICE_NAME, RUNTIME_SERVICE_NAME};
+use flowrlib::services::{DEBUG_SERVICE_NAME, enable_service_discovery, JOB_QUEUES_DISCOVERY_PORT, JOB_SERVICE_NAME, RESULTS_JOB_SERVICE_NAME, RUNTIME_SERVICE_NAME};
 
 /// We'll put our errors in an `errors` module, and other modules in this crate will
 /// `use crate::errors::*;` to get access to everything `error_chain` creates.
@@ -299,12 +299,11 @@ fn server(
                                          PathBuf::from("/"))) as Arc<dyn Provider>;
 
     let ports = get_three_ports()?;
-
+    trace!("Announcing three job queues on ports: {ports:?}");
     let job_queues = get_bind_addresses(ports);
     let dispatcher = Dispatcher::new(job_queues)?;
-    enable_service_discovery(JOB_SERVICE_NAME, ports.0)?;
-    enable_service_discovery(CONTEXT_JOB_SERVICE_NAME, ports.1)?;
-    enable_service_discovery(RESULTS_JOB_SERVICE_NAME, ports.2)?;
+    enable_service_discovery(JOB_QUEUES_DISCOVERY_PORT, JOB_SERVICE_NAME, ports.0)?;
+    enable_service_discovery(JOB_QUEUES_DISCOVERY_PORT, RESULTS_JOB_SERVICE_NAME, ports.2)?;
 
     let (job_source_name, context_job_source_name, results_sink) =
         get_connect_addresses(ports);
@@ -324,7 +323,7 @@ fn server(
         executor.start(provider.clone(), num_threads,
                        Some(&job_source_name),
                        None,
-                       &results_sink)?;
+                       &results_sink);
     }
 
     let mut context_executor = Executor::new()?;
@@ -336,7 +335,7 @@ fn server(
                            None,
                            Some(&context_job_source_name),
                            &results_sink,
-    )?;
+    );
 
     let mut submitter = CLISubmitter {
         runtime_server_connection: server_connection,
