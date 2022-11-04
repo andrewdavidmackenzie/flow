@@ -2,7 +2,7 @@
 pub mod test {
     use std::sync::{Arc, Mutex};
 
-    use crate::cli::client_server::{ClientConnection, ServerConnection, ServerInfo, WAIT};
+    use crate::cli::client_server::{ClientConnection, ServerConnection, WAIT};
     use crate::cli::runtime_messages::{ClientMessage, ServerMessage};
 
     pub fn wait_for_then_send(
@@ -16,8 +16,7 @@ pub mod test {
 
         let connection = server_connection.lock()
             .expect("Could not get access to server connection");
-        let mut server_info = ServerInfo::new("foo");
-        let client_connection = ClientConnection::new(&mut server_info)
+        let client_connection = ClientConnection::new("foo")
             .expect("Could not create ClientConnection");
 
         client_connection

@@ -31,7 +31,6 @@ use cli::cli_submitter::CLISubmitter;
 #[cfg(feature = "debugger")]
 use cli::client_server::ClientConnection;
 use cli::client_server::ServerConnection;
-use cli::client_server::ServerInfo;
 #[cfg(feature = "debugger")]
 use cli::debug_server_message::DebugServerMessage;
 #[cfg(feature = "debugger")]
@@ -239,18 +238,14 @@ fn client_and_server(
         );
     });
 
-    let mut context_server_info = ServerInfo::new(RUNTIME_SERVICE_NAME);
-    #[cfg(feature = "debugger")]
-        let mut debug_server_info = ServerInfo::new(DEBUG_SERVICE_NAME);
-
     #[cfg(feature = "debugger")]
     let control_c_client_connection = if debug_this_flow {
-        Some(ClientConnection::new(&mut context_server_info)?)
+        Some(ClientConnection::new(RUNTIME_SERVICE_NAME)?)
     } else {
         None
     };
 
-    let runtime_client_connection = ClientConnection::new(&mut context_server_info)?;
+    let runtime_client_connection = ClientConnection::new(RUNTIME_SERVICE_NAME)?;
 
     client(
         matches,
@@ -258,7 +253,7 @@ fn client_and_server(
         runtime_client_connection,
         #[cfg(feature = "debugger")] control_c_client_connection,
         #[cfg(feature = "debugger")] debug_this_flow,
-        #[cfg(feature = "debugger")] &mut debug_server_info,
+        #[cfg(feature = "debugger")] DEBUG_SERVICE_NAME,
     )
 }
 
@@ -358,18 +353,14 @@ fn client_only(
     lib_search_path: Simpath,
     #[cfg(feature = "debugger")] debug_this_flow: bool,
 ) -> Result<()> {
-    let mut context_server_info = ServerInfo::new(RUNTIME_SERVICE_NAME);
-    #[cfg(feature = "debugger")]
-    let mut debug_server_info = ServerInfo::new(DEBUG_SERVICE_NAME);
-
     #[cfg(feature = "debugger")]
         let control_c_client_connection = if debug_this_flow {
-        Some(ClientConnection::new(&mut context_server_info)?)
+        Some(ClientConnection::new(RUNTIME_SERVICE_NAME)?)
     } else {
         None
     };
 
-    let context_client_connection = ClientConnection::new(&mut context_server_info)?;
+    let context_client_connection = ClientConnection::new(RUNTIME_SERVICE_NAME)?;
 
     client(
         matches,
@@ -377,7 +368,7 @@ fn client_only(
         context_client_connection,
         #[cfg(feature = "debugger")] control_c_client_connection,
         #[cfg(feature = "debugger")] debug_this_flow,
-        #[cfg(feature = "debugger")] &mut debug_server_info,
+        #[cfg(feature = "debugger")] DEBUG_SERVICE_NAME,
     )
 }
 
@@ -390,7 +381,7 @@ fn client(
     #[cfg(feature = "debugger")]
     control_c_client_connection: Option<ClientConnection>,
     #[cfg(feature = "debugger")] debug_this_flow: bool,
-    #[cfg(feature = "debugger")] debug_server_info: &mut ServerInfo,
+    #[cfg(feature = "debugger")] debug_service_name: &str,
 ) -> Result<()> {
     // keep an Arc Mutex protected set of override args that debug client can override
     let override_args = Arc::new(Mutex::new(Vec::<String>::new()));
@@ -418,7 +409,7 @@ fn client(
 
     #[cfg(feature = "debugger")]
     if debug_this_flow {
-        let debug_client_connection = ClientConnection::new(debug_server_info)?;
+        let debug_client_connection = ClientConnection::new(debug_service_name)?;
         let debug_client = CliDebugClient::new(debug_client_connection,
             override_args);
         let _ = thread::spawn(move || {

@@ -17,25 +17,6 @@ pub static DONT_WAIT:i32 = zmq::DONTWAIT;
 // This should be a "well known" port, common across clients/servers that want discovery
 const DISCOVERY_PORT:u16 = 9002;
 
-/// Structure that holds information about the Server to help clients connect to it
-#[derive(Clone, Debug)]
-pub struct ServerInfo {
-    /// Name of the service name to connect to on the server
-    service_name: String,
-    /// optional address:port formatted string
-    server_address: Option<String>
-}
-
-impl ServerInfo {
-    /// Create a new ServerInfo struct
-    pub fn new(service_name: &str) -> Self {
-        ServerInfo {
-            service_name: service_name.into(),
-            server_address: None
-        }
-    }
-}
-
 /// `ClientConnection` stores information related to the connection from a runtime client
 /// to the runtime server and is used each time a message is to be sent or received.
 pub struct ClientConnection {
@@ -44,28 +25,22 @@ pub struct ClientConnection {
 
 impl ClientConnection {
     /// Create a new connection between client and server
-    pub fn new(server_info: &mut ServerInfo) -> Result<Self> {
-        let requester;
+    pub fn new(service_name: &str) -> Result<Self> {
+        let server_address = Self::discover_service(service_name)?;
 
-        let host_port = Self::discover_service(&server_info.service_name)?;
-
-        info!(
-            "Client will attempt to connect to service '{}' at: '{host_port}'",
-            server_info.service_name
-        );
+        info!("Client will attempt to connect to service '{service_name}' at: '{server_address}'");
 
         let context = zmq::Context::new();
 
-        requester = context
+        let requester = context
             .socket(zmq::REQ)
             .chain_err(|| "Runtime client could not connect to service")?;
 
         requester
-            .connect(&format!("tcp://{}", host_port))
+            .connect(&format!("tcp://{}", server_address))
             .chain_err(|| "Could not connect to service")?;
 
-        info!("Client connected to service '{}' at '{host_port}'", server_info.service_name);
-        server_info.server_address = Some(host_port);
+        info!("Client connected to service '{service_name}' at '{server_address}'");
 
         Ok(ClientConnection { requester })
     }
@@ -208,7 +183,7 @@ mod test {
     use serde_derive::{Deserialize, Serialize};
     use serial_test::serial;
 
-    use crate::cli::client_server::{ClientConnection, DONT_WAIT, ServerConnection, ServerInfo, WAIT};
+    use crate::cli::client_server::{ClientConnection, DONT_WAIT, ServerConnection, WAIT};
 
     #[derive(Serialize, Deserialize, PartialEq, Eq, Debug)]
     enum ServerMessage {
@@ -267,8 +242,7 @@ mod test {
     fn server_receive_wait_get_reply() {
         let mut server = ServerConnection::new("test")
             .expect("Could not create ServerConnection");
-        let mut server_info = ServerInfo::new("test");
-        let client = ClientConnection::new(&mut server_info)
+        let client = ClientConnection::new("test")
             .expect("Could not create ClientConnection");
 
         // Open the connection by sending the first message from the client
@@ -299,8 +273,7 @@ mod test {
     fn server_receive_nowait_get_reply() {
         let mut server = ServerConnection::new("test")
             .expect("Could not create ServerConnection");
-        let mut server_info = ServerInfo::new("test");
-        let client = ClientConnection::new(&mut server_info)
+        let client = ClientConnection::new("test")
             .expect("Could not create ClientConnection");
 
         // Open the connection by sending the first message from the client
