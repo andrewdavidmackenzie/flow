@@ -336,7 +336,8 @@ fn server(
         runtime_server_connection: server_connection,
     };
 
-    let dispatcher = Dispatcher::new(ports)?;
+    let job_queues = get_bind_addresses(ports);
+    let dispatcher = Dispatcher::new(job_queues)?;
     let mut coordinator = Coordinator::new(
         dispatcher,
         &mut submitter,

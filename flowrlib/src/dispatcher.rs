@@ -16,14 +16,6 @@ pub struct Dispatcher {
     results_socket: zmq::Socket,
 }
 
-fn get_bind_addresses(ports: (u16, u16, u16)) -> (String, String, String) {
-    (
-        format!("tcp://*:{}", ports.0),
-        format!("tcp://*:{}", ports.1),
-        format!("tcp://*:{}", ports.2),
-    )
-}
-
 /// `Dispatcher` struct takes care of ending jobs for execution and receiving results
 impl Dispatcher {
     /// Create a new `Dispatcher` of `Job`s using three addresses of job queues
