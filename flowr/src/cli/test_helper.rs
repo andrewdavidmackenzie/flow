@@ -2,7 +2,9 @@
 pub mod test {
     use std::sync::{Arc, Mutex};
 
-    use crate::cli::client_server::{ClientConnection, ServerConnection, WAIT};
+    use flowrlib::services::WAIT;
+
+    use crate::cli::client_server::{ClientConnection, ServerConnection};
     use crate::cli::runtime_messages::{ClientMessage, ServerMessage};
 
     pub fn wait_for_then_send(

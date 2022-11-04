@@ -1,21 +1,12 @@
 use std::fmt::Display;
-use std::time::Duration;
 
 /// This is the message-queue implementation of the lib.client_server communications
 use log::{info, trace};
 use portpicker::pick_unused_port;
-use simpdiscoverylib::{BeaconListener, BeaconSender};
 use zmq::Socket;
 
 use flowcore::errors::*;
-
-/// WAIT for a message to arrive when performing a receive()
-pub const WAIT:i32 = 0;
-/// Do NOT WAIT for a message to arrive when performing a receive()
-pub static DONT_WAIT:i32 = zmq::DONTWAIT;
-
-// This should be a "well known" port, common across clients/servers that want discovery
-const DISCOVERY_PORT:u16 = 9002;
+use flowrlib::services::{discover_service, enable_service_discovery, WAIT};
 
 /// `ClientConnection` stores information related to the connection from a runtime client
 /// to the runtime server and is used each time a message is to be sent or received.
@@ -26,7 +17,7 @@ pub struct ClientConnection {
 impl ClientConnection {
     /// Create a new connection between client and server
     pub fn new(service_name: &str) -> Result<Self> {
-        let server_address = Self::discover_service(service_name)?;
+        let server_address = discover_service(service_name)?;
 
         info!("Client will attempt to connect to service '{service_name}' at: '{server_address}'");
 
@@ -43,17 +34,6 @@ impl ClientConnection {
         info!("Client connected to service '{service_name}' at '{server_address}'");
 
         Ok(ClientConnection { requester })
-    }
-
-    // Try to discover a server offering a particular service by name
-     fn discover_service(name: &str) -> Result<String> {
-        trace!("Creating beacon");
-        let listener = BeaconListener::new(name.as_bytes(), DISCOVERY_PORT)?;
-        info!("Client is waiting for a Service Discovery beacon for service with name '{}'", name);
-        let beacon = listener.wait(Some(Duration::from_secs(10)))?;
-        let server_address = format!("{}:{}", beacon.service_ip, beacon.service_port);
-        info!("Service '{name}' discovered at {server_address}");
-        Ok(server_address)
     }
 
     /// Receive a ServerMessage from the server
@@ -106,32 +86,12 @@ impl ServerConnection {
         responder.bind(&format!("tcp://*:{}", port))
             .chain_err(|| "Server Connection - could not bind on TCP Socket")?;
 
-        Self::enable_service_discovery(service_name, port)?;
+        enable_service_discovery(service_name, port)?;
         info!("Service '{}' listening on *:{}", service_name, port);
 
         Ok(ServerConnection {
             responder
         })
-    }
-
-    /*
-       Start a background thread that sends out beacons for service discovery by a client every second
-    */
-    fn enable_service_discovery(name: &str, port: u16) -> Result<()> {
-        match BeaconSender::new(port, name.as_bytes(), DISCOVERY_PORT) {
-            Ok(beacon) => {
-                info!(
-                    "Discovery beacon announcing service named '{}', on port: {}",
-                    name, port
-                );
-                std::thread::spawn(move || {
-                    let _ = beacon.send_loop(Duration::from_secs(1));
-                });
-            }
-            Err(e) => bail!("Error starting discovery beacon: {}", e.to_string()),
-        }
-
-        Ok(())
     }
 
     /// Receive a Message sent from the client to the server
@@ -183,7 +143,9 @@ mod test {
     use serde_derive::{Deserialize, Serialize};
     use serial_test::serial;
 
-    use crate::cli::client_server::{ClientConnection, DONT_WAIT, ServerConnection, WAIT};
+    use flowrlib::services::{DONT_WAIT, WAIT};
+
+    use crate::cli::client_server::{ClientConnection, ServerConnection};
 
     #[derive(Serialize, Deserialize, PartialEq, Eq, Debug)]
     enum ServerMessage {

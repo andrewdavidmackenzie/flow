@@ -148,7 +148,7 @@ pub fn collapse_connections(tables: &mut CompilerTables) -> Result<()> {
 
                         let flow_initializer = connection.from_io().get_initializer().clone();
 
-                        // ADM check types
+                        // TODO check types
 
                         destination_function.
                             set_flow_initializer(*destination_input_index, flow_initializer)?;

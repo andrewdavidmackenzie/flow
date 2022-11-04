@@ -37,9 +37,9 @@ impl Dispatcher {
             .map_err(|_| "Could not bind to results socket")?;
 
         Ok(Dispatcher {
-            job_socket: job_socket,
-            context_job_socket: context_job_socket,
-            results_socket: results_socket,
+            job_socket,
+            context_job_socket,
+            results_socket,
         })
     }
 

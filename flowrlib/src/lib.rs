@@ -20,7 +20,7 @@ pub mod info;
 pub mod run_state;
 
 /// Trait for a set of methods a server using the library must supply
-pub mod server;
+pub mod protocols;
 
 #[cfg(feature = "debugger")]
 mod debugger;
@@ -46,6 +46,9 @@ pub mod block;
 
 /// module providing `Job` struct from runtime that is required for debugging and tracing
 pub mod job;
+
+/// Service names common across multiple binary crates
+pub mod services;
 
 #[cfg(debug_assertions)]
 mod checks;

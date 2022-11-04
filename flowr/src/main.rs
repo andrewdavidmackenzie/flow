@@ -48,6 +48,7 @@ use flowrlib::coordinator::Coordinator;
 use flowrlib::dispatcher::Dispatcher;
 use flowrlib::executor::Executor;
 use flowrlib::info as flowrlib_info;
+use flowrlib::services::{CONTEXT_JOB_SERVICE_NAME, DEBUG_SERVICE_NAME, enable_service_discovery, JOB_SERVICE_NAME, RESULTS_JOB_SERVICE_NAME, RUNTIME_SERVICE_NAME};
 
 /// We'll put our errors in an `errors` module, and other modules in this crate will
 /// `use crate::errors::*;` to get access to everything `error_chain` creates.
@@ -70,17 +71,6 @@ pub enum Mode {
     /// `Coordinator` mode where a single process runs as a client and s server in different threads
     ClientAndServer,
 }
-
-// `RUNTIME_SERVICE_NAME` is the name of the runtime services and can be used to discover it by name
-const RUNTIME_SERVICE_NAME: &str = "runtime._flowr._tcp.local";
-
-// `DEBUG_SERVICE_NAME` is the name of the runtime services and can be used to discover it by name
-#[cfg(feature = "debugger")]
-const DEBUG_SERVICE_NAME: &str = "debug._flowr._tcp.local";
-
-const JOB_SERVICE_NAME: &str = "jobs._flowr._tcp.local";
-const CONTEXT_JOB_SERVICE_NAME: &str = "context_jobs._flowr._tcp.local";
-const RESULTS_JOB_SERVICE_NAME: &str = "results._flowr._tcp.local";
 
 /// Main for flowr binary - call `run()` and print any error that results or exit silently if OK
 fn main() {
@@ -309,6 +299,13 @@ fn server(
                                          PathBuf::from("/"))) as Arc<dyn Provider>;
 
     let ports = get_three_ports()?;
+
+    let job_queues = get_bind_addresses(ports);
+    let dispatcher = Dispatcher::new(job_queues)?;
+    enable_service_discovery(JOB_SERVICE_NAME, ports.0)?;
+    enable_service_discovery(CONTEXT_JOB_SERVICE_NAME, ports.1)?;
+    enable_service_discovery(RESULTS_JOB_SERVICE_NAME, ports.2)?;
+
     let (job_source_name, context_job_source_name, results_sink) =
         get_connect_addresses(ports);
 
@@ -345,8 +342,6 @@ fn server(
         runtime_server_connection: server_connection,
     };
 
-    let job_queues = get_bind_addresses(ports);
-    let dispatcher = Dispatcher::new(job_queues)?;
     let mut coordinator = Coordinator::new(
         dispatcher,
         &mut submitter,

@@ -7,12 +7,12 @@ use flowcore::errors::*;
 #[cfg(feature = "metrics")]
 use flowcore::model::metrics::Metrics;
 use flowcore::model::submission::Submission;
+use flowrlib::protocols::SubmissionProtocol;
 use flowrlib::run_state::RunState;
-use flowrlib::server::SubmissionProtocol;
-
 #[cfg(feature = "debugger")]
-use crate::cli::client_server::DONT_WAIT;
-use crate::cli::client_server::WAIT;
+use flowrlib::services::DONT_WAIT;
+use flowrlib::services::WAIT;
+
 use crate::cli::runtime_messages::ClientMessage;
 use crate::cli::runtime_messages::ServerMessage;
 use crate::ServerConnection;

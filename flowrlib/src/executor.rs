@@ -59,9 +59,9 @@ impl Executor {
     pub fn start(&mut self,
                  provider: Arc<dyn Provider>,
                  number_of_executors: usize,
-                 job_source_name: Option<&str>,
-                 context_job_source_name: Option<&str>,
-                 results_sink_name: &str,
+                 job_service: Option<&str>,
+                 context_job_service: Option<&str>,
+                 results_service: &str,
     ) -> Result<()> {
         let loaded_implementations = Arc::new(RwLock::new(HashMap::<Url, Arc<dyn Implementation>>::new()));
 
@@ -71,9 +71,9 @@ impl Executor {
             let thread_context = zmq::Context::new();
             let thread_implementations = loaded_implementations.clone();
             let thread_loaded_manifests = self.loaded_lib_manifests.clone();
-            let job_source = job_source_name.map(|s| s.into());
-            let context_job_source = context_job_source_name.map(|s| s.into());
-            let results_sink = results_sink_name.into();
+            let job_source = job_service.map(|s| s.into());
+            let context_job_source = context_job_service.map(|s| s.into());
+            let results_sink = results_service.into();
             thread::spawn(move || {
                 execution_loop(
                     thread_provider,
@@ -99,15 +99,15 @@ fn execution_loop(
     context: zmq::Context,
     loaded_implementations: Arc<RwLock<HashMap<Url, Arc<dyn Implementation>>>>,
     loaded_lib_manifests: Arc<RwLock<HashMap<Url, (LibraryManifest, Url)>>>,
-    job_source_name: Option<String>,
-    context_job_source_name: Option<String>,
-    results_sink_name: String,
+    job_service: Option<String>,
+    context_job_service: Option<String>,
+    results_service: String,
 ) -> Result<()> {
     let mut sockets : Vec<&zmq::Socket> = vec![];
     let mut items : Vec<zmq::PollItem> = vec![];
 
     let job_source : zmq::Socket;
-    if let Some(job_source_n) = job_source_name {
+    if let Some(job_source_n) = job_service {
         job_source = context.socket(zmq::PULL)
             .map_err(|_| "Could not create PULL end of job-source socket")?;
         job_source.connect(&job_source_n)
@@ -117,7 +117,7 @@ fn execution_loop(
     }
 
     let context_job_source : zmq::Socket;
-    if let Some(context_job_source_n) = context_job_source_name {
+    if let Some(context_job_source_n) = context_job_service {
         context_job_source = context.socket(zmq::PULL)
             .map_err(|_| "Could not create PULL end of context-job-source socket")?;
         context_job_source.connect(&context_job_source_n)
@@ -128,7 +128,7 @@ fn execution_loop(
 
     let results_sink = context.socket(zmq::PUSH)
         .map_err(|_| "Could not createPUSH end of results-sink socket")?;
-    results_sink.connect(&results_sink_name)
+    results_sink.connect(&results_service)
         .map_err(|_| "Could not connect to PULL end of results-sink socket")?;
 
     let mut process_jobs = true;
