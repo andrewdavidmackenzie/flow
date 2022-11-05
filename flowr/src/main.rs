@@ -321,8 +321,7 @@ fn server(
             )?;
         }
         executor.start(provider.clone(), num_threads,
-                       Some(&job_source_name),
-                       None,
+                       &job_source_name,
                        &results_sink);
     }
 
@@ -332,8 +331,7 @@ fn server(
         Url::parse("memory://")? // Statically linked library has no resolved Url
     )?;
     context_executor.start(provider, 1,
-                           None,
-                           Some(&context_job_source_name),
+                           &context_job_source_name,
                            &results_sink,
     );
 

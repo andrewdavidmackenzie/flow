@@ -86,8 +86,7 @@ fn server(num_threads: usize) -> Result<()> {
     )?;
 
     trace!("Starting flowrex executors");
-    executor.start(provider, num_threads,
-    Some(&job_service), None, &results_service);
+    executor.start(provider, num_threads, &job_service, &results_service);
 
     debug!("Parking main thread");
     thread::park();

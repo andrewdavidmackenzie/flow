@@ -59,8 +59,7 @@ impl Executor {
     pub fn start(&mut self,
                  provider: Arc<dyn Provider>,
                  number_of_executors: usize,
-                 job_service: Option<&str>,
-                 context_job_service: Option<&str>,
+                 job_service: &str,
                  results_service: &str,
     ) {
         let loaded_implementations = Arc::new(RwLock::new(HashMap::<Url, Arc<dyn Implementation>>::new()));
@@ -71,9 +70,8 @@ impl Executor {
             let thread_context = zmq::Context::new();
             let thread_implementations = loaded_implementations.clone();
             let thread_loaded_manifests = self.loaded_lib_manifests.clone();
-            let job_source = job_service.map(|s| s.into());
-            let context_job_source = context_job_service.map(|s| s.into());
             let results_sink = results_service.into();
+            let job_source = job_service.into();
             thread::spawn(move || {
                 trace!("Executor #{executor_number} entering execution loop");
                 if let Err(e) = execution_loop(
@@ -83,7 +81,6 @@ impl Executor {
                     thread_implementations,
                     thread_loaded_manifests,
                     job_source,
-                    context_job_source,
                     results_sink,
                 ) {
                     error!("Execution loop error: {e}");
@@ -100,37 +97,15 @@ fn execution_loop(
     context: zmq::Context,
     loaded_implementations: Arc<RwLock<HashMap<Url, Arc<dyn Implementation>>>>,
     loaded_lib_manifests: Arc<RwLock<HashMap<Url, (LibraryManifest, Url)>>>,
-    job_service: Option<String>,
-    context_job_service: Option<String>,
+    job_service: String,
     results_service: String,
 ) -> Result<()> {
-    let mut sockets : Vec<&zmq::Socket> = vec![];
-    let mut items : Vec<zmq::PollItem> = vec![];
-
-    let job_source : zmq::Socket;
-    if let Some(job_source_n) = job_service {
-        job_source = context.socket(zmq::PULL)
-            .map_err(|e|
-                format!("Could not create PULL end of job socket: {e}"))?;
-        job_source.connect(&job_source_n)
-            .map_err(|e|
-                format!("Could not connect to PULL end of job socket: '{job_source_n}' {e}", ))?;
-        sockets.push(&job_source);
-        items.push(job_source.as_poll_item(zmq::POLLIN | zmq::POLLERR));
-    }
-
-    let context_job_source : zmq::Socket;
-    if let Some(context_job_source_n) = context_job_service {
-        context_job_source = context.socket(zmq::PULL)
-            .map_err(|e|
-                format!("Could not create PULL end of context job socket: {e}"))?;
-        context_job_source.connect(&context_job_source_n)
-            .map_err(|e|
-                format!("Could not connect to PULL end of context job socket: '{context_job_source_n}' {e}",
-                ))?;
-        sockets.push(&context_job_source);
-        items.push(context_job_source.as_poll_item(zmq::POLLIN | zmq::POLLERR));
-    }
+    let job_source = context.socket(zmq::PULL)
+        .map_err(|e|
+            format!("Could not create PULL end of job socket: {e}"))?;
+    job_source.connect(&job_service)
+        .map_err(|e|
+            format!("Could not connect to PULL end of job socket: '{job_service}' {e}", ))?;
 
     let results_sink = context.socket(zmq::PUSH)
         .map_err(|e| format!("Could not create PUSH end of results socket: {e}"))?;
@@ -143,34 +118,27 @@ fn execution_loop(
 
     while process_jobs {
         trace!("{name} waiting for a job to execute");
-        match zmq::poll(&mut items, -1) {
-            Ok(_revents) => {
-                for (index, item) in items.iter().enumerate() {
-                    if item.is_readable() {
-                        let socket = sockets.get(index).ok_or("Could not get that socket")?;
-                        let msg = socket.recv_msg(0).map_err(|_| "Error receiving Job for execution")?;
-                        let message_string = msg.as_str().ok_or("Could not get message as str")?;
-                        let mut job: Job = serde_json::from_str(message_string)
-                            .map_err(|_| "Could not deserialize Message to Job")?;
+        match job_source.recv_msg(0) {
+            Ok(msg) => {
+                let message_string = msg.as_str().ok_or("Could not get message as str")?;
+                let mut job: Job = serde_json::from_str(message_string)
+                    .map_err(|_| "Could not deserialize Message to Job")?;
 
-                        trace!("Job #{}: Received for execution: {}", job.job_id, job);
-                        match execute_job(provider.clone(),
-                                          &mut job,
-                                          &results_sink,
-                                          &name,
-                                          loaded_implementations.clone(),
-                                          loaded_lib_manifests.clone()) {
-                            Ok(keep_processing) => process_jobs = keep_processing,
-                            Err(e) => error!("{}", e)
-                        }
-                    }
+                trace!("Job #{}: Received for execution: {}", job.job_id, job);
+                match execute_job(provider.clone(),
+                                  &mut job,
+                                  &results_sink,
+                                  &name,
+                                  loaded_implementations.clone(),
+                                  loaded_lib_manifests.clone()) {
+                    Ok(keep_processing) => process_jobs = keep_processing,
+                    Err(e) => error!("{}", e)
                 }
-            },
+            }
             Err(e) => {
                 error!("Error while polling for Jobs to execute: {e}");
             }
         }
-
     }
 
     Ok(())
