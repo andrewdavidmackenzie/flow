@@ -76,9 +76,6 @@ impl Executor {
             let results_sink = results_service.into();
             thread::spawn(move || {
                 trace!("Executor #{executor_number} entering execution loop");
-                trace!("Job Service: {job_source:?}");
-                trace!("Context Job Service: {context_job_source:?}");
-                trace!("Results Job Service: {results_sink}");
                 if let Err(e) = execution_loop(
                     thread_provider,
                     format!("Executor #{executor_number}"),
@@ -119,7 +116,7 @@ fn execution_loop(
             .map_err(|e|
                 format!("Could not connect to PULL end of job socket: '{job_source_n}' {e}", ))?;
         sockets.push(&job_source);
-        items.push(job_source.as_poll_item(zmq::POLLIN));
+        items.push(job_source.as_poll_item(zmq::POLLIN | zmq::POLLERR));
     }
 
     let context_job_source : zmq::Socket;
@@ -132,7 +129,7 @@ fn execution_loop(
                 format!("Could not connect to PULL end of context job socket: '{context_job_source_n}' {e}",
                 ))?;
         sockets.push(&context_job_source);
-        items.push(context_job_source.as_poll_item(zmq::POLLIN));
+        items.push(context_job_source.as_poll_item(zmq::POLLIN | zmq::POLLERR));
     }
 
     let results_sink = context.socket(zmq::PUSH)
@@ -146,28 +143,34 @@ fn execution_loop(
 
     while process_jobs {
         trace!("{name} waiting for a job to execute");
-        zmq::poll(&mut items, -1).map_err(|_| "Error while polling for Jobs to execute")?;
+        match zmq::poll(&mut items, -1) {
+            Ok(_revents) => {
+                for (index, item) in items.iter().enumerate() {
+                    if item.is_readable() {
+                        let socket = sockets.get(index).ok_or("Could not get that socket")?;
+                        let msg = socket.recv_msg(0).map_err(|_| "Error receiving Job for execution")?;
+                        let message_string = msg.as_str().ok_or("Could not get message as str")?;
+                        let mut job: Job = serde_json::from_str(message_string)
+                            .map_err(|_| "Could not deserialize Message to Job")?;
 
-        for (index, item) in items.iter().enumerate() {
-            if item.is_readable() {
-                let socket = sockets.get(index).ok_or("Could not get that socket")?;
-                let msg = socket.recv_msg(0).map_err(|_| "Error receiving Job for execution")?;
-                let message_string = msg.as_str().ok_or("Could not get message as str")?;
-                let mut job: Job = serde_json::from_str(message_string)
-                    .map_err(|_| "Could not deserialize Message to Job")?;
-
-                trace!("Job #{}: Received for execution: {}", job.job_id, job);
-                match execute_job(provider.clone(),
-                                  &mut job,
-                                  &results_sink,
-                                  &name,
-                                  loaded_implementations.clone(),
-                                  loaded_lib_manifests.clone()) {
-                    Ok(keep_processing) => process_jobs = keep_processing,
-                    Err(e) => error!("{}", e)
+                        trace!("Job #{}: Received for execution: {}", job.job_id, job);
+                        match execute_job(provider.clone(),
+                                          &mut job,
+                                          &results_sink,
+                                          &name,
+                                          loaded_implementations.clone(),
+                                          loaded_lib_manifests.clone()) {
+                            Ok(keep_processing) => process_jobs = keep_processing,
+                            Err(e) => error!("{}", e)
+                        }
+                    }
                 }
+            },
+            Err(e) => {
+                error!("Error while polling for Jobs to execute: {e}");
             }
         }
+
     }
 
     Ok(())
@@ -199,7 +202,7 @@ fn execute_job(
     let mut implementations = loaded_implementations.write()
         .map_err(|_| "Could not gain read access to loaded implementations map")?;
     if implementations.get(&job.implementation_url).is_none() {
-        trace!("Implementation at '{}' is not loaded", job.implementation_url);
+        trace!("Implementation '{}' is not loaded", job.implementation_url);
         let implementation = match job.implementation_url.scheme() {
             "lib" => {
                 let mut lib_root_url = job.implementation_url.clone();

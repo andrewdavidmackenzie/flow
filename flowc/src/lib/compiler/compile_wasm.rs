@@ -41,14 +41,14 @@ pub fn compile_implementation(
     if missing || out_of_date {
         if native_only {
             if missing {
-                warn!("Implementation at '{}' is missing and you have \
+                warn!("Implementation '{}' is missing and you have \
                 selected to skip building, so flows relaying on this implementation will not \
                 execute correctly.\nYou can build it using 'flowc', using the '-p' option",
                                       wasm_destination.display());
             }
             if out_of_date {
                 info!(
-                    "Implementation at '{}' is out of date with source at '{}'",
+                    "Implementation '{}' is out of date with source at '{}'",
                     wasm_destination.display(),
                     implementation_source_path.display()
                 );
@@ -205,8 +205,8 @@ mod test {
 
     use crate::compiler::compile;
 
-    use super::run_optional_command;
     use super::out_of_date;
+    use super::run_optional_command;
 
     #[test]
     fn test_run_optional_non_existent() {
