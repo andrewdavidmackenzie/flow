@@ -1,5 +1,6 @@
 use log::{info, debug, error, trace};
 use std::thread;
+use std::thread::JoinHandle;
 use std::collections::HashMap;
 use std::panic;
 use std::sync::{Arc, RwLock};
@@ -21,13 +22,15 @@ pub struct Executor {
     // (e.g. lib:://flowstdlib) and the entry is a tuple of the LibraryManifest
     // and the resolved Url of where the manifest was read from
     loaded_lib_manifests: Arc<RwLock<HashMap<Url, (LibraryManifest, Url)>>>,
+    executors: Vec<JoinHandle<()>>,
 }
 
 impl Executor {
     /// Create a new executor that receives jobs, executes them and returns results.
     pub fn new() -> Result<Self> {
         Ok(Executor{
-            loaded_lib_manifests: Arc::new(RwLock::new(HashMap::<Url, (LibraryManifest, Url)>::new()))
+            loaded_lib_manifests: Arc::new(RwLock::new(HashMap::<Url, (LibraryManifest, Url)>::new())),
+            executors: vec![],
         })
     }
 
@@ -71,7 +74,7 @@ impl Executor {
             let thread_loaded_manifests = self.loaded_lib_manifests.clone();
             let results_sink = results_service.into();
             let job_source = job_service.into();
-            thread::spawn(move || {
+            self.executors.push(thread::spawn(move || {
                 trace!("Executor #{executor_number} entering execution loop");
                 if let Err(e) = execution_loop(
                     thread_provider,
@@ -84,7 +87,14 @@ impl Executor {
                 ) {
                     error!("Execution loop error: {e}");
                 }
-            });
+            }));
+        }
+    }
+
+    /// Wait until all threads end
+    pub fn wait(self) {
+        for executor in self.executors {
+            let _ = executor.join();
         }
     }
 }
