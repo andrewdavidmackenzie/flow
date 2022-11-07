@@ -64,7 +64,7 @@ impl Executor {
     ) {
         let loaded_implementations = Arc::new(RwLock::new(HashMap::<Url, Arc<dyn Implementation>>::new()));
 
-        info!("Starting {} executor threads", number_of_executors);
+        info!("Starting {number_of_executors} executor threads");
         for executor_number in 0..number_of_executors {
             let thread_provider = provider.clone();
             let thread_context = zmq::Context::new();

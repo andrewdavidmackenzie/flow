@@ -8,10 +8,10 @@ use crate::job::Job;
 
 /// `Dispatcher` structure holds information required to send jobs for execution and receive results back
 pub struct Dispatcher {
-    // A source of other (non-context) jobs to be executed
-    job_socket: zmq::Socket,
-    // A source of jobs to be executed for context:// functions
-    context_job_socket: zmq::Socket,
+    // A source of lib jobs to be executed
+    lib_job_socket: zmq::Socket,
+    // A source of jobs to be executed for context:// and provided functions
+    general_job_socket: zmq::Socket,
     // A sink where to send jobs (with results)
     results_socket: zmq::Socket,
 }
@@ -37,8 +37,8 @@ impl Dispatcher {
             .map_err(|_| "Could not bind to results socket")?;
 
         Ok(Dispatcher {
-            job_socket,
-            context_job_socket,
+            lib_job_socket: job_socket,
+            general_job_socket: context_job_socket,
             results_socket,
         })
     }
@@ -69,11 +69,11 @@ impl Dispatcher {
 
     // Send a `Job` for execution to executors
     pub(crate) fn send_job_for_execution(&mut self, job: &Job) -> Result<()> {
-        if job.implementation_url.scheme() == "context" {
-            self.context_job_socket.send(serde_json::to_string(job)?.as_bytes(), 0)
+        if job.implementation_url.scheme() == "lib" {
+            self.lib_job_socket.send(serde_json::to_string(job)?.as_bytes(), 0)
                 .map_err(|_| "Could not send context Job for execution")?;
         } else {
-            self.job_socket.send(serde_json::to_string(job)?.as_bytes(), 0)
+            self.general_job_socket.send(serde_json::to_string(job)?.as_bytes(), 0)
                 .map_err(|_| "Could not send Job for execution")?;
         }
 
