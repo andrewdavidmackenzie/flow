@@ -43,9 +43,9 @@ impl Dispatcher {
         })
     }
 
-    /// Set the timeout to use when waiting for job results
-    /// Setting to `None` will disable timeouts and block forever
-    pub fn set_results_timeout(&mut self, timeout: Option<Duration>) -> Result<()> {
+    // Set the timeout to use when waiting for job results
+    // Setting to `None` will disable timeouts and block forever
+    pub(crate) fn set_results_timeout(&mut self, timeout: Option<Duration>) -> Result<()> {
         match timeout {
             Some(time) => {
                 debug!("Setting results timeout to: {}ms", time.as_millis());
@@ -58,8 +58,8 @@ impl Dispatcher {
         }.map_err(|e| format!("Error setting results timeout: {e}").into())
     }
 
-    /// Wait for, then return the next Job with results returned from executors
-    pub fn get_next_result(&mut self) -> Result<Job> {
+    // Wait for, then return the next Job with results returned from executors
+    pub(crate) fn get_next_result(&mut self) -> Result<Job> {
         let msg = self.results_socket.recv_msg(0)
             .map_err(|_| "Error receiving result")?;
         let message_string = msg.as_str().ok_or("Could not get message as str")?;
