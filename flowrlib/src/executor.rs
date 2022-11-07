@@ -155,7 +155,7 @@ fn set_panic_hook() {
     }));
 }
 
-/// Return Ok(keep_processing) flag as true or false to keep processing
+// Return Ok(keep_processing) flag as true or false to keep processing
 fn execute_job(
     provider: Arc<dyn Provider>,
     job: &mut Job,
