@@ -7,16 +7,15 @@ use url::Url;
 use crate::wasm;
 use crate::job::Job;
 use flowcore::Implementation;
-
 use flowcore::model::lib_manifest::{
     ImplementationLocator::Native, ImplementationLocator::Wasm, LibraryManifest,
 };
-
 use flowcore::errors::*;
-
 use flowcore::provider::Provider;
 
-/// It can load libraries and keep track of the `Function` `Implementations` used in execution.
+/// An `Executor` struct is used to receive jobs, execute them and return results.
+/// It can load libraries and keep track of the `Function` `Implementations` loaded for use
+/// in job execution.
 pub struct Executor {
     // HashMap of library manifests already loaded. The key is the library reference Url
     // (e.g. lib:://flowstdlib) and the entry is a tuple of the LibraryManifest
@@ -32,9 +31,9 @@ impl Executor {
         })
     }
 
-    /// Add a library's manifest to the set of those to reference later. This is mainly for use
-    /// prior to running a flow to ensure that the preferred libraries (e.g. flowstdlib native
-    /// version) is pre-loaded.
+    /// Add a library manifest so that it can be used later on to load implementations that are
+    /// required to execute jobs. Also provide the Url that the library url resolves to, so that
+    /// later it can be used when resolving the locations of implementations in this library.
     pub fn add_lib(
         &mut self,
         lib_manifest: LibraryManifest,
@@ -52,10 +51,10 @@ impl Executor {
     }
 
     /// Start executing jobs, specifying:
-    ///- the `Provider` to use to fetch implementation content
-    ///- optional timeout for waiting for results
-    ///- the number of executor threads
-    /// - whether to poll for context jobs also
+    /// - the `Provider` to use to fetch implementation content
+    /// - the number of executor threads
+    /// - the address of the job socket to get jobs from
+    /// - the address of the results socket to return results from executed jobs to
     pub fn start(&mut self,
                  provider: Arc<dyn Provider>,
                  number_of_executors: usize,
@@ -90,7 +89,6 @@ impl Executor {
     }
 }
 
-#[allow(clippy::too_many_arguments)]
 fn execution_loop(
     provider: Arc<dyn Provider>,
     name: String,
