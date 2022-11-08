@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use log::{debug, trace};
+use log::{debug, trace, error};
 use zmq::DONTWAIT;
 
 use flowcore::errors::*;
@@ -97,22 +97,19 @@ impl Dispatcher {
 
     /// Send a "DONE"" message to subscribed executors on the control_socket
     pub fn send_done(&mut self) -> Result<()> {
+        debug!("Dispatcher announcing DONE");
         self.control_socket.send("DONE".as_bytes(), DONTWAIT)
-            .map_err(|e| format!("Could not send 'DONE' message: {e}"))?;
-
-        trace!("Sent 'DONE' message to executors on control socket");
-
-        Ok(())
+            .chain_err(|| format!("Could not send 'DONE' message"))
     }
 }
 
-/*impl Drop for Dispatcher {
+impl Drop for Dispatcher {
     fn drop(&mut self) {
-        if let Err(e) = self.send_kill() {
+        if let Err(e) = self.send_done() {
             error!("Error while sending KILL while dropping Dispatcher: {e}");
         }
     }
-}*/
+}
 
 #[cfg(test)]
 mod test {

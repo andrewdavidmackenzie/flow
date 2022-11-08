@@ -1,10 +1,3 @@
-use std::collections::HashMap;
-use std::fs::File;
-use std::io;
-use std::io::prelude::*;
-use std::path::Path;
-use std::sync::{Arc, Mutex};
-
 use image::{ImageBuffer, ImageFormat, Rgb, RgbImage};
 use log::debug;
 #[cfg(feature = "debugger")]
@@ -13,6 +6,12 @@ use log::error;
 use log::info;
 
 use flowcore::errors::*;
+use std::collections::HashMap;
+use std::fs::File;
+use std::io;
+use std::io::prelude::*;
+use std::path::Path;
+use std::sync::{Arc, Mutex};
 
 use crate::cli::client_server::ClientConnection;
 use crate::cli::runtime_messages::{ClientMessage, ServerMessage};
@@ -54,7 +53,7 @@ impl CliRuntimeClient {
                 Ok(event) => {
                     let response = self.process_server_message(event);
                     if let ClientMessage::ClientExiting(server_result) = response {
-                        debug!("Client has decided to exit, so exiting the event loop.");
+                        debug!("Client is exiting the event loop.");
                         return server_result;
                     }
 
@@ -210,15 +209,14 @@ impl CliRuntimeClient {
 
 #[cfg(test)]
 mod test {
-    use std::fs;
-    use std::fs::File;
-    use std::io::prelude::*;
-    use std::sync::{Arc, Mutex};
-
     use tempdir::TempDir;
 
     #[cfg(feature = "metrics")]
     use flowcore::model::metrics::Metrics;
+    use std::fs;
+    use std::fs::File;
+    use std::io::prelude::*;
+    use std::sync::{Arc, Mutex};
 
     use crate::cli::runtime_messages::{ClientMessage, ServerMessage};
 

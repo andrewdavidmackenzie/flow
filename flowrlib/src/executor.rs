@@ -149,7 +149,7 @@ fn execution_loop(
                     let mut job: Job = serde_json::from_str(message_string)
                         .map_err(|_| "Could not deserialize Message to Job")?;
 
-                    debug!("Job #{}: Received for execution: {}", job.job_id, job);
+                    debug!("Job #{}: Received for execution", job.job_id);
                     match execute_job(provider.clone(),
                                       &mut job,
                                       &results_sink,
@@ -165,7 +165,7 @@ fn execution_loop(
                     let msg = control_socket.recv_msg(0).map_err(|_| "Error receiving Control message")?;
                     match msg.as_str().ok_or("Could not get message as str") {
                         Ok("DONE") => {
-                            debug!("'DONE' message received from dispatched in executor");
+                            debug!("'DONE' message received in executor");
                             return Ok(())
                         },
                         Ok(_) => error!("Unexpected Control message"),

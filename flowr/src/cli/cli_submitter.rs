@@ -1,5 +1,3 @@
-use std::sync::{Arc, Mutex};
-
 use error_chain::bail;
 use log::{debug, error, info, trace};
 
@@ -12,6 +10,7 @@ use flowrlib::run_state::RunState;
 #[cfg(feature = "debugger")]
 use flowrlib::services::DONT_WAIT;
 use flowrlib::services::WAIT;
+use std::sync::{Arc, Mutex};
 
 use crate::cli::runtime_messages::ClientMessage;
 use crate::cli::runtime_messages::ServerMessage;
@@ -107,11 +106,10 @@ impl SubmissionProtocol for CLISubmitter {
 
     // The flow server is about to exit
     fn coordinator_is_exiting(&mut self, result: Result<()>) -> Result<()> {
-        debug!("Server exiting");
+        debug!("Coordinator exiting");
         let mut connection = self.runtime_server_connection
             .lock()
             .map_err(|e| format!("Could not lock Server Connection: {e}"))?;
-        connection.send(ServerMessage::ServerExiting(result))?;
-        Ok(())
+        connection.send(ServerMessage::ServerExiting(result))
     }
 }
