@@ -99,7 +99,7 @@ impl Dispatcher {
     pub fn send_done(&mut self) -> Result<()> {
         debug!("Dispatcher announcing DONE");
         self.control_socket.send("DONE".as_bytes(), DONTWAIT)
-            .chain_err(|| format!("Could not send 'DONE' message"))
+            .chain_err(|| "Could not send 'DONE' message")
     }
 }
 
