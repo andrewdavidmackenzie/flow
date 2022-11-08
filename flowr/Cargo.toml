@@ -38,7 +38,7 @@ serde_json = { version = "1.0", default-features = false }
 error-chain = "0.12.2"
 multimap = "~0.8"
 portpicker = "0.1.1"
-zmq = "0.9.2"
+zmq = "0.10.0"
 ctrlc = {version = "3.2.3"}
 image = {version = "=0.24.4"}
 
