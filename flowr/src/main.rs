@@ -10,11 +10,6 @@
 //! This particular implementation of this set of functions is a "CLI" one that interacts with the
 //! terminal for STDIO and the File system for files.
 
-use std::{env, thread};
-use std::path::PathBuf;
-use std::process::exit;
-use std::sync::{Arc, Mutex};
-
 use clap::{Arg, ArgMatches, Command};
 use log::{info, trace, warn};
 use portpicker::pick_unused_port;
@@ -48,7 +43,11 @@ use flowrlib::coordinator::Coordinator;
 use flowrlib::dispatcher::Dispatcher;
 use flowrlib::executor::Executor;
 use flowrlib::info as flowrlib_info;
-use flowrlib::services::{DEBUG_SERVICE_NAME, enable_service_discovery, JOB_QUEUES_DISCOVERY_PORT, JOB_SERVICE_NAME, RESULTS_JOB_SERVICE_NAME, RUNTIME_SERVICE_NAME};
+use flowrlib::services::{CONTROL_SERVICE_NAME, DEBUG_SERVICE_NAME, enable_service_discovery, JOB_QUEUES_DISCOVERY_PORT, JOB_SERVICE_NAME, RESULTS_JOB_SERVICE_NAME, RUNTIME_SERVICE_NAME};
+use std::{env, thread};
+use std::path::PathBuf;
+use std::process::exit;
+use std::sync::{Arc, Mutex};
 
 /// We'll put our errors in an `errors` module, and other modules in this crate will
 /// `use crate::errors::*;` to get access to everything `error_chain` creates.
@@ -255,24 +254,27 @@ fn client_and_server(
 // - (general) job source
 // - context job source
 // - results sink
-fn get_connect_addresses(ports: (u16, u16, u16)) -> (String, String, String) {
+fn get_connect_addresses(ports: (u16, u16, u16, u16)) -> (String, String, String, String) {
     (
         format!("tcp://127.0.0.1:{}", ports.0),
         format!("tcp://127.0.0.1:{}", ports.1),
         format!("tcp://127.0.0.1:{}", ports.2),
+        format!("tcp://127.0.0.1:{}", ports.3),
     )
 }
 
-fn get_bind_addresses(ports: (u16, u16, u16)) -> (String, String, String) {
+fn get_bind_addresses(ports: (u16, u16, u16, u16)) -> (String, String, String, String) {
     (
         format!("tcp://*:{}", ports.0),
         format!("tcp://*:{}", ports.1),
         format!("tcp://*:{}", ports.2),
+        format!("tcp://*:{}", ports.3),
     )
 }
 
-fn get_three_ports() -> Result<(u16, u16, u16)> {
+fn get_four_ports() -> Result<(u16, u16, u16, u16)> {
     Ok((pick_unused_port().chain_err(|| "No ports free")?,
+        pick_unused_port().chain_err(|| "No ports free")?,
         pick_unused_port().chain_err(|| "No ports free")?,
         pick_unused_port().chain_err(|| "No ports free")?,
     ))
@@ -298,14 +300,15 @@ fn server(
     let provider = Arc::new(MetaProvider::new(lib_search_path,
                                          PathBuf::from("/"))) as Arc<dyn Provider>;
 
-    let ports = get_three_ports()?;
-    trace!("Announcing three job queues on ports: {ports:?}");
+    let ports = get_four_ports()?;
+    trace!("Announcing three job queues and a control socket on ports: {ports:?}");
     let job_queues = get_bind_addresses(ports);
     let dispatcher = Dispatcher::new(job_queues)?;
     enable_service_discovery(JOB_QUEUES_DISCOVERY_PORT, JOB_SERVICE_NAME, ports.0)?;
     enable_service_discovery(JOB_QUEUES_DISCOVERY_PORT, RESULTS_JOB_SERVICE_NAME, ports.2)?;
+    enable_service_discovery(JOB_QUEUES_DISCOVERY_PORT, CONTROL_SERVICE_NAME, ports.3)?;
 
-    let (job_source_name, context_job_source_name, results_sink) =
+    let (job_source_name, context_job_source_name, results_sink, control_socket) =
         get_connect_addresses(ports);
 
     if !context_only {
@@ -321,9 +324,10 @@ fn server(
             )?;
         }
         executor.start(provider.clone(), num_threads,
-                       Some(&job_source_name),
-                       None,
-                       &results_sink);
+                       &job_source_name,
+                       &results_sink,
+                       &control_socket,
+        );
     }
 
     let mut context_executor = Executor::new()?;
@@ -332,9 +336,9 @@ fn server(
         Url::parse("memory://")? // Statically linked library has no resolved Url
     )?;
     context_executor.start(provider, 1,
-                           None,
-                           Some(&context_job_source_name),
+                           &context_job_source_name,
                            &results_sink,
+                            &control_socket,
     );
 
     let mut submitter = CLISubmitter {

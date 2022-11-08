@@ -1,5 +1,6 @@
 use log::{info, debug, error, trace};
 use std::thread;
+use std::thread::JoinHandle;
 use std::collections::HashMap;
 use std::panic;
 use std::sync::{Arc, RwLock};
@@ -7,34 +8,35 @@ use url::Url;
 use crate::wasm;
 use crate::job::Job;
 use flowcore::Implementation;
-
 use flowcore::model::lib_manifest::{
     ImplementationLocator::Native, ImplementationLocator::Wasm, LibraryManifest,
 };
-
 use flowcore::errors::*;
-
 use flowcore::provider::Provider;
 
-/// It can load libraries and keep track of the `Function` `Implementations` used in execution.
+/// An `Executor` struct is used to receive jobs, execute them and return results.
+/// It can load libraries and keep track of the `Function` `Implementations` loaded for use
+/// in job execution.
 pub struct Executor {
     // HashMap of library manifests already loaded. The key is the library reference Url
     // (e.g. lib:://flowstdlib) and the entry is a tuple of the LibraryManifest
     // and the resolved Url of where the manifest was read from
     loaded_lib_manifests: Arc<RwLock<HashMap<Url, (LibraryManifest, Url)>>>,
+    executors: Vec<JoinHandle<()>>,
 }
 
 impl Executor {
     /// Create a new executor that receives jobs, executes them and returns results.
     pub fn new() -> Result<Self> {
         Ok(Executor{
-            loaded_lib_manifests: Arc::new(RwLock::new(HashMap::<Url, (LibraryManifest, Url)>::new()))
+            loaded_lib_manifests: Arc::new(RwLock::new(HashMap::<Url, (LibraryManifest, Url)>::new())),
+            executors: vec![],
         })
     }
 
-    /// Add a library's manifest to the set of those to reference later. This is mainly for use
-    /// prior to running a flow to ensure that the preferred libraries (e.g. flowstdlib native
-    /// version) is pre-loaded.
+    /// Add a library manifest so that it can be used later on to load implementations that are
+    /// required to execute jobs. Also provide the Url that the library url resolves to, so that
+    /// later it can be used when resolving the locations of implementations in this library.
     pub fn add_lib(
         &mut self,
         lib_manifest: LibraryManifest,
@@ -52,33 +54,30 @@ impl Executor {
     }
 
     /// Start executing jobs, specifying:
-    ///- the `Provider` to use to fetch implementation content
-    ///- optional timeout for waiting for results
-    ///- the number of executor threads
-    /// - whether to poll for context jobs also
+    /// - the `Provider` to use to fetch implementation content
+    /// - the number of executor threads
+    /// - the address of the job socket to get jobs from
+    /// - the address of the results socket to return results from executed jobs to
     pub fn start(&mut self,
                  provider: Arc<dyn Provider>,
                  number_of_executors: usize,
-                 job_service: Option<&str>,
-                 context_job_service: Option<&str>,
+                 job_service: &str,
                  results_service: &str,
+                 control_service: &str,
     ) {
         let loaded_implementations = Arc::new(RwLock::new(HashMap::<Url, Arc<dyn Implementation>>::new()));
 
-        info!("Starting {} executor threads", number_of_executors);
+        info!("Starting {number_of_executors} executor threads");
         for executor_number in 0..number_of_executors {
             let thread_provider = provider.clone();
             let thread_context = zmq::Context::new();
             let thread_implementations = loaded_implementations.clone();
             let thread_loaded_manifests = self.loaded_lib_manifests.clone();
-            let job_source = job_service.map(|s| s.into());
-            let context_job_source = context_job_service.map(|s| s.into());
             let results_sink = results_service.into();
-            thread::spawn(move || {
+            let job_source = job_service.into();
+            let control_address = control_service.into();
+            self.executors.push(thread::spawn(move || {
                 trace!("Executor #{executor_number} entering execution loop");
-                trace!("Job Service: {job_source:?}");
-                trace!("Context Job Service: {context_job_source:?}");
-                trace!("Results Job Service: {results_sink}");
                 if let Err(e) = execution_loop(
                     thread_provider,
                     format!("Executor #{executor_number}"),
@@ -86,12 +85,19 @@ impl Executor {
                     thread_implementations,
                     thread_loaded_manifests,
                     job_source,
-                    context_job_source,
                     results_sink,
+                    control_address,
                 ) {
                     error!("Execution loop error: {e}");
                 }
-            });
+            }));
+        }
+    }
+
+    /// Wait until all threads end
+    pub fn wait(self) {
+        for executor in self.executors {
+            let _ = executor.join();
         }
     }
 }
@@ -103,69 +109,72 @@ fn execution_loop(
     context: zmq::Context,
     loaded_implementations: Arc<RwLock<HashMap<Url, Arc<dyn Implementation>>>>,
     loaded_lib_manifests: Arc<RwLock<HashMap<Url, (LibraryManifest, Url)>>>,
-    job_service: Option<String>,
-    context_job_service: Option<String>,
+    job_service: String,
     results_service: String,
+    control_address: String,
 ) -> Result<()> {
-    let mut sockets : Vec<&zmq::Socket> = vec![];
-    let mut items : Vec<zmq::PollItem> = vec![];
-
-    let job_source : zmq::Socket;
-    if let Some(job_source_n) = job_service {
-        job_source = context.socket(zmq::PULL)
-            .map_err(|e|
-                format!("Could not create PULL end of job socket: {e}"))?;
-        job_source.connect(&job_source_n)
-            .map_err(|e|
-                format!("Could not connect to PULL end of job socket: '{job_source_n}' {e}", ))?;
-        sockets.push(&job_source);
-        items.push(job_source.as_poll_item(zmq::POLLIN));
-    }
-
-    let context_job_source : zmq::Socket;
-    if let Some(context_job_source_n) = context_job_service {
-        context_job_source = context.socket(zmq::PULL)
-            .map_err(|e|
-                format!("Could not create PULL end of context job socket: {e}"))?;
-        context_job_source.connect(&context_job_source_n)
-            .map_err(|e|
-                format!("Could not connect to PULL end of context job socket: '{context_job_source_n}' {e}",
-                ))?;
-        sockets.push(&context_job_source);
-        items.push(context_job_source.as_poll_item(zmq::POLLIN));
-    }
+    let job_source = context.socket(zmq::PULL)
+        .map_err(|e|
+            format!("Could not create PULL end of job socket: {e}"))?;
+    job_source.connect(&job_service)
+        .map_err(|e|
+            format!("Could not connect to PULL end of job socket: '{job_service}' {e}", ))?;
 
     let results_sink = context.socket(zmq::PUSH)
         .map_err(|e| format!("Could not create PUSH end of results socket: {e}"))?;
     results_sink.connect(&results_service)
         .map_err(|e| format!("Could not connect to PUSH end of results socket: {e}"))?;
 
+    let control_socket = context.socket(zmq::SocketType::SUB)
+        .map_err(|e| format!("Could not create SUB end of control socket: {e}"))?;
+    control_socket.connect(&control_address)
+        .map_err(|e| format!("Could not connect to SUB end of control socket: {e}"))?;
+    control_socket.set_subscribe(&[])
+        .map_err(|e| format!("Could not subscribe to SUB end of control socket: {e}"))?;
+
     let mut process_jobs = true;
 
     set_panic_hook();
 
+    let mut items : Vec<zmq::PollItem> = vec![job_source.as_poll_item(zmq::POLLIN),
+                                              control_socket.as_poll_item(zmq::POLLIN)];
+
     while process_jobs {
-        trace!("{name} waiting for a job to execute");
-        zmq::poll(&mut items, -1).map_err(|_| "Error while polling for Jobs to execute")?;
+        trace!("{name} waiting for a job to execute or a KILL signal");
+        match zmq::poll(&mut items, -1).map_err(|_| "Error while polling for Jobs to execute") {
+            Ok(_) => {
+                if items.get(0).ok_or("Could not get poll item 0")?.is_readable() {
+                    let msg = job_source.recv_msg(0).map_err(|_| "Error receiving Job for execution")?;
+                    let message_string = msg.as_str().ok_or("Could not get message as str")?;
+                    let mut job: Job = serde_json::from_str(message_string)
+                        .map_err(|_| "Could not deserialize Message to Job")?;
 
-        for (index, item) in items.iter().enumerate() {
-            if item.is_readable() {
-                let socket = sockets.get(index).ok_or("Could not get that socket")?;
-                let msg = socket.recv_msg(0).map_err(|_| "Error receiving Job for execution")?;
-                let message_string = msg.as_str().ok_or("Could not get message as str")?;
-                let mut job: Job = serde_json::from_str(message_string)
-                    .map_err(|_| "Could not deserialize Message to Job")?;
-
-                trace!("Job #{}: Received for execution: {}", job.job_id, job);
-                match execute_job(provider.clone(),
-                                  &mut job,
-                                  &results_sink,
-                                  &name,
-                                  loaded_implementations.clone(),
-                                  loaded_lib_manifests.clone()) {
-                    Ok(keep_processing) => process_jobs = keep_processing,
-                    Err(e) => error!("{}", e)
+                    debug!("Job #{}: Received for execution", job.job_id);
+                    match execute_job(provider.clone(),
+                                      &mut job,
+                                      &results_sink,
+                                      &name,
+                                      loaded_implementations.clone(),
+                                      loaded_lib_manifests.clone()) {
+                        Ok(keep_processing) => process_jobs = keep_processing,
+                        Err(e) => error!("{}", e)
+                    }
                 }
+
+                if items.get(1).ok_or("Could not get poll item 1")?.is_readable() {
+                    let msg = control_socket.recv_msg(0).map_err(|_| "Error receiving Control message")?;
+                    match msg.as_str().ok_or("Could not get message as str") {
+                        Ok("DONE") => {
+                            debug!("'DONE' message received in executor");
+                            return Ok(())
+                        },
+                        Ok(_) => error!("Unexpected Control message"),
+                        _ => error!("Error parsing Control message"),
+                    }
+                }
+            }
+            Err(e) => {
+                error!("Error while polling for Jobs or Control messages: {e}");
             }
         }
     }
@@ -186,7 +195,7 @@ fn set_panic_hook() {
     }));
 }
 
-/// Return Ok(keep_processing) flag as true or false to keep processing
+// Return Ok(keep_processing) flag as true or false to keep processing
 fn execute_job(
     provider: Arc<dyn Provider>,
     job: &mut Job,
@@ -199,7 +208,7 @@ fn execute_job(
     let mut implementations = loaded_implementations.write()
         .map_err(|_| "Could not gain read access to loaded implementations map")?;
     if implementations.get(&job.implementation_url).is_none() {
-        trace!("Implementation at '{}' is not loaded", job.implementation_url);
+        trace!("Implementation '{}' is not loaded", job.implementation_url);
         let implementation = match job.implementation_url.scheme() {
             "lib" => {
                 let mut lib_root_url = job.implementation_url.clone();

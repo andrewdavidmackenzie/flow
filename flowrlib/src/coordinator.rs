@@ -69,9 +69,7 @@ impl<'a> Coordinator<'a> {
             }
         }
 
-        self.submitter.coordinator_is_exiting(Ok(()))?;
-
-        Ok(())
+        self.submitter.coordinator_is_exiting(Ok(()))
     }
 
     //noinspection RsReassignImmutable

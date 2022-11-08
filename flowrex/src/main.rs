@@ -1,18 +1,8 @@
 #![deny(missing_docs)]
 #![warn(clippy::unwrap_used)]
 //! `flowrex` is the minimal executor of flow jobs.
-/// It attempts to be as small as possible, and only accepts jobs for execution over the network
-/// and does not load flows, accept flow submissions run a coordinator or access the file system.
-/// Any implementations are either preloaded static linked binary functions or loaded from WASM
-/// from peers.
-
-use std::{env, thread};
-use std::path::PathBuf;
-use std::process::exit;
-use std::sync::Arc;
-
 use clap::{Arg, ArgMatches, Command};
-use log::{debug, info, trace, warn};
+use log::{info, trace, warn};
 use simpath::Simpath;
 use simplog::SimpleLogger;
 #[cfg(feature = "flowstdlib")]
@@ -23,7 +13,17 @@ use flowcore::meta_provider::MetaProvider;
 use flowcore::provider::Provider;
 use flowrlib::executor::Executor;
 use flowrlib::info as flowrlib_info;
-use flowrlib::services::{discover_service, JOB_QUEUES_DISCOVERY_PORT, JOB_SERVICE_NAME, RESULTS_JOB_SERVICE_NAME};
+use flowrlib::services::{CONTROL_SERVICE_NAME, discover_service, JOB_QUEUES_DISCOVERY_PORT,
+                         JOB_SERVICE_NAME, RESULTS_JOB_SERVICE_NAME};
+/// It attempts to be as small as possible, and only accepts jobs for execution over the network
+/// and does not load flows, accept flow submissions run a coordinator or access the file system.
+/// Any implementations are either preloaded static linked binary functions or loaded from WASM
+/// from peers.
+
+use std::{env, thread};
+use std::path::PathBuf;
+use std::process::exit;
+use std::sync::Arc;
 
 /// We'll put our errors in an `errors` module, and other modules in this crate will
 /// `use crate::errors::*;` to get access to everything `error_chain` creates.
@@ -68,31 +68,35 @@ fn run() -> Result<()> {
 // loading a flow and it's library references, then enter the `submission_loop()` accepting and
 // executing flows submitted for execution, executing each one using the `Coordinator`
 fn server(num_threads: usize) -> Result<()> {
-    let provider = Arc::new(MetaProvider::new(Simpath::new(""),
-        PathBuf::from("/"))) as Arc<dyn Provider>;
-    let job_service = format!("tcp://{}",
-                              discover_service(JOB_QUEUES_DISCOVERY_PORT, JOB_SERVICE_NAME)?);
-    let results_service = format!("tcp://{}",
-                                  discover_service(JOB_QUEUES_DISCOVERY_PORT, RESULTS_JOB_SERVICE_NAME)?);
+    // loop, re-discovering flowr announced services that change network address on each run
+    loop {
+        #[allow(unused_mut)]
+        let mut executor = Executor::new()?;
 
-    #[allow(unused_mut)]
-    let mut executor = Executor::new()?;
+        #[cfg(feature = "flowstdlib")]
+        executor.add_lib(
+            flowstdlib::manifest::get_manifest()
+                .chain_err(|| "Could not get 'native' flowstdlib manifest")?,
+            Url::parse("memory://")?
+        )?;
 
-    #[cfg(feature = "flowstdlib")]
-    executor.add_lib(
-        flowstdlib::manifest::get_manifest()
-            .chain_err(|| "Could not get 'native' flowstdlib manifest")?,
-        Url::parse("memory://")? // Statically linked library has no resolved Url
-    )?;
+        let provider = Arc::new(MetaProvider::new(Simpath::new(""),
+            PathBuf::from("/"))) as Arc<dyn Provider>;
 
-    trace!("Starting flowrex executors");
-    executor.start(provider, num_threads,
-    Some(&job_service), None, &results_service);
+        let job_service = format!("tcp://{}",
+                                  discover_service(JOB_QUEUES_DISCOVERY_PORT, JOB_SERVICE_NAME)?);
+        let results_service = format!("tcp://{}",
+                                      discover_service(JOB_QUEUES_DISCOVERY_PORT, RESULTS_JOB_SERVICE_NAME)?);
 
-    debug!("Parking main thread");
-    thread::park();
+        let control_service = format!("tcp://{}",
+                                      discover_service(JOB_QUEUES_DISCOVERY_PORT, CONTROL_SERVICE_NAME)?);
 
-    Ok(())
+        trace!("Starting flowrex executors");
+        executor.start(provider, num_threads, &job_service, &results_service, &control_service);
+
+        trace!("Waiting for all executors to complete");
+        executor.wait();
+    }
 }
 
 // Determine the number of threads to use to execute flows
