@@ -95,12 +95,12 @@ impl Dispatcher {
         Ok(())
     }
 
-    /// Send a kill message to subscribed executors on the control_socket
-    pub fn send_kill(&mut self) -> Result<()> {
-        self.control_socket.send("KILL".as_bytes(), DONTWAIT)
-            .map_err(|e| format!("Could not send KILL message: {e}"))?;
+    /// Send a "DONE"" message to subscribed executors on the control_socket
+    pub fn send_done(&mut self) -> Result<()> {
+        self.control_socket.send("DONE".as_bytes(), DONTWAIT)
+            .map_err(|e| format!("Could not send 'DONE' message: {e}"))?;
 
-        trace!("Send KILL message to executors on control socket");
+        trace!("Sent 'DONE' message to executors on control socket");
 
         Ok(())
     }

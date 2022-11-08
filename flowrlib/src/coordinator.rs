@@ -71,6 +71,8 @@ impl<'a> Coordinator<'a> {
 
         self.submitter.coordinator_is_exiting(Ok(()))?;
 
+        self.dispatcher.send_done()?;
+
         Ok(())
     }
 

@@ -163,9 +163,10 @@ fn execution_loop(
 
                 if items.get(1).ok_or("Could not get poll item 1")?.is_readable() {
                     let msg = control_socket.recv_msg(0).map_err(|_| "Error receiving Control message")?;
-                    let message_string = msg.as_str().ok_or("Could not get message as str")?;
-                    if message_string == "KILL" {
-                        return Ok(())
+                    match msg.as_str().ok_or("Could not get message as str") {
+                        Ok("DONE") => return Ok(()),
+                        Ok(_) => error!("Unexpected Control message"),
+                        _ => error!("Error parsing Control message"),
                     }
                 }
             }
