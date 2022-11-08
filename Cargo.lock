@@ -708,7 +708,7 @@ dependencies = [
 
 [[package]]
 name = "flowstdlib"
-version = "0.80.0"
+version = "0.80.1"
 dependencies = [
  "error-chain",
  "flowcore",
