@@ -13,7 +13,8 @@ use flowcore::meta_provider::MetaProvider;
 use flowcore::provider::Provider;
 use flowrlib::executor::Executor;
 use flowrlib::info as flowrlib_info;
-use flowrlib::services::{discover_service, JOB_QUEUES_DISCOVERY_PORT, JOB_SERVICE_NAME, RESULTS_JOB_SERVICE_NAME};
+use flowrlib::services::{CONTROL_SERVICE_NAME, discover_service, JOB_QUEUES_DISCOVERY_PORT,
+                         JOB_SERVICE_NAME, RESULTS_JOB_SERVICE_NAME};
 /// It attempts to be as small as possible, and only accepts jobs for execution over the network
 /// and does not load flows, accept flow submissions run a coordinator or access the file system.
 /// Any implementations are either preloaded static linked binary functions or loaded from WASM
@@ -74,7 +75,7 @@ fn server(num_threads: usize) -> Result<()> {
     executor.add_lib(
         flowstdlib::manifest::get_manifest()
             .chain_err(|| "Could not get 'native' flowstdlib manifest")?,
-        Url::parse("memory://")? // Statically linked library has no resolved Url
+        Url::parse("memory://")?
     )?;
 
     let provider = Arc::new(MetaProvider::new(Simpath::new(""),
@@ -84,8 +85,11 @@ fn server(num_threads: usize) -> Result<()> {
     let results_service = format!("tcp://{}",
                                   discover_service(JOB_QUEUES_DISCOVERY_PORT, RESULTS_JOB_SERVICE_NAME)?);
 
+    let control_service = format!("tcp://{}",
+                                  discover_service(JOB_QUEUES_DISCOVERY_PORT, CONTROL_SERVICE_NAME)?);
+
     trace!("Starting flowrex executors");
-    executor.start(provider, num_threads, &job_service, &results_service);
+    executor.start(provider, num_threads, &job_service, &results_service, &control_service);
 
     trace!("Waiting for all executors to complete");
     executor.wait();

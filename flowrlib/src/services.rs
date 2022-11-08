@@ -19,6 +19,10 @@ pub const CONTEXT_JOB_SERVICE_NAME: &str = "context_jobs._flowr._tcp.local";
 /// `RESULTS_JOB_SERVICE_NAME` can be used to discover the queue where to send job results
 pub const RESULTS_JOB_SERVICE_NAME: &str = "results._flowr._tcp.local";
 
+/// `CONTROL_SERVICE_NAME` is a control PUB/SUB socket used to control executors that
+/// are listening on the JOB_SERVICE and sending results back via the RESULTS_SERVICE
+pub const CONTROL_SERVICE_NAME: &str = "control._flowr._tcp.local";
+
 /// WAIT for a message to arrive when performing a receive()
 pub const WAIT:i32 = 0;
 /// Do NOT WAIT for a message to arrive when performing a receive()

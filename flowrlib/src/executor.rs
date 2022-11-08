@@ -63,6 +63,7 @@ impl Executor {
                  number_of_executors: usize,
                  job_service: &str,
                  results_service: &str,
+                 control_service: &str,
     ) {
         let loaded_implementations = Arc::new(RwLock::new(HashMap::<Url, Arc<dyn Implementation>>::new()));
 
@@ -74,6 +75,7 @@ impl Executor {
             let thread_loaded_manifests = self.loaded_lib_manifests.clone();
             let results_sink = results_service.into();
             let job_source = job_service.into();
+            let control_address = control_service.into();
             self.executors.push(thread::spawn(move || {
                 trace!("Executor #{executor_number} entering execution loop");
                 if let Err(e) = execution_loop(
@@ -84,6 +86,7 @@ impl Executor {
                     thread_loaded_manifests,
                     job_source,
                     results_sink,
+                    control_address,
                 ) {
                     error!("Execution loop error: {e}");
                 }
@@ -99,6 +102,7 @@ impl Executor {
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn execution_loop(
     provider: Arc<dyn Provider>,
     name: String,
@@ -107,6 +111,7 @@ fn execution_loop(
     loaded_lib_manifests: Arc<RwLock<HashMap<Url, (LibraryManifest, Url)>>>,
     job_service: String,
     results_service: String,
+    control_address: String,
 ) -> Result<()> {
     let job_source = context.socket(zmq::PULL)
         .map_err(|e|
@@ -120,31 +125,52 @@ fn execution_loop(
     results_sink.connect(&results_service)
         .map_err(|e| format!("Could not connect to PUSH end of results socket: {e}"))?;
 
+    let control_socket = context.socket(zmq::SocketType::SUB)
+        .map_err(|e| format!("Could not create SUB end of control socket: {e}"))?;
+    control_socket.connect(&control_address)
+        .map_err(|e| format!("Could not connect to SUB end of control socket: {e}"))?;
+    control_socket.set_subscribe(&[])
+        .map_err(|e| format!("Could not subscribe to SUB end of control socket: {e}"))?;
+
     let mut process_jobs = true;
 
     set_panic_hook();
 
-    while process_jobs {
-        trace!("{name} waiting for a job to execute");
-        match job_source.recv_msg(0) {
-            Ok(msg) => {
-                let message_string = msg.as_str().ok_or("Could not get message as str")?;
-                let mut job: Job = serde_json::from_str(message_string)
-                    .map_err(|_| "Could not deserialize Message to Job")?;
+    let mut items : Vec<zmq::PollItem> = vec![job_source.as_poll_item(zmq::POLLIN),
+                                              control_socket.as_poll_item(zmq::POLLIN)];
 
-                trace!("Job #{}: Received for execution: {}", job.job_id, job);
-                match execute_job(provider.clone(),
-                                  &mut job,
-                                  &results_sink,
-                                  &name,
-                                  loaded_implementations.clone(),
-                                  loaded_lib_manifests.clone()) {
-                    Ok(keep_processing) => process_jobs = keep_processing,
-                    Err(e) => error!("{}", e)
+    while process_jobs {
+        trace!("{name} waiting for a job to execute or a KILL signal");
+        match zmq::poll(&mut items, -1).map_err(|_| "Error while polling for Jobs to execute") {
+            Ok(_) => {
+                if items.get(0).ok_or("Could not get poll item 0")?.is_readable() {
+                    let msg = job_source.recv_msg(0).map_err(|_| "Error receiving Job for execution")?;
+                    let message_string = msg.as_str().ok_or("Could not get message as str")?;
+                    let mut job: Job = serde_json::from_str(message_string)
+                        .map_err(|_| "Could not deserialize Message to Job")?;
+
+                    trace!("Job #{}: Received for execution: {}", job.job_id, job);
+                    match execute_job(provider.clone(),
+                                      &mut job,
+                                      &results_sink,
+                                      &name,
+                                      loaded_implementations.clone(),
+                                      loaded_lib_manifests.clone()) {
+                        Ok(keep_processing) => process_jobs = keep_processing,
+                        Err(e) => error!("{}", e)
+                    }
+                }
+
+                if items.get(1).ok_or("Could not get poll item 1")?.is_readable() {
+                    let msg = control_socket.recv_msg(0).map_err(|_| "Error receiving Control message")?;
+                    let message_string = msg.as_str().ok_or("Could not get message as str")?;
+                    if message_string == "KILL" {
+                        return Ok(())
+                    }
                 }
             }
             Err(e) => {
-                error!("Error while polling for Jobs to execute: {e}");
+                error!("Error while polling for Jobs or Control messages: {e}");
             }
         }
     }

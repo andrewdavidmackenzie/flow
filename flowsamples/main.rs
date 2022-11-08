@@ -150,11 +150,11 @@ fn args(sample_dir: &Path) -> io::Result<Vec<String>> {
 
 #[cfg(test)]
 mod test {
+    use serial_test::serial;
+
     use std::fs;
     use std::path::{Path, PathBuf};
     use std::process::{Command, Stdio};
-
-    use serial_test::serial;
 
     use crate::{FILE_FILENAME, STDERR_FILENAME, STDOUT_FILENAME};
 
@@ -242,6 +242,7 @@ mod test {
         test_sample("fibonacci", false);
     }
 
+    #[ignore]
     #[test]
     #[serial]
     fn test_fibonacci_flowrex() {

@@ -1,6 +1,7 @@
 use std::time::Duration;
 
 use log::{debug, trace};
+use zmq::DONTWAIT;
 
 use flowcore::errors::*;
 
@@ -14,21 +15,23 @@ pub struct Dispatcher {
     general_job_socket: zmq::Socket,
     // A sink where to send jobs (with results)
     results_socket: zmq::Socket,
+    // a socket to send control information to subscribing executors
+    control_socket: zmq::Socket,
 }
 
 /// `Dispatcher` struct takes care of ending jobs for execution and receiving results
 impl Dispatcher {
     /// Create a new `Dispatcher` of `Job`s using three addresses of job queues
-    pub fn new(job_queues: (String, String, String)) -> Result<Self> {
+    pub fn new(job_queues: (String, String, String, String)) -> Result<Self> {
         let context = zmq::Context::new();
-        let job_socket = context.socket(zmq::PUSH)
+        let lib_job_socket = context.socket(zmq::PUSH)
             .map_err(|_| "Could not create job socket")?;
-        job_socket.bind(&job_queues.0)
+        lib_job_socket.bind(&job_queues.0)
             .map_err(|_| "Could not bind to job socket")?;
 
-        let context_job_socket = context.socket(zmq::PUSH)
+        let general_job_socket = context.socket(zmq::PUSH)
             .map_err(|_| "Could not create context job socket")?;
-        context_job_socket.bind(&job_queues.1)
+        general_job_socket.bind(&job_queues.1)
             .map_err(|_| "Could not bind to context job socket")?;
 
         let results_socket = context.socket(zmq::PULL)
@@ -36,10 +39,16 @@ impl Dispatcher {
         results_socket.bind(&job_queues.2)
             .map_err(|_| "Could not bind to results socket")?;
 
+        let control_socket = context.socket(zmq::PUB)
+            .map_err(|_| "Could not create control socket")?;
+        control_socket.bind(&job_queues.3)
+            .map_err(|_| "Could not bind to control socket")?;
+
         Ok(Dispatcher {
-            lib_job_socket: job_socket,
-            general_job_socket: context_job_socket,
+            lib_job_socket,
+            general_job_socket,
             results_socket,
+            control_socket
         })
     }
 
@@ -71,10 +80,10 @@ impl Dispatcher {
     pub(crate) fn send_job_for_execution(&mut self, job: &Job) -> Result<()> {
         if job.implementation_url.scheme() == "lib" {
             self.lib_job_socket.send(serde_json::to_string(job)?.as_bytes(), 0)
-                .map_err(|_| "Could not send context Job for execution")?;
+                .map_err(|e| format!("Could not send context Job for execution: {e}"))?;
         } else {
             self.general_job_socket.send(serde_json::to_string(job)?.as_bytes(), 0)
-                .map_err(|_| "Could not send Job for execution")?;
+                .map_err(|e| format!("Could not send Job for execution: {e}"))?;
         }
 
         trace!(
@@ -85,7 +94,25 @@ impl Dispatcher {
 
         Ok(())
     }
+
+    /// Send a kill message to subscribed executors on the control_socket
+    pub fn send_kill(&mut self) -> Result<()> {
+        self.control_socket.send("KILL".as_bytes(), DONTWAIT)
+            .map_err(|e| format!("Could not send KILL message: {e}"))?;
+
+        trace!("Send KILL message to executors on control socket");
+
+        Ok(())
+    }
 }
+
+/*impl Drop for Dispatcher {
+    fn drop(&mut self) {
+        if let Err(e) = self.send_kill() {
+            error!("Error while sending KILL while dropping Dispatcher: {e}");
+        }
+    }
+}*/
 
 #[cfg(test)]
 mod test {
@@ -95,16 +122,18 @@ mod test {
     use crate::job::Job;
     use portpicker::pick_unused_port;
 
-    fn get_bind_addresses(ports: (u16, u16, u16)) -> (String, String, String) {
+    fn get_bind_addresses(ports: (u16, u16, u16, u16)) -> (String, String, String, String) {
         (
             format!("tcp://*:{}", ports.0),
             format!("tcp://*:{}", ports.1),
             format!("tcp://*:{}", ports.2),
+            format!("tcp://*:{}", ports.3),
         )
     }
 
-    fn get_three_ports() -> (u16, u16, u16) {
+    fn get_four_ports() -> (u16, u16, u16, u16) {
         (pick_unused_port().expect("No ports free"),
+            pick_unused_port().expect("No ports free"),
             pick_unused_port().expect("No ports free"),
             pick_unused_port().expect("No ports free"),
         )
@@ -114,7 +143,7 @@ mod test {
     #[serial]
     fn test_constructor() {
         let dispatcher = super::Dispatcher::new(
-            get_bind_addresses(get_three_ports()));
+            get_bind_addresses(get_four_ports()));
         assert!(dispatcher.is_ok());
     }
 
@@ -122,7 +151,7 @@ mod test {
     #[serial]
     fn set_timeout_to_none() {
         let mut dispatcher = super::Dispatcher::new(
-            get_bind_addresses(get_three_ports())
+            get_bind_addresses(get_four_ports())
         ).expect("Could not create dispatcher");
         assert!(dispatcher.set_results_timeout(None).is_ok());
     }
@@ -131,7 +160,7 @@ mod test {
     #[serial]
     fn set_timeout() {
         let mut dispatcher = super::Dispatcher::new(
-            get_bind_addresses(get_three_ports())
+            get_bind_addresses(get_four_ports())
         ).expect("Could not create dispatcher");
         assert!(dispatcher.set_results_timeout(Some(Duration::from_millis(10))).is_ok());
     }
@@ -149,7 +178,7 @@ mod test {
             result: Ok((None, false)),
         };
 
-        let ports = get_three_ports();
+        let ports = get_four_ports();
         let mut dispatcher = super::Dispatcher::new(
             get_bind_addresses(ports)
         ).expect("Could not create dispatcher");
@@ -176,7 +205,7 @@ mod test {
             result: Ok((None, false)),
         };
 
-        let ports = get_three_ports();
+        let ports = get_four_ports();
         let mut dispatcher = super::Dispatcher::new(
             get_bind_addresses(ports)
         ).expect("Could not create dispatcher");
@@ -203,7 +232,7 @@ mod test {
             result: Ok((None, false)),
         };
 
-        let ports = get_three_ports();
+        let ports = get_four_ports();
         let mut dispatcher = super::Dispatcher::new(
             get_bind_addresses(ports)
         ).expect("Could not create dispatcher");
