@@ -149,7 +149,7 @@ fn execution_loop(
                     let mut job: Job = serde_json::from_str(message_string)
                         .map_err(|_| "Could not deserialize Message to Job")?;
 
-                    trace!("Job #{}: Received for execution: {}", job.job_id, job);
+                    debug!("Job #{}: Received for execution: {}", job.job_id, job);
                     match execute_job(provider.clone(),
                                       &mut job,
                                       &results_sink,
@@ -164,7 +164,10 @@ fn execution_loop(
                 if items.get(1).ok_or("Could not get poll item 1")?.is_readable() {
                     let msg = control_socket.recv_msg(0).map_err(|_| "Error receiving Control message")?;
                     match msg.as_str().ok_or("Could not get message as str") {
-                        Ok("DONE") => return Ok(()),
+                        Ok("DONE") => {
+                            debug!("'DONE' message received from dispatched in executor");
+                            return Ok(())
+                        },
                         Ok(_) => error!("Unexpected Control message"),
                         _ => error!("Error parsing Control message"),
                     }

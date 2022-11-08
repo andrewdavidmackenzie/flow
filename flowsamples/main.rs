@@ -242,7 +242,6 @@ mod test {
         test_sample("fibonacci", false);
     }
 
-    #[ignore]
     #[test]
     #[serial]
     fn test_fibonacci_flowrex() {
