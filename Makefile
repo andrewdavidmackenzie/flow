@@ -170,5 +170,11 @@ trim-docs:
 
 .PHONY: publish
 publish:
-	@cargo build --no-default-features
-	@cargo ws publish
+	@cd flowcore;cargo publish || true
+	@cd flowmacro;cargo publish || true
+	@cd flowrlib;cargo publish || true
+	@cd flowc;cargo publish || true
+	#@cd flowstdlib;cargo publish || true
+	@cd flowr;cargo publish || true
+	@cd flowrex;cargo publish || true
+	@cd flowsamples;cargo publish || true
