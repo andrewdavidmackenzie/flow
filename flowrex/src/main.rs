@@ -68,33 +68,35 @@ fn run() -> Result<()> {
 // loading a flow and it's library references, then enter the `submission_loop()` accepting and
 // executing flows submitted for execution, executing each one using the `Coordinator`
 fn server(num_threads: usize) -> Result<()> {
-    #[allow(unused_mut)]
-    let mut executor = Executor::new()?;
+    // loop, re-discovering flowr announced services that change network address on each run
+    loop {
+        #[allow(unused_mut)]
+        let mut executor = Executor::new()?;
 
-    #[cfg(feature = "flowstdlib")]
-    executor.add_lib(
-        flowstdlib::manifest::get_manifest()
-            .chain_err(|| "Could not get 'native' flowstdlib manifest")?,
-        Url::parse("memory://")?
-    )?;
+        #[cfg(feature = "flowstdlib")]
+        executor.add_lib(
+            flowstdlib::manifest::get_manifest()
+                .chain_err(|| "Could not get 'native' flowstdlib manifest")?,
+            Url::parse("memory://")?
+        )?;
 
-    let provider = Arc::new(MetaProvider::new(Simpath::new(""),
-        PathBuf::from("/"))) as Arc<dyn Provider>;
-    let job_service = format!("tcp://{}",
-                              discover_service(JOB_QUEUES_DISCOVERY_PORT, JOB_SERVICE_NAME)?);
-    let results_service = format!("tcp://{}",
-                                  discover_service(JOB_QUEUES_DISCOVERY_PORT, RESULTS_JOB_SERVICE_NAME)?);
+        let provider = Arc::new(MetaProvider::new(Simpath::new(""),
+            PathBuf::from("/"))) as Arc<dyn Provider>;
 
-    let control_service = format!("tcp://{}",
-                                  discover_service(JOB_QUEUES_DISCOVERY_PORT, CONTROL_SERVICE_NAME)?);
+        let job_service = format!("tcp://{}",
+                                  discover_service(JOB_QUEUES_DISCOVERY_PORT, JOB_SERVICE_NAME)?);
+        let results_service = format!("tcp://{}",
+                                      discover_service(JOB_QUEUES_DISCOVERY_PORT, RESULTS_JOB_SERVICE_NAME)?);
 
-    trace!("Starting flowrex executors");
-    executor.start(provider, num_threads, &job_service, &results_service, &control_service);
+        let control_service = format!("tcp://{}",
+                                      discover_service(JOB_QUEUES_DISCOVERY_PORT, CONTROL_SERVICE_NAME)?);
 
-    trace!("Waiting for all executors to complete");
-    executor.wait();
+        trace!("Starting flowrex executors");
+        executor.start(provider, num_threads, &job_service, &results_service, &control_service);
 
-    Ok(())
+        trace!("Waiting for all executors to complete");
+        executor.wait();
+    }
 }
 
 // Determine the number of threads to use to execute flows
