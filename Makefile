@@ -174,7 +174,9 @@ publish:
 	@cd flowmacro;cargo publish || true
 	@cd flowrlib;cargo publish || true
 	@cd flowc;cargo publish || true
-	#@cd flowstdlib;cargo publish || true
+	# See https://github.com/andrewdavidmackenzie/flow/issues/1517
+	@cd flowstdlib;cargo publish --no-verify || true
 	@cd flowr;cargo publish || true
 	@cd flowrex;cargo publish || true
-	@cd flowsamples;cargo publish || true
+	# See https://github.com/andrewdavidmackenzie/flow/issues/1517
+	@cd flowsamples;cargo publish --no-verify || true
