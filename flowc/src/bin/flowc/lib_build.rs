@@ -101,7 +101,7 @@ fn check_manifest_status(manifest_json_file: &PathBuf, build_count: i32,
 }
 
 /*
-   Copy the source files for function or flow into the target directory
+   Copy additional source files for function or flow into the target directory
 */
 fn copy_sources_to_target_dir(toml_path: &Path, target_dir: &Path, docs: &str) -> Result<()> {
     // copy the definition toml to target directory
