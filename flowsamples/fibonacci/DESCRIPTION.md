@@ -5,7 +5,7 @@ Description
 ===
 A flow that generates a Fibonacci series of numbers and prints it out on `stdout`.
 
-Context Diagram
+Root Diagram
 ===
 <a href="root.dot.svg" target="_blank"><img src="root.dot.svg"></a>
 
@@ -13,7 +13,7 @@ Click image to navigate flow hierarchy.
 
 Features Used
 ===
-* Context Flow
+* Root Flow
 * Child flow described separately, with named outputs to parent flow
 * Connections between Input/Outputs of parent/child flows
 * Setting initial value of a Value at startup

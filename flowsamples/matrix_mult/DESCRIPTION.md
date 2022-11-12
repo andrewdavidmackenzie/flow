@@ -5,7 +5,7 @@ Description
 ===
 A flow that calculates the matrix product of two matrices.
 
-Context Diagram
+Root Diagram
 ===
 <a href="root.dot.svg" target="_blank"><img src="root.dot.svg"></a>
 
@@ -13,7 +13,7 @@ Click image to navigate flow hierarchy.
 
 Features Used
 ===
-* Context Flow
+* Root Flow
 * Connections between functions
 * Loop-back connections to accumulate an array, used to gather Numbers into array/number and then array/number into
 array/array/number (i.e. Matrix)

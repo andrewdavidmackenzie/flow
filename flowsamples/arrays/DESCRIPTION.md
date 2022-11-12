@@ -20,7 +20,7 @@ a job for each Number. You can see this by using the `-j` option of the runtime 
 jobs and the `-m` options to dump metrics after execution. The "Max Number of Parallel Jobs" should be similar or
 greater than 4, which is the size of the array of numbers formed.
 
-Context Diagram
+Root
 ===
 <a href="root.dot.svg" target="_blank"><img src="root.dot.svg"></a>
 
@@ -28,7 +28,7 @@ Click image to navigate flow hierarchy.
 
 Features Used
 ===
-* Context Flow
+* Root Flow
 * Setting initial value of a Function's inputs
 * Multiple connections into and out of functions and values
 * Library Functions

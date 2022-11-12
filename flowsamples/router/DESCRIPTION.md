@@ -9,7 +9,7 @@ network.
 
 ![Road route London Heathrow to City Center](LHR_to_LON.png)
 
-Context Diagram
+Root Diagram
 ===
 <a href="root.dot.svg" target="_blank"><img src="root.dot.svg"></a>
 

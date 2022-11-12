@@ -11,7 +11,7 @@ if it is greater or equal to it.
 The purpose is not to do anything useful, but just to show the use of and stress the semantics 
 of a number of the primitives.
 
-Context Diagram
+Root Diagram
 ===
 <a href="root.dot.svg" target="_blank"><img src="root.dot.svg"></a>
 
@@ -19,7 +19,7 @@ Click image to navigate flow hierarchy.
 
 Features Used
 ===
-* Context Flow
+* Root Flow
 * Library Functions used (`add` and `stdout` from `flowstdlib`)
 * Value used (with an initial value set)
 * Constant Value used

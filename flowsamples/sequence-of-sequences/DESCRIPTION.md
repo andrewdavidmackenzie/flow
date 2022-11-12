@@ -8,7 +8,7 @@ from 1 upto the number from the sequence.
 
 This is intended as a test case for having nested flows.
 
-Context Diagram
+Root Diagram
 ===
 <a href="root.dot.svg" target="_blank"><img src="root.dot.svg"></a>
 
@@ -16,7 +16,7 @@ Click image to navigate flow hierarchy.
 
 Features Used
 ===
-* Context Flow
+* Root Flow
 * Library Functions used (`stdout` from `flowstdlib`)
 * Library Flows used (`sequence` from `flowstdlib`)
 * Connections between functions

@@ -12,7 +12,7 @@ You can run this first flow and observe its output from the terminal, while in t
 
 `flowc` will compile the flow definition (`root.toml`) and generate the `manifest.json` manifest which is 
 then run using `flowr`.
-`flowr` is a flow runner and as such supplies implementations for all the `context` functions (e.g. `stdout`).
+`flowr` is a Command Line flow runner and provides implementations for `context` functions to read and write to `stdio` (e.g. `stdout`).
 
 The flow produces a fibonacci series:
 

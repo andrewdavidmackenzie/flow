@@ -34,7 +34,7 @@
 - [Running flows](docs/running/running.md)
 - [flowc Command Line Arguments](docs/running/flowc.md)
 - [Passing command line arguments to flows](docs/running/arguments.md)
-- [Selecting the Context file](docs/running/context_selection.md)
+- [Specifying the root file to load](docs/running/root_file_selection.md)
 - [Standard Input and Output](docs/running/stdio.md)
 - [Exceptions and Panics](docs/running/panics.md)
 ## `flowr's` `context` functions
