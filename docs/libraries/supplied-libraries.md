@@ -9,5 +9,5 @@ Flow libraries may contain:
     and should provide a documentation markdown file explaining what it does and how
     to use it
 * library flows
-    * Flows built from functions in `context`
+    * Flows built using functions in the `context`
     * Flows built using a combination of functions from `context` and functions provided by this library 

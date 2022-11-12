@@ -5,7 +5,7 @@ Description
 ===
 A simple flow that prints "Hello World!" on `stdout`
 
-Context Diagram
+Root Diagram
 ===
 <a href="root.dot.svg" target="_blank"><img src="root.dot.svg"></a>
 
@@ -13,7 +13,7 @@ Click image to navigate flow hierarchy.
 
 Features Used
 ===
-* Context Flow
+* Root Flow
 * Library Functions used (`stdout` from `flowstdlib`)
 
 Functions Diagram

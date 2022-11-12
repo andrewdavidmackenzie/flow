@@ -8,6 +8,6 @@ the first one (after the flow's source URL) out on standard output
 
 Features Used
 ===
-* Context Flow
+* Root Flow
 * Library Functions used (`args` and `stdout` from `context`)
 * Connections between functions

@@ -1,10 +1,10 @@
 ## Complete Feature List
 This is a complete list of features implemented in the description of flows:
 
-* Context Flow
-    * Cannot have any outputs from this flow as there cannot be a parent level
-* All Flows (Context and Children)
-    * Can contain elements directly inside the context flow description
+* Root Flow
+    * Cannot have any outputs from this flow as there is no parent level
+* All Flows (Root and Children)
+    * Can contain elements directly inside the root flow description
     * Child flow inclusion from description in its own flow file in current project or different project
     * Named outputs from child flow, referenced by parent flow for connections
 * Functions

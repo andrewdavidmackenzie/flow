@@ -40,15 +40,15 @@ Where the first line prints the binary name and the version number.
 ### Options Described
 * `-v, --verbosity <VERBOSITY_LEVEL>`- Set verbosity level for output (VERBOSITY_LEVEL_LEVEL can be `trace`, `debug`, `info`, `warn` or `error` (the default))
 * `-o, --output <OUTPUT_DIR>`- Specify the output directory for generated code. By default this is in a "rust" 
-subdirectory of the directory where the flow's context was loaded from
+subdirectory of the directory where the flow's root was loaded from
 
 ### Flow Directory or Filename
-After Flags and Options you can supply an optional field for where to load the context flow from.
+After Flags and Options you can supply an optional field for where to load the root flow from.
 * By default this is the current directory.
 * If it's a directory then it attempts to load "root.toml" from there
 * If it's a file then it attempts to load "root.toml" from that file
 
-It can also be a URL to a flow context specification somewhere on the web. Currently supports http and http.
+It can also be a URL to a flow root specification somewhere on the web. Currently supports http and http.
 
 ### Arguments for the flow
 If a flow directory or filename is supplied, then any files after that are assumed to be command line arguments

@@ -5,7 +5,7 @@ Description
 ===
 A flow that generates a sequence of output numbers in a range between two input numbers
 
-Context Diagram
+Root Diagram
 ===
 <a href="root.dot.svg" target="_blank"><img src="root.dot.svg"></a>
 
@@ -18,7 +18,7 @@ Features Used
 * Connections between functions
 * Library function `join` used
 * Library subflow `sequence` used
-* Context Functions used
+* `contextc Functions used
     * `stdout` to print a String to standard output
     
 Functions Diagram

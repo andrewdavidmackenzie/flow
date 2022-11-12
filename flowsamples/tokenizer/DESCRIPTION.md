@@ -6,7 +6,7 @@ Description
 Sample to show the possible parallelization (depending on the runtime implementation) of splitting a string into
 tokens using the string splitter function from the flowstdlib.
 
-Context Diagram
+Root Diagram
 ===
 <a href="root.dot.svg" target="_blank"><img src="root.dot.svg"></a>
 
@@ -14,7 +14,7 @@ Click image to navigate flow hierarchy.
 
 Features Used
 ===
-* Context Flow
+* Root Flow
 * Setting initializer of a Function's input with a constant initializer
 * Library Functions
 * Iteration (possibly in parallel) via feedback of partial output values back to the same funtion's input.

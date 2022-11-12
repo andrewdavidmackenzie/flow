@@ -5,7 +5,7 @@ Description
 ===
 A flow that calculates the factorial of a number and prints it out on `stdout`.
 
-Context Diagram
+Root
 ===
 <a href="root.dot.svg" target="_blank"><img src="root.dot.svg"></a>
 
@@ -13,7 +13,7 @@ Click image to navigate flow hierarchy.
 
 Features Used
 ===
-* Context Flow
+* Root Flow
 * Connections between functions
 * Loop-back connections to accumulate a multiplication result
 * Initializing function inputs with values, once and constantly

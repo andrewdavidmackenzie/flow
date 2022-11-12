@@ -6,10 +6,8 @@ Here is a simple explanation of what's involved and how it runs.
 You can find a complete description of the 'flow' semantics used, and others, in the next 
 section [Describing Flows](../describing/definition_overview.md)
 
-### Top Level - Context
-The top-level, or root, of a flow is called the Context. This term is stolen from 
-"Structured Analysis" (see [Inspirations section](../introduction/inspirations.md)) and its
-purpose is to define what the interaction with the surrounding execution environment is.
+### Top Level - Root
+The top-level, or root, defines the interaction with the surrounding execution environment and the flow contents.
 
 Other flows can be included under this level, via references to separate flow description files,
 to enable encapsulation and flow reuse.

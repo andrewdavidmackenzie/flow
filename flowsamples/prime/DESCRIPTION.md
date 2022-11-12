@@ -7,7 +7,7 @@ Description
 ===
 A flow that finds prime numbers upto the maximum specified in the input arguments
 
-Context Diagram
+Root Diagram
 ===
 <a href="root.dot.svg" target="_blank"><img src="root.dot.svg"></a>
 
@@ -15,8 +15,8 @@ Click image to navigate flow hierarchy.
 
 Features Used
 ===
-* Context Flow
-* Subflows
+* Root Flow
+* Sub-flows
 * Value (with an initial value set)
 * Constant Value
 * Arguments parsing for the execution

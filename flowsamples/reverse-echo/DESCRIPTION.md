@@ -5,7 +5,7 @@ Description
 ===
 Trivial flow that takes a line on `stdin`, reverses it and then prints it on `stdout`
 
-Context Diagram
+Root Diagram
 ===
 <a href="root.dot.svg" target="_blank"><img src="root.dot.svg"></a>
 
@@ -13,7 +13,7 @@ Click image to navigate flow hierarchy.
 
 Features Used
 ===
-* Context Flow
+* Root Flow
 * Library Functions used (`stdin` and `stdout` from `flowstdlib`)
 * Custom function (in rust) with a structure on the output with sub-elements
 * Connections between functions

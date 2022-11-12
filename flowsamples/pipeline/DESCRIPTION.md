@@ -11,7 +11,7 @@ Using command line options (-j, -t) the flow can be invoked with just one worker
 becomes sequential. The metrics of how many jobs were able to be processed in parallel can
 be viewed using the -m command line option.
 
-Context Diagram
+Root Diagram
 ===
 <a href="root.dot.svg" target="_blank"><img src="root.dot.svg"></a>
 
@@ -19,7 +19,7 @@ Click image to navigate flow hierarchy.
 
 Features Used
 ===
-* Context Flow
+* Rot Flow
 * Setting initial value of a Value at startup
 * Multiple connections into and out of functions and values
 * Library Functions used from `flowstdlib`

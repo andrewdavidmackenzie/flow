@@ -5,7 +5,7 @@ Description
 ===
 A flow that shows how arguments can be passed into a flow when executed and are available to functions at run-time.
 
-Context Diagram
+Root
 ===
 <a href="root.dot.svg" target="_blank"><img src="root.dot.svg"></a>
 
@@ -13,7 +13,7 @@ Click image to navigate flow hierarchy.
 
 Features Used
 ===
-* Context Flow
+* Root Flow
 * `context` Functions used (`stdio/stdout``)
 * Reduced syntax so that `alias` of referenced processes default to their names (`get` and `stdout`)
 * Selecting a specific indexed entry of an `array` output

@@ -1,15 +1,16 @@
 ## Defining Flows
 
-A flow can define the entities external to the program with which it interacts. These are the "context functions"
-provided by the run-time.
+All flows start at the `root`, that defines the interactions of the flow with the environment or `context` around it,
+plus including sub-flows and functions, and connections between them.
 
-By definition, nothing enters or leaves the top-level root flow (named "root.toml" by default).
-At most, things flow internally between contained sub-flows and functions (collectively known as "processes"), 
-as defined by the connections.
+Any flow can contain zero or more nested flows via [Process References](process_references.md).
 
-A flow contain 0 or more sub-flows which are described in separate "flow" files.
-The entities referenced in the top-level flow definition are connected to inputs and outputs of any sub-flow by 
-connections.
+A flow can use functions provided by the "flow runner" that is executing the flow, for the purpose of interacting
+with the surrounding environment (such as file IO, standard IO, etc). These are the `context functions`.
+
+No connections enter or leave the top-level root flow, unless via a `context function` interacting with the environment.
+
+Data flow internally between sub-flows and functions (collectively known as "processes"), as defined by the connections.
 
 So, valid entries in a flow definition include:
 - `flow`        - a String naming this flow (obligatory)
@@ -21,9 +22,3 @@ So, valid entries in a flow definition include:
 can be another `flow` or a `function`
 - `connection`  - 0 or more connections between outputs and inputs of values or sub-processes and `io` of this flow 
 (hence permitting connections to/from parent flows including this one)
-
-### Root of Flow
-All flows start with a flow called the `root`. This is the flow that defines the interactions
-of the overall flow hierarchy with the environment or "context" around it.
-
-Any flow can contain any number of nested flows via [Process References](process_references.md).
