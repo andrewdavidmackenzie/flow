@@ -61,3 +61,17 @@ directory for the library search path using the `-L, --libdir <LIB_DIR|BASE_URL>
 - `flowc -C flowr/src/cli flowsamples/sequence 10` - as previous examples except that after the `source_url` a 
 `flow_argument` of "10" is passed in
   - A short sequence of numbers (2, 5, 8) and a string will be printed. The "10" represents the maximum of the sequence.
+
+### Running a flow from the web
+As stated, the `source_url` can be a Url to a web resource, or a flow definition hosted on a web server.
+
+### Example running a flow from the web
+We can use a flow that is part of the `flow` project, where the flow definition is hosted on the web by GitHub:
+
+`flowc -C flowr/src/cli "https://raw.githubusercontent.com/andrewdavidmackenzie/flow/master/flowcore/tests/test-flows/hello-world/root.toml"`
+
+
+That will pull the flow definition content from the web, compile it and run it, producing the expected output:
+
+
+`Hello World!`

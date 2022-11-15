@@ -39,7 +39,7 @@
 - [Specifying the root file to load](docs/running/root_file_selection.md)
 - [Standard Input and Output](docs/running/stdio.md)
 - [Exceptions and Panics](docs/running/panics.md)
-- [Running FLows using `flowr`](docs/running/flowr.md)
+- [Running Flows using `flowr`](docs/running/flowr.md)
 ## `flowr's` `context` functions
 - [Arg functions](flowr/src/cli/args/args.md)
     - [Arg get function](flowr/src/cli/args/get.md)
