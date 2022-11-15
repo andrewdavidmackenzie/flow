@@ -13,22 +13,22 @@ between directories, files systems and systems/nodes and the relative locations 
 them to still be found and the flow compiled and ran.
 
 Examples can be found:
-* [Reverse Echo](../../flowsamples/reverse-echo) sample that provides an implementation of a function to reverse a 
-  string
-* [Mandlebrot](../../flowsamples/mandlebrot) sample that calculates a mandlebrot set and creates an image of it, 
-including provided implementation for two functions used in the process [escapes](../../flowsamples/mandlebrot/escapes)
-and [pixel_to_point](../../flowsamples/mandlebrot/pixel_to_point)
+* `Reverse Echo` in the folder `flowsamples/reverse-echo` - a simple sample that provides an implementation of a 
+  function to reverse a string
+* `Mandlebrot` in the folder `flowsamples/mandlebrot` - a more complex sample that calculates a mandlebrot set and 
+  creates an image of it, including provided implementation for two functions used in the process `escapes` and
+`pixel_to_point`
 
 ### What a provided function has to provide
 In order to provide a function as part of a flow the developer must provide:
-* Function definition in a TOML file. Example [escapes.rs](../../flowsamples/mandlebrot/escapes/escapes.toml)
+* Function definition in a TOML file. Example [escapes.toml](../../flowsamples/mandlebrot/escapes/escapes.toml)
 As for other function definitions it must define
    * `function` - field to show this is a function definition file and provide the function's name 
    * `source` - the name of the implementation file 
    * `type` - to define what type of implementation is provided (`"rust"` is the only supported value at this time)
    * `input`- the function's inputs - as described in [IOs](ios.md)
    * `output`- the function's outputs - as described in [IOs](ios.md)
-* Documentation markdown file, if one is references from the definition file. Example
+* Documentation markdown file, if one is referenced from the definition file. Example
 [escapes.md](../../flowsamples/mandlebrot/escapes/escapes.md)
 * Implementation - Code that implements the function of the type specified by `type` in the definition file. 
 Example: [escapes.rs](../../flowsamples/mandlebrot/escapes/escapes.rs)

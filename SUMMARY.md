@@ -103,6 +103,8 @@
     - [fibonacci](flowsamples/fibonacci/DESCRIPTION.md)
     - [hello-world](flowsamples/hello-world/DESCRIPTION.md)
     - [mandlebrot](flowsamples/mandlebrot/DESCRIPTION.md)
+      - [escapes](flowsamples/mandlebrot/escapes/escapes.md) provided function
+      - [pixel_to_point](flowsamples/mandlebrot/pixel_to_point/pixel_to_point.md) provided function
     - [matrix multiplication](flowsamples/matrix_mult/DESCRIPTION.md)
     - [pipeline](flowsamples/pipeline/DESCRIPTION.md)
     - [prime](flowsamples/prime/DESCRIPTION.md)
