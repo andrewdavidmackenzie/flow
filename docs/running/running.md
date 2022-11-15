@@ -58,3 +58,6 @@ environment variable is not set and is not being used to locate libraries, and i
 find the `flowstdlib` library used by the sample (previously compiled into `target` directory) it specified that as a
 directory for the library search path using the `-L, --libdir <LIB_DIR|BASE_URL>` Option
   - You should get a fibonacci series output to the terminal, 
+- `flowc -C flowr/src/cli flowsamples/sequence 10` - as previous examples except that after the `source_url` a 
+`flow_argument` of "10" is passed in
+  - A short sequence of numbers (2, 5, 8) and a string will be printed. The "10" represents the maximum of the sequence.
