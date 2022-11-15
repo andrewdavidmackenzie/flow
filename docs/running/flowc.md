@@ -82,6 +82,5 @@ either the `http` or `https` scheme is used.
 * If it's a file then it attempts to load the root flow from that file
 
 ### `flow_args`
-If a flow directory or filename is supplied, then any files after that are assumed to be command line arguments
-for the flow itself. When it starts executing it can retrieve the value of these parameters using functions
-in the run-time.
+If a flow directory or filename is supplied for `source_url`, then any arguments after that are assumed to be arguments 
+for the flow itself. When it starts executing it can retrieve the value of these parameters using `context functions`.

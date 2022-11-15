@@ -1,7 +1,7 @@
 ## Running Flows
 
-In order to run a flow, it must first be compiled. Then a "flow runner" (such as `flowr`can be used to run the compiled
-flow manifest).
+In order to run a flow, it must first be compiled. Then a "flow runner" (such as `flowr`) can be used to run the
+compiled flow manifest.
 
 For convenience, `flowc`, the flow compiler, compiles the flow, then uses `flowr` to run it for you (unless you 
 specify otherwise). So that is the easiest way to run a flow and is used below.
