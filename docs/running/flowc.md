@@ -10,47 +10,77 @@ Use `-h, --help` (e.g. `flowc -h` or `cargo run -p flowc -- -h`) to print out he
 
 This will print something like this:
 ```shell script 
-flowc 0.4.0
+Usage: flowc [OPTIONS] [source_url] [flow_args]...
 
-USAGE:
-    flowc [FLAGS] [OPTIONS] [ARGS]
+Arguments:
+  [source_url]    path or url for the flow or library to compile
+  [flow_args]...  List of arguments get passed to the flow when executed
 
-FLAGS:
-    -d, --dump       Dump the flow to standard output after loading it
-    -h, --help       Prints help information
-    -s, --skip       Skip code generation and running
-    -V, --version    Prints version information
-
-OPTIONS:
-    -v, --verbosity <VERBOSITY_LEVEL> Set verbosity level for output (trace, debug, info, warn, error (default))
-    -o, --output <OUTPUT_DIR>         Output directory for generated code
-
-ARGS:
-    <FLOW>            the name of the 'flow' file
-    <flow_args>...
+Options:
+  -d, --debug
+          Generate symbols for debugging. If executing the flow, do so with the debugger
+  -c, --compile
+          Compile the flow and implementations, but do not execute
+  -C, --context_root <CONTEXT_DIRECTORY>
+          Set the directory to use as the root dir for context function definitions
+  -l, --lib
+          Compile a flow library
+  -n, --native
+          Compile only native (not wasm) implementations when compiling a library
+  -L, --libdir <LIB_DIR|BASE_URL>
+          Add a directory or base Url to the Library Search path
+  -t, --tables
+          Write flow and compiler tables to .dump and .dot files
+  -g, --graphs
+          Create .dot files for graphs then generate SVGs with 'dot' command (if available)
+  -m, --metrics
+          Show flow execution metrics when execution ends
+  -w, --wasm
+          Use wasm library implementations when executing flow
+  -O, --optimize
+          Optimize generated output (flows and wasm)
+  -p, --provided
+          Provided function implementations should NOT be compiled from source
+  -o, --output <OUTPUT_DIR>
+          Specify the output directory for generated manifest
+  -v, --verbosity <VERBOSITY_LEVEL>
+          Set verbosity level for output (trace, debug, info, warn, error (default))
+  -i, --stdin <STDIN_FILENAME>
+          Read STDIN from the named file
+  -h, --help
+          Print help information
+  -V, --version
+          Print version information
 ```
 
-Where the first line prints the binary name and the version number.
+### Options
+*  `-d, --debug` Generate symbols for debugging. If executing the flow, do so with the debugger
+*  `-c, --compile` Compile the flow and implementations, but do not execute
+*  `-C, --context_root <CONTEXT_DIRECTORY>` Set the directory to use as the root dir for context function definitions
+*  `-l, --lib` Compile a flow library. The `source_url` supplied should be the root of the library to compile.
+*  `-n, --native` Compile only native (not wasm) implementations when compiling a library
+*  `-L, --libdir <LIB_DIR|BASE_URL>` Add a directory or base Url to the Library Search path
+*  `-t, --tables` Write flow and compiler tables to .dump and .dot files
+*  `-g, --graphs` Create .dot files for graphs then generate SVGs with 'dot' command (if available)
+*  `-m, --metrics` Show flow execution metrics when execution ends
+*  `-w, --wasm` Use wasm library implementations (not any statically linked native implementations) when executing flow
+*  `-O, --optimize` Optimize generated output (flows and wasm)
+*  `-p, --provided` Provided function implementations should NOT be compiled
+*  `-o, --output <OUTPUT_DIR>` Specify the output directory for generated manifest
+*  `-v, --verbosity <VERBOSITY_LEVEL>` Set verbosity level for output (trace, debug, info, warn, error (default))
+*  `-i, --stdin <STDIN_FILENAME>` Read STDIN from the named file
+*  `-h, --help` Print help information
+*  `-V, --version` Print version information
 
-### Flags Described
-* `-d, --dump` - Dumps a text representation of the the flow hierarchy to standard output after loading it
-* `-s, --skip` - Skip the code generation and running of the generated flow
-* `-V, --version`- Prints version information
 
-### Options Described
-* `-v, --verbosity <VERBOSITY_LEVEL>`- Set verbosity level for output (VERBOSITY_LEVEL_LEVEL can be `trace`, `debug`, `info`, `warn` or `error` (the default))
-* `-o, --output <OUTPUT_DIR>`- Specify the output directory for generated code. By default this is in a "rust" 
-subdirectory of the directory where the flow's root was loaded from
+### `source_url`
+After the Options you can supply an optional field for where to load the root flow from. This can be a relative or 
+absolute path when no Url scheme is used, an absolute path if the `file://` scheme is used or a web resources if
+either the `http` or `https` scheme is used.
+* If no argument is supplied, it assumes the current directory as the argument, and continues as below
+* If it's a directory then it attempts to load "root.toml" from within the directory
+* If it's a file then it attempts to load the root flow from that file
 
-### Flow Directory or Filename
-After Flags and Options you can supply an optional field for where to load the root flow from.
-* By default this is the current directory.
-* If it's a directory then it attempts to load "root.toml" from there
-* If it's a file then it attempts to load "root.toml" from that file
-
-It can also be a URL to a flow root specification somewhere on the web. Currently supports http and http.
-
-### Arguments for the flow
-If a flow directory or filename is supplied, then any files after that are assumed to be command line arguments
-for the flow itself. When it starts executing it can retrieve the value of these parameters using functions
-in the run-time.
+### `flow_args`
+If a flow directory or filename is supplied for `source_url`, then any arguments after that are assumed to be arguments 
+for the flow itself. When it starts executing it can retrieve the value of these parameters using `context functions`.
