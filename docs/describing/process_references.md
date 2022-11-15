@@ -1,23 +1,47 @@
 ## Process Reference
-Flows may reference a another flow or a function which is defined in a separate 
-definition file. These are referred to under the generic term of `process`
- 
+Flows may reference a another flow or a function (generically referred to as a `process`) which is defined in a
+separate definition file. These are "process references"
+
 ### Process Reference Fields
-* `alias` - an alias to use to refer to the process in this flow.
-    * This can be different from the `name` defined by the process itself
-    * This can be used to create two difference instances of a process in a flow, 
+* `source` - A Url (or relative path) of a file/resource where the process is defined. 
+
+For example, here we reference a process called `stdout` (see [context functions](context_functions.md))
+```toml
+[[process]]
+source = "context://stdio/stdout"
+```
+
+This effectively brings the function into scope with the name `stdout` and it can then be used in connections
+as a source or destination of data.
+
+#### Alias for a Process Reference
+* `alias` - an alias to use to refer to a process in this flow.
+  * This can be different from the `name` defined by the process itself
+  * This can be used to create two or more instances of a process in a flow,
     and the ability to refer to them separately and distinguish them in connections.
-* `source` - the source of where the process is defined. 
 
-### Source formats
-The following formats for specifying the `source` are available:
-* No "scheme" in the URI --> `file:` is assumed
-* `file:` scheme --> look for process on the Local File System
-* `http:` or `https:` scheme --> look for process on a Remote Web Server
-* `lib:` --> look for process in a Library
+For example, here the process called `stdout` is aliased as `print`and then can be referred to using `print`in
+connections.
+```toml
+[[process]]
+alias = "print"
+source = "context://stdio/stdout"
+```
 
-#### Local File System
-The process definition file is in the local file system.
+#### Source Url formats
+The following formats for the `source` Url are available:
+* No "scheme" in the URI --> `file:` is assumed. If the path starts with `/` then an absolute path is used. If
+the path does not start with `/` then the path is assumed to be relative to the location of the file referring to it.
+* `file:` scheme --> look for process definition file on the local file system
+* `http:` or `https:` scheme --> look for process definition file on a the web
+* `lib:` --> look for process in a Library that is loaded by the runtime. See [flow libraries](flow_libraries.md) for 
+more details on how this Url is used to find the process definition file provided by the library.
+* `context:` --> a reference to a function in the context, provided by the runner application. See [context 
+  functions](context_functions.md) for more details on how the process definition file is used.
+
+#### File source
+This is the case when no scheme or the `file://` scheme is used in the `source` Url.
+The process definition file is in the same file system as the file referencing it.
 * in the flow's directories, using relative file paths 
     * e.g. `source = "my_function"`
     * e.g. `source = "my_flow"`
@@ -30,67 +54,45 @@ The process definition file is in the local file system.
     * e.g. `source = "/root/other_directory/other_function"`
     * e.g. `source = "/root/other_directory/other_flow"`
 
-#### Remote Web Server
-The process definition file can be found on a remote server, just specify the 
-URL of the file:
+#### Web Source
+When the `http` or `https` Url scheme is used for `source` the process definition file is loaded via http request
+to the specified location.
 * e.g. `source = "http://my_flow_server.com/folder/function"`
 * e.g. `source = "https://my_secure_flow_server.com/folder/flow"`
 
-#### Library Processes
-The process is in a library that is available to your current installation. 
-In order for flow to find the function at compile time it uses the 
-environment variable `FLOW_LIB_PATH`, that is a `PATH` style variable with zero or
-more directory entries or URLs separated by the `","` character
-* e.g. `source = "context://stdio/stdin"`
-    * Library name = `flowrlib`
-    * Function path within the library = `stdio/stdin`
-    
-All the directories in the path are searched for a top-level sub-directory that 
-matches the library name.
+### Initializing an input in a reference
+Inputs of a referenced process may be initialized, in one of two ways:
+* `once` - the value is inserted into the input just once on startup and there after it will remain empty if a 
+  value is not sent to it from a Process.
+* `always` - the value will be inserted into the input each time after the process runs.
 
-If the named library is found, the Function path within the library is used to try and 
-find the process definition file.
-
-For example, if I define `FLOW_LIB_PATH` thus:
-* `FLOW_LIB_PATH=/Users/me/workspace/flow`
-
-And my flow references a process thus:
+Example, initializing the `add` function's `i1` and `ì2` inputs to 0 and 1 respectively, just once at the start
+of the flow's execution.
 ```toml
 [[process]]
-alias = "stdin"
-source = "context://stdio/stdin"
+source = "lib://flowstdlib/math/add"
+input.i1 = { once =  0 }
+input.i2 = { once =  1 }
 ```
 
-Then the directory `/Users/me/workspace/flow/flowrlib` is looked for.
-
-If that directory and hence the library is found, then the Function path within the library
-`stdio/stdin` is used to create the full path to the Function definition file 
-`/Users/me/workspace/flow/flowrlib/stdio/stdin`.
-
-If that file exists and can be read, the process defined there is used and 
-included in the flow.
-
-### Initializing an IO in a reference
-An IO of a reference propcess may be initialized with a value, in one of two ways:
-* `once` - the value is inserted into the IO on startup only and there after it will remain empty if a value is not 
-sent to it from a Process
-* `always` - the value will be inserted into the IO each time it is empty, of there is not a value already
-sent from a process.
-
-When a process only has one input, and it is not named, then you can refer to it by the name
-`default` for the purposes of specifying an initializer
-
-Eamples:
+Example, initializing the `add` function's `i1` input to 1 every time it runs. The other input is free to be
+used in connections and this effectively makes this an "increment" function that adds one to any value sent to it
+on the `i2` input.
 ```toml
 [[process]]
-alias = "print"
+source = "lib://flowstdlib/math/add"
+input.i1 = { always =  1 }
+```
+
+#### Initializing the default input
+When a process only has one input, and it is not named, then you can refer to it by the name `default` for the
+purposes of specifying an initializer
+
+Example, initializing the sole input of `stdout` context function with the string "Hello World" just once at
+the start of flow execution:
+```toml
+[[process]]
 source = "context://stdio/stdout"
 input.default = {once = "Hello World!"}
 ```
 
-```toml
-[[process]]
-alias = "second-start"
-source = "lib://flowstdlib/fmt/to_json"
-input.default = {always = "2"}
-```

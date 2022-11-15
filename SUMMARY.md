@@ -29,6 +29,8 @@
 - [IO References](docs/describing/io_references.md)
 - [Complete Feature List](docs/describing/features.md)
 - [Flow Libraries](docs/describing/flow_libraries.md)
+- [Context Functions](docs/describing/context_functions.md)
+- [Provided Functions](docs/describing/provided_functions.md)
 
 # Running Flows
 - [Running flows](docs/running/running.md)
@@ -101,6 +103,8 @@
     - [fibonacci](flowsamples/fibonacci/DESCRIPTION.md)
     - [hello-world](flowsamples/hello-world/DESCRIPTION.md)
     - [mandlebrot](flowsamples/mandlebrot/DESCRIPTION.md)
+      - [escapes](flowsamples/mandlebrot/escapes/escapes.md) provided function
+      - [pixel_to_point](flowsamples/mandlebrot/pixel_to_point/pixel_to_point.md) provided function
     - [matrix multiplication](flowsamples/matrix_mult/DESCRIPTION.md)
     - [pipeline](flowsamples/pipeline/DESCRIPTION.md)
     - [prime](flowsamples/prime/DESCRIPTION.md)

@@ -187,10 +187,10 @@ mod test {
 
     #[test]
     fn single_destination_deserialization() {
-        let input_str = "
-        from = 'source'
-        to = 'destination'
-        ";
+        let input_str = r#"
+        from = "source"
+        to = "destination"
+        "#;
 
         let connection: Result<Connection> = toml_from_str(input_str);
         assert!(connection.is_ok(), "Could not deserialize Connection");
@@ -198,10 +198,10 @@ mod test {
 
     #[test]
     fn multiple_destination_deserialization() {
-        let input_str = "
-        from = 'source'
-        to = ['destination', 'destination2']
-        ";
+        let input_str = r#"
+        from = "source"
+        to = ["destination", "destination2"]
+        "#;
 
         let connection: Result<Connection> = toml_from_str(input_str);
         assert!(connection.is_ok(), "Could not deserialize Connection");
@@ -221,11 +221,11 @@ mod test {
 
     #[test]
     fn deserialize_extra_field_fails() {
-        let input_str = "
-        name = 'input'
-        foo = 'extra token'
-        type = 'object'
-        ";
+        let input_str = r#"
+        name = "input"
+        foo = "extra token"
+        type = "object"
+        "#;
 
         let connection: Result<Connection> = toml_from_str(input_str);
         assert!(
