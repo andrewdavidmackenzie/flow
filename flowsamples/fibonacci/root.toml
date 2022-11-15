@@ -6,7 +6,6 @@ version = "1.0.0"
 authors = ["Andrew Mackenzie <andrew@mackenzie-serres.net>"]
 
 [[process]]
-alias = "add"
 source = "lib://flowstdlib/math/add"
 input.i1 = { once =  0 }
 input.i2 = { once =  1 }

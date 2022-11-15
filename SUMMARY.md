@@ -29,6 +29,8 @@
 - [IO References](docs/describing/io_references.md)
 - [Complete Feature List](docs/describing/features.md)
 - [Flow Libraries](docs/describing/flow_libraries.md)
+- [Context Functions](docs/describing/context_functions.md)
+- [Provided Functions](docs/describing/provided_functions.md)
 
 # Running Flows
 - [Running flows](docs/running/running.md)
