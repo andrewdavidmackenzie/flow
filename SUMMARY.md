@@ -32,6 +32,19 @@
 - [Context Functions](docs/describing/context_functions.md)
 - [Provided Functions](docs/describing/provided_functions.md)
 
+# `flowr's` `context functions`
+- [Arg functions](flowr/src/cli/args/args.md)
+  - [Arg get function](flowr/src/cli/args/get.md)
+- [File functions](flowr/src/cli/file/file.md)
+  - [File Write function](flowr/src/cli/file/file_write.md)
+- [Image manipulation functions](flowr/src/cli/image/image.md)
+  - [Image buffer](flowr/src/cli/image/image_buffer.md)
+- [Standard IO functions](flowr/src/cli/stdio/stdio.md)
+  - [Readline function](flowr/src/cli/stdio/readline.md)
+  - [Standard Input function](flowr/src/cli/stdio/stdin.md)
+  - [Standard Output function](flowr/src/cli/stdio/stdout.md)
+  - [Standard Error function](flowr/src/cli/stdio/stderr.md)
+
 # Running Flows
 - [Running flows](docs/running/running.md)
 - [flowc Command Line Arguments](docs/running/flowc.md)
@@ -40,18 +53,8 @@
 - [Standard Input and Output](docs/running/stdio.md)
 - [Exceptions and Panics](docs/running/panics.md)
 - [Running Flows using `flowr`](docs/running/flowr.md)
-## `flowr's` `context` functions
-- [Arg functions](flowr/src/cli/args/args.md)
-    - [Arg get function](flowr/src/cli/args/get.md)
-- [File functions](flowr/src/cli/file/file.md)
-    - [File Write function](flowr/src/cli/file/file_write.md)
-- [Image manipulation functions](flowr/src/cli/image/image.md)
-    - [Image buffer](flowr/src/cli/image/image_buffer.md)
-- [Standard IO functions](flowr/src/cli/stdio/stdio.md)
-    - [Readline function](flowr/src/cli/stdio/readline.md)
-    - [Standard Input function](flowr/src/cli/stdio/stdin.md)
-    - [Standard Output function](flowr/src/cli/stdio/stdout.md)
-    - [Standard Error function](flowr/src/cli/stdio/stderr.md)
+- [Running a flow in client/server mode of `flowr`](docs/running/client_server.md)
+- [Distributed execution of jobs with `flowr` and `flowrex`](docs/running/distributed.md)
 
 # Debugging Flows
 - [The Debugger](docs/debugging/debugger.md)
