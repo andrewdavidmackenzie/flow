@@ -1,9 +1,72 @@
 ## Connection
 Connections connect a source of data (via an IO Reference) to a sink of data (via an IO Reference) 
-of a compatible [type](types.md):
+of a compatible [type](types.md) within a flow.
 * `name` (Optional) - an Optional name for the flow. This can be used to help in debugging flows
-* `from` = [IO Reference](io_references.md) to the data source that this connection comes from
-* `to` = [IO Reference](io_references.md) to a data sink that this connection goes to
+* `from` = IO Reference to the data source that this connection comes from
+* `to` = IO Reference to a data sink that this connection goes to
+
+### Connections at multiple level in flow hierarchy
+A flow is a hierarchy from the root flow down, including functions and sub-flows (collectively sub-processes).
+
+Connections are defined within each flow or sub-flow from a source to a destination.
+
+Within a flow sources include:
+- an input of this flow
+- an output from one of the sub-processes
+
+and destinations include
+- an input of one of the sub-processes
+- an output of this flow
+
+A connection may be defined with multiple destinations and/or there maybe multiple connections a one source or to a 
+destination.
+
+### Connection "branching"
+Within a sub-flow there may exist a connection to one of it's outputs, as a destination.
+At the next level up in the flow hierarchy that sub-flow output becomes a possible source for connections
+defined at that level.
+
+Thus a single connection originating at a single source in the sub-flow may "branch" into multiple connections, 
+reaching multiple destinations.
+
+### Connection Gathering and Collapsing
+When a flow is compiled, sources of data (function outputs) are followed through the through layers of 
+sub-flows/super-flow definition of the flow hierarchy and the resulting "tree" of connections to be eventually 
+connected (possibly branching to become multiple connections) to destination(s).
+
+The chain of connections involved in connecting a source to each of the destinations is 
+"collapsed" as part of the compilation process, to leave a single connection from the source to each of the destinations. 
+
+### Connection Optimizing
+Thru flow re-use, come connections may end up not reaching any destination. The compiler optimizes these connections
+away by dropping them.
+
+If in the process of dropping dead connections a function ends up not having any output and/or input (for "pure
+functions) it maybe removed, and an error or warning reported by the compiler.
+
+### IO References
+An IO Reference uniquely identifies an Input/Data-source (flow/function) or an Output/Data-sink in the flow
+hierarchy.
+
+If any flows or functions defined in other files are referenced with an alias, then it should be
+used in the IO references to inputs or outputs of that referenced flow/function.
+
+Thus valid IO reference formats to use in connections are:
+
+#### Data sinks
+- `input/{input_name}` (where input is a keyword and thus a sub-flow cannot be named `input` or `output`)
+- `{sub_process_name}/{output_name}` or `{sub_process}` for the default output
+
+Where `sub_process_name` is a `process` referenced in this flow, and maybe a function or a sub-flow.
+The reference use the process's name (if the process was not given an alias when referenced) or it's alias.
+
+#### Data sinks
+- `output/{output_name}` (where output is a keyword and thus a sub-flow cannot be named `input` or `output`)
+- `{sub_process_name}/{input_name}` or `{sub_process}` for the default input
+
+### Selecting parts of a connection's value
+A connection can select to "connect" only part of the data values passed on the source of the connection.
+See below [Selecting sub-structures of an output](#selecting-sub-structures-of-an-output) for more details.
 
 ### Run-time Semantics
 An input IO can be connected to multiple outputs, via multiple connections. 
@@ -43,6 +106,25 @@ the data sink must be found and the two must be of compatible DataTypes.
 
 If those conditions are not met, then a connection will be dropped (with an error message output)
 and the flow will attempted to be built and executed without it.
+
+By not specifying the data type on intermediary connections thru the flow hierarchy, the flow author can enable
+connections that are not constrained by the intermediate inputs/outputs used and those types are not need to be 
+known when the flow is being authored. In this case the type check will pass on the intermediate connections to 
+those "generic" inputs our output.
+
+However, once the connection chain is collapsed down to one end-to-end connection, the source and destination 
+types must also pass the type check. This includes intermediate connections that may select part of the value.
+
+Example
+- Subflow 1 has a connection: A function `series` with default output Array/Number --> Generic output of the subflow
+  - The destination of the connection is generic and so the intermediate type check passes
+- Root flow (which contains Subflow 1) as a connection: Generic output of the subflow --> Function `add` input `i1`
+  (which has a data type `Number`) that includes selection of an element of the array of numbers `/1`
+  - The source is generic, so the intermediate type check passes
+- A connection chain is built from the `series` output thru the intermediate connection to the `add` function input `i1`
+- The connection chain is collapsed to a connection from the Array element of index 1 of the `series` function's 
+output to the `add` functions input `i1`
+- The `from` and `to`types of this collapsed connection are both `Number` and so the type check passes
 
 ### Runtime type conversion of Compatible Types
 The flow runtime library implements some type conversions during flow execution, permitting non-identical
