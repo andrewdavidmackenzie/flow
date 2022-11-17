@@ -18,7 +18,7 @@
 - [Step-by-Step](docs/first_flow/step-by-step.md)
 - [Debugging your first flow](docs/first_flow/debugging.md)
 
-# Defining Flows
+# Guide to Defining Flows
 - [Defining flows](docs/describing/definition_overview.md)
 - [Names](docs/describing/names.md)
 - [Flow IOs](docs/describing/ios.md)
@@ -29,6 +29,7 @@
 - [Flow Libraries](docs/describing/flow_libraries.md)
 - [Context Functions](docs/describing/context_functions.md)
 - [Provided Functions](docs/describing/provided_functions.md)
+- [Programming Methods](docs/describing/programming_methods.md)
 
 # `flowr's` `context functions`
 - [Arg functions](flowr/src/cli/args/args.md)

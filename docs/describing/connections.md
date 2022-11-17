@@ -29,6 +29,23 @@ defined at that level.
 Thus a single connection originating at a single source in the sub-flow may "branch" into multiple connections, 
 reaching multiple destinations.
 
+### Connection feedback
+It is possible to make a connection from a process's output back to one of its inputs. This is useful for
+looping, recursion, accumulation etc as described later in [programming methods](programming_methods.md)
+
+### Connection *from* input values
+The input values used in an execution are made available at the output alongside the output value calculated,
+*when completes execution*. Thus a connection can be formed from this input value and the value is
+sent via connections when the function completes, similar to the output value. It is also possible to
+feedback this input value back to the same or different input for use in recursion. An example of this can be
+seen in the [fibonacci example](../../flowsamples/fibonacci/root.toml) flow definition.
+```
+# Loop back the input value #2 from this calculation, to be the input to input #1 on the next iteration
+[[connection]]
+from = "add/i2"
+to = "add/i1"
+```
+
 ### Connection Gathering and Collapsing
 When a flow is compiled, sources of data (function outputs) are followed through the through layers of 
 sub-flows/super-flow definition of the flow hierarchy and the resulting "tree" of connections to be eventually 
@@ -227,6 +244,10 @@ Then a single string from the array can be sent to a destination input thus:
 from = "function/output/1"
 to = "stdout"
 ```
+
+If a function runs and produces an output which does not contain the sub-structure selected by a connection, 
+for the purpose of the destination of that connection it is just as if the output was not produced, 
+or the function had not run. Thus, no value will arrive at the destination function and it will not run.
 
 ### Connecting to multiple destinations
 A single output can be connected to multiple destinations by creating multiple connections referencing the output.
