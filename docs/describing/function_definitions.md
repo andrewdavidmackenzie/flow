@@ -57,6 +57,13 @@ at least one input and one output.
 Thus, such a `pure` function can be run anytime, anywhere, with the same input and it will produce the same
 output.
 
+### Function execution
+Functions are made available to run when a set of inputs is available on all of its inputs. Then a job is 
+created containing one set of input values (a value taken from each of it's inputs) and sent for execution.
+Execution may produce an output value, which using the connections defined, will be passed on to the connected
+input of one or more other functions in the function graph. That in turn may cause that other function to run
+and so on and so forth, until no function can be found available to run.
+
 ### Default inputs and outputs
 If a function only has one input or one output, then naming that input/output is optional. 
 If not named, it is referred to as the default input. Connections may connect data to/from this input/output just

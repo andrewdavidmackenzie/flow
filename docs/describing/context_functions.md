@@ -1,17 +1,33 @@
 ## Context Functions
-Each flow runner can provide a set of functions (referred to as `context functions`) to flows for interacting with 
-the execution environment.
+Each flow runner application can provide a set of functions (referred to as `context functions`) to flows for 
+interacting with the execution environment.
 
 They are identified by a flow defining a process reference that uses the `context://` Url scheme.
 (see [process references](process_references.md) for more details).
 
-In order to compile a flow the compiled must be able to find the definition of the function.
+In order to compile a flow the compiler must be able to find the definition of the function.
 
 In order to execute a flow the flow runner must either have an embedded implementation of the function or
 know how to load one.
 
 Different runtimes may provide different functions, and thus it is not guaranteed that a function is present 
 at runtime.
+
+### Completion of Functions
+Normal "pure" functions can be executed any number of times as their output depends only on the inputs and the
+(unchanging) implementation. They can be run any time a set of inputs is available.
+
+However, a context function may have a natural limit to the number of times it can be ran during the execution of
+a flow using it. An example would be a function that reads a line of text from a file. It can be ran as many times
+as there are lines of text in the file, then it will return End-Of-File and a flag to indicate to the flow runtime
+that it has "completed" should not be invoked again.
+
+If this was not done, as the function has no inputs, it would always be available to run, and be executed 
+indefinitely, just to return EOF each time. 
+
+For this reason, each time a function is run, it returns a "run me again" flag that the runtime uses to determine
+if it has "completed" or not. If it returns true, then the function is put into the "completed" state and it will
+never be run again (during that flow's execution)
 
 ### Specifying the Context Root
 At compile time the compiled must know which functions are available and their definitions.
