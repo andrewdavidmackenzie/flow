@@ -140,7 +140,7 @@ fn execution_loop(
                                               control_socket.as_poll_item(zmq::POLLIN)];
 
     while process_jobs {
-        trace!("{name} waiting for a job to execute or a KILL signal");
+        trace!("{name} waiting for a job to execute or a DONE signal");
         match zmq::poll(&mut items, -1).map_err(|_| "Error while polling for Jobs to execute") {
             Ok(_) => {
                 if items.get(0).ok_or("Could not get poll item 0")?.is_readable() {

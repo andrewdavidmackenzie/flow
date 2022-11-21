@@ -106,7 +106,7 @@ impl Dispatcher {
 impl Drop for Dispatcher {
     fn drop(&mut self) {
         if let Err(e) = self.send_done() {
-            error!("Error while sending KILL while dropping Dispatcher: {e}");
+            error!("Error while sending DONE while dropping Dispatcher: {e}");
         }
     }
 }
