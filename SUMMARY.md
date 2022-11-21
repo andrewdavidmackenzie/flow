@@ -123,11 +123,13 @@
 # Developing `flow`
 - [Developing flow](docs/developing/overview.md)
 - [Pre-requisites](docs/developing/prereqs.md)
+- [Building](docs/developing/building.md)
 - [Crates](docs/developing/crates.md)
     - [flowcore](docs/developing/flowcore.md)
     - [flowmacro](docs/developing/flowmacro.md)
     - [flowrlib](docs/developing/flowrlib.md)
     - [flowr](docs/developing/flowr.md)
+    - [flowrex](docs/developing/flowrex.md)
     - [flowc](docs/developing/flowc.md)
         - [Test flows](flowc/tests/test-flows/README.md)
             - [hello-world](flowc/tests/test-flows/hello-world/hello-world.md)
