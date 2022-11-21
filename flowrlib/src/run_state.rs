@@ -233,7 +233,7 @@ impl RunState {
             number_of_jobs_created: 0,
             busy_flows: MultiMap::<usize, usize>::new(),
             flow_blocks: HashMap::<usize, HashSet<usize>>::new(),
-            strategy: ExecutionStrategy::Random,
+            strategy: ExecutionStrategy::InOrder,
         }
     }
 
@@ -381,7 +381,7 @@ impl RunState {
         }
 
         let function_id = match self.strategy {
-            ExecutionStrategy::InOrder => self.ready.remove(0)?,
+            ExecutionStrategy::InOrder => self.ready.pop_front()?,
             ExecutionStrategy::Random => {
                 // Generate random index in the range [0, len()-1]
                 let index = rand::thread_rng().gen_range(0..self.ready.len());
