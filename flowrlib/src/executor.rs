@@ -4,6 +4,8 @@ use std::thread::JoinHandle;
 use std::collections::HashMap;
 use std::panic;
 use std::sync::{Arc, RwLock};
+#[cfg(test)]
+use std::time::Duration;
 use url::Url;
 use crate::wasm;
 use crate::job::Job;
@@ -13,6 +15,9 @@ use flowcore::model::lib_manifest::{
 };
 use flowcore::errors::*;
 use flowcore::provider::Provider;
+
+#[cfg(test)]
+use rand::Rng;
 
 /// An `Executor` struct is used to receive jobs, execute them and return results.
 /// It can load libraries and keep track of the `Function` `Implementations` loaded for use
@@ -140,7 +145,7 @@ fn execution_loop(
                                               control_socket.as_poll_item(zmq::POLLIN)];
 
     while process_jobs {
-        trace!("{name} waiting for a job to execute or a KILL signal");
+        trace!("{name} waiting for a job to execute or a DONE signal");
         match zmq::poll(&mut items, -1).map_err(|_| "Error while polling for Jobs to execute") {
             Ok(_) => {
                 if items.get(0).ok_or("Could not get poll item 0")?.is_readable() {
@@ -239,6 +244,8 @@ fn execute_job(
 
     trace!("Job #{}: Started executing on '{name}'", job.job_id);
     job.result = implementation.run(&job.input_set);
+    #[cfg(test)]
+    std::thread::sleep(Duration::from_millis(rand::thread_rng().gen_range(0..100)));
     trace!("Job #{}: Finished executing on '{name}'", job.job_id);
 
     results_sink.send(serde_json::to_string(&job)?.as_bytes(), 0)

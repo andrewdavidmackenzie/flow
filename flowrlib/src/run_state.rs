@@ -5,7 +5,6 @@ use std::fmt;
 
 use log::{debug, error, info, trace};
 use multimap::MultiMap;
-use rand::Rng;
 use serde_derive::{Deserialize, Serialize};
 use serde_json::Value;
 
@@ -42,17 +41,6 @@ pub enum State {
     /// Completed - Function has indicated that it no longer wants to be run, so it's execution
     ///           has completed.
     Completed,
-}
-
-/// Execution of of functions in the ready queue can be performed in different orders, using
-/// different strategies to select the next function to execute.
-#[derive(Deserialize, Serialize, Clone, Default)]
-enum ExecutionStrategy {
-    // Execute functions in the same order they complete and are put onto the queue
-    InOrder,
-    #[default]
-    // Execute ready functions in a random order. Used to check semantics are independent of order
-    Random,
 }
 
 /// `RunState` is a structure that maintains the state of all the functions in the currently
@@ -214,8 +202,6 @@ pub struct RunState {
     /// Track which functions have finished and can be unblocked when flow goes not "busy"
     /// HashMap< <flow_id>, (function_id, vector of refilled io numbers of that function)>
     flow_blocks: HashMap<usize, HashSet<usize>>,
-    /// The execution strategy being used
-    strategy: ExecutionStrategy,
 }
 
 impl RunState {
@@ -233,7 +219,6 @@ impl RunState {
             number_of_jobs_created: 0,
             busy_flows: MultiMap::<usize, usize>::new(),
             flow_blocks: HashMap::<usize, HashSet<usize>>::new(),
-            strategy: ExecutionStrategy::Random,
         }
     }
 
@@ -376,20 +361,8 @@ impl RunState {
             }
         }
 
-        if self.ready.is_empty() {
-            return None;
-        }
-
-        let function_id = match self.strategy {
-            ExecutionStrategy::InOrder => self.ready.remove(0)?,
-            ExecutionStrategy::Random => {
-                // Generate random index in the range [0, len()-1]
-                let index = rand::thread_rng().gen_range(0..self.ready.len());
-                self.ready.remove(index)?
-            },
-        };
-
-        self.create_job(function_id)
+        let next_function_id = self.ready.remove(0)?;
+        self.create_job(next_function_id)
     }
 
     // Update the run_state to reflect that the job is now running
