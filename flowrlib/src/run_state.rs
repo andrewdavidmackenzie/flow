@@ -233,7 +233,7 @@ impl RunState {
             number_of_jobs_created: 0,
             busy_flows: MultiMap::<usize, usize>::new(),
             flow_blocks: HashMap::<usize, HashSet<usize>>::new(),
-            strategy: ExecutionStrategy::Random,
+            strategy: ExecutionStrategy::InOrder,
         }
     }
 
