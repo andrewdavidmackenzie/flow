@@ -53,5 +53,5 @@ in the 2D imaginary space, calculate the value in the set for that point and the
 in the image buffer.
   - Function [pixel to point](pixel_to_point/pixel_to_point.md) to calculate the corresponding location
 in the 2D imaginary coordinate system for each pixel
-  - Function [escapes](escapes) to calculate the appropriate value (using the core mandlebrot algorithm) for
+  - Function [escapes](escapes/escapes.md) to calculate the appropriate value (using the core mandlebrot algorithm) for
   each pixel.
