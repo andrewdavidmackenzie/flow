@@ -5,12 +5,10 @@ creation of a set of example flows that execute as expected.
 
 There has pretty good overall test coverage (> 82%) that allows for safer refactoring.
 
-The docs are reasonably extensive but a bit out of date in places, but I have issues created to cover most of the most
-significant docs improvements needed.
+The docs are reasonably extensive but can always be improved. They probably need "real users" (not the author)
+to try to use them and flow to make the next round of improvements. There are issues in the repo
+and the [project](https://github.com/users/andrewdavidmackenzie/projects/2/views/1) related to improving docs.
 
-The project continues to evolve in [the flow repo](https://github.com/andrewdavidmackenzie) with myself as the 
-only contributor.
-
-I moved some GUI/IDE experimentation into a separate repo that uses the `flowclib`  and `flowrlib` libs from here,
-and that is the biggest area needing work in order to showcase `flow` and make it more visual and easy to follow
-for folks.
+I moved some GUI/IDE experimentation into a separate repo that uses the `flowclib`  and `flowrlib` libs.
+The intention is to re-start some GUI experimentation with `egui` or `iced` rust GUI libraries when 1.0
+is released.

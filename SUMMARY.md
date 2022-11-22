@@ -9,7 +9,6 @@
 - [The Inspirations for `flow`](docs/introduction/inspirations.md)
 - [Non-Inspirations](docs/introduction/non_inspirations.md)
 - [Status](docs/introduction/status.md)
-- [Flow Programming](docs/introduction/flow_programming.md)
 
 # Your First Flow
 - [Your First Flow](docs/first_flow/first_flow.md)
