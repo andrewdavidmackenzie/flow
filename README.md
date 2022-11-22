@@ -14,6 +14,7 @@ flow program to generate a sequence of fibonacci numbers.
 If you are a programmer, your intuition will probably tell you a lot already about how `flow` works
 without any explanation.
 ![First flow](first.svg) 
+
 This is one of many samples that can be found in the flow samples crate in `flow`, and the first thing
 I got working (much to my own delight!).
 
