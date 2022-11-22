@@ -8,6 +8,7 @@
 - [Project Components and Structure](docs/introduction/structure.md)
 - [The Inspirations for `flow`](docs/introduction/inspirations.md)
 - [Non-Inspirations](docs/introduction/non_inspirations.md)
+- [Parallelism](docs/introduction/parallelism.md)
 - [Status](docs/introduction/status.md)
 
 # Your First Flow
