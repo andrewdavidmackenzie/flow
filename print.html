@@ -4030,8 +4030,8 @@ docs for <a href="http://andrewdavidmackenzie.github.io/flow/code/doc/flowcore/t
 <p>This implements a <code>content provider</code> that resolves URLs and then gets the content of the url.</p>
 <h2 id="features-2"><a class="header" href="#features-2">Features</a></h2>
 <p><code>flowcore</code> crate supports a number of &quot;features&quot; for conditional compiling with more or less features.</p>
-<p>[features]
-These are the conditionally compiled features of <code>flowcore</code>:</p>
+<h2 id="features-3"><a class="header" href="#features-3">features</a></h2>
+<p>These are the conditionally compiled features of <code>flowcore</code>:</p>
 <ul>
 <li>default - none are activated by default</li>
 <li>context - makes this crate aware of the flow context functions or not</li>
@@ -4061,7 +4061,7 @@ and &quot;http_provider&quot; features).</li>
 implementing the <code>FlowImpl</code> trait), so that when compiled for the <code>wasm32</code> target, code is inserted to help read 
 the inputs, help form the outputs and allocate memory (<code>alloc</code>) as well as serialize and deserialize the data 
 passed across the native/wasm boundary.</p>
-<h2 id="features-3"><a class="header" href="#features-3">Features</a></h2>
+<h2 id="features-4"><a class="header" href="#features-4">Features</a></h2>
 <p><code>flowmacro</code> has no features</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="flowrlib"><a class="header" href="#flowrlib"><code>flowrlib</code></a></h1>
 <p>See also: <a href="http://andrewdavidmackenzie.github.io/flow/code/doc/flowrlib/index.html">Code docs</a></p>
@@ -4071,7 +4071,7 @@ runner, such as the <code>flowr</code> command line runner.</p>
 from <code>LibraryManifest</code> files and then coordinating the execution by dispatching <code>Jobs</code> to be executed 
 by <code>Function</code> <code>Implementations</code>, providing them the <code>Inputs</code> required to run and gathering the <code>Outputs</code> produced 
 and passing those <code>Outputs</code> to other connected <code>Functions</code> in the network of <code>Functions</code>.</p>
-<h2 id="features-4"><a class="header" href="#features-4">features</a></h2>
+<h2 id="features-5"><a class="header" href="#features-5">features</a></h2>
 <p>These are the conditionally compiled features of <code>flowrlib</code>:</p>
 <ul>
 <li>default - none are activated by default</li>
@@ -4095,7 +4095,7 @@ provides for flows to interact with the environment it is being run in, such as 
 <li><a href="docs/developing/../../flowr/src/cli/image/image.html">image</a> - used to create image files</li>
 <li><a href="docs/developing/../../flowr/src/cli/stdio/stdio.html">stdio</a> - used to interact with stdio</li>
 </ul>
-<h2 id="features-5"><a class="header" href="#features-5">features</a></h2>
+<h2 id="features-6"><a class="header" href="#features-6">features</a></h2>
 <p>These are the conditionally compiled features of <code>flowr</code>:</p>
 <ul>
 <li>default - &quot;debugger&quot; and &quot;metrics&quot; features are enabled by default</li>
@@ -4107,7 +4107,7 @@ provides for flows to interact with the environment it is being run in, such as 
 <p><code>flowrex</code> is a binary for the execution of flow jobs, dispatched over the network by <code>flowr</code> or some other
 flow runner application that runs a <code>coordinator</code> (via the <code>flowrlib</code> library).</p>
 <p>You can find more details about how to use it in running flows in the <a href="docs/developing/../running/distributed.html">distributed</a> section.</p>
-<h2 id="features-6"><a class="header" href="#features-6">features</a></h2>
+<h2 id="features-7"><a class="header" href="#features-7">features</a></h2>
 <p>These are the conditionally compiled features of <code>flowr</code>:</p>
 <ul>
 <li>default - &quot;flowstdlib&quot; (dependency as a feature) to link <code>flowstdlib</code> natively. Deactivating this would
@@ -4133,7 +4133,7 @@ and then uses the library to compile and optionally run the compiled flow.</p>
 <h1 id="flowclib"><a class="header" href="#flowclib"><code>flowclib</code></a></h1>
 <p>This library contains most of the compilation and linking logic for <code>flowc</code>. </p>
 <p>See also: <a href="http://andrewdavidmackenzie.github.io/flow/code/doc/flowclib/index.html">Code docs</a></p>
-<h2 id="features-7"><a class="header" href="#features-7">features</a></h2>
+<h2 id="features-8"><a class="header" href="#features-8">features</a></h2>
 <p>These are the conditionally compiled features of the <code>flowc</code> crate:</p>
 <ul>
 <li>default - The &quot;debugger&quot; feature is enabled by default</li>
@@ -4227,7 +4227,7 @@ This is used by the Runtime to be able to load it.</li>
 <h2 id="configuring-flow_lib_path-during-development-1"><a class="header" href="#configuring-flow_lib_path-during-development-1">Configuring <code>FLOW_LIB_PATH</code> during development</a></h2>
 <p>If you are using it as part of the larger <code>flow</code> workspace then you just need the <code>flow</code> project root directory
 in your <code>FLOW_LIB_PATH</code> as described above (or added to the lib search part using the <code>-L &lt;dir&gt;</code> option).</p>
-<h2 id="features-8"><a class="header" href="#features-8">features</a></h2>
+<h2 id="features-9"><a class="header" href="#features-9">features</a></h2>
 <p>These are the conditionally compiled features of <code>flowstdlib</code>:</p>
 <ul>
 <li>default - No features are enabled by default</li>
@@ -4346,7 +4346,7 @@ under <code>samples</code> where the sample is) to run just that one sample.</p>
 <p>Add the root.toml and any other included flows and describe them.</p>
 <p>Add a DESCRIPTION.md file that describes what the sample does and what features of flow it uses.</p>
 <p>Add an entry in the guide's &quot;samples&quot; section that will include the DESCRIPTION.md file above.</p>
-<h2 id="features-9"><a class="header" href="#features-9">features</a></h2>
+<h2 id="features-10"><a class="header" href="#features-10">features</a></h2>
 <p><code>flowsamples</code> has no features to enable</p>
 <div style="break-before: page; page-break-before: always;"></div><h2 id="important-make-targets"><a class="header" href="#important-make-targets">Important make targets</a></h2>
 <ul>
@@ -4501,7 +4501,7 @@ under <code>samples</code> where the sample is) to run just that one sample.</p>
 <p>Add the root.toml and any other included flows and describe them.</p>
 <p>Add a DESCRIPTION.md file that describes what the sample does and what features of flow it uses.</p>
 <p>Add an entry in the guide's &quot;samples&quot; section that will include the DESCRIPTION.md file above.</p>
-<h2 id="features-10"><a class="header" href="#features-10">features</a></h2>
+<h2 id="features-11"><a class="header" href="#features-11">features</a></h2>
 <p><code>flowsamples</code> has no features to enable</p>
 <div style="break-before: page; page-break-before: always;"></div><h3 id="continuous-integration-testing-of-flow"><a class="header" href="#continuous-integration-testing-of-flow">Continuous Integration testing of flow</a></h3>
 <p>The CI build and test run in Travis on each push to a branch or PR can be run locally 
