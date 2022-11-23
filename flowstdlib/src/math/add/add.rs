@@ -8,7 +8,7 @@ fn _add(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
     let input_b = &inputs[1];
 
     let sum = match (&input_a, &input_b) {
-        (&Number(ref a), &Number(ref b)) => {
+        (Number(a), Number(b)) => {
             if let Some(a_i64) = a.as_i64() {
                 if let Some(b_i64) = b.as_i64() {
                     a_i64.checked_add(b_i64).map(|result| json!(result))

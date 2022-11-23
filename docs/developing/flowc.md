@@ -28,3 +28,8 @@ and then uses the library to compile and optionally run the compiled flow.
 This library contains most of the compilation and linking logic for `flowc`. 
 
 See also: [Code docs](http://andrewdavidmackenzie.github.io/flow/code/doc/flowclib/index.html)
+
+## features
+These are the conditionally compiled features of the `flowc` crate:
+- default - The "debugger" feature is enabled by default
+- debugger - feature to add the debugger

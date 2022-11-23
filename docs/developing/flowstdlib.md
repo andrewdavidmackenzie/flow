@@ -35,3 +35,7 @@ Its functions can  be loaded from WASM files by `flowrlib` at run-time using the
 If you are using it as part of the larger `flow` workspace then you just need the `flow` project root directory
 in your `FLOW_LIB_PATH` as described above (or added to the lib search part using the `-L <dir>` option).
 
+## features
+These are the conditionally compiled features of `flowstdlib`:
+- default - No features are enabled by default
+- wasm - feature to enable compile of functions to WASM implementation

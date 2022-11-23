@@ -25,7 +25,7 @@ ifeq ($(FLOW_CONTEXT_ROOT),)
 endif
 
 .PHONY: all
-all: online clippy build test docs trim-docs
+all: online clippy build test docs
 
 .PHONY: online
 online:
@@ -118,10 +118,13 @@ coverage: install-flow
 	@genhtml -o target/coverage --quiet coverage.info
 
 .PHONY: docs
-docs:
-	@echo "docs<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
-	@cargo doc --no-deps --target-dir=target/html/code $(cargo_options)
+docs: generate-docs trim-docs
+
+.PHONY: generate-docs
+generate-docs:
+	@echo "generate-docs<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
 	@mdbook build
+	@cargo doc --no-deps --target-dir=target/html/code $(cargo_options)
 
 .PHONY: trim-docs
 trim-docs:
