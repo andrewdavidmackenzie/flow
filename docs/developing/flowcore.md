@@ -19,7 +19,7 @@ This implements a `content provider` that resolves URLs and then gets the conten
 ## Features
 `flowcore` crate supports a number of "features" for conditional compiling with more or less features.
 
-[features]
+## features
 These are the conditionally compiled features of `flowcore`:
 - default - none are activated by default
 - context - makes this crate aware of the flow context functions or not
