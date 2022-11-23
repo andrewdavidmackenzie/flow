@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":[["ClientMessage","A Message from the a runtime_client to the runtime server"],["ServerMessage","An Message sent from the runtime server to a runtime_client"]],"struct":[["FileMetaData","A simple struct with File MetaData for passing from Client to Server - std::fs::MetaData Doesn’t Serialize/Deserialize etc."]]};

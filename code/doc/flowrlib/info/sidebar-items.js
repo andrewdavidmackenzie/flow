@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":[["version","Return the version number of the `flowrlib` library"]]};

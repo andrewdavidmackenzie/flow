@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":[["State","`State` represents the possible states it is possible for a function to be in"]],"struct":[["RunState","`RunState` is a structure that maintains the state of all the functions in the currently executing flow."]]};

@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"struct":[["Stderr","`Implementation` struct for the `Stderr` function"]]};

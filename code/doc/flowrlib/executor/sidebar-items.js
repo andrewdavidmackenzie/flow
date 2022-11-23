@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"struct":[["Executor","An `Executor` struct is used to receive jobs, execute them and return results. It can load libraries and keep track of the `Function` `Implementations` loaded for use in job execution."]]};

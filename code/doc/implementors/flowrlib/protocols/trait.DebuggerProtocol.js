@@ -1,0 +1,3 @@
+(function() {var implementors = {
+"flowr":[["impl <a class=\"trait\" href=\"flowrlib/protocols/trait.DebuggerProtocol.html\" title=\"trait flowrlib::protocols::DebuggerProtocol\">DebuggerProtocol</a> for <a class=\"struct\" href=\"flowr/cli/cli_debug_server/struct.CliDebugServer.html\" title=\"struct flowr::cli::cli_debug_server::CliDebugServer\">CliDebugServer</a>"]]
+};if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()

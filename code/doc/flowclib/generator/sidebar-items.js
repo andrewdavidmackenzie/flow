@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"mod":[["generate","Module to generate a flow’s manifest from the compiler tables"]]};

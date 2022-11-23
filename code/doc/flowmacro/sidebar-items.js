@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"attr":[["flow_function","Implement the `flow_function` macro, an example usage of which is: `#[flow_function]`"]]};

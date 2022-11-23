@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"struct":[["Stdout","`Implementation` struct for the `Stdout` function"]]};

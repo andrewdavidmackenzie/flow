@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"struct":[["Tap","Tap (//flowstdlib/control/tap)"]]};

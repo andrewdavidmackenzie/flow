@@ -1415,43 +1415,51 @@ run using the <code>-C, --context_root &lt;CONTEXT_DIRECTORY&gt;</code> option t
 at <code>flowr/src/cli</code> so it searches for (and finds) a function definition file at <code>flowr/src/cli/stdio/stdout/stdout.toml</code>
 using the alrgorithm described in <a href="docs/describing/process_references.html">process references</a>.</p>
 <div style="break-before: page; page-break-before: always;"></div><h2 id="provided-functions"><a class="header" href="#provided-functions">Provided Functions</a></h2>
-<p>As described previously, flows can use functions provided by the <code>context</code> (flow runner app) and by flow libraries.</p>
-<p>However, a flow can also provide its own functions (a definition, for the compiler, and an implementation, for the
-runtime).</p>
+<p>As described previously, flows can use <code>provided functions</code> provided by the flow runner app (e.g. <code>flowr</code>)
+and by flow libraries.</p>
+<p>However, a flow can also provide its own functions (a definition, for the compiler, and an implementation, 
+for the runtime).</p>
 <p>The <a href="docs/describing/process_references.html">process references</a> section describes the algorithm for finding the function's files 
-(definition
-and implementation) using relative paths within a flow file hierarchy.</p>
-<p>Using relative paths means that flows are &quot;encapsulated&quot; and portable (by location) as they can be moved around
+(definition and implementation) using relative paths within a flow file hierarchy.</p>
+<p>Using relative paths means that flows are &quot;encapsulated&quot; and portable (by location) as they can be moved
 between directories, files systems and systems/nodes and the relative locations of the provided functions allow 
 them to still be found and the flow compiled and ran.</p>
-<p>Examples can be found:</p>
+<h3 id="examples"><a class="header" href="#examples">Examples</a></h3>
+<p>The <code>flowsamples</code> crates has two samples that provide functions as part of the flow:</p>
 <ul>
-<li><code>Reverse Echo</code> in the folder <code>flowsamples/reverse-echo</code> - a simple sample that provides an implementation of a 
-function to reverse a string</li>
-<li><code>Mandlebrot</code> in the folder <code>flowsamples/mandlebrot</code> - a more complex sample that calculates a mandlebrot set and 
-creates an image of it, including provided implementation for two functions used in the process <code>escapes</code> and
-<code>pixel_to_point</code></li>
+<li><a href="docs/describing/../../flowsamples/reverse-echo/DESCRIPTION.html">Reverse Echo</a> in the folder <code>flowsamples/reverse-echo</code> - a
+simple sample that provides a function to reverse a string</li>
+<li><a href="docs/describing/../../flowsamples/mandlebrot/DESCRIPTION.html">Mandlebrot</a> in the folder <code>flowsamples/mandlebrot</code> - provides
+two functions:
+<ul>
+<li><code>pixel_to_point</code> to do conversions from pixels to points in 2D imaginary
+coordinates space</li>
+<li><code>escapes</code> to calculate the value of a point in the mandlebrot set</li>
+</ul>
+</li>
 </ul>
 <h3 id="what-a-provided-function-has-to-provide"><a class="header" href="#what-a-provided-function-has-to-provide">What a provided function has to provide</a></h3>
 <p>In order to provide a function as part of a flow the developer must provide:</p>
-<ul>
-<li>Function definition in a TOML file. Example <a href="docs/describing/../../flowsamples/mandlebrot/escapes/escapes.toml">escapes.toml</a>
-As for other function definitions it must define
+<h4 id="function-definition-file"><a class="header" href="#function-definition-file">Function definition file</a></h4>
+<p>Definition of the function in a TOML file.<br />
+Example <a href="docs/describing/../../flowsamples/mandlebrot/escapes/escapes.toml">escapes.toml</a><br />
+The same as any other function definition it must define:</p>
 <ul>
 <li><code>function</code> - field to show this is a function definition file and provide the function's name </li>
-<li><code>source</code> - the name of the implementation file </li>
+<li><code>source</code> - the name of the implementation file (relative path to this file)</li>
 <li><code>type</code> - to define what type of implementation is provided (<code>&quot;rust&quot;</code> is the only supported value at this time)</li>
 <li><code>input</code>- the function's inputs - as described in <a href="docs/describing/ios.html">IOs</a></li>
 <li><code>output</code>- the function's outputs - as described in <a href="docs/describing/ios.html">IOs</a></li>
+<li><code>docs</code> - Documentation markdown file (relative path)<br />
+Example <a href="docs/describing/../../flowsamples/mandlebrot/escapes/escapes.html">escapes.md</a></li>
 </ul>
-</li>
-<li>Documentation markdown file, if one is referenced from the definition file. Example
-<a href="docs/describing/../../flowsamples/mandlebrot/escapes/escapes.html">escapes.md</a></li>
-<li>Implementation - Code that implements the function of the type specified by <code>type</code> in the definition file. 
-Example: <a href="docs/describing/../../flowsamples/mandlebrot/escapes/escapes.rs">escapes.rs</a></li>
-<li>Build file - in the case of the <code>rust</code> type, a Cargo.toml file that is used to compile the function's 
-implementation as a stand-along project. This may optionally include tests.</li>
-</ul>
+<h4 id="implementation"><a class="header" href="#implementation">Implementation</a></h4>
+<p>Code that implements the function of the type specified by <code>type</code> in the file specified by <code>source</code>.<br />
+Example: <a href="docs/describing/../../flowsamples/mandlebrot/escapes/escapes.rs">escapes.rs</a></p>
+<p>This may optionally include tests, that will be compiled and run natively.</p>
+<h4 id="build-file"><a class="header" href="#build-file">Build file</a></h4>
+<p>In the case of the <code>rust</code> type (the only type implemented!), a <code>Cargo.toml</code> file that is used to compile 
+the function's implementation to WASM as a stand-along project. </p>
 <h3 id="how-are-provided-function-implementations-loaded-and-ran"><a class="header" href="#how-are-provided-function-implementations-loaded-and-ran">How are provided function implementations loaded and ran</a></h3>
 <p>If the flow running app (using the <code>flowrlib</code>library`) is statically linked, how can it load and then run the
 provided implementation?</p>
@@ -2317,6 +2325,12 @@ This is used by the Runtime to be able to load it.</li>
 <h2 id="configuring-flow_lib_path-during-development"><a class="header" href="#configuring-flow_lib_path-during-development">Configuring <code>FLOW_LIB_PATH</code> during development</a></h2>
 <p>If you are using it as part of the larger <code>flow</code> workspace then you just need the <code>flow</code> project root directory
 in your <code>FLOW_LIB_PATH</code> as described above (or added to the lib search part using the <code>-L &lt;dir&gt;</code> option).</p>
+<h2 id="features"><a class="header" href="#features">features</a></h2>
+<p>These are the conditionally compiled features of <code>flowstdlib</code>:</p>
+<ul>
+<li>default - No features are enabled by default</li>
+<li>wasm - feature to enable compile of functions to WASM implementation</li>
+</ul>
 <div style="break-before: page; page-break-before: always;"></div><h2 id="control-flowstdlibcontrol"><a class="header" href="#control-flowstdlibcontrol">Control (//flowstdlib/control)</a></h2>
 <p>Functions and flows to control the flow of data in a flow based on control inputs.</p>
 <h2 id="list-of-functions-and-flows"><a class="header" href="#list-of-functions-and-flows">List of Functions and Flows</a></h2>
@@ -3547,6 +3561,8 @@ under <code>samples</code> where the sample is) to run just that one sample.</p>
 <p>Add the root.toml and any other included flows and describe them.</p>
 <p>Add a DESCRIPTION.md file that describes what the sample does and what features of flow it uses.</p>
 <p>Add an entry in the guide's &quot;samples&quot; section that will include the DESCRIPTION.md file above.</p>
+<h2 id="features-1"><a class="header" href="#features-1">features</a></h2>
+<p><code>flowsamples</code> has no features to enable</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="args"><a class="header" href="#args">args</a></h1>
 <h1 id="description-1"><a class="header" href="#description-1">Description</a></h1>
 <p>A flow that shows how arguments can be passed into a flow when executed and are available to functions at run-time.</p>
@@ -4003,21 +4019,50 @@ libraries</li>
 <p>The following sections provide a brief description of the crates in the project.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="flowcore"><a class="header" href="#flowcore"><code>flowcore</code></a></h1>
 <p>See also: <a href="http://andrewdavidmackenzie.github.io/flow/code/doc/flowcore/index.html">Code docs</a></p>
-<p><code>flowcore</code> is a library of core structs and traits related to flow that are shared between multiple
-crates, and separate to avoid a cyclic dependency.</p>
-<h1 id="flow_impl"><a class="header" href="#flow_impl"><code>flow_impl</code></a></h1>
+<p><code>flowcore</code> is a library of structs and traits related to <code>flow</code> that are shared between multiple
+crates in the <code>flow</code>project.</p>
+<h2 id="implementation-trait"><a class="header" href="#implementation-trait"><code>Implementation</code> trait</a></h2>
 <p>This is a trait that implementations of flow 'functions' must implement in order for them to be invoked
 by the flowrlib (or other) run-time library.</p>
 <p>An example of a function implementing the <code>Implementation</code> trait can be found in the
-docs for <a href="http://andrewdavidmackenzie.github.io/flow/code/doc/flowcore/trait.Implementation.html"><code>Implementation</code></a></p>
-<h1 id="provider"><a class="header" href="#provider"><code>provider</code></a></h1>
+docs for <a href="http://andrewdavidmackenzie.github.io/flow/code/doc/flowcore/trait.Implementation.html">Implementation</a></p>
+<h2 id="provider"><a class="header" href="#provider"><code>Provider</code></a></h2>
 <p>This implements a <code>content provider</code> that resolves URLs and then gets the content of the url.</p>
+<h2 id="features-2"><a class="header" href="#features-2">Features</a></h2>
+<p><code>flowcore</code> crate supports a number of &quot;features&quot; for conditional compiling with more or less features.</p>
+<p>[features]
+These are the conditionally compiled features of <code>flowcore</code>:</p>
+<ul>
+<li>default - none are activated by default</li>
+<li>context - makes this crate aware of the flow context functions or not</li>
+<li>debugger - feature to add the debugger</li>
+<li>online_tests - run any tests activated by this feature</li>
+<li>meta_provider - include the meta provider for resolving &quot;lib://&quot; and &quot;context://&quot; Urls</li>
+<li>file_provider - include a provider to fetch content from the file system</li>
+<li>http_provider - include a provider to fetch content from the web</li>
+</ul>
+<p>Examples</p>
+<ul>
+<li><code>flowrlib</code> library crate compiles <code>flowcore</code> activating the &quot;file_provider&quot;, &quot;http_provider&quot;,
+&quot;context&quot; and &quot;meta_provider&quot; features</li>
+<li><code>flowr</code> compiled <code>flowcore</code> activating the &quot;context&quot; feature as it provides <code>context functions</code>. It has a 
+number of features that, if activated, active corresponding features in <code>flowcore</code> (<code>flowr</code> &quot;debugger&quot;
+feature actives &quot;flowcore/debugger&quot; feature.) and it depends on <code>flowrlib</code> (above) that in turn activates
+features</li>
+<li><code>flowrex</code> compiles <code>flowcore</code> with the default set of features (which is the minimal set in the case
+of <code>flowcore</code> as it does not provide ant <code>context functions</code> (&quot;context&quot; feature), nor does it coordinate flow
+running and provide a debugger (&quot;debugger&quot; feature), nor does it have the need for running &quot;online_tests&quot;,
+and lastly it does not fetch content via any of the various &quot;providers&quot; (&quot;meta_provider&quot;, &quot;file_provider&quot;,
+and &quot;http_provider&quot; features).</li>
+</ul>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="flowmacro"><a class="header" href="#flowmacro"><code>flowmacro</code></a></h1>
 <p>See also: <a href="http://andrewdavidmackenzie.github.io/flow/code/doc/flowmacro/index.html">Code docs</a></p>
 <p><code>flow_function</code> is a proc macro to be used on the structure that provides an implementation for a function (by 
 implementing the <code>FlowImpl</code> trait), so that when compiled for the <code>wasm32</code> target, code is inserted to help read 
 the inputs, help form the outputs and allocate memory (<code>alloc</code>) as well as serialize and deserialize the data 
 passed across the native/wasm boundary.</p>
+<h2 id="features-3"><a class="header" href="#features-3">Features</a></h2>
+<p><code>flowmacro</code> has no features</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="flowrlib"><a class="header" href="#flowrlib"><code>flowrlib</code></a></h1>
 <p>See also: <a href="http://andrewdavidmackenzie.github.io/flow/code/doc/flowrlib/index.html">Code docs</a></p>
 <p>This is the rust run-time library for flow execution. This will be linked with other code to produce a flow
@@ -4026,6 +4071,15 @@ runner, such as the <code>flowr</code> command line runner.</p>
 from <code>LibraryManifest</code> files and then coordinating the execution by dispatching <code>Jobs</code> to be executed 
 by <code>Function</code> <code>Implementations</code>, providing them the <code>Inputs</code> required to run and gathering the <code>Outputs</code> produced 
 and passing those <code>Outputs</code> to other connected <code>Functions</code> in the network of <code>Functions</code>.</p>
+<h2 id="features-4"><a class="header" href="#features-4">features</a></h2>
+<p>These are the conditionally compiled features of <code>flowrlib</code>:</p>
+<ul>
+<li>default - none are activated by default</li>
+<li>submission - include the ability to receive a submission of a flow for execution</li>
+<li>context - makes this crate aware of the flow context functions or not</li>
+<li>debugger - feature to add the debugger</li>
+<li>metrics - feature for tracking of metrics during execution</li>
+</ul>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="flowr"><a class="header" href="#flowr"><code>flowr</code></a></h1>
 <p>See also: <a href="http://andrewdavidmackenzie.github.io/flow/code/doc/flowr/index.html">Code docs</a></p>
 <p><code>flowr</code> is a binary run-time for running flows from the CLI built using the <code>flowrlib</code> library.</p>
@@ -4041,11 +4095,24 @@ provides for flows to interact with the environment it is being run in, such as 
 <li><a href="docs/developing/../../flowr/src/cli/image/image.html">image</a> - used to create image files</li>
 <li><a href="docs/developing/../../flowr/src/cli/stdio/stdio.html">stdio</a> - used to interact with stdio</li>
 </ul>
+<h2 id="features-5"><a class="header" href="#features-5">features</a></h2>
+<p>These are the conditionally compiled features of <code>flowr</code>:</p>
+<ul>
+<li>default - &quot;debugger&quot; and &quot;metrics&quot; features are enabled by default</li>
+<li>debugger - feature to add the debugger</li>
+<li>metrics - feature for tracking of metrics during execution</li>
+</ul>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="flowr-1"><a class="header" href="#flowr-1"><code>flowr</code></a></h1>
 <p>See also: <a href="http://andrewdavidmackenzie.github.io/flow/code/doc/flowrex/index.html">Code docs</a></p>
 <p><code>flowrex</code> is a binary for the execution of flow jobs, dispatched over the network by <code>flowr</code> or some other
 flow runner application that runs a <code>coordinator</code> (via the <code>flowrlib</code> library).</p>
 <p>You can find more details about how to use it in running flows in the <a href="docs/developing/../running/distributed.html">distributed</a> section.</p>
+<h2 id="features-6"><a class="header" href="#features-6">features</a></h2>
+<p>These are the conditionally compiled features of <code>flowr</code>:</p>
+<ul>
+<li>default - &quot;flowstdlib&quot; (dependency as a feature) to link <code>flowstdlib</code> natively. Deactivating this would
+allow use of <code>flowstdlib</code> via it's WASM function implementations (use of <code>-L</code> option required)</li>
+</ul>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="flowc"><a class="header" href="#flowc"><code>flowc</code></a></h1>
 <p>See also: <a href="http://andrewdavidmackenzie.github.io/flow/code/doc/flowc/index.html">Code docs</a></p>
 <p><code>flowc</code> is the &quot;compiler and linker&quot; for flows and flow libraries, although it is not 
@@ -4066,6 +4133,12 @@ and then uses the library to compile and optionally run the compiled flow.</p>
 <h1 id="flowclib"><a class="header" href="#flowclib"><code>flowclib</code></a></h1>
 <p>This library contains most of the compilation and linking logic for <code>flowc</code>. </p>
 <p>See also: <a href="http://andrewdavidmackenzie.github.io/flow/code/doc/flowclib/index.html">Code docs</a></p>
+<h2 id="features-7"><a class="header" href="#features-7">features</a></h2>
+<p>These are the conditionally compiled features of the <code>flowc</code> crate:</p>
+<ul>
+<li>default - The &quot;debugger&quot; feature is enabled by default</li>
+<li>debugger - feature to add the debugger</li>
+</ul>
 <div style="break-before: page; page-break-before: always;"></div><h2 id="test-flows"><a class="header" href="#test-flows">Test flows</a></h2>
 <p>These are a number of test flows to exercise specific features and are not intended to be &quot;real world programs&quot; 
 or solutions to problems.</p>
@@ -4154,6 +4227,12 @@ This is used by the Runtime to be able to load it.</li>
 <h2 id="configuring-flow_lib_path-during-development-1"><a class="header" href="#configuring-flow_lib_path-during-development-1">Configuring <code>FLOW_LIB_PATH</code> during development</a></h2>
 <p>If you are using it as part of the larger <code>flow</code> workspace then you just need the <code>flow</code> project root directory
 in your <code>FLOW_LIB_PATH</code> as described above (or added to the lib search part using the <code>-L &lt;dir&gt;</code> option).</p>
+<h2 id="features-8"><a class="header" href="#features-8">features</a></h2>
+<p>These are the conditionally compiled features of <code>flowstdlib</code>:</p>
+<ul>
+<li>default - No features are enabled by default</li>
+<li>wasm - feature to enable compile of functions to WASM implementation</li>
+</ul>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="flow-samples-1"><a class="header" href="#flow-samples-1">Flow Samples</a></h1>
 <p>This crate contains a number of sample 'flows' that have been developed during the development
 of the compiler and the run-time to drive the project development and demonstrate it working. </p>
@@ -4267,6 +4346,8 @@ under <code>samples</code> where the sample is) to run just that one sample.</p>
 <p>Add the root.toml and any other included flows and describe them.</p>
 <p>Add a DESCRIPTION.md file that describes what the sample does and what features of flow it uses.</p>
 <p>Add an entry in the guide's &quot;samples&quot; section that will include the DESCRIPTION.md file above.</p>
+<h2 id="features-9"><a class="header" href="#features-9">features</a></h2>
+<p><code>flowsamples</code> has no features to enable</p>
 <div style="break-before: page; page-break-before: always;"></div><h2 id="important-make-targets"><a class="header" href="#important-make-targets">Important make targets</a></h2>
 <ul>
 <li>(default) <code>make</code> will build, run local tests and generate docs.</li>
@@ -4420,6 +4501,8 @@ under <code>samples</code> where the sample is) to run just that one sample.</p>
 <p>Add the root.toml and any other included flows and describe them.</p>
 <p>Add a DESCRIPTION.md file that describes what the sample does and what features of flow it uses.</p>
 <p>Add an entry in the guide's &quot;samples&quot; section that will include the DESCRIPTION.md file above.</p>
+<h2 id="features-10"><a class="header" href="#features-10">features</a></h2>
+<p><code>flowsamples</code> has no features to enable</p>
 <div style="break-before: page; page-break-before: always;"></div><h3 id="continuous-integration-testing-of-flow"><a class="header" href="#continuous-integration-testing-of-flow">Continuous Integration testing of flow</a></h3>
 <p>The CI build and test run in Travis on each push to a branch or PR can be run locally 
 using <code>make travis</code>.</p>

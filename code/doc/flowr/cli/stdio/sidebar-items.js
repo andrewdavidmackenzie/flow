@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"mod":[["readline","the `readline` module to allow a flow to read lines from stdin function"],["stderr","the `stderr` module to allow a flow to send to the stderr function"],["stdin","the `stdin` module to allow a flow to get from the stdin function"],["stdout","the `stdout` module to allow a flow to send to the stdout function"]]};

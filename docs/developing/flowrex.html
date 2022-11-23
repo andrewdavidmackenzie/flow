@@ -147,6 +147,12 @@
 <p><code>flowrex</code> is a binary for the execution of flow jobs, dispatched over the network by <code>flowr</code> or some other
 flow runner application that runs a <code>coordinator</code> (via the <code>flowrlib</code> library).</p>
 <p>You can find more details about how to use it in running flows in the <a href="../running/distributed.html">distributed</a> section.</p>
+<h2 id="features"><a class="header" href="#features">features</a></h2>
+<p>These are the conditionally compiled features of <code>flowr</code>:</p>
+<ul>
+<li>default - &quot;flowstdlib&quot; (dependency as a feature) to link <code>flowstdlib</code> natively. Deactivating this would
+allow use of <code>flowstdlib</code> via it's WASM function implementations (use of <code>-L</code> option required)</li>
+</ul>
 
                     </main>
 

@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"struct":[["FileWrite","`Implementation` struct for the `file_write` function"]]};

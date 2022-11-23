@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"struct":[["MetaProvider","The `MetaProvider` implements the `Provider` trait and based on the url and it’s resolution to a real location for content invokes one of the child providers it has to fetch the content (e.g. File or Http)."]]};

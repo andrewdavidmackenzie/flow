@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"struct":[["MetaData","`MetaData` about a `flow` that will be used in the flow’s description and `Manifest`"]]};

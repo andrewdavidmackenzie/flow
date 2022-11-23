@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":[["Direction","`Direction` defines whether a `Connection` is coming from an IO or to an IO"]],"struct":[["Connection","`Connection` defines a connection between the output of one function or flow to the input of another function or flow and maybe optionally named for legibility/debugging."]]};

@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"mod":[["file_write","the `file_write` module to take care of writing files for a flow"]]};

@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"struct":[["Info","Info (//flowstdlib/data/info)"]]};

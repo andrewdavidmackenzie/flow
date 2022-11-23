@@ -143,43 +143,51 @@
                 <div id="content" class="content">
                     <main>
                         <h2 id="provided-functions"><a class="header" href="#provided-functions">Provided Functions</a></h2>
-<p>As described previously, flows can use functions provided by the <code>context</code> (flow runner app) and by flow libraries.</p>
-<p>However, a flow can also provide its own functions (a definition, for the compiler, and an implementation, for the
-runtime).</p>
+<p>As described previously, flows can use <code>provided functions</code> provided by the flow runner app (e.g. <code>flowr</code>)
+and by flow libraries.</p>
+<p>However, a flow can also provide its own functions (a definition, for the compiler, and an implementation, 
+for the runtime).</p>
 <p>The <a href="process_references.html">process references</a> section describes the algorithm for finding the function's files 
-(definition
-and implementation) using relative paths within a flow file hierarchy.</p>
-<p>Using relative paths means that flows are &quot;encapsulated&quot; and portable (by location) as they can be moved around
+(definition and implementation) using relative paths within a flow file hierarchy.</p>
+<p>Using relative paths means that flows are &quot;encapsulated&quot; and portable (by location) as they can be moved
 between directories, files systems and systems/nodes and the relative locations of the provided functions allow 
 them to still be found and the flow compiled and ran.</p>
-<p>Examples can be found:</p>
+<h3 id="examples"><a class="header" href="#examples">Examples</a></h3>
+<p>The <code>flowsamples</code> crates has two samples that provide functions as part of the flow:</p>
 <ul>
-<li><code>Reverse Echo</code> in the folder <code>flowsamples/reverse-echo</code> - a simple sample that provides an implementation of a 
-function to reverse a string</li>
-<li><code>Mandlebrot</code> in the folder <code>flowsamples/mandlebrot</code> - a more complex sample that calculates a mandlebrot set and 
-creates an image of it, including provided implementation for two functions used in the process <code>escapes</code> and
-<code>pixel_to_point</code></li>
+<li><a href="../../flowsamples/reverse-echo/DESCRIPTION.html">Reverse Echo</a> in the folder <code>flowsamples/reverse-echo</code> - a
+simple sample that provides a function to reverse a string</li>
+<li><a href="../../flowsamples/mandlebrot/DESCRIPTION.html">Mandlebrot</a> in the folder <code>flowsamples/mandlebrot</code> - provides
+two functions:
+<ul>
+<li><code>pixel_to_point</code> to do conversions from pixels to points in 2D imaginary
+coordinates space</li>
+<li><code>escapes</code> to calculate the value of a point in the mandlebrot set</li>
+</ul>
+</li>
 </ul>
 <h3 id="what-a-provided-function-has-to-provide"><a class="header" href="#what-a-provided-function-has-to-provide">What a provided function has to provide</a></h3>
 <p>In order to provide a function as part of a flow the developer must provide:</p>
-<ul>
-<li>Function definition in a TOML file. Example <a href="../../flowsamples/mandlebrot/escapes/escapes.toml">escapes.toml</a>
-As for other function definitions it must define
+<h4 id="function-definition-file"><a class="header" href="#function-definition-file">Function definition file</a></h4>
+<p>Definition of the function in a TOML file.<br />
+Example <a href="../../flowsamples/mandlebrot/escapes/escapes.toml">escapes.toml</a><br />
+The same as any other function definition it must define:</p>
 <ul>
 <li><code>function</code> - field to show this is a function definition file and provide the function's name </li>
-<li><code>source</code> - the name of the implementation file </li>
+<li><code>source</code> - the name of the implementation file (relative path to this file)</li>
 <li><code>type</code> - to define what type of implementation is provided (<code>&quot;rust&quot;</code> is the only supported value at this time)</li>
 <li><code>input</code>- the function's inputs - as described in <a href="ios.html">IOs</a></li>
 <li><code>output</code>- the function's outputs - as described in <a href="ios.html">IOs</a></li>
+<li><code>docs</code> - Documentation markdown file (relative path)<br />
+Example <a href="../../flowsamples/mandlebrot/escapes/escapes.html">escapes.md</a></li>
 </ul>
-</li>
-<li>Documentation markdown file, if one is referenced from the definition file. Example
-<a href="../../flowsamples/mandlebrot/escapes/escapes.html">escapes.md</a></li>
-<li>Implementation - Code that implements the function of the type specified by <code>type</code> in the definition file. 
-Example: <a href="../../flowsamples/mandlebrot/escapes/escapes.rs">escapes.rs</a></li>
-<li>Build file - in the case of the <code>rust</code> type, a Cargo.toml file that is used to compile the function's 
-implementation as a stand-along project. This may optionally include tests.</li>
-</ul>
+<h4 id="implementation"><a class="header" href="#implementation">Implementation</a></h4>
+<p>Code that implements the function of the type specified by <code>type</code> in the file specified by <code>source</code>.<br />
+Example: <a href="../../flowsamples/mandlebrot/escapes/escapes.rs">escapes.rs</a></p>
+<p>This may optionally include tests, that will be compiled and run natively.</p>
+<h4 id="build-file"><a class="header" href="#build-file">Build file</a></h4>
+<p>In the case of the <code>rust</code> type (the only type implemented!), a <code>Cargo.toml</code> file that is used to compile 
+the function's implementation to WASM as a stand-along project. </p>
 <h3 id="how-are-provided-function-implementations-loaded-and-ran"><a class="header" href="#how-are-provided-function-implementations-loaded-and-ran">How are provided function implementations loaded and ran</a></h3>
 <p>If the flow running app (using the <code>flowrlib</code>library`) is statically linked, how can it load and then run the
 provided implementation?</p>

@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"trait":[["DebuggerProtocol","Programs that wish to offer a debugger (such as a CLI or UI) should implement this protocol"],["SubmissionProtocol","Programs linking `flowrlib` that wish to submit a flow for execution via a `Submission` and then track it’s execution (such as a CLI or a UI) should implement this trait."]]};

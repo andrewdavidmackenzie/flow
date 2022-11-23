@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"struct":[["Readline","`Implementation` struct for the `readline` function"]]};

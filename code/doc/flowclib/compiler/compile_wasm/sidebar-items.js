@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":[["compile_implementation","Compile a function’s implementation to wasm and modify implementation to point to the wasm file Checks the timestamps of the source and wasm files and only recompiles if wasm file is out of date"]]};

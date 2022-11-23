@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"struct":[["Dispatcher","`Dispatcher` structure holds information required to send jobs for execution and receive results back"]]};

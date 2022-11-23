@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"struct":[["Submission","A `Submission` is the struct used to send a flow to the Coordinator for execution. It contains all the information necessary to execute it:"]]};

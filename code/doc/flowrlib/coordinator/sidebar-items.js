@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"struct":[["Coordinator","The `Coordinator` is responsible for coordinating the dispatching of jobs (consisting of a set of Input values and an Implementation of a Function) for execution, gathering the resulting Outputs and distributing output values to other connected function’s Inputs."]]};

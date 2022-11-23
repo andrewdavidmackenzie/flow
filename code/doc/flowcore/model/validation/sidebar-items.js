@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"trait":[["Validate","Many structs in the model implement the `Validate` method which is used to check the description deserialized from file obeys some additional constraints that cannot be expressed in the struct definition in `serde`"]]};

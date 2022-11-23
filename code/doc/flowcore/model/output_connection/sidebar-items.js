@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":[["Conversion","The `Conversion` enum defines what type of run-time conversion of types is to be done"],["Source","This specifies the `Source` of an `OutputConnection` which can either be:"]],"struct":[["OutputConnection","`OutputConnection` contains information about a function’s output connection to another function"]]};

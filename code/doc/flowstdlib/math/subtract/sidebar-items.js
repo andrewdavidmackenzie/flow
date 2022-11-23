@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"struct":[["Subtract","Subtract (//flowstdlib/math/subtract)"]]};

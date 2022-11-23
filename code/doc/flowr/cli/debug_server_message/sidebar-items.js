@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":[["DebugServerMessage","A Message sent from the debugger to a debug_client"]]};

@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"struct":[["Name","`Name` is a String that names various types of objects"]],"trait":[["HasName","Trait implemented by objects that have a Name"]]};

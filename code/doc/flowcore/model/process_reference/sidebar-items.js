@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"struct":[["ProcessReference","A `ProcessReference` is the struct used in a `Flow` to refer to a sub-process (Function or nested Flow) it contains"]]};

@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"struct":[["MultiplyRow","MultiplyRow (//flowstdlib/data/multiply_row)"]]};

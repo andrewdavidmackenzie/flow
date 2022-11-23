@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"struct":[["RuntimeFunction","`RuntimeFunction` contains all the information needed about a function and its implementation to be able to execute a flow using it."]]};

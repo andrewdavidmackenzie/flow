@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"struct":[["Index","Index (//flowstdlib/control/index)"]]};

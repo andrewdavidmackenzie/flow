@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":[["get_deserializer","Return a Deserializer based on the file extension of the resource referred to from `url` input"]],"trait":[["Deserializer","All deserializers have to implement this trait for content deserialization, plus a method to return their name to be able to inform the user of which deserializer was used"]]};

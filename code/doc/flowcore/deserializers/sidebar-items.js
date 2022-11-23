@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"mod":[["deserializer","Helper function used to get a deserializer for a given file (by file extension)"]]};

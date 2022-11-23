@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"constant":[["ARGS_FILENAME",""],["FILE_FILENAME",""],["STDERR_FILENAME",""],["STDIN_FILENAME",""],["STDOUT_FILENAME",""]],"fn":[["args",""],["main",""],["run_sample",""]]};

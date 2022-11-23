@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"constant":[["FLOWR_HISTORY_FILENAME",""],["HELP_STRING",""]],"struct":[["CliDebugClient",""]]};

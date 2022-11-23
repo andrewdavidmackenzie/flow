@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":[["ErrorKind","The kind of an error."]],"macro":[["bail","Exits a function early with an error"]],"struct":[["Error","The Error type."]],"trait":[["ResultExt","Additional methods for `Result`, for easy interaction with this crate."]],"type":[["Result","Convenient wrapper around `std::Result`."]]};

@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":[["get_output_dir","Determine the output directory to use for generation on the local file system as a function of the url of the source flow, and the optional argument to specify the output directory to use. The flow source location can be http url, or file url"]]};

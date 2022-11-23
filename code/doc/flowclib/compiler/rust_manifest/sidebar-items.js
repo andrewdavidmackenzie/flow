@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":[["manifest_filename","Given an output directory, return a PathBuf to the rust format manifest that should be generated inside it"],["write","Generate a manifest for the library in rust format for static linking into a runtime binary"]]};

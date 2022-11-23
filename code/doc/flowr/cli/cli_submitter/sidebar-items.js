@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"struct":[["CLISubmitter","Get and Send messages to/from the runtime client"]]};
