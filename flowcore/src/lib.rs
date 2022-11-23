@@ -43,8 +43,10 @@ pub const RUN_AGAIN: RunAgain = true;
 /// Use `DONT_RUN_AGAIN` to indicate that a function should not be executed more times
 pub const DONT_RUN_AGAIN: RunAgain = false;
 
-/// An implementation runs with an array of inputs and returns a value (or null) and a
-/// bool indicating if it should be ran again.
+/// A function implementation must implement a single `run()` method that takes as input an array
+/// of values and it returns a `Result` tuple with an Optional output `Value`plus a `RunAgain`
+/// (bool) indicating if it should be run again.
+/// i.e. it has not "completed", in which case it should not be called again.
 ///
 /// Any 'implementation' of a function must implement this trait
 ///
@@ -82,10 +84,10 @@ pub const DONT_RUN_AGAIN: RunAgain = false;
 /// }
 /// ```
 ///
-/// **Note**: It is recommended to implement this by using the `flow_function` macro from the
+/// **Note**: It is recommended to implement this trait by using the `flow_function` macro from the
 /// `flowmacro` crate to simplify input gathering and to hide the boiler plate code around the
 /// function implementing the logic.
 pub trait Implementation: Sync + Send {
-    /// The `run` method is used to execute the implementation
+    /// The `run` method is used to execute the function's implementation
     fn run(&self, inputs: &[Value]) -> Result<(Option<Value>, RunAgain)>;
 }

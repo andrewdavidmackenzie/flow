@@ -91,9 +91,7 @@ jobs:
         sudo apt-get -y install graphviz
         cargo install mdbook
         cargo install mdbook-linkcheck
-        cargo doc --no-deps --target-dir=target/html/code
-        mdbook build
-        make trim-docs
+        make docs
 
     - name: UploadCoverage
       if: matrix.os == 'ubuntu-latest'

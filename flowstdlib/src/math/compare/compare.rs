@@ -11,7 +11,7 @@ fn _compare(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
     let mut output_map = serde_json::Map::new();
 
     match (&left, &right) {
-        (&Number(ref l), &Number(ref r)) => {
+        (Number(l), Number(r)) => {
             if l.is_i64() && r.is_i64() {
                 output_map.insert("equal".into(), Value::Bool(l.as_i64() == r.as_i64()));
                 output_map.insert("ne".into(), Value::Bool(l.as_i64() != r.as_i64()));
