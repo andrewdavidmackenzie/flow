@@ -6,3 +6,6 @@ See also: [Code docs](http://andrewdavidmackenzie.github.io/flow/code/doc/flowma
 implementing the `FlowImpl` trait), so that when compiled for the `wasm32` target, code is inserted to help read 
 the inputs, help form the outputs and allocate memory (`alloc`) as well as serialize and deserialize the data 
 passed across the native/wasm boundary.
+
+## Features
+`flowmacro` has no features

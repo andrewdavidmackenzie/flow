@@ -17,3 +17,9 @@ Those functions are organized into the following modules, each with multiple fun
 * [file](../../flowr/src/cli/file/file.md) - used to interact with the file system
 * [image](../../flowr/src/cli/image/image.md) - used to create image files
 * [stdio](../../flowr/src/cli/stdio/stdio.md) - used to interact with stdio
+
+## features
+These are the conditionally compiled features of `flowr`:
+- default - "debugger" and "metrics" features are enabled by default
+- debugger - feature to add the debugger
+- metrics - feature for tracking of metrics during execution

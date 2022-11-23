@@ -122,3 +122,7 @@ Add the root.toml and any other included flows and describe them.
 Add a DESCRIPTION.md file that describes what the sample does and what features of flow it uses.
 
 Add an entry in the guide's "samples" section that will include the DESCRIPTION.md file above.
+
+
+## features
+`flowsamples` has no features to enable
