@@ -1,6 +1,5 @@
 use std::collections::hash_map::DefaultHasher;
 use std::fmt::Write as FormatWrite;
-use std::fs;
 use std::hash::{Hash, Hasher};
 use std::io::Write;
 use std::path::Path;
@@ -159,15 +158,16 @@ pub fn generate_svgs(root_dir: &Path, delete_dots: bool) -> Result<()> {
             let entry = entry?;
             let path = entry.path();
             let path_name = path.to_string_lossy();
+            let mut output_file = path.to_path_buf();
+            output_file.set_extension("dot.svg");
             #[allow(clippy::needless_borrow)]
             if Command::new(&dot)
-                .args(vec!["-Tsvg", "-O", &path_name])
+                .args(vec!["-Tsvg", &format!("-o{}", output_file.display()), &path_name])
                 .status()?.success() {
+                debug!(".dot.svg successfully generated from {path_name}");
                 if delete_dots {
-                    fs::remove_file(path)?;
+//                    std::fs::remove_file(path)?;
                     debug!("Source file {path_name} was removed after SVG generation")
-                } else {
-                    debug!(".dot.svg successfully generated from {path_name}");
                 }
             } else {
                 bail!("Error executing 'dot'");
