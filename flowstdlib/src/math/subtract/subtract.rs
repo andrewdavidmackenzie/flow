@@ -8,7 +8,7 @@ fn _subtract(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
     let input_b = &inputs[1];
     let mut value: Option<Value> = None;
 
-    if let (&Number(ref a), &Number(ref b)) = (&input_a, &input_b) {
+    if let (Number(a), Number(b)) = (&input_a, &input_b) {
         if let Some(a_i64) = a.as_i64() {
             if let Some(b_i64) = b.as_i64() {
                 let result = a_i64.checked_sub(b_i64);
