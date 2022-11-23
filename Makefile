@@ -141,8 +141,6 @@ trim-docs:
 	@find target/html -name test.arguments | xargs rm -rf {}
 	@find target/html -name test.output | xargs rm -rf {}
 	@find target/html -name test.file | xargs rm -rf {}
-	@find target/html -name expected.file | xargs rm -rf {}
-	@find target/html -name expected.output | xargs rm -rf {}
 	@find target/html -name \*.rs | xargs rm -rf {}
 	@find target/html -name \*.dump | xargs rm -rf {}
 	@find target/html -name \*.dot | xargs rm -rf {}
