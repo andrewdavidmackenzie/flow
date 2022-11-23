@@ -128,8 +128,12 @@ generate-docs:
 
 .PHONE: copy-svgs
 copy-svgs:
-	@for i in $(shell cd target && find . -name '*.dot.svg' ); do \
-      cp target/$$i target/html/$$i; \
+	@echo "copy-svgs<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
+	@for i in $(shell cd target/flowsamples && find . -name '*.dot.svg' ); do \
+      cp target/flowsamples/$$i target/html/flowsamples/$$i; \
+    done
+	@for i in $(shell cd target/flowstdlib && find . -name '*.dot.svg' ); do \
+      cp target/flowstdlib/$$i target/html/flowstdlib/src/$$i; \
     done
 
 .PHONY: trim-docs
