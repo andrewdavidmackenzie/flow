@@ -4,9 +4,9 @@ Render a mandlebrot set into an image file, with the output image size and imagi
 space configured via input parameters.
 
 The pre-configured test (input arguments in [test.args](test.args)) renders a very small mandlebrot 
-set (25x25 pixels) in order to keep the test running time time short and be able to use in in CI runs.
+set (20x15 pixels) in order to keep the test running time time short and be able to use in in CI runs.
 
-<a href="expected.file" target="_blank"><img src="expected.file"></a>
+<a href="expected.file" target="_blank"><img src="expected.file" width="100" height="75"></a>
 
 Description
 ===

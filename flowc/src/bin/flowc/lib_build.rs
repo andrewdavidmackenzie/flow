@@ -168,9 +168,9 @@ fn compile_implementations(
                     .map_err(|_| "Could not calculate relative_dir")?;
                 // calculate the target directory for generating output using the relative path from the
                 // lib_root appended to the root of the output directory
-                let wasm_output_dir = options.output_dir.join(relative_dir);
-                if !wasm_output_dir.exists() {
-                    fs::create_dir_all(&wasm_output_dir)?;
+                let output_dir = options.output_dir.join(relative_dir);
+                if !output_dir.exists() {
+                    fs::create_dir_all(&output_dir)?;
                 }
 
                 // Load the `FunctionProcess` or `FlowProcess` definition from the found `.toml` file
@@ -181,7 +181,7 @@ fn compile_implementations(
                         &mut lib_manifest.source_urls,
                 ) {
                     Ok(FunctionProcess(ref mut function)) => {
-                        let (source_path, wasm_destination) = compile::get_paths(&wasm_output_dir, function)?;
+                        let (source_path, wasm_destination) = compile::get_paths(&output_dir, function)?;
 
                         // here we assume that the library has a workspace at lib_root_path
                         let mut target_dir = lib_root_path.clone();
@@ -208,7 +208,7 @@ fn compile_implementations(
                         )
                             .chain_err(|| "Could not compile implementation to wasm")?;
 
-                        copy_sources_to_target_dir(toml_path, &wasm_output_dir, function.get_docs())?;
+                        copy_sources_to_target_dir(toml_path, &output_dir, function.get_docs())?;
 
                         lib_manifest
                             .add_locator(
@@ -222,16 +222,16 @@ fn compile_implementations(
                     }
                     Ok(FlowProcess(ref mut flow)) => {
                         if options.tables_dump {
-                            dump::dump_flow(flow, &wasm_output_dir, provider)
+                            dump::dump_flow(flow, &output_dir, provider)
                                 .chain_err(|| "Failed to dump flow's definition")?;
                         }
 
                         if options.graphs {
-                            dump_dot::dump_flow(flow, &options.output_dir, provider)?;
-                            dump_dot::generate_svgs(&options.output_dir, true)?;
+                            dump_dot::dump_flow(flow, &output_dir, provider)?;
+                            dump_dot::generate_svgs(&output_dir, true)?;
                         }
 
-                        copy_sources_to_target_dir(toml_path, &wasm_output_dir, flow.get_docs())?;
+                        copy_sources_to_target_dir(toml_path, &output_dir, flow.get_docs())?;
                     }
                     Err(_) => debug!("Skipping file '{}'", url),
                 }

@@ -118,13 +118,23 @@ coverage: install-flow
 	@genhtml -o target/coverage --quiet coverage.info
 
 .PHONY: docs
-docs: generate-docs trim-docs
+docs: generate-docs copy-svgs trim-docs
 
 .PHONY: generate-docs
 generate-docs:
 	@echo "generate-docs<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
 	@mdbook build
 	@cargo doc --no-deps --target-dir=target/html/code $(cargo_options)
+
+.PHONE: copy-svgs
+copy-svgs:
+	@echo "copy-svgs<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
+	@for i in $(shell cd target/flowsamples && find . -name '*.dot.svg' ); do \
+      cp target/flowsamples/$$i target/html/flowsamples/$$i; \
+    done
+	@for i in $(shell cd target/flowstdlib && find . -name '*.dot.svg' ); do \
+      cp target/flowstdlib/$$i target/html/flowstdlib/src/$$i; \
+    done
 
 .PHONY: trim-docs
 trim-docs:
@@ -140,9 +150,7 @@ trim-docs:
 	@find target/html -name manifest.rs | xargs rm -rf {}
 	@find target/html -name target -type d | xargs rm -rf {}
 	@find target/html -name test.err | xargs rm -rf {}
-	@find target/html -name test.input | xargs rm -rf {}
-	@find target/html -name test.arguments | xargs rm -rf {}
-	@find target/html -name test.output | xargs rm -rf {}
+	@find target/html -name test.stdout | xargs rm -rf {}
 	@find target/html -name test.file | xargs rm -rf {}
 	@find target/html -name \*.rs | xargs rm -rf {}
 	@find target/html -name \*.dump | xargs rm -rf {}

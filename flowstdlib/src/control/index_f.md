@@ -12,3 +12,8 @@ used initializers to some inputs.
 [[process]]
 source = "lib://flowstdlib/control/index_f"
 ```
+
+### Flow Graoh
+<a href="index_f.dot.svg" target="_blank"><img src="index_f.dot.svg"></a>
+
+Click image to navigate flow hierarchy.
