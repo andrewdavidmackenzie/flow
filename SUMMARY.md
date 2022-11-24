@@ -59,7 +59,7 @@
 - [The Debugger](docs/debugging/debugger.md)
 
 # The `flowstdlib` Standard Library
-- [flowstdlib](docs/developing/flowstdlib.md)
+- [Overview](docs/developing/flowstdlib.md)
 - [control](flowstdlib/src/control/control.md)
     - [compare_switch](flowstdlib/src/control/compare_switch/compare_switch.md)
     - [index](flowstdlib/src/control/index/index.md)
