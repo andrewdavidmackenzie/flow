@@ -1,54 +1,56 @@
 #![deny(missing_docs)]
 #![deny(clippy::unwrap_used)]
 #![deny(clippy::indexing_slicing)]
-//! Runtime library for flow execution. This will be linked with other code to produce a
-//! or runner, such as `flowr` command line runner.
+//! `flowrlib` is the runtime library for flow execution. This can be used to produce a flow runner,
+//! such as the `flowr` command line runner.
 //!
-//! It is responsible for reading a flow definition in a `Manifest` file, loading the required
-//! libraries from `LibraryManifest` files and then coordinating the execution by dispatching `Jobs`
+//! It is responsible for reading a flow's compiled [flowcore::model::flow_manifest::FlowManifest],
+//! loading the required libraries from `LibraryManifest` files and then coordinating the execution by dispatching `Jobs`
 //! to be executed by `Function` `Implementations`, providing them the `Inputs` required to run and
 //! gathering the `Outputs` produced and passing those `Outputs` to other connected `Functions` in
 //! the network of `Functions`.
 
-/// `coordinator` is the module that coordinates the execution of flows submitted to it
+/// Provides [block::Block] that represents a block imposed on a function due to destination being busy
+pub mod block;
+
+/// Provides [coordinator::Coordinator] responsible for coordinating the execution of flows submitted to it
 pub mod coordinator;
 
-/// `info` offers methods to get information about this library
-pub mod info;
-
-/// Structure that defines/tracks the current runtime state
-pub mod run_state;
-
-/// Trait for a set of methods a server using the library must supply
-pub mod protocols;
-
 #[cfg(feature = "debugger")]
-mod debugger;
-#[cfg(feature = "debugger")]
-/// `debug_command` provides the `DebugCommand` enum for commands from debug client to debug server
+/// Provides the [debug_command::DebugCommand] enum for commands from debug client to debug server
 pub mod debug_command;
 
-/// Dispatcher module takes care of dispatching jobs for execution and gathering results
+/// Provides [dispatcher::Dispatcher] that dispatches [job::Job]s for execution
 pub mod dispatcher;
 
-/// Executor module receives jobs for execution, executes them and returns results
-pub mod executor;
-
-/// `wasmtime` module contains a number of implementations of the wasm execution
-mod wasm;
-
-/// We'll put our errors in an `errors` module, and other modules in this crate will `use errors::*;`
+/// Holds all [errors::Error] types, and other modules in this crate will `use errors::*;`
 /// to get access to everything `error_chain` creates.
 pub mod errors;
 
-/// module providing `Block` struct from runtime that is required for debugging and tracing
-pub mod block;
+/// Provides [executor::Executor] that receives jobs for execution, executes them and returns results
+pub mod executor;
 
-/// module providing `Job` struct from runtime that is required for debugging and tracing
+/// Provides methods to get information about this library
+pub mod info;
+
+/// Provides [job::Job] that holds jobs before and after their execution
 pub mod job;
 
-/// Service names common across multiple binary crates
+/// Provides a number of traits that define methods used in protocols between server and clients
+/// that a client must implement. Such as [protocols::DebuggerProtocol] and [protocols::SubmissionProtocol]
+pub mod protocols;
+
+/// Provides [run_state::RunState] that tracks the current runtime state
+pub mod run_state;
+
+/// Provides well-known service names used across multiple binary crates
 pub mod services;
+
+#[cfg(feature = "debugger")]
+mod debugger;
+
+/// `wasmtime` module contains a number of implementations of the wasm execution
+mod wasm;
 
 #[cfg(debug_assertions)]
 mod checks;
