@@ -9,7 +9,7 @@
 //! in a [flow manifest][flowcore::model::flow_manifest::FlowManifest] file for execution by a
 //!flow runner like `flowr`.
 //!
-//! Execute `flowc` or `flowc --help` or `flowc -h` at the command line for a
+//! Run `flowc --help` or `flowc -h` at the command line for a
 //! description of the command line options.
 
 use std::env;

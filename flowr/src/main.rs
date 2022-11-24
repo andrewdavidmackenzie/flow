@@ -1,14 +1,20 @@
 #![deny(missing_docs)]
 #![warn(clippy::unwrap_used)]
-//! `flowr` is the flow runner for the terminal. It reads a `flow` `Manifest` produced
-//! by a flow compiler, such as `flowc`` that describes the network of collaborating functions
-//! that are executed to execute the flow.
+//! `flowr` is a command line flow runner for running `flow` programs.
 //!
-//! Use `flowr` or `flowr --help` or `flowr -h` at the comment line to see the command line options
+//! It reads a compiled [FlowManifest][flowcore::model::flow_manifest::FlowManifest] produced by a
+//! flow compiler, such as `flowc`, that describes the graph of communicating functions that
+//! constitute the flow program.
 //!
-//! The `context` module implements a set of 'Context' functions used by a runtime for flow execution.
-//! This particular implementation of this set of functions is a "CLI" one that interacts with the
-//! terminal for STDIO and the File system for files.
+//! Use `flowr --help` or `flowr -h` at the command line to see the command line options
+//!
+//! The [cli] module implements a set of `context functions`, adapted to Terminal IO and local
+//! File System, that allow the flow program to interact with the environment where it is being run.
+
+use std::{env, thread};
+use std::path::PathBuf;
+use std::process::exit;
+use std::sync::{Arc, Mutex};
 
 use clap::{Arg, ArgMatches, Command};
 use log::{info, trace, warn};
@@ -44,30 +50,26 @@ use flowrlib::dispatcher::Dispatcher;
 use flowrlib::executor::Executor;
 use flowrlib::info as flowrlib_info;
 use flowrlib::services::{CONTROL_SERVICE_NAME, DEBUG_SERVICE_NAME, enable_service_discovery, JOB_QUEUES_DISCOVERY_PORT, JOB_SERVICE_NAME, RESULTS_JOB_SERVICE_NAME, RUNTIME_SERVICE_NAME};
-use std::{env, thread};
-use std::path::PathBuf;
-use std::process::exit;
-use std::sync::{Arc, Mutex};
-
-/// We'll put our errors in an `errors` module, and other modules in this crate will
-/// `use crate::errors::*;` to get access to everything `error_chain` creates.
-pub mod errors;
 
 #[cfg(feature = "debugger")]
+/// provides the `context functions` for interacting with the execution environment from a flow,
+/// plus client-server implementations of [flowrlib::protocols] for executing them on different threads
+/// from the [Coordinator][flowrlib::coordinator::Coordinator]
 mod cli;
 
-/// The `Coordinator` of flow execution can run in one of these three modes:
-/// - `ClientOnly`      - only as a client to submit flows for execution to a server
-/// - `ServerOnly`      - only as a server waiting for submissions for execution from a client
-/// - `ClientAndServer` - as both Client and Server, in separate threads
+/// provides [Error][errors::Error] that other modules in this crate will `use crate::errors::*;` to get
+/// access to everything `error_chain` creates.
+mod errors;
+
+/// Mode of execution of the [Coordinator][flowrlib::coordinator::Coordinator] of flow execution
 #[derive(PartialEq, Eq, Clone, Debug)]
-pub enum Mode {
+enum Mode {
     #[cfg(feature = "debugger")]
-    /// `Coordinator` mode where it runs as just a client for a server running in another process
+    /// [Coordinator][flowrlib::coordinator::Coordinator] runs as just a client for a server running in another process
     ClientOnly,
-    /// `Coordinator` mode where it runs as just a server, clients must run in another process
+    /// [Coordinator][flowrlib::coordinator::Coordinator] runs as just a server, clients must run in another process
     ServerOnly,
-    /// `Coordinator` mode where a single process runs as a client and s server in different threads
+    /// [Coordinator][flowrlib::coordinator::Coordinator] runs as a client and s server in different threads of the same process
     ClientAndServer,
 }
 
@@ -106,6 +108,8 @@ fn set_lib_search_path(search_path_additions: &[String]) -> Result<Simpath> {
     Ok(lib_search_path)
 }
 
+/// Run `flowr`. After setting up logging and parsing the command line arguments invoke `flowrlib`
+/// and return any errors found.
 fn run() -> Result<()> {
     let matches = get_matches();
 
@@ -174,7 +178,7 @@ fn run() -> Result<()> {
     Ok(())
 }
 
-// Start just a server - by running a Coordinator in the calling thread.
+/// Start just a server - by running a Coordinator in the calling thread.
 fn server_only(
                 num_threads: usize,
                 lib_search_path: Simpath,
@@ -201,8 +205,8 @@ fn server_only(
     Ok(())
 }
 
-// Start a Server by running a Coordinator in a background thread, then start clients in the
-// calling thread
+/// Start a Server by running a [Coordinator][flowrlib::coordinator::Coordinator] in a background thread,
+/// then start clients in the calling thread
 fn client_and_server(
     num_threads: usize,
     lib_search_path: Simpath,
@@ -250,10 +254,11 @@ fn client_and_server(
     )
 }
 
-// Return addresses and ports to be used for each of the three queues
-// - (general) job source
-// - context job source
-// - results sink
+/// Return addresses and ports to be used for each of the three queues
+/// - (general) job source
+/// - context job source
+/// - results sink
+/// - control messages
 fn get_connect_addresses(ports: (u16, u16, u16, u16)) -> (String, String, String, String) {
     (
         format!("tcp://127.0.0.1:{}", ports.0),
@@ -263,6 +268,11 @@ fn get_connect_addresses(ports: (u16, u16, u16, u16)) -> (String, String, String
     )
 }
 
+/// Return addresses to bind to for
+/// - (general) job source
+/// - context job source
+/// - results sink
+/// - control messages
 fn get_bind_addresses(ports: (u16, u16, u16, u16)) -> (String, String, String, String) {
     (
         format!("tcp://*:{}", ports.0),
@@ -272,6 +282,7 @@ fn get_bind_addresses(ports: (u16, u16, u16, u16)) -> (String, String, String, S
     )
 }
 
+/// Return four free ports to use for client-server message queues
 fn get_four_ports() -> Result<(u16, u16, u16, u16)> {
     Ok((pick_unused_port().chain_err(|| "No ports free")?,
         pick_unused_port().chain_err(|| "No ports free")?,
@@ -280,9 +291,9 @@ fn get_four_ports() -> Result<(u16, u16, u16, u16)> {
     ))
 }
 
-// Create a new `Coordinator`, pre-load any libraries in native format that we want to have before
-// loading a flow and it's library references, then enter the `submission_loop()` accepting and
-// executing flows submitted for execution, executing each one using the `Coordinator`
+/// Create a new `Coordinator`, pre-load any libraries in native format that we want to have before
+/// loading a flow and it's library references, then enter the `submission_loop()` accepting and
+/// executing flows submitted for execution, executing each one using the `Coordinator`
 fn server(
     num_threads: usize,
     lib_search_path: Simpath,
@@ -356,9 +367,9 @@ fn server(
     Ok(())
 }
 
-// Start only a client in the calling thread. Since we are *only* starting a client in this
-// process, we don't have server information, so we create a set of ServerInfo from command
-// line options for the server address and known service names and ports.
+/// Start only a client in the calling thread. Since we are *only* starting a client in this
+/// process, we don't have server information, so we create a set of ServerInfo from command
+/// line options for the server address and known service names and ports.
 #[cfg(feature = "debugger")]
 fn client_only(
     matches: ArgMatches,
@@ -384,7 +395,7 @@ fn client_only(
     )
 }
 
-// Start the clients that talks to the server thread or process
+/// Start the clients that talks to the server thread or process
 #[cfg(feature = "debugger")]
 fn client(
     matches: ArgMatches,
@@ -440,8 +451,8 @@ fn client(
     Ok(())
 }
 
-// Determine the number of threads to use to execute flows
-// - default (if value is not provided on the command line)of the number of cores
+/// Determine the number of threads to use to execute flows
+/// - default (if value is not provided on the command line)of the number of cores
 fn num_threads(matches: &ArgMatches) -> usize {
     match matches.get_one::<usize>("threads") {
         Some(num_threads) => *num_threads,
@@ -449,7 +460,7 @@ fn num_threads(matches: &ArgMatches) -> usize {
     }
 }
 
-// Parse the command line arguments using clap
+/// Parse the command line arguments using clap
 fn get_matches() -> ArgMatches {
     let app = Command::new(env!("CARGO_PKG_NAME"))
         .version(env!("CARGO_PKG_VERSION"));
@@ -542,7 +553,7 @@ fn get_matches() -> ArgMatches {
     app.get_matches()
 }
 
-// Parse the command line arguments passed onto the flow itself
+/// Parse the command line arguments passed onto the flow itself
 fn parse_flow_url(matches: &ArgMatches) -> Result<Url> {
     let cwd_url = Url::from_directory_path(env::current_dir()?)
         .map_err(|_| "Could not form a Url for the current working directory")?;
@@ -550,8 +561,8 @@ fn parse_flow_url(matches: &ArgMatches) -> Result<Url> {
         .map(|s| s.as_str()))
 }
 
-// Set environment variable with the args this will not be unique, but it will be used very
-// soon and removed
+/// Set environment variable with the args this will not be unique, but it will be used very
+/// soon and removed
 fn get_flow_args(matches: &ArgMatches, flow_manifest_url: &Url) -> Vec<String> {
     // arg #0 is the flow url
     let mut flow_args: Vec<String> = vec![flow_manifest_url.to_string()];
