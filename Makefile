@@ -121,9 +121,17 @@ coverage: install-flow
 docs: generate-docs copy-svgs trim-docs
 
 .PHONY: generate-docs
-generate-docs:
+generate-docs: build-book code-docs
 	@echo "generate-docs<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
+
+.PHONY: build-book
+build-book:
+	@echo "build-book<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
 	@mdbook build
+
+.PHONY: code-docs
+code-docs:
+	@echo "code-docs<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
 	@cargo doc --no-deps --target-dir=target/html/code $(cargo_options)
 
 .PHONE: copy-svgs
