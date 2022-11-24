@@ -3,45 +3,7 @@
 //! `flow_function` is a `proc_macro_attribute` macro that wraps a `fn` with a struct and a method
 //! to implement the [Implementation][flowcore::Implementation] trait, so it can be used as the
 //! implementation of a flow function.
-//!
-//! Example usage:
-//! ```
-//! use serde_json::Value;
-//! use flowmacro::flow_function;
-//!
-//! #[flow_function]
-//! fn compare(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
-//!     let left = &inputs[0];
-//!     let right = &inputs[1];
-//!     match (left.as_f64(), right.as_f64()) {
-//!         (Some(lhs), Some(rhs)) => {
-//!             let mut output_map = serde_json::Map::new();
-//!             if (rhs - lhs).abs() < f64::EPSILON {
-//!                 output_map.insert("equal".into(), right.clone());
-//!                 output_map.insert("right-lte".into(), right.clone());
-//!                 output_map.insert("left-gte".into(), left.clone());
-//!                 output_map.insert("right-gte".into(), right.clone());
-//!                 output_map.insert("left-lte".into(), left.clone());
-//!             } else if rhs < lhs {
-//!                 output_map.insert("right-lt".into(), right.clone());
-//!                 output_map.insert("left-gt".into(), left.clone());
-//!                 output_map.insert("right-lte".into(), right.clone());
-//!                 output_map.insert("left-gte".into(), left.clone());
-//!             } else if rhs > lhs {
-//!                 output_map.insert("right-gt".into(), right.clone());
-//!                 output_map.insert("left-lt".into(), left.clone());
-//!                 output_map.insert("right-gte".into(), right.clone());
-//!                 output_map.insert("left-lte".into(), left.clone());
-//!             }
-//!
-//!             let output = Value::Object(output_map);
-//!
-//!             Ok((Some(output), RUN_AGAIN))
-//!         }
-//!         (_, _) => bail!("Could not get input values as f64"),
-//!     }
-//! }
-//! ```
+
 extern crate proc_macro;
 
 use proc_macro::{Span, TokenStream};
