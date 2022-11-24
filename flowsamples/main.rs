@@ -5,12 +5,20 @@ use std::io::{BufRead, BufReader, ErrorKind};
 use std::path::Path;
 use std::process::{Command, Stdio};
 
+/// Name of file where any Stdout will be written while executing a flowsample in test mode
 const STDOUT_FILENAME : &str = "test.stdout";
+/// Name of file where any Stdin will be read from while executing a flowsample in test mode
 const STDIN_FILENAME : &str = "test.stdin";
+/// Name of file where any Stderr will be written from while executing a flowsample in test mode
 const STDERR_FILENAME : &str = "test.stderr";
+/// Name of file used for file output of a sample
 const FILE_FILENAME : &str = "test.file";
+/// Name of file where flow arguments for a flow sample test are read from
 const ARGS_FILENAME : &str = "test.args";
 
+/// Run one or all of the flowsamples.
+/// - No argument provided, then all flowsamples found are executed
+/// - 1 argument provided, if it is the name of a flow sample then that sample only will be run
 fn main() -> io::Result<()> {
     println!("`flowsample` version {}", env!("CARGO_PKG_VERSION"));
     println!(
@@ -45,6 +53,7 @@ fn main() -> io::Result<()> {
     Ok(())
 }
 
+/// Run one specific flow sample
 fn run_sample(sample_dir: &Path, output_dir: &Path, flowrex: bool) -> io::Result<()> {
     let manifest_path = output_dir.join("manifest.json");
     println!("\n\tRunning Sample: {:?}", sample_dir.file_name());
@@ -131,6 +140,7 @@ fn run_sample(sample_dir: &Path, output_dir: &Path, flowrex: bool) -> io::Result
     Ok(())
 }
 
+/// Read the flow args from a file and return them as a Vector of Strings that will be passed to `flowr`
 fn args(sample_dir: &Path) -> io::Result<Vec<String>> {
     let args_file = sample_dir.join(ARGS_FILENAME);
 
@@ -150,11 +160,11 @@ fn args(sample_dir: &Path) -> io::Result<Vec<String>> {
 
 #[cfg(test)]
 mod test {
-    use serial_test::serial;
-
     use std::fs;
     use std::path::{Path, PathBuf};
     use std::process::{Command, Stdio};
+
+    use serial_test::serial;
 
     use crate::{FILE_FILENAME, STDERR_FILENAME, STDOUT_FILENAME};
 
