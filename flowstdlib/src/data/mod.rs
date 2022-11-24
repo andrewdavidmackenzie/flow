@@ -1,5 +1,5 @@
-//! ## Control (//flowstdlib/data)
-//! Some generic Processes that act on data.
+//! functions for generic operations on data
+//! ## Data (//flowstdlib/data)
 
 /// A module that implements String concatenation
 #[path = "append/append.rs"]

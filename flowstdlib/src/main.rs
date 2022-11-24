@@ -1,4 +1,6 @@
 #![warn(clippy::unwrap_used)]
+//! This `flowstdlib` binary provides way for the user to get some simple information about an
+//! installed version of the library and to do some simple checks.
 
 use std::{env, io};
 use std::path::Path;

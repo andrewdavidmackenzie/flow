@@ -10,6 +10,9 @@
 //! to WASM files. When the build has completed, all samples should be ready to be ran, using
 //! the `flowr` flow runner.
 //!
+//! This `flowsamples` binary provides a way for the user to run a sample manually and for
+//! automated test of all samples.
+//!
 //! See [main] for details on running the flow samples yourself directly.
 //!
 //! If `cargo test` is run on this crate, then all the samples will be ran using the provided
@@ -202,7 +205,7 @@ mod test {
 
     use serial_test::serial;
 
-    use crate::{EXPECTED_FILE_FILENAME, EXPECTED_STDOUT_FILENAME, STDERR_FILENAME, TEST_FILE_FILENAME, TEST_STDOUT_FILENAME};
+    use crate::{EXPECTED_FILE_FILENAME, EXPECTED_STDOUT_FILENAME, TEST_FILE_FILENAME, TEST_STDERR_FILENAME, TEST_STDOUT_FILENAME};
 
     fn test_sample(name: &str, flowrex: bool) {
         let samples_root = env!("CARGO_MANIFEST_DIR");
@@ -214,7 +217,7 @@ mod test {
         let output_dir = samples_out_dir.join(name);
 
         // Remove any previous output
-        let _ = fs::remove_file(output_dir.join(STDERR_FILENAME));
+        let _ = fs::remove_file(output_dir.join(TEST_STDERR_FILENAME));
         let _ = fs::remove_file(output_dir.join(TEST_FILE_FILENAME));
         let _ = fs::remove_file(output_dir.join(TEST_STDOUT_FILENAME));
 
@@ -224,7 +227,7 @@ mod test {
         check_test_output(&sample_dir, &output_dir);
 
         // if test passed, remove output
-        let _ = fs::remove_file(output_dir.join(STDERR_FILENAME));
+        let _ = fs::remove_file(output_dir.join(TEST_STDERR_FILENAME));
         let _ = fs::remove_file(output_dir.join(TEST_FILE_FILENAME));
         let _ = fs::remove_file(output_dir.join(TEST_STDOUT_FILENAME));
     }
@@ -248,7 +251,7 @@ mod test {
     }
 
     fn check_test_output(sample_dir: &Path, output_dir: &Path) {
-        let error_output = output_dir.join(STDERR_FILENAME);
+        let error_output = output_dir.join(TEST_STDERR_FILENAME);
         if error_output.exists() {
             let contents = fs::read_to_string(&error_output).expect("Could not read from {STDERR_FILENAME} file");
 

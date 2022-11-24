@@ -22,3 +22,7 @@ quote = "~1.0"
 flowcore = {path = "../flowcore", version = "0.80.0"}
 toml = "0.5.8"
 proc-macro2 = "1.0"
+
+[dev-dependencies]
+serde_json = { version = "1.0", default-features = false }
+

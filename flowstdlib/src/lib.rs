@@ -1,26 +1,42 @@
 #![deny(missing_docs)]
 #![warn(clippy::unwrap_used)]
+//! `flowstlib` is a library of flows and functions that can be used from flows.
+//!
+//! The flow and function definition are used at compile time when compile flows that reference
+//! it.
+//!
+//! At run-time library entries can be of two types, indicated by their
+//! [ImplementationLocator][flowcore::model::lib_manifest::ImplementationLocator]
+//! - [Native][flowcore::model::lib_manifest::ImplementationLocator::Native] - a native binary
+//! (containing) all functions is built and linked by a flow
+//! runner program (e.g. `flowr`) so that any function referenced by a flow is executed natively
+//! at native speeds. `flowr` offers the user control using this via the `-n, --native`
+//! command line option.
+//! - [Wasm][flowcore::model::lib_manifest::ImplementationLocator::Wasm] - the functions in the
+//! library are compiled to WASM files and located within the
+//! library at runtime by the flow runner. If either the library if not linked natively, or the
+//! `-n, --native` command line option is not used, when the function is referenced by a flow being
+//! run, it is loaded and executed in a WASM runtime.
 
-//! This is the `flowstdlib` standard library of functions for `flow` programs
+///
+pub mod control;
 
-/// We'll put our errors in an `errors` module, and other modules in this crate will `use errors::*;`
+///
+pub mod data;
+
+/// provides [Error][errors::Error] that other modules in this crate will `use errors::*;`
 /// to get access to everything `error_chain` creates.
 pub mod errors;
 
-/// functions from module 'data'
-pub mod data;
-
-/// functions from module 'control'
-pub mod control;
-
-/// functions from module 'math'
-pub mod math;
-
-/// functions from module 'fmt'
+///
 pub mod fmt;
 
-/// manifest
+/// Use [manifest::get_manifest] to get the natively/statically linked
+/// [LibraryManifest][flowcore::model::lib_manifest::LibraryManifest] for this library
 pub mod manifest;
+
+///
+pub mod math;
 
 #[cfg(test)]
 pub mod test {
