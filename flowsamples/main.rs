@@ -1,24 +1,56 @@
+//! `flowsamples` is a set of sample flows, used to test and demonstrate flow, and different
+//! semantics and characteristics of flows that can be written.
+//!
+//! Each subdirectory holds a self-contained flow sample, with flow definition, docs etc and
+//! some of them provide their own function implementations.
+//!
+//! At the top-level there is a `build.rs` build script that iterates over all the sub-folders
+//! found and compiles the flow. That will include flow compilation to produce a `manifest.json`
+//! flow manifest. If any flow has provided function implementations then they will be compiled
+//! to WASM files. When the build has completed, all samples should be ready to be ran, using
+//! the `flowr` flow runner.
+//!
+//! See [main] for details on running the flow samples yourself directly.
+//!
+//! If `cargo test` is run on this crate, then all the samples will be ran using the provided
+//! test input and test args (see names of test files below) and the Stdout and File
+//! output will be compared to a set of predefined Stdout and File output to determine if
+//! the sample ran correctly. No Stderr output is expected so if any is detected the sample is
+//! deemed to have not ran correctly.
+
 use std::{env, fs, io};
-// Run sample flows found in any sub-directory
 use std::fs::File;
 use std::io::{BufRead, BufReader, ErrorKind};
 use std::path::Path;
 use std::process::{Command, Stdio};
 
 /// Name of file where any Stdout will be written while executing a flowsample in test mode
-const STDOUT_FILENAME : &str = "test.stdout";
-/// Name of file where any Stdin will be read from while executing a flowsample in test mode
-const STDIN_FILENAME : &str = "test.stdin";
-/// Name of file where any Stderr will be written from while executing a flowsample in test mode
-const STDERR_FILENAME : &str = "test.stderr";
-/// Name of file used for file output of a sample
-const FILE_FILENAME : &str = "test.file";
-/// Name of file where flow arguments for a flow sample test are read from
-const ARGS_FILENAME : &str = "test.args";
+const TEST_STDOUT_FILENAME: &str = "test.stdout";
+#[cfg(test)]
+/// Name of file where the Stdout is defined
+const EXPECTED_STDOUT_FILENAME : &str = "expected.stdout";
 
-/// Run one or all of the flowsamples.
-/// - No argument provided, then all flowsamples found are executed
-/// - 1 argument provided, if it is the name of a flow sample then that sample only will be run
+/// Name of file where any Stdin will be read from while executing a flowsample in test mode
+const TEST_STDIN_FILENAME : &str = "test.stdin";
+
+/// Name of file where any Stderr will be written from while executing a flowsample in test mode
+const TEST_STDERR_FILENAME : &str = "test.stderr";
+
+/// Name of file used for file output of a sample
+const TEST_FILE_FILENAME: &str = "test.file";
+#[cfg(test)]
+/// Name of file where expected file output is defined
+const EXPECTED_FILE_FILENAME : &str = "expected.file";
+
+/// Name of file where flow arguments for a flow sample test are read from
+const TEST_ARGS_FILENAME: &str = "test.args";
+
+/// Run one or all of the flowsamples by typing `flowsamples` or `cargo run -p flowsamples`
+/// at the command line
+/// - If no additional argument is provided, then all flowsamples found are executed
+///   e.g. `flowsamples` or `cargo run -p flowsamples`
+/// - If the name of a flow sample is provided as an additional argument, then that sample will be run
+///   e.g. `flowsamples hello-world` or `cargo run -p flowsamples -- hello-world`
 fn main() -> io::Result<()> {
     println!("`flowsample` version {}", env!("CARGO_PKG_VERSION"));
     println!(
@@ -58,8 +90,12 @@ fn run_sample(sample_dir: &Path, output_dir: &Path, flowrex: bool) -> io::Result
     let manifest_path = output_dir.join("manifest.json");
     println!("\n\tRunning Sample: {:?}", sample_dir.file_name());
     assert!(manifest_path.exists(), "Manifest not found at '{}'", manifest_path.display());
-    println!("\tSTDIN is read from {STDIN_FILENAME}, Arguments are read from {ARGS_FILENAME}");
-    println!("\tSTDOUT is sent to {STDOUT_FILENAME}, STDERR to {STDERR_FILENAME} and file output to {FILE_FILENAME}");
+    println!("\tOutput written {}/", output_dir.display());
+    println!("\t\tSTDIN is read from {TEST_STDIN_FILENAME}");
+    println!("\t\tArguments are read from {TEST_ARGS_FILENAME}");
+    println!("\t\tSTDOUT is sent to {TEST_STDOUT_FILENAME}");
+    println!("\t\tSTDERR to {TEST_STDERR_FILENAME}");
+    println!("\t\tFile output to {TEST_FILE_FILENAME}");
 
     let mut command_args: Vec<String> = vec!["--native".into()];
 
@@ -71,9 +107,9 @@ fn run_sample(sample_dir: &Path, output_dir: &Path, flowrex: bool) -> io::Result
 
     command_args.append(&mut args(sample_dir)?);
 
-    let output = File::create(output_dir.join(STDOUT_FILENAME))
+    let output = File::create(output_dir.join(TEST_STDOUT_FILENAME))
         .expect("Could not get directory as string");
-    let error = File::create(output_dir.join(STDERR_FILENAME))
+    let error = File::create(output_dir.join(TEST_STDERR_FILENAME))
         .expect("Could not get directory as string");
 
     let flowrex_child = if flowrex {
@@ -94,7 +130,7 @@ fn run_sample(sample_dir: &Path, output_dir: &Path, flowrex: bool) -> io::Result
         None
     };
 
-    println!("Command line: 'flowr {}'", command_args.join(" "));
+    println!("\tCommand line: 'flowr {}'", command_args.join(" "));
     match Command::new("flowr")
         .args(command_args)
         .current_dir(output_dir.canonicalize()?)
@@ -104,7 +140,7 @@ fn run_sample(sample_dir: &Path, output_dir: &Path, flowrex: bool) -> io::Result
         .spawn()
     {
         Ok(mut flowr_child) => {
-            let stdin_file = sample_dir.join(STDIN_FILENAME);
+            let stdin_file = sample_dir.join(TEST_STDIN_FILENAME);
             if stdin_file.exists() {
                 let _ = Command::new("cat")
                     .args(vec![stdin_file])
@@ -142,7 +178,7 @@ fn run_sample(sample_dir: &Path, output_dir: &Path, flowrex: bool) -> io::Result
 
 /// Read the flow args from a file and return them as a Vector of Strings that will be passed to `flowr`
 fn args(sample_dir: &Path) -> io::Result<Vec<String>> {
-    let args_file = sample_dir.join(ARGS_FILENAME);
+    let args_file = sample_dir.join(TEST_ARGS_FILENAME);
 
     let mut args = Vec::new();
 
@@ -166,7 +202,7 @@ mod test {
 
     use serial_test::serial;
 
-    use crate::{FILE_FILENAME, STDERR_FILENAME, STDOUT_FILENAME};
+    use crate::{EXPECTED_FILE_FILENAME, EXPECTED_STDOUT_FILENAME, STDERR_FILENAME, TEST_FILE_FILENAME, TEST_STDOUT_FILENAME};
 
     fn test_sample(name: &str, flowrex: bool) {
         let samples_root = env!("CARGO_MANIFEST_DIR");
@@ -179,8 +215,8 @@ mod test {
 
         // Remove any previous output
         let _ = fs::remove_file(output_dir.join(STDERR_FILENAME));
-        let _ = fs::remove_file(output_dir.join(FILE_FILENAME));
-        let _ = fs::remove_file(output_dir.join(STDOUT_FILENAME));
+        let _ = fs::remove_file(output_dir.join(TEST_FILE_FILENAME));
+        let _ = fs::remove_file(output_dir.join(TEST_STDOUT_FILENAME));
 
         super::run_sample(&sample_dir, &output_dir, flowrex)
             .expect("Running of test sample failed");
@@ -189,8 +225,8 @@ mod test {
 
         // if test passed, remove output
         let _ = fs::remove_file(output_dir.join(STDERR_FILENAME));
-        let _ = fs::remove_file(output_dir.join(FILE_FILENAME));
-        let _ = fs::remove_file(output_dir.join(STDOUT_FILENAME));
+        let _ = fs::remove_file(output_dir.join(TEST_FILE_FILENAME));
+        let _ = fs::remove_file(output_dir.join(TEST_STDOUT_FILENAME));
     }
 
     fn compare_and_fail(expected_path: PathBuf, actual_path: PathBuf) {
@@ -224,8 +260,8 @@ mod test {
             }
         }
 
-        compare_and_fail(sample_dir.join("expected.stdout"), output_dir.join(STDOUT_FILENAME));
-        compare_and_fail(sample_dir.join("expected.file"), output_dir.join(FILE_FILENAME));
+        compare_and_fail(sample_dir.join(EXPECTED_STDOUT_FILENAME), output_dir.join(TEST_STDOUT_FILENAME));
+        compare_and_fail(sample_dir.join(EXPECTED_FILE_FILENAME), output_dir.join(TEST_FILE_FILENAME));
     }
 
     #[test]

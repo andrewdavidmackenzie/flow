@@ -5,6 +5,7 @@ use std::path::Path;
 
 use simpath::Simpath;
 
+/// Print out information about the `flowstdlib`and check the `FLOW_LIB_PATH` set
 pub fn main() -> io::Result<()>{
     let bin_path = env::current_exe()?;
     println!(
