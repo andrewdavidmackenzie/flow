@@ -1,11 +1,15 @@
 #![deny(missing_docs)]
 #![warn(clippy::unwrap_used)]
 #![allow(clippy::result_large_err)]
-//! `flowc` the the "flow compiler" that takes a hierarchical description of flows
-//! and functions and compiles it into a network of functions in a `Manifest` file
-//! for execution by `flowr` or other flow runtimes.
+//! `flowc` is a "flow compiler" that takes a hierarchical description of a flow
+//! using [flow fefinitions][flowcore::model::flow_definition::FlowDefinition],
+//! [function definitions][flowcore::model::function_definition::FunctionDefinition] and
+//! [process references][flowcore::model::process_reference::ProcessReference] and compiles it down
+//! into a graph of [runtime functions][flowcore::model::runtime_function::RuntimeFunction]
+//! in a [flow manifest][flowcore::model::flow_manifest::FlowManifest] file for execution by a
+//!flow runner like `flowr`.
 //!
-//! Execute `flowc` or `flowc --help` or `flowc -h` at the comment line for a
+//! Run `flowc --help` or `flowc -h` at the command line for a
 //! description of the command line options.
 
 use std::env;
@@ -27,18 +31,18 @@ use lib_build::build_lib;
 
 use crate::flow_compile::compile_and_execute_flow;
 
-/// We'll put our errors in an `errors` module, and other modules in this crate will
+/// Contains [errors::Error] types that other modules in this crate will
 /// `use crate::errors::*;` to get access to everything `error_chain` creates.
 pub mod errors;
 
-/// `lib_build` module is used to compile a flow library from source
+mod flow_compile;
+
+/// used to compile a flow library from source
 pub mod lib_build;
 
-mod flow_compile;
 mod source_arg;
 
-/// `Options` struct gathers information from the parsing of the command line options
-/// to be used to configure execution
+/// information from the parsing of the command line options, to be used to configure execution
 pub struct Options {
     lib: bool,
     source_url: Url,
@@ -80,9 +84,9 @@ fn main() {
 }
 
 /// For the lib provider, libraries maybe installed in multiple places in the file system.
-/// In order to find the content, a FLOW_LIB_PATH environment variable can be configured with a
+/// In order to find the content, a `FLOW_LIB_PATH` environment variable can be configured with a
 /// list of directories in which to look for the library in question.
-pub fn get_lib_search_path(search_path_additions: &[String]) -> Result<Simpath> {
+fn get_lib_search_path(search_path_additions: &[String]) -> Result<Simpath> {
     let mut lib_search_path = Simpath::new_with_separator("FLOW_LIB_PATH", ',');
 
     if env::var("FLOW_LIB_PATH").is_err() && search_path_additions.is_empty() {

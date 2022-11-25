@@ -1,3 +1,4 @@
+//! functions for maths operations on data
 //! ## Math (//flowstdlib/math)
 //! Math Functions
 

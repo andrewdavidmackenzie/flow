@@ -662,6 +662,7 @@ dependencies = [
  "flowcore",
  "proc-macro2",
  "quote",
+ "serde_json",
  "syn",
  "toml",
 ]

@@ -1,5 +1,3 @@
-//! Help take file/url strings from a command line and convert them
-//! into URLs (as Strings) with schemes for use with flowlibc and flowrlib.
 use log::info;
 use url::Url;
 

@@ -7,48 +7,44 @@ use serde_json::Value;
 
 use crate::errors::*;
 
-/// A set of serializers to read flow models from various text formats based on file extension
+/// a set of serializers to read definition files from various text formats based on file extension
 pub mod deserializers;
 
-/// We'll put our errors in an `errors` module, and other modules in this crate will `use errors::*;`
+/// contains [errors::Error] that other modules in this crate will `use errors::*;`
 /// to get access to everything `error_chain` creates.
 pub mod errors;
 
-/// `model` module defines a number of core data structures
-pub mod model;
-
-/// Utility functions related to Urls
-pub mod url_helper;
-
-/// A trait definition for Providers of content
-pub mod provider;
-
-/// `content` module contains the content providers for files and http/https
-#[cfg(not(target_arch = "wasm32"))]
-pub(crate) mod content;
-
-/// `lib_provider` is used to resolve library references of the type "lib://" using lib search path
+/// is used to resolve library references of the type "lib://" and "context://" using lib search path
 #[cfg(all(not(target_arch = "wasm32"), feature = "meta_provider"))]
 pub mod meta_provider;
 
-/// Export a p2p provider for direct use when needed
-#[cfg(all(not(target_arch = "wasm32"), feature = "p2p_provider"))]
-pub use crate::content::p2p_provider;
+/// defines many of the core data structures used across libraries and binaries
+pub mod model;
+
+/// is a trait definition that providers of content must implement
+pub mod provider;
+
+/// Utility functions related to [Urls][url::Url]
+pub mod url_helper;
+
+/// Use `DONT_RUN_AGAIN` to indicate that a function should not be executed more times
+pub const DONT_RUN_AGAIN: RunAgain = false;
+
+/// Use `RUN_AGAIN` to indicate that a function can be executed more times
+pub const RUN_AGAIN: RunAgain = true;
 
 /// Implementations should return a value of type `RunAgain` to indicate if it should be
 /// executed more times in the future.
 pub type RunAgain = bool;
-/// Use `RUN_AGAIN` to indicate that a function can be executed more times
-pub const RUN_AGAIN: RunAgain = true;
-/// Use `DONT_RUN_AGAIN` to indicate that a function should not be executed more times
-pub const DONT_RUN_AGAIN: RunAgain = false;
 
-/// A function implementation must implement a single `run()` method that takes as input an array
-/// of values and it returns a `Result` tuple with an Optional output `Value`plus a `RunAgain`
-/// (bool) indicating if it should be run again.
+/// contains the file and http content provider implementations
+#[cfg(not(target_arch = "wasm32"))]
+mod content;
+
+/// A function's implementation must implement this trait with a single `run()` method that takes
+/// as input an array of values and it returns a `Result` tuple with an Optional output `Value`
+/// plus a [RunAgain] indicating if it should be run again.
 /// i.e. it has not "completed", in which case it should not be called again.
-///
-/// Any 'implementation' of a function must implement this trait
 ///
 /// # Examples
 ///
