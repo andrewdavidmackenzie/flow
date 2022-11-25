@@ -13,8 +13,7 @@
 
 # Your First Flow
 - [Your First Flow](docs/first_flow/first_flow.md)
-- [Understanding it](docs/first_flow/understanding.md)
-- [Real Implementation](docs/first_flow/implementation.md)
+- [Running the flow](docs/first_flow/implementation.md)
 - [Step-by-Step](docs/first_flow/step-by-step.md)
 - [Debugging your first flow](docs/first_flow/debugging.md)
 
