@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `flowsamples/main.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>main.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-1f7d512b176f0f72.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Bold-124a1ca42af929b6.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-cd23e1e4557aa9dd.css" id="mainThemeStyle"><link rel="stylesheet" id="themeStyle" href="../../static.files/light-a21928845c7a186a.css"><link rel="stylesheet" disabled href="../../static.files/dark-90fc67ff25a42f29.css"><link rel="stylesheet" disabled href="../../static.files/ayu-d75a8bbde915b8ed.css"><script id="default-settings" ></script><script src="../../static.files/storage-d43fa987303ecbbb.js"></script><script defer src="../../static.files/source-script-5cf2e01a42cc9858.js"></script><script defer src="../../source-files.js"></script><script defer src="../../static.files/main-458bffc4c06ccf37.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-13285aec31fa243e.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><div class="width-limiter"><nav class="sub"><a class="sub-logo-container" href="../../flowsamples/index.html"><img class="rust-logo" src="../../static.files/rust-logo-151179464ae7ed46.svg" alt="logo"></a><form class="search-form"><span></span><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-5ec35bf9ca753509.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `flowsamples/main.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>main.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-1f7d512b176f0f72.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Bold-124a1ca42af929b6.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-bf4c5e264196f176.css" id="mainThemeStyle"><link rel="stylesheet" id="themeStyle" href="../../static.files/light-a21928845c7a186a.css"><link rel="stylesheet" disabled href="../../static.files/dark-90fc67ff25a42f29.css"><link rel="stylesheet" disabled href="../../static.files/ayu-d75a8bbde915b8ed.css"><script id="default-settings" ></script><script src="../../static.files/storage-d43fa987303ecbbb.js"></script><script defer src="../../static.files/source-script-5cf2e01a42cc9858.js"></script><script defer src="../../source-files.js"></script><script defer src="../../static.files/main-458bffc4c06ccf37.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-13285aec31fa243e.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><div class="width-limiter"><nav class="sub"><a class="sub-logo-container" href="../../flowsamples/index.html"><img class="rust-logo" src="../../static.files/rust-logo-151179464ae7ed46.svg" alt="logo"></a><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-5ec35bf9ca753509.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -316,20 +316,112 @@
 <a href="#316" id="316">316</a>
 <a href="#317" id="317">317</a>
 <a href="#318" id="318">318</a>
-</pre><pre class="rust"><code><span class="kw">use </span>std::{env, fs, io};
-<span class="comment">// Run sample flows found in any sub-directory
-</span><span class="kw">use </span>std::fs::File;
+<a href="#319" id="319">319</a>
+<a href="#320" id="320">320</a>
+<a href="#321" id="321">321</a>
+<a href="#322" id="322">322</a>
+<a href="#323" id="323">323</a>
+<a href="#324" id="324">324</a>
+<a href="#325" id="325">325</a>
+<a href="#326" id="326">326</a>
+<a href="#327" id="327">327</a>
+<a href="#328" id="328">328</a>
+<a href="#329" id="329">329</a>
+<a href="#330" id="330">330</a>
+<a href="#331" id="331">331</a>
+<a href="#332" id="332">332</a>
+<a href="#333" id="333">333</a>
+<a href="#334" id="334">334</a>
+<a href="#335" id="335">335</a>
+<a href="#336" id="336">336</a>
+<a href="#337" id="337">337</a>
+<a href="#338" id="338">338</a>
+<a href="#339" id="339">339</a>
+<a href="#340" id="340">340</a>
+<a href="#341" id="341">341</a>
+<a href="#342" id="342">342</a>
+<a href="#343" id="343">343</a>
+<a href="#344" id="344">344</a>
+<a href="#345" id="345">345</a>
+<a href="#346" id="346">346</a>
+<a href="#347" id="347">347</a>
+<a href="#348" id="348">348</a>
+<a href="#349" id="349">349</a>
+<a href="#350" id="350">350</a>
+<a href="#351" id="351">351</a>
+<a href="#352" id="352">352</a>
+<a href="#353" id="353">353</a>
+<a href="#354" id="354">354</a>
+<a href="#355" id="355">355</a>
+<a href="#356" id="356">356</a>
+<a href="#357" id="357">357</a>
+<a href="#358" id="358">358</a>
+<a href="#359" id="359">359</a>
+<a href="#360" id="360">360</a>
+<a href="#361" id="361">361</a>
+<a href="#362" id="362">362</a>
+<a href="#363" id="363">363</a>
+<a href="#364" id="364">364</a>
+<a href="#365" id="365">365</a>
+<a href="#366" id="366">366</a>
+<a href="#367" id="367">367</a>
+</pre><pre class="rust"><code><span class="doccomment">//! `flowsamples` is a set of sample flows, used to test and demonstrate flow, and different
+//! semantics and characteristics of flows that can be written.
+//!
+//! Each subdirectory holds a self-contained flow sample, with flow definition, docs etc and
+//! some of them provide their own function implementations.
+//!
+//! At the top-level there is a `build.rs` build script that iterates over all the sub-folders
+//! found and compiles the flow. That will include flow compilation to produce a `manifest.json`
+//! flow manifest. If any flow has provided function implementations then they will be compiled
+//! to WASM files. When the build has completed, all samples should be ready to be ran, using
+//! the `flowr` flow runner.
+//!
+//! This `flowsamples` binary provides a way for the user to run a sample manually and for
+//! automated test of all samples.
+//!
+//! See [main] for details on running the flow samples yourself directly.
+//!
+//! If `cargo test` is run on this crate, then all the samples will be ran using the provided
+//! test input and test args (see names of test files below) and the Stdout and File
+//! output will be compared to a set of predefined Stdout and File output to determine if
+//! the sample ran correctly. No Stderr output is expected so if any is detected the sample is
+//! deemed to have not ran correctly.
+
+</span><span class="kw">use </span>std::{env, fs, io};
+<span class="kw">use </span>std::fs::File;
 <span class="kw">use </span>std::io::{BufRead, BufReader, ErrorKind};
 <span class="kw">use </span>std::path::Path;
 <span class="kw">use </span>std::process::{Command, Stdio};
 
-<span class="kw">const </span>STDOUT_FILENAME : <span class="kw-2">&amp;</span>str = <span class="string">&quot;test.stdout&quot;</span>;
-<span class="kw">const </span>STDIN_FILENAME : <span class="kw-2">&amp;</span>str = <span class="string">&quot;test.stdin&quot;</span>;
-<span class="kw">const </span>STDERR_FILENAME : <span class="kw-2">&amp;</span>str = <span class="string">&quot;test.stderr&quot;</span>;
-<span class="kw">const </span>FILE_FILENAME : <span class="kw-2">&amp;</span>str = <span class="string">&quot;test.file&quot;</span>;
-<span class="kw">const </span>ARGS_FILENAME : <span class="kw-2">&amp;</span>str = <span class="string">&quot;test.args&quot;</span>;
+<span class="doccomment">/// Name of file where any Stdout will be written while executing a flowsample in test mode
+</span><span class="kw">const </span>TEST_STDOUT_FILENAME: <span class="kw-2">&amp;</span>str = <span class="string">&quot;test.stdout&quot;</span>;
+<span class="attr">#[cfg(test)]
+</span><span class="doccomment">/// Name of file where the Stdout is defined
+</span><span class="kw">const </span>EXPECTED_STDOUT_FILENAME : <span class="kw-2">&amp;</span>str = <span class="string">&quot;expected.stdout&quot;</span>;
 
-<span class="kw">fn </span>main() -&gt; io::Result&lt;()&gt; {
+<span class="doccomment">/// Name of file where any Stdin will be read from while executing a flowsample in test mode
+</span><span class="kw">const </span>TEST_STDIN_FILENAME : <span class="kw-2">&amp;</span>str = <span class="string">&quot;test.stdin&quot;</span>;
+
+<span class="doccomment">/// Name of file where any Stderr will be written from while executing a flowsample in test mode
+</span><span class="kw">const </span>TEST_STDERR_FILENAME : <span class="kw-2">&amp;</span>str = <span class="string">&quot;test.stderr&quot;</span>;
+
+<span class="doccomment">/// Name of file used for file output of a sample
+</span><span class="kw">const </span>TEST_FILE_FILENAME: <span class="kw-2">&amp;</span>str = <span class="string">&quot;test.file&quot;</span>;
+<span class="attr">#[cfg(test)]
+</span><span class="doccomment">/// Name of file where expected file output is defined
+</span><span class="kw">const </span>EXPECTED_FILE_FILENAME : <span class="kw-2">&amp;</span>str = <span class="string">&quot;expected.file&quot;</span>;
+
+<span class="doccomment">/// Name of file where flow arguments for a flow sample test are read from
+</span><span class="kw">const </span>TEST_ARGS_FILENAME: <span class="kw-2">&amp;</span>str = <span class="string">&quot;test.args&quot;</span>;
+
+<span class="doccomment">/// Run one or all of the flowsamples by typing `flowsamples` or `cargo run -p flowsamples`
+/// at the command line
+/// - If no additional argument is provided, then all flowsamples found are executed
+///   e.g. `flowsamples` or `cargo run -p flowsamples`
+/// - If the name of a flow sample is provided as an additional argument, then that sample will be run
+///   e.g. `flowsamples hello-world` or `cargo run -p flowsamples -- hello-world`
+</span><span class="kw">fn </span>main() -&gt; io::Result&lt;()&gt; {
     <span class="macro">println!</span>(<span class="string">&quot;`flowsample` version {}&quot;</span>, <span class="macro">env!</span>(<span class="string">&quot;CARGO_PKG_VERSION&quot;</span>));
     <span class="macro">println!</span>(
         <span class="string">&quot;Current Working Directory: `{}`&quot;</span>,
@@ -363,12 +455,17 @@
     <span class="prelude-val">Ok</span>(())
 }
 
-<span class="kw">fn </span>run_sample(sample_dir: <span class="kw-2">&amp;</span>Path, output_dir: <span class="kw-2">&amp;</span>Path, flowrex: bool) -&gt; io::Result&lt;()&gt; {
+<span class="doccomment">/// Run one specific flow sample
+</span><span class="kw">fn </span>run_sample(sample_dir: <span class="kw-2">&amp;</span>Path, output_dir: <span class="kw-2">&amp;</span>Path, flowrex: bool) -&gt; io::Result&lt;()&gt; {
     <span class="kw">let </span>manifest_path = output_dir.join(<span class="string">&quot;manifest.json&quot;</span>);
     <span class="macro">println!</span>(<span class="string">&quot;\n\tRunning Sample: {:?}&quot;</span>, sample_dir.file_name());
     <span class="macro">assert!</span>(manifest_path.exists(), <span class="string">&quot;Manifest not found at &#39;{}&#39;&quot;</span>, manifest_path.display());
-    <span class="macro">println!</span>(<span class="string">&quot;\tSTDIN is read from {STDIN_FILENAME}, Arguments are read from {ARGS_FILENAME}&quot;</span>);
-    <span class="macro">println!</span>(<span class="string">&quot;\tSTDOUT is sent to {STDOUT_FILENAME}, STDERR to {STDERR_FILENAME} and file output to {FILE_FILENAME}&quot;</span>);
+    <span class="macro">println!</span>(<span class="string">&quot;\tOutput written {}/&quot;</span>, output_dir.display());
+    <span class="macro">println!</span>(<span class="string">&quot;\t\tSTDIN is read from {TEST_STDIN_FILENAME}&quot;</span>);
+    <span class="macro">println!</span>(<span class="string">&quot;\t\tArguments are read from {TEST_ARGS_FILENAME}&quot;</span>);
+    <span class="macro">println!</span>(<span class="string">&quot;\t\tSTDOUT is sent to {TEST_STDOUT_FILENAME}&quot;</span>);
+    <span class="macro">println!</span>(<span class="string">&quot;\t\tSTDERR to {TEST_STDERR_FILENAME}&quot;</span>);
+    <span class="macro">println!</span>(<span class="string">&quot;\t\tFile output to {TEST_FILE_FILENAME}&quot;</span>);
 
     <span class="kw">let </span><span class="kw-2">mut </span>command_args: Vec&lt;String&gt; = <span class="macro">vec!</span>[<span class="string">&quot;--native&quot;</span>.into()];
 
@@ -380,9 +477,9 @@
 
     command_args.append(<span class="kw-2">&amp;mut </span>args(sample_dir)<span class="question-mark">?</span>);
 
-    <span class="kw">let </span>output = File::create(output_dir.join(STDOUT_FILENAME))
+    <span class="kw">let </span>output = File::create(output_dir.join(TEST_STDOUT_FILENAME))
         .expect(<span class="string">&quot;Could not get directory as string&quot;</span>);
-    <span class="kw">let </span>error = File::create(output_dir.join(STDERR_FILENAME))
+    <span class="kw">let </span>error = File::create(output_dir.join(TEST_STDERR_FILENAME))
         .expect(<span class="string">&quot;Could not get directory as string&quot;</span>);
 
     <span class="kw">let </span>flowrex_child = <span class="kw">if </span>flowrex {
@@ -403,7 +500,7 @@
         <span class="prelude-val">None
     </span>};
 
-    <span class="macro">println!</span>(<span class="string">&quot;Command line: &#39;flowr {}&#39;&quot;</span>, command_args.join(<span class="string">&quot; &quot;</span>));
+    <span class="macro">println!</span>(<span class="string">&quot;\tCommand line: &#39;flowr {}&#39;&quot;</span>, command_args.join(<span class="string">&quot; &quot;</span>));
     <span class="kw">match </span>Command::new(<span class="string">&quot;flowr&quot;</span>)
         .args(command_args)
         .current_dir(output_dir.canonicalize()<span class="question-mark">?</span>)
@@ -413,7 +510,7 @@
         .spawn()
     {
         <span class="prelude-val">Ok</span>(<span class="kw-2">mut </span>flowr_child) =&gt; {
-            <span class="kw">let </span>stdin_file = sample_dir.join(STDIN_FILENAME);
+            <span class="kw">let </span>stdin_file = sample_dir.join(TEST_STDIN_FILENAME);
             <span class="kw">if </span>stdin_file.exists() {
                 <span class="kw">let _ </span>= Command::new(<span class="string">&quot;cat&quot;</span>)
                     .args(<span class="macro">vec!</span>[stdin_file])
@@ -449,8 +546,9 @@
     <span class="prelude-val">Ok</span>(())
 }
 
-<span class="kw">fn </span>args(sample_dir: <span class="kw-2">&amp;</span>Path) -&gt; io::Result&lt;Vec&lt;String&gt;&gt; {
-    <span class="kw">let </span>args_file = sample_dir.join(ARGS_FILENAME);
+<span class="doccomment">/// Read the flow args from a file and return them as a Vector of Strings that will be passed to `flowr`
+</span><span class="kw">fn </span>args(sample_dir: <span class="kw-2">&amp;</span>Path) -&gt; io::Result&lt;Vec&lt;String&gt;&gt; {
+    <span class="kw">let </span>args_file = sample_dir.join(TEST_ARGS_FILENAME);
 
     <span class="kw">let </span><span class="kw-2">mut </span>args = Vec::new();
 
@@ -468,13 +566,13 @@
 
 <span class="attr">#[cfg(test)]
 </span><span class="kw">mod </span>test {
-    <span class="kw">use </span>serial_test::serial;
-
     <span class="kw">use </span>std::fs;
     <span class="kw">use </span>std::path::{Path, PathBuf};
     <span class="kw">use </span>std::process::{Command, Stdio};
 
-    <span class="kw">use crate</span>::{FILE_FILENAME, STDERR_FILENAME, STDOUT_FILENAME};
+    <span class="kw">use </span>serial_test::serial;
+
+    <span class="kw">use crate</span>::{EXPECTED_FILE_FILENAME, EXPECTED_STDOUT_FILENAME, TEST_FILE_FILENAME, TEST_STDERR_FILENAME, TEST_STDOUT_FILENAME};
 
     <span class="kw">fn </span>test_sample(name: <span class="kw-2">&amp;</span>str, flowrex: bool) {
         <span class="kw">let </span>samples_root = <span class="macro">env!</span>(<span class="string">&quot;CARGO_MANIFEST_DIR&quot;</span>);
@@ -486,9 +584,9 @@
         <span class="kw">let </span>output_dir = samples_out_dir.join(name);
 
         <span class="comment">// Remove any previous output
-        </span><span class="kw">let _ </span>= fs::remove_file(output_dir.join(STDERR_FILENAME));
-        <span class="kw">let _ </span>= fs::remove_file(output_dir.join(FILE_FILENAME));
-        <span class="kw">let _ </span>= fs::remove_file(output_dir.join(STDOUT_FILENAME));
+        </span><span class="kw">let _ </span>= fs::remove_file(output_dir.join(TEST_STDERR_FILENAME));
+        <span class="kw">let _ </span>= fs::remove_file(output_dir.join(TEST_FILE_FILENAME));
+        <span class="kw">let _ </span>= fs::remove_file(output_dir.join(TEST_STDOUT_FILENAME));
 
         <span class="kw">super</span>::run_sample(<span class="kw-2">&amp;</span>sample_dir, <span class="kw-2">&amp;</span>output_dir, flowrex)
             .expect(<span class="string">&quot;Running of test sample failed&quot;</span>);
@@ -496,9 +594,9 @@
         check_test_output(<span class="kw-2">&amp;</span>sample_dir, <span class="kw-2">&amp;</span>output_dir);
 
         <span class="comment">// if test passed, remove output
-        </span><span class="kw">let _ </span>= fs::remove_file(output_dir.join(STDERR_FILENAME));
-        <span class="kw">let _ </span>= fs::remove_file(output_dir.join(FILE_FILENAME));
-        <span class="kw">let _ </span>= fs::remove_file(output_dir.join(STDOUT_FILENAME));
+        </span><span class="kw">let _ </span>= fs::remove_file(output_dir.join(TEST_STDERR_FILENAME));
+        <span class="kw">let _ </span>= fs::remove_file(output_dir.join(TEST_FILE_FILENAME));
+        <span class="kw">let _ </span>= fs::remove_file(output_dir.join(TEST_STDOUT_FILENAME));
     }
 
     <span class="kw">fn </span>compare_and_fail(expected_path: PathBuf, actual_path: PathBuf) {
@@ -520,7 +618,7 @@
     }
 
     <span class="kw">fn </span>check_test_output(sample_dir: <span class="kw-2">&amp;</span>Path, output_dir: <span class="kw-2">&amp;</span>Path) {
-        <span class="kw">let </span>error_output = output_dir.join(STDERR_FILENAME);
+        <span class="kw">let </span>error_output = output_dir.join(TEST_STDERR_FILENAME);
         <span class="kw">if </span>error_output.exists() {
             <span class="kw">let </span>contents = fs::read_to_string(<span class="kw-2">&amp;</span>error_output).expect(<span class="string">&quot;Could not read from {STDERR_FILENAME} file&quot;</span>);
 
@@ -532,8 +630,8 @@
             }
         }
 
-        compare_and_fail(sample_dir.join(<span class="string">&quot;expected.stdout&quot;</span>), output_dir.join(STDOUT_FILENAME));
-        compare_and_fail(sample_dir.join(<span class="string">&quot;expected.file&quot;</span>), output_dir.join(FILE_FILENAME));
+        compare_and_fail(sample_dir.join(EXPECTED_STDOUT_FILENAME), output_dir.join(TEST_STDOUT_FILENAME));
+        compare_and_fail(sample_dir.join(EXPECTED_FILE_FILENAME), output_dir.join(TEST_FILE_FILENAME));
     }
 
     <span class="attr">#[test]
@@ -635,4 +733,4 @@
     }
 }
 </code></pre></div>
-</section></div></main><div id="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="flowsamples" data-themes="" data-resource-suffix="" data-rustdoc-version="1.67.0-nightly (70f8737b2 2022-11-23)" data-search-js="search-df80cc3cb87b6482.js" data-settings-js="settings-7e1cf5cc683233f7.js" data-settings-css="settings-af96d9e2fc13e081.css" ></div></body></html>
+</section></div></main><div id="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="flowsamples" data-themes="" data-resource-suffix="" data-rustdoc-version="1.67.0-nightly (b3bc6bf31 2022-11-24)" data-search-js="search-df80cc3cb87b6482.js" data-settings-js="settings-7e1cf5cc683233f7.js" data-settings-css="settings-af96d9e2fc13e081.css" ></div></body></html>

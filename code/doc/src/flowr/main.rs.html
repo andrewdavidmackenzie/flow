@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `flowr/src/main.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>main.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-1f7d512b176f0f72.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Bold-124a1ca42af929b6.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-cd23e1e4557aa9dd.css" id="mainThemeStyle"><link rel="stylesheet" id="themeStyle" href="../../static.files/light-a21928845c7a186a.css"><link rel="stylesheet" disabled href="../../static.files/dark-90fc67ff25a42f29.css"><link rel="stylesheet" disabled href="../../static.files/ayu-d75a8bbde915b8ed.css"><script id="default-settings" ></script><script src="../../static.files/storage-d43fa987303ecbbb.js"></script><script defer src="../../static.files/source-script-5cf2e01a42cc9858.js"></script><script defer src="../../source-files.js"></script><script defer src="../../static.files/main-458bffc4c06ccf37.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-13285aec31fa243e.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><div class="width-limiter"><nav class="sub"><a class="sub-logo-container" href="../../flowr/index.html"><img class="rust-logo" src="../../static.files/rust-logo-151179464ae7ed46.svg" alt="logo"></a><form class="search-form"><span></span><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-5ec35bf9ca753509.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `flowr/src/main.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>main.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-1f7d512b176f0f72.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Bold-124a1ca42af929b6.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-bf4c5e264196f176.css" id="mainThemeStyle"><link rel="stylesheet" id="themeStyle" href="../../static.files/light-a21928845c7a186a.css"><link rel="stylesheet" disabled href="../../static.files/dark-90fc67ff25a42f29.css"><link rel="stylesheet" disabled href="../../static.files/ayu-d75a8bbde915b8ed.css"><script id="default-settings" ></script><script src="../../static.files/storage-d43fa987303ecbbb.js"></script><script defer src="../../static.files/source-script-5cf2e01a42cc9858.js"></script><script defer src="../../source-files.js"></script><script defer src="../../static.files/main-458bffc4c06ccf37.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-13285aec31fa243e.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><div class="width-limiter"><nav class="sub"><a class="sub-logo-container" href="../../flowr/index.html"><img class="rust-logo" src="../../static.files/rust-logo-151179464ae7ed46.svg" alt="logo"></a><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-5ec35bf9ca753509.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -566,19 +566,36 @@
 <a href="#566" id="566">566</a>
 <a href="#567" id="567">567</a>
 <a href="#568" id="568">568</a>
+<a href="#569" id="569">569</a>
+<a href="#570" id="570">570</a>
+<a href="#571" id="571">571</a>
+<a href="#572" id="572">572</a>
+<a href="#573" id="573">573</a>
+<a href="#574" id="574">574</a>
+<a href="#575" id="575">575</a>
+<a href="#576" id="576">576</a>
+<a href="#577" id="577">577</a>
+<a href="#578" id="578">578</a>
+<a href="#579" id="579">579</a>
 </pre><pre class="rust"><code><span class="attr">#![deny(missing_docs)]
 #![warn(clippy::unwrap_used)]
-</span><span class="doccomment">//! `flowr` is the flow runner for the terminal. It reads a `flow` `Manifest` produced
-//! by a flow compiler, such as `flowc`` that describes the network of collaborating functions
-//! that are executed to execute the flow.
+</span><span class="doccomment">//! `flowr` is a command line flow runner for running `flow` programs.
 //!
-//! Use `flowr` or `flowr --help` or `flowr -h` at the comment line to see the command line options
+//! It reads a compiled [FlowManifest][flowcore::model::flow_manifest::FlowManifest] produced by a
+//! flow compiler, such as `flowc`, that describes the graph of communicating functions that
+//! constitute the flow program.
 //!
-//! The `context` module implements a set of &#39;Context&#39; functions used by a runtime for flow execution.
-//! This particular implementation of this set of functions is a &quot;CLI&quot; one that interacts with the
-//! terminal for STDIO and the File system for files.
+//! Use `flowr --help` or `flowr -h` at the command line to see the command line options
+//!
+//! The [cli] module implements a set of `context functions`, adapted to Terminal IO and local
+//! File System, that allow the flow program to interact with the environment where it is being run.
 
-</span><span class="kw">use </span>clap::{Arg, ArgMatches, Command};
+</span><span class="kw">use </span>std::{env, thread};
+<span class="kw">use </span>std::path::PathBuf;
+<span class="kw">use </span>std::process::exit;
+<span class="kw">use </span>std::sync::{Arc, Mutex};
+
+<span class="kw">use </span>clap::{Arg, ArgMatches, Command};
 <span class="kw">use </span>log::{info, trace, warn};
 <span class="kw">use </span>portpicker::pick_unused_port;
 <span class="kw">use </span>simpath::Simpath;
@@ -612,30 +629,26 @@
 <span class="kw">use </span>flowrlib::executor::Executor;
 <span class="kw">use </span>flowrlib::info <span class="kw">as </span>flowrlib_info;
 <span class="kw">use </span>flowrlib::services::{CONTROL_SERVICE_NAME, DEBUG_SERVICE_NAME, enable_service_discovery, JOB_QUEUES_DISCOVERY_PORT, JOB_SERVICE_NAME, RESULTS_JOB_SERVICE_NAME, RUNTIME_SERVICE_NAME};
-<span class="kw">use </span>std::{env, thread};
-<span class="kw">use </span>std::path::PathBuf;
-<span class="kw">use </span>std::process::exit;
-<span class="kw">use </span>std::sync::{Arc, Mutex};
-
-<span class="doccomment">/// We&#39;ll put our errors in an `errors` module, and other modules in this crate will
-/// `use crate::errors::*;` to get access to everything `error_chain` creates.
-</span><span class="kw">pub mod </span>errors;
 
 <span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)]
+</span><span class="doccomment">/// provides the `context functions` for interacting with the execution environment from a flow,
+/// plus client-server implementations of [flowrlib::protocols] for executing them on different threads
+/// from the [Coordinator][flowrlib::coordinator::Coordinator]
 </span><span class="kw">mod </span>cli;
 
-<span class="doccomment">/// The `Coordinator` of flow execution can run in one of these three modes:
-/// - `ClientOnly`      - only as a client to submit flows for execution to a server
-/// - `ServerOnly`      - only as a server waiting for submissions for execution from a client
-/// - `ClientAndServer` - as both Client and Server, in separate threads
+<span class="doccomment">/// provides [Error][errors::Error] that other modules in this crate will `use crate::errors::*;` to get
+/// access to everything `error_chain` creates.
+</span><span class="kw">mod </span>errors;
+
+<span class="doccomment">/// Mode of execution of the [Coordinator][flowrlib::coordinator::Coordinator] of flow execution
 </span><span class="attr">#[derive(PartialEq, Eq, Clone, Debug)]
-</span><span class="kw">pub enum </span>Mode {
+</span><span class="kw">enum </span>Mode {
     <span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)]
-    </span><span class="doccomment">/// `Coordinator` mode where it runs as just a client for a server running in another process
+    </span><span class="doccomment">/// [Coordinator][flowrlib::coordinator::Coordinator] runs as just a client for a server running in another process
     </span>ClientOnly,
-    <span class="doccomment">/// `Coordinator` mode where it runs as just a server, clients must run in another process
+    <span class="doccomment">/// [Coordinator][flowrlib::coordinator::Coordinator] runs as just a server, clients must run in another process
     </span>ServerOnly,
-    <span class="doccomment">/// `Coordinator` mode where a single process runs as a client and s server in different threads
+    <span class="doccomment">/// [Coordinator][flowrlib::coordinator::Coordinator] runs as a client and s server in different threads of the same process
     </span>ClientAndServer,
 }
 
@@ -674,7 +687,9 @@
     <span class="prelude-val">Ok</span>(lib_search_path)
 }
 
-<span class="kw">fn </span>run() -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
+<span class="doccomment">/// Run `flowr`. After setting up logging and parsing the command line arguments invoke `flowrlib`
+/// and return any errors found.
+</span><span class="kw">fn </span>run() -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
     <span class="kw">let </span>matches = get_matches();
 
     <span class="kw">let </span>verbosity = matches.get_one::&lt;String&gt;(<span class="string">&quot;verbosity&quot;</span>).map(|s| s.as_str());
@@ -742,7 +757,7 @@
     <span class="prelude-val">Ok</span>(())
 }
 
-<span class="comment">// Start just a server - by running a Coordinator in the calling thread.
+<span class="doccomment">/// Start just a server - by running a Coordinator in the calling thread.
 </span><span class="kw">fn </span>server_only(
                 num_threads: usize,
                 lib_search_path: Simpath,
@@ -769,8 +784,8 @@
     <span class="prelude-val">Ok</span>(())
 }
 
-<span class="comment">// Start a Server by running a Coordinator in a background thread, then start clients in the
-// calling thread
+<span class="doccomment">/// Start a Server by running a [Coordinator][flowrlib::coordinator::Coordinator] in a background thread,
+/// then start clients in the calling thread
 </span><span class="kw">fn </span>client_and_server(
     num_threads: usize,
     lib_search_path: Simpath,
@@ -818,10 +833,11 @@
     )
 }
 
-<span class="comment">// Return addresses and ports to be used for each of the three queues
-// - (general) job source
-// - context job source
-// - results sink
+<span class="doccomment">/// Return addresses and ports to be used for each of the three queues
+/// - (general) job source
+/// - context job source
+/// - results sink
+/// - control messages
 </span><span class="kw">fn </span>get_connect_addresses(ports: (u16, u16, u16, u16)) -&gt; (String, String, String, String) {
     (
         <span class="macro">format!</span>(<span class="string">&quot;tcp://127.0.0.1:{}&quot;</span>, ports.<span class="number">0</span>),
@@ -831,7 +847,12 @@
     )
 }
 
-<span class="kw">fn </span>get_bind_addresses(ports: (u16, u16, u16, u16)) -&gt; (String, String, String, String) {
+<span class="doccomment">/// Return addresses to bind to for
+/// - (general) job source
+/// - context job source
+/// - results sink
+/// - control messages
+</span><span class="kw">fn </span>get_bind_addresses(ports: (u16, u16, u16, u16)) -&gt; (String, String, String, String) {
     (
         <span class="macro">format!</span>(<span class="string">&quot;tcp://*:{}&quot;</span>, ports.<span class="number">0</span>),
         <span class="macro">format!</span>(<span class="string">&quot;tcp://*:{}&quot;</span>, ports.<span class="number">1</span>),
@@ -840,7 +861,8 @@
     )
 }
 
-<span class="kw">fn </span>get_four_ports() -&gt; <span class="prelude-ty">Result</span>&lt;(u16, u16, u16, u16)&gt; {
+<span class="doccomment">/// Return four free ports to use for client-server message queues
+</span><span class="kw">fn </span>get_four_ports() -&gt; <span class="prelude-ty">Result</span>&lt;(u16, u16, u16, u16)&gt; {
     <span class="prelude-val">Ok</span>((pick_unused_port().chain_err(|| <span class="string">&quot;No ports free&quot;</span>)<span class="question-mark">?</span>,
         pick_unused_port().chain_err(|| <span class="string">&quot;No ports free&quot;</span>)<span class="question-mark">?</span>,
         pick_unused_port().chain_err(|| <span class="string">&quot;No ports free&quot;</span>)<span class="question-mark">?</span>,
@@ -848,9 +870,9 @@
     ))
 }
 
-<span class="comment">// Create a new `Coordinator`, pre-load any libraries in native format that we want to have before
-// loading a flow and it&#39;s library references, then enter the `submission_loop()` accepting and
-// executing flows submitted for execution, executing each one using the `Coordinator`
+<span class="doccomment">/// Create a new `Coordinator`, pre-load any libraries in native format that we want to have before
+/// loading a flow and it&#39;s library references, then enter the `submission_loop()` accepting and
+/// executing flows submitted for execution, executing each one using the `Coordinator`
 </span><span class="kw">fn </span>server(
     num_threads: usize,
     lib_search_path: Simpath,
@@ -924,9 +946,9 @@
     <span class="prelude-val">Ok</span>(())
 }
 
-<span class="comment">// Start only a client in the calling thread. Since we are *only* starting a client in this
-// process, we don&#39;t have server information, so we create a set of ServerInfo from command
-// line options for the server address and known service names and ports.
+<span class="doccomment">/// Start only a client in the calling thread. Since we are *only* starting a client in this
+/// process, we don&#39;t have server information, so we create a set of ServerInfo from command
+/// line options for the server address and known service names and ports.
 </span><span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)]
 </span><span class="kw">fn </span>client_only(
     matches: ArgMatches,
@@ -952,7 +974,7 @@
     )
 }
 
-<span class="comment">// Start the clients that talks to the server thread or process
+<span class="doccomment">/// Start the clients that talks to the server thread or process
 </span><span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)]
 </span><span class="kw">fn </span>client(
     matches: ArgMatches,
@@ -1008,8 +1030,8 @@
     <span class="prelude-val">Ok</span>(())
 }
 
-<span class="comment">// Determine the number of threads to use to execute flows
-// - default (if value is not provided on the command line)of the number of cores
+<span class="doccomment">/// Determine the number of threads to use to execute flows
+/// - default (if value is not provided on the command line)of the number of cores
 </span><span class="kw">fn </span>num_threads(matches: <span class="kw-2">&amp;</span>ArgMatches) -&gt; usize {
     <span class="kw">match </span>matches.get_one::&lt;usize&gt;(<span class="string">&quot;threads&quot;</span>) {
         <span class="prelude-val">Some</span>(num_threads) =&gt; <span class="kw-2">*</span>num_threads,
@@ -1017,7 +1039,7 @@
     }
 }
 
-<span class="comment">// Parse the command line arguments using clap
+<span class="doccomment">/// Parse the command line arguments using clap
 </span><span class="kw">fn </span>get_matches() -&gt; ArgMatches {
     <span class="kw">let </span>app = Command::new(<span class="macro">env!</span>(<span class="string">&quot;CARGO_PKG_NAME&quot;</span>))
         .version(<span class="macro">env!</span>(<span class="string">&quot;CARGO_PKG_VERSION&quot;</span>));
@@ -1110,7 +1132,7 @@
     app.get_matches()
 }
 
-<span class="comment">// Parse the command line arguments passed onto the flow itself
+<span class="doccomment">/// Parse the command line arguments passed onto the flow itself
 </span><span class="kw">fn </span>parse_flow_url(matches: <span class="kw-2">&amp;</span>ArgMatches) -&gt; <span class="prelude-ty">Result</span>&lt;Url&gt; {
     <span class="kw">let </span>cwd_url = Url::from_directory_path(env::current_dir()<span class="question-mark">?</span>)
         .map_err(|<span class="kw">_</span>| <span class="string">&quot;Could not form a Url for the current working directory&quot;</span>)<span class="question-mark">?</span>;
@@ -1118,8 +1140,8 @@
         .map(|s| s.as_str()))
 }
 
-<span class="comment">// Set environment variable with the args this will not be unique, but it will be used very
-// soon and removed
+<span class="doccomment">/// Set environment variable with the args this will not be unique, but it will be used very
+/// soon and removed
 </span><span class="kw">fn </span>get_flow_args(matches: <span class="kw-2">&amp;</span>ArgMatches, flow_manifest_url: <span class="kw-2">&amp;</span>Url) -&gt; Vec&lt;String&gt; {
     <span class="comment">// arg #0 is the flow url
     </span><span class="kw">let </span><span class="kw-2">mut </span>flow_args: Vec&lt;String&gt; = <span class="macro">vec!</span>[flow_manifest_url.to_string()];
@@ -1135,4 +1157,4 @@
     flow_args
 }
 </code></pre></div>
-</section></div></main><div id="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="flowr" data-themes="" data-resource-suffix="" data-rustdoc-version="1.67.0-nightly (70f8737b2 2022-11-23)" data-search-js="search-df80cc3cb87b6482.js" data-settings-js="settings-7e1cf5cc683233f7.js" data-settings-css="settings-af96d9e2fc13e081.css" ></div></body></html>
+</section></div></main><div id="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="flowr" data-themes="" data-resource-suffix="" data-rustdoc-version="1.67.0-nightly (b3bc6bf31 2022-11-24)" data-search-js="search-df80cc3cb87b6482.js" data-settings-js="settings-7e1cf5cc683233f7.js" data-settings-css="settings-af96d9e2fc13e081.css" ></div></body></html>

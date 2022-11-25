@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `flowrlib/src/lib.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>lib.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-1f7d512b176f0f72.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Bold-124a1ca42af929b6.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-cd23e1e4557aa9dd.css" id="mainThemeStyle"><link rel="stylesheet" id="themeStyle" href="../../static.files/light-a21928845c7a186a.css"><link rel="stylesheet" disabled href="../../static.files/dark-90fc67ff25a42f29.css"><link rel="stylesheet" disabled href="../../static.files/ayu-d75a8bbde915b8ed.css"><script id="default-settings" ></script><script src="../../static.files/storage-d43fa987303ecbbb.js"></script><script defer src="../../static.files/source-script-5cf2e01a42cc9858.js"></script><script defer src="../../source-files.js"></script><script defer src="../../static.files/main-458bffc4c06ccf37.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-13285aec31fa243e.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><div class="width-limiter"><nav class="sub"><a class="sub-logo-container" href="../../flowrlib/index.html"><img class="rust-logo" src="../../static.files/rust-logo-151179464ae7ed46.svg" alt="logo"></a><form class="search-form"><span></span><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-5ec35bf9ca753509.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `flowrlib/src/lib.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>lib.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-1f7d512b176f0f72.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Bold-124a1ca42af929b6.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-bf4c5e264196f176.css" id="mainThemeStyle"><link rel="stylesheet" id="themeStyle" href="../../static.files/light-a21928845c7a186a.css"><link rel="stylesheet" disabled href="../../static.files/dark-90fc67ff25a42f29.css"><link rel="stylesheet" disabled href="../../static.files/ayu-d75a8bbde915b8ed.css"><script id="default-settings" ></script><script src="../../static.files/storage-d43fa987303ecbbb.js"></script><script defer src="../../static.files/source-script-5cf2e01a42cc9858.js"></script><script defer src="../../source-files.js"></script><script defer src="../../static.files/main-458bffc4c06ccf37.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-13285aec31fa243e.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><div class="width-limiter"><nav class="sub"><a class="sub-logo-container" href="../../flowrlib/index.html"><img class="rust-logo" src="../../static.files/rust-logo-151179464ae7ed46.svg" alt="logo"></a><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-5ec35bf9ca753509.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -52,59 +52,73 @@
 <a href="#52" id="52">52</a>
 <a href="#53" id="53">53</a>
 <a href="#54" id="54">54</a>
+<a href="#55" id="55">55</a>
+<a href="#56" id="56">56</a>
+<a href="#57" id="57">57</a>
+<a href="#58" id="58">58</a>
+<a href="#59" id="59">59</a>
+<a href="#60" id="60">60</a>
+<a href="#61" id="61">61</a>
 </pre><pre class="rust"><code><span class="attr">#![deny(missing_docs)]
 #![deny(clippy::unwrap_used)]
 #![deny(clippy::indexing_slicing)]
-</span><span class="doccomment">//! Runtime library for flow execution. This will be linked with other code to produce a
-//! or runner, such as `flowr` command line runner.
+</span><span class="doccomment">//! `flowrlib` is the runtime library for flow execution. This can be used to produce a flow runner,
+//! such as the `flowr` command line runner.
 //!
-//! It is responsible for reading a flow definition in a `Manifest` file, loading the required
-//! libraries from `LibraryManifest` files and then coordinating the execution by dispatching `Jobs`
-//! to be executed by `Function` `Implementations`, providing them the `Inputs` required to run and
-//! gathering the `Outputs` produced and passing those `Outputs` to other connected `Functions` in
-//! the network of `Functions`.
+//! It is responsible for reading a flow&#39;s compiled [FlowManifest][flowcore::model::flow_manifest::FlowManifest],
+//! loading the required libraries using [LibraryManifests][flowcore::model::lib_manifest::LibraryManifest]
+//! files and then coordinating the execution of [functions][flowcore::model::runtime_function::RuntimeFunction]
+//! by dispatching [Jobs][job::Job] (that include a reference to the function&#39;s
+//! [Implementations][flowcore::Implementation] and the input values required to run) then
+//! gathering the Result and passing the output value to other connected functions in the
+//! [flow graph][flowcore::model::flow_manifest::FlowManifest]
 
-/// `coordinator` is the module that coordinates the execution of flows submitted to it
+/// Provides [Block][block::Block] that represents a block imposed on a function due to destination being busy
+</span><span class="kw">pub mod </span>block;
+
+<span class="doccomment">/// Provides [Coordinator][coordinator::Coordinator] responsible for coordinating the execution of flows submitted to it
 </span><span class="kw">pub mod </span>coordinator;
 
-<span class="doccomment">/// `info` offers methods to get information about this library
+<span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)]
+</span><span class="doccomment">/// Provides the [DebugCommand][debug_command::DebugCommand] enum for commands from debug client to debug server
+</span><span class="kw">pub mod </span>debug_command;
+
+<span class="doccomment">/// Provides [Dispatcher][dispatcher::Dispatcher] used by the [Coordinator][coordinator::Coordinator]
+/// to dispatch [Jobs][job::Job] for execution by an [Executor][executor::Executor]
+</span><span class="kw">pub mod </span>dispatcher;
+
+<span class="doccomment">/// Holds all [Error][errors::Error] types, and other modules in this crate will `use errors::*;`
+/// to get access to everything `error_chain` creates.
+</span><span class="kw">pub mod </span>errors;
+
+<span class="doccomment">/// Provides [Executor][executor::Executor] that receives jobs for execution, executes them and returns results
+</span><span class="kw">pub mod </span>executor;
+
+<span class="doccomment">/// Provides methods to get information about this library
 </span><span class="kw">pub mod </span>info;
 
-<span class="doccomment">/// Structure that defines/tracks the current runtime state
+<span class="doccomment">/// Provides [Job][job::Job] that holds jobs before and after their execution
+</span><span class="kw">pub mod </span>job;
+
+<span class="doccomment">/// Provides a number of traits that define methods used in protocols between server and clients
+/// that a client must implement. Such as [DebuggerProtocol][protocols::DebuggerProtocol] and
+/// [SubmissionProtocol][protocols::SubmissionProtocol]
+</span><span class="kw">pub mod </span>protocols;
+
+<span class="doccomment">/// Provides [RunState][run_state::RunState] that tracks the current runtime state,
+/// used by [Coordinator][coordinator::Coordinator]
 </span><span class="kw">pub mod </span>run_state;
 
-<span class="doccomment">/// Trait for a set of methods a server using the library must supply
-</span><span class="kw">pub mod </span>protocols;
+<span class="doccomment">/// Provides well-known service names used across multiple binary crates
+</span><span class="kw">pub mod </span>services;
 
 <span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)]
 </span><span class="kw">mod </span>debugger;
-<span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)]
-</span><span class="doccomment">/// `debug_command` provides the `DebugCommand` enum for commands from debug client to debug server
-</span><span class="kw">pub mod </span>debug_command;
-
-<span class="doccomment">/// Dispatcher module takes care of dispatching jobs for execution and gathering results
-</span><span class="kw">pub mod </span>dispatcher;
-
-<span class="doccomment">/// Executor module receives jobs for execution, executes them and returns results
-</span><span class="kw">pub mod </span>executor;
 
 <span class="doccomment">/// `wasmtime` module contains a number of implementations of the wasm execution
 </span><span class="kw">mod </span>wasm;
 
-<span class="doccomment">/// We&#39;ll put our errors in an `errors` module, and other modules in this crate will `use errors::*;`
-/// to get access to everything `error_chain` creates.
-</span><span class="kw">pub mod </span>errors;
-
-<span class="doccomment">/// module providing `Block` struct from runtime that is required for debugging and tracing
-</span><span class="kw">pub mod </span>block;
-
-<span class="doccomment">/// module providing `Job` struct from runtime that is required for debugging and tracing
-</span><span class="kw">pub mod </span>job;
-
-<span class="doccomment">/// Service names common across multiple binary crates
-</span><span class="kw">pub mod </span>services;
-
 <span class="attr">#[cfg(debug_assertions)]
 </span><span class="kw">mod </span>checks;
 </code></pre></div>
-</section></div></main><div id="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="flowrlib" data-themes="" data-resource-suffix="" data-rustdoc-version="1.67.0-nightly (70f8737b2 2022-11-23)" data-search-js="search-df80cc3cb87b6482.js" data-settings-js="settings-7e1cf5cc683233f7.js" data-settings-css="settings-af96d9e2fc13e081.css" ></div></body></html>
+</section></div></main><div id="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="flowrlib" data-themes="" data-resource-suffix="" data-rustdoc-version="1.67.0-nightly (b3bc6bf31 2022-11-24)" data-search-js="search-df80cc3cb87b6482.js" data-settings-js="settings-7e1cf5cc683233f7.js" data-settings-css="settings-af96d9e2fc13e081.css" ></div></body></html>
