@@ -10,8 +10,8 @@ name="mandlebrot"
 path = "main.rs"
 
 [dependencies]
-flowcore = "0.90"
-flowmacro = "0.90"
+flowcore = "0.80.0"
+flowmacro = "0.80.0"
 serde_json = "1.0"
 num = "0.4.0"
 image = "0.23.12"
