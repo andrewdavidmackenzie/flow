@@ -24,9 +24,9 @@ debugger = ["flowrlib/debugger", "flowcore/debugger", "rustyline"] # feature to 
 metrics = ["flowrlib/metrics"]  # feature for tracking of metrics during execution - requires flowrlib with metrics also
 
 [dependencies]
-flowcore = {path = "../flowcore", version = "0.80.0", features = ["context"] }
-flowrlib = {path = "../flowrlib", version = "0.80.0", features = ["context", "submission"] }
-flowstdlib = {path = "../flowstdlib", version = "0.80.0" }
+flowcore = {path = "../flowcore", version = "0.90.0", features = ["context"] }
+flowrlib = {path = "../flowrlib", version = "0.90.0", features = ["context", "submission"] }
+flowstdlib = {path = "../flowstdlib", version = "0.90.0" }
 clap = "~4"
 simplog = { version = "~1.5" }
 log = "0.4.6"
