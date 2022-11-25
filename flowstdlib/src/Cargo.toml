@@ -11,7 +11,7 @@ members = ["control/compare_switch", "control/index", "control/join", "control/r
 [workspace.package]
 name = "flow-stdlib-wasm"
 description = "The standard library of functions and flows for 'flow' programs"
-version = "0.80.0"
+version = "0.90"
 authors = ["Andrew Mackenzie <andrew@mackenzie-serres.net>"]
 license = "MIT"
 documentation = "https://github.com/andrewdavidmackenzie/flow/README.md"
@@ -32,6 +32,6 @@ strip = true
 split-debuginfo = "unpacked"
 
 [workspace.dependencies]
-flowcore = {path = "../../flowcore", version = "0.80.0"}
-flowmacro = {path = "../../flowmacro", version = "0.80.0"}
+flowcore = {path = "../../flowcore", version = "0.90"}
+flowmacro = {path = "../../flowmacro", version = "0.90"}
 serde_json = { version = "1.0", default-features = false }

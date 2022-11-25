@@ -3,7 +3,7 @@ members = ["flowc", "flowstdlib", "flowrlib", "flowr", "flowcore", "flowmacro", 
 default-members = ["flowc", "flowstdlib", "flowrlib", "flowr", "flowcore", "flowmacro", "flowsamples"]
 
 [workspace.package]
-version = "0.80.0"
+version = "0.90"
 authors = ["Andrew Mackenzie <andrew@mackenzie-serres.net>"]
 license = "MIT"
 documentation = "https://github.com/andrewdavidmackenzie/flow/README.md"
