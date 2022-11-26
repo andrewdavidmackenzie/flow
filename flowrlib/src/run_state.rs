@@ -190,7 +190,7 @@ pub struct RunState {
     /// ready: Vec<function_id> - a list of functions by id that are ready to run
     ready: VecDeque<usize>,
     /// running: set of jobs that are running
-    running: HashSet<usize>,
+    running: HashMap<usize, Job>,
     /// maintain a count of the number of jobs running
     num_running: usize,
     /// completed: functions that have run to completion and won't run again
@@ -213,7 +213,7 @@ impl RunState {
             blocked: HashSet::<usize>::new(),
             blocks: HashSet::<Block>::new(),
             ready: VecDeque::<usize>::new(),
-            running: HashSet::<usize>::new(),
+            running: HashMap::<usize, Job>::new(),
             num_running: 0,
             completed: HashSet::<usize>::new(),
             number_of_jobs_created: 0,
@@ -314,7 +314,7 @@ impl RunState {
 
     /// Get a Set (job_id) of the currently running jobs
     #[cfg(any(feature = "debugger", debug_assertions))]
-    pub fn get_running(&self) -> &HashSet<usize> {
+    pub fn get_running(&self) -> &HashMap<usize, Job> {
         &self.running
     }
 
@@ -366,10 +366,11 @@ impl RunState {
     }
 
     // Update the run_state to reflect that the job is now running
-    pub(crate) fn start_job(&mut self, job: &Job) -> Result<()>{
-        self.running.insert(job.job_id);
+    pub(crate) fn start_job(&mut self, job: Job) -> Result<()>{
+        self.block_external_flow_senders(job.job_id, job.function_id, job.flow_id)?;
+        self.running.insert(job.job_id, job);
         self.num_running += 1;
-        self.block_external_flow_senders(job.job_id, job.function_id, job.flow_id)
+        Ok(())
     }
 
     // The function with id `blocker_function_id` in the flow with id `blocked_flow_id` has had a
@@ -462,15 +463,14 @@ impl RunState {
     pub(crate) fn retire_job(
         &mut self,
         #[cfg(feature = "metrics")] metrics: &mut Metrics,
-        job: &Job,
+        job: Job,
         #[cfg(feature = "debugger")] debugger: &mut Debugger,
     ) -> Result<(bool, bool)>{
         let mut display_next_output = false;
         let mut restart = false;
 
-        if !self.running.remove(&job.job_id) {
-            bail!("Job#{} was not running, so not applying results returned", job.job_id)
-        }
+        self.running.remove(&job.job_id)
+            .ok_or_else(|| format!("Job#{} was not running, so not applying results returned", job.job_id))?;
         self.num_running -= 1;
 
         match &job.result {
@@ -533,7 +533,7 @@ impl RunState {
 
         // unblock any senders from other flows that can now run due to this function completing
         // causing the flow to be idle now
-        (display_next_output, restart) = self.unblock_flows(job,
+        (display_next_output, restart) = self.unblock_flows(&job,
                                #[cfg(feature = "debugger")] debugger,
             )?;
 
@@ -867,7 +867,7 @@ impl fmt::Display for RunState {
         writeln!(f, "RunState:")?;
         writeln!(f, "          Jobs Created: {}", self.number_of_jobs_created)?;
         writeln!(f, "Number of Jobs Running: {}", self.num_running)?;
-        writeln!(f, "          Jobs Running: {:?}", self.running)?;
+        writeln!(f, "          Jobs Running: {:?}", self.running.keys())?;
         writeln!(f, "     Functions Blocked: {:?}", self.blocked)?;
         writeln!(f, "                Blocks: {:?}", self.blocks)?;
         writeln!(f, "       Functions Ready: {:?}", self.ready)?;
@@ -1262,7 +1262,7 @@ mod test {
 
             // Event
             let job = state.get_job().expect("Couldn't get next job");
-            state.start_job(&job).expect("Could not start job");
+            state.start_job(job.clone()).expect("Could not start job");
 
             // Test
             state.running.get(&job.job_id)
@@ -1325,7 +1325,7 @@ mod test {
             assert!(state.function_state_is_only(0, State::Ready), "f_a should be Ready");
             let job = state.get_job().expect("Couldn't get next job");
             assert_eq!(0, job.function_id, "next() should return function_id = 0");
-            state.start_job(&job).expect("Could not start job");
+            state.start_job(job.clone()).expect("Could not start job");
 
             state.running.get(&job.job_id).expect("Job with f_a should be Running");
 
@@ -1334,7 +1334,7 @@ mod test {
             state.retire_job(
                 #[cfg(feature = "metrics")]
                 &mut metrics,
-                &job,
+                job,
                 #[cfg(feature = "debugger")]
                 &mut debugger,
             ).expect("Problem retiring job");
@@ -1364,7 +1364,7 @@ mod test {
             assert!(state.function_state_is_only(0, State::Ready), "f_a should be Ready");
             let job = state.get_job().expect("Couldn't get next job");
             assert_eq!(0, job.function_id, "next() should return function_id = 0");
-            state.start_job(&job).expect("Could not start job");
+            state.start_job(job.clone()).expect("Could not start job");
 
             state.running.get(&job.job_id).expect("Job with f_a should be Running");
 
@@ -1373,7 +1373,7 @@ mod test {
             state.retire_job(
                 #[cfg(feature = "metrics")]
                 &mut metrics,
-                &job,
+                job,
                 #[cfg(feature = "debugger")]
                 &mut debugger,
             ).expect("Problem retiring job");
@@ -1424,12 +1424,12 @@ mod test {
 
             // Event run f_b which will send to f_a
             let job = super::test_job(&mut state, 1, 0);
-            state.start_job(&job).expect("Could not start job");
+            state.start_job(job.clone()).expect("Could not start job");
 
             state.retire_job(
                 #[cfg(feature = "metrics")]
                 &mut metrics,
-                &job,
+                job,
                 #[cfg(feature = "debugger")]
                 &mut debugger,
             ).expect("Problem retiring job");
@@ -1487,12 +1487,12 @@ mod test {
 
             // create output from f_b as if it had run - will send to f_a
             let job = super::test_job(&mut state, 1, 0);
-            state.start_job(&job).expect("Could not start job");
+            state.start_job(job.clone()).expect("Could not start job");
 
             state.retire_job(
                 #[cfg(feature = "metrics")]
                 &mut metrics,
-                &job,
+                job,
                 #[cfg(feature = "debugger")]
                 &mut debugger,
             ).expect("Problem retiring job");
@@ -1736,13 +1736,13 @@ mod test {
             state.init();
 
             let job = state.get_job().expect("Couldn't get next job");
-            state.start_job(&job).expect("Could not start job");
+            state.start_job(job.clone()).expect("Could not start job");
 
             // Test there is no problem producing an Output when no destinations to send it to
             state.retire_job(
                 #[cfg(feature = "metrics")]
                 &mut metrics,
-                &job,
+                job,
                 #[cfg(feature = "debugger")]
                 &mut debugger,
             ).expect("Failed to retire job correctly");

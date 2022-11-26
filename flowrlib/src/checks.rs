@@ -46,7 +46,7 @@ fn ready_check(state: &RunState, job_id: usize, function: &RuntimeFunction) -> R
 }
 
 fn running_check(state: &RunState, job_id: usize, function: &RuntimeFunction) -> Result<()> {
-    if state.get_running().contains(&job_id) && !state.get_busy_flows().contains_key(&function.get_flow_id()) {
+    if state.get_running().contains_key(&job_id) && !state.get_busy_flows().contains_key(&function.get_flow_id()) {
         return runtime_error(
             state,
             job_id,
@@ -161,7 +161,7 @@ fn destination_block_state_check(state: &RunState, job_id: usize, block: &Block,
 fn flow_checks(state: &RunState, job_id: usize) -> Result<()> {
     for (flow_id, function_id) in state.get_busy_flows().iter() {
         let function_states = state.get_function_states(*function_id);
-        if !function_states.contains(&State::Ready) && !state.get_running().contains(&job_id) {
+        if !function_states.contains(&State::Ready) && !state.get_running().contains_key(&job_id) {
             return runtime_error(
                 state,
                 job_id,
