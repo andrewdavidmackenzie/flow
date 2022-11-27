@@ -97,7 +97,7 @@ impl<'a> Coordinator<'a> {
         // This outer loop is just a way of restarting execution from scratch if the debugger requests it
         'flow_execution:
         loop {
-            state.init();
+            state.init()?;
             #[cfg(feature = "metrics")]
             metrics.reset();
 
