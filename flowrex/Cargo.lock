@@ -429,7 +429,7 @@ checksum = "4443176a9f2c162692bd3d352d745ef9413eec5782a80d8fd6f8a1ac692a07f7"
 
 [[package]]
 name = "flowcore"
-version = "0.80.0"
+version = "0.90.0"
 dependencies = [
  "curl",
  "error-chain",
@@ -446,7 +446,7 @@ dependencies = [
 
 [[package]]
 name = "flowmacro"
-version = "0.80.0"
+version = "0.90.0"
 dependencies = [
  "flowcore",
  "proc-macro2",
@@ -457,7 +457,7 @@ dependencies = [
 
 [[package]]
 name = "flowrex"
-version = "0.80.0"
+version = "0.90.0"
 dependencies = [
  "clap",
  "error-chain",
@@ -472,7 +472,7 @@ dependencies = [
 
 [[package]]
 name = "flowrlib"
-version = "0.80.0"
+version = "0.90.0"
 dependencies = [
  "error-chain",
  "flowcore",
@@ -490,7 +490,7 @@ dependencies = [
 
 [[package]]
 name = "flowstdlib"
-version = "0.80.0"
+version = "0.90.0"
 dependencies = [
  "error-chain",
  "flowcore",

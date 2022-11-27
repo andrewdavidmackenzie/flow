@@ -29,12 +29,13 @@ fn ready_check(state: &RunState, job_id: usize, function: &RuntimeFunction) -> R
         );
     }
 
-    if !function.can_run() {
+    if !(state.get_function_states(0).contains(&State::Ready) ||
+        state.get_function_states(0).contains(&State::Running)) {
         return runtime_error(
             state,
             job_id,
             &format!(
-                "Function #{} is Ready, but can_run() returns false",
+                "Flow is busy byt Function #{} is not Ready or Running",
                 function.id(),
             ),
             file!(),
@@ -46,7 +47,7 @@ fn ready_check(state: &RunState, job_id: usize, function: &RuntimeFunction) -> R
 }
 
 fn running_check(state: &RunState, job_id: usize, function: &RuntimeFunction) -> Result<()> {
-    if state.get_running().contains(&job_id) && !state.get_busy_flows().contains_key(&function.get_flow_id()) {
+    if state.get_running().contains_key(&job_id) && !state.get_busy_flows().contains_key(&function.get_flow_id()) {
         return runtime_error(
             state,
             job_id,
@@ -161,7 +162,7 @@ fn destination_block_state_check(state: &RunState, job_id: usize, block: &Block,
 fn flow_checks(state: &RunState, job_id: usize) -> Result<()> {
     for (flow_id, function_id) in state.get_busy_flows().iter() {
         let function_states = state.get_function_states(*function_id);
-        if !function_states.contains(&State::Ready) && !state.get_running().contains(&job_id) {
+        if !function_states.contains(&State::Ready) && !state.get_running().contains_key(&job_id) {
             return runtime_error(
                 state,
                 job_id,
@@ -317,7 +318,7 @@ mod test {
         let mut state = test_state(vec![function]);
 
         // Mark the flow the function is in as busy via ready
-        state.make_ready_or_blocked(0, 0);
+        state.make_ready_or_blocked(0, 0).expect("Couldn't get next job");
 
         // this ready_check() should pass
         ready_check(&state, 0, state.get_function(0)
@@ -343,7 +344,7 @@ mod test {
 
         // mark flow_id as busy - to pass the running check a running function's flow_id
         // should be in the list of busy flows
-        state.make_ready_or_blocked(0, 0);
+        state.make_ready_or_blocked(0, 0).expect("Couldn't get next job");
 
         // this running check should fail
         running_check(&state, 0, state.get_function(0)

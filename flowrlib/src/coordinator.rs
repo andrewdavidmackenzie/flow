@@ -97,7 +97,7 @@ impl<'a> Coordinator<'a> {
         // This outer loop is just a way of restarting execution from scratch if the debugger requests it
         'flow_execution:
         loop {
-            state.init();
+            state.init()?;
             #[cfg(feature = "metrics")]
             metrics.reset();
 
@@ -145,7 +145,7 @@ impl<'a> Coordinator<'a> {
                             (display_next_output, restart) = state.retire_job(
                                 #[cfg(feature = "metrics")]
                                     &mut metrics,
-                                &job,
+                                job,
                                 #[cfg(feature = "debugger")]
                                     &mut self.debugger,
                             )?;
@@ -213,7 +213,7 @@ impl<'a> Coordinator<'a> {
 
         while let Some(job) = state.get_job() {
             match self.dispatch_a_job(
-                &job,
+                job.clone(),
                 state,
                 #[cfg(feature = "metrics")]
                 metrics,
@@ -227,7 +227,7 @@ impl<'a> Coordinator<'a> {
                     debug!("{}", state);
 
                     #[cfg(feature = "debugger")]
-                    return self.debugger.job_error(state, &job);
+                    return self.debugger.job_error(state, &job); // TODO avoid above clone() ?
                 }
             }
         }
@@ -238,14 +238,12 @@ impl<'a> Coordinator<'a> {
     // Dispatch a job for execution
     fn dispatch_a_job(
         &mut self,
-        job: &Job,
+        job: Job,
         state: &mut RunState,
         #[cfg(feature = "metrics")] metrics: &mut Metrics,
     ) -> Result<(bool, bool)> {
         #[cfg(not(feature = "debugger"))]
         let debug_options = (false, false);
-
-        state.start_job(job)?;
 
         #[cfg(feature = "metrics")]
         metrics.track_max_jobs(state.number_jobs_running());
@@ -253,9 +251,11 @@ impl<'a> Coordinator<'a> {
         #[cfg(feature = "debugger")]
         let debug_options = self
             .debugger
-            .check_prior_to_job(state, job)?;
+            .check_prior_to_job(state, &job)?;
 
-        self.dispatcher.send_job_for_execution(job)?;
+        self.dispatcher.send_job_for_execution(&job)?;
+
+        state.start_job(job)?;
 
         Ok(debug_options)
     }
