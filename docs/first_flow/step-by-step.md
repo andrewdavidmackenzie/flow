@@ -37,7 +37,7 @@ the `-v, verbosity <Verbosity Level>` command line option to `flowr`.
 * STDOUT does not have an input value available so it is not "ready"
 
 #### Loop Starts
-Ready = ["add"]
+Ready = \["add"\]
 
 - "add" runs with Inputs = (0, 1) and produces output 1
   - value 1 from output of "add" is sent to input "i2" of "add"
@@ -47,13 +47,13 @@ Ready = ["add"]
   - input value "i2" (1) of the executed job is sent to input "i1" of "add"
     - "add" now has a value on both its inputs and is marked "ready"
 
-Ready = ["Stdout", "add"]
+Ready = \["Stdout", "add"\]
 
 - "Stdout" runs with Inputs = (1) and produces no output
     - "Stdout" converts the `number` value to a `String` and prints "1" on the STDOUT of the terminal
     - "Stdout" no longer has values on its inputs and is set to not ready
 
-Ready = ["add"]
+Ready = \["add"\]
 
 - "add" runs with Inputs = (1, 1) and produces output 2
   - value 2 from output of "add" is sent to input "i2" of "add"
@@ -63,13 +63,13 @@ Ready = ["add"]
   - input value "i2" (1) of the executed job is sent to input "i1" of "add"
     - "add" now has a value on both its inputs and is marked "ready"
 
-Ready = ["Stdout", "add"]
+Ready = \["Stdout", "add"\]
 
 - "Stdout" runs with Inputs = (2) and produces no output
   - "Stdout" converts the `number` value to a `String` and prints "2" on the STDOUT of the terminal
   - "Stdout" no longer has values on its inputs and is set to not ready
 
-Ready = ["add"]
+Ready = \["add"\]
 
 The above sequence proceeds, until eventually:
 

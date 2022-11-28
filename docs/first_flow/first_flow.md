@@ -48,7 +48,7 @@ In this case the following three connections exist:
   been called "sum"
 - the output of "add" (the sum of "i1" and "i2") is connected to the default input of "Stdout". This connection has 
   optionally been called "sum"
-- 
+
 ### Initializations
 Inputs of processes (flows or functions) can be initialized with a value "Once" (at startup) or "Always" (each time 
 it ran) using input initializers (dotted lines)
