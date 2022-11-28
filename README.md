@@ -2,7 +2,6 @@
 [![codecov](https://codecov.io/gh/andrewdavidmackenzie/flow/branch/master/graph/badge.svg)](https://codecov.io/gh/andrewdavidmackenzie/flow)
 [![Generic badge](https://img.shields.io/badge/macos-supported-Green.svg)](https://shields.io/)
 [![Generic badge](https://img.shields.io/badge/linux-supported-Green.svg)](https://shields.io/)
-[![Generic badge](https://img.shields.io/badge/Rust-stable-Green.svg)](https://shields.io/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 # Welcome!
@@ -53,7 +52,7 @@ command line debugger for debugging flows.
 - Docs: Extensive documentation in the [book](SUMMARY.md) documentation on defining flows, the runtime semantics, a 
   programmers guide, docs on tool command line options and how to use them, the `flowstdlib` library
 functions and flows, `flowr`'s context functions and more. The guide, including linked Code docs and rust
-"doc tests" are all published together online [here](http://andrewdavidmackenzie.github.io/flow/).
+"doc tests" are all published together online [here](https://mackenzie-serres.net/flow/docs/book_intro.html).
 - How to build flow locally and contribute to it
 - Internal design and how some things are implemented
  
