@@ -21,7 +21,7 @@ use crate::block::Block;
 use crate::checks;
 #[cfg(feature = "debugger")]
 use crate::debugger::Debugger;
-use crate::job::Job;
+use crate::job::{Job, JobPayload};
 
 /// `State` represents the possible states it is possible for a function to be in
 #[cfg(any(debug_assertions, feature = "debugger", test))]
@@ -375,8 +375,9 @@ impl RunState {
 
     // Update the run_state to reflect that the job is now running
     pub(crate) fn start_job(&mut self, job: Job) -> Result<()>{
-        self.block_external_flow_senders(job.job_id, job.function_id, job.flow_id)?;
-        self.running_jobs.insert(job.job_id, job);
+        self.block_external_flow_senders(job.payload.job_id, job.function_id,
+                                         job.flow_id)?;
+        self.running_jobs.insert(job.payload.job_id, job);
         self.num_running += 1;
         Ok(())
     }
@@ -439,13 +440,15 @@ impl RunState {
             Ok(input_set) => {
 
                 let job = Job {
-                    job_id,
                     function_id,
                     flow_id,
-                    implementation_url,
-                    input_set,
-                    connections: function.get_output_connections().clone(),
-                    result: Ok((None, false)),
+                    payload: JobPayload {
+                        job_id,
+                        implementation_url,
+                        input_set,
+                        connections: function.get_output_connections().clone(),
+                        result: Ok((None, false)),
+                    }
                 };
                 trace!("Job #{job_id}: Job Created for Function #{function_id}({flow_id})");
 
@@ -475,21 +478,22 @@ impl RunState {
         let mut display_next_output = false;
         let mut restart = false;
 
-        self.running_jobs.remove(&job.job_id)
-            .ok_or_else(|| format!("Job#{} was not running, so not applying results returned", job.job_id))?;
+        self.running_jobs.remove(&job.payload.job_id)
+            .ok_or_else(|| format!("Job#{} was not running, so not applying results returned",
+                                   job.payload.job_id))?;
         self.num_running -= 1;
 
-        match &job.result {
+        match &job.payload.result {
             Ok((output_value, function_can_run_again)) => {
                 #[cfg(feature = "debugger")]
-                debug!("Job #{}: Function #{} '{}' {:?} -> {:?}", job.job_id, job.function_id,
+                debug!("Job #{}: Function #{} '{}' {:?} -> {:?}", job.payload.job_id, job.function_id,
                         self.get_function(job.function_id).ok_or("No such function")?.name(),
-                    job.input_set,  output_value);
+                    job.payload.input_set,  output_value);
                 #[cfg(not(feature = "debugger"))]
-                debug!("Job #{}: Function #{} {:?} -> {:?}", job.job_id, job.function_id,
-                        job.input_set,  output_value);
+                debug!("Job #{}: Function #{} {:?} -> {:?}", job.payload.job_id, job.function_id,
+                        job.payload.input_set,  output_value);
 
-                for connection in &job.connections {
+                for connection in &job.payload.connections {
                     let value_to_send = match &connection.source {
                         Output(route) => {
                             match output_value {
@@ -497,7 +501,7 @@ impl RunState {
                                 None => None
                             }
                         },
-                        Input(index) => job.input_set.get(*index),
+                        Input(index) => job.payload.input_set.get(*index),
                     };
 
                     if let Some(value) = value_to_send {
@@ -513,7 +517,7 @@ impl RunState {
                     } else {
                         trace!(
                             "Job #{}:\t\tNo value found at '{}'",
-                            job.job_id, &connection.source
+                            job.payload.job_id, &connection.source
                         );
                     }
                 }
@@ -534,7 +538,7 @@ impl RunState {
                     self.mark_as_completed(job.function_id);
                 }
             },
-            Err(e) => error!("Error in Job#{}: {e}", job.job_id)
+            Err(e) => error!("Error in Job#{}: {e}", job.payload.job_id)
         }
 
         // unblock any senders from other flows that can now run due to this function completing
@@ -544,9 +548,9 @@ impl RunState {
             )?;
 
         #[cfg(debug_assertions)]
-        checks::check_invariants(self, job.job_id)?;
+        checks::check_invariants(self, job.payload.job_id)?;
 
-        trace!("Job #{}: Completed-----------------------", job.job_id);
+        trace!("Job #{}: Completed-----------------------", job.payload.job_id);
 
         Ok((display_next_output, restart))
     }
@@ -760,7 +764,7 @@ impl RunState {
         // if flow is now idle, remove any blocks on sending to functions in the flow
         if self.busy_flows.get(&job.flow_id).is_none() {
             debug!("Job #{}:\tFlow #{} is now idle, so removing blocks on external functions to it",
-                job.job_id, job.flow_id);
+                job.payload.job_id, job.flow_id);
 
             #[cfg(feature = "debugger")]
             {
@@ -894,7 +898,7 @@ impl fmt::Display for RunState {
         writeln!(f, "     Functions Blocked: {:?}", self.blocked)?;
         writeln!(f, "                Blocks: {:?}", self.blocks)?;
         writeln!(f, "       Functions Ready: {:?}", self.ready_jobs.iter()
-            .map(|j| j.job_id).collect::<Vec<usize>>())?;
+            .map(|j| j.payload.job_id).collect::<Vec<usize>>())?;
         writeln!(f, "   Functions Completed: {:?}", self.completed)?;
         writeln!(f, "            Flows Busy: {:?}", self.busy_flows)?;
         write!(f, "        Pending Unblocks: {:?}", self.flow_blocks)
@@ -926,7 +930,7 @@ mod test {
     #[cfg(feature = "debugger")]
     use crate::protocols::DebuggerProtocol;
 
-    use super::Job;
+    use super::{Job, JobPayload};
     use super::RunState;
 
     fn test_function_a_to_b_not_init() -> RuntimeFunction {
@@ -1028,13 +1032,15 @@ mod test {
         );
         state.num_running += 1;
         Job {
-            job_id: 1,
             function_id: source_function_id,
             flow_id: 0,
-            implementation_url: Url::parse("file://test").expect("Could not parse Url"),
-            input_set: vec![json!(1)],
-            result: Ok((Some(json!(1)), true)),
-            connections: vec![out_conn],
+            payload: JobPayload {
+                job_id: 1,
+                implementation_url: Url::parse("file://test").expect("Could not parse Url"),
+                input_set: vec![json!(1)],
+                connections: vec![out_conn],
+                result: Ok((Some(json!(1)), true)),
+            }
         }
     }
 
@@ -1176,7 +1182,7 @@ mod test {
 
         use crate::run_state::test::test_function_b_not_init;
 
-        use super::super::Job;
+        use super::super::{Job, JobPayload};
         use super::super::RunState;
         use super::super::State;
 
@@ -1289,7 +1295,7 @@ mod test {
             state.start_job(job.clone()).expect("Could not start job");
 
             // Test
-            state.running_jobs.get(&job.job_id)
+            state.running_jobs.get(&job.payload.job_id)
                 .expect("Job should have been running");
         }
 
@@ -1309,13 +1315,15 @@ mod test {
 
         fn test_job() -> Job {
             Job {
-                job_id: 1,
                 function_id: 0,
                 flow_id: 0,
-                implementation_url: Url::parse("file://test").expect("Could not parse Url"),
-                input_set: vec![json!(1)],
-                result: Ok((None, true)),
-                connections: vec![],
+                payload: JobPayload {
+                    job_id: 1,
+                    implementation_url: Url::parse("file://test").expect("Could not parse Url"),
+                    input_set: vec![json!(1)],
+                    result: Ok((None, true)),
+                    connections: vec![],
+                }
             }
         }
 
@@ -1351,7 +1359,7 @@ mod test {
             assert_eq!(0, job.function_id, "next() should return function_id = 0");
             state.start_job(job.clone()).expect("Could not start job");
 
-            state.running_jobs.get(&job.job_id).expect("Job with f_a should be Running");
+            state.running_jobs.get(&job.payload.job_id).expect("Job with f_a should be Running");
 
             // Event
             let job = test_job();
@@ -1390,7 +1398,7 @@ mod test {
             assert_eq!(0, job.function_id, "next() should return function_id = 0");
             state.start_job(job.clone()).expect("Could not start job");
 
-            state.running_jobs.get(&job.job_id).expect("Job with f_a should be Running");
+            state.running_jobs.get(&job.payload.job_id).expect("Job with f_a should be Running");
 
             // Event
             let job = test_job();

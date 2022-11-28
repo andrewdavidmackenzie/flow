@@ -90,7 +90,7 @@ impl<'a> Debugger<'a> {
         state: &mut RunState,
         job: &Job,
     ) -> Result<(bool, bool)> {
-        if self.break_at_job == job.job_id || self.function_breakpoints.contains(&job.function_id) {
+        if self.break_at_job == job.payload.job_id || self.function_breakpoints.contains(&job.function_id) {
             self.debug_server.job_breakpoint(job, state.get_function(job.function_id)
                 .ok_or("Could not get function")?,
                                              state.get_function_states(job.function_id));
@@ -191,7 +191,7 @@ impl<'a> Debugger<'a> {
     /// Called from the flowrlib coordinator to inform the debug client that a job has completed
     /// Return values are (display next output, reset execution)
     pub fn job_done(&mut self, state: &mut RunState, job: &Job) -> Result<(bool, bool)> {
-        if job.result.is_err() {
+        if job.payload.result.is_err() {
             if state.submission.debug {
                 let _ = self.job_error(state, job);
             }
@@ -742,7 +742,7 @@ mod test {
     use crate::block::Block;
     use crate::debug_command::{BreakpointSpec, DebugCommand};
     use crate::debugger::{BlockerNode, BlockType, Debugger};
-    use crate::job::Job;
+    use crate::job::{Job, JobPayload};
     use crate::run_state::{RunState, State};
     use crate::protocols::DebuggerProtocol;
 
@@ -773,7 +773,7 @@ mod test {
     impl DebuggerProtocol for DummyServer {
         fn start(&mut self) {}
         fn job_breakpoint(&mut self, job: &Job, _function: &RuntimeFunction, _states: Vec<State>) {
-            self.job_breakpoint = job.job_id;
+            self.job_breakpoint = job.payload.job_id;
         }
         fn block_breakpoint(&mut self, block: &Block) {
             self.block_breakpoint = block.blocked_function_id;
@@ -857,13 +857,15 @@ mod test {
 
     fn test_job() -> Job {
         Job {
-            job_id: 0,
             function_id: 0,
             flow_id: 0,
-            implementation_url: Url::parse("file://test").expect("Could not parse Url"),
-            input_set: vec![json!(1)],
-            result: Ok((Some(json!(1)), true)),
-            connections: vec![],
+            payload: JobPayload {
+                job_id: 0,
+                implementation_url: Url::parse("file://test").expect("Could not parse Url"),
+                input_set: vec![json!(1)],
+                connections: vec![],
+                result: Ok((Some(json!(1)), true)),
+            }
         }
     }
 
@@ -883,13 +885,13 @@ mod test {
         let mut debugger = Debugger::new(&mut server);
 
         // configure the debugger to break at this job via it's ID
-        debugger.break_at_job = job.job_id;
+        debugger.break_at_job = job.payload.job_id;
 
         // call the debugger check
         let _ = debugger.check_prior_to_job(&mut state, &job);
 
         // check the breakpoint triggered at this job_id as expected
-        assert_eq!(server.job_breakpoint, job.job_id)
+        assert_eq!(server.job_breakpoint, job.payload.job_id)
     }
 
     #[test]
@@ -962,7 +964,7 @@ mod test {
         let mut debugger = Debugger::new(&mut server);
 
         // configure the debugger to break at this job via it's ID
-        debugger.break_at_job = job.job_id;
+        debugger.break_at_job = job.payload.job_id;
         debugger.block_breakpoints.insert((0, 1));
         debugger.output_breakpoints.insert((0, "".into()));
         debugger.input_breakpoints.insert((0, 0));
@@ -995,7 +997,7 @@ mod test {
         let mut server = DummyServer::new();
         let mut debugger = Debugger::new(&mut server);
         let mut job = test_job();
-        job.result = Err(flowcore::errors::Error::from("Test fake Error"));
+        job.payload.result = Err(flowcore::errors::Error::from("Test fake Error"));
 
         let _ = debugger.job_done(&mut state, &job);
 

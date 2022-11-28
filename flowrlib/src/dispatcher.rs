@@ -78,7 +78,7 @@ impl Dispatcher {
 
     // Send a `Job` for execution to executors
     pub(crate) fn send_job_for_execution(&mut self, job: &Job) -> Result<()> {
-        if job.implementation_url.scheme() == "lib" {
+        if job.payload.implementation_url.scheme() == "lib" {
             self.lib_job_socket.send(serde_json::to_string(job)?.as_bytes(), 0)
                 .map_err(|e| format!("Could not send context Job for execution: {e}"))?;
         } else {
@@ -88,7 +88,7 @@ impl Dispatcher {
 
         trace!(
             "Job #{}: Sent for execution of Function #{}",
-            job.job_id,
+            job.payload.job_id,
             job.function_id
         );
 
@@ -116,7 +116,7 @@ mod test {
     use url::Url;
     use std::time::Duration;
     use serial_test::serial;
-    use crate::job::Job;
+    use crate::job::{Job, JobPayload};
     use portpicker::pick_unused_port;
 
     fn get_bind_addresses(ports: (u16, u16, u16, u16)) -> (String, String, String, String) {
@@ -166,13 +166,15 @@ mod test {
     #[serial]
     fn send_lib_job() {
         let job = Job {
-            job_id: 0,
             function_id: 1,
             flow_id: 0,
-            input_set: vec![],
-            connections: vec![],
-            implementation_url: Url::parse("lib://flowstdlib/math/add").expect("Could not parse Url"),
-            result: Ok((None, false)),
+            payload: JobPayload {
+                job_id: 0,
+                input_set: vec![],
+                connections: vec![],
+                implementation_url: Url::parse("lib://flowstdlib/math/add").expect("Could not parse Url"),
+                result: Ok((None, false)),
+            }
         };
 
         let ports = get_four_ports();
@@ -193,13 +195,15 @@ mod test {
     #[serial]
     fn send_context_job() {
         let job = Job {
-            job_id: 0,
             function_id: 1,
             flow_id: 0,
-            input_set: vec![],
-            connections: vec![],
-            implementation_url: Url::parse("context://stdio/stdout").expect("Could not parse Url"),
-            result: Ok((None, false)),
+            payload: JobPayload {
+                job_id: 0,
+                input_set: vec![],
+                connections: vec![],
+                implementation_url: Url::parse("context://stdio/stdout").expect("Could not parse Url"),
+                result: Ok((None, false)),
+            }
         };
 
         let ports = get_four_ports();
@@ -220,13 +224,15 @@ mod test {
     #[serial]
     fn get_job() {
         let job = Job {
-            job_id: 0,
             function_id: 1,
             flow_id: 0,
-            input_set: vec![],
-            connections: vec![],
-            implementation_url: Url::parse("context://stdio/stdout").expect("Could not parse Url"),
-            result: Ok((None, false)),
+            payload: JobPayload {
+                job_id: 0,
+                input_set: vec![],
+                connections: vec![],
+                implementation_url: Url::parse("context://stdio/stdout").expect("Could not parse Url"),
+                result: Ok((None, false)),
+            }
         };
 
         let ports = get_four_ports();
