@@ -15,8 +15,6 @@ pub struct JobPayload {
     pub job_id: usize,
     /// The set of input values to be used by the function when executing this job
     pub input_set: Vec<Value>,
-    /// The destinations (other function's inputs) where any output should be sent
-    pub connections: Vec<OutputConnection>,
     /// The url of the implementation to be run for this job
     pub implementation_url: Url,
     /// The result of the execution with optional output Value and if the function should be run
@@ -35,6 +33,8 @@ pub struct Job {
     pub flow_id: usize,
     /// the payload required to execute the job
     pub payload: JobPayload,
+    /// The destinations (other function's inputs) where any output should be sent
+    pub connections: Vec<OutputConnection>,
 }
 
 unsafe impl Send for Job{}
@@ -43,6 +43,7 @@ unsafe impl Sync for Job{}
 impl fmt::Display for Job {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         writeln!(f, "{}", self.payload)?;
+        writeln!(f, "Connections: {:?}", self.connections)?;
         writeln!(f, "Function Id: {}, Flow Id: {}", self.function_id, self.flow_id)
     }
 }
@@ -52,7 +53,6 @@ impl fmt::Display for JobPayload {
         writeln!(f, "Job #: {}", self.job_id)?;
         writeln!(f, "Implementation Url: {}", self.implementation_url)?;
         writeln!(f, "Inputs: {:?}", self.input_set)?;
-        writeln!(f, "Connections: {:?}", self.connections)?;
         write!(f, "Result: {:?}", self.result)
     }
 }
@@ -72,10 +72,10 @@ mod test {
         let job = super::Job {
             function_id: 1,
             flow_id: 0,
+            connections: vec![],
             payload: JobPayload {
                 job_id: 0,
                 input_set: vec![],
-                connections: vec![],
                 implementation_url: Url::parse("lib://flowstdlib/math/add").expect("Could not parse Url"),
                 result: Ok((None, false))
             }
@@ -88,10 +88,10 @@ mod test {
         let job = super::Job {
             function_id: 1,
             flow_id: 0,
+            connections: vec![],
             payload: JobPayload {
                 job_id: 0,
                 input_set: vec![],
-                connections: vec![],
                 implementation_url: Url::parse("lib://flowstdlib/math/add").expect("Could not parse Url"),
                 result: Ok((Some(json!(42u64)), false))
             }
@@ -116,10 +116,10 @@ mod test {
         let job = super::Job {
             function_id: 1,
             flow_id: 0,
+            connections: vec![],
             payload: JobPayload {
                 job_id: 0,
                 input_set: vec![],
-                connections: vec![],
                 implementation_url: Url::parse("lib://flowstdlib/math/add").expect("Could not parse Url"),
                 result: Ok((Some(json!(value)), false)),
             }

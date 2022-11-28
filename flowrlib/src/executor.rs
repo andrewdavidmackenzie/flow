@@ -8,7 +8,7 @@ use std::sync::{Arc, RwLock};
 use std::time::Duration;
 use url::Url;
 use crate::wasm;
-use crate::job::Job;
+use crate::job::JobPayload;
 use flowcore::Implementation;
 use flowcore::model::lib_manifest::{
     ImplementationLocator::Native, ImplementationLocator::Wasm, LibraryManifest,
@@ -151,12 +151,12 @@ fn execution_loop(
                 if items.get(0).ok_or("Could not get poll item 0")?.is_readable() {
                     let msg = job_source.recv_msg(0).map_err(|_| "Error receiving Job for execution")?;
                     let message_string = msg.as_str().ok_or("Could not get message as str")?;
-                    let mut job: Job = serde_json::from_str(message_string)
+                    let mut payload: JobPayload = serde_json::from_str(message_string)
                         .map_err(|_| "Could not deserialize Message to Job")?;
 
-                    debug!("Job #{}: Received for execution", job.payload.job_id);
+                    debug!("Job #{}: Received for execution", payload.job_id);
                     match execute_job(provider.clone(),
-                                      &mut job,
+                                      &mut payload,
                                       &results_sink,
                                       &name,
                                       loaded_implementations.clone(),
@@ -203,7 +203,7 @@ fn set_panic_hook() {
 // Return Ok(keep_processing) flag as true or false to keep processing
 fn execute_job(
     provider: Arc<dyn Provider>,
-    job: &mut Job,
+    payload: &mut JobPayload,
     results_sink: &zmq::Socket,
     name: &str,
     loaded_implementations: Arc<RwLock<HashMap<Url, Arc<dyn Implementation>>>>,
@@ -212,43 +212,43 @@ fn execute_job(
     // TODO see if we can avoid write access until we know it's needed
     let mut implementations = loaded_implementations.write()
         .map_err(|_| "Could not gain read access to loaded implementations map")?;
-    if implementations.get(&job.payload.implementation_url).is_none() {
-        trace!("Implementation '{}' is not loaded", job.payload.implementation_url);
-        let implementation = match job.payload.implementation_url.scheme() {
+    if implementations.get(&payload.implementation_url).is_none() {
+        trace!("Implementation '{}' is not loaded", payload.implementation_url);
+        let implementation = match payload.implementation_url.scheme() {
             "lib" => {
-                let mut lib_root_url = job.payload.implementation_url.clone();
+                let mut lib_root_url = payload.implementation_url.clone();
                 lib_root_url.set_path("");
                 load_referenced_implementation(provider,
                                                lib_root_url,
                                                loaded_lib_manifests,
-                                               &job.payload.implementation_url)?
+                                               &payload.implementation_url)?
             },
             "context" => {
-                let mut lib_root_url = job.payload.implementation_url.clone();
+                let mut lib_root_url = payload.implementation_url.clone();
                 let _ = lib_root_url.set_host(Some(""));
                 lib_root_url.set_path("");
                 load_referenced_implementation(provider,
                                                lib_root_url,
                                                loaded_lib_manifests,
-                                               &job.payload.implementation_url)?
+                                               &payload.implementation_url)?
             },
-            "file" => Arc::new(wasm::load(&*provider, &job.payload.implementation_url)?),
+            "file" => Arc::new(wasm::load(&*provider, &payload.implementation_url)?),
             _ => bail!("Unsupported scheme on implementation_url")
         };
-        implementations.insert(job.payload.implementation_url.clone(), implementation);
-        trace!("Implementation '{}' added to executor", job.payload.implementation_url);
+        implementations.insert(payload.implementation_url.clone(), implementation);
+        trace!("Implementation '{}' added to executor", payload.implementation_url);
     }
 
-    let implementation = implementations.get(&job.payload.implementation_url)
+    let implementation = implementations.get(&payload.implementation_url)
         .ok_or("Could not find implementation")?;
 
-    trace!("Job #{}: Started executing on '{name}'", job.payload.job_id);
-    job.payload.result = implementation.run(&job.payload.input_set);
+    trace!("Job #{}: Started executing on '{name}'", payload.job_id);
+    payload.result = implementation.run(&payload.input_set);
     #[cfg(test)]
     std::thread::sleep(Duration::from_millis(rand::thread_rng().gen_range(0..100)));
-    trace!("Job #{}: Finished executing on '{name}'", job.payload.job_id);
+    trace!("Job #{}: Finished executing on '{name}'", payload.job_id);
 
-    results_sink.send(serde_json::to_string(&job)?.as_bytes(), 0)
+    results_sink.send(serde_json::to_string(&payload)?.as_bytes(), 0)
         .map_err(|_| "Could not send result of Job")?;
 
     Ok(true)
@@ -379,10 +379,10 @@ mod test {
         let job1 = Job {
             function_id: 1,
             flow_id: 0,
+            connections: vec![],
             payload: JobPayload {
                 job_id: 0,
                 input_set: vec![],
-                connections: vec![],
                 implementation_url: Url::parse("lib://flowstdlib/math/add").expect("Could not parse Url"),
                 result: Ok((None, false)),
             }
@@ -391,10 +391,10 @@ mod test {
         let job2 = Job {
             function_id: 1,
             flow_id: 0,
+            connections: vec![],
             payload: JobPayload {
                 job_id: 0,
                 input_set: vec![],
-                connections: vec![],
                 implementation_url: Url::parse("context://stdio/stdout").expect("Could not parse Url"),
                 result: Ok((None, false)),
             }
@@ -403,10 +403,10 @@ mod test {
         let job3 = Job {
             function_id: 1,
             flow_id: 0,
+            connections: vec![],
             payload: JobPayload {
                 job_id: 0,
                 input_set: vec![],
-                connections: vec![],
                 implementation_url: Url::parse("file://fake/path").expect("Could not parse Url"),
                 result: Ok((None, false)),
             }
@@ -423,7 +423,7 @@ mod test {
                 .expect("Could not connect to PULL end of results-sink socket");
 
             assert!(super::execute_job(provider,
-                                       &mut job,
+                                       &mut job.payload,
                                        &results_sink,
                                        "test executor",
                                        loaded_implementations,

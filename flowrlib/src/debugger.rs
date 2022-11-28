@@ -859,11 +859,11 @@ mod test {
         Job {
             function_id: 0,
             flow_id: 0,
+            connections: vec![],
             payload: JobPayload {
                 job_id: 0,
                 implementation_url: Url::parse("file://test").expect("Could not parse Url"),
                 input_set: vec![json!(1)],
-                connections: vec![],
                 result: Ok((Some(json!(1)), true)),
             }
         }

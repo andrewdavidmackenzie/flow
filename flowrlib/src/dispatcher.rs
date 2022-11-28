@@ -5,7 +5,7 @@ use zmq::DONTWAIT;
 
 use flowcore::errors::*;
 
-use crate::job::Job;
+use crate::job::JobPayload;
 
 /// `Dispatcher` structure holds information required to send jobs for execution and receive results back
 pub struct Dispatcher {
@@ -68,29 +68,25 @@ impl Dispatcher {
     }
 
     // Wait for, then return the next Job with results returned from executors
-    pub(crate) fn get_next_result(&mut self) -> Result<Job> {
+    pub(crate) fn get_next_result(&mut self) -> Result<JobPayload> {
         let msg = self.results_socket.recv_msg(0)
             .map_err(|_| "Error receiving result")?;
         let message_string = msg.as_str().ok_or("Could not get message as str")?;
         serde_json::from_str(message_string)
-            .map_err(|_| "Could not Deserialize Job from zmq message string".into())
+            .map_err(|_| "Could not Deserialize JobPayload from zmq message string".into())
     }
 
     // Send a `Job` for execution to executors
-    pub(crate) fn send_job_for_execution(&mut self, job: &Job) -> Result<()> {
-        if job.payload.implementation_url.scheme() == "lib" {
-            self.lib_job_socket.send(serde_json::to_string(job)?.as_bytes(), 0)
+    pub(crate) fn send_job_for_execution(&mut self, payload: &JobPayload) -> Result<()> {
+        if payload.implementation_url.scheme() == "lib" {
+            self.lib_job_socket.send(serde_json::to_string(payload)?.as_bytes(), 0)
                 .map_err(|e| format!("Could not send context Job for execution: {e}"))?;
         } else {
-            self.general_job_socket.send(serde_json::to_string(job)?.as_bytes(), 0)
+            self.general_job_socket.send(serde_json::to_string(payload)?.as_bytes(), 0)
                 .map_err(|e| format!("Could not send Job for execution: {e}"))?;
         }
 
-        trace!(
-            "Job #{}: Sent for execution of Function #{}",
-            job.payload.job_id,
-            job.function_id
-        );
+        trace!("Job #{}: Payload sent for execution", payload.job_id);
 
         Ok(())
     }
@@ -116,7 +112,7 @@ mod test {
     use url::Url;
     use std::time::Duration;
     use serial_test::serial;
-    use crate::job::{Job, JobPayload};
+    use crate::job::JobPayload;
     use portpicker::pick_unused_port;
 
     fn get_bind_addresses(ports: (u16, u16, u16, u16)) -> (String, String, String, String) {
@@ -165,16 +161,11 @@ mod test {
     #[test]
     #[serial]
     fn send_lib_job() {
-        let job = Job {
-            function_id: 1,
-            flow_id: 0,
-            payload: JobPayload {
-                job_id: 0,
-                input_set: vec![],
-                connections: vec![],
-                implementation_url: Url::parse("lib://flowstdlib/math/add").expect("Could not parse Url"),
-                result: Ok((None, false)),
-            }
+        let payload = JobPayload {
+            job_id: 0,
+            input_set: vec![],
+            implementation_url: Url::parse("lib://flowstdlib/math/add").expect("Could not parse Url"),
+            result: Ok((None, false)),
         };
 
         let ports = get_four_ports();
@@ -188,22 +179,17 @@ mod test {
         job_source.connect(&format!("tcp://127.0.0.1:{}", ports.0))
             .expect("Could not bind to PULL end of job socket");
 
-        assert!(dispatcher.send_job_for_execution(&job).is_ok());
+        assert!(dispatcher.send_job_for_execution(&payload).is_ok());
     }
 
     #[test]
     #[serial]
     fn send_context_job() {
-        let job = Job {
-            function_id: 1,
-            flow_id: 0,
-            payload: JobPayload {
-                job_id: 0,
-                input_set: vec![],
-                connections: vec![],
-                implementation_url: Url::parse("context://stdio/stdout").expect("Could not parse Url"),
-                result: Ok((None, false)),
-            }
+        let payload = JobPayload {
+            job_id: 0,
+            input_set: vec![],
+            implementation_url: Url::parse("context://stdio/stdout").expect("Could not parse Url"),
+            result: Ok((None, false)),
         };
 
         let ports = get_four_ports();
@@ -217,22 +203,17 @@ mod test {
         context_job_source.connect(&format!("tcp://127.0.0.1:{}", ports.1))
             .expect("Could not bind to PULL end of job-source socket");
 
-        assert!(dispatcher.send_job_for_execution(&job).is_ok());
+        assert!(dispatcher.send_job_for_execution(&payload).is_ok());
     }
 
     #[test]
     #[serial]
     fn get_job() {
-        let job = Job {
-            function_id: 1,
-            flow_id: 0,
-            payload: JobPayload {
-                job_id: 0,
-                input_set: vec![],
-                connections: vec![],
-                implementation_url: Url::parse("context://stdio/stdout").expect("Could not parse Url"),
-                result: Ok((None, false)),
-            }
+        let payload = JobPayload {
+            job_id: 0,
+            input_set: vec![],
+            implementation_url: Url::parse("context://stdio/stdout").expect("Could not parse Url"),
+            result: Ok((None, false)),
         };
 
         let ports = get_four_ports();
@@ -245,7 +226,7 @@ mod test {
             .expect("Could not create PUSH end of results socket");
         results_sink.connect(&format!("tcp://127.0.0.1:{}", ports.2))
             .expect("Could not connect to PULL end of results socket");
-        results_sink.send(serde_json::to_string(&job).expect("Could not convert to serde")
+        results_sink.send(serde_json::to_string(&payload).expect("Could not convert to serde")
                               .as_bytes(), 0).expect("Could not send result of Job");
 
         assert!(dispatcher.get_next_result().is_ok());
