@@ -17,10 +17,6 @@ pub struct JobPayload {
     pub input_set: Vec<Value>,
     /// The url of the implementation to be run for this job
     pub implementation_url: Url,
-    /// The result of the execution with optional output Value and if the function should be run
-    /// again in the future
-    pub result: Result<(Option<Value>, RunAgain)>,
-
 }
 
 /// A `Job` contains the information necessary to manage the execution of a function in the
@@ -33,6 +29,9 @@ pub struct Job {
     pub flow_id: usize,
     /// the payload required to execute the job
     pub payload: JobPayload,
+    /// The result of the execution with the job_id, the optional output Value and if the function
+    /// should be run again in the future
+    pub result: Result<(Option<Value>, RunAgain)>,
     /// The destinations (other function's inputs) where any output should be sent
     pub connections: Vec<OutputConnection>,
 }
@@ -44,7 +43,8 @@ impl fmt::Display for Job {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         writeln!(f, "{}", self.payload)?;
         writeln!(f, "Connections: {:?}", self.connections)?;
-        writeln!(f, "Function Id: {}, Flow Id: {}", self.function_id, self.flow_id)
+        writeln!(f, "Function Id: {}, Flow Id: {}", self.function_id, self.flow_id)?;
+        write!(f, "Result: {:?}", self.result)
     }
 }
 
@@ -52,8 +52,7 @@ impl fmt::Display for JobPayload {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         writeln!(f, "Job #: {}", self.job_id)?;
         writeln!(f, "Implementation Url: {}", self.implementation_url)?;
-        writeln!(f, "Inputs: {:?}", self.input_set)?;
-        write!(f, "Result: {:?}", self.result)
+        writeln!(f, "Inputs: {:?}", self.input_set)
     }
 }
 
@@ -77,8 +76,8 @@ mod test {
                 job_id: 0,
                 input_set: vec![],
                 implementation_url: Url::parse("lib://flowstdlib/math/add").expect("Could not parse Url"),
-                result: Ok((None, false))
-            }
+            },
+            result: Ok((None, false))
         };
         println!("Job: {job}");
     }
@@ -93,13 +92,13 @@ mod test {
                 job_id: 0,
                 input_set: vec![],
                 implementation_url: Url::parse("lib://flowstdlib/math/add").expect("Could not parse Url"),
-                result: Ok((Some(json!(42u64)), false))
-            }
+            },
+            result: Ok((Some(json!(42u64)), false))
         };
 
         assert_eq!(
             &json!(42u64),
-            job.payload.result
+            job.result
                 .expect("Could not get result")
                 .0
                 .expect("No output value when one was expected")
@@ -121,13 +120,13 @@ mod test {
                 job_id: 0,
                 input_set: vec![],
                 implementation_url: Url::parse("lib://flowstdlib/math/add").expect("Could not parse Url"),
-                result: Ok((Some(json!(value)), false)),
-            }
+            },
+            result: Ok((Some(json!(value)), false)),
         };
 
         assert_eq!(
             &json!(3),
-            job.payload.result
+            job.result
                 .expect("Could not get result")
                 .0
                 .expect("No output value when one was expected")

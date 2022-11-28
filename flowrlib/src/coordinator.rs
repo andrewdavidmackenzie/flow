@@ -132,13 +132,13 @@ impl<'a> Coordinator<'a> {
 
                 if state.number_jobs_running() > 0 {
                     match self.dispatcher.get_next_result() {
-                        Ok(payload) => {
+                        Ok(result) => {
                             let job;
 
                             (display_next_output, restart, job) = state.retire_job(
                                 #[cfg(feature = "metrics")]
                                     &mut metrics,
-                                payload,
+                                result,
                                 #[cfg(feature = "debugger")]
                                     &mut self.debugger,
                             )?;

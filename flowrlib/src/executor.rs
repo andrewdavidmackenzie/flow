@@ -243,12 +243,12 @@ fn execute_job(
         .ok_or("Could not find implementation")?;
 
     trace!("Job #{}: Started executing on '{name}'", payload.job_id);
-    payload.result = implementation.run(&payload.input_set);
+    let result = implementation.run(&payload.input_set);
     #[cfg(test)]
     std::thread::sleep(Duration::from_millis(rand::thread_rng().gen_range(0..100)));
     trace!("Job #{}: Finished executing on '{name}'", payload.job_id);
 
-    results_sink.send(serde_json::to_string(&payload)?.as_bytes(), 0)
+    results_sink.send(serde_json::to_string(&(payload.job_id, result))?.as_bytes(), 0)
         .map_err(|_| "Could not send result of Job")?;
 
     Ok(true)
@@ -384,8 +384,8 @@ mod test {
                 job_id: 0,
                 input_set: vec![],
                 implementation_url: Url::parse("lib://flowstdlib/math/add").expect("Could not parse Url"),
-                result: Ok((None, false)),
-            }
+            },
+            result: Ok((None, false)),
         };
 
         let job2 = Job {
@@ -396,8 +396,8 @@ mod test {
                 job_id: 0,
                 input_set: vec![],
                 implementation_url: Url::parse("context://stdio/stdout").expect("Could not parse Url"),
-                result: Ok((None, false)),
-            }
+            },
+            result: Ok((None, false)),
         };
 
         let job3 = Job {
@@ -408,8 +408,8 @@ mod test {
                 job_id: 0,
                 input_set: vec![],
                 implementation_url: Url::parse("file://fake/path").expect("Could not parse Url"),
-                result: Ok((None, false)),
-            }
+            },
+            result: Ok((None, false)),
         };
 
         for mut job in vec![job1, job2, job3] {

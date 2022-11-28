@@ -15,6 +15,7 @@ use flowcore::model::output_connection::OutputConnection;
 use flowcore::model::output_connection::Source::{Input, Output};
 use flowcore::model::runtime_function::RuntimeFunction;
 use flowcore::model::submission::Submission;
+use flowcore::RunAgain;
 
 use crate::block::Block;
 #[cfg(debug_assertions)]
@@ -447,8 +448,8 @@ impl RunState {
                         job_id,
                         implementation_url,
                         input_set,
-                        result: Ok((None, false)),
-                    }
+                    },
+                    result: Ok((None, false)),
                 };
                 trace!("Job #{job_id}: Job Created for Function #{function_id}({flow_id})");
 
@@ -472,20 +473,19 @@ impl RunState {
     pub(crate) fn retire_job(
         &mut self,
         #[cfg(feature = "metrics")] metrics: &mut Metrics,
-        payload: JobPayload,
+        result: (usize, Result<(Option<Value>, RunAgain)>),
         #[cfg(feature = "debugger")] debugger: &mut Debugger,
     ) -> Result<(bool, bool, Job)>{
         let mut display_next_output = false;
         let mut restart = false;
 
-        let mut job = self.running_jobs.remove(&payload.job_id)
+        let mut job = self.running_jobs.remove(&result.0)
             .ok_or_else(|| format!("Job#{} was not running, so not applying results returned",
-                                   payload.job_id))?;
-        job.payload = payload;
+                                   result.0))?;
 
         self.num_running -= 1;
 
-        match &job.payload.result {
+        match &result.1 {
             Ok((output_value, function_can_run_again)) => {
                 #[cfg(feature = "debugger")]
                 debug!("Job #{}: Function #{} '{}' {:?} -> {:?}", job.payload.job_id, job.function_id,
@@ -553,6 +553,7 @@ impl RunState {
         checks::check_invariants(self, job.payload.job_id)?;
 
         trace!("Job #{}: Completed-----------------------", job.payload.job_id);
+        job.result = result.1;
 
         Ok((display_next_output, restart, job))
     }
@@ -1041,8 +1042,8 @@ mod test {
                 job_id: 1,
                 implementation_url: Url::parse("file://test").expect("Could not parse Url"),
                 input_set: vec![json!(1)],
-                result: Ok((Some(json!(1)), true)),
-            }
+            },
+            result: Ok((Some(json!(1)), true)),
         }
     }
 
@@ -1324,8 +1325,8 @@ mod test {
                     job_id: 1,
                     implementation_url: Url::parse("file://test").expect("Could not parse Url"),
                     input_set: vec![json!(1)],
-                    result: Ok((None, true)),
-                }
+                },
+                result: (Ok((None, true))),
             }
         }
 
@@ -1368,7 +1369,7 @@ mod test {
             state.retire_job(
                 #[cfg(feature = "metrics")]
                 &mut metrics,
-                job.payload,
+                (job.payload.job_id, job.result),
                 #[cfg(feature = "debugger")]
                 &mut debugger,
             ).expect("Problem retiring job");
@@ -1407,7 +1408,7 @@ mod test {
             state.retire_job(
                 #[cfg(feature = "metrics")]
                 &mut metrics,
-                job.payload,
+                (job.payload.job_id, job.result),
                 #[cfg(feature = "debugger")]
                 &mut debugger,
             ).expect("Problem retiring job");
@@ -1463,7 +1464,7 @@ mod test {
             state.retire_job(
                 #[cfg(feature = "metrics")]
                 &mut metrics,
-                job.payload,
+                (job.payload.job_id, job.result),
                 #[cfg(feature = "debugger")]
                 &mut debugger,
             ).expect("Problem retiring job");
@@ -1526,7 +1527,7 @@ mod test {
             state.retire_job(
                 #[cfg(feature = "metrics")]
                 &mut metrics,
-                job.payload,
+                (job.payload.job_id, job.result),
                 #[cfg(feature = "debugger")]
                 &mut debugger,
             ).expect("Problem retiring job");
@@ -1776,7 +1777,7 @@ mod test {
             state.retire_job(
                 #[cfg(feature = "metrics")]
                 &mut metrics,
-                job.payload,
+                (job.payload.job_id, job.result),
                 #[cfg(feature = "debugger")]
                 &mut debugger,
             ).expect("Failed to retire job correctly");

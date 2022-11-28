@@ -2,7 +2,8 @@ use std::time::Duration;
 
 use log::{debug, trace, error};
 use zmq::DONTWAIT;
-
+use serde_json::Value;
+use flowcore::RunAgain;
 use flowcore::errors::*;
 
 use crate::job::JobPayload;
@@ -68,7 +69,8 @@ impl Dispatcher {
     }
 
     // Wait for, then return the next Job with results returned from executors
-    pub(crate) fn get_next_result(&mut self) -> Result<JobPayload> {
+    #[allow(clippy::type_complexity)]
+    pub(crate) fn get_next_result(&mut self) -> Result<(usize, Result<(Option<Value>, RunAgain)>)> {
         let msg = self.results_socket.recv_msg(0)
             .map_err(|_| "Error receiving result")?;
         let message_string = msg.as_str().ok_or("Could not get message as str")?;
@@ -110,10 +112,14 @@ impl Drop for Dispatcher {
 #[cfg(test)]
 mod test {
     use url::Url;
+    use serde_json::Value;
+    use flowcore::RunAgain;
     use std::time::Duration;
     use serial_test::serial;
     use crate::job::JobPayload;
     use portpicker::pick_unused_port;
+    use flowcore::DONT_RUN_AGAIN;
+    use flowcore::errors::*;
 
     fn get_bind_addresses(ports: (u16, u16, u16, u16)) -> (String, String, String, String) {
         (
@@ -165,7 +171,6 @@ mod test {
             job_id: 0,
             input_set: vec![],
             implementation_url: Url::parse("lib://flowstdlib/math/add").expect("Could not parse Url"),
-            result: Ok((None, false)),
         };
 
         let ports = get_four_ports();
@@ -189,7 +194,6 @@ mod test {
             job_id: 0,
             input_set: vec![],
             implementation_url: Url::parse("context://stdio/stdout").expect("Could not parse Url"),
-            result: Ok((None, false)),
         };
 
         let ports = get_four_ports();
@@ -209,13 +213,6 @@ mod test {
     #[test]
     #[serial]
     fn get_job() {
-        let payload = JobPayload {
-            job_id: 0,
-            input_set: vec![],
-            implementation_url: Url::parse("context://stdio/stdout").expect("Could not parse Url"),
-            result: Ok((None, false)),
-        };
-
         let ports = get_four_ports();
         let mut dispatcher = super::Dispatcher::new(
             get_bind_addresses(ports)
@@ -226,7 +223,9 @@ mod test {
             .expect("Could not create PUSH end of results socket");
         results_sink.connect(&format!("tcp://127.0.0.1:{}", ports.2))
             .expect("Could not connect to PULL end of results socket");
-        results_sink.send(serde_json::to_string(&payload).expect("Could not convert to serde")
+        let result:Result<(Option<Value>, RunAgain)> = Ok((None, DONT_RUN_AGAIN));
+        results_sink.send(serde_json::to_string(&(0, result))
+                              .expect("Could not convert to serde")
                               .as_bytes(), 0).expect("Could not send result of Job");
 
         assert!(dispatcher.get_next_result().is_ok());

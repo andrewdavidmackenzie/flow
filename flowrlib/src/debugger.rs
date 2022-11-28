@@ -191,7 +191,7 @@ impl<'a> Debugger<'a> {
     /// Called from the flowrlib coordinator to inform the debug client that a job has completed
     /// Return values are (display next output, reset execution)
     pub fn job_done(&mut self, state: &mut RunState, job: &Job) -> Result<(bool, bool)> {
-        if job.payload.result.is_err() {
+        if job.result.is_err() {
             if state.submission.debug {
                 let _ = self.job_error(state, job);
             }
@@ -864,8 +864,8 @@ mod test {
                 job_id: 0,
                 implementation_url: Url::parse("file://test").expect("Could not parse Url"),
                 input_set: vec![json!(1)],
-                result: Ok((Some(json!(1)), true)),
-            }
+            },
+            result: Ok((Some(json!(1)), true)),
         }
     }
 
@@ -997,7 +997,7 @@ mod test {
         let mut server = DummyServer::new();
         let mut debugger = Debugger::new(&mut server);
         let mut job = test_job();
-        job.payload.result = Err(flowcore::errors::Error::from("Test fake Error"));
+        job.result = Err(flowcore::errors::Error::from("Test fake Error"));
 
         let _ = debugger.job_done(&mut state, &job);
 

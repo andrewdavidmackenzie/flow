@@ -263,7 +263,7 @@ impl CliDebugClient {
         match message {
             JobCompleted(job) => {
                 println!("Job #{} completed by Function #{}", job.payload.job_id, job.function_id);
-                if let Ok((Some(output), _)) = job.payload.result {
+                if let Ok((Some(output), _)) = job.result {
                     println!("\tOutput value: '{}'", &output);
                 }
             }
