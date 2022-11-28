@@ -359,7 +359,7 @@
         <span class="comment">// This outer loop is just a way of restarting execution from scratch if the debugger requests it
         </span><span class="lifetime">&#39;flow_execution</span>:
         <span class="kw">loop </span>{
-            state.init();
+            state.init()<span class="question-mark">?</span>;
             <span class="attr">#[cfg(feature = <span class="string">&quot;metrics&quot;</span>)]
             </span>metrics.reset();
 
@@ -407,7 +407,7 @@
                             (display_next_output, restart) = state.retire_job(
                                 <span class="attr">#[cfg(feature = <span class="string">&quot;metrics&quot;</span>)]
                                     </span><span class="kw-2">&amp;mut </span>metrics,
-                                <span class="kw-2">&amp;</span>job,
+                                job,
                                 <span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)]
                                     </span><span class="kw-2">&amp;mut </span><span class="self">self</span>.debugger,
                             )<span class="question-mark">?</span>;
@@ -475,7 +475,7 @@
 
         <span class="kw">while let </span><span class="prelude-val">Some</span>(job) = state.get_job() {
             <span class="kw">match </span><span class="self">self</span>.dispatch_a_job(
-                <span class="kw-2">&amp;</span>job,
+                job.clone(),
                 state,
                 <span class="attr">#[cfg(feature = <span class="string">&quot;metrics&quot;</span>)]
                 </span>metrics,
@@ -489,8 +489,8 @@
                     <span class="macro">debug!</span>(<span class="string">&quot;{}&quot;</span>, state);
 
                     <span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)]
-                    </span><span class="kw">return </span><span class="self">self</span>.debugger.job_error(state, <span class="kw-2">&amp;</span>job);
-                }
+                    </span><span class="kw">return </span><span class="self">self</span>.debugger.job_error(state, <span class="kw-2">&amp;</span>job); <span class="comment">// TODO avoid above clone() ?
+                </span>}
             }
         }
 
@@ -500,14 +500,12 @@
     <span class="comment">// Dispatch a job for execution
     </span><span class="kw">fn </span>dispatch_a_job(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
-        job: <span class="kw-2">&amp;</span>Job,
+        job: Job,
         state: <span class="kw-2">&amp;mut </span>RunState,
         <span class="attr">#[cfg(feature = <span class="string">&quot;metrics&quot;</span>)] </span>metrics: <span class="kw-2">&amp;mut </span>Metrics,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;(bool, bool)&gt; {
         <span class="attr">#[cfg(not(feature = <span class="string">&quot;debugger&quot;</span>))]
         </span><span class="kw">let </span>debug_options = (<span class="bool-val">false</span>, <span class="bool-val">false</span>);
-
-        state.start_job(job)<span class="question-mark">?</span>;
 
         <span class="attr">#[cfg(feature = <span class="string">&quot;metrics&quot;</span>)]
         </span>metrics.track_max_jobs(state.number_jobs_running());
@@ -515,9 +513,11 @@
         <span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)]
         </span><span class="kw">let </span>debug_options = <span class="self">self
             </span>.debugger
-            .check_prior_to_job(state, job)<span class="question-mark">?</span>;
+            .check_prior_to_job(state, <span class="kw-2">&amp;</span>job)<span class="question-mark">?</span>;
 
-        <span class="self">self</span>.dispatcher.send_job_for_execution(job)<span class="question-mark">?</span>;
+        <span class="self">self</span>.dispatcher.send_job_for_execution(<span class="kw-2">&amp;</span>job)<span class="question-mark">?</span>;
+
+        state.start_job(job)<span class="question-mark">?</span>;
 
         <span class="prelude-val">Ok</span>(debug_options)
     }

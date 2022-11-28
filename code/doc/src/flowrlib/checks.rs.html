@@ -452,6 +452,7 @@
 <a href="#452" id="452">452</a>
 <a href="#453" id="453">453</a>
 <a href="#454" id="454">454</a>
+<a href="#455" id="455">455</a>
 </pre><pre class="rust"><code><span class="kw">use </span>error_chain::bail;
 <span class="kw">use </span>log::error;
 
@@ -483,12 +484,13 @@
         );
     }
 
-    <span class="kw">if </span>!function.can_run() {
+    <span class="kw">if </span>!(state.get_function_states(<span class="number">0</span>).contains(<span class="kw-2">&amp;</span>State::Ready) ||
+        state.get_function_states(<span class="number">0</span>).contains(<span class="kw-2">&amp;</span>State::Running)) {
         <span class="kw">return </span>runtime_error(
             state,
             job_id,
             <span class="kw-2">&amp;</span><span class="macro">format!</span>(
-                <span class="string">&quot;Function #{} is Ready, but can_run() returns false&quot;</span>,
+                <span class="string">&quot;Flow is busy byt Function #{} is not Ready or Running&quot;</span>,
                 function.id(),
             ),
             <span class="macro">file!</span>(),
@@ -500,7 +502,7 @@
 }
 
 <span class="kw">fn </span>running_check(state: <span class="kw-2">&amp;</span>RunState, job_id: usize, function: <span class="kw-2">&amp;</span>RuntimeFunction) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
-    <span class="kw">if </span>state.get_running().contains(<span class="kw-2">&amp;</span>job_id) &amp;&amp; !state.get_busy_flows().contains_key(<span class="kw-2">&amp;</span>function.get_flow_id()) {
+    <span class="kw">if </span>state.get_running().contains_key(<span class="kw-2">&amp;</span>job_id) &amp;&amp; !state.get_busy_flows().contains_key(<span class="kw-2">&amp;</span>function.get_flow_id()) {
         <span class="kw">return </span>runtime_error(
             state,
             job_id,
@@ -615,7 +617,7 @@
 </span><span class="kw">fn </span>flow_checks(state: <span class="kw-2">&amp;</span>RunState, job_id: usize) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
     <span class="kw">for </span>(flow_id, function_id) <span class="kw">in </span>state.get_busy_flows().iter() {
         <span class="kw">let </span>function_states = state.get_function_states(<span class="kw-2">*</span>function_id);
-        <span class="kw">if </span>!function_states.contains(<span class="kw-2">&amp;</span>State::Ready) &amp;&amp; !state.get_running().contains(<span class="kw-2">&amp;</span>job_id) {
+        <span class="kw">if </span>!function_states.contains(<span class="kw-2">&amp;</span>State::Ready) &amp;&amp; !state.get_running().contains_key(<span class="kw-2">&amp;</span>job_id) {
             <span class="kw">return </span>runtime_error(
                 state,
                 job_id,
@@ -771,7 +773,7 @@
         <span class="kw">let </span><span class="kw-2">mut </span>state = test_state(<span class="macro">vec!</span>[function]);
 
         <span class="comment">// Mark the flow the function is in as busy via ready
-        </span>state.make_ready_or_blocked(<span class="number">0</span>, <span class="number">0</span>);
+        </span>state.make_ready_or_blocked(<span class="number">0</span>, <span class="number">0</span>).expect(<span class="string">&quot;Couldn&#39;t get next job&quot;</span>);
 
         <span class="comment">// this ready_check() should pass
         </span>ready_check(<span class="kw-2">&amp;</span>state, <span class="number">0</span>, state.get_function(<span class="number">0</span>)
@@ -797,7 +799,7 @@
 
         <span class="comment">// mark flow_id as busy - to pass the running check a running function&#39;s flow_id
         // should be in the list of busy flows
-        </span>state.make_ready_or_blocked(<span class="number">0</span>, <span class="number">0</span>);
+        </span>state.make_ready_or_blocked(<span class="number">0</span>, <span class="number">0</span>).expect(<span class="string">&quot;Couldn&#39;t get next job&quot;</span>);
 
         <span class="comment">// this running check should fail
         </span>running_check(<span class="kw-2">&amp;</span>state, <span class="number">0</span>, state.get_function(<span class="number">0</span>)
