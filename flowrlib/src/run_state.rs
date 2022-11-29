@@ -432,7 +432,7 @@ impl RunState {
         self.number_of_jobs_created += 1;
         let job_id = self.number_of_jobs_created;
         let function = self.get_mut(function_id)
-            .ok_or_else(|| format!("Could not get the function with id = {}", function_id))?;
+            .ok_or_else(|| format!("Could not get the function with id = {function_id}"))?;
         let implementation_url = function.get_implementation_url().clone();
 
         match function.take_input_set() {
