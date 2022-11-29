@@ -132,7 +132,16 @@ impl<'a> Coordinator<'a> {
 
                 if state.number_jobs_running() > 0 {
                     match self.dispatcher.get_next_result() {
-                        Ok(job) => {
+                        Ok(result) => {
+                            let job;
+
+                            (display_next_output, restart, job) = state.retire_job(
+                                #[cfg(feature = "metrics")]
+                                    &mut metrics,
+                                result,
+                                #[cfg(feature = "debugger")]
+                                    &mut self.debugger,
+                            )?;
                             #[cfg(feature = "debugger")]
                             if display_next_output {
                                 (display_next_output, restart) =
@@ -141,14 +150,6 @@ impl<'a> Coordinator<'a> {
                                     break 'jobs;
                                 }
                             }
-
-                            (display_next_output, restart) = state.retire_job(
-                                #[cfg(feature = "metrics")]
-                                    &mut metrics,
-                                job,
-                                #[cfg(feature = "debugger")]
-                                    &mut self.debugger,
-                            )?;
                         }
 
                         Err(err) => {
@@ -253,7 +254,7 @@ impl<'a> Coordinator<'a> {
             .debugger
             .check_prior_to_job(state, &job)?;
 
-        self.dispatcher.send_job_for_execution(&job)?;
+        self.dispatcher.send_job_for_execution(&job.payload)?;
 
         state.start_job(job)?;
 

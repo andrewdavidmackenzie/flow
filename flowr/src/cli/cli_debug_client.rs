@@ -262,14 +262,14 @@ impl CliDebugClient {
     fn process_server_message(&mut self, message: DebugServerMessage) -> Result<DebugCommand> {
         match message {
             JobCompleted(job) => {
-                println!("Job #{} completed by Function #{}", job.job_id, job.function_id);
+                println!("Job #{} completed by Function #{}", job.payload.job_id, job.function_id);
                 if let Ok((Some(output), _)) = job.result {
                     println!("\tOutput value: '{}'", &output);
                 }
             }
             PriorToSendingJob(job) => {
-                println!("About to send Job #{} to Function #{}", job.job_id, job.function_id);
-                println!("\tInputs: {:?}", job.input_set);
+                println!("About to send Job #{} to Function #{}", job.payload.job_id, job.function_id);
+                println!("\tInputs: {:?}", job.payload.input_set);
             }
             BlockBreakpoint(block) => println!("Block breakpoint: {block:?}"),
             DataBreakpoint(
@@ -291,7 +291,7 @@ impl CliDebugClient {
             }
             JobError(job) => {
                 println!("Error occurred executing a Job: \n'{job}'");
-                return self.get_user_command(job.job_id);
+                return self.get_user_command(job.payload.job_id);
             }
             Deadlock(message) => println!("Deadlock detected {message}"),
             EnteringDebugger => println!(
