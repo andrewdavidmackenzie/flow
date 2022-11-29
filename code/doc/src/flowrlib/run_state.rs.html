@@ -1773,6 +1773,17 @@
 <a href="#1773" id="1773">1773</a>
 <a href="#1774" id="1774">1774</a>
 <a href="#1775" id="1775">1775</a>
+<a href="#1776" id="1776">1776</a>
+<a href="#1777" id="1777">1777</a>
+<a href="#1778" id="1778">1778</a>
+<a href="#1779" id="1779">1779</a>
+<a href="#1780" id="1780">1780</a>
+<a href="#1781" id="1781">1781</a>
+<a href="#1782" id="1782">1782</a>
+<a href="#1783" id="1783">1783</a>
+<a href="#1784" id="1784">1784</a>
+<a href="#1785" id="1785">1785</a>
+<a href="#1786" id="1786">1786</a>
 </pre><pre class="rust"><code><span class="kw">use </span>std::collections::{HashMap, HashSet};
 <span class="kw">use </span>std::collections::hash_map::Entry;
 <span class="kw">use </span>std::collections::VecDeque;
@@ -1790,13 +1801,14 @@
 <span class="kw">use </span>flowcore::model::output_connection::Source::{Input, Output};
 <span class="kw">use </span>flowcore::model::runtime_function::RuntimeFunction;
 <span class="kw">use </span>flowcore::model::submission::Submission;
+<span class="kw">use </span>flowcore::RunAgain;
 
 <span class="kw">use </span><span class="kw">crate</span>::block::Block;
 <span class="attr">#[cfg(debug_assertions)]
 </span><span class="kw">use </span><span class="kw">crate</span>::checks;
 <span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)]
 </span><span class="kw">use </span><span class="kw">crate</span>::debugger::Debugger;
-<span class="kw">use </span><span class="kw">crate</span>::job::Job;
+<span class="kw">use </span><span class="kw">crate</span>::job::{Job, JobPayload};
 
 <span class="doccomment">/// `State` represents the possible states it is possible for a function to be in
 </span><span class="attr">#[cfg(any(debug_assertions, feature = <span class="string">&quot;debugger&quot;</span>, test))]
@@ -2150,8 +2162,9 @@
 
     <span class="comment">// Update the run_state to reflect that the job is now running
     </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>start_job(<span class="kw-2">&amp;mut </span><span class="self">self</span>, job: Job) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt;{
-        <span class="self">self</span>.block_external_flow_senders(job.job_id, job.function_id, job.flow_id)<span class="question-mark">?</span>;
-        <span class="self">self</span>.running_jobs.insert(job.job_id, job);
+        <span class="self">self</span>.block_external_flow_senders(job.payload.job_id, job.function_id,
+                                         job.flow_id)<span class="question-mark">?</span>;
+        <span class="self">self</span>.running_jobs.insert(job.payload.job_id, job);
         <span class="self">self</span>.num_running += <span class="number">1</span>;
         <span class="prelude-val">Ok</span>(())
     }
@@ -2214,12 +2227,14 @@
             <span class="prelude-val">Ok</span>(input_set) =&gt; {
 
                 <span class="kw">let </span>job = Job {
-                    job_id,
                     function_id,
                     flow_id,
-                    implementation_url,
-                    input_set,
                     connections: function.get_output_connections().clone(),
+                    payload: JobPayload {
+                        job_id,
+                        implementation_url,
+                        input_set,
+                    },
                     result: <span class="prelude-val">Ok</span>((<span class="prelude-val">None</span>, <span class="bool-val">false</span>)),
                 };
                 <span class="macro">trace!</span>(<span class="string">&quot;Job #{job_id}: Job Created for Function #{function_id}({flow_id})&quot;</span>);
@@ -2244,25 +2259,27 @@
     </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>retire_job(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         <span class="attr">#[cfg(feature = <span class="string">&quot;metrics&quot;</span>)] </span>metrics: <span class="kw-2">&amp;mut </span>Metrics,
-        job: Job,
+        result: (usize, <span class="prelude-ty">Result</span>&lt;(<span class="prelude-ty">Option</span>&lt;Value&gt;, RunAgain)&gt;),
         <span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)] </span>debugger: <span class="kw-2">&amp;mut </span>Debugger,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;(bool, bool)&gt;{
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;(bool, bool, Job)&gt;{
         <span class="kw">let </span><span class="kw-2">mut </span>display_next_output = <span class="bool-val">false</span>;
         <span class="kw">let </span><span class="kw-2">mut </span>restart = <span class="bool-val">false</span>;
 
-        <span class="self">self</span>.running_jobs.remove(<span class="kw-2">&amp;</span>job.job_id)
-            .ok_or_else(|| <span class="macro">format!</span>(<span class="string">&quot;Job#{} was not running, so not applying results returned&quot;</span>, job.job_id))<span class="question-mark">?</span>;
+        <span class="kw">let </span><span class="kw-2">mut </span>job = <span class="self">self</span>.running_jobs.remove(<span class="kw-2">&amp;</span>result.<span class="number">0</span>)
+            .ok_or_else(|| <span class="macro">format!</span>(<span class="string">&quot;Job#{} was not running, so not applying results returned&quot;</span>,
+                                   result.<span class="number">0</span>))<span class="question-mark">?</span>;
+
         <span class="self">self</span>.num_running -= <span class="number">1</span>;
 
-        <span class="kw">match </span><span class="kw-2">&amp;</span>job.result {
+        <span class="kw">match </span><span class="kw-2">&amp;</span>result.<span class="number">1 </span>{
             <span class="prelude-val">Ok</span>((output_value, function_can_run_again)) =&gt; {
                 <span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)]
-                </span><span class="macro">debug!</span>(<span class="string">&quot;Job #{}: Function #{} &#39;{}&#39; {:?} -&gt; {:?}&quot;</span>, job.job_id, job.function_id,
+                </span><span class="macro">debug!</span>(<span class="string">&quot;Job #{}: Function #{} &#39;{}&#39; {:?} -&gt; {:?}&quot;</span>, job.payload.job_id, job.function_id,
                         <span class="self">self</span>.get_function(job.function_id).ok_or(<span class="string">&quot;No such function&quot;</span>)<span class="question-mark">?</span>.name(),
-                    job.input_set,  output_value);
+                    job.payload.input_set,  output_value);
                 <span class="attr">#[cfg(not(feature = <span class="string">&quot;debugger&quot;</span>))]
-                </span><span class="macro">debug!</span>(<span class="string">&quot;Job #{}: Function #{} {:?} -&gt; {:?}&quot;</span>, job.job_id, job.function_id,
-                        job.input_set,  output_value);
+                </span><span class="macro">debug!</span>(<span class="string">&quot;Job #{}: Function #{} {:?} -&gt; {:?}&quot;</span>, job.payload.job_id, job.function_id,
+                        job.payload.input_set,  output_value);
 
                 <span class="kw">for </span>connection <span class="kw">in </span><span class="kw-2">&amp;</span>job.connections {
                     <span class="kw">let </span>value_to_send = <span class="kw">match </span><span class="kw-2">&amp;</span>connection.source {
@@ -2272,7 +2289,7 @@
                                 <span class="prelude-val">None </span>=&gt; <span class="prelude-val">None
                             </span>}
                         },
-                        Input(index) =&gt; job.input_set.get(<span class="kw-2">*</span>index),
+                        Input(index) =&gt; job.payload.input_set.get(<span class="kw-2">*</span>index),
                     };
 
                     <span class="kw">if let </span><span class="prelude-val">Some</span>(value) = value_to_send {
@@ -2288,7 +2305,7 @@
                     } <span class="kw">else </span>{
                         <span class="macro">trace!</span>(
                             <span class="string">&quot;Job #{}:\t\tNo value found at &#39;{}&#39;&quot;</span>,
-                            job.job_id, <span class="kw-2">&amp;</span>connection.source
+                            job.payload.job_id, <span class="kw-2">&amp;</span>connection.source
                         );
                     }
                 }
@@ -2309,7 +2326,7 @@
                     </span><span class="self">self</span>.mark_as_completed(job.function_id);
                 }
             },
-            <span class="prelude-val">Err</span>(e) =&gt; <span class="macro">error!</span>(<span class="string">&quot;Error in Job#{}: {e}&quot;</span>, job.job_id)
+            <span class="prelude-val">Err</span>(e) =&gt; <span class="macro">error!</span>(<span class="string">&quot;Error in Job#{}: {e}&quot;</span>, job.payload.job_id)
         }
 
         <span class="comment">// unblock any senders from other flows that can now run due to this function completing
@@ -2319,11 +2336,12 @@
             )<span class="question-mark">?</span>;
 
         <span class="attr">#[cfg(debug_assertions)]
-        </span>checks::check_invariants(<span class="self">self</span>, job.job_id)<span class="question-mark">?</span>;
+        </span>checks::check_invariants(<span class="self">self</span>, job.payload.job_id)<span class="question-mark">?</span>;
 
-        <span class="macro">trace!</span>(<span class="string">&quot;Job #{}: Completed-----------------------&quot;</span>, job.job_id);
+        <span class="macro">trace!</span>(<span class="string">&quot;Job #{}: Completed-----------------------&quot;</span>, job.payload.job_id);
+        job.result = result.<span class="number">1</span>;
 
-        <span class="prelude-val">Ok</span>((display_next_output, restart))
+        <span class="prelude-val">Ok</span>((display_next_output, restart, job))
     }
 
     <span class="comment">// Send a value produced as part of an output of running a job to a destination function on
@@ -2535,7 +2553,7 @@
         <span class="comment">// if flow is now idle, remove any blocks on sending to functions in the flow
         </span><span class="kw">if </span><span class="self">self</span>.busy_flows.get(<span class="kw-2">&amp;</span>job.flow_id).is_none() {
             <span class="macro">debug!</span>(<span class="string">&quot;Job #{}:\tFlow #{} is now idle, so removing blocks on external functions to it&quot;</span>,
-                job.job_id, job.flow_id);
+                job.payload.job_id, job.flow_id);
 
             <span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)]
             </span>{
@@ -2669,7 +2687,7 @@
         <span class="macro">writeln!</span>(f, <span class="string">&quot;     Functions Blocked: {:?}&quot;</span>, <span class="self">self</span>.blocked)<span class="question-mark">?</span>;
         <span class="macro">writeln!</span>(f, <span class="string">&quot;                Blocks: {:?}&quot;</span>, <span class="self">self</span>.blocks)<span class="question-mark">?</span>;
         <span class="macro">writeln!</span>(f, <span class="string">&quot;       Functions Ready: {:?}&quot;</span>, <span class="self">self</span>.ready_jobs.iter()
-            .map(|j| j.job_id).collect::&lt;Vec&lt;usize&gt;&gt;())<span class="question-mark">?</span>;
+            .map(|j| j.payload.job_id).collect::&lt;Vec&lt;usize&gt;&gt;())<span class="question-mark">?</span>;
         <span class="macro">writeln!</span>(f, <span class="string">&quot;   Functions Completed: {:?}&quot;</span>, <span class="self">self</span>.completed)<span class="question-mark">?</span>;
         <span class="macro">writeln!</span>(f, <span class="string">&quot;            Flows Busy: {:?}&quot;</span>, <span class="self">self</span>.busy_flows)<span class="question-mark">?</span>;
         <span class="macro">write!</span>(f, <span class="string">&quot;        Pending Unblocks: {:?}&quot;</span>, <span class="self">self</span>.flow_blocks)
@@ -2701,7 +2719,7 @@
     <span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)]
     </span><span class="kw">use </span><span class="kw">crate</span>::protocols::DebuggerProtocol;
 
-    <span class="kw">use </span><span class="kw">super</span>::Job;
+    <span class="kw">use super</span>::{Job, JobPayload};
     <span class="kw">use </span><span class="kw">super</span>::RunState;
 
     <span class="kw">fn </span>test_function_a_to_b_not_init() -&gt; RuntimeFunction {
@@ -2803,13 +2821,15 @@
         );
         state.num_running += <span class="number">1</span>;
         Job {
-            job_id: <span class="number">1</span>,
             function_id: source_function_id,
             flow_id: <span class="number">0</span>,
-            implementation_url: Url::parse(<span class="string">&quot;file://test&quot;</span>).expect(<span class="string">&quot;Could not parse Url&quot;</span>),
-            input_set: <span class="macro">vec!</span>[<span class="macro">json!</span>(<span class="number">1</span>)],
-            result: <span class="prelude-val">Ok</span>((<span class="prelude-val">Some</span>(<span class="macro">json!</span>(<span class="number">1</span>)), <span class="bool-val">true</span>)),
             connections: <span class="macro">vec!</span>[out_conn],
+            payload: JobPayload {
+                job_id: <span class="number">1</span>,
+                implementation_url: Url::parse(<span class="string">&quot;file://test&quot;</span>).expect(<span class="string">&quot;Could not parse Url&quot;</span>),
+                input_set: <span class="macro">vec!</span>[<span class="macro">json!</span>(<span class="number">1</span>)],
+            },
+            result: <span class="prelude-val">Ok</span>((<span class="prelude-val">Some</span>(<span class="macro">json!</span>(<span class="number">1</span>)), <span class="bool-val">true</span>)),
         }
     }
 
@@ -2951,7 +2971,7 @@
 
         <span class="kw">use </span><span class="kw">crate</span>::run_state::test::test_function_b_not_init;
 
-        <span class="kw">use </span><span class="kw">super</span>::<span class="kw">super</span>::Job;
+        <span class="kw">use </span><span class="kw">super</span>::<span class="kw">super</span>::{Job, JobPayload};
         <span class="kw">use </span><span class="kw">super</span>::<span class="kw">super</span>::RunState;
         <span class="kw">use </span><span class="kw">super</span>::<span class="kw">super</span>::State;
 
@@ -3064,7 +3084,7 @@
             state.start_job(job.clone()).expect(<span class="string">&quot;Could not start job&quot;</span>);
 
             <span class="comment">// Test
-            </span>state.running_jobs.get(<span class="kw-2">&amp;</span>job.job_id)
+            </span>state.running_jobs.get(<span class="kw-2">&amp;</span>job.payload.job_id)
                 .expect(<span class="string">&quot;Job should have been running&quot;</span>);
         }
 
@@ -3084,13 +3104,15 @@
 
         <span class="kw">fn </span>test_job() -&gt; Job {
             Job {
-                job_id: <span class="number">1</span>,
                 function_id: <span class="number">0</span>,
                 flow_id: <span class="number">0</span>,
-                implementation_url: Url::parse(<span class="string">&quot;file://test&quot;</span>).expect(<span class="string">&quot;Could not parse Url&quot;</span>),
-                input_set: <span class="macro">vec!</span>[<span class="macro">json!</span>(<span class="number">1</span>)],
-                result: <span class="prelude-val">Ok</span>((<span class="prelude-val">None</span>, <span class="bool-val">true</span>)),
                 connections: <span class="macro">vec!</span>[],
+                payload: JobPayload {
+                    job_id: <span class="number">1</span>,
+                    implementation_url: Url::parse(<span class="string">&quot;file://test&quot;</span>).expect(<span class="string">&quot;Could not parse Url&quot;</span>),
+                    input_set: <span class="macro">vec!</span>[<span class="macro">json!</span>(<span class="number">1</span>)],
+                },
+                result: (<span class="prelude-val">Ok</span>((<span class="prelude-val">None</span>, <span class="bool-val">true</span>))),
             }
         }
 
@@ -3126,14 +3148,14 @@
             <span class="macro">assert_eq!</span>(<span class="number">0</span>, job.function_id, <span class="string">&quot;next() should return function_id = 0&quot;</span>);
             state.start_job(job.clone()).expect(<span class="string">&quot;Could not start job&quot;</span>);
 
-            state.running_jobs.get(<span class="kw-2">&amp;</span>job.job_id).expect(<span class="string">&quot;Job with f_a should be Running&quot;</span>);
+            state.running_jobs.get(<span class="kw-2">&amp;</span>job.payload.job_id).expect(<span class="string">&quot;Job with f_a should be Running&quot;</span>);
 
             <span class="comment">// Event
             </span><span class="kw">let </span>job = test_job();
             state.retire_job(
                 <span class="attr">#[cfg(feature = <span class="string">&quot;metrics&quot;</span>)]
                 </span><span class="kw-2">&amp;mut </span>metrics,
-                job,
+                (job.payload.job_id, job.result),
                 <span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)]
                 </span><span class="kw-2">&amp;mut </span>debugger,
             ).expect(<span class="string">&quot;Problem retiring job&quot;</span>);
@@ -3165,14 +3187,14 @@
             <span class="macro">assert_eq!</span>(<span class="number">0</span>, job.function_id, <span class="string">&quot;next() should return function_id = 0&quot;</span>);
             state.start_job(job.clone()).expect(<span class="string">&quot;Could not start job&quot;</span>);
 
-            state.running_jobs.get(<span class="kw-2">&amp;</span>job.job_id).expect(<span class="string">&quot;Job with f_a should be Running&quot;</span>);
+            state.running_jobs.get(<span class="kw-2">&amp;</span>job.payload.job_id).expect(<span class="string">&quot;Job with f_a should be Running&quot;</span>);
 
             <span class="comment">// Event
             </span><span class="kw">let </span>job = test_job();
             state.retire_job(
                 <span class="attr">#[cfg(feature = <span class="string">&quot;metrics&quot;</span>)]
                 </span><span class="kw-2">&amp;mut </span>metrics,
-                job,
+                (job.payload.job_id, job.result),
                 <span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)]
                 </span><span class="kw-2">&amp;mut </span>debugger,
             ).expect(<span class="string">&quot;Problem retiring job&quot;</span>);
@@ -3228,7 +3250,7 @@
             state.retire_job(
                 <span class="attr">#[cfg(feature = <span class="string">&quot;metrics&quot;</span>)]
                 </span><span class="kw-2">&amp;mut </span>metrics,
-                job,
+                (job.payload.job_id, job.result),
                 <span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)]
                 </span><span class="kw-2">&amp;mut </span>debugger,
             ).expect(<span class="string">&quot;Problem retiring job&quot;</span>);
@@ -3291,7 +3313,7 @@
             state.retire_job(
                 <span class="attr">#[cfg(feature = <span class="string">&quot;metrics&quot;</span>)]
                 </span><span class="kw-2">&amp;mut </span>metrics,
-                job,
+                (job.payload.job_id, job.result),
                 <span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)]
                 </span><span class="kw-2">&amp;mut </span>debugger,
             ).expect(<span class="string">&quot;Problem retiring job&quot;</span>);
@@ -3541,7 +3563,7 @@
             </span>state.retire_job(
                 <span class="attr">#[cfg(feature = <span class="string">&quot;metrics&quot;</span>)]
                 </span><span class="kw-2">&amp;mut </span>metrics,
-                job,
+                (job.payload.job_id, job.result),
                 <span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)]
                 </span><span class="kw-2">&amp;mut </span>debugger,
             ).expect(<span class="string">&quot;Failed to retire job correctly&quot;</span>);
@@ -3549,4 +3571,4 @@
     }
 }
 </code></pre></div>
-</section></div></main><div id="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="flowrlib" data-themes="" data-resource-suffix="" data-rustdoc-version="1.67.0-nightly (1eb62b123 2022-11-27)" data-search-js="search-df80cc3cb87b6482.js" data-settings-js="settings-bebeae96e00e4617.js" data-settings-css="settings-af96d9e2fc13e081.css" ></div></body></html>
+</section></div></main><div id="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="flowrlib" data-themes="" data-resource-suffix="" data-rustdoc-version="1.67.0-nightly (2585bcea0 2022-11-28)" data-search-js="search-df80cc3cb87b6482.js" data-settings-js="settings-bebeae96e00e4617.js" data-settings-css="settings-af96d9e2fc13e081.css" ></div></body></html>

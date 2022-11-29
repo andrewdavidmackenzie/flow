@@ -426,6 +426,12 @@
 <a href="#426" id="426">426</a>
 <a href="#427" id="427">427</a>
 <a href="#428" id="428">428</a>
+<a href="#429" id="429">429</a>
+<a href="#430" id="430">430</a>
+<a href="#431" id="431">431</a>
+<a href="#432" id="432">432</a>
+<a href="#433" id="433">433</a>
+<a href="#434" id="434">434</a>
 </pre><pre class="rust"><code><span class="kw">use </span>log::{info, debug, error, trace};
 <span class="kw">use </span>std::thread;
 <span class="kw">use </span>std::thread::JoinHandle;
@@ -436,7 +442,7 @@
 </span><span class="kw">use </span>std::time::Duration;
 <span class="kw">use </span>url::Url;
 <span class="kw">use </span><span class="kw">crate</span>::wasm;
-<span class="kw">use </span><span class="kw">crate</span>::job::Job;
+<span class="kw">use </span><span class="kw">crate</span>::job::JobPayload;
 <span class="kw">use </span>flowcore::Implementation;
 <span class="kw">use </span>flowcore::model::lib_manifest::{
     ImplementationLocator::Native, ImplementationLocator::Wasm, LibraryManifest,
@@ -579,12 +585,12 @@
                 <span class="kw">if </span>items.get(<span class="number">0</span>).ok_or(<span class="string">&quot;Could not get poll item 0&quot;</span>)<span class="question-mark">?</span>.is_readable() {
                     <span class="kw">let </span>msg = job_source.recv_msg(<span class="number">0</span>).map_err(|<span class="kw">_</span>| <span class="string">&quot;Error receiving Job for execution&quot;</span>)<span class="question-mark">?</span>;
                     <span class="kw">let </span>message_string = msg.as_str().ok_or(<span class="string">&quot;Could not get message as str&quot;</span>)<span class="question-mark">?</span>;
-                    <span class="kw">let </span><span class="kw-2">mut </span>job: Job = serde_json::from_str(message_string)
+                    <span class="kw">let </span><span class="kw-2">mut </span>payload: JobPayload = serde_json::from_str(message_string)
                         .map_err(|<span class="kw">_</span>| <span class="string">&quot;Could not deserialize Message to Job&quot;</span>)<span class="question-mark">?</span>;
 
-                    <span class="macro">debug!</span>(<span class="string">&quot;Job #{}: Received for execution&quot;</span>, job.job_id);
+                    <span class="macro">debug!</span>(<span class="string">&quot;Job #{}: Received for execution&quot;</span>, payload.job_id);
                     <span class="kw">match </span>execute_job(provider.clone(),
-                                      <span class="kw-2">&amp;mut </span>job,
+                                      <span class="kw-2">&amp;mut </span>payload,
                                       <span class="kw-2">&amp;</span>results_sink,
                                       <span class="kw-2">&amp;</span>name,
                                       loaded_implementations.clone(),
@@ -631,7 +637,7 @@
 <span class="comment">// Return Ok(keep_processing) flag as true or false to keep processing
 </span><span class="kw">fn </span>execute_job(
     provider: Arc&lt;<span class="kw">dyn </span>Provider&gt;,
-    job: <span class="kw-2">&amp;mut </span>Job,
+    payload: <span class="kw-2">&amp;mut </span>JobPayload,
     results_sink: <span class="kw-2">&amp;</span>zmq::Socket,
     name: <span class="kw-2">&amp;</span>str,
     loaded_implementations: Arc&lt;RwLock&lt;HashMap&lt;Url, Arc&lt;<span class="kw">dyn </span>Implementation&gt;&gt;&gt;&gt;,
@@ -640,43 +646,43 @@
     <span class="comment">// TODO see if we can avoid write access until we know it&#39;s needed
     </span><span class="kw">let </span><span class="kw-2">mut </span>implementations = loaded_implementations.write()
         .map_err(|<span class="kw">_</span>| <span class="string">&quot;Could not gain read access to loaded implementations map&quot;</span>)<span class="question-mark">?</span>;
-    <span class="kw">if </span>implementations.get(<span class="kw-2">&amp;</span>job.implementation_url).is_none() {
-        <span class="macro">trace!</span>(<span class="string">&quot;Implementation &#39;{}&#39; is not loaded&quot;</span>, job.implementation_url);
-        <span class="kw">let </span>implementation = <span class="kw">match </span>job.implementation_url.scheme() {
+    <span class="kw">if </span>implementations.get(<span class="kw-2">&amp;</span>payload.implementation_url).is_none() {
+        <span class="macro">trace!</span>(<span class="string">&quot;Implementation &#39;{}&#39; is not loaded&quot;</span>, payload.implementation_url);
+        <span class="kw">let </span>implementation = <span class="kw">match </span>payload.implementation_url.scheme() {
             <span class="string">&quot;lib&quot; </span>=&gt; {
-                <span class="kw">let </span><span class="kw-2">mut </span>lib_root_url = job.implementation_url.clone();
+                <span class="kw">let </span><span class="kw-2">mut </span>lib_root_url = payload.implementation_url.clone();
                 lib_root_url.set_path(<span class="string">&quot;&quot;</span>);
                 load_referenced_implementation(provider,
                                                lib_root_url,
                                                loaded_lib_manifests,
-                                               <span class="kw-2">&amp;</span>job.implementation_url)<span class="question-mark">?
+                                               <span class="kw-2">&amp;</span>payload.implementation_url)<span class="question-mark">?
             </span>},
             <span class="string">&quot;context&quot; </span>=&gt; {
-                <span class="kw">let </span><span class="kw-2">mut </span>lib_root_url = job.implementation_url.clone();
+                <span class="kw">let </span><span class="kw-2">mut </span>lib_root_url = payload.implementation_url.clone();
                 <span class="kw">let _ </span>= lib_root_url.set_host(<span class="prelude-val">Some</span>(<span class="string">&quot;&quot;</span>));
                 lib_root_url.set_path(<span class="string">&quot;&quot;</span>);
                 load_referenced_implementation(provider,
                                                lib_root_url,
                                                loaded_lib_manifests,
-                                               <span class="kw-2">&amp;</span>job.implementation_url)<span class="question-mark">?
+                                               <span class="kw-2">&amp;</span>payload.implementation_url)<span class="question-mark">?
             </span>},
-            <span class="string">&quot;file&quot; </span>=&gt; Arc::new(wasm::load(<span class="kw-2">&amp;*</span>provider, <span class="kw-2">&amp;</span>job.implementation_url)<span class="question-mark">?</span>),
+            <span class="string">&quot;file&quot; </span>=&gt; Arc::new(wasm::load(<span class="kw-2">&amp;*</span>provider, <span class="kw-2">&amp;</span>payload.implementation_url)<span class="question-mark">?</span>),
             <span class="kw">_ </span>=&gt; <span class="macro">bail!</span>(<span class="string">&quot;Unsupported scheme on implementation_url&quot;</span>)
         };
-        implementations.insert(job.implementation_url.clone(), implementation);
-        <span class="macro">trace!</span>(<span class="string">&quot;Implementation &#39;{}&#39; added to executor&quot;</span>, job.implementation_url);
+        implementations.insert(payload.implementation_url.clone(), implementation);
+        <span class="macro">trace!</span>(<span class="string">&quot;Implementation &#39;{}&#39; added to executor&quot;</span>, payload.implementation_url);
     }
 
-    <span class="kw">let </span>implementation = implementations.get(<span class="kw-2">&amp;</span>job.implementation_url)
+    <span class="kw">let </span>implementation = implementations.get(<span class="kw-2">&amp;</span>payload.implementation_url)
         .ok_or(<span class="string">&quot;Could not find implementation&quot;</span>)<span class="question-mark">?</span>;
 
-    <span class="macro">trace!</span>(<span class="string">&quot;Job #{}: Started executing on &#39;{name}&#39;&quot;</span>, job.job_id);
-    job.result = implementation.run(<span class="kw-2">&amp;</span>job.input_set);
+    <span class="macro">trace!</span>(<span class="string">&quot;Job #{}: Started executing on &#39;{name}&#39;&quot;</span>, payload.job_id);
+    <span class="kw">let </span>result = implementation.run(<span class="kw-2">&amp;</span>payload.input_set);
     <span class="attr">#[cfg(test)]
     </span>std::thread::sleep(Duration::from_millis(rand::thread_rng().gen_range(<span class="number">0</span>..<span class="number">100</span>)));
-    <span class="macro">trace!</span>(<span class="string">&quot;Job #{}: Finished executing on &#39;{name}&#39;&quot;</span>, job.job_id);
+    <span class="macro">trace!</span>(<span class="string">&quot;Job #{}: Finished executing on &#39;{name}&#39;&quot;</span>, payload.job_id);
 
-    results_sink.send(serde_json::to_string(<span class="kw-2">&amp;</span>job)<span class="question-mark">?</span>.as_bytes(), <span class="number">0</span>)
+    results_sink.send(serde_json::to_string(<span class="kw-2">&amp;</span>(payload.job_id, result))<span class="question-mark">?</span>.as_bytes(), <span class="number">0</span>)
         .map_err(|<span class="kw">_</span>| <span class="string">&quot;Could not send result of Job&quot;</span>)<span class="question-mark">?</span>;
 
     <span class="prelude-val">Ok</span>(<span class="bool-val">true</span>)
@@ -750,7 +756,7 @@
     <span class="kw">use </span>flowcore::model::lib_manifest::LibraryManifest;
     <span class="kw">use </span>flowcore::provider::Provider;
     <span class="kw">use </span>flowcore::errors::Result;
-    <span class="kw">use </span><span class="kw">crate</span>::job::Job;
+    <span class="kw">use </span><span class="kw">crate</span>::job::{Job, JobPayload};
     <span class="kw">use </span>std::sync::{Arc, RwLock};
     <span class="kw">use </span>std::collections::HashMap;
     <span class="kw">use </span>flowcore::Implementation;
@@ -805,32 +811,38 @@
     <span class="attr">#[test]
     </span><span class="kw">fn </span>execute_job() {
         <span class="kw">let </span>job1 = Job {
-            job_id: <span class="number">0</span>,
             function_id: <span class="number">1</span>,
             flow_id: <span class="number">0</span>,
-            input_set: <span class="macro">vec!</span>[],
             connections: <span class="macro">vec!</span>[],
-            implementation_url: Url::parse(<span class="string">&quot;lib://flowstdlib/math/add&quot;</span>).expect(<span class="string">&quot;Could not parse Url&quot;</span>),
+            payload: JobPayload {
+                job_id: <span class="number">0</span>,
+                input_set: <span class="macro">vec!</span>[],
+                implementation_url: Url::parse(<span class="string">&quot;lib://flowstdlib/math/add&quot;</span>).expect(<span class="string">&quot;Could not parse Url&quot;</span>),
+            },
             result: <span class="prelude-val">Ok</span>((<span class="prelude-val">None</span>, <span class="bool-val">false</span>)),
         };
 
         <span class="kw">let </span>job2 = Job {
-            job_id: <span class="number">0</span>,
             function_id: <span class="number">1</span>,
             flow_id: <span class="number">0</span>,
-            input_set: <span class="macro">vec!</span>[],
             connections: <span class="macro">vec!</span>[],
-            implementation_url: Url::parse(<span class="string">&quot;context://stdio/stdout&quot;</span>).expect(<span class="string">&quot;Could not parse Url&quot;</span>),
+            payload: JobPayload {
+                job_id: <span class="number">0</span>,
+                input_set: <span class="macro">vec!</span>[],
+                implementation_url: Url::parse(<span class="string">&quot;context://stdio/stdout&quot;</span>).expect(<span class="string">&quot;Could not parse Url&quot;</span>),
+            },
             result: <span class="prelude-val">Ok</span>((<span class="prelude-val">None</span>, <span class="bool-val">false</span>)),
         };
 
         <span class="kw">let </span>job3 = Job {
-            job_id: <span class="number">0</span>,
             function_id: <span class="number">1</span>,
             flow_id: <span class="number">0</span>,
-            input_set: <span class="macro">vec!</span>[],
             connections: <span class="macro">vec!</span>[],
-            implementation_url: Url::parse(<span class="string">&quot;file://fake/path&quot;</span>).expect(<span class="string">&quot;Could not parse Url&quot;</span>),
+            payload: JobPayload {
+                job_id: <span class="number">0</span>,
+                input_set: <span class="macro">vec!</span>[],
+                implementation_url: Url::parse(<span class="string">&quot;file://fake/path&quot;</span>).expect(<span class="string">&quot;Could not parse Url&quot;</span>),
+            },
             result: <span class="prelude-val">Ok</span>((<span class="prelude-val">None</span>, <span class="bool-val">false</span>)),
         };
 
@@ -845,7 +857,7 @@
                 .expect(<span class="string">&quot;Could not connect to PULL end of results-sink socket&quot;</span>);
 
             <span class="macro">assert!</span>(<span class="kw">super</span>::execute_job(provider,
-                                       <span class="kw-2">&amp;mut </span>job,
+                                       <span class="kw-2">&amp;mut </span>job.payload,
                                        <span class="kw-2">&amp;</span>results_sink,
                                        <span class="string">&quot;test executor&quot;</span>,
                                        loaded_implementations,
@@ -854,4 +866,4 @@
         }
     }
 }</code></pre></div>
-</section></div></main><div id="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="flowrlib" data-themes="" data-resource-suffix="" data-rustdoc-version="1.67.0-nightly (1eb62b123 2022-11-27)" data-search-js="search-df80cc3cb87b6482.js" data-settings-js="settings-bebeae96e00e4617.js" data-settings-css="settings-af96d9e2fc13e081.css" ></div></body></html>
+</section></div></main><div id="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="flowrlib" data-themes="" data-resource-suffix="" data-rustdoc-version="1.67.0-nightly (2585bcea0 2022-11-28)" data-search-js="search-df80cc3cb87b6482.js" data-settings-js="settings-bebeae96e00e4617.js" data-settings-css="settings-af96d9e2fc13e081.css" ></div></body></html>

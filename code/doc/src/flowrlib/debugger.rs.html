@@ -1260,6 +1260,8 @@
 <a href="#1260" id="1260">1260</a>
 <a href="#1261" id="1261">1261</a>
 <a href="#1262" id="1262">1262</a>
+<a href="#1263" id="1263">1263</a>
+<a href="#1264" id="1264">1264</a>
 </pre><pre class="rust"><code><span class="kw">use </span>std::collections::HashSet;
 <span class="kw">use </span>std::fmt;
 <span class="kw">use </span>std::fmt::Write;
@@ -1352,7 +1354,7 @@
         state: <span class="kw-2">&amp;mut </span>RunState,
         job: <span class="kw-2">&amp;</span>Job,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;(bool, bool)&gt; {
-        <span class="kw">if </span><span class="self">self</span>.break_at_job == job.job_id || <span class="self">self</span>.function_breakpoints.contains(<span class="kw-2">&amp;</span>job.function_id) {
+        <span class="kw">if </span><span class="self">self</span>.break_at_job == job.payload.job_id || <span class="self">self</span>.function_breakpoints.contains(<span class="kw-2">&amp;</span>job.function_id) {
             <span class="self">self</span>.debug_server.job_breakpoint(job, state.get_function(job.function_id)
                 .ok_or(<span class="string">&quot;Could not get function&quot;</span>)<span class="question-mark">?</span>,
                                              state.get_function_states(job.function_id));
@@ -2004,7 +2006,7 @@
     <span class="kw">use </span><span class="kw">crate</span>::block::Block;
     <span class="kw">use </span><span class="kw">crate</span>::debug_command::{BreakpointSpec, DebugCommand};
     <span class="kw">use </span><span class="kw">crate</span>::debugger::{BlockerNode, BlockType, Debugger};
-    <span class="kw">use </span><span class="kw">crate</span>::job::Job;
+    <span class="kw">use </span><span class="kw">crate</span>::job::{Job, JobPayload};
     <span class="kw">use </span><span class="kw">crate</span>::run_state::{RunState, State};
     <span class="kw">use </span><span class="kw">crate</span>::protocols::DebuggerProtocol;
 
@@ -2035,7 +2037,7 @@
     <span class="kw">impl </span>DebuggerProtocol <span class="kw">for </span>DummyServer {
         <span class="kw">fn </span>start(<span class="kw-2">&amp;mut </span><span class="self">self</span>) {}
         <span class="kw">fn </span>job_breakpoint(<span class="kw-2">&amp;mut </span><span class="self">self</span>, job: <span class="kw-2">&amp;</span>Job, _function: <span class="kw-2">&amp;</span>RuntimeFunction, _states: Vec&lt;State&gt;) {
-            <span class="self">self</span>.job_breakpoint = job.job_id;
+            <span class="self">self</span>.job_breakpoint = job.payload.job_id;
         }
         <span class="kw">fn </span>block_breakpoint(<span class="kw-2">&amp;mut </span><span class="self">self</span>, block: <span class="kw-2">&amp;</span>Block) {
             <span class="self">self</span>.block_breakpoint = block.blocked_function_id;
@@ -2119,13 +2121,15 @@
 
     <span class="kw">fn </span>test_job() -&gt; Job {
         Job {
-            job_id: <span class="number">0</span>,
             function_id: <span class="number">0</span>,
             flow_id: <span class="number">0</span>,
-            implementation_url: Url::parse(<span class="string">&quot;file://test&quot;</span>).expect(<span class="string">&quot;Could not parse Url&quot;</span>),
-            input_set: <span class="macro">vec!</span>[<span class="macro">json!</span>(<span class="number">1</span>)],
-            result: <span class="prelude-val">Ok</span>((<span class="prelude-val">Some</span>(<span class="macro">json!</span>(<span class="number">1</span>)), <span class="bool-val">true</span>)),
             connections: <span class="macro">vec!</span>[],
+            payload: JobPayload {
+                job_id: <span class="number">0</span>,
+                implementation_url: Url::parse(<span class="string">&quot;file://test&quot;</span>).expect(<span class="string">&quot;Could not parse Url&quot;</span>),
+                input_set: <span class="macro">vec!</span>[<span class="macro">json!</span>(<span class="number">1</span>)],
+            },
+            result: <span class="prelude-val">Ok</span>((<span class="prelude-val">Some</span>(<span class="macro">json!</span>(<span class="number">1</span>)), <span class="bool-val">true</span>)),
         }
     }
 
@@ -2145,13 +2149,13 @@
         <span class="kw">let </span><span class="kw-2">mut </span>debugger = Debugger::new(<span class="kw-2">&amp;mut </span>server);
 
         <span class="comment">// configure the debugger to break at this job via it&#39;s ID
-        </span>debugger.break_at_job = job.job_id;
+        </span>debugger.break_at_job = job.payload.job_id;
 
         <span class="comment">// call the debugger check
         </span><span class="kw">let _ </span>= debugger.check_prior_to_job(<span class="kw-2">&amp;mut </span>state, <span class="kw-2">&amp;</span>job);
 
         <span class="comment">// check the breakpoint triggered at this job_id as expected
-        </span><span class="macro">assert_eq!</span>(server.job_breakpoint, job.job_id)
+        </span><span class="macro">assert_eq!</span>(server.job_breakpoint, job.payload.job_id)
     }
 
     <span class="attr">#[test]
@@ -2224,7 +2228,7 @@
         <span class="kw">let </span><span class="kw-2">mut </span>debugger = Debugger::new(<span class="kw-2">&amp;mut </span>server);
 
         <span class="comment">// configure the debugger to break at this job via it&#39;s ID
-        </span>debugger.break_at_job = job.job_id;
+        </span>debugger.break_at_job = job.payload.job_id;
         debugger.block_breakpoints.insert((<span class="number">0</span>, <span class="number">1</span>));
         debugger.output_breakpoints.insert((<span class="number">0</span>, <span class="string">&quot;&quot;</span>.into()));
         debugger.input_breakpoints.insert((<span class="number">0</span>, <span class="number">0</span>));
@@ -2522,4 +2526,4 @@
         <span class="macro">assert!</span>(debugger.delete_breakpoint(<span class="kw-2">&amp;</span>state, <span class="prelude-val">Some</span>(BreakpointSpec::Output((<span class="number">0</span>, <span class="string">&quot;&quot;</span>.into())))).is_ok());
     }
 }</code></pre></div>
-</section></div></main><div id="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="flowrlib" data-themes="" data-resource-suffix="" data-rustdoc-version="1.67.0-nightly (1eb62b123 2022-11-27)" data-search-js="search-df80cc3cb87b6482.js" data-settings-js="settings-bebeae96e00e4617.js" data-settings-css="settings-af96d9e2fc13e081.css" ></div></body></html>
+</section></div></main><div id="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="flowrlib" data-themes="" data-resource-suffix="" data-rustdoc-version="1.67.0-nightly (2585bcea0 2022-11-28)" data-search-js="search-df80cc3cb87b6482.js" data-settings-js="settings-bebeae96e00e4617.js" data-settings-css="settings-af96d9e2fc13e081.css" ></div></body></html>

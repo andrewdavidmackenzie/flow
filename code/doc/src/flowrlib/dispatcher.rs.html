@@ -231,28 +231,15 @@
 <a href="#231" id="231">231</a>
 <a href="#232" id="232">232</a>
 <a href="#233" id="233">233</a>
-<a href="#234" id="234">234</a>
-<a href="#235" id="235">235</a>
-<a href="#236" id="236">236</a>
-<a href="#237" id="237">237</a>
-<a href="#238" id="238">238</a>
-<a href="#239" id="239">239</a>
-<a href="#240" id="240">240</a>
-<a href="#241" id="241">241</a>
-<a href="#242" id="242">242</a>
-<a href="#243" id="243">243</a>
-<a href="#244" id="244">244</a>
-<a href="#245" id="245">245</a>
-<a href="#246" id="246">246</a>
-<a href="#247" id="247">247</a>
 </pre><pre class="rust"><code><span class="kw">use </span>std::time::Duration;
 
 <span class="kw">use </span>log::{debug, trace, error};
 <span class="kw">use </span>zmq::DONTWAIT;
-
+<span class="kw">use </span>serde_json::Value;
+<span class="kw">use </span>flowcore::RunAgain;
 <span class="kw">use </span>flowcore::errors::<span class="kw-2">*</span>;
 
-<span class="kw">use </span><span class="kw">crate</span>::job::Job;
+<span class="kw">use </span><span class="kw">crate</span>::job::JobPayload;
 
 <span class="doccomment">/// `Dispatcher` structure holds information required to send jobs for execution and receive results back
 </span><span class="kw">pub struct </span>Dispatcher {
@@ -315,29 +302,26 @@
     }
 
     <span class="comment">// Wait for, then return the next Job with results returned from executors
-    </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>get_next_result(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;Job&gt; {
+    </span><span class="attr">#[allow(clippy::type_complexity)]
+    </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>get_next_result(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(usize, <span class="prelude-ty">Result</span>&lt;(<span class="prelude-ty">Option</span>&lt;Value&gt;, RunAgain)&gt;)&gt; {
         <span class="kw">let </span>msg = <span class="self">self</span>.results_socket.recv_msg(<span class="number">0</span>)
             .map_err(|<span class="kw">_</span>| <span class="string">&quot;Error receiving result&quot;</span>)<span class="question-mark">?</span>;
         <span class="kw">let </span>message_string = msg.as_str().ok_or(<span class="string">&quot;Could not get message as str&quot;</span>)<span class="question-mark">?</span>;
         serde_json::from_str(message_string)
-            .map_err(|<span class="kw">_</span>| <span class="string">&quot;Could not Deserialize Job from zmq message string&quot;</span>.into())
+            .map_err(|<span class="kw">_</span>| <span class="string">&quot;Could not Deserialize JobPayload from zmq message string&quot;</span>.into())
     }
 
     <span class="comment">// Send a `Job` for execution to executors
-    </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>send_job_for_execution(<span class="kw-2">&amp;mut </span><span class="self">self</span>, job: <span class="kw-2">&amp;</span>Job) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
-        <span class="kw">if </span>job.implementation_url.scheme() == <span class="string">&quot;lib&quot; </span>{
-            <span class="self">self</span>.lib_job_socket.send(serde_json::to_string(job)<span class="question-mark">?</span>.as_bytes(), <span class="number">0</span>)
+    </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>send_job_for_execution(<span class="kw-2">&amp;mut </span><span class="self">self</span>, payload: <span class="kw-2">&amp;</span>JobPayload) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
+        <span class="kw">if </span>payload.implementation_url.scheme() == <span class="string">&quot;lib&quot; </span>{
+            <span class="self">self</span>.lib_job_socket.send(serde_json::to_string(payload)<span class="question-mark">?</span>.as_bytes(), <span class="number">0</span>)
                 .map_err(|e| <span class="macro">format!</span>(<span class="string">&quot;Could not send context Job for execution: {e}&quot;</span>))<span class="question-mark">?</span>;
         } <span class="kw">else </span>{
-            <span class="self">self</span>.general_job_socket.send(serde_json::to_string(job)<span class="question-mark">?</span>.as_bytes(), <span class="number">0</span>)
+            <span class="self">self</span>.general_job_socket.send(serde_json::to_string(payload)<span class="question-mark">?</span>.as_bytes(), <span class="number">0</span>)
                 .map_err(|e| <span class="macro">format!</span>(<span class="string">&quot;Could not send Job for execution: {e}&quot;</span>))<span class="question-mark">?</span>;
         }
 
-        <span class="macro">trace!</span>(
-            <span class="string">&quot;Job #{}: Sent for execution of Function #{}&quot;</span>,
-            job.job_id,
-            job.function_id
-        );
+        <span class="macro">trace!</span>(<span class="string">&quot;Job #{}: Payload sent for execution&quot;</span>, payload.job_id);
 
         <span class="prelude-val">Ok</span>(())
     }
@@ -361,10 +345,14 @@
 <span class="attr">#[cfg(test)]
 </span><span class="kw">mod </span>test {
     <span class="kw">use </span>url::Url;
+    <span class="kw">use </span>serde_json::Value;
+    <span class="kw">use </span>flowcore::RunAgain;
     <span class="kw">use </span>std::time::Duration;
     <span class="kw">use </span>serial_test::serial;
-    <span class="kw">use </span><span class="kw">crate</span>::job::Job;
+    <span class="kw">use </span><span class="kw">crate</span>::job::JobPayload;
     <span class="kw">use </span>portpicker::pick_unused_port;
+    <span class="kw">use </span>flowcore::DONT_RUN_AGAIN;
+    <span class="kw">use </span>flowcore::errors::<span class="kw-2">*</span>;
 
     <span class="kw">fn </span>get_bind_addresses(ports: (u16, u16, u16, u16)) -&gt; (String, String, String, String) {
         (
@@ -412,14 +400,10 @@
     <span class="attr">#[test]
     #[serial]
     </span><span class="kw">fn </span>send_lib_job() {
-        <span class="kw">let </span>job = Job {
+        <span class="kw">let </span>payload = JobPayload {
             job_id: <span class="number">0</span>,
-            function_id: <span class="number">1</span>,
-            flow_id: <span class="number">0</span>,
             input_set: <span class="macro">vec!</span>[],
-            connections: <span class="macro">vec!</span>[],
             implementation_url: Url::parse(<span class="string">&quot;lib://flowstdlib/math/add&quot;</span>).expect(<span class="string">&quot;Could not parse Url&quot;</span>),
-            result: <span class="prelude-val">Ok</span>((<span class="prelude-val">None</span>, <span class="bool-val">false</span>)),
         };
 
         <span class="kw">let </span>ports = get_four_ports();
@@ -433,20 +417,16 @@
         job_source.connect(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;tcp://127.0.0.1:{}&quot;</span>, ports.<span class="number">0</span>))
             .expect(<span class="string">&quot;Could not bind to PULL end of job socket&quot;</span>);
 
-        <span class="macro">assert!</span>(dispatcher.send_job_for_execution(<span class="kw-2">&amp;</span>job).is_ok());
+        <span class="macro">assert!</span>(dispatcher.send_job_for_execution(<span class="kw-2">&amp;</span>payload).is_ok());
     }
 
     <span class="attr">#[test]
     #[serial]
     </span><span class="kw">fn </span>send_context_job() {
-        <span class="kw">let </span>job = Job {
+        <span class="kw">let </span>payload = JobPayload {
             job_id: <span class="number">0</span>,
-            function_id: <span class="number">1</span>,
-            flow_id: <span class="number">0</span>,
             input_set: <span class="macro">vec!</span>[],
-            connections: <span class="macro">vec!</span>[],
             implementation_url: Url::parse(<span class="string">&quot;context://stdio/stdout&quot;</span>).expect(<span class="string">&quot;Could not parse Url&quot;</span>),
-            result: <span class="prelude-val">Ok</span>((<span class="prelude-val">None</span>, <span class="bool-val">false</span>)),
         };
 
         <span class="kw">let </span>ports = get_four_ports();
@@ -460,22 +440,12 @@
         context_job_source.connect(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;tcp://127.0.0.1:{}&quot;</span>, ports.<span class="number">1</span>))
             .expect(<span class="string">&quot;Could not bind to PULL end of job-source socket&quot;</span>);
 
-        <span class="macro">assert!</span>(dispatcher.send_job_for_execution(<span class="kw-2">&amp;</span>job).is_ok());
+        <span class="macro">assert!</span>(dispatcher.send_job_for_execution(<span class="kw-2">&amp;</span>payload).is_ok());
     }
 
     <span class="attr">#[test]
     #[serial]
     </span><span class="kw">fn </span>get_job() {
-        <span class="kw">let </span>job = Job {
-            job_id: <span class="number">0</span>,
-            function_id: <span class="number">1</span>,
-            flow_id: <span class="number">0</span>,
-            input_set: <span class="macro">vec!</span>[],
-            connections: <span class="macro">vec!</span>[],
-            implementation_url: Url::parse(<span class="string">&quot;context://stdio/stdout&quot;</span>).expect(<span class="string">&quot;Could not parse Url&quot;</span>),
-            result: <span class="prelude-val">Ok</span>((<span class="prelude-val">None</span>, <span class="bool-val">false</span>)),
-        };
-
         <span class="kw">let </span>ports = get_four_ports();
         <span class="kw">let </span><span class="kw-2">mut </span>dispatcher = <span class="kw">super</span>::Dispatcher::new(
             get_bind_addresses(ports)
@@ -486,11 +456,13 @@
             .expect(<span class="string">&quot;Could not create PUSH end of results socket&quot;</span>);
         results_sink.connect(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;tcp://127.0.0.1:{}&quot;</span>, ports.<span class="number">2</span>))
             .expect(<span class="string">&quot;Could not connect to PULL end of results socket&quot;</span>);
-        results_sink.send(serde_json::to_string(<span class="kw-2">&amp;</span>job).expect(<span class="string">&quot;Could not convert to serde&quot;</span>)
+        <span class="kw">let </span>result:<span class="prelude-ty">Result</span>&lt;(<span class="prelude-ty">Option</span>&lt;Value&gt;, RunAgain)&gt; = <span class="prelude-val">Ok</span>((<span class="prelude-val">None</span>, DONT_RUN_AGAIN));
+        results_sink.send(serde_json::to_string(<span class="kw-2">&amp;</span>(<span class="number">0</span>, result))
+                              .expect(<span class="string">&quot;Could not convert to serde&quot;</span>)
                               .as_bytes(), <span class="number">0</span>).expect(<span class="string">&quot;Could not send result of Job&quot;</span>);
 
         <span class="macro">assert!</span>(dispatcher.get_next_result().is_ok());
     }
 }
 </code></pre></div>
-</section></div></main><div id="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="flowrlib" data-themes="" data-resource-suffix="" data-rustdoc-version="1.67.0-nightly (1eb62b123 2022-11-27)" data-search-js="search-df80cc3cb87b6482.js" data-settings-js="settings-bebeae96e00e4617.js" data-settings-css="settings-af96d9e2fc13e081.css" ></div></body></html>
+</section></div></main><div id="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="flowrlib" data-themes="" data-resource-suffix="" data-rustdoc-version="1.67.0-nightly (2585bcea0 2022-11-28)" data-search-js="search-df80cc3cb87b6482.js" data-settings-js="settings-bebeae96e00e4617.js" data-settings-css="settings-af96d9e2fc13e081.css" ></div></body></html>

@@ -260,6 +260,7 @@
 <a href="#260" id="260">260</a>
 <a href="#261" id="261">261</a>
 <a href="#262" id="262">262</a>
+<a href="#263" id="263">263</a>
 </pre><pre class="rust"><code><span class="attr">#[cfg(all(not(feature = <span class="string">&quot;debugger&quot;</span>), not(feature = <span class="string">&quot;submission&quot;</span>)))]
 </span><span class="kw">use </span>std::marker::PhantomData;
 
@@ -394,7 +395,16 @@
 
                 <span class="kw">if </span>state.number_jobs_running() &gt; <span class="number">0 </span>{
                     <span class="kw">match </span><span class="self">self</span>.dispatcher.get_next_result() {
-                        <span class="prelude-val">Ok</span>(job) =&gt; {
+                        <span class="prelude-val">Ok</span>(result) =&gt; {
+                            <span class="kw">let </span>job;
+
+                            (display_next_output, restart, job) = state.retire_job(
+                                <span class="attr">#[cfg(feature = <span class="string">&quot;metrics&quot;</span>)]
+                                    </span><span class="kw-2">&amp;mut </span>metrics,
+                                result,
+                                <span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)]
+                                    </span><span class="kw-2">&amp;mut </span><span class="self">self</span>.debugger,
+                            )<span class="question-mark">?</span>;
                             <span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)]
                             </span><span class="kw">if </span>display_next_output {
                                 (display_next_output, restart) =
@@ -403,14 +413,6 @@
                                     <span class="kw">break </span><span class="lifetime">&#39;jobs</span>;
                                 }
                             }
-
-                            (display_next_output, restart) = state.retire_job(
-                                <span class="attr">#[cfg(feature = <span class="string">&quot;metrics&quot;</span>)]
-                                    </span><span class="kw-2">&amp;mut </span>metrics,
-                                job,
-                                <span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)]
-                                    </span><span class="kw-2">&amp;mut </span><span class="self">self</span>.debugger,
-                            )<span class="question-mark">?</span>;
                         }
 
                         <span class="prelude-val">Err</span>(err) =&gt; {
@@ -515,7 +517,7 @@
             </span>.debugger
             .check_prior_to_job(state, <span class="kw-2">&amp;</span>job)<span class="question-mark">?</span>;
 
-        <span class="self">self</span>.dispatcher.send_job_for_execution(<span class="kw-2">&amp;</span>job)<span class="question-mark">?</span>;
+        <span class="self">self</span>.dispatcher.send_job_for_execution(<span class="kw-2">&amp;</span>job.payload)<span class="question-mark">?</span>;
 
         state.start_job(job)<span class="question-mark">?</span>;
 
@@ -523,4 +525,4 @@
     }
 }
 </code></pre></div>
-</section></div></main><div id="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="flowrlib" data-themes="" data-resource-suffix="" data-rustdoc-version="1.67.0-nightly (1eb62b123 2022-11-27)" data-search-js="search-df80cc3cb87b6482.js" data-settings-js="settings-bebeae96e00e4617.js" data-settings-css="settings-af96d9e2fc13e081.css" ></div></body></html>
+</section></div></main><div id="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="flowrlib" data-themes="" data-resource-suffix="" data-rustdoc-version="1.67.0-nightly (2585bcea0 2022-11-28)" data-search-js="search-df80cc3cb87b6482.js" data-settings-js="settings-bebeae96e00e4617.js" data-settings-css="settings-af96d9e2fc13e081.css" ></div></body></html>

@@ -736,14 +736,14 @@
     </span><span class="kw">fn </span>process_server_message(<span class="kw-2">&amp;mut </span><span class="self">self</span>, message: DebugServerMessage) -&gt; <span class="prelude-ty">Result</span>&lt;DebugCommand&gt; {
         <span class="kw">match </span>message {
             JobCompleted(job) =&gt; {
-                <span class="macro">println!</span>(<span class="string">&quot;Job #{} completed by Function #{}&quot;</span>, job.job_id, job.function_id);
+                <span class="macro">println!</span>(<span class="string">&quot;Job #{} completed by Function #{}&quot;</span>, job.payload.job_id, job.function_id);
                 <span class="kw">if let </span><span class="prelude-val">Ok</span>((<span class="prelude-val">Some</span>(output), <span class="kw">_</span>)) = job.result {
                     <span class="macro">println!</span>(<span class="string">&quot;\tOutput value: &#39;{}&#39;&quot;</span>, <span class="kw-2">&amp;</span>output);
                 }
             }
             PriorToSendingJob(job) =&gt; {
-                <span class="macro">println!</span>(<span class="string">&quot;About to send Job #{} to Function #{}&quot;</span>, job.job_id, job.function_id);
-                <span class="macro">println!</span>(<span class="string">&quot;\tInputs: {:?}&quot;</span>, job.input_set);
+                <span class="macro">println!</span>(<span class="string">&quot;About to send Job #{} to Function #{}&quot;</span>, job.payload.job_id, job.function_id);
+                <span class="macro">println!</span>(<span class="string">&quot;\tInputs: {:?}&quot;</span>, job.payload.input_set);
             }
             BlockBreakpoint(block) =&gt; <span class="macro">println!</span>(<span class="string">&quot;Block breakpoint: {block:?}&quot;</span>),
             DataBreakpoint(
@@ -765,7 +765,7 @@
             }
             JobError(job) =&gt; {
                 <span class="macro">println!</span>(<span class="string">&quot;Error occurred executing a Job: \n&#39;{job}&#39;&quot;</span>);
-                <span class="kw">return </span><span class="self">self</span>.get_user_command(job.job_id);
+                <span class="kw">return </span><span class="self">self</span>.get_user_command(job.payload.job_id);
             }
             Deadlock(message) =&gt; <span class="macro">println!</span>(<span class="string">&quot;Deadlock detected {message}&quot;</span>),
             EnteringDebugger =&gt; <span class="macro">println!</span>(
@@ -947,4 +947,4 @@
     }
 }
 </code></pre></div>
-</section></div></main><div id="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="flowr" data-themes="" data-resource-suffix="" data-rustdoc-version="1.67.0-nightly (1eb62b123 2022-11-27)" data-search-js="search-df80cc3cb87b6482.js" data-settings-js="settings-bebeae96e00e4617.js" data-settings-css="settings-af96d9e2fc13e081.css" ></div></body></html>
+</section></div></main><div id="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="flowr" data-themes="" data-resource-suffix="" data-rustdoc-version="1.67.0-nightly (2585bcea0 2022-11-28)" data-search-js="search-df80cc3cb87b6482.js" data-settings-js="settings-bebeae96e00e4617.js" data-settings-css="settings-af96d9e2fc13e081.css" ></div></body></html>

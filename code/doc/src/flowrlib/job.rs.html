@@ -118,6 +118,23 @@
 <a href="#118" id="118">118</a>
 <a href="#119" id="119">119</a>
 <a href="#120" id="120">120</a>
+<a href="#121" id="121">121</a>
+<a href="#122" id="122">122</a>
+<a href="#123" id="123">123</a>
+<a href="#124" id="124">124</a>
+<a href="#125" id="125">125</a>
+<a href="#126" id="126">126</a>
+<a href="#127" id="127">127</a>
+<a href="#128" id="128">128</a>
+<a href="#129" id="129">129</a>
+<a href="#130" id="130">130</a>
+<a href="#131" id="131">131</a>
+<a href="#132" id="132">132</a>
+<a href="#133" id="133">133</a>
+<a href="#134" id="134">134</a>
+<a href="#135" id="135">135</a>
+<a href="#136" id="136">136</a>
+<a href="#137" id="137">137</a>
 </pre><pre class="rust"><code><span class="kw">use </span>std::fmt;
 
 <span class="kw">use </span>serde_derive::{Deserialize, Serialize};
@@ -128,25 +145,32 @@
 <span class="kw">use </span>flowcore::model::output_connection::OutputConnection;
 <span class="kw">use </span>flowcore::RunAgain;
 
+<span class="doccomment">/// Conatins the minimum amount of information required to execute a [Job] and return the result
+</span><span class="attr">#[derive(Serialize, Deserialize, Clone)]
+</span><span class="kw">pub struct </span>JobPayload {
+    <span class="doccomment">/// Each `Job` has a unique id that increments as jobs are executed
+    </span><span class="kw">pub </span>job_id: usize,
+    <span class="doccomment">/// The set of input values to be used by the function when executing this job
+    </span><span class="kw">pub </span>input_set: Vec&lt;Value&gt;,
+    <span class="doccomment">/// The url of the implementation to be run for this job
+    </span><span class="kw">pub </span>implementation_url: Url,
+}
+
 <span class="doccomment">/// A `Job` contains the information necessary to manage the execution of a function in the
 /// flow on a set of input values, and then where to send the outputs that maybe produces.
 </span><span class="attr">#[derive(Serialize, Deserialize, Clone)]
 </span><span class="kw">pub struct </span>Job {
-    <span class="doccomment">/// Each `Job` has a unique id that increments as jobs are executed
-    </span><span class="kw">pub </span>job_id: usize,
     <span class="doccomment">/// The `id` of the function in the `RunState`&#39;s list of functions that will execute this job
     </span><span class="kw">pub </span>function_id: usize,
     <span class="doccomment">/// The `id` of the nested flow (from root flow on down) there the function executing the job is
     </span><span class="kw">pub </span>flow_id: usize,
-    <span class="doccomment">/// The set of input values to be used by the function when executing this job
-    </span><span class="kw">pub </span>input_set: Vec&lt;Value&gt;,
+    <span class="doccomment">/// the payload required to execute the job
+    </span><span class="kw">pub </span>payload: JobPayload,
+    <span class="doccomment">/// The result of the execution with the job_id, the optional output Value and if the function
+    /// should be run again in the future
+    </span><span class="kw">pub </span>result: <span class="prelude-ty">Result</span>&lt;(<span class="prelude-ty">Option</span>&lt;Value&gt;, RunAgain)&gt;,
     <span class="doccomment">/// The destinations (other function&#39;s inputs) where any output should be sent
     </span><span class="kw">pub </span>connections: Vec&lt;OutputConnection&gt;,
-    <span class="doccomment">/// The url of the implementation to be run for this job
-    </span><span class="kw">pub </span>implementation_url: Url,
-    <span class="doccomment">/// The result of the execution with optional output Value and if the function should be run
-    /// again in the future
-    </span><span class="kw">pub </span>result: <span class="prelude-ty">Result</span>&lt;(<span class="prelude-ty">Option</span>&lt;Value&gt;, RunAgain)&gt;,
 }
 
 <span class="kw">unsafe impl </span>Send <span class="kw">for </span>Job{}
@@ -154,15 +178,18 @@
 
 <span class="kw">impl </span>fmt::Display <span class="kw">for </span>Job {
     <span class="kw">fn </span>fmt(<span class="kw-2">&amp;</span><span class="self">self</span>, f: <span class="kw-2">&amp;mut </span>fmt::Formatter) -&gt; fmt::Result {
-        <span class="macro">writeln!</span>(
-            f,
-            <span class="string">&quot;Job Id: {}, Function Id: {}, Flow Id: {}&quot;</span>,
-            <span class="self">self</span>.job_id, <span class="self">self</span>.function_id, <span class="self">self</span>.flow_id
-        )<span class="question-mark">?</span>;
-        <span class="macro">writeln!</span>(f, <span class="string">&quot;Implementation Url: {}&quot;</span>, <span class="self">self</span>.implementation_url)<span class="question-mark">?</span>;
-        <span class="macro">writeln!</span>(f, <span class="string">&quot;Inputs: {:?}&quot;</span>, <span class="self">self</span>.input_set)<span class="question-mark">?</span>;
+        <span class="macro">writeln!</span>(f, <span class="string">&quot;{}&quot;</span>, <span class="self">self</span>.payload)<span class="question-mark">?</span>;
         <span class="macro">writeln!</span>(f, <span class="string">&quot;Connections: {:?}&quot;</span>, <span class="self">self</span>.connections)<span class="question-mark">?</span>;
+        <span class="macro">writeln!</span>(f, <span class="string">&quot;Function Id: {}, Flow Id: {}&quot;</span>, <span class="self">self</span>.function_id, <span class="self">self</span>.flow_id)<span class="question-mark">?</span>;
         <span class="macro">write!</span>(f, <span class="string">&quot;Result: {:?}&quot;</span>, <span class="self">self</span>.result)
+    }
+}
+
+<span class="kw">impl </span>fmt::Display <span class="kw">for </span>JobPayload {
+    <span class="kw">fn </span>fmt(<span class="kw-2">&amp;</span><span class="self">self</span>, f: <span class="kw-2">&amp;mut </span>fmt::Formatter) -&gt; fmt::Result {
+        <span class="macro">writeln!</span>(f, <span class="string">&quot;Job #: {}&quot;</span>, <span class="self">self</span>.job_id)<span class="question-mark">?</span>;
+        <span class="macro">writeln!</span>(f, <span class="string">&quot;Implementation Url: {}&quot;</span>, <span class="self">self</span>.implementation_url)<span class="question-mark">?</span>;
+        <span class="macro">writeln!</span>(f, <span class="string">&quot;Inputs: {:?}&quot;</span>, <span class="self">self</span>.input_set)
     }
 }
 
@@ -174,17 +201,20 @@
     <span class="kw">use </span>url::Url;
 
     <span class="kw">use </span>flowcore::model::datatype::ARRAY_TYPE;
+    <span class="kw">use </span><span class="kw">crate</span>::job::JobPayload;
 
     <span class="attr">#[test]
     </span><span class="kw">fn </span>display_job_test() {
         <span class="kw">let </span>job = <span class="kw">super</span>::Job {
-            job_id: <span class="number">0</span>,
             function_id: <span class="number">1</span>,
             flow_id: <span class="number">0</span>,
-            input_set: <span class="macro">vec!</span>[],
             connections: <span class="macro">vec!</span>[],
-            implementation_url: Url::parse(<span class="string">&quot;lib://flowstdlib/math/add&quot;</span>).expect(<span class="string">&quot;Could not parse Url&quot;</span>),
-            result: <span class="prelude-val">Ok</span>((<span class="prelude-val">None</span>, <span class="bool-val">false</span>)),
+            payload: JobPayload {
+                job_id: <span class="number">0</span>,
+                input_set: <span class="macro">vec!</span>[],
+                implementation_url: Url::parse(<span class="string">&quot;lib://flowstdlib/math/add&quot;</span>).expect(<span class="string">&quot;Could not parse Url&quot;</span>),
+            },
+            result: <span class="prelude-val">Ok</span>((<span class="prelude-val">None</span>, <span class="bool-val">false</span>))
         };
         <span class="macro">println!</span>(<span class="string">&quot;Job: {job}&quot;</span>);
     }
@@ -192,13 +222,15 @@
     <span class="attr">#[test]
     </span><span class="kw">fn </span>get_entire_output_value() {
         <span class="kw">let </span>job = <span class="kw">super</span>::Job {
-            job_id: <span class="number">0</span>,
             function_id: <span class="number">1</span>,
             flow_id: <span class="number">0</span>,
-            input_set: <span class="macro">vec!</span>[],
             connections: <span class="macro">vec!</span>[],
-            implementation_url: Url::parse(<span class="string">&quot;lib://flowstdlib/math/add&quot;</span>).expect(<span class="string">&quot;Could not parse Url&quot;</span>),
-            result: <span class="prelude-val">Ok</span>((<span class="prelude-val">Some</span>(<span class="macro">json!</span>(<span class="number">42u64</span>)), <span class="bool-val">false</span>)),
+            payload: JobPayload {
+                job_id: <span class="number">0</span>,
+                input_set: <span class="macro">vec!</span>[],
+                implementation_url: Url::parse(<span class="string">&quot;lib://flowstdlib/math/add&quot;</span>).expect(<span class="string">&quot;Could not parse Url&quot;</span>),
+            },
+            result: <span class="prelude-val">Ok</span>((<span class="prelude-val">Some</span>(<span class="macro">json!</span>(<span class="number">42u64</span>)), <span class="bool-val">false</span>))
         };
 
         <span class="macro">assert_eq!</span>(
@@ -218,12 +250,14 @@
         map.insert(ARRAY_TYPE, <span class="macro">vec!</span>[<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>]);
         <span class="kw">let </span>value = <span class="macro">json!</span>(map);
         <span class="kw">let </span>job = <span class="kw">super</span>::Job {
-            job_id: <span class="number">0</span>,
             function_id: <span class="number">1</span>,
             flow_id: <span class="number">0</span>,
-            input_set: <span class="macro">vec!</span>[],
             connections: <span class="macro">vec!</span>[],
-            implementation_url: Url::parse(<span class="string">&quot;lib://flowstdlib/math/add&quot;</span>).expect(<span class="string">&quot;Could not parse Url&quot;</span>),
+            payload: JobPayload {
+                job_id: <span class="number">0</span>,
+                input_set: <span class="macro">vec!</span>[],
+                implementation_url: Url::parse(<span class="string">&quot;lib://flowstdlib/math/add&quot;</span>).expect(<span class="string">&quot;Could not parse Url&quot;</span>),
+            },
             result: <span class="prelude-val">Ok</span>((<span class="prelude-val">Some</span>(<span class="macro">json!</span>(value)), <span class="bool-val">false</span>)),
         };
 
@@ -239,4 +273,4 @@
     }
 }
 </code></pre></div>
-</section></div></main><div id="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="flowrlib" data-themes="" data-resource-suffix="" data-rustdoc-version="1.67.0-nightly (1eb62b123 2022-11-27)" data-search-js="search-df80cc3cb87b6482.js" data-settings-js="settings-bebeae96e00e4617.js" data-settings-css="settings-af96d9e2fc13e081.css" ></div></body></html>
+</section></div></main><div id="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="flowrlib" data-themes="" data-resource-suffix="" data-rustdoc-version="1.67.0-nightly (2585bcea0 2022-11-28)" data-search-js="search-df80cc3cb87b6482.js" data-settings-js="settings-bebeae96e00e4617.js" data-settings-css="settings-af96d9e2fc13e081.css" ></div></body></html>
