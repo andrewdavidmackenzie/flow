@@ -89,7 +89,7 @@ pub fn dump_functions(
     )?;
     dot_file.write_all(format!("labelloc=t;\nlabel = \"{}\";\n", flow.route()).as_bytes())?;
 
-    let functions = process_refs_to_dot(flow, tables, output_dir).map_err(|_| {
+    let functions = process_refs_to_dot(flow, tables).map_err(|_| {
         std::io::Error::new(
             std::io::ErrorKind::Other,
             "Could not create dot content for process_refs",
@@ -191,23 +191,13 @@ fn _dump_flow(
     target_dir: &Path,
     provider: &dyn Provider
 ) -> Result<()> {
-    let file_path = flow.source_url.to_file_path().map_err(|_| {
-        std::io::Error::new(
-            std::io::ErrorKind::Other,
-            "Could not get file_stem of flow definition filename",
-        )
-    })?;
+    let file_path = flow.source_url.to_file_path()
+        .map_err(|_| "Could not get file_stem of flow definition filename")?;
     let filename = file_path
         .file_stem()
-        .ok_or_else(|| std::io::Error::new(
-            std::io::ErrorKind::Other,
-            "Could not get file_stem of flow definition filename",
-        ))?
+        .ok_or("Could not get file_stem of flow definition filename")?
         .to_str()
-        .ok_or_else(|| std::io::Error::new(
-            std::io::ErrorKind::Other,
-            "Could not convert filename to string",
-        ))?;
+        .ok_or("Could not convert filename to string")?;
 
     let mut writer = dump::create_output_file(target_dir, filename, "dot")?;
     info!("\tGenerating {}.dot, Use \"dotty\" to view it", filename);
@@ -412,7 +402,7 @@ fn fn_to_dot(function: &FunctionDefinition, parent: PathBuf) -> Result<String> {
 }
 
 // Given a Function as used in the code generation - generate a "dot" format string to draw it
-fn function_to_dot(function: &FunctionDefinition, functions: &[FunctionDefinition], _output_dir: &Path) -> String {
+fn function_to_dot(function: &FunctionDefinition, functions: &[FunctionDefinition]) -> String {
     let mut function_string = String::new();
 
     // modify path to point to the .html page that's built from .md to document the function
@@ -564,11 +554,10 @@ fn output_compiled_function(
     route: &Route,
     tables: &CompilerTables,
     output: &mut String,
-    output_dir: &Path,
 ) {
     for function in &tables.functions {
         if function.route() == route {
-            output.push_str(&function_to_dot(function, &tables.functions, output_dir));
+            output.push_str(&function_to_dot(function, &tables.functions));
         }
     }
 }
@@ -576,7 +565,6 @@ fn output_compiled_function(
 fn process_refs_to_dot(
     flow: &FlowDefinition,
     tables: &CompilerTables,
-    output_dir: &Path,
 ) -> Result<String> {
     let mut output = String::new();
 
@@ -594,13 +582,13 @@ fn process_refs_to_dot(
                 );
                 let _ = write!(output, "label = \"{}\";", subflow.route());
 
-                output.push_str(&process_refs_to_dot(subflow, tables, output_dir)?); // recurse
+                output.push_str(&process_refs_to_dot(subflow, tables)?); // recurse
 
                 // close cluster
                 output.push_str("}\n");
             }
             FunctionProcess(ref function) => {
-                output_compiled_function(function.route(), tables, &mut output, output_dir);
+                output_compiled_function(function.route(), tables, &mut output);
             }
         }
     }
