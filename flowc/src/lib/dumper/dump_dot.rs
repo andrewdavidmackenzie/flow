@@ -2,6 +2,7 @@ use std::collections::hash_map::DefaultHasher;
 use std::fmt::Write as FormatWrite;
 use std::hash::{Hash, Hasher};
 use std::io::Write;
+use std::ops::Add;
 use std::path::Path;
 use std::process::Command;
 
@@ -17,7 +18,6 @@ use flowcore::model::input::InputInitializer::{Always, Once};
 use flowcore::model::io::IOSet;
 use flowcore::model::name::{HasName, Name};
 use flowcore::model::process::Process::{FlowProcess, FunctionProcess};
-use flowcore::model::process_reference::ProcessReference;
 use flowcore::model::route::{HasRoute, Route};
 use flowcore::provider::Provider;
 
@@ -231,29 +231,6 @@ fn _dump_flow(
 static INPUT_PORTS: &[&str] = &["n", "ne", "nw", "w"];
 static OUTPUT_PORTS: &[&str] = &["s", "se", "sw", "e"];
 
-fn absolute_to_relative(target: &str, from_dir: &Path, common_root: &Path) -> Result<String> {
-    println!("target: {target}");
-    println!("from_dir: {}", from_dir.display());
-    println!("common_root: {}", common_root.display());
-    let mut current_path = from_dir.to_path_buf();
-    let mut relative_path_to_root = String::new();
-    // figure out relative path to get to root from output_dir
-    while current_path != common_root {
-        relative_path_to_root.push_str("../");
-        current_path.pop();
-    }
-    Ok(target.replace(&format!("file://{}/", common_root.display()), &relative_path_to_root))
-}
-
-fn remove_file_extension(file_path: &str) -> String {
-    let splits: Vec<&str> = file_path.split('.').collect();
-    if splits.len() > 1 {
-        splits[0..splits.len() - 1].join(".")
-    } else {
-        file_path.to_owned()
-    }
-}
-
 fn write_flow_to_dot(
     flow: &FlowDefinition,
     dot_file: &mut dyn Write,
@@ -276,7 +253,7 @@ fn write_flow_to_dot(
             .ok_or("Could not find process named in process_ref")?;
         match process {
             FlowProcess(ref flow) => {
-                contents.push_str(&flow_to_dot(process_ref, output_dir,
+                contents.push_str(&flow_to_dot(flow, output_dir,
                                                flow.route())?);
             }
             FunctionProcess(ref function) => {
@@ -376,19 +353,33 @@ fn digraph_wrapper_end() -> String {
         .to_string()
 }
 
-fn flow_to_dot(process_ref: &ProcessReference, output_dir: &Path, flow_route: &str) -> Result<String> {
+// figure out relative path to get to root from output_dir
+fn absolute_to_relative(target: &Path, from_dir: &Path) -> Result<String> {
+    println!("target: {}", target.display());
+    println!("from_dir: {}", from_dir.display());
+    let mut current_path = from_dir.to_path_buf();
+    let mut relative_path_to_root = String::new();
+    while !target.starts_with(&current_path) {
+        relative_path_to_root.push_str("../");
+        if !current_path.pop() {
+            bail!("Could not find a common node to calculate a relative path")
+        }
+    }
+    let sub_path_from_common_point = target.strip_prefix(current_path.as_path())
+        .map_err(|_| "Could not calculate sub-path")?;
+    Ok(relative_path_to_root.add(&sub_path_from_common_point.to_string_lossy()))
+}
+
+fn flow_to_dot(flow: &FlowDefinition, output_dir: &Path, flow_route: &str) -> Result<String> {
     // TODO convert lib reference to a file path or url reference to the actual resource
 
-    let flow_source_str = remove_file_extension(&process_ref.source);
+    let flow_source_path = flow.source_url.to_file_path()
+        .map_err(|_| "Could not convert flow's source_url to a File Path")?;
+    let flow_source = flow_source_path.with_extension("");
 
-    let common_root = Path::new(env!("CARGO_MANIFEST_DIR"))
-        .parent()
-        .ok_or("Could not get parent directory of manifest dir")?;
-
-    let relative_path =
-        absolute_to_relative(&flow_source_str, output_dir, common_root)?;
+    let relative_path = absolute_to_relative(&flow_source, output_dir)?;
     Ok(format!("\t\"{}\" [label=\"{}\", style=filled, fillcolor=aquamarine, width=2, height=2, URL=\"{relative_path}.dot.svg\"];\n",
-                       flow_route, process_ref.alias))
+               flow_route, flow.alias))
 }
 
 fn fn_to_dot(function: &FunctionDefinition, output_dir: &Path) -> Result<String> {
@@ -400,12 +391,10 @@ fn fn_to_dot(function: &FunctionDefinition, output_dir: &Path) -> Result<String>
         format!("\\n({})", function.name())
     };
 
-    let common_root = Path::new(env!("CARGO_MANIFEST_DIR"))
-        .parent()
-        .ok_or("Could not get parent directory of manifest dir")?;
-
-    let relative_path = absolute_to_relative(function.get_source_url().as_ref(),
-                                             output_dir, common_root)?;
+    let function_source = function.get_source_url().to_file_path()
+        .map_err(|_| "Could not convert function's source_url to a File Path")?;
+    let relative_path = absolute_to_relative(&function_source,
+                                             output_dir)?;
 
     // modify path to point to the .html page that's built from .md to document the function
     let md_path = relative_path.replace("toml", "html");
@@ -620,28 +609,29 @@ fn process_refs_to_dot(
 
 #[cfg(test)]
 mod test {
-    use super::remove_file_extension;
+    use std::path::Path;
+
+    use crate::dumper::dump_dot::absolute_to_relative;
 
     #[test]
-    fn strip_extension() {
-        assert_eq!("file", remove_file_extension("file.toml"));
+    fn sub_dir_relative_path() {
+        let target = Path::new("file:///Users/andrew/workspace/flow/target/flowsamples/mandlebrot/escapes/escapes.html");
+        let from_dir = Path::new("file:///Users/andrew/workspace/flow/target/flowsamples/mandlebrot");
+
+        let relative = absolute_to_relative(target, from_dir)
+            .expect("Could not form a relative path");
+
+        assert_eq!(relative, "escapes/escapes.html");
     }
 
     #[test]
-    fn strip_last_extension_only() {
-        assert_eq!("file.my.file", remove_file_extension("file.my.file.toml"));
-    }
+    fn other_branch_relative_path() {
+        let target = Path::new("file:///Users/andrew/workspace/flow/target/flowstdlib/control/index_f.html");
+        let from_dir = Path::new("file:///Users/andrew/workspace/flow/target/flowsamples/mandlebrot");
 
-    #[test]
-    fn strip_extension_in_path() {
-        assert_eq!(
-            "/root/home/file",
-            remove_file_extension("/root/home/file.toml")
-        );
-    }
+        let relative = absolute_to_relative(target, from_dir)
+            .expect("Could not form a relative path");
 
-    #[test]
-    fn strip_no_extension() {
-        assert_eq!("file", remove_file_extension("file"));
+        assert_eq!(relative, "../../flowstdlib/control/index_f.html");
     }
 }
