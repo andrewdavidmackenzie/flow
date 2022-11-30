@@ -123,11 +123,15 @@ impl CliRuntimeClient {
             }
             ServerMessage::StdoutEof => ClientMessage::Ack,
             ServerMessage::Stdout(contents) => {
-                println!("{contents}");
+                let stdout = io::stdout();
+                let mut handle = stdout.lock();
+                let _ = handle.write_all(format!("{contents}\n").as_bytes());
                 ClientMessage::Ack
             }
             ServerMessage::Stderr(contents) => {
-                eprintln!("{contents}");
+                let stderr = io::stderr();
+                let mut handle = stderr.lock();
+                let _ = handle.write_all(format!("{contents}\n").as_bytes());
                 ClientMessage::Ack
             }
             ServerMessage::GetStdin => {

@@ -28,7 +28,7 @@ impl ClientConnection {
             .chain_err(|| "Runtime client could not connect to service")?;
 
         requester
-            .connect(&format!("tcp://{}", server_address))
+            .connect(&format!("tcp://{server_address}"))
             .chain_err(|| "Could not connect to service")?;
 
         info!("Client connected to service '{service_name}' at '{server_address}'");
@@ -83,7 +83,7 @@ impl ServerConnection {
 
         let port = pick_unused_port().chain_err(|| "No ports free")?;
 
-        responder.bind(&format!("tcp://*:{}", port))
+        responder.bind(&format!("tcp://*:{port}"))
             .chain_err(|| "Server Connection - could not bind on TCP Socket")?;
 
         enable_service_discovery(CLIENT_SERVER_DISCOVERY_PORT, service_name, port)?;
