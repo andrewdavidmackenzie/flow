@@ -42,7 +42,6 @@ pub struct FunctionDefinition {
     /// The set of outputs this function generates when executed
     #[serde(default, rename = "output")]
     pub outputs: IOSet,
-
     /// As a function can be used multiple times in a single flow, the repeated instances must
     /// be referred to using an alias to disambiguate which instance is being referred to
     #[serde(skip_deserializing)]
