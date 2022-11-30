@@ -17,6 +17,7 @@ use flowcore::model::input::InputInitializer::{Always, Once};
 use flowcore::model::io::IOSet;
 use flowcore::model::name::{HasName, Name};
 use flowcore::model::process::Process::{FlowProcess, FunctionProcess};
+use flowcore::model::process_reference::ProcessReference;
 use flowcore::model::route::{HasRoute, Route};
 use flowcore::provider::Provider;
 
@@ -230,18 +231,18 @@ fn _dump_flow(
 static INPUT_PORTS: &[&str] = &["n", "ne", "nw", "w"];
 static OUTPUT_PORTS: &[&str] = &["s", "se", "sw", "e"];
 
-fn absolute_to_relative(absolute: &str, current_dir: &Path) -> Result<String> {
-    let root_path = Path::new(env!("CARGO_MANIFEST_DIR"))
-        .parent()
-        .ok_or("Could not get parent directory of manifest dir")?;
-    let mut current_path = current_dir.to_path_buf();
-    let mut path_to_root = String::new();
+fn absolute_to_relative(target: &str, from_dir: &Path, common_root: &Path) -> Result<String> {
+    println!("target: {target}");
+    println!("from_dir: {}", from_dir.display());
+    println!("common_root: {}", common_root.display());
+    let mut current_path = from_dir.to_path_buf();
+    let mut relative_path_to_root = String::new();
     // figure out relative path to get to root from output_dir
-    while current_path != root_path {
-        path_to_root.push_str("../");
+    while current_path != common_root {
+        relative_path_to_root.push_str("../");
         current_path.pop();
     }
-    Ok(absolute.replace(&format!("file://{}/", root_path.display()), &path_to_root))
+    Ok(target.replace(&format!("file://{}/", common_root.display()), &relative_path_to_root))
 }
 
 fn remove_file_extension(file_path: &str) -> String {
@@ -257,7 +258,7 @@ fn write_flow_to_dot(
     flow: &FlowDefinition,
     dot_file: &mut dyn Write,
     output_dir: &Path,
-) -> std::io::Result<()> {
+) -> Result<()> {
     dot_file.write_all(digraph_wrapper_start(flow).as_bytes())?;
 
     let mut contents = String::new();
@@ -271,36 +272,15 @@ fn write_flow_to_dot(
     // Process References
     contents.push_str("\n\t// Process References\n");
     for process_ref in &flow.process_refs {
-        let process = flow.subprocesses.get(process_ref.alias()).ok_or_else(|| {
-            std::io::Error::new(
-                std::io::ErrorKind::Other,
-                "Could not find process named in process_ref",
-            )
-        })?;
+        let process = flow.subprocesses.get(process_ref.alias())
+            .ok_or("Could not find process named in process_ref")?;
         match process {
             FlowProcess(ref flow) => {
-                // TODO convert lib reference to a file path or url reference to the actual resource
-
-                let flow_source_str = remove_file_extension(&process_ref.source);
-
-                let relative_path =
-                    absolute_to_relative(&flow_source_str, output_dir).map_err(|_| {
-                        std::io::Error::new(
-                            std::io::ErrorKind::Other,
-                            "Could not absolute flow_source to a relative path",
-                        )
-                    })?;
-                let flow = format!("\t\"{}\" [label=\"{}\", style=filled, fillcolor=aquamarine, width=2, height=2, URL=\"{relative_path}.dot.svg\"];\n",
-                                   flow.route(), process_ref.alias);
-                contents.push_str(&flow);
+                contents.push_str(&flow_to_dot(process_ref, output_dir,
+                                               flow.route())?);
             }
             FunctionProcess(ref function) => {
-                contents.push_str(&fn_to_dot(function, output_dir).map_err(|_| {
-                    std::io::Error::new(
-                        std::io::ErrorKind::Other,
-                        "Could not generate dot code for function",
-                    )
-                })?);
+                contents.push_str(&fn_to_dot(function, output_dir)?);
             }
         }
     }
@@ -313,7 +293,9 @@ fn write_flow_to_dot(
 
     dot_file.write_all(contents.as_bytes())?;
 
-    dot_file.write_all(digraph_wrapper_end().as_bytes())
+    dot_file.write_all(digraph_wrapper_end().as_bytes())?;
+
+    Ok(())
 }
 
 fn index_from_name<T: Hash>(t: &T, length: usize) -> usize {
@@ -394,6 +376,21 @@ fn digraph_wrapper_end() -> String {
         .to_string()
 }
 
+fn flow_to_dot(process_ref: &ProcessReference, output_dir: &Path, flow_route: &str) -> Result<String> {
+    // TODO convert lib reference to a file path or url reference to the actual resource
+
+    let flow_source_str = remove_file_extension(&process_ref.source);
+
+    let common_root = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .ok_or("Could not get parent directory of manifest dir")?;
+
+    let relative_path =
+        absolute_to_relative(&flow_source_str, output_dir, common_root)?;
+    Ok(format!("\t\"{}\" [label=\"{}\", style=filled, fillcolor=aquamarine, width=2, height=2, URL=\"{relative_path}.dot.svg\"];\n",
+                       flow_route, process_ref.alias))
+}
+
 fn fn_to_dot(function: &FunctionDefinition, output_dir: &Path) -> Result<String> {
     let mut dot_string = String::new();
 
@@ -403,7 +400,12 @@ fn fn_to_dot(function: &FunctionDefinition, output_dir: &Path) -> Result<String>
         format!("\\n({})", function.name())
     };
 
-    let relative_path = absolute_to_relative(function.get_source_url().as_ref(), output_dir)?;
+    let common_root = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .ok_or("Could not get parent directory of manifest dir")?;
+
+    let relative_path = absolute_to_relative(function.get_source_url().as_ref(),
+                                             output_dir, common_root)?;
 
     // modify path to point to the .html page that's built from .md to document the function
     let md_path = relative_path.replace("toml", "html");
