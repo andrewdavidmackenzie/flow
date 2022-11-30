@@ -3,7 +3,7 @@ use std::fmt::Write as FormatWrite;
 use std::hash::{Hash, Hasher};
 use std::io::Write;
 use std::ops::Add;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 
 use log::{debug, info};
@@ -211,7 +211,7 @@ fn _dump_flow(
 
     let mut writer = dump::create_output_file(target_dir, filename, "dot")?;
     info!("\tGenerating {}.dot, Use \"dotty\" to view it", filename);
-    write_flow_to_dot(flow, &mut writer, target_dir)?;
+    write_flow_to_dot(flow, &mut writer)?;
 
     // Dump sub-flows
     for subprocess in &flow.subprocesses {
@@ -234,7 +234,6 @@ static OUTPUT_PORTS: &[&str] = &["s", "se", "sw", "e"];
 fn write_flow_to_dot(
     flow: &FlowDefinition,
     dot_file: &mut dyn Write,
-    output_dir: &Path,
 ) -> Result<()> {
     dot_file.write_all(digraph_wrapper_start(flow).as_bytes())?;
 
@@ -252,13 +251,16 @@ fn write_flow_to_dot(
         let process = flow.subprocesses.get(process_ref.alias())
             .ok_or("Could not find process named in process_ref")?;
         match process {
-            FlowProcess(ref flow) => {
-                contents.push_str(&flow_to_dot(flow, output_dir,
-                                               flow.route())?);
-            }
-            FunctionProcess(ref function) => {
-                contents.push_str(&fn_to_dot(function, output_dir)?);
-            }
+            FlowProcess(ref subflow) =>
+                contents.push_str(&flow_to_dot(subflow,
+                                               flow.source_url.to_file_path()
+                                                   .map_err(|_| "Could not convert Url to file path")?,
+                                               subflow.route())?),
+            FunctionProcess(ref function) =>
+                contents.push_str(&fn_to_dot(function,
+                                             flow.source_url.to_file_path()
+                                                   .map_err(|_| "Could not convert Url to file path")?
+                                            )?),
         }
     }
 
@@ -353,36 +355,36 @@ fn digraph_wrapper_end() -> String {
         .to_string()
 }
 
-// figure out relative path to get to root from output_dir
-fn absolute_to_relative(target: &Path, from_dir: &Path) -> Result<String> {
-    println!("target: {}", target.display());
-    println!("from_dir: {}", from_dir.display());
-    let mut current_path = from_dir.to_path_buf();
+// figure out a relative path to get to target from source
+fn absolute_to_relative(target: &Path, source: PathBuf) -> Result<String> {
+//    println!("cargo:warning=source: {}", source.display());
+//    println!("cargo:warning=target: {}", target.display());
+    let mut current_path = source.parent()
+        .ok_or("Could not get directory containing source")?.to_path_buf();
     let mut relative_path_to_root = String::new();
     while !target.starts_with(&current_path) {
         relative_path_to_root.push_str("../");
         if !current_path.pop() {
-            bail!("Could not find a common node to calculate a relative path")
+            bail!("Could not find a common directory to calculate a relative path")
         }
     }
     let sub_path_from_common_point = target.strip_prefix(current_path.as_path())
         .map_err(|_| "Could not calculate sub-path")?;
-    Ok(relative_path_to_root.add(&sub_path_from_common_point.to_string_lossy()))
+    relative_path_to_root = relative_path_to_root
+        .add(&sub_path_from_common_point.to_string_lossy());
+//    println!("cargo:warning=relative: {}", relative_path_to_root);
+    Ok(relative_path_to_root)
 }
 
-fn flow_to_dot(flow: &FlowDefinition, output_dir: &Path, flow_route: &str) -> Result<String> {
-    // TODO convert lib reference to a file path or url reference to the actual resource
-
+fn flow_to_dot(flow: &FlowDefinition, parent: PathBuf, flow_route: &str) -> Result<String> {
     let flow_source_path = flow.source_url.to_file_path()
         .map_err(|_| "Could not convert flow's source_url to a File Path")?;
-    let flow_source = flow_source_path.with_extension("");
-
-    let relative_path = absolute_to_relative(&flow_source, output_dir)?;
+    let relative_path = absolute_to_relative(&flow_source_path, parent)?;
     Ok(format!("\t\"{}\" [label=\"{}\", style=filled, fillcolor=aquamarine, width=2, height=2, URL=\"{relative_path}.dot.svg\"];\n",
                flow_route, flow.alias))
 }
 
-fn fn_to_dot(function: &FunctionDefinition, output_dir: &Path) -> Result<String> {
+fn fn_to_dot(function: &FunctionDefinition, parent: PathBuf) -> Result<String> {
     let mut dot_string = String::new();
 
     let name = if function.name() == function.alias() {
@@ -391,10 +393,9 @@ fn fn_to_dot(function: &FunctionDefinition, output_dir: &Path) -> Result<String>
         format!("\\n({})", function.name())
     };
 
-    let function_source = function.get_source_url().to_file_path()
+    let function_source_path = function.get_source_url().to_file_path()
         .map_err(|_| "Could not convert function's source_url to a File Path")?;
-    let relative_path = absolute_to_relative(&function_source,
-                                             output_dir)?;
+    let relative_path = absolute_to_relative(&function_source_path, parent)?;
 
     // modify path to point to the .html page that's built from .md to document the function
     let md_path = relative_path.replace("toml", "html");
@@ -611,14 +612,29 @@ fn process_refs_to_dot(
 mod test {
     use std::path::Path;
 
+    use url::Url;
+
     use crate::dumper::dump_dot::absolute_to_relative;
 
     #[test]
     fn sub_dir_relative_path() {
-        let target = Path::new("file:///Users/andrew/workspace/flow/target/flowsamples/mandlebrot/escapes/escapes.html");
-        let from_dir = Path::new("file:///Users/andrew/workspace/flow/target/flowsamples/mandlebrot");
+        let target = Path::new("/Users/andrew/workspace/flow/target/flowsamples/mandlebrot/escapes/escapes.html");
+        let parent = Path::new("/Users/andrew/workspace/flow/target/flowsamples/mandlebrot/render.dot.svg");
 
-        let relative = absolute_to_relative(target, from_dir)
+        let relative = absolute_to_relative(target, parent.to_path_buf())
+            .expect("Could not form a relative path");
+
+        assert_eq!(relative, "escapes/escapes.html");
+    }
+
+    #[test]
+    fn sub_dir_mixed_schemes_relative_path() {
+        let target_url = Url::parse("file:///Users/andrew/workspace/flow/target/flowsamples/mandlebrot/escapes/escapes.html")
+            .expect("Could not parse Url");
+        let target = target_url.to_file_path().expect("Could not convert to file path");
+        let parent = Path::new("/Users/andrew/workspace/flow/target/flowsamples/mandlebrot/render.dot.svg");
+
+        let relative = absolute_to_relative(&target, parent.to_path_buf())
             .expect("Could not form a relative path");
 
         assert_eq!(relative, "escapes/escapes.html");
@@ -627,9 +643,9 @@ mod test {
     #[test]
     fn other_branch_relative_path() {
         let target = Path::new("file:///Users/andrew/workspace/flow/target/flowstdlib/control/index_f.html");
-        let from_dir = Path::new("file:///Users/andrew/workspace/flow/target/flowsamples/mandlebrot");
+        let parent = Path::new("file:///Users/andrew/workspace/flow/target/flowsamples/mandlebrot/render.dot.svg");
 
-        let relative = absolute_to_relative(target, from_dir)
+        let relative = absolute_to_relative(target, parent.to_path_buf())
             .expect("Could not form a relative path");
 
         assert_eq!(relative, "../../flowstdlib/control/index_f.html");
