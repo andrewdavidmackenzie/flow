@@ -470,16 +470,17 @@ fn input_initializers(function: &FunctionDefinition, function_identifier: &str) 
 
             // Add a node for the source of the initializer
             let _ = writeln!(initializers,
-                "\"initializer{}_{}\"  [style=invis] [fontcolor=blue] [label=\"{}\"];",
-                function_identifier, input_number, value_string
+                "\"initializer{}_{}\"  [style=invis];",
+                function_identifier, input_number
             );
 
             let input_port = input_name_to_port(input.name());
 
             // Add connection from hidden node to the input being initialized
-            let _ = writeln!(initializers, "\"initializer{}_{}\" -> \"{}\":{} [style={}] [len=0.1] [color=blue];",
+            let _ = writeln!(initializers,
+                             "\"initializer{}_{}\" -> \"{}\":{} [style={}]  [taillabel=\"{}\"] [len=0.1] [color=blue];",
                             function_identifier, input_number,
-                             function_identifier, input_port, line_style);
+                             function_identifier, input_port, line_style, value_string);
         }
     }
 
