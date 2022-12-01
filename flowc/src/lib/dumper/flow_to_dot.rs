@@ -282,7 +282,7 @@ fn subfunction_to_dot(function: &FunctionDefinition, parent: PathBuf) -> Result<
     // modify path to point to the .html page that's built from .md to document the function
     let md_path = relative_path.replace("toml", "html");
     let _ = writeln!(dot_string,
-                     "\t\"{}\" [style=filled, fillcolor=coral, URL=\"{}\", label=\"{}{}\"]; // function @ route, label = function name",
+                     "\t\"{}\" [style=filled, fillcolor=coral, URL=\"{}\", label=\"{}{}\"];",
                      function.route(),
                      md_path,
                      function.alias(),
@@ -332,24 +332,24 @@ pub (crate) fn input_initializers_to_dot(function: &FunctionDefinition, function
 }
 
 fn connection_to_dot(connection: &Connection) -> String {
+    // ensure no array index included in the source - just get the input route
     let (from_route, number, array_index) =
         connection.from_io().route().without_trailing_array_index();
 
     let (from_node, from_label) =
         node_from_io_route(&from_route, connection.from_io().name());
-    let (to_node, to_label) = node_from_io_route(
-        connection.to_io().route(),
-        connection.to_io().name(),
-    );
+
+    let (to_node, to_label) =
+        node_from_io_route(connection.to_io().route(), connection.to_io().name());
 
     let from_port = if connection.from_io().flow_io() {
-        "s"
+        "s" // connect from the "tip" of the flow input pentagon
     } else {
         output_name_to_port(connection.from_io().name())
     };
 
     let to_port = if connection.to_io().flow_io() {
-        "n"
+        "n" // connect to the tip of the flow output pentagon
     } else {
         input_name_to_port(connection.to_io().name())
     };

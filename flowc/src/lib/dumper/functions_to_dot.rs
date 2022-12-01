@@ -142,10 +142,7 @@ fn function_to_dot(function: &FunctionDefinition, functions: &[FunctionDefinitio
                      function.get_id()
     ));
 
-    function_string.push_str(&input_initializers_to_dot(
-        function,
-        &format!("r{}", function.get_id()),
-    ));
+    function_string.push_str(&input_initializers_to_dot(function, &format!("r{}", function.get_id())));
 
     // Add edges for each of the outputs of this function to other ones
     for destination in function.get_output_connections() {
