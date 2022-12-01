@@ -2,7 +2,8 @@ use std::collections::hash_map::DefaultHasher;
 use std::fmt::Write as FormatWrite;
 use std::hash::{Hash, Hasher};
 use std::io::Write;
-use std::path::Path;
+use std::ops::Add;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 
 use log::{debug, info};
@@ -88,7 +89,7 @@ pub fn dump_functions(
     )?;
     dot_file.write_all(format!("labelloc=t;\nlabel = \"{}\";\n", flow.route()).as_bytes())?;
 
-    let functions = process_refs_to_dot(flow, tables, output_dir).map_err(|_| {
+    let functions = process_refs_to_dot(flow, tables).map_err(|_| {
         std::io::Error::new(
             std::io::ErrorKind::Other,
             "Could not create dot content for process_refs",
@@ -190,27 +191,17 @@ fn _dump_flow(
     target_dir: &Path,
     provider: &dyn Provider
 ) -> Result<()> {
-    let file_path = flow.source_url.to_file_path().map_err(|_| {
-        std::io::Error::new(
-            std::io::ErrorKind::Other,
-            "Could not get file_stem of flow definition filename",
-        )
-    })?;
+    let file_path = flow.source_url.to_file_path()
+        .map_err(|_| "Could not get file_stem of flow definition filename")?;
     let filename = file_path
         .file_stem()
-        .ok_or_else(|| std::io::Error::new(
-            std::io::ErrorKind::Other,
-            "Could not get file_stem of flow definition filename",
-        ))?
+        .ok_or("Could not get file_stem of flow definition filename")?
         .to_str()
-        .ok_or_else(|| std::io::Error::new(
-            std::io::ErrorKind::Other,
-            "Could not convert filename to string",
-        ))?;
+        .ok_or("Could not convert filename to string")?;
 
     let mut writer = dump::create_output_file(target_dir, filename, "dot")?;
     info!("\tGenerating {}.dot, Use \"dotty\" to view it", filename);
-    write_flow_to_dot(flow, &mut writer, target_dir)?;
+    write_flow_to_dot(flow, &mut writer)?;
 
     // Dump sub-flows
     for subprocess in &flow.subprocesses {
@@ -230,34 +221,10 @@ fn _dump_flow(
 static INPUT_PORTS: &[&str] = &["n", "ne", "nw", "w"];
 static OUTPUT_PORTS: &[&str] = &["s", "se", "sw", "e"];
 
-fn absolute_to_relative(absolute: &str, current_dir: &Path) -> Result<String> {
-    let root_path = Path::new(env!("CARGO_MANIFEST_DIR"))
-        .parent()
-        .ok_or("Could not get parent directory of manifest dir")?;
-    let mut current_path = current_dir.to_path_buf();
-    let mut path_to_root = String::new();
-    // figure out relative path to get to root from output_dir
-    while current_path != root_path {
-        path_to_root.push_str("../");
-        current_path.pop();
-    }
-    Ok(absolute.replace(&format!("file://{}/", root_path.display()), &path_to_root))
-}
-
-fn remove_file_extension(file_path: &str) -> String {
-    let splits: Vec<&str> = file_path.split('.').collect();
-    if splits.len() > 1 {
-        splits[0..splits.len() - 1].join(".")
-    } else {
-        file_path.to_owned()
-    }
-}
-
 fn write_flow_to_dot(
     flow: &FlowDefinition,
     dot_file: &mut dyn Write,
-    output_dir: &Path,
-) -> std::io::Result<()> {
+) -> Result<()> {
     dot_file.write_all(digraph_wrapper_start(flow).as_bytes())?;
 
     let mut contents = String::new();
@@ -271,37 +238,19 @@ fn write_flow_to_dot(
     // Process References
     contents.push_str("\n\t// Process References\n");
     for process_ref in &flow.process_refs {
-        let process = flow.subprocesses.get(process_ref.alias()).ok_or_else(|| {
-            std::io::Error::new(
-                std::io::ErrorKind::Other,
-                "Could not find process named in process_ref",
-            )
-        })?;
+        let process = flow.subprocesses.get(process_ref.alias())
+            .ok_or("Could not find process named in process_ref")?;
         match process {
-            FlowProcess(ref flow) => {
-                // TODO convert lib reference to a file path or url reference to the actual resource
-
-                let flow_source_str = remove_file_extension(&process_ref.source);
-
-                let relative_path =
-                    absolute_to_relative(&flow_source_str, output_dir).map_err(|_| {
-                        std::io::Error::new(
-                            std::io::ErrorKind::Other,
-                            "Could not absolute flow_source to a relative path",
-                        )
-                    })?;
-                let flow = format!("\t\"{}\" [label=\"{}\", style=filled, fillcolor=aquamarine, width=2, height=2, URL=\"{relative_path}.dot.svg\"];\n",
-                                   flow.route(), process_ref.alias);
-                contents.push_str(&flow);
-            }
-            FunctionProcess(ref function) => {
-                contents.push_str(&fn_to_dot(function, output_dir).map_err(|_| {
-                    std::io::Error::new(
-                        std::io::ErrorKind::Other,
-                        "Could not generate dot code for function",
-                    )
-                })?);
-            }
+            FlowProcess(ref subflow) =>
+                contents.push_str(&flow_to_dot(subflow,
+                                               flow.source_url.to_file_path()
+                                                   .map_err(|_| "Could not convert Url to file path")?,
+                                               subflow.route())?),
+            FunctionProcess(ref function) =>
+                contents.push_str(&fn_to_dot(function,
+                                             flow.source_url.to_file_path()
+                                                   .map_err(|_| "Could not convert Url to file path")?
+                                            )?),
         }
     }
 
@@ -313,7 +262,9 @@ fn write_flow_to_dot(
 
     dot_file.write_all(contents.as_bytes())?;
 
-    dot_file.write_all(digraph_wrapper_end().as_bytes())
+    dot_file.write_all(digraph_wrapper_end().as_bytes())?;
+
+    Ok(())
 }
 
 fn index_from_name<T: Hash>(t: &T, length: usize) -> usize {
@@ -394,7 +345,36 @@ fn digraph_wrapper_end() -> String {
         .to_string()
 }
 
-fn fn_to_dot(function: &FunctionDefinition, output_dir: &Path) -> Result<String> {
+// figure out a relative path to get to target from source
+fn absolute_to_relative(target: &Path, source: PathBuf) -> Result<String> {
+//    println!("cargo:warning=source: {}", source.display());
+//    println!("cargo:warning=target: {}", target.display());
+    let mut current_path = source.parent()
+        .ok_or("Could not get directory containing source")?.to_path_buf();
+    let mut relative_path_to_root = String::new();
+    while !target.starts_with(&current_path) {
+        relative_path_to_root.push_str("../");
+        if !current_path.pop() {
+            bail!("Could not find a common directory to calculate a relative path")
+        }
+    }
+    let sub_path_from_common_point = target.strip_prefix(current_path.as_path())
+        .map_err(|_| "Could not calculate sub-path")?;
+    relative_path_to_root = relative_path_to_root
+        .add(&sub_path_from_common_point.to_string_lossy());
+//    println!("cargo:warning=relative: {}", relative_path_to_root);
+    Ok(relative_path_to_root)
+}
+
+fn flow_to_dot(flow: &FlowDefinition, parent: PathBuf, flow_route: &str) -> Result<String> {
+    let flow_source_path = flow.source_url.to_file_path()
+        .map_err(|_| "Could not convert flow's source_url to a File Path")?;
+    let relative_path = absolute_to_relative(&flow_source_path, parent)?;
+    Ok(format!("\t\"{}\" [label=\"{}\", style=filled, fillcolor=aquamarine, width=2, height=2, URL=\"{relative_path}.dot.svg\"];\n",
+               flow_route, flow.alias))
+}
+
+fn fn_to_dot(function: &FunctionDefinition, parent: PathBuf) -> Result<String> {
     let mut dot_string = String::new();
 
     let name = if function.name() == function.alias() {
@@ -403,7 +383,9 @@ fn fn_to_dot(function: &FunctionDefinition, output_dir: &Path) -> Result<String>
         format!("\\n({})", function.name())
     };
 
-    let relative_path = absolute_to_relative(function.get_source_url().as_ref(), output_dir)?;
+    let function_source_path = function.get_source_url().to_file_path()
+        .map_err(|_| "Could not convert function's source_url to a File Path")?;
+    let relative_path = absolute_to_relative(&function_source_path, parent)?;
 
     // modify path to point to the .html page that's built from .md to document the function
     let md_path = relative_path.replace("toml", "html");
@@ -420,7 +402,7 @@ fn fn_to_dot(function: &FunctionDefinition, output_dir: &Path) -> Result<String>
 }
 
 // Given a Function as used in the code generation - generate a "dot" format string to draw it
-fn function_to_dot(function: &FunctionDefinition, functions: &[FunctionDefinition], _output_dir: &Path) -> String {
+fn function_to_dot(function: &FunctionDefinition, functions: &[FunctionDefinition]) -> String {
     let mut function_string = String::new();
 
     // modify path to point to the .html page that's built from .md to document the function
@@ -572,11 +554,10 @@ fn output_compiled_function(
     route: &Route,
     tables: &CompilerTables,
     output: &mut String,
-    output_dir: &Path,
 ) {
     for function in &tables.functions {
         if function.route() == route {
-            output.push_str(&function_to_dot(function, &tables.functions, output_dir));
+            output.push_str(&function_to_dot(function, &tables.functions));
         }
     }
 }
@@ -584,7 +565,6 @@ fn output_compiled_function(
 fn process_refs_to_dot(
     flow: &FlowDefinition,
     tables: &CompilerTables,
-    output_dir: &Path,
 ) -> Result<String> {
     let mut output = String::new();
 
@@ -602,13 +582,13 @@ fn process_refs_to_dot(
                 );
                 let _ = write!(output, "label = \"{}\";", subflow.route());
 
-                output.push_str(&process_refs_to_dot(subflow, tables, output_dir)?); // recurse
+                output.push_str(&process_refs_to_dot(subflow, tables)?); // recurse
 
                 // close cluster
                 output.push_str("}\n");
             }
             FunctionProcess(ref function) => {
-                output_compiled_function(function.route(), tables, &mut output, output_dir);
+                output_compiled_function(function.route(), tables, &mut output);
             }
         }
     }
@@ -618,28 +598,44 @@ fn process_refs_to_dot(
 
 #[cfg(test)]
 mod test {
-    use super::remove_file_extension;
+    use std::path::Path;
+
+    use url::Url;
+
+    use crate::dumper::dump_dot::absolute_to_relative;
 
     #[test]
-    fn strip_extension() {
-        assert_eq!("file", remove_file_extension("file.toml"));
+    fn sub_dir_relative_path() {
+        let target = Path::new("/Users/andrew/workspace/flow/target/flowsamples/mandlebrot/escapes/escapes.html");
+        let parent = Path::new("/Users/andrew/workspace/flow/target/flowsamples/mandlebrot/render.dot.svg");
+
+        let relative = absolute_to_relative(target, parent.to_path_buf())
+            .expect("Could not form a relative path");
+
+        assert_eq!(relative, "escapes/escapes.html");
     }
 
     #[test]
-    fn strip_last_extension_only() {
-        assert_eq!("file.my.file", remove_file_extension("file.my.file.toml"));
+    fn sub_dir_mixed_schemes_relative_path() {
+        let target_url = Url::parse("file:///Users/andrew/workspace/flow/target/flowsamples/mandlebrot/escapes/escapes.html")
+            .expect("Could not parse Url");
+        let target = target_url.to_file_path().expect("Could not convert to file path");
+        let parent = Path::new("/Users/andrew/workspace/flow/target/flowsamples/mandlebrot/render.dot.svg");
+
+        let relative = absolute_to_relative(&target, parent.to_path_buf())
+            .expect("Could not form a relative path");
+
+        assert_eq!(relative, "escapes/escapes.html");
     }
 
     #[test]
-    fn strip_extension_in_path() {
-        assert_eq!(
-            "/root/home/file",
-            remove_file_extension("/root/home/file.toml")
-        );
-    }
+    fn other_branch_relative_path() {
+        let target = Path::new("file:///Users/andrew/workspace/flow/target/flowstdlib/control/index_f.html");
+        let parent = Path::new("file:///Users/andrew/workspace/flow/target/flowsamples/mandlebrot/render.dot.svg");
 
-    #[test]
-    fn strip_no_extension() {
-        assert_eq!("file", remove_file_extension("file"));
+        let relative = absolute_to_relative(target, parent.to_path_buf())
+            .expect("Could not form a relative path");
+
+        assert_eq!(relative, "../../flowstdlib/control/index_f.html");
     }
 }

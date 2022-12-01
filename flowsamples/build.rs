@@ -61,10 +61,8 @@ fn compile_sample(sample_dir: &str, output_dir: &str) {
                             "-o", output_dir,
                             sample_dir];
 
-    if !command
-        .args(&command_args).status().expect("Could not get status").success() {
-        eprintln!("Error building sample, command line\n flowc {}",
-                          command_args.join(" "));
+    if !command.args(&command_args).status().expect("Could not get status").success() {
+        eprintln!("Error building sample, command line\n flowc {}", command_args.join(" "));
         std::process::exit(1);
     }
 }
