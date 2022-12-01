@@ -11,7 +11,7 @@ use flowcore::model::process::Process::FlowProcess;
 use flowcore::provider::Provider;
 
 use crate::compiler::compile::CompilerTables;
-use crate::dumper::dump_dot;
+use crate::dumper::functions_to_dot;
 use crate::errors::*;
 
 /// Dump the compiler tables of a loaded flow in human readable format to a specified
@@ -128,7 +128,7 @@ pub fn dump_functions(
     output_dir: &Path,
 ) -> std::io::Result<()> {
     info!("\n=== Dumper: Generating {}/functions.dump", output_dir.display());
-    dump_dot::dump_functions(flow, tables, output_dir)?;
+    functions_to_dot::dump_functions(flow, tables, output_dir)?;
 
     let mut writer = create_output_file(output_dir, "functions", "dump")?;
     dump_table(tables.functions.iter(), &mut writer)
@@ -144,7 +144,8 @@ fn dump_table<C: Iterator>(table: C, writer: &mut dyn Write) -> std::io::Result<
     writer.write_all(b"\n")
 }
 
-/// Dump a human readable representation of loaded flow definition to a file in `output_dir`
+/// Dump a human readable representation of loaded [FlowDefinition] to a file in `output_dir`
+/// using [Provider]
 ///
 /// # Example
 /// ```

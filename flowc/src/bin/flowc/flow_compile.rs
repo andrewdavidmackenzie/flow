@@ -12,7 +12,7 @@ use url::Url;
 use flowclib::compiler::compile;
 use flowclib::compiler::compile::CompilerTables;
 use flowclib::compiler::parser;
-use flowclib::dumper::{dump, dump_dot};
+use flowclib::dumper::{dump, flow_to_dot, functions_to_dot};
 use flowclib::generator::generate;
 use flowcore::model::flow_definition::FlowDefinition;
 use flowcore::model::process::Process::FlowProcess;
@@ -123,9 +123,9 @@ fn dump(
     }
 
     if options.graphs {
-        dump_dot::dump_flow(flow, &options.output_dir, provider)?;
-        dump_dot::dump_functions(flow, tables, &options.output_dir)?;
-        dump_dot::generate_svgs(&options.output_dir, true)?;
+        flow_to_dot::dump_flow(flow, &options.output_dir, provider)?;
+        functions_to_dot::dump_functions(flow, tables, &options.output_dir)?;
+        flow_to_dot::generate_svgs(&options.output_dir, true)?;
     }
 
     Ok(())
