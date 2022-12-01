@@ -16,7 +16,7 @@ use flowcore::model::flow_definition::FlowDefinition;
 use flowcore::model::function_definition::FunctionDefinition;
 use flowcore::model::input::InputInitializer::{Always, Once};
 use flowcore::model::io::IOSet;
-use flowcore::model::name::{HasName, Name};
+use flowcore::model::name::HasName;
 use flowcore::model::process::Process::{FlowProcess, FunctionProcess};
 use flowcore::model::route::{HasRoute, Route};
 use flowcore::provider::Provider;
@@ -336,34 +336,40 @@ fn connection_to_dot(connection: &Connection) -> String {
     let (from_route, number, array_index) =
         connection.from_io().route().without_trailing_array_index();
 
-    let (from_node, from_label) =
-        node_from_io_route(&from_route, connection.from_io().name());
-
-    let (to_node, to_label) =
-        node_from_io_route(connection.to_io().route(), connection.to_io().name());
-
-    let from_port = if connection.from_io().flow_io() {
-        "s" // connect from the "tip" of the flow input pentagon
+    let (from_port, from_name, from_node) = if connection.from_io().flow_io() {
+        ("s",
+         "", // connect from the "tip" of the flow input pentagon, no need for name
+         from_route.to_string())
     } else {
-        output_name_to_port(connection.from_io().name())
+        (output_name_to_port(connection.from_io().name()),
+         connection.from_io().name().as_str(),
+         strip_io_name(&from_route, connection.from_io().name().as_str()))
     };
 
-    let to_port = if connection.to_io().flow_io() {
-        "n" // connect to the tip of the flow output pentagon
+    let (to_port, to_name, to_node) = if connection.to_io().flow_io() {
+        ("n",
+         "", // connect to the tip of the flow output pentagon, no need for name
+            connection.to_io().route().to_string()
+        )
     } else {
-        input_name_to_port(connection.to_io().name())
+        (input_name_to_port(connection.to_io().name()),
+         connection.to_io().name().as_str(),
+         strip_io_name(connection.to_io().route(), connection.to_io().name().as_str())
+        )
     };
 
     if array_index {
         format!(
             "\n\t\"{}\":{} -> \"{}\":{} [xlabel=\"{}[{}]\", headlabel=\"{}\"];",
-            from_node, from_port, to_node, to_port, from_label, number, to_label
-        )
+            from_node, from_port,
+            to_node, to_port,
+            from_name, number, to_name)
     } else {
         format!(
             "\n\t\"{}\":{} -> \"{}\":{} [xlabel=\"{}\", headlabel=\"{}\"];",
-            from_node, from_port, to_node, to_port, from_label, to_label
-        )
+            from_node, from_port,
+            to_node, to_port,
+            from_name, to_name)
     }
 }
 
@@ -404,8 +410,9 @@ pub(crate) fn output_name_to_port<T: Hash>(t: &T) -> &str {
 }
 
 // Return the route to a node (function, flow) from an IO route by stripping off any IO Name at the end
-fn node_from_io_route(route: &Route, name: &Name) -> (String, String) {
-    (route.to_string().strip_suffix(&name.to_string()).unwrap_or(route).to_string(), name.to_string())
+// TODO Make this a parent() method of Route!!!
+fn strip_io_name(route: &Route, name: &str) -> String {
+    route.to_string().strip_suffix(&format!("/{name}")).unwrap_or(route).to_string()
 }
 
 // figure out a relative path to get to target from source
