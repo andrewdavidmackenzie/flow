@@ -13,7 +13,7 @@
 <!-- /primitives/add -->
 <g id="node1" class="node">
 <title>/primitives/add</title>
-<g id="a_node1"><a xlink:href="../../../target/flowstdlib/math/add/add.html" xlink:title="add">
+<g id="a_node1"><a xlink:href="../../target/flowstdlib/math/add/add.html" xlink:title="add">
 <ellipse fill="coral" stroke="black" cx="358.89" cy="-268.74" rx="27.9" ry="18"/>
 <text text-anchor="middle" x="358.89" y="-265.04" font-family="Times,serif" font-size="14.00">add</text>
 </a>
@@ -51,7 +51,7 @@
 <!-- /primitives/divide -->
 <g id="node4" class="node">
 <title>/primitives/divide</title>
-<g id="a_node4"><a xlink:href="../../../target/flowstdlib/math/divide/divide.html" xlink:title="divide">
+<g id="a_node4"><a xlink:href="../../target/flowstdlib/math/divide/divide.html" xlink:title="divide">
 <ellipse fill="coral" stroke="black" cx="814.89" cy="-268.74" rx="38.99" ry="18"/>
 <text text-anchor="middle" x="814.89" y="-265.04" font-family="Times,serif" font-size="14.00">divide</text>
 </a>
@@ -68,7 +68,7 @@
 <!-- /primitives/tap -->
 <g id="node6" class="node">
 <title>/primitives/tap</title>
-<g id="a_node6"><a xlink:href="../../../target/flowstdlib/control/tap/tap.html" xlink:title="tap">
+<g id="a_node6"><a xlink:href="../../target/flowstdlib/control/tap/tap.html" xlink:title="tap">
 <ellipse fill="coral" stroke="black" cx="148.89" cy="-108.74" rx="27" ry="18"/>
 <text text-anchor="middle" x="148.89" y="-105.04" font-family="Times,serif" font-size="14.00">tap</text>
 </a>
@@ -77,7 +77,7 @@
 <!-- /primitives/print -->
 <g id="node10" class="node">
 <title>/primitives/print</title>
-<g id="a_node10"><a xlink:href="../../../flowr/src/cli/stdio/stdout.html" xlink:title="print\n(stdout)">
+<g id="a_node10"><a xlink:href="../../flowr/src/cli/stdio/stdout.html" xlink:title="print\n(stdout)">
 <ellipse fill="coral" stroke="black" cx="515.89" cy="-26.87" rx="51.74" ry="26.74"/>
 <text text-anchor="middle" x="515.89" y="-30.67" font-family="Times,serif" font-size="14.00">print</text>
 <text text-anchor="middle" x="515.89" y="-15.67" font-family="Times,serif" font-size="14.00">(stdout)</text>
@@ -101,7 +101,7 @@
 <!-- /primitives/compare -->
 <g id="node8" class="node">
 <title>/primitives/compare</title>
-<g id="a_node8"><a xlink:href="../../../target/flowstdlib/math/compare/compare.html" xlink:title="compare">
+<g id="a_node8"><a xlink:href="../../target/flowstdlib/math/compare/compare.html" xlink:title="compare">
 <ellipse fill="coral" stroke="black" cx="1104.89" cy="-268.74" rx="50.89" ry="18"/>
 <text text-anchor="middle" x="1104.89" y="-265.04" font-family="Times,serif" font-size="14.00">compare</text>
 </a>

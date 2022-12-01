@@ -13,7 +13,7 @@
 <!-- /router/readline -->
 <g id="node1" class="node">
 <title>/router/readline</title>
-<g id="a_node1"><a xlink:href="../../../flowr/src/cli/stdio/readline.html" xlink:title="readline">
+<g id="a_node1"><a xlink:href="../../flowr/src/cli/stdio/readline.html" xlink:title="readline">
 <ellipse fill="coral" stroke="black" cx="48.75" cy="-395.74" rx="48.99" ry="18"/>
 <text text-anchor="middle" x="48.75" y="-392.04" font-family="Times,serif" font-size="14.00">readline</text>
 </a>
@@ -22,7 +22,7 @@
 <!-- /router/accumulate_triples -->
 <g id="node2" class="node">
 <title>/router/accumulate_triples</title>
-<g id="a_node2"><a xlink:href="../../../target/flowstdlib/data/accumulate/accumulate.html" xlink:title="accumulate_triples\n(accumulate)">
+<g id="a_node2"><a xlink:href="../../target/flowstdlib/data/accumulate/accumulate.html" xlink:title="accumulate_triples\n(accumulate)">
 <ellipse fill="coral" stroke="black" cx="501.75" cy="-245.87" rx="107.46" ry="26.74"/>
 <text text-anchor="middle" x="501.75" y="-249.67" font-family="Times,serif" font-size="14.00">accumulate_triples</text>
 <text text-anchor="middle" x="501.75" y="-234.67" font-family="Times,serif" font-size="14.00">(accumulate)</text>
@@ -48,7 +48,7 @@
 <!-- /router/A_tracker -->
 <g id="node5" class="node">
 <title>/router/A_tracker</title>
-<g id="a_node5"><a xlink:href="path_tracker.dot.svg" xlink:title="A_tracker">
+<g id="a_node5"><a xlink:href="path_tracker.toml.dot.svg" xlink:title="A_tracker">
 <ellipse fill="aquamarine" stroke="black" cx="976.75" cy="-395.74" rx="72" ry="72"/>
 <text text-anchor="middle" x="976.75" y="-392.04" font-family="Times,serif" font-size="14.00">A_tracker</text>
 </a>
@@ -57,7 +57,7 @@
 <!-- /router/B_tracker -->
 <g id="node6" class="node">
 <title>/router/B_tracker</title>
-<g id="a_node6"><a xlink:href="path_tracker.dot.svg" xlink:title="B_tracker">
+<g id="a_node6"><a xlink:href="path_tracker.toml.dot.svg" xlink:title="B_tracker">
 <ellipse fill="aquamarine" stroke="black" cx="1138.75" cy="-395.74" rx="72" ry="72"/>
 <text text-anchor="middle" x="1138.75" y="-392.04" font-family="Times,serif" font-size="14.00">B_tracker</text>
 </a>
@@ -66,7 +66,7 @@
 <!-- /router/to_string -->
 <g id="node7" class="node">
 <title>/router/to_string</title>
-<g id="a_node7"><a xlink:href="../../../target/flowstdlib/fmt/to_string/to_string.html" xlink:title="to_string">
+<g id="a_node7"><a xlink:href="../../target/flowstdlib/fmt/to_string/to_string.html" xlink:title="to_string">
 <ellipse fill="coral" stroke="black" cx="1677.75" cy="-91" rx="51.99" ry="18"/>
 <text text-anchor="middle" x="1677.75" y="-87.3" font-family="Times,serif" font-size="14.00">to_string</text>
 </a>
@@ -88,7 +88,7 @@
 <!-- /router/append -->
 <g id="node8" class="node">
 <title>/router/append</title>
-<g id="a_node8"><a xlink:href="../../../target/flowstdlib/data/append/append.html" xlink:title="append">
+<g id="a_node8"><a xlink:href="../../target/flowstdlib/data/append/append.html" xlink:title="append">
 <ellipse fill="coral" stroke="black" cx="1666.75" cy="-395.74" rx="44.69" ry="18"/>
 <text text-anchor="middle" x="1666.75" y="-392.04" font-family="Times,serif" font-size="14.00">append</text>
 </a>
@@ -97,7 +97,7 @@
 <!-- /router/stdout -->
 <g id="node9" class="node">
 <title>/router/stdout</title>
-<g id="a_node9"><a xlink:href="../../../flowr/src/cli/stdio/stdout.html" xlink:title="stdout">
+<g id="a_node9"><a xlink:href="../../flowr/src/cli/stdio/stdout.html" xlink:title="stdout">
 <ellipse fill="coral" stroke="black" cx="1752.75" cy="-245.87" rx="40.09" ry="18"/>
 <text text-anchor="middle" x="1752.75" y="-242.17" font-family="Times,serif" font-size="14.00">stdout</text>
 </a>

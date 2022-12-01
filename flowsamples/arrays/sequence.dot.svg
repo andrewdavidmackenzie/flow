@@ -43,7 +43,7 @@
 <!-- /arrays/sequence/compare_switch -->
 <g id="node6" class="node">
 <title>/arrays/sequence/compare_switch</title>
-<g id="a_node6"><a xlink:href="../../../target/flowstdlib/control/compare_switch/compare_switch.html" xlink:title="compare_switch">
+<g id="a_node6"><a xlink:href="../control/compare_switch/compare_switch.html" xlink:title="compare_switch">
 <ellipse fill="coral" stroke="black" cx="85.14" cy="-260.61" rx="85.29" ry="18"/>
 <text text-anchor="middle" x="85.14" y="-256.91" font-family="Times,serif" font-size="14.00">compare_switch</text>
 </a>
@@ -52,7 +52,7 @@
 <!-- /arrays/sequence/add -->
 <g id="node7" class="node">
 <title>/arrays/sequence/add</title>
-<g id="a_node7"><a xlink:href="../../../target/flowstdlib/math/add/add.html" xlink:title="add">
+<g id="a_node7"><a xlink:href="add/add.html" xlink:title="add">
 <ellipse fill="coral" stroke="black" cx="249.14" cy="-179.74" rx="27.9" ry="18"/>
 <text text-anchor="middle" x="249.14" y="-176.04" font-family="Times,serif" font-size="14.00">add</text>
 </a>
@@ -74,7 +74,7 @@
 <!-- /arrays/sequence/next&#45;tap -->
 <g id="node8" class="node">
 <title>/arrays/sequence/next&#45;tap</title>
-<g id="a_node8"><a xlink:href="../../../target/flowstdlib/control/tap/tap.html" xlink:title="next&#45;tap\n(tap)">
+<g id="a_node8"><a xlink:href="../control/tap/tap.html" xlink:title="next&#45;tap\n(tap)">
 <ellipse fill="coral" stroke="black" cx="796.14" cy="-350.35" rx="53.98" ry="26.74"/>
 <text text-anchor="middle" x="796.14" y="-354.15" font-family="Times,serif" font-size="14.00">next&#45;tap</text>
 <text text-anchor="middle" x="796.14" y="-339.15" font-family="Times,serif" font-size="14.00">(tap)</text>
@@ -97,7 +97,7 @@
 <!-- /arrays/sequence/step&#45;tap -->
 <g id="node9" class="node">
 <title>/arrays/sequence/step&#45;tap</title>
-<g id="a_node9"><a xlink:href="../../../target/flowstdlib/control/tap/tap.html" xlink:title="step&#45;tap\n(tap)">
+<g id="a_node9"><a xlink:href="../control/tap/tap.html" xlink:title="step&#45;tap\n(tap)">
 <ellipse fill="coral" stroke="black" cx="241.14" cy="-260.61" rx="53.07" ry="26.74"/>
 <text text-anchor="middle" x="241.14" y="-264.41" font-family="Times,serif" font-size="14.00">step&#45;tap</text>
 <text text-anchor="middle" x="241.14" y="-249.41" font-family="Times,serif" font-size="14.00">(tap)</text>
@@ -120,7 +120,7 @@
 <!-- /arrays/sequence/not&#45;last -->
 <g id="node10" class="node">
 <title>/arrays/sequence/not&#45;last</title>
-<g id="a_node10"><a xlink:href="../../../target/flowstdlib/math/compare/compare.html" xlink:title="not&#45;last\n(compare)">
+<g id="a_node10"><a xlink:href="compare/compare.html" xlink:title="not&#45;last\n(compare)">
 <ellipse fill="coral" stroke="black" cx="888.14" cy="-98.87" rx="62.87" ry="26.74"/>
 <text text-anchor="middle" x="888.14" y="-102.67" font-family="Times,serif" font-size="14.00">not&#45;last</text>
 <text text-anchor="middle" x="888.14" y="-87.67" font-family="Times,serif" font-size="14.00">(compare)</text>

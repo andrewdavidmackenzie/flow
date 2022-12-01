@@ -25,7 +25,7 @@
 <!-- /prime/composites/sqrt -->
 <g id="node3" class="node">
 <title>/prime/composites/sqrt</title>
-<g id="a_node3"><a xlink:href="../../../target/flowstdlib/math/sqrt/sqrt.html" xlink:title="sqrt">
+<g id="a_node3"><a xlink:href="../../target/flowstdlib/math/sqrt/sqrt.html" xlink:title="sqrt">
 <ellipse fill="coral" stroke="black" cx="164.92" cy="-577" rx="29.8" ry="18"/>
 <text text-anchor="middle" x="164.92" y="-573.3" font-family="Times,serif" font-size="14.00">sqrt</text>
 </a>
@@ -47,7 +47,7 @@
 <!-- /prime/composites/divisors -->
 <g id="node4" class="node">
 <title>/prime/composites/divisors</title>
-<g id="a_node4"><a xlink:href="lib://flowstdlib/math/sequence.dot.svg" xlink:title="divisors">
+<g id="a_node4"><a xlink:href="../../target/flowstdlib/math/sequence.toml.dot.svg" xlink:title="divisors">
 <ellipse fill="aquamarine" stroke="black" cx="601.92" cy="-469" rx="72" ry="72"/>
 <text text-anchor="middle" x="601.92" y="-465.3" font-family="Times,serif" font-size="14.00">divisors</text>
 </a>
@@ -56,7 +56,7 @@
 <!-- /prime/composites/multiply -->
 <g id="node5" class="node">
 <title>/prime/composites/multiply</title>
-<g id="a_node5"><a xlink:href="../../../target/flowstdlib/math/multiply/multiply.html" xlink:title="multiply">
+<g id="a_node5"><a xlink:href="../../target/flowstdlib/math/multiply/multiply.html" xlink:title="multiply">
 <ellipse fill="coral" stroke="black" cx="551.92" cy="-361" rx="49.29" ry="18"/>
 <text text-anchor="middle" x="551.92" y="-357.3" font-family="Times,serif" font-size="14.00">multiply</text>
 </a>
@@ -86,7 +86,7 @@
 <!-- /prime/composites/composite&#45;sequence -->
 <g id="node7" class="node">
 <title>/prime/composites/composite&#45;sequence</title>
-<g id="a_node7"><a xlink:href="lib://flowstdlib/math/sequence.dot.svg" xlink:title="composite&#45;sequence">
+<g id="a_node7"><a xlink:href="../../target/flowstdlib/math/sequence.toml.dot.svg" xlink:title="composite&#45;sequence">
 <ellipse fill="aquamarine" stroke="black" cx="711.92" cy="-253" rx="81.59" ry="72"/>
 <text text-anchor="middle" x="711.92" y="-249.3" font-family="Times,serif" font-size="14.00">composite&#45;sequence</text>
 </a>

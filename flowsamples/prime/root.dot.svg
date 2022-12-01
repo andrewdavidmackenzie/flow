@@ -13,7 +13,7 @@
 <!-- /prime/args -->
 <g id="node1" class="node">
 <title>/prime/args</title>
-<g id="a_node1"><a xlink:href="../../../flowr/src/cli/args/get.html" xlink:title="args\n(get)">
+<g id="a_node1"><a xlink:href="../../flowr/src/cli/args/get.html" xlink:title="args\n(get)">
 <ellipse fill="coral" stroke="black" cx="35.36" cy="-216" rx="35.21" ry="26.74"/>
 <text text-anchor="middle" x="35.36" y="-219.8" font-family="Times,serif" font-size="14.00">args</text>
 <text text-anchor="middle" x="35.36" y="-204.8" font-family="Times,serif" font-size="14.00">(get)</text>
@@ -23,7 +23,7 @@
 <!-- /prime/candidates -->
 <g id="node2" class="node">
 <title>/prime/candidates</title>
-<g id="a_node2"><a xlink:href="candidates.dot.svg" xlink:title="candidates">
+<g id="a_node2"><a xlink:href="candidates.toml.dot.svg" xlink:title="candidates">
 <ellipse fill="aquamarine" stroke="black" cx="160.36" cy="-216" rx="72" ry="72"/>
 <text text-anchor="middle" x="160.36" y="-212.3" font-family="Times,serif" font-size="14.00">candidates</text>
 </a>
@@ -32,7 +32,7 @@
 <!-- /prime/composites -->
 <g id="node3" class="node">
 <title>/prime/composites</title>
-<g id="a_node3"><a xlink:href="composites.dot.svg" xlink:title="composites">
+<g id="a_node3"><a xlink:href="composites.toml.dot.svg" xlink:title="composites">
 <ellipse fill="aquamarine" stroke="black" cx="322.36" cy="-216" rx="72" ry="72"/>
 <text text-anchor="middle" x="322.36" y="-212.3" font-family="Times,serif" font-size="14.00">composites</text>
 </a>
@@ -41,7 +41,7 @@
 <!-- /prime/remove -->
 <g id="node4" class="node">
 <title>/prime/remove</title>
-<g id="a_node4"><a xlink:href="../../../target/flowstdlib/data/remove/remove.html" xlink:title="remove">
+<g id="a_node4"><a xlink:href="../../target/flowstdlib/data/remove/remove.html" xlink:title="remove">
 <ellipse fill="coral" stroke="black" cx="269.36" cy="-90" rx="45.49" ry="18"/>
 <text text-anchor="middle" x="269.36" y="-86.3" font-family="Times,serif" font-size="14.00">remove</text>
 </a>
@@ -50,7 +50,7 @@
 <!-- /prime/stdout -->
 <g id="node5" class="node">
 <title>/prime/stdout</title>
-<g id="a_node5"><a xlink:href="../../../flowr/src/cli/stdio/stdout.html" xlink:title="stdout">
+<g id="a_node5"><a xlink:href="../../flowr/src/cli/stdio/stdout.html" xlink:title="stdout">
 <ellipse fill="coral" stroke="black" cx="332.36" cy="-18" rx="40.09" ry="18"/>
 <text text-anchor="middle" x="332.36" y="-14.3" font-family="Times,serif" font-size="14.00">stdout</text>
 </a>

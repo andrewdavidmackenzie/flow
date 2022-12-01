@@ -13,7 +13,7 @@
 <!-- /factorial/args -->
 <g id="node1" class="node">
 <title>/factorial/args</title>
-<g id="a_node1"><a xlink:href="../../../flowr/src/cli/args/get.html" xlink:title="args\n(get)">
+<g id="a_node1"><a xlink:href="../../flowr/src/cli/args/get.html" xlink:title="args\n(get)">
 <ellipse fill="coral" stroke="black" cx="421.64" cy="-309.35" rx="35.21" ry="26.74"/>
 <text text-anchor="middle" x="421.64" y="-313.15" font-family="Times,serif" font-size="14.00">args</text>
 <text text-anchor="middle" x="421.64" y="-298.15" font-family="Times,serif" font-size="14.00">(get)</text>
@@ -23,7 +23,7 @@
 <!-- /factorial/multiply -->
 <g id="node2" class="node">
 <title>/factorial/multiply</title>
-<g id="a_node2"><a xlink:href="../../../target/flowstdlib/math/multiply/multiply.html" xlink:title="multiply">
+<g id="a_node2"><a xlink:href="../../target/flowstdlib/math/multiply/multiply.html" xlink:title="multiply">
 <ellipse fill="coral" stroke="black" cx="395.64" cy="-99.87" rx="49.29" ry="18"/>
 <text text-anchor="middle" x="395.64" y="-96.17" font-family="Times,serif" font-size="14.00">multiply</text>
 </a>
@@ -66,7 +66,7 @@
 <!-- /factorial/sub -->
 <g id="node4" class="node">
 <title>/factorial/sub</title>
-<g id="a_node4"><a xlink:href="../../../target/flowstdlib/math/subtract/subtract.html" xlink:title="sub\n(subtract)">
+<g id="a_node4"><a xlink:href="../../target/flowstdlib/math/subtract/subtract.html" xlink:title="sub\n(subtract)">
 <ellipse fill="coral" stroke="black" cx="662.64" cy="-204.61" rx="61.54" ry="26.74"/>
 <text text-anchor="middle" x="662.64" y="-208.41" font-family="Times,serif" font-size="14.00">sub</text>
 <text text-anchor="middle" x="662.64" y="-193.41" font-family="Times,serif" font-size="14.00">(subtract)</text>
@@ -110,7 +110,7 @@
 <!-- /factorial/compare -->
 <g id="node6" class="node">
 <title>/factorial/compare</title>
-<g id="a_node6"><a xlink:href="../../../target/flowstdlib/math/compare/compare.html" xlink:title="compare">
+<g id="a_node6"><a xlink:href="../../target/flowstdlib/math/compare/compare.html" xlink:title="compare">
 <ellipse fill="coral" stroke="black" cx="877.64" cy="-204.61" rx="50.89" ry="18"/>
 <text text-anchor="middle" x="877.64" y="-200.91" font-family="Times,serif" font-size="14.00">compare</text>
 </a>
@@ -127,7 +127,7 @@
 <!-- /factorial/n&#45;tap -->
 <g id="node8" class="node">
 <title>/factorial/n&#45;tap</title>
-<g id="a_node8"><a xlink:href="../../../target/flowstdlib/control/tap/tap.html" xlink:title="n&#45;tap\n(tap)">
+<g id="a_node8"><a xlink:href="../../target/flowstdlib/control/tap/tap.html" xlink:title="n&#45;tap\n(tap)">
 <ellipse fill="coral" stroke="black" cx="212.64" cy="-99.87" rx="37.45" ry="26.74"/>
 <text text-anchor="middle" x="212.64" y="-103.67" font-family="Times,serif" font-size="14.00">n&#45;tap</text>
 <text text-anchor="middle" x="212.64" y="-88.67" font-family="Times,serif" font-size="14.00">(tap)</text>
@@ -157,7 +157,7 @@
 <!-- /factorial/result&#45;tap -->
 <g id="node9" class="node">
 <title>/factorial/result&#45;tap</title>
-<g id="a_node9"><a xlink:href="../../../target/flowstdlib/control/tap/tap.html" xlink:title="result&#45;tap\n(tap)">
+<g id="a_node9"><a xlink:href="../../target/flowstdlib/control/tap/tap.html" xlink:title="result&#45;tap\n(tap)">
 <ellipse fill="coral" stroke="black" cx="1122.64" cy="-309.35" rx="60.62" ry="26.74"/>
 <text text-anchor="middle" x="1122.64" y="-313.15" font-family="Times,serif" font-size="14.00">result&#45;tap</text>
 <text text-anchor="middle" x="1122.64" y="-298.15" font-family="Times,serif" font-size="14.00">(tap)</text>
@@ -167,7 +167,7 @@
 <!-- /factorial/print -->
 <g id="node10" class="node">
 <title>/factorial/print</title>
-<g id="a_node10"><a xlink:href="../../../flowr/src/cli/stdio/stdout.html" xlink:title="print\n(stdout)">
+<g id="a_node10"><a xlink:href="../../flowr/src/cli/stdio/stdout.html" xlink:title="print\n(stdout)">
 <ellipse fill="coral" stroke="black" cx="1235.64" cy="-204.61" rx="51.74" ry="26.74"/>
 <text text-anchor="middle" x="1235.64" y="-208.41" font-family="Times,serif" font-size="14.00">print</text>
 <text text-anchor="middle" x="1235.64" y="-193.41" font-family="Times,serif" font-size="14.00">(stdout)</text>

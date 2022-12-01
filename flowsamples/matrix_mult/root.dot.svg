@@ -13,7 +13,7 @@
 <!-- /matrix_mult/readline -->
 <g id="node1" class="node">
 <title>/matrix_mult/readline</title>
-<g id="a_node1"><a xlink:href="../../../flowr/src/cli/stdio/readline.html" xlink:title="readline">
+<g id="a_node1"><a xlink:href="../../flowr/src/cli/stdio/readline.html" xlink:title="readline">
 <ellipse fill="coral" stroke="black" cx="48.75" cy="-305.74" rx="48.99" ry="18"/>
 <text text-anchor="middle" x="48.75" y="-302.04" font-family="Times,serif" font-size="14.00">readline</text>
 </a>
@@ -22,7 +22,7 @@
 <!-- /matrix_mult/select_0 -->
 <g id="node2" class="node">
 <title>/matrix_mult/select_0</title>
-<g id="a_node2"><a xlink:href="lib://flowstdlib/control/index_f.dot.svg" xlink:title="select_0">
+<g id="a_node2"><a xlink:href="../../target/flowstdlib/control/index_f.toml.dot.svg" xlink:title="select_0">
 <ellipse fill="aquamarine" stroke="black" cx="187.75" cy="-305.74" rx="72" ry="72"/>
 <text text-anchor="middle" x="187.75" y="-302.04" font-family="Times,serif" font-size="14.00">select_0</text>
 </a>
@@ -31,7 +31,7 @@
 <!-- /matrix_mult/select_1 -->
 <g id="node3" class="node">
 <title>/matrix_mult/select_1</title>
-<g id="a_node3"><a xlink:href="lib://flowstdlib/control/index_f.dot.svg" xlink:title="select_1">
+<g id="a_node3"><a xlink:href="../../target/flowstdlib/control/index_f.toml.dot.svg" xlink:title="select_1">
 <ellipse fill="aquamarine" stroke="black" cx="349.75" cy="-305.74" rx="72" ry="72"/>
 <text text-anchor="middle" x="349.75" y="-302.04" font-family="Times,serif" font-size="14.00">select_1</text>
 </a>
@@ -40,7 +40,7 @@
 <!-- /matrix_mult/multiply -->
 <g id="node4" class="node">
 <title>/matrix_mult/multiply</title>
-<g id="a_node4"><a xlink:href="multiply.dot.svg" xlink:title="multiply">
+<g id="a_node4"><a xlink:href="multiply.toml.dot.svg" xlink:title="multiply">
 <ellipse fill="aquamarine" stroke="black" cx="511.75" cy="-305.74" rx="72" ry="72"/>
 <text text-anchor="middle" x="511.75" y="-302.04" font-family="Times,serif" font-size="14.00">multiply</text>
 </a>
@@ -49,7 +49,7 @@
 <!-- /matrix_mult/print -->
 <g id="node5" class="node">
 <title>/matrix_mult/print</title>
-<g id="a_node5"><a xlink:href="../../../flowr/src/cli/stdio/stdout.html" xlink:title="print\n(stdout)">
+<g id="a_node5"><a xlink:href="../../flowr/src/cli/stdio/stdout.html" xlink:title="print\n(stdout)">
 <ellipse fill="coral" stroke="black" cx="882.75" cy="-26.87" rx="51.74" ry="26.74"/>
 <text text-anchor="middle" x="882.75" y="-30.67" font-family="Times,serif" font-size="14.00">print</text>
 <text text-anchor="middle" x="882.75" y="-15.67" font-family="Times,serif" font-size="14.00">(stdout)</text>

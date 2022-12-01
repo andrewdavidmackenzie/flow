@@ -13,7 +13,7 @@
 <!-- /mandlebrot/parse_args -->
 <g id="node1" class="node">
 <title>/mandlebrot/parse_args</title>
-<g id="a_node1"><a xlink:href="parse_args.dot.svg" xlink:title="parse_args">
+<g id="a_node1"><a xlink:href="parse_args.toml.dot.svg" xlink:title="parse_args">
 <ellipse fill="aquamarine" stroke="black" cx="72" cy="-216" rx="72" ry="72"/>
 <text text-anchor="middle" x="72" y="-212.3" font-family="Times,serif" font-size="14.00">parse_args</text>
 </a>
@@ -22,7 +22,7 @@
 <!-- /mandlebrot/generate_pixels -->
 <g id="node2" class="node">
 <title>/mandlebrot/generate_pixels</title>
-<g id="a_node2"><a xlink:href="generate_pixels.dot.svg" xlink:title="generate_pixels">
+<g id="a_node2"><a xlink:href="generate_pixels.toml.dot.svg" xlink:title="generate_pixels">
 <ellipse fill="aquamarine" stroke="black" cx="234" cy="-216" rx="72" ry="72"/>
 <text text-anchor="middle" x="234" y="-212.3" font-family="Times,serif" font-size="14.00">generate_pixels</text>
 </a>
@@ -31,7 +31,7 @@
 <!-- /mandlebrot/render -->
 <g id="node3" class="node">
 <title>/mandlebrot/render</title>
-<g id="a_node3"><a xlink:href="render.dot.svg" xlink:title="render">
+<g id="a_node3"><a xlink:href="render.toml.dot.svg" xlink:title="render">
 <ellipse fill="aquamarine" stroke="black" cx="396" cy="-216" rx="72" ry="72"/>
 <text text-anchor="middle" x="396" y="-212.3" font-family="Times,serif" font-size="14.00">render</text>
 </a>

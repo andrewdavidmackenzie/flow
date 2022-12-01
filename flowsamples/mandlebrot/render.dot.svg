@@ -37,7 +37,7 @@
 <!-- /mandlebrot/render/p2p -->
 <g id="node5" class="node">
 <title>/mandlebrot/render/p2p</title>
-<g id="a_node5"><a xlink:href="../../../flowsamples/mandlebrot/pixel_to_point/pixel_to_point.html" xlink:title="p2p\n(pixel_to_point)">
+<g id="a_node5"><a xlink:href="pixel_to_point/pixel_to_point.html" xlink:title="p2p\n(pixel_to_point)">
 <ellipse fill="coral" stroke="black" cx="89.1" cy="-113.88" rx="89.19" ry="26.74"/>
 <text text-anchor="middle" x="89.1" y="-117.68" font-family="Times,serif" font-size="14.00">p2p</text>
 <text text-anchor="middle" x="89.1" y="-102.68" font-family="Times,serif" font-size="14.00">(pixel_to_point)</text>
@@ -60,7 +60,7 @@
 <!-- /mandlebrot/render/p2v -->
 <g id="node6" class="node">
 <title>/mandlebrot/render/p2v</title>
-<g id="a_node6"><a xlink:href="../../../flowsamples/mandlebrot/escapes/escapes.html" xlink:title="p2v\n(escapes)">
+<g id="a_node6"><a xlink:href="escapes/escapes.html" xlink:title="p2v\n(escapes)">
 <ellipse fill="coral" stroke="black" cx="420.1" cy="-113.88" rx="58.88" ry="26.74"/>
 <text text-anchor="middle" x="420.1" y="-117.68" font-family="Times,serif" font-size="14.00">p2v</text>
 <text text-anchor="middle" x="420.1" y="-102.68" font-family="Times,serif" font-size="14.00">(escapes)</text>
@@ -92,7 +92,7 @@
 <!-- /mandlebrot/render/image_buffer -->
 <g id="node7" class="node">
 <title>/mandlebrot/render/image_buffer</title>
-<g id="a_node7"><a xlink:href="../../../flowr/src/cli/image/image_buffer.html" xlink:title="image_buffer">
+<g id="a_node7"><a xlink:href="../../flowr/src/cli/image/image_buffer.html" xlink:title="image_buffer">
 <ellipse fill="coral" stroke="black" cx="1012.1" cy="-33.01" rx="71.49" ry="18"/>
 <text text-anchor="middle" x="1012.1" y="-29.31" font-family="Times,serif" font-size="14.00">image_buffer</text>
 </a>

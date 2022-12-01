@@ -31,7 +31,7 @@
 <!-- /mandlebrot/parse_args/args -->
 <g id="node4" class="node">
 <title>/mandlebrot/parse_args/args</title>
-<g id="a_node4"><a xlink:href="../../../flowr/src/cli/args/get.html" xlink:title="args\n(get)">
+<g id="a_node4"><a xlink:href="../../flowr/src/cli/args/get.html" xlink:title="args\n(get)">
 <ellipse fill="coral" stroke="black" cx="35.36" cy="-170.87" rx="35.21" ry="26.74"/>
 <text text-anchor="middle" x="35.36" y="-174.67" font-family="Times,serif" font-size="14.00">args</text>
 <text text-anchor="middle" x="35.36" y="-159.67" font-family="Times,serif" font-size="14.00">(get)</text>

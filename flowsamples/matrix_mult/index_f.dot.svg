@@ -31,7 +31,7 @@
 <!-- /matrix_mult/select_1/index -->
 <g id="node4" class="node">
 <title>/matrix_mult/select_1/index</title>
-<g id="a_node4"><a xlink:href="../../../target/flowstdlib/control/index/index.html" xlink:title="index">
+<g id="a_node4"><a xlink:href="index/index.html" xlink:title="index">
 <ellipse fill="coral" stroke="black" cx="389.68" cy="-72" rx="36.29" ry="18"/>
 <text text-anchor="middle" x="389.68" y="-68.3" font-family="Times,serif" font-size="14.00">index</text>
 </a>

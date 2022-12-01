@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `flowc/src/lib/dumper/dump_dot.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>dump_dot.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceSerif4-Regular-1f7d512b176f0f72.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceSerif4-Bold-124a1ca42af929b6.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../static.files/rustdoc-ee9f86babca44bc2.css" id="mainThemeStyle"><link rel="stylesheet" id="themeStyle" href="../../../static.files/light-3bcdcab5f4113412.css"><link rel="stylesheet" disabled href="../../../static.files/dark-091ecdca18d5df85.css"><link rel="stylesheet" disabled href="../../../static.files/ayu-45445754dcd01ab2.css"><script id="default-settings" ></script><script src="../../../static.files/storage-d43fa987303ecbbb.js"></script><script defer src="../../../static.files/source-script-5cf2e01a42cc9858.js"></script><script defer src="../../../source-files.js"></script><script defer src="../../../static.files/main-287cecec4dbb45b0.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-13285aec31fa243e.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><div class="width-limiter"><nav class="sub"><a class="sub-logo-container" href="../../../flowclib/index.html"><img class="rust-logo" src="../../../static.files/rust-logo-151179464ae7ed46.svg" alt="logo"></a><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../static.files/wheel-5ec35bf9ca753509.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `flowc/src/lib/dumper/dump_dot.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>dump_dot.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceSerif4-Regular-1f7d512b176f0f72.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceSerif4-Bold-124a1ca42af929b6.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../static.files/rustdoc-59deea3733ac6c09.css" id="mainThemeStyle"><link rel="stylesheet" id="themeStyle" href="../../../static.files/light-3bcdcab5f4113412.css"><link rel="stylesheet" disabled href="../../../static.files/dark-091ecdca18d5df85.css"><link rel="stylesheet" disabled href="../../../static.files/ayu-45445754dcd01ab2.css"><script id="default-settings" ></script><script src="../../../static.files/storage-d43fa987303ecbbb.js"></script><script defer src="../../../static.files/source-script-5cf2e01a42cc9858.js"></script><script defer src="../../../source-files.js"></script><script defer src="../../../static.files/main-287cecec4dbb45b0.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-13285aec31fa243e.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><div class="width-limiter"><nav class="sub"><a class="sub-logo-container" href="../../../flowclib/index.html"><img class="rust-logo" src="../../../static.files/rust-logo-151179464ae7ed46.svg" alt="logo"></a><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../static.files/wheel-5ec35bf9ca753509.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -639,15 +639,12 @@
 <a href="#639" id="639">639</a>
 <a href="#640" id="640">640</a>
 <a href="#641" id="641">641</a>
-<a href="#642" id="642">642</a>
-<a href="#643" id="643">643</a>
-<a href="#644" id="644">644</a>
-<a href="#645" id="645">645</a>
 </pre><pre class="rust"><code><span class="kw">use </span>std::collections::hash_map::DefaultHasher;
 <span class="kw">use </span>std::fmt::Write <span class="kw">as </span>FormatWrite;
 <span class="kw">use </span>std::hash::{Hash, Hasher};
 <span class="kw">use </span>std::io::Write;
-<span class="kw">use </span>std::path::Path;
+<span class="kw">use </span>std::ops::Add;
+<span class="kw">use </span>std::path::{Path, PathBuf};
 <span class="kw">use </span>std::process::Command;
 
 <span class="kw">use </span>log::{debug, info};
@@ -733,7 +730,7 @@
     )<span class="question-mark">?</span>;
     dot_file.write_all(<span class="macro">format!</span>(<span class="string">&quot;labelloc=t;\nlabel = \&quot;{}\&quot;;\n&quot;</span>, flow.route()).as_bytes())<span class="question-mark">?</span>;
 
-    <span class="kw">let </span>functions = process_refs_to_dot(flow, tables, output_dir).map_err(|<span class="kw">_</span>| {
+    <span class="kw">let </span>functions = process_refs_to_dot(flow, tables).map_err(|<span class="kw">_</span>| {
         std::io::Error::new(
             std::io::ErrorKind::Other,
             <span class="string">&quot;Could not create dot content for process_refs&quot;</span>,
@@ -835,27 +832,17 @@
     target_dir: <span class="kw-2">&amp;</span>Path,
     provider: <span class="kw-2">&amp;</span><span class="kw">dyn </span>Provider
 ) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
-    <span class="kw">let </span>file_path = flow.source_url.to_file_path().map_err(|<span class="kw">_</span>| {
-        std::io::Error::new(
-            std::io::ErrorKind::Other,
-            <span class="string">&quot;Could not get file_stem of flow definition filename&quot;</span>,
-        )
-    })<span class="question-mark">?</span>;
+    <span class="kw">let </span>file_path = flow.source_url.to_file_path()
+        .map_err(|<span class="kw">_</span>| <span class="string">&quot;Could not get file_stem of flow definition filename&quot;</span>)<span class="question-mark">?</span>;
     <span class="kw">let </span>filename = file_path
         .file_stem()
-        .ok_or_else(|| std::io::Error::new(
-            std::io::ErrorKind::Other,
-            <span class="string">&quot;Could not get file_stem of flow definition filename&quot;</span>,
-        ))<span class="question-mark">?
+        .ok_or(<span class="string">&quot;Could not get file_stem of flow definition filename&quot;</span>)<span class="question-mark">?
         </span>.to_str()
-        .ok_or_else(|| std::io::Error::new(
-            std::io::ErrorKind::Other,
-            <span class="string">&quot;Could not convert filename to string&quot;</span>,
-        ))<span class="question-mark">?</span>;
+        .ok_or(<span class="string">&quot;Could not convert filename to string&quot;</span>)<span class="question-mark">?</span>;
 
     <span class="kw">let </span><span class="kw-2">mut </span>writer = dump::create_output_file(target_dir, filename, <span class="string">&quot;dot&quot;</span>)<span class="question-mark">?</span>;
     <span class="macro">info!</span>(<span class="string">&quot;\tGenerating {}.dot, Use \&quot;dotty\&quot; to view it&quot;</span>, filename);
-    write_flow_to_dot(flow, <span class="kw-2">&amp;mut </span>writer, target_dir)<span class="question-mark">?</span>;
+    write_flow_to_dot(flow, <span class="kw-2">&amp;mut </span>writer)<span class="question-mark">?</span>;
 
     <span class="comment">// Dump sub-flows
     </span><span class="kw">for </span>subprocess <span class="kw">in </span><span class="kw-2">&amp;</span>flow.subprocesses {
@@ -875,34 +862,10 @@
 <span class="kw">static </span>INPUT_PORTS: <span class="kw-2">&amp;</span>[<span class="kw-2">&amp;</span>str] = <span class="kw-2">&amp;</span>[<span class="string">&quot;n&quot;</span>, <span class="string">&quot;ne&quot;</span>, <span class="string">&quot;nw&quot;</span>, <span class="string">&quot;w&quot;</span>];
 <span class="kw">static </span>OUTPUT_PORTS: <span class="kw-2">&amp;</span>[<span class="kw-2">&amp;</span>str] = <span class="kw-2">&amp;</span>[<span class="string">&quot;s&quot;</span>, <span class="string">&quot;se&quot;</span>, <span class="string">&quot;sw&quot;</span>, <span class="string">&quot;e&quot;</span>];
 
-<span class="kw">fn </span>absolute_to_relative(absolute: <span class="kw-2">&amp;</span>str, current_dir: <span class="kw-2">&amp;</span>Path) -&gt; <span class="prelude-ty">Result</span>&lt;String&gt; {
-    <span class="kw">let </span>root_path = Path::new(<span class="macro">env!</span>(<span class="string">&quot;CARGO_MANIFEST_DIR&quot;</span>))
-        .parent()
-        .ok_or(<span class="string">&quot;Could not get parent directory of manifest dir&quot;</span>)<span class="question-mark">?</span>;
-    <span class="kw">let </span><span class="kw-2">mut </span>current_path = current_dir.to_path_buf();
-    <span class="kw">let </span><span class="kw-2">mut </span>path_to_root = String::new();
-    <span class="comment">// figure out relative path to get to root from output_dir
-    </span><span class="kw">while </span>current_path != root_path {
-        path_to_root.push_str(<span class="string">&quot;../&quot;</span>);
-        current_path.pop();
-    }
-    <span class="prelude-val">Ok</span>(absolute.replace(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;file://{}/&quot;</span>, root_path.display()), <span class="kw-2">&amp;</span>path_to_root))
-}
-
-<span class="kw">fn </span>remove_file_extension(file_path: <span class="kw-2">&amp;</span>str) -&gt; String {
-    <span class="kw">let </span>splits: Vec&lt;<span class="kw-2">&amp;</span>str&gt; = file_path.split(<span class="string">&#39;.&#39;</span>).collect();
-    <span class="kw">if </span>splits.len() &gt; <span class="number">1 </span>{
-        splits[<span class="number">0</span>..splits.len() - <span class="number">1</span>].join(<span class="string">&quot;.&quot;</span>)
-    } <span class="kw">else </span>{
-        file_path.to_owned()
-    }
-}
-
 <span class="kw">fn </span>write_flow_to_dot(
     flow: <span class="kw-2">&amp;</span>FlowDefinition,
     dot_file: <span class="kw-2">&amp;mut </span><span class="kw">dyn </span>Write,
-    output_dir: <span class="kw-2">&amp;</span>Path,
-) -&gt; std::io::Result&lt;()&gt; {
+) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
     dot_file.write_all(digraph_wrapper_start(flow).as_bytes())<span class="question-mark">?</span>;
 
     <span class="kw">let </span><span class="kw-2">mut </span>contents = String::new();
@@ -916,37 +879,19 @@
     <span class="comment">// Process References
     </span>contents.push_str(<span class="string">&quot;\n\t// Process References\n&quot;</span>);
     <span class="kw">for </span>process_ref <span class="kw">in </span><span class="kw-2">&amp;</span>flow.process_refs {
-        <span class="kw">let </span>process = flow.subprocesses.get(process_ref.alias()).ok_or_else(|| {
-            std::io::Error::new(
-                std::io::ErrorKind::Other,
-                <span class="string">&quot;Could not find process named in process_ref&quot;</span>,
-            )
-        })<span class="question-mark">?</span>;
+        <span class="kw">let </span>process = flow.subprocesses.get(process_ref.alias())
+            .ok_or(<span class="string">&quot;Could not find process named in process_ref&quot;</span>)<span class="question-mark">?</span>;
         <span class="kw">match </span>process {
-            FlowProcess(<span class="kw-2">ref </span>flow) =&gt; {
-                <span class="comment">// TODO convert lib reference to a file path or url reference to the actual resource
-
-                </span><span class="kw">let </span>flow_source_str = remove_file_extension(<span class="kw-2">&amp;</span>process_ref.source);
-
-                <span class="kw">let </span>relative_path =
-                    absolute_to_relative(<span class="kw-2">&amp;</span>flow_source_str, output_dir).map_err(|<span class="kw">_</span>| {
-                        std::io::Error::new(
-                            std::io::ErrorKind::Other,
-                            <span class="string">&quot;Could not absolute flow_source to a relative path&quot;</span>,
-                        )
-                    })<span class="question-mark">?</span>;
-                <span class="kw">let </span>flow = <span class="macro">format!</span>(<span class="string">&quot;\t\&quot;{}\&quot; [label=\&quot;{}\&quot;, style=filled, fillcolor=aquamarine, width=2, height=2, URL=\&quot;{relative_path}.dot.svg\&quot;];\n&quot;</span>,
-                                   flow.route(), process_ref.alias);
-                contents.push_str(<span class="kw-2">&amp;</span>flow);
-            }
-            FunctionProcess(<span class="kw-2">ref </span>function) =&gt; {
-                contents.push_str(<span class="kw-2">&amp;</span>fn_to_dot(function, output_dir).map_err(|<span class="kw">_</span>| {
-                    std::io::Error::new(
-                        std::io::ErrorKind::Other,
-                        <span class="string">&quot;Could not generate dot code for function&quot;</span>,
-                    )
-                })<span class="question-mark">?</span>);
-            }
+            FlowProcess(<span class="kw-2">ref </span>subflow) =&gt;
+                contents.push_str(<span class="kw-2">&amp;</span>flow_to_dot(subflow,
+                                               flow.source_url.to_file_path()
+                                                   .map_err(|<span class="kw">_</span>| <span class="string">&quot;Could not convert Url to file path&quot;</span>)<span class="question-mark">?</span>,
+                                               subflow.route())<span class="question-mark">?</span>),
+            FunctionProcess(<span class="kw-2">ref </span>function) =&gt;
+                contents.push_str(<span class="kw-2">&amp;</span>fn_to_dot(function,
+                                             flow.source_url.to_file_path()
+                                                   .map_err(|<span class="kw">_</span>| <span class="string">&quot;Could not convert Url to file path&quot;</span>)<span class="question-mark">?
+                                            </span>)<span class="question-mark">?</span>),
         }
     }
 
@@ -958,7 +903,9 @@
 
     dot_file.write_all(contents.as_bytes())<span class="question-mark">?</span>;
 
-    dot_file.write_all(digraph_wrapper_end().as_bytes())
+    dot_file.write_all(digraph_wrapper_end().as_bytes())<span class="question-mark">?</span>;
+
+    <span class="prelude-val">Ok</span>(())
 }
 
 <span class="kw">fn </span>index_from_name&lt;T: Hash&gt;(t: <span class="kw-2">&amp;</span>T, length: usize) -&gt; usize {
@@ -1039,7 +986,36 @@
         </span>.to_string()
 }
 
-<span class="kw">fn </span>fn_to_dot(function: <span class="kw-2">&amp;</span>FunctionDefinition, output_dir: <span class="kw-2">&amp;</span>Path) -&gt; <span class="prelude-ty">Result</span>&lt;String&gt; {
+<span class="comment">// figure out a relative path to get to target from source
+</span><span class="kw">fn </span>absolute_to_relative(target: <span class="kw-2">&amp;</span>Path, source: PathBuf) -&gt; <span class="prelude-ty">Result</span>&lt;String&gt; {
+<span class="comment">//    println!(&quot;cargo:warning=source: {}&quot;, source.display());
+//    println!(&quot;cargo:warning=target: {}&quot;, target.display());
+    </span><span class="kw">let </span><span class="kw-2">mut </span>current_path = source.parent()
+        .ok_or(<span class="string">&quot;Could not get directory containing source&quot;</span>)<span class="question-mark">?</span>.to_path_buf();
+    <span class="kw">let </span><span class="kw-2">mut </span>relative_path_to_root = String::new();
+    <span class="kw">while </span>!target.starts_with(<span class="kw-2">&amp;</span>current_path) {
+        relative_path_to_root.push_str(<span class="string">&quot;../&quot;</span>);
+        <span class="kw">if </span>!current_path.pop() {
+            <span class="macro">bail!</span>(<span class="string">&quot;Could not find a common directory to calculate a relative path&quot;</span>)
+        }
+    }
+    <span class="kw">let </span>sub_path_from_common_point = target.strip_prefix(current_path.as_path())
+        .map_err(|<span class="kw">_</span>| <span class="string">&quot;Could not calculate sub-path&quot;</span>)<span class="question-mark">?</span>;
+    relative_path_to_root = relative_path_to_root
+        .add(<span class="kw-2">&amp;</span>sub_path_from_common_point.to_string_lossy());
+<span class="comment">//    println!(&quot;cargo:warning=relative: {}&quot;, relative_path_to_root);
+    </span><span class="prelude-val">Ok</span>(relative_path_to_root)
+}
+
+<span class="kw">fn </span>flow_to_dot(flow: <span class="kw-2">&amp;</span>FlowDefinition, parent: PathBuf, flow_route: <span class="kw-2">&amp;</span>str) -&gt; <span class="prelude-ty">Result</span>&lt;String&gt; {
+    <span class="kw">let </span>flow_source_path = flow.source_url.to_file_path()
+        .map_err(|<span class="kw">_</span>| <span class="string">&quot;Could not convert flow&#39;s source_url to a File Path&quot;</span>)<span class="question-mark">?</span>;
+    <span class="kw">let </span>relative_path = absolute_to_relative(<span class="kw-2">&amp;</span>flow_source_path, parent)<span class="question-mark">?</span>;
+    <span class="prelude-val">Ok</span>(<span class="macro">format!</span>(<span class="string">&quot;\t\&quot;{}\&quot; [label=\&quot;{}\&quot;, style=filled, fillcolor=aquamarine, width=2, height=2, URL=\&quot;{relative_path}.dot.svg\&quot;];\n&quot;</span>,
+               flow_route, flow.alias))
+}
+
+<span class="kw">fn </span>fn_to_dot(function: <span class="kw-2">&amp;</span>FunctionDefinition, parent: PathBuf) -&gt; <span class="prelude-ty">Result</span>&lt;String&gt; {
     <span class="kw">let </span><span class="kw-2">mut </span>dot_string = String::new();
 
     <span class="kw">let </span>name = <span class="kw">if </span>function.name() == function.alias() {
@@ -1048,7 +1024,9 @@
         <span class="macro">format!</span>(<span class="string">&quot;\\n({})&quot;</span>, function.name())
     };
 
-    <span class="kw">let </span>relative_path = absolute_to_relative(function.get_source_url().as_ref(), output_dir)<span class="question-mark">?</span>;
+    <span class="kw">let </span>function_source_path = function.get_source_url().to_file_path()
+        .map_err(|<span class="kw">_</span>| <span class="string">&quot;Could not convert function&#39;s source_url to a File Path&quot;</span>)<span class="question-mark">?</span>;
+    <span class="kw">let </span>relative_path = absolute_to_relative(<span class="kw-2">&amp;</span>function_source_path, parent)<span class="question-mark">?</span>;
 
     <span class="comment">// modify path to point to the .html page that&#39;s built from .md to document the function
     </span><span class="kw">let </span>md_path = relative_path.replace(<span class="string">&quot;toml&quot;</span>, <span class="string">&quot;html&quot;</span>);
@@ -1065,7 +1043,7 @@
 }
 
 <span class="comment">// Given a Function as used in the code generation - generate a &quot;dot&quot; format string to draw it
-</span><span class="kw">fn </span>function_to_dot(function: <span class="kw-2">&amp;</span>FunctionDefinition, functions: <span class="kw-2">&amp;</span>[FunctionDefinition], _output_dir: <span class="kw-2">&amp;</span>Path) -&gt; String {
+</span><span class="kw">fn </span>function_to_dot(function: <span class="kw-2">&amp;</span>FunctionDefinition, functions: <span class="kw-2">&amp;</span>[FunctionDefinition]) -&gt; String {
     <span class="kw">let </span><span class="kw-2">mut </span>function_string = String::new();
 
     <span class="comment">// modify path to point to the .html page that&#39;s built from .md to document the function
@@ -1217,11 +1195,10 @@
     route: <span class="kw-2">&amp;</span>Route,
     tables: <span class="kw-2">&amp;</span>CompilerTables,
     output: <span class="kw-2">&amp;mut </span>String,
-    output_dir: <span class="kw-2">&amp;</span>Path,
 ) {
     <span class="kw">for </span>function <span class="kw">in </span><span class="kw-2">&amp;</span>tables.functions {
         <span class="kw">if </span>function.route() == route {
-            output.push_str(<span class="kw-2">&amp;</span>function_to_dot(function, <span class="kw-2">&amp;</span>tables.functions, output_dir));
+            output.push_str(<span class="kw-2">&amp;</span>function_to_dot(function, <span class="kw-2">&amp;</span>tables.functions));
         }
     }
 }
@@ -1229,7 +1206,6 @@
 <span class="kw">fn </span>process_refs_to_dot(
     flow: <span class="kw-2">&amp;</span>FlowDefinition,
     tables: <span class="kw-2">&amp;</span>CompilerTables,
-    output_dir: <span class="kw-2">&amp;</span>Path,
 ) -&gt; <span class="prelude-ty">Result</span>&lt;String&gt; {
     <span class="kw">let </span><span class="kw-2">mut </span>output = String::new();
 
@@ -1247,13 +1223,13 @@
                 );
                 <span class="kw">let _ </span>= <span class="macro">write!</span>(output, <span class="string">&quot;label = \&quot;{}\&quot;;&quot;</span>, subflow.route());
 
-                output.push_str(<span class="kw-2">&amp;</span>process_refs_to_dot(subflow, tables, output_dir)<span class="question-mark">?</span>); <span class="comment">// recurse
+                output.push_str(<span class="kw-2">&amp;</span>process_refs_to_dot(subflow, tables)<span class="question-mark">?</span>); <span class="comment">// recurse
 
                 // close cluster
                 </span>output.push_str(<span class="string">&quot;}\n&quot;</span>);
             }
             FunctionProcess(<span class="kw-2">ref </span>function) =&gt; {
-                output_compiled_function(function.route(), tables, <span class="kw-2">&amp;mut </span>output, output_dir);
+                output_compiled_function(function.route(), tables, <span class="kw-2">&amp;mut </span>output);
             }
         }
     }
@@ -1263,30 +1239,46 @@
 
 <span class="attr">#[cfg(test)]
 </span><span class="kw">mod </span>test {
-    <span class="kw">use </span><span class="kw">super</span>::remove_file_extension;
+    <span class="kw">use </span>std::path::Path;
+
+    <span class="kw">use </span>url::Url;
+
+    <span class="kw">use </span><span class="kw">crate</span>::dumper::dump_dot::absolute_to_relative;
 
     <span class="attr">#[test]
-    </span><span class="kw">fn </span>strip_extension() {
-        <span class="macro">assert_eq!</span>(<span class="string">&quot;file&quot;</span>, remove_file_extension(<span class="string">&quot;file.toml&quot;</span>));
+    </span><span class="kw">fn </span>sub_dir_relative_path() {
+        <span class="kw">let </span>target = Path::new(<span class="string">&quot;/Users/andrew/workspace/flow/target/flowsamples/mandlebrot/escapes/escapes.html&quot;</span>);
+        <span class="kw">let </span>parent = Path::new(<span class="string">&quot;/Users/andrew/workspace/flow/target/flowsamples/mandlebrot/render.dot.svg&quot;</span>);
+
+        <span class="kw">let </span>relative = absolute_to_relative(target, parent.to_path_buf())
+            .expect(<span class="string">&quot;Could not form a relative path&quot;</span>);
+
+        <span class="macro">assert_eq!</span>(relative, <span class="string">&quot;escapes/escapes.html&quot;</span>);
     }
 
     <span class="attr">#[test]
-    </span><span class="kw">fn </span>strip_last_extension_only() {
-        <span class="macro">assert_eq!</span>(<span class="string">&quot;file.my.file&quot;</span>, remove_file_extension(<span class="string">&quot;file.my.file.toml&quot;</span>));
+    </span><span class="kw">fn </span>sub_dir_mixed_schemes_relative_path() {
+        <span class="kw">let </span>target_url = Url::parse(<span class="string">&quot;file:///Users/andrew/workspace/flow/target/flowsamples/mandlebrot/escapes/escapes.html&quot;</span>)
+            .expect(<span class="string">&quot;Could not parse Url&quot;</span>);
+        <span class="kw">let </span>target = target_url.to_file_path().expect(<span class="string">&quot;Could not convert to file path&quot;</span>);
+        <span class="kw">let </span>parent = Path::new(<span class="string">&quot;/Users/andrew/workspace/flow/target/flowsamples/mandlebrot/render.dot.svg&quot;</span>);
+
+        <span class="kw">let </span>relative = absolute_to_relative(<span class="kw-2">&amp;</span>target, parent.to_path_buf())
+            .expect(<span class="string">&quot;Could not form a relative path&quot;</span>);
+
+        <span class="macro">assert_eq!</span>(relative, <span class="string">&quot;escapes/escapes.html&quot;</span>);
     }
 
     <span class="attr">#[test]
-    </span><span class="kw">fn </span>strip_extension_in_path() {
-        <span class="macro">assert_eq!</span>(
-            <span class="string">&quot;/root/home/file&quot;</span>,
-            remove_file_extension(<span class="string">&quot;/root/home/file.toml&quot;</span>)
-        );
-    }
+    </span><span class="kw">fn </span>other_branch_relative_path() {
+        <span class="kw">let </span>target = Path::new(<span class="string">&quot;file:///Users/andrew/workspace/flow/target/flowstdlib/control/index_f.html&quot;</span>);
+        <span class="kw">let </span>parent = Path::new(<span class="string">&quot;file:///Users/andrew/workspace/flow/target/flowsamples/mandlebrot/render.dot.svg&quot;</span>);
 
-    <span class="attr">#[test]
-    </span><span class="kw">fn </span>strip_no_extension() {
-        <span class="macro">assert_eq!</span>(<span class="string">&quot;file&quot;</span>, remove_file_extension(<span class="string">&quot;file&quot;</span>));
+        <span class="kw">let </span>relative = absolute_to_relative(target, parent.to_path_buf())
+            .expect(<span class="string">&quot;Could not form a relative path&quot;</span>);
+
+        <span class="macro">assert_eq!</span>(relative, <span class="string">&quot;../../flowstdlib/control/index_f.html&quot;</span>);
     }
 }
 </code></pre></div>
-</section></div></main><div id="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="flowclib" data-themes="" data-resource-suffix="" data-rustdoc-version="1.67.0-nightly (e0098a5cc 2022-11-29)" data-search-js="search-444266647c4dba98.js" data-settings-js="settings-bebeae96e00e4617.js" data-settings-css="settings-af96d9e2fc13e081.css" ></div></body></html>
+</section></div></main><div id="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="flowclib" data-themes="" data-resource-suffix="" data-rustdoc-version="1.67.0-nightly (c97b539e4 2022-11-30)" data-search-js="search-444266647c4dba98.js" data-settings-js="settings-bebeae96e00e4617.js" data-settings-css="settings-af96d9e2fc13e081.css" ></div></body></html>

@@ -25,7 +25,7 @@
 <!-- /mandlebrot/generate_pixels/height -->
 <g id="node3" class="node">
 <title>/mandlebrot/generate_pixels/height</title>
-<g id="a_node3"><a xlink:href="../../../target/flowstdlib/math/subtract/subtract.html" xlink:title="height\n(subtract)">
+<g id="a_node3"><a xlink:href="../../target/flowstdlib/math/subtract/subtract.html" xlink:title="height\n(subtract)">
 <ellipse fill="coral" stroke="black" cx="752.12" cy="-244.61" rx="61.54" ry="26.74"/>
 <text text-anchor="middle" x="752.12" y="-248.41" font-family="Times,serif" font-size="14.00">height</text>
 <text text-anchor="middle" x="752.12" y="-233.41" font-family="Times,serif" font-size="14.00">(subtract)</text>
@@ -56,7 +56,7 @@
 <!-- /mandlebrot/generate_pixels/y&#45;sequence -->
 <g id="node5" class="node">
 <title>/mandlebrot/generate_pixels/y&#45;sequence</title>
-<g id="a_node5"><a xlink:href="lib://flowstdlib/math/sequence.dot.svg" xlink:title="y&#45;sequence">
+<g id="a_node5"><a xlink:href="../../target/flowstdlib/math/sequence.toml.dot.svg" xlink:title="y&#45;sequence">
 <ellipse fill="aquamarine" stroke="black" cx="790.12" cy="-361.48" rx="72" ry="72"/>
 <text text-anchor="middle" x="790.12" y="-357.78" font-family="Times,serif" font-size="14.00">y&#45;sequence</text>
 </a>
@@ -65,7 +65,7 @@
 <!-- /mandlebrot/generate_pixels/width&#45;gate -->
 <g id="node6" class="node">
 <title>/mandlebrot/generate_pixels/width&#45;gate</title>
-<g id="a_node6"><a xlink:href="../../../target/flowstdlib/control/join/join.html" xlink:title="width&#45;gate\n(join)">
+<g id="a_node6"><a xlink:href="../../target/flowstdlib/control/join/join.html" xlink:title="width&#45;gate\n(join)">
 <ellipse fill="coral" stroke="black" cx="515.12" cy="-153.87" rx="65.52" ry="26.74"/>
 <text text-anchor="middle" x="515.12" y="-157.67" font-family="Times,serif" font-size="14.00">width&#45;gate</text>
 <text text-anchor="middle" x="515.12" y="-142.67" font-family="Times,serif" font-size="14.00">(join)</text>
@@ -101,7 +101,7 @@
 <!-- /mandlebrot/generate_pixels/y&#45;duplicator -->
 <g id="node7" class="node">
 <title>/mandlebrot/generate_pixels/y&#45;duplicator</title>
-<g id="a_node7"><a xlink:href="../../../target/flowstdlib/data/duplicate/duplicate.html" xlink:title="y&#45;duplicator\n(duplicate)">
+<g id="a_node7"><a xlink:href="../../target/flowstdlib/data/duplicate/duplicate.html" xlink:title="y&#45;duplicator\n(duplicate)">
 <ellipse fill="coral" stroke="black" cx="72.12" cy="-478.35" rx="72.25" ry="26.74"/>
 <text text-anchor="middle" x="72.12" y="-482.15" font-family="Times,serif" font-size="14.00">y&#45;duplicator</text>
 <text text-anchor="middle" x="72.12" y="-467.15" font-family="Times,serif" font-size="14.00">(duplicate)</text>
@@ -111,7 +111,7 @@
 <!-- /mandlebrot/generate_pixels/enumerate -->
 <g id="node8" class="node">
 <title>/mandlebrot/generate_pixels/enumerate</title>
-<g id="a_node8"><a xlink:href="../../../target/flowstdlib/data/enumerate/enumerate.html" xlink:title="enumerate">
+<g id="a_node8"><a xlink:href="../../target/flowstdlib/data/enumerate/enumerate.html" xlink:title="enumerate">
 <ellipse fill="coral" stroke="black" cx="205.12" cy="-244.61" rx="61.19" ry="18"/>
 <text text-anchor="middle" x="205.12" y="-240.91" font-family="Times,serif" font-size="14.00">enumerate</text>
 </a>

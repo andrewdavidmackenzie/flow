@@ -13,7 +13,7 @@
 <!-- /reverse&#45;echo/readline -->
 <g id="node1" class="node">
 <title>/reverse&#45;echo/readline</title>
-<g id="a_node1"><a xlink:href="../../../flowr/src/cli/stdio/readline.html" xlink:title="readline">
+<g id="a_node1"><a xlink:href="../../flowr/src/cli/stdio/readline.html" xlink:title="readline">
 <ellipse fill="coral" stroke="black" cx="48.75" cy="-162" rx="48.99" ry="18"/>
 <text text-anchor="middle" x="48.75" y="-158.3" font-family="Times,serif" font-size="14.00">readline</text>
 </a>
@@ -22,7 +22,7 @@
 <!-- /reverse&#45;echo/reverse -->
 <g id="node2" class="node">
 <title>/reverse&#45;echo/reverse</title>
-<g id="a_node2"><a xlink:href="../../../flowsamples/reverse-echo/reverse/reverse.html" xlink:title="reverse">
+<g id="a_node2"><a xlink:href="reverse/reverse.html" xlink:title="reverse">
 <ellipse fill="coral" stroke="black" cx="396.75" cy="-90" rx="46.29" ry="18"/>
 <text text-anchor="middle" x="396.75" y="-86.3" font-family="Times,serif" font-size="14.00">reverse</text>
 </a>
@@ -31,7 +31,7 @@
 <!-- /reverse&#45;echo/stdout -->
 <g id="node3" class="node">
 <title>/reverse&#45;echo/stdout</title>
-<g id="a_node3"><a xlink:href="../../../flowr/src/cli/stdio/stdout.html" xlink:title="stdout">
+<g id="a_node3"><a xlink:href="../../flowr/src/cli/stdio/stdout.html" xlink:title="stdout">
 <ellipse fill="coral" stroke="black" cx="484.75" cy="-18" rx="40.09" ry="18"/>
 <text text-anchor="middle" x="484.75" y="-14.3" font-family="Times,serif" font-size="14.00">stdout</text>
 </a>
