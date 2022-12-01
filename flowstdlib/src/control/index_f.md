@@ -13,7 +13,7 @@ used initializers to some inputs.
 source = "lib://flowstdlib/control/index_f"
 ```
 
-### Flow Graoh
+### Flow Graph
 <a href="index_f.dot.svg" target="_blank"><img src="index_f.dot.svg"></a>
 
 Click image to navigate flow hierarchy.

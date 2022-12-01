@@ -11,7 +11,7 @@ Generate numbers within a rnage
 [[process]]
 source = "lib://flowstdlib/math/range"
 ```
-### Flow Graoh
+### Flow Graph
 <a href="range.dot.svg" target="_blank"><img src="range.dot.svg"></a>
 
 Click image to navigate flow hierarchy.

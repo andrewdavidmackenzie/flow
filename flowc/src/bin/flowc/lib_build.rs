@@ -10,7 +10,7 @@ use wax::Glob;
 
 use flowclib::compiler::{compile, compile_wasm};
 use flowclib::compiler::parser;
-use flowclib::dumper::{dump, dump_dot};
+use flowclib::dumper::{dump, flow_to_dot};
 use flowcore::meta_provider::MetaProvider;
 use flowcore::model::lib_manifest::LibraryManifest;
 use flowcore::model::process::Process::{FlowProcess, FunctionProcess};
@@ -227,8 +227,8 @@ fn compile_implementations(
                         }
 
                         if options.graphs {
-                            dump_dot::dump_flow(flow, &output_dir, provider)?;
-                            dump_dot::generate_svgs(&output_dir, true)?;
+                            flow_to_dot::dump_flow(flow, &output_dir, provider)?;
+                            flow_to_dot::generate_svgs(&output_dir, true)?;
                         }
 
                         copy_sources_to_target_dir(toml_path, &output_dir, flow.get_docs())?;

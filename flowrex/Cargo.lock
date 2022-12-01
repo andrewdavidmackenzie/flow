@@ -1012,9 +1012,9 @@ dependencies = [
 
 [[package]]
 name = "simpdiscover"
-version = "0.5.1"
+version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "566205d039e77d03f1b16f4f3ad0f2ace15eafdf3d0585922e36fb096bdf81d2"
+checksum = "7a9acdc41878402e6f4323415cf0051c7ac712a9665d266bda733326b585d0b3"
 dependencies = [
  "log",
  "simplog",
@@ -1022,9 +1022,9 @@ dependencies = [
 
 [[package]]
 name = "simplog"
-version = "1.5.0"
+version = "1.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fe835ff2504c22513eacaf5e448be9740aa7a703228235476730c546310a895a"
+checksum = "1d943c431298a885deadd011c9434155bd038e954c9ecdcabed5a9f579926a17"
 dependencies = [
  "atty",
  "log",
