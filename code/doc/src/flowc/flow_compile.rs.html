@@ -242,7 +242,7 @@
 <span class="kw">use </span>flowclib::compiler::compile;
 <span class="kw">use </span>flowclib::compiler::compile::CompilerTables;
 <span class="kw">use </span>flowclib::compiler::parser;
-<span class="kw">use </span>flowclib::dumper::{dump, dump_dot};
+<span class="kw">use </span>flowclib::dumper::{dump, flow_to_dot, functions_to_dot};
 <span class="kw">use </span>flowclib::generator::generate;
 <span class="kw">use </span>flowcore::model::flow_definition::FlowDefinition;
 <span class="kw">use </span>flowcore::model::process::Process::FlowProcess;
@@ -353,9 +353,9 @@
     }
 
     <span class="kw">if </span>options.graphs {
-        dump_dot::dump_flow(flow, <span class="kw-2">&amp;</span>options.output_dir, provider)<span class="question-mark">?</span>;
-        dump_dot::dump_functions(flow, tables, <span class="kw-2">&amp;</span>options.output_dir)<span class="question-mark">?</span>;
-        dump_dot::generate_svgs(<span class="kw-2">&amp;</span>options.output_dir, <span class="bool-val">true</span>)<span class="question-mark">?</span>;
+        flow_to_dot::dump_flow(flow, <span class="kw-2">&amp;</span>options.output_dir, provider)<span class="question-mark">?</span>;
+        functions_to_dot::dump_functions(flow, tables, <span class="kw-2">&amp;</span>options.output_dir)<span class="question-mark">?</span>;
+        flow_to_dot::generate_svgs(<span class="kw-2">&amp;</span>options.output_dir, <span class="bool-val">true</span>)<span class="question-mark">?</span>;
     }
 
     <span class="prelude-val">Ok</span>(())

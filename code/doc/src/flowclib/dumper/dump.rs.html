@@ -236,6 +236,7 @@
 <a href="#236" id="236">236</a>
 <a href="#237" id="237">237</a>
 <a href="#238" id="238">238</a>
+<a href="#239" id="239">239</a>
 </pre><pre class="rust"><code><span class="kw">use </span>std::fmt;
 <span class="kw">use </span>std::fs::File;
 <span class="kw">use </span>std::io::Write;
@@ -249,7 +250,7 @@
 <span class="kw">use </span>flowcore::provider::Provider;
 
 <span class="kw">use </span><span class="kw">crate</span>::compiler::compile::CompilerTables;
-<span class="kw">use </span><span class="kw">crate</span>::dumper::dump_dot;
+<span class="kw">use </span><span class="kw">crate</span>::dumper::functions_to_dot;
 <span class="kw">use </span><span class="kw">crate</span>::errors::<span class="kw-2">*</span>;
 
 <span class="doccomment">/// Dump the compiler tables of a loaded flow in human readable format to a specified
@@ -366,7 +367,7 @@
     output_dir: <span class="kw-2">&amp;</span>Path,
 ) -&gt; std::io::Result&lt;()&gt; {
     <span class="macro">info!</span>(<span class="string">&quot;\n=== Dumper: Generating {}/functions.dump&quot;</span>, output_dir.display());
-    dump_dot::dump_functions(flow, tables, output_dir)<span class="question-mark">?</span>;
+    functions_to_dot::dump_functions(flow, tables, output_dir)<span class="question-mark">?</span>;
 
     <span class="kw">let </span><span class="kw-2">mut </span>writer = create_output_file(output_dir, <span class="string">&quot;functions&quot;</span>, <span class="string">&quot;dump&quot;</span>)<span class="question-mark">?</span>;
     dump_table(tables.functions.iter(), <span class="kw-2">&amp;mut </span>writer)
@@ -382,7 +383,8 @@
     writer.write_all(<span class="string">b&quot;\n&quot;</span>)
 }
 
-<span class="doccomment">/// Dump a human readable representation of loaded flow definition to a file in `output_dir`
+<span class="doccomment">/// Dump a human readable representation of loaded [FlowDefinition] to a file in `output_dir`
+/// using [Provider]
 ///
 /// # Example
 /// ```
