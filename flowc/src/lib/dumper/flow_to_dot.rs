@@ -153,7 +153,7 @@ fn write_flow_to_dot(
     let mut contents = String::new();
 
     // Inputs
-    contents.push_str(&input_set_to_dot(flow.inputs(), flow.route(), false));
+    contents.push_str(&input_set_to_dot(flow.inputs(), flow.route()));
 
     // Outputs
     contents.push_str(&output_set_to_dot(flow.outputs(), flow.route(), false));
@@ -178,7 +178,7 @@ fn write_flow_to_dot(
     Rotate through the 3 top 'ports' on the sub-flow bubble to try and make inputs separate out
     visually - but this breaks down if we have more than 3 inputs
 */
-fn input_set_to_dot(input_set: &IOSet, to: &Route, connect_subflow: bool) -> String {
+fn input_set_to_dot(input_set: &IOSet, to: &Route) -> String {
     let mut string = "\n\t// Inputs\n\t{ rank=source\n".to_string();
 
     for input in input_set {
@@ -190,16 +190,6 @@ fn input_set_to_dot(input_set: &IOSet, to: &Route, connect_subflow: bool) -> Str
                              input.route(),
                              input.name()
             );
-
-            if connect_subflow {
-                // and connect the input to the sub-flow
-                let _ = writeln!(string,
-                                 "\t\"{}\" -> \"{}\":n [style=invis, headtooltip=\"{}\"];",
-                                 input.route(),
-                                 to,
-                                 input.name()
-                );
-            }
         }
     }
     string.push_str("\t}\n");
@@ -281,12 +271,30 @@ fn subfunction_to_dot(function: &FunctionDefinition, parent: PathBuf) -> Result<
 
     // modify path to point to the .html page that's built from .md to document the function
     let md_path = relative_path.replace("toml", "html");
-    let _ = writeln!(dot_string,
-                     "\t\"{}\" [style=filled, fillcolor=coral, URL=\"{}\", label=\"{}{}\"];",
-                     function.route(),
-                     md_path,
-                     function.alias(),
-                     name);
+    if function.is_impure() {
+        if function.inputs.is_empty() { // is a source
+            let _ = writeln!(dot_string,
+                             "\t{{ rank=source \n\t\"{}\"[URL=\"{}\", label=\"{}{}\", shape=invhouse, style=filled, fillcolor=white];\n\t}}",
+                             function.route(),
+                             md_path,
+                             function.alias(),
+                             name);
+        } else { // is a sink
+            let _ = writeln!(dot_string,
+                             "\t{{ rank=sink \n\t\"{}\"[URL=\"{}\", label=\"{}{}\", shape=house, style=filled, fillcolor=black, fontcolor=white];\n\t}}",
+                             function.route(),
+                             md_path,
+                             function.alias(),
+                             name);
+        }
+    } else {
+        let _ = writeln!(dot_string,
+                         "\t\"{}\" [style=filled, fillcolor=coral, URL=\"{}\", label=\"{}{}\"];",
+                         function.route(),
+                         md_path,
+                         function.alias(),
+                         name);
+    }
 
     dot_string.push_str(&input_initializers_to_dot(function, function.route().as_ref()));
 
