@@ -450,32 +450,36 @@ fn function_to_dot(function: &FunctionDefinition, functions: &[FunctionDefinitio
 }
 
 fn input_initializers(function: &FunctionDefinition, function_identifier: &str) -> String {
-    let mut initializers = String::new();
+    let mut initializers = "\n\t// Initializers\n".to_string();
+
+    // TODO add initializers for sub-flows also
 
     for (input_number, input) in function.get_inputs().iter().enumerate() {
         if let Some(initializer) = input.get_initializer() {
-            // Add an extra (hidden) graph entry for the initializer
-            let _ = writeln!(initializers,
-                "\"initializer{}_{}\"[style=invis];",
-                function_identifier, input_number
-            );
-            let (value, is_constant) = match initializer {
-                Always(value) => (value.clone(), true),
-                Once(value) => (value.clone(), false),
+            let (value, line_style) = match initializer {
+                Always(value) => (value.clone(), "solid"),
+                Once(value) => (value.clone(), "dotted"),
             };
 
+            // escape the quotes in the value when converted to string
             let value_string = if let Value::String(value_str) = value {
                 format!("\\\"{value_str}\\\"")
             } else {
                 format!("{value}")
             };
 
-            let line_style = if is_constant { "solid" } else { "dotted" };
+            // Add a node for the source of the initializer
+            let _ = writeln!(initializers,
+                "\"initializer{}_{}\"  [style=invis] [fontcolor=blue] [label=\"{}\"];",
+                function_identifier, input_number, value_string
+            );
 
             let input_port = input_name_to_port(input.name());
-            // escape the quotes in the value when converted to string
-            let _ = writeln!(initializers, "\"initializer{}_{}\" -> \"{}\":{} [style={}] [len=0.1] [color=blue] [label=\"{}\"];",
-                                               function_identifier, input_number, function_identifier, input_port, line_style, value_string);
+
+            // Add connection from hidden node to the input being initialized
+            let _ = writeln!(initializers, "\"initializer{}_{}\" -> \"{}\":{} [style={}] [len=0.1] [color=blue];",
+                            function_identifier, input_number,
+                             function_identifier, input_port, line_style);
         }
     }
 
@@ -488,9 +492,8 @@ fn input_initializers(function: &FunctionDefinition, function_identifier: &str) 
 */
 #[allow(clippy::ptr_arg)]
 fn add_input_set(input_set: &IOSet, to: &Route, connect_subflow: bool) -> String {
-    let mut string = String::new();
+    let mut string = "\n\t// Inputs\n\t{ rank=source\n".to_string();
 
-    string.push_str("\n\t// Inputs\n\t{ rank=source\n");
     for input in input_set {
         // Avoid creating extra points to connect to for default input
         if input.route() != to {
