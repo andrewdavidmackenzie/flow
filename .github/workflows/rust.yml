@@ -26,6 +26,7 @@ jobs:
       run: |
         echo "FLOW_LIB_PATH=$GITHUB_WORKSPACE/target" >> "$GITHUB_ENV"
         echo "PATH=$PATH:$GITHUB_WORKSPACE/target/debug" >> "$GITHUB_ENV"
+        echo "FLOW_CONTEXT_ROOT=$GITHUB_WORKSPACE/flowr/src/cli" >> "$GITHUB_ENV"
 
     - name: Install latest nightly
       uses: actions-rs/toolchain@v1
