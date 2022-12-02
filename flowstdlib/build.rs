@@ -3,6 +3,8 @@ use std::io;
 use std::path::Path;
 use std::process::Command;
 
+use simpath::{FileType, Simpath};
+
 // Build script to compile the flowstdlib library (compile WASM files and generate manifest) using flowc
 fn main() -> io::Result<()> {
     let lib_root_dir_str = env!("CARGO_MANIFEST_DIR");
@@ -20,6 +22,9 @@ fn main() -> io::Result<()> {
 
     // Tell Cargo that if any file changes it should rerun this build script
     println!("cargo:rerun-if-changed={lib_root_dir_str}");
+
+    // flowsamples requires flowc to compile itself
+    Simpath::new("PATH").find_type("flowc", FileType::File).expect("Could not find 'flowc' in '$PATH'");
 
     let mut command = Command::new("flowc");
     // flowc options:   -v info : to log output at INFO level,

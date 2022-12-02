@@ -25,7 +25,11 @@ ifeq ($(FLOW_CONTEXT_ROOT),)
 endif
 
 .PHONY: all
-all: online clippy build test docs
+all: clean-start online clippy build test docs
+
+.PHONY: clean-start
+clean-start:
+	@find . -name "*.profraw"  | xargs rm -rf {}
 
 .PHONY: online
 online:
@@ -89,26 +93,54 @@ install-flow:
 	@cargo install --path flowr $(cargo_options)
 	@cargo install --path flowrex $(cargo_options)
 
+# clippy of flowstdlib and flowsamples requires flowc to run the build.rs build script
+# clippy of flowsamples requies build of flowstdlib to find files in target/flowstdlib
 .PHONY: clippy
-clippy: install-flow
+clippy: build-flowc build-flowstdlib
 	@echo "clippy<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
 	@cargo clippy --tests --all-features -- -D warnings
 
 .PHONY: build
-build: install-flow
-	@echo "build<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
-	@cargo build $(features) $(cargo_options)
-	@cargo build $(cargo_options) --manifest-path flowrex/Cargo.toml
+build: build-flowstdlib build-flowsamples build-flowc build-flowr build-flowrex
+
+# In the targets below we encode the dependencies on binaries that cannot be expressed (yet) in cargo dependencies,
+# so ensure that flowc is built before it is used to build other things (flowsamples and flowstdlib).
+# Other dependencies required to build those binaries (e.g. on lib crates) are taken care of by cargo,
+# so no need to make them explicit here.
+
+.PHONY: build-flowc
+build-flowc:
+	@echo "flowc<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
+	@cargo build -p flowc $(cargo_options)
+
+.PHONY: build-flowr
+build-flowr:
+	@echo "flowr<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
+	@cargo build -p flowr $(cargo_options)
+
+.PHONY: build-flowrex
+build-flowrex:
+	@echo "flowrex<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
+	@cargo build --manifest-path flowrex/Cargo.toml $(cargo_options)
+
+.PHONY: build-flowstdlib
+build-flowstdlib: flowc
+	@echo "flowstdlib<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
+	@cargo build -p flowstdlib $(cargo_options)
+
+.PHONY: build-flowsamples
+build-flowsamples: build-flowc build-flowstdlib
+	@echo "flowsamples<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
+	@cargo build -p flowsamples $(cargo_options)
 
 .PHONY: test
-test: install-flow
+test:
 	@echo "test<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
 	@cargo test $(features) $(cargo_options)
 
 .PHONY: coverage
-coverage: install-flow
+coverage: clean-start
 	@echo "coverage<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
-	@find . -name "*.profraw"  | xargs rm -rf {}
 	@RUSTFLAGS="-C instrument-coverage" LLVM_PROFILE_FILE="flow-%p-%m.profraw" cargo test $(features) $(cargo_options)
 	@echo "Gathering covering information"
 	@grcov . --binary-path target/debug/ -s . -t lcov --branch --ignore-not-existing --ignore "/*" -o coverage.info

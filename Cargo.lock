@@ -720,6 +720,7 @@ name = "flowsamples"
 version = "0.90.0"
 dependencies = [
  "serial_test",
+ "simpath",
 ]
 
 [[package]]

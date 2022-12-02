@@ -1,6 +1,6 @@
 [workspace]
-members = ["flowc", "flowstdlib", "flowrlib", "flowr", "flowcore", "flowmacro", "flowsamples"]
-default-members = ["flowc", "flowstdlib", "flowrlib", "flowr", "flowcore", "flowmacro", "flowsamples"]
+members = ["flowr", "flowstdlib", "flowrlib", "flowcore", "flowmacro", "flowc", "flowsamples"]
+default-members = ["flowr", "flowstdlib", "flowrlib", "flowcore", "flowmacro", "flowc", "flowsamples"]
 
 [workspace.package]
 version = "0.90.0"
