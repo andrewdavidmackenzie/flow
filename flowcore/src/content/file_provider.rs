@@ -19,7 +19,7 @@ impl Provider for FileProvider {
         url: &Url,
         default_filename: &str,
         extensions: &[&str],
-    ) -> Result<(Url, Option<Url>)> {
+    ) -> Result<Url> {
         let path = url
             .to_file_path()
             .map_err(|_| format!("Could not convert '{url}' to a file path"))?;
@@ -37,7 +37,7 @@ impl Provider for FileProvider {
                     if let Ok(file_found_url) =
                         FileProvider::find_file(&path, default_filename, extensions)
                     {
-                        return Ok((file_found_url, None));
+                        return Ok(file_found_url);
                     }
 
                     let dir_os_name = path.file_name().ok_or("Could not get directory name")?;
@@ -46,22 +46,22 @@ impl Provider for FileProvider {
                             "'{}' is a directory, so attempting to find file named '{}' inside it",
                             path.display(), dir_name);
                         if let Ok(file_found_url) = Self::find_file(&path, &dir_name, extensions) {
-                            return Ok((file_found_url, None));
+                            return Ok(file_found_url);
                     }
 
                     bail!("No file named '{}' or '{}' with extension '{}' found in directory '{}'",
                         default_filename, dir_name, extensions.join(" or "), path.display())
                 } else if md.is_file() {
-                    Ok((url.clone(), None))
+                    Ok(url.clone())
                 } else {
                     let file_found_url = Self::file_by_extensions(&path, extensions)?;
-                    Ok((file_found_url, None))
+                    Ok(file_found_url)
                 }
             }
             _ => {
                 // as-is the file at path doesn't exist, try with extensions
                 let file_found_url = Self::file_by_extensions(&path, extensions)?;
-                Ok((file_found_url, None))
+                Ok(file_found_url)
             }
         }
     }
@@ -160,10 +160,10 @@ mod test {
             let resolved_url = provider
                 .resolve_url(&url, "root", &["toml"])
                 .expect("Could not resolve url");
-            assert_eq!(resolved_url.0, url);
+            assert_eq!(resolved_url, url);
 
             let _ = provider
-                .get_contents(&resolved_url.0)
+                .get_contents(&resolved_url)
                 .expect("Could not fetch contents");
         }
 
@@ -177,12 +177,12 @@ mod test {
                 .resolve_url(&url, "root", &["toml"])
                 .expect("Could not resolve url");
             assert_eq!(
-                resolved_url.0,
+                resolved_url,
                 url.join("root.toml").expect("Could not join")
             );
 
             let _ = provider
-                .get_contents(&resolved_url.0)
+                .get_contents(&resolved_url)
                 .expect("Could not fetch contents");
         }
 
@@ -197,10 +197,10 @@ mod test {
                 .expect("Could not resolve url");
             let expected_url = Url::from_file_path(path.join("root.toml"))
                 .expect("Could not create Url from path");
-            assert_eq!(resolved_url.0, expected_url);
+            assert_eq!(resolved_url, expected_url);
 
             let _ = provider
-                .get_contents(&resolved_url.0)
+                .get_contents(&resolved_url)
                 .expect("Could not fetch contents");
         }
 
@@ -215,10 +215,10 @@ mod test {
                 .expect("Could not resolve url");
             let expected_url = Url::from_file_path(path.join("compare_switch.toml"))
                 .expect("Could not create Url from path");
-            assert_eq!(resolved_url.0, expected_url);
+            assert_eq!(resolved_url, expected_url);
 
             let _ = provider
-                .get_contents(&resolved_url.0)
+                .get_contents(&resolved_url)
                 .expect("Could not fetch contents");
         }
 

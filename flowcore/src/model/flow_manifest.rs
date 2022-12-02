@@ -137,7 +137,7 @@ impl FlowManifest {
     /// Load, or Deserialize, a manifest from a `source` Url using `provider`
     /// Sets all location_url fields to be URLs, a file URL for provided implementations
     pub fn load(provider: &dyn Provider, manifest_url: &Url) -> Result<(FlowManifest, Url)> {
-        let (resolved_url, _) = provider
+        let resolved_url = provider
             .resolve_url(manifest_url, DEFAULT_MANIFEST_FILENAME, &["json"])
             .chain_err(|| "Could not resolve url for manifest.json")?;
 
@@ -194,8 +194,8 @@ mod test {
             source: &Url,
             _default_filename: &str,
             _extensions: &[&str],
-        ) -> Result<(Url, Option<Url>)> {
-            Ok((source.clone(), None))
+        ) -> Result<Url> {
+            Ok(source.clone())
         }
 
         fn get_contents(&self, _url: &Url) -> Result<Vec<u8>> {

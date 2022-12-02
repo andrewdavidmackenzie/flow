@@ -101,7 +101,7 @@ fn parse_process(
 ) -> Result<Process> {
     trace!("load_process()");
 
-    let (resolved_url, reference) = provider
+    let resolved_url = provider
         .resolve_url(url, "root", &["toml"])
         .chain_err(|| format!("Could not resolve the url: '{url}'"))?;
     if &resolved_url != url {
@@ -156,7 +156,6 @@ fn parse_process(
                 parent_route,
                 alias,
                 parent_flow_id,
-                reference,
                 initializations,
             )?;
         }
@@ -170,7 +169,7 @@ fn parse_process(
 /// easily use another file as along as it has the required fields to satisfy `MetaData` struct
 pub fn parse_metadata(url: &Url, provider: &dyn Provider) -> Result<(MetaData, LibType)> {
     trace!("Loading Metadata");
-    let (resolved_url, _) = provider
+    let resolved_url= provider
         .resolve_url(url, "Cargo", &["toml"])
         .chain_err(|| format!("Could not resolve the url: '{url}'"))?;
 

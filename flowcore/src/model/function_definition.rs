@@ -164,18 +164,15 @@ impl FunctionDefinition {
         parent_route: &Route,
         alias: &Name,
         flow_id: usize,
-        reference: Option<Url>,
         initializations: &BTreeMap<String, InputInitializer>,
     ) -> Result<()> {
         self.set_flow_id(flow_id);
         self.set_alias(alias);
         self.set_source_url(source_url);
-        if let Some(function_reference) = reference {
-            match function_reference.scheme() {
-                "context" => self.set_context_reference(Some(function_reference)),
-                "lib" => self.set_lib_reference(Some(function_reference)),
-                _ => {}
-            }
+        match original_url.scheme() {
+            "context" => self.set_context_reference(Some(original_url.clone())),
+            "lib" => self.set_lib_reference(Some(original_url.clone())),
+            _ => {}
         }
         self.set_routes_from_parent(parent_route);
         self.set_initializers(initializations)?;
