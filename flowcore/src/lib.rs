@@ -39,7 +39,7 @@ pub type RunAgain = bool;
 
 /// contains the file and http content provider implementations
 #[cfg(not(target_arch = "wasm32"))]
-mod content;
+pub mod content;
 
 /// A function's implementation must implement this trait with a single `run()` method that takes
 /// as input an array of values and it returns a `Result` tuple with an Optional output `Value`

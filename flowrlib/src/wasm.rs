@@ -149,3 +149,26 @@ pub fn load(provider: &dyn Provider, source_url: &Url) -> Result<WasmExecutor> {
         source_url: source_url.clone(),
     })
 }
+
+#[cfg(test)]
+mod test {
+    use std::path::Path;
+    use url::Url;
+    use flowcore::content::file_provider::FileProvider;
+    use serde_json::json;
+    use flowcore::Implementation;
+
+    #[test]
+    fn load_test_wasm() {
+        let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/add.wasm");
+        let url = Url::from_file_path(path).expect("Could not convert path to Url");
+        let adder = &super::load(&FileProvider{}, &url)
+            .expect("Coudl not load test_wasm.wasm") as &dyn Implementation;
+
+        let inputs = vec![json!(1), json!(2)];
+        let (value, run_again) = adder.run(&inputs).expect("Could not call run");
+
+        assert_eq!(value, Some(json!(3)));
+        assert!(run_again);
+    }
+}
