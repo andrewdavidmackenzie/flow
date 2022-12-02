@@ -111,7 +111,7 @@ build: build-flowstdlib build-flowsamples build-flowc build-flowr build-flowrex
 .PHONY: build-flowc
 build-flowc:
 	@echo "flowc<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
-	@cargo build -p flowc $(cargo_options)
+	@cargo build -p flowc
 
 .PHONY: build-flowr
 build-flowr:
@@ -126,7 +126,7 @@ build-flowrex:
 .PHONY: build-flowstdlib
 build-flowstdlib: flowc
 	@echo "flowstdlib<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
-	@cargo build -p flowstdlib $(cargo_options)
+	@cargo build -p flowstdlib
 
 .PHONY: build-flowsamples
 build-flowsamples: build-flowc build-flowstdlib
