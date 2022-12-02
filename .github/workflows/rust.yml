@@ -22,8 +22,10 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
-    - name: SetupFlowLibPath
-      run: echo "FLOW_LIB_PATH=$GITHUB_WORKSPACE/target" >> "$GITHUB_ENV"
+    - name: SetupPaths
+      run: |
+        echo "FLOW_LIB_PATH=$GITHUB_WORKSPACE/target" >> "$GITHUB_ENV"
+        echo "PATH=$PATH:$GITHUB_WORKSPACE/target/debug" >> "$GITHUB_ENV"
 
     - name: Install latest nightly
       uses: actions-rs/toolchain@v1
@@ -69,23 +71,14 @@ jobs:
         echo RUSTFLAGS="-C instrument-coverage" >> "$GITHUB_ENV"
         echo LLVM_PROFILE_FILE="flow-%p-%m.profraw" >> "$GITHUB_ENV"
 
-    - name: install-flowc
-      run: cargo install --path flowc
-
-    - name: install-flowr
-      run: cargo install --path flowr
-
-    - name: install-flowrex
-      run: cargo install --path flowrex
-
     - name: clippy
-      run: cargo clippy --tests -- -D warnings
+      run: make clippy
 
     - name: build
-      run: cargo build --features "wasm"
+      run: make build
 
     - name: test
-      run: cargo test --features "online_tests","wasm"
+      run: make test
 
     - name: docs
       if: matrix.os == 'ubuntu-latest'

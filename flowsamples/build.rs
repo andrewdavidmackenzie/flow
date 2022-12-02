@@ -3,6 +3,8 @@ use std::{fs, io};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
+use simpath::{FileType, Simpath};
+
 fn main() -> io::Result<()> {
     let samples_root = env!("CARGO_MANIFEST_DIR");
     let root_dir = Path::new(samples_root).parent().expect("Could not get parent directory");
@@ -11,6 +13,9 @@ fn main() -> io::Result<()> {
     println!("cargo:rerun-if-env-changed=FLOW_LIB_PATH");
     // Tell Cargo that if any file in the flowsamples directory changes it should rerun this build script
     println!("cargo:rerun-if-changed={samples_root}");
+
+    // flowsamples requires flowc to compile itself
+    Simpath::new("PATH").find_type("flowc", FileType::File).expect("Could not find 'flowc' in '$PATH'");
 
     // find all sample sub-folders at have a "root.toml" flow definition file
     for entry in fs::read_dir(samples_root)? {
