@@ -97,50 +97,44 @@ impl MetaProvider {
     ///    - a string that is a reference to that module in the library, such as:
     ///        "context/stdio/stdout/stdout"
     #[cfg(feature = "context")]
-    fn resolve_context_url(&self, url: &Url) -> Result<(Url, Option<Url>)> {
+    fn resolve_context_url(&self, url: &Url) -> Result<Url> {
         let dir = url.host_str()
             .chain_err(|| format!("context 'dir' could not be extracted from the url '{url}'"))?;
         let sub_dir = url.path().trim_start_matches('/');
         let context_function_path = self.context_root.join(dir).join(sub_dir);
-        Ok((
+        Ok(
             Url::from_file_path(context_function_path)
                 .map_err(|_| "Could not convert context function's path to a Url")?,
-            Some(Url::parse(&format!("context://{dir}/{sub_dir}"))?),
-        ))
+        )
     }
 
-    /// Urls for library flows and functions and values will be of the form:
-    ///        "lib://flowstdlib/stdio/stdout.toml"
+    /// Urls for library flows and functions will be of the form:
+    ///        "lib://flowstdlib/stdio/stdout"
     ///
-    ///    Where 'flowstdlib' is the library name and 'stdio/stdout.toml' the path of the definition
+    ///    Where 'flowstdlib' is the library name and 'stdio/stdout' the path of the definition
     ///    file within the library.
     ///
-    ///   Find library in question is found in the file system or via Http using the provider's
+    ///   The library in question is either found in the file system or via Http using the
     ///   search path (setup on provider creation).
     ///
-    ///   Then return:
-    ///    - a string representation of the Url (file: or http: or https:) where the file can be found
-    ///    - a string that is a reference to that module in the library, such as:
-    ///        "flowstdlib/math/add"
+    ///   Return the Url (file: or http: or https:) where the file/resource can be found
     #[cfg(feature = "file_provider")]
-    fn resolve_lib_url(&self, url: &Url) -> Result<(Url, Option<Url>)> {
+    fn resolve_lib_url(&self, url: &Url) -> Result<Url> {
         let lib_name = url.host_str()
             .chain_err(|| format!("'lib_name' could not be extracted from the url '{url}'"))?;
         let path_under_lib = url.path().trim_start_matches('/');
-        let lib_reference = Some(Url::parse(&format!("lib://{lib_name}/{path_under_lib}"))?);
 
         match self.lib_search_path.find(lib_name) {
             Ok(FoundType::File(lib_root_path)) => {
                 let lib_path = lib_root_path.join(path_under_lib);
-                Ok((
+                Ok(
                     Url::from_directory_path(lib_path)
-                        .map_err(|_| "Could not convert file: lib_path to Url")?,
-                    lib_reference,
-                ))
+                        .map_err(|_| "Could not convert file: lib_path to Url")?
+                )
             }
             Ok(FoundType::Resource(mut lib_root_url)) => {
                 lib_root_url.set_path(&format!("{}/{path_under_lib}", lib_root_url.path()));
-                Ok((lib_root_url, lib_reference))
+                Ok(lib_root_url)
             }
             _ => bail!(
                 "Could not resolve library Url '{}' using {}",
@@ -164,20 +158,20 @@ impl Provider for MetaProvider {
         url: &Url,
         default_name: &str,
         extensions: &[&str],
-    ) -> Result<(Url, Option<Url>)> {
+    ) -> Result<Url> {
         // resolve a lib reference into either a file: or http: or https: reference
-        let (content_url, reference) = match url.scheme() {
+        let content_url = match url.scheme() {
             #[cfg(feature = "file_provider")]
             "lib" => self.resolve_lib_url(url)?,
             #[cfg(feature = "context")]
             "context" => self.resolve_context_url(url)?,
-            _ => (url.clone(), None),
+            _ => url.clone(),
         };
 
         let provider = self.get_provider(content_url.scheme())?;
-        let (resolved_url, _) = provider.resolve_url(&content_url, default_name, extensions)?;
+        let resolved_url = provider.resolve_url(&content_url, default_name, extensions)?;
 
-        Ok((resolved_url, reference))
+        Ok(resolved_url)
     }
 
     /// Takes a Url with a scheme of "http", "https" or "file". Read and return the contents of the
@@ -286,11 +280,7 @@ mod test {
         ) as &dyn Provider;
         let lib_url = Url::parse("lib://test-flows/control/compare_switch").expect("Couldn't form Url");
         match provider.resolve_url(&lib_url, "", &["toml"]) {
-            Ok((url, lib_ref)) => {
-                assert_eq!(url, expected_url);
-                assert_eq!(lib_ref, Some(Url::parse("lib://test-flows/control/compare_switch")
-                    .expect("Could not parse Url")));
-            }
+            Ok(url) => assert_eq!(url, expected_url),
             Err(_) => panic!("Error trying to resolve url"),
         }
     }
@@ -316,7 +306,7 @@ mod test {
         );
 
         let lib_url = Url::parse("lib://src/control/tap").expect("Couldn't create Url");
-        let (resolved_url, _) = provider
+        let resolved_url = provider
             .resolve_url(&lib_url, "", &["toml"])
             .expect("Couldn't resolve library on the web");
         assert_eq!(resolved_url, expected_url);

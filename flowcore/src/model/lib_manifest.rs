@@ -77,7 +77,7 @@ impl LibraryManifest {
 
     /// load a `LibraryManifest` from `lib_manifest_url`, using `provider` to fetch the contents
     pub fn load(provider: &dyn Provider, lib_manifest_url: &Url) -> Result<(LibraryManifest, Url)> {
-        let (resolved_url, _) = provider
+        let resolved_url = provider
             .resolve_url(
                 lib_manifest_url,
                 DEFAULT_LIB_JSON_MANIFEST_FILENAME,
@@ -224,8 +224,8 @@ mod test {
             source: &Url,
             _default_filename: &str,
             _extensions: &[&str],
-        ) -> Result<(Url, Option<Url>)> {
-            Ok((source.clone(), None))
+        ) -> Result<Url> {
+            Ok(source.clone())
         }
 
         fn get_contents(&self, _url: &Url) -> Result<Vec<u8>> {

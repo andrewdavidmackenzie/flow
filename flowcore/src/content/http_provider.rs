@@ -23,22 +23,22 @@ impl Provider for HttpProvider {
         url: &Url,
         default_filename: &str,
         extensions: &[&str],
-    ) -> Result<(Url, Option<Url>)> {
+    ) -> Result<Url> {
         // Try the url directly first
         if Self::resource_exists(url).is_ok() {
-            return Ok((url.clone(), None));
+            return Ok(url.clone());
         }
 
         // Try the url with possible extensions next
         if let Ok(found) = Self::resource_by_extensions(url, extensions) {
-            return Ok((found, None));
+            return Ok(found);
         }
 
         // Attempting to find default file under this path, with any of the valid extensions
         let default_filename_url = Url::parse(&format!("{url}/{default_filename}"))
             .chain_err(|| "Could not append default_filename to url")?;
         if let Ok(found) = Self::resource_by_extensions(&default_filename_url, extensions) {
-            return Ok((found, None));
+            return Ok(found);
         }
 
         // Attempt to find file with same name as the final segment of the path, with any valid extension
@@ -49,7 +49,7 @@ impl Provider for HttpProvider {
         let filename_url = Url::parse(&format!("{url}/{file_name}"))
             .chain_err(|| "Could not append filename after directory in Url")?;
         if let Ok(found) = Self::resource_by_extensions(&filename_url, extensions) {
-            return Ok((found, None));
+            return Ok(found);
         }
 
         bail!("Could not resolve the Url: '{}'", url)
@@ -131,7 +131,7 @@ mod test {
         let full_url = provider
             .resolve_url(&expected_url, "root", &["toml"])
             .expect("Could not resolve url");
-        assert_eq!(expected_url.as_str(), full_url.0.as_str());
+        assert_eq!(expected_url.as_str(), full_url.as_str());
     }
 
     #[test]
@@ -144,7 +144,7 @@ mod test {
         let full_url = provider
             .resolve_url(&input_url, "root", &["toml"])
             .expect("Could not resolve url");
-        assert_eq!(expected_url.as_str(), full_url.0.as_str());
+        assert_eq!(expected_url.as_str(), full_url.as_str());
     }
 
     #[test]
@@ -157,7 +157,7 @@ mod test {
         let full_url = provider
             .resolve_url(&input_url, "root", &["toml"])
             .expect("Could not resolve url");
-        assert_eq!(expected_url.as_str(), full_url.0.as_str());
+        assert_eq!(expected_url.as_str(), full_url.as_str());
     }
 
     #[test]
@@ -170,7 +170,7 @@ mod test {
         let full_url = provider
             .resolve_url(&folder_url, "root", &["toml"])
             .expect("Could not resolve url");
-        assert_eq!(expected_url.as_str(), full_url.0.as_str());
+        assert_eq!(expected_url.as_str(), full_url.as_str());
     }
 
     #[test]

@@ -15,7 +15,7 @@ pub trait Provider: Sync + Send {
         url: &Url,
         default_name: &str,
         extensions: &[&str],
-    ) -> Result<(Url, Option<Url>)>;
+    ) -> Result<Url>;
 
     /// Fetches content from a URL. It resolves the URL internally before attempting to
     /// fetch actual content

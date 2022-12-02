@@ -115,7 +115,7 @@ unsafe impl Sync for WasmExecutor {}
 /// load a Wasm module from the specified Url and return it wrapped in a WasmExecutor `Implementation`
 pub fn load(provider: &dyn Provider, source_url: &Url) -> Result<WasmExecutor> {
     trace!("Attempting to load WASM module from '{}'", source_url);
-    let (resolved_url, _) = provider
+    let resolved_url = provider
         .resolve_url(source_url, DEFAULT_WASM_FILENAME, &["wasm"])
         .chain_err(|| format!("Could not resolve url '{source_url}' for wasm file"))?;
     let content = provider.get_contents(&resolved_url).chain_err(|| {

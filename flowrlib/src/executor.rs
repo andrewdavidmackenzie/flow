@@ -345,8 +345,8 @@ mod test {
             source: &Url,
             _default_filename: &str,
             _extensions: &[&str],
-        ) -> Result<(Url, Option<Url>)> {
-            Ok((source.clone(), None))
+        ) -> Result<Url> {
+            Ok(source.clone())
         }
 
         fn get_contents(&self, _url: &Url) -> Result<Vec<u8>> {
