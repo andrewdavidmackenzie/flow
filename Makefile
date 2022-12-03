@@ -125,7 +125,7 @@ build-flowsamples: build-flowc build-flowstdlib
 	@cargo build -p flowsamples $(cargo_options)
 
 .PHONY: test
-test:
+test: build
 	@echo "test<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
 	@cargo test $(features) $(cargo_options)
 
