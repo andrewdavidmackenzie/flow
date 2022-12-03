@@ -267,8 +267,7 @@ fn load_referenced_implementation(
         .locators
         .get(implementation_url)
         .ok_or(format!(
-            "Could not find ImplementationLocator for '{}' in library",
-            implementation_url
+            "Could not find ImplementationLocator for '{implementation_url}' in library"
         ))?;
 
     // find the implementation we need from the locator

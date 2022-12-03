@@ -125,9 +125,7 @@ fn self_block_check(state: &RunState, job_id: usize, block: &Block) -> Result<()
         return runtime_error(
             state,
             job_id,
-            &format!(
-                "Block {} has same Function id as blocked and blocking",
-                block),
+            &format!("Block {block} has same Function id as blocked and blocking"),
             file!(),
             line!(),
         );
@@ -166,8 +164,7 @@ fn flow_checks(state: &RunState, job_id: usize) -> Result<()> {
             return runtime_error(
                 state,
                 job_id,
-                &format!("Busy flow entry exists for Function #{} in Flow #{} but it's not Ready nor Running",
-                         function_id, flow_id),
+                &format!("Busy flow entry exists for Function #{function_id} in Flow #{flow_id} but it's not Ready nor Running"),
                 file!(), line!());
         }
     }
@@ -184,8 +181,7 @@ fn pending_unblock_checks(state: &RunState, job_id: usize) -> Result<()> {
                 state,
                 job_id,
                 &format!(
-                    "Pending Unblock exists for Flow #{}, but it is not busy",
-                    pending_unblock_flow_id),
+                    "Pending Unblock exists for Flow #{pending_unblock_flow_id}, but it is not busy"),
                 file!(),
                 line!(),
             );
