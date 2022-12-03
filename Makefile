@@ -110,7 +110,7 @@ build: build-flowstdlib build-flowsamples build-flowc build-flowr build-flowrex
 
 .PHONY: build-flowc
 build-flowc:
-	@echo "flowc<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
+	@echo "build-flowc<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
 	@cargo build -p flowc
 
 .PHONY: build-flowr
