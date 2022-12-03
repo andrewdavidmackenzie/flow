@@ -1,3 +1,4 @@
+//! Build script to compile the flowstdlib library (compile WASM files and generate manifest) using flowc
 use std::env;
 use std::io;
 use std::path::Path;
@@ -5,7 +6,6 @@ use std::process::Command;
 
 use simpath::{FileType, Simpath};
 
-// Build script to compile the flowstdlib library (compile WASM files and generate manifest) using flowc
 fn main() -> io::Result<()> {
     let lib_root_dir_str = env!("CARGO_MANIFEST_DIR");
     let lib_root_dir = Path::new(lib_root_dir_str);
