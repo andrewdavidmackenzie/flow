@@ -126,7 +126,7 @@ build-flowrex:
 .PHONY: build-flowstdlib
 build-flowstdlib: flowc
 	@echo "build-flowstdlib<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
-	@cargo build -p flowstdlib
+	@cargo build -p flowstdlib $(cargo_options)
 
 .PHONY: build-flowsamples
 build-flowsamples: build-flowc build-flowstdlib
