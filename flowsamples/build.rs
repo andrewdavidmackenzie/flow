@@ -1,4 +1,4 @@
-//! Build script to compile the flow flowsamples in the crate
+//! Build script to compile the flow flowsamples in the crate using flowc
 use std::{fs, io};
 use std::path::{Path, PathBuf};
 use std::process::Command;
