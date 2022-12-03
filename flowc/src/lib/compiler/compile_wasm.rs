@@ -1,10 +1,3 @@
-#[cfg(feature = "debugger")]
-use std::collections::BTreeSet;
-use std::fs;
-use std::path::{Path, PathBuf};
-use std::process::Command;
-use std::process::Stdio;
-
 use log::{debug, info, warn};
 use simpath::{FileType, FoundType, Simpath};
 use tempdir::TempDir;
@@ -12,6 +5,12 @@ use tempdir::TempDir;
 use url::Url;
 
 use flowcore::model::function_definition::FunctionDefinition;
+#[cfg(feature = "debugger")]
+use std::collections::BTreeSet;
+use std::fs;
+use std::path::{Path, PathBuf};
+use std::process::Command;
+use std::process::Stdio;
 
 use crate::compiler::cargo_build;
 use crate::errors::*;
@@ -97,8 +96,9 @@ fn run_optional_command(wasm_path: &Path, command: &str, mut args: Vec<String>) 
     if let Ok(FoundType::File(command_path)) =
         Simpath::new("PATH").find_type(command, FileType::File)
     {
-        // Create a temp directory for building in. Use `new_in` to make sure it is in the same FS as the destination so
-        // that fs::rename later works. It will be cleaned-up when `build_dir` goes out of scope.
+        // Create a temp directory for building in. Use `new_in` to make sure it is in the same
+        // FS as the destination so that fs::rename later works.
+        // It will be cleaned-up when `build_dir` goes out of scope.
         let tmp_dir = TempDir::new_in(
             wasm_path
                 .parent()
@@ -187,13 +187,6 @@ fn out_of_date(source: &Path, derived: &Path) -> Result<(bool, bool)> {
 
 #[cfg(test)]
 mod test {
-    #[cfg(feature = "debugger")]
-    use std::collections::BTreeSet;
-    use std::env;
-    use std::fs::{File, remove_file, write};
-    use std::path::Path;
-    use std::time::Duration;
-
     use tempdir::TempDir;
     use url::Url;
 
@@ -202,6 +195,12 @@ mod test {
     use flowcore::model::io::IO;
     use flowcore::model::output_connection::{OutputConnection, Source};
     use flowcore::model::route::Route;
+    #[cfg(feature = "debugger")]
+        use std::collections::BTreeSet;
+    use std::env;
+    use std::fs::{File, remove_file, write};
+    use std::path::Path;
+    use std::time::Duration;
 
     use crate::compiler::compile;
 
