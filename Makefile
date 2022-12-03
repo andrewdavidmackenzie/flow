@@ -98,6 +98,7 @@ install-flow:
 .PHONY: clippy
 clippy: build-flowc build-flowstdlib
 	@echo "clippy<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
+	@cargo clippy -p flowstdlib --tests --all-features -- -D warnings
 	@cargo clippy --tests --all-features -- -D warnings
 
 .PHONY: build
