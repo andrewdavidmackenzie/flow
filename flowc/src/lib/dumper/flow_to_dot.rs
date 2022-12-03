@@ -322,17 +322,14 @@ pub (crate) fn input_initializers_to_dot(function: &FunctionDefinition, function
 
             // Add a node for the source of the initializer
             let _ = writeln!(initializers,
-                             "\t\"initializer{}_{}\"  [style=invis];",
-                             function_identifier, input_number
+                             "\t\"initializer{function_identifier}_{input_number}\"  [style=invis];"
             );
 
             let input_port = input_name_to_port(input.name());
 
             // Add connection from hidden node to the input being initialized
             let _ = writeln!(initializers,
-                             "\t\"initializer{}_{}\" -> \"{}\":{} [style={}]  [taillabel=\"{}\"] [len=0.1] [color=blue];",
-                             function_identifier, input_number,
-                             function_identifier, input_port, line_style, value_string);
+                             "\t\"initializer{function_identifier}_{input_number}\" -> \"{function_identifier}\":{input_port} [style={line_style}]  [taillabel=\"{value_string}\"] [len=0.1] [color=blue];");
         }
     }
 
@@ -368,16 +365,10 @@ fn connection_to_dot(connection: &Connection) -> String {
 
     if array_index {
         format!(
-            "\n\t\"{}\":{} -> \"{}\":{} [xlabel=\"{}[{}]\", headlabel=\"{}\"];",
-            from_node, from_port,
-            to_node, to_port,
-            from_name, number, to_name)
+            "\n\t\"{from_node}\":{from_port} -> \"{to_node}\":{to_port} [xlabel=\"{from_name}[{number}]\", headlabel=\"{to_name}\"];")
     } else {
         format!(
-            "\n\t\"{}\":{} -> \"{}\":{} [xlabel=\"{}\", headlabel=\"{}\"];",
-            from_node, from_port,
-            to_node, to_port,
-            from_name, to_name)
+            "\n\t\"{from_node}\":{from_port} -> \"{to_node}\":{to_port} [xlabel=\"{from_name}\", headlabel=\"{to_name}\"];")
     }
 }
 

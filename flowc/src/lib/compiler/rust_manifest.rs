@@ -73,10 +73,9 @@ pub fn write(lib_root: &Path, lib_manifest: &LibraryManifest, filename: &Path) -
 
         let manifest_entry = format!(
             "    manifest.locators.insert(
-            Url::parse(\"{}\")?,
-            Native(Arc::new({})),
-        );\n\n",
-            reference, implementation_struct
+            Url::parse(\"{reference}\")?,
+            Native(Arc::new({implementation_struct})),
+        );\n\n"
         );
 
         manifest_file.write_all(manifest_entry.as_bytes())?;
