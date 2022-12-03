@@ -97,18 +97,16 @@ impl FileProvider {
         for extension in extensions {
             file_with_extension.set_extension(extension);
             trace!("Looking for file '{}'", file_with_extension.display());
-            if let Ok(md) = fs::metadata(&file_with_extension) {
-                if md.is_file() {
-                    let file_path_as_url =
-                        Url::from_file_path(&file_with_extension).map_err(|_| {
-                            format!(
-                                "Could not create url from file path '{}'",
-                                file_with_extension.display()
-                            )
-                        })?;
+            if file_with_extension.exists() && file_with_extension.is_file() {
+                let file_path_as_url =
+                    Url::from_file_path(&file_with_extension).map_err(|_| {
+                        format!(
+                            "Could not create url from file path '{}'",
+                            file_with_extension.display()
+                        )
+                    })?;
 
-                    return Ok(file_path_as_url);
-                }
+                return Ok(file_path_as_url);
             }
         }
         let msg = format!("No file found at path '{}' with any of these extensions '{extensions:?}'",
