@@ -83,21 +83,21 @@ endif
 
 .PHONY: clean
 clean:
-	@echo "clean<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
+	@echo "clean<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
 	@cargo clean
 
 .PHONY: install-flow
 install-flow:
-	@echo "install-flow<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
+	@echo "install-flow<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
 	@cargo install --path flowc $(cargo_options)
 	@cargo install --path flowr $(cargo_options)
 	@cargo install --path flowrex $(cargo_options)
 
 # clippy of flowstdlib and flowsamples requires flowc to run the build.rs build script
-# clippy of flowsamples requies build of flowstdlib to find files in target/flowstdlib
+# clippy of flowsamples requires build of flowstdlib to find files in target/flowstdlib
 .PHONY: clippy
 clippy: build-flowc build-flowstdlib
-	@echo "clippy<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
+	@echo "clippy<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
 	@cargo clippy --tests --all-features -- -D warnings
 
 .PHONY: build
@@ -110,37 +110,37 @@ build: build-flowstdlib build-flowsamples build-flowc build-flowr build-flowrex
 
 .PHONY: build-flowc
 build-flowc:
-	@echo "flowc<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
+	@echo "flowc<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
 	@cargo build -p flowc
 
 .PHONY: build-flowr
 build-flowr:
-	@echo "flowr<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
+	@echo "build-flowr<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
 	@cargo build -p flowr $(cargo_options)
 
 .PHONY: build-flowrex
 build-flowrex:
-	@echo "flowrex<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
+	@echo "build-flowrex<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
 	@cargo build --manifest-path flowrex/Cargo.toml $(cargo_options)
 
 .PHONY: build-flowstdlib
 build-flowstdlib: flowc
-	@echo "flowstdlib<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
+	@echo "build-flowstdlib<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
 	@cargo build -p flowstdlib
 
 .PHONY: build-flowsamples
 build-flowsamples: build-flowc build-flowstdlib
-	@echo "flowsamples<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
+	@echo "build-flowsamples<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
 	@cargo build -p flowsamples $(cargo_options)
 
 .PHONY: test
 test:
-	@echo "test<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
+	@echo "test<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
 	@cargo test $(features) $(cargo_options)
 
 .PHONY: coverage
 coverage: clean-start
-	@echo "coverage<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
+	@echo "coverage<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
 	@RUSTFLAGS="-C instrument-coverage" LLVM_PROFILE_FILE="flow-%p-%m.profraw" cargo test $(features) $(cargo_options)
 	@echo "Gathering covering information"
 	@grcov . --binary-path target/debug/ -s . -t lcov --branch --ignore-not-existing --ignore "/*" -o coverage.info
@@ -154,21 +154,21 @@ docs: generate-docs copy-svgs trim-docs
 
 .PHONY: generate-docs
 generate-docs: build-book code-docs
-	@echo "generate-docs<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
+	@echo "generate-docs<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
 
 .PHONY: build-book
 build-book:
-	@echo "build-book<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
+	@echo "build-book<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
 	@mdbook build
 
 .PHONY: code-docs
 code-docs:
-	@echo "code-docs<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
+	@echo "code-docs<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
 	@cargo doc --no-deps --target-dir=target/html/code $(cargo_options)
 
 .PHONE: copy-svgs
 copy-svgs:
-	@echo "copy-svgs<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
+	@echo "copy-svgs<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
 	@for i in $(shell cd target/flowsamples && find . -name '*.dot.svg' ); do \
       cp target/flowsamples/$$i target/html/flowsamples/$$i; \
     done
@@ -178,7 +178,7 @@ copy-svgs:
 
 .PHONY: trim-docs
 trim-docs:
-	@echo "trim-docs<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
+	@echo "trim-docs<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
 	@find target/html -name .git | xargs rm -rf {}
 	@rm -rf target/html/.git
 	@find target/html -name .github | xargs rm -rf {}
