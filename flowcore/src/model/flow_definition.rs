@@ -276,8 +276,7 @@ impl FlowDefinition {
         );
         let process = self.subprocesses.get_mut(subprocess_alias).ok_or_else(|| {
             Error::from(format!(
-                "Could not find sub-process named '{}'",
-                subprocess_alias
+                "Could not find sub-process named '{subprocess_alias}'"
             ))
         })?;
 
