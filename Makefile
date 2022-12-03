@@ -3,16 +3,9 @@ ZMQ := $(shell brew ls --versions zmq 2> /dev/null)
 YUM := $(shell command -v yum 2> /dev/null)
 DNF := $(shell command -v dnf 2> /dev/null)
 BREW := $(shell command -v brew 2> /dev/null)
-ONLINE := $(shell ping -c 1 github.com > /dev/null 2>&1 ; echo $$?)
 export SHELL := /bin/bash
-
-ifeq ($(ONLINE),0)
 features := --features "wasm","online_tests"
 cargo_options :=
-else
-features := --features "wasm"
-cargo_options := --offline
-endif
 
 ifeq ($(FLOW_LIB_PATH),)
   $(warning FLOW_LIB_PATH is not set. This maybe needed for builds and test and packaging to succeed.\
@@ -25,19 +18,16 @@ ifeq ($(FLOW_CONTEXT_ROOT),)
 endif
 
 .PHONY: all
-all: clean-start online clippy build test docs
+all: clean-start clippy build test docs
+
+.PHONY: offline
+offline:
+	$(eval features := $(features),"wasm")
+	$(eval cargo_options := $(cargo_options) --offline)
 
 .PHONY: clean-start
 clean-start:
 	@find . -name "*.profraw"  | xargs rm -rf {}
-
-.PHONY: online
-online:
-ifeq ($(ONLINE),0)
-	@echo "ONLINE, so including 'online_tests' feature"
-else
-	@echo "Not ONLINE, so not including 'online_tests' feature"
-endif
 
 .PHONY: config
 config:
@@ -89,9 +79,9 @@ clean:
 .PHONY: install-flow
 install-flow:
 	@echo "install-flow<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
-	@cargo install --path flowc $(cargo_options)
-	@cargo install --path flowr $(cargo_options)
-	@cargo install --path flowrex $(cargo_options)
+	@cargo install --path flowc $(features) $(cargo_options)
+	@cargo install --path flowr $(features) $(cargo_options)
+	@cargo install --path flowrex $(features) $(cargo_options)
 
 # clippy of flowstdlib and flowsamples requires flowc to run the build.rs build script
 # clippy of flowsamples requires build of flowstdlib to find files in target/flowstdlib
@@ -111,8 +101,8 @@ build: build-flowstdlib build-flowsamples build-flowc build-flowr build-flowrex
 
 .PHONY: build-flowc
 build-flowc:
-	@echo "build-flowc<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
-	@cargo build -p flowc
+	@echo "build-flowc<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
+	@cargo build -p flowc $(cargo_options)
 
 .PHONY: build-flowr
 build-flowr:
