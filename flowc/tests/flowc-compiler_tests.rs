@@ -1,6 +1,3 @@
-#[cfg(feature = "debugger")]
-use std::collections::BTreeSet;
-
 use serde_json::json;
 use tempdir::TempDir;
 #[cfg(feature = "debugger")]
@@ -14,6 +11,8 @@ use flowcore::model::name::Name;
 use flowcore::model::process::Process::{FlowProcess, FunctionProcess};
 use flowcore::model::route::HasRoute;
 use flowcore::model::route::Route;
+#[cfg(feature = "debugger")]
+use std::collections::BTreeSet;
 
 #[path = "helper.rs"]
 mod helper;
@@ -317,10 +316,7 @@ fn flow_input_propagated_back_out() {
                                    #[cfg(feature = "debugger")] &mut source_urls
             ) {
                 Ok(_tables) => {}
-                Err(error) => panic!(
-                    "Couldn't compile the flow from test file at '{}'\n{}",
-                    url, error
-                ),
+                Err(error) => panic!("Couldn't compile the flow from test file at '{url}'\n{error}"),
             }
         },
         Ok(FunctionProcess(_)) => panic!("Unexpected compile result from test file at '{url}'"),
@@ -373,8 +369,7 @@ fn initialized_output_propagated() {
                     }
                 }
                 Err(error) => panic!(
-                    "Couldn't compile the flow from test file at '{}'\n{}",
-                    url, error
+                    "Couldn't compile the flow from test file at '{url}'\n{error}"
                 ),
             }
         }
@@ -431,8 +426,7 @@ fn initialized_input_to_subflow() {
                     }
                 }
                 Err(error) => panic!(
-                    "Couldn't compile the flow from test file at '{}'\n{}",
-                    url, error
+                    "Couldn't compile the flow from test file at '{url}'\n{error}"
                 ),
             }
         }

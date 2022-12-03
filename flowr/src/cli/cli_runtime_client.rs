@@ -160,8 +160,7 @@ impl CliRuntimeClient {
                     match f.read_to_end(&mut buffer) {
                         Ok(_) => ClientMessage::FileContents(file_path, buffer),
                         Err(_) => ClientMessage::Error(format!(
-                            "Could not read content from '{:?}'",
-                            file_path
+                            "Could not read content from '{file_path:?}'"
                         )),
                     }
                 }

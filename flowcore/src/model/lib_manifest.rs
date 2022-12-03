@@ -85,15 +85,13 @@ impl LibraryManifest {
             )
             .chain_err(|| {
                 format!(
-                    "Could not resolve the library manifest url '{}'",
-                    lib_manifest_url
+                    "Could not resolve the library manifest url '{lib_manifest_url}'"
                 )
             })?;
 
         let manifest_content = provider.get_contents(&resolved_url).chain_err(|| {
             format!(
-                "Could not read contents of Library Manifest from '{}'",
-                resolved_url
+                "Could not read contents of Library Manifest from '{resolved_url}'"
             )
         })?;
 
