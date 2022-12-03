@@ -35,7 +35,7 @@ fn ready_check(state: &RunState, job_id: usize, function: &RuntimeFunction) -> R
             state,
             job_id,
             &format!(
-                "Flow is busy byt Function #{} is not Ready or Running",
+                "Flow is busy but Function #{} is not Ready or Running",
                 function.id(),
             ),
             file!(),
