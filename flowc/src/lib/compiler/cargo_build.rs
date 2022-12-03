@@ -129,7 +129,7 @@ fn cargo_build(
         .chain_err(|| format!("Could not move WASM from '{}' to '{}'",
                               cargo_target_dir.display(),
                               wasm_destination.display()))?;
-    fs::delete(&cargo_target_dir)
+    fs::remove_file(&cargo_target_dir)
 }
 
 /// Run the cargo build to compile wasm from function source
