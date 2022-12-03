@@ -124,7 +124,7 @@ build-flowrex:
 	@cargo build --manifest-path flowrex/Cargo.toml $(cargo_options)
 
 .PHONY: build-flowstdlib
-build-flowstdlib: flowc
+build-flowstdlib: build-flowc
 	@echo "build-flowstdlib<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
 	@cargo build -p flowstdlib $(cargo_options)
 
