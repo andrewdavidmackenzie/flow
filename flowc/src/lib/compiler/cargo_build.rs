@@ -1,9 +1,9 @@
+use colored::Colorize;
+use log::debug;
+
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output, Stdio};
-
-use colored::Colorize;
-use log::debug;
 
 use crate::errors::*;
 
@@ -125,10 +125,11 @@ fn cargo_build(
         &cargo_target_dir.display(),
         &wasm_destination.display()
     );
-    fs::rename(&cargo_target_dir, wasm_destination)
+    fs::copy(&cargo_target_dir, wasm_destination)
         .chain_err(|| format!("Could not move WASM from '{}' to '{}'",
                               cargo_target_dir.display(),
-                              wasm_destination.display()))
+                              wasm_destination.display()))?;
+    fs::delete(&cargo_target_dir)
 }
 
 /// Run the cargo build to compile wasm from function source
