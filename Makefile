@@ -96,7 +96,7 @@ install-flow:
 # clippy of flowstdlib and flowsamples requires flowc to run the build.rs build script
 # clippy of flowsamples requires build of flowstdlib to find files in target/flowstdlib
 .PHONY: clippy
-clippy: build-flowc build-flowstdlib
+clippy: build-flowc
 	@echo "clippy<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
 	@cargo clippy -p flowstdlib --tests --all-features -- -D warnings
 	@cargo clippy --tests --all-features -- -D warnings
