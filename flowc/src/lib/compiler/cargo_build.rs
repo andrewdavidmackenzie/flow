@@ -126,10 +126,13 @@ fn cargo_build(
         &wasm_destination.display()
     );
     fs::copy(&cargo_target_dir, wasm_destination)
-        .chain_err(|| format!("Could not move WASM from '{}' to '{}'",
+        .chain_err(|| format!("Could not copy WASM from '{}' to '{}'",
                               cargo_target_dir.display(),
                               wasm_destination.display()))?;
     fs::remove_file(&cargo_target_dir)
+        .chain_err(|| format!("Could not remove '{}'",
+                              cargo_target_dir.display()))?;
+    Ok(())
 }
 
 /// Run the cargo build to compile wasm from function source
