@@ -318,8 +318,7 @@ fn flow_input_propagated_back_out() {
             ) {
                 Ok(_tables) => {}
                 Err(error) => panic!(
-                    "Couldn't compile the flow from test file at '{}'\n{}",
-                    url, error
+                    "Couldn't compile the flow from test file at '{url}'\n{error}"
                 ),
             }
         },
@@ -373,8 +372,7 @@ fn initialized_output_propagated() {
                     }
                 }
                 Err(error) => panic!(
-                    "Couldn't compile the flow from test file at '{}'\n{}",
-                    url, error
+                    "Couldn't compile the flow from test file at '{url}'\n{error}"
                 ),
             }
         }
@@ -431,8 +429,7 @@ fn initialized_input_to_subflow() {
                     }
                 }
                 Err(error) => panic!(
-                    "Couldn't compile the flow from test file at '{}'\n{}",
-                    url, error
+                    "Couldn't compile the flow from test file at '{url}'\n{error}"
                 ),
             }
         }
