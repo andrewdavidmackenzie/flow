@@ -483,7 +483,6 @@ fn get_matches() -> ArgMatches {
             .help("Calculate metrics during flow execution and print them out when done"),
     );
 
-    #[cfg(not(feature = "wasm"))]
         let app = app.arg(
         Arg::new("native")
             .short('n')
