@@ -121,26 +121,18 @@ impl MetaProvider {
     #[cfg(feature = "file_provider")]
     fn resolve_lib_url(&self, url: &Url) -> Result<Url> {
         let lib_name = url.host_str()
-            .chain_err(|| format!("'lib_name' could not be extracted from the url '{url}'"))?;
+            .chain_err(|| format!("'lib_name' could not be extracted from '{url}'"))?;
         let path_under_lib = url.path().trim_start_matches('/');
 
         match self.lib_search_path.find(lib_name) {
             Ok(FoundType::File(lib_root_path)) => {
-                let lib_path = lib_root_path.join(path_under_lib);
-                Ok(
-                    Url::from_directory_path(lib_path)
-                        .map_err(|_| "Could not convert file: lib_path to Url")?
-                )
+                Ok(Url::from_file_path(lib_root_path.join(path_under_lib))
+                    .map_err(|_| "Could not create Url from PathBuf")?)
             }
-            Ok(FoundType::Resource(mut lib_root_url)) => {
-                lib_root_url.set_path(&format!("{}/{path_under_lib}", lib_root_url.path()));
-                Ok(lib_root_url)
+            Ok(FoundType::Resource(lib_root_url)) => {
+                Ok(lib_root_url.join(path_under_lib)?)
             }
-            _ => bail!(
-                "Could not resolve library Url '{}' using {}",
-                url,
-                self.lib_search_path
-            ),
+            _ => bail!("Could not resolve library Url '{}' using {}", url, self.lib_search_path),
         }
     }
 }
