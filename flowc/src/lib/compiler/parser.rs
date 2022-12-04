@@ -47,9 +47,9 @@ pub enum LibType {
 /// // A Provider must implement the `Provider` trait, with the methods to `resolve` a URL and to
 /// // `get` the contents for parsing.
 /// impl Provider for DummyProvider {
-///     fn resolve_url(&self, url: &Url, default_filename: &str, _ext: &[&str]) -> Result<(Url, Option<Url>)> {
+///     fn resolve_url(&self, url: &Url, default_filename: &str, _ext: &[&str]) -> Result<Url> {
 ///        // Just fake the url resolution in this example
-///        Ok((url.clone(), None))
+///        Ok(url.clone())
 ///     }
 ///
 ///    fn get_contents(&self, url: &Url) -> Result<Vec<u8>> {
