@@ -112,7 +112,7 @@ coverage: install-flow
 	@RUSTFLAGS="-C instrument-coverage" LLVM_PROFILE_FILE="flow-%p-%m.profraw" cargo test $(features) $(cargo_options)
 	@echo "Gathering covering information"
 	@grcov . --binary-path target/debug/ -s . -t lcov --branch --ignore-not-existing --ignore "/*" -o coverage.info
-	@lcov --remove coverage.info '/Applications/*' '/usr*' '**/errors.rs' '**/build.rs' '*tests/*' -o coverage.info
+	@lcov --remove coverage.info '/Applications/*' 'target/debug/build/**' '/usr*' '**/errors.rs' '**/build.rs' '*tests/*' -o coverage.info
 	@find . -name "*.profraw" | xargs rm -f
 	@echo "Generating coverage report in './target/coverage/index.html'"
 	@genhtml -o target/coverage --quiet coverage.info
