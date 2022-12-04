@@ -129,8 +129,9 @@ impl MetaProvider {
                 Ok(Url::from_file_path(lib_root_path.join(path_under_lib))
                     .map_err(|_| "Could not create Url from PathBuf")?)
             }
-            Ok(FoundType::Resource(lib_root_url)) => {
-                Ok(lib_root_url.join(path_under_lib)?)
+            Ok(FoundType::Resource(mut lib_root_url)) => {
+                lib_root_url.set_path(&format!("{}/{path_under_lib}", lib_root_url.path()));
+                Ok(lib_root_url)
             }
             _ => bail!("Could not resolve library Url '{}' using {}", url, self.lib_search_path),
         }
