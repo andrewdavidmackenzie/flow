@@ -1,11 +1,3 @@
-use std::collections::hash_map::DefaultHasher;
-use std::fmt::Write as FormatWrite;
-use std::hash::{Hash, Hasher};
-use std::io::Write;
-use std::ops::Add;
-use std::path::{Path, PathBuf};
-use std::process::Command;
-
 use log::{debug, info};
 use serde_json::Value;
 use simpath::{FileType, FoundType, Simpath};
@@ -20,6 +12,13 @@ use flowcore::model::name::HasName;
 use flowcore::model::process::Process::{FlowProcess, FunctionProcess};
 use flowcore::model::route::{HasRoute, Route};
 use flowcore::provider::Provider;
+use std::collections::hash_map::DefaultHasher;
+use std::fmt::Write as FormatWrite;
+use std::hash::{Hash, Hasher};
+use std::io::Write;
+use std::ops::Add;
+use std::path::{Path, PathBuf};
+use std::process::Command;
 
 use crate::dumper::dump;
 use crate::errors::*;
@@ -322,17 +321,14 @@ pub (crate) fn input_initializers_to_dot(function: &FunctionDefinition, function
 
             // Add a node for the source of the initializer
             let _ = writeln!(initializers,
-                             "\t\"initializer{}_{}\"  [style=invis];",
-                             function_identifier, input_number
+                             "\t\"initializer{function_identifier}_{input_number}\"  [style=invis];"
             );
 
             let input_port = input_name_to_port(input.name());
 
             // Add connection from hidden node to the input being initialized
             let _ = writeln!(initializers,
-                             "\t\"initializer{}_{}\" -> \"{}\":{} [style={}]  [taillabel=\"{}\"] [len=0.1] [color=blue];",
-                             function_identifier, input_number,
-                             function_identifier, input_port, line_style, value_string);
+                             "\t\"initializer{function_identifier}_{input_number}\" -> \"{function_identifier}\":{input_port} [style={line_style}]  [taillabel=\"{value_string}\"] [len=0.1] [color=blue];");
         }
     }
 
@@ -368,16 +364,10 @@ fn connection_to_dot(connection: &Connection) -> String {
 
     if array_index {
         format!(
-            "\n\t\"{}\":{} -> \"{}\":{} [xlabel=\"{}[{}]\", headlabel=\"{}\"];",
-            from_node, from_port,
-            to_node, to_port,
-            from_name, number, to_name)
+            "\n\t\"{from_node}\":{from_port} -> \"{to_node}\":{to_port} [xlabel=\"{from_name}[{number}]\", headlabel=\"{to_name}\"];")
     } else {
         format!(
-            "\n\t\"{}\":{} -> \"{}\":{} [xlabel=\"{}\", headlabel=\"{}\"];",
-            from_node, from_port,
-            to_node, to_port,
-            from_name, to_name)
+            "\n\t\"{from_node}\":{from_port} -> \"{to_node}\":{to_port} [xlabel=\"{from_name}\", headlabel=\"{to_name}\"];")
     }
 }
 
@@ -446,9 +436,9 @@ fn absolute_to_relative(target: &Path, source: PathBuf) -> Result<String> {
 
 #[cfg(test)]
 mod test {
-    use std::path::Path;
-
     use url::Url;
+
+    use std::path::Path;
 
     use crate::dumper::flow_to_dot::absolute_to_relative;
 

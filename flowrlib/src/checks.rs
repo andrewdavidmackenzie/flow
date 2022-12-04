@@ -126,8 +126,7 @@ fn self_block_check(state: &RunState, job_id: usize, block: &Block) -> Result<()
             state,
             job_id,
             &format!(
-                "Block {} has same Function id as blocked and blocking",
-                block),
+                "Block {block} has same Function id as blocked and blocking"),
             file!(),
             line!(),
         );
@@ -149,8 +148,8 @@ fn destination_block_state_check(state: &RunState, job_id: usize, block: &Block,
             return runtime_error(
                 state,
                 job_id,
-                &format!("Block {} exists for function #{}, but Function #{}:{} input is not full",
-                         block, block.blocking_function_id, block.blocking_function_id, block.blocking_io_number),
+                &format!("Block {block} exists for function #{}, but Function #{}:{} input is not full",
+                         block.blocking_function_id, block.blocking_function_id, block.blocking_io_number),
                 file!(), line!());
         }
     }
@@ -166,8 +165,7 @@ fn flow_checks(state: &RunState, job_id: usize) -> Result<()> {
             return runtime_error(
                 state,
                 job_id,
-                &format!("Busy flow entry exists for Function #{} in Flow #{} but it's not Ready nor Running",
-                         function_id, flow_id),
+                &format!("Busy flow entry exists for Function #{function_id} in Flow #{flow_id} but it's not Ready nor Running"),
                 file!(), line!());
         }
     }
@@ -184,8 +182,7 @@ fn pending_unblock_checks(state: &RunState, job_id: usize) -> Result<()> {
                 state,
                 job_id,
                 &format!(
-                    "Pending Unblock exists for Flow #{}, but it is not busy",
-                    pending_unblock_flow_id),
+                    "Pending Unblock exists for Flow #{pending_unblock_flow_id}, but it is not busy"),
                 file!(),
                 line!(),
             );

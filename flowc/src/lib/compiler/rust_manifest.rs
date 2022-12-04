@@ -1,13 +1,12 @@
-use std::collections::HashSet;
-use std::fs::File;
-use std::io::prelude::*;
-use std::path::{Path, PathBuf};
-
 use log::info;
 
 use flowcore::model::function_definition::FunctionDefinition;
 use flowcore::model::lib_manifest::DEFAULT_LIB_RUST_MANIFEST_FILENAME;
 use flowcore::model::lib_manifest::LibraryManifest;
+use std::collections::HashSet;
+use std::fs::File;
+use std::io::prelude::*;
+use std::path::{Path, PathBuf};
 
 use crate::errors::*;
 
@@ -73,10 +72,9 @@ pub fn write(lib_root: &Path, lib_manifest: &LibraryManifest, filename: &Path) -
 
         let manifest_entry = format!(
             "    manifest.locators.insert(
-            Url::parse(\"{}\")?,
-            Native(Arc::new({})),
-        );\n\n",
-            reference, implementation_struct
+            Url::parse(\"{reference}\")?,
+            Native(Arc::new({implementation_struct})),
+        );\n\n"
         );
 
         manifest_file.write_all(manifest_entry.as_bytes())?;
