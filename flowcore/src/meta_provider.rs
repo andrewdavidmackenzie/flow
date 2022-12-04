@@ -48,7 +48,7 @@ pub struct MetaProvider {
 ///                                             ) as &dyn Provider;
 /// let url = Url::parse("file://directory").unwrap();
 /// match meta_provider.resolve_url(&url, "default", &["toml"]) {
-///     Ok((resolved_url, lib_ref)) => {
+///     Ok(resolved_url) => {
 ///         match meta_provider.get_contents(&resolved_url) {
 ///             Ok(contents) => println!("Content: {:?}", contents),
 ///             Err(e) => println!("Got error '{}'", e)
