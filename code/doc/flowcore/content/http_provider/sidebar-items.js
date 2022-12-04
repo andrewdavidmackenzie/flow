@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"struct":[["HttpProvider","The `HttpProvider` implements the `Provider` trait and takes care of fetching content via http"]]};
