@@ -311,6 +311,7 @@ fn hello_world_client_server() {
 }
 
 #[test]
+#[serial]
 fn doesnt_create_if_not_exist() {
     let dir = TempDir::new("flowc-test").expect("A temp dir").into_path();
     let non_existent = dir.join("__nope");
