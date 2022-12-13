@@ -10,7 +10,7 @@ use flowcore::model::process::Process::{FlowProcess, FunctionProcess};
 use flowcore::model::route::{HasRoute, Route};
 
 use crate::compiler::compile::CompilerTables;
-use crate::dumper::dump;
+use crate::dumper::create_output_file;
 use crate::dumper::flow_to_dot::{input_initializers_to_dot, INPUT_PORTS, output_name_to_port};
 use crate::errors::*;
 
@@ -67,7 +67,7 @@ pub fn dump_functions(
         "\n=== Dumper: Dumping functions in dot format to '{}'",
         output_dir.display()
     );
-    let mut dot_file = dump::create_output_file(output_dir, "functions", "dot")?;
+    let mut dot_file = create_output_file(output_dir, "functions", "dot")?;
     info!("\tGenerating functions.dot, Use \"dotty\" to view it");
     dot_file.write_all(
         format!(

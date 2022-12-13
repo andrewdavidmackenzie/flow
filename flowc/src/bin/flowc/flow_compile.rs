@@ -12,7 +12,7 @@ use url::Url;
 use flowclib::compiler::compile;
 use flowclib::compiler::compile::CompilerTables;
 use flowclib::compiler::parser;
-use flowclib::dumper::{dump, flow_to_dot, functions_to_dot};
+use flowclib::dumper::{flow_to_dot, functions_to_dot};
 use flowclib::generator::generate;
 use flowcore::model::flow_definition::FlowDefinition;
 use flowcore::model::process::Process::FlowProcess;
@@ -108,20 +108,6 @@ fn dump(
     tables: &CompilerTables,
     options: &Options,
 ) -> Result<()> {
-    if options.tables_dump {
-        dump::dump_flow(
-            flow,
-            &options.output_dir,
-            provider
-        ).chain_err(|| "Failed to dump flow definition")?;
-
-        dump::dump_tables(tables, &options.output_dir)
-            .chain_err(|| "Failed to dump the compiled flow's compiler tables")?;
-
-        dump::dump_functions(flow, tables, &options.output_dir)
-            .chain_err(|| "Failed to dump the compiled flow's functions")?;
-    }
-
     if options.graphs {
         flow_to_dot::dump_flow(flow, &options.output_dir, provider)?;
         functions_to_dot::dump_functions(flow, tables, &options.output_dir)?;

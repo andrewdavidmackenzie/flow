@@ -2,7 +2,7 @@
 #![warn(clippy::unwrap_used)]
 #![allow(clippy::result_large_err)]
 //! `flowc` is a "flow compiler" that takes a hierarchical description of a flow
-//! using [flow fefinitions][flowcore::model::flow_definition::FlowDefinition],
+//! using [flow definitions][flowcore::model::flow_definition::FlowDefinition],
 //! [function definitions][flowcore::model::function_definition::FunctionDefinition] and
 //! [process references][flowcore::model::process_reference::ProcessReference] and compiles it down
 //! into a graph of [runtime functions][flowcore::model::runtime_function::RuntimeFunction]
@@ -47,7 +47,6 @@ pub struct Options {
     lib: bool,
     source_url: Url,
     flow_args: Vec<String>,
-    tables_dump: bool,
     graphs: bool,
     execution_metrics: bool,
     wasm_execution: bool,
@@ -177,13 +176,6 @@ fn get_matches() -> ArgMatches {
                 .number_of_values(1)
                 .value_name("LIB_DIR|BASE_URL")
                 .help("Add a directory or base Url to the Library Search path"),
-        )
-        .arg(
-            Arg::new("tables")
-                .short('t')
-                .long("tables")
-                .action(clap::ArgAction::SetTrue)
-                .help("Write flow and compiler tables to .dump and .dot files"),
         )
         .arg(
             Arg::new("graphs")
@@ -320,7 +312,6 @@ fn parse_args(matches: ArgMatches) -> Result<Options> {
         lib: matches.get_flag("lib"),
         source_url: url,
         flow_args,
-        tables_dump: matches.get_flag("tables"),
         graphs: matches.get_flag("graphs"),
         wasm_execution: matches.get_flag("wasm"),
         execution_metrics: matches.get_flag("metrics"),
