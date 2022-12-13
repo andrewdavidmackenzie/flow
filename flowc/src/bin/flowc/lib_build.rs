@@ -10,7 +10,7 @@ use wax::Glob;
 
 use flowclib::compiler::{compile, compile_wasm};
 use flowclib::compiler::parser;
-use flowclib::dumper::{dump, flow_to_dot};
+use flowclib::dumper::flow_to_dot;
 use flowcore::meta_provider::MetaProvider;
 use flowcore::model::lib_manifest::LibraryManifest;
 use flowcore::model::process::Process::{FlowProcess, FunctionProcess};
@@ -221,11 +221,6 @@ fn compile_implementations(
                         }
                     }
                     Ok(FlowProcess(ref mut flow)) => {
-                        if options.tables_dump {
-                            dump::dump_flow(flow, &output_dir, provider)
-                                .chain_err(|| "Failed to dump flow's definition")?;
-                        }
-
                         if options.graphs {
                             flow_to_dot::dump_flow(flow, &output_dir, provider)?;
                             flow_to_dot::generate_svgs(&output_dir, true)?;

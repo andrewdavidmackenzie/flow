@@ -1,3 +1,11 @@
+use std::collections::hash_map::DefaultHasher;
+use std::fmt::Write as FormatWrite;
+use std::hash::{Hash, Hasher};
+use std::io::Write;
+use std::ops::Add;
+use std::path::{Path, PathBuf};
+use std::process::Command;
+
 use log::{debug, info};
 use serde_json::Value;
 use simpath::{FileType, FoundType, Simpath};
@@ -12,15 +20,8 @@ use flowcore::model::name::HasName;
 use flowcore::model::process::Process::{FlowProcess, FunctionProcess};
 use flowcore::model::route::{HasRoute, Route};
 use flowcore::provider::Provider;
-use std::collections::hash_map::DefaultHasher;
-use std::fmt::Write as FormatWrite;
-use std::hash::{Hash, Hasher};
-use std::io::Write;
-use std::ops::Add;
-use std::path::{Path, PathBuf};
-use std::process::Command;
 
-use crate::dumper::dump;
+use crate::dumper::create_output_file;
 use crate::errors::*;
 
 pub(crate) static INPUT_PORTS: &[&str] = &["n", "ne", "nw", "w"];
@@ -124,7 +125,7 @@ fn _dump_flow(
         .to_str()
         .ok_or("Could not convert filename to string")?;
 
-    let mut writer = dump::create_output_file(target_dir, filename, "dot")?;
+    let mut writer = create_output_file(target_dir, filename, "dot")?;
     info!("\tGenerating {}.dot, Use \"dotty\" to view it", filename);
     write_flow_to_dot(flow, &mut writer)?;
 
@@ -436,9 +437,9 @@ fn absolute_to_relative(target: &Path, source: PathBuf) -> Result<String> {
 
 #[cfg(test)]
 mod test {
-    use url::Url;
-
     use std::path::Path;
+
+    use url::Url;
 
     use crate::dumper::flow_to_dot::absolute_to_relative;
 
