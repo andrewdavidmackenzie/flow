@@ -4,11 +4,41 @@
 <a href="#4" id="4">4</a>
 <a href="#5" id="5">5</a>
 <a href="#6" id="6">6</a>
-</pre><pre class="rust"><code><span class="doccomment">/// Module to dump a flow, or functions to .dot files of directed graphs
+<a href="#7" id="7">7</a>
+<a href="#8" id="8">8</a>
+<a href="#9" id="9">9</a>
+<a href="#10" id="10">10</a>
+<a href="#11" id="11">11</a>
+<a href="#12" id="12">12</a>
+<a href="#13" id="13">13</a>
+<a href="#14" id="14">14</a>
+<a href="#15" id="15">15</a>
+<a href="#16" id="16">16</a>
+<a href="#17" id="17">17</a>
+<a href="#18" id="18">18</a>
+<a href="#19" id="19">19</a>
+<a href="#20" id="20">20</a>
+<a href="#21" id="21">21</a>
+</pre><pre class="rust"><code><span class="kw">use </span>std::fs::File;
+<span class="kw">use </span>std::path::Path;
+<span class="kw">use </span>std::path::PathBuf;
+
+<span class="doccomment">/// Module to dump a flow, or functions to .dot files of directed graphs
 </span><span class="kw">pub mod </span>flow_to_dot;
-<span class="doccomment">/// Module to dump a flow, functions or tables to text files for inspection
-</span><span class="kw">pub mod </span>dump;
 <span class="doccomment">/// Module to output the graph of functions after compilation
 </span><span class="kw">pub mod </span>functions_to_dot;
+
+<span class="doccomment">/// Create a file at the specified `output_path`, `filename` and `extension` that output will be dumped to
+</span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>create_output_file(
+    output_path: <span class="kw-2">&amp;</span>Path,
+    filename: <span class="kw-2">&amp;</span>str,
+    extension: <span class="kw-2">&amp;</span>str,
+) -&gt; std::io::Result&lt;File&gt; {
+    <span class="kw">let </span><span class="kw-2">mut </span>output_file = PathBuf::from(filename);
+    output_file.set_extension(extension);
+    <span class="kw">let </span><span class="kw-2">mut </span>output_file_path = output_path.to_path_buf();
+    output_file_path.push(<span class="kw-2">&amp;</span>output_file);
+    File::create(<span class="kw-2">&amp;</span>output_file_path)
+}
 </code></pre></div>
-</section></div></main><div id="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="flowclib" data-themes="" data-resource-suffix="" data-rustdoc-version="1.68.0-nightly (bdb07a8ec 2022-12-11)" data-search-js="search-444266647c4dba98.js" data-settings-js="settings-bebeae96e00e4617.js" data-settings-css="settings-af96d9e2fc13e081.css" ></div></body></html>
+</section></div></main><div id="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="flowclib" data-themes="" data-resource-suffix="" data-rustdoc-version="1.68.0-nightly (37d7de337 2022-12-12)" data-search-js="search-444266647c4dba98.js" data-settings-js="settings-bebeae96e00e4617.js" data-settings-css="settings-af96d9e2fc13e081.css" ></div></body></html>

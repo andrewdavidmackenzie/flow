@@ -192,7 +192,7 @@
 <span class="kw">use </span>flowcore::model::route::{HasRoute, Route};
 
 <span class="kw">use </span><span class="kw">crate</span>::compiler::compile::CompilerTables;
-<span class="kw">use </span><span class="kw">crate</span>::dumper::dump;
+<span class="kw">use </span><span class="kw">crate</span>::dumper::create_output_file;
 <span class="kw">use </span><span class="kw">crate</span>::dumper::flow_to_dot::{input_initializers_to_dot, INPUT_PORTS, output_name_to_port};
 <span class="kw">use </span><span class="kw">crate</span>::errors::<span class="kw-2">*</span>;
 
@@ -249,7 +249,7 @@
         <span class="string">&quot;\n=== Dumper: Dumping functions in dot format to &#39;{}&#39;&quot;</span>,
         output_dir.display()
     );
-    <span class="kw">let </span><span class="kw-2">mut </span>dot_file = dump::create_output_file(output_dir, <span class="string">&quot;functions&quot;</span>, <span class="string">&quot;dot&quot;</span>)<span class="question-mark">?</span>;
+    <span class="kw">let </span><span class="kw-2">mut </span>dot_file = create_output_file(output_dir, <span class="string">&quot;functions&quot;</span>, <span class="string">&quot;dot&quot;</span>)<span class="question-mark">?</span>;
     <span class="macro">info!</span>(<span class="string">&quot;\tGenerating functions.dot, Use \&quot;dotty\&quot; to view it&quot;</span>);
     dot_file.write_all(
         <span class="macro">format!</span>(
@@ -363,4 +363,4 @@
     }
 }
 </code></pre></div>
-</section></div></main><div id="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="flowclib" data-themes="" data-resource-suffix="" data-rustdoc-version="1.68.0-nightly (bdb07a8ec 2022-12-11)" data-search-js="search-444266647c4dba98.js" data-settings-js="settings-bebeae96e00e4617.js" data-settings-css="settings-af96d9e2fc13e081.css" ></div></body></html>
+</section></div></main><div id="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="flowclib" data-themes="" data-resource-suffix="" data-rustdoc-version="1.68.0-nightly (37d7de337 2022-12-12)" data-search-js="search-444266647c4dba98.js" data-settings-js="settings-bebeae96e00e4617.js" data-settings-css="settings-af96d9e2fc13e081.css" ></div></body></html>

@@ -327,20 +327,11 @@
 <a href="#327" id="327">327</a>
 <a href="#328" id="328">328</a>
 <a href="#329" id="329">329</a>
-<a href="#330" id="330">330</a>
-<a href="#331" id="331">331</a>
-<a href="#332" id="332">332</a>
-<a href="#333" id="333">333</a>
-<a href="#334" id="334">334</a>
-<a href="#335" id="335">335</a>
-<a href="#336" id="336">336</a>
-<a href="#337" id="337">337</a>
-<a href="#338" id="338">338</a>
 </pre><pre class="rust"><code><span class="attr">#![deny(missing_docs)]
 #![warn(clippy::unwrap_used)]
 #![allow(clippy::result_large_err)]
 </span><span class="doccomment">//! `flowc` is a &quot;flow compiler&quot; that takes a hierarchical description of a flow
-//! using [flow fefinitions][flowcore::model::flow_definition::FlowDefinition],
+//! using [flow definitions][flowcore::model::flow_definition::FlowDefinition],
 //! [function definitions][flowcore::model::function_definition::FunctionDefinition] and
 //! [process references][flowcore::model::process_reference::ProcessReference] and compiles it down
 //! into a graph of [runtime functions][flowcore::model::runtime_function::RuntimeFunction]
@@ -385,7 +376,6 @@
     lib: bool,
     source_url: Url,
     flow_args: Vec&lt;String&gt;,
-    tables_dump: bool,
     graphs: bool,
     execution_metrics: bool,
     wasm_execution: bool,
@@ -515,13 +505,6 @@
                 .number_of_values(<span class="number">1</span>)
                 .value_name(<span class="string">&quot;LIB_DIR|BASE_URL&quot;</span>)
                 .help(<span class="string">&quot;Add a directory or base Url to the Library Search path&quot;</span>),
-        )
-        .arg(
-            Arg::new(<span class="string">&quot;tables&quot;</span>)
-                .short(<span class="string">&#39;t&#39;</span>)
-                .long(<span class="string">&quot;tables&quot;</span>)
-                .action(clap::ArgAction::SetTrue)
-                .help(<span class="string">&quot;Write flow and compiler tables to .dump and .dot files&quot;</span>),
         )
         .arg(
             Arg::new(<span class="string">&quot;graphs&quot;</span>)
@@ -658,7 +641,6 @@
         lib: matches.get_flag(<span class="string">&quot;lib&quot;</span>),
         source_url: url,
         flow_args,
-        tables_dump: matches.get_flag(<span class="string">&quot;tables&quot;</span>),
         graphs: matches.get_flag(<span class="string">&quot;graphs&quot;</span>),
         wasm_execution: matches.get_flag(<span class="string">&quot;wasm&quot;</span>),
         execution_metrics: matches.get_flag(<span class="string">&quot;metrics&quot;</span>),
@@ -675,4 +657,4 @@
     })
 }
 </code></pre></div>
-</section></div></main><div id="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="flowc" data-themes="" data-resource-suffix="" data-rustdoc-version="1.68.0-nightly (bdb07a8ec 2022-12-11)" data-search-js="search-444266647c4dba98.js" data-settings-js="settings-bebeae96e00e4617.js" data-settings-css="settings-af96d9e2fc13e081.css" ></div></body></html>
+</section></div></main><div id="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="flowc" data-themes="" data-resource-suffix="" data-rustdoc-version="1.68.0-nightly (37d7de337 2022-12-12)" data-search-js="search-444266647c4dba98.js" data-settings-js="settings-bebeae96e00e4617.js" data-settings-css="settings-af96d9e2fc13e081.css" ></div></body></html>

@@ -477,7 +477,16 @@
 <a href="#477" id="477">477</a>
 <a href="#478" id="478">478</a>
 <a href="#479" id="479">479</a>
-</pre><pre class="rust"><code><span class="kw">use </span>log::{debug, info};
+<a href="#480" id="480">480</a>
+</pre><pre class="rust"><code><span class="kw">use </span>std::collections::hash_map::DefaultHasher;
+<span class="kw">use </span>std::fmt::Write <span class="kw">as </span>FormatWrite;
+<span class="kw">use </span>std::hash::{Hash, Hasher};
+<span class="kw">use </span>std::io::Write;
+<span class="kw">use </span>std::ops::Add;
+<span class="kw">use </span>std::path::{Path, PathBuf};
+<span class="kw">use </span>std::process::Command;
+
+<span class="kw">use </span>log::{debug, info};
 <span class="kw">use </span>serde_json::Value;
 <span class="kw">use </span>simpath::{FileType, FoundType, Simpath};
 <span class="kw">use </span>wax::Glob;
@@ -491,15 +500,8 @@
 <span class="kw">use </span>flowcore::model::process::Process::{FlowProcess, FunctionProcess};
 <span class="kw">use </span>flowcore::model::route::{HasRoute, Route};
 <span class="kw">use </span>flowcore::provider::Provider;
-<span class="kw">use </span>std::collections::hash_map::DefaultHasher;
-<span class="kw">use </span>std::fmt::Write <span class="kw">as </span>FormatWrite;
-<span class="kw">use </span>std::hash::{Hash, Hasher};
-<span class="kw">use </span>std::io::Write;
-<span class="kw">use </span>std::ops::Add;
-<span class="kw">use </span>std::path::{Path, PathBuf};
-<span class="kw">use </span>std::process::Command;
 
-<span class="kw">use </span><span class="kw">crate</span>::dumper::dump;
+<span class="kw">use </span><span class="kw">crate</span>::dumper::create_output_file;
 <span class="kw">use </span><span class="kw">crate</span>::errors::<span class="kw-2">*</span>;
 
 <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">static </span>INPUT_PORTS: <span class="kw-2">&amp;</span>[<span class="kw-2">&amp;</span>str] = <span class="kw-2">&amp;</span>[<span class="string">&quot;n&quot;</span>, <span class="string">&quot;ne&quot;</span>, <span class="string">&quot;nw&quot;</span>, <span class="string">&quot;w&quot;</span>];
@@ -603,7 +605,7 @@
         </span>.to_str()
         .ok_or(<span class="string">&quot;Could not convert filename to string&quot;</span>)<span class="question-mark">?</span>;
 
-    <span class="kw">let </span><span class="kw-2">mut </span>writer = dump::create_output_file(target_dir, filename, <span class="string">&quot;dot&quot;</span>)<span class="question-mark">?</span>;
+    <span class="kw">let </span><span class="kw-2">mut </span>writer = create_output_file(target_dir, filename, <span class="string">&quot;dot&quot;</span>)<span class="question-mark">?</span>;
     <span class="macro">info!</span>(<span class="string">&quot;\tGenerating {}.dot, Use \&quot;dotty\&quot; to view it&quot;</span>, filename);
     write_flow_to_dot(flow, <span class="kw-2">&amp;mut </span>writer)<span class="question-mark">?</span>;
 
@@ -915,9 +917,9 @@
 
 <span class="attr">#[cfg(test)]
 </span><span class="kw">mod </span>test {
-    <span class="kw">use </span>url::Url;
-
     <span class="kw">use </span>std::path::Path;
+
+    <span class="kw">use </span>url::Url;
 
     <span class="kw">use </span><span class="kw">crate</span>::dumper::flow_to_dot::absolute_to_relative;
 
@@ -957,4 +959,4 @@
     }
 }
 </code></pre></div>
-</section></div></main><div id="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="flowclib" data-themes="" data-resource-suffix="" data-rustdoc-version="1.68.0-nightly (bdb07a8ec 2022-12-11)" data-search-js="search-444266647c4dba98.js" data-settings-js="settings-bebeae96e00e4617.js" data-settings-css="settings-af96d9e2fc13e081.css" ></div></body></html>
+</section></div></main><div id="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="flowclib" data-themes="" data-resource-suffix="" data-rustdoc-version="1.68.0-nightly (37d7de337 2022-12-12)" data-search-js="search-444266647c4dba98.js" data-settings-js="settings-bebeae96e00e4617.js" data-settings-css="settings-af96d9e2fc13e081.css" ></div></body></html>

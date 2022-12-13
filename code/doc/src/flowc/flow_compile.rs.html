@@ -214,20 +214,6 @@
 <a href="#214" id="214">214</a>
 <a href="#215" id="215">215</a>
 <a href="#216" id="216">216</a>
-<a href="#217" id="217">217</a>
-<a href="#218" id="218">218</a>
-<a href="#219" id="219">219</a>
-<a href="#220" id="220">220</a>
-<a href="#221" id="221">221</a>
-<a href="#222" id="222">222</a>
-<a href="#223" id="223">223</a>
-<a href="#224" id="224">224</a>
-<a href="#225" id="225">225</a>
-<a href="#226" id="226">226</a>
-<a href="#227" id="227">227</a>
-<a href="#228" id="228">228</a>
-<a href="#229" id="229">229</a>
-<a href="#230" id="230">230</a>
 </pre><pre class="rust"><code><span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)]
 </span><span class="kw">use </span>std::collections::BTreeSet;
 <span class="kw">use </span>std::fs;
@@ -242,7 +228,7 @@
 <span class="kw">use </span>flowclib::compiler::compile;
 <span class="kw">use </span>flowclib::compiler::compile::CompilerTables;
 <span class="kw">use </span>flowclib::compiler::parser;
-<span class="kw">use </span>flowclib::dumper::{dump, flow_to_dot, functions_to_dot};
+<span class="kw">use </span>flowclib::dumper::{flow_to_dot, functions_to_dot};
 <span class="kw">use </span>flowclib::generator::generate;
 <span class="kw">use </span>flowcore::model::flow_definition::FlowDefinition;
 <span class="kw">use </span>flowcore::model::process::Process::FlowProcess;
@@ -338,20 +324,6 @@
     tables: <span class="kw-2">&amp;</span>CompilerTables,
     options: <span class="kw-2">&amp;</span>Options,
 ) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
-    <span class="kw">if </span>options.tables_dump {
-        dump::dump_flow(
-            flow,
-            <span class="kw-2">&amp;</span>options.output_dir,
-            provider
-        ).chain_err(|| <span class="string">&quot;Failed to dump flow definition&quot;</span>)<span class="question-mark">?</span>;
-
-        dump::dump_tables(tables, <span class="kw-2">&amp;</span>options.output_dir)
-            .chain_err(|| <span class="string">&quot;Failed to dump the compiled flow&#39;s compiler tables&quot;</span>)<span class="question-mark">?</span>;
-
-        dump::dump_functions(flow, tables, <span class="kw-2">&amp;</span>options.output_dir)
-            .chain_err(|| <span class="string">&quot;Failed to dump the compiled flow&#39;s functions&quot;</span>)<span class="question-mark">?</span>;
-    }
-
     <span class="kw">if </span>options.graphs {
         flow_to_dot::dump_flow(flow, <span class="kw-2">&amp;</span>options.output_dir, provider)<span class="question-mark">?</span>;
         functions_to_dot::dump_functions(flow, tables, <span class="kw-2">&amp;</span>options.output_dir)<span class="question-mark">?</span>;
@@ -459,4 +431,4 @@
     }
 }
 </code></pre></div>
-</section></div></main><div id="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="flowc" data-themes="" data-resource-suffix="" data-rustdoc-version="1.68.0-nightly (bdb07a8ec 2022-12-11)" data-search-js="search-444266647c4dba98.js" data-settings-js="settings-bebeae96e00e4617.js" data-settings-css="settings-af96d9e2fc13e081.css" ></div></body></html>
+</section></div></main><div id="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="flowc" data-themes="" data-resource-suffix="" data-rustdoc-version="1.68.0-nightly (37d7de337 2022-12-12)" data-search-js="search-444266647c4dba98.js" data-settings-js="settings-bebeae96e00e4617.js" data-settings-css="settings-af96d9e2fc13e081.css" ></div></body></html>

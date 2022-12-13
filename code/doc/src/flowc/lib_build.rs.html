@@ -318,11 +318,6 @@
 <a href="#318" id="318">318</a>
 <a href="#319" id="319">319</a>
 <a href="#320" id="320">320</a>
-<a href="#321" id="321">321</a>
-<a href="#322" id="322">322</a>
-<a href="#323" id="323">323</a>
-<a href="#324" id="324">324</a>
-<a href="#325" id="325">325</a>
 </pre><pre class="rust"><code><span class="kw">use </span>std::fs;
 <span class="kw">use </span>std::path::Path;
 <span class="kw">use </span>std::path::PathBuf;
@@ -335,7 +330,7 @@
 
 <span class="kw">use </span>flowclib::compiler::{compile, compile_wasm};
 <span class="kw">use </span>flowclib::compiler::parser;
-<span class="kw">use </span>flowclib::dumper::{dump, flow_to_dot};
+<span class="kw">use </span>flowclib::dumper::flow_to_dot;
 <span class="kw">use </span>flowcore::meta_provider::MetaProvider;
 <span class="kw">use </span>flowcore::model::lib_manifest::LibraryManifest;
 <span class="kw">use </span>flowcore::model::process::Process::{FlowProcess, FunctionProcess};
@@ -546,11 +541,6 @@
                         }
                     }
                     <span class="prelude-val">Ok</span>(FlowProcess(<span class="kw-2">ref mut </span>flow)) =&gt; {
-                        <span class="kw">if </span>options.tables_dump {
-                            dump::dump_flow(flow, <span class="kw-2">&amp;</span>output_dir, provider)
-                                .chain_err(|| <span class="string">&quot;Failed to dump flow&#39;s definition&quot;</span>)<span class="question-mark">?</span>;
-                        }
-
                         <span class="kw">if </span>options.graphs {
                             flow_to_dot::dump_flow(flow, <span class="kw-2">&amp;</span>output_dir, provider)<span class="question-mark">?</span>;
                             flow_to_dot::generate_svgs(<span class="kw-2">&amp;</span>output_dir, <span class="bool-val">true</span>)<span class="question-mark">?</span>;
@@ -648,4 +638,4 @@
         <span class="macro">assert!</span>(!generate); <span class="comment">// No need to generate the manifest again then!
     </span>}
 }</code></pre></div>
-</section></div></main><div id="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="flowc" data-themes="" data-resource-suffix="" data-rustdoc-version="1.68.0-nightly (bdb07a8ec 2022-12-11)" data-search-js="search-444266647c4dba98.js" data-settings-js="settings-bebeae96e00e4617.js" data-settings-css="settings-af96d9e2fc13e081.css" ></div></body></html>
+</section></div></main><div id="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="flowc" data-themes="" data-resource-suffix="" data-rustdoc-version="1.68.0-nightly (37d7de337 2022-12-12)" data-search-js="search-444266647c4dba98.js" data-settings-js="settings-bebeae96e00e4617.js" data-settings-css="settings-af96d9e2fc13e081.css" ></div></body></html>
