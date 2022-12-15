@@ -339,8 +339,33 @@ fn doesnt_create_if_not_exist() {
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
-        .status().expect("cargo run failed");
+        .status().expect("flowc execution failed");
 
     // Check directory / file still doesn't exist
     assert!(!non_existent.exists(), "File {} was created and should not have been", non_existent.to_string_lossy());
+}
+
+
+#[test]
+#[serial]
+fn flowc_hello_world() {
+    let mut root_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    root_dir.pop();
+    let context_dir = root_dir.join("flowr/src/cli");
+    let context_dir_str = context_dir.to_string_lossy();
+    let test_dir = root_dir.join("flowc/tests/test-flows/hello-world");
+    let test_dir_str = test_dir.to_string_lossy();
+    let out_dir = TempDir::new("flowc-test").expect("A temp dir").into_path();
+    let out_dir_str = out_dir.to_string_lossy();
+
+    let mut command = Command::new("flowc");
+    let command_args = vec![
+        "-C", &context_dir_str,
+        &test_dir_str,
+        "-o", &out_dir_str
+    ];
+
+    let _ = command
+        .args(command_args)
+        .status().expect("flowc execution failed");
 }
