@@ -10,9 +10,6 @@ pub mod compile;
 /// `compile_wasm` has helper functions to compile WASM implementations of libs and supplied functions
 pub mod compile_wasm;
 
-/// `rust_manifest` provides functions to help generate a manifest in rust format for static linking
-pub mod rust_manifest;
-
 mod cargo_build;
 mod checker;
 mod gatherer;
