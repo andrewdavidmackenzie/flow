@@ -89,8 +89,11 @@ fn remove_dead_functions(tables: &mut CompilerTables) -> bool {
     removed_something
 }
 
-// A function is "dead" or has no effect if it is pure (not impure) and there is no connection it
+// A function is "dead" or has no effect if it is pure (not impure) and there is no connection from it
 fn dead_function(connections: &[Connection], function: &FunctionDefinition) -> bool {
+    // TODO this should be expanded to detect context functions that produce an output but have no
+    // TODO connection from it, and context functions that consume an input but have no connection to it
+    // TODO and pure functions with no connections to any input
     !function.is_impure() && !connection_from_function(connections, function)
 }
 
@@ -107,4 +110,116 @@ fn connection_from_function(connections: &[Connection], function: &FunctionDefin
     }
 
     false
+}
+
+#[cfg(test)]
+mod test {
+    use url::Url;
+
+    use flowcore::model::connection::Connection;
+    use flowcore::model::function_definition::FunctionDefinition;
+    use flowcore::model::io::{IOSet, IOType};
+
+    use crate::compiler::compile::CompilerTables;
+    use crate::compiler::optimizer::optimize;
+
+    fn pure_function() -> FunctionDefinition {
+        FunctionDefinition::new(
+            "pure".into(),
+            false,
+            "file:///fake/pure".into(),
+            "".into(),
+            IOSet::new(),
+            IOSet::new(),
+            Url::parse("file:///fake/pure").expect("Could not parse Url"),
+            "/root/pure_function".into(),
+            None,
+            None,
+            vec!(),
+            0,
+            0
+        )
+    }
+
+    fn impure_function() -> FunctionDefinition {
+        FunctionDefinition::new(
+            "impure".into(),
+            true,
+            "file:///fake/impure".into(),
+            "".into(),
+            IOSet::new(),
+            IOSet::new(),
+            Url::parse("file:///fake/impure").expect("Could not parse Url"),
+            "/root/impure_function".into(),
+            None,
+            None,
+            vec!(),
+            1,
+            0
+        )
+    }
+
+    #[test]
+    fn detect_dead_pure_function_no_connections() {
+        assert!(super::dead_function(&[], &pure_function()));
+    }
+
+    #[test]
+    fn dont_detect_dead_impure_function_no_connections() {
+        assert!(!super::dead_function(&[], &impure_function()));
+    }
+
+    #[test]
+    fn detect_live_pure_function_with_connection() {
+        let mut from_connection = Connection::new("/root/pure_function/output",
+                                              "/root/other/input");
+        from_connection.from_io_mut().set_route(&"/root/pure_function/output".into(),
+                                                &IOType::FunctionOutput);
+        let connections = vec!(from_connection);
+
+        assert!(!super::dead_function(&connections, &pure_function()));
+    }
+
+    #[test]
+    fn detect_dead_pure_function_with_bad_connection() {
+        let mut from_connection = Connection::new("/root/no_such_function/no_such_output",
+                                                  "/root/other/input");
+        from_connection.from_io_mut().set_route(&"/root/no_such_function/no_such_output".into(),
+                                                &IOType::FunctionOutput);
+        let connections = vec!(from_connection);
+
+        assert!(super::dead_function(&connections, &pure_function()));
+    }
+
+    #[test]
+    fn optimize_empty_tables() {
+        let mut tables = CompilerTables::new();
+        optimize(&mut tables);
+    }
+
+    #[test]
+    fn no_optimization_to_be_done() {
+        let mut tables = CompilerTables::new();
+        tables.functions = vec!(pure_function(), impure_function());
+
+        let mut from_connection = Connection::new("/root/pure_function/output",
+                                                  "/root/other/input");
+        from_connection.from_io_mut().set_route(&"/root/pure_function/output".into(),
+                                                &IOType::FunctionOutput);
+        tables.collapsed_connections = vec!(from_connection);
+
+        assert_eq!(tables.functions.len(), 2);
+        optimize(&mut tables);
+        assert_eq!(tables.functions.len(), 2);
+    }
+
+    #[test]
+    fn optimization_out_a_dead_one() {
+        let mut tables = CompilerTables::new();
+        tables.functions = vec!(pure_function(), impure_function());
+
+        assert_eq!(tables.functions.len(), 2);
+        optimize(&mut tables);
+        assert_eq!(tables.functions.len(), 1);
+    }
 }
