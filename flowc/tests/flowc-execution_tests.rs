@@ -166,6 +166,7 @@ fn execute_flow(
     (output, err)
 }
 
+// NOTE: if the file doesn't exist this will return an empty array of Strings
 fn test_args(test_dir: &Path) -> Vec<String> {
     let args_file = test_dir.join("test.args");
     let mut args = Vec::new();
