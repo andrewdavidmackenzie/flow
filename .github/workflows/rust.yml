@@ -63,7 +63,6 @@ jobs:
     - name: ConfigureCoverage
       if: matrix.os == 'ubuntu-latest'
       run: |
-        echo RUSTC_BOOTSTRAP=1 >> "$GITHUB_ENV" # Enables -Z in stable
         cargo install grcov
         sudo apt-get -y install lcov
         rustup component add llvm-tools-preview
