@@ -81,6 +81,7 @@ endif
 clean:
 	@echo "clean<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
 	@cargo clean
+	@find . -name target -type d | xargs rm -rf
 
 .PHONY: install-flow
 install-flow:
