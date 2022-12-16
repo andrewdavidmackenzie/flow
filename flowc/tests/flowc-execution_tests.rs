@@ -362,6 +362,7 @@ fn flowc_hello_world() {
     let command_args = vec![
         "-C", &context_dir_str,
         &test_dir_str,
+        "-g", "-O",
         "-o", &out_dir_str
     ];
 

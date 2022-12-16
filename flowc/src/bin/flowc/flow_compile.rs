@@ -224,4 +224,27 @@ mod test {
         let md = fs::metadata(test_output_dir).expect("Could not get metadata");
         assert!(!md.permissions().readonly());
     }
+
+    #[test]
+    fn can_use_existing_dir() {
+        let test_output_dir = TempDir::new("flow_compile")
+            .expect("Could not create temp parent dir").into_path();
+
+        make_writeable(&test_output_dir).expect("Could not make output dir");
+
+        assert!(test_output_dir.exists());
+        assert!(test_output_dir.is_dir());
+        let md = fs::metadata(test_output_dir).expect("Could not get metadata");
+        assert!(!md.permissions().readonly());
+    }
+
+    #[test]
+    fn error_if_exists_as_file() {
+        let temp_parent = TempDir::new("flow_compile")
+            .expect("Could not create temp parent dir");
+        let test_output_file = temp_parent.path().join("output");
+        fs::File::create(&test_output_file).expect("Could not create file");
+
+        assert!(make_writeable(&test_output_file).is_err());
+    }
 }
