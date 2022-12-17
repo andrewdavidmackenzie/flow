@@ -1874,9 +1874,7 @@ dependencies = [
 
 [[package]]
 name = "simpdiscover"
-version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7a9acdc41878402e6f4323415cf0051c7ac712a9665d266bda733326b585d0b3"
+version = "0.6.1"
 dependencies = [
  "log",
  "simplog",
