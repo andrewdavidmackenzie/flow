@@ -29,10 +29,10 @@ pub const WAIT:i32 = 0;
 pub static DONT_WAIT:i32 = zmq::DONTWAIT;
 
 /// This is a "well known" port for announcing and discovering the client/server services
-pub const CLIENT_SERVER_DISCOVERY_PORT:u16 = 9002;
+pub const CLIENT_SERVER_DISCOVERY_PORT:u16 = 15002;
 
 /// This is a "well known" port for announcing and discovering the job queues
-pub const JOB_QUEUES_DISCOVERY_PORT:u16 = 9003;
+pub const JOB_QUEUES_DISCOVERY_PORT:u16 = 15003;
 
 /// Try to discover a server offering a particular service by name
 pub fn discover_service(discovery_port: u16, name: &str) -> Result<String> {
