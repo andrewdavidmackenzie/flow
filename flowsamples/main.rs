@@ -327,7 +327,7 @@ mod test {
         test_sample("sequence", false);
     }
 
-    #[ignore]
+    #[cfg_attr(not(target_os="linux"), ignore)]
     #[test]
     #[serial]
     fn test_sequence_of_sequences() {
