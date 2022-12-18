@@ -39,7 +39,7 @@ fn main() -> io::Result<()> {
     let command_args = vec!["-d", "-g", "-l", "-o", &out_dir, "-n", lib_root_dir_str];
 
     if !command.args(&command_args).status()
-        .expect(&format!("Could not get status of flowc {}", command_args.join(" ")))
+        .expect(&format!("Could not get status of 'flowc {}'", command_args.join(" ")))
         .success() {
         std::process::exit(1);
     }
