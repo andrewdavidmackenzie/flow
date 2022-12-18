@@ -74,8 +74,8 @@ jobs:
         cargo build -p flowc
         cargo build -p flowr
         cargo build -p flowrex
-        echo "$GITHUB_WORKSPACE/target/debug" >> "$GITHUB_PATH"
-        echo PATH="$GITHUB_WORKSPACE/target/debug" >> "$GITHUB_ENV"
+        echo "${$GITHUB_WORKSPACE}/target/debug" >> $GITHUB_PATH
+        echo "${$GITHUB_WORKSPACE}/flowrex/target/debug" >> $GITHUB_PATH
 
     - name: clippy
       run: cargo clippy --tests -- -D warnings
