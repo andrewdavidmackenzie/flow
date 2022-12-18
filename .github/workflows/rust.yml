@@ -69,14 +69,12 @@ jobs:
         echo RUSTFLAGS="-C instrument-coverage" >> "$GITHUB_ENV"
         echo LLVM_PROFILE_FILE="flow-%p-%m.profraw" >> "$GITHUB_ENV"
 
-    - name: install-flowc
-      run: cargo install --path flowc
-
-    - name: install-flowr
-      run: cargo install --path flowr
-
-    - name: install-flowrex
-      run: cargo install --path flowrex
+    - name: build-binaries
+      run: |
+        cargo build -p flowc
+        cargo build -p flowr
+        cargo build -p flowrex
+        echo "$GITHUB_WORKSPACE/target/debug" >> "$GITHUB_PATH"
 
     - name: clippy
       run: cargo clippy --tests -- -D warnings
