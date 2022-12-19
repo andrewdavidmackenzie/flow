@@ -127,10 +127,12 @@ fn cargo_build(
     );
     // avoid rename across possibly different file systems
     fs::copy(&cargo_target_dir, wasm_destination)
-        .chain_err(|| format!("Could not move WASM from '{}' to '{}'",
+        .chain_err(|| format!("Could not copy WASM from '{}' to '{}'",
                               cargo_target_dir.display(),
                               wasm_destination.display()))?;
-    fs::remove_file(cargo_target_dir)
+    fs::remove_file(&cargo_target_dir)
+        .chain_err(|| format!("Could not remove_file'{}'",
+                              cargo_target_dir.display()))
 }
 
 /// Run the cargo build to compile wasm from function source

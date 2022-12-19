@@ -125,7 +125,7 @@ fn run_optional_command(wasm_path: &Path, command: &str, mut args: Vec<String>) 
         match output.status.code() {
             Some(0) | None => {
                 fs::copy(&temp_file_path, wasm_path)?;
-                fs::remove(&temp_file_path)?;
+                fs::remove_file(&temp_file_path)?;
             },
             Some(_) => bail!(format!(
                 "{} exited with non-zero status code",
