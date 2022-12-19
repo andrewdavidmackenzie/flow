@@ -41,7 +41,7 @@ simpdiscover = "0.6.0"
 
 [dev-dependencies]
 tempdir = "~0.3.5"
-serial_test = "0.9.0"
+serial_test = "0.10.0"
 simpath = { version = "~2.3", features = ["urls"]}
 portpicker = "0.1.1"
 
