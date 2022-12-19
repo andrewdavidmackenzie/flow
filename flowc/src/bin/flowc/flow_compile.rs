@@ -10,11 +10,9 @@ use log::{debug, error, info};
 use url::Url;
 
 use flowclib::compiler::compile;
-use flowclib::compiler::compile::CompilerTables;
 use flowclib::compiler::parser;
 use flowclib::dumper::{flow_to_dot, functions_to_dot};
 use flowclib::generator::generate;
-use flowcore::model::flow_definition::FlowDefinition;
 use flowcore::model::process::Process::FlowProcess;
 use flowcore::provider::Provider;
 
@@ -46,7 +44,11 @@ pub fn compile_and_execute_flow(options: &Options, provider: &dyn Provider) -> R
 
             make_writeable(&options.output_dir)?;
 
-            dump(&flow, provider, &tables, options)?;
+            if options.graphs {
+                flow_to_dot::dump_flow(&flow, &options.output_dir, provider)?;
+                functions_to_dot::dump_functions(&flow, &tables, &options.output_dir)?;
+                flow_to_dot::generate_svgs(&options.output_dir, true)?;
+            }
 
             if !flow.is_runnable() {
                 info!("Flow not runnable, so Manifest generation and flow execution skipped");
@@ -73,22 +75,18 @@ pub fn compile_and_execute_flow(options: &Options, provider: &dyn Provider) -> R
     }
 }
 
+// Make sure the directory exists, if not create it, and is writable
 fn make_writeable(output_dir: &PathBuf) -> Result<()> {
-    // Now make sure the directory exists, if not create it, and is writable
     if output_dir.exists() {
-        let md = fs::metadata(output_dir).chain_err(|| {
-            format!(
-                "Could not read metadata of the existing output directory '{}'",
-                output_dir.display()
-            )
-        })?;
         // Check it's not a file!
-        if md.is_file() {
+        if output_dir.is_file() {
             bail!(
                 "Output directory '{}' already exists as a file",
                 output_dir.display()
             );
         }
+
+        let md = fs::metadata(output_dir)?;
 
         // check it's not read only!
         if md.permissions().readonly() {
@@ -97,21 +95,6 @@ fn make_writeable(output_dir: &PathBuf) -> Result<()> {
     } else {
         fs::create_dir_all(output_dir)
             .chain_err(|| format!("Could not create directory '{}'", output_dir.display()))?;
-    }
-
-    Ok(())
-}
-
-fn dump(
-    flow: &FlowDefinition,
-    provider: &dyn Provider,
-    tables: &CompilerTables,
-    options: &Options,
-) -> Result<()> {
-    if options.graphs {
-        flow_to_dot::dump_flow(flow, &options.output_dir, provider)?;
-        functions_to_dot::dump_functions(flow, tables, &options.output_dir)?;
-        flow_to_dot::generate_svgs(&options.output_dir, true)?;
     }
 
     Ok(())
@@ -198,19 +181,56 @@ fn execute_flow(filepath: &Path, options: &Options) -> Result<()> {
         Some(0) => Ok(()),
         Some(code) => {
             error!("Execution of 'flowr' failed");
-            error!(
-                "flowr STDOUT:\n{}",
-                String::from_utf8_lossy(&flowr_output.stdout)
-            );
-            error!(
-                "flowr STDERR:\n{}",
-                String::from_utf8_lossy(&flowr_output.stderr)
-            );
-            bail!(
-                "Execution of flowr failed. Exited with status code: {}",
-                code
-            )
+            error!("flowr STDOUT:\n{}", String::from_utf8_lossy(&flowr_output.stdout));
+            error!("flowr STDERR:\n{}", String::from_utf8_lossy(&flowr_output.stderr));
+            bail!("Execution of flowr failed. Exited with status code: {}", code)
         }
         None => Ok(()),
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use std::fs;
+
+    use tempdir::TempDir;
+
+    use crate::flow_compile::make_writeable;
+
+    #[test]
+    fn can_create_dir_correctly() {
+        let temp_parent = TempDir::new("flow_compile")
+            .expect("Could not create temp parent dir");
+
+        let test_output_dir = temp_parent.path().join("output");
+        make_writeable(&test_output_dir).expect("Could not make output dir");
+
+        assert!(test_output_dir.exists());
+        assert!(test_output_dir.is_dir());
+        let md = fs::metadata(test_output_dir).expect("Could not get metadata");
+        assert!(!md.permissions().readonly());
+    }
+
+    #[test]
+    fn can_use_existing_dir() {
+        let test_output_dir = TempDir::new("flow_compile")
+            .expect("Could not create temp parent dir").into_path();
+
+        make_writeable(&test_output_dir).expect("Could not make output dir");
+
+        assert!(test_output_dir.exists());
+        assert!(test_output_dir.is_dir());
+        let md = fs::metadata(test_output_dir).expect("Could not get metadata");
+        assert!(!md.permissions().readonly());
+    }
+
+    #[test]
+    fn error_if_exists_as_file() {
+        let temp_parent = TempDir::new("flow_compile")
+            .expect("Could not create temp parent dir");
+        let test_output_file = temp_parent.path().join("output");
+        fs::File::create(&test_output_file).expect("Could not create file");
+
+        assert!(make_writeable(&test_output_file).is_err());
     }
 }

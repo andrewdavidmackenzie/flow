@@ -6,8 +6,7 @@
 //! [function definitions][flowcore::model::function_definition::FunctionDefinition] and
 //! [process references][flowcore::model::process_reference::ProcessReference] and compiles it down
 //! into a graph of [runtime functions][flowcore::model::runtime_function::RuntimeFunction]
-//! in a [flow manifest][flowcore::model::flow_manifest::FlowManifest] file for execution by a
-//!flow runner like `flowr`.
+//! in a [flow manifest][flowcore::model::flow_manifest::FlowManifest] for execution by a flow runner.
 //!
 //! Run `flowc --help` or `flowc -h` at the command line for a
 //! description of the command line options.
@@ -31,7 +30,7 @@ use lib_build::build_lib;
 
 use crate::flow_compile::compile_and_execute_flow;
 
-/// Contains [errors::Error] types that other modules in this crate will
+/// Contains [Error] types that other modules in this crate will
 /// `use crate::errors::*;` to get access to everything `error_chain` creates.
 pub mod errors;
 

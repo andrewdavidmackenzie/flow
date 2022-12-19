@@ -52,7 +52,7 @@ pub fn create_manifest(
     Ok(manifest)
 }
 
-/// Generate a manifest for the flow in JSON that can be used to run it using 'flowr'
+/// Generate a manifest for the flow in JSON that can be used to execute it
 // TODO this is tied to being a file:// - generalize this to write to a URL, moving the code
 // TODO into the provider and implementing for file and http
 pub fn write_flow_manifest(

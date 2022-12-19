@@ -5,6 +5,7 @@ DNF := $(shell command -v dnf 2> /dev/null)
 BREW := $(shell command -v brew 2> /dev/null)
 ONLINE := $(shell ping -c 1 github.com > /dev/null 2>&1 ; echo $$?)
 export SHELL := /bin/bash
+export PATH := $(PWD)/target/debug:$(PWD)/flowrex/target/debug:$(PATH)
 
 ifeq ($(ONLINE),0)
 features := --features "wasm","online_tests"
@@ -25,7 +26,7 @@ ifeq ($(FLOW_CONTEXT_ROOT),)
 endif
 
 .PHONY: all
-all: online clippy build test docs
+all: online clean-start clippy build test docs
 
 .PHONY: online
 online:
@@ -34,6 +35,10 @@ ifeq ($(ONLINE),0)
 else
 	@echo "Not ONLINE, so not including 'online_tests' feature"
 endif
+
+.PHONY: clean-start
+clean-start:
+	@find . -name "*.profraw"  | xargs rm -rf {}
 
 .PHONY: config
 config:
@@ -81,41 +86,49 @@ endif
 clean:
 	@echo "clean<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
 	@cargo clean
+	@find . -name target -type d | xargs rm -rf
 
-.PHONY: install-flow
-install-flow:
-	@echo "install-flow<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
-	@cargo install --path flowc $(cargo_options)
-	@cargo install --path flowr $(cargo_options)
-	@cargo install --path flowrex $(cargo_options)
+.PHONY: build-binaries
+build-binaries:
+	@echo "build-binaries<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
+	@cargo build -p flowc $(cargo_options)
+	@cargo build -p flowr $(cargo_options)
+	@cargo build --manifest-path flowrex/Cargo.toml $(cargo_options)
 
 .PHONY: clippy
-clippy: install-flow
+clippy: build-binaries
 	@echo "clippy<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
 	@cargo clippy --tests --all-features -- -D warnings
 
 .PHONY: build
-build: install-flow
+build: build-binaries
 	@echo "build<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
 	@cargo build $(features) $(cargo_options)
 	@cargo build $(cargo_options) --manifest-path flowrex/Cargo.toml
 
 .PHONY: test
-test: install-flow
+test: build-binaries
 	@echo "test<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
 	@cargo test $(features) $(cargo_options)
 
 .PHONY: coverage
-coverage: install-flow
+coverage: build-binaries
 	@echo "coverage<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
 	@find . -name "*.profraw"  | xargs rm -rf {}
+	@RUSTFLAGS="-C instrument-coverage" LLVM_PROFILE_FILE="flow-%p-%m.profraw" cargo build -p flowc
+	@RUSTFLAGS="-C instrument-coverage" LLVM_PROFILE_FILE="flow-%p-%m.profraw" cargo build -p flowr
+	@RUSTFLAGS="-C instrument-coverage" LLVM_PROFILE_FILE="flow-%p-%m.profraw" cargo build --manifest-path flowrex/Cargo.toml
+	@RUSTFLAGS="-C instrument-coverage" LLVM_PROFILE_FILE="flow-%p-%m.profraw" cargo clippy --tests -- -D warnings
+	@RUSTFLAGS="-C instrument-coverage" LLVM_PROFILE_FILE="flow-%p-%m.profraw" cargo build $(features)
 	@RUSTFLAGS="-C instrument-coverage" LLVM_PROFILE_FILE="flow-%p-%m.profraw" cargo test $(features) $(cargo_options)
-	@echo "Gathering covering information"
+	@RUSTFLAGS="-C instrument-coverage" LLVM_PROFILE_FILE="flow-%p-%m.profraw" cargo doc --no-deps --target-dir=target/html/code $(cargo_options)
+	@echo "Gathering coverage information"
 	@grcov . --binary-path target/debug/ -s . -t lcov --branch --ignore-not-existing --ignore "/*" -o coverage.info
 	@lcov --remove coverage.info '/Applications/*' 'target/debug/build/**' '/usr*' '**/errors.rs' '**/build.rs' '*tests/*' -o coverage.info
 	@find . -name "*.profraw" | xargs rm -f
-	@echo "Generating coverage report in './target/coverage/index.html'"
+	@echo "Generating coverage report"
 	@genhtml -o target/coverage --quiet coverage.info
+	@echo "View coverage report using 'open target/coverage/index.html'"
 
 .PHONY: docs
 docs: generate-docs copy-svgs trim-docs
