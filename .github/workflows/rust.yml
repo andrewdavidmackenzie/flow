@@ -23,7 +23,12 @@ jobs:
     - uses: actions/checkout@v2
 
     - name: SetupFlowLibPath
-      run: echo "FLOW_LIB_PATH=$GITHUB_WORKSPACE/target" >> "$GITHUB_ENV"
+      run: |
+        echo "FLOW_LIB_PATH=$GITHUB_WORKSPACE/target" >> "$GITHUB_ENV"
+        echo "$GITHUB_WORKSPACE/target/debug" >> "$GITHUB_PATH"
+        echo "$GITHUB_WORKSPACE/flowrex/target/debug" >> "$GITHUB_PATH"
+        echo "PATH=$GITHUB_WORKSPACE/target/debug:$GITHUB_WORKSPACE/flowrex/target/debug:$PATH" >> "$GITHUB_ENV"
+
 
     - name: Install latest nightly
       uses: actions-rs/toolchain@v1
@@ -71,8 +76,6 @@ jobs:
 
     - name: build-binaries
       run: |
-        echo "$GITHUB_WORKSPACE/target/debug" >> "$GITHUB_PATH"
-        echo "$GITHUB_WORKSPACE/flowrex/target/debug" >> "$GITHUB_PATH"
         which flowc
         which flowr
         which flowrex
