@@ -5,7 +5,7 @@ DNF := $(shell command -v dnf 2> /dev/null)
 BREW := $(shell command -v brew 2> /dev/null)
 ONLINE := $(shell ping -c 1 github.com > /dev/null 2>&1 ; echo $$?)
 export SHELL := /bin/bash
-export PATH := target/debug:flowrex/target/debug:$(PATH)
+export PATH := $(PWD)/target/debug:$(PWD)/flowrex/target/debug:$(PATH)
 
 ifeq ($(ONLINE),0)
 features := --features "wasm","online_tests"
