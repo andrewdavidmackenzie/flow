@@ -450,6 +450,15 @@
 <a href="#450" id="450">450</a>
 <a href="#451" id="451">451</a>
 <a href="#452" id="452">452</a>
+<a href="#453" id="453">453</a>
+<a href="#454" id="454">454</a>
+<a href="#455" id="455">455</a>
+<a href="#456" id="456">456</a>
+<a href="#457" id="457">457</a>
+<a href="#458" id="458">458</a>
+<a href="#459" id="459">459</a>
+<a href="#460" id="460">460</a>
+<a href="#461" id="461">461</a>
 </pre><pre class="rust"><code><span class="kw">use </span>error_chain::bail;
 <span class="kw">use </span>log::error;
 
@@ -466,39 +475,42 @@
     <span class="macro">bail!</span>(msg);
 }
 
-<span class="kw">fn </span>ready_check(state: <span class="kw-2">&amp;</span>RunState, job_id: usize, function: <span class="kw-2">&amp;</span>RuntimeFunction) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
-    <span class="kw">if </span>!state.get_busy_flows().contains_key(<span class="kw-2">&amp;</span>function.get_flow_id()) {
-        <span class="kw">return </span>runtime_error(
+<span class="comment">/*
+fn ready_check(state: &amp;RunState, job_id: usize, function: &amp;RuntimeFunction) -&gt; Result&lt;()&gt; {
+    if !state.get_busy_flows().contains_key(&amp;function.get_flow_id()) {
+        return runtime_error(
             state,
             job_id,
-            <span class="kw-2">&amp;</span><span class="macro">format!</span>(
-                <span class="string">&quot;Function #{} is Ready, but Flow #{} is not busy&quot;</span>,
+            &amp;format!(
+                &quot;Function #{} is Ready, but Flow #{} is not busy&quot;,
                 function.id(),
                 function.get_flow_id()
             ),
-            <span class="macro">file!</span>(),
-            <span class="macro">line!</span>(),
+            file!(),
+            line!(),
         );
     }
 
-    <span class="kw">if </span>!(state.get_function_states(<span class="number">0</span>).contains(<span class="kw-2">&amp;</span>State::Ready) ||
-        state.get_function_states(<span class="number">0</span>).contains(<span class="kw-2">&amp;</span>State::Running)) {
-        <span class="kw">return </span>runtime_error(
+    if !(state.get_function_states(0).contains(&amp;State::Ready) ||
+        state.get_function_states(0).contains(&amp;State::Running)) {
+        return runtime_error(
             state,
             job_id,
-            <span class="kw-2">&amp;</span><span class="macro">format!</span>(
-                <span class="string">&quot;Flow is busy byt Function #{} is not Ready or Running&quot;</span>,
+            &amp;format!(
+                &quot;Flow is busy but Function #{} is not Ready or Running&quot;,
                 function.id(),
             ),
-            <span class="macro">file!</span>(),
-            <span class="macro">line!</span>(),
+            file!(),
+            line!(),
         );
     }
 
-    <span class="prelude-val">Ok</span>(())
+    Ok(())
 }
 
-<span class="kw">fn </span>running_check(state: <span class="kw-2">&amp;</span>RunState, job_id: usize, function: <span class="kw-2">&amp;</span>RuntimeFunction) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
+ */
+
+</span><span class="kw">fn </span>running_check(state: <span class="kw-2">&amp;</span>RunState, job_id: usize, function: <span class="kw-2">&amp;</span>RuntimeFunction) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
     <span class="kw">if </span>state.get_running().contains_key(<span class="kw-2">&amp;</span>job_id) &amp;&amp; !state.get_busy_flows().contains_key(<span class="kw-2">&amp;</span>function.get_flow_id()) {
         <span class="kw">return </span>runtime_error(
             state,
@@ -587,45 +599,31 @@
     <span class="prelude-val">Ok</span>(())
 }
 
-<span class="kw">fn </span>destination_block_state_check(state: <span class="kw-2">&amp;</span>RunState, job_id: usize, block: <span class="kw-2">&amp;</span>Block,
-                                 functions: <span class="kw-2">&amp;</span>[RuntimeFunction]) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
-    <span class="comment">// For each block on a destination function, then either that input should be full or
+<span class="comment">/*
+fn destination_block_state_check(state: &amp;RunState, job_id: usize, block: &amp;Block,
+                                 functions: &amp;[RuntimeFunction]) -&gt; Result&lt;()&gt; {
+    // For each block on a destination function, then either that input should be full or
     // the function should be running in parallel with the one that just completed
     // or it&#39;s flow should be busy and there should be a pending unblock on it
-    </span><span class="kw">if let </span><span class="prelude-val">Some</span>(function) = functions.get(block.blocking_function_id) {
-        <span class="kw">if </span>!(function.input_count(block.blocking_io_number) &gt; <span class="number">0
-            </span>|| (state.get_busy_flows().contains_key(<span class="kw-2">&amp;</span>block.blocking_flow_id)
-            &amp;&amp; state.get_flow_blocks().contains_key(<span class="kw-2">&amp;</span>block.blocking_flow_id)))
+    if let Some(function) = functions.get(block.blocking_function_id) {
+        if !(function.input_count(block.blocking_io_number) &gt; 0
+            || (state.get_busy_flows().contains_key(&amp;block.blocking_flow_id)
+            &amp;&amp; state.get_flow_blocks().contains_key(&amp;block.blocking_flow_id)))
         {
-            <span class="kw">return </span>runtime_error(
+            return runtime_error(
                 state,
                 job_id,
-                <span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;Block {block} exists for function #{}, but Function #{}:{} input is not full&quot;</span>,
+                &amp;format!(&quot;Block {block} exists for function #{}, but Function #{}:{} input is not full&quot;,
                          block.blocking_function_id, block.blocking_function_id, block.blocking_io_number),
-                <span class="macro">file!</span>(), <span class="macro">line!</span>());
+                file!(), line!());
         }
     }
 
-    <span class="prelude-val">Ok</span>(())
+    Ok(())
 }
+ */
 
-<span class="comment">// Check busy flow invariants
-</span><span class="kw">fn </span>flow_checks(state: <span class="kw-2">&amp;</span>RunState, job_id: usize) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
-    <span class="kw">for </span>(flow_id, function_id) <span class="kw">in </span>state.get_busy_flows().iter() {
-        <span class="kw">let </span>function_states = state.get_function_states(<span class="kw-2">*</span>function_id);
-        <span class="kw">if </span>!function_states.contains(<span class="kw-2">&amp;</span>State::Ready) &amp;&amp; !state.get_running().contains_key(<span class="kw-2">&amp;</span>job_id) {
-            <span class="kw">return </span>runtime_error(
-                state,
-                job_id,
-                <span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;Busy flow entry exists for Function #{function_id} in Flow #{flow_id} but it&#39;s not Ready nor Running&quot;</span>),
-                <span class="macro">file!</span>(), <span class="macro">line!</span>());
-        }
-    }
-
-    <span class="prelude-val">Ok</span>(())
-}
-
-<span class="comment">// Check pending unblock invariants
+// Check pending unblock invariants
 </span><span class="kw">fn </span>pending_unblock_checks(state: <span class="kw-2">&amp;</span>RunState, job_id: usize) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
     <span class="kw">for </span>pending_unblock_flow_id <span class="kw">in </span>state.get_flow_blocks().keys() {
         <span class="comment">// flow it&#39;s in must be busy
@@ -646,11 +644,11 @@
 
 <span class="comment">// Check block invariants
 </span><span class="kw">fn </span>block_checks(state: <span class="kw-2">&amp;</span>RunState, job_id: usize) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
-    <span class="kw">let </span>functions = state.get_functions();
-    <span class="kw">for </span>block <span class="kw">in </span>state.get_blocks() {
+<span class="comment">//    let functions = state.get_functions();
+    </span><span class="kw">for </span>block <span class="kw">in </span>state.get_blocks() {
         self_block_check(state, job_id, block)<span class="question-mark">?</span>;
-        destination_block_state_check(state, job_id, block, functions)<span class="question-mark">?</span>;
-    }
+        <span class="comment">//destination_block_state_check(state, job_id, block, functions)?;
+    </span>}
 
     <span class="prelude-val">Ok</span>(())
 }
@@ -662,8 +660,8 @@
         <span class="kw">let </span>function_states = <span class="kw-2">&amp;</span>state.get_function_states(function.id());
         <span class="kw">for </span>function_state <span class="kw">in </span>function_states {
             <span class="kw">match </span>function_state {
-                State::Ready =&gt; ready_check(state, job_id, function)<span class="question-mark">?</span>,
-                State::Blocked =&gt; blocked_check(state, job_id, function)<span class="question-mark">?</span>,
+<span class="comment">//                State::Ready =&gt; ready_check(state, job_id, function)?,
+                </span>State::Blocked =&gt; blocked_check(state, job_id, function)<span class="question-mark">?</span>,
                 State::Waiting =&gt; waiting_check(state, job_id, function)<span class="question-mark">?</span>,
                 State::Completed =&gt; completed_check(state, job_id, function, function_states)<span class="question-mark">?</span>,
                 <span class="kw">_ </span>=&gt; {}
@@ -674,15 +672,33 @@
     <span class="prelude-val">Ok</span>(())
 }
 
-<span class="doccomment">/// Check a number of &quot;invariants&quot; i.e. unbreakable rules about the state.
+<span class="comment">// Check busy flow invariants
+/*
+fn flow_checks(state: &amp;RunState, job_id: usize) -&gt; Result&lt;()&gt; {
+    for (flow_id, function_id) in state.get_busy_flows().iter() {
+        let function_states = state.get_function_states(*function_id);
+        if !function_states.contains(&amp;State::Ready) &amp;&amp; !state.get_running().contains_key(&amp;job_id) {
+            return runtime_error(
+                state,
+                job_id,
+                &amp;format!(&quot;Busy flow entry exists for Function #{function_id} in Flow #{flow_id} but it&#39;s not Ready nor Running&quot;),
+                file!(), line!());
+        }
+    }
+
+    Ok(())
+}
+ */
+
+</span><span class="doccomment">/// Check a number of &quot;invariants&quot; i.e. unbreakable rules about the state.
 /// If one is found to be broken, report a runtime error explaining it, which may
 /// trigger entry into the debugger.
 </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>check_invariants(state: <span class="kw-2">&amp;</span>RunState, job_id: usize) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
     function_state_checks(state, job_id)<span class="question-mark">?</span>;
     block_checks(state, job_id)<span class="question-mark">?</span>;
-    pending_unblock_checks(state, job_id)<span class="question-mark">?</span>;
-    flow_checks(state, job_id)
-}
+    pending_unblock_checks(state, job_id)
+    <span class="comment">//flow_checks(state, job_id)
+</span>}
 
 <span class="attr">#[cfg(test)]
 </span><span class="kw">mod </span>test {
@@ -714,8 +730,8 @@
     </span><span class="kw">use </span><span class="kw">crate</span>::protocols::DebuggerProtocol;
 
     <span class="kw">use </span><span class="kw">super</span>::blocked_check;
-    <span class="kw">use </span><span class="kw">super</span>::ready_check;
-    <span class="kw">use </span><span class="kw">super</span>::running_check;
+    <span class="comment">//use super::ready_check;
+    </span><span class="kw">use </span><span class="kw">super</span>::running_check;
 
     <span class="kw">fn </span>test_meta_data() -&gt; MetaData {
         MetaData {
@@ -761,32 +777,34 @@
         )
     }
 
-    <span class="attr">#[test]
-    </span><span class="kw">fn </span>test_ready_passes() {
-        <span class="kw">let </span>function = test_function(<span class="number">0</span>, <span class="number">0</span>);
-        <span class="kw">let </span><span class="kw-2">mut </span>state = test_state(<span class="macro">vec!</span>[function]);
+    <span class="comment">/*
+    #[test]
+    fn test_ready_passes() {
+        let function = test_function(0, 0);
+        let mut state = test_state(vec![function]);
 
-        <span class="comment">// Mark the flow the function is in as busy via ready
-        </span>state.make_ready_or_blocked(<span class="number">0</span>, <span class="number">0</span>).expect(<span class="string">&quot;Couldn&#39;t get next job&quot;</span>);
+        // Mark the flow the function is in as busy via ready
+        state.make_ready_or_blocked(0, 0).expect(&quot;Couldn&#39;t get next job&quot;);
 
-        <span class="comment">// this ready_check() should pass
-        </span>ready_check(<span class="kw-2">&amp;</span>state, <span class="number">0</span>, state.get_function(<span class="number">0</span>)
-            .ok_or(<span class="string">&quot;No function&quot;</span>).expect(<span class="string">&quot;No function&quot;</span>)).expect(<span class="string">&quot;Should pass&quot;</span>)
+        // this ready_check() should pass
+        ready_check(&amp;state, 0, state.get_function(0)
+            .ok_or(&quot;No function&quot;).expect(&quot;No function&quot;)).expect(&quot;Should pass&quot;)
     }
 
-    <span class="attr">#[test]
-    </span><span class="kw">fn </span>test_ready_fails() {
-        <span class="kw">let </span>function = test_function(<span class="number">0</span>, <span class="number">0</span>);
-        <span class="kw">let </span>state = test_state(<span class="macro">vec!</span>[function]);
+    #[test]
+    fn test_ready_fails() {
+        let function = test_function(0, 0);
+        let state = test_state(vec![function]);
 
-        <span class="comment">// Do not mark flow_id as busy - if a function is ready, the flow containing it should
+        // Do not mark flow_id as busy - if a function is ready, the flow containing it should
         // be marked as busy, so this ready_check() should fail
 
-        </span><span class="macro">assert!</span>(ready_check(<span class="kw-2">&amp;</span>state, <span class="number">0</span>, state.get_function(<span class="number">0</span>)
-            .ok_or(<span class="string">&quot;No function&quot;</span>).expect(<span class="string">&quot;No function&quot;</span>)).is_err());
+        assert!(ready_check(&amp;state, 0, state.get_function(0)
+            .ok_or(&quot;No function&quot;).expect(&quot;No function&quot;)).is_err());
     }
+     */
 
-    <span class="attr">#[test]
+    </span><span class="attr">#[test]
     </span><span class="kw">fn </span>test_running_passes() {
         <span class="kw">let </span>function = test_function(<span class="number">0</span>, <span class="number">0</span>);
         <span class="kw">let </span><span class="kw-2">mut </span>state = test_state(<span class="macro">vec!</span>[function]);
