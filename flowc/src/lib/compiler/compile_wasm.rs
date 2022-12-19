@@ -97,8 +97,6 @@ fn run_optional_command(wasm_path: &Path, command: &str, mut args: Vec<String>) 
     if let Ok(FoundType::File(command_path)) =
         Simpath::new("PATH").find_type(command, FileType::File)
     {
-        // Create a temp directory for building in. Use `new_in` to make sure it is in the same FS as the destination so
-        // that fs::rename later works. It will be cleaned-up when `build_dir` goes out of scope.
         let tmp_dir = TempDir::new_in(
             wasm_path
                 .parent()
@@ -123,7 +121,10 @@ fn run_optional_command(wasm_path: &Path, command: &str, mut args: Vec<String>) 
         let output = child.output()?;
 
         match output.status.code() {
-            Some(0) | None => fs::rename(&temp_file_path, wasm_path)?,
+            Some(0) | None => {
+                fs::copy(&temp_file_path, wasm_path)?;
+                fs::remove_file(&temp_file_path)?;
+            },
             Some(_) => bail!(format!(
                 "{} exited with non-zero status code",
                 command_path.to_string_lossy()
@@ -496,7 +497,8 @@ mod test {
         #[cfg(feature = "debugger")]
             let mut source_urls = BTreeSet::<(Url, Url)>::new();
 
-        let (implementation_source_path, wasm_destination) = compile::get_paths(&wasm_output_dir, &function)
+        let (implementation_source_path, wasm_destination) =
+            compile::get_paths(&wasm_output_dir, &function)
             .expect("Could not get paths for compiling");
         assert_eq!(wasm_destination, expected_output_wasm);
 

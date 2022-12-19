@@ -1,7 +1,7 @@
 use std::fmt::Display;
 
 /// This is the message-queue implementation of the lib.client_server communications
-use log::{info, trace};
+use log::{debug, info, trace};
 use portpicker::pick_unused_port;
 use zmq::Socket;
 
@@ -29,7 +29,7 @@ impl ClientConnection {
 
         requester
             .connect(&format!("tcp://{server_address}"))
-            .chain_err(|| "Could not connect to service")?;
+            .chain_err(|| format!("Client Connection - Could not connect to socket at: {server_address}"))?;
 
         info!("Client connected to service '{service_name}' at '{server_address}'");
 
@@ -82,9 +82,10 @@ impl ServerConnection {
             .chain_err(|| "Server Connection - could not create Socket")?;
 
         let port = pick_unused_port().chain_err(|| "No ports free")?;
-
+        debug!("Server Connection attempting to bind to: tcp://*:{port}");
         responder.bind(&format!("tcp://*:{port}"))
-            .chain_err(|| "Server Connection - could not bind on TCP Socket")?;
+            .chain_err(||
+                format!("Server Connection - could not bind on TCP Socket on: tcp://{port}"))?;
 
         enable_service_discovery(CLIENT_SERVER_DISCOVERY_PORT, service_name, port)?;
         info!("Service '{}' listening on *:{}", service_name, port);

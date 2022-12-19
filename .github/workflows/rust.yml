@@ -22,8 +22,10 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
-    - name: SetupFlowLibPath
-      run: echo "FLOW_LIB_PATH=$GITHUB_WORKSPACE/target" >> "$GITHUB_ENV"
+    - name: SetupPaths
+      run: |
+        echo "FLOW_LIB_PATH=$GITHUB_WORKSPACE/target" >> "$GITHUB_ENV"
+        echo "PATH=$GITHUB_WORKSPACE/target/debug:$GITHUB_WORKSPACE/flowrex/target/debug:$PATH" >> "$GITHUB_ENV"
 
     - name: Install latest nightly
       uses: actions-rs/toolchain@v1
@@ -63,20 +65,17 @@ jobs:
     - name: ConfigureCoverage
       if: matrix.os == 'ubuntu-latest'
       run: |
-        echo RUSTC_BOOTSTRAP=1 >> "$GITHUB_ENV" # Enables -Z in stable
         cargo install grcov
+        sudo apt-get -y install lcov
         rustup component add llvm-tools-preview
         echo RUSTFLAGS="-C instrument-coverage" >> "$GITHUB_ENV"
         echo LLVM_PROFILE_FILE="flow-%p-%m.profraw" >> "$GITHUB_ENV"
 
-    - name: install-flowc
-      run: cargo install --path flowc
-
-    - name: install-flowr
-      run: cargo install --path flowr
-
-    - name: install-flowrex
-      run: cargo install --path flowrex
+    - name: build-binaries
+      run: |
+        cargo build -p flowc
+        cargo build -p flowr
+        cargo build --manifest-path flowrex/Cargo.toml
 
     - name: clippy
       run: cargo clippy --tests -- -D warnings
@@ -99,6 +98,7 @@ jobs:
       if: matrix.os == 'ubuntu-latest'
       run: |
         grcov . --binary-path target/debug/ -s . -t lcov --branch --ignore-not-existing --ignore "/*" -o lcov.info
+        lcov --remove lcov.info '/Applications/*' 'target/debug/build/**' '/usr*' '**/errors.rs' '**/build.rs' '*tests/*' -o lcov.info
         bash <(curl -s https://codecov.io/bash) -f lcov.info
         rm -f lcov.info
 

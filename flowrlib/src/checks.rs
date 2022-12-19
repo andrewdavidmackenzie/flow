@@ -14,6 +14,7 @@ fn runtime_error(state: &RunState, job_id: usize, message: &str, file: &str, lin
     bail!(msg);
 }
 
+/*
 fn ready_check(state: &RunState, job_id: usize, function: &RuntimeFunction) -> Result<()> {
     if !state.get_busy_flows().contains_key(&function.get_flow_id()) {
         return runtime_error(
@@ -35,7 +36,7 @@ fn ready_check(state: &RunState, job_id: usize, function: &RuntimeFunction) -> R
             state,
             job_id,
             &format!(
-                "Flow is busy byt Function #{} is not Ready or Running",
+                "Flow is busy but Function #{} is not Ready or Running",
                 function.id(),
             ),
             file!(),
@@ -45,6 +46,8 @@ fn ready_check(state: &RunState, job_id: usize, function: &RuntimeFunction) -> R
 
     Ok(())
 }
+
+ */
 
 fn running_check(state: &RunState, job_id: usize, function: &RuntimeFunction) -> Result<()> {
     if state.get_running().contains_key(&job_id) && !state.get_busy_flows().contains_key(&function.get_flow_id()) {
@@ -135,6 +138,7 @@ fn self_block_check(state: &RunState, job_id: usize, block: &Block) -> Result<()
     Ok(())
 }
 
+/*
 fn destination_block_state_check(state: &RunState, job_id: usize, block: &Block,
                                  functions: &[RuntimeFunction]) -> Result<()> {
     // For each block on a destination function, then either that input should be full or
@@ -156,22 +160,7 @@ fn destination_block_state_check(state: &RunState, job_id: usize, block: &Block,
 
     Ok(())
 }
-
-// Check busy flow invariants
-fn flow_checks(state: &RunState, job_id: usize) -> Result<()> {
-    for (flow_id, function_id) in state.get_busy_flows().iter() {
-        let function_states = state.get_function_states(*function_id);
-        if !function_states.contains(&State::Ready) && !state.get_running().contains_key(&job_id) {
-            return runtime_error(
-                state,
-                job_id,
-                &format!("Busy flow entry exists for Function #{function_id} in Flow #{flow_id} but it's not Ready nor Running"),
-                file!(), line!());
-        }
-    }
-
-    Ok(())
-}
+ */
 
 // Check pending unblock invariants
 fn pending_unblock_checks(state: &RunState, job_id: usize) -> Result<()> {
@@ -194,10 +183,10 @@ fn pending_unblock_checks(state: &RunState, job_id: usize) -> Result<()> {
 
 // Check block invariants
 fn block_checks(state: &RunState, job_id: usize) -> Result<()> {
-    let functions = state.get_functions();
+//    let functions = state.get_functions();
     for block in state.get_blocks() {
         self_block_check(state, job_id, block)?;
-        destination_block_state_check(state, job_id, block, functions)?;
+        //destination_block_state_check(state, job_id, block, functions)?;
     }
 
     Ok(())
@@ -210,7 +199,7 @@ fn function_state_checks(state: &RunState, job_id: usize) -> Result<()> {
         let function_states = &state.get_function_states(function.id());
         for function_state in function_states {
             match function_state {
-                State::Ready => ready_check(state, job_id, function)?,
+//                State::Ready => ready_check(state, job_id, function)?,
                 State::Blocked => blocked_check(state, job_id, function)?,
                 State::Waiting => waiting_check(state, job_id, function)?,
                 State::Completed => completed_check(state, job_id, function, function_states)?,
@@ -222,14 +211,32 @@ fn function_state_checks(state: &RunState, job_id: usize) -> Result<()> {
     Ok(())
 }
 
+// Check busy flow invariants
+/*
+fn flow_checks(state: &RunState, job_id: usize) -> Result<()> {
+    for (flow_id, function_id) in state.get_busy_flows().iter() {
+        let function_states = state.get_function_states(*function_id);
+        if !function_states.contains(&State::Ready) && !state.get_running().contains_key(&job_id) {
+            return runtime_error(
+                state,
+                job_id,
+                &format!("Busy flow entry exists for Function #{function_id} in Flow #{flow_id} but it's not Ready nor Running"),
+                file!(), line!());
+        }
+    }
+
+    Ok(())
+}
+ */
+
 /// Check a number of "invariants" i.e. unbreakable rules about the state.
 /// If one is found to be broken, report a runtime error explaining it, which may
 /// trigger entry into the debugger.
 pub(crate) fn check_invariants(state: &RunState, job_id: usize) -> Result<()> {
     function_state_checks(state, job_id)?;
     block_checks(state, job_id)?;
-    pending_unblock_checks(state, job_id)?;
-    flow_checks(state, job_id)
+    pending_unblock_checks(state, job_id)
+    //flow_checks(state, job_id)
 }
 
 #[cfg(test)]
@@ -262,7 +269,7 @@ mod test {
     use crate::protocols::DebuggerProtocol;
 
     use super::blocked_check;
-    use super::ready_check;
+    //use super::ready_check;
     use super::running_check;
 
     fn test_meta_data() -> MetaData {
@@ -309,6 +316,7 @@ mod test {
         )
     }
 
+    /*
     #[test]
     fn test_ready_passes() {
         let function = test_function(0, 0);
@@ -333,6 +341,7 @@ mod test {
         assert!(ready_check(&state, 0, state.get_function(0)
             .ok_or("No function").expect("No function")).is_err());
     }
+     */
 
     #[test]
     fn test_running_passes() {
