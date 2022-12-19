@@ -29,7 +29,6 @@ jobs:
         echo "$GITHUB_WORKSPACE/flowrex/target/debug" >> "$GITHUB_PATH"
         echo "PATH=$GITHUB_WORKSPACE/target/debug:$GITHUB_WORKSPACE/flowrex/target/debug:$PATH" >> "$GITHUB_ENV"
 
-
     - name: Install latest nightly
       uses: actions-rs/toolchain@v1
       with:
@@ -78,7 +77,7 @@ jobs:
       run: |
         cargo build -p flowc
         cargo build -p flowr
-        cargo build -p flowrex
+        cargo build --manifest-path flowrex/Cargo.toml
 
     - name: clippy
       run: cargo clippy --tests -- -D warnings
