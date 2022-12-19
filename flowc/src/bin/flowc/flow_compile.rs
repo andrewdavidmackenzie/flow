@@ -86,12 +86,7 @@ fn make_writeable(output_dir: &PathBuf) -> Result<()> {
             );
         }
 
-        let md = fs::metadata(output_dir).chain_err(|| {
-            format!(
-                "Could not read metadata of the existing output directory '{}'",
-                output_dir.display()
-            )
-        })?;
+        let md = fs::metadata(output_dir)?;
 
         // check it's not read only!
         if md.permissions().readonly() {
@@ -186,18 +181,9 @@ fn execute_flow(filepath: &Path, options: &Options) -> Result<()> {
         Some(0) => Ok(()),
         Some(code) => {
             error!("Execution of 'flowr' failed");
-            error!(
-                "flowr STDOUT:\n{}",
-                String::from_utf8_lossy(&flowr_output.stdout)
-            );
-            error!(
-                "flowr STDERR:\n{}",
-                String::from_utf8_lossy(&flowr_output.stderr)
-            );
-            bail!(
-                "Execution of flowr failed. Exited with status code: {}",
-                code
-            )
+            error!("flowr STDOUT:\n{}", String::from_utf8_lossy(&flowr_output.stdout));
+            error!("flowr STDERR:\n{}", String::from_utf8_lossy(&flowr_output.stderr));
+            bail!("Execution of flowr failed. Exited with status code: {}", code)
         }
         None => Ok(()),
     }
