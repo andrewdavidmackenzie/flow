@@ -73,7 +73,9 @@ jobs:
       run: |
         echo "$GITHUB_WORKSPACE/target/debug" >> $GITHUB_PATH
         echo "$GITHUB_WORKSPACE/flowrex/target/debug" >> $GITHUB_PATH
-        echo $GITHUB_PATH
+        which flowc
+        which flowr
+        which flowrex
         cargo build -p flowc
         cargo build -p flowr
         cargo build -p flowrex
