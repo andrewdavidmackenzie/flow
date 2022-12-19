@@ -47,4 +47,4 @@ rustyline = {version = "10.0.0", optional = true }
 
 [dev-dependencies]
 tempdir = "~0.3.5"
-serial_test = "0.9.0"
+serial_test = "0.10.0"
