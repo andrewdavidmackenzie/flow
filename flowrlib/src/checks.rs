@@ -35,7 +35,7 @@ fn ready_check(state: &RunState, job_id: usize, function: &RuntimeFunction) -> R
             state,
             job_id,
             &format!(
-                "Flow is busy byt Function #{} is not Ready or Running",
+                "Flow is busy but Function #{} is not Ready or Running",
                 function.id(),
             ),
             file!(),
@@ -158,6 +158,7 @@ fn destination_block_state_check(state: &RunState, job_id: usize, block: &Block,
 }
 
 // Check busy flow invariants
+/*
 fn flow_checks(state: &RunState, job_id: usize) -> Result<()> {
     for (flow_id, function_id) in state.get_busy_flows().iter() {
         let function_states = state.get_function_states(*function_id);
@@ -172,6 +173,7 @@ fn flow_checks(state: &RunState, job_id: usize) -> Result<()> {
 
     Ok(())
 }
+ */
 
 // Check pending unblock invariants
 fn pending_unblock_checks(state: &RunState, job_id: usize) -> Result<()> {
@@ -228,8 +230,8 @@ fn function_state_checks(state: &RunState, job_id: usize) -> Result<()> {
 pub(crate) fn check_invariants(state: &RunState, job_id: usize) -> Result<()> {
     function_state_checks(state, job_id)?;
     block_checks(state, job_id)?;
-    pending_unblock_checks(state, job_id)?;
-    flow_checks(state, job_id)
+    pending_unblock_checks(state, job_id)
+    //flow_checks(state, job_id)
 }
 
 #[cfg(test)]
