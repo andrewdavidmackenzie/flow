@@ -112,7 +112,7 @@ test: build-binaries
 	@cargo test $(features) $(cargo_options)
 
 .PHONY: coverage
-coverage: build-binaries
+coverage: clean-start build-binaries
 	@echo "coverage<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
 	@find . -name "*.profraw"  | xargs rm -rf {}
 	@RUSTFLAGS="-C instrument-coverage" LLVM_PROFILE_FILE="flow-%p-%m.profraw" cargo build -p flowc

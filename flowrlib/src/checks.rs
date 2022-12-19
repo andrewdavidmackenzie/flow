@@ -14,7 +14,6 @@ fn runtime_error(state: &RunState, job_id: usize, message: &str, file: &str, lin
     bail!(msg);
 }
 
-/*
 fn ready_check(state: &RunState, job_id: usize, function: &RuntimeFunction) -> Result<()> {
     if !state.get_busy_flows().contains_key(&function.get_flow_id()) {
         return runtime_error(
@@ -46,8 +45,6 @@ fn ready_check(state: &RunState, job_id: usize, function: &RuntimeFunction) -> R
 
     Ok(())
 }
-
- */
 
 fn running_check(state: &RunState, job_id: usize, function: &RuntimeFunction) -> Result<()> {
     if state.get_running().contains_key(&job_id) && !state.get_busy_flows().contains_key(&function.get_flow_id()) {
@@ -199,7 +196,7 @@ fn function_state_checks(state: &RunState, job_id: usize) -> Result<()> {
         let function_states = &state.get_function_states(function.id());
         for function_state in function_states {
             match function_state {
-//                State::Ready => ready_check(state, job_id, function)?,
+                State::Ready => ready_check(state, job_id, function)?,
                 State::Blocked => blocked_check(state, job_id, function)?,
                 State::Waiting => waiting_check(state, job_id, function)?,
                 State::Completed => completed_check(state, job_id, function, function_states)?,
@@ -269,7 +266,7 @@ mod test {
     use crate::protocols::DebuggerProtocol;
 
     use super::blocked_check;
-    //use super::ready_check;
+    use super::ready_check;
     use super::running_check;
 
     fn test_meta_data() -> MetaData {
@@ -316,7 +313,6 @@ mod test {
         )
     }
 
-    /*
     #[test]
     fn test_ready_passes() {
         let function = test_function(0, 0);
@@ -341,7 +337,6 @@ mod test {
         assert!(ready_check(&state, 0, state.get_function(0)
             .ok_or("No function").expect("No function")).is_err());
     }
-     */
 
     #[test]
     fn test_running_passes() {
