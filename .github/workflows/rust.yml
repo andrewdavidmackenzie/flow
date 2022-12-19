@@ -76,9 +76,6 @@ jobs:
 
     - name: build-binaries
       run: |
-        which flowc
-        which flowr
-        which flowrex
         cargo build -p flowc
         cargo build -p flowr
         cargo build -p flowrex
