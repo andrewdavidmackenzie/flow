@@ -151,6 +151,10 @@
 <a href="#151" id="151">151</a>
 <a href="#152" id="152">152</a>
 <a href="#153" id="153">153</a>
+<a href="#154" id="154">154</a>
+<a href="#155" id="155">155</a>
+<a href="#156" id="156">156</a>
+<a href="#157" id="157">157</a>
 </pre><pre class="rust"><code><span class="kw">use </span>std::fs;
 <span class="kw">use </span>std::path::{Path, PathBuf};
 <span class="kw">use </span>std::process::{Command, Output, Stdio};
@@ -278,10 +282,14 @@
         <span class="kw-2">&amp;</span>cargo_target_dir.display(),
         <span class="kw-2">&amp;</span>wasm_destination.display()
     );
-    fs::rename(<span class="kw-2">&amp;</span>cargo_target_dir, wasm_destination)
-        .chain_err(|| <span class="macro">format!</span>(<span class="string">&quot;Could not move WASM from &#39;{}&#39; to &#39;{}&#39;&quot;</span>,
+    <span class="comment">// avoid rename across possibly different file systems
+    </span>fs::copy(<span class="kw-2">&amp;</span>cargo_target_dir, wasm_destination)
+        .chain_err(|| <span class="macro">format!</span>(<span class="string">&quot;Could not copy WASM from &#39;{}&#39; to &#39;{}&#39;&quot;</span>,
                               cargo_target_dir.display(),
-                              wasm_destination.display()))
+                              wasm_destination.display()))<span class="question-mark">?</span>;
+    fs::remove_file(<span class="kw-2">&amp;</span>cargo_target_dir)
+        .chain_err(|| <span class="macro">format!</span>(<span class="string">&quot;Could not remove_file&#39;{}&#39;&quot;</span>,
+                              cargo_target_dir.display()))
 }
 
 <span class="doccomment">/// Run the cargo build to compile wasm from function source

@@ -266,10 +266,11 @@
 <a href="#266" id="266">266</a>
 <a href="#267" id="267">267</a>
 <a href="#268" id="268">268</a>
+<a href="#269" id="269">269</a>
 </pre><pre class="rust"><code><span class="kw">use </span>std::fmt::Display;
 
 <span class="doccomment">/// This is the message-queue implementation of the lib.client_server communications
-</span><span class="kw">use </span>log::{info, trace};
+</span><span class="kw">use </span>log::{debug, info, trace};
 <span class="kw">use </span>portpicker::pick_unused_port;
 <span class="kw">use </span>zmq::Socket;
 
@@ -297,7 +298,7 @@
 
         requester
             .connect(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;tcp://{server_address}&quot;</span>))
-            .chain_err(|| <span class="string">&quot;Could not connect to service&quot;</span>)<span class="question-mark">?</span>;
+            .chain_err(|| <span class="macro">format!</span>(<span class="string">&quot;Client Connection - Could not connect to socket at: {server_address}&quot;</span>))<span class="question-mark">?</span>;
 
         <span class="macro">info!</span>(<span class="string">&quot;Client connected to service &#39;{service_name}&#39; at &#39;{server_address}&#39;&quot;</span>);
 
@@ -350,9 +351,10 @@
             .chain_err(|| <span class="string">&quot;Server Connection - could not create Socket&quot;</span>)<span class="question-mark">?</span>;
 
         <span class="kw">let </span>port = pick_unused_port().chain_err(|| <span class="string">&quot;No ports free&quot;</span>)<span class="question-mark">?</span>;
-
+        <span class="macro">debug!</span>(<span class="string">&quot;Server Connection attempting to bind to: tcp://*:{port}&quot;</span>);
         responder.bind(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;tcp://*:{port}&quot;</span>))
-            .chain_err(|| <span class="string">&quot;Server Connection - could not bind on TCP Socket&quot;</span>)<span class="question-mark">?</span>;
+            .chain_err(||
+                <span class="macro">format!</span>(<span class="string">&quot;Server Connection - could not bind on TCP Socket on: tcp://{port}&quot;</span>))<span class="question-mark">?</span>;
 
         enable_service_discovery(CLIENT_SERVER_DISCOVERY_PORT, service_name, port)<span class="question-mark">?</span>;
         <span class="macro">info!</span>(<span class="string">&quot;Service &#39;{}&#39; listening on *:{}&quot;</span>, service_name, port);
