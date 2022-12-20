@@ -520,8 +520,6 @@
 <a href="#520" id="520">520</a>
 <a href="#521" id="521">521</a>
 <a href="#522" id="522">522</a>
-<a href="#523" id="523">523</a>
-<a href="#524" id="524">524</a>
 </pre><pre class="rust"><code><span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)]
 </span><span class="kw">use </span>std::collections::BTreeSet;
 <span class="kw">use </span>std::fs;
@@ -621,7 +619,9 @@
     <span class="kw">if let </span><span class="prelude-val">Ok</span>(FoundType::File(command_path)) =
         Simpath::new(<span class="string">&quot;PATH&quot;</span>).find_type(command, FileType::File)
     {
-        <span class="kw">let </span>tmp_dir = TempDir::new_in(
+        <span class="comment">// Create a temp directory for building in. Use `new_in` to make sure it is in the same FS as the destination so
+        // that fs::rename later works. It will be cleaned-up when `build_dir` goes out of scope.
+        </span><span class="kw">let </span>tmp_dir = TempDir::new_in(
             wasm_path
                 .parent()
                 .ok_or(<span class="string">&quot;Could not get destination directory to create TempDir in&quot;</span>)<span class="question-mark">?</span>,
@@ -645,10 +645,7 @@
         <span class="kw">let </span>output = child.output()<span class="question-mark">?</span>;
 
         <span class="kw">match </span>output.status.code() {
-            <span class="prelude-val">Some</span>(<span class="number">0</span>) | <span class="prelude-val">None </span>=&gt; {
-                fs::copy(<span class="kw-2">&amp;</span>temp_file_path, wasm_path)<span class="question-mark">?</span>;
-                fs::remove_file(<span class="kw-2">&amp;</span>temp_file_path)<span class="question-mark">?</span>;
-            },
+            <span class="prelude-val">Some</span>(<span class="number">0</span>) | <span class="prelude-val">None </span>=&gt; fs::rename(<span class="kw-2">&amp;</span>temp_file_path, wasm_path)<span class="question-mark">?</span>,
             <span class="prelude-val">Some</span>(<span class="kw">_</span>) =&gt; <span class="macro">bail!</span>(<span class="macro">format!</span>(
                 <span class="string">&quot;{} exited with non-zero status code&quot;</span>,
                 command_path.to_string_lossy()
@@ -1021,8 +1018,7 @@
         <span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)]
             </span><span class="kw">let </span><span class="kw-2">mut </span>source_urls = BTreeSet::&lt;(Url, Url)&gt;::new();
 
-        <span class="kw">let </span>(implementation_source_path, wasm_destination) =
-            compile::get_paths(<span class="kw-2">&amp;</span>wasm_output_dir, <span class="kw-2">&amp;</span>function)
+        <span class="kw">let </span>(implementation_source_path, wasm_destination) = compile::get_paths(<span class="kw-2">&amp;</span>wasm_output_dir, <span class="kw-2">&amp;</span>function)
             .expect(<span class="string">&quot;Could not get paths for compiling&quot;</span>);
         <span class="macro">assert_eq!</span>(wasm_destination, expected_output_wasm);
 
@@ -1047,4 +1043,4 @@
     }
 }
 </code></pre></div>
-</section></div></main><div id="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="flowclib" data-themes="" data-resource-suffix="" data-rustdoc-version="1.68.0-nightly (d0dc9efff 2022-12-18)" data-search-js="search-444266647c4dba98.js" data-settings-js="settings-bebeae96e00e4617.js" data-settings-css="settings-58836c674e2f7bd2.css" ></div></body></html>
+</section></div></main><div id="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="flowclib" data-themes="" data-resource-suffix="" data-rustdoc-version="1.68.0-nightly (935dc0721 2022-12-19)" data-search-js="search-444266647c4dba98.js" data-settings-js="settings-bebeae96e00e4617.js" data-settings-css="settings-58836c674e2f7bd2.css" ></div></body></html>

@@ -151,10 +151,6 @@
 <a href="#151" id="151">151</a>
 <a href="#152" id="152">152</a>
 <a href="#153" id="153">153</a>
-<a href="#154" id="154">154</a>
-<a href="#155" id="155">155</a>
-<a href="#156" id="156">156</a>
-<a href="#157" id="157">157</a>
 </pre><pre class="rust"><code><span class="kw">use </span>std::fs;
 <span class="kw">use </span>std::path::{Path, PathBuf};
 <span class="kw">use </span>std::process::{Command, Output, Stdio};
@@ -282,14 +278,10 @@
         <span class="kw-2">&amp;</span>cargo_target_dir.display(),
         <span class="kw-2">&amp;</span>wasm_destination.display()
     );
-    <span class="comment">// avoid rename across possibly different file systems
-    </span>fs::copy(<span class="kw-2">&amp;</span>cargo_target_dir, wasm_destination)
-        .chain_err(|| <span class="macro">format!</span>(<span class="string">&quot;Could not copy WASM from &#39;{}&#39; to &#39;{}&#39;&quot;</span>,
+    fs::rename(<span class="kw-2">&amp;</span>cargo_target_dir, wasm_destination)
+        .chain_err(|| <span class="macro">format!</span>(<span class="string">&quot;Could not move WASM from &#39;{}&#39; to &#39;{}&#39;&quot;</span>,
                               cargo_target_dir.display(),
-                              wasm_destination.display()))<span class="question-mark">?</span>;
-    fs::remove_file(<span class="kw-2">&amp;</span>cargo_target_dir)
-        .chain_err(|| <span class="macro">format!</span>(<span class="string">&quot;Could not remove_file&#39;{}&#39;&quot;</span>,
-                              cargo_target_dir.display()))
+                              wasm_destination.display()))
 }
 
 <span class="doccomment">/// Run the cargo build to compile wasm from function source
@@ -313,4 +305,4 @@
     <span class="prelude-val">Ok</span>(())
 }
 </code></pre></div>
-</section></div></main><div id="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="flowclib" data-themes="" data-resource-suffix="" data-rustdoc-version="1.68.0-nightly (d0dc9efff 2022-12-18)" data-search-js="search-444266647c4dba98.js" data-settings-js="settings-bebeae96e00e4617.js" data-settings-css="settings-58836c674e2f7bd2.css" ></div></body></html>
+</section></div></main><div id="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="flowclib" data-themes="" data-resource-suffix="" data-rustdoc-version="1.68.0-nightly (935dc0721 2022-12-19)" data-search-js="search-444266647c4dba98.js" data-settings-js="settings-bebeae96e00e4617.js" data-settings-css="settings-58836c674e2f7bd2.css" ></div></body></html>

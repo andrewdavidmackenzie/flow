@@ -214,26 +214,6 @@
 <a href="#214" id="214">214</a>
 <a href="#215" id="215">215</a>
 <a href="#216" id="216">216</a>
-<a href="#217" id="217">217</a>
-<a href="#218" id="218">218</a>
-<a href="#219" id="219">219</a>
-<a href="#220" id="220">220</a>
-<a href="#221" id="221">221</a>
-<a href="#222" id="222">222</a>
-<a href="#223" id="223">223</a>
-<a href="#224" id="224">224</a>
-<a href="#225" id="225">225</a>
-<a href="#226" id="226">226</a>
-<a href="#227" id="227">227</a>
-<a href="#228" id="228">228</a>
-<a href="#229" id="229">229</a>
-<a href="#230" id="230">230</a>
-<a href="#231" id="231">231</a>
-<a href="#232" id="232">232</a>
-<a href="#233" id="233">233</a>
-<a href="#234" id="234">234</a>
-<a href="#235" id="235">235</a>
-<a href="#236" id="236">236</a>
 </pre><pre class="rust"><code><span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)]
 </span><span class="kw">use </span>std::collections::BTreeSet;
 <span class="kw">use </span>std::fs;
@@ -246,9 +226,11 @@
 </span><span class="kw">use </span>url::Url;
 
 <span class="kw">use </span>flowclib::compiler::compile;
+<span class="kw">use </span>flowclib::compiler::compile::CompilerTables;
 <span class="kw">use </span>flowclib::compiler::parser;
 <span class="kw">use </span>flowclib::dumper::{flow_to_dot, functions_to_dot};
 <span class="kw">use </span>flowclib::generator::generate;
+<span class="kw">use </span>flowcore::model::flow_definition::FlowDefinition;
 <span class="kw">use </span>flowcore::model::process::Process::FlowProcess;
 <span class="kw">use </span>flowcore::provider::Provider;
 
@@ -280,11 +262,7 @@
 
             make_writeable(<span class="kw-2">&amp;</span>options.output_dir)<span class="question-mark">?</span>;
 
-            <span class="kw">if </span>options.graphs {
-                flow_to_dot::dump_flow(<span class="kw-2">&amp;</span>flow, <span class="kw-2">&amp;</span>options.output_dir, provider)<span class="question-mark">?</span>;
-                functions_to_dot::dump_functions(<span class="kw-2">&amp;</span>flow, <span class="kw-2">&amp;</span>tables, <span class="kw-2">&amp;</span>options.output_dir)<span class="question-mark">?</span>;
-                flow_to_dot::generate_svgs(<span class="kw-2">&amp;</span>options.output_dir, <span class="bool-val">true</span>)<span class="question-mark">?</span>;
-            }
+            dump(<span class="kw-2">&amp;</span>flow, provider, <span class="kw-2">&amp;</span>tables, options)<span class="question-mark">?</span>;
 
             <span class="kw">if </span>!flow.is_runnable() {
                 <span class="macro">info!</span>(<span class="string">&quot;Flow not runnable, so Manifest generation and flow execution skipped&quot;</span>);
@@ -311,18 +289,22 @@
     }
 }
 
-<span class="comment">// Make sure the directory exists, if not create it, and is writable
-</span><span class="kw">fn </span>make_writeable(output_dir: <span class="kw-2">&amp;</span>PathBuf) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
-    <span class="kw">if </span>output_dir.exists() {
+<span class="kw">fn </span>make_writeable(output_dir: <span class="kw-2">&amp;</span>PathBuf) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
+    <span class="comment">// Now make sure the directory exists, if not create it, and is writable
+    </span><span class="kw">if </span>output_dir.exists() {
+        <span class="kw">let </span>md = fs::metadata(output_dir).chain_err(|| {
+            <span class="macro">format!</span>(
+                <span class="string">&quot;Could not read metadata of the existing output directory &#39;{}&#39;&quot;</span>,
+                output_dir.display()
+            )
+        })<span class="question-mark">?</span>;
         <span class="comment">// Check it&#39;s not a file!
-        </span><span class="kw">if </span>output_dir.is_file() {
+        </span><span class="kw">if </span>md.is_file() {
             <span class="macro">bail!</span>(
                 <span class="string">&quot;Output directory &#39;{}&#39; already exists as a file&quot;</span>,
                 output_dir.display()
             );
         }
-
-        <span class="kw">let </span>md = fs::metadata(output_dir)<span class="question-mark">?</span>;
 
         <span class="comment">// check it&#39;s not read only!
         </span><span class="kw">if </span>md.permissions().readonly() {
@@ -331,6 +313,21 @@
     } <span class="kw">else </span>{
         fs::create_dir_all(output_dir)
             .chain_err(|| <span class="macro">format!</span>(<span class="string">&quot;Could not create directory &#39;{}&#39;&quot;</span>, output_dir.display()))<span class="question-mark">?</span>;
+    }
+
+    <span class="prelude-val">Ok</span>(())
+}
+
+<span class="kw">fn </span>dump(
+    flow: <span class="kw-2">&amp;</span>FlowDefinition,
+    provider: <span class="kw-2">&amp;</span><span class="kw">dyn </span>Provider,
+    tables: <span class="kw-2">&amp;</span>CompilerTables,
+    options: <span class="kw-2">&amp;</span>Options,
+) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
+    <span class="kw">if </span>options.graphs {
+        flow_to_dot::dump_flow(flow, <span class="kw-2">&amp;</span>options.output_dir, provider)<span class="question-mark">?</span>;
+        functions_to_dot::dump_functions(flow, tables, <span class="kw-2">&amp;</span>options.output_dir)<span class="question-mark">?</span>;
+        flow_to_dot::generate_svgs(<span class="kw-2">&amp;</span>options.output_dir, <span class="bool-val">true</span>)<span class="question-mark">?</span>;
     }
 
     <span class="prelude-val">Ok</span>(())
@@ -417,57 +414,21 @@
         <span class="prelude-val">Some</span>(<span class="number">0</span>) =&gt; <span class="prelude-val">Ok</span>(()),
         <span class="prelude-val">Some</span>(code) =&gt; {
             <span class="macro">error!</span>(<span class="string">&quot;Execution of &#39;flowr&#39; failed&quot;</span>);
-            <span class="macro">error!</span>(<span class="string">&quot;flowr STDOUT:\n{}&quot;</span>, String::from_utf8_lossy(<span class="kw-2">&amp;</span>flowr_output.stdout));
-            <span class="macro">error!</span>(<span class="string">&quot;flowr STDERR:\n{}&quot;</span>, String::from_utf8_lossy(<span class="kw-2">&amp;</span>flowr_output.stderr));
-            <span class="macro">bail!</span>(<span class="string">&quot;Execution of flowr failed. Exited with status code: {}&quot;</span>, code)
+            <span class="macro">error!</span>(
+                <span class="string">&quot;flowr STDOUT:\n{}&quot;</span>,
+                String::from_utf8_lossy(<span class="kw-2">&amp;</span>flowr_output.stdout)
+            );
+            <span class="macro">error!</span>(
+                <span class="string">&quot;flowr STDERR:\n{}&quot;</span>,
+                String::from_utf8_lossy(<span class="kw-2">&amp;</span>flowr_output.stderr)
+            );
+            <span class="macro">bail!</span>(
+                <span class="string">&quot;Execution of flowr failed. Exited with status code: {}&quot;</span>,
+                code
+            )
         }
         <span class="prelude-val">None </span>=&gt; <span class="prelude-val">Ok</span>(()),
     }
 }
-
-<span class="attr">#[cfg(test)]
-</span><span class="kw">mod </span>test {
-    <span class="kw">use </span>std::fs;
-
-    <span class="kw">use </span>tempdir::TempDir;
-
-    <span class="kw">use </span><span class="kw">crate</span>::flow_compile::make_writeable;
-
-    <span class="attr">#[test]
-    </span><span class="kw">fn </span>can_create_dir_correctly() {
-        <span class="kw">let </span>temp_parent = TempDir::new(<span class="string">&quot;flow_compile&quot;</span>)
-            .expect(<span class="string">&quot;Could not create temp parent dir&quot;</span>);
-
-        <span class="kw">let </span>test_output_dir = temp_parent.path().join(<span class="string">&quot;output&quot;</span>);
-        make_writeable(<span class="kw-2">&amp;</span>test_output_dir).expect(<span class="string">&quot;Could not make output dir&quot;</span>);
-
-        <span class="macro">assert!</span>(test_output_dir.exists());
-        <span class="macro">assert!</span>(test_output_dir.is_dir());
-        <span class="kw">let </span>md = fs::metadata(test_output_dir).expect(<span class="string">&quot;Could not get metadata&quot;</span>);
-        <span class="macro">assert!</span>(!md.permissions().readonly());
-    }
-
-    <span class="attr">#[test]
-    </span><span class="kw">fn </span>can_use_existing_dir() {
-        <span class="kw">let </span>test_output_dir = TempDir::new(<span class="string">&quot;flow_compile&quot;</span>)
-            .expect(<span class="string">&quot;Could not create temp parent dir&quot;</span>).into_path();
-
-        make_writeable(<span class="kw-2">&amp;</span>test_output_dir).expect(<span class="string">&quot;Could not make output dir&quot;</span>);
-
-        <span class="macro">assert!</span>(test_output_dir.exists());
-        <span class="macro">assert!</span>(test_output_dir.is_dir());
-        <span class="kw">let </span>md = fs::metadata(test_output_dir).expect(<span class="string">&quot;Could not get metadata&quot;</span>);
-        <span class="macro">assert!</span>(!md.permissions().readonly());
-    }
-
-    <span class="attr">#[test]
-    </span><span class="kw">fn </span>error_if_exists_as_file() {
-        <span class="kw">let </span>temp_parent = TempDir::new(<span class="string">&quot;flow_compile&quot;</span>)
-            .expect(<span class="string">&quot;Could not create temp parent dir&quot;</span>);
-        <span class="kw">let </span>test_output_file = temp_parent.path().join(<span class="string">&quot;output&quot;</span>);
-        fs::File::create(<span class="kw-2">&amp;</span>test_output_file).expect(<span class="string">&quot;Could not create file&quot;</span>);
-
-        <span class="macro">assert!</span>(make_writeable(<span class="kw-2">&amp;</span>test_output_file).is_err());
-    }
-}</code></pre></div>
-</section></div></main><div id="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="flowc" data-themes="" data-resource-suffix="" data-rustdoc-version="1.68.0-nightly (d0dc9efff 2022-12-18)" data-search-js="search-444266647c4dba98.js" data-settings-js="settings-bebeae96e00e4617.js" data-settings-css="settings-58836c674e2f7bd2.css" ></div></body></html>
+</code></pre></div>
+</section></div></main><div id="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="flowc" data-themes="" data-resource-suffix="" data-rustdoc-version="1.68.0-nightly (935dc0721 2022-12-19)" data-search-js="search-444266647c4dba98.js" data-settings-js="settings-bebeae96e00e4617.js" data-settings-css="settings-58836c674e2f7bd2.css" ></div></body></html>
