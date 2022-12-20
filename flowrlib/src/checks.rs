@@ -29,8 +29,8 @@ fn ready_check(state: &RunState, job_id: usize, function: &RuntimeFunction) -> R
         );
     }
 
-    if !(state.get_function_states(0).contains(&State::Ready) ||
-        state.get_function_states(0).contains(&State::Running)) {
+    if !(state.get_function_states(function.id()).contains(&State::Ready) ||
+        state.get_function_states(function.id()).contains(&State::Running)) {
         return runtime_error(
             state,
             job_id,
