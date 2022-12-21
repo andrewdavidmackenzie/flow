@@ -695,7 +695,7 @@
         test_sample(<span class="string">&quot;sequence&quot;</span>, <span class="bool-val">false</span>);
     }
 
-    <span class="attr">#[ignore]
+    <span class="attr">#[cfg_attr(not(target_os=<span class="string">&quot;linux&quot;</span>), ignore)]
     #[test]
     #[serial]
     </span><span class="kw">fn </span>test_sequence_of_sequences() {
