@@ -62,6 +62,69 @@ fn read_file(test_dir: &Path, file_name: &str) -> String {
     String::from_utf8(buffer).expect("Could not convert to String")
 }
 
+fn execute_flow_client_server(test_name: &str, manifest: PathBuf) -> Result<()> {
+    let root_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    let test_dir = root_dir.join("tests/test-flows").join(test_name);
+
+    let mut server_command = Command::new("flowr");
+
+    // separate 'flowr' server process args: -n for native libs, -s to get a server process
+    let server_args = vec!["-n", "-s"];
+
+    println!("Starting 'flowr' server with command line: 'flowr {}'", server_args.join(" "));
+
+    // spawn the 'flowr' server process
+    let mut server = server_command
+        .args(server_args)
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .expect("Failed to spawn flowr");
+
+    let mut client = Command::new("flowr");
+    let manifest_str = manifest.to_string_lossy();
+    let client_args =  vec!["-c", &manifest_str];
+    println!("Starting 'flowr' client with command line: 'flowr {}'", client_args.join(" "));
+
+    // spawn the 'flowr' process
+    let mut runner = client
+        .args(client_args)
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .expect("Could not spawn flowr process");
+
+    // read it's stderr
+    let mut actual_stderr = String::new();
+    if let Some(ref mut stderr) = runner.stderr {
+        for line in BufReader::new(stderr).lines() {
+            let _ = writeln!(actual_stderr, "{}", &line.expect("Could not read line"));
+        }
+    }
+    if !actual_stderr.is_empty() {
+        bail!(format!("STDERR: {actual_stderr}"))
+    }
+
+    // read it's stdout
+    let mut actual_stdout = String::new();
+    let stdout = runner.stdout.ok_or("Could not get stdout")?;
+    for line in BufReader::new(stdout).lines() {
+        let _ = writeln!(actual_stdout, "{}", &line.expect("Could not read line"));
+    }
+
+    let expected_stdout = read_file(&test_dir, "expected.stdout");
+    if expected_stdout != actual_stdout {
+        bail!(format!("Expected STDOUT: {expected_stdout}\nActual STDOUT: {actual_stdout}"));
+    }
+
+    println!("Killing 'flowr' server");
+    server.kill().map_err(|_| "Failed to kill server child process")?;
+
+    Ok(())
+}
+
 fn compile_and_execute(test_name: &str, execute: bool) -> Result<PathBuf> {
     let root_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     let context_dir = root_dir.join("src/cli");
@@ -142,6 +205,13 @@ fn debug_print_args() {
     compile_and_execute("debug-print-args", true).expect("Test failed");
 }
 
+#[cfg(feature = "debugger")]
+#[test]
+#[serial]
+fn debug_help_string() {
+    compile_and_execute("debug-help-string", true).expect("Test failed");
+}
+
 #[test]
 #[serial]
 fn print_args() {
@@ -207,69 +277,6 @@ fn doesnt_create_if_not_exist() {
     assert!(!non_existent.exists(), "File {non_existent_test} should not have been created");
 }
 
-fn execute_flow_client_server(test_name: &str, manifest: PathBuf) -> Result<()> {
-    let root_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    let test_dir = root_dir.join("tests/test-flows").join(test_name);
-
-    let mut server_command = Command::new("flowr");
-
-    // separate 'flowr' server process args: -n for native libs, -s to get a server process
-    let server_args = vec!["-n", "-s"];
-
-    println!("Starting 'flowr' server with command line: 'flowr {}'", server_args.join(" "));
-
-    // spawn the 'flowr' server process
-    let mut server = server_command
-            .args(server_args)
-            .stdin(Stdio::piped())
-            .stdout(Stdio::piped())
-            .stderr(Stdio::piped())
-            .spawn()
-            .expect("Failed to spawn flowr");
-
-    let mut client = Command::new("flowr");
-    let manifest_str = manifest.to_string_lossy();
-    let client_args =  vec!["-c", &manifest_str];
-    println!("Starting 'flowr' client with command line: 'flowr {}'", client_args.join(" "));
-
-    // spawn the 'flowr' process
-    let mut runner = client
-        .args(client_args)
-        .stdin(Stdio::piped())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .spawn()
-        .expect("Could not spawn flowr process");
-
-    // read it's stderr
-    let mut actual_stderr = String::new();
-    if let Some(ref mut stderr) = runner.stderr {
-        for line in BufReader::new(stderr).lines() {
-            let _ = writeln!(actual_stderr, "{}", &line.expect("Could not read line"));
-        }
-    }
-    if !actual_stderr.is_empty() {
-        bail!(format!("STDERR: {actual_stderr}"))
-    }
-
-    // read it's stdout
-    let mut actual_stdout = String::new();
-    let stdout = runner.stdout.ok_or("Could not get stdout")?;
-    for line in BufReader::new(stdout).lines() {
-        let _ = writeln!(actual_stdout, "{}", &line.expect("Could not read line"));
-    }
-
-    let expected_stdout = read_file(&test_dir, "expected.stdout");
-    if expected_stdout != actual_stdout {
-        bail!(format!("Expected STDOUT: {expected_stdout}\nActual STDOUT: {actual_stdout}"));
-    }
-
-    println!("Killing 'flowr' server");
-    server.kill().map_err(|_| "Failed to kill server child process")?;
-
-    Ok(())
-}
-
 #[test]
 #[serial]
 fn hello_world_client_server() {
@@ -278,4 +285,4 @@ fn hello_world_client_server() {
 
     execute_flow_client_server("hello-world", manifest)
         .expect("Client/Server execution failed");
-    }
+}

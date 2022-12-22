@@ -132,6 +132,7 @@
           - [args](flowr/tests/test-flows/args/args.md)
           - [args-json](flowr/tests/test-flows/args-json/args-json.md)
           - [array-input](flowr/tests/test-flows/array-input/array-input.md)
+          - [debug-help-string](flowr/tests/test-flows/debug-help-string/debug-help-string.md)
           - [debug-print-args](flowr/tests/test-flows/debug-print-args/debug-print-args.md)
           - [double-connection](flowr/tests/test-flows/double-connection/double-connection.md)
           - [hello-world](flowr/tests/test-flows/hello-world/hello-world.md)
