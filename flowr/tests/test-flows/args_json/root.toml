@@ -1,0 +1,12 @@
+flow = "args"
+
+[[process]]
+alias = "args"
+source = "context://args/get"
+
+[[process]]
+source = "context://stdio/stdout"
+
+[[connection]]
+from = "args/string/3"
+to = "stdout"
