@@ -108,7 +108,7 @@ fn test_args(test_dir: &Path) -> Option<Vec<String>> {
     Some(args)
 }
 
-fn get_stdin(test_dir: &Path, file_name: &str) -> String {
+fn read_file(test_dir: &Path, file_name: &str) -> String {
     let expected_file = test_dir.join(file_name);
     if !expected_file.exists() {
         return "".into();
@@ -153,7 +153,7 @@ fn compile_and_execute(test_name: &str) {
 
     println!("Command line: 'flowc {}'", command_args.join(" "));
 
-    let mut execution = command
+    let execution = command
         .args(command_args)
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
@@ -163,26 +163,21 @@ fn compile_and_execute(test_name: &str) {
 
     // read it's stderr
     let mut actual_stderr = String::new();
-    if let Some(ref mut stderr) = execution.stderr {
-        for line in BufReader::new(stderr).lines() {
-            let _ = writeln!(actual_stderr, "{}", &line.expect("Could not read line"));
-        }
+    let stderr = execution.stderr.expect("Could not get stderr");
+    for line in BufReader::new(stderr).lines() {
+        let _ = writeln!(actual_stderr, "{}", &line.expect("Could not read line"));
     }
 
-    assert_eq!(actual_stderr, "");
+    assert_eq!("", actual_stderr);
 
     // read it's stdout
     let mut actual_stdout = String::new();
-    if let Some(ref mut stdout) = execution.stdout {
-        for line in BufReader::new(stdout).lines() {
-            let _ = writeln!(actual_stdout, "{}", &line.expect("Could not read line"));
-        }
+    let stdout = execution.stdout.expect("Could not get stdout");
+    for line in BufReader::new(stdout).lines() {
+        let _ = writeln!(actual_stdout, "{}", &line.expect("Could not read line"));
     }
 
-    let expected_stdout = get_stdin(&test_dir, "expected.stdout");
-    if expected_stdout != actual_stdout {
-        println!("STDOUT: {actual_stdout}");
-    }
+    let expected_stdout = read_file(&test_dir, "expected.stdout");
     assert_eq!(expected_stdout, actual_stdout);
 }
 
@@ -220,7 +215,7 @@ fn args() {
 #[test]
 #[serial]
 fn args_json() {
-    compile_and_execute("args_json");
+    compile_and_execute("args-json");
 }
 
 #[test]
@@ -238,7 +233,7 @@ fn double_connection() {
 #[test]
 #[serial]
 fn two_destinations() {
-    compile_and_execute("two_destinations");
+    compile_and_execute("two-destinations");
 }
 
 /*

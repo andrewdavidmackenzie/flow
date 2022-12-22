@@ -3,8 +3,7 @@ array-input
 
 Description
 ===
-A test flow that passes an array to a sub-flow, which internally selects one element
-from the input array
+A test flow that passes an array to a sub-flow, which internally selects one element from the input array
 
 Features Used
 ===

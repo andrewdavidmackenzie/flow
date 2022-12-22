@@ -8,5 +8,5 @@ source = "context://args/get"
 source = "context://stdio/stdout"
 
 [[connection]]
-from = "args/string/3"
+from = "args/json/3"
 to = "stdout"
