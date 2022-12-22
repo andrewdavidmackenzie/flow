@@ -121,7 +121,9 @@ fn execute_flow_client_server(test_name: &str, manifest: PathBuf) -> Result<()> 
 
     let expected_stdout = read_file(&test_dir, "expected.stdout");
     if expected_stdout != actual_stdout {
-        bail!(format!("Expected STDOUT: {expected_stdout}\nActual STDOUT: {actual_stdout}"));
+        println!("Expected STDOUT: {expected_stdout}");
+        println!("Actual STDOUT: {actual_stdout}");
+        bail!("Actual STDOUT did not match expected.stdout");
     }
 
     Ok(())
