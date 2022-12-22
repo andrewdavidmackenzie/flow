@@ -16,4 +16,5 @@ Debugger commands:
 'r' | 'reset' or 'run' {args} - If running already then reset the state, or run the flow with {args}
 's' | 'step' [n]              - Step over the next 'n' jobs (default = 1) then break
 'v' | 'validate'              - Validate the state of the flow by running a series of checks
+
 Debugger is exiting
