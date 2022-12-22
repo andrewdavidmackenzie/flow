@@ -120,12 +120,11 @@ fn get_stdin(test_dir: &Path, file_name: &str) -> String {
     String::from_utf8(buffer).expect("Could not convert to String")
 }
 
-fn compile_and_execute(test_path: &str) {
-    let mut root_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    root_dir.pop();
-    let context_dir = root_dir.join("flowr/src/cli");
+fn compile_and_execute(test_name: &str) {
+    let root_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    let context_dir = root_dir.join("src/cli");
     let context_dir_str = context_dir.to_string_lossy().to_string();
-    let test_dir = root_dir.join(test_path);
+    let test_dir = root_dir.join("tests/test-flows").join(test_name);
     let test_dir_str = test_dir.to_string_lossy().to_string();
     let out_dir = TempDir::new("flow-execution-tests")
         .expect("A temp dir").into_path();
@@ -138,11 +137,11 @@ fn compile_and_execute(test_path: &str) {
         "--output".into(), out_dir_str // Generate into {out_dir_str}
     ];
 
-    let expected_file = test_dir.join("test.stdin");
-    let std_in = expected_file.to_string_lossy().to_string();
-    if expected_file.exists() {
+    let test_stdin_path = test_dir.join("test.stdin");
+    let test_stdin_filename = test_stdin_path.to_string_lossy().to_string();
+    if test_stdin_path.exists() {
             command_args.push("--stdin".into());
-            command_args.push(std_in);
+            command_args.push(test_stdin_filename);
     }
 
     command_args.push(test_dir_str);   // Compile and run this flow
@@ -152,6 +151,8 @@ fn compile_and_execute(test_path: &str) {
         command_args.append(&mut args);
     }
 
+    println!("Command line: 'flowc {}'", command_args.join(" "));
+
     let mut execution = command
         .args(command_args)
         .stdin(Stdio::piped())
@@ -159,14 +160,6 @@ fn compile_and_execute(test_path: &str) {
         .stderr(Stdio::piped())
         .spawn()
         .expect("Could not spawn flowc process");
-
-    // read it's stdout
-    let mut actual_stdout = String::new();
-    if let Some(ref mut stdout) = execution.stdout {
-        for line in BufReader::new(stdout).lines() {
-            let _ = writeln!(actual_stdout, "{}", &line.expect("Could not read line"));
-        }
-    }
 
     // read it's stderr
     let mut actual_stderr = String::new();
@@ -176,89 +169,95 @@ fn compile_and_execute(test_path: &str) {
         }
     }
 
+    assert_eq!(actual_stderr, "");
+
+    // read it's stdout
+    let mut actual_stdout = String::new();
+    if let Some(ref mut stdout) = execution.stdout {
+        for line in BufReader::new(stdout).lines() {
+            let _ = writeln!(actual_stdout, "{}", &line.expect("Could not read line"));
+        }
+    }
+
     let expected_stdout = get_stdin(&test_dir, "expected.stdout");
     if expected_stdout != actual_stdout {
         println!("STDOUT: {actual_stdout}");
     }
-    let expected_stderr = get_stdin(&test_dir, "expected.stderr");
-    if expected_stderr != actual_stderr {
-        eprintln!("STDERR: {actual_stderr}");
-    }
     assert_eq!(expected_stdout, actual_stdout);
-    assert_eq!(expected_stderr, actual_stderr);
 }
 
 #[cfg(feature = "debugger")]
 #[test]
 #[serial]
 fn debug_print_args() {
-    compile_and_execute("test-flows/debug-print-args");
+    compile_and_execute("debug-print-args");
 }
 
 #[test]
 #[serial]
 fn print_args() {
-    compile_and_execute("test-flows/print-args");
+    compile_and_execute("print-args");
 }
 
 #[test]
 #[serial]
 fn hello_world() {
-    compile_and_execute("test-flows/hello-world");
+    compile_and_execute("hello-world");
 }
 
 #[test]
 #[serial]
 fn line_echo() {
-    compile_and_execute("test-flows/line-echo");
+    compile_and_execute("line-echo");
 }
 
 #[test]
 #[serial]
 fn args() {
-    compile_and_execute("test-flows/args");
+    compile_and_execute("args");
 }
 
 #[test]
 #[serial]
 fn args_json() {
-    compile_and_execute("test-flows/args_json");
+    compile_and_execute("args_json");
 }
 
 #[test]
 #[serial]
 fn array_input() {
-    compile_and_execute("test-flows/array-input")
+    compile_and_execute("array-input")
 }
 
 #[test]
 #[serial]
 fn double_connection() {
-    compile_and_execute("test-flows/double-connection");
+    compile_and_execute("double-connection");
 }
 
 #[test]
 #[serial]
 fn two_destinations() {
-    compile_and_execute("test-flows/two_destinations");
+    compile_and_execute("two_destinations");
 }
 
+/*
 #[test]
 #[serial]
 fn doesnt_create_if_not_exist() {
-    let dir = TempDir::new("flowr-test").expect("A temp dir").into_path();
     let non_existent = dir.join("__nope");
     assert!(!non_existent.exists());
 
     compile_and_execute(&non_existent.to_string_lossy());
 
-    // Check directory / file still doesn't exist
     assert!(!non_existent.exists(), "File {} was created and should not have been",
             non_existent.to_string_lossy());
 }
 
+ */
+
 #[test]
 #[serial]
 fn flowc_hello_world() {
-    compile_and_execute("test-flows/hello-world");
+    compile_and_execute("hello-world");
 }
