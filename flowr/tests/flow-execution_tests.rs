@@ -96,31 +96,33 @@ fn execute_flow_client_server(test_name: &str, manifest: PathBuf) -> Result<()> 
         .spawn()
         .expect("Could not spawn flowr process");
 
-    // read it's stderr
+    // read it's stderr - don't fail, to ensure we kill the server
     let mut actual_stderr = String::new();
     if let Some(ref mut stderr) = runner.stderr {
         for line in BufReader::new(stderr).lines() {
             let _ = writeln!(actual_stderr, "{}", &line.expect("Could not read line"));
         }
     }
-    if !actual_stderr.is_empty() {
-        bail!(format!("STDERR: {actual_stderr}"))
+
+    // read it's stdout - don't fail, to ensure we kill the server
+    let mut actual_stdout = String::new();
+    if let Some(ref mut stdout) = runner.stdout {
+        for line in BufReader::new(stdout).lines() {
+            let _ = writeln!(actual_stdout, "{}", &line.expect("Could not read line"));
+        }
     }
 
-    // read it's stdout
-    let mut actual_stdout = String::new();
-    let stdout = runner.stdout.ok_or("Could not get stdout")?;
-    for line in BufReader::new(stdout).lines() {
-        let _ = writeln!(actual_stdout, "{}", &line.expect("Could not read line"));
+    println!("Killing 'flowr' server");
+    server.kill().map_err(|_| "Failed to kill server child process")?;
+
+    if !actual_stderr.is_empty() {
+        bail!(format!("STDERR: {actual_stderr}"))
     }
 
     let expected_stdout = read_file(&test_dir, "expected.stdout");
     if expected_stdout != actual_stdout {
         bail!(format!("Expected STDOUT: {expected_stdout}\nActual STDOUT: {actual_stdout}"));
     }
-
-    println!("Killing 'flowr' server");
-    server.kill().map_err(|_| "Failed to kill server child process")?;
 
     Ok(())
 }
