@@ -1,0 +1,20 @@
+Debugger commands:
+'b' | 'breakpoint' {spec}     - Set a breakpoint using spec:
+                                 - on a function by function_id (integer)
+                                 - on an output by source_id/output_route ('source_id/' for default output)
+                                 - on an input by destination_id:input_number
+                                 - on block creation by blocked_process_id->blocking_process_id
+'c' | 'continue'              - Continue execution after a breakpoint
+'d' | 'delete' {spec} or '*'  - Delete the breakpoint matching {spec} or all with '*'
+'e' | 'exit'                  - Stop flow execution and exit debugger
+'f' | 'functions'             - Show the list of functions
+'h' | 'help' | '?'            - Display this help message
+'i' | 'inspect' [n]           - Inspect the overall state, or the function number 'n'
+'l' | 'list'                  - List all breakpoints
+'m' | 'modify' [name]=[value] - Modify a debugger or runtime variable named 'name' to value 'value'
+'q' | 'quit'                  - Stop flow execution and exit debugger
+'r' | 'reset' or 'run' {args} - If running already then reset the state, or run the flow with {args}
+'s' | 'step' [n]              - Step over the next 'n' jobs (default = 1) then break
+'v' | 'validate'              - Validate the state of the flow by running a series of checks
+
+Debugger is exiting

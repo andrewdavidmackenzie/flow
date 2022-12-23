@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":[["DebugServerMessage","A Message sent from the debugger to a debug_client"]]};
+window.SIDEBAR_ITEMS = {"constant":[["VARIANTS",""]],"enum":[["DebugServerMessage","A Message sent from the debugger to a debug_client"],["__Field",""]],"macro":[["try",""]],"struct":[["__FieldVisitor",""],["__Visitor",""]]};
