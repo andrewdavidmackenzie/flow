@@ -13,5 +13,5 @@ from = "args/string/1"
 to = "print"
 
 [[connection]]
-from = "args/string/2"
+from = "args/string/3"
 to = "print"
