@@ -192,11 +192,11 @@
 <span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)]
 </span><span class="kw">use </span>flowrlib::protocols::DebuggerProtocol;
 <span class="kw">use </span>flowrlib::run_state::{RunState, State};
-<span class="kw">use </span>flowrlib::services::WAIT;
 
 <span class="kw">use crate</span>::{BlockBreakpoint, DataBreakpoint, ExecutionEnded, ExecutionStarted, ExitingDebugger,
             JobCompleted, JobError, Panic, PriorToSendingJob, Resetting, ServerConnection,
             WaitingForCommand};
+<span class="kw">use </span><span class="kw">crate</span>::cli::client_server::WAIT;
 <span class="kw">use </span><span class="kw">crate</span>::DebugServerMessage::{BlockState, Error, FlowUnblockBreakpoint, Functions, FunctionStates, InputState, Message, OutputState, OverallState};
 
 <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct  </span>CliDebugServer {
@@ -364,4 +364,4 @@
             .send_and_receive_response(WaitingForCommand(state.get_number_of_jobs_created()))
     }
 }</code></pre></div>
-</section></main><div id="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="flowr" data-themes="" data-resource-suffix="" data-rustdoc-version="1.68.0-nightly (8a97b4812 2022-12-22)" data-search-js="search-444266647c4dba98.js" data-settings-js="settings-bebeae96e00e4617.js" data-settings-css="settings-58836c674e2f7bd2.css" ></div></body></html>
+</section></main><div id="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="flowr" data-themes="" data-resource-suffix="" data-rustdoc-version="1.68.0-nightly (af3e06f1b 2022-12-23)" data-search-js="search-444266647c4dba98.js" data-settings-js="settings-bebeae96e00e4617.js" data-settings-css="settings-58836c674e2f7bd2.css" ></div></body></html>

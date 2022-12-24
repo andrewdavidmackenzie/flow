@@ -568,15 +568,6 @@
 <a href="#568" id="568">568</a>
 <a href="#569" id="569">569</a>
 <a href="#570" id="570">570</a>
-<a href="#571" id="571">571</a>
-<a href="#572" id="572">572</a>
-<a href="#573" id="573">573</a>
-<a href="#574" id="574">574</a>
-<a href="#575" id="575">575</a>
-<a href="#576" id="576">576</a>
-<a href="#577" id="577">577</a>
-<a href="#578" id="578">578</a>
-<a href="#579" id="579">579</a>
 </pre><pre class="rust"><code><span class="attr">#![deny(missing_docs)]
 #![warn(clippy::unwrap_used)]
 </span><span class="doccomment">//! `flowr` is a command line flow runner for running `flow` programs.
@@ -628,7 +619,11 @@
 <span class="kw">use </span>flowrlib::dispatcher::Dispatcher;
 <span class="kw">use </span>flowrlib::executor::Executor;
 <span class="kw">use </span>flowrlib::info <span class="kw">as </span>flowrlib_info;
-<span class="kw">use </span>flowrlib::services::{CONTROL_SERVICE_NAME, DEBUG_SERVICE_NAME, enable_service_discovery, JOB_QUEUES_DISCOVERY_PORT, JOB_SERVICE_NAME, RESULTS_JOB_SERVICE_NAME, RUNTIME_SERVICE_NAME};
+<span class="kw">use </span>flowrlib::services::{CONTROL_SERVICE_NAME, JOB_QUEUES_DISCOVERY_PORT, JOB_SERVICE_NAME,
+                         RESULTS_JOB_SERVICE_NAME};
+
+<span class="kw">use </span><span class="kw">crate</span>::cli::client_server::{DEBUG_SERVICE_NAME, discover_service,
+                                enable_service_discovery, RUNTIME_SERVICE_NAME};
 
 <span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)]
 </span><span class="doccomment">/// provides the `context functions` for interacting with the execution environment from a flow,
@@ -639,18 +634,6 @@
 <span class="doccomment">/// provides [Error][errors::Error] that other modules in this crate will `use crate::errors::*;` to get
 /// access to everything `error_chain` creates.
 </span><span class="kw">mod </span>errors;
-
-<span class="doccomment">/// Mode of execution of the [Coordinator][flowrlib::coordinator::Coordinator] of flow execution
-</span><span class="attr">#[derive(PartialEq, Eq, Clone, Debug)]
-</span><span class="kw">enum </span>Mode {
-    <span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)]
-    </span><span class="doccomment">/// [Coordinator][flowrlib::coordinator::Coordinator] runs as just a client for a server running in another process
-    </span>ClientOnly,
-    <span class="doccomment">/// [Coordinator][flowrlib::coordinator::Coordinator] runs as just a server, clients must run in another process
-    </span>ServerOnly,
-    <span class="doccomment">/// [Coordinator][flowrlib::coordinator::Coordinator] runs as a client and s server in different threads of the same process
-    </span>ClientAndServer,
-}
 
 <span class="doccomment">/// Main for flowr binary - call `run()` and print any error that results or exit silently if OK
 </span><span class="kw">fn </span>main() {
@@ -672,7 +655,7 @@
 ///
 /// Using the &quot;FLOW_LIB_PATH&quot; environment variable attempt to locate the library&#39;s root folder
 /// in the file system.
-</span><span class="kw">fn </span>set_lib_search_path(search_path_additions: <span class="kw-2">&amp;</span>[String]) -&gt; <span class="prelude-ty">Result</span>&lt;Simpath&gt; {
+</span><span class="kw">fn </span>setup_lib_search_path(search_path_additions: <span class="kw-2">&amp;</span>[String]) -&gt; <span class="prelude-ty">Result</span>&lt;Simpath&gt; {
     <span class="kw">let </span><span class="kw-2">mut </span>lib_search_path = Simpath::new_with_separator(<span class="string">&quot;FLOW_LIB_PATH&quot;</span>, <span class="string">&#39;,&#39;</span>);
 
     <span class="kw">if </span>env::var(<span class="string">&quot;FLOW_LIB_PATH&quot;</span>).is_err() &amp;&amp; search_path_additions.is_empty() {
@@ -715,44 +698,33 @@
     } <span class="kw">else </span>{
         <span class="macro">vec!</span>[]
     };
-    <span class="kw">let </span>lib_search_path = set_lib_search_path(<span class="kw-2">&amp;</span>lib_dirs)<span class="question-mark">?</span>;
-
-    <span class="kw">let </span>mode = <span class="kw">if </span>matches.get_flag(<span class="string">&quot;client&quot;</span>) {
-        Mode::ClientOnly
-    } <span class="kw">else if </span>matches.get_flag(<span class="string">&quot;server&quot;</span>) {
-        Mode::ServerOnly
-    } <span class="kw">else </span>{
-        Mode::ClientAndServer
-    };
-
-    <span class="macro">info!</span>(<span class="string">&quot;Starting &#39;flowr&#39; in {:?} mode&quot;</span>, mode);
-
+    <span class="kw">let </span>lib_search_path = setup_lib_search_path(<span class="kw-2">&amp;</span>lib_dirs)<span class="question-mark">?</span>;
     <span class="kw">let </span>num_threads = num_threads(<span class="kw-2">&amp;</span>matches);
 
-    <span class="kw">match </span>mode {
-        Mode::ServerOnly =&gt; server_only(
+    <span class="kw">if let </span><span class="prelude-val">Some</span>(discovery_port) = matches.get_one::&lt;u16&gt;(<span class="string">&quot;client&quot;</span>) {
+        client_only(
+            <span class="kw-2">&amp;</span>matches,
+            lib_search_path,
+            <span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)] </span>debug_this_flow,
+            discovery_port,
+        )<span class="question-mark">?</span>;
+    } <span class="kw">else if </span>matches.get_flag(<span class="string">&quot;server&quot;</span>) {
+        server_only(
             num_threads,
             lib_search_path,
             native_flowstdlib,
             context_only,
-        )<span class="question-mark">?</span>,
-        <span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)]
-        </span>Mode::ClientOnly =&gt; client_only(
-            matches,
-            lib_search_path,
-            <span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)]
-            </span>debug_this_flow,
-        )<span class="question-mark">?</span>,
-        Mode::ClientAndServer =&gt; client_and_server(
+        )<span class="question-mark">?</span>;
+    } <span class="kw">else </span>{
+        client_and_server(
             num_threads,
             lib_search_path,
             native_flowstdlib,
-            matches,
-            <span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)]
-            </span>debug_this_flow,
+            <span class="kw-2">&amp;</span>matches,
+            <span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)] </span>debug_this_flow,
             context_only,
-        )<span class="question-mark">?</span>,
-    }
+        )<span class="question-mark">?</span>;
+    };
 
     <span class="prelude-val">Ok</span>(())
 }
@@ -764,9 +736,22 @@
                 native_flowstdlib: bool,
                 context_only: bool,
                 ) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
-    <span class="kw">let </span>runtime_server_connection = ServerConnection::new(RUNTIME_SERVICE_NAME)<span class="question-mark">?</span>;
+    <span class="kw">let </span>runtime_port = pick_unused_port().chain_err(|| <span class="string">&quot;No ports free&quot;</span>)<span class="question-mark">?</span>;
+    <span class="kw">let </span>runtime_server_connection = ServerConnection::new(RUNTIME_SERVICE_NAME,
+                                                          runtime_port)<span class="question-mark">?</span>;
+    <span class="kw">let </span>discovery_port = pick_unused_port().chain_err(|| <span class="string">&quot;No ports free&quot;</span>)<span class="question-mark">?</span>;
+    enable_service_discovery(discovery_port, RUNTIME_SERVICE_NAME,
+                             runtime_port)<span class="question-mark">?</span>;
+
     <span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)]
-    </span><span class="kw">let </span>debug_server_connection = ServerConnection::new(DEBUG_SERVICE_NAME)<span class="question-mark">?</span>;
+    </span><span class="kw">let </span>debug_port = pick_unused_port().chain_err(|| <span class="string">&quot;No ports free&quot;</span>)<span class="question-mark">?</span>;
+    <span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)]
+    </span><span class="kw">let </span>debug_server_connection = ServerConnection::new(DEBUG_SERVICE_NAME,
+        debug_port)<span class="question-mark">?</span>;
+    <span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)]
+    </span>enable_service_discovery(discovery_port, DEBUG_SERVICE_NAME,debug_port)<span class="question-mark">?</span>;
+
+    <span class="macro">println!</span>(<span class="string">&quot;{discovery_port}&quot;</span>);
 
     <span class="macro">info!</span>(<span class="string">&quot;Starting &#39;flowr&#39; server process in main thread&quot;</span>);
     server(
@@ -790,14 +775,24 @@
     num_threads: usize,
     lib_search_path: Simpath,
     native: bool,
-    matches: ArgMatches,
+    matches: <span class="kw-2">&amp;</span>ArgMatches,
     <span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)]
     </span>debug_this_flow: bool,
     context_only: bool,
 ) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
-    <span class="kw">let </span>runtime_server_connection = ServerConnection::new(RUNTIME_SERVICE_NAME)<span class="question-mark">?</span>;
+    <span class="kw">let </span>runtime_port = pick_unused_port().chain_err(|| <span class="string">&quot;No ports free&quot;</span>)<span class="question-mark">?</span>;
+    <span class="kw">let </span>runtime_server_connection = ServerConnection::new(RUNTIME_SERVICE_NAME,
+        runtime_port)<span class="question-mark">?</span>;
+
+    <span class="kw">let </span>discovery_port = pick_unused_port().chain_err(|| <span class="string">&quot;No ports free&quot;</span>)<span class="question-mark">?</span>;
+    enable_service_discovery(discovery_port, RUNTIME_SERVICE_NAME, runtime_port)<span class="question-mark">?</span>;
+
     <span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)]
-    </span><span class="kw">let </span>debug_server_connection = ServerConnection::new(DEBUG_SERVICE_NAME)<span class="question-mark">?</span>;
+    </span><span class="kw">let </span>debug_port = pick_unused_port().chain_err(|| <span class="string">&quot;No ports free&quot;</span>)<span class="question-mark">?</span>;
+    <span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)]
+    </span><span class="kw">let </span>debug_server_connection = ServerConnection::new(DEBUG_SERVICE_NAME,
+                                                        debug_port)<span class="question-mark">?</span>;
+    enable_service_discovery(discovery_port, DEBUG_SERVICE_NAME, debug_port)<span class="question-mark">?</span>;
 
     <span class="kw">let </span>server_lib_search_path = lib_search_path.clone();
 
@@ -814,22 +809,16 @@
         );
     });
 
-    <span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)]
-    </span><span class="kw">let </span>control_c_client_connection = <span class="kw">if </span>debug_this_flow {
-        <span class="prelude-val">Some</span>(ClientConnection::new(RUNTIME_SERVICE_NAME)<span class="question-mark">?</span>)
-    } <span class="kw">else </span>{
-        <span class="prelude-val">None
-    </span>};
+    <span class="kw">let </span>server_address = discover_service(discovery_port, RUNTIME_SERVICE_NAME)<span class="question-mark">?</span>;
 
-    <span class="kw">let </span>runtime_client_connection = ClientConnection::new(RUNTIME_SERVICE_NAME)<span class="question-mark">?</span>;
+    <span class="kw">let </span>runtime_client_connection = ClientConnection::new(<span class="kw-2">&amp;</span>server_address)<span class="question-mark">?</span>;
 
     client(
         matches,
         lib_search_path,
         runtime_client_connection,
-        <span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)] </span>control_c_client_connection,
         <span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)] </span>debug_this_flow,
-        <span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)] </span>DEBUG_SERVICE_NAME,
+        <span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)] </span>discovery_port,
     )
 }
 
@@ -949,50 +938,41 @@
 <span class="doccomment">/// Start only a client in the calling thread. Since we are *only* starting a client in this
 /// process, we don&#39;t have server information, so we create a set of ServerInfo from command
 /// line options for the server address and known service names and ports.
-</span><span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)]
 </span><span class="kw">fn </span>client_only(
-    matches: ArgMatches,
+    matches: <span class="kw-2">&amp;</span>ArgMatches,
     lib_search_path: Simpath,
     <span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)] </span>debug_this_flow: bool,
+    discovery_port: <span class="kw-2">&amp;</span>u16,
 ) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
-    <span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)]
-        </span><span class="kw">let </span>control_c_client_connection = <span class="kw">if </span>debug_this_flow {
-        <span class="prelude-val">Some</span>(ClientConnection::new(RUNTIME_SERVICE_NAME)<span class="question-mark">?</span>)
-    } <span class="kw">else </span>{
-        <span class="prelude-val">None
-    </span>};
-
-    <span class="kw">let </span>context_client_connection = ClientConnection::new(RUNTIME_SERVICE_NAME)<span class="question-mark">?</span>;
+    <span class="kw">let </span>server_address = discover_service(<span class="kw-2">*</span>discovery_port, RUNTIME_SERVICE_NAME)<span class="question-mark">?</span>;
+    <span class="kw">let </span>context_client_connection = ClientConnection::new(<span class="kw-2">&amp;</span>server_address)<span class="question-mark">?</span>;
 
     client(
         matches,
         lib_search_path,
         context_client_connection,
-        <span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)] </span>control_c_client_connection,
         <span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)] </span>debug_this_flow,
-        <span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)] </span>DEBUG_SERVICE_NAME,
+        <span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)] </span><span class="kw-2">*</span>discovery_port,
     )
 }
 
 <span class="doccomment">/// Start the clients that talks to the server thread or process
 </span><span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)]
 </span><span class="kw">fn </span>client(
-    matches: ArgMatches,
+    matches: <span class="kw-2">&amp;</span>ArgMatches,
     lib_search_path: Simpath,
     runtime_client_connection: ClientConnection,
-    <span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)]
-    </span>control_c_client_connection: <span class="prelude-ty">Option</span>&lt;ClientConnection&gt;,
     <span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)] </span>debug_this_flow: bool,
-    <span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)] </span>debug_service_name: <span class="kw-2">&amp;</span>str,
+    <span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)] </span>discovery_post: u16,
 ) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
     <span class="comment">// keep an Arc Mutex protected set of override args that debug client can override
     </span><span class="kw">let </span>override_args = Arc::new(Mutex::new(Vec::&lt;String&gt;::new()));
 
-    <span class="kw">let </span>flow_manifest_url = parse_flow_url(<span class="kw-2">&amp;</span>matches)<span class="question-mark">?</span>;
+    <span class="kw">let </span>flow_manifest_url = parse_flow_url(matches)<span class="question-mark">?</span>;
     <span class="kw">let </span>provider = MetaProvider::new(lib_search_path, PathBuf::from(<span class="string">&quot;/&quot;</span>));
     <span class="kw">let </span>(flow_manifest, <span class="kw">_</span>) = FlowManifest::load(<span class="kw-2">&amp;</span>provider, <span class="kw-2">&amp;</span>flow_manifest_url)<span class="question-mark">?</span>;
 
-    <span class="kw">let </span>flow_args = get_flow_args(<span class="kw-2">&amp;</span>matches, <span class="kw-2">&amp;</span>flow_manifest_url);
+    <span class="kw">let </span>flow_args = get_flow_args(matches, <span class="kw-2">&amp;</span>flow_manifest_url);
     <span class="kw">let </span>parallel_jobs_limit = matches.get_one::&lt;usize&gt;(<span class="string">&quot;jobs&quot;</span>)
         .map(|i| i.to_owned());
     <span class="kw">let </span>submission = Submission::new(
@@ -1011,7 +991,9 @@
 
     <span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)]
     </span><span class="kw">if </span>debug_this_flow {
-        <span class="kw">let </span>debug_client_connection = ClientConnection::new(debug_service_name)<span class="question-mark">?</span>;
+        <span class="kw">let </span>server_address = discover_service(discovery_post,
+                                              DEBUG_SERVICE_NAME)<span class="question-mark">?</span>;
+        <span class="kw">let </span>debug_client_connection = ClientConnection::new(<span class="kw-2">&amp;</span>server_address)<span class="question-mark">?</span>;
         <span class="kw">let </span>debug_client = CliDebugClient::new(debug_client_connection,
             override_args);
         <span class="kw">let _ </span>= thread::spawn(<span class="kw">move </span>|| {
@@ -1024,7 +1006,6 @@
 
     runtime_client.event_loop(
                                 runtime_client_connection,
-            <span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)] </span>control_c_client_connection
     )<span class="question-mark">?</span>;
 
     <span class="prelude-val">Ok</span>(())
@@ -1075,24 +1056,25 @@
     <span class="kw">let </span>app = app
         .arg(Arg::new(<span class="string">&quot;server&quot;</span>)
              .short(<span class="string">&#39;s&#39;</span>)
-            .long(<span class="string">&quot;server&quot;</span>)
-            .action(clap::ArgAction::SetTrue)
-            .conflicts_with(<span class="string">&quot;client&quot;</span>)
-            .help(<span class="string">&quot;Launch as flowr server (only, no client)&quot;</span>),
+             .long(<span class="string">&quot;server&quot;</span>)
+             .action(clap::ArgAction::SetTrue)
+             .conflicts_with(<span class="string">&quot;client&quot;</span>)
+             .help(<span class="string">&quot;Launch as flowr server (only, no client)&quot;</span>),
         )
         .arg(Arg::new(<span class="string">&quot;client&quot;</span>)
-            .short(<span class="string">&#39;c&#39;</span>)
-            .long(<span class="string">&quot;client&quot;</span>)
-            .action(clap::ArgAction::SetTrue)
-            .conflicts_with(<span class="string">&quot;server&quot;</span>)
-            .help(<span class="string">&quot;Start flowr as a client (only, no server) to connect to a flowr server&quot;</span>),
+             .short(<span class="string">&#39;c&#39;</span>)
+             .long(<span class="string">&quot;client&quot;</span>)
+             .number_of_values(<span class="number">1</span>)
+             .value_parser(<span class="macro">clap::value_parser!</span>(u16))
+             .conflicts_with(<span class="string">&quot;server&quot;</span>)
+             .help(<span class="string">&quot;Start flowr as a client (only, no server) to connect to a flowr server&quot;</span>),
         )
         .arg(Arg::new(<span class="string">&quot;context&quot;</span>)
-                 .short(<span class="string">&#39;C&#39;</span>)
-                 .long(<span class="string">&quot;context&quot;</span>)
-                 .action(clap::ArgAction::SetTrue)
-                 .conflicts_with(<span class="string">&quot;client&quot;</span>)
-                 .help(<span class="string">&quot;Only execute &#39;context&#39; jobs in the server&quot;</span>),
+             .short(<span class="string">&#39;C&#39;</span>)
+             .long(<span class="string">&quot;context&quot;</span>)
+             .action(clap::ArgAction::SetTrue)
+             .conflicts_with(<span class="string">&quot;client&quot;</span>)
+             .help(<span class="string">&quot;Only execute &#39;context&#39; jobs in the server&quot;</span>),
         )
         .arg(Arg::new(<span class="string">&quot;jobs&quot;</span>)
             .short(<span class="string">&#39;j&#39;</span>)
@@ -1157,4 +1139,4 @@
     flow_args
 }
 </code></pre></div>
-</section></main><div id="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="flowr" data-themes="" data-resource-suffix="" data-rustdoc-version="1.68.0-nightly (8a97b4812 2022-12-22)" data-search-js="search-444266647c4dba98.js" data-settings-js="settings-bebeae96e00e4617.js" data-settings-css="settings-58836c674e2f7bd2.css" ></div></body></html>
+</section></main><div id="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="flowr" data-themes="" data-resource-suffix="" data-rustdoc-version="1.68.0-nightly (af3e06f1b 2022-12-23)" data-search-js="search-444266647c4dba98.js" data-settings-js="settings-bebeae96e00e4617.js" data-settings-css="settings-58836c674e2f7bd2.css" ></div></body></html>

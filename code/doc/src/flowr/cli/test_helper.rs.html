@@ -50,27 +50,43 @@
 <a href="#50" id="50">50</a>
 <a href="#51" id="51">51</a>
 <a href="#52" id="52">52</a>
+<a href="#53" id="53">53</a>
+<a href="#54" id="54">54</a>
+<a href="#55" id="55">55</a>
+<a href="#56" id="56">56</a>
+<a href="#57" id="57">57</a>
+<a href="#58" id="58">58</a>
+<a href="#59" id="59">59</a>
+<a href="#60" id="60">60</a>
 </pre><pre class="rust"><code><span class="attr">#[cfg(test)]
 </span><span class="kw">pub mod </span>test {
     <span class="kw">use </span>std::sync::{Arc, Mutex};
 
-    <span class="kw">use </span>flowrlib::services::WAIT;
+    <span class="kw">use </span>portpicker::pick_unused_port;
 
-    <span class="kw">use </span><span class="kw">crate</span>::cli::client_server::{ClientConnection, ServerConnection};
+    <span class="kw">use </span><span class="kw">crate</span>::cli::client_server::{ClientConnection, discover_service, enable_service_discovery,
+                                    ServerConnection, WAIT};
     <span class="kw">use </span><span class="kw">crate</span>::cli::runtime_messages::{ClientMessage, ServerMessage};
 
     <span class="kw">pub fn </span>wait_for_then_send(
         wait_for_message: ServerMessage,
         then_send: ClientMessage,
     ) -&gt; Arc&lt;Mutex&lt;ServerConnection&gt;&gt; {
+        <span class="kw">let </span>test_port = pick_unused_port().expect(<span class="string">&quot;No ports free&quot;</span>);
         <span class="kw">let </span>server_connection = Arc::new(Mutex::new(
-            ServerConnection::new(<span class="string">&quot;foo&quot;</span>)
+            ServerConnection::new(<span class="string">&quot;foo&quot;</span>, test_port)
                 .expect(<span class="string">&quot;Could not create server connection&quot;</span>),
         ));
+        <span class="kw">let </span>discovery_port = pick_unused_port().expect(<span class="string">&quot;No ports free&quot;</span>);
+        enable_service_discovery(discovery_port, <span class="string">&quot;foo&quot;</span>,
+                                 test_port).expect(<span class="string">&quot;Could not enable service discovery&quot;</span>);
 
         <span class="kw">let </span>connection = server_connection.lock()
             .expect(<span class="string">&quot;Could not get access to server connection&quot;</span>);
-        <span class="kw">let </span>client_connection = ClientConnection::new(<span class="string">&quot;foo&quot;</span>)
+
+        <span class="kw">let </span>server_address = discover_service(discovery_port, <span class="string">&quot;foo&quot;</span>)
+            .expect(<span class="string">&quot;Could discovery service&quot;</span>);
+        <span class="kw">let </span>client_connection = ClientConnection::new(<span class="kw-2">&amp;</span>server_address)
             .expect(<span class="string">&quot;Could not create ClientConnection&quot;</span>);
 
         client_connection
@@ -103,4 +119,4 @@
     }
 }
 </code></pre></div>
-</section></main><div id="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="flowr" data-themes="" data-resource-suffix="" data-rustdoc-version="1.68.0-nightly (8a97b4812 2022-12-22)" data-search-js="search-444266647c4dba98.js" data-settings-js="settings-bebeae96e00e4617.js" data-settings-css="settings-58836c674e2f7bd2.css" ></div></body></html>
+</section></main><div id="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="flowr" data-themes="" data-resource-suffix="" data-rustdoc-version="1.68.0-nightly (af3e06f1b 2022-12-23)" data-search-js="search-444266647c4dba98.js" data-settings-js="settings-bebeae96e00e4617.js" data-settings-css="settings-58836c674e2f7bd2.css" ></div></body></html>

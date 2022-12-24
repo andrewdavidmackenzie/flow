@@ -373,28 +373,14 @@
 <a href="#373" id="373">373</a>
 <a href="#374" id="374">374</a>
 <a href="#375" id="375">375</a>
-<a href="#376" id="376">376</a>
-<a href="#377" id="377">377</a>
-<a href="#378" id="378">378</a>
-<a href="#379" id="379">379</a>
-<a href="#380" id="380">380</a>
-<a href="#381" id="381">381</a>
-<a href="#382" id="382">382</a>
-<a href="#383" id="383">383</a>
-<a href="#384" id="384">384</a>
-<a href="#385" id="385">385</a>
-<a href="#386" id="386">386</a>
-<a href="#387" id="387">387</a>
-<a href="#388" id="388">388</a>
-<a href="#389" id="389">389</a>
-<a href="#390" id="390">390</a>
-<a href="#391" id="391">391</a>
-<a href="#392" id="392">392</a>
-<a href="#393" id="393">393</a>
-<a href="#394" id="394">394</a>
-<a href="#395" id="395">395</a>
-<a href="#396" id="396">396</a>
-</pre><pre class="rust"><code><span class="kw">use </span>image::{ImageBuffer, ImageFormat, Rgb, RgbImage};
+</pre><pre class="rust"><code><span class="kw">use </span>std::collections::HashMap;
+<span class="kw">use </span>std::fs::File;
+<span class="kw">use </span>std::io;
+<span class="kw">use </span>std::io::prelude::<span class="kw-2">*</span>;
+<span class="kw">use </span>std::path::Path;
+<span class="kw">use </span>std::sync::{Arc, Mutex};
+
+<span class="kw">use </span>image::{ImageBuffer, ImageFormat, Rgb, RgbImage};
 <span class="kw">use </span>log::debug;
 <span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)]
 </span><span class="kw">use </span>log::error;
@@ -402,12 +388,6 @@
 </span><span class="kw">use </span>log::info;
 
 <span class="kw">use </span>flowcore::errors::<span class="kw-2">*</span>;
-<span class="kw">use </span>std::collections::HashMap;
-<span class="kw">use </span>std::fs::File;
-<span class="kw">use </span>std::io;
-<span class="kw">use </span>std::io::prelude::<span class="kw-2">*</span>;
-<span class="kw">use </span>std::path::Path;
-<span class="kw">use </span>std::sync::{Arc, Mutex};
 
 <span class="kw">use </span><span class="kw">crate</span>::cli::client_server::ClientConnection;
 <span class="kw">use </span><span class="kw">crate</span>::cli::runtime_messages::{ClientMessage, ServerMessage};
@@ -437,13 +417,7 @@
     </span><span class="kw">pub fn </span>event_loop(
         <span class="kw-2">mut </span><span class="self">self</span>,
         connection: ClientConnection,
-        <span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)] </span>control_c_connection: <span class="prelude-ty">Option</span>&lt;ClientConnection&gt;,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
-        <span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)]
-        </span><span class="kw">if let </span><span class="prelude-val">Some</span>(control_c) = control_c_connection {
-            <span class="self">Self</span>::enter_debugger_on_control_c(control_c);
-        }
-
         <span class="kw">loop </span>{
             <span class="kw">match </span>connection.receive() {
                 <span class="prelude-val">Ok</span>(event) =&gt; {
@@ -462,23 +436,6 @@
                 }
             }
         }
-    }
-
-    <span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)]
-    </span><span class="kw">fn </span>enter_debugger_on_control_c(
-        <span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)] </span>control_c_connection: ClientConnection,
-    ) {
-        ctrlc::set_handler(<span class="kw">move </span>|| {
-            <span class="macro">info!</span>(<span class="string">&quot;Control-C captured in client.&quot;</span>);
-            <span class="kw">match </span>control_c_connection.send(ClientMessage::EnterDebugger) {
-                <span class="prelude-val">Ok</span>(<span class="kw">_</span>) =&gt; <span class="macro">debug!</span>(<span class="string">&quot;&#39;EnterDebugger&#39; command sent to Server&quot;</span>),
-                <span class="prelude-val">Err</span>(e) =&gt; <span class="macro">error!</span>(
-                    <span class="string">&quot;Error sending &#39;EnterDebugger&#39; command to server on control_c_connection: {}&quot;</span>,
-                    e
-                ),
-            }
-        })
-        .expect(<span class="string">&quot;Error setting Ctrl-C handler&quot;</span>);
     }
 
     <span class="kw">fn </span>flush_image_buffers(<span class="kw-2">&amp;mut </span><span class="self">self</span>) {
@@ -608,14 +565,15 @@
 
 <span class="attr">#[cfg(test)]
 </span><span class="kw">mod </span>test {
-    <span class="kw">use </span>tempdir::TempDir;
-
-    <span class="attr">#[cfg(feature = <span class="string">&quot;metrics&quot;</span>)]
-    </span><span class="kw">use </span>flowcore::model::metrics::Metrics;
     <span class="kw">use </span>std::fs;
     <span class="kw">use </span>std::fs::File;
     <span class="kw">use </span>std::io::prelude::<span class="kw-2">*</span>;
     <span class="kw">use </span>std::sync::{Arc, Mutex};
+
+    <span class="kw">use </span>tempdir::TempDir;
+
+    <span class="attr">#[cfg(feature = <span class="string">&quot;metrics&quot;</span>)]
+    </span><span class="kw">use </span>flowcore::model::metrics::Metrics;
 
     <span class="kw">use </span><span class="kw">crate</span>::cli::runtime_messages::{ClientMessage, ServerMessage};
 
@@ -791,4 +749,4 @@
     }
 }
 </code></pre></div>
-</section></main><div id="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="flowr" data-themes="" data-resource-suffix="" data-rustdoc-version="1.68.0-nightly (8a97b4812 2022-12-22)" data-search-js="search-444266647c4dba98.js" data-settings-js="settings-bebeae96e00e4617.js" data-settings-css="settings-58836c674e2f7bd2.css" ></div></body></html>
+</section></main><div id="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="flowr" data-themes="" data-resource-suffix="" data-rustdoc-version="1.68.0-nightly (af3e06f1b 2022-12-23)" data-search-js="search-444266647c4dba98.js" data-settings-js="settings-bebeae96e00e4617.js" data-settings-css="settings-58836c674e2f7bd2.css" ></div></body></html>

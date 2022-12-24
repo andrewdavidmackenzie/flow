@@ -267,15 +267,103 @@
 <a href="#267" id="267">267</a>
 <a href="#268" id="268">268</a>
 <a href="#269" id="269">269</a>
+<a href="#270" id="270">270</a>
+<a href="#271" id="271">271</a>
+<a href="#272" id="272">272</a>
+<a href="#273" id="273">273</a>
+<a href="#274" id="274">274</a>
+<a href="#275" id="275">275</a>
+<a href="#276" id="276">276</a>
+<a href="#277" id="277">277</a>
+<a href="#278" id="278">278</a>
+<a href="#279" id="279">279</a>
+<a href="#280" id="280">280</a>
+<a href="#281" id="281">281</a>
+<a href="#282" id="282">282</a>
+<a href="#283" id="283">283</a>
+<a href="#284" id="284">284</a>
+<a href="#285" id="285">285</a>
+<a href="#286" id="286">286</a>
+<a href="#287" id="287">287</a>
+<a href="#288" id="288">288</a>
+<a href="#289" id="289">289</a>
+<a href="#290" id="290">290</a>
+<a href="#291" id="291">291</a>
+<a href="#292" id="292">292</a>
+<a href="#293" id="293">293</a>
+<a href="#294" id="294">294</a>
+<a href="#295" id="295">295</a>
+<a href="#296" id="296">296</a>
+<a href="#297" id="297">297</a>
+<a href="#298" id="298">298</a>
+<a href="#299" id="299">299</a>
+<a href="#300" id="300">300</a>
+<a href="#301" id="301">301</a>
+<a href="#302" id="302">302</a>
+<a href="#303" id="303">303</a>
+<a href="#304" id="304">304</a>
+<a href="#305" id="305">305</a>
+<a href="#306" id="306">306</a>
+<a href="#307" id="307">307</a>
+<a href="#308" id="308">308</a>
+<a href="#309" id="309">309</a>
+<a href="#310" id="310">310</a>
+<a href="#311" id="311">311</a>
+<a href="#312" id="312">312</a>
+<a href="#313" id="313">313</a>
+<a href="#314" id="314">314</a>
+<a href="#315" id="315">315</a>
+<a href="#316" id="316">316</a>
+<a href="#317" id="317">317</a>
+<a href="#318" id="318">318</a>
 </pre><pre class="rust"><code><span class="kw">use </span>std::fmt::Display;
+<span class="kw">use </span>std::time::Duration;
 
 <span class="doccomment">/// This is the message-queue implementation of the lib.client_server communications
 </span><span class="kw">use </span>log::{debug, info, trace};
-<span class="kw">use </span>portpicker::pick_unused_port;
 <span class="kw">use </span>zmq::Socket;
 
 <span class="kw">use </span>flowcore::errors::<span class="kw-2">*</span>;
-<span class="kw">use </span>flowrlib::services::{CLIENT_SERVER_DISCOVERY_PORT, discover_service, enable_service_discovery, WAIT};
+<span class="kw">use </span>simpdiscoverylib::{BeaconListener, BeaconSender};
+
+<span class="doccomment">/// WAIT for a message to arrive when performing a receive()
+</span><span class="kw">pub const </span>WAIT:i32 = <span class="number">0</span>;
+
+<span class="doccomment">/// Do NOT WAIT for a message to arrive when performing a receive()
+</span><span class="kw">pub static </span>DONT_WAIT:i32 = zmq::DONTWAIT;
+
+<span class="doccomment">/// `RUNTIME_SERVICE_NAME` can be used to discover the runtime service by name
+</span><span class="kw">pub const </span>RUNTIME_SERVICE_NAME: <span class="kw-2">&amp;</span>str = <span class="string">&quot;runtime._flowr._tcp.local&quot;</span>;
+
+<span class="doccomment">/// `DEBUG_SERVICE_NAME` can be used to discover the debug service by name
+</span><span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)]
+</span><span class="kw">pub const </span>DEBUG_SERVICE_NAME: <span class="kw-2">&amp;</span>str = <span class="string">&quot;debug._flowr._tcp.local&quot;</span>;
+
+<span class="doccomment">/// Try to discover a server offering a particular service by name
+</span><span class="kw">pub fn </span>discover_service(discovery_port: u16, name: <span class="kw-2">&amp;</span>str) -&gt; <span class="prelude-ty">Result</span>&lt;String&gt; {
+    <span class="kw">let </span>listener = BeaconListener::new(name.as_bytes(), discovery_port)<span class="question-mark">?</span>;
+    <span class="kw">let </span>beacon = listener.wait(<span class="prelude-val">None</span>)<span class="question-mark">?</span>;
+    <span class="kw">let </span>server_address = <span class="macro">format!</span>(<span class="string">&quot;{}:{}&quot;</span>, beacon.service_ip, beacon.service_port);
+    <span class="prelude-val">Ok</span>(server_address)
+}
+
+<span class="doccomment">/// Start a background thread that sends out beacons for service discovery by a client every second
+</span><span class="kw">pub fn </span>enable_service_discovery(discovery_port: u16, name: <span class="kw-2">&amp;</span>str, service_port: u16) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
+    <span class="kw">match </span>BeaconSender::new(service_port, name.as_bytes(), discovery_port) {
+        <span class="prelude-val">Ok</span>(beacon) =&gt; {
+            <span class="macro">info!</span>(
+                    <span class="string">&quot;Discovery beacon announcing service named &#39;{}&#39;, on port: {}&quot;</span>,
+                    name, service_port
+                );
+            std::thread::spawn(<span class="kw">move </span>|| {
+                <span class="kw">let _ </span>= beacon.send_loop(Duration::from_secs(<span class="number">1</span>));
+            });
+        }
+        <span class="prelude-val">Err</span>(e) =&gt; <span class="macro">bail!</span>(<span class="string">&quot;Error starting discovery beacon: {}&quot;</span>, e.to_string()),
+    }
+
+    <span class="prelude-val">Ok</span>(())
+}
 
 <span class="doccomment">/// `ClientConnection` stores information related to the connection from a runtime client
 /// to the runtime server and is used each time a message is to be sent or received.
@@ -285,10 +373,8 @@
 
 <span class="kw">impl </span>ClientConnection {
     <span class="doccomment">/// Create a new connection between client and server
-    </span><span class="kw">pub fn </span>new(service_name: <span class="kw-2">&amp;</span>str) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>&gt; {
-        <span class="kw">let </span>server_address = discover_service(CLIENT_SERVER_DISCOVERY_PORT, service_name)<span class="question-mark">?</span>;
-
-        <span class="macro">info!</span>(<span class="string">&quot;Client will attempt to connect to service &#39;{service_name}&#39; at: &#39;{server_address}&#39;&quot;</span>);
+    </span><span class="kw">pub fn </span>new(server_address: <span class="kw-2">&amp;</span>str) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>&gt; {
+        <span class="macro">info!</span>(<span class="string">&quot;Client will attempt to connect to service at: &#39;{server_address}&#39;&quot;</span>);
 
         <span class="kw">let </span>context = zmq::Context::new();
 
@@ -300,7 +386,7 @@
             .connect(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;tcp://{server_address}&quot;</span>))
             .chain_err(|| <span class="macro">format!</span>(<span class="string">&quot;Client Connection - Could not connect to socket at: {server_address}&quot;</span>))<span class="question-mark">?</span>;
 
-        <span class="macro">info!</span>(<span class="string">&quot;Client connected to service &#39;{service_name}&#39; at &#39;{server_address}&#39;&quot;</span>);
+        <span class="macro">info!</span>(<span class="string">&quot;Client connected to service at &#39;{server_address}&#39;&quot;</span>);
 
         <span class="prelude-val">Ok</span>(ClientConnection { requester })
     }
@@ -344,19 +430,17 @@
 <span class="doccomment">/// Implement a `ServerConnection` for sending and receiving messages between client and server
 </span><span class="kw">impl </span>ServerConnection {
     <span class="doccomment">/// Create a new Server side of the client/server Connection
-    </span><span class="kw">pub fn </span>new(service_name: <span class="kw-2">&amp;</span><span class="lifetime">&#39;static </span>str) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>&gt; {
+    </span><span class="kw">pub fn </span>new(service_name: <span class="kw-2">&amp;</span><span class="lifetime">&#39;static </span>str, port: u16) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>&gt; {
         <span class="kw">let </span>context = zmq::Context::new();
         <span class="kw">let </span>responder = context
             .socket(zmq::REP)
             .chain_err(|| <span class="string">&quot;Server Connection - could not create Socket&quot;</span>)<span class="question-mark">?</span>;
 
-        <span class="kw">let </span>port = pick_unused_port().chain_err(|| <span class="string">&quot;No ports free&quot;</span>)<span class="question-mark">?</span>;
         <span class="macro">debug!</span>(<span class="string">&quot;Server Connection attempting to bind to: tcp://*:{port}&quot;</span>);
         responder.bind(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;tcp://*:{port}&quot;</span>))
             .chain_err(||
                 <span class="macro">format!</span>(<span class="string">&quot;Server Connection - could not bind on TCP Socket on: tcp://{port}&quot;</span>))<span class="question-mark">?</span>;
 
-        enable_service_discovery(CLIENT_SERVER_DISCOVERY_PORT, service_name, port)<span class="question-mark">?</span>;
         <span class="macro">info!</span>(<span class="string">&quot;Service &#39;{}&#39; listening on *:{}&quot;</span>, service_name, port);
 
         <span class="prelude-val">Ok</span>(ServerConnection {
@@ -410,12 +494,11 @@
     <span class="kw">use </span>std::fmt;
     <span class="kw">use </span>std::time::Duration;
 
+    <span class="kw">use </span>portpicker::pick_unused_port;
     <span class="kw">use </span>serde_derive::{Deserialize, Serialize};
     <span class="kw">use </span>serial_test::serial;
 
-    <span class="kw">use </span>flowrlib::services::{DONT_WAIT, WAIT};
-
-    <span class="kw">use </span><span class="kw">crate</span>::cli::client_server::{ClientConnection, ServerConnection};
+    <span class="kw">use </span><span class="kw">crate</span>::cli::client_server::{ClientConnection, discover_service, DONT_WAIT, enable_service_discovery, ServerConnection, WAIT};
 
     <span class="attr">#[derive(Serialize, Deserialize, PartialEq, Eq, Debug)]
     </span><span class="kw">enum </span>ServerMessage {
@@ -472,9 +555,17 @@
     <span class="attr">#[test]
     #[serial]
     </span><span class="kw">fn </span>server_receive_wait_get_reply() {
-        <span class="kw">let </span><span class="kw-2">mut </span>server = ServerConnection::new(<span class="string">&quot;test&quot;</span>)
+        <span class="kw">let </span>test_port = pick_unused_port().expect(<span class="string">&quot;No ports free&quot;</span>);
+        <span class="kw">let </span><span class="kw-2">mut </span>server = ServerConnection::new(<span class="string">&quot;test&quot;</span>, test_port)
             .expect(<span class="string">&quot;Could not create ServerConnection&quot;</span>);
-        <span class="kw">let </span>client = ClientConnection::new(<span class="string">&quot;test&quot;</span>)
+
+        <span class="kw">let </span>discovery_port = pick_unused_port().expect(<span class="string">&quot;No ports free&quot;</span>);
+        enable_service_discovery(discovery_port, <span class="string">&quot;test&quot;</span>, test_port)
+            .expect(<span class="string">&quot;Could not enable service discovery&quot;</span>);
+
+        <span class="kw">let </span>server_address = discover_service(discovery_port, <span class="string">&quot;test&quot;</span>)
+            .expect(<span class="string">&quot;Could not discover service&quot;</span>);
+        <span class="kw">let </span>client = ClientConnection::new(<span class="kw-2">&amp;</span>server_address)
             .expect(<span class="string">&quot;Could not create ClientConnection&quot;</span>);
 
         <span class="comment">// Open the connection by sending the first message from the client
@@ -503,9 +594,16 @@
     <span class="attr">#[test]
     #[serial]
     </span><span class="kw">fn </span>server_receive_nowait_get_reply() {
-        <span class="kw">let </span><span class="kw-2">mut </span>server = ServerConnection::new(<span class="string">&quot;test&quot;</span>)
+        <span class="kw">let </span>test_port = pick_unused_port().expect(<span class="string">&quot;No ports free&quot;</span>);
+        <span class="kw">let </span><span class="kw-2">mut </span>server = ServerConnection::new(<span class="string">&quot;test&quot;</span>, test_port)
             .expect(<span class="string">&quot;Could not create ServerConnection&quot;</span>);
-        <span class="kw">let </span>client = ClientConnection::new(<span class="string">&quot;test&quot;</span>)
+        <span class="kw">let </span>discovery_port = pick_unused_port().expect(<span class="string">&quot;No ports free&quot;</span>);
+        enable_service_discovery(discovery_port, <span class="string">&quot;test&quot;</span>, test_port)
+            .expect(<span class="string">&quot;Could not enable service discovery&quot;</span>);
+
+        <span class="kw">let </span>server_address = discover_service(discovery_port, <span class="string">&quot;test&quot;</span>)
+            .expect(<span class="string">&quot;Could discovery service&quot;</span>);
+        <span class="kw">let </span>client = ClientConnection::new(<span class="kw-2">&amp;</span>server_address)
             .expect(<span class="string">&quot;Could not create ClientConnection&quot;</span>);
 
         <span class="comment">// Open the connection by sending the first message from the client
@@ -537,4 +635,4 @@
     }
 }
 </code></pre></div>
-</section></main><div id="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="flowr" data-themes="" data-resource-suffix="" data-rustdoc-version="1.68.0-nightly (8a97b4812 2022-12-22)" data-search-js="search-444266647c4dba98.js" data-settings-js="settings-bebeae96e00e4617.js" data-settings-css="settings-58836c674e2f7bd2.css" ></div></body></html>
+</section></main><div id="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="flowr" data-themes="" data-resource-suffix="" data-rustdoc-version="1.68.0-nightly (af3e06f1b 2022-12-23)" data-search-js="search-444266647c4dba98.js" data-settings-js="settings-bebeae96e00e4617.js" data-settings-css="settings-58836c674e2f7bd2.css" ></div></body></html>
