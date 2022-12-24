@@ -6,7 +6,7 @@ authors.workspace = true
 license.workspace = true
 documentation.workspace = true
 homepage.workspace = true
-repository = "https://github.com/andrewdavidmackenzie/flow/"
+repository.workspace = true
 readme.workspace = true
 edition.workspace = true
 
@@ -28,7 +28,7 @@ flowcore = {path = "../flowcore", version = "0.90.0", features = ["context"] }
 flowrlib = {path = "../flowrlib", version = "0.90.0", features = ["context", "submission"] }
 flowstdlib = {path = "../flowstdlib", version = "0.90.0" }
 clap = "~4"
-simplog = { version = "~1.6" }
+simplog = "~1.6"
 log = "0.4.6"
 simpath = { version = "~2.3", features = ["urls"]}
 url = { version = "2.2", features = ["serde"] }
@@ -39,8 +39,8 @@ error-chain = "0.12.2"
 multimap = "~0.8"
 portpicker = "0.1.1"
 zmq = "0.10.0"
-ctrlc = {version = "3.2.3"}
-image = {version = "=0.24.5"}
+image = "=0.24.5"
+simpdiscover = "0.6.2"
 
 # Optional dependencies
 rustyline = {version = "10.0.0", optional = true }

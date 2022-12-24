@@ -2,23 +2,31 @@
 pub mod test {
     use std::sync::{Arc, Mutex};
 
-    use flowrlib::services::WAIT;
+    use portpicker::pick_unused_port;
 
-    use crate::cli::client_server::{ClientConnection, ServerConnection};
+    use crate::cli::client_server::{ClientConnection, discover_service, enable_service_discovery,
+                                    ServerConnection, WAIT};
     use crate::cli::runtime_messages::{ClientMessage, ServerMessage};
 
     pub fn wait_for_then_send(
         wait_for_message: ServerMessage,
         then_send: ClientMessage,
     ) -> Arc<Mutex<ServerConnection>> {
+        let test_port = pick_unused_port().expect("No ports free");
         let server_connection = Arc::new(Mutex::new(
-            ServerConnection::new("foo")
+            ServerConnection::new("foo", test_port)
                 .expect("Could not create server connection"),
         ));
+        let discovery_port = pick_unused_port().expect("No ports free");
+        enable_service_discovery(discovery_port, "foo",
+                                 test_port).expect("Could not enable service discovery");
 
         let connection = server_connection.lock()
             .expect("Could not get access to server connection");
-        let client_connection = ClientConnection::new("foo")
+
+        let server_address = discover_service(discovery_port, "foo")
+            .expect("Could discovery service");
+        let client_connection = ClientConnection::new(&server_address)
             .expect("Could not create ClientConnection");
 
         client_connection

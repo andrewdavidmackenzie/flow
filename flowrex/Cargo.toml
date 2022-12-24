@@ -30,6 +30,7 @@ clap = "~4"
 log = "0.4.6"
 url = "2.2"
 error-chain = "0.12.2"
+simpdiscover = "0.6.2"
 
 [workspace]
 exclude = [".."]

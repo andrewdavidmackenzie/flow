@@ -1,12 +1,51 @@
 use std::fmt::Display;
+use std::time::Duration;
 
 /// This is the message-queue implementation of the lib.client_server communications
 use log::{debug, info, trace};
-use portpicker::pick_unused_port;
 use zmq::Socket;
 
 use flowcore::errors::*;
-use flowrlib::services::{CLIENT_SERVER_DISCOVERY_PORT, discover_service, enable_service_discovery, WAIT};
+use simpdiscoverylib::{BeaconListener, BeaconSender};
+
+/// WAIT for a message to arrive when performing a receive()
+pub const WAIT:i32 = 0;
+
+/// Do NOT WAIT for a message to arrive when performing a receive()
+pub static DONT_WAIT:i32 = zmq::DONTWAIT;
+
+/// `RUNTIME_SERVICE_NAME` can be used to discover the runtime service by name
+pub const RUNTIME_SERVICE_NAME: &str = "runtime._flowr._tcp.local";
+
+/// `DEBUG_SERVICE_NAME` can be used to discover the debug service by name
+#[cfg(feature = "debugger")]
+pub const DEBUG_SERVICE_NAME: &str = "debug._flowr._tcp.local";
+
+/// Try to discover a server offering a particular service by name
+pub fn discover_service(discovery_port: u16, name: &str) -> Result<String> {
+    let listener = BeaconListener::new(name.as_bytes(), discovery_port)?;
+    let beacon = listener.wait(None)?;
+    let server_address = format!("{}:{}", beacon.service_ip, beacon.service_port);
+    Ok(server_address)
+}
+
+/// Start a background thread that sends out beacons for service discovery by a client every second
+pub fn enable_service_discovery(discovery_port: u16, name: &str, service_port: u16) -> Result<()> {
+    match BeaconSender::new(service_port, name.as_bytes(), discovery_port) {
+        Ok(beacon) => {
+            info!(
+                    "Discovery beacon announcing service named '{}', on port: {}",
+                    name, service_port
+                );
+            std::thread::spawn(move || {
+                let _ = beacon.send_loop(Duration::from_secs(1));
+            });
+        }
+        Err(e) => bail!("Error starting discovery beacon: {}", e.to_string()),
+    }
+
+    Ok(())
+}
 
 /// `ClientConnection` stores information related to the connection from a runtime client
 /// to the runtime server and is used each time a message is to be sent or received.
@@ -16,10 +55,8 @@ pub struct ClientConnection {
 
 impl ClientConnection {
     /// Create a new connection between client and server
-    pub fn new(service_name: &str) -> Result<Self> {
-        let server_address = discover_service(CLIENT_SERVER_DISCOVERY_PORT, service_name)?;
-
-        info!("Client will attempt to connect to service '{service_name}' at: '{server_address}'");
+    pub fn new(server_address: &str) -> Result<Self> {
+        info!("Client will attempt to connect to service at: '{server_address}'");
 
         let context = zmq::Context::new();
 
@@ -31,7 +68,7 @@ impl ClientConnection {
             .connect(&format!("tcp://{server_address}"))
             .chain_err(|| format!("Client Connection - Could not connect to socket at: {server_address}"))?;
 
-        info!("Client connected to service '{service_name}' at '{server_address}'");
+        info!("Client connected to service at '{server_address}'");
 
         Ok(ClientConnection { requester })
     }
@@ -75,19 +112,17 @@ pub struct ServerConnection {
 /// Implement a `ServerConnection` for sending and receiving messages between client and server
 impl ServerConnection {
     /// Create a new Server side of the client/server Connection
-    pub fn new(service_name: &'static str) -> Result<Self> {
+    pub fn new(service_name: &'static str, port: u16) -> Result<Self> {
         let context = zmq::Context::new();
         let responder = context
             .socket(zmq::REP)
             .chain_err(|| "Server Connection - could not create Socket")?;
 
-        let port = pick_unused_port().chain_err(|| "No ports free")?;
         debug!("Server Connection attempting to bind to: tcp://*:{port}");
         responder.bind(&format!("tcp://*:{port}"))
             .chain_err(||
                 format!("Server Connection - could not bind on TCP Socket on: tcp://{port}"))?;
 
-        enable_service_discovery(CLIENT_SERVER_DISCOVERY_PORT, service_name, port)?;
         info!("Service '{}' listening on *:{}", service_name, port);
 
         Ok(ServerConnection {
@@ -141,12 +176,11 @@ mod test {
     use std::fmt;
     use std::time::Duration;
 
+    use portpicker::pick_unused_port;
     use serde_derive::{Deserialize, Serialize};
     use serial_test::serial;
 
-    use flowrlib::services::{DONT_WAIT, WAIT};
-
-    use crate::cli::client_server::{ClientConnection, ServerConnection};
+    use crate::cli::client_server::{ClientConnection, discover_service, DONT_WAIT, enable_service_discovery, ServerConnection, WAIT};
 
     #[derive(Serialize, Deserialize, PartialEq, Eq, Debug)]
     enum ServerMessage {
@@ -203,9 +237,17 @@ mod test {
     #[test]
     #[serial]
     fn server_receive_wait_get_reply() {
-        let mut server = ServerConnection::new("test")
+        let test_port = pick_unused_port().expect("No ports free");
+        let mut server = ServerConnection::new("test", test_port)
             .expect("Could not create ServerConnection");
-        let client = ClientConnection::new("test")
+
+        let discovery_port = pick_unused_port().expect("No ports free");
+        enable_service_discovery(discovery_port, "test", test_port)
+            .expect("Could not enable service discovery");
+
+        let server_address = discover_service(discovery_port, "test")
+            .expect("Could not discover service");
+        let client = ClientConnection::new(&server_address)
             .expect("Could not create ClientConnection");
 
         // Open the connection by sending the first message from the client
@@ -234,9 +276,16 @@ mod test {
     #[test]
     #[serial]
     fn server_receive_nowait_get_reply() {
-        let mut server = ServerConnection::new("test")
+        let test_port = pick_unused_port().expect("No ports free");
+        let mut server = ServerConnection::new("test", test_port)
             .expect("Could not create ServerConnection");
-        let client = ClientConnection::new("test")
+        let discovery_port = pick_unused_port().expect("No ports free");
+        enable_service_discovery(discovery_port, "test", test_port)
+            .expect("Could not enable service discovery");
+
+        let server_address = discover_service(discovery_port, "test")
+            .expect("Could discovery service");
+        let client = ClientConnection::new(&server_address)
             .expect("Could not create ClientConnection");
 
         // Open the connection by sending the first message from the client

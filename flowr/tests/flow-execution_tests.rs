@@ -82,12 +82,17 @@ fn execute_flow_client_server(test_name: &str, manifest: PathBuf) -> Result<()> 
         .spawn()
         .expect("Failed to spawn flowr");
 
+    // capture the discovery port
+    let stdout = server.stdout.as_mut().ok_or("Could not read stdout of server")?;
+    let mut discovery_port  = String::new();
+    stdout.read_to_string(&mut discovery_port)?;
+
     let mut client = Command::new("flowr");
     let manifest_str = manifest.to_string_lossy();
-    let client_args =  vec!["-c", &manifest_str];
+    let client_args =  vec!["-c", &discovery_port, &manifest_str];
     println!("Starting 'flowr' client with command line: 'flowr {}'", client_args.join(" "));
 
-    // spawn the 'flowr' process
+    // spawn the 'flowr' client process
     let mut runner = client
         .args(client_args)
         .stdin(Stdio::piped())
@@ -281,6 +286,7 @@ fn doesnt_create_if_not_exist() {
     assert!(!non_existent.exists(), "File {non_existent_test} should not have been created");
 }
 
+#[ignore]
 #[test]
 #[serial]
 fn hello_world_client_server() {

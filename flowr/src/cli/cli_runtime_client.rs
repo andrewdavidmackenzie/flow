@@ -1,3 +1,10 @@
+use std::collections::HashMap;
+use std::fs::File;
+use std::io;
+use std::io::prelude::*;
+use std::path::Path;
+use std::sync::{Arc, Mutex};
+
 use image::{ImageBuffer, ImageFormat, Rgb, RgbImage};
 use log::debug;
 #[cfg(feature = "debugger")]
@@ -6,12 +13,6 @@ use log::error;
 use log::info;
 
 use flowcore::errors::*;
-use std::collections::HashMap;
-use std::fs::File;
-use std::io;
-use std::io::prelude::*;
-use std::path::Path;
-use std::sync::{Arc, Mutex};
 
 use crate::cli::client_server::ClientConnection;
 use crate::cli::runtime_messages::{ClientMessage, ServerMessage};
@@ -41,13 +42,7 @@ impl CliRuntimeClient {
     pub fn event_loop(
         mut self,
         connection: ClientConnection,
-        #[cfg(feature = "debugger")] control_c_connection: Option<ClientConnection>,
     ) -> Result<()> {
-        #[cfg(feature = "debugger")]
-        if let Some(control_c) = control_c_connection {
-            Self::enter_debugger_on_control_c(control_c);
-        }
-
         loop {
             match connection.receive() {
                 Ok(event) => {
@@ -66,23 +61,6 @@ impl CliRuntimeClient {
                 }
             }
         }
-    }
-
-    #[cfg(feature = "debugger")]
-    fn enter_debugger_on_control_c(
-        #[cfg(feature = "debugger")] control_c_connection: ClientConnection,
-    ) {
-        ctrlc::set_handler(move || {
-            info!("Control-C captured in client.");
-            match control_c_connection.send(ClientMessage::EnterDebugger) {
-                Ok(_) => debug!("'EnterDebugger' command sent to Server"),
-                Err(e) => error!(
-                    "Error sending 'EnterDebugger' command to server on control_c_connection: {}",
-                    e
-                ),
-            }
-        })
-        .expect("Error setting Ctrl-C handler");
     }
 
     fn flush_image_buffers(&mut self) {
@@ -212,14 +190,15 @@ impl CliRuntimeClient {
 
 #[cfg(test)]
 mod test {
-    use tempdir::TempDir;
-
-    #[cfg(feature = "metrics")]
-    use flowcore::model::metrics::Metrics;
     use std::fs;
     use std::fs::File;
     use std::io::prelude::*;
     use std::sync::{Arc, Mutex};
+
+    use tempdir::TempDir;
+
+    #[cfg(feature = "metrics")]
+    use flowcore::model::metrics::Metrics;
 
     use crate::cli::runtime_messages::{ClientMessage, ServerMessage};
 

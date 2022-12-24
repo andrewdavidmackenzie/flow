@@ -51,6 +51,7 @@ impl Implementation for Get {
 mod test {
     use std::sync::{Arc, Mutex};
 
+    use portpicker::pick_unused_port;
     use serde_json::json;
     use serial_test::serial;
 
@@ -66,9 +67,10 @@ mod test {
     #[test]
     #[serial]
     fn gets_args_no_client() {
+        let test_port = pick_unused_port().expect("No ports free");
         let getter = &Get {
             server_connection: Arc::new(Mutex::new(
-                ServerConnection::new("foo")
+                ServerConnection::new("foo", test_port)
                     .expect("Could not create server connection"),
             )),
         } as &dyn Implementation;

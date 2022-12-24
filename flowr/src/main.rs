@@ -49,7 +49,11 @@ use flowrlib::coordinator::Coordinator;
 use flowrlib::dispatcher::Dispatcher;
 use flowrlib::executor::Executor;
 use flowrlib::info as flowrlib_info;
-use flowrlib::services::{CONTROL_SERVICE_NAME, DEBUG_SERVICE_NAME, enable_service_discovery, JOB_QUEUES_DISCOVERY_PORT, JOB_SERVICE_NAME, RESULTS_JOB_SERVICE_NAME, RUNTIME_SERVICE_NAME};
+use flowrlib::services::{CONTROL_SERVICE_NAME, JOB_QUEUES_DISCOVERY_PORT, JOB_SERVICE_NAME,
+                         RESULTS_JOB_SERVICE_NAME};
+
+use crate::cli::client_server::{DEBUG_SERVICE_NAME, discover_service,
+                                enable_service_discovery, RUNTIME_SERVICE_NAME};
 
 #[cfg(feature = "debugger")]
 /// provides the `context functions` for interacting with the execution environment from a flow,
@@ -60,18 +64,6 @@ mod cli;
 /// provides [Error][errors::Error] that other modules in this crate will `use crate::errors::*;` to get
 /// access to everything `error_chain` creates.
 mod errors;
-
-/// Mode of execution of the [Coordinator][flowrlib::coordinator::Coordinator] of flow execution
-#[derive(PartialEq, Eq, Clone, Debug)]
-enum Mode {
-    #[cfg(feature = "debugger")]
-    /// [Coordinator][flowrlib::coordinator::Coordinator] runs as just a client for a server running in another process
-    ClientOnly,
-    /// [Coordinator][flowrlib::coordinator::Coordinator] runs as just a server, clients must run in another process
-    ServerOnly,
-    /// [Coordinator][flowrlib::coordinator::Coordinator] runs as a client and s server in different threads of the same process
-    ClientAndServer,
-}
 
 /// Main for flowr binary - call `run()` and print any error that results or exit silently if OK
 fn main() {
@@ -93,7 +85,7 @@ fn main() {
 ///
 /// Using the "FLOW_LIB_PATH" environment variable attempt to locate the library's root folder
 /// in the file system.
-fn set_lib_search_path(search_path_additions: &[String]) -> Result<Simpath> {
+fn setup_lib_search_path(search_path_additions: &[String]) -> Result<Simpath> {
     let mut lib_search_path = Simpath::new_with_separator("FLOW_LIB_PATH", ',');
 
     if env::var("FLOW_LIB_PATH").is_err() && search_path_additions.is_empty() {
@@ -136,44 +128,33 @@ fn run() -> Result<()> {
     } else {
         vec![]
     };
-    let lib_search_path = set_lib_search_path(&lib_dirs)?;
-
-    let mode = if matches.get_flag("client") {
-        Mode::ClientOnly
-    } else if matches.get_flag("server") {
-        Mode::ServerOnly
-    } else {
-        Mode::ClientAndServer
-    };
-
-    info!("Starting 'flowr' in {:?} mode", mode);
-
+    let lib_search_path = setup_lib_search_path(&lib_dirs)?;
     let num_threads = num_threads(&matches);
 
-    match mode {
-        Mode::ServerOnly => server_only(
+    if let Some(discovery_port) = matches.get_one::<u16>("client") {
+        client_only(
+            &matches,
+            lib_search_path,
+            #[cfg(feature = "debugger")] debug_this_flow,
+            discovery_port,
+        )?;
+    } else if matches.get_flag("server") {
+        server_only(
             num_threads,
             lib_search_path,
             native_flowstdlib,
             context_only,
-        )?,
-        #[cfg(feature = "debugger")]
-        Mode::ClientOnly => client_only(
-            matches,
-            lib_search_path,
-            #[cfg(feature = "debugger")]
-            debug_this_flow,
-        )?,
-        Mode::ClientAndServer => client_and_server(
+        )?;
+    } else {
+        client_and_server(
             num_threads,
             lib_search_path,
             native_flowstdlib,
-            matches,
-            #[cfg(feature = "debugger")]
-            debug_this_flow,
+            &matches,
+            #[cfg(feature = "debugger")] debug_this_flow,
             context_only,
-        )?,
-    }
+        )?;
+    };
 
     Ok(())
 }
@@ -185,9 +166,22 @@ fn server_only(
                 native_flowstdlib: bool,
                 context_only: bool,
                 ) -> Result<()> {
-    let runtime_server_connection = ServerConnection::new(RUNTIME_SERVICE_NAME)?;
+    let runtime_port = pick_unused_port().chain_err(|| "No ports free")?;
+    let runtime_server_connection = ServerConnection::new(RUNTIME_SERVICE_NAME,
+                                                          runtime_port)?;
+    let discovery_port = pick_unused_port().chain_err(|| "No ports free")?;
+    enable_service_discovery(discovery_port, RUNTIME_SERVICE_NAME,
+                             runtime_port)?;
+
     #[cfg(feature = "debugger")]
-    let debug_server_connection = ServerConnection::new(DEBUG_SERVICE_NAME)?;
+    let debug_port = pick_unused_port().chain_err(|| "No ports free")?;
+    #[cfg(feature = "debugger")]
+    let debug_server_connection = ServerConnection::new(DEBUG_SERVICE_NAME,
+        debug_port)?;
+    #[cfg(feature = "debugger")]
+    enable_service_discovery(discovery_port, DEBUG_SERVICE_NAME,debug_port)?;
+
+    println!("{discovery_port}");
 
     info!("Starting 'flowr' server process in main thread");
     server(
@@ -211,14 +205,24 @@ fn client_and_server(
     num_threads: usize,
     lib_search_path: Simpath,
     native: bool,
-    matches: ArgMatches,
+    matches: &ArgMatches,
     #[cfg(feature = "debugger")]
     debug_this_flow: bool,
     context_only: bool,
 ) -> Result<()> {
-    let runtime_server_connection = ServerConnection::new(RUNTIME_SERVICE_NAME)?;
+    let runtime_port = pick_unused_port().chain_err(|| "No ports free")?;
+    let runtime_server_connection = ServerConnection::new(RUNTIME_SERVICE_NAME,
+        runtime_port)?;
+
+    let discovery_port = pick_unused_port().chain_err(|| "No ports free")?;
+    enable_service_discovery(discovery_port, RUNTIME_SERVICE_NAME, runtime_port)?;
+
     #[cfg(feature = "debugger")]
-    let debug_server_connection = ServerConnection::new(DEBUG_SERVICE_NAME)?;
+    let debug_port = pick_unused_port().chain_err(|| "No ports free")?;
+    #[cfg(feature = "debugger")]
+    let debug_server_connection = ServerConnection::new(DEBUG_SERVICE_NAME,
+                                                        debug_port)?;
+    enable_service_discovery(discovery_port, DEBUG_SERVICE_NAME, debug_port)?;
 
     let server_lib_search_path = lib_search_path.clone();
 
@@ -235,22 +239,16 @@ fn client_and_server(
         );
     });
 
-    #[cfg(feature = "debugger")]
-    let control_c_client_connection = if debug_this_flow {
-        Some(ClientConnection::new(RUNTIME_SERVICE_NAME)?)
-    } else {
-        None
-    };
+    let server_address = discover_service(discovery_port, RUNTIME_SERVICE_NAME)?;
 
-    let runtime_client_connection = ClientConnection::new(RUNTIME_SERVICE_NAME)?;
+    let runtime_client_connection = ClientConnection::new(&server_address)?;
 
     client(
         matches,
         lib_search_path,
         runtime_client_connection,
-        #[cfg(feature = "debugger")] control_c_client_connection,
         #[cfg(feature = "debugger")] debug_this_flow,
-        #[cfg(feature = "debugger")] DEBUG_SERVICE_NAME,
+        #[cfg(feature = "debugger")] discovery_port,
     )
 }
 
@@ -370,50 +368,41 @@ fn server(
 /// Start only a client in the calling thread. Since we are *only* starting a client in this
 /// process, we don't have server information, so we create a set of ServerInfo from command
 /// line options for the server address and known service names and ports.
-#[cfg(feature = "debugger")]
 fn client_only(
-    matches: ArgMatches,
+    matches: &ArgMatches,
     lib_search_path: Simpath,
     #[cfg(feature = "debugger")] debug_this_flow: bool,
+    discovery_port: &u16,
 ) -> Result<()> {
-    #[cfg(feature = "debugger")]
-        let control_c_client_connection = if debug_this_flow {
-        Some(ClientConnection::new(RUNTIME_SERVICE_NAME)?)
-    } else {
-        None
-    };
-
-    let context_client_connection = ClientConnection::new(RUNTIME_SERVICE_NAME)?;
+    let server_address = discover_service(*discovery_port, RUNTIME_SERVICE_NAME)?;
+    let context_client_connection = ClientConnection::new(&server_address)?;
 
     client(
         matches,
         lib_search_path,
         context_client_connection,
-        #[cfg(feature = "debugger")] control_c_client_connection,
         #[cfg(feature = "debugger")] debug_this_flow,
-        #[cfg(feature = "debugger")] DEBUG_SERVICE_NAME,
+        #[cfg(feature = "debugger")] *discovery_port,
     )
 }
 
 /// Start the clients that talks to the server thread or process
 #[cfg(feature = "debugger")]
 fn client(
-    matches: ArgMatches,
+    matches: &ArgMatches,
     lib_search_path: Simpath,
     runtime_client_connection: ClientConnection,
-    #[cfg(feature = "debugger")]
-    control_c_client_connection: Option<ClientConnection>,
     #[cfg(feature = "debugger")] debug_this_flow: bool,
-    #[cfg(feature = "debugger")] debug_service_name: &str,
+    #[cfg(feature = "debugger")] discovery_post: u16,
 ) -> Result<()> {
     // keep an Arc Mutex protected set of override args that debug client can override
     let override_args = Arc::new(Mutex::new(Vec::<String>::new()));
 
-    let flow_manifest_url = parse_flow_url(&matches)?;
+    let flow_manifest_url = parse_flow_url(matches)?;
     let provider = MetaProvider::new(lib_search_path, PathBuf::from("/"));
     let (flow_manifest, _) = FlowManifest::load(&provider, &flow_manifest_url)?;
 
-    let flow_args = get_flow_args(&matches, &flow_manifest_url);
+    let flow_args = get_flow_args(matches, &flow_manifest_url);
     let parallel_jobs_limit = matches.get_one::<usize>("jobs")
         .map(|i| i.to_owned());
     let submission = Submission::new(
@@ -432,7 +421,9 @@ fn client(
 
     #[cfg(feature = "debugger")]
     if debug_this_flow {
-        let debug_client_connection = ClientConnection::new(debug_service_name)?;
+        let server_address = discover_service(discovery_post,
+                                              DEBUG_SERVICE_NAME)?;
+        let debug_client_connection = ClientConnection::new(&server_address)?;
         let debug_client = CliDebugClient::new(debug_client_connection,
             override_args);
         let _ = thread::spawn(move || {
@@ -445,7 +436,6 @@ fn client(
 
     runtime_client.event_loop(
                                 runtime_client_connection,
-            #[cfg(feature = "debugger")] control_c_client_connection
     )?;
 
     Ok(())
@@ -496,24 +486,25 @@ fn get_matches() -> ArgMatches {
     let app = app
         .arg(Arg::new("server")
              .short('s')
-            .long("server")
-            .action(clap::ArgAction::SetTrue)
-            .conflicts_with("client")
-            .help("Launch as flowr server (only, no client)"),
+             .long("server")
+             .action(clap::ArgAction::SetTrue)
+             .conflicts_with("client")
+             .help("Launch as flowr server (only, no client)"),
         )
         .arg(Arg::new("client")
-            .short('c')
-            .long("client")
-            .action(clap::ArgAction::SetTrue)
-            .conflicts_with("server")
-            .help("Start flowr as a client (only, no server) to connect to a flowr server"),
+             .short('c')
+             .long("client")
+             .number_of_values(1)
+             .value_parser(clap::value_parser!(u16))
+             .conflicts_with("server")
+             .help("Start flowr as a client (only, no server) to connect to a flowr server"),
         )
         .arg(Arg::new("context")
-                 .short('C')
-                 .long("context")
-                 .action(clap::ArgAction::SetTrue)
-                 .conflicts_with("client")
-                 .help("Only execute 'context' jobs in the server"),
+             .short('C')
+             .long("context")
+             .action(clap::ArgAction::SetTrue)
+             .conflicts_with("client")
+             .help("Only execute 'context' jobs in the server"),
         )
         .arg(Arg::new("jobs")
             .short('j')
