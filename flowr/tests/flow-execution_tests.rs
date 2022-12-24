@@ -3,15 +3,15 @@
 #[macro_use]
 extern crate error_chain;
 
+use serial_test::serial;
+use tempdir::TempDir;
+
 use std::fmt::Write as FormatWrite;
 use std::fs::File;
 use std::io::{BufRead, BufReader, Read};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::process::Stdio;
-
-use serial_test::serial;
-use tempdir::TempDir;
 
 #[doc(hidden)]
 mod errors {
@@ -82,14 +82,15 @@ fn execute_flow_client_server(test_name: &str, manifest: PathBuf) -> Result<()> 
         .spawn()
         .expect("Failed to spawn flowr");
 
-    // capture the discovery port
+    // capture the discovery port by reading one line of stdout
     let stdout = server.stdout.as_mut().ok_or("Could not read stdout of server")?;
-    let mut discovery_port  = String::new();
-    stdout.read_to_string(&mut discovery_port)?;
+    let mut reader = BufReader::new(stdout);
+    let mut discovery_port = String::new();
+    reader.read_line(&mut discovery_port)?;
 
     let mut client = Command::new("flowr");
     let manifest_str = manifest.to_string_lossy();
-    let client_args =  vec!["-c", &discovery_port, &manifest_str];
+    let client_args =  vec!["-c", discovery_port.trim(), &manifest_str];
     println!("Starting 'flowr' client with command line: 'flowr {}'", client_args.join(" "));
 
     // spawn the 'flowr' client process
@@ -286,7 +287,6 @@ fn doesnt_create_if_not_exist() {
     assert!(!non_existent.exists(), "File {non_existent_test} should not have been created");
 }
 
-#[ignore]
 #[test]
 #[serial]
 fn hello_world_client_server() {
