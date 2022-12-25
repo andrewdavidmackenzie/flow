@@ -130,7 +130,7 @@ fn generate_code(function_implementation: TokenStream,
 
     check_return_type(&implementation_ast.sig.output);
 
-    let input_list = input_conversion(&definition, definition_file_path,
+    let input_list = input_conversion(&definition, definition_file_path.clone(),
                          &implementation_ast, implementation_file_path);
 
     let number_of_defined_inputs = definition.inputs.len();
@@ -153,6 +153,19 @@ fn generate_code(function_implementation: TokenStream,
     } else {
         quote! {
             // No documentation was supplied
+        }
+    };
+
+    let definition_comment = if let Some(definition_file) = definition_file_path.as_path().file_name() {
+        let definition_file_str = definition_file.to_string_lossy();
+        quote! {
+            #[doc = "\n### Definition\n```toml\n"]
+            #[doc = include_str!(#definition_file_str)]
+            #[doc = "\n```"]
+        }
+    } else {
+        quote! {
+            // No definition was found
         }
     };
 
@@ -209,6 +222,7 @@ fn generate_code(function_implementation: TokenStream,
         #implementation
 
         #docs_comment
+        #definition_comment
         #[derive(Debug)]
         pub struct #struct_name;
 

@@ -9,11 +9,6 @@ Current types supported are:
  * array - An JSON array of values that can be converted, they are converted one by one
  * object - a Map of names/objects that will also be printed out
  
-### Definition
-```toml
-{{#include to_string.toml}}
-```
-
 ### Include using
 ```toml
 [[process]]

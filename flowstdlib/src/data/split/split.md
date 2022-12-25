@@ -27,11 +27,6 @@ each of those is output as a token.
 Due to the splitting and recursion approach, the order of the output tokens is not the order
 they appear in the string.
 
-### Definition
-```toml
-{{#include split.toml}}
-```
-
 ### Include using
 ```toml
 [[process]]

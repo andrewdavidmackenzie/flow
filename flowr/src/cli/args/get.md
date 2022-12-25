@@ -1,11 +1,6 @@
 ## Args (//context/args/get)
 Get the arguments the flow was executed with
 
-### Definition
-```toml
-{{#include get.toml}}
-```
-
 ### Include using
 ```toml
 [[process]]
