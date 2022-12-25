@@ -1,11 +1,6 @@
 ## ImageBuffer (//context/image/image_buffer)
 Write `pixels` to an image buffer
 
-### Definition
-```toml
-{{#include image_buffer.toml}}
-```
-
 ### Include using
 ```toml
 [[process]]

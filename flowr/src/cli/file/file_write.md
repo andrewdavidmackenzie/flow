@@ -1,11 +1,6 @@
 ## Write (//context/file/write)
 Writes `bytes` of data supplied to the file named `filename`, creating it if necessary.
 
-### Definition
-```toml
-{{#include file_write.toml}}
-```
-
 ### Include using
 ```toml
 [[process]]

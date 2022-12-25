@@ -19,8 +19,3 @@ The left value is output on the "left-lte" output, right value is output on the 
 [[process]]
 source = "lib://flowstdlib/control/compare_switch"
 ```
-
-### Definition
-```toml
-{{#include compare_switch.toml}}
-```
