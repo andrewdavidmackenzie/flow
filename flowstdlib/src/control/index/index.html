@@ -143,36 +143,6 @@
                     <main>
                         <h2 id="index-flowstdlibcontrolindex"><a class="header" href="#index-flowstdlibcontrolindex">Index (//flowstdlib/control/index)</a></h2>
 <p>Pass thru a value based on the index of an item in the stream of values</p>
-<h3 id="definition"><a class="header" href="#definition">Definition</a></h3>
-<pre><code class="language-toml">function = &quot;index&quot;
-source = &quot;index.rs&quot;
-docs = &quot;index.md&quot;
-type = &quot;rust&quot;
-
-[[input]]
-name = &quot;value&quot; # - the stream of input values to select from
-
-[[input]]
-name = &quot;previous_value&quot; # - the loop-backed previous value to enable selecting &quot;last&quot;
-
-[[input]]
-name = &quot;previous_index&quot; # - the loop-backed previous index to enable counting
-type = &quot;number&quot;
-
-[[input]]
-name = &quot;select_index&quot; # th index to select from, where -1 = &quot;last&quot;
-type = &quot;number&quot;
-
-[[output]]
-name = &quot;index&quot; # the index of the value just processed and output on &quot;value&quot;
-type = &quot;number&quot;
-
-[[output]]
-name = &quot;value&quot; # the value just processed
-
-[[output]]
-name = &quot;selected_value&quot; # the value selected by index - only output when selected
-</code></pre>
 <h3 id="include-using"><a class="header" href="#include-using">Include using</a></h3>
 <pre><code class="language-toml">[[process]]
 source = &quot;lib://flowstdlib/control/index&quot;

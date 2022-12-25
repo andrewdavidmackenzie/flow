@@ -145,18 +145,6 @@
 <p>Enumerate the elements of an array</p>
 <p>With an input array such as <code>[&quot;a&quot;, &quot;b&quot;]</code> it will assign an index to each element
 and produce an output array of tuples (array of two elements) such as <code>[[0, &quot;a&quot;], [1, &quot;b&quot;]]</code></p>
-<h3 id="definition"><a class="header" href="#definition">Definition</a></h3>
-<pre><code class="language-toml">function = &quot;enumerate&quot;
-source = &quot;enumerate.rs&quot;
-docs = &quot;enumerate.md&quot;
-type = &quot;rust&quot;
-
-[[input]]
-type = &quot;array/&quot;          # e.g. [&quot;a&quot;, &quot;b&quot;]
-
-[[output]]
-type = &quot;array/array/&quot;  # e.g. [[0, &quot;a&quot;], [1, &quot;b&quot;]]
-</code></pre>
 <h3 id="include-using"><a class="header" href="#include-using">Include using</a></h3>
 <pre><code class="language-toml">[[process]]
 source = &quot;lib://flowstdlib/data/enumerate&quot;

@@ -144,44 +144,6 @@
                         <h2 id="compare-flowstdlibmathcompare"><a class="header" href="#compare-flowstdlibmathcompare">Compare (//flowstdlib/math/compare)</a></h2>
 <p>Compare two input values and output different boolean values depending on if the comparison
 is equal, greater than, greater than or equal, less than or less than or equal.</p>
-<h3 id="definition"><a class="header" href="#definition">Definition</a></h3>
-<pre><code class="language-toml">function = &quot;compare&quot;
-source = &quot;compare.rs&quot;
-docs = &quot;compare.md&quot;
-type = &quot;rust&quot;
-
-[[input]]
-name = &quot;left&quot; # - left hand input
-type = &quot;number&quot;
-
-[[input]]
-name = &quot;right&quot; # - right hand input
-type = &quot;number&quot;
-
-[[output]]
-name = &quot;equal&quot; # - `equal` - outputs true if the two values are equal
-type = &quot;boolean&quot;
-
-[[output]]
-name = &quot;ne&quot; # - `ne` - outputs true if the two values are not equal
-type = &quot;boolean&quot;
-
-[[output]]
-name = &quot;lt&quot; # - `lt` - outputs true if the left hand value is less than the right hand value
-type = &quot;boolean&quot;
-
-[[output]]
-name = &quot;lte&quot; # - `lte` - outputs true if the left hand value is less than or equal to the right hand value
-type = &quot;boolean&quot;
-
-[[output]]
-name = &quot;gt&quot; # - `gt` - outputs true if the left hand value is greater than the right hand value
-type = &quot;boolean&quot;
-
-[[output]]
-name = &quot;gte&quot; # - `gte` - outputs true if the left hand value is greater than or equal to the right hand value
-type = &quot;boolean&quot;
-</code></pre>
 <h3 id="include-using"><a class="header" href="#include-using">Include using</a></h3>
 <pre><code class="language-toml">[[process]]
 source = &quot;lib://flowstdlib/math/compare&quot;

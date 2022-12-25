@@ -252,6 +252,20 @@
 <a href="#252" id="252">252</a>
 <a href="#253" id="253">253</a>
 <a href="#254" id="254">254</a>
+<a href="#255" id="255">255</a>
+<a href="#256" id="256">256</a>
+<a href="#257" id="257">257</a>
+<a href="#258" id="258">258</a>
+<a href="#259" id="259">259</a>
+<a href="#260" id="260">260</a>
+<a href="#261" id="261">261</a>
+<a href="#262" id="262">262</a>
+<a href="#263" id="263">263</a>
+<a href="#264" id="264">264</a>
+<a href="#265" id="265">265</a>
+<a href="#266" id="266">266</a>
+<a href="#267" id="267">267</a>
+<a href="#268" id="268">268</a>
 </pre><pre class="rust"><code><span class="attr">#![deny(missing_docs)]
 #![feature(proc_macro_span)]
 </span><span class="doccomment">//! `flow_function` is a `proc_macro_attribute` macro that wraps a `fn` with a struct and a method
@@ -384,7 +398,7 @@
 
     check_return_type(<span class="kw-2">&amp;</span>implementation_ast.sig.output);
 
-    <span class="kw">let </span>input_list = input_conversion(<span class="kw-2">&amp;</span>definition, definition_file_path,
+    <span class="kw">let </span>input_list = input_conversion(<span class="kw-2">&amp;</span>definition, definition_file_path.clone(),
                          <span class="kw-2">&amp;</span>implementation_ast, implementation_file_path);
 
     <span class="kw">let </span>number_of_defined_inputs = definition.inputs.len();
@@ -407,6 +421,19 @@
     } <span class="kw">else </span>{
         <span class="macro">quote! </span>{
             <span class="comment">// No documentation was supplied
+        </span>}
+    };
+
+    <span class="kw">let </span>definition_comment = <span class="kw">if let </span><span class="prelude-val">Some</span>(definition_file) = definition_file_path.as_path().file_name() {
+        <span class="kw">let </span>definition_file_str = definition_file.to_string_lossy();
+        <span class="macro">quote! </span>{
+            <span class="attr">#[doc = <span class="string">&quot;\n### Definition\n```toml\n&quot;</span>]
+            #[doc = <span class="macro">include_str!</span>(#definition_file_str)]
+            #[doc = <span class="string">&quot;\n```&quot;</span>]
+        </span>}
+    } <span class="kw">else </span>{
+        <span class="macro">quote! </span>{
+            <span class="comment">// No definition was found
         </span>}
     };
 
@@ -463,6 +490,7 @@
         #implementation
 
         #docs_comment
+        #definition_comment
         <span class="attr">#[derive(Debug)]
         </span><span class="kw">pub struct </span>#struct_name;
 

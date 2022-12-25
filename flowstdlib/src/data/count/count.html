@@ -144,24 +144,6 @@
                         <h2 id="count-flowstdlibdatacount"><a class="header" href="#count-flowstdlibdatacount">Count (//flowstdlib/data/count)</a></h2>
 <p>Takes a value on it's input and sends the same value on it's output and adds one to the count
 received on 'count' input and outputs new count on 'count' output</p>
-<h3 id="definition"><a class="header" href="#definition">Definition</a></h3>
-<pre><code class="language-toml">function = &quot;count&quot;
-source = &quot;count.rs&quot;
-docs = &quot;count.md&quot;
-type = &quot;rust&quot;
-
-[[input]]
-name = &quot;data&quot; # the value to count and pass on
-
-[[input]]
-name = &quot;count&quot; # - the count before this data item
-
-[[output]]
-name = &quot;data&quot; # - the value passed on
-
-[[output]]
-name = &quot;count&quot; # - the incremented count of values passed thru
-</code></pre>
 <h3 id="include-using"><a class="header" href="#include-using">Include using</a></h3>
 <pre><code class="language-toml">[[process]]
 source = &quot;lib://flowstdlib/data/count&quot;

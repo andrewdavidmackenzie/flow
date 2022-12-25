@@ -143,42 +143,6 @@
                     <main>
                         <h2 id="range-flowstdlibmathrange"><a class="header" href="#range-flowstdlibmathrange">Range (//flowstdlib/math/range)</a></h2>
 <p>Generate numbers within a rnage</p>
-<h3 id="definition"><a class="header" href="#definition">Definition</a></h3>
-<pre><code class="language-toml">flow = &quot;range&quot;
-docs = &quot;range.md&quot;
-
-# The range to generate: [min, max] both are inclusive
-[[input]]
-name = &quot;range&quot;
-type = &quot;array/number&quot;
-
-# The series of numbers in the range generated
-[[output]]
-name = &quot;number&quot;
-type = &quot;number&quot;
-
-[[process]]
-alias = &quot;range_split&quot;
-source = &quot;lib://flowstdlib/math/range_split&quot;
-
-[[connection]]
-from = &quot;input/range&quot;
-to = &quot;range_split/range&quot;
-
-# Send the numbers (ranges that cannot be split further) to the output
-[[connection]]
-from = &quot;range_split/same&quot;
-to = &quot;output/number&quot;
-
-# Feedback the two sub-ranges for further splitting
-[[connection]]
-from = &quot;range_split/bottom&quot;
-to = &quot;range_split/range&quot;
-
-[[connection]]
-from = &quot;range_split/top&quot;
-to = &quot;range_split/range&quot;
-</code></pre>
 <h3 id="include-using"><a class="header" href="#include-using">Include using</a></h3>
 <pre><code class="language-toml">[[process]]
 source = &quot;lib://flowstdlib/math/range&quot;

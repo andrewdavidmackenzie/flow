@@ -144,52 +144,6 @@
                         <h2 id="index_f-flowstdlibcontrolindex_f"><a class="header" href="#index_f-flowstdlibcontrolindex_f">index_f (//flowstdlib/control/index_f)</a></h2>
 <p>A flow wrapper for the <a href="index/index.html">index</a> function to simplify its use by supplying most frequently
 used initializers to some inputs. </p>
-<h3 id="definition"><a class="header" href="#definition">Definition</a></h3>
-<pre><code class="language-toml">flow = &quot;index_f&quot;
-docs = &quot;index_f.md&quot;
-
-[metadata]
-description = &quot;A wrapper flow to simplify the use of the index function for standard use cases&quot;
-
-[[input]]
-name = &quot;value&quot;
-
-[[input]]
-name = &quot;select_index&quot;
-type = &quot;number&quot;
-
-[[output]]
-name = &quot;selected_value&quot;
-
-# the index function we wrap
-[[process]]
-source = &quot;lib://flowstdlib/control/index&quot;
-input.previous_index = { once = -1 } # so first value through will get an index of 0
-input.previous_value = { once = 42 } # fake
-
-# connect up inputs
-[[connection]]
-from = &quot;input/value&quot;
-to = &quot;index/value&quot;
-
-[[connection]]
-from = &quot;input/select_index&quot;
-to = &quot;index/select_index&quot;
-
-# loopback connections
-[[connection]]
-from = &quot;index/value&quot;
-to = &quot;index/previous_value&quot;
-
-[[connection]]
-from = &quot;index/index&quot;
-to = &quot;index/previous_index&quot;
-
-# connect up output
-[[connection]]
-from = &quot;index/selected_value&quot;
-to = &quot;output/selected_value&quot;
-</code></pre>
 <h3 id="include-using"><a class="header" href="#include-using">Include using</a></h3>
 <pre><code class="language-toml">[[process]]
 source = &quot;lib://flowstdlib/control/index_f&quot;

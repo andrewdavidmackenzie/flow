@@ -143,23 +143,6 @@
                     <main>
                         <h2 id="accumulate-flowstdlibdataappend"><a class="header" href="#accumulate-flowstdlibdataappend">Accumulate (//flowstdlib/data/append)</a></h2>
 <p>Append two strings</p>
-<h3 id="definition"><a class="header" href="#definition">Definition</a></h3>
-<pre><code class="language-toml">function = &quot;append&quot;
-source = &quot;append.rs&quot;
-docs = &quot;append.md&quot;
-type = &quot;rust&quot;
-
-[[input]]
-name = &quot;s1&quot;
-type = &quot;string&quot;
-
-[[input]]
-name = &quot;s2&quot;
-type = &quot;string&quot;
-
-[[output]]
-type = &quot;string&quot; # - The Concatenated string
-</code></pre>
 <h3 id="include-using"><a class="header" href="#include-using">Include using</a></h3>
 <pre><code class="language-toml">[[process]]
 source = &quot;lib://flowstdlib/data/append&quot;

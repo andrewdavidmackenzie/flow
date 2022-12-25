@@ -143,20 +143,6 @@
                     <main>
                         <h2 id="join-flowstdlibcontroljoin"><a class="header" href="#join-flowstdlibcontroljoin">Join (//flowstdlib/control/join)</a></h2>
 <p>Control the flow of a piece of data by waiting for a second value to be available</p>
-<h3 id="definition"><a class="header" href="#definition">Definition</a></h3>
-<pre><code class="language-toml">function = &quot;join&quot;
-source = &quot;join.rs&quot;
-docs = &quot;join.md&quot;
-type = &quot;rust&quot;
-
-[[input]]
-name = &quot;data&quot; # - the data we wish to control the flow of
-
-[[input]]
-name = &quot;control&quot; # - a second value we wait on
-
-[[output]]
-</code></pre>
 <h3 id="include-using"><a class="header" href="#include-using">Include using</a></h3>
 <pre><code class="language-toml">[[process]]
 source = &quot;lib://flowstdlib/control/join&quot;

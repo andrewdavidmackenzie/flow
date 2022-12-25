@@ -143,28 +143,6 @@
                     <main>
                         <h2 id="imagebuffer-contextimageimage_buffer"><a class="header" href="#imagebuffer-contextimageimage_buffer">ImageBuffer (//context/image/image_buffer)</a></h2>
 <p>Write <code>pixels</code> to an image buffer</p>
-<h3 id="definition"><a class="header" href="#definition">Definition</a></h3>
-<pre><code class="language-toml">function = &quot;image_buffer&quot;
-source = &quot;image_buffer.rs&quot;
-docs = &quot;image_buffer.md&quot;
-impure = true
-
-[[input]]
-name = &quot;pixel&quot;
-type = &quot;array/number&quot;
-
-[[input]]
-name = &quot;value&quot;
-type = &quot;array/number&quot;
-
-[[input]]
-name = &quot;size&quot;
-type = &quot;array/number&quot;
-
-[[input]]
-name = &quot;filename&quot;
-type = &quot;string&quot;
-</code></pre>
 <h3 id="include-using"><a class="header" href="#include-using">Include using</a></h3>
 <pre><code class="language-toml">[[process]]
 alias = &quot;buffer&quot;

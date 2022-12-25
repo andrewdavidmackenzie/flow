@@ -143,22 +143,6 @@
                     <main>
                         <h2 id="duplicate-flowstdlibdataduplicate"><a class="header" href="#duplicate-flowstdlibdataduplicate">Duplicate (//flowstdlib/data/duplicate)</a></h2>
 <p>Takes a value on it's input and sends the same value <code>factor</code> times in an array output</p>
-<h3 id="definition"><a class="header" href="#definition">Definition</a></h3>
-<pre><code class="language-toml">function = &quot;duplicate&quot;
-source = &quot;duplicate.rs&quot;
-docs = &quot;duplicate.md&quot;
-type = &quot;rust&quot;
-
-[[input]]
-name = &quot;value&quot; # - the value to duplicate, generic type (i.e. all types accepted)
-
-[[input]]
-name = &quot;factor&quot; # - how many times to duplicate the value in the output
-type = &quot;number&quot;
-
-[[output]]
-type = &quot;array/&quot; # - the array of duplicate values, of generic type (i.e. the same type as input)
-</code></pre>
 <h3 id="include-using"><a class="header" href="#include-using">Include using</a></h3>
 <pre><code class="language-toml">[[process]]
 source = &quot;lib://flowstdlib/data/duplicate&quot;

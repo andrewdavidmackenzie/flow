@@ -143,28 +143,6 @@
                     <main>
                         <h2 id="select-flowstdlibcontrolselect"><a class="header" href="#select-flowstdlibcontrolselect">Select (//flowstdlib/control/select)</a></h2>
 <p>Select which data to output, based on a boolean control value.</p>
-<h3 id="definition"><a class="header" href="#definition">Definition</a></h3>
-<pre><code class="language-toml">function = &quot;select&quot;
-source = &quot;select.rs&quot;
-docs = &quot;select.md&quot;
-type = &quot;rust&quot;
-
-[[input]]
-name = &quot;i1&quot;
-
-[[input]]
-name = &quot;i2&quot;
-
-[[input]]
-name = &quot;control&quot; # - a boolean value to selection of inputs passed to outputs
-type = &quot;boolean&quot;
-
-[[output]]
-name = &quot;select_i1&quot; # if `control` is true `i1` is selected for this output else `i2` is selected
-
-[[output]]
-name = &quot;select_i2&quot; # if `control` is true `i2` is selected for this output else `i1` is selected
-</code></pre>
 <h3 id="include-using"><a class="header" href="#include-using">Include using</a></h3>
 <pre><code class="language-toml">[[process]]
 source = &quot;lib://flowstdlib/control/select&quot;

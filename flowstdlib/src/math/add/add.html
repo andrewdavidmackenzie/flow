@@ -143,23 +143,6 @@
                     <main>
                         <h2 id="add-flowstdlibmathadd"><a class="header" href="#add-flowstdlibmathadd">Add (//flowstdlib/math/add)</a></h2>
 <p>Add two inputs to produce a new output</p>
-<h3 id="definition"><a class="header" href="#definition">Definition</a></h3>
-<pre><code class="language-toml">function = &quot;add&quot;
-source = &quot;add.rs&quot;
-docs = &quot;add.md&quot;
-type = &quot;rust&quot;
-
-[[input]]
-name = &quot;i1&quot; # - first input of type `Number`
-type = &quot;number&quot;
-
-[[input]]
-name = &quot;i2&quot; # - second input of type `Number`
-type = &quot;number&quot;
-
-[[output]]
-type = &quot;number&quot;
-</code></pre>
 <h3 id="include-using"><a class="header" href="#include-using">Include using</a></h3>
 <pre><code class="language-toml">[[process]]
 source = &quot;lib://flowstdlib/math/add&quot;

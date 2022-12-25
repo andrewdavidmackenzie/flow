@@ -144,23 +144,6 @@
                         <h2 id="orderedsplit-flowstdlibdataordered_split"><a class="header" href="#orderedsplit-flowstdlibdataordered_split">OrderedSplit (//flowstdlib/data/ordered_split)</a></h2>
 <p>Split a string into (possibly) its constituent parts based on a separator.</p>
 <p>It guarantees to produce an array of strings, ordered the same as the input string.</p>
-<h3 id="definition"><a class="header" href="#definition">Definition</a></h3>
-<pre><code class="language-toml">function = &quot;ordered_split&quot;
-source = &quot;ordered_split.rs&quot;
-docs = &quot;ordered_split.md&quot;
-type = &quot;rust&quot;
-
-[[input]]
-name = &quot;string&quot; # - the String to split
-type = &quot;string&quot;
-
-[[input]]
-name = &quot;separator&quot; # - the String to use as a separator
-type = &quot;string&quot;
-
-[[output]]
-type = &quot;array/string&quot;
-</code></pre>
 <h3 id="include-using"><a class="header" href="#include-using">Include using</a></h3>
 <pre><code class="language-toml">[[process]]
 source = &quot;lib://flowstdlib/data/ordered_split&quot;

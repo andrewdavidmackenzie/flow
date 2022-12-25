@@ -143,21 +143,6 @@
                     <main>
                         <h2 id="tap-flowstdlibcontroltap"><a class="header" href="#tap-flowstdlibcontroltap">Tap (//flowstdlib/control/tap)</a></h2>
 <p>Control the flow of data (flow it through this function, or have it disappear) based on a boolean control value.</p>
-<h3 id="definition"><a class="header" href="#definition">Definition</a></h3>
-<pre><code class="language-toml">function = &quot;tap&quot;
-source = &quot;tap.rs&quot;
-docs = &quot;tap.md&quot;
-type = &quot;rust&quot;
-
-[[input]]
-name = &quot;data&quot; # - the data flow we wish to control the flow if
-
-[[input]]
-name = &quot;control&quot; # - a boolean value to determine in `data` is passed on or not
-type = &quot;boolean&quot;
-
-[[output]] # `data` is output if `control` is true, nothing if `control` is false
-</code></pre>
 <h3 id="include-using"><a class="header" href="#include-using">Include using</a></h3>
 <pre><code class="language-toml">[[process]]
 source = &quot;lib://flowstdlib/control/tap&quot;

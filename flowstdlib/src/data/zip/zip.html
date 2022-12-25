@@ -143,24 +143,6 @@
                     <main>
                         <h2 id="zip-flowstdlibdatazip"><a class="header" href="#zip-flowstdlibdatazip">Zip (//flowstdlib/data/zip)</a></h2>
 <p>Takes two arrays of values and produce an array of tuples of pairs of values from each input array.</p>
-<h3 id="definition"><a class="header" href="#definition">Definition</a></h3>
-<pre><code class="language-toml">function = &quot;zip&quot;
-source = &quot;zip.rs&quot;
-docs = &quot;zip.md&quot;
-type = &quot;rust&quot;
-
-[[input]]
-name = &quot;left&quot; # - the 'left' array
-type = &quot;array/&quot;
-
-[[input]]
-name = &quot;right&quot; # - the 'right' array
-type = &quot;array/&quot;
-
-[[output]]
-name = &quot;tuples&quot; # - tuples - the array of tuples of (left, right)
-type = &quot;array/&quot;
-</code></pre>
 <h3 id="include-using"><a class="header" href="#include-using">Include using</a></h3>
 <pre><code class="language-toml">[[process]]
 source = &quot;lib://flowstdlib/data/zip&quot;

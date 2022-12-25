@@ -143,20 +143,6 @@
                     <main>
                         <h2 id="write-contextfilewrite"><a class="header" href="#write-contextfilewrite">Write (//context/file/write)</a></h2>
 <p>Writes <code>bytes</code> of data supplied to the file named <code>filename</code>, creating it if necessary.</p>
-<h3 id="definition"><a class="header" href="#definition">Definition</a></h3>
-<pre><code class="language-toml"> function = &quot;file_write&quot;
-source = &quot;file_write.rs&quot;
-docs = &quot;file_write.md&quot;
-impure = true
-
-[[input]]
-name = &quot;filename&quot;
-type = &quot;string&quot;
-
-[[input]]
-name = &quot;bytes&quot;
-type = &quot;array/number&quot;
-</code></pre>
 <h3 id="include-using"><a class="header" href="#include-using">Include using</a></h3>
 <pre><code class="language-toml">[[process]]
 alias = &quot;write&quot;

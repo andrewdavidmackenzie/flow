@@ -143,26 +143,6 @@
                     <main>
                         <h2 id="info-flowstdlibdatainfo"><a class="header" href="#info-flowstdlibdatainfo">Info (//flowstdlib/data/info)</a></h2>
 <p>Output info about the input value</p>
-<h3 id="definition"><a class="header" href="#definition">Definition</a></h3>
-<pre><code class="language-toml">function = &quot;info&quot;
-source = &quot;info.rs&quot;
-docs = &quot;info.md&quot;
-type = &quot;rust&quot;
-
-[[input]] # - Input value
-
-[[output]]
-name = &quot;type&quot; # - String identifying the type of the input value
-type = &quot;string&quot;
-
-[[output]]
-name = &quot;rows&quot; # - Number of rows in the input value
-type = &quot;number&quot;
-
-[[output]]
-name = &quot;columns&quot; # - Number of columns in the input value
-type = &quot;number&quot;
-</code></pre>
 <h3 id="include-using"><a class="header" href="#include-using">Include using</a></h3>
 <pre><code class="language-toml">[[process]]
 source = &quot;lib://flowstdlib/data/info&quot;

@@ -143,22 +143,6 @@
                     <main>
                         <h2 id="duplicaterows-flowstdlibdataduplicate_rows"><a class="header" href="#duplicaterows-flowstdlibdataduplicate_rows">DuplicateRows (//flowstdlib/data/duplicate_rows)</a></h2>
 <p>Duplicate the rows of a matrix</p>
-<h3 id="definition"><a class="header" href="#definition">Definition</a></h3>
-<pre><code class="language-toml">function = &quot;duplicate_rows&quot;
-source = &quot;duplicate_rows.rs&quot;
-docs = &quot;duplicate_rows.md&quot;
-type = &quot;rust&quot;
-
-[[input]]
-type = &quot;array/array/number&quot; # Input matrix
-
-[[input]]
-name = &quot;factor&quot; # - duplication factor
-type = &quot;number&quot;
-
-[[output]]
-type = &quot;array/array/number&quot; # - matrix with duplicated rows
-</code></pre>
 <h3 id="include-using"><a class="header" href="#include-using">Include using</a></h3>
 <pre><code class="language-toml">[[process]]
 source = &quot;lib://flowstdlib/data/duplicate_rows&quot;

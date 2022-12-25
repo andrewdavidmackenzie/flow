@@ -143,25 +143,6 @@
                     <main>
                         <h2 id="route-flowstdlibcontrolroute"><a class="header" href="#route-flowstdlibcontrolroute">Route (//flowstdlib/control/route)</a></h2>
 <p>Route data to one or another based on a boolean control value.</p>
-<h3 id="definition"><a class="header" href="#definition">Definition</a></h3>
-<pre><code class="language-toml">function = &quot;route&quot;
-source = &quot;route.rs&quot;
-docs = &quot;route.md&quot;
-type = &quot;rust&quot;
-
-[[input]]
-name = &quot;data&quot; # - the data flow we wish to control the flow if
-
-[[input]]
-name = &quot;control&quot; # - a boolean value to determine which output roue `data` is passed to
-type = &quot;boolean&quot;
-
-[[output]]
-name = &quot;true&quot; # `if `control` is true `data` is routed here
-
-[[output]]
-name = &quot;false&quot; # if `control` is false `data` is routed here
-</code></pre>
 <h3 id="include-using"><a class="header" href="#include-using">Include using</a></h3>
 <pre><code class="language-toml">[[process]]
 source = &quot;lib://flowstdlib/control/route&quot;

@@ -146,19 +146,6 @@
 but leading and trailing whitespace are trimmed before being output.</p>
 <p>The function will be scheduled for running again, until EOF is detected, after which it will not run
 again.</p>
-<h3 id="definition"><a class="header" href="#definition">Definition</a></h3>
-<pre><code class="language-toml">function = &quot;readline&quot;
-source = &quot;readline.rs&quot;
-docs = &quot;readline.md&quot;
-impure = true
-
-[[output]]
-name = &quot;string&quot;
-type = &quot;string&quot;
-
-[[output]]
-name = &quot;json&quot;
-</code></pre>
 <h3 id="include-using"><a class="header" href="#include-using">Include using</a></h3>
 <pre><code class="language-toml">[[process]]
 alias = &quot;readline&quot;
