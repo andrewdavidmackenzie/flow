@@ -75,12 +75,12 @@ fn main() -> io::Result<()> {
             for entry in fs::read_dir(samples_root)? {
                 let e = entry?;
                 if e.file_type()?.is_dir() && e.path().join("root.toml").exists() {
-                    run_sample(&e.path(), &samples_out_dir.join(e.file_name()), false)?
+                    run_sample(&e.path(), &samples_out_dir.join(e.file_name()), false, true)?
                 }
             }
         }
         2 => {
-            run_sample(&samples_dir.join(&args[1]), &samples_out_dir.join(&args[1]), false)?
+            run_sample(&samples_dir.join(&args[1]), &samples_out_dir.join(&args[1]), false, true)?
         }
         _ => eprintln!("Usage: {} <optional_sample_directory_name>", args[0]),
     }
@@ -89,7 +89,7 @@ fn main() -> io::Result<()> {
 }
 
 /// Run one specific flow sample
-fn run_sample(sample_dir: &Path, output_dir: &Path, flowrex: bool) -> io::Result<()> {
+fn run_sample(sample_dir: &Path, output_dir: &Path, flowrex: bool, native: bool) -> io::Result<()> {
     let manifest_path = output_dir.join("manifest.json");
     println!("\n\tRunning Sample: {:?}", sample_dir.file_name());
     assert!(manifest_path.exists(), "Manifest not found at '{}'", manifest_path.display());
@@ -100,7 +100,11 @@ fn run_sample(sample_dir: &Path, output_dir: &Path, flowrex: bool) -> io::Result
     println!("\t\tSTDERR to {TEST_STDERR_FILENAME}");
     println!("\t\tFile output to {TEST_FILE_FILENAME}");
 
-    let mut command_args: Vec<String> = vec!["--native".into()];
+    let mut command_args: Vec<String> = if native {
+        vec!["--native".into()]
+    } else {
+        vec![]
+    };
 
     if flowrex {
         command_args.push("--context".into())
@@ -199,15 +203,15 @@ fn args(sample_dir: &Path) -> io::Result<Vec<String>> {
 
 #[cfg(test)]
 mod test {
+    use serial_test::serial;
+
     use std::fs;
     use std::path::{Path, PathBuf};
     use std::process::{Command, Stdio};
 
-    use serial_test::serial;
-
     use crate::{EXPECTED_FILE_FILENAME, EXPECTED_STDOUT_FILENAME, TEST_FILE_FILENAME, TEST_STDERR_FILENAME, TEST_STDOUT_FILENAME};
 
-    fn test_sample(name: &str, flowrex: bool) {
+    fn test_sample(name: &str, flowrex: bool, native: bool) {
         let samples_root = env!("CARGO_MANIFEST_DIR");
         let samples_dir = Path::new(samples_root);
         let sample_dir = samples_dir.join(name);
@@ -221,7 +225,7 @@ mod test {
         let _ = fs::remove_file(output_dir.join(TEST_FILE_FILENAME));
         let _ = fs::remove_file(output_dir.join(TEST_STDOUT_FILENAME));
 
-        super::run_sample(&sample_dir, &output_dir, flowrex)
+        super::run_sample(&sample_dir, &output_dir, flowrex, native)
             .expect("Running of test sample failed");
 
         check_test_output(&sample_dir, &output_dir);
@@ -270,98 +274,104 @@ mod test {
     #[test]
     #[serial]
     fn test_args() {
-        test_sample("args", false);
+        test_sample("args", false, true);
     }
 
     #[test]
     #[serial]
     fn test_arrays() {
-        test_sample("arrays", false);
+        test_sample("arrays", false, true);
     }
 
     #[test]
     #[serial]
     fn test_factorial() {
-        test_sample("factorial", false);
+        test_sample("factorial", false, true);
     }
 
     #[test]
     #[serial]
     fn test_fibonacci() {
-        test_sample("fibonacci", false);
+        test_sample("fibonacci", false, true);
+    }
+
+    #[test]
+    #[serial]
+    fn test_fibonacci_wasm() {
+        test_sample("fibonacci", false, false);
     }
 
     #[test]
     #[serial]
     fn test_fibonacci_flowrex() {
-        test_sample("fibonacci", true);
+        test_sample("fibonacci", true, true);
     }
 
     #[test]
     #[serial]
     fn test_hello_world() {
-        test_sample("hello-world", false);
+        test_sample("hello-world", false, true);
     }
 
     #[test]
     #[serial]
     fn test_matrix_mult() {
-        test_sample("matrix_mult", false);
+        test_sample("matrix_mult", false, true);
     }
 
     #[test]
     #[serial]
     fn test_pipeline() {
-        test_sample("pipeline", false);
+        test_sample("pipeline", false, true);
     }
 
     #[test]
     #[serial]
     fn test_primitives() {
-        test_sample("primitives", false);
+        test_sample("primitives", false, true);
     }
 
     #[test]
     #[serial]
     fn test_sequence() {
-        test_sample("sequence", false);
+        test_sample("sequence", false, true);
     }
 
     #[test]
     #[serial]
     fn test_sequence_of_sequences() {
-        test_sample("sequence-of-sequences", false);
+        test_sample("sequence-of-sequences", false, true);
     }
 
     #[test]
     #[serial]
     fn test_router() {
-        test_sample("router", false);
+        test_sample("router", false, true);
     }
 
     #[test]
     #[serial]
     fn test_tokenizer() {
-        test_sample("tokenizer", false);
+        test_sample("tokenizer", false, true);
     }
 
     // This sample uses provided implementations and hence is executing WASM
     #[test]
     #[serial]
     fn test_reverse_echo() {
-        test_sample("reverse-echo", false);
+        test_sample("reverse-echo", false, true);
     }
 
     // This sample uses provided implementations and hence is executing WASM
     #[test]
     #[serial]
     fn test_mandlebrot() {
-        test_sample("mandlebrot", false);
+        test_sample("mandlebrot", false, true);
     }
 
     #[test]
     #[serial]
     fn test_prime() {
-        test_sample("prime", false);
+        test_sample("prime", false, true);
     }
 }
