@@ -365,6 +365,16 @@
 <a href="#365" id="365">365</a>
 <a href="#366" id="366">366</a>
 <a href="#367" id="367">367</a>
+<a href="#368" id="368">368</a>
+<a href="#369" id="369">369</a>
+<a href="#370" id="370">370</a>
+<a href="#371" id="371">371</a>
+<a href="#372" id="372">372</a>
+<a href="#373" id="373">373</a>
+<a href="#374" id="374">374</a>
+<a href="#375" id="375">375</a>
+<a href="#376" id="376">376</a>
+<a href="#377" id="377">377</a>
 </pre><pre class="rust"><code><span class="doccomment">//! `flowsamples` is a set of sample flows, used to test and demonstrate flow, and different
 //! semantics and characteristics of flows that can be written.
 //!
@@ -442,12 +452,12 @@
             <span class="kw">for </span>entry <span class="kw">in </span>fs::read_dir(samples_root)<span class="question-mark">? </span>{
                 <span class="kw">let </span>e = entry<span class="question-mark">?</span>;
                 <span class="kw">if </span>e.file_type()<span class="question-mark">?</span>.is_dir() &amp;&amp; e.path().join(<span class="string">&quot;root.toml&quot;</span>).exists() {
-                    run_sample(<span class="kw-2">&amp;</span>e.path(), <span class="kw-2">&amp;</span>samples_out_dir.join(e.file_name()), <span class="bool-val">false</span>)<span class="question-mark">?
+                    run_sample(<span class="kw-2">&amp;</span>e.path(), <span class="kw-2">&amp;</span>samples_out_dir.join(e.file_name()), <span class="bool-val">false</span>, <span class="bool-val">true</span>)<span class="question-mark">?
                 </span>}
             }
         }
         <span class="number">2 </span>=&gt; {
-            run_sample(<span class="kw-2">&amp;</span>samples_dir.join(<span class="kw-2">&amp;</span>args[<span class="number">1</span>]), <span class="kw-2">&amp;</span>samples_out_dir.join(<span class="kw-2">&amp;</span>args[<span class="number">1</span>]), <span class="bool-val">false</span>)<span class="question-mark">?
+            run_sample(<span class="kw-2">&amp;</span>samples_dir.join(<span class="kw-2">&amp;</span>args[<span class="number">1</span>]), <span class="kw-2">&amp;</span>samples_out_dir.join(<span class="kw-2">&amp;</span>args[<span class="number">1</span>]), <span class="bool-val">false</span>, <span class="bool-val">true</span>)<span class="question-mark">?
         </span>}
         <span class="kw">_ </span>=&gt; <span class="macro">eprintln!</span>(<span class="string">&quot;Usage: {} &lt;optional_sample_directory_name&gt;&quot;</span>, args[<span class="number">0</span>]),
     }
@@ -456,7 +466,7 @@
 }
 
 <span class="doccomment">/// Run one specific flow sample
-</span><span class="kw">fn </span>run_sample(sample_dir: <span class="kw-2">&amp;</span>Path, output_dir: <span class="kw-2">&amp;</span>Path, flowrex: bool) -&gt; io::Result&lt;()&gt; {
+</span><span class="kw">fn </span>run_sample(sample_dir: <span class="kw-2">&amp;</span>Path, output_dir: <span class="kw-2">&amp;</span>Path, flowrex: bool, native: bool) -&gt; io::Result&lt;()&gt; {
     <span class="kw">let </span>manifest_path = output_dir.join(<span class="string">&quot;manifest.json&quot;</span>);
     <span class="macro">println!</span>(<span class="string">&quot;\n\tRunning Sample: {:?}&quot;</span>, sample_dir.file_name());
     <span class="macro">assert!</span>(manifest_path.exists(), <span class="string">&quot;Manifest not found at &#39;{}&#39;&quot;</span>, manifest_path.display());
@@ -467,7 +477,11 @@
     <span class="macro">println!</span>(<span class="string">&quot;\t\tSTDERR to {TEST_STDERR_FILENAME}&quot;</span>);
     <span class="macro">println!</span>(<span class="string">&quot;\t\tFile output to {TEST_FILE_FILENAME}&quot;</span>);
 
-    <span class="kw">let </span><span class="kw-2">mut </span>command_args: Vec&lt;String&gt; = <span class="macro">vec!</span>[<span class="string">&quot;--native&quot;</span>.into()];
+    <span class="kw">let </span><span class="kw-2">mut </span>command_args: Vec&lt;String&gt; = <span class="kw">if </span>native {
+        <span class="macro">vec!</span>[<span class="string">&quot;--native&quot;</span>.into()]
+    } <span class="kw">else </span>{
+        <span class="macro">vec!</span>[]
+    };
 
     <span class="kw">if </span>flowrex {
         command_args.push(<span class="string">&quot;--context&quot;</span>.into())
@@ -566,15 +580,15 @@
 
 <span class="attr">#[cfg(test)]
 </span><span class="kw">mod </span>test {
+    <span class="kw">use </span>serial_test::serial;
+
     <span class="kw">use </span>std::fs;
     <span class="kw">use </span>std::path::{Path, PathBuf};
     <span class="kw">use </span>std::process::{Command, Stdio};
 
-    <span class="kw">use </span>serial_test::serial;
-
     <span class="kw">use crate</span>::{EXPECTED_FILE_FILENAME, EXPECTED_STDOUT_FILENAME, TEST_FILE_FILENAME, TEST_STDERR_FILENAME, TEST_STDOUT_FILENAME};
 
-    <span class="kw">fn </span>test_sample(name: <span class="kw-2">&amp;</span>str, flowrex: bool) {
+    <span class="kw">fn </span>test_sample(name: <span class="kw-2">&amp;</span>str, flowrex: bool, native: bool) {
         <span class="kw">let </span>samples_root = <span class="macro">env!</span>(<span class="string">&quot;CARGO_MANIFEST_DIR&quot;</span>);
         <span class="kw">let </span>samples_dir = Path::new(samples_root);
         <span class="kw">let </span>sample_dir = samples_dir.join(name);
@@ -588,7 +602,7 @@
         <span class="kw">let _ </span>= fs::remove_file(output_dir.join(TEST_FILE_FILENAME));
         <span class="kw">let _ </span>= fs::remove_file(output_dir.join(TEST_STDOUT_FILENAME));
 
-        <span class="kw">super</span>::run_sample(<span class="kw-2">&amp;</span>sample_dir, <span class="kw-2">&amp;</span>output_dir, flowrex)
+        <span class="kw">super</span>::run_sample(<span class="kw-2">&amp;</span>sample_dir, <span class="kw-2">&amp;</span>output_dir, flowrex, native)
             .expect(<span class="string">&quot;Running of test sample failed&quot;</span>);
 
         check_test_output(<span class="kw-2">&amp;</span>sample_dir, <span class="kw-2">&amp;</span>output_dir);
@@ -637,99 +651,105 @@
     <span class="attr">#[test]
     #[serial]
     </span><span class="kw">fn </span>test_args() {
-        test_sample(<span class="string">&quot;args&quot;</span>, <span class="bool-val">false</span>);
+        test_sample(<span class="string">&quot;args&quot;</span>, <span class="bool-val">false</span>, <span class="bool-val">true</span>);
     }
 
     <span class="attr">#[test]
     #[serial]
     </span><span class="kw">fn </span>test_arrays() {
-        test_sample(<span class="string">&quot;arrays&quot;</span>, <span class="bool-val">false</span>);
+        test_sample(<span class="string">&quot;arrays&quot;</span>, <span class="bool-val">false</span>, <span class="bool-val">true</span>);
     }
 
     <span class="attr">#[test]
     #[serial]
     </span><span class="kw">fn </span>test_factorial() {
-        test_sample(<span class="string">&quot;factorial&quot;</span>, <span class="bool-val">false</span>);
+        test_sample(<span class="string">&quot;factorial&quot;</span>, <span class="bool-val">false</span>, <span class="bool-val">true</span>);
     }
 
     <span class="attr">#[test]
     #[serial]
     </span><span class="kw">fn </span>test_fibonacci() {
-        test_sample(<span class="string">&quot;fibonacci&quot;</span>, <span class="bool-val">false</span>);
+        test_sample(<span class="string">&quot;fibonacci&quot;</span>, <span class="bool-val">false</span>, <span class="bool-val">true</span>);
+    }
+
+    <span class="attr">#[test]
+    #[serial]
+    </span><span class="kw">fn </span>test_fibonacci_wasm() {
+        test_sample(<span class="string">&quot;fibonacci&quot;</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>);
     }
 
     <span class="attr">#[test]
     #[serial]
     </span><span class="kw">fn </span>test_fibonacci_flowrex() {
-        test_sample(<span class="string">&quot;fibonacci&quot;</span>, <span class="bool-val">true</span>);
+        test_sample(<span class="string">&quot;fibonacci&quot;</span>, <span class="bool-val">true</span>, <span class="bool-val">true</span>);
     }
 
     <span class="attr">#[test]
     #[serial]
     </span><span class="kw">fn </span>test_hello_world() {
-        test_sample(<span class="string">&quot;hello-world&quot;</span>, <span class="bool-val">false</span>);
+        test_sample(<span class="string">&quot;hello-world&quot;</span>, <span class="bool-val">false</span>, <span class="bool-val">true</span>);
     }
 
     <span class="attr">#[test]
     #[serial]
     </span><span class="kw">fn </span>test_matrix_mult() {
-        test_sample(<span class="string">&quot;matrix_mult&quot;</span>, <span class="bool-val">false</span>);
+        test_sample(<span class="string">&quot;matrix_mult&quot;</span>, <span class="bool-val">false</span>, <span class="bool-val">true</span>);
     }
 
     <span class="attr">#[test]
     #[serial]
     </span><span class="kw">fn </span>test_pipeline() {
-        test_sample(<span class="string">&quot;pipeline&quot;</span>, <span class="bool-val">false</span>);
+        test_sample(<span class="string">&quot;pipeline&quot;</span>, <span class="bool-val">false</span>, <span class="bool-val">true</span>);
     }
 
     <span class="attr">#[test]
     #[serial]
     </span><span class="kw">fn </span>test_primitives() {
-        test_sample(<span class="string">&quot;primitives&quot;</span>, <span class="bool-val">false</span>);
+        test_sample(<span class="string">&quot;primitives&quot;</span>, <span class="bool-val">false</span>, <span class="bool-val">true</span>);
     }
 
     <span class="attr">#[test]
     #[serial]
     </span><span class="kw">fn </span>test_sequence() {
-        test_sample(<span class="string">&quot;sequence&quot;</span>, <span class="bool-val">false</span>);
+        test_sample(<span class="string">&quot;sequence&quot;</span>, <span class="bool-val">false</span>, <span class="bool-val">true</span>);
     }
 
     <span class="attr">#[test]
     #[serial]
     </span><span class="kw">fn </span>test_sequence_of_sequences() {
-        test_sample(<span class="string">&quot;sequence-of-sequences&quot;</span>, <span class="bool-val">false</span>);
+        test_sample(<span class="string">&quot;sequence-of-sequences&quot;</span>, <span class="bool-val">false</span>, <span class="bool-val">true</span>);
     }
 
     <span class="attr">#[test]
     #[serial]
     </span><span class="kw">fn </span>test_router() {
-        test_sample(<span class="string">&quot;router&quot;</span>, <span class="bool-val">false</span>);
+        test_sample(<span class="string">&quot;router&quot;</span>, <span class="bool-val">false</span>, <span class="bool-val">true</span>);
     }
 
     <span class="attr">#[test]
     #[serial]
     </span><span class="kw">fn </span>test_tokenizer() {
-        test_sample(<span class="string">&quot;tokenizer&quot;</span>, <span class="bool-val">false</span>);
+        test_sample(<span class="string">&quot;tokenizer&quot;</span>, <span class="bool-val">false</span>, <span class="bool-val">true</span>);
     }
 
     <span class="comment">// This sample uses provided implementations and hence is executing WASM
     </span><span class="attr">#[test]
     #[serial]
     </span><span class="kw">fn </span>test_reverse_echo() {
-        test_sample(<span class="string">&quot;reverse-echo&quot;</span>, <span class="bool-val">false</span>);
+        test_sample(<span class="string">&quot;reverse-echo&quot;</span>, <span class="bool-val">false</span>, <span class="bool-val">true</span>);
     }
 
     <span class="comment">// This sample uses provided implementations and hence is executing WASM
     </span><span class="attr">#[test]
     #[serial]
     </span><span class="kw">fn </span>test_mandlebrot() {
-        test_sample(<span class="string">&quot;mandlebrot&quot;</span>, <span class="bool-val">false</span>);
+        test_sample(<span class="string">&quot;mandlebrot&quot;</span>, <span class="bool-val">false</span>, <span class="bool-val">true</span>);
     }
 
     <span class="attr">#[test]
     #[serial]
     </span><span class="kw">fn </span>test_prime() {
-        test_sample(<span class="string">&quot;prime&quot;</span>, <span class="bool-val">false</span>);
+        test_sample(<span class="string">&quot;prime&quot;</span>, <span class="bool-val">false</span>, <span class="bool-val">true</span>);
     }
 }
 </code></pre></div>
