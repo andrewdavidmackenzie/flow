@@ -323,9 +323,6 @@
 <a href="#323" id="323">323</a>
 <a href="#324" id="324">324</a>
 <a href="#325" id="325">325</a>
-<a href="#326" id="326">326</a>
-<a href="#327" id="327">327</a>
-<a href="#328" id="328">328</a>
 </pre><pre class="rust"><code><span class="attr">#![deny(missing_docs)]
 #![warn(clippy::unwrap_used)]
 #![allow(clippy::result_large_err)]
@@ -339,13 +336,8 @@
 //! Run `flowc --help` or `flowc -h` at the command line for a
 //! description of the command line options.
 
-</span><span class="kw">use </span>std::env;
-<span class="kw">use </span>std::path::PathBuf;
-<span class="kw">use </span>std::process::exit;
-
-<span class="kw">use </span>clap::{Arg, ArgMatches, Command};
-<span class="kw">use </span>colored::<span class="kw-2">*</span>;
-<span class="kw">use </span>log::{debug, error, info, warn};
+</span><span class="kw">use </span>clap::{Arg, ArgMatches, Command};
+<span class="kw">use </span>log::{debug, info, warn};
 <span class="kw">use </span>simpath::Simpath;
 <span class="kw">use </span>simplog::SimpleLogger;
 <span class="kw">use </span>url::Url;
@@ -355,6 +347,9 @@
 <span class="kw">use </span>flowcore::meta_provider::MetaProvider;
 <span class="kw">use </span>flowcore::url_helper::url_from_string;
 <span class="kw">use </span>lib_build::build_lib;
+<span class="kw">use </span>std::env;
+<span class="kw">use </span>std::path::PathBuf;
+<span class="kw">use </span>std::process::exit;
 
 <span class="kw">use </span><span class="kw">crate</span>::flow_compile::compile_and_execute_flow;
 
@@ -392,20 +387,19 @@
 <span class="kw">fn </span>main() {
     <span class="kw">match </span>run() {
         <span class="prelude-val">Err</span>(<span class="kw-2">ref </span>e) =&gt; {
-            <span class="macro">error!</span>(<span class="string">&quot;{}: {}&quot;</span>, <span class="string">&quot;error&quot;</span>.red(), e);
-
+            <span class="macro">eprintln!</span>(<span class="string">&quot;{e}&quot;</span>);
             <span class="kw">for </span>e <span class="kw">in </span>e.iter().skip(<span class="number">1</span>) {
-                <span class="macro">error!</span>(<span class="string">&quot;caused by: {}&quot;</span>, e);
+                <span class="macro">eprintln!</span>(<span class="string">&quot;caused by: {e}&quot;</span>);
             }
 
             <span class="comment">// The backtrace is generated if env var `RUST_BACKTRACE` is set to `1` or `full`
             </span><span class="kw">if let </span><span class="prelude-val">Some</span>(backtrace) = e.backtrace() {
-                <span class="macro">error!</span>(<span class="string">&quot;backtrace: {:?}&quot;</span>, backtrace);
+                <span class="macro">eprintln!</span>(<span class="string">&quot;backtrace: {backtrace:?}&quot;</span>);
             }
 
             exit(<span class="number">1</span>);
         }
-        <span class="prelude-val">Ok</span>(<span class="kw">_</span>) =&gt; exit(<span class="number">0</span>)
+        <span class="prelude-val">Ok</span>(<span class="kw">_</span>) =&gt; exit(<span class="number">0</span>),
     }
 }
 

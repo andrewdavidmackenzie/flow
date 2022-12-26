@@ -568,6 +568,11 @@
 <a href="#568" id="568">568</a>
 <a href="#569" id="569">569</a>
 <a href="#570" id="570">570</a>
+<a href="#571" id="571">571</a>
+<a href="#572" id="572">572</a>
+<a href="#573" id="573">573</a>
+<a href="#574" id="574">574</a>
+<a href="#575" id="575">575</a>
 </pre><pre class="rust"><code><span class="attr">#![deny(missing_docs)]
 #![warn(clippy::unwrap_used)]
 </span><span class="doccomment">//! `flowr` is a command line flow runner for running `flow` programs.
@@ -581,12 +586,7 @@
 //! The [cli] module implements a set of `context functions`, adapted to Terminal IO and local
 //! File System, that allow the flow program to interact with the environment where it is being run.
 
-</span><span class="kw">use </span>std::{env, thread};
-<span class="kw">use </span>std::path::PathBuf;
-<span class="kw">use </span>std::process::exit;
-<span class="kw">use </span>std::sync::{Arc, Mutex};
-
-<span class="kw">use </span>clap::{Arg, ArgMatches, Command};
+</span><span class="kw">use </span>clap::{Arg, ArgMatches, Command};
 <span class="kw">use </span>log::{info, trace, warn};
 <span class="kw">use </span>portpicker::pick_unused_port;
 <span class="kw">use </span>simpath::Simpath;
@@ -621,6 +621,10 @@
 <span class="kw">use </span>flowrlib::info <span class="kw">as </span>flowrlib_info;
 <span class="kw">use </span>flowrlib::services::{CONTROL_SERVICE_NAME, JOB_QUEUES_DISCOVERY_PORT, JOB_SERVICE_NAME,
                          RESULTS_JOB_SERVICE_NAME};
+<span class="kw">use </span>std::{env, thread};
+<span class="kw">use </span>std::path::PathBuf;
+<span class="kw">use </span>std::process::exit;
+<span class="kw">use </span>std::sync::{Arc, Mutex};
 
 <span class="kw">use </span><span class="kw">crate</span>::cli::client_server::{DEBUG_SERVICE_NAME, discover_service,
                                 enable_service_discovery, RUNTIME_SERVICE_NAME};
@@ -643,6 +647,12 @@
             <span class="kw">for </span>e <span class="kw">in </span>e.iter().skip(<span class="number">1</span>) {
                 <span class="macro">eprintln!</span>(<span class="string">&quot;caused by: {e}&quot;</span>);
             }
+
+            <span class="comment">// The backtrace is generated if env var `RUST_BACKTRACE` is set to `1` or `full`
+            </span><span class="kw">if let </span><span class="prelude-val">Some</span>(backtrace) = e.backtrace() {
+                <span class="macro">eprintln!</span>(<span class="string">&quot;backtrace: {backtrace:?}&quot;</span>);
+            }
+
             exit(<span class="number">1</span>);
         }
         <span class="prelude-val">Ok</span>(<span class="kw">_</span>) =&gt; exit(<span class="number">0</span>),

@@ -262,12 +262,7 @@
 <a href="#262" id="262">262</a>
 <a href="#263" id="263">263</a>
 <a href="#264" id="264">264</a>
-<a href="#265" id="265">265</a>
-</pre><pre class="rust"><code><span class="kw">use </span>std::collections::BTreeMap;
-<span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)]
-</span><span class="kw">use </span>std::collections::BTreeSet;
-
-<span class="kw">use </span>log::{debug, info, trace};
+</pre><pre class="rust"><code><span class="kw">use </span>log::{debug, info, trace};
 <span class="kw">use </span>url::Url;
 
 <span class="kw">use </span>flowcore::deserializers::deserializer::get_deserializer;
@@ -282,6 +277,9 @@
 <span class="kw">use </span>flowcore::model::process::Process::FunctionProcess;
 <span class="kw">use </span>flowcore::model::route::Route;
 <span class="kw">use </span>flowcore::provider::Provider;
+<span class="kw">use </span>std::collections::BTreeMap;
+<span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)]
+</span><span class="kw">use </span>std::collections::BTreeSet;
 
 <span class="kw">use </span><span class="kw">crate</span>::errors::<span class="kw-2">*</span>;
 
@@ -386,8 +384,8 @@
     <span class="macro">debug!</span>(
         <span class="string">&quot;Loading process from url = &#39;{resolved_url}&#39; with deserializer: &#39;{}&#39;&quot;</span>, deserializer.name());
     <span class="kw">let </span><span class="kw-2">mut </span>process = deserializer
-        .deserialize(<span class="kw-2">&amp;</span>content, <span class="prelude-val">Some</span>(url))
-        .chain_err(|| <span class="macro">format!</span>(<span class="string">&quot;Could not deserialize process from content in &#39;{url}&#39;&quot;</span>))<span class="question-mark">?</span>;
+        .deserialize(<span class="kw-2">&amp;</span>content, <span class="prelude-val">Some</span>(<span class="kw-2">&amp;</span>resolved_url))
+        .chain_err(|| <span class="macro">format!</span>(<span class="string">&quot;Could not parse a valid flow process from &#39;{url}&#39;&quot;</span>))<span class="question-mark">?</span>;
 
     <span class="comment">// Track the source file involved and what it resolved to
     </span><span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)]
