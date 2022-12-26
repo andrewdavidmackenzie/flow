@@ -11,11 +11,6 @@
 //! The [cli] module implements a set of `context functions`, adapted to Terminal IO and local
 //! File System, that allow the flow program to interact with the environment where it is being run.
 
-use std::{env, thread};
-use std::path::PathBuf;
-use std::process::exit;
-use std::sync::{Arc, Mutex};
-
 use clap::{Arg, ArgMatches, Command};
 use log::{info, trace, warn};
 use portpicker::pick_unused_port;
@@ -51,6 +46,10 @@ use flowrlib::executor::Executor;
 use flowrlib::info as flowrlib_info;
 use flowrlib::services::{CONTROL_SERVICE_NAME, JOB_QUEUES_DISCOVERY_PORT, JOB_SERVICE_NAME,
                          RESULTS_JOB_SERVICE_NAME};
+use std::{env, thread};
+use std::path::PathBuf;
+use std::process::exit;
+use std::sync::{Arc, Mutex};
 
 use crate::cli::client_server::{DEBUG_SERVICE_NAME, discover_service,
                                 enable_service_discovery, RUNTIME_SERVICE_NAME};
@@ -73,6 +72,12 @@ fn main() {
             for e in e.iter().skip(1) {
                 eprintln!("caused by: {e}");
             }
+
+            // The backtrace is generated if env var `RUST_BACKTRACE` is set to `1` or `full`
+            if let Some(backtrace) = e.backtrace() {
+                eprintln!("backtrace: {backtrace:?}");
+            }
+
             exit(1);
         }
         Ok(_) => exit(0),

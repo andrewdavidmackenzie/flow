@@ -1,7 +1,3 @@
-use std::collections::BTreeMap;
-#[cfg(feature = "debugger")]
-use std::collections::BTreeSet;
-
 use log::{debug, info, trace};
 use url::Url;
 
@@ -17,6 +13,9 @@ use flowcore::model::process::Process::FlowProcess;
 use flowcore::model::process::Process::FunctionProcess;
 use flowcore::model::route::Route;
 use flowcore::provider::Provider;
+use std::collections::BTreeMap;
+#[cfg(feature = "debugger")]
+use std::collections::BTreeSet;
 
 use crate::errors::*;
 
@@ -121,8 +120,8 @@ fn parse_process(
     debug!(
         "Loading process from url = '{resolved_url}' with deserializer: '{}'", deserializer.name());
     let mut process = deserializer
-        .deserialize(&content, Some(url))
-        .chain_err(|| format!("Could not deserialize process from content in '{url}'"))?;
+        .deserialize(&content, Some(&resolved_url))
+        .chain_err(|| format!("Could not parse a valid flow process from '{url}'"))?;
 
     // Track the source file involved and what it resolved to
     #[cfg(feature = "debugger")]

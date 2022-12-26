@@ -11,13 +11,8 @@
 //! Run `flowc --help` or `flowc -h` at the command line for a
 //! description of the command line options.
 
-use std::env;
-use std::path::PathBuf;
-use std::process::exit;
-
 use clap::{Arg, ArgMatches, Command};
-use colored::*;
-use log::{debug, error, info, warn};
+use log::{debug, info, warn};
 use simpath::Simpath;
 use simplog::SimpleLogger;
 use url::Url;
@@ -27,6 +22,9 @@ use flowclib::info;
 use flowcore::meta_provider::MetaProvider;
 use flowcore::url_helper::url_from_string;
 use lib_build::build_lib;
+use std::env;
+use std::path::PathBuf;
+use std::process::exit;
 
 use crate::flow_compile::compile_and_execute_flow;
 
@@ -64,20 +62,19 @@ pub struct Options {
 fn main() {
     match run() {
         Err(ref e) => {
-            error!("{}: {}", "error".red(), e);
-
+            eprintln!("{e}");
             for e in e.iter().skip(1) {
-                error!("caused by: {}", e);
+                eprintln!("caused by: {e}");
             }
 
             // The backtrace is generated if env var `RUST_BACKTRACE` is set to `1` or `full`
             if let Some(backtrace) = e.backtrace() {
-                error!("backtrace: {:?}", backtrace);
+                eprintln!("backtrace: {backtrace:?}");
             }
 
             exit(1);
         }
-        Ok(_) => exit(0)
+        Ok(_) => exit(0),
     }
 }
 

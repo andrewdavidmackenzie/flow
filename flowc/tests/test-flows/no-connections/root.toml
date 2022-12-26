@@ -1,7 +1,6 @@
 flow = "invalid process"
 
 [[process]]
-# should have an alias here
 source = "context://args/get"
 
 [[process]]
