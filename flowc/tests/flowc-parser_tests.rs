@@ -1,7 +1,4 @@
 #[cfg(feature = "debugger")]
-use std::collections::BTreeSet;
-
-#[cfg(feature = "debugger")]
 use url::Url;
 
 use flowclib::compiler::parser;
@@ -12,6 +9,8 @@ use flowcore::model::name::HasName;
 use flowcore::model::name::Name;
 use flowcore::model::process::Process::FlowProcess;
 use flowcore::model::process::Process::FunctionProcess;
+#[cfg(feature = "debugger")]
+use std::collections::BTreeSet;
 
 #[path = "helper.rs"]
 mod helper;
@@ -38,13 +37,15 @@ fn malformed_connection() {
                                           helper::get_canonical_context_root()
     );
     let path = helper::absolute_file_url_from_relative_path(
-        "flowc/tests/test-flows/root.toml",
+        "flowc/tests/test-flows/malformed-connection/root.toml",
     );
-    if parser::parse(&path, &meta_provider,
+    match parser::parse(&path, &meta_provider,
                      #[cfg(feature = "debugger")]
                         &mut BTreeSet::<(Url, Url)>::new()
-    ).is_ok() {
-        panic!("root.toml should not load successfully");
+    ) {
+        Ok(_) => panic!("root.toml should not load successfully"),
+        Err(e) => assert!(e.to_string().contains("connections errors found in flow"))
+
     }
 }
 
@@ -53,28 +54,30 @@ fn invalid_toml() {
     let meta_provider = MetaProvider::new(helper::set_lib_search_path_to_project(),
                                           helper::get_canonical_context_root()
     );
-    let path = helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/root.toml");
-    if parser::parse(&path, &meta_provider,
+    let path = helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/invalid/root.toml");
+    match parser::parse(&path, &meta_provider,
                      #[cfg(feature = "debugger")]
                     &mut BTreeSet::<(Url, Url)>::new()
-    ).is_ok() {
-        panic!("root.toml should not load successfully");
+    ) {
+        Ok(_) => panic!("root.toml should not load successfully"),
+        Err(e) => assert!(e.to_string().contains("Could not parse a valid flow process"))
     }
 }
 
 #[test]
-fn invalid_process() {
+fn no_connections() {
     let meta_provider = MetaProvider::new(helper::set_lib_search_path_to_project(),
                                           helper::get_canonical_context_root()
     );
     let path = helper::absolute_file_url_from_relative_path(
-        "flowc/tests/test-flows/invalid-process/root.toml",
+        "flowc/tests/test-flows/no-connections/root.toml",
     );
-    if parser::parse(&path, &meta_provider,
+    match parser::parse(&path, &meta_provider,
                      #[cfg(feature = "debugger")]
                     &mut BTreeSet::<(Url, Url)>::new()
-    ).is_ok() {
-        panic!("root.toml should not load successfully");
+    ) {
+        Ok(_) => panic!("root.toml should not load successfully"),
+        Err(e) => assert!(e.to_string().contains("connections errors found in flow"))
     }
 }
 
