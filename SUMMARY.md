@@ -31,6 +31,7 @@
 - [Programming Methods](docs/describing/programming_methods.md)
 
 # `flowr's` `context functions`
+- [flowr's context functions](flowr/src/cli/flowr_context_functions.md)
 - [Arg functions](flowr/src/cli/args/args.md)
   - [Arg get function](flowr/src/cli/args/get.md)
 - [File functions](flowr/src/cli/file/file.md)
