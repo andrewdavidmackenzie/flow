@@ -1,16 +1,6 @@
 #![deny(missing_docs)]
 #![warn(clippy::unwrap_used)]
 //! `flowrex` is the minimal executor of flow jobs.
-/// It attempts to be as small as possible, and only accepts jobs for execution over the network
-/// and does not load flows, accept flow submissions run a coordinator or access the file system.
-/// Any implementations are either preloaded static linked binary functions or loaded from WASM
-/// from peers.
-
-use std::{env, thread};
-use std::path::PathBuf;
-use std::process::exit;
-use std::sync::Arc;
-
 use clap::{Arg, ArgMatches, Command};
 use log::{info, trace, warn};
 use simpath::Simpath;
@@ -26,6 +16,15 @@ use flowrlib::info as flowrlib_info;
 use flowrlib::services::{CONTROL_SERVICE_NAME, JOB_QUEUES_DISCOVERY_PORT,
                          JOB_SERVICE_NAME, RESULTS_JOB_SERVICE_NAME};
 use simpdiscoverylib::BeaconListener;
+/// It attempts to be as small as possible, and only accepts jobs for execution over the network
+/// and does not load flows, accept flow submissions run a coordinator or access the file system.
+/// Any implementations are either preloaded static linked binary functions or loaded from WASM
+/// from peers.
+
+use std::{env, thread};
+use std::path::PathBuf;
+use std::process::exit;
+use std::sync::Arc;
 
 /// We'll put our errors in an `errors` module, and other modules in this crate will
 /// `use crate::errors::*;` to get access to everything `error_chain` creates.
@@ -43,10 +42,16 @@ fn discover_service(discovery_port: u16, name: &str) -> Result<String> {
 fn main() {
     match run() {
         Err(ref e) => {
-            eprintln!("{}", e);
+            eprintln!("{e}");
             for e in e.iter().skip(1) {
-                eprintln!("caused by: {}", e);
+                eprintln!("caused by: {e}");
             }
+
+            // The backtrace is generated if env var `RUST_BACKTRACE` is set to `1` or `full`
+            if let Some(backtrace) = e.backtrace() {
+                eprintln!("backtrace: {backtrace:?}");
+            }
+
             exit(1);
         }
         Ok(_) => exit(0),
