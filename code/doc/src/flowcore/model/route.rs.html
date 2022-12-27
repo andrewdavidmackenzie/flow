@@ -416,18 +416,6 @@
 <a href="#416" id="416">416</a>
 <a href="#417" id="417">417</a>
 <a href="#418" id="418">418</a>
-<a href="#419" id="419">419</a>
-<a href="#420" id="420">420</a>
-<a href="#421" id="421">421</a>
-<a href="#422" id="422">422</a>
-<a href="#423" id="423">423</a>
-<a href="#424" id="424">424</a>
-<a href="#425" id="425">425</a>
-<a href="#426" id="426">426</a>
-<a href="#427" id="427">427</a>
-<a href="#428" id="428">428</a>
-<a href="#429" id="429">429</a>
-<a href="#430" id="430">430</a>
 </pre><pre class="rust"><code><span class="kw">use </span>std::borrow::Cow;
 <span class="kw">use </span>std::fmt;
 
@@ -446,6 +434,7 @@
 </span><span class="kw">pub struct </span>Route(<span class="kw">pub </span>String);
 
 <span class="doccomment">/// A `Route` can be of various Types
+</span><span class="attr">#[derive(Debug, PartialEq)]
 </span><span class="kw">pub enum </span>RouteType {
     <span class="doccomment">/// The route refers to an Input of a Flow
     </span>FlowInput(Name, Route),
@@ -502,21 +491,6 @@
         <span class="self">self
     </span>}
 
-    <span class="doccomment">/// Return the type of this Route
-    </span><span class="kw">pub fn </span>route_type(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;RouteType&gt; {
-        <span class="kw">let </span>segments: Vec&lt;<span class="kw-2">&amp;</span>str&gt; = <span class="self">self</span>.split(<span class="string">&#39;/&#39;</span>).collect();
-
-        <span class="kw">match </span>segments[<span class="number">0</span>] {
-            <span class="string">&quot;input&quot; </span>=&gt; <span class="prelude-val">Ok</span>(RouteType::FlowInput(segments[<span class="number">1</span>].into(),
-                                               segments[<span class="number">2</span>..].join(<span class="string">&quot;/&quot;</span>).into())),
-            <span class="string">&quot;output&quot; </span>=&gt; <span class="prelude-val">Ok</span>(RouteType::FlowOutput(segments[<span class="number">1</span>].into())),
-            <span class="string">&quot;&quot; </span>=&gt; <span class="macro">bail!</span>(<span class="string">&quot;Invalid route &#39;{}&#39; - &#39;input&#39; or &#39;output&#39; or a valid sub-process name \
-                must be specified in the route&quot;</span>, <span class="self">self</span>),
-            process_name =&gt; <span class="prelude-val">Ok</span>(RouteType::SubProcess(process_name.into(),
-                                                     segments[<span class="number">1</span>..].join(<span class="string">&quot;/&quot;</span>).into())),
-        }
-    }
-
     <span class="doccomment">/// Return a route that is one level up, such that
     ///     `/context/function/output/subroute -&gt; /context/function/output`
     </span><span class="kw">pub fn </span>pop(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; (Cow&lt;Route&gt;, <span class="prelude-ty">Option</span>&lt;Route&gt;) {
@@ -569,7 +543,9 @@
 
 <span class="kw">impl </span>Validate <span class="kw">for </span>Route {
     <span class="kw">fn </span>validate(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
-        <span class="self">self</span>.route_type()<span class="question-mark">?</span>;
+        <span class="kw">if </span><span class="self">self</span>.is_empty() {
+            <span class="macro">bail!</span>(<span class="string">&quot;Route &#39;{}&#39; is invalid - a route must specify an input, output or subprocess by name&quot;</span>, <span class="self">self</span>);
+        }
 
         <span class="kw">if </span><span class="self">self</span>.parse::&lt;usize&gt;().is_ok() {
             <span class="macro">bail!</span>(<span class="string">&quot;Route &#39;{}&#39; is invalid - cannot be an integer&quot;</span>, <span class="self">self</span>);
