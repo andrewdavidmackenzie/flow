@@ -16,6 +16,7 @@ use crate::model::validation::Validate;
 pub struct Route(pub String);
 
 /// A `Route` can be of various Types
+#[derive(Debug, PartialEq)]
 pub enum RouteType {
     /// The route refers to an Input of a Flow
     FlowInput(Name, Route),
@@ -72,21 +73,6 @@ impl Route {
         self
     }
 
-    /// Return the type of this Route
-    pub fn route_type(&self) -> Result<RouteType> {
-        let segments: Vec<&str> = self.split('/').collect();
-
-        match segments[0] {
-            "input" => Ok(RouteType::FlowInput(segments[1].into(),
-                                               segments[2..].join("/").into())),
-            "output" => Ok(RouteType::FlowOutput(segments[1].into())),
-            "" => bail!("Invalid route '{}' - 'input' or 'output' or a valid sub-process name \
-                must be specified in the route", self),
-            process_name => Ok(RouteType::SubProcess(process_name.into(),
-                                                     segments[1..].join("/").into())),
-        }
-    }
-
     /// Return a route that is one level up, such that
     ///     `/context/function/output/subroute -> /context/function/output`
     pub fn pop(&self) -> (Cow<Route>, Option<Route>) {
@@ -139,7 +125,9 @@ impl AsRef<str> for Route {
 
 impl Validate for Route {
     fn validate(&self) -> Result<()> {
-        self.route_type()?;
+        if self.is_empty() {
+            bail!("Route '{}' is invalid - a route must specify an input, output or subprocess by name", self);
+        }
 
         if self.parse::<usize>().is_ok() {
             bail!("Route '{}' is invalid - cannot be an integer", self);

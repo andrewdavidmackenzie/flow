@@ -1,4 +1,7 @@
 #[cfg(feature = "debugger")]
+use std::collections::BTreeSet;
+
+#[cfg(feature = "debugger")]
 use url::Url;
 
 use flowclib::compiler::parser;
@@ -9,8 +12,6 @@ use flowcore::model::name::HasName;
 use flowcore::model::name::Name;
 use flowcore::model::process::Process::FlowProcess;
 use flowcore::model::process::Process::FunctionProcess;
-#[cfg(feature = "debugger")]
-use std::collections::BTreeSet;
 
 #[path = "helper.rs"]
 mod helper;
@@ -44,8 +45,9 @@ fn malformed_connection() {
                         &mut BTreeSet::<(Url, Url)>::new()
     ) {
         Ok(_) => panic!("root.toml should not load successfully"),
-        Err(e) => assert!(e.to_string().contains("connections errors found in flow"))
-
+        Err(e) => {
+            assert!(e.to_string().contains("connection errors found in flow"))
+        }
     }
 }
 
@@ -77,7 +79,7 @@ fn no_connections() {
                     &mut BTreeSet::<(Url, Url)>::new()
     ) {
         Ok(_) => panic!("root.toml should not load successfully"),
-        Err(e) => assert!(e.to_string().contains("connections errors found in flow"))
+        Err(e) => assert!(e.to_string().contains("connection errors found in flow"))
     }
 }
 
