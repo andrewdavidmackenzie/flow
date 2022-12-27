@@ -8,7 +8,6 @@ use serde_derive::{Deserialize, Serialize};
 use url::Url;
 
 use crate::errors::*;
-use crate::errors::Error;
 use crate::model::connection::Connection;
 use crate::model::connection::Direction;
 use crate::model::connection::Direction::FROM;
@@ -270,20 +269,12 @@ impl FlowDefinition {
         direction: Direction,
         sub_route: &Route,
     ) -> Result<IO> {
-        debug!(
-            "\tLooking for subprocess with alias = '{}'",
-            subprocess_alias
-        );
-        let process = self.subprocesses.get_mut(subprocess_alias).ok_or_else(|| {
-            Error::from(format!(
-                "Could not find sub-process named '{subprocess_alias}'"
-            ))
-        })?;
+        debug!("\tLooking for subprocess with alias = '{}'", subprocess_alias);
 
         // TODO create a trait HasInputs and HasOutputs and implement it for function and flow
         // and process so this below can avoid the match
-        match process {
-            FlowProcess(ref mut sub_flow) => {
+        match self.subprocesses.get_mut(subprocess_alias) {
+            Some(FlowProcess(ref mut sub_flow)) => {
                 debug!(
                     "\tFlow sub-process with matching name found, name = '{}'",
                     subprocess_alias
@@ -298,19 +289,40 @@ impl FlowDefinition {
                 }
             },
 
-            FunctionProcess(ref mut function) => {
+            Some(FunctionProcess(ref mut function)) => {
                 debug!(
                     "\tFunction sub-process with name = '{}' found",
                     subprocess_alias
                 );
                 match direction {
                     TO => function.inputs.find_by_subroute(sub_route),
-                    FROM => function.get_outputs().find_by_subroute(sub_route)
-                        .or_else(|_| { // for connections from the Input value copied at the output
+                    FROM => function.outputs.find_by_subroute(sub_route)
+                        .or_else(|e1| { // for connections FROM the Input value copied at the output
                             function.inputs.find_by_subroute(sub_route)
+                                .chain_err(|| e1 )
                         }),
                 }
             }
+
+            None => {
+                    bail!("No sub-process named '{subprocess_alias}' exists in the flow '{}'\n\
+                possible sub-process names are: '{}'",
+                        self.route, self.subprocesses.keys().map(|k| k.as_str() )
+                            .collect::<Vec<&str>>().join(", "))
+            }
+        }
+    }
+
+    fn parse_subroute(&self, route: &Route) -> Result<RouteType> {
+        let segments: Vec<&str> = route.split('/').collect();
+
+        match segments[0] {
+            "input" => Ok(RouteType::FlowInput(segments[1].into(),
+                                        segments[2..].join("/").into())),
+            "output" => Ok(RouteType::FlowOutput(segments[1].into())),
+            "" => bail!("Invalid Route in connection - must be an input, output or sub-process name"),
+            process_name => Ok(RouteType::SubProcess(process_name.into(),
+                                         segments[1..].join("/").into())),
         }
     }
 
@@ -330,7 +342,7 @@ impl FlowDefinition {
         route: &Route,
     ) -> Result<IO> {
         debug!("Looking for connection {:?} '{}'", direction, route);
-        match (&direction, route.route_type()?) {
+        match (&direction, self.parse_subroute(route)?) {
             (&FROM, RouteType::FlowInput(input_name, sub_route)) => {
                 // make sure the sub-route of the input is added to the source of the connection
                 let mut from = self
@@ -341,13 +353,11 @@ impl FlowDefinition {
                 Ok(from)
             },
 
-            (&TO, RouteType::FlowOutput(output_name)) => {
-                self.outputs.find_by_subroute(&Route::from(output_name.to_string()))
-            },
+            (&TO, RouteType::FlowOutput(output_name)) =>
+                self.outputs.find_by_subroute(&Route::from(output_name.to_string())),
 
-            (_, RouteType::SubProcess(process_name, sub_route)) => {
-                self.get_subprocess_io(&process_name, direction, &sub_route)
-            },
+            (_, RouteType::SubProcess(process_name, sub_route)) =>
+                self.get_subprocess_io(&process_name, direction, &sub_route),
 
             (&FROM, RouteType::FlowOutput(output_name)) => {
                 bail!("Invalid connection FROM an output named: '{}'", output_name)
@@ -356,8 +366,7 @@ impl FlowDefinition {
             (&TO, RouteType::FlowInput(input_name, sub_route)) => {
                 bail!(
                     "Invalid connection TO an input named: '{}' with sub_route: '{}'",
-                    input_name,
-                    sub_route
+                    input_name, sub_route
                 )
             }
         }
@@ -388,7 +397,7 @@ impl FlowDefinition {
             Ok(())
         } else {
             bail!(
-                "{} connections errors found in flow '{}'",
+                "{} connection errors found in flow '{}'",
                 error_count,
                 self.source_url
             )
@@ -405,7 +414,7 @@ impl FlowDefinition {
     fn build_connection(&mut self, connection: &mut Connection, level: usize) -> Result<()> {
         let from_io = self.get_io_by_route(FROM, connection.from())
             .chain_err(|| format!("Did not find connection source: '{}' specified in flow '{}'\n",
-                   connection.from_io().route(), self.source_url))?;
+                   connection.from(), self.source_url))?;
         trace!("Found connection source:\n{:#?}", from_io);
 
         // Connection can specify multiple destinations within flow - iterate over them all
@@ -437,7 +446,7 @@ mod test {
 
     use serde_json::json;
 
-    use crate::model::connection::Connection;
+    use crate::model::connection::{Connection, Direction};
     use crate::model::datatype::{NUMBER_TYPE, STRING_TYPE};
     use crate::model::flow_definition::FlowDefinition;
     use crate::model::function_definition::FunctionDefinition;
@@ -446,7 +455,7 @@ mod test {
     use crate::model::io::IO;
     use crate::model::name::{HasName, Name};
     use crate::model::process::Process;
-    use crate::model::route::{HasRoute, Route, SetRoute};
+    use crate::model::route::{HasRoute, Route, SetRoute, RouteType};
     use crate::model::validation::Validate;
 
     // Create a test flow we can use in connection building testing
@@ -468,16 +477,18 @@ mod test {
 
         let process_1 = Process::FunctionProcess(FunctionDefinition {
             name: "process_1".into(),
-            inputs: vec![IO::new(vec!(STRING_TYPE.into()), "")],
-            outputs: vec![IO::new(vec!(STRING_TYPE.into()), "")],
+            inputs: vec![IO::new_named(vec!(STRING_TYPE.into()),
+                                       "", "")],
+            outputs: vec![IO::new_named(vec!(STRING_TYPE.into()),
+                                        "output_1", "output_1")],
             ..Default::default()
         });
 
         let process_2 = Process::FunctionProcess(FunctionDefinition {
             name: "process_2".into(),
             function_id: 1,
-            inputs: vec![IO::new(vec!(STRING_TYPE.into()), "")],
-            outputs: vec![IO::new(vec!(NUMBER_TYPE.into()), "")],
+            inputs: vec![IO::new_named(vec!(STRING_TYPE.into()), "", "")],
+            outputs: vec![IO::new_named(vec!(NUMBER_TYPE.into()), "", "")],
             ..Default::default()
         });
 
@@ -517,6 +528,89 @@ mod test {
     fn test_route() {
         let flow = FlowDefinition::default();
         assert_eq!(flow.route(), &Route::default());
+    }
+
+    #[test]
+    fn test_invalid_connection_route() {
+        let flow = test_flow();
+        match flow.parse_subroute(&Route::from("")) {
+            Ok(_) => panic!("Connection route should not be valid"),
+            Err(e) => assert!(e.to_string()
+                    .contains("Invalid Route in connection"))
+        }
+    }
+
+    #[test]
+    fn test_parse_valid_input() {
+        let flow = test_flow();
+        assert_eq!(flow.parse_subroute(&Route::from("input/string"))
+                       .expect("Could not find input"),
+                   RouteType::FlowInput(Name::from("string"),
+                                           Route::default()));
+    }
+
+    #[test]
+    fn test_parse_valid_output() {
+        let flow = test_flow();
+        assert_eq!(flow.parse_subroute(&Route::from("output/string"))
+                       .expect("Could not find input"),
+                   RouteType::FlowOutput(Name::from("string")));
+    }
+
+    #[test]
+    fn test_parse_valid_subprocess() {
+        let flow = test_flow();
+        assert_eq!(flow.parse_subroute(&Route::from("sub-process"))
+                       .expect("Could not find input"),
+                   RouteType::SubProcess(Name::from("sub-process"), Route::default()));
+    }
+
+    #[test]
+    fn test_non_existent_subprocess_in_connection() {
+        let mut flow = test_flow();
+        match flow.get_subprocess_io(&Name::from("blablabla"),
+                                     Direction::FROM,
+                                     &Route::from("who-cares")) {
+            Ok(_) => panic!("Should not find non-existent sub-process"),
+            Err(e) => {
+                assert!(e.to_string().contains("No sub-process named"))
+            },
+        }
+    }
+
+    #[test]
+    fn test_existent_subprocess_existing_io_in_connection() {
+        let mut flow = test_flow();
+        flow.get_subprocess_io(&Name::from("process_1"),
+                                     Direction::FROM,
+                                     &Route::from(""))
+            .expect("Could not find sub-process called process_1");
+    }
+
+    #[test]
+    fn test_existent_subprocess_non_existing_input_in_connection() {
+        let mut flow = test_flow();
+        match flow.get_subprocess_io(&Name::from("process_1"),
+                                     Direction::TO,
+                                     &Route::from("no-such-io")) {
+
+            Ok(_) => panic!("Should not find non-existent sub-process input"),
+            Err(e) => assert!(e.to_string().contains("No IO"))
+        }
+    }
+
+    #[test]
+    fn test_existent_subprocess_non_existing_io_in_connection() {
+        let mut flow = test_flow();
+        match flow.get_subprocess_io(&Name::from("process_1"),
+                               Direction::FROM,
+                               &Route::from("no-such-io")) {
+
+            Ok(_) => panic!("Should not find non-existent sub-process IO"),
+            Err(e) => {
+                assert!(e.to_string().contains("No IO"))
+            },
+        }
     }
 
     #[test]

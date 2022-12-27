@@ -261,7 +261,7 @@ impl SetIORoutes for IOSet {
 /// `Find` trait is implemented by a number of object types to help find a sub-object
 /// using it's Name or Route
 pub trait Find {
-    /// Find IO using it's sub-Route and set the input initializer on it
+    /// Find IO using it's sub-Route
     fn find_by_subroute(
         &mut self,
         subroute: &Route,
@@ -275,7 +275,7 @@ impl Find for IOSet {
         &mut self,
         sub_route: &Route,
     ) -> Result<IO> {
-        for io in self {
+        for io in &mut *self {
             for datatype in io.datatypes().clone() {
                 if datatype.is_array() {
                     let (array_route, index, array_index) = sub_route.without_trailing_array_index();
@@ -299,7 +299,10 @@ impl Find for IOSet {
                 }
             }
         }
-        bail!("No output with sub-route '{}' was found", sub_route)
+
+        bail!("No IO with sub-route '{sub_route}' was found.\n\
+               Possible IO names include: '{}'",
+            self.iter().map(|io| io.name.to_string()).collect::<Vec<String>>().join(", "))
     }
 }
 
