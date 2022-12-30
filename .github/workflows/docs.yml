@@ -1,0 +1,26 @@
+name: Build and Deploy Docs
+
+on:
+  push:
+    branches: [ master ]
+
+jobs:
+  build:
+    os: [ ubuntu-latest ]
+    rust: [ nightly ]
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: build-docs
+        run: |
+          sudo apt-get -y install graphviz
+          cargo install mdbook
+          cargo install mdbook-linkcheck
+          make docs
+
+      - name: deploy-docs
+        uses: JamesIves/github-pages-deploy-action@4.1.4
+        with:
+          branch: gh-pages
+          folder: target/html
