@@ -1,0 +1,7 @@
+name: Release with Assets
+
+on:
+  push:
+    tags:
+      - '*'
+
