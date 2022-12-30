@@ -310,7 +310,7 @@ fn get_lib_manifest_tuple(
     lib_manifests
         .get(lib_root_url)
         .ok_or_else(|| "Could not find (supposedly already loaded) library manifest".into())
-        .clone().cloned()
+        .cloned()
 }
 
 #[cfg(test)]
