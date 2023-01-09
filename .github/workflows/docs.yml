@@ -6,7 +6,7 @@ on:
 
 jobs:
   build:
-    os: [ ubuntu-latest ]
+    runs-on: [ ubuntu-latest ]
     rust: [ nightly ]
 
     steps:
