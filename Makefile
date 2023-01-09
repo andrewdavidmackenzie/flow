@@ -145,7 +145,7 @@ build-book:
 .PHONY: code-docs
 code-docs:
 	@echo "code-docs<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
-	@cargo doc --no-deps --target-dir=target/html/code $(cargo_options)
+	@cargo doc --no-deps --target-dir=target/html/code
 
 .PHONE: copy-svgs
 copy-svgs:
