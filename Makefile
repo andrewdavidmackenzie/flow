@@ -89,10 +89,22 @@ clean:
 	@find . -name target -type d | xargs rm -rf
 
 .PHONY: build-binaries
-build-binaries:
-	@echo "build-binaries<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
+build-binaries: build-flowc build-flowr build-flowrex
+	@echo "binaries-built<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
+
+.PHONY: build-flowc
+build-flowc:
+	@echo "build-flowc<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
 	@cargo build -p flowc $(cargo_options)
+
+.PHONY: build-flowr
+build-flowr:
+	@echo "build-flowr<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
 	@cargo build -p flowr $(cargo_options)
+
+.PHONY: build-flowrex
+build-flowrex:
+	@echo "build-flowrex<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
 	@cargo build --manifest-path flowrex/Cargo.toml $(cargo_options)
 
 .PHONY: clippy
@@ -143,7 +155,7 @@ build-book:
 	@mdbook build
 
 .PHONY: code-docs
-code-docs:
+code-docs: build-flowc
 	@echo "code-docs<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
 	@cargo doc --no-deps --target-dir=target/html/code
 
