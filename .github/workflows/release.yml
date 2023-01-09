@@ -5,3 +5,10 @@ on:
     tags:
       - '*'
 
+jobs:
+  build:
+
+    - name: Echo
+      run: |
+        echo "Releasing"
+
