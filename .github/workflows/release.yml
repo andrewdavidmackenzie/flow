@@ -7,7 +7,7 @@ on:
 
 jobs:
   build:
-
+    steps:
     - name: Echo
       run: |
         echo "Releasing"
