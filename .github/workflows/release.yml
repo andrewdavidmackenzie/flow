@@ -1,0 +1,14 @@
+name: Release with Assets
+
+on:
+  push:
+    tags:
+      - '*'
+
+jobs:
+  build:
+    steps:
+    - name: Echo
+      run: |
+        echo "Releasing"
+
