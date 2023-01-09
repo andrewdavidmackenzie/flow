@@ -3,17 +3,10 @@ ZMQ := $(shell brew ls --versions zmq 2> /dev/null)
 YUM := $(shell command -v yum 2> /dev/null)
 DNF := $(shell command -v dnf 2> /dev/null)
 BREW := $(shell command -v brew 2> /dev/null)
-ONLINE := $(shell ping -c 1 github.com > /dev/null 2>&1 ; echo $$?)
 export SHELL := /bin/bash
 export PATH := $(PWD)/target/debug:$(PWD)/flowrex/target/debug:$(PATH)
 
-ifeq ($(ONLINE),0)
-features := --features "wasm","online_tests"
-cargo_options :=
-else
 features := --features "wasm"
-cargo_options := --offline
-endif
 
 ifeq ($(FLOW_LIB_PATH),)
   $(warning FLOW_LIB_PATH is not set. This maybe needed for builds and test and packaging to succeed.\
@@ -95,17 +88,17 @@ build-binaries: build-flowc build-flowr build-flowrex
 .PHONY: build-flowc
 build-flowc:
 	@echo "build-flowc<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
-	@cargo build -p flowc $(cargo_options)
+	@cargo build -p flowc
 
 .PHONY: build-flowr
 build-flowr:
 	@echo "build-flowr<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
-	@cargo build -p flowr $(cargo_options)
+	@cargo build -p flowr
 
 .PHONY: build-flowrex
 build-flowrex:
 	@echo "build-flowrex<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
-	@cargo build --manifest-path flowrex/Cargo.toml $(cargo_options)
+	@cargo build --manifest-path flowrex/Cargo.toml
 
 .PHONY: clippy
 clippy: build-binaries
@@ -115,13 +108,13 @@ clippy: build-binaries
 .PHONY: build
 build: build-binaries
 	@echo "build<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
-	@cargo build $(features) $(cargo_options)
-	@cargo build $(cargo_options) --manifest-path flowrex/Cargo.toml
+	@cargo build $(features)
+	@cargo build --manifest-path flowrex/Cargo.toml
 
 .PHONY: test
 test: build-binaries
 	@echo "test<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
-	@cargo test $(features) $(cargo_options)
+	@cargo test $(features)
 
 .PHONY: coverage
 coverage: clean-start build-binaries
@@ -132,8 +125,8 @@ coverage: clean-start build-binaries
 	@RUSTFLAGS="-C instrument-coverage" LLVM_PROFILE_FILE="flow-%p-%m.profraw" cargo build --manifest-path flowrex/Cargo.toml
 	@RUSTFLAGS="-C instrument-coverage" LLVM_PROFILE_FILE="flow-%p-%m.profraw" cargo clippy --tests -- -D warnings
 	@RUSTFLAGS="-C instrument-coverage" LLVM_PROFILE_FILE="flow-%p-%m.profraw" cargo build $(features)
-	@RUSTFLAGS="-C instrument-coverage" LLVM_PROFILE_FILE="flow-%p-%m.profraw" cargo test $(features) $(cargo_options)
-	@RUSTFLAGS="-C instrument-coverage" LLVM_PROFILE_FILE="flow-%p-%m.profraw" cargo doc --no-deps --target-dir=target/html/code $(cargo_options)
+	@RUSTFLAGS="-C instrument-coverage" LLVM_PROFILE_FILE="flow-%p-%m.profraw" cargo test $(features)
+	@RUSTFLAGS="-C instrument-coverage" LLVM_PROFILE_FILE="flow-%p-%m.profraw" cargo doc --no-deps --target-dir=target/html/code
 	@echo "Gathering coverage information"
 	@grcov . --binary-path target/debug/ -s . -t lcov --branch --ignore-not-existing --ignore "/*" -o coverage.info
 	@lcov --remove coverage.info '/Applications/*' 'target/debug/build/**' '/usr*' '**/errors.rs' '**/build.rs' '*tests/*' -o coverage.info
