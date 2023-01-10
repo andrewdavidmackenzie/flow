@@ -9,7 +9,7 @@ export PATH := $(PWD)/target/debug:$(PWD)/flowrex/target/debug:$(PATH)
 features := --features "wasm"
 
 ifeq ($(FLOW_LIB_PATH),)
-  export FLOW_LIB_PATH := $(PWD)
+  export FLOW_LIB_PATH := $(PWD)/target
 endif
 
 ifeq ($(FLOW_CONTEXT_ROOT),)
