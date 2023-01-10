@@ -17,15 +17,7 @@ ifeq ($(FLOW_CONTEXT_ROOT),)
 endif
 
 .PHONY: all
-all: online clean-start clippy build test docs
-
-.PHONY: online
-online:
-ifeq ($(ONLINE),0)
-	@echo "ONLINE, so including 'online_tests' feature"
-else
-	@echo "Not ONLINE, so not including 'online_tests' feature"
-endif
+all: clean-start clippy build test docs
 
 .PHONY: clean-start
 clean-start:
