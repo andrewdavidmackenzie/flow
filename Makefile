@@ -9,13 +9,11 @@ export PATH := $(PWD)/target/debug:$(PWD)/flowrex/target/debug:$(PATH)
 features := --features "wasm"
 
 ifeq ($(FLOW_LIB_PATH),)
-  $(warning FLOW_LIB_PATH is not set. This maybe needed for builds and test and packaging to succeed.\
-  A suggested value for development would be '$(PWD)/target')
+  export FLOW_LIB_PATH := $(PWD)/target
 endif
 
 ifeq ($(FLOW_CONTEXT_ROOT),)
-  $(warning FLOW_CONTEXT_ROOT is not set. This maybe needed for builds and test and packaging to succeed.\
-  A suggested value for development would be '$(PWD)/flowr/src/cli')
+  export FLOW_CONTEXT_ROOT := $(PWD)/flowr/src/cli
 endif
 
 .PHONY: all
