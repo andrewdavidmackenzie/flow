@@ -20,7 +20,7 @@ proc-macro = true
 syn = { version = "~1.0", features =["full"] } #Full is required for ItemFn in macro parsing
 quote = "~1.0"
 flowcore = {path = "../flowcore", version = "0.91.0"}
-toml = "0.5.10"
+toml = "0.5.11"
 proc-macro2 = "1.0"
 
 [dev-dependencies]
