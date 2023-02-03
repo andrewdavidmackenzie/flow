@@ -1,6 +1,7 @@
 use std::marker::PhantomData;
 
 use serde::Deserialize;
+use serde::de::DeserializeOwned;
 use url::Url;
 
 use crate::errors::*;
@@ -28,7 +29,7 @@ where
 
 impl<'a, T> Deserializer<'a, T> for TomlDeserializer<'a, T>
 where
-    T: Deserialize<'a>,
+    T: DeserializeOwned,
 {
     fn deserialize(&self, contents: &'a str, url: Option<&Url>) -> Result<T> {
         toml::from_str(contents).chain_err(|| {
