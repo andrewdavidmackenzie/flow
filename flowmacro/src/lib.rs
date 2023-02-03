@@ -7,9 +7,8 @@
 extern crate proc_macro;
 
 use proc_macro::{Span, TokenStream};
-use std::fs::File;
-use std::io::prelude::*;
 use std::path::{Path, PathBuf};
+use std::fs;
 
 use proc_macro2::Ident;
 use quote::{format_ident, quote, ToTokens};
@@ -37,16 +36,12 @@ pub fn flow_function(_attr: TokenStream, implementation: proc_macro::TokenStream
                   function_definition, definition_file_path)
 }
 
-// Load a FunctionDefinition from the file at `path`
+// Load a `FunctionDefinition` from the file at `path`
 fn load_function_definition(path: &Path) -> FunctionDefinition {
-    let mut f = File::open(path)
-        .unwrap_or_else(|e| panic!("the 'flow' macro could not open the function definition file '{}'\n{e}",
-                                      path.display()));
-    let mut buffer = Vec::new();
-    f.read_to_end(&mut buffer)
+    let function = fs::read_to_string(path)
         .unwrap_or_else(|e| panic!("the 'flow' macro could not read from the function definition file '{}'\n{e}",
                                    path.display()));
-    toml::from_slice(&buffer)
+    toml::from_str(&function)
         .unwrap_or_else(|e| panic!("the 'flow' macro could not deserialize the Toml function definition file
         '{}'\n{e}", path.display()))
 }
