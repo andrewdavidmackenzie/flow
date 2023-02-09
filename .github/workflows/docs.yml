@@ -11,12 +11,41 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - name: build-docs
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+
+      - name: setup-paths
         run: |
-          sudo apt-get -y install graphviz
+          echo "FLOW_LIB_PATH=$GITHUB_WORKSPACE/target" >> "$GITHUB_ENV"
+          echo "PATH=$HOME/.cargo/bin:$GITHUB_WORKSPACE/target/debug:$GITHUB_WORKSPACE/flowrex/target/debug:$PATH" >> "$GITHUB_ENV"
+
+      - name: install-dependencies
+        run: |
+          sudo apt-get update -y
+          sudo apt-get -y install libzmq3-dev binaryen graphviz
           cargo install mdbook
           cargo install mdbook-linkcheck
-          make docs
+
+      - name: add-wasm-tools
+        run: |
+          rustup target add wasm32-unknown-unknown
+          cargo install wasm-gc wasm-snip
+
+      - name: build-flowc
+        run: |
+          cargo build -p flowc
+
+      - name: build-libs
+        run: |
+          cargo build -p flowstdlib
+          #cargo build --features "wasm"
+
+      - name: build-docs
+        run: |
+          mdbook build
+          cargo doc --no-deps --target-dir=target/html/code
+          make copy-svgs trim-docs
 
       - name: deploy-docs
         uses: JamesIves/github-pages-deploy-action@4.1.4
