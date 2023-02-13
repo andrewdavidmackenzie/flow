@@ -35,11 +35,12 @@ jobs:
       - name: build-flowc
         run: |
           cargo build -p flowc
+          which flowc
 
-      - name: build-libs
+      - name: build-flowstdlib
         run: |
-          cargo build -p flowstdlib
-          #cargo build --features "wasm"
+          cargo build -p flowstdlib --features "wasm"
+          tree $GITHUB_WORKSPACE/target/flowstdlib
 
       - name: build-docs
         run: |
