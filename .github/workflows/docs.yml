@@ -18,7 +18,7 @@ jobs:
       - name: setup-paths
         run: |
           echo "FLOW_LIB_PATH=$GITHUB_WORKSPACE/target" >> "$GITHUB_ENV"
-          echo "PATH=$HOME/.cargo/bin:$GITHUB_WORKSPACE/target/debug:$GITHUB_WORKSPACE/flowrex/target/debug:$PATH" >> "$GITHUB_ENV"
+          echo "PATH=$HOME/.cargo/bin:$GITHUB_WORKSPACE/target/debug:$PATH" >> "$GITHUB_ENV"
 
       - name: install-dependencies
         run: |
