@@ -39,8 +39,7 @@ jobs:
 
       - name: build-flowstdlib
         run: |
-          #cargo build -p flowstdlib --features "wasm"
-          cargo build --features "wasm"
+          cargo build -p flowstdlib --features "wasm"
           tree $GITHUB_WORKSPACE/target/flowstdlib
 
       - name: build-docs
