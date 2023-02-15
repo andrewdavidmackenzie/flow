@@ -11,6 +11,10 @@
 //! Run `flowc --help` or `flowc -h` at the command line for a
 //! description of the command line options.
 
+use std::env;
+use std::path::PathBuf;
+use std::process::exit;
+
 use clap::{Arg, ArgMatches, Command};
 use log::{debug, info, warn};
 use simpath::Simpath;
@@ -22,9 +26,6 @@ use flowclib::info;
 use flowcore::meta_provider::MetaProvider;
 use flowcore::url_helper::url_from_string;
 use lib_build::build_lib;
-use std::env;
-use std::path::PathBuf;
-use std::process::exit;
 
 use crate::flow_compile::compile_and_execute_flow;
 
@@ -161,8 +162,7 @@ fn get_matches() -> ArgMatches {
                 .short('n')
                 .long("native")
                 .action(clap::ArgAction::SetTrue)
-                .help("Compile only native (not wasm) implementations when compiling a library")
-                .requires("lib"),
+                .help("Compile only native (not wasm) implementations when compiling"),
         )
         .arg(
             Arg::new("lib_dir")
