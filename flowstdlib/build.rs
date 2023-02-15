@@ -41,7 +41,7 @@ fn main() -> io::Result<()> {
     // If the "wasm" feature is NOT activated, then set "-n" (native only) flag so flowc will
     // not compile to wasm
     #[cfg(not(feature = "wasm"))]
-    let command_args = vec!["-d", "-g", "-l", "-o", &out_dir, "-n", lib_root_dir_str];
+    let command_args = vec!["-d", "-g", "-l", "-n", "-o", &out_dir, lib_root_dir_str];
 
     match command.args(&command_args).status() {
         Ok(stat) => {
