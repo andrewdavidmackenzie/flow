@@ -1,3 +1,7 @@
+use std::collections::BTreeMap;
+#[cfg(feature = "debugger")]
+use std::collections::BTreeSet;
+
 use log::{debug, info, trace};
 use url::Url;
 
@@ -13,9 +17,6 @@ use flowcore::model::process::Process::FlowProcess;
 use flowcore::model::process::Process::FunctionProcess;
 use flowcore::model::route::Route;
 use flowcore::provider::Provider;
-use std::collections::BTreeMap;
-#[cfg(feature = "debugger")]
-use std::collections::BTreeSet;
 
 use crate::errors::*;
 
@@ -137,7 +138,7 @@ fn parse_process(
                 initializations,
             )?;
             *flow_count += 1;
-            debug!("Deserialized the Flow, now loading any sub-processes");
+            debug!("Deserialized the Flow, now parsing sub-processes");
             parse_process_refs(
                 flow,
                 flow_count,
