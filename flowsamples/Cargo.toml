@@ -18,5 +18,9 @@ maintenance = { status = "actively-developed" }
 name = "flowsamples"
 path = "main.rs"
 
+[features]
+default = []
+wasm = []
+
 [dev-dependencies]
 serial_test = "1.0.0"
