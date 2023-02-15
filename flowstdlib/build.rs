@@ -43,11 +43,18 @@ fn main() -> io::Result<()> {
     #[cfg(not(feature = "wasm"))]
     let command_args = vec!["-d", "-g", "-l", "-o", &out_dir, "-n", lib_root_dir_str];
 
-    if !command.args(&command_args).status()
-        .unwrap_or_else(|_|
-            panic!("Could not get status of 'flowc {}'", command_args.join(" ")))
-        .success() {
-        std::process::exit(1);
+    match command.args(&command_args).status() {
+        Ok(stat) => {
+            if !stat.success() {
+                eprintln!("Error building sample, command line\n flowc {}",
+                          command_args.join(" "));
+                std::process::exit(1);
+            }
+        }
+        Err(err) => {
+            eprintln!("'{}' running 'flowc {}'", err, command_args.join(" "));
+            std::process::exit(1);
+        }
     }
 
     Ok(())
