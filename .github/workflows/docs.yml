@@ -18,6 +18,7 @@ jobs:
       - name: setup-paths
         run: |
           echo "FLOW_LIB_PATH=$GITHUB_WORKSPACE/target" >> "$GITHUB_ENV"
+          mkdir -p $HOME/.cargo/bin
           echo "PATH=$HOME/.cargo/bin:$GITHUB_WORKSPACE/target/debug:$PATH" >> "$GITHUB_ENV"
 
       - name: install-graphviz
@@ -32,18 +33,25 @@ jobs:
         run: cargo build -p flowstdlib
 
       - name: install-mdbook
+        run: curl -sSL https://github.com/rust-lang/mdBook/releases/download/v0.4.27/mdbook-v0.4.27-x86_64-unknown-linux-gnu.tar.gz | tar -xz --directory=$HOME/.cargo/bin
+
+      - name: install-mdbook-linkcheck
         run: |
-          mkdir -p $HOME/.cargo/bin
-          curl -sSL https://github.com/rust-lang/mdBook/releases/download/v0.4.27/mdbook-v0.4.27-x86_64-unknown-linux-gnu.tar.gz | tar -xz --directory=$HOME/.cargo/bin
-          cargo install mdbook-linkcheck
+          curl -sSL https://github.com/Michael-F-Bryan/mdbook-linkcheck/releases/download/v0.7.7/mdbook-linkcheck.x86_64-unknown-linux-gnu.zip > mdbook-linkcheck.zip
+          unzip mdbook-linkcheck.zip -d $HOME/.cargo/bin
+          chmod +x $HOME/.cargo/bin/mdbook-linkcheck
 
       - name: build-book
         run: mdbook build
 
       - name: build-docs
-        run: |
-          cargo doc --no-deps --target-dir=target/html/code
-          make copy-svgs trim-docs
+        run: cargo doc --no-deps --target-dir=target/html/code
+
+      - name: copy-svgs
+        run: make copy-svgs
+
+      - name: trim-docs
+        run: make trim-docs
 
       - name: deploy-docs
         uses: JamesIves/github-pages-deploy-action@4.1.4
