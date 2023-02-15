@@ -40,7 +40,7 @@ pub fn build_lib(options: &Options, provider: &dyn Provider) -> Result<()> {
         .to_file_path()
         .map_err(|_| "Could not convert Url to File path")?;
 
-    // compile all functions to the output directory first, as they maybe used in flows later
+    // compile all functions to the output directory first, as they maybe referenced later in flows
     let mut file_count = compile_functions(
         lib_root_path.join("src"),
         options,
@@ -222,14 +222,14 @@ fn compile_functions(
                             file_count += 1;
                         }
 
-                        file_count += copy_sources_to_target_dir(toml_path, &output_dir, function.get_docs())?;
-
                         lib_manifest
                             .add_locator(
                                 &wasm_relative_path.to_string_lossy(),
                                 &relative_dir.to_string_lossy(),
                             )
                             .chain_err(|| "Could not add entry to library manifest")?;
+
+                        file_count += copy_sources_to_target_dir(toml_path, &output_dir, function.get_docs())?;
                     }
                     Ok(FlowProcess(_)) => {},
                     Err(err) => debug!("Skipping file '{}'. Reason: '{}'", url, err),
