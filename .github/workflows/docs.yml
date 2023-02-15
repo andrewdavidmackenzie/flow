@@ -20,28 +20,29 @@ jobs:
           echo "FLOW_LIB_PATH=$GITHUB_WORKSPACE/target" >> "$GITHUB_ENV"
           echo "PATH=$HOME/.cargo/bin:$GITHUB_WORKSPACE/target/debug:$PATH" >> "$GITHUB_ENV"
 
-      - name: install-dependencies
+      - name: install-graphviz
         run: |
           sudo apt-get update -y
           sudo apt-get -y install graphviz
-          cargo install mdbook
-          cargo install mdbook-linkcheck
-
-      - name: add-wasm-tools
-        run: rustup target add wasm32-unknown-unknown
 
       - name: build-flowc
         run: cargo build -p flowc
 
       - name: build-flowstdlib
+        run: cargo build -p flowstdlib
+
+      - name: install-mdbook
         run: |
-          cargo build -p flowstdlib
-          ls $GITHUB_WORKSPACE/target/flowstdlib/math
+          mkdir -p $HOME/.cargo/bin
+          curl -sSL https://github.com/rust-lang/mdBook/releases/download/v0.4.27/mdbook-v0.4.27-x86_64-unknown-linux-gnu.tar.gz | tar -xz --directory=$HOME/.cargo/bin
+          cargo install mdbook-linkcheck
+
+      - name: build-book
+        run: mdbook build
 
       - name: build-docs
         run: |
-          mdbook build
-          cargo doc --no-deps --target-dir=$GITHUB_WORKSPACE/target/html/code
+          cargo doc --no-deps --target-dir=target/html/code
           make copy-svgs trim-docs
 
       - name: deploy-docs
