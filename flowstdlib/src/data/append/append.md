@@ -1,4 +1,4 @@
-## Accumulate (//flowstdlib/data/append)
+## Append (//flowstdlib/data/append)
 Append two strings
 
 ### Include using
