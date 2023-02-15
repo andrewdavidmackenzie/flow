@@ -40,18 +40,25 @@ pub fn build_lib(options: &Options, provider: &dyn Provider) -> Result<()> {
         .to_file_path()
         .map_err(|_| "Could not convert Url to File path")?;
 
-    let build_count = compile_implementations(
+    // compile all functions to the output directory first, as they maybe used in flows later
+    let mut file_count = compile_functions(
         lib_root_path.join("src"),
         options,
         &mut lib_manifest,
         provider,
-    )
-    .chain_err(|| "Could not compile implementations in library")?;
+    )?;
+
+    file_count += compile_flows(
+        lib_root_path.join("src"),
+        options,
+        &mut lib_manifest,
+        provider,
+    )?;
 
     let manifest_json_file = LibraryManifest::manifest_filename(&options.output_dir);
 
-    let (message, write_manifest) = check_manifest_status(&manifest_json_file, build_count,
-        &lib_manifest)?;
+    let (message, write_manifest) = check_manifest_status(&manifest_json_file, file_count,
+                                                          &lib_manifest)?;
 
     info!("{}", message);
 
@@ -66,12 +73,12 @@ pub fn build_lib(options: &Options, provider: &dyn Provider) -> Result<()> {
 /*
     Check if a new manifest needs to be generated on disk based on timestamps and changed contents
 */
-fn check_manifest_status(manifest_json_file: &PathBuf, build_count: i32,
+fn check_manifest_status(manifest_json_file: &PathBuf, file_count: i32,
                          lib_manifest: &LibraryManifest) -> Result<(&'static str, bool)> {
     let json_manifest_exists = manifest_json_file.exists() && manifest_json_file.is_file();
     if json_manifest_exists {
-        if build_count > 0 {
-            Ok(("Library manifest file(s) exists, but implementations were built, writing new file(s)", true))
+        if file_count > 0 {
+            Ok(("Library manifest file(s) exists, but files were modified", true))
         } else {
             let provider = MetaProvider::new(Simpath::new(""),
                                              PathBuf::from("/")
@@ -103,7 +110,9 @@ fn check_manifest_status(manifest_json_file: &PathBuf, build_count: i32,
 /*
    Copy additional source files for function or flow into the target directory
 */
-fn copy_sources_to_target_dir(toml_path: &Path, target_dir: &Path, docs: &str) -> Result<()> {
+fn copy_sources_to_target_dir(toml_path: &Path, target_dir: &Path, docs: &str) -> Result<i32> {
+    let mut file_count = 0;
+
     // copy the definition toml to target directory
     fs::copy(
         toml_path,
@@ -113,6 +122,7 @@ fn copy_sources_to_target_dir(toml_path: &Path, target_dir: &Path, docs: &str) -
                 .ok_or("Could not get Toml file filename")?,
         ),
     )?;
+    file_count += 1;
 
     // Copy any docs files to target directory
     if !docs.is_empty() {
@@ -121,28 +131,29 @@ fn copy_sources_to_target_dir(toml_path: &Path, target_dir: &Path, docs: &str) -
             &docs_path,
             target_dir.join(docs_path.file_name().ok_or("Could not get docs filename")?),
         )?;
+        file_count += 1;
     }
 
-    Ok(())
+    Ok(file_count)
 }
 
 /*
-    Find all process definitions under the base_dir and if they provide an implementation, check if
+    Find all function definitions under the base_dir and if they provide an implementation, check if
     the wasm file is up-to-date with the source and if not compile it, and add them all to the
     manifest struct
 */
-fn compile_implementations(
+fn compile_functions(
     lib_root_path: PathBuf,
     options: &Options,
     lib_manifest: &mut LibraryManifest,
     provider: &dyn Provider,
 ) -> Result<i32> {
-    let mut build_count = 0;
+    let mut file_count = 0;
     // Function implementations are described in .toml format and can be at multiple levels in
     // a library's directory structure.
 
     debug!(
-        "Searching for process definitions using search pattern: '{}/**/*.toml'",
+        "Searching for function definitions using search pattern: '{}/**/*.toml'",
         lib_root_path.display(),
     );
 
@@ -173,12 +184,11 @@ fn compile_implementations(
                     fs::create_dir_all(&output_dir)?;
                 }
 
-                // Load the `FunctionProcess` or `FlowProcess` definition from the found `.toml` file
+                // Load the `FunctionProcess` from the found `.toml` file
                 match parser::parse(
                     &url,
                     provider,
-                    #[cfg(feature = "debugger")]
-                        &mut lib_manifest.source_urls,
+                    #[cfg(feature = "debugger")] &mut lib_manifest.source_urls,
                 ) {
                     Ok(FunctionProcess(ref mut function)) => {
                         let (source_path, wasm_destination) = compile::get_paths(&output_dir, function)?;
@@ -208,7 +218,11 @@ fn compile_implementations(
                         )
                             .chain_err(|| "Could not compile implementation to wasm")?;
 
-                        copy_sources_to_target_dir(toml_path, &output_dir, function.get_docs())?;
+                        if built {
+                            file_count += 1;
+                        }
+
+                        file_count += copy_sources_to_target_dir(toml_path, &output_dir, function.get_docs())?;
 
                         lib_manifest
                             .add_locator(
@@ -216,30 +230,95 @@ fn compile_implementations(
                                 &relative_dir.to_string_lossy(),
                             )
                             .chain_err(|| "Could not add entry to library manifest")?;
-                        if built {
-                            build_count += 1;
-                        }
                     }
-                    Ok(FlowProcess(ref mut flow)) => {
-                        if options.graphs {
-                            flow_to_dot::dump_flow(flow, &output_dir, provider)?;
-                            flow_to_dot::generate_svgs(&output_dir, true)?;
-                        }
-
-                        copy_sources_to_target_dir(toml_path, &output_dir, flow.get_docs())?;
-                    }
-                    Err(_) => debug!("Skipping file '{}'", url),
+                    Ok(FlowProcess(_)) => {},
+                    Err(err) => debug!("Skipping file '{}'. Reason: '{}'", url, err),
                 }
             },
             Err(e) => bail!("Error walking glob entries: {}", e.to_string())
         }
     }
 
-    if build_count > 0 {
-        info!("Compiled {} functions to wasm", build_count);
+    if file_count > 0 {
+        info!("Compiled {} functions to wasm", file_count);
     }
 
-    Ok(build_count)
+    Ok(file_count)
+}
+
+
+/*
+    Find all flow definitions under the base_dir, copy to target and add them all to the manifest
+*/
+fn compile_flows(
+    lib_root_path: PathBuf,
+    options: &Options,
+    lib_manifest: &mut LibraryManifest,
+    provider: &dyn Provider,
+) -> Result<i32> {
+    let mut file_count = 0;
+    // Flow implementations are described in .toml format and can be at multiple levels in
+    // a library's directory structure.
+
+    debug!(
+        "Searching for flow definitions using search pattern: '{}/**/*.toml'",
+        lib_root_path.display(),
+    );
+
+    let glob = Glob::new("**/*.toml").map_err(|_| "Globbing error")?;
+    for entry in glob.walk(&lib_root_path) {
+        match &entry {
+            Ok(walk_entry) => {
+                let toml_path = walk_entry.path();
+
+                let url = Url::from_file_path(toml_path).map_err(|_| {
+                    format!(
+                        "Could not create url from file path '{}'",
+                        toml_path.display()
+                    )
+                })?;
+                debug!("Trying to load library process from '{}'", url);
+
+                // calculate the path of the file's directory, relative to lib_root
+                let relative_dir = toml_path
+                    .parent()
+                    .ok_or("Could not get toml path parent dir")?
+                    .strip_prefix(&lib_root_path)
+                    .map_err(|_| "Could not calculate relative_dir")?;
+                // calculate the target directory for generating output using the relative path from the
+                // lib_root appended to the root of the output directory
+                let output_dir = options.output_dir.join(relative_dir);
+                if !output_dir.exists() {
+                    fs::create_dir_all(&output_dir)?;
+                }
+
+                // Load the `FlowProcess` from the found `.toml` file
+                match parser::parse(
+                    &url,
+                    provider,
+                    #[cfg(feature = "debugger")] &mut lib_manifest.source_urls,
+                ) {
+                    Ok(FunctionProcess(_)) => {}
+                    Ok(FlowProcess(ref mut flow)) => {
+                        if options.graphs {
+                            flow_to_dot::dump_flow(flow, &output_dir, provider)?;
+                            flow_to_dot::generate_svgs(&output_dir, true)?;
+                        }
+
+                        file_count += copy_sources_to_target_dir(toml_path, &output_dir, flow.get_docs())?;
+                    }
+                    Err(err) => debug!("Skipping file '{}'. Reason: '{}'", url, err),
+                }
+            },
+            Err(e) => bail!("Error walking glob entries: {}", e.to_string())
+        }
+    }
+
+    if file_count > 0 {
+        info!("Compiled {} flows", file_count);
+    }
+
+    Ok(file_count)
 }
 
 #[cfg(test)]
