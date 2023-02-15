@@ -42,9 +42,8 @@ pub fn compile_implementation(
         if native_only {
             if missing {
                 warn!("Implementation '{}' is missing and you have \
-                selected to skip building, so flows relying on this implementation will not \
-                execute correctly.\nYou can build it using 'flowc', using the '-p' option",
-                                      wasm_destination.display());
+                selected to skip compiling to 'wasm', so flows relying on this implementation will not \
+                execute correctly.", wasm_destination.display());
             }
             if out_of_date {
                 info!(
