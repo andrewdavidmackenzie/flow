@@ -61,8 +61,8 @@ fn compile_sample(sample_dir: &str, output_dir: &str) {
                                 "-C", &context_root,
                                 "-o", output_dir,
                                 sample_dir];
-    #[cfg(not(feature = "wasm"))]
-        let command_args = vec!["-d", "-g", "-c", "-n",
+    #[cfg(not(feature = "wasm"))] // "-n" and "-p" to skip compiling provided implementations
+        let command_args = vec!["-d", "-g", "-c", "-n", "-p",
                                 "-C", &context_root,
                                 "-o", output_dir,
                                 sample_dir];
