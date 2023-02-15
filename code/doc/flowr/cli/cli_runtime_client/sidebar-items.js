@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"struct":[["CliRuntimeClient",""]]};
+window.SIDEBAR_ITEMS = {"struct":["CliRuntimeClient"]};

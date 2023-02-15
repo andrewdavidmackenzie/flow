@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"struct":[["Zip","Zip (//flowstdlib/data/zip)"]]};
+window.SIDEBAR_ITEMS = {"struct":["Zip"]};

@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"struct":[["Get","`Implementation` struct for the `get` function"]]};
+window.SIDEBAR_ITEMS = {"struct":["Get"]};

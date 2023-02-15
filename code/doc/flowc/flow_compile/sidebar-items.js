@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":[["compile_and_execute_flow","Compile a flow, maybe run it"],["execute_flow",""],["make_writeable",""]]};
+window.SIDEBAR_ITEMS = {"fn":["compile_and_execute_flow","execute_flow","make_writeable"]};

@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"struct":[["Sort","Sort (//flowstdlib/data/sort)"]]};
+window.SIDEBAR_ITEMS = {"struct":["Sort"]};

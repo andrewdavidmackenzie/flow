@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"mod":[["flow_to_dot","Module to dump a flow, or functions to .dot files of directed graphs"],["functions_to_dot","Module to output the graph of functions after compilation"]]};
+window.SIDEBAR_ITEMS = {"mod":["flow_to_dot","functions_to_dot"]};

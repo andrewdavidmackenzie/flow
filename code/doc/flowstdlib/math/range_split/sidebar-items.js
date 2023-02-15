@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"struct":[["RangeSplit","Range (//flowstdlib/math/range_split)"]]};
+window.SIDEBAR_ITEMS = {"struct":["RangeSplit"]};

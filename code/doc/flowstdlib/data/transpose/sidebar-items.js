@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"struct":[["Transpose","Transpose (//flowstdlib/data/transpose)"]]};
+window.SIDEBAR_ITEMS = {"struct":["Transpose"]};

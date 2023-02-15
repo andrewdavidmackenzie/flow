@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"struct":[["Duplicate","Duplicate (//flowstdlib/data/duplicate)"]]};
+window.SIDEBAR_ITEMS = {"struct":["Duplicate"]};

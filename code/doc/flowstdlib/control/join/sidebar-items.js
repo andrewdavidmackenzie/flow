@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"struct":[["Join","Join (//flowstdlib/control/join)"]]};
+window.SIDEBAR_ITEMS = {"struct":["Join"]};

@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":[["BreakpointSpec","Types of `Params` used in communications between the debugger and the debug_client"],["DebugCommand","A Command sent by the debug_client to the debugger"]]};
+window.SIDEBAR_ITEMS = {"enum":["BreakpointSpec","DebugCommand"]};

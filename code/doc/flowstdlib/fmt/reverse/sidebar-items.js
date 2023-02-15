@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"struct":[["Reverse","Reverse (//flowstdlib/fmt/reverse)"]]};
+window.SIDEBAR_ITEMS = {"struct":["Reverse"]};

@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"struct":[["Job","A `Job` contains the information necessary to manage the execution of a function in the flow on a set of input values, and then where to send the outputs that maybe produces."],["JobPayload","Conatins the minimum amount of information required to execute a [Job] and return the result"]]};
+window.SIDEBAR_ITEMS = {"struct":["Job","JobPayload"]};

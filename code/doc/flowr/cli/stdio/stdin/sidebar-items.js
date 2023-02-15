@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"struct":[["Stdin","`Implementation` struct for the `Stdin` function"]]};
+window.SIDEBAR_ITEMS = {"struct":["Stdin"]};

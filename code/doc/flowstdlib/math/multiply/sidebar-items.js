@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"struct":[["Multiply","Multiply (//flowstdlib/math/multiply)"]]};
+window.SIDEBAR_ITEMS = {"struct":["Multiply"]};

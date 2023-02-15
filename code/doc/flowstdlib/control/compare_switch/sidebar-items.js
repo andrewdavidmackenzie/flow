@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"struct":[["CompareSwitch","CompareSwitch (//flowstdlib/control/compare_switch)"]]};
+window.SIDEBAR_ITEMS = {"struct":["CompareSwitch"]};

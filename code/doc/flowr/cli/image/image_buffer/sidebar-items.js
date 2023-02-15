@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"struct":[["ImageBuffer","`Implementation` struct for the `image_buffer` function"]]};
+window.SIDEBAR_ITEMS = {"struct":["ImageBuffer"]};

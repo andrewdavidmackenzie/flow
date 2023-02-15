@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"struct":[["Split","Split (//flowstdlib/data/split)"]]};
+window.SIDEBAR_ITEMS = {"struct":["Split"]};

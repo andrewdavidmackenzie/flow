@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"struct":[["FileProvider","The `FileProvider` implements the `Provider` trait and takes care of fetching content located on the local file system."]]};
+window.SIDEBAR_ITEMS = {"struct":["FileProvider"]};

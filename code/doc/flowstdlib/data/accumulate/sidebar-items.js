@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"struct":[["Accumulate","Accumulate (//flowstdlib/data/accumulate)"]]};
+window.SIDEBAR_ITEMS = {"struct":["Accumulate"]};

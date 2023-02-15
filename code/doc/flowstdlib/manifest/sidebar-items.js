@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":[["get_manifest","Return the LibraryManifest for this library"]]};
+window.SIDEBAR_ITEMS = {"fn":["get_manifest"]};

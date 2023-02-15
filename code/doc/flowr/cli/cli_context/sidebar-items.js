@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":[["get_manifest","Return a `LibraryManifest` for the context functions"]]};
+window.SIDEBAR_ITEMS = {"fn":["get_manifest"]};
