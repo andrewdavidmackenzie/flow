@@ -23,29 +23,25 @@ jobs:
       - name: install-dependencies
         run: |
           sudo apt-get update -y
-          sudo apt-get -y install libzmq3-dev binaryen graphviz
+          sudo apt-get -y install graphviz
           cargo install mdbook
           cargo install mdbook-linkcheck
 
       - name: add-wasm-tools
-        run: |
-          rustup target add wasm32-unknown-unknown
-          cargo install wasm-gc wasm-snip
+        run: rustup target add wasm32-unknown-unknown
 
       - name: build-flowc
-        run: |
-          cargo build -p flowc
-          which flowc
+        run: cargo build -p flowc
 
       - name: build-flowstdlib
         run: |
-          cargo build -p flowstdlib --features "wasm"
-          tree $GITHUB_WORKSPACE/target/flowstdlib
+          cargo build -p flowstdlib
+          ls $GITHUB_WORKSPACE/target/flowstdlib/math
 
       - name: build-docs
         run: |
           mdbook build
-          cargo doc --no-deps --target-dir=target/html/code
+          cargo doc --no-deps --target-dir=$GITHUB_WORKSPACE/target/html/code
           make copy-svgs trim-docs
 
       - name: deploy-docs
