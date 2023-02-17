@@ -194,16 +194,6 @@ trim-docs:
 	@rm -rf target/html/flowsamples/mandlebrot/project
 	@find target/html -depth -type d -empty -delete
 
-.PHONY: publish
-publish:
-	# "|| true" is to continue publishing other crates when one has been published already and fails
-	@cd flowcore;cargo publish || true
-	@cd flowmacro;cargo publish || true
-	@cd flowrlib;cargo publish || true
-	@cd flowc;cargo publish || true
-	# See https://github.com/andrewdavidmackenzie/flow/issues/1517 to understand --no-verify flag
-	# used on all builds that build flowstdlib or flowsamples due to Cargo.toml of supplied implementations
-	@cd flowstdlib;cargo publish --no-verify || true
-	@cd flowr;cargo publish --no-verify || true
-	@cd flowrex;cargo publish --no-verify || true
-	@cd flowsamples;cargo publish --no-verify || true
+.PHONY: release
+release:
+	cargo release --no-verify --execute minor
