@@ -197,3 +197,4 @@ trim-docs:
 .PHONY: release
 release:
 	cargo release --no-verify --execute minor
+	echo "Use 'cargo release --no-verify --execute minor --manifest-path=flowrex/Cargo.toml' to release flowrex after updating dependencies"
