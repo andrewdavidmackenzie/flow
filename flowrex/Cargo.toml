@@ -24,7 +24,7 @@ default = ["flowstdlib"]
 flowcore = {path = "../flowcore", version = "0.91.0"}
 flowrlib = {path = "../flowrlib", version = "0.91.0"}
 flowstdlib = {path = "../flowstdlib", version = "0.91.0", optional = true }
-simplog = { version = "~1.6" }
+env_logger = "0.10.0"
 simpath = { version = "~2.3", features = ["urls"]}
 clap = "~4"
 log = "0.4.6"

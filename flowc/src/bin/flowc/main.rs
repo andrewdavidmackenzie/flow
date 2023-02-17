@@ -11,16 +11,17 @@
 //! Run `flowc --help` or `flowc -h` at the command line for a
 //! description of the command line options.
 
+use core::str::FromStr;
 use std::env;
 use std::path::PathBuf;
 use std::process::exit;
 
 use clap::{Arg, ArgMatches, Command};
-use log::{debug, info, warn};
+use log::{debug, info, LevelFilter, warn};
 use simpath::Simpath;
-use simplog::SimpleLogger;
 use url::Url;
 
+use env_logger::Builder;
 use errors::*;
 use flowclib::info;
 use flowcore::meta_provider::MetaProvider;
@@ -256,8 +257,12 @@ fn get_matches() -> ArgMatches {
     Parse the command line arguments
 */
 fn parse_args(matches: ArgMatches) -> Result<Options> {
-    let verbosity = matches.get_one::<String>("verbosity").map(|s| s.as_str());
-    SimpleLogger::init_prefix(verbosity, false);
+    let default = String::from("error");
+    let verbosity_option = matches.get_one::<String>("verbosity");
+    let verbosity = verbosity_option.unwrap_or(&default);
+    let level = LevelFilter::from_str(verbosity).unwrap_or(LevelFilter::Error);
+    let mut builder = Builder::from_default_env();
+    builder.filter_level(level).init();
 
     debug!(
         "'{}' version {}",
@@ -319,7 +324,7 @@ fn parse_args(matches: ArgMatches) -> Result<Options> {
         lib_dirs,
         native_only: matches.get_flag("native"),
         context_root,
-        verbosity: verbosity.map(|s| s.to_string()),
+        verbosity: verbosity_option.map(|s| s.to_string()),
         optimize: matches.get_flag("optimize")
     })
 }

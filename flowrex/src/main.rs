@@ -1,21 +1,7 @@
 #![deny(missing_docs)]
 #![warn(clippy::unwrap_used)]
 //! `flowrex` is the minimal executor of flow jobs.
-use clap::{Arg, ArgMatches, Command};
-use log::{info, trace, warn};
-use simpath::Simpath;
-use simplog::SimpleLogger;
-#[cfg(feature = "flowstdlib")]
-use url::Url;
-
-use flowcore::errors::*;
-use flowcore::meta_provider::MetaProvider;
-use flowcore::provider::Provider;
-use flowrlib::executor::Executor;
-use flowrlib::info as flowrlib_info;
-use flowrlib::services::{CONTROL_SERVICE_NAME, JOB_QUEUES_DISCOVERY_PORT,
-                         JOB_SERVICE_NAME, RESULTS_JOB_SERVICE_NAME};
-use simpdiscoverylib::BeaconListener;
+use core::str::FromStr;
 /// It attempts to be as small as possible, and only accepts jobs for execution over the network
 /// and does not load flows, accept flow submissions run a coordinator or access the file system.
 /// Any implementations are either preloaded static linked binary functions or loaded from WASM
@@ -25,6 +11,22 @@ use std::{env, thread};
 use std::path::PathBuf;
 use std::process::exit;
 use std::sync::Arc;
+
+use clap::{Arg, ArgMatches, Command};
+use log::{info, LevelFilter, trace, warn};
+use simpath::Simpath;
+use simpdiscoverylib::BeaconListener;
+#[cfg(feature = "flowstdlib")]
+use url::Url;
+
+use env_logger::Builder;
+use flowcore::errors::*;
+use flowcore::meta_provider::MetaProvider;
+use flowcore::provider::Provider;
+use flowrlib::executor::Executor;
+use flowrlib::info as flowrlib_info;
+use flowrlib::services::{CONTROL_SERVICE_NAME, JOB_QUEUES_DISCOVERY_PORT,
+                         JOB_SERVICE_NAME, RESULTS_JOB_SERVICE_NAME};
 
 /// We'll put our errors in an `errors` module, and other modules in this crate will
 /// `use crate::errors::*;` to get access to everything `error_chain` creates.
@@ -61,9 +63,11 @@ fn main() {
 fn run() -> Result<()> {
     let matches = get_matches();
 
-    SimpleLogger::init_prefix_timestamp(
-        matches.get_one::<String>("verbosity").map(|s| s.as_str()),
-        true, false);
+    let default = String::from("error");
+    let verbosity = matches.get_one::<String>("verbosity").unwrap_or(&default);
+    let level = LevelFilter::from_str(verbosity).unwrap_or(LevelFilter::Error);
+    let mut builder = Builder::from_default_env();
+    builder.filter_level(level).init();
 
     info!(
         "'{}' version {}",

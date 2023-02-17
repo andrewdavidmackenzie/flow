@@ -28,8 +28,8 @@ flowcore = {path = "../flowcore", version = "0.91.0", features = ["context"] }
 flowrlib = {path = "../flowrlib", version = "0.91.0", features = ["context", "submission"] }
 flowstdlib = {path = "../flowstdlib", version = "0.91.0" }
 clap = "~4"
-simplog = "~1.6"
 log = "0.4.6"
+env_logger = "0.10.0"
 simpath = { version = "~2.3", features = ["urls"]}
 url = { version = "2.2", features = ["serde"] }
 serde_derive = "~1.0.27"
