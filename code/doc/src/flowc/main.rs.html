@@ -323,6 +323,11 @@
 <a href="#323" id="323">323</a>
 <a href="#324" id="324">324</a>
 <a href="#325" id="325">325</a>
+<a href="#326" id="326">326</a>
+<a href="#327" id="327">327</a>
+<a href="#328" id="328">328</a>
+<a href="#329" id="329">329</a>
+<a href="#330" id="330">330</a>
 </pre><pre class="rust"><code><span class="attr">#![deny(missing_docs)]
 #![warn(clippy::unwrap_used)]
 #![allow(clippy::result_large_err)]
@@ -336,16 +341,17 @@
 //! Run `flowc --help` or `flowc -h` at the command line for a
 //! description of the command line options.
 
-</span><span class="kw">use </span>std::env;
+</span><span class="kw">use </span>core::str::FromStr;
+<span class="kw">use </span>std::env;
 <span class="kw">use </span>std::path::PathBuf;
 <span class="kw">use </span>std::process::exit;
 
 <span class="kw">use </span>clap::{Arg, ArgMatches, Command};
-<span class="kw">use </span>log::{debug, info, warn};
+<span class="kw">use </span>log::{debug, info, LevelFilter, warn};
 <span class="kw">use </span>simpath::Simpath;
-<span class="kw">use </span>simplog::SimpleLogger;
 <span class="kw">use </span>url::Url;
 
+<span class="kw">use </span>env_logger::Builder;
 <span class="kw">use </span>errors::<span class="kw-2">*</span>;
 <span class="kw">use </span>flowclib::info;
 <span class="kw">use </span>flowcore::meta_provider::MetaProvider;
@@ -581,8 +587,12 @@
     Parse the command line arguments
 */
 </span><span class="kw">fn </span>parse_args(matches: ArgMatches) -&gt; <span class="prelude-ty">Result</span>&lt;Options&gt; {
-    <span class="kw">let </span>verbosity = matches.get_one::&lt;String&gt;(<span class="string">&quot;verbosity&quot;</span>).map(|s| s.as_str());
-    SimpleLogger::init_prefix(verbosity, <span class="bool-val">false</span>);
+    <span class="kw">let </span>default = String::from(<span class="string">&quot;error&quot;</span>);
+    <span class="kw">let </span>verbosity_option = matches.get_one::&lt;String&gt;(<span class="string">&quot;verbosity&quot;</span>);
+    <span class="kw">let </span>verbosity = verbosity_option.unwrap_or(<span class="kw-2">&amp;</span>default);
+    <span class="kw">let </span>level = LevelFilter::from_str(verbosity).unwrap_or(LevelFilter::Error);
+    <span class="kw">let </span><span class="kw-2">mut </span>builder = Builder::from_default_env();
+    builder.filter_level(level).init();
 
     <span class="macro">debug!</span>(
         <span class="string">&quot;&#39;{}&#39; version {}&quot;</span>,
@@ -644,9 +654,9 @@
         lib_dirs,
         native_only: matches.get_flag(<span class="string">&quot;native&quot;</span>),
         context_root,
-        verbosity: verbosity.map(|s| s.to_string()),
+        verbosity: verbosity_option.map(|s| s.to_string()),
         optimize: matches.get_flag(<span class="string">&quot;optimize&quot;</span>)
     })
 }
 </code></pre></div>
-</section></main><div id="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="flowc" data-themes="" data-resource-suffix="" data-rustdoc-version="1.69.0-nightly (0416b1a6f 2023-02-14)" data-search-js="search-14421e1532aead08.js" data-settings-js="settings-f0c5c39777a9a2f6.js" data-settings-css="settings-0bcba95ff279c1db.css" ></div></body></html>
+</section></main><div id="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="flowc" data-themes="" data-resource-suffix="" data-rustdoc-version="1.69.0-nightly (9a7cc6c32 2023-02-16)" data-search-js="search-14421e1532aead08.js" data-settings-js="settings-f0c5c39777a9a2f6.js" data-settings-css="settings-0bcba95ff279c1db.css" ></div></body></html>

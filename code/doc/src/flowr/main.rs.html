@@ -573,6 +573,11 @@
 <a href="#573" id="573">573</a>
 <a href="#574" id="574">574</a>
 <a href="#575" id="575">575</a>
+<a href="#576" id="576">576</a>
+<a href="#577" id="577">577</a>
+<a href="#578" id="578">578</a>
+<a href="#579" id="579">579</a>
+<a href="#580" id="580">580</a>
 </pre><pre class="rust"><code><span class="attr">#![deny(missing_docs)]
 #![warn(clippy::unwrap_used)]
 </span><span class="doccomment">//! `flowr` is a command line flow runner for running `flow` programs.
@@ -586,11 +591,16 @@
 //! The [cli] module implements a set of `context functions`, adapted to Terminal IO and local
 //! File System, that allow the flow program to interact with the environment where it is being run.
 
-</span><span class="kw">use </span>clap::{Arg, ArgMatches, Command};
-<span class="kw">use </span>log::{info, trace, warn};
+</span><span class="kw">use </span>core::str::FromStr;
+<span class="kw">use </span>std::{env, thread};
+<span class="kw">use </span>std::path::PathBuf;
+<span class="kw">use </span>std::process::exit;
+<span class="kw">use </span>std::sync::{Arc, Mutex};
+
+<span class="kw">use </span>clap::{Arg, ArgMatches, Command};
+<span class="kw">use </span>log::{info, LevelFilter, trace, warn};
 <span class="kw">use </span>portpicker::pick_unused_port;
 <span class="kw">use </span>simpath::Simpath;
-<span class="kw">use </span>simplog::SimpleLogger;
 <span class="kw">use </span>url::Url;
 
 <span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)]
@@ -609,6 +619,7 @@
                                                     ExitingDebugger, JobCompleted, JobError, Panic, PriorToSendingJob,
                                                     Resetting, WaitingForCommand};
 <span class="kw">use </span>cli::runtime_messages::ClientMessage;
+<span class="kw">use </span>env_logger::Builder;
 <span class="kw">use </span>flowcore::errors::<span class="kw-2">*</span>;
 <span class="kw">use </span>flowcore::meta_provider::MetaProvider;
 <span class="kw">use </span>flowcore::model::flow_manifest::FlowManifest;
@@ -621,10 +632,6 @@
 <span class="kw">use </span>flowrlib::info <span class="kw">as </span>flowrlib_info;
 <span class="kw">use </span>flowrlib::services::{CONTROL_SERVICE_NAME, JOB_QUEUES_DISCOVERY_PORT, JOB_SERVICE_NAME,
                          RESULTS_JOB_SERVICE_NAME};
-<span class="kw">use </span>std::{env, thread};
-<span class="kw">use </span>std::path::PathBuf;
-<span class="kw">use </span>std::process::exit;
-<span class="kw">use </span>std::sync::{Arc, Mutex};
 
 <span class="kw">use </span><span class="kw">crate</span>::cli::client_server::{DEBUG_SERVICE_NAME, discover_service,
                                 enable_service_discovery, RUNTIME_SERVICE_NAME};
@@ -685,8 +692,11 @@
 </span><span class="kw">fn </span>run() -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
     <span class="kw">let </span>matches = get_matches();
 
-    <span class="kw">let </span>verbosity = matches.get_one::&lt;String&gt;(<span class="string">&quot;verbosity&quot;</span>).map(|s| s.as_str());
-    SimpleLogger::init_prefix_timestamp(verbosity, <span class="bool-val">true</span>, <span class="bool-val">false</span>);
+    <span class="kw">let </span>default = String::from(<span class="string">&quot;error&quot;</span>);
+    <span class="kw">let </span>verbosity = matches.get_one::&lt;String&gt;(<span class="string">&quot;verbosity&quot;</span>).unwrap_or(<span class="kw-2">&amp;</span>default);
+    <span class="kw">let </span>level = LevelFilter::from_str(verbosity).unwrap_or(LevelFilter::Error);
+    <span class="kw">let </span><span class="kw-2">mut </span>builder = Builder::from_default_env();
+    builder.filter_level(level).init();
 
     <span class="macro">info!</span>(
         <span class="string">&quot;&#39;{}&#39; version {}&quot;</span>,
@@ -1149,4 +1159,4 @@
     flow_args
 }
 </code></pre></div>
-</section></main><div id="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="flowr" data-themes="" data-resource-suffix="" data-rustdoc-version="1.69.0-nightly (0416b1a6f 2023-02-14)" data-search-js="search-14421e1532aead08.js" data-settings-js="settings-f0c5c39777a9a2f6.js" data-settings-css="settings-0bcba95ff279c1db.css" ></div></body></html>
+</section></main><div id="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="flowr" data-themes="" data-resource-suffix="" data-rustdoc-version="1.69.0-nightly (9a7cc6c32 2023-02-16)" data-search-js="search-14421e1532aead08.js" data-settings-js="settings-f0c5c39777a9a2f6.js" data-settings-css="settings-0bcba95ff279c1db.css" ></div></body></html>
