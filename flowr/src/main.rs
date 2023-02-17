@@ -11,11 +11,16 @@
 //! The [cli] module implements a set of `context functions`, adapted to Terminal IO and local
 //! File System, that allow the flow program to interact with the environment where it is being run.
 
+use core::str::FromStr;
+use std::{env, thread};
+use std::path::PathBuf;
+use std::process::exit;
+use std::sync::{Arc, Mutex};
+
 use clap::{Arg, ArgMatches, Command};
-use log::{info, trace, warn};
+use log::{info, LevelFilter, trace, warn};
 use portpicker::pick_unused_port;
 use simpath::Simpath;
-use simplog::SimpleLogger;
 use url::Url;
 
 #[cfg(feature = "debugger")]
@@ -34,6 +39,7 @@ use cli::debug_server_message::DebugServerMessage::{BlockBreakpoint, DataBreakpo
                                                     ExitingDebugger, JobCompleted, JobError, Panic, PriorToSendingJob,
                                                     Resetting, WaitingForCommand};
 use cli::runtime_messages::ClientMessage;
+use env_logger::Builder;
 use flowcore::errors::*;
 use flowcore::meta_provider::MetaProvider;
 use flowcore::model::flow_manifest::FlowManifest;
@@ -46,10 +52,6 @@ use flowrlib::executor::Executor;
 use flowrlib::info as flowrlib_info;
 use flowrlib::services::{CONTROL_SERVICE_NAME, JOB_QUEUES_DISCOVERY_PORT, JOB_SERVICE_NAME,
                          RESULTS_JOB_SERVICE_NAME};
-use std::{env, thread};
-use std::path::PathBuf;
-use std::process::exit;
-use std::sync::{Arc, Mutex};
 
 use crate::cli::client_server::{DEBUG_SERVICE_NAME, discover_service,
                                 enable_service_discovery, RUNTIME_SERVICE_NAME};
@@ -110,8 +112,11 @@ fn setup_lib_search_path(search_path_additions: &[String]) -> Result<Simpath> {
 fn run() -> Result<()> {
     let matches = get_matches();
 
-    let verbosity = matches.get_one::<String>("verbosity").map(|s| s.as_str());
-    SimpleLogger::init_prefix_timestamp(verbosity, true, false);
+    let default = String::from("error");
+    let verbosity = matches.get_one::<String>("verbosity").unwrap_or(&default);
+    let level = LevelFilter::from_str(verbosity).unwrap_or(LevelFilter::Error);
+    let mut builder = Builder::from_default_env();
+    builder.filter_level(level).init();
 
     info!(
         "'{}' version {}",
