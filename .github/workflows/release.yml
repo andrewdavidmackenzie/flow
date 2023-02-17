@@ -79,7 +79,7 @@ jobs:
 
   # Build and packages all the things
   upload-artifacts:
-    needs: create-release, install-dependencies
+    needs: [create-release, install-dependencies]
     strategy:
       matrix:
         # For these target platforms
