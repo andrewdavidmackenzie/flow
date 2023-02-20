@@ -110,6 +110,8 @@ jobs:
         # The two platforms don't agree on how to talk about env vars but they
         # do agree on 'cat' and '$()' so we use that to marshal values between commands.
         run: |
+          # see if we have a built copy of flowc around
+          find . -type f -name flowc
           # Actually do builds and make zips and whatnot
           cargo dist --target=${{ matrix.target }} --output-format=json > dist-manifest.json
           echo "dist ran successfully"
