@@ -1,8 +1,9 @@
 use std::sync::{Arc, Mutex};
 
 use log::error;
-use rustyline::Editor;
+use rustyline::{DefaultEditor, Editor};
 use rustyline::error::ReadlineError;
+use rustyline::history::DefaultHistory;
 
 use flowcore::errors::*;
 use flowcore::model::runtime_function::RuntimeFunction;
@@ -43,7 +44,7 @@ const HELP_STRING: &str = "Debugger commands:
 pub struct CliDebugClient {
     connection: ClientConnection,
     override_args: Arc<Mutex<Vec<String>>>,
-    editor: Editor<()>,
+    editor: Editor<(), DefaultHistory>,
     last_command: String,
 }
 
@@ -53,7 +54,7 @@ impl CliDebugClient {
         CliDebugClient {
             connection,
             override_args,
-            editor: Editor::<()>::new().expect("Could not create Editor"), // `()` can be used when no completer is required
+            editor: DefaultEditor::new().expect("Could not create Editor"),
             last_command: "".to_string(),
         }
     }
@@ -192,7 +193,8 @@ impl CliDebugClient {
                     match self.parse_command(line) {
                         Ok((line, command, params)) => {
                             if let Some(debugger_command) = self.get_server_command(&command, params) {
-                                self.editor.add_history_entry(&line);
+                                self.editor.add_history_entry(&line)
+                                    .map_err(|_| "Could not add history line")?;
                                 self.last_command = line;
                                 return Ok(debugger_command);
                             } else {
@@ -229,7 +231,7 @@ impl CliDebugClient {
             "f" | "functions" => Some(FunctionList),
             "h" | "?" | "help" => { // only command that doesn't send a message to debugger
                 Self::help();
-                self.editor.add_history_entry(command);
+                self.editor.add_history_entry(command).expect("Could not add history line");
                 None
             }
             "i" | "inspect" => Self::parse_inspect_spec(params),
