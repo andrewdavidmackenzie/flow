@@ -43,7 +43,7 @@ image = "=0.24.5"
 simpdiscover = "0.6.2"
 
 # Optional dependencies
-rustyline = {version = "10.1.1", optional = true }
+rustyline = {version = "11.0.0", optional = true }
 
 [dev-dependencies]
 tempdir = "~0.3.5"
