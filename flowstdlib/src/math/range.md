@@ -1,5 +1,5 @@
 ## Range (//flowstdlib/math/range)
-Generate numbers within a rnage
+Generate numbers within a range
  
 ### Include using
 ```toml

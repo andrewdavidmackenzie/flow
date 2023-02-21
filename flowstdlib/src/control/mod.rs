@@ -1,6 +1,10 @@
 //! functions for controlling data flow
 //! ## Control (//flowstdlib/control)
 //! Functions to control the flow of data on connections between other processing functions
+//!
+/// A flow wrapper for the [Index][crate::control::index::Index] function to simplify
+/// its use by supplying most frequently used initializers to some inputs.
+pub mod index_f;
 
 /// A module with functions to compare data elements and output a value depending on comparison
 #[path = "compare_switch/compare_switch.rs"]

@@ -1,5 +1,5 @@
 ## index_f (//flowstdlib/control/index_f)
-A flow wrapper for the [index](index/index.md) function to simplify its use by supplying most frequently
+A flow that wraps the [index](index/index.md) function to simplify its use by supplying most frequently
 used initializers to some inputs. 
  
 ### Include using
