@@ -55,6 +55,11 @@ pub fn build_lib(options: &Options, provider: &dyn Provider) -> Result<()> {
         provider,
     )?;
 
+    file_count += copy_docs(
+        lib_root_path.join("src"),
+        options,
+    )?;
+
     let manifest_json_file = LibraryManifest::manifest_filename(&options.output_dir);
 
     let (message, write_manifest) = check_manifest_status(&manifest_json_file, file_count,
@@ -246,7 +251,6 @@ fn compile_functions(
     Ok(file_count)
 }
 
-
 /*
     Find all flow definitions under the base_dir, copy to target and add them all to the manifest
 */
@@ -316,6 +320,52 @@ fn compile_flows(
 
     if file_count > 0 {
         info!("Compiled {} flows", file_count);
+    }
+
+    Ok(file_count)
+}
+
+
+/*
+    Find all document files not already copied and copy them to the destination folder tree
+*/
+fn copy_docs(
+    lib_root_path: PathBuf,
+    options: &Options,
+) -> Result<i32> {
+    let mut file_count = 0;
+    debug!(
+        "Searching for additional docs files using search pattern: '{}/**/*.md'",
+        lib_root_path.display(),
+    );
+
+    let glob = Glob::new("**/*.md").map_err(|_| "Globbing error")?;
+    for entry in glob.walk(&lib_root_path) {
+        match &entry {
+            Ok(walk_entry) => {
+                let md_path = walk_entry.path();
+
+                // calculate the path of the file, relative to lib_root
+                let relative_file_path = md_path
+                    .strip_prefix(&lib_root_path)
+                    .map_err(|_| "Could not calculate relative path")?;
+                // calculate the target file for copying to using the relative path from the
+                // lib_root appended to the output directory
+                let target_file = options.output_dir.join(relative_file_path);
+
+                if !target_file.exists() {
+                    // copy the md file from the source tree to the target tree if not already there
+                    fs::copy(md_path, target_file).map_err(|_| "Could not copy docs file")?;
+                    file_count += 1;
+                }
+
+            },
+            Err(e) => bail!("Error walking glob entries: {}", e.to_string())
+        }
+    }
+
+    if file_count > 0 {
+        info!("Copied {} doc files", file_count);
     }
 
     Ok(file_count)
