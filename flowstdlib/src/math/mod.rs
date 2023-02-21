@@ -2,6 +2,12 @@
 //! ## Math (//flowstdlib/math)
 //! Math Functions
 
+/// A flow to generate numbers within a range
+pub mod range;
+
+/// A flow to generate a sequence of numbers
+pub mod sequence;
+
 /// A module with functions to compare data elements
 #[path = "compare/compare.rs"]
 pub mod compare;
