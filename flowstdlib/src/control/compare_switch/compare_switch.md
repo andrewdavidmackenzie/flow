@@ -11,7 +11,7 @@ The left value is output on the "left-gt", right value on the "right-gt" output
 The left value is output on the "left-gte", right value on the "right-gte" output
 #### **less than**
 The left value is output on the "left-lt" output, right value is output on the "right-lt" output
-####**less than or equal**
+#### **less than or equal**
 The left value is output on the "left-lte" output, right value is output on the "right-lte" output
 
 ### Usage
