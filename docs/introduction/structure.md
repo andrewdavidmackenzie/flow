@@ -13,6 +13,7 @@ Here is a summary of the project components, their purpose and a link to their `
 * [flowrlib](../developing/flowr.md) - The flow runner library that loads and executes compiled flows.
 * [flowr](../developing/flowr.md) - The `flowr` flow runner binary that can be used to run and debug 
 * flows compiled with a flow compiler such as `flowc`.
-* [flowstdlib](../developing/flowstdlib.md) - the flow "standard library" which contains a set of functions that can be 
+* [flowstdlib](../../flowstdlib/src/flowstdlib.md) - the flow "standard library" which contains a set of functions that 
+  can be 
   used by flows being defined by the user
 * [samples](../developing/flowsamples.md) - A set of sample flows
