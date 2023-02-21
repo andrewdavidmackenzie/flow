@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"mod":["compare_switch","index","join","route","select","tap"]};
+window.SIDEBAR_ITEMS = {"mod":["compare_switch","index","index_f","join","route","select","tap"]};

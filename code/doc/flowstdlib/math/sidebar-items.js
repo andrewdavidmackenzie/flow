@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"mod":["add","compare","divide","multiply","range_split","sqrt","subtract"]};
+window.SIDEBAR_ITEMS = {"mod":["add","compare","divide","multiply","range","range_split","sequence","sqrt","subtract"]};
