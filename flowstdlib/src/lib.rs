@@ -18,25 +18,25 @@
 //! `-n, --native` command line option is not used, when the function is referenced by a flow being
 //! run, it is loaded and executed in a WASM runtime.
 
-///
+/// Functions and flows to control the flow of data in a flow based on control inputs.
 pub mod control;
 
-///
+/// Some generic processes that act on data.
 pub mod data;
 
-/// provides [Error][errors::Error] that other modules in this crate will `use errors::*;`
-/// to get access to everything `error_chain` creates.
-pub mod errors;
+/// Math Functions and flows
+pub mod math;
 
-///
+/// Functions for the formatting of values and conversion from one type to another.
 pub mod fmt;
 
 /// Use [manifest::get_manifest] to get the natively/statically linked
 /// [LibraryManifest][flowcore::model::lib_manifest::LibraryManifest] for this library
+/// to get access to everything `error_chain` creates.
 pub mod manifest;
 
-///
-pub mod math;
+/// provides [Error][errors::Error] that other modules in this crate will `use errors::*;`
+pub mod errors;
 
 #[cfg(test)]
 pub mod test {

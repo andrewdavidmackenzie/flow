@@ -59,7 +59,7 @@
 - [The Debugger](docs/debugging/debugger.md)
 
 # The `flowstdlib` Standard Library
-- [Overview](docs/developing/flowstdlib.md)
+- [README](flowstdlib/src/flowstdlib.md)
 - [control](flowstdlib/src/control/control.md)
     - [compare_switch](flowstdlib/src/control/compare_switch/compare_switch.md)
     - [index](flowstdlib/src/control/index/index.md)
@@ -143,7 +143,7 @@
     - [flowrex](docs/developing/flowrex.md)
     - [flowc](docs/developing/flowc.md)
         - [Flowc Compiler and Parser Test flows](flowc/tests/test-flows/README.md)
-    - [flowstdlib](docs/developing/flowstdlib.md)
+    - [flowstdlib](flowstdlib/src/flowstdlib.md)
     - [flowsamples](docs/developing/flowsamples.md)
 - [Makefile targets](docs/developing/make.md)
 - [Ways to contribute](docs/developing/contributing.md)

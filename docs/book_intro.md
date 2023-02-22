@@ -14,7 +14,7 @@ The top-level sections are:
 * [flowr's context functions](../flowr/src/cli/flowr_context_functions.md)
 * [Running flows](running/running.md)
 * [Debugging Flows](debugging/debugger.md)
-* [The Flow Standard Library](developing/flowstdlib.md)
+* [The Flow Standard Library](../flowstdlib/src/flowstdlib.md)
 * [Sample flows](developing/flowsamples.md)
 * [Developing Flow](developing/overview.md)
 * [Internals of the Flow Project](internals/overview.md)
