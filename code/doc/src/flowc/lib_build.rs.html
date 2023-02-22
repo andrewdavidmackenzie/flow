@@ -397,6 +397,56 @@
 <a href="#397" id="397">397</a>
 <a href="#398" id="398">398</a>
 <a href="#399" id="399">399</a>
+<a href="#400" id="400">400</a>
+<a href="#401" id="401">401</a>
+<a href="#402" id="402">402</a>
+<a href="#403" id="403">403</a>
+<a href="#404" id="404">404</a>
+<a href="#405" id="405">405</a>
+<a href="#406" id="406">406</a>
+<a href="#407" id="407">407</a>
+<a href="#408" id="408">408</a>
+<a href="#409" id="409">409</a>
+<a href="#410" id="410">410</a>
+<a href="#411" id="411">411</a>
+<a href="#412" id="412">412</a>
+<a href="#413" id="413">413</a>
+<a href="#414" id="414">414</a>
+<a href="#415" id="415">415</a>
+<a href="#416" id="416">416</a>
+<a href="#417" id="417">417</a>
+<a href="#418" id="418">418</a>
+<a href="#419" id="419">419</a>
+<a href="#420" id="420">420</a>
+<a href="#421" id="421">421</a>
+<a href="#422" id="422">422</a>
+<a href="#423" id="423">423</a>
+<a href="#424" id="424">424</a>
+<a href="#425" id="425">425</a>
+<a href="#426" id="426">426</a>
+<a href="#427" id="427">427</a>
+<a href="#428" id="428">428</a>
+<a href="#429" id="429">429</a>
+<a href="#430" id="430">430</a>
+<a href="#431" id="431">431</a>
+<a href="#432" id="432">432</a>
+<a href="#433" id="433">433</a>
+<a href="#434" id="434">434</a>
+<a href="#435" id="435">435</a>
+<a href="#436" id="436">436</a>
+<a href="#437" id="437">437</a>
+<a href="#438" id="438">438</a>
+<a href="#439" id="439">439</a>
+<a href="#440" id="440">440</a>
+<a href="#441" id="441">441</a>
+<a href="#442" id="442">442</a>
+<a href="#443" id="443">443</a>
+<a href="#444" id="444">444</a>
+<a href="#445" id="445">445</a>
+<a href="#446" id="446">446</a>
+<a href="#447" id="447">447</a>
+<a href="#448" id="448">448</a>
+<a href="#449" id="449">449</a>
 </pre><pre class="rust"><code><span class="kw">use </span>std::fs;
 <span class="kw">use </span>std::path::Path;
 <span class="kw">use </span>std::path::PathBuf;
@@ -452,6 +502,11 @@
         options,
         <span class="kw-2">&amp;mut </span>lib_manifest,
         provider,
+    )<span class="question-mark">?</span>;
+
+    file_count += copy_docs(
+        lib_root_path.join(<span class="string">&quot;src&quot;</span>),
+        options,
     )<span class="question-mark">?</span>;
 
     <span class="kw">let </span>manifest_json_file = LibraryManifest::manifest_filename(<span class="kw-2">&amp;</span>options.output_dir);
@@ -645,7 +700,6 @@
     <span class="prelude-val">Ok</span>(file_count)
 }
 
-
 <span class="comment">/*
     Find all flow definitions under the base_dir, copy to target and add them all to the manifest
 */
@@ -715,6 +769,52 @@
 
     <span class="kw">if </span>file_count &gt; <span class="number">0 </span>{
         <span class="macro">info!</span>(<span class="string">&quot;Compiled {} flows&quot;</span>, file_count);
+    }
+
+    <span class="prelude-val">Ok</span>(file_count)
+}
+
+
+<span class="comment">/*
+    Find all document files not already copied and copy them to the destination folder tree
+*/
+</span><span class="kw">fn </span>copy_docs(
+    lib_root_path: PathBuf,
+    options: <span class="kw-2">&amp;</span>Options,
+) -&gt; <span class="prelude-ty">Result</span>&lt;i32&gt; {
+    <span class="kw">let </span><span class="kw-2">mut </span>file_count = <span class="number">0</span>;
+    <span class="macro">debug!</span>(
+        <span class="string">&quot;Searching for additional docs files using search pattern: &#39;{}/**/*.md&#39;&quot;</span>,
+        lib_root_path.display(),
+    );
+
+    <span class="kw">let </span>glob = Glob::new(<span class="string">&quot;**/*.md&quot;</span>).map_err(|<span class="kw">_</span>| <span class="string">&quot;Globbing error&quot;</span>)<span class="question-mark">?</span>;
+    <span class="kw">for </span>entry <span class="kw">in </span>glob.walk(<span class="kw-2">&amp;</span>lib_root_path) {
+        <span class="kw">match </span><span class="kw-2">&amp;</span>entry {
+            <span class="prelude-val">Ok</span>(walk_entry) =&gt; {
+                <span class="kw">let </span>md_path = walk_entry.path();
+
+                <span class="comment">// calculate the path of the file, relative to lib_root
+                </span><span class="kw">let </span>relative_file_path = md_path
+                    .strip_prefix(<span class="kw-2">&amp;</span>lib_root_path)
+                    .map_err(|<span class="kw">_</span>| <span class="string">&quot;Could not calculate relative path&quot;</span>)<span class="question-mark">?</span>;
+                <span class="comment">// calculate the target file for copying to using the relative path from the
+                // lib_root appended to the output directory
+                </span><span class="kw">let </span>target_file = options.output_dir.join(relative_file_path);
+
+                <span class="kw">if </span>!target_file.exists() {
+                    <span class="comment">// copy the md file from the source tree to the target tree if not already there
+                    </span>fs::copy(md_path, target_file).map_err(|<span class="kw">_</span>| <span class="string">&quot;Could not copy docs file&quot;</span>)<span class="question-mark">?</span>;
+                    file_count += <span class="number">1</span>;
+                }
+
+            },
+            <span class="prelude-val">Err</span>(e) =&gt; <span class="macro">bail!</span>(<span class="string">&quot;Error walking glob entries: {}&quot;</span>, e.to_string())
+        }
+    }
+
+    <span class="kw">if </span>file_count &gt; <span class="number">0 </span>{
+        <span class="macro">info!</span>(<span class="string">&quot;Copied {} doc files&quot;</span>, file_count);
     }
 
     <span class="prelude-val">Ok</span>(file_count)
@@ -796,4 +896,4 @@
         <span class="macro">assert!</span>(!generate); <span class="comment">// No need to generate the manifest again then!
     </span>}
 }</code></pre></div>
-</section></main><div id="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="flowc" data-themes="" data-resource-suffix="" data-rustdoc-version="1.69.0-nightly (5243ea5c2 2023-02-20)" data-search-js="search-14421e1532aead08.js" data-settings-js="settings-f0c5c39777a9a2f6.js" data-settings-css="settings-0bcba95ff279c1db.css" ></div></body></html>
+</section></main><div id="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="flowc" data-themes="" data-resource-suffix="" data-rustdoc-version="1.69.0-nightly (246eae2fa 2023-02-21)" data-search-js="search-14421e1532aead08.js" data-settings-js="settings-f0c5c39777a9a2f6.js" data-settings-css="settings-0bcba95ff279c1db.css" ></div></body></html>
