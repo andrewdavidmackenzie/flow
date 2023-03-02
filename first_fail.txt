@@ -1,0 +1,719 @@
+ +[2023-02-20T18:44:11Z INFO  flowr] 'flowr' version 0.92.0
+[2023-02-20T18:44:11Z INFO  flowr] 'flowrlib' version 0.92.0
+[2023-02-20T18:44:11Z DEBUG flowr::cli::client_server] Server Connection attempting to bind to: tcp://*:20524
+[2023-02-20T18:44:11Z INFO  flowr::cli::client_server] Service 'runtime._flowr._tcp.local' listening on *:20524
+[2023-02-20T18:44:11Z INFO  simpdiscoverylib] Socket bound to: 0.0.0.0:0
+[2023-02-20T18:44:11Z INFO  simpdiscoverylib] Broadcast mode set to ON
+[2023-02-20T18:44:11Z INFO  flowr::cli::client_server] Discovery beacon announcing service named 'runtime._flowr._tcp.local', on port: 20524
+[2023-02-20T18:44:11Z DEBUG flowr::cli::client_server] Server Connection attempting to bind to: tcp://*:19975
+[2023-02-20T18:44:11Z INFO  flowr::cli::client_server] Service 'debug._flowr._tcp.local' listening on *:19975
+[2023-02-20T18:44:11Z INFO  simpdiscoverylib] Socket bound to: 0.0.0.0:0
+[2023-02-20T18:44:11Z INFO  simpdiscoverylib] Broadcast mode set to ON
+[2023-02-20T18:44:11Z INFO  flowr::cli::client_server] Discovery beacon announcing service named 'debug._flowr._tcp.local', on port: 19975
+[2023-02-20T18:44:11Z INFO  simpdiscoverylib] Read timeout set to: None
+[2023-02-20T18:44:11Z INFO  simpdiscoverylib] Waiting for beacon matching 'runtime._flowr._tcp.local'
+[2023-02-20T18:44:11Z INFO  flowr] Starting 'flowr' server in background thread
+[2023-02-20T18:44:11Z INFO  simpdiscoverylib] Socket bound to: 0.0.0.0:0
+[2023-02-20T18:44:11Z INFO  simpdiscoverylib] Broadcast mode set to ON
+[2023-02-20T18:44:11Z INFO  flowr::cli::client_server] Discovery beacon announcing service named 'jobs._flowr._tcp.local', on port: 24078
+[2023-02-20T18:44:11Z INFO  simpdiscoverylib] Socket bound to: 0.0.0.0:0
+[2023-02-20T18:44:11Z INFO  simpdiscoverylib] Broadcast mode set to ON
+[2023-02-20T18:44:11Z INFO  flowr::cli::client_server] Discovery beacon announcing service named 'results._flowr._tcp.local', on port: 16406
+[2023-02-20T18:44:11Z INFO  simpdiscoverylib] Socket bound to: 0.0.0.0:0
+[2023-02-20T18:44:11Z INFO  simpdiscoverylib] Broadcast mode set to ON
+[2023-02-20T18:44:11Z INFO  flowr::cli::client_server] Discovery beacon announcing service named 'control._flowr._tcp.local', on port: 21072
+[2023-02-20T18:44:11Z DEBUG flowrlib::executor] Manifest of library 'lib://flowstdlib' loaded from 'memory://' and added to Executor
+[2023-02-20T18:44:11Z INFO  flowrlib::executor] Starting 2 executor threads
+[2023-02-20T18:44:11Z DEBUG flowrlib::executor] Manifest of library 'context://' loaded from 'memory://' and added to Executor
+[2023-02-20T18:44:11Z INFO  flowrlib::executor] Starting 1 executor threads
+[2023-02-20T18:44:11Z INFO  flowr::cli::cli_submitter] Server is waiting to receive a 'Submission'
+[2023-02-20T18:44:12Z INFO  flowr::cli::client_server] Client will attempt to connect to service at: '192.168.1.140:20524'
+[2023-02-20T18:44:12Z INFO  flowr::cli::client_server] Client connected to service at '192.168.1.140:20524'
+[2023-02-20T18:44:12Z INFO  flowr] Client sending submission to server
+[2023-02-20T18:44:12Z INFO  flowr::cli::cli_submitter] Server received a submission for execution
+[2023-02-20T18:44:12Z DEBUG flowrlib::dispatcher] Disabling results timeout
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Resetting RunState
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Initializing all functions
+[2023-02-20T18:44:12Z DEBUG flowcore::model::runtime_function] 	Initialized Input #0:1 in Flow #1
+[2023-02-20T18:44:12Z DEBUG flowcore::model::runtime_function] 	Initialized Input #1:0 in Flow #1
+[2023-02-20T18:44:12Z DEBUG flowcore::model::runtime_function] 	Initialized Input #1:1 in Flow #1
+[2023-02-20T18:44:12Z DEBUG flowcore::model::runtime_function] 	Initialized Input #6:1 in Flow #2
+[2023-02-20T18:44:12Z DEBUG flowcore::model::metrics] Resetting Metrics
+[2023-02-20T18:44:12Z DEBUG flowr::cli::cli_runtime_client] ===========================    Starting flow execution =============================
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #1: Received for execution
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #1: Function #1 'compare_switch' [Number(9), Number(1)] -> Some(Object {"left-gt": Number(9), "left-gte": Number(9), "right-lt": Number(1), "right-lte": Number(1)})
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #1 sending '1' from output route '/right-lte' to Function #5:1
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #1 sending '1' from output route '/right-lte' to Function #6:0
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #1 loopback of '9' from output route '/left-gt' to Self:0
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #1 sending '1' from Job value at input #1 to Function #0:0
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #1 sending '9' from Job value at input #0 to Function #3:1
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #1 sending '1' from Job value at input #1 to Function #3:0
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #3: Received for execution
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #2: Received for execution
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #3: Function #0 'add' [Number(1), Number(1)] -> Some(Number(2))
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #4: Received for execution
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #0 sending '2' to Function #2:0
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #0 sending '1' from Job value at input #1 to Function #4:0
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #2: Function #6 'compare_switch' [Number(1), Number(0)] -> Some(Object {"left-gt": Number(1), "left-gte": Number(1), "right-lt": Number(0), "right-lte": Number(0)})
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #6 sending '0' from output route '/right-lte' to Function #10:0
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #6 loopback of '1' from output route '/left-gt' to Self:0
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #6 sending '0' from Job value at input #1 to Function #5:0
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #6 sending '1' from Job value at input #0 to Function #8:1
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #6 sending '0' from Job value at input #1 to Function #8:0
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #4: Function #3 'not-last' [Number(1), Number(9)] -> Some(Object {"equal": Bool(false), "gt": Bool(false), "gte": Bool(false), "lt": Bool(true), "lte": Bool(true), "ne": Bool(true)})
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #3 sending 'true' from output route '/lt' to Function #2:1
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #3 sending 'true' from output route '/lt' to Function #4:1
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #6: Received for execution
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #5: Received for execution
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #7: Received for execution
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #8: Received for execution
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #6: Function #5 'add' [Number(0), Number(1)] -> Some(Number(1))
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #9: Received for execution
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #5 sending '1' to Function #7:0
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #5 sending '1' from Job value at input #1 to Function #9:0
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #7: Function #8 'not-last' [Number(0), Number(1)] -> Some(Object {"equal": Bool(false), "gt": Bool(false), "gte": Bool(false), "lt": Bool(true), "lte": Bool(true), "ne": Bool(true)})
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #8 sending 'true' from output route '/lt' to Function #7:1
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #8 sending 'true' from output route '/lt' to Function #9:1
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #9: Function #4 'step-tap' [Number(1), Bool(true)] -> Some(Number(1))
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #4 sending '1' to Function #0:1
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #10: Received for execution
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #8: Function #2 'next-tap' [Number(2), Bool(true)] -> Some(Number(2))
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #2 sending '2' to Function #1:1
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #11: Received for execution
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #8:	Flow #1 is now idle, so removing blocks on external functions to it
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #5: Function #10 'stdout' [Number(0)] -> None
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #5:	Flow #0 is now idle, so removing blocks on external functions to it
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #10: Function #7 'next-tap' [Number(1), Bool(true)] -> Some(Number(1))
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #7 sending '1' to Function #6:1
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #11: Function #9 'step-tap' [Number(1), Bool(true)] -> Some(Number(1))
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #9 sending '1' to Function #5:1
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #12: Received for execution
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #12: Function #6 'compare_switch' [Number(1), Number(1)] -> Some(Object {"equal": Number(1), "left-gte": Number(1), "left-lte": Number(1), "right-gte": Number(1), "right-lte": Number(1)})
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #6 sending '1' from output route '/right-lte' to Function #10:0
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #6 sending '1' from Job value at input #1 to Function #5:0
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #6 sending '1' from Job value at input #0 to Function #8:1
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #6 sending '1' from Job value at input #1 to Function #8:0
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #13: Received for execution
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #15: Received for execution
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #14: Received for execution
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #15: Function #8 'not-last' [Number(1), Number(1)] -> Some(Object {"equal": Bool(true), "gt": Bool(false), "gte": Bool(true), "lt": Bool(false), "lte": Bool(true), "ne": Bool(false)})
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #8 sending 'false' from output route '/lt' to Function #7:1
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #8 sending 'false' from output route '/lt' to Function #9:1
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #14: Function #5 'add' [Number(1), Number(1)] -> Some(Number(2))
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #5 sending '2' to Function #7:0
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #5 sending '1' from Job value at input #1 to Function #9:0
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #13: Function #10 'stdout' [Number(1)] -> None
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #13:	Flow #0 is now idle, so removing blocks on external functions to it
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #16: Received for execution
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #17: Received for execution
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #16: Function #7 'next-tap' [Number(2), Bool(false)] -> None
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #17: Function #9 'step-tap' [Number(1), Bool(false)] -> None
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #17:	Flow #2 is now idle, so removing blocks on external functions to it
+[2023-02-20T18:44:12Z DEBUG flowcore::model::runtime_function] 	Initialized Input #6:1 in Flow #2
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #18: Received for execution
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #18: Function #1 'compare_switch' [Number(9), Number(2)] -> Some(Object {"left-gt": Number(9), "left-gte": Number(9), "right-lt": Number(2), "right-lte": Number(2)})
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #1 sending '2' from output route '/right-lte' to Function #5:1
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #1 sending '2' from output route '/right-lte' to Function #6:0
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #1 loopback of '9' from output route '/left-gt' to Self:0
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #1 sending '2' from Job value at input #1 to Function #0:0
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #1 sending '9' from Job value at input #0 to Function #3:1
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #1 sending '2' from Job value at input #1 to Function #3:0
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #20: Received for execution
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #19: Received for execution
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #20: Function #0 'add' [Number(2), Number(1)] -> Some(Number(3))
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #0 sending '3' to Function #2:0
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #0 sending '1' from Job value at input #1 to Function #4:0
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #21: Received for execution
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #19: Function #6 'compare_switch' [Number(2), Number(0)] -> Some(Object {"left-gt": Number(2), "left-gte": Number(2), "right-lt": Number(0), "right-lte": Number(0)})
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #6 sending '0' from output route '/right-lte' to Function #10:0
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #6 loopback of '2' from output route '/left-gt' to Self:0
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #6 sending '0' from Job value at input #1 to Function #5:0
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #6 sending '2' from Job value at input #0 to Function #8:1
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #6 sending '0' from Job value at input #1 to Function #8:0
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #21: Function #3 'not-last' [Number(2), Number(9)] -> Some(Object {"equal": Bool(false), "gt": Bool(false), "gte": Bool(false), "lt": Bool(true), "lte": Bool(true), "ne": Bool(true)})
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #22: Received for execution
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #3 sending 'true' from output route '/lt' to Function #2:1
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #23: Received for execution
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #3 sending 'true' from output route '/lt' to Function #4:1
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #24: Received for execution
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #25: Received for execution
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #26: Received for execution
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #23: Function #5 'add' [Number(0), Number(2)] -> Some(Number(2))
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #5 sending '2' to Function #7:0
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #5 sending '2' from Job value at input #1 to Function #9:0
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #24: Function #8 'not-last' [Number(0), Number(2)] -> Some(Object {"equal": Bool(false), "gt": Bool(false), "gte": Bool(false), "lt": Bool(true), "lte": Bool(true), "ne": Bool(true)})
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #8 sending 'true' from output route '/lt' to Function #7:1
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #8 sending 'true' from output route '/lt' to Function #9:1
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #25: Function #2 'next-tap' [Number(3), Bool(true)] -> Some(Number(3))
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #2 sending '3' to Function #1:1
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #27: Received for execution
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #28: Received for execution
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #26: Function #4 'step-tap' [Number(1), Bool(true)] -> Some(Number(1))
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #4 sending '1' to Function #0:1
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #26:	Flow #1 is now idle, so removing blocks on external functions to it
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #27: Function #7 'next-tap' [Number(2), Bool(true)] -> Some(Number(2))
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #7 sending '2' to Function #6:1
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #28: Function #9 'step-tap' [Number(2), Bool(true)] -> Some(Number(2))
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #9 sending '2' to Function #5:1
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #28:	Flow #2 is now idle, so removing blocks on external functions to it
+[2023-02-20T18:44:12Z DEBUG flowcore::model::runtime_function] 	Initialized Input #6:1 in Flow #2
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #22: Function #10 'stdout' [Number(0)] -> None
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #22:	Flow #0 is now idle, so removing blocks on external functions to it
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #29: Received for execution
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #30: Received for execution
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #30: Function #6 'compare_switch' [Number(2), Number(2)] -> Some(Object {"equal": Number(2), "left-gte": Number(2), "left-lte": Number(2), "right-gte": Number(2), "right-lte": Number(2)})
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #6 sending '2' from output route '/right-lte' to Function #10:0
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #6 sending '2' from Job value at input #1 to Function #5:0
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #6 sending '2' from Job value at input #0 to Function #8:1
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #6 sending '2' from Job value at input #1 to Function #8:0
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #29: Function #1 'compare_switch' [Number(9), Number(3)] -> Some(Object {"left-gt": Number(9), "left-gte": Number(9), "right-lt": Number(3), "right-lte": Number(3)})
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #31: Received for execution
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #33: Received for execution
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #32: Received for execution
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #1 sending '3' from output route '/right-lte' to Function #5:1
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #1 sending '3' from output route '/right-lte' to Function #6:0
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #1 loopback of '9' from output route '/left-gt' to Self:0
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #1 sending '3' from Job value at input #1 to Function #0:0
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #1 sending '9' from Job value at input #0 to Function #3:1
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #1 sending '3' from Job value at input #1 to Function #3:0
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #34: Received for execution
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #33: Function #8 'not-last' [Number(2), Number(2)] -> Some(Object {"equal": Bool(true), "gt": Bool(false), "gte": Bool(true), "lt": Bool(false), "lte": Bool(true), "ne": Bool(false)})
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #35: Received for execution
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #8 sending 'false' from output route '/lt' to Function #7:1
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #8 sending 'false' from output route '/lt' to Function #9:1
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #32: Function #5 'add' [Number(2), Number(2)] -> Some(Number(4))
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #5 sending '4' to Function #7:0
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #5 sending '2' from Job value at input #1 to Function #9:0
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #36: Received for execution
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #35: Function #3 'not-last' [Number(3), Number(9)] -> Some(Object {"equal": Bool(false), "gt": Bool(false), "gte": Bool(false), "lt": Bool(true), "lte": Bool(true), "ne": Bool(true)})
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #37: Received for execution
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #3 sending 'true' from output route '/lt' to Function #2:1
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #3 sending 'true' from output route '/lt' to Function #4:1
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #34: Function #0 'add' [Number(3), Number(1)] -> Some(Number(4))
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #0 sending '4' to Function #2:0
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #0 sending '1' from Job value at input #1 to Function #4:0
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #37: Function #9 'step-tap' [Number(2), Bool(false)] -> None
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #38: Received for execution
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #39: Received for execution
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #36: Function #7 'next-tap' [Number(4), Bool(false)] -> None
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #36:	Flow #2 is now idle, so removing blocks on external functions to it
+[2023-02-20T18:44:12Z DEBUG flowcore::model::runtime_function] 	Initialized Input #6:1 in Flow #2
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #39: Function #4 'step-tap' [Number(1), Bool(true)] -> Some(Number(1))
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #4 sending '1' to Function #0:1
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #38: Function #2 'next-tap' [Number(4), Bool(true)] -> Some(Number(4))
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #2 sending '4' to Function #1:1
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #31: Function #10 'stdout' [Number(2)] -> None
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #31:	Flow #0 is now idle, so removing blocks on external functions to it
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #40: Received for execution
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #40: Function #1 'compare_switch' [Number(9), Number(4)] -> Some(Object {"left-gt": Number(9), "left-gte": Number(9), "right-lt": Number(4), "right-lte": Number(4)})
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #41: Received for execution
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #1 sending '4' from output route '/right-lte' to Function #5:1
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #1 sending '4' from output route '/right-lte' to Function #6:0
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #1 loopback of '9' from output route '/left-gt' to Self:0
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #1 sending '4' from Job value at input #1 to Function #0:0
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #1 sending '9' from Job value at input #0 to Function #3:1
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #1 sending '4' from Job value at input #1 to Function #3:0
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #42: Received for execution
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #41: Function #6 'compare_switch' [Number(3), Number(0)] -> Some(Object {"left-gt": Number(3), "left-gte": Number(3), "right-lt": Number(0), "right-lte": Number(0)})
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #43: Received for execution
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #6 sending '0' from output route '/right-lte' to Function #10:0
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #6 loopback of '3' from output route '/left-gt' to Self:0
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #44: Received for execution
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #6 sending '0' from Job value at input #1 to Function #5:0
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #6 sending '3' from Job value at input #0 to Function #8:1
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #6 sending '0' from Job value at input #1 to Function #8:0
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #43: Function #0 'add' [Number(4), Number(1)] -> Some(Number(5))
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #0 sending '5' to Function #2:0
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #45: Received for execution
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #46: Received for execution
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #47: Received for execution
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #0 sending '1' from Job value at input #1 to Function #4:0
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #42: Function #6 'compare_switch' [Number(4), Number(0)] -> Some(Object {"left-gt": Number(4), "left-gte": Number(4), "right-lt": Number(0), "right-lte": Number(0)})
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #6 sending '0' from output route '/right-lte' to Function #10:0
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #6 loopback of '4' from output route '/left-gt' to Self:0
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #6 sending '0' from Job value at input #1 to Function #5:0
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #6 sending '4' from Job value at input #0 to Function #8:1
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #6 sending '0' from Job value at input #1 to Function #8:0
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #46: Function #5 'add' [Number(0), Number(3)] -> Some(Number(3))
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #5 sending '3' to Function #7:0
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #49: Received for execution
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #5 sending '3' from Job value at input #1 to Function #9:0
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #48: Received for execution
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #50: Received for execution
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #44: Function #3 'not-last' [Number(4), Number(9)] -> Some(Object {"equal": Bool(false), "gt": Bool(false), "gte": Bool(false), "lt": Bool(true), "lte": Bool(true), "ne": Bool(true)})
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #3 sending 'true' from output route '/lt' to Function #2:1
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #3 sending 'true' from output route '/lt' to Function #4:1
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #49: Function #5 'add' [Number(0), Number(4)] -> Some(Number(4))
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #5 sending '4' to Function #7:0
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #51: Received for execution
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #5 sending '4' from Job value at input #1 to Function #9:0
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #52: Received for execution
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #47: Function #8 'not-last' [Number(0), Number(3)] -> Some(Object {"equal": Bool(false), "gt": Bool(false), "gte": Bool(false), "lt": Bool(true), "lte": Bool(true), "ne": Bool(true)})
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #8 sending 'true' from output route '/lt' to Function #7:1
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #8 sending 'true' from output route '/lt' to Function #9:1
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #51: Function #2 'next-tap' [Number(5), Bool(true)] -> Some(Number(5))
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #53: Received for execution
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #2 sending '5' to Function #1:1
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #54: Received for execution
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #50: Function #8 'not-last' [Number(0), Number(4)] -> Some(Object {"equal": Bool(false), "gt": Bool(false), "gte": Bool(false), "lt": Bool(true), "lte": Bool(true), "ne": Bool(true)})
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #8 sending 'true' from output route '/lt' to Function #7:1
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #8 sending 'true' from output route '/lt' to Function #9:1
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #53: Function #7 'next-tap' [Number(3), Bool(true)] -> Some(Number(3))
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #7 sending '3' to Function #6:1
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #55: Received for execution
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #56: Received for execution
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #52: Function #4 'step-tap' [Number(1), Bool(true)] -> Some(Number(1))
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #4 sending '1' to Function #0:1
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #52:	Flow #1 is now idle, so removing blocks on external functions to it
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #55: Function #7 'next-tap' [Number(4), Bool(true)] -> Some(Number(4))
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #7 sending '4' to Function #6:1
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #54: Function #9 'step-tap' [Number(3), Bool(true)] -> Some(Number(3))
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #9 sending '3' to Function #5:1
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #56: Function #9 'step-tap' [Number(4), Bool(true)] -> Some(Number(4))
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #9 sending '4' to Function #5:1
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #56:	Flow #2 is now idle, so removing blocks on external functions to it
+[2023-02-20T18:44:12Z DEBUG flowcore::model::runtime_function] 	Initialized Input #6:1 in Flow #2
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #45: Function #10 'stdout' [Number(0)] -> None
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #57: Received for execution
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #48: Function #10 'stdout' [Number(0)] -> None
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #48:	Flow #0 is now idle, so removing blocks on external functions to it
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #57: Function #1 'compare_switch' [Number(9), Number(5)] -> Some(Object {"left-gt": Number(9), "left-gte": Number(9), "right-lt": Number(5), "right-lte": Number(5)})
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #58: Received for execution
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #1 sending '5' from output route '/right-lte' to Function #5:1
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #1 sending '5' from output route '/right-lte' to Function #6:0
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #1 loopback of '9' from output route '/left-gt' to Self:0
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #1 sending '5' from Job value at input #1 to Function #0:0
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #1 sending '9' from Job value at input #0 to Function #3:1
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #1 sending '5' from Job value at input #1 to Function #3:0
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #60: Received for execution
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #58: Function #6 'compare_switch' [Number(3), Number(3)] -> Some(Object {"equal": Number(3), "left-gte": Number(3), "left-lte": Number(3), "right-gte": Number(3), "right-lte": Number(3)})
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #59: Received for execution
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #6 sending '3' from output route '/right-lte' to Function #10:0
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #6 sending '3' from Job value at input #1 to Function #5:0
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #6 sending '3' from Job value at input #0 to Function #8:1
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #6 sending '3' from Job value at input #1 to Function #8:0
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #61: Received for execution
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #60: Function #0 'add' [Number(5), Number(1)] -> Some(Number(6))
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #63: Received for execution
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #0 sending '6' to Function #2:0
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #64: Received for execution
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #62: Received for execution
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #0 sending '1' from Job value at input #1 to Function #4:0
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #65: Received for execution
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #63: Function #5 'add' [Number(3), Number(3)] -> Some(Number(6))
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #5 sending '6' to Function #7:0
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #5 sending '3' from Job value at input #1 to Function #9:0
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #65: Function #6 'compare_switch' [Number(5), Number(0)] -> Some(Object {"left-gt": Number(5), "left-gte": Number(5), "right-lt": Number(0), "right-lte": Number(0)})
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #6 sending '0' from output route '/right-lte' to Function #10:0
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #6 loopback of '5' from output route '/left-gt' to Self:0
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #6 sending '0' from Job value at input #1 to Function #5:0
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #6 sending '5' from Job value at input #0 to Function #8:1
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #6 sending '0' from Job value at input #1 to Function #8:0
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #66: Received for execution
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #59: Function #6 'compare_switch' [Number(4), Number(4)] -> Some(Object {"equal": Number(4), "left-gte": Number(4), "left-lte": Number(4), "right-gte": Number(4), "right-lte": Number(4)})
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #68: Received for execution
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #67: Received for execution
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #6 sending '4' from output route '/right-lte' to Function #10:0
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #6 sending '4' from Job value at input #1 to Function #5:0
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #6 sending '4' from Job value at input #0 to Function #8:1
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #6 sending '4' from Job value at input #1 to Function #8:0
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #62: Function #10 'stdout' [Number(3)] -> None
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #69: Received for execution
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #70: Received for execution
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #71: Received for execution
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #61: Function #3 'not-last' [Number(5), Number(9)] -> Some(Object {"equal": Bool(false), "gt": Bool(false), "gte": Bool(false), "lt": Bool(true), "lte": Bool(true), "ne": Bool(true)})
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #3 sending 'true' from output route '/lt' to Function #2:1
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #3 sending 'true' from output route '/lt' to Function #4:1
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #66: Function #10 'stdout' [Number(0)] -> None
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #72: Received for execution
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #73: Received for execution
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #64: Function #8 'not-last' [Number(3), Number(3)] -> Some(Object {"equal": Bool(true), "gt": Bool(false), "gte": Bool(true), "lt": Bool(false), "lte": Bool(true), "ne": Bool(false)})
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #8 sending 'false' from output route '/lt' to Function #7:1
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #8 sending 'false' from output route '/lt' to Function #9:1
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #69: Function #10 'stdout' [Number(4)] -> None
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #69:	Flow #0 is now idle, so removing blocks on external functions to it
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #74: Received for execution
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #75: Received for execution
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #67: Function #5 'add' [Number(0), Number(4)] -> Some(Number(4))
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #5 sending '4' to Function #7:0
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #5 sending '4' from Job value at input #1 to Function #9:0
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #70: Function #5 'add' [Number(4), Number(5)] -> Some(Number(9))
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #5 sending '9' to Function #7:0
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #5 sending '5' from Job value at input #1 to Function #9:0
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #72: Function #2 'next-tap' [Number(6), Bool(true)] -> Some(Number(6))
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #2 sending '6' to Function #1:1
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #74: Function #7 'next-tap' [Number(6), Bool(false)] -> None
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #68: Function #8 'not-last' [Number(0), Number(5)] -> Some(Object {"equal": Bool(false), "gt": Bool(false), "gte": Bool(false), "lt": Bool(true), "lte": Bool(true), "ne": Bool(true)})
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #8 sending 'true' from output route '/lt' to Function #7:1
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #8 sending 'true' from output route '/lt' to Function #9:1
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #71: Function #8 'not-last' [Number(4), Number(4)] -> Some(Object {"equal": Bool(true), "gt": Bool(false), "gte": Bool(true), "lt": Bool(false), "lte": Bool(true), "ne": Bool(false)})
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #77: Received for execution
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #76: Received for execution
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #8 sending 'false' from output route '/lt' to Function #7:1
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #8 sending 'false' from output route '/lt' to Function #9:1
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #73: Function #4 'step-tap' [Number(1), Bool(true)] -> Some(Number(1))
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #4 sending '1' to Function #0:1
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #78: Received for execution
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #79: Received for execution
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #73:	Flow #1 is now idle, so removing blocks on external functions to it
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #75: Function #9 'step-tap' [Number(3), Bool(false)] -> None
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #77: Function #9 'step-tap' [Number(4), Bool(true)] -> Some(Number(4))
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #9 sending '4' to Function #5:1
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #79: Function #9 'step-tap' [Number(5), Bool(false)] -> None
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #76: Function #7 'next-tap' [Number(4), Bool(true)] -> Some(Number(4))
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #7 sending '4' to Function #6:1
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #78: Function #7 'next-tap' [Number(9), Bool(false)] -> None
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #80: Received for execution
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #80: Function #6 'compare_switch' [Number(5), Number(4)] -> Some(Object {"left-gt": Number(5), "left-gte": Number(5), "right-lt": Number(4), "right-lte": Number(4)})
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #6 sending '4' from output route '/right-lte' to Function #10:0
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #6 loopback of '5' from output route '/left-gt' to Self:0
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #6 sending '4' from Job value at input #1 to Function #5:0
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #6 sending '5' from Job value at input #0 to Function #8:1
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #6 sending '4' from Job value at input #1 to Function #8:0
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #81: Received for execution
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #82: Received for execution
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #83: Received for execution
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #82: Function #5 'add' [Number(4), Number(4)] -> Some(Number(8))
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #5 sending '8' to Function #7:0
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #5 sending '4' from Job value at input #1 to Function #9:0
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #83: Function #8 'not-last' [Number(4), Number(5)] -> Some(Object {"equal": Bool(false), "gt": Bool(false), "gte": Bool(false), "lt": Bool(true), "lte": Bool(true), "ne": Bool(true)})
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #8 sending 'true' from output route '/lt' to Function #7:1
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #8 sending 'true' from output route '/lt' to Function #9:1
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #81: Function #10 'stdout' [Number(4)] -> None
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #81:	Flow #0 is now idle, so removing blocks on external functions to it
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #84: Received for execution
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #85: Received for execution
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #84: Function #7 'next-tap' [Number(8), Bool(true)] -> Some(Number(8))
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #7 sending '8' to Function #6:1
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #85: Function #9 'step-tap' [Number(4), Bool(true)] -> Some(Number(4))
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #9 sending '4' to Function #5:1
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #86: Received for execution
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #86: Function #6 'compare_switch' [Number(5), Number(8)] -> Some(Object {"left-lt": Number(5), "left-lte": Number(5), "right-gt": Number(8), "right-gte": Number(8)})
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #6 sending '8' from Job value at input #1 to Function #5:0
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #6 sending '5' from Job value at input #0 to Function #8:1
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #6 sending '8' from Job value at input #1 to Function #8:0
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #87: Received for execution
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #88: Received for execution
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #87: Function #5 'add' [Number(8), Number(4)] -> Some(Number(12))
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #5 sending '12' to Function #7:0
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #5 sending '4' from Job value at input #1 to Function #9:0
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #88: Function #8 'not-last' [Number(8), Number(5)] -> Some(Object {"equal": Bool(false), "gt": Bool(true), "gte": Bool(true), "lt": Bool(false), "lte": Bool(false), "ne": Bool(true)})
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #8 sending 'false' from output route '/lt' to Function #7:1
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #8 sending 'false' from output route '/lt' to Function #9:1
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #89: Received for execution
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #90: Received for execution
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #89: Function #7 'next-tap' [Number(12), Bool(false)] -> None
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #90: Function #9 'step-tap' [Number(4), Bool(false)] -> None
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #90:	Flow #2 is now idle, so removing blocks on external functions to it
+[2023-02-20T18:44:12Z DEBUG flowcore::model::runtime_function] 	Initialized Input #6:1 in Flow #2
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #91: Received for execution
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #91: Function #1 'compare_switch' [Number(9), Number(6)] -> Some(Object {"left-gt": Number(9), "left-gte": Number(9), "right-lt": Number(6), "right-lte": Number(6)})
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #1 sending '6' from output route '/right-lte' to Function #5:1
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #1 sending '6' from output route '/right-lte' to Function #6:0
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #1 loopback of '9' from output route '/left-gt' to Self:0
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #1 sending '6' from Job value at input #1 to Function #0:0
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #1 sending '9' from Job value at input #0 to Function #3:1
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #1 sending '6' from Job value at input #1 to Function #3:0
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #92: Received for execution
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #93: Received for execution
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #94: Received for execution
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #92: Function #6 'compare_switch' [Number(6), Number(0)] -> Some(Object {"left-gt": Number(6), "left-gte": Number(6), "right-lt": Number(0), "right-lte": Number(0)})
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #6 sending '0' from output route '/right-lte' to Function #10:0
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #6 loopback of '6' from output route '/left-gt' to Self:0
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #6 sending '0' from Job value at input #1 to Function #5:0
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #6 sending '6' from Job value at input #0 to Function #8:1
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #6 sending '0' from Job value at input #1 to Function #8:0
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #95: Received for execution
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #94: Function #3 'not-last' [Number(6), Number(9)] -> Some(Object {"equal": Bool(false), "gt": Bool(false), "gte": Bool(false), "lt": Bool(true), "lte": Bool(true), "ne": Bool(true)})
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #96: Received for execution
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #97: Received for execution
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #3 sending 'true' from output route '/lt' to Function #2:1
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #3 sending 'true' from output route '/lt' to Function #4:1
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #97: Function #8 'not-last' [Number(0), Number(6)] -> Some(Object {"equal": Bool(false), "gt": Bool(false), "gte": Bool(false), "lt": Bool(true), "lte": Bool(true), "ne": Bool(true)})
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #8 sending 'true' from output route '/lt' to Function #7:1
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #8 sending 'true' from output route '/lt' to Function #9:1
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #93: Function #0 'add' [Number(6), Number(1)] -> Some(Number(7))
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #0 sending '7' to Function #2:0
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #0 sending '1' from Job value at input #1 to Function #4:0
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #95: Function #10 'stdout' [Number(0)] -> None
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #95:	Flow #0 is now idle, so removing blocks on external functions to it
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #98: Received for execution
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #99: Received for execution
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #96: Function #5 'add' [Number(0), Number(6)] -> Some(Number(6))
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #5 sending '6' to Function #7:0
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #5 sending '6' from Job value at input #1 to Function #9:0
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #98: Function #2 'next-tap' [Number(7), Bool(true)] -> Some(Number(7))
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #2 sending '7' to Function #1:1
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #100: Received for execution
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #101: Received for execution
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #99: Function #4 'step-tap' [Number(1), Bool(true)] -> Some(Number(1))
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #4 sending '1' to Function #0:1
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #99:	Flow #1 is now idle, so removing blocks on external functions to it
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #101: Function #9 'step-tap' [Number(6), Bool(true)] -> Some(Number(6))
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #9 sending '6' to Function #5:1
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #100: Function #7 'next-tap' [Number(6), Bool(true)] -> Some(Number(6))
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #7 sending '6' to Function #6:1
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #102: Received for execution
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #102: Function #6 'compare_switch' [Number(6), Number(6)] -> Some(Object {"equal": Number(6), "left-gte": Number(6), "left-lte": Number(6), "right-gte": Number(6), "right-lte": Number(6)})
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #6 sending '6' from output route '/right-lte' to Function #10:0
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #6 sending '6' from Job value at input #1 to Function #5:0
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #6 sending '6' from Job value at input #0 to Function #8:1
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #6 sending '6' from Job value at input #1 to Function #8:0
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #103: Received for execution
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #104: Received for execution
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #105: Received for execution
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #104: Function #5 'add' [Number(6), Number(6)] -> Some(Number(12))
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #5 sending '12' to Function #7:0
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #5 sending '6' from Job value at input #1 to Function #9:0
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #105: Function #8 'not-last' [Number(6), Number(6)] -> Some(Object {"equal": Bool(true), "gt": Bool(false), "gte": Bool(true), "lt": Bool(false), "lte": Bool(true), "ne": Bool(false)})
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #8 sending 'false' from output route '/lt' to Function #7:1
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #8 sending 'false' from output route '/lt' to Function #9:1
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #103: Function #10 'stdout' [Number(6)] -> None
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #103:	Flow #0 is now idle, so removing blocks on external functions to it
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #106: Received for execution
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #107: Received for execution
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #106: Function #7 'next-tap' [Number(12), Bool(false)] -> None
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #107: Function #9 'step-tap' [Number(6), Bool(false)] -> None
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #107:	Flow #2 is now idle, so removing blocks on external functions to it
+[2023-02-20T18:44:12Z DEBUG flowcore::model::runtime_function] 	Initialized Input #6:1 in Flow #2
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #108: Received for execution
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #108: Function #1 'compare_switch' [Number(9), Number(7)] -> Some(Object {"left-gt": Number(9), "left-gte": Number(9), "right-lt": Number(7), "right-lte": Number(7)})
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #1 sending '7' from output route '/right-lte' to Function #5:1
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #1 sending '7' from output route '/right-lte' to Function #6:0
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #1 loopback of '9' from output route '/left-gt' to Self:0
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #1 sending '7' from Job value at input #1 to Function #0:0
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #1 sending '9' from Job value at input #0 to Function #3:1
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #1 sending '7' from Job value at input #1 to Function #3:0
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #109: Received for execution
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #110: Received for execution
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #111: Received for execution
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #109: Function #6 'compare_switch' [Number(7), Number(0)] -> Some(Object {"left-gt": Number(7), "left-gte": Number(7), "right-lt": Number(0), "right-lte": Number(0)})
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #6 sending '0' from output route '/right-lte' to Function #10:0
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #6 loopback of '7' from output route '/left-gt' to Self:0
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #6 sending '0' from Job value at input #1 to Function #5:0
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #6 sending '7' from Job value at input #0 to Function #8:1
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #6 sending '0' from Job value at input #1 to Function #8:0
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #110: Function #0 'add' [Number(7), Number(1)] -> Some(Number(8))
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #112: Received for execution
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #0 sending '8' to Function #2:0
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #113: Received for execution
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #0 sending '1' from Job value at input #1 to Function #4:0
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #114: Received for execution
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #111: Function #3 'not-last' [Number(7), Number(9)] -> Some(Object {"equal": Bool(false), "gt": Bool(false), "gte": Bool(false), "lt": Bool(true), "lte": Bool(true), "ne": Bool(true)})
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #3 sending 'true' from output route '/lt' to Function #2:1
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #3 sending 'true' from output route '/lt' to Function #4:1
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #113: Function #5 'add' [Number(0), Number(7)] -> Some(Number(7))
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #5 sending '7' to Function #7:0
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #115: Received for execution
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #5 sending '7' from Job value at input #1 to Function #9:0
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #116: Received for execution
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #114: Function #8 'not-last' [Number(0), Number(7)] -> Some(Object {"equal": Bool(false), "gt": Bool(false), "gte": Bool(false), "lt": Bool(true), "lte": Bool(true), "ne": Bool(true)})
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #8 sending 'true' from output route '/lt' to Function #7:1
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #8 sending 'true' from output route '/lt' to Function #9:1
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #115: Function #2 'next-tap' [Number(8), Bool(true)] -> Some(Number(8))
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #117: Received for execution
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #2 sending '8' to Function #1:1
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #118: Received for execution
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #116: Function #4 'step-tap' [Number(1), Bool(true)] -> Some(Number(1))
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #4 sending '1' to Function #0:1
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #116:	Flow #1 is now idle, so removing blocks on external functions to it
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #117: Function #7 'next-tap' [Number(7), Bool(true)] -> Some(Number(7))
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #7 sending '7' to Function #6:1
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #118: Function #9 'step-tap' [Number(7), Bool(true)] -> Some(Number(7))
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #9 sending '7' to Function #5:1
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #118:	Flow #2 is now idle, so removing blocks on external functions to it
+[2023-02-20T18:44:12Z DEBUG flowcore::model::runtime_function] 	Initialized Input #6:1 in Flow #2
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #112: Function #10 'stdout' [Number(0)] -> None
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #112:	Flow #0 is now idle, so removing blocks on external functions to it
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #119: Received for execution
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #119: Function #1 'compare_switch' [Number(9), Number(8)] -> Some(Object {"left-gt": Number(9), "left-gte": Number(9), "right-lt": Number(8), "right-lte": Number(8)})
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #120: Received for execution
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #1 sending '8' from output route '/right-lte' to Function #5:1
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #1 sending '8' from output route '/right-lte' to Function #6:0
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #1 loopback of '9' from output route '/left-gt' to Self:0
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #1 sending '8' from Job value at input #1 to Function #0:0
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #1 sending '9' from Job value at input #0 to Function #3:1
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #1 sending '8' from Job value at input #1 to Function #3:0
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #121: Received for execution
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #120: Function #6 'compare_switch' [Number(7), Number(7)] -> Some(Object {"equal": Number(7), "left-gte": Number(7), "left-lte": Number(7), "right-gte": Number(7), "right-lte": Number(7)})
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #122: Received for execution
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #6 sending '7' from output route '/right-lte' to Function #10:0
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #6 sending '7' from Job value at input #1 to Function #5:0
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #123: Received for execution
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #6 sending '7' from Job value at input #0 to Function #8:1
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #6 sending '7' from Job value at input #1 to Function #8:0
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #122: Function #0 'add' [Number(8), Number(1)] -> Some(Number(9))
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #124: Received for execution
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #0 sending '9' to Function #2:0
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #125: Received for execution
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #126: Received for execution
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #0 sending '1' from Job value at input #1 to Function #4:0
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #125: Function #5 'add' [Number(7), Number(7)] -> Some(Number(14))
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #5 sending '14' to Function #7:0
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #5 sending '7' from Job value at input #1 to Function #9:0
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #121: Function #6 'compare_switch' [Number(8), Number(0)] -> Some(Object {"left-gt": Number(8), "left-gte": Number(8), "right-lt": Number(0), "right-lte": Number(0)})
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #6 sending '0' from output route '/right-lte' to Function #10:0
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #6 loopback of '8' from output route '/left-gt' to Self:0
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #6 sending '0' from Job value at input #1 to Function #5:0
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #6 sending '8' from Job value at input #0 to Function #8:1
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #6 sending '0' from Job value at input #1 to Function #8:0
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #124: Function #10 'stdout' [Number(7)] -> None
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #127: Received for execution
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #128: Received for execution
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #129: Received for execution
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #123: Function #3 'not-last' [Number(8), Number(9)] -> Some(Object {"equal": Bool(false), "gt": Bool(false), "gte": Bool(false), "lt": Bool(true), "lte": Bool(true), "ne": Bool(true)})
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #3 sending 'true' from output route '/lt' to Function #2:1
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #3 sending 'true' from output route '/lt' to Function #4:1
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #127: Function #10 'stdout' [Number(0)] -> None
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #127:	Flow #0 is now idle, so removing blocks on external functions to it
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #130: Received for execution
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #131: Received for execution
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #126: Function #8 'not-last' [Number(7), Number(7)] -> Some(Object {"equal": Bool(true), "gt": Bool(false), "gte": Bool(true), "lt": Bool(false), "lte": Bool(true), "ne": Bool(false)})
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #8 sending 'false' from output route '/lt' to Function #7:1
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #8 sending 'false' from output route '/lt' to Function #9:1
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #132: Received for execution
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #129: Function #8 'not-last' [Number(0), Number(8)] -> Some(Object {"equal": Bool(false), "gt": Bool(false), "gte": Bool(false), "lt": Bool(true), "lte": Bool(true), "ne": Bool(true)})
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #133: Received for execution
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #8 sending 'true' from output route '/lt' to Function #7:1
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #8 sending 'true' from output route '/lt' to Function #9:1
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #131: Function #4 'step-tap' [Number(1), Bool(true)] -> Some(Number(1))
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #4 sending '1' to Function #0:1
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #133: Function #9 'step-tap' [Number(7), Bool(false)] -> None
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #128: Function #5 'add' [Number(0), Number(8)] -> Some(Number(8))
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #5 sending '8' to Function #7:0
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #5 sending '8' from Job value at input #1 to Function #9:0
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #130: Function #2 'next-tap' [Number(9), Bool(true)] -> Some(Number(9))
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #2 sending '9' to Function #1:1
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #134: Received for execution
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #135: Received for execution
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #130:	Flow #1 is now idle, so removing blocks on external functions to it
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #132: Function #7 'next-tap' [Number(14), Bool(false)] -> None
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #134: Function #7 'next-tap' [Number(8), Bool(true)] -> Some(Number(8))
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #7 sending '8' to Function #6:1
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #135: Function #9 'step-tap' [Number(8), Bool(true)] -> Some(Number(8))
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #9 sending '8' to Function #5:1
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #136: Received for execution
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #136: Function #6 'compare_switch' [Number(8), Number(8)] -> Some(Object {"equal": Number(8), "left-gte": Number(8), "left-lte": Number(8), "right-gte": Number(8), "right-lte": Number(8)})
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #6 sending '8' from output route '/right-lte' to Function #10:0
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #6 sending '8' from Job value at input #1 to Function #5:0
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #6 sending '8' from Job value at input #0 to Function #8:1
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #6 sending '8' from Job value at input #1 to Function #8:0
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #137: Received for execution
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #138: Received for execution
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #139: Received for execution
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #138: Function #5 'add' [Number(8), Number(8)] -> Some(Number(16))
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #5 sending '16' to Function #7:0
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #5 sending '8' from Job value at input #1 to Function #9:0
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #139: Function #8 'not-last' [Number(8), Number(8)] -> Some(Object {"equal": Bool(true), "gt": Bool(false), "gte": Bool(true), "lt": Bool(false), "lte": Bool(true), "ne": Bool(false)})
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #8 sending 'false' from output route '/lt' to Function #7:1
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #8 sending 'false' from output route '/lt' to Function #9:1
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #137: Function #10 'stdout' [Number(8)] -> None
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #137:	Flow #0 is now idle, so removing blocks on external functions to it
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #140: Received for execution
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #141: Received for execution
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #140: Function #7 'next-tap' [Number(16), Bool(false)] -> None
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #141: Function #9 'step-tap' [Number(8), Bool(false)] -> None
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #141:	Flow #2 is now idle, so removing blocks on external functions to it
+[2023-02-20T18:44:12Z DEBUG flowcore::model::runtime_function] 	Initialized Input #6:1 in Flow #2
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #142: Received for execution
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #142: Function #1 'compare_switch' [Number(9), Number(9)] -> Some(Object {"equal": Number(9), "left-gte": Number(9), "left-lte": Number(9), "right-gte": Number(9), "right-lte": Number(9)})
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #1 sending '9' from output route '/right-lte' to Function #5:1
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #1 sending '9' from output route '/right-lte' to Function #6:0
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #1 sending '9' from Job value at input #1 to Function #0:0
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #1 sending '9' from Job value at input #0 to Function #3:1
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #1 sending '9' from Job value at input #1 to Function #3:0
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #143: Received for execution
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #144: Received for execution
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #145: Received for execution
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #143: Function #6 'compare_switch' [Number(9), Number(0)] -> Some(Object {"left-gt": Number(9), "left-gte": Number(9), "right-lt": Number(0), "right-lte": Number(0)})
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #6 sending '0' from output route '/right-lte' to Function #10:0
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #6 loopback of '9' from output route '/left-gt' to Self:0
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #6 sending '0' from Job value at input #1 to Function #5:0
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #6 sending '9' from Job value at input #0 to Function #8:1
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #6 sending '0' from Job value at input #1 to Function #8:0
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #144: Function #0 'add' [Number(9), Number(1)] -> Some(Number(10))
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #146: Received for execution
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #0 sending '10' to Function #2:0
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #147: Received for execution
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #0 sending '1' from Job value at input #1 to Function #4:0
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #148: Received for execution
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #145: Function #3 'not-last' [Number(9), Number(9)] -> Some(Object {"equal": Bool(true), "gt": Bool(false), "gte": Bool(true), "lt": Bool(false), "lte": Bool(true), "ne": Bool(false)})
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #3 sending 'false' from output route '/lt' to Function #2:1
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #3 sending 'false' from output route '/lt' to Function #4:1
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #147: Function #5 'add' [Number(0), Number(9)] -> Some(Number(9))
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #5 sending '9' to Function #7:0
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #149: Received for execution
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #5 sending '9' from Job value at input #1 to Function #9:0
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #150: Received for execution
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #148: Function #8 'not-last' [Number(0), Number(9)] -> Some(Object {"equal": Bool(false), "gt": Bool(false), "gte": Bool(false), "lt": Bool(true), "lte": Bool(true), "ne": Bool(true)})
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #8 sending 'true' from output route '/lt' to Function #7:1
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #8 sending 'true' from output route '/lt' to Function #9:1
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #149: Function #2 'next-tap' [Number(10), Bool(false)] -> None
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #151: Received for execution
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #152: Received for execution
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #150: Function #4 'step-tap' [Number(1), Bool(false)] -> None
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #150:	Flow #1 is now idle, so removing blocks on external functions to it
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #151: Function #7 'next-tap' [Number(9), Bool(true)] -> Some(Number(9))
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #7 sending '9' to Function #6:1
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #152: Function #9 'step-tap' [Number(9), Bool(true)] -> Some(Number(9))
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #9 sending '9' to Function #5:1
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #152:	Flow #2 is now idle, so removing blocks on external functions to it
+[2023-02-20T18:44:12Z DEBUG flowcore::model::runtime_function] 	Initialized Input #6:1 in Flow #2
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #146: Function #10 'stdout' [Number(0)] -> None
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #146:	Flow #0 is now idle, so removing blocks on external functions to it
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #153: Received for execution
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #153: Function #6 'compare_switch' [Number(9), Number(9)] -> Some(Object {"equal": Number(9), "left-gte": Number(9), "left-lte": Number(9), "right-gte": Number(9), "right-lte": Number(9)})
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #6 sending '9' from output route '/right-lte' to Function #10:0
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #6 sending '9' from Job value at input #1 to Function #5:0
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #6 sending '9' from Job value at input #0 to Function #8:1
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #6 sending '9' from Job value at input #1 to Function #8:0
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #154: Received for execution
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #156: Received for execution
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #155: Received for execution
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #156: Function #8 'not-last' [Number(9), Number(9)] -> Some(Object {"equal": Bool(true), "gt": Bool(false), "gte": Bool(true), "lt": Bool(false), "lte": Bool(true), "ne": Bool(false)})
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #8 sending 'false' from output route '/lt' to Function #7:1
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #8 sending 'false' from output route '/lt' to Function #9:1
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #155: Function #5 'add' [Number(9), Number(9)] -> Some(Number(18))
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #5 sending '18' to Function #7:0
+[2023-02-20T18:44:12Z INFO  flowrlib::run_state] 		Function #5 sending '9' from Job value at input #1 to Function #9:0
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #154: Function #10 'stdout' [Number(9)] -> None
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #154:	Flow #0 is now idle, so removing blocks on external functions to it
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #157: Received for execution
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] Job #158: Received for execution
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #157: Function #7 'next-tap' [Number(18), Bool(false)] -> None
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #158: Function #9 'step-tap' [Number(9), Bool(false)] -> None
+[2023-02-20T18:44:12Z DEBUG flowrlib::run_state] Job #158:	Flow #2 is now idle, so removing blocks on external functions to it
+[2023-02-20T18:44:12Z DEBUG flowcore::model::runtime_function] 	Initialized Input #6:1 in Flow #2
+[2023-02-20T18:44:12Z DEBUG flowr::cli::cli_runtime_client] =========================== Flow execution ended ======================================
+[2023-02-20T18:44:12Z DEBUG flowr::cli::cli_runtime_client] Client is exiting the event loop.
+[2023-02-20T18:44:12Z DEBUG flowr::cli::cli_submitter]          Submission:
+              Job Timeout: None
+                    Debug: false
+                 Manifest: 
+             Function #0 Implementation: lib://flowstdlib/math/add
+             Function #1 Implementation: lib://flowstdlib/control/compare_switch
+             Function #2 Implementation: lib://flowstdlib/control/tap
+             Function #3 Implementation: lib://flowstdlib/math/compare
+             Function #4 Implementation: lib://flowstdlib/control/tap
+             Function #5 Implementation: lib://flowstdlib/math/add
+             Function #6 Implementation: lib://flowstdlib/control/compare_switch
+             Function #7 Implementation: lib://flowstdlib/control/tap
+             Function #8 Implementation: lib://flowstdlib/math/compare
+             Function #9 Implementation: lib://flowstdlib/control/tap
+             Function #10 Implementation: context://stdio/stdout
+    
+    RunState:
+              Jobs Created: 158
+    Number of Jobs Running: 0
+              Jobs Running: []
+         Functions Blocked: {}
+                    Blocks: {}
+           Functions Ready: []
+       Functions Completed: {}
+                Flows Busy: {}
+            Pending Unblocks: {}
+[2023-02-20T18:44:12Z DEBUG flowr::cli::cli_submitter] Coordinator exiting
+[2023-02-20T18:44:12Z DEBUG flowrlib::dispatcher] Dispatcher announcing DONE
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] 'DONE' message received in executor
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] 'DONE' message received in executor
+[2023-02-20T18:44:12Z DEBUG flowrlib::executor] 'DONE' message received in executor
