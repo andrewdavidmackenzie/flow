@@ -197,7 +197,6 @@ trim-docs:
 .PHONY: release
 release:
 	cargo release --no-verify --workspace --execute minor
-	echo "Use 'cargo release --no-verify --execute minor --manifest-path=flowrex/Cargo.toml' to release flowrex after updating dependencies"
-	echo "Once GH Actions on mast have completed, create and push a release tag to trigger release workflow"
+	echo "Once GH Actions on master have completed, create and push a release tag to trigger release workflow"
 	echo "> git tag v0.93.0 (using correct release version number)"
 	echo "> git push origin --tag"

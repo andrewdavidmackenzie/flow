@@ -1,14 +1,14 @@
 [package]
 name = "flowrex"
-description = "A minimal executor for flowr jobs"
-version = "0.92.0"
-authors = ["Andrew Mackenzie <andrew@mackenzie-serres.net>"]
-license = "MIT"
-documentation = "https://github.com/andrewdavidmackenzie/flow/README.md"
-homepage = "http://andrewdavidmackenzie.github.io/flow/"
-repository = "https://github.com/andrewdavidmackenzie/flow/"
-readme = "README.md"
-edition = "2021"
+description = "A minimal executor for flow runtime jobs"
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+documentation.workspace = true
+homepage.workspace = true
+repository.workspace = true
+readme.workspace = true
+edition.workspace = true
 
 [badges]
 maintenance = { status = "actively-developed" }
@@ -31,6 +31,3 @@ log = "0.4.6"
 url = "2.2"
 error-chain = "0.12.2"
 simpdiscover = "0.6.2"
-
-[workspace]
-exclude = [".."]
