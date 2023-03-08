@@ -141,7 +141,7 @@
           - [print-args](flowr/tests/test-flows/print-args/print-args.md)
           - [two-destinations](flowr/tests/test-flows/two-destinations/two-destinations.md)
     - [flowrex](docs/developing/flowrex.md)
-    - [flowc](docs/developing/flowc.md)
+    - [flowc](flowc/README.md)
         - [Flowc Compiler and Parser Test flows](flowc/tests/test-flows/README.md)
     - [flowstdlib](flowstdlib/src/flowstdlib.md)
     - [flowsamples](docs/developing/flowsamples.md)
