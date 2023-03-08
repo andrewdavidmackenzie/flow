@@ -1,7 +1,5 @@
 # `flowcore`
 
-See also: [Code docs](http://andrewdavidmackenzie.github.io/flow/code/doc/flowcore/index.html)
-
 `flowcore` is a library of structs and traits related to `flow` that are shared between multiple
 crates in the `flow`project.
 
@@ -41,3 +39,7 @@ of `flowcore` as it does not provide ant `context functions` ("context" feature)
 running and provide a debugger ("debugger" feature), nor does it have the need for running "online_tests",
 and lastly it does not fetch content via any of the various "providers" ("meta_provider", "file_provider",
 and "http_provider" features).
+
+## Code Docs
+
+See also: [Code docs](http://andrewdavidmackenzie.github.io/flow/code/doc/flowcore/index.html)
