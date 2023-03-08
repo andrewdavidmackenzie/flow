@@ -1,7 +1,5 @@
 # `flowrlib`
 
-See also: [Code docs](http://andrewdavidmackenzie.github.io/flow/code/doc/flowrlib/index.html)
-
 This is the rust run-time library for flow execution. This will be linked with other code to produce a flow
  runner, such as the `flowr` command line runner.
 
@@ -17,3 +15,7 @@ These are the conditionally compiled features of `flowrlib`:
 - context - makes this crate aware of the flow context functions or not
 - debugger - feature to add the debugger
 - metrics - feature for tracking of metrics during execution
+
+## Code Docs
+
+See also: [Code docs](http://andrewdavidmackenzie.github.io/flow/code/doc/flowrlib/index.html)

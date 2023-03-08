@@ -10,7 +10,7 @@ Here is a summary of the project components, their purpose and a link to their `
   takes a number of command line arguments and source files or URLs and compiles the flow or library referenced.
     * `flowclib` is the library for compiling flow program and library definitions from toml 
       files, producing generated output projects that can be run by `flowr`.
-* [flowrlib](../developing/flowrlib.md) - The flow runner library that loads and executes compiled flows.
+* [flowrlib](../../flowrlib/README.md) - The flow runner library that loads and executes compiled flows.
 * [flowr](../../flowr/README.md) - The `flowr` flow runner binary that can be used to run and debug 
 * flows compiled with a flow compiler such as `flowc`.
 * [flowstdlib](../../flowstdlib/src/flowstdlib.md) - the flow "standard library" which contains a set of functions that 
