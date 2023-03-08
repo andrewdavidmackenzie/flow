@@ -123,6 +123,10 @@ jobs:
           cat uploads.txt
           gh release upload ${{ needs.create-release.outputs.tag }} $(cat uploads.txt)
           echo "uploaded!"
+          gh release upload ${{ needs.create-release.outputs.tag }} target/flowstdlib
+          echo "Added flowstdlib compiled library to the release"
+          gh release upload ${{ needs.create-release.outputs.tag }} target/flowsamples
+          echo "Added the flowsamples to the release"
 
   # Compute and upload the manifest for everything
   upload-manifest:
