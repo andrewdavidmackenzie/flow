@@ -99,7 +99,7 @@
     - [subtract](flowstdlib/src/math/subtract/subtract.md)
     
 # Sample flows
-- [Samples Intro](docs/developing/flowsamples.md)
+- [Samples Intro](flowsamples/README.md)
     - [args](flowsamples/args/DESCRIPTION.md)
     - [arrays](flowsamples/arrays/DESCRIPTION.md)
     - [factorial](flowsamples/factorial/DESCRIPTION.md)
@@ -144,12 +144,12 @@
     - [flowc](flowc/README.md)
         - [Flowc Compiler and Parser Test flows](flowc/tests/test-flows/README.md)
     - [flowstdlib](flowstdlib/src/flowstdlib.md)
-    - [flowsamples](docs/developing/flowsamples.md)
+    - [flowsamples](flowsamples/README.md)
 - [Makefile targets](docs/developing/make.md)
 - [Ways to contribute](docs/developing/contributing.md)
     - [Issues](docs/developing/issues.md)
     - [PRs](docs/developing/prs.md)
-    - [Developing a sample](docs/developing/flowsamples.md)
+    - [Developing a sample](flowsamples/README.md)
     - [Continuous Integration Tests](docs/developing/ci.md)
         
 # Internals of the `flow` Project
