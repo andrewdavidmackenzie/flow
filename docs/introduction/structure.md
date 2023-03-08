@@ -2,7 +2,7 @@
 
 Here is a summary of the project components, their purpose and a link to their `README.md`:
 
-* [flowcore](../developing/flowcore.md) - A set of core structs and traits used by `flowr` and `flowc` plus code 
+* [flowcore](../../flowcore/README.md) - A set of core structs and traits used by `flowr` and `flowc` plus code 
   to fetch content from file/http and resolve library (lib://) references.
 * [flowmacro](../developing/flowmacro.md) - A macro used to help write function implementation code that compile natively
   and to wasm

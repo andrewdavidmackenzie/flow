@@ -125,7 +125,7 @@
 - [Pre-requisites](docs/developing/prereqs.md)
 - [Building](docs/developing/building.md)
 - [Crates](docs/developing/crates.md)
-    - [flowcore](docs/developing/flowcore.md)
+    - [flowcore](flowcore/README.md)
     - [flowmacro](docs/developing/flowmacro.md)
     - [flowrlib](flowrlib/README.md)
     - [flowr](flowr/README.md)
