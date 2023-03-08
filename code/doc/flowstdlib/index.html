@@ -2,14 +2,14 @@
 <p>The flow and function definition are used at compile time when compile flows that reference
 it.</p>
 <p>At run-time library entries can be of two types, indicated by their
-[ImplementationLocator][flowcore::model::lib_manifest::ImplementationLocator]</p>
+<a href="../flowcore/model/lib_manifest/enum.ImplementationLocator.html" title="enum flowcore::model::lib_manifest::ImplementationLocator">ImplementationLocator</a></p>
 <ul>
-<li>[Native][flowcore::model::lib_manifest::ImplementationLocator::Native] - a native binary
+<li><a href="../flowcore/model/lib_manifest/enum.ImplementationLocator.html#variant.Native" title="variant flowcore::model::lib_manifest::ImplementationLocator::Native">Native</a> - a native binary
 (containing) all functions is built and linked by a flow
 runner program (e.g. <code>flowr</code>) so that any function referenced by a flow is executed natively
 at native speeds. <code>flowr</code> offers the user control using this via the <code>-n, --native</code>
 command line option.</li>
-<li>[Wasm][flowcore::model::lib_manifest::ImplementationLocator::Wasm] - the functions in the
+<li><a href="../flowcore/model/lib_manifest/enum.ImplementationLocator.html#variant.Wasm" title="variant flowcore::model::lib_manifest::ImplementationLocator::Wasm">Wasm</a> - the functions in the
 library are compiled to WASM files and located within the
 library at runtime by the flow runner. If either the library if not linked natively, or the
 <code>-n, --native</code> command line option is not used, when the function is referenced by a flow being
@@ -19,6 +19,6 @@ run, it is loaded and executed in a WASM runtime.</li>
 functions for controlling data flow</div></li><li><div class="item-name"><a class="mod" href="data/index.html" title="mod flowstdlib::data">data</a></div><div class="desc docblock-short">Some generic processes that act on data.
 functions for generic operations on data</div></li><li><div class="item-name"><a class="mod" href="errors/index.html" title="mod flowstdlib::errors">errors</a></div><div class="desc docblock-short">provides <a href="errors/struct.Error.html" title="struct flowstdlib::errors::Error">Error</a> that other modules in this crate will <code>use errors::*;</code></div></li><li><div class="item-name"><a class="mod" href="fmt/index.html" title="mod flowstdlib::fmt">fmt</a></div><div class="desc docblock-short">Functions for the formatting of values and conversion from one type to another.
 functions for formatting data</div></li><li><div class="item-name"><a class="mod" href="manifest/index.html" title="mod flowstdlib::manifest">manifest</a></div><div class="desc docblock-short">Use <a href="manifest/fn.get_manifest.html" title="fn flowstdlib::manifest::get_manifest">manifest::get_manifest</a> to get the natively/statically linked
-[LibraryManifest][flowcore::model::lib_manifest::LibraryManifest] for this library
+<a href="../flowcore/model/lib_manifest/struct.LibraryManifest.html" title="struct flowcore::model::lib_manifest::LibraryManifest">LibraryManifest</a> for this library
 to get access to everything <code>error_chain</code> creates.</div></li><li><div class="item-name"><a class="mod" href="math/index.html" title="mod flowstdlib::math">math</a></div><div class="desc docblock-short">Math Functions and flows
-functions for maths operations on data</div></li></ul></section></div></main><div id="rustdoc-vars" data-root-path="../" data-static-root-path="../static.files/" data-current-crate="flowstdlib" data-themes="" data-resource-suffix="" data-rustdoc-version="1.70.0-nightly (7820b62d2 2023-03-05)" data-search-js="search-8a59a8356673ec1f.js" data-settings-js="settings-f0c5c39777a9a2f6.js" data-settings-css="settings-0bcba95ff279c1db.css" ></div></body></html>
+functions for maths operations on data</div></li></ul></section></div></main><div id="rustdoc-vars" data-root-path="../" data-static-root-path="../static.files/" data-current-crate="flowstdlib" data-themes="" data-resource-suffix="" data-rustdoc-version="1.70.0-nightly (e3dfeeaa4 2023-03-07)" data-search-js="search-8a59a8356673ec1f.js" data-settings-js="settings-f0c5c39777a9a2f6.js" data-settings-css="settings-0bcba95ff279c1db.css" ></div></body></html>
