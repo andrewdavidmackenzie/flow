@@ -126,7 +126,7 @@
 - [Building](docs/developing/building.md)
 - [Crates](docs/developing/crates.md)
     - [flowcore](flowcore/README.md)
-    - [flowmacro](docs/developing/flowmacro.md)
+    - [flowmacro](flowmacro/README.md)
     - [flowrlib](flowrlib/README.md)
     - [flowr](flowr/README.md)
       - [Flowr Execution Test Flows](flowr/tests/test-flows/README.md)

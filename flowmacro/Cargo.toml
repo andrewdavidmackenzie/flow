@@ -7,7 +7,7 @@ license.workspace = true
 documentation.workspace = true
 homepage.workspace = true
 repository = "https://github.com/andrewdavidmackenzie/flow/"
-readme.workspace = true
+readme = "README.md"
 edition.workspace = true
 
 [badges]
