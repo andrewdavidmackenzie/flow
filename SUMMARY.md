@@ -128,7 +128,7 @@
     - [flowcore](docs/developing/flowcore.md)
     - [flowmacro](docs/developing/flowmacro.md)
     - [flowrlib](docs/developing/flowrlib.md)
-    - [flowr](docs/developing/flowr.md)
+    - [flowr](flowr/README.md)
       - [Flowr Execution Test Flows](flowr/tests/test-flows/README.md)
           - [args](flowr/tests/test-flows/args/args.md)
           - [args-json](flowr/tests/test-flows/args-json/args-json.md)
