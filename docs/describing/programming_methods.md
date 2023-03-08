@@ -76,7 +76,7 @@ altering the definition of the original flow.
 In `flow`, everything is dataflow, and dataflow is everything. There are no other mechanisms to produce values,
 or coordinate activity. There are no loops, if-then-else or other logic control mechanisms.
 
-The [flowstdlib](../../flowstdlib/src/flowstdlib.md) library provides the `control` module with a a series of 
+The [flowstdlib](../../flowstdlib/README.md) library provides the `control` module with a a series of 
 functions and flows that you can use to control the flow of data, and hence program "control". 
 These are functions such as:
 - [compare_switch](../../flowstdlib/src/control/compare_switch/compare_switch.md)

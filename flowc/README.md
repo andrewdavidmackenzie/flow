@@ -1,8 +1,9 @@
 # `flowc`
-See also: [Code docs](http://andrewdavidmackenzie.github.io/flow/code/doc/flowc/index.html)
 
 `flowc` is the "compiler and linker" for flows and flow libraries, although it is not 
 very similar to what you might be familiar with as a compiler or linker.
+
+It is part of the overall `flow` project ([README.md](https://github.com/andrewdavidmackenzie/flow/README.md)).
 
 It loads flow definition files, and builds the flow hierarchy reading from referenced
 flows/functions and library references, and builds the flow in memory.
@@ -33,3 +34,6 @@ See also: [Code docs](http://andrewdavidmackenzie.github.io/flow/code/doc/flowcl
 These are the conditionally compiled features of the `flowc` crate:
 - default - The "debugger" feature is enabled by default
 - debugger - feature to add the debugger
+
+##Code Docs
+See also: [Code docs](http://andrewdavidmackenzie.github.io/flow/code/doc/flowc/index.html)
