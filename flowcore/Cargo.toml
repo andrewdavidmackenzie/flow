@@ -36,7 +36,7 @@ error-chain = {version = "0.12.2"}
 url = { version = "2.2", features = ["serde"] }
 log = {version = "0.4.6"}
 shrinkwraprs = { version = "0.3.0" }
-serde = { version = "~1.0.153"}
+serde = { version = "~1.0.154"}
 toml = { version = "0.7.2" }
 serde_yaml = { version = "~0.9" }
 
