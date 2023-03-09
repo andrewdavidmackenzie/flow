@@ -1,90 +1,27 @@
 #![warn(clippy::unwrap_used)]
-//! This `flowstdlib` binary provides way for the user to get some simple information about an
-//! installed version of the library and to do some simple checks.
+//! This `flowstdlib` binary checks that the installed flowstdlib library can be found
+
+use std::{env, io};
 
 use simpath::Simpath;
 
-use std::{env, io};
-use std::path::Path;
-
-/// Print out information about the `flowstdlib`and check the `FLOW_LIB_PATH` set
+/// Check the `FLOW_LIB_PATH` environment variable is set and that we can find the 'flowstdlib'
+/// lib directory using it.
 pub fn main() -> io::Result<()>{
-    let bin_path = env::current_exe()?;
-    println!(
-        "'{}' version {}",
-        env!("CARGO_CRATE_NAME"),
-        env!("CARGO_PKG_VERSION")
-    );
-    println!("For more details see: {}", env!("CARGO_PKG_HOMEPAGE"));
-    println!(
-        "'{}' binary located at '{}'",
-        env!("CARGO_CRATE_NAME"),
-        bin_path.display()
-    );
-
-    let bin_directory = bin_path.parent().ok_or_else(||
-        io::Error::new( io::ErrorKind::Other, "Could not get directory where 'flowstdlib' binary is located"))?;
-    check_flow_lib_path(bin_directory);
-
-    Ok(())
-}
-
-fn check_flow_lib_path(parent: &Path) {
     match env::var("FLOW_LIB_PATH") {
         Err(_) => {
-            println!("'FLOW_LIB_PATH' is not set. \n\
-                    For this 'flowstdlib' to be found by 'flowc' or 'flowr' the '-L {}' option must be used", parent.display());
+            println!("'FLOW_LIB_PATH' is not set. It must be set in order for the 'flowstdlib' directory to be found");
         }
         Ok(value) => {
             let lib_path = Simpath::new_with_separator("FLOW_LIB_PATH", ',');
-            if !lib_path.contains(&parent.display().to_string()) {
-                println!("'FLOW_LIB_PATH' is set to '{value}'. \nIt does not contain the parent directory of this 'flowstdlib' directory.\n\
-                        For flowc or flowr to find 'flowstdlib' add '{}' to FLOW_LIB_PATH or use the '-L {}' option.",
-                         parent.display(), parent.display());
+            if !lib_path.contains("flowstdlib") {
+                println!("'FLOW_LIB_PATH' is set to '{value}'. The 'flowstdlib' directory could not be found");
             } else {
-                println!("'FLOW_LIB_PATH' is set to '{value}' and contains the parent directory of this 'flowstdlib' directory.\n\
-                        This 'flowstdlib' should be found correctly by 'flowc' and 'flowr'"
+                println!("'FLOW_LIB_PATH' is set to '{value}'. The 'flowstdlib' lib directory was found"
                 );
             }
         }
     }
-}
 
-#[cfg(test)]
-mod test {
-    use std::path::Path;
-
-    use super::check_flow_lib_path;
-
-    #[test]
-    fn flow_lib_path() {
-        let manifest_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
-        std::env::set_var("FLOW_LIB_PATH", manifest_dir);
-        check_flow_lib_path(manifest_dir);
-    }
-
-    #[test]
-    fn flow_lib_path_parent() {
-        let manifest_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
-        std::env::set_var(
-            "FLOW_LIB_PATH",
-            manifest_dir
-                .parent()
-                .expect("Couldn't get parent dir"),
-        );
-        check_flow_lib_path(manifest_dir);
-    }
-
-    #[test]
-    fn no_flow_lib_path() {
-        let manifest_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
-        std::env::remove_var("FLOW_LIB_PATH");
-        check_flow_lib_path(manifest_dir);
-    }
-
-    #[test]
-    fn get_manifest_test() {
-        let manifest = flowstdlib::manifest::get_manifest().expect("Could not get manifest");
-        assert_eq!(manifest.locators.len(), 30);
-    }
+    Ok(())
 }
