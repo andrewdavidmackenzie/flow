@@ -10,7 +10,7 @@ export PATH := $(PWD)/target/debug:$(PATH)
 features := --features "wasm"
 
 ifeq ($(FLOW_LIB_PATH),)
-  export FLOW_LIB_PATH := $(PWD)/target
+  export FLOW_LIB_PATH := $(HOME)/.flow/lib
 endif
 
 ifeq ($(FLOW_CONTEXT_ROOT),)
