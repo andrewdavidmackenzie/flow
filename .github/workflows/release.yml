@@ -36,6 +36,8 @@ on:
 env:
   ALL_CARGO_DIST_TARGET_ARGS: --target=x86_64-unknown-linux-gnu --target=x86_64-apple-darwin
   ALL_CARGO_DIST_INSTALLER_ARGS: 
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: 0
 
 jobs:
   # Create the Github Release™️ so the packages have something to be uploaded to
