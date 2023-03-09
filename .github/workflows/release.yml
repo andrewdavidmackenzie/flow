@@ -103,7 +103,7 @@ jobs:
       - name: Install cargo-dist
         run: ${{ matrix.install-dist }}
       - name: Setup FLOW_LIB_PATH
-        run: echo "FLOW_LIB_PATH=$GITHUB_WORKSPACE/target" >> "$GITHUB_ENV"
+        run: echo "FLOW_LIB_PATH=$HOME/.flow/lib" >> "$GITHUB_ENV"
       - name: Ensure flowc in PATH
         run: echo "PATH=$GITHUB_WORKSPACE/target/debug:$PATH" >> "$GITHUB_ENV"
       - name: Run cargo-dist

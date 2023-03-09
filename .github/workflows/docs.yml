@@ -21,7 +21,7 @@ jobs:
 
       - name: setup-paths
         run: |
-          echo "FLOW_LIB_PATH=$GITHUB_WORKSPACE/target" >> "$GITHUB_ENV"
+          echo "FLOW_LIB_PATH=$HOME/.flow/lib" >> "$GITHUB_ENV"
           mkdir -p $HOME/.cargo/bin
           echo "PATH=$HOME/.cargo/bin:$GITHUB_WORKSPACE/target/debug:$PATH" >> "$GITHUB_ENV"
 

@@ -25,8 +25,8 @@ jobs:
 
     - name: SetupPaths
       run: |
-        echo "FLOW_LIB_PATH=$GITHUB_WORKSPACE/target" >> "$GITHUB_ENV"
-        echo "PATH=$GITHUB_WORKSPACE/target/debug:$GITHUB_WORKSPACE/flowrex/target/debug:$PATH" >> "$GITHUB_ENV"
+        echo "FLOW_LIB_PATH=$HOME/.flow/lib" >> "$GITHUB_ENV"
+        echo "PATH=$GITHUB_WORKSPACE/target/debug:$PATH" >> "$GITHUB_ENV"
 
     - name: Install latest nightly
       uses: actions-rs/toolchain@v1
