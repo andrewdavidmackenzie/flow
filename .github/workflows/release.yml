@@ -135,7 +135,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: Install Rust
-        run: rustup update stable && rustup default stable
+        run: rustup update nightly && rustup default nightly
       - name: Install cargo-dist
         run: curl --proto '=https' --tlsv1.2 -L -sSf https://github.com/axodotdev/cargo-dist/releases/download/v0.0.2/installer.sh | sh
       - name: Run cargo-dist manifest
