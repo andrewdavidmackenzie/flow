@@ -17,8 +17,8 @@ substituting `cargo run -p flowc --` for `flowc`in the examples below.
 User's terminal Current Working Directory should be the root directory of the `flow` project
 
 ### Finding Libraries
-Environment variable `$FLOW_LIB_PATH` is set to the target directory where the `flowstdlib` is compiled by default 
-`${flow_root_dir}/target`, in order for `flowc` and `flowr` to be able to find library functions used.
+Environment variable `$FLOW_LIB_PATH` is set to a directory where the `flowstdlib` is compiled by default 
+`$HOME/.flow/lib`, in order for `flowc` and `flowr` to be able to find library functions used.
 
 If this environment variable is not set then compiling will fail:
 

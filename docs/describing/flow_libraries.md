@@ -112,7 +112,7 @@ If a directory matching the library name is found, the path to the process withi
 find the process definition file.
 
 For example, if `FLOW_LIB_PATH` environment variable is defined thus:
-* `export FLOW_LIB_PATH=/Users/me/workspace/flow`
+* `export FLOW_LIB_PATH=/Users/me/.flow/lib`
 
 And the flow references a process thus:
 ```toml
@@ -120,12 +120,12 @@ And the flow references a process thus:
 source = "flowstdlib://math/add"
 ```
 
-Then the directory `/Users/me/workspace/flow/flowstdlib` is looked for.
+Then the directory `/Users/me/.flow/lib/flowstdlib` is looked for.
 
 If that directory is found, then the process path within the library `stdio/stdin` is used to create the full path
-to the process definition file is `/Users/me/workspace/flow/flowstdlib/math/add`.
+to the process definition file is `/Users/me/.flow/lib/flowstdlib/math/add`.
 
 (refer to the full algorithm in [process references](process_references.md))
 
-If the file `/Users/me/workspace/flow/flowstdlib/math/add.toml` exists then it is parsed and made available to the flow
+If the file `/Users/me/.flow/lib/flowstdlib/math/add.toml` exists then it is parsed and made available to the flow
 for use in connections.
