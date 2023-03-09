@@ -5,7 +5,7 @@ DNF := $(shell command -v dnf 2> /dev/null)
 BREW := $(shell command -v brew 2> /dev/null)
 RUSTUP := $(shell command -v rustup 2> /dev/null)
 export SHELL := /bin/bash
-export PATH := $(PWD)/target/debug:$(PWD)/flowrex/target/debug:$(PATH)
+export PATH := $(PWD)/target/debug:$(PATH)
 
 features := --features "wasm"
 
@@ -96,7 +96,7 @@ build-flowr:
 .PHONY: build-flowrex
 build-flowrex:
 	@echo "build-flowrex<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
-	@cargo build --manifest-path flowrex/Cargo.toml
+	@cargo build -p flowrex
 
 .PHONY: clippy
 clippy: build-binaries
@@ -107,7 +107,6 @@ clippy: build-binaries
 build: build-binaries
 	@echo "build<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
 	@cargo build $(features)
-	@cargo build --manifest-path flowrex/Cargo.toml
 
 .PHONY: test
 test: build-binaries
@@ -120,7 +119,7 @@ coverage: clean-start build-binaries
 	@find . -name "*.profraw"  | xargs rm -rf {}
 	@RUSTFLAGS="-C instrument-coverage" LLVM_PROFILE_FILE="flow-%p-%m.profraw" cargo build -p flowc
 	@RUSTFLAGS="-C instrument-coverage" LLVM_PROFILE_FILE="flow-%p-%m.profraw" cargo build -p flowr
-	@RUSTFLAGS="-C instrument-coverage" LLVM_PROFILE_FILE="flow-%p-%m.profraw" cargo build --manifest-path flowrex/Cargo.toml
+	@RUSTFLAGS="-C instrument-coverage" LLVM_PROFILE_FILE="flow-%p-%m.profraw" cargo build -p flowrex
 	@RUSTFLAGS="-C instrument-coverage" LLVM_PROFILE_FILE="flow-%p-%m.profraw" cargo clippy --tests -- -D warnings
 	@RUSTFLAGS="-C instrument-coverage" LLVM_PROFILE_FILE="flow-%p-%m.profraw" cargo build $(features)
 	@RUSTFLAGS="-C instrument-coverage" LLVM_PROFILE_FILE="flow-%p-%m.profraw" cargo test $(features)
