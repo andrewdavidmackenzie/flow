@@ -3,6 +3,7 @@ ZMQ := $(shell brew ls --versions zmq 2> /dev/null)
 YUM := $(shell command -v yum 2> /dev/null)
 DNF := $(shell command -v dnf 2> /dev/null)
 BREW := $(shell command -v brew 2> /dev/null)
+RUSTUP := $(shell command -v rustup 2> /dev/null)
 export SHELL := /bin/bash
 export PATH := $(PWD)/target/debug:$(PWD)/flowrex/target/debug:$(PATH)
 
@@ -23,8 +24,15 @@ all: clean-start clippy build test docs
 clean-start:
 	@find . -name "*.profraw"  | xargs rm -rf {}
 
+.PHONY: rustup
+rustup:
+ifeq ($(RUSTUP),)
+	@echo "Installing rustup"
+	curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+endif
+
 .PHONY: config
-config:
+config: rustup
 	@echo "Installing clippy command using rustup"
 	@export PATH="$$PATH:~/.cargo/bin"
 	@echo "Installing nightly with rustup for clippy nightly and coverage measurement"
