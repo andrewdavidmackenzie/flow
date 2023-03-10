@@ -475,6 +475,6 @@ mod test {
         let relative = absolute_to_relative(target, parent.to_path_buf())
             .expect("Could not form a relative path");
 
-        assert_eq!(relative, "../../flowstdlib/control/index_f.html");
+        assert_eq!(relative, "../../../lib/flowstdlib/control/index_f.html");
     }
 }
