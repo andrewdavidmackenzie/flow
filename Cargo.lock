@@ -734,6 +734,7 @@ name = "flowsamples"
 version = "0.92.0"
 dependencies = [
  "serial_test",
+ "tempdir",
 ]
 
 [[package]]

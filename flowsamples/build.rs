@@ -1,19 +1,20 @@
 //! Build script to compile the flow flowsamples in the crate
-use std::{fs, io};
+use std::{env, fs, io};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
 fn main() -> io::Result<()> {
-    let samples_root = env!("CARGO_MANIFEST_DIR");
-    let root_dir = Path::new(samples_root).parent().expect("Could not get parent directory");
-    let samples_out_dir = root_dir.join("target/flowsamples");
+    let flowsamples_root = env!("CARGO_MANIFEST_DIR");
 
-    println!("cargo:rerun-if-env-changed=FLOW_LIB_PATH");
-    // Tell Cargo that if any file in the flowsamples directory changes it should rerun this build script
-    println!("cargo:rerun-if-changed={samples_root}");
+    // if any file in the flowsamples directory changes, cargo should rerun this build script
+    println!("cargo:rerun-if-changed={flowsamples_root}");
 
-    // find all sample sub-folders at have a "root.toml" flow definition file
-    for entry in fs::read_dir(samples_root)? {
+    let home_dir_str = env::var("HOME").expect("Could not get $HOME");
+    let home_dir = Path::new(&home_dir_str);
+    let samples_out_dir = home_dir.join(".flow/samples/flowsamples");
+
+    // find all sample sub-folders at have a "root.toml" flow definition file and compile them
+    for entry in fs::read_dir(flowsamples_root)? {
         let e = entry?;
         if e.file_type()?.is_dir() && e.path().join("root.toml").exists() {
             let sample_out_dir = &samples_out_dir.join(e.file_name());
