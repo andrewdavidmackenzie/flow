@@ -5,12 +5,12 @@ DNF := $(shell command -v dnf 2> /dev/null)
 BREW := $(shell command -v brew 2> /dev/null)
 RUSTUP := $(shell command -v rustup 2> /dev/null)
 export SHELL := /bin/bash
-export PATH := $(PWD)/target/debug:$(PWD)/flowrex/target/debug:$(PATH)
+export PATH := $(PWD)/target/debug:$(PATH)
 
 features := --features "wasm"
 
 ifeq ($(FLOW_LIB_PATH),)
-  export FLOW_LIB_PATH := $(PWD)/target
+  export FLOW_LIB_PATH := $(HOME)/.flow/lib
 endif
 
 ifeq ($(FLOW_CONTEXT_ROOT),)
@@ -96,7 +96,7 @@ build-flowr:
 .PHONY: build-flowrex
 build-flowrex:
 	@echo "build-flowrex<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
-	@cargo build --manifest-path flowrex/Cargo.toml
+	@cargo build -p flowrex
 
 .PHONY: clippy
 clippy: build-binaries
@@ -107,7 +107,6 @@ clippy: build-binaries
 build: build-binaries
 	@echo "build<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
 	@cargo build $(features)
-	@cargo build --manifest-path flowrex/Cargo.toml
 
 .PHONY: test
 test: build-binaries
@@ -120,7 +119,7 @@ coverage: clean-start build-binaries
 	@find . -name "*.profraw"  | xargs rm -rf {}
 	@RUSTFLAGS="-C instrument-coverage" LLVM_PROFILE_FILE="flow-%p-%m.profraw" cargo build -p flowc
 	@RUSTFLAGS="-C instrument-coverage" LLVM_PROFILE_FILE="flow-%p-%m.profraw" cargo build -p flowr
-	@RUSTFLAGS="-C instrument-coverage" LLVM_PROFILE_FILE="flow-%p-%m.profraw" cargo build --manifest-path flowrex/Cargo.toml
+	@RUSTFLAGS="-C instrument-coverage" LLVM_PROFILE_FILE="flow-%p-%m.profraw" cargo build -p flowrex
 	@RUSTFLAGS="-C instrument-coverage" LLVM_PROFILE_FILE="flow-%p-%m.profraw" cargo clippy --tests -- -D warnings
 	@RUSTFLAGS="-C instrument-coverage" LLVM_PROFILE_FILE="flow-%p-%m.profraw" cargo build $(features)
 	@RUSTFLAGS="-C instrument-coverage" LLVM_PROFILE_FILE="flow-%p-%m.profraw" cargo test $(features)
@@ -153,11 +152,11 @@ code-docs: build-flowc
 .PHONE: copy-svgs
 copy-svgs:
 	@echo "copy-svgs<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
-	@for i in $(shell cd target/flowsamples && find . -name '*.dot.svg' ); do \
-      cp target/flowsamples/$$i target/html/flowsamples/$$i; \
+	@for i in $(shell cd $$HOME/.flow/samples/flowsamples && find . -name '*.dot.svg' ); do \
+      cp $$HOME/.flow/samples/flowsamples/$$i target/html/flowsamples/$$i; \
     done
-	@for i in $(shell cd target/flowstdlib && find . -name '*.dot.svg' ); do \
-      cp target/flowstdlib/$$i target/html/flowstdlib/src/$$i; \
+	@for i in $(shell cd $$HOME/.flow/lib/flowstdlib && find . -name '*.dot.svg' ); do \
+      cp $$HOME/.flow/lib/flowstdlib/$$i target/html/flowstdlib/src/$$i; \
     done
 
 .PHONY: trim-docs

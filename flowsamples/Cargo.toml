@@ -22,5 +22,8 @@ path = "main.rs"
 default = []
 wasm = []
 
+[dependencies]
+tempdir = "0.3"
+
 [dev-dependencies]
 serial_test = "1.0.0"

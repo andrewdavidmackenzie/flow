@@ -27,6 +27,8 @@ use std::io::{BufRead, BufReader, ErrorKind};
 use std::path::Path;
 use std::process::{Command, Stdio};
 
+use tempdir::TempDir;
+
 /// Name of file where any Stdout will be written while executing a flowsample in test mode
 const TEST_STDOUT_FILENAME: &str = "test.stdout";
 #[cfg(test)]
@@ -55,24 +57,25 @@ const TEST_ARGS_FILENAME: &str = "test.args";
 /// - If the name of a flow sample is provided as an additional argument, then that sample will be run
 ///   e.g. `flowsamples hello-world` or `cargo run -p flowsamples -- hello-world`
 fn main() -> io::Result<()> {
-    println!("`flowsample` version {}", env!("CARGO_PKG_VERSION"));
+    println!("`flowsamples` version {}", env!("CARGO_PKG_VERSION"));
     println!(
         "Current Working Directory: `{}`",
         env::current_dir().expect("Could not get working directory").display()
     );
 
-    let samples_root = env!("CARGO_MANIFEST_DIR");
-    let samples_dir = Path::new(samples_root);
-    let root_dir = samples_dir.parent().expect("Could not get parent directory");
-    let samples_out_dir = root_dir.join("target/flowsamples");
+    let home_dir_str = env::var("HOME").expect("Could not get $HOME");
+    let home_dir = Path::new(&home_dir_str);
+    let samples_dir = home_dir.join(".flow/samples/flowsamples");
+    println!("Samples Root Directory: `{}`", samples_dir.display());
 
-    println!("Samples Root Directory: `{samples_root}`");
+    let samples_out_dir = TempDir::new("flowsamples").expect("Could not create temp directory");
+    let samples_out_dir = samples_out_dir.path();
+    println!("Samples Temp Directory used for input/output files: '{}'", samples_out_dir.display());
 
     let args: Vec<String> = env::args().collect();
-
     match args.len() {
         1 => {
-            for entry in fs::read_dir(samples_root)? {
+            for entry in fs::read_dir(samples_dir)? {
                 let e = entry?;
                 if e.file_type()?.is_dir() && e.path().join("root.toml").exists() {
                     run_sample(&e.path(), &samples_out_dir.join(e.file_name()), false, true)?
@@ -90,10 +93,10 @@ fn main() -> io::Result<()> {
 
 /// Run one specific flow sample
 fn run_sample(sample_dir: &Path, output_dir: &Path, flowrex: bool, native: bool) -> io::Result<()> {
-    let manifest_path = output_dir.join("manifest.json");
+    let manifest_path = sample_dir.join("manifest.json");
     println!("\n\tRunning Sample: {:?}", sample_dir.file_name());
     assert!(manifest_path.exists(), "Manifest not found at '{}'", manifest_path.display());
-    println!("\tOutput written {}/", output_dir.display());
+    println!("\tOutput written to {}/", output_dir.display());
     println!("\t\tSTDIN is read from {TEST_STDIN_FILENAME}");
     println!("\t\tArguments are read from {TEST_ARGS_FILENAME}");
     println!("\t\tSTDOUT is sent to {TEST_STDOUT_FILENAME}");
@@ -114,6 +117,7 @@ fn run_sample(sample_dir: &Path, output_dir: &Path, flowrex: bool, native: bool)
 
     command_args.append(&mut args(sample_dir)?);
 
+    fs::create_dir_all(output_dir).expect("Could not create output directory");
     let output = File::create(output_dir.join(TEST_STDOUT_FILENAME))
         .expect("Could not get directory as string");
     let error = File::create(output_dir.join(TEST_STDERR_FILENAME))
@@ -203,22 +207,28 @@ fn args(sample_dir: &Path) -> io::Result<Vec<String>> {
 
 #[cfg(test)]
 mod test {
-    use serial_test::serial;
-
-    use std::fs;
+    use std::{env, fs};
     use std::path::{Path, PathBuf};
     use std::process::{Command, Stdio};
+
+    use serial_test::serial;
+
+    use tempdir::TempDir;
 
     use crate::{EXPECTED_FILE_FILENAME, EXPECTED_STDOUT_FILENAME, TEST_FILE_FILENAME, TEST_STDERR_FILENAME, TEST_STDOUT_FILENAME};
 
     fn test_sample(name: &str, flowrex: bool, native: bool) {
-        let samples_root = env!("CARGO_MANIFEST_DIR");
-        let samples_dir = Path::new(samples_root);
+        let home_dir_str = env::var("HOME").expect("Could not get $HOME");
+        let home_dir = Path::new(&home_dir_str);
+        let samples_dir = home_dir.join(".flow/samples/flowsamples");
+        println!("Samples Root Directory: `{}`", samples_dir.display());
         let sample_dir = samples_dir.join(name);
+        println!("'{}' Sample Directory: `{}`", name, sample_dir.display());
 
-        let root_dir = samples_dir.parent().expect("Could not get parent directory");
-        let samples_out_dir = root_dir.join("target/flowsamples");
+        let samples_out_dir = TempDir::new("flowsamples").expect("Could not create temp directory");
+        let samples_out_dir = samples_out_dir.path();
         let output_dir = samples_out_dir.join(name);
+        println!("Temp directory used for input/output files: '{}'", output_dir.display());
 
         // Remove any previous output
         let _ = fs::remove_file(output_dir.join(TEST_STDERR_FILENAME));
@@ -226,7 +236,7 @@ mod test {
         let _ = fs::remove_file(output_dir.join(TEST_STDOUT_FILENAME));
 
         super::run_sample(&sample_dir, &output_dir, flowrex, native)
-            .expect("Running of test sample failed");
+            .expect("Running of sample failed");
 
         check_test_output(&sample_dir, &output_dir);
 

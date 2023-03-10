@@ -103,7 +103,7 @@ jobs:
       - name: Install cargo-dist
         run: ${{ matrix.install-dist }}
       - name: Setup FLOW_LIB_PATH
-        run: echo "FLOW_LIB_PATH=$GITHUB_WORKSPACE/target" >> "$GITHUB_ENV"
+        run: echo "FLOW_LIB_PATH=$HOME/.flow/lib" >> "$GITHUB_ENV"
       - name: Ensure flowc in PATH
         run: echo "PATH=$GITHUB_WORKSPACE/target/debug:$PATH" >> "$GITHUB_ENV"
       - name: Run cargo-dist
@@ -135,7 +135,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: Install Rust
-        run: rustup update stable && rustup default stable
+        run: rustup update nightly && rustup default nightly
       - name: Install cargo-dist
         run: curl --proto '=https' --tlsv1.2 -L -sSf https://github.com/axodotdev/cargo-dist/releases/download/v0.0.2/installer.sh | sh
       - name: Run cargo-dist manifest
@@ -147,9 +147,9 @@ jobs:
           # Upload the manifest to the Github Release™️
           gh release upload ${{ needs.create-release.outputs.tag }} dist-manifest.json
           echo "uploaded manifest!"
-          gh release upload ${{ needs.create-release.outputs.tag }} target/flowstdlib
+          gh release upload ${{ needs.create-release.outputs.tag }} $HOME/.flow/lib/flowstdlib
           echo "Added flowstdlib compiled library to the release"
-          gh release upload ${{ needs.create-release.outputs.tag }} target/flowsamples
+          gh release upload ${{ needs.create-release.outputs.tag }} $HOME/.flow/samples/flowsamples
           echo "Added the flowsamples to the release"
           # Edit the Github Release™️ title/body to match what cargo-dist thinks it should be
           CHANGELOG_TITLE=$(cat dist-manifest.json | jq --raw-output ".releases[].changelog_title")

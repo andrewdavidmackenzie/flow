@@ -76,8 +76,8 @@ a compiled `manifest.json` flow manifest alongside the flow's root definition fi
 - `flowc -C flowr/src/cli -c flowsamples/fibonacci` - compile the fibonacci sample
 - `flowr flowsamples/fibonacci` - run the pre-compiled fibonacci sample flow manifest
     - You should get a fibonacci series output to the terminal,
-- `unset FLOW_LIB_PATH;flowc -C flowr/src/cli -c -L target flowsamples/fibonacci` - compile the flow
-- `unset FLOW_LIB_PATH;flowr -L target flowsamples/fibonacci` - 
+- `unset FLOW_LIB_PATH;flowc -C flowr/src/cli -c -L $HOME/.flow/lib flowsamples/fibonacci` - compile the flow
+- `unset FLOW_LIB_PATH;flowr -L $HOME/.flow/lib flowsamples/fibonacci` - 
     - You should get a fibonacci series output to the terminal,
 - `flowc -C flowr/src/cli -c flowsamples/sequence` - compile the flow
 - `flowr flowsamples/sequence 10` - compile the flow

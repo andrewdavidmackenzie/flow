@@ -445,8 +445,8 @@ mod test {
 
     #[test]
     fn sub_dir_relative_path() {
-        let target = Path::new("/Users/andrew/workspace/flow/target/flowsamples/mandlebrot/escapes/escapes.html");
-        let parent = Path::new("/Users/andrew/workspace/flow/target/flowsamples/mandlebrot/render.dot.svg");
+        let target = Path::new("/Users/andrew/.flow/samples/flowsamples/mandlebrot/escapes/escapes.html");
+        let parent = Path::new("/Users/andrew/.flow/samples/flowsamples/mandlebrot/render.dot.svg");
 
         let relative = absolute_to_relative(target, parent.to_path_buf())
             .expect("Could not form a relative path");
@@ -456,10 +456,10 @@ mod test {
 
     #[test]
     fn sub_dir_mixed_schemes_relative_path() {
-        let target_url = Url::parse("file:///Users/andrew/workspace/flow/target/flowsamples/mandlebrot/escapes/escapes.html")
+        let target_url = Url::parse("file:///Users/andrew/.flow/samples/flowsamples/mandlebrot/escapes/escapes.html")
             .expect("Could not parse Url");
         let target = target_url.to_file_path().expect("Could not convert to file path");
-        let parent = Path::new("/Users/andrew/workspace/flow/target/flowsamples/mandlebrot/render.dot.svg");
+        let parent = Path::new("/Users/andrew/.flow/samples/flowsamples/mandlebrot/render.dot.svg");
 
         let relative = absolute_to_relative(&target, parent.to_path_buf())
             .expect("Could not form a relative path");
@@ -469,12 +469,12 @@ mod test {
 
     #[test]
     fn other_branch_relative_path() {
-        let target = Path::new("file:///Users/andrew/workspace/flow/target/flowstdlib/control/index_f.html");
-        let parent = Path::new("file:///Users/andrew/workspace/flow/target/flowsamples/mandlebrot/render.dot.svg");
+        let target = Path::new("file:///Users/andrew/.flow/lib/flowstdlib/control/index_f.html");
+        let parent = Path::new("file:///Users/andrew/.flow/samples/flowsamples/mandlebrot/render.dot.svg");
 
         let relative = absolute_to_relative(target, parent.to_path_buf())
             .expect("Could not form a relative path");
 
-        assert_eq!(relative, "../../flowstdlib/control/index_f.html");
+        assert_eq!(relative, "../../../lib/flowstdlib/control/index_f.html");
     }
 }
