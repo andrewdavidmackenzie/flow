@@ -147,9 +147,9 @@ jobs:
           # Upload the manifest to the Github Release™️
           gh release upload ${{ needs.create-release.outputs.tag }} dist-manifest.json
           echo "uploaded manifest!"
-          gh release upload ${{ needs.create-release.outputs.tag }} target/flowstdlib
+          gh release upload ${{ needs.create-release.outputs.tag }} $HOME/.flow/lib/flowstdlib
           echo "Added flowstdlib compiled library to the release"
-          gh release upload ${{ needs.create-release.outputs.tag }} target/flowsamples
+          gh release upload ${{ needs.create-release.outputs.tag }} $HOME/.flow/samples/flowsamples
           echo "Added the flowsamples to the release"
           # Edit the Github Release™️ title/body to match what cargo-dist thinks it should be
           CHANGELOG_TITLE=$(cat dist-manifest.json | jq --raw-output ".releases[].changelog_title")

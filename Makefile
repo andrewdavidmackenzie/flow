@@ -152,11 +152,11 @@ code-docs: build-flowc
 .PHONE: copy-svgs
 copy-svgs:
 	@echo "copy-svgs<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
-	@for i in $(shell cd target/flowsamples && find . -name '*.dot.svg' ); do \
+	@for i in $(shell cd $HOME/.flow/samples/flowsamples && find . -name '*.dot.svg' ); do \
       cp $$HOME/.flow/samples/flowsamples/$$i target/html/flowsamples/$$i; \
     done
-	@for i in $(shell cd target/flowstdlib && find . -name '*.dot.svg' ); do \
-      cp $$HOME/.flow/samples/flowstdlib/$$i target/html/flowstdlib/src/$$i; \
+	@for i in $(shell cd $HOME/.flow/lib/flowstdlib && find . -name '*.dot.svg' ); do \
+      cp $$HOME/.flow/lib/flowstdlib/$$i target/html/flowstdlib/src/$$i; \
     done
 
 .PHONY: trim-docs
