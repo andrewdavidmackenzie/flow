@@ -153,10 +153,10 @@ code-docs: build-flowc
 copy-svgs:
 	@echo "copy-svgs<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
 	@for i in $(shell cd target/flowsamples && find . -name '*.dot.svg' ); do \
-      cp target/flowsamples/$$i target/html/flowsamples/$$i; \
+      cp $$HOME/.flow/samples/flowsamples/$$i target/html/flowsamples/$$i; \
     done
 	@for i in $(shell cd target/flowstdlib && find . -name '*.dot.svg' ); do \
-      cp target/flowstdlib/$$i target/html/flowstdlib/src/$$i; \
+      cp $$HOME/.flow/samples/flowstdlib/$$i target/html/flowstdlib/src/$$i; \
     done
 
 .PHONY: trim-docs
