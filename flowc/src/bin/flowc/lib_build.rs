@@ -113,9 +113,9 @@ fn check_manifest_status(manifest_json_file: &PathBuf, file_count: i32,
 }
 
 /*
-   Copy source files (toml definitions) and docs files for function or flow into the output dir
+   Copy definition toml file for function or flow into the output dir
 */
-fn copy_sources_to_output_dir(toml_path: &Path, output_dir: &Path, docs: &str) -> Result<i32> {
+fn copy_definition_to_output_dir(toml_path: &Path, output_dir: &Path) -> Result<i32> {
     let mut file_count = 0;
 
     // copy the definition toml to output directory
@@ -128,17 +128,6 @@ fn copy_sources_to_output_dir(toml_path: &Path, output_dir: &Path, docs: &str) -
         ),
     )?;
     file_count += 1;
-
-    // Copy any docs files to output directory
-    if !docs.is_empty() {
-        let docs_path = toml_path.with_file_name(docs);
-        fs::copy(
-            &docs_path,
-            output_dir.join(docs_path.file_name()
-                .ok_or("Could not get docs filename")?),
-        )?;
-        file_count += 1;
-    }
 
     Ok(file_count)
 }
@@ -175,28 +164,27 @@ fn compile_functions(
                         toml_path.display()
                     )
                 })?;
-                debug!("Trying to load library process from '{}'", url);
 
-                // calculate the path of the file's directory, relative to lib_root
-                let relative_dir = toml_path
-                    .parent()
-                    .ok_or("Could not get toml path parent dir")?
-                    .strip_prefix(&lib_root_path)
-                    .map_err(|_| "Could not calculate relative_dir")?;
-                // calculate the target directory for generating output using the relative path from the
-                // lib_root appended to the root of the output directory
-                let output_dir = options.output_dir.join(relative_dir);
-                if !output_dir.exists() {
-                    fs::create_dir_all(&output_dir)?;
-                }
-
-                // Load the `FunctionProcess` from the found `.toml` file
+                debug!("Trying to load library FunctionProcess from '{}'", url);
                 match parser::parse(
                     &url,
                     provider,
                     #[cfg(feature = "debugger")] &mut lib_manifest.source_urls,
                 ) {
                     Ok(FunctionProcess(ref mut function)) => {
+                        // calculate the path of the file's directory, relative to lib_root
+                        let relative_dir = toml_path
+                            .parent()
+                            .ok_or("Could not get toml path parent dir")?
+                            .strip_prefix(&lib_root_path)
+                            .map_err(|_| "Could not calculate relative_dir")?;
+                        // calculate the target directory for generating output using the relative path from the
+                        // lib_root appended to the root of the output directory
+                        let output_dir = options.output_dir.join(relative_dir);
+                        if !output_dir.exists() {
+                            fs::create_dir_all(&output_dir)?;
+                        }
+
                         let (source_path, wasm_destination) = compile::get_paths(&output_dir, function)?;
 
                         // here we assume that the library has a workspace at lib_root_path
@@ -235,7 +223,7 @@ fn compile_functions(
                             )
                             .chain_err(|| "Could not add entry to library manifest")?;
 
-                        file_count += copy_sources_to_output_dir(toml_path, &output_dir, function.get_docs())?;
+                        file_count += copy_definition_to_output_dir(toml_path, &output_dir)?;
                     }
                     Ok(FlowProcess(_)) => {},
                     Err(err) => debug!("Skipping file '{}'. Reason: '{}'", url, err),
@@ -282,22 +270,8 @@ fn compile_flows(
                         toml_path.display()
                     )
                 })?;
-                debug!("Trying to load library process from '{}'", url);
 
-                // calculate the path of the file's directory, relative to lib_root
-                let relative_dir = toml_path
-                    .parent()
-                    .ok_or("Could not get toml path parent dir")?
-                    .strip_prefix(&lib_root_path)
-                    .map_err(|_| "Could not calculate relative_dir")?;
-                // calculate the target directory for generating output using the relative path from the
-                // lib_root appended to the root of the output directory
-                let output_dir = options.output_dir.join(relative_dir);
-                if !output_dir.exists() {
-                    fs::create_dir_all(&output_dir)?;
-                }
-
-                // Load the `FlowProcess` from the found `.toml` file
+                debug!("Trying to load library FlowProcess from '{}'", url);
                 match parser::parse(
                     &url,
                     provider,
@@ -305,13 +279,25 @@ fn compile_flows(
                 ) {
                     Ok(FunctionProcess(_)) => {}
                     Ok(FlowProcess(ref mut flow)) => {
+                        // calculate the path of the file's directory, relative to lib_root
+                        let relative_dir = toml_path
+                            .parent()
+                            .ok_or("Could not get toml path parent dir")?
+                            .strip_prefix(&lib_root_path)
+                            .map_err(|_| "Could not calculate relative_dir")?;
+                        // calculate the target directory for generating output using the relative path from the
+                        // lib_root appended to the root of the output directory
+                        let output_dir = options.output_dir.join(relative_dir);
+                        if !output_dir.exists() {
+                            fs::create_dir_all(&output_dir)?;
+                        }
+
                         if options.graphs {
                             flow_to_dot::dump_flow(flow, &output_dir, provider)?;
                             flow_to_dot::generate_svgs(&output_dir, true)?;
                         }
 
-                        file_count += copy_sources_to_output_dir(toml_path, &output_dir,
-                                                                 flow.get_docs())?;
+                        file_count += copy_definition_to_output_dir(toml_path, &output_dir)?;
 
                         let flow_relative_path = toml_path
                             .strip_prefix(&lib_root_path)
