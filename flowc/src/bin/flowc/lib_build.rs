@@ -113,15 +113,15 @@ fn check_manifest_status(manifest_json_file: &PathBuf, file_count: i32,
 }
 
 /*
-   Copy additional source files for function or flow into the target directory
+   Copy source files (toml definitions) and docs files for function or flow into the output dir
 */
-fn copy_sources_to_target_dir(toml_path: &Path, target_dir: &Path, docs: &str) -> Result<i32> {
+fn copy_sources_to_output_dir(toml_path: &Path, output_dir: &Path, docs: &str) -> Result<i32> {
     let mut file_count = 0;
 
-    // copy the definition toml to target directory
+    // copy the definition toml to output directory
     fs::copy(
         toml_path,
-        target_dir.join(
+        output_dir.join(
             toml_path
                 .file_name()
                 .ok_or("Could not get Toml file filename")?,
@@ -129,12 +129,13 @@ fn copy_sources_to_target_dir(toml_path: &Path, target_dir: &Path, docs: &str) -
     )?;
     file_count += 1;
 
-    // Copy any docs files to target directory
+    // Copy any docs files to output directory
     if !docs.is_empty() {
         let docs_path = toml_path.with_file_name(docs);
         fs::copy(
             &docs_path,
-            target_dir.join(docs_path.file_name().ok_or("Could not get docs filename")?),
+            output_dir.join(docs_path.file_name()
+                .ok_or("Could not get docs filename")?),
         )?;
         file_count += 1;
     }
@@ -234,7 +235,7 @@ fn compile_functions(
                             )
                             .chain_err(|| "Could not add entry to library manifest")?;
 
-                        file_count += copy_sources_to_target_dir(toml_path, &output_dir, function.get_docs())?;
+                        file_count += copy_sources_to_output_dir(toml_path, &output_dir, function.get_docs())?;
                     }
                     Ok(FlowProcess(_)) => {},
                     Err(err) => debug!("Skipping file '{}'. Reason: '{}'", url, err),
@@ -309,7 +310,8 @@ fn compile_flows(
                             flow_to_dot::generate_svgs(&output_dir, true)?;
                         }
 
-                        file_count += copy_sources_to_target_dir(toml_path, &output_dir, flow.get_docs())?;
+                        file_count += copy_sources_to_output_dir(toml_path, &output_dir,
+                                                                 flow.get_docs())?;
                     }
                     Err(err) => debug!("Skipping file '{}'. Reason: '{}'", url, err),
                 }
