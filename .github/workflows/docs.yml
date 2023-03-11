@@ -49,7 +49,11 @@ jobs:
         run: mdbook build
 
       - name: build-docs
-        run: cargo doc --no-deps --target-dir=target/html/code
+        run: |
+          echo "FLOW_LIB_PATH = $FLOW_LIB_PATH"
+          echo "Contents of $HOME/.flow/lib/flowstdlib"
+          tree $HOME/.flow/lib/flowstdlib
+          cargo doc --no-deps --target-dir=target/html/code
 
       - name: copy-svgs
         run: make copy-svgs
