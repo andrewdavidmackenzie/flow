@@ -23,10 +23,11 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
-    - name: SetupPaths
+    - name: SetupEnv
       run: |
         echo "FLOW_LIB_PATH=$HOME/.flow/lib" >> "$GITHUB_ENV"
         echo "PATH=$GITHUB_WORKSPACE/target/debug:$PATH" >> "$GITHUB_ENV"
+        echo "CARGO_REGISTRIES_CRATES_IO_PROTOCOL=sparse" >> "$GITHUB_ENV"
 
     - name: Install latest nightly
       uses: actions-rs/toolchain@v1
