@@ -17,17 +17,12 @@ build = "build.rs"
 [badges]
 maintenance = { status = "actively-developed" }
 
-[[bin]]
-name = "flowstdlib"
-path = "src/main.rs"
-
 [lib]
 name = "flowstdlib"
 path = "src/lib.rs"
 
 [features]
 default = []
-wasm = []
 
 [dependencies]
 flowmacro = {path = "../flowmacro", version = "0.92.0" }

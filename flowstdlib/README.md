@@ -48,7 +48,4 @@ If you are using it as part of the larger `flow` workspace then you just need th
 in your `FLOW_LIB_PATH` as described above (or added to the lib search part using the `-L <dir>` option).
 
 ## features
-These are the conditionally compiled features of `flowstdlib`:
-- default - No features are enabled by default
-- wasm - feature to enable compile of functions to WASM implementation. If not activated, the WASM implementations
-  will not be compiled and the library must be linked natively as described above.
+There are no features to enable.

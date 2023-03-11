@@ -22,12 +22,7 @@ fn main() -> io::Result<()> {
     //                  -n      : do not compile to WASM, only compile a native version of the lib
     //                  -l      : compile a flow library (not a flow) who's path is the last arg
 
-    // If "wasm" feature is activated, don't set "-n" and flowc will compile implementations to wasm
-    #[cfg(feature = "wasm")]
     let command_args = vec!["-d", "-g", "-l", "-O", "-o", &out_dir, lib_root_dir_str];
-    // If "wasm" feature is NOT activated, set "-n" (native only) so flowc will not compile to wasm
-    #[cfg(not(feature = "wasm"))]
-    let command_args = vec!["-d", "-g", "-l", "-n", "-o", &out_dir, lib_root_dir_str];
 
     match command.args(&command_args).status() {
         Ok(stat) => {

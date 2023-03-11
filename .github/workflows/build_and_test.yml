@@ -83,10 +83,10 @@ jobs:
       run: cargo clippy --tests -- -D warnings
 
     - name: build
-      run: cargo build --features "wasm"
+      run: cargo build
 
     - name: test
-      run: cargo test --features "online_tests","wasm"
+      run: cargo test --features "online_tests"
 
     - name: UploadCoverage
       if: matrix.os == 'ubuntu-latest'

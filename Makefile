@@ -7,8 +7,6 @@ RUSTUP := $(shell command -v rustup 2> /dev/null)
 export SHELL := /bin/bash
 export PATH := $(PWD)/target/debug:$(PATH)
 
-features := --features "wasm"
-
 ifeq ($(FLOW_LIB_PATH),)
   export FLOW_LIB_PATH := $(HOME)/.flow/lib
 endif
@@ -101,7 +99,7 @@ build-flowrex:
 .PHONY: build-flowstdlib
 build-flowstdlib:
 	@echo "build-flowstdlib<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
-	@cargo build -p flowstdlib $(features)
+	@cargo build -p flowstdlib
 
 .PHONY: clippy
 clippy: build-binaries build-flowstdlib
@@ -111,12 +109,12 @@ clippy: build-binaries build-flowstdlib
 .PHONY: build
 build: build-binaries
 	@echo "build<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
-	@cargo build $(features)
+	@cargo build
 
 .PHONY: test
 test: build-binaries
 	@echo "test<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
-	@cargo test $(features)
+	@cargo test
 
 .PHONY: coverage
 coverage: clean-start build-binaries
@@ -126,8 +124,8 @@ coverage: clean-start build-binaries
 	@RUSTFLAGS="-C instrument-coverage" LLVM_PROFILE_FILE="flow-%p-%m.profraw" cargo build -p flowr
 	@RUSTFLAGS="-C instrument-coverage" LLVM_PROFILE_FILE="flow-%p-%m.profraw" cargo build -p flowrex
 	@RUSTFLAGS="-C instrument-coverage" LLVM_PROFILE_FILE="flow-%p-%m.profraw" cargo clippy --tests -- -D warnings
-	@RUSTFLAGS="-C instrument-coverage" LLVM_PROFILE_FILE="flow-%p-%m.profraw" cargo build $(features)
-	@RUSTFLAGS="-C instrument-coverage" LLVM_PROFILE_FILE="flow-%p-%m.profraw" cargo test $(features)
+	@RUSTFLAGS="-C instrument-coverage" LLVM_PROFILE_FILE="flow-%p-%m.profraw" cargo build
+	@RUSTFLAGS="-C instrument-coverage" LLVM_PROFILE_FILE="flow-%p-%m.profraw" cargo test
 	@RUSTFLAGS="-C instrument-coverage" LLVM_PROFILE_FILE="flow-%p-%m.profraw" cargo doc --no-deps --target-dir=target/html/code
 	@echo "Gathering coverage information"
 	@grcov . --binary-path target/debug/ -s . -t lcov --branch --ignore-not-existing --ignore "/*" -o coverage.info

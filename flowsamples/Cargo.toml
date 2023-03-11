@@ -20,7 +20,6 @@ path = "main.rs"
 
 [features]
 default = []
-wasm = []
 
 [dependencies]
 tempdir = "0.3"

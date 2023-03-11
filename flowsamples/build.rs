@@ -32,7 +32,7 @@ fn main() -> io::Result<()> {
 }
 
 fn get_context_root() -> Result<String, String> {
-    let context_root = match std::env::var("FLOW_CONTEXT_ROOT") {
+    let context_root = match env::var("FLOW_CONTEXT_ROOT") {
         Ok(var) => PathBuf::from(&var),
         Err(_) => {
             let samples_dir = Path::new(env!("CARGO_MANIFEST_DIR")).parent()
@@ -57,16 +57,10 @@ fn compile_sample(sample_dir: &str, output_dir: &str) {
     // -o <output_dir> to generate output files in specified directory
     // <sample_dir> is the path to the directory of the sample flow to compile
     let context_root = get_context_root().expect("Could not get context root");
-    #[cfg(feature = "wasm")]
-        let command_args = vec!["-d", "-g", "-c", "-O",
-                                "-C", &context_root,
-                                "-o", output_dir,
-                                sample_dir];
-    #[cfg(not(feature = "wasm"))] // "-n" and "-p" to skip compiling provided implementations
-        let command_args = vec!["-d", "-g", "-c", "-n", "-p",
-                                "-C", &context_root,
-                                "-o", output_dir,
-                                sample_dir];
+    let command_args = vec!["-d", "-g", "-c", "-O",
+                            "-C", &context_root,
+                            "-o", output_dir,
+                            sample_dir];
 
     match command.args(&command_args).status() {
         Ok(stat) => {
