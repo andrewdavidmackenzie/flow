@@ -52,10 +52,7 @@ jobs:
         run: mdbook build
 
       - name: build-docs
-        run: |
-          echo "Contents of $HOME/.flow/lib/flowstdlib"
-          tree $HOME/.flow/lib/flowstdlib
-          cargo doc --no-deps --target-dir=target/html/code
+        run: cargo doc --no-deps --target-dir=target/html/code
 
       - name: copy-svgs
         run: make copy-svgs
