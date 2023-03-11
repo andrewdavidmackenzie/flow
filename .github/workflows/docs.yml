@@ -33,6 +33,9 @@ jobs:
       - name: build-flowc
         run: cargo build -p flowc
 
+      - name: AddWasmTarget
+        run: rustup target add wasm32-unknown-unknown
+
       - name: build-flowstdlib
         run: |
           cargo build -p flowstdlib
