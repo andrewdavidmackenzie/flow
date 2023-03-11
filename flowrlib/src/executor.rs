@@ -1,23 +1,25 @@
-use log::{info, debug, error, trace};
-use std::thread;
-use std::thread::JoinHandle;
 use std::collections::HashMap;
 use std::panic;
 use std::sync::{Arc, RwLock};
+use std::thread;
+use std::thread::JoinHandle;
 #[cfg(test)]
 use std::time::Duration;
-use url::Url;
-use crate::wasm;
-use crate::job::JobPayload;
-use flowcore::Implementation;
-use flowcore::model::lib_manifest::{
-    ImplementationLocator::Native, ImplementationLocator::Wasm, LibraryManifest,
-};
-use flowcore::errors::*;
-use flowcore::provider::Provider;
 
+use log::{debug, error, info, trace};
 #[cfg(test)]
 use rand::Rng;
+use url::Url;
+
+use flowcore::errors::*;
+use flowcore::Implementation;
+use flowcore::model::lib_manifest::{
+    ImplementationLocator::Native, ImplementationLocator::RelativePath, LibraryManifest,
+};
+use flowcore::provider::Provider;
+
+use crate::job::JobPayload;
+use crate::wasm;
 
 /// An `Executor` struct is used to receive jobs, execute them and return results.
 /// It can load libraries and keep track of the `Function` `Implementations` loaded for use
@@ -245,7 +247,7 @@ fn execute_job(
     trace!("Job #{}: Started executing on '{name}'", payload.job_id);
     let result = implementation.run(&payload.input_set);
     #[cfg(test)]
-    std::thread::sleep(Duration::from_millis(rand::thread_rng().gen_range(0..100)));
+    thread::sleep(Duration::from_millis(rand::thread_rng().gen_range(0..100)));
     trace!("Job #{}: Finished executing on '{name}'", payload.job_id);
 
     results_sink.send(serde_json::to_string(&(payload.job_id, result))?.as_bytes(), 0)
@@ -272,7 +274,7 @@ fn load_referenced_implementation(
 
     // find the implementation we need from the locator
     let implementation = match locator {
-        Wasm(wasm_source_relative) => {
+        RelativePath(wasm_source_relative) => {
             // Path to the wasm source could be relative to the URL where we loaded the manifest from
             let wasm_url = resolved_lib_url
                 .join(wasm_source_relative)
@@ -315,16 +317,20 @@ fn get_lib_manifest_tuple(
 
 #[cfg(test)]
 mod test {
-    use url::Url;
-    use super::Executor;
-    use flowcore::model::metadata::MetaData;
-    use flowcore::model::lib_manifest::LibraryManifest;
-    use flowcore::provider::Provider;
-    use flowcore::errors::Result;
-    use crate::job::{Job, JobPayload};
-    use std::sync::{Arc, RwLock};
     use std::collections::HashMap;
+    use std::sync::{Arc, RwLock};
+
+    use url::Url;
+
+    use flowcore::errors::Result;
     use flowcore::Implementation;
+    use flowcore::model::lib_manifest::LibraryManifest;
+    use flowcore::model::metadata::MetaData;
+    use flowcore::provider::Provider;
+
+    use crate::job::{Job, JobPayload};
+
+    use super::Executor;
 
     fn test_meta_data() -> MetaData {
         MetaData {

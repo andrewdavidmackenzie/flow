@@ -31,16 +31,17 @@ pub enum ImplementationLocator {
     #[serde(skip_deserializing, skip_serializing)]
     /// A `Native` - A reference to a trait object statically linked with the library
     Native(Arc<dyn Implementation>),
-    /// A `Wasm` - `String` indicating where the wasm file of implementation is located
-    Wasm(String),
+    /// A path indicating where the implementation file is located within the Library directory
+    /// structure, relative to the lib root
+    RelativePath(String),
 }
 
 impl PartialEq for ImplementationLocator {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
             (
-                ImplementationLocator::Wasm(self_source),
-                ImplementationLocator::Wasm(other_source),
+                ImplementationLocator::RelativePath(self_source),
+                ImplementationLocator::RelativePath(other_source),
             ) => self_source == other_source,
             _ => false,
         }
@@ -106,26 +107,27 @@ impl LibraryManifest {
         Ok((manifest, url))
     }
 
-    /// Add an implementation locator (location of the wasm file) to the `LibraryManifest`
-    /// The WASM file's path is relative to the library root so that the library is location independent
+    /// Add a locator to the `LibraryManifest` to allow resolving "lib://" lib reference Urls
+    /// for functions or flows to where the implementation resides within the library directory
+    /// structure (relative to the lib root)
     pub fn add_locator(
         &mut self,
-        wasm_relative_path: &str,
-        relative_dir: &str,
+        implementation_path_relative: &str,
+        lib_reference_path: &str,
     ) -> Result<()> {
         let lib_reference = Url::parse(&format!(
-            "lib://{}/{relative_dir}",
+            "lib://{}/{lib_reference_path}",
             self.metadata.name
         ))
         .chain_err(|| "Could not form library Url to add to the manifest")?;
 
         debug!(
             "Adding implementation locator to lib manifest: \n'{}' -> '{}'",
-            lib_reference, wasm_relative_path
+            lib_reference, implementation_path_relative
         );
         self.locators.insert(
             lib_reference,
-            ImplementationLocator::Wasm(wasm_relative_path.to_owned()),
+            ImplementationLocator::RelativePath(implementation_path_relative.to_owned()),
         );
 
         Ok(())
@@ -191,7 +193,7 @@ mod test {
     use crate::errors::Result;
     use crate::Implementation;
     use crate::model::lib_manifest::{
-        ImplementationLocator, ImplementationLocator::Native, ImplementationLocator::Wasm, LibraryManifest,
+        ImplementationLocator, ImplementationLocator::Native, ImplementationLocator::RelativePath, LibraryManifest,
     };
     use crate::model::metadata::MetaData;
     use crate::provider::Provider;
@@ -243,16 +245,16 @@ mod test {
 
     #[test]
     fn wasm_locators_match() {
-        let loc0 = Wasm("location".into());
-        let loc1 = Wasm("location".into());
+        let loc0 = RelativePath("location".into());
+        let loc1 = RelativePath("location".into());
 
         assert!(loc0 == loc1);
     }
 
     #[test]
     fn wasm_locators_do_not_match() {
-        let loc0 = Wasm("location0".into());
-        let loc1 = Wasm("location1".into());
+        let loc0 = RelativePath("location0".into());
+        let loc1 = RelativePath("location1".into());
 
         assert!(loc0 != loc1);
     }
@@ -267,7 +269,7 @@ mod test {
                 unimplemented!()
             }
         }
-        let wasm_loc = Wasm("wasm_location".into());
+        let wasm_loc = RelativePath("wasm_location".into());
         let native_loc = Native(Arc::new(TestImpl {}));
 
         assert!(wasm_loc != native_loc);
@@ -282,7 +284,7 @@ mod test {
             authors: vec![],
         };
 
-        let locator: ImplementationLocator = Wasm("add2.wasm".to_string());
+        let locator: ImplementationLocator = RelativePath("add2.wasm".to_string());
         let mut manifest = LibraryManifest::new(
             Url::parse("lib://testlib").expect("Could not parse lib url"),
             metadata,
@@ -338,7 +340,7 @@ mod test {
             .get(&Url::parse("lib://flowrlib/test-dyn-lib/add2").expect("Create Url error"))
             .expect("Could not get locator for Url");
         match locator {
-            Wasm(source) => assert_eq!(source, "add2.wasm"),
+            RelativePath(source) => assert_eq!(source, "add2.wasm"),
             _ => panic!("Expected type 'Wasm' but found another type"),
         }
     }

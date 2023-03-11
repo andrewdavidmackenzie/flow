@@ -312,6 +312,21 @@ fn compile_flows(
 
                         file_count += copy_sources_to_output_dir(toml_path, &output_dir,
                                                                  flow.get_docs())?;
+
+                        let flow_relative_path = toml_path
+                            .strip_prefix(&lib_root_path)
+                            .map_err(|_| "Could not calculate relative_path")?;
+                        let flow_lib_reference = flow_relative_path.file_stem()
+                            .ok_or("Could not remove extension from flow file path")?
+                            .to_string_lossy();
+
+                        lib_manifest
+                            .add_locator(
+                                &flow_relative_path.to_string_lossy(),
+                                &flow_lib_reference,
+                            )
+                            .chain_err(|| "Could not add entry to library manifest")?;
+
                     }
                     Err(err) => debug!("Skipping file '{}'. Reason: '{}'", url, err),
                 }
