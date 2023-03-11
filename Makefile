@@ -98,8 +98,13 @@ build-flowrex:
 	@echo "build-flowrex<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
 	@cargo build -p flowrex
 
+.PHONY: build-flowstdlib
+build-flowstdlib:
+	@echo "build-flowstdlib<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
+	@cargo build -p flowstdlib $(features)
+
 .PHONY: clippy
-clippy: build-binaries
+clippy: build-binaries build-flowstdlib
 	@echo "clippy<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
 	@cargo clippy --tests --all-features -- -D warnings
 
