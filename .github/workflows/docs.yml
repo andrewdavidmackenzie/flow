@@ -34,9 +34,7 @@ jobs:
         run: cargo build -p flowc
 
       - name: build-flowstdlib
-        run:  |
-          rustup target add wasm32-unknown-unknown
-          cargo build -p flowstdlib --features "wasm"
+        run: cargo build -p flowstdlib
 
       - name: install-mdbook
         run: curl -sSL https://github.com/rust-lang/mdBook/releases/download/v0.4.27/mdbook-v0.4.27-x86_64-unknown-linux-gnu.tar.gz | tar -xz --directory=$HOME/.cargo/bin
