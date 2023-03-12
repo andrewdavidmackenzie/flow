@@ -77,7 +77,7 @@ jobs:
       run: |
         cargo build -p flowc
         cargo build -p flowr
-        cargo build --manifest-path flowrex/Cargo.toml
+        cargo build -p flowrex
 
     - name: clippy
       run: cargo clippy --tests -- -D warnings
