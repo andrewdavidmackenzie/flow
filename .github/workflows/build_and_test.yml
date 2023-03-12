@@ -13,7 +13,7 @@ env:
   CARGO_INCREMENTAL: 0
 
 jobs:
-  build:
+  build-and-test:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -50,9 +50,7 @@ jobs:
 
     - name: InstallLinuxDependencies
       if: matrix.os == 'ubuntu-latest'
-      run: |
-        sudo apt-get update
-        sudo apt-get -y install libzmq3-dev binaryen
+      run: sudo apt-get update && sudo apt-get -y install libzmq3-dev binaryen
 
     - name: InstallMacDependencies
       if: matrix.os == 'macos-latest'
@@ -95,3 +93,38 @@ jobs:
         lcov --remove lcov.info '/Applications/*' 'target/debug/build/**' '/usr*' '**/errors.rs' '**/build.rs' '*tests/*' -o lcov.info
         bash <(curl -s https://codecov.io/bash) -f lcov.info
         rm -f lcov.info
+
+  update-docs:
+    if: github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    needs: [build-and-test]
+    steps:
+    - name: install-graphviz
+      run: sudo apt-get update && sudo apt-get -y install graphviz
+
+    - name: install-mdbook
+      run: curl -sSL https://github.com/rust-lang/mdBook/releases/download/v0.4.27/mdbook-v0.4.27-x86_64-unknown-linux-gnu.tar.gz | tar -xz --directory=$HOME/.cargo/bin
+
+    - name: install-mdbook-linkcheck
+      run: |
+        curl -sSL https://github.com/Michael-F-Bryan/mdbook-linkcheck/releases/download/v0.7.7/mdbook-linkcheck.x86_64-unknown-linux-gnu.zip > mdbook-linkcheck.zip
+        unzip mdbook-linkcheck.zip -d $HOME/.cargo/bin
+        chmod +x $HOME/.cargo/bin/mdbook-linkcheck
+
+    - name: build-book
+      run: mdbook build
+
+    - name: build-docs
+      run: cargo doc --no-deps --target-dir=target/html/code
+
+    - name: copy-svgs
+      run: make copy-svgs
+
+    - name: trim-docs
+      run: make trim-docs
+
+    - name: deploy-docs
+      uses: JamesIves/github-pages-deploy-action@4.1.4
+      with:
+        branch: gh-pages
+        folder: target/html
