@@ -9,7 +9,7 @@ license.workspace = true
 documentation.workspace = true
 homepage.workspace = true
 repository.workspace = true
-readme = "src/flowstdlib.md"
+readme = "README.md"
 edition.workspace = true
 
 build = "build.rs"
