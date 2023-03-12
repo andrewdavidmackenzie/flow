@@ -13,7 +13,7 @@
 <!-- /my&#45;first&#45;flow/add -->
 <g id="node1" class="node">
 <title>/my&#45;first&#45;flow/add</title>
-<g id="a_node1"><a xlink:href="../../target/flowstdlib/math/add/add.html" xlink:title="add">
+<g id="a_node1"><a xlink:href="../../../../../.flow/lib/flowstdlib/math/add/add.html" xlink:title="add">
 <ellipse fill="coral" stroke="black" cx="307.24" cy="-90" rx="27.9" ry="18"/>
 <text text-anchor="middle" x="307.24" y="-86.3" font-family="Times,serif" font-size="14.00">add</text>
 </a>

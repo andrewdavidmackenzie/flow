@@ -35,7 +35,7 @@
 <!-- /sequence/sequence -->
 <g id="node2" class="node">
 <title>/sequence/sequence</title>
-<g id="a_node2"><a xlink:href="../../target/flowstdlib/math/sequence.toml.dot.svg" xlink:title="sequence">
+<g id="a_node2"><a xlink:href="../../../../../.flow/lib/flowstdlib/math/sequence.toml.dot.svg" xlink:title="sequence">
 <ellipse fill="aquamarine" stroke="black" cx="125.04" cy="-144" rx="72" ry="72"/>
 <text text-anchor="middle" x="125.04" y="-140.3" font-family="Times,serif" font-size="14.00">sequence</text>
 </a>
@@ -44,7 +44,7 @@
 <!-- /sequence/join -->
 <g id="node3" class="node">
 <title>/sequence/join</title>
-<g id="a_node3"><a xlink:href="../../target/flowstdlib/control/join/join.html" xlink:title="join">
+<g id="a_node3"><a xlink:href="../../../../../.flow/lib/flowstdlib/control/join/join.html" xlink:title="join">
 <ellipse fill="coral" stroke="black" cx="559.04" cy="-144" rx="27.9" ry="18"/>
 <text text-anchor="middle" x="559.04" y="-140.3" font-family="Times,serif" font-size="14.00">join</text>
 </a>

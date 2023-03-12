@@ -13,7 +13,7 @@
 <!-- r0 -->
 <g id="node1" class="node">
 <title>r0</title>
-<g id="a_node1"><a xlink:href="file:///home/runner/work/flow/flow/target/flowstdlib/math/add/add.html" xlink:title="add (#0)">
+<g id="a_node1"><a xlink:href="file:///home/runner/.flow/lib/flowstdlib/math/add/add.html" xlink:title="add (#0)">
 <ellipse fill="coral" stroke="black" cx="204.39" cy="-90" rx="51.19" ry="18"/>
 <text text-anchor="middle" x="204.39" y="-86.3" font-family="Times,serif" font-size="14.00">add (#0)</text>
 </a>

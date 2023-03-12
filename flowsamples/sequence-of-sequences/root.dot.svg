@@ -13,7 +13,7 @@
 <!-- /sequence&#45;of&#45;sequences/limit&#45;sequence -->
 <g id="node1" class="node">
 <title>/sequence&#45;of&#45;sequences/limit&#45;sequence</title>
-<g id="a_node1"><a xlink:href="../../target/flowstdlib/math/sequence.toml.dot.svg" xlink:title="limit&#45;sequence">
+<g id="a_node1"><a xlink:href="../../../../../.flow/lib/flowstdlib/math/sequence.toml.dot.svg" xlink:title="limit&#45;sequence">
 <ellipse fill="aquamarine" stroke="black" cx="552.28" cy="-216" rx="72" ry="72"/>
 <text text-anchor="middle" x="552.28" y="-212.3" font-family="Times,serif" font-size="14.00">limit&#45;sequence</text>
 </a>
@@ -22,7 +22,7 @@
 <!-- /sequence&#45;of&#45;sequences/sequence&#45;of&#45;sequences -->
 <g id="node2" class="node">
 <title>/sequence&#45;of&#45;sequences/sequence&#45;of&#45;sequences</title>
-<g id="a_node2"><a xlink:href="../../target/flowstdlib/math/sequence.toml.dot.svg" xlink:title="sequence&#45;of&#45;sequences">
+<g id="a_node2"><a xlink:href="../../../../../.flow/lib/flowstdlib/math/sequence.toml.dot.svg" xlink:title="sequence&#45;of&#45;sequences">
 <ellipse fill="aquamarine" stroke="black" cx="733.28" cy="-216" rx="90.83" ry="72"/>
 <text text-anchor="middle" x="733.28" y="-212.3" font-family="Times,serif" font-size="14.00">sequence&#45;of&#45;sequences</text>
 </a>

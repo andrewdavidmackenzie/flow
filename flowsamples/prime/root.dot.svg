@@ -67,7 +67,7 @@
 <!-- /prime/remove -->
 <g id="node4" class="node">
 <title>/prime/remove</title>
-<g id="a_node4"><a xlink:href="../../target/flowstdlib/data/remove/remove.html" xlink:title="remove">
+<g id="a_node4"><a xlink:href="../../../../../.flow/lib/flowstdlib/data/remove/remove.html" xlink:title="remove">
 <ellipse fill="coral" stroke="black" cx="828.29" cy="-144" rx="45.49" ry="18"/>
 <text text-anchor="middle" x="828.29" y="-140.3" font-family="Times,serif" font-size="14.00">remove</text>
 </a>

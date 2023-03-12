@@ -19,7 +19,7 @@
 <!-- /index_f/index -->
 <g id="node4" class="node">
 <title>/index_f/index</title>
-<g id="a_node4"><a xlink:href="../../../target/flowstdlib/control/index/index.html" xlink:title="index">
+<g id="a_node4"><a xlink:href="../../../../../../.flow/lib/flowstdlib/control/index/index.html" xlink:title="index">
 <ellipse fill="coral" stroke="black" cx="333.99" cy="-90" rx="36.29" ry="18"/>
 <text text-anchor="middle" x="333.99" y="-86.3" font-family="Times,serif" font-size="14.00">index</text>
 </a>

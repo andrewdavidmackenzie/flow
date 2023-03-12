@@ -19,7 +19,7 @@
 <!-- /prime/candidates/accumulate -->
 <g id="node4" class="node">
 <title>/prime/candidates/accumulate</title>
-<g id="a_node4"><a xlink:href="../../target/flowstdlib/data/accumulate/accumulate.html" xlink:title="accumulate">
+<g id="a_node4"><a xlink:href="../../../../../.flow/lib/flowstdlib/data/accumulate/accumulate.html" xlink:title="accumulate">
 <ellipse fill="coral" stroke="black" cx="401.53" cy="-144" rx="63.89" ry="18"/>
 <text text-anchor="middle" x="401.53" y="-140.3" font-family="Times,serif" font-size="14.00">accumulate</text>
 </a>
@@ -53,7 +53,7 @@
 <!-- /prime/candidates/sequence -->
 <g id="node3" class="node">
 <title>/prime/candidates/sequence</title>
-<g id="a_node3"><a xlink:href="../../target/flowstdlib/math/sequence.toml.dot.svg" xlink:title="sequence">
+<g id="a_node3"><a xlink:href="../../../../../.flow/lib/flowstdlib/math/sequence.toml.dot.svg" xlink:title="sequence">
 <ellipse fill="aquamarine" stroke="black" cx="591.53" cy="-144" rx="72" ry="72"/>
 <text text-anchor="middle" x="591.53" y="-140.3" font-family="Times,serif" font-size="14.00">sequence</text>
 </a>

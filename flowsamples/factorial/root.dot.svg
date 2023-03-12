@@ -23,7 +23,7 @@
 <!-- /factorial/multiply -->
 <g id="node2" class="node">
 <title>/factorial/multiply</title>
-<g id="a_node2"><a xlink:href="../../target/flowstdlib/math/multiply/multiply.html" xlink:title="multiply">
+<g id="a_node2"><a xlink:href="../../../../../.flow/lib/flowstdlib/math/multiply/multiply.html" xlink:title="multiply">
 <ellipse fill="coral" stroke="black" cx="342.81" cy="-210.17" rx="49.29" ry="18"/>
 <text text-anchor="middle" x="342.81" y="-206.47" font-family="Times,serif" font-size="14.00">multiply</text>
 </a>
@@ -40,7 +40,7 @@
 <!-- /factorial/sub -->
 <g id="node4" class="node">
 <title>/factorial/sub</title>
-<g id="a_node4"><a xlink:href="../../target/flowstdlib/math/subtract/subtract.html" xlink:title="sub\n(subtract)">
+<g id="a_node4"><a xlink:href="../../../../../.flow/lib/flowstdlib/math/subtract/subtract.html" xlink:title="sub\n(subtract)">
 <ellipse fill="coral" stroke="black" cx="218.81" cy="-452.78" rx="61.54" ry="26.74"/>
 <text text-anchor="middle" x="218.81" y="-456.58" font-family="Times,serif" font-size="14.00">sub</text>
 <text text-anchor="middle" x="218.81" y="-441.58" font-family="Times,serif" font-size="14.00">(subtract)</text>
@@ -65,7 +65,7 @@
 <!-- /factorial/result&#45;tap -->
 <g id="node9" class="node">
 <title>/factorial/result&#45;tap</title>
-<g id="a_node9"><a xlink:href="../../target/flowstdlib/control/tap/tap.html" xlink:title="result&#45;tap\n(tap)">
+<g id="a_node9"><a xlink:href="../../../../../.flow/lib/flowstdlib/control/tap/tap.html" xlink:title="result&#45;tap\n(tap)">
 <ellipse fill="coral" stroke="black" cx="513.81" cy="-129.3" rx="60.62" ry="26.74"/>
 <text text-anchor="middle" x="513.81" y="-133.1" font-family="Times,serif" font-size="14.00">result&#45;tap</text>
 <text text-anchor="middle" x="513.81" y="-118.1" font-family="Times,serif" font-size="14.00">(tap)</text>
@@ -90,7 +90,7 @@
 <!-- /factorial/compare -->
 <g id="node6" class="node">
 <title>/factorial/compare</title>
-<g id="a_node6"><a xlink:href="../../target/flowstdlib/math/compare/compare.html" xlink:title="compare">
+<g id="a_node6"><a xlink:href="../../../../../.flow/lib/flowstdlib/math/compare/compare.html" xlink:title="compare">
 <ellipse fill="coral" stroke="black" cx="394.81" cy="-371.91" rx="50.89" ry="18"/>
 <text text-anchor="middle" x="394.81" y="-368.21" font-family="Times,serif" font-size="14.00">compare</text>
 </a>
@@ -106,7 +106,7 @@
 <!-- /factorial/n&#45;tap -->
 <g id="node8" class="node">
 <title>/factorial/n&#45;tap</title>
-<g id="a_node8"><a xlink:href="../../target/flowstdlib/control/tap/tap.html" xlink:title="n&#45;tap\n(tap)">
+<g id="a_node8"><a xlink:href="../../../../../.flow/lib/flowstdlib/control/tap/tap.html" xlink:title="n&#45;tap\n(tap)">
 <ellipse fill="coral" stroke="black" cx="204.81" cy="-291.04" rx="37.45" ry="26.74"/>
 <text text-anchor="middle" x="204.81" y="-294.84" font-family="Times,serif" font-size="14.00">n&#45;tap</text>
 <text text-anchor="middle" x="204.81" y="-279.84" font-family="Times,serif" font-size="14.00">(tap)</text>

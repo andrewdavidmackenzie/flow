@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `flowcore/src/model/lib_manifest.rs`."><title>lib_manifest.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceSerif4-Bold-a2c9cd1067f8b328.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../static.files/rustdoc-c4dbdcde0fbd8430.css" id="mainThemeStyle"><link rel="stylesheet" id="themeStyle" href="../../../static.files/light-db279b6232be9c13.css"><link rel="stylesheet" disabled href="../../../static.files/dark-cf923f49f397b216.css"><link rel="stylesheet" disabled href="../../../static.files/ayu-be46fdc453a55015.css"><script src="../../../static.files/storage-3891ce972e3a2bf8.js"></script><script defer src="../../../static.files/source-script-1b95b7cca98b26e5.js"></script><script defer src="../../../source-files.js"></script><script defer src="../../../static.files/main-98a684e84ae5b08b.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-13285aec31fa243e.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><a class="sub-logo-container" href="../../../flowcore/index.html"><img class="rust-logo" src="../../../static.files/rust-logo-151179464ae7ed46.svg" alt="logo"></a><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `flowcore/src/model/lib_manifest.rs`."><title>lib_manifest.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceSerif4-Bold-a2c9cd1067f8b328.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../static.files/rustdoc-c4dbdcde0fbd8430.css" id="mainThemeStyle"><div id="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="flowcore" data-themes="" data-resource-suffix="" data-rustdoc-version="1.70.0-nightly (8a73f50d8 2023-03-11)" data-search-js="search-ab3e9174d42dd6c2.js" data-settings-js="settings-f0c5c39777a9a2f6.js" data-settings-css="settings-0bcba95ff279c1db.css" data-theme-light-css="light-db279b6232be9c13.css" data-theme-dark-css="dark-cf923f49f397b216.css" data-theme-ayu-css="ayu-be46fdc453a55015.css" ></div><script src="../../../static.files/storage-9184409068f70b79.js"></script><script defer src="../../../static.files/source-script-1b95b7cca98b26e5.js"></script><script defer src="../../../source-files.js"></script><script defer src="../../../static.files/main-f5a2577c5297a973.js"></script><noscript><link rel="stylesheet" media="(prefers-color-scheme:light)" href="../../../static.files/light-db279b6232be9c13.css"><link rel="stylesheet" media="(prefers-color-scheme:dark)" href="../../../static.files/dark-cf923f49f397b216.css"><link rel="stylesheet" href="../../../static.files/noscript-13285aec31fa243e.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><a class="sub-logo-container" href="../../../flowcore/index.html"><img class="rust-logo" src="../../../static.files/rust-logo-151179464ae7ed46.svg" alt="logo"></a><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -433,6 +433,8 @@
 <a href="#433" id="433">433</a>
 <a href="#434" id="434">434</a>
 <a href="#435" id="435">435</a>
+<a href="#436" id="436">436</a>
+<a href="#437" id="437">437</a>
 </pre><pre class="rust"><code><span class="kw">use </span>std::collections::{BTreeMap, BTreeSet};
 <span class="kw">use </span>std::fs::File;
 <span class="kw">use </span>std::io::prelude::<span class="kw-2">*</span>;
@@ -466,16 +468,17 @@
     <span class="attr">#[serde(skip_deserializing, skip_serializing)]
     </span><span class="doccomment">/// A `Native` - A reference to a trait object statically linked with the library
     </span>Native(Arc&lt;<span class="kw">dyn </span>Implementation&gt;),
-    <span class="doccomment">/// A `Wasm` - `String` indicating where the wasm file of implementation is located
-    </span>Wasm(String),
+    <span class="doccomment">/// A path indicating where the implementation file is located within the Library directory
+    /// structure, relative to the lib root
+    </span>RelativePath(String),
 }
 
 <span class="kw">impl </span>PartialEq <span class="kw">for </span>ImplementationLocator {
     <span class="kw">fn </span>eq(<span class="kw-2">&amp;</span><span class="self">self</span>, other: <span class="kw-2">&amp;</span><span class="self">Self</span>) -&gt; bool {
         <span class="kw">match </span>(<span class="self">self</span>, other) {
             (
-                ImplementationLocator::Wasm(self_source),
-                ImplementationLocator::Wasm(other_source),
+                ImplementationLocator::RelativePath(self_source),
+                ImplementationLocator::RelativePath(other_source),
             ) =&gt; self_source == other_source,
             <span class="kw">_ </span>=&gt; <span class="bool-val">false</span>,
         }
@@ -541,26 +544,27 @@
         <span class="prelude-val">Ok</span>((manifest, url))
     }
 
-    <span class="doccomment">/// Add an implementation locator (location of the wasm file) to the `LibraryManifest`
-    /// The WASM file&#39;s path is relative to the library root so that the library is location independent
+    <span class="doccomment">/// Add a locator to the `LibraryManifest` to allow resolving &quot;lib://&quot; lib reference Urls
+    /// for functions or flows to where the implementation resides within the library directory
+    /// structure (relative to the lib root)
     </span><span class="kw">pub fn </span>add_locator(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
-        wasm_relative_path: <span class="kw-2">&amp;</span>str,
-        relative_dir: <span class="kw-2">&amp;</span>str,
+        implementation_path_relative: <span class="kw-2">&amp;</span>str,
+        lib_reference_path: <span class="kw-2">&amp;</span>str,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
         <span class="kw">let </span>lib_reference = Url::parse(<span class="kw-2">&amp;</span><span class="macro">format!</span>(
-            <span class="string">&quot;lib://{}/{relative_dir}&quot;</span>,
+            <span class="string">&quot;lib://{}/{lib_reference_path}&quot;</span>,
             <span class="self">self</span>.metadata.name
         ))
         .chain_err(|| <span class="string">&quot;Could not form library Url to add to the manifest&quot;</span>)<span class="question-mark">?</span>;
 
         <span class="macro">debug!</span>(
             <span class="string">&quot;Adding implementation locator to lib manifest: \n&#39;{}&#39; -&gt; &#39;{}&#39;&quot;</span>,
-            lib_reference, wasm_relative_path
+            lib_reference, implementation_path_relative
         );
         <span class="self">self</span>.locators.insert(
             lib_reference,
-            ImplementationLocator::Wasm(wasm_relative_path.to_owned()),
+            ImplementationLocator::RelativePath(implementation_path_relative.to_owned()),
         );
 
         <span class="prelude-val">Ok</span>(())
@@ -626,7 +630,7 @@
     <span class="kw">use </span><span class="kw">crate</span>::errors::Result;
     <span class="kw">use </span><span class="kw">crate</span>::Implementation;
     <span class="kw">use </span><span class="kw">crate</span>::model::lib_manifest::{
-        ImplementationLocator, ImplementationLocator::Native, ImplementationLocator::Wasm, LibraryManifest,
+        ImplementationLocator, ImplementationLocator::Native, ImplementationLocator::RelativePath, LibraryManifest,
     };
     <span class="kw">use </span><span class="kw">crate</span>::model::metadata::MetaData;
     <span class="kw">use </span><span class="kw">crate</span>::provider::Provider;
@@ -678,16 +682,16 @@
 
     <span class="attr">#[test]
     </span><span class="kw">fn </span>wasm_locators_match() {
-        <span class="kw">let </span>loc0 = Wasm(<span class="string">&quot;location&quot;</span>.into());
-        <span class="kw">let </span>loc1 = Wasm(<span class="string">&quot;location&quot;</span>.into());
+        <span class="kw">let </span>loc0 = RelativePath(<span class="string">&quot;location&quot;</span>.into());
+        <span class="kw">let </span>loc1 = RelativePath(<span class="string">&quot;location&quot;</span>.into());
 
         <span class="macro">assert!</span>(loc0 == loc1);
     }
 
     <span class="attr">#[test]
     </span><span class="kw">fn </span>wasm_locators_do_not_match() {
-        <span class="kw">let </span>loc0 = Wasm(<span class="string">&quot;location0&quot;</span>.into());
-        <span class="kw">let </span>loc1 = Wasm(<span class="string">&quot;location1&quot;</span>.into());
+        <span class="kw">let </span>loc0 = RelativePath(<span class="string">&quot;location0&quot;</span>.into());
+        <span class="kw">let </span>loc1 = RelativePath(<span class="string">&quot;location1&quot;</span>.into());
 
         <span class="macro">assert!</span>(loc0 != loc1);
     }
@@ -702,7 +706,7 @@
                 <span class="macro">unimplemented!</span>()
             }
         }
-        <span class="kw">let </span>wasm_loc = Wasm(<span class="string">&quot;wasm_location&quot;</span>.into());
+        <span class="kw">let </span>wasm_loc = RelativePath(<span class="string">&quot;wasm_location&quot;</span>.into());
         <span class="kw">let </span>native_loc = Native(Arc::new(TestImpl {}));
 
         <span class="macro">assert!</span>(wasm_loc != native_loc);
@@ -717,7 +721,7 @@
             authors: <span class="macro">vec!</span>[],
         };
 
-        <span class="kw">let </span>locator: ImplementationLocator = Wasm(<span class="string">&quot;add2.wasm&quot;</span>.to_string());
+        <span class="kw">let </span>locator: ImplementationLocator = RelativePath(<span class="string">&quot;add2.wasm&quot;</span>.to_string());
         <span class="kw">let </span><span class="kw-2">mut </span>manifest = LibraryManifest::new(
             Url::parse(<span class="string">&quot;lib://testlib&quot;</span>).expect(<span class="string">&quot;Could not parse lib url&quot;</span>),
             metadata,
@@ -773,7 +777,7 @@
             .get(<span class="kw-2">&amp;</span>Url::parse(<span class="string">&quot;lib://flowrlib/test-dyn-lib/add2&quot;</span>).expect(<span class="string">&quot;Create Url error&quot;</span>))
             .expect(<span class="string">&quot;Could not get locator for Url&quot;</span>);
         <span class="kw">match </span>locator {
-            Wasm(source) =&gt; <span class="macro">assert_eq!</span>(source, <span class="string">&quot;add2.wasm&quot;</span>),
+            RelativePath(source) =&gt; <span class="macro">assert_eq!</span>(source, <span class="string">&quot;add2.wasm&quot;</span>),
             <span class="kw">_ </span>=&gt; <span class="macro">panic!</span>(<span class="string">&quot;Expected type &#39;Wasm&#39; but found another type&quot;</span>),
         }
     }
@@ -869,4 +873,4 @@
     }
 }
 </code></pre></div>
-</section></main><div id="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="flowcore" data-themes="" data-resource-suffix="" data-rustdoc-version="1.70.0-nightly (900c35403 2023-03-08)" data-search-js="search-8a59a8356673ec1f.js" data-settings-js="settings-f0c5c39777a9a2f6.js" data-settings-css="settings-0bcba95ff279c1db.css" ></div></body></html>
+</section></main></body></html>

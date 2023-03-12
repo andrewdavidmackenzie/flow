@@ -48,7 +48,7 @@
 <!-- /matrix_mult/select_0 -->
 <g id="node2" class="node">
 <title>/matrix_mult/select_0</title>
-<g id="a_node2"><a xlink:href="../../target/flowstdlib/control/index_f.toml.dot.svg" xlink:title="select_0">
+<g id="a_node2"><a xlink:href="../../../../../.flow/lib/flowstdlib/control/index_f.toml.dot.svg" xlink:title="select_0">
 <ellipse fill="aquamarine" stroke="black" cx="240.44" cy="-174.43" rx="72" ry="72"/>
 <text text-anchor="middle" x="240.44" y="-170.73" font-family="Times,serif" font-size="14.00">select_0</text>
 </a>
@@ -57,7 +57,7 @@
 <!-- /matrix_mult/select_1 -->
 <g id="node3" class="node">
 <title>/matrix_mult/select_1</title>
-<g id="a_node3"><a xlink:href="../../target/flowstdlib/control/index_f.toml.dot.svg" xlink:title="select_1">
+<g id="a_node3"><a xlink:href="../../../../../.flow/lib/flowstdlib/control/index_f.toml.dot.svg" xlink:title="select_1">
 <ellipse fill="aquamarine" stroke="black" cx="402.44" cy="-174.43" rx="72" ry="72"/>
 <text text-anchor="middle" x="402.44" y="-170.73" font-family="Times,serif" font-size="14.00">select_1</text>
 </a>

@@ -244,17 +244,17 @@ or more instances of the <code>-L</code> command line option.</p>
 find the process definition file.</p>
 <p>For example, if <code>FLOW_LIB_PATH</code> environment variable is defined thus:</p>
 <ul>
-<li><code>export FLOW_LIB_PATH=/Users/me/workspace/flow</code></li>
+<li><code>export FLOW_LIB_PATH=/Users/me/.flow/lib</code></li>
 </ul>
 <p>And the flow references a process thus:</p>
 <pre><code class="language-toml">[[process]]
 source = &quot;flowstdlib://math/add&quot;
 </code></pre>
-<p>Then the directory <code>/Users/me/workspace/flow/flowstdlib</code> is looked for.</p>
+<p>Then the directory <code>/Users/me/.flow/lib/flowstdlib</code> is looked for.</p>
 <p>If that directory is found, then the process path within the library <code>stdio/stdin</code> is used to create the full path
-to the process definition file is <code>/Users/me/workspace/flow/flowstdlib/math/add</code>.</p>
+to the process definition file is <code>/Users/me/.flow/lib/flowstdlib/math/add</code>.</p>
 <p>(refer to the full algorithm in <a href="process_references.html">process references</a>)</p>
-<p>If the file <code>/Users/me/workspace/flow/flowstdlib/math/add.toml</code> exists then it is parsed and made available to the flow
+<p>If the file <code>/Users/me/.flow/lib/flowstdlib/math/add.toml</code> exists then it is parsed and made available to the flow
 for use in connections.</p>
 
                     </main>

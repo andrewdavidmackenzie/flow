@@ -19,7 +19,7 @@
 <!-- /router/B_tracker/forward_sum -->
 <g id="node13" class="node">
 <title>/router/B_tracker/forward_sum</title>
-<g id="a_node13"><a xlink:href="../../target/flowstdlib/math/add/add.html" xlink:title="forward_sum\n(add)">
+<g id="a_node13"><a xlink:href="../../../../../.flow/lib/flowstdlib/math/add/add.html" xlink:title="forward_sum\n(add)">
 <ellipse fill="coral" stroke="black" cx="1301.55" cy="-332.61" rx="77.56" ry="26.74"/>
 <text text-anchor="middle" x="1301.55" y="-336.41" font-family="Times,serif" font-size="14.00">forward_sum</text>
 <text text-anchor="middle" x="1301.55" y="-321.41" font-family="Times,serif" font-size="14.00">(add)</text>
@@ -42,7 +42,7 @@
 <!-- /router/B_tracker/cross_distance -->
 <g id="node12" class="node">
 <title>/router/B_tracker/cross_distance</title>
-<g id="a_node12"><a xlink:href="../../target/flowstdlib/math/add/add.html" xlink:title="cross_distance\n(add)">
+<g id="a_node12"><a xlink:href="../../../../../.flow/lib/flowstdlib/math/add/add.html" xlink:title="cross_distance\n(add)">
 <ellipse fill="coral" stroke="black" cx="915.55" cy="-422.35" rx="85.62" ry="26.74"/>
 <text text-anchor="middle" x="915.55" y="-426.15" font-family="Times,serif" font-size="14.00">cross_distance</text>
 <text text-anchor="middle" x="915.55" y="-411.15" font-family="Times,serif" font-size="14.00">(add)</text>
@@ -78,7 +78,7 @@
 <!-- /router/B_tracker/select_string -->
 <g id="node16" class="node">
 <title>/router/B_tracker/select_string</title>
-<g id="a_node16"><a xlink:href="../../target/flowstdlib/control/select/select.html" xlink:title="select_string\n(select)">
+<g id="a_node16"><a xlink:href="../../../../../.flow/lib/flowstdlib/control/select/select.html" xlink:title="select_string\n(select)">
 <ellipse fill="coral" stroke="black" cx="461.55" cy="-170.87" rx="76.24" ry="26.74"/>
 <text text-anchor="middle" x="461.55" y="-174.67" font-family="Times,serif" font-size="14.00">select_string</text>
 <text text-anchor="middle" x="461.55" y="-159.67" font-family="Times,serif" font-size="14.00">(select)</text>
@@ -114,7 +114,7 @@
 <!-- /router/B_tracker/select_route -->
 <g id="node17" class="node">
 <title>/router/B_tracker/select_route</title>
-<g id="a_node17"><a xlink:href="../../target/flowstdlib/control/select/select.html" xlink:title="select_route\n(select)">
+<g id="a_node17"><a xlink:href="../../../../../.flow/lib/flowstdlib/control/select/select.html" xlink:title="select_route\n(select)">
 <ellipse fill="coral" stroke="black" cx="742.55" cy="-170.87" rx="73.58" ry="26.74"/>
 <text text-anchor="middle" x="742.55" y="-174.67" font-family="Times,serif" font-size="14.00">select_route</text>
 <text text-anchor="middle" x="742.55" y="-159.67" font-family="Times,serif" font-size="14.00">(select)</text>
@@ -163,7 +163,7 @@
 <!-- /router/B_tracker/cross_sum -->
 <g id="node14" class="node">
 <title>/router/B_tracker/cross_sum</title>
-<g id="a_node14"><a xlink:href="../../target/flowstdlib/math/add/add.html" xlink:title="cross_sum\n(add)">
+<g id="a_node14"><a xlink:href="../../../../../.flow/lib/flowstdlib/math/add/add.html" xlink:title="cross_sum\n(add)">
 <ellipse fill="coral" stroke="black" cx="831.55" cy="-332.61" rx="64.19" ry="26.74"/>
 <text text-anchor="middle" x="831.55" y="-336.41" font-family="Times,serif" font-size="14.00">cross_sum</text>
 <text text-anchor="middle" x="831.55" y="-321.41" font-family="Times,serif" font-size="14.00">(add)</text>
@@ -199,7 +199,7 @@
 <!-- /router/B_tracker/compare -->
 <g id="node15" class="node">
 <title>/router/B_tracker/compare</title>
-<g id="a_node15"><a xlink:href="../../target/flowstdlib/math/compare/compare.html" xlink:title="compare">
+<g id="a_node15"><a xlink:href="../../../../../.flow/lib/flowstdlib/math/compare/compare.html" xlink:title="compare">
 <ellipse fill="coral" stroke="black" cx="927.55" cy="-251.74" rx="50.89" ry="18"/>
 <text text-anchor="middle" x="927.55" y="-248.04" font-family="Times,serif" font-size="14.00">compare</text>
 </a>
@@ -215,7 +215,7 @@
 <!-- /router/B_tracker/select_total -->
 <g id="node18" class="node">
 <title>/router/B_tracker/select_total</title>
-<g id="a_node18"><a xlink:href="../../target/flowstdlib/control/select/select.html" xlink:title="select_total\n(select)">
+<g id="a_node18"><a xlink:href="../../../../../.flow/lib/flowstdlib/control/select/select.html" xlink:title="select_total\n(select)">
 <ellipse fill="coral" stroke="black" cx="952.55" cy="-170.87" rx="69.09" ry="26.74"/>
 <text text-anchor="middle" x="952.55" y="-174.67" font-family="Times,serif" font-size="14.00">select_total</text>
 <text text-anchor="middle" x="952.55" y="-159.67" font-family="Times,serif" font-size="14.00">(select)</text>
@@ -270,7 +270,7 @@
 <!-- /router/B_tracker/append -->
 <g id="node19" class="node">
 <title>/router/B_tracker/append</title>
-<g id="a_node19"><a xlink:href="../../target/flowstdlib/data/append/append.html" xlink:title="append">
+<g id="a_node19"><a xlink:href="../../../../../.flow/lib/flowstdlib/data/append/append.html" xlink:title="append">
 <ellipse fill="coral" stroke="black" cx="605.55" cy="-90" rx="44.69" ry="18"/>
 <text text-anchor="middle" x="605.55" y="-86.3" font-family="Times,serif" font-size="14.00">append</text>
 </a>

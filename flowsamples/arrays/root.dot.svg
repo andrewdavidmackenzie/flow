@@ -13,7 +13,7 @@
 <!-- /arrays/sequence -->
 <g id="node1" class="node">
 <title>/arrays/sequence</title>
-<g id="a_node1"><a xlink:href="../../target/flowstdlib/math/sequence.toml.dot.svg" xlink:title="sequence">
+<g id="a_node1"><a xlink:href="../../../../../.flow/lib/flowstdlib/math/sequence.toml.dot.svg" xlink:title="sequence">
 <ellipse fill="aquamarine" stroke="black" cx="72" cy="-246.43" rx="72" ry="72"/>
 <text text-anchor="middle" x="72" y="-242.73" font-family="Times,serif" font-size="14.00">sequence</text>
 </a>
@@ -22,7 +22,7 @@
 <!-- /arrays/accumulator -->
 <g id="node2" class="node">
 <title>/arrays/accumulator</title>
-<g id="a_node2"><a xlink:href="../../target/flowstdlib/data/accumulate/accumulate.html" xlink:title="accumulator\n(accumulate)">
+<g id="a_node2"><a xlink:href="../../../../../.flow/lib/flowstdlib/data/accumulate/accumulate.html" xlink:title="accumulator\n(accumulate)">
 <ellipse fill="coral" stroke="black" cx="493" cy="-246.43" rx="77.15" ry="26.74"/>
 <text text-anchor="middle" x="493" y="-250.23" font-family="Times,serif" font-size="14.00">accumulator</text>
 <text text-anchor="middle" x="493" y="-235.23" font-family="Times,serif" font-size="14.00">(accumulate)</text>
@@ -40,7 +40,7 @@
 <!-- /arrays/add -->
 <g id="node5" class="node">
 <title>/arrays/add</title>
-<g id="a_node5"><a xlink:href="../../target/flowstdlib/math/add/add.html" xlink:title="add">
+<g id="a_node5"><a xlink:href="../../../../../.flow/lib/flowstdlib/math/add/add.html" xlink:title="add">
 <ellipse fill="coral" stroke="black" cx="405" cy="-120.43" rx="27.9" ry="18"/>
 <text text-anchor="middle" x="405" y="-116.73" font-family="Times,serif" font-size="14.00">add</text>
 </a>

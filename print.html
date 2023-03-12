@@ -1387,17 +1387,17 @@ or more instances of the <code>-L</code> command line option.</p>
 find the process definition file.</p>
 <p>For example, if <code>FLOW_LIB_PATH</code> environment variable is defined thus:</p>
 <ul>
-<li><code>export FLOW_LIB_PATH=/Users/me/workspace/flow</code></li>
+<li><code>export FLOW_LIB_PATH=/Users/me/.flow/lib</code></li>
 </ul>
 <p>And the flow references a process thus:</p>
 <pre><code class="language-toml">[[process]]
 source = &quot;flowstdlib://math/add&quot;
 </code></pre>
-<p>Then the directory <code>/Users/me/workspace/flow/flowstdlib</code> is looked for.</p>
+<p>Then the directory <code>/Users/me/.flow/lib/flowstdlib</code> is looked for.</p>
 <p>If that directory is found, then the process path within the library <code>stdio/stdin</code> is used to create the full path
-to the process definition file is <code>/Users/me/workspace/flow/flowstdlib/math/add</code>.</p>
+to the process definition file is <code>/Users/me/.flow/lib/flowstdlib/math/add</code>.</p>
 <p>(refer to the full algorithm in <a href="docs/describing/process_references.html">process references</a>)</p>
-<p>If the file <code>/Users/me/workspace/flow/flowstdlib/math/add.toml</code> exists then it is parsed and made available to the flow
+<p>If the file <code>/Users/me/.flow/lib/flowstdlib/math/add.toml</code> exists then it is parsed and made available to the flow
 for use in connections.</p>
 <div style="break-before: page; page-break-before: always;"></div><h2 id="context-functions"><a class="header" href="#context-functions">Context Functions</a></h2>
 <p>Each flow runner application can provide a set of functions (referred to as <code>context functions</code>) to flows for 
@@ -1760,8 +1760,8 @@ Be sure they are in your $PATH so that can be invoked directly.</p>
 substituting <code>cargo run -p flowc --</code> for <code>flowc</code>in the examples below.</p>
 <p>User's terminal Current Working Directory should be the root directory of the <code>flow</code> project</p>
 <h3 id="finding-libraries"><a class="header" href="#finding-libraries">Finding Libraries</a></h3>
-<p>Environment variable <code>$FLOW_LIB_PATH</code> is set to the target directory where the <code>flowstdlib</code> is compiled by default 
-<code>${flow_root_dir}/target</code>, in order for <code>flowc</code> and <code>flowr</code> to be able to find library functions used.</p>
+<p>Environment variable <code>$FLOW_LIB_PATH</code> is set to a directory where the <code>flowstdlib</code> is compiled by default 
+<code>$HOME/.flow/lib</code>, in order for <code>flowc</code> and <code>flowr</code> to be able to find library functions used.</p>
 <p>If this environment variable is not set then compiling will fail:</p>
 <pre><code>❯ unset FLOW_LIB_PATH
 ❯ flowc -C flowr/src/cli flowsamples/fibonacci
@@ -2056,8 +2056,8 @@ a compiled <code>manifest.json</code> flow manifest alongside the flow's root de
 <li>You should get a fibonacci series output to the terminal,</li>
 </ul>
 </li>
-<li><code>unset FLOW_LIB_PATH;flowc -C flowr/src/cli -c -L target flowsamples/fibonacci</code> - compile the flow</li>
-<li><code>unset FLOW_LIB_PATH;flowr -L target flowsamples/fibonacci</code> - 
+<li><code>unset FLOW_LIB_PATH;flowc -C flowr/src/cli -c -L $HOME/.flow/lib flowsamples/fibonacci</code> - compile the flow</li>
+<li><code>unset FLOW_LIB_PATH;flowr -L $HOME/.flow/lib flowsamples/fibonacci</code> - 
 <ul>
 <li>You should get a fibonacci series output to the terminal,</li>
 </ul>
@@ -2282,12 +2282,7 @@ WASM implementations found and loaded.</p>
 <p>If you are using it as part of the larger <code>flow</code> workspace then you just need the <code>flow</code> project root directory
 in your <code>FLOW_LIB_PATH</code> as described above (or added to the lib search part using the <code>-L &lt;dir&gt;</code> option).</p>
 <h2 id="features"><a class="header" href="#features">features</a></h2>
-<p>These are the conditionally compiled features of <code>flowstdlib</code>:</p>
-<ul>
-<li>default - No features are enabled by default</li>
-<li>wasm - feature to enable compile of functions to WASM implementation. If not activated, the WASM implementations
-will not be compiled and the library must be linked natively as described above.</li>
-</ul>
+<p>There are no features to enable.</p>
 <div style="break-before: page; page-break-before: always;"></div><h2 id="control-flowstdlibcontrol"><a class="header" href="#control-flowstdlibcontrol">Control (//flowstdlib/control)</a></h2>
 <p>Functions and flows to control the flow of data in a flow based on control inputs.</p>
 <h2 id="list-of-functions-and-flows"><a class="header" href="#list-of-functions-and-flows">List of Functions and Flows</a></h2>
@@ -3439,12 +3434,7 @@ WASM implementations found and loaded.</p>
 <p>If you are using it as part of the larger <code>flow</code> workspace then you just need the <code>flow</code> project root directory
 in your <code>FLOW_LIB_PATH</code> as described above (or added to the lib search part using the <code>-L &lt;dir&gt;</code> option).</p>
 <h2 id="features-9"><a class="header" href="#features-9">features</a></h2>
-<p>These are the conditionally compiled features of <code>flowstdlib</code>:</p>
-<ul>
-<li>default - No features are enabled by default</li>
-<li>wasm - feature to enable compile of functions to WASM implementation. If not activated, the WASM implementations
-will not be compiled and the library must be linked natively as described above.</li>
-</ul>
+<p>There are no features to enable.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="flow-samples-1"><a class="header" href="#flow-samples-1">Flow Samples</a></h1>
 <p>This crate contains a number of sample 'flows' that have been developed during the development
 of the compiler and the run-time to drive the project development and demonstrate it working. </p>

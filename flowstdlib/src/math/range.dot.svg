@@ -19,7 +19,7 @@
 <!-- /range/range_split -->
 <g id="node3" class="node">
 <title>/range/range_split</title>
-<g id="a_node3"><a xlink:href="../../../target/flowstdlib/math/range_split/range_split.html" xlink:title="range_split">
+<g id="a_node3"><a xlink:href="../../../../../../.flow/lib/flowstdlib/math/range_split/range_split.html" xlink:title="range_split">
 <ellipse fill="coral" stroke="black" cx="80.39" cy="-90" rx="62.29" ry="18"/>
 <text text-anchor="middle" x="80.39" y="-86.3" font-family="Times,serif" font-size="14.00">range_split</text>
 </a>

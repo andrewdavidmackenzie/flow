@@ -13,7 +13,7 @@
 <!-- /primitives/add -->
 <g id="node1" class="node">
 <title>/primitives/add</title>
-<g id="a_node1"><a xlink:href="../../target/flowstdlib/math/add/add.html" xlink:title="add">
+<g id="a_node1"><a xlink:href="../../../../../.flow/lib/flowstdlib/math/add/add.html" xlink:title="add">
 <ellipse fill="coral" stroke="black" cx="286.84" cy="-264.43" rx="27.9" ry="18"/>
 <text text-anchor="middle" x="286.84" y="-260.73" font-family="Times,serif" font-size="14.00">add</text>
 </a>
@@ -22,7 +22,7 @@
 <!-- /primitives/divide -->
 <g id="node4" class="node">
 <title>/primitives/divide</title>
-<g id="a_node4"><a xlink:href="../../target/flowstdlib/math/divide/divide.html" xlink:title="divide">
+<g id="a_node4"><a xlink:href="../../../../../.flow/lib/flowstdlib/math/divide/divide.html" xlink:title="divide">
 <ellipse fill="coral" stroke="black" cx="424.84" cy="-192.43" rx="38.99" ry="18"/>
 <text text-anchor="middle" x="424.84" y="-188.73" font-family="Times,serif" font-size="14.00">divide</text>
 </a>
@@ -54,7 +54,7 @@
 <!-- /primitives/tap -->
 <g id="node6" class="node">
 <title>/primitives/tap</title>
-<g id="a_node6"><a xlink:href="../../target/flowstdlib/control/tap/tap.html" xlink:title="tap">
+<g id="a_node6"><a xlink:href="../../../../../.flow/lib/flowstdlib/control/tap/tap.html" xlink:title="tap">
 <ellipse fill="coral" stroke="black" cx="495.84" cy="-120.43" rx="27" ry="18"/>
 <text text-anchor="middle" x="495.84" y="-116.73" font-family="Times,serif" font-size="14.00">tap</text>
 </a>
@@ -71,7 +71,7 @@
 <!-- /primitives/compare -->
 <g id="node8" class="node">
 <title>/primitives/compare</title>
-<g id="a_node8"><a xlink:href="../../target/flowstdlib/math/compare/compare.html" xlink:title="compare">
+<g id="a_node8"><a xlink:href="../../../../../.flow/lib/flowstdlib/math/compare/compare.html" xlink:title="compare">
 <ellipse fill="coral" stroke="black" cx="361.84" cy="-120.43" rx="50.89" ry="18"/>
 <text text-anchor="middle" x="361.84" y="-116.73" font-family="Times,serif" font-size="14.00">compare</text>
 </a>

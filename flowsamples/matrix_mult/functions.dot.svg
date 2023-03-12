@@ -37,7 +37,7 @@
 <!-- r10 -->
 <g id="node2" class="node">
 <title>r10</title>
-<g id="a_node2"><a xlink:href="file:///home/runner/work/flow/flow/target/flowstdlib/control/index/index.html" xlink:title="index (#10)">
+<g id="a_node2"><a xlink:href="file:///home/runner/.flow/lib/flowstdlib/control/index/index.html" xlink:title="index (#10)">
 <ellipse fill="coral" stroke="black" cx="766" cy="-405" rx="65.79" ry="18"/>
 <text text-anchor="middle" x="766" y="-401.3" font-family="Times,serif" font-size="14.00">index (#10)</text>
 </a>
@@ -54,7 +54,7 @@
 <!-- r11 -->
 <g id="node3" class="node">
 <title>r11</title>
-<g id="a_node3"><a xlink:href="file:///home/runner/work/flow/flow/target/flowstdlib/control/index/index.html" xlink:title="index (#11)">
+<g id="a_node3"><a xlink:href="file:///home/runner/.flow/lib/flowstdlib/control/index/index.html" xlink:title="index (#11)">
 <ellipse fill="coral" stroke="black" cx="313" cy="-477" rx="65.79" ry="18"/>
 <text text-anchor="middle" x="313" y="-473.3" font-family="Times,serif" font-size="14.00">index (#11)</text>
 </a>
@@ -87,7 +87,7 @@
 <!-- r0 -->
 <g id="node6" class="node">
 <title>r0</title>
-<g id="a_node6"><a xlink:href="file:///home/runner/work/flow/flow/target/flowstdlib/data/info/info.html" xlink:title="a_info (#0)">
+<g id="a_node6"><a xlink:href="file:///home/runner/.flow/lib/flowstdlib/data/info/info.html" xlink:title="a_info (#0)">
 <ellipse fill="coral" stroke="black" cx="807" cy="-322" rx="61.99" ry="18"/>
 <text text-anchor="middle" x="807" y="-318.3" font-family="Times,serif" font-size="14.00">a_info (#0)</text>
 </a>
@@ -103,7 +103,7 @@
 <!-- r5 -->
 <g id="node7" class="node">
 <title>r5</title>
-<g id="a_node7"><a xlink:href="file:///home/runner/work/flow/flow/target/flowstdlib/data/duplicate_rows/duplicate_rows.html" xlink:title="duplicate_rows (#5)">
+<g id="a_node7"><a xlink:href="file:///home/runner/.flow/lib/flowstdlib/data/duplicate_rows/duplicate_rows.html" xlink:title="duplicate_rows (#5)">
 <ellipse fill="coral" stroke="black" cx="569" cy="-322" rx="103.98" ry="18"/>
 <text text-anchor="middle" x="569" y="-318.3" font-family="Times,serif" font-size="14.00">duplicate_rows (#5)</text>
 </a>
@@ -135,7 +135,7 @@
 <!-- r1 -->
 <g id="node10" class="node">
 <title>r1</title>
-<g id="a_node10"><a xlink:href="file:///home/runner/work/flow/flow/target/flowstdlib/data/info/info.html" xlink:title="b_info (#1)">
+<g id="a_node10"><a xlink:href="file:///home/runner/.flow/lib/flowstdlib/data/info/info.html" xlink:title="b_info (#1)">
 <ellipse fill="coral" stroke="black" cx="345" cy="-405" rx="61.99" ry="18"/>
 <text text-anchor="middle" x="345" y="-401.3" font-family="Times,serif" font-size="14.00">b_info (#1)</text>
 </a>
@@ -151,7 +151,7 @@
 <!-- r7 -->
 <g id="node11" class="node">
 <title>r7</title>
-<g id="a_node11"><a xlink:href="file:///home/runner/work/flow/flow/target/flowstdlib/data/transpose/transpose.html" xlink:title="transpose (#7)">
+<g id="a_node11"><a xlink:href="file:///home/runner/.flow/lib/flowstdlib/data/transpose/transpose.html" xlink:title="transpose (#7)">
 <ellipse fill="coral" stroke="black" cx="131" cy="-405" rx="79.89" ry="18"/>
 <text text-anchor="middle" x="131" y="-401.3" font-family="Times,serif" font-size="14.00">transpose (#7)</text>
 </a>
@@ -183,7 +183,7 @@
 <!-- r2 -->
 <g id="node14" class="node">
 <title>r2</title>
-<g id="a_node14"><a xlink:href="file:///home/runner/work/flow/flow/target/flowstdlib/data/accumulate/accumulate.html" xlink:title="compose_matrix (#2)">
+<g id="a_node14"><a xlink:href="file:///home/runner/.flow/lib/flowstdlib/data/accumulate/accumulate.html" xlink:title="compose_matrix (#2)">
 <ellipse fill="coral" stroke="black" cx="302" cy="-106" rx="109.68" ry="18"/>
 <text text-anchor="middle" x="302" y="-102.3" font-family="Times,serif" font-size="14.00">compose_matrix (#2)</text>
 </a>
@@ -200,7 +200,7 @@
 <!-- r6 -->
 <g id="node15" class="node">
 <title>r6</title>
-<g id="a_node15"><a xlink:href="file:///home/runner/work/flow/flow/target/flowstdlib/data/multiply_row/multiply_row.html" xlink:title="multiply (#6)">
+<g id="a_node15"><a xlink:href="file:///home/runner/.flow/lib/flowstdlib/data/multiply_row/multiply_row.html" xlink:title="multiply (#6)">
 <ellipse fill="coral" stroke="black" cx="368" cy="-250" rx="72.59" ry="18"/>
 <text text-anchor="middle" x="368" y="-246.3" font-family="Times,serif" font-size="14.00">multiply (#6)</text>
 </a>
@@ -240,7 +240,7 @@
 <!-- r4 -->
 <g id="node12" class="node">
 <title>r4</title>
-<g id="a_node12"><a xlink:href="file:///home/runner/work/flow/flow/target/flowstdlib/data/duplicate/duplicate.html" xlink:title="duplicate (#4)">
+<g id="a_node12"><a xlink:href="file:///home/runner/.flow/lib/flowstdlib/data/duplicate/duplicate.html" xlink:title="duplicate (#4)">
 <ellipse fill="coral" stroke="black" cx="308" cy="-322" rx="77.19" ry="18"/>
 <text text-anchor="middle" x="308" y="-318.3" font-family="Times,serif" font-size="14.00">duplicate (#4)</text>
 </a>
@@ -257,7 +257,7 @@
 <!-- r3 -->
 <g id="node13" class="node">
 <title>r3</title>
-<g id="a_node13"><a xlink:href="file:///home/runner/work/flow/flow/target/flowstdlib/data/accumulate/accumulate.html" xlink:title="compose_rows (#3)">
+<g id="a_node13"><a xlink:href="file:///home/runner/.flow/lib/flowstdlib/data/accumulate/accumulate.html" xlink:title="compose_rows (#3)">
 <ellipse fill="coral" stroke="black" cx="340" cy="-178" rx="101.28" ry="18"/>
 <text text-anchor="middle" x="340" y="-174.3" font-family="Times,serif" font-size="14.00">compose_rows (#3)</text>
 </a>

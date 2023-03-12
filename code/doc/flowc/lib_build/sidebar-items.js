@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["build_lib","check_manifest_status","compile_flows","compile_functions","copy_docs","copy_sources_to_target_dir"]};
+window.SIDEBAR_ITEMS = {"fn":["build_lib","check_manifest_status","compile_flows","compile_functions","copy_definition_to_output_dir","copy_docs"]};

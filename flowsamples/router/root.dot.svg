@@ -22,7 +22,7 @@
 <!-- /router/accumulate_triples -->
 <g id="node2" class="node">
 <title>/router/accumulate_triples</title>
-<g id="a_node2"><a xlink:href="../../target/flowstdlib/data/accumulate/accumulate.html" xlink:title="accumulate_triples\n(accumulate)">
+<g id="a_node2"><a xlink:href="../../../../../.flow/lib/flowstdlib/data/accumulate/accumulate.html" xlink:title="accumulate_triples\n(accumulate)">
 <ellipse fill="coral" stroke="black" cx="623.99" cy="-170.87" rx="107.46" ry="26.74"/>
 <text text-anchor="middle" x="623.99" y="-174.67" font-family="Times,serif" font-size="14.00">accumulate_triples</text>
 <text text-anchor="middle" x="623.99" y="-159.67" font-family="Times,serif" font-size="14.00">(accumulate)</text>
@@ -147,7 +147,7 @@
 <!-- /router/to_string -->
 <g id="node7" class="node">
 <title>/router/to_string</title>
-<g id="a_node7"><a xlink:href="../../target/flowstdlib/fmt/to_string/to_string.html" xlink:title="to_string">
+<g id="a_node7"><a xlink:href="../../../../../.flow/lib/flowstdlib/fmt/to_string/to_string.html" xlink:title="to_string">
 <ellipse fill="coral" stroke="black" cx="2169.99" cy="-170.87" rx="51.99" ry="18"/>
 <text text-anchor="middle" x="2169.99" y="-167.17" font-family="Times,serif" font-size="14.00">to_string</text>
 </a>
@@ -156,7 +156,7 @@
 <!-- /router/append -->
 <g id="node8" class="node">
 <title>/router/append</title>
-<g id="a_node8"><a xlink:href="../../target/flowstdlib/data/append/append.html" xlink:title="append">
+<g id="a_node8"><a xlink:href="../../../../../.flow/lib/flowstdlib/data/append/append.html" xlink:title="append">
 <ellipse fill="coral" stroke="black" cx="2206.99" cy="-90" rx="44.69" ry="18"/>
 <text text-anchor="middle" x="2206.99" y="-86.3" font-family="Times,serif" font-size="14.00">append</text>
 </a>

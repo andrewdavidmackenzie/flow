@@ -154,8 +154,8 @@ Be sure they are in your $PATH so that can be invoked directly.</p>
 substituting <code>cargo run -p flowc --</code> for <code>flowc</code>in the examples below.</p>
 <p>User's terminal Current Working Directory should be the root directory of the <code>flow</code> project</p>
 <h3 id="finding-libraries"><a class="header" href="#finding-libraries">Finding Libraries</a></h3>
-<p>Environment variable <code>$FLOW_LIB_PATH</code> is set to the target directory where the <code>flowstdlib</code> is compiled by default 
-<code>${flow_root_dir}/target</code>, in order for <code>flowc</code> and <code>flowr</code> to be able to find library functions used.</p>
+<p>Environment variable <code>$FLOW_LIB_PATH</code> is set to a directory where the <code>flowstdlib</code> is compiled by default 
+<code>$HOME/.flow/lib</code>, in order for <code>flowc</code> and <code>flowr</code> to be able to find library functions used.</p>
 <p>If this environment variable is not set then compiling will fail:</p>
 <pre><code>❯ unset FLOW_LIB_PATH
 ❯ flowc -C flowr/src/cli flowsamples/fibonacci
