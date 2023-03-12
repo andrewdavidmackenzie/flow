@@ -108,8 +108,10 @@ jobs:
     - name: install-mdbook-linkcheck
       run: |
         curl -sSL https://github.com/Michael-F-Bryan/mdbook-linkcheck/releases/download/v0.7.7/mdbook-linkcheck.x86_64-unknown-linux-gnu.zip > mdbook-linkcheck.zip
+        mkdir -p $HOME/.cargo/bin
         unzip mdbook-linkcheck.zip -d $HOME/.cargo/bin
         chmod +x $HOME/.cargo/bin/mdbook-linkcheck
+        echo "PATH=$HOME/.cargo/bin:$PATH" >> "$GITHUB_ENV"
 
     - name: build-book
       run: mdbook build
