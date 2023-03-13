@@ -259,7 +259,7 @@ mod test {
                     \"inputs\": [ {} ]
                 }
              ],
-            \"source_urls\": []
+            \"source_urls\": {}
             }";
         let provider = TestProvider { test_content };
 

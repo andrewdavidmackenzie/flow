@@ -307,7 +307,7 @@ mod test {
   \"locators\": {
     \"lib://flowrlib/test-dyn-lib/add2\": \"add2.wasm\"
   },
-  \"source_urls\": []
+  \"source_urls\": {}
 }";
         assert_eq!(expected, serialized);
     }
@@ -325,7 +325,7 @@ mod test {
   \"locators\": {
     \"lib://flowrlib/test-dyn-lib/add2\": \"add2.wasm\"
   },
-  \"source_urls\": []
+  \"source_urls\": {}
 }";
         let test_provider = &TestProvider { test_content } as &dyn Provider;
         let url = Url::parse("file://test/fake.json").expect("Could not create Url");
