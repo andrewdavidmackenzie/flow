@@ -1,5 +1,5 @@
 #[cfg(feature = "debugger")]
-use std::collections::BTreeSet;
+use std::collections::BTreeMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -25,16 +25,16 @@ pub fn compile_implementation(
     function: &mut FunctionDefinition,
     native_only: bool,
     optimize: bool,
-    #[cfg(feature = "debugger")] source_urls: &mut BTreeSet<(Url, Url)>,
+    #[cfg(feature = "debugger")] source_urls: &mut BTreeMap<Url, Url>,
 ) -> Result<bool> {
     let mut built = false;
 
     #[cfg(feature = "debugger")]
-    source_urls.insert((
+    source_urls.insert(
         Url::from_file_path(&implementation_source_path).map_err(|_| "Could not create Url from file path")?,
         Url::from_file_path(wasm_destination)
             .map_err(|_| "Could not create Url from file path")?,
-    ));
+    );
 
     let (missing, out_of_date) = out_of_date(&implementation_source_path, wasm_destination)?;
 
@@ -188,7 +188,7 @@ fn out_of_date(source: &Path, derived: &Path) -> Result<(bool, bool)> {
 #[cfg(test)]
 mod test {
     #[cfg(feature = "debugger")]
-    use std::collections::BTreeSet;
+    use std::collections::BTreeMap;
     use std::env;
     use std::fs::{File, remove_file, write};
     use std::path::Path;
@@ -351,7 +351,7 @@ mod test {
         let _ = remove_file(&expected_output_wasm);
 
         #[cfg(feature = "debugger")]
-        let mut source_urls = BTreeSet::<(Url, Url)>::new();
+        let mut source_urls = BTreeMap::<Url, Url>::new();
 
         let (implementation_source_path, wasm_destination) = compile::get_paths(&wasm_output_dir, &function)
             .expect("Could not get paths for compiling");
@@ -390,7 +390,7 @@ mod test {
         write(&expected_output_wasm, b"file touched during testing")
             .expect("Could not write to file during testing");
         #[cfg(feature = "debugger")]
-        let mut source_urls = BTreeSet::<(Url, Url)>::new();
+        let mut source_urls = BTreeMap::<Url, Url>::new();
 
         let (implementation_source_path, wasm_destination) = compile::get_paths(&wasm_output_dir, &function)
             .expect("Could not get paths for compiling");
@@ -426,7 +426,7 @@ mod test {
         let expected_output_wasm = wasm_output_dir.join("test.wasm");
 
         #[cfg(feature = "debugger")]
-            let mut source_urls = BTreeSet::<(Url, Url)>::new();
+            let mut source_urls = BTreeMap::<Url, Url>::new();
 
         let (implementation_source_path, wasm_destination) = compile::get_paths(&wasm_output_dir, &function)
             .expect("Could not get paths for compiling");
@@ -460,7 +460,7 @@ mod test {
             .into_path();
 
         #[cfg(feature = "debugger")]
-        let mut source_urls = BTreeSet::<(Url, Url)>::new();
+        let mut source_urls = BTreeMap::<Url, Url>::new();
 
         let (implementation_source_path, _wasm_destination) = compile::get_paths(&wasm_output_dir, &function)
             .expect("Could not get paths for compiling");
@@ -494,7 +494,7 @@ mod test {
         let _ = remove_file(&expected_output_wasm);
 
         #[cfg(feature = "debugger")]
-            let mut source_urls = BTreeSet::<(Url, Url)>::new();
+            let mut source_urls = BTreeMap::<Url, Url>::new();
 
         let (implementation_source_path, wasm_destination) =
             compile::get_paths(&wasm_output_dir, &function)

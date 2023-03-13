@@ -1,3 +1,5 @@
+#[cfg(feature = "debugger")]
+use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 use std::fmt;
 use std::fmt::Display;
@@ -42,7 +44,7 @@ pub struct FlowManifest {
     functions: Vec<RuntimeFunction>,
     #[cfg(feature = "debugger")]
     /// A list of the source files used to build this `flow`
-    source_urls: BTreeSet<(Url, Url)>,
+    source_urls: BTreeMap<Url, Url>,
 }
 
 impl Display for FlowManifest {
@@ -63,7 +65,7 @@ impl FlowManifest {
             context_references: BTreeSet::<Url>::new(),
             functions: Vec::<RuntimeFunction>::new(),
             #[cfg(feature = "debugger")]
-            source_urls: BTreeSet::<(Url, Url)>::new(),
+            source_urls: BTreeMap::<Url, Url>::new(),
         }
     }
 
@@ -124,13 +126,13 @@ impl FlowManifest {
 
     /// set the list of all source urls used in the flow
     #[cfg(feature = "debugger")]
-    pub fn set_source_urls(&mut self, source_urls: BTreeSet<(Url, Url)>) {
+    pub fn set_source_urls(&mut self, source_urls: BTreeMap<Url, Url>) {
         self.source_urls = source_urls;
     }
 
     /// Get the list of source files used in the flow
     #[cfg(feature = "debugger")]
-    pub fn get_source_urls(&self) -> &BTreeSet<(Url, Url)> {
+    pub fn get_source_urls(&self) -> &BTreeMap<Url, Url> {
         &self.source_urls
     }
 

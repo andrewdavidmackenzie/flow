@@ -1,5 +1,5 @@
 #[cfg(feature = "debugger")]
-use std::collections::BTreeSet;
+use std::collections::BTreeMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -23,7 +23,7 @@ use crate::Options;
 pub fn compile_and_execute_flow(options: &Options, provider: &dyn Provider) -> Result<()> {
     info!("==== Parsing flow hierarchy from '{}'", options.source_url);
     #[cfg(feature = "debugger")]
-    let mut source_urls = BTreeSet::<(Url, Url)>::new();
+    let mut source_urls = BTreeMap::<Url, Url>::new();
 
     let root = parser::parse(
         &options.source_url,

@@ -1,6 +1,5 @@
-use std::collections::BTreeMap;
 #[cfg(feature = "debugger")]
-use std::collections::BTreeSet;
+use std::collections::BTreeMap;
 
 use log::{debug, info, trace};
 use url::Url;
@@ -38,7 +37,7 @@ pub enum LibType {
 /// use flowcore::errors::Result;
 /// use std::env;
 /// use url::Url;
-/// use std::collections::BTreeSet;
+/// use std::collections::BTreeMap;
 ///
 /// // Clients need to provide a Provider of content for the loader as flowlibc is independent of
 /// // file systems and io.
@@ -62,7 +61,7 @@ pub enum LibType {
 /// let dummy_provider = DummyProvider{};
 ///
 /// // keep track of the source Urls loaded for this flow
-/// let mut source_urls = BTreeSet::<(Url, Url)>::new();
+/// let mut source_urls = BTreeMap::<Url, Url>::new();
 ///
 /// // load the flow from `url = file:///example.toml` using the `dummy_provider`
 /// flowclib::compiler::parser::parse(&Url::parse("file:///example.toml").unwrap(), &dummy_provider, &mut source_urls).unwrap();
@@ -70,7 +69,7 @@ pub enum LibType {
 pub fn parse(
     url: &Url,
     provider: &dyn Provider,
-    #[cfg(feature = "debugger")] source_urls: &mut BTreeSet<(Url, Url)>,
+    #[cfg(feature = "debugger")] source_urls: &mut BTreeMap<Url, Url>,
 ) -> Result<Process> {
     trace!("load()");
     parse_process(
@@ -96,7 +95,7 @@ fn parse_process(
     url: &Url,
     provider: &dyn Provider,
     initializations: &BTreeMap<String, InputInitializer>,
-    #[cfg(feature = "debugger")] source_urls: &mut BTreeSet<(Url, Url)>,
+    #[cfg(feature = "debugger")] source_urls: &mut BTreeMap<Url, Url>,
     level: usize,
 ) -> Result<Process> {
     trace!("load_process()");
@@ -126,7 +125,7 @@ fn parse_process(
 
     // Track the source file involved and what it resolved to
     #[cfg(feature = "debugger")]
-    source_urls.insert((url.clone(), resolved_url.clone()));
+    source_urls.insert(url.clone(), resolved_url.clone());
 
     match process {
         FlowProcess(ref mut flow) => {
@@ -197,7 +196,7 @@ fn parse_process_refs(
     flow: &mut FlowDefinition,
     flow_count: &mut usize,
     provider: &dyn Provider,
-    #[cfg(feature = "debugger")] source_urls: &mut BTreeSet<(Url, Url)>,
+    #[cfg(feature = "debugger")] source_urls: &mut BTreeMap<Url, Url>,
     level: usize,
 ) -> Result<()> {
     for process_ref in &mut flow.process_refs {

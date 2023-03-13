@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeMap;
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::{Path, PathBuf};
@@ -56,13 +56,14 @@ pub struct LibraryManifest {
     pub lib_url: Url,
     /// `metadata` about a flow with author, version and usual fields
     pub metadata: MetaData,
-    /// the `locators` map a reference to a function/implementation to the `ImplementationLocator`
-    /// that can be used to load it or reference it
+    /// the `locators` map a lib reference to a `ImplementationLocator` for a function or flow
+    /// that can be used to load it or reference it.
     pub locators: BTreeMap<Url, ImplementationLocator>,
-    /// source_files is a list of source files (location relative to library root) for functions
-    /// (function definitions and source code) and process flow definitions that form part of it
+    /// source_files is a map of:
+    /// Key: lib reference for functions or flows, as used in locators
+    /// Value: Url where the source file it was derived from is located
     #[serde(default)]
-    pub source_urls: BTreeSet<(Url, Url)>,
+    pub source_urls: BTreeMap<Url, Url>,
 }
 
 impl LibraryManifest {
@@ -72,7 +73,7 @@ impl LibraryManifest {
             lib_url,
             metadata,
             locators: BTreeMap::<Url, ImplementationLocator>::new(),
-            source_urls: BTreeSet::<(Url, Url)>::new(),
+            source_urls: BTreeMap::<Url, Url>::new(),
         }
     }
 
