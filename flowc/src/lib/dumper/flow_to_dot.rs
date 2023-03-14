@@ -48,11 +48,8 @@ pub(crate) static OUTPUT_PORTS: &[&str] = &["s", "se", "sw", "e"];
 /// let mut url = Url::from_file_path(env::current_dir().unwrap()).unwrap();
 /// url = url.join("samples/hello-world/root.toml").unwrap();
 ///
-/// let mut source_urls = BTreeMap::<Url, Url>::new();
-///
 /// if let Ok(FlowProcess(mut flow)) = flowclib::compiler::parser::parse(&url,
-///                                                    &provider,
-///                                                    &mut source_urls) {
+///                                                    &provider) {
 ///
 ///     // strip off filename so output_dir is where the root.toml file resides
 ///     let output_dir = TempDir::new("flow").unwrap().into_path();

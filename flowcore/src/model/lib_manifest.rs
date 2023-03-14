@@ -63,7 +63,7 @@ pub struct LibraryManifest {
     /// Key: lib reference for functions or flows, as used in locators
     /// Value: Url where the source file it was derived from is located
     #[serde(default)]
-    pub source_urls: BTreeMap<Url, Url>,
+    pub source_urls: BTreeMap<String, Url>,
 }
 
 impl LibraryManifest {
@@ -73,7 +73,7 @@ impl LibraryManifest {
             lib_url,
             metadata,
             locators: BTreeMap::<Url, ImplementationLocator>::new(),
-            source_urls: BTreeMap::<Url, Url>::new(),
+            source_urls: BTreeMap::<String, Url>::new(),
         }
     }
 
@@ -110,11 +110,14 @@ impl LibraryManifest {
 
     /// Add a locator to the `LibraryManifest` to allow resolving "lib://" lib reference Urls
     /// for functions or flows to where the implementation resides within the library directory
-    /// structure (relative to the lib root)
+    /// structure (relative to the lib root).
+    /// Also add it to the list of source files lookups in the manifest if compiling with debug info
     pub fn add_locator(
         &mut self,
         implementation_path_relative: &str,
         lib_reference_path: &str,
+        #[cfg(feature = "debugger")]
+        implementation_source_path: &str,
     ) -> Result<()> {
         let lib_reference = Url::parse(&format!(
             "lib://{}/{lib_reference_path}",
@@ -129,6 +132,14 @@ impl LibraryManifest {
         self.locators.insert(
             lib_reference,
             ImplementationLocator::RelativePath(implementation_path_relative.to_owned()),
+        );
+
+        // Match the compiled wasm file (using lib relative path) to the source file it was compiled from
+        #[cfg(feature = "debugger")]
+        self.source_urls.insert(
+            implementation_path_relative.to_owned(),
+            Url::from_file_path(implementation_source_path)
+                .map_err(|_| "Could not create Url from file path")?,
         );
 
         Ok(())
@@ -353,7 +364,10 @@ mod test {
             test_meta_data(),
         );
         library
-            .add_locator("/bin/my.wasm", "/bin")
+            .add_locator("/bin/my.wasm", "/bin",
+                         #[cfg(feature = "debugger")]
+                             "/users/me/myproject/bin/my.rs",
+            )
             .expect("Could not add to manifest");
         assert_eq!(
             library.locators.len(),
@@ -383,7 +397,10 @@ mod test {
             test_meta_data(),
         );
         library1
-            .add_locator("/bin/my.wasm", "/bin")
+            .add_locator("/bin/my.wasm", "/bin",
+                         #[cfg(feature = "debugger")]
+                             "/users/me/myproject/bin/my.rs",
+            )
             .expect("Could not add to manifest");
 
         let library2 = LibraryManifest::new(
@@ -401,7 +418,10 @@ mod test {
             test_meta_data(),
         );
         library1
-            .add_locator("/bin/fake.wasm", "/bin")
+            .add_locator("/bin/fake.wasm", "/bin",
+                         #[cfg(feature = "debugger")]
+                             "/users/me/myproject/bin/fake.rs",
+            )
             .expect("Could not add to manifest");
 
         let mut library2 = LibraryManifest::new(
@@ -409,7 +429,10 @@ mod test {
             test_meta_data(),
         );
         library2
-            .add_locator("/bin/my.wasm", "/bin")
+            .add_locator("/bin/my.wasm", "/bin",
+                         #[cfg(feature = "debugger")]
+                             "/users/me/myproject/bin/my.rs",
+            )
             .expect("Could not add to manifest");
 
         assert!(library1 != library2);
@@ -422,7 +445,10 @@ mod test {
             test_meta_data(),
         );
         library1
-            .add_locator("/bin/my.wasm", "/bin")
+            .add_locator("/bin/my.wasm", "/bin",
+                         #[cfg(feature = "debugger")]
+                             "/users/me/myproject/bin/my.rs",
+            )
             .expect("Could not add to manifest");
 
         let mut library2 = LibraryManifest::new(
@@ -430,7 +456,10 @@ mod test {
             test_meta_data(),
         );
         library2
-            .add_locator("/bin/my.wasm", "/bin")
+            .add_locator("/bin/my.wasm", "/bin",
+                         #[cfg(feature = "debugger")]
+                             "/users/me/myproject/bin/my.rs",
+            )
             .expect("Could not add to manifest");
 
         assert!(library1 == library2);

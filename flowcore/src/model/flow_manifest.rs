@@ -44,7 +44,7 @@ pub struct FlowManifest {
     functions: Vec<RuntimeFunction>,
     #[cfg(feature = "debugger")]
     /// A list of the source files used to build this `flow`
-    source_urls: BTreeMap<Url, Url>,
+    source_urls: BTreeMap<String, Url>,
 }
 
 impl Display for FlowManifest {
@@ -65,7 +65,7 @@ impl FlowManifest {
             context_references: BTreeSet::<Url>::new(),
             functions: Vec::<RuntimeFunction>::new(),
             #[cfg(feature = "debugger")]
-            source_urls: BTreeMap::<Url, Url>::new(),
+            source_urls: BTreeMap::<String, Url>::new(),
         }
     }
 
@@ -126,13 +126,13 @@ impl FlowManifest {
 
     /// set the list of all source urls used in the flow
     #[cfg(feature = "debugger")]
-    pub fn set_source_urls(&mut self, source_urls: BTreeMap<Url, Url>) {
+    pub fn set_source_urls(&mut self, source_urls: BTreeMap<String, Url>) {
         self.source_urls = source_urls;
     }
 
     /// Get the list of source files used in the flow
     #[cfg(feature = "debugger")]
-    pub fn get_source_urls(&self) -> &BTreeMap<Url, Url> {
+    pub fn get_source_urls(&self) -> &BTreeMap<String, Url> {
         &self.source_urls
     }
 

@@ -169,7 +169,6 @@ fn compile_functions(
                 match parser::parse(
                     &url,
                     provider,
-                    #[cfg(feature = "debugger")] &mut lib_manifest.source_urls,
                 ) {
                     Ok(FunctionProcess(ref mut function)) => {
                         // calculate the path of the file's directory, relative to lib_root
@@ -203,14 +202,11 @@ fn compile_functions(
                         let built = compile_wasm::compile_implementation(
                             target_dir,
                             &wasm_destination,
-                            source_path,
+                            &source_path,
                             function,
                             options.native_only,
                             options.optimize,
-                            #[cfg(feature = "debugger")]
-                                &mut lib_manifest.source_urls,
-                        )
-                            .chain_err(|| "Could not compile implementation to wasm")?;
+                        ).chain_err(|| "Could not compile implementation to wasm")?;
 
                         if built {
                             file_count += 1;
@@ -220,6 +216,8 @@ fn compile_functions(
                             .add_locator(
                                 &wasm_relative_path.to_string_lossy(),
                                 &relative_dir.to_string_lossy(),
+                                #[cfg(feature = "debugger")]
+                                &source_path.to_string_lossy(),
                             )
                             .chain_err(|| "Could not add entry to library manifest")?;
 
@@ -275,7 +273,6 @@ fn compile_flows(
                 match parser::parse(
                     &url,
                     provider,
-                    #[cfg(feature = "debugger")] &mut lib_manifest.source_urls,
                 ) {
                     Ok(FunctionProcess(_)) => {}
                     Ok(FlowProcess(ref mut flow)) => {
@@ -310,9 +307,10 @@ fn compile_flows(
                             .add_locator(
                                 &flow_relative_path.to_string_lossy(),
                                 &flow_lib_reference,
+                                #[cfg(feature = "debugger")]
+                                &toml_path.to_string_lossy()
                             )
                             .chain_err(|| "Could not add entry to library manifest")?;
-
                     }
                     Err(err) => debug!("Skipping file '{}'. Reason: '{}'", url, err),
                 }

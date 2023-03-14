@@ -60,18 +60,14 @@ pub enum LibType {
 /// // Create an instance of the `DummyProvider`
 /// let dummy_provider = DummyProvider{};
 ///
-/// // keep track of the source Urls loaded for this flow
-/// let mut source_urls = BTreeMap::<Url, Url>::new();
-///
 /// // load the flow from `url = file:///example.toml` using the `dummy_provider`
-/// flowclib::compiler::parser::parse(&Url::parse("file:///example.toml").unwrap(), &dummy_provider, &mut source_urls).unwrap();
+/// flowclib::compiler::parser::parse(&Url::parse("file:///example.toml").unwrap(), &dummy_provider)
+/// .unwrap();
 /// ```
 pub fn parse(
     url: &Url,
     provider: &dyn Provider,
-    #[cfg(feature = "debugger")] source_urls: &mut BTreeMap<Url, Url>,
 ) -> Result<Process> {
-    trace!("load()");
     parse_process(
         &Route::default(),
         &Name::default(),
@@ -80,8 +76,6 @@ pub fn parse(
         url,
         provider,
         &BTreeMap::new(),
-        #[cfg(feature = "debugger")]
-        source_urls,
         0,
     )
 }
@@ -95,17 +89,11 @@ fn parse_process(
     url: &Url,
     provider: &dyn Provider,
     initializations: &BTreeMap<String, InputInitializer>,
-    #[cfg(feature = "debugger")] source_urls: &mut BTreeMap<Url, Url>,
     level: usize,
 ) -> Result<Process> {
-    trace!("load_process()");
-
     let (resolved_url, reference) = provider
         .resolve_url(url, "root", &["toml"])
         .chain_err(|| format!("Could not resolve the url: '{url}'"))?;
-    if &resolved_url != url {
-        debug!("Source URL '{url}' resolved to: '{resolved_url}'");
-    }
 
     let contents = provider
         .get_contents(&resolved_url)
@@ -123,10 +111,6 @@ fn parse_process(
         .deserialize(&content, Some(&resolved_url))
         .chain_err(|| format!("Could not parse a valid flow process from '{url}'"))?;
 
-    // Track the source file involved and what it resolved to
-    #[cfg(feature = "debugger")]
-    source_urls.insert(url.clone(), resolved_url.clone());
-
     match process {
         FlowProcess(ref mut flow) => {
             flow.config(
@@ -142,8 +126,6 @@ fn parse_process(
                 flow,
                 flow_count,
                 provider,
-                #[cfg(feature = "debugger")]
-                source_urls,
                 level,
             )?;
             flow.build_connections(level)?;
@@ -196,7 +178,6 @@ fn parse_process_refs(
     flow: &mut FlowDefinition,
     flow_count: &mut usize,
     provider: &dyn Provider,
-    #[cfg(feature = "debugger")] source_urls: &mut BTreeMap<Url, Url>,
     level: usize,
 ) -> Result<()> {
     for process_ref in &mut flow.process_refs {
@@ -212,8 +193,6 @@ fn parse_process_refs(
             &subprocess_url,
             provider,
             &process_ref.initializations,
-            #[cfg(feature = "debugger")]
-            source_urls,
             level + 1,
         )?;
         process_ref.set_alias(process.name());

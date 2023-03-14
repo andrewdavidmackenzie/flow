@@ -29,7 +29,7 @@ pub fn create_manifest(
     debug_symbols: bool,
     manifest_url: &Url,
     tables: &CompilerTables,
-    #[cfg(feature = "debugger")] source_urls: &BTreeMap<Url, Url>,
+    #[cfg(feature = "debugger")] source_urls: &BTreeMap<String, Url>,
 ) -> Result<FlowManifest> {
     info!("Writing flow manifest to '{}'", manifest_url);
 
@@ -60,7 +60,7 @@ pub fn write_flow_manifest(
     debug_symbols: bool,
     destination: &Path,
     tables: &CompilerTables,
-    #[cfg(feature = "debugger")] source_urls: &BTreeMap<Url, Url>,
+    #[cfg(feature = "debugger")] source_urls: &BTreeMap<String, Url>,
 ) -> Result<PathBuf> {
     info!("\n==== Generating Manifest");
 
@@ -76,8 +76,7 @@ pub fn write_flow_manifest(
         debug_symbols,
         &manifest_url,
         tables,
-        #[cfg(feature = "debugger")]
-        source_urls,
+        #[cfg(feature = "debugger")] source_urls,
     )
     .chain_err(|| "Could not create manifest from parsed flow and compiler tables")?;
 

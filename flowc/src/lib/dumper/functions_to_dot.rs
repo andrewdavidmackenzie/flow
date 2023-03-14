@@ -41,14 +41,11 @@ use crate::errors::*;
 /// let mut url = Url::from_file_path(env::current_dir().unwrap()).unwrap();
 /// url = url.join("flowc/tests/test-flows/hello-world/hello-world.toml").unwrap();
 ///
-/// let mut source_urls = BTreeMap::<Url, Url>::new();
 /// let output_dir = TempDir::new("flow-test").expect("A temp dir").into_path();
 ///
 /// if let Ok(FlowProcess(mut flow)) = flowclib::compiler::parser::parse(&url,
-///                                                    &provider,
-///                                                    &mut source_urls) {
-///     let tables = flowclib::compiler::compile::compile(&flow, &output_dir, false, false,
-///                                                       #[cfg(feature = "debugger")] &mut source_urls
+///                                                    &provider) {
+///     let tables = flowclib::compiler::compile::compile(&flow, &output_dir, false, false
 ///                                                      ).unwrap();
 ///
 ///     // strip off filename so output_dir is where the root.toml file resides
