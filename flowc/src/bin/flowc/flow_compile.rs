@@ -58,7 +58,7 @@ pub fn compile_and_execute_flow(options: &Options, provider: &dyn Provider) -> R
                 options.debug_symbols,
                 &options.output_dir,
                 &tables,
-                #[cfg(feature = "debugger")] &source_urls,
+                #[cfg(feature = "debugger")] source_urls,
             )
             .chain_err(|| "Failed to write manifest")?;
 
