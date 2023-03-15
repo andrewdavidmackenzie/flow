@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `flowc/src/lib/compiler/compile_wasm.rs`."><title>compile_wasm.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceSerif4-Bold-a2c9cd1067f8b328.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../static.files/rustdoc-c4dbdcde0fbd8430.css" id="mainThemeStyle"><div id="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="flowclib" data-themes="" data-resource-suffix="" data-rustdoc-version="1.70.0-nightly (22f247c6f 2023-03-13)" data-search-js="search-d1bc581867fd0849.js" data-settings-js="settings-f0c5c39777a9a2f6.js" data-settings-css="settings-0bcba95ff279c1db.css" data-theme-light-css="light-db279b6232be9c13.css" data-theme-dark-css="dark-cf923f49f397b216.css" data-theme-ayu-css="ayu-be46fdc453a55015.css" ></div><script src="../../../static.files/storage-9184409068f70b79.js"></script><script defer src="../../../static.files/source-script-1b95b7cca98b26e5.js"></script><script defer src="../../../source-files.js"></script><script defer src="../../../static.files/main-f5a2577c5297a973.js"></script><noscript><link rel="stylesheet" media="(prefers-color-scheme:light)" href="../../../static.files/light-db279b6232be9c13.css"><link rel="stylesheet" media="(prefers-color-scheme:dark)" href="../../../static.files/dark-cf923f49f397b216.css"><link rel="stylesheet" href="../../../static.files/noscript-13285aec31fa243e.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><a class="sub-logo-container" href="../../../flowclib/index.html"><img class="rust-logo" src="../../../static.files/rust-logo-151179464ae7ed46.svg" alt="logo"></a><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `flowc/src/lib/compiler/compile_wasm.rs`."><title>compile_wasm.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceSerif4-Bold-a2c9cd1067f8b328.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../static.files/rustdoc-c4dbdcde0fbd8430.css" id="mainThemeStyle"><div id="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="flowclib" data-themes="" data-resource-suffix="" data-rustdoc-version="1.70.0-nightly (171693274 2023-03-14)" data-search-js="search-d1bc581867fd0849.js" data-settings-js="settings-f0c5c39777a9a2f6.js" data-settings-css="settings-0bcba95ff279c1db.css" data-theme-light-css="light-db279b6232be9c13.css" data-theme-dark-css="dark-cf923f49f397b216.css" data-theme-ayu-css="ayu-be46fdc453a55015.css" ></div><script src="../../../static.files/storage-9184409068f70b79.js"></script><script defer src="../../../static.files/source-script-1b95b7cca98b26e5.js"></script><script defer src="../../../source-files.js"></script><script defer src="../../../static.files/main-f5a2577c5297a973.js"></script><noscript><link rel="stylesheet" media="(prefers-color-scheme:light)" href="../../../static.files/light-db279b6232be9c13.css"><link rel="stylesheet" media="(prefers-color-scheme:dark)" href="../../../static.files/dark-cf923f49f397b216.css"><link rel="stylesheet" href="../../../static.files/noscript-13285aec31fa243e.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><a class="sub-logo-container" href="../../../flowclib/index.html"><img class="rust-logo" src="../../../static.files/rust-logo-151179464ae7ed46.svg" alt="logo"></a><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -521,8 +521,11 @@
 <a href="#521" id="521">521</a>
 <a href="#522" id="522">522</a>
 <a href="#523" id="523">523</a>
+<a href="#524" id="524">524</a>
+<a href="#525" id="525">525</a>
+<a href="#526" id="526">526</a>
 </pre><pre class="rust"><code><span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)]
-</span><span class="kw">use </span>std::collections::BTreeSet;
+</span><span class="kw">use </span>std::collections::BTreeMap;
 <span class="kw">use </span>std::fs;
 <span class="kw">use </span>std::path::{Path, PathBuf};
 <span class="kw">use </span>std::process::Command;
@@ -541,25 +544,24 @@
 
 <span class="doccomment">/// Compile a function&#39;s implementation to wasm and modify implementation to point to the wasm file
 /// Checks the timestamps of the source and wasm files and only recompiles if wasm file is out of date
+</span><span class="attr">#[allow(clippy::too_many_arguments)]
 </span><span class="kw">pub fn </span>compile_implementation(
+    out_dir: <span class="kw-2">&amp;</span>Path,
     cargo_target_dir: PathBuf, <span class="comment">// where the binary will be built by cargo
     </span>wasm_destination: <span class="kw-2">&amp;</span>Path,
-    implementation_source_path: PathBuf,
+    implementation_source_path: <span class="kw-2">&amp;</span>Path,
     function: <span class="kw-2">&amp;mut </span>FunctionDefinition,
     native_only: bool,
     optimize: bool,
-    <span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)] </span>source_urls: <span class="kw-2">&amp;mut </span>BTreeSet&lt;(Url, Url)&gt;,
+    <span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)]
+    </span>source_urls: <span class="kw-2">&amp;mut </span>BTreeMap&lt;String, Url&gt;,
 ) -&gt; <span class="prelude-ty">Result</span>&lt;bool&gt; {
     <span class="kw">let </span><span class="kw-2">mut </span>built = <span class="bool-val">false</span>;
 
-    <span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)]
-    </span>source_urls.insert((
-        Url::from_file_path(<span class="kw-2">&amp;</span>implementation_source_path).map_err(|<span class="kw">_</span>| <span class="string">&quot;Could not create Url from file path&quot;</span>)<span class="question-mark">?</span>,
-        Url::from_file_path(wasm_destination)
-            .map_err(|<span class="kw">_</span>| <span class="string">&quot;Could not create Url from file path&quot;</span>)<span class="question-mark">?</span>,
-    ));
+    <span class="kw">let </span>wasm_relative_path = wasm_destination.strip_prefix(out_dir)
+        .map_err(|<span class="kw">_</span>| <span class="string">&quot;Could not strip_prefix from wasm location path&quot;</span>)<span class="question-mark">?</span>;
 
-    <span class="kw">let </span>(missing, out_of_date) = out_of_date(<span class="kw-2">&amp;</span>implementation_source_path, wasm_destination)<span class="question-mark">?</span>;
+    <span class="kw">let </span>(missing, out_of_date) = out_of_date(implementation_source_path, wasm_destination)<span class="question-mark">?</span>;
 
     <span class="kw">if </span>missing || out_of_date {
         <span class="kw">if </span>native_only {
@@ -578,9 +580,9 @@
         } <span class="kw">else </span>{
             <span class="kw">match </span>function.build_type.as_str() {
                 <span class="string">&quot;rust&quot; </span>=&gt; {
-                    cargo_build::run(<span class="kw-2">&amp;</span>implementation_source_path, cargo_target_dir,
-                                     wasm_destination, optimize)<span class="question-mark">?
-                </span>},
+                    cargo_build::run(implementation_source_path, cargo_target_dir,
+                                     wasm_destination, optimize)<span class="question-mark">?</span>;
+                },
                 <span class="kw">_ </span>=&gt; <span class="macro">bail!</span>(
                     <span class="string">&quot;Unknown build type &#39;{}&#39; for function at &#39;{}&#39;&quot;</span>,
                     implementation_source_path.display(),
@@ -600,6 +602,10 @@
         );
     }
 
+    <span class="kw">let </span>function_source_url = Url::from_file_path(implementation_source_path)
+        .map_err(|<span class="kw">_</span>| <span class="string">&quot;Could not create Url from source path&quot;</span>)<span class="question-mark">?</span>;
+    source_urls.insert(wasm_relative_path.to_string_lossy().to_string(),
+                       function_source_url);
     function.set_implementation(
         wasm_destination
             .to_str()
@@ -710,8 +716,7 @@
 
 <span class="attr">#[cfg(test)]
 </span><span class="kw">mod </span>test {
-    <span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)]
-    </span><span class="kw">use </span>std::collections::BTreeSet;
+    <span class="kw">use </span>std::collections::BTreeMap;
     <span class="kw">use </span>std::env;
     <span class="kw">use </span>std::fs::{File, remove_file, write};
     <span class="kw">use </span>std::path::Path;
@@ -873,9 +878,6 @@
         <span class="kw">let </span>expected_output_wasm = wasm_output_dir.join(<span class="string">&quot;test.wasm&quot;</span>);
         <span class="kw">let _ </span>= remove_file(<span class="kw-2">&amp;</span>expected_output_wasm);
 
-        <span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)]
-        </span><span class="kw">let </span><span class="kw-2">mut </span>source_urls = BTreeSet::&lt;(Url, Url)&gt;::new();
-
         <span class="kw">let </span>(implementation_source_path, wasm_destination) = compile::get_paths(<span class="kw-2">&amp;</span>wasm_output_dir, <span class="kw-2">&amp;</span>function)
             .expect(<span class="string">&quot;Could not get paths for compiling&quot;</span>);
         <span class="macro">assert_eq!</span>(wasm_destination, expected_output_wasm);
@@ -885,15 +887,18 @@
             .expect(<span class="string">&quot;Could not get source directory&quot;</span>).to_path_buf();
         cargo_target_dir.push(<span class="string">&quot;target&quot;</span>);
 
+        <span class="kw">let </span><span class="kw-2">mut </span>source_urls = BTreeMap::&lt;String, Url&gt;::new();
+
         <span class="kw">let </span>built = <span class="kw">super</span>::compile_implementation(
+            wasm_output_dir.as_path(),
             cargo_target_dir,
             <span class="kw-2">&amp;</span>wasm_output_dir,
-            implementation_source_path,
+            <span class="kw-2">&amp;</span>implementation_source_path,
             <span class="kw-2">&amp;mut </span>function,
             <span class="bool-val">true</span>,
             <span class="bool-val">false</span>,
             <span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)]
-            </span><span class="kw-2">&amp;mut </span>source_urls,
+            </span><span class="kw-2">&amp;mut </span>source_urls
         )
         .expect(<span class="string">&quot;compile_implementation() failed&quot;</span>);
 
@@ -912,8 +917,6 @@
         <span class="kw">let _ </span>= remove_file(<span class="kw-2">&amp;</span>expected_output_wasm);
         write(<span class="kw-2">&amp;</span>expected_output_wasm, <span class="string">b&quot;file touched during testing&quot;</span>)
             .expect(<span class="string">&quot;Could not write to file during testing&quot;</span>);
-        <span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)]
-        </span><span class="kw">let </span><span class="kw-2">mut </span>source_urls = BTreeSet::&lt;(Url, Url)&gt;::new();
 
         <span class="kw">let </span>(implementation_source_path, wasm_destination) = compile::get_paths(<span class="kw-2">&amp;</span>wasm_output_dir, <span class="kw-2">&amp;</span>function)
             .expect(<span class="string">&quot;Could not get paths for compiling&quot;</span>);
@@ -924,15 +927,18 @@
             .expect(<span class="string">&quot;Could not get source directory&quot;</span>).to_path_buf();
         cargo_target_dir.push(<span class="string">&quot;target&quot;</span>);
 
+        <span class="kw">let </span><span class="kw-2">mut </span>source_urls = BTreeMap::&lt;String, Url&gt;::new();
+
         <span class="kw">let </span>built = <span class="kw">super</span>::compile_implementation(
+            wasm_output_dir.as_path(),
             cargo_target_dir,
             <span class="kw-2">&amp;</span>wasm_output_dir,
-            implementation_source_path,
+            <span class="kw-2">&amp;</span>implementation_source_path,
             <span class="kw-2">&amp;mut </span>function,
             <span class="bool-val">false</span>,
             <span class="bool-val">false</span>,
             <span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)]
-            </span><span class="kw-2">&amp;mut </span>source_urls,
+            </span><span class="kw-2">&amp;mut </span>source_urls
         )
         .expect(<span class="string">&quot;compile_implementation() failed&quot;</span>);
 
@@ -948,9 +954,6 @@
             .into_path();
         <span class="kw">let </span>expected_output_wasm = wasm_output_dir.join(<span class="string">&quot;test.wasm&quot;</span>);
 
-        <span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)]
-            </span><span class="kw">let </span><span class="kw-2">mut </span>source_urls = BTreeSet::&lt;(Url, Url)&gt;::new();
-
         <span class="kw">let </span>(implementation_source_path, wasm_destination) = compile::get_paths(<span class="kw-2">&amp;</span>wasm_output_dir, <span class="kw-2">&amp;</span>function)
             .expect(<span class="string">&quot;Could not get paths for compiling&quot;</span>);
         <span class="macro">assert_eq!</span>(expected_output_wasm, wasm_destination);
@@ -959,15 +962,18 @@
             .expect(<span class="string">&quot;Could not get source directory&quot;</span>).to_path_buf();
         cargo_target_dir.push(<span class="string">&quot;target&quot;</span>);
 
+        <span class="kw">let </span><span class="kw-2">mut </span>source_urls = BTreeMap::&lt;String, Url&gt;::new();
+
         <span class="kw">let </span>built = <span class="kw">super</span>::compile_implementation(
+            wasm_output_dir.as_path(),
             cargo_target_dir,
             <span class="kw-2">&amp;</span>wasm_output_dir,
-            implementation_source_path,
+            <span class="kw-2">&amp;</span>implementation_source_path,
             <span class="kw-2">&amp;mut </span>function,
             <span class="bool-val">true</span>,
             <span class="bool-val">false</span>,
             <span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)]
-                </span><span class="kw-2">&amp;mut </span>source_urls,
+            </span><span class="kw-2">&amp;mut </span>source_urls
         ).expect(<span class="string">&quot;compile_implementation() failed&quot;</span>);
 
         <span class="macro">assert!</span>(!built);
@@ -982,9 +988,6 @@
             .expect(<span class="string">&quot;Could not create TempDir during testing&quot;</span>)
             .into_path();
 
-        <span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)]
-        </span><span class="kw">let </span><span class="kw-2">mut </span>source_urls = BTreeSet::&lt;(Url, Url)&gt;::new();
-
         <span class="kw">let </span>(implementation_source_path, _wasm_destination) = compile::get_paths(<span class="kw-2">&amp;</span>wasm_output_dir, <span class="kw-2">&amp;</span>function)
             .expect(<span class="string">&quot;Could not get paths for compiling&quot;</span>);
         <span class="kw">let </span><span class="kw-2">mut </span>cargo_target_dir = implementation_source_path.parent()
@@ -992,15 +995,18 @@
             .expect(<span class="string">&quot;Could not get source directory&quot;</span>).to_path_buf();
         cargo_target_dir.push(<span class="string">&quot;target&quot;</span>);
 
+        <span class="kw">let </span><span class="kw-2">mut </span>source_urls = BTreeMap::&lt;String, Url&gt;::new();
+
         <span class="macro">assert!</span>(<span class="kw">super</span>::compile_implementation(
+            wasm_output_dir.as_path(),
             cargo_target_dir,
             <span class="kw-2">&amp;</span>wasm_output_dir,
-            implementation_source_path,
+            <span class="kw-2">&amp;</span>implementation_source_path,
             <span class="kw-2">&amp;mut </span>function,
             <span class="bool-val">true</span>,
             <span class="bool-val">false</span>,
             <span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)]
-                </span><span class="kw-2">&amp;mut </span>source_urls,
+            </span><span class="kw-2">&amp;mut </span>source_urls
         )
             .is_err());
     }
@@ -1016,9 +1022,6 @@
         <span class="kw">let </span>expected_output_wasm = wasm_output_dir.join(<span class="string">&quot;test.wasm&quot;</span>);
         <span class="kw">let _ </span>= remove_file(<span class="kw-2">&amp;</span>expected_output_wasm);
 
-        <span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)]
-            </span><span class="kw">let </span><span class="kw-2">mut </span>source_urls = BTreeSet::&lt;(Url, Url)&gt;::new();
-
         <span class="kw">let </span>(implementation_source_path, wasm_destination) =
             compile::get_paths(<span class="kw-2">&amp;</span>wasm_output_dir, <span class="kw-2">&amp;</span>function)
             .expect(<span class="string">&quot;Could not get paths for compiling&quot;</span>);
@@ -1029,15 +1032,18 @@
             .expect(<span class="string">&quot;Could not get source directory&quot;</span>).to_path_buf();
         cargo_target_dir.push(<span class="string">&quot;target/wasm32-unknown-unknown/debug&quot;</span>);
 
+        <span class="kw">let </span><span class="kw-2">mut </span>source_urls = BTreeMap::&lt;String, Url&gt;::new();
+
         <span class="kw">let </span>built = <span class="kw">super</span>::compile_implementation(
+            wasm_output_dir.as_path(),
             cargo_target_dir,
             <span class="kw-2">&amp;</span>wasm_destination,
-            implementation_source_path,
+            <span class="kw-2">&amp;</span>implementation_source_path,
             <span class="kw-2">&amp;mut </span>function,
             <span class="bool-val">false</span>,
             <span class="bool-val">false</span>,
             <span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)]
-                </span><span class="kw-2">&amp;mut </span>source_urls,
+            </span><span class="kw-2">&amp;mut </span>source_urls
         )
             .expect(<span class="string">&quot;compile_implementation() failed&quot;</span>);
 
