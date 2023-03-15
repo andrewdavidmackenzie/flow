@@ -76,6 +76,8 @@ clean:
 	@echo "clean<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
 	@cargo clean
 	@find . -name target -type d | xargs rm -rf
+	@rm -rf $(HOME)/.flow/lib/flowstdlib
+	@rm -rf $(HOME)/.flow/samples/flowsamples
 
 .PHONY: build-binaries
 build-binaries: build-flowc build-flowr build-flowrex

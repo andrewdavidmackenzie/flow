@@ -26,7 +26,7 @@ use crate::errors::*;
 /// use flowcore::errors::Result;
 /// use flowcore::model::process::Process::FlowProcess;
 /// use tempdir::TempDir;
-/// use std::collections::BTreeSet;
+/// use std::collections::BTreeMap;
 /// use simpath::Simpath;
 /// use std::path::Path;
 /// use std::path::PathBuf;
@@ -41,15 +41,13 @@ use crate::errors::*;
 /// let mut url = Url::from_file_path(env::current_dir().unwrap()).unwrap();
 /// url = url.join("flowc/tests/test-flows/hello-world/hello-world.toml").unwrap();
 ///
-/// let mut source_urls = BTreeSet::<(Url, Url)>::new();
 /// let output_dir = TempDir::new("flow-test").expect("A temp dir").into_path();
 ///
 /// if let Ok(FlowProcess(mut flow)) = flowclib::compiler::parser::parse(&url,
-///                                                    &provider,
-///                                                    &mut source_urls) {
+///                                                    &provider) {
+///     let mut source_urls = BTreeMap::<String, Url>::new();
 ///     let tables = flowclib::compiler::compile::compile(&flow, &output_dir, false, false,
-///                                                       #[cfg(feature = "debugger")] &mut source_urls
-///                                                      ).unwrap();
+///                                                         &mut source_urls).unwrap();
 ///
 ///     // strip off filename so output_dir is where the root.toml file resides
 ///     let output_dir = TempDir::new("flow").unwrap().into_path();

@@ -113,7 +113,8 @@ pub fn compile(flow: &FlowDefinition,
                output_dir: &Path,
                skip_building: bool,
                optimize: bool,
-               #[cfg(feature = "debugger")] source_urls: &mut BTreeSet<(Url, Url)>,
+               #[cfg(feature = "debugger")]
+                source_urls: &mut BTreeMap<String, Url>
     ) -> Result<CompilerTables> {
     let mut tables = CompilerTables::new();
 
@@ -130,7 +131,7 @@ pub fn compile(flow: &FlowDefinition,
         &mut tables,
         skip_building,
         optimize,
-        #[cfg(feature = "debugger")] source_urls,
+        source_urls,
     ).chain_err(|| "Could not compile to wasm the flow's supplied implementation(s)")?;
 
     Ok(tables)
@@ -159,7 +160,8 @@ fn compile_supplied_implementations(
     tables: &mut CompilerTables,
     skip_building: bool,
     release_build: bool,
-    #[cfg(feature = "debugger")] source_urls: &mut BTreeSet<(Url, Url)>,
+    #[cfg(feature = "debugger")]
+    source_urls: &mut BTreeMap<String, Url>
 ) -> Result<String> {
     for function in &mut tables.functions {
         if function.get_lib_reference().is_none() && function.get_context_reference().is_none() {
@@ -173,13 +175,15 @@ fn compile_supplied_implementations(
             }
 
             compile_wasm::compile_implementation(
+                out_dir,
                 cargo_target_dir,
                 &wasm_destination,
-                implementation_source_path,
+                &implementation_source_path,
                 function,
                 skip_building,
                 release_build,
-                #[cfg(feature = "debugger")] source_urls,
+                #[cfg(feature = "debugger")]
+                source_urls,
             )?;
         }
     }
@@ -285,9 +289,8 @@ fn get_source(
 
 #[cfg(test)]
 mod test {
-    use std::collections::BTreeMap;
     #[cfg(feature = "debugger")]
-    use std::collections::BTreeSet;
+    use std::collections::BTreeMap;
     use std::path::Path;
 
     use tempdir::TempDir;
@@ -314,15 +317,15 @@ mod test {
         use super::super::get_source;
 
         /*
-                                    Create a HashTable of routes for use in tests.
-                                    Each entry (K, V) is:
-                                    - Key   - the route to a function's IO
-                                    - Value - a tuple of
-                                                - sub-route (or IO name) from the function to be used at runtime
-                                                - the id number of the function in the functions table, to select it at runtime
+                                                                                    Create a HashTable of routes for use in tests.
+                                                                                    Each entry (K, V) is:
+                                                                                    - Key   - the route to a function's IO
+                                                                                    - Value - a tuple of
+                                                                                                - sub-route (or IO name) from the function to be used at runtime
+                                                                                                - the id number of the function in the functions table, to select it at runtime
 
-                                    Plus a vector of test cases with the Route to search for and the expected function_id and output sub-route
-                                */
+                                                                                    Plus a vector of test cases with the Route to search for and the expected function_id and output sub-route
+                                                                                */
         #[allow(clippy::type_complexity)]
         fn test_source_routes() -> (
             BTreeMap<Route, (Source, usize)>,
@@ -441,16 +444,15 @@ mod test {
             ..Default::default()
         };
 
-        #[cfg(feature = "debugger")]
-        let mut source_urls = BTreeSet::<(Url, Url)>::new();
         let output_dir = TempDir::new("flow-test").expect("A temp dir").into_path();
-
+        let mut source_urls = BTreeMap::<String, Url>::new();
         // Optimizer should remove unconnected function leaving no side-effects
         match compile(&flow,
                       &output_dir,
                       true,
                       false,
-                      #[cfg(feature = "debugger")] &mut source_urls,
+                      #[cfg(feature = "debugger")]
+                        &mut source_urls
                         ) {
             Ok(_tables) => panic!("Flow should not compile when it has no side-effects"),
             Err(e) => assert_eq!("Flow has no side-effects", e.description()),

@@ -1,9 +1,3 @@
-#[cfg(feature = "debugger")]
-use std::collections::BTreeSet;
-
-#[cfg(feature = "debugger")]
-use url::Url;
-
 use flowclib::compiler::parser;
 use flowcore::meta_provider::MetaProvider;
 use flowcore::model::input::InputInitializer::Once;
@@ -40,10 +34,7 @@ fn malformed_connection() {
     let path = helper::absolute_file_url_from_relative_path(
         "flowc/tests/test-flows/malformed-connection/root.toml",
     );
-    match parser::parse(&path, &meta_provider,
-                     #[cfg(feature = "debugger")]
-                        &mut BTreeSet::<(Url, Url)>::new()
-    ) {
+    match parser::parse(&path, &meta_provider) {
         Ok(_) => panic!("root.toml should not load successfully"),
         Err(e) => {
             assert!(e.to_string().contains("connection errors found in flow"))
@@ -57,10 +48,7 @@ fn invalid_toml() {
                                           helper::get_canonical_context_root()
     );
     let path = helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/invalid/root.toml");
-    match parser::parse(&path, &meta_provider,
-                     #[cfg(feature = "debugger")]
-                    &mut BTreeSet::<(Url, Url)>::new()
-    ) {
+    match parser::parse(&path, &meta_provider) {
         Ok(_) => panic!("root.toml should not load successfully"),
         Err(e) => assert!(e.to_string().contains("Could not parse a valid flow process"))
     }
@@ -74,10 +62,7 @@ fn no_connections() {
     let path = helper::absolute_file_url_from_relative_path(
         "flowc/tests/test-flows/no-connections/root.toml",
     );
-    match parser::parse(&path, &meta_provider,
-                     #[cfg(feature = "debugger")]
-                    &mut BTreeSet::<(Url, Url)>::new()
-    ) {
+    match parser::parse(&path, &meta_provider) {
         Ok(_) => panic!("root.toml should not load successfully"),
         Err(e) => assert!(e.to_string().contains("connection errors found in flow"))
     }
@@ -92,10 +77,7 @@ fn function_input_initialized() {
         "flowc/tests/test-flows/function_input_init/root.toml",
     );
 
-    match parser::parse(&url, &meta_provider,
-                        #[cfg(feature = "debugger")]
-                       &mut BTreeSet::<(Url, Url)>::new()
-    ) {
+    match parser::parse(&url, &meta_provider) {
         Ok(FlowProcess(mut flow)) => match flow.subprocesses.get_mut(&Name::from("print")) {
             Some(FunctionProcess(print_function)) => {
                 assert_eq!(
@@ -126,10 +108,7 @@ fn root_flow_takes_name_from_file() {
     let url =
         helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/names/root.toml");
 
-    match parser::parse(&url, &meta_provider,
-                        #[cfg(feature = "debugger")]
-                           &mut BTreeSet::<(Url, Url)>::new()
-    ) {
+    match parser::parse(&url, &meta_provider) {
         Ok(FlowProcess(flow)) => assert_eq!(flow.name, Name::from("names")),
         _ => panic!("Flow could not be loaded"),
     }

@@ -1,5 +1,5 @@
 #[cfg(feature = "debugger")]
-use std::collections::BTreeSet;
+use std::collections::BTreeMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -23,13 +23,11 @@ use crate::Options;
 pub fn compile_and_execute_flow(options: &Options, provider: &dyn Provider) -> Result<()> {
     info!("==== Parsing flow hierarchy from '{}'", options.source_url);
     #[cfg(feature = "debugger")]
-    let mut source_urls = BTreeSet::<(Url, Url)>::new();
+    let mut source_urls = BTreeMap::<String, Url>::new();
 
     let root = parser::parse(
         &options.source_url,
         provider,
-        #[cfg(feature = "debugger")]
-        &mut source_urls,
     )?;
 
     match root {
@@ -39,7 +37,7 @@ pub fn compile_and_execute_flow(options: &Options, provider: &dyn Provider) -> R
                                               &options.output_dir,
                                               options.provided_implementations,
                                               options.optimize,
-                                              #[cfg(feature = "debugger")] &mut source_urls,
+                                                &mut source_urls
             ).chain_err(|| format!("Could not compile the flow '{}'", options.source_url))?;
 
             make_writeable(&options.output_dir)?;
@@ -60,7 +58,7 @@ pub fn compile_and_execute_flow(options: &Options, provider: &dyn Provider) -> R
                 options.debug_symbols,
                 &options.output_dir,
                 &tables,
-                #[cfg(feature = "debugger")] &source_urls,
+                #[cfg(feature = "debugger")] source_urls,
             )
             .chain_err(|| "Failed to write manifest")?;
 

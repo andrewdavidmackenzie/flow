@@ -1,5 +1,5 @@
 #[cfg(feature = "debugger")]
-use std::collections::BTreeSet;
+use std::collections::BTreeMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -18,25 +18,24 @@ use crate::errors::*;
 
 /// Compile a function's implementation to wasm and modify implementation to point to the wasm file
 /// Checks the timestamps of the source and wasm files and only recompiles if wasm file is out of date
+#[allow(clippy::too_many_arguments)]
 pub fn compile_implementation(
+    out_dir: &Path,
     cargo_target_dir: PathBuf, // where the binary will be built by cargo
     wasm_destination: &Path,
-    implementation_source_path: PathBuf,
+    implementation_source_path: &Path,
     function: &mut FunctionDefinition,
     native_only: bool,
     optimize: bool,
-    #[cfg(feature = "debugger")] source_urls: &mut BTreeSet<(Url, Url)>,
+    #[cfg(feature = "debugger")]
+    source_urls: &mut BTreeMap<String, Url>,
 ) -> Result<bool> {
     let mut built = false;
 
-    #[cfg(feature = "debugger")]
-    source_urls.insert((
-        Url::from_file_path(&implementation_source_path).map_err(|_| "Could not create Url from file path")?,
-        Url::from_file_path(wasm_destination)
-            .map_err(|_| "Could not create Url from file path")?,
-    ));
+    let wasm_relative_path = wasm_destination.strip_prefix(out_dir)
+        .map_err(|_| "Could not strip_prefix from wasm location path")?;
 
-    let (missing, out_of_date) = out_of_date(&implementation_source_path, wasm_destination)?;
+    let (missing, out_of_date) = out_of_date(implementation_source_path, wasm_destination)?;
 
     if missing || out_of_date {
         if native_only {
@@ -55,8 +54,8 @@ pub fn compile_implementation(
         } else {
             match function.build_type.as_str() {
                 "rust" => {
-                    cargo_build::run(&implementation_source_path, cargo_target_dir,
-                                     wasm_destination, optimize)?
+                    cargo_build::run(implementation_source_path, cargo_target_dir,
+                                     wasm_destination, optimize)?;
                 },
                 _ => bail!(
                     "Unknown build type '{}' for function at '{}'",
@@ -77,6 +76,10 @@ pub fn compile_implementation(
         );
     }
 
+    let function_source_url = Url::from_file_path(implementation_source_path)
+        .map_err(|_| "Could not create Url from source path")?;
+    source_urls.insert(wasm_relative_path.to_string_lossy().to_string(),
+                       function_source_url);
     function.set_implementation(
         wasm_destination
             .to_str()
@@ -187,8 +190,7 @@ fn out_of_date(source: &Path, derived: &Path) -> Result<(bool, bool)> {
 
 #[cfg(test)]
 mod test {
-    #[cfg(feature = "debugger")]
-    use std::collections::BTreeSet;
+    use std::collections::BTreeMap;
     use std::env;
     use std::fs::{File, remove_file, write};
     use std::path::Path;
@@ -350,9 +352,6 @@ mod test {
         let expected_output_wasm = wasm_output_dir.join("test.wasm");
         let _ = remove_file(&expected_output_wasm);
 
-        #[cfg(feature = "debugger")]
-        let mut source_urls = BTreeSet::<(Url, Url)>::new();
-
         let (implementation_source_path, wasm_destination) = compile::get_paths(&wasm_output_dir, &function)
             .expect("Could not get paths for compiling");
         assert_eq!(wasm_destination, expected_output_wasm);
@@ -362,15 +361,18 @@ mod test {
             .expect("Could not get source directory").to_path_buf();
         cargo_target_dir.push("target");
 
+        let mut source_urls = BTreeMap::<String, Url>::new();
+
         let built = super::compile_implementation(
+            wasm_output_dir.as_path(),
             cargo_target_dir,
             &wasm_output_dir,
-            implementation_source_path,
+            &implementation_source_path,
             &mut function,
             true,
             false,
             #[cfg(feature = "debugger")]
-            &mut source_urls,
+            &mut source_urls
         )
         .expect("compile_implementation() failed");
 
@@ -389,8 +391,6 @@ mod test {
         let _ = remove_file(&expected_output_wasm);
         write(&expected_output_wasm, b"file touched during testing")
             .expect("Could not write to file during testing");
-        #[cfg(feature = "debugger")]
-        let mut source_urls = BTreeSet::<(Url, Url)>::new();
 
         let (implementation_source_path, wasm_destination) = compile::get_paths(&wasm_output_dir, &function)
             .expect("Could not get paths for compiling");
@@ -401,15 +401,18 @@ mod test {
             .expect("Could not get source directory").to_path_buf();
         cargo_target_dir.push("target");
 
+        let mut source_urls = BTreeMap::<String, Url>::new();
+
         let built = super::compile_implementation(
+            wasm_output_dir.as_path(),
             cargo_target_dir,
             &wasm_output_dir,
-            implementation_source_path,
+            &implementation_source_path,
             &mut function,
             false,
             false,
             #[cfg(feature = "debugger")]
-            &mut source_urls,
+            &mut source_urls
         )
         .expect("compile_implementation() failed");
 
@@ -425,9 +428,6 @@ mod test {
             .into_path();
         let expected_output_wasm = wasm_output_dir.join("test.wasm");
 
-        #[cfg(feature = "debugger")]
-            let mut source_urls = BTreeSet::<(Url, Url)>::new();
-
         let (implementation_source_path, wasm_destination) = compile::get_paths(&wasm_output_dir, &function)
             .expect("Could not get paths for compiling");
         assert_eq!(expected_output_wasm, wasm_destination);
@@ -436,15 +436,18 @@ mod test {
             .expect("Could not get source directory").to_path_buf();
         cargo_target_dir.push("target");
 
+        let mut source_urls = BTreeMap::<String, Url>::new();
+
         let built = super::compile_implementation(
+            wasm_output_dir.as_path(),
             cargo_target_dir,
             &wasm_output_dir,
-            implementation_source_path,
+            &implementation_source_path,
             &mut function,
             true,
             false,
             #[cfg(feature = "debugger")]
-                &mut source_urls,
+            &mut source_urls
         ).expect("compile_implementation() failed");
 
         assert!(!built);
@@ -459,9 +462,6 @@ mod test {
             .expect("Could not create TempDir during testing")
             .into_path();
 
-        #[cfg(feature = "debugger")]
-        let mut source_urls = BTreeSet::<(Url, Url)>::new();
-
         let (implementation_source_path, _wasm_destination) = compile::get_paths(&wasm_output_dir, &function)
             .expect("Could not get paths for compiling");
         let mut cargo_target_dir = implementation_source_path.parent()
@@ -469,15 +469,18 @@ mod test {
             .expect("Could not get source directory").to_path_buf();
         cargo_target_dir.push("target");
 
+        let mut source_urls = BTreeMap::<String, Url>::new();
+
         assert!(super::compile_implementation(
+            wasm_output_dir.as_path(),
             cargo_target_dir,
             &wasm_output_dir,
-            implementation_source_path,
+            &implementation_source_path,
             &mut function,
             true,
             false,
             #[cfg(feature = "debugger")]
-                &mut source_urls,
+            &mut source_urls
         )
             .is_err());
     }
@@ -493,9 +496,6 @@ mod test {
         let expected_output_wasm = wasm_output_dir.join("test.wasm");
         let _ = remove_file(&expected_output_wasm);
 
-        #[cfg(feature = "debugger")]
-            let mut source_urls = BTreeSet::<(Url, Url)>::new();
-
         let (implementation_source_path, wasm_destination) =
             compile::get_paths(&wasm_output_dir, &function)
             .expect("Could not get paths for compiling");
@@ -506,15 +506,18 @@ mod test {
             .expect("Could not get source directory").to_path_buf();
         cargo_target_dir.push("target/wasm32-unknown-unknown/debug");
 
+        let mut source_urls = BTreeMap::<String, Url>::new();
+
         let built = super::compile_implementation(
+            wasm_output_dir.as_path(),
             cargo_target_dir,
             &wasm_destination,
-            implementation_source_path,
+            &implementation_source_path,
             &mut function,
             false,
             false,
             #[cfg(feature = "debugger")]
-                &mut source_urls,
+            &mut source_urls
         )
             .expect("compile_implementation() failed");
 
