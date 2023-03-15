@@ -22,9 +22,8 @@ use crate::Options;
 /// Compile a flow, maybe run it
 pub fn compile_and_execute_flow(options: &Options, provider: &dyn Provider) -> Result<()> {
     info!("==== Parsing flow hierarchy from '{}'", options.source_url);
-    // TODO source_urls for flows
-//    #[cfg(feature = "debugger")]
-    let source_urls = BTreeMap::<String, Url>::new();
+    #[cfg(feature = "debugger")]
+    let mut source_urls = BTreeMap::<String, Url>::new();
 
     let root = parser::parse(
         &options.source_url,
@@ -38,6 +37,7 @@ pub fn compile_and_execute_flow(options: &Options, provider: &dyn Provider) -> R
                                               &options.output_dir,
                                               options.provided_implementations,
                                               options.optimize,
+                                                &mut source_urls
             ).chain_err(|| format!("Could not compile the flow '{}'", options.source_url))?;
 
             make_writeable(&options.output_dir)?;

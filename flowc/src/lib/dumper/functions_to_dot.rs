@@ -45,8 +45,9 @@ use crate::errors::*;
 ///
 /// if let Ok(FlowProcess(mut flow)) = flowclib::compiler::parser::parse(&url,
 ///                                                    &provider) {
-///     let tables = flowclib::compiler::compile::compile(&flow, &output_dir, false, false
-///                                                      ).unwrap();
+///     let mut source_urls = BTreeMap::<String, Url>::new();
+///     let tables = flowclib::compiler::compile::compile(&flow, &output_dir, false, false,
+///                                                         &mut source_urls).unwrap();
 ///
 ///     // strip off filename so output_dir is where the root.toml file resides
 ///     let output_dir = TempDir::new("flow").unwrap().into_path();

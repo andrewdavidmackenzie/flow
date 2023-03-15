@@ -1,5 +1,10 @@
+#[cfg(feature = "debugger")]
+use std::collections::BTreeMap;
+
 use serde_json::json;
 use tempdir::TempDir;
+#[cfg(feature = "debugger")]
+use url::Url;
 
 use flowclib::compiler::{compile, parser};
 use flowcore::meta_provider::MetaProvider;
@@ -41,9 +46,11 @@ fn object_to_array_connection() {
     if let FlowProcess(ref flow) = process {
         let output_dir = TempDir::new("flow-test").expect("A temp dir").into_path();
 
-        let _tables = compile::compile(flow,
-                                       &output_dir, false, false,
-        ).expect("Could not compile flow");
+        #[cfg(feature = "debugger")]
+        let mut source_urls = BTreeMap::<String, Url>::new();
+
+        let _tables = compile::compile(flow, &output_dir, false, false, &mut source_urls)
+            .expect("Could not compile flow");
     } else {
         panic!("Process loaded was not a flow");
     }
@@ -62,8 +69,10 @@ fn context_with_io() {
     if let FlowProcess(ref flow) = process {
         let output_dir = TempDir::new("flow-test").expect("A temp dir").into_path();
 
-        if compile::compile(flow, &output_dir, false, false,
-        ).is_ok() {
+        #[cfg(feature = "debugger")]
+            let mut source_urls = BTreeMap::<String, Url>::new();
+
+        if compile::compile(flow, &output_dir, false, false, &mut source_urls).is_ok() {
             // flow loaded, but has ios
             assert!(!flow.inputs().is_empty());
             assert!(!flow.outputs().is_empty());
@@ -86,8 +95,11 @@ fn same_name_input_and_output() {
     if let FlowProcess(ref flow) = process {
         let output_dir = TempDir::new("flow-test").expect("A temp dir").into_path();
 
+        #[cfg(feature = "debugger")]
+            let mut source_urls = BTreeMap::<String, Url>::new();
+
         let tables = compile::compile(flow, &output_dir, false, false,
-        ).expect("Could not compile flow");
+                                      &mut source_urls).expect("Could not compile flow");
         // If done correctly there should only be two connections
         assert_eq!(2, tables.collapsed_connections.len());
     } else {
@@ -108,8 +120,11 @@ fn same_name_flow_ids() {
     if let FlowProcess(ref flow) = process {
         let output_dir = TempDir::new("flow-test").expect("A temp dir").into_path();
 
+        #[cfg(feature = "debugger")]
+            let mut source_urls = BTreeMap::<String, Url>::new();
+
         let tables = compile::compile(flow, &output_dir, false, false,
-        ).expect("Could not compile flow");
+                                      &mut source_urls).expect("Could not compile flow");
 
         // print function in context flow should have flow_id = 0
         let print_function = tables
@@ -140,8 +155,10 @@ fn connection_to_input_with_constant_initializer() {
     if let FlowProcess(ref flow) = process {
         let output_dir = TempDir::new("flow-test").expect("A temp dir").into_path();
 
-        if compile::compile(flow, &output_dir, false, false,
-        ).is_ok() {
+        #[cfg(feature = "debugger")]
+            let mut source_urls = BTreeMap::<String, Url>::new();
+
+        if compile::compile(flow, &output_dir, false, false, &mut source_urls).is_ok() {
             panic!("Process should not have loaded due to connection to input with a constant initializer");
         }
     } else {
@@ -161,8 +178,11 @@ fn args() {
     if let FlowProcess(ref flow) = process {
         let output_dir = TempDir::new("flow-test").expect("A temp dir").into_path();
 
+        #[cfg(feature = "debugger")]
+            let mut source_urls = BTreeMap::<String, Url>::new();
+
         let _tables = compile::compile(flow, &output_dir, false, false,
-        ).expect("Could not compile flow");
+                                       &mut source_urls).expect("Could not compile flow");
     } else {
         panic!("Process loaded was not a flow");
     }
@@ -180,8 +200,11 @@ fn no_side_effects() {
         FlowProcess(ref flow) => {
             let output_dir = TempDir::new("flow-test").expect("A temp dir").into_path();
 
+            #[cfg(feature = "debugger")]
+                let mut source_urls = BTreeMap::<String, Url>::new();
+
             match compile::compile(flow, &output_dir, false, false,
-            ) {
+                                   &mut source_urls) {
                 Ok(_tables) => panic!("Flow should not compile when it has no side-effects"),
                 Err(e) => assert_eq!("Flow has no side-effects", e.description()),
             }
@@ -201,8 +224,11 @@ fn compile_echo_ok() {
     if let FlowProcess(ref flow) = process {
         let output_dir = TempDir::new("flow-test").expect("A temp dir").into_path();
 
+        #[cfg(feature = "debugger")]
+            let mut source_urls = BTreeMap::<String, Url>::new();
+
         let _tables = compile::compile(flow, &output_dir, false, false,
-        ).expect("Could not compile flow");
+                                       &mut source_urls).expect("Could not compile flow");
     } else {
         panic!("Process loaded was not a flow");
     }
@@ -221,9 +247,12 @@ fn compiler_detects_unused_input() {
     if let FlowProcess(ref flow) = process {
         let output_dir = TempDir::new("flow-test").expect("A temp dir").into_path();
 
+        #[cfg(feature = "debugger")]
+            let mut source_urls = BTreeMap::<String, Url>::new();
+
         assert!(
             compile::compile(flow, &output_dir, false, false,
-            ).is_err(),
+                             &mut source_urls).is_err(),
             "Should not compile due to unused input"
         );
     } else {
@@ -249,8 +278,11 @@ fn flow_input_propagated_back_out() {
         Ok(FlowProcess(context)) => {
             let output_dir = TempDir::new("flow-test").expect("A temp dir").into_path();
 
+            #[cfg(feature = "debugger")]
+                let mut source_urls = BTreeMap::<String, Url>::new();
+
             match compile::compile(&context, &output_dir, false, false,
-            ) {
+                                   &mut source_urls) {
                 Ok(_tables) => {}
                 Err(error) => panic!("Couldn't compile the flow from test file at '{url}'\n{}",
                                      error),
@@ -278,8 +310,11 @@ fn initialized_output_propagated() {
         Ok(FlowProcess(context)) => {
             let output_dir = TempDir::new("flow-test").expect("A temp dir").into_path();
 
+            #[cfg(feature = "debugger")]
+                let mut source_urls = BTreeMap::<String, Url>::new();
+
             match compile::compile(&context, &output_dir, false, false,
-            ) {
+                                   &mut source_urls) {
                 Ok(tables) => {
                     match tables
                         .functions
@@ -328,8 +363,11 @@ fn initialized_input_to_subflow() {
         Ok(FlowProcess(root)) => {
             let output_dir = TempDir::new("flow-test").expect("A temp dir").into_path();
 
+            #[cfg(feature = "debugger")]
+                let mut source_urls = BTreeMap::<String, Url>::new();
+
             match compile::compile(&root, &output_dir, false, false,
-            ) {
+                                   &mut source_urls) {
                 Ok(tables) => {
                     match tables
                         .functions

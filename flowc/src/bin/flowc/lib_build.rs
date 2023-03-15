@@ -200,12 +200,15 @@ fn compile_functions(
                             .map_err(|_| "Could not calculate wasm_relative_path")?;
 
                         let built = compile_wasm::compile_implementation(
+                            output_dir.as_path(),
                             target_dir,
                             &wasm_destination,
                             &source_path,
                             function,
                             options.native_only,
                             options.optimize,
+                            #[cfg(feature = "debugger")]
+                            &mut lib_manifest.source_urls,
                         ).chain_err(|| "Could not compile implementation to wasm")?;
 
                         if built {
