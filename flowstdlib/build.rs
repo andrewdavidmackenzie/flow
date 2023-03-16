@@ -11,6 +11,7 @@ fn main() -> io::Result<()> {
 
     // Tell Cargo that if any file changes it should rerun this build script
     println!("cargo:rerun-if-changed={lib_root_dir_str}");
+    println!("cargo:rerun-if-changed={out_dir}");
 
     let mut command = Command::new("flowc");
     // flowc options:   -v info : to log output at INFO level,
@@ -27,13 +28,14 @@ fn main() -> io::Result<()> {
     match command.args(&command_args).status() {
         Ok(stat) => {
             if !stat.success() {
-                eprintln!("Error building sample, command line\n flowc {}",
+                eprintln!("Error building flowstdlib, command line\nflowc {}",
                           command_args.join(" "));
                 std::process::exit(1);
             }
         }
         Err(err) => {
-            eprintln!("'{}' running 'flowc {}'", err, command_args.join(" "));
+            eprintln!("Error building flowstdlib, command line\nflowc {}\nError: {}",
+                      command_args.join(" "), err);
             std::process::exit(1);
         }
     }
