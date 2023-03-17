@@ -18,6 +18,7 @@ use std::process::exit;
 use std::sync::{Arc, Mutex};
 
 use clap::{Arg, ArgMatches, Command};
+use env_logger::Builder;
 use log::{info, LevelFilter, trace, warn};
 use portpicker::pick_unused_port;
 use simpath::Simpath;
@@ -39,7 +40,6 @@ use cli::debug_server_message::DebugServerMessage::{BlockBreakpoint, DataBreakpo
                                                     ExitingDebugger, JobCompleted, JobError, Panic, PriorToSendingJob,
                                                     Resetting, WaitingForCommand};
 use cli::runtime_messages::ClientMessage;
-use env_logger::Builder;
 use flowcore::errors::*;
 use flowcore::meta_provider::MetaProvider;
 use flowcore::model::flow_manifest::FlowManifest;
@@ -89,19 +89,16 @@ fn main() {
 /// For the lib provider, libraries maybe installed in multiple places in the file system.
 /// In order to find the content, a FLOW_LIB_PATH environment variable can be configured with a
 /// list of directories in which to look for the library in question.
-///
-/// Using the "FLOW_LIB_PATH" environment variable attempt to locate the library's root folder
-/// in the file system.
-fn setup_lib_search_path(search_path_additions: &[String]) -> Result<Simpath> {
+fn get_lib_search_path(search_path_additions: &[String]) -> Result<Simpath> {
     let mut lib_search_path = Simpath::new_with_separator("FLOW_LIB_PATH", ',');
-
-    if env::var("FLOW_LIB_PATH").is_err() && search_path_additions.is_empty() {
-        warn!("'FLOW_LIB_PATH' is not set, and no LIB_DIRS supplied, so it is possible libraries referenced will not be found");
-    }
 
     for additions in search_path_additions {
         lib_search_path.add(additions);
         info!("'{}' added to the Library Search Path", additions);
+    }
+
+    if lib_search_path.is_empty() {
+        warn!("'$FLOW_LIB_PATH' not set and no LIB_DIRS supplied. Libraries may not be found.");
     }
 
     Ok(lib_search_path)
@@ -138,7 +135,7 @@ fn run() -> Result<()> {
     } else {
         vec![]
     };
-    let lib_search_path = setup_lib_search_path(&lib_dirs)?;
+    let lib_search_path = get_lib_search_path(&lib_dirs)?;
     let num_threads = num_threads(&matches);
 
     if let Some(discovery_port) = matches.get_one::<u16>("client") {
