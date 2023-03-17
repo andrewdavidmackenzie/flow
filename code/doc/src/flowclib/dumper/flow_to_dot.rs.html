@@ -473,8 +473,6 @@
 <a href="#473" id="473">473</a>
 <a href="#474" id="474">474</a>
 <a href="#475" id="475">475</a>
-<a href="#476" id="476">476</a>
-<a href="#477" id="477">477</a>
 </pre><pre class="rust"><code><span class="kw">use </span>std::collections::hash_map::DefaultHasher;
 <span class="kw">use </span>std::fmt::Write <span class="kw">as </span>FormatWrite;
 <span class="kw">use </span>std::hash::{Hash, Hasher};
@@ -525,9 +523,7 @@
 /// let mut url = Url::from_file_path(env::current_dir().unwrap()).unwrap();
 /// url = url.join(&quot;samples/hello-world/root.toml&quot;).unwrap();
 ///
-/// if let Ok(FlowProcess(mut flow)) = flowclib::compiler::parser::parse(&amp;url,
-///                                                    &amp;provider) {
-///
+/// if let Ok(FlowProcess(mut flow)) = flowclib::compiler::parser::parse(&amp;url, &amp;provider) {
 ///     // strip off filename so output_dir is where the root.toml file resides
 ///     let output_dir = TempDir::new(&quot;flow&quot;).unwrap().into_path();
 ///
