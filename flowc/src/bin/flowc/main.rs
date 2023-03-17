@@ -17,11 +17,11 @@ use std::path::PathBuf;
 use std::process::exit;
 
 use clap::{Arg, ArgMatches, Command};
+use env_logger::Builder;
 use log::{debug, info, LevelFilter, warn};
 use simpath::Simpath;
 use url::Url;
 
-use env_logger::Builder;
 use errors::*;
 use flowclib::info;
 use flowcore::meta_provider::MetaProvider;
@@ -86,15 +86,13 @@ fn main() {
 fn get_lib_search_path(search_path_additions: &[String]) -> Result<Simpath> {
     let mut lib_search_path = Simpath::new_with_separator("FLOW_LIB_PATH", ',');
 
-    if env::var("FLOW_LIB_PATH").is_err() && search_path_additions.is_empty() {
-        warn!(
-            "'FLOW_LIB_PATH' env var not set and no LIB_DIRS options supplied. Library references may not be found."
-        );
-    }
-
     for addition in search_path_additions {
         lib_search_path.add(addition);
         info!("'{}' added to the Library Search Path", addition);
+    }
+
+    if lib_search_path.is_empty() {
+        warn!("'$FLOW_LIB_PATH' not set and no LIB_DIRS supplied. Libraries may not be found.");
     }
 
     Ok(lib_search_path)

@@ -30,7 +30,7 @@ flowstdlib = {path = "../flowstdlib", version = "0.95.0" }
 clap = "~4"
 log = "0.4.6"
 env_logger = "0.10.0"
-simpath = { version = "~2.3", features = ["urls"]}
+simpath = { version = "~2.4", features = ["urls"]}
 url = { version = "2.2", features = ["serde"] }
 serde_derive = "~1.0.27"
 serde = "~1.0.156"

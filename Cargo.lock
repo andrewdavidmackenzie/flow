@@ -1843,9 +1843,9 @@ checksum = "14a5df39617d7c8558154693a1bb8157a4aab8179209540cc0b10e5dc24e0b18"
 
 [[package]]
 name = "simpath"
-version = "2.3.0"
+version = "2.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cdb3eae8e7fa87ca118667ebdd5cae288922dbccc0244737ea6fcb136aba4eaa"
+checksum = "686bb1496a9f68076f312f472d14044807fc119464ff5086f86a26ed83fcf08c"
 dependencies = [
  "curl",
  "url",
