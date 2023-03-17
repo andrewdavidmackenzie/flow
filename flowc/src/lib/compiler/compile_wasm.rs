@@ -244,16 +244,14 @@ mod test {
             .into_path();
 
         // make older file
-        let older = output_dir.join("older");
-        let derived = older.clone();
-        write(&older, "older").expect("Could not write to file during testing");
+        let derived = output_dir.join("older");
+        write(&derived, "older").expect("Could not write to file during testing");
 
         std::thread::sleep(Duration::from_secs(1));
 
         // make second/newer file
-        let newer = output_dir.join("newer");
-        let source = newer.clone();
-        write(&newer, "newer").expect("Could not write to file during testing");
+        let source = output_dir.join("newer");
+        write(&source, "newer").expect("Could not write to file during testing");
 
         assert!(
             out_of_date(&source, &derived)
@@ -269,14 +267,12 @@ mod test {
             .into_path();
 
         // make older file
-        let older = output_dir.join("older");
-        let source = older.clone();
-        write(&older, "older").expect("Could not write to file {} during testing");
+        let source = output_dir.join("older");
+        write(&source, "older").expect("Could not write to file {} during testing");
 
         // make second/newer file
-        let newer = output_dir.join("newer");
-        let derived = newer.clone();
-        write(&newer, "newer").expect("Could not write to file {} during testing");
+        let derived = output_dir.join("newer");
+        write(&derived, "newer").expect("Could not write to file {} during testing");
 
         assert!(
             !out_of_date(&source, &derived)
@@ -292,16 +288,14 @@ mod test {
             .into_path();
 
         // make older file
-        let older = output_dir.join("older");
-        let source = older.clone();
-        write(&older, "older").expect("Could not write to file {} during testing");
+        let source = output_dir.join("older");
+        write(&source, "older").expect("Could not write to file {} during testing");
 
         // make second/newer file
-        let newer = output_dir.join("newer");
-        write(&newer, "newer").expect("Could not write to file {} during testing");
+        let derived = output_dir.join("newer");
+        write(&derived, "newer").expect("Could not write to file {} during testing");
 
-        let derived = newer.clone();
-        remove_file(newer).unwrap_or_else(|_| panic!("Error in 'remove_file' during testing"));
+        remove_file(&derived).unwrap_or_else(|_| panic!("Error in 'remove_file' during testing"));
 
         assert!(
             out_of_date(&source, &derived)
