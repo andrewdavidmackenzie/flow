@@ -146,14 +146,14 @@ fn run() -> Result<()> {
             discovery_port,
         )?;
     } else if matches.get_flag("server") {
-        server_only(
+        coordinator_only(
             num_threads,
             lib_search_path,
             native_flowstdlib,
             context_only,
         )?;
     } else {
-        client_and_server(
+        client_and_coordinator(
             num_threads,
             lib_search_path,
             native_flowstdlib,
@@ -166,8 +166,8 @@ fn run() -> Result<()> {
     Ok(())
 }
 
-/// Start just a server - by running a Coordinator in the calling thread.
-fn server_only(
+/// Start just a [Coordinator][flowrlib::coordinator::Coordinator] in the calling thread.
+fn coordinator_only(
                 num_threads: usize,
                 lib_search_path: Simpath,
                 native_flowstdlib: bool,
@@ -191,7 +191,7 @@ fn server_only(
     println!("{discovery_port}");
 
     info!("Starting 'flowr' server process in main thread");
-    server(
+    coordinator(
         num_threads,
         lib_search_path,
         native_flowstdlib,
@@ -206,9 +206,9 @@ fn server_only(
     Ok(())
 }
 
-/// Start a Server by running a [Coordinator][flowrlib::coordinator::Coordinator] in a background thread,
+/// Start a [Coordinator][flowrlib::coordinator::Coordinator] in a background thread,
 /// then start a client in the calling thread
-fn client_and_server(
+fn client_and_coordinator(
     num_threads: usize,
     lib_search_path: Simpath,
     native_flowstdlib: bool,
@@ -235,7 +235,7 @@ fn client_and_server(
 
     thread::spawn(move || {
         info!("Starting 'flowr' server in background thread");
-        let _ = server(
+        let _ = coordinator(
             num_threads,
             server_lib_search_path,
             native_flowstdlib,
@@ -299,7 +299,7 @@ fn get_four_ports() -> Result<(u16, u16, u16, u16)> {
 /// Create a new `Coordinator`, pre-load any libraries in native format that we want to have before
 /// loading a flow and it's library references, then enter the `submission_loop()` accepting and
 /// executing flows submitted for execution, executing each one using the `Coordinator`
-fn server(
+fn coordinator(
     num_threads: usize,
     lib_search_path: Simpath,
     native_flowstdlib: bool,
@@ -398,7 +398,7 @@ fn client_only(
 fn client(
     matches: &ArgMatches,
     lib_search_path: Simpath,
-    runtime_client_connection: ClientConnection,
+    client_connection: ClientConnection,
     #[cfg(feature = "debugger")] debug_this_flow: bool,
     #[cfg(feature = "debugger")] discovery_post: u16,
 ) -> Result<()> {
@@ -420,7 +420,7 @@ fn client(
     );
 
     trace!("Creating CliRuntimeClient");
-    let runtime_client = CliRuntimeClient::new(
+    let client = CliRuntimeClient::new(
         flow_args,
         override_args.clone(),
         #[cfg(feature = "metrics")] matches.get_flag("metrics"),
@@ -439,10 +439,10 @@ fn client(
     }
 
     info!("Client sending submission to server");
-    runtime_client_connection.send(ClientMessage::ClientSubmission(submission))?;
+    client_connection.send(ClientMessage::ClientSubmission(submission))?;
 
-    runtime_client.event_loop(
-                                runtime_client_connection,
+    client.event_loop(
+        client_connection,
     )?;
 
     Ok(())
