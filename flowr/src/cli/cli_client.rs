@@ -46,18 +46,18 @@ impl CliRuntimeClient {
         loop {
             match connection.receive() {
                 Ok(event) => {
-                    let response = self.process_server_message(event);
-                    if let ClientMessage::ClientExiting(server_result) = response {
+                    let response = self.process_coordinator_message(event);
+                    if let ClientMessage::ClientExiting(coordinator_result) = response {
                         debug!("Client is exiting the event loop.");
-                        return server_result;
+                        return coordinator_result;
                     }
 
                     let _ = connection.send(response);
                 }
                 Err(e) => {
                     // When debugging, a Control-C to break into the debugger will cause receive()
-                    // to return an error. Ignore it so we continue to process events from server
-                    bail!("Error receiving message from server: '{}'", e);
+                    // to return an error. Ignore it so we continue to process events from coordinator
+                    bail!("Error receiving message from coordinator: '{}'", e);
                 }
             }
         }
@@ -72,7 +72,7 @@ impl CliRuntimeClient {
         }
     }
 
-    fn process_server_message(&mut self, message: CoordinatorMessage) -> ClientMessage {
+    fn process_coordinator_message(&mut self, message: CoordinatorMessage) -> ClientMessage {
         match message {
             #[cfg(feature = "metrics")]
             CoordinatorMessage::FlowEnd(metrics) => {
@@ -96,7 +96,7 @@ impl CliRuntimeClient {
                 ClientMessage::Ack
             }
             CoordinatorMessage::CoordinatorExiting(result) => {
-                debug!("Server is exiting");
+                debug!("Coordinator is exiting");
                 ClientMessage::ClientExiting(result)
             }
             CoordinatorMessage::StdoutEof => ClientMessage::Ack,
@@ -213,7 +213,7 @@ mod test {
             false,
         );
 
-        match client.process_server_message(CoordinatorMessage::GetArgs) {
+        match client.process_coordinator_message(CoordinatorMessage::GetArgs) {
             ClientMessage::Args(args) => assert_eq!(
                 vec!("file:///test_flow.toml".to_string(), "1".to_string()),
                 args
@@ -238,7 +238,7 @@ mod test {
             overrides.push("override".into());
         }
 
-        match client.process_server_message(CoordinatorMessage::GetArgs) {
+        match client.process_coordinator_message(CoordinatorMessage::GetArgs) {
             ClientMessage::Args(args) => assert_eq!(
                 vec!("file:///test_flow.toml".to_string(), "override".to_string()),
                 args
@@ -267,7 +267,7 @@ mod test {
             false,
         );
 
-        match client.process_server_message(CoordinatorMessage::Read(file_path.clone())) {
+        match client.process_coordinator_message(CoordinatorMessage::Read(file_path.clone())) {
             ClientMessage::FileContents(path_read, contents) => {
                 assert_eq!(path_read, file_path);
                 assert_eq!(contents, test_contents)
@@ -290,7 +290,7 @@ mod test {
             false,
         );
 
-        match client.process_server_message(CoordinatorMessage::Write(
+        match client.process_coordinator_message(CoordinatorMessage::Write(
             file.to_str().expect("Couldn't get filename").to_string(),
             b"Hello".to_vec())) {
             ClientMessage::Ack => {},
@@ -306,7 +306,7 @@ mod test {
             #[cfg(feature = "metrics")]
             false,
         );
-        match client.process_server_message(CoordinatorMessage::Stdout("Hello".into())) {
+        match client.process_coordinator_message(CoordinatorMessage::Stdout("Hello".into())) {
             ClientMessage::Ack => {},
             _ => panic!("Didn't get Stdout response as expected"),
         }
@@ -320,7 +320,7 @@ mod test {
             #[cfg(feature = "metrics")]
             false,
         );
-        match client.process_server_message(CoordinatorMessage::Stderr("Hello".into())) {
+        match client.process_coordinator_message(CoordinatorMessage::Stderr("Hello".into())) {
             ClientMessage::Ack => {},
             _ => panic!("Didn't get Stderr response as expected"),
         }
@@ -343,31 +343,31 @@ mod test {
         let _ = fs::remove_file(&path);
         assert!(!path.exists());
 
-        client.process_server_message(CoordinatorMessage::FlowStart);
+        client.process_coordinator_message(CoordinatorMessage::FlowStart);
         let pixel =
             CoordinatorMessage::PixelWrite((0, 0), (255, 200, 20), (10, 10), path.display().to_string());
-        match client.process_server_message(pixel) {
+        match client.process_coordinator_message(pixel) {
             ClientMessage::Ack => {},
             _ => panic!("Didn't get pixel write response as expected"),
         }
 
         #[cfg(not(feature = "metrics"))]
-        client.process_server_message(CoordinatorMessage::FlowEnd);
+        client.process_coordinator_message(CoordinatorMessage::FlowEnd);
         #[cfg(feature = "metrics")]
-        client.process_server_message(CoordinatorMessage::FlowEnd(Metrics::new(1)));
+        client.process_coordinator_message(CoordinatorMessage::FlowEnd(Metrics::new(1)));
 
         assert!(path.exists(), "Image file was not created");
     }
 
     #[test]
-    fn server_exiting() {
+    fn coordinator_exiting() {
         let mut client = CliRuntimeClient::new(
             vec!["file:///test_flow.toml".to_string()],
             Arc::new(Mutex::new(vec!())),
             #[cfg(feature = "metrics")] false,
         );
 
-        match client.process_server_message(CoordinatorMessage::CoordinatorExiting(Ok(()))) {
+        match client.process_coordinator_message(CoordinatorMessage::CoordinatorExiting(Ok(()))) {
             ClientMessage::ClientExiting(_) => {},
             _ => panic!("Didn't get ClientExiting response as expected"),
         }
