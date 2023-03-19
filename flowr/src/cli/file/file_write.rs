@@ -5,13 +5,13 @@ use serde_json::Value;
 use flowcore::{Implementation, RUN_AGAIN, RunAgain};
 use flowcore::errors::*;
 
-use crate::cli::client_server::ServerConnection;
-use crate::cli::runtime_messages::{ClientMessage, ServerMessage};
+use crate::cli::client_coordinator::CoordinatorConnection;
+use crate::cli::messages::{ClientMessage, CoordinatorMessage};
 
 /// `Implementation` struct for the `file_write` function
 pub struct FileWrite {
     /// It holds a reference to the runtime client in order to get file contents
-    pub server_connection: Arc<Mutex<ServerConnection>>,
+    pub server_connection: Arc<Mutex<CoordinatorConnection>>,
 }
 
 impl Implementation for FileWrite {
@@ -28,7 +28,7 @@ impl Implementation for FileWrite {
             .iter()
             .map(|byte_value| byte_value.as_u64().unwrap_or(0) as u8)
             .collect();
-        let _ = server.send_and_receive_response::<ServerMessage, ClientMessage>(ServerMessage::Write(
+        let _ = server.send_and_receive_response::<CoordinatorMessage, ClientMessage>(CoordinatorMessage::Write(
             filename.as_str().unwrap_or("").to_string(),
             bytes,
         ));
@@ -44,7 +44,7 @@ mod test {
 
     use flowcore::{Implementation, RUN_AGAIN};
 
-    use crate::cli::runtime_messages::{ClientMessage, ServerMessage};
+    use crate::cli::messages::{ClientMessage, CoordinatorMessage};
     use crate::cli::test_helper::test::wait_for_then_send;
 
     use super::FileWrite;
@@ -55,7 +55,7 @@ mod test {
         let file_path = "/fake/write_test";
         let file_contents = "test text".as_bytes().to_vec();
         let inputs = [json!(file_path), json!(file_contents)];
-        let file_write_message = ServerMessage::Write(file_path.to_string(), file_contents);
+        let file_write_message = CoordinatorMessage::Write(file_path.to_string(), file_contents);
 
         let server_connection = wait_for_then_send(file_write_message, ClientMessage::Ack);
 

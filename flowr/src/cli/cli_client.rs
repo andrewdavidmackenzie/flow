@@ -14,8 +14,8 @@ use log::info;
 
 use flowcore::errors::*;
 
-use crate::cli::client_server::ClientConnection;
-use crate::cli::runtime_messages::{ClientMessage, ServerMessage};
+use crate::cli::client_coordinator::ClientConnection;
+use crate::cli::messages::{ClientMessage, CoordinatorMessage};
 
 #[derive(Debug, Clone)]
 pub struct CliRuntimeClient {
@@ -72,10 +72,10 @@ impl CliRuntimeClient {
         }
     }
 
-    pub fn process_server_message(&mut self, message: ServerMessage) -> ClientMessage {
+    pub fn process_server_message(&mut self, message: CoordinatorMessage) -> ClientMessage {
         match message {
             #[cfg(feature = "metrics")]
-            ServerMessage::FlowEnd(metrics) => {
+            CoordinatorMessage::FlowEnd(metrics) => {
                 debug!("=========================== Flow execution ended ======================================");
                 if self.display_metrics {
                     println!("\nMetrics: \n {metrics}");
@@ -86,33 +86,33 @@ impl CliRuntimeClient {
             }
 
             #[cfg(not(feature = "metrics"))]
-            ServerMessage::FlowEnd => {
+            CoordinatorMessage::FlowEnd => {
                 debug!("=========================== Flow execution ended ======================================");
                 self.flush_image_buffers();
                 ClientMessage::ClientExiting(Ok(()))
             }
-            ServerMessage::FlowStart => {
+            CoordinatorMessage::FlowStart => {
                 debug!("===========================    Starting flow execution =============================");
                 ClientMessage::Ack
             }
-            ServerMessage::ServerExiting(result) => {
+            CoordinatorMessage::CoordinatorExiting(result) => {
                 debug!("Server is exiting");
                 ClientMessage::ClientExiting(result)
             }
-            ServerMessage::StdoutEof => ClientMessage::Ack,
-            ServerMessage::Stdout(contents) => {
+            CoordinatorMessage::StdoutEof => ClientMessage::Ack,
+            CoordinatorMessage::Stdout(contents) => {
                 let stdout = io::stdout();
                 let mut handle = stdout.lock();
                 let _ = handle.write_all(format!("{contents}\n").as_bytes());
                 ClientMessage::Ack
             }
-            ServerMessage::Stderr(contents) => {
+            CoordinatorMessage::Stderr(contents) => {
                 let stderr = io::stderr();
                 let mut handle = stderr.lock();
                 let _ = handle.write_all(format!("{contents}\n").as_bytes());
                 ClientMessage::Ack
             }
-            ServerMessage::GetStdin => {
+            CoordinatorMessage::GetStdin => {
                 let mut buffer = String::new();
                 if let Ok(size) = io::stdin().read_line(&mut buffer) {
                     return if size > 0 {
@@ -123,7 +123,7 @@ impl CliRuntimeClient {
                 }
                 ClientMessage::Error("Could not read Stdin".into())
             }
-            ServerMessage::GetLine => {
+            CoordinatorMessage::GetLine => {
                 let mut input = String::new();
                 let line = io::stdin().lock().read_line(&mut input);
                 match line {
@@ -132,7 +132,7 @@ impl CliRuntimeClient {
                     _ => ClientMessage::Error("Could not read Readline".into()),
                 }
             }
-            ServerMessage::Read(file_path) => match File::open(&file_path) {
+            CoordinatorMessage::Read(file_path) => match File::open(&file_path) {
                 Ok(mut f) => {
                     let mut buffer = Vec::new();
                     match f.read_to_end(&mut buffer) {
@@ -144,7 +144,7 @@ impl CliRuntimeClient {
                 }
                 Err(_) => ClientMessage::Error(format!("Could not open file '{file_path:?}'")),
             },
-            ServerMessage::Write(filename, bytes) => match File::create(&filename) {
+            CoordinatorMessage::Write(filename, bytes) => match File::create(&filename) {
                 Ok(mut file) => match file.write_all(bytes.as_slice()) {
                     Ok(_) => ClientMessage::Ack,
                     Err(e) => {
@@ -159,7 +159,7 @@ impl CliRuntimeClient {
                     ClientMessage::Error(msg)
                 }
             },
-            ServerMessage::PixelWrite((x, y), (r, g, b), (width, height), name) => {
+            CoordinatorMessage::PixelWrite((x, y), (r, g, b), (width, height), name) => {
                 let image = self
                     .image_buffers
                     .entry(name)
@@ -167,7 +167,7 @@ impl CliRuntimeClient {
                 image.put_pixel(x, y, Rgb([r, g, b]));
                 ClientMessage::Ack
             },
-            ServerMessage::GetArgs => {
+            CoordinatorMessage::GetArgs => {
                 if let Ok(override_args) = self.override_args.lock() {
                     if override_args.is_empty() {
                         ClientMessage::Args(self.args.clone())
@@ -182,8 +182,8 @@ impl CliRuntimeClient {
                     ClientMessage::Args(self.args.clone())
                 }
             },
-            ServerMessage::StderrEof => ClientMessage::Ack,
-            ServerMessage::Invalid => ClientMessage::Ack,
+            CoordinatorMessage::StderrEof => ClientMessage::Ack,
+            CoordinatorMessage::Invalid => ClientMessage::Ack,
         }
     }
 }
@@ -200,7 +200,7 @@ mod test {
     #[cfg(feature = "metrics")]
     use flowcore::model::metrics::Metrics;
 
-    use crate::cli::runtime_messages::{ClientMessage, ServerMessage};
+    use crate::cli::messages::{ClientMessage, CoordinatorMessage};
 
     use super::CliRuntimeClient;
 
@@ -213,7 +213,7 @@ mod test {
             false,
         );
 
-        match client.process_server_message(ServerMessage::GetArgs) {
+        match client.process_server_message(CoordinatorMessage::GetArgs) {
             ClientMessage::Args(args) => assert_eq!(
                 vec!("file:///test_flow.toml".to_string(), "1".to_string()),
                 args
@@ -238,7 +238,7 @@ mod test {
             overrides.push("override".into());
         }
 
-        match client.process_server_message(ServerMessage::GetArgs) {
+        match client.process_server_message(CoordinatorMessage::GetArgs) {
             ClientMessage::Args(args) => assert_eq!(
                 vec!("file:///test_flow.toml".to_string(), "override".to_string()),
                 args
@@ -267,7 +267,7 @@ mod test {
             false,
         );
 
-        match client.process_server_message(ServerMessage::Read(file_path.clone())) {
+        match client.process_server_message(CoordinatorMessage::Read(file_path.clone())) {
             ClientMessage::FileContents(path_read, contents) => {
                 assert_eq!(path_read, file_path);
                 assert_eq!(contents, test_contents)
@@ -290,7 +290,7 @@ mod test {
             false,
         );
 
-        match client.process_server_message(ServerMessage::Write(
+        match client.process_server_message(CoordinatorMessage::Write(
             file.to_str().expect("Couldn't get filename").to_string(),
             b"Hello".to_vec())) {
             ClientMessage::Ack => {},
@@ -306,7 +306,7 @@ mod test {
             #[cfg(feature = "metrics")]
             false,
         );
-        match client.process_server_message(ServerMessage::Stdout("Hello".into())) {
+        match client.process_server_message(CoordinatorMessage::Stdout("Hello".into())) {
             ClientMessage::Ack => {},
             _ => panic!("Didn't get Stdout response as expected"),
         }
@@ -320,7 +320,7 @@ mod test {
             #[cfg(feature = "metrics")]
             false,
         );
-        match client.process_server_message(ServerMessage::Stderr("Hello".into())) {
+        match client.process_server_message(CoordinatorMessage::Stderr("Hello".into())) {
             ClientMessage::Ack => {},
             _ => panic!("Didn't get Stderr response as expected"),
         }
@@ -343,18 +343,18 @@ mod test {
         let _ = fs::remove_file(&path);
         assert!(!path.exists());
 
-        client.process_server_message(ServerMessage::FlowStart);
+        client.process_server_message(CoordinatorMessage::FlowStart);
         let pixel =
-            ServerMessage::PixelWrite((0, 0), (255, 200, 20), (10, 10), path.display().to_string());
+            CoordinatorMessage::PixelWrite((0, 0), (255, 200, 20), (10, 10), path.display().to_string());
         match client.process_server_message(pixel) {
             ClientMessage::Ack => {},
             _ => panic!("Didn't get pixel write response as expected"),
         }
 
         #[cfg(not(feature = "metrics"))]
-        client.process_server_message(ServerMessage::FlowEnd);
+        client.process_server_message(CoordinatorMessage::FlowEnd);
         #[cfg(feature = "metrics")]
-        client.process_server_message(ServerMessage::FlowEnd(Metrics::new(1)));
+        client.process_server_message(CoordinatorMessage::FlowEnd(Metrics::new(1)));
 
         assert!(path.exists(), "Image file was not created");
     }
@@ -367,7 +367,7 @@ mod test {
             #[cfg(feature = "metrics")] false,
         );
 
-        match client.process_server_message(ServerMessage::ServerExiting(Ok(()))) {
+        match client.process_server_message(CoordinatorMessage::CoordinatorExiting(Ok(()))) {
             ClientMessage::ClientExiting(_) => {},
             _ => panic!("Didn't get ClientExiting response as expected"),
         }

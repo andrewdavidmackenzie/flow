@@ -10,14 +10,14 @@ use flowrlib::job::Job;
 use flowrlib::protocols::DebuggerProtocol;
 use flowrlib::run_state::{RunState, State};
 
-use crate::{BlockBreakpoint, DataBreakpoint, ExecutionEnded, ExecutionStarted, ExitingDebugger,
-            JobCompleted, JobError, Panic, PriorToSendingJob, Resetting, ServerConnection,
+use crate::{BlockBreakpoint, CoordinatorConnection, DataBreakpoint, ExecutionEnded, ExecutionStarted,
+            ExitingDebugger, JobCompleted, JobError, Panic, PriorToSendingJob, Resetting,
             WaitingForCommand};
-use crate::cli::client_server::WAIT;
+use crate::cli::client_coordinator::WAIT;
 use crate::DebugServerMessage::{BlockState, Error, FlowUnblockBreakpoint, Functions, FunctionStates, InputState, Message, OutputState, OverallState};
 
 pub(crate) struct  CliDebugServer {
-    pub(crate) debug_server_connection: ServerConnection,
+    pub(crate) debug_server_connection: CoordinatorConnection,
 }
 
 /// Implement a CLI debug server that implements the trait required by the runtime

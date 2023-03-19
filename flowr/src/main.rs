@@ -24,22 +24,22 @@ use portpicker::pick_unused_port;
 use simpath::Simpath;
 use url::Url;
 
+use cli::cli_client::CliRuntimeClient;
 #[cfg(feature = "debugger")]
 use cli::cli_debug_client::CliDebugClient;
 #[cfg(feature = "debugger")]
 use cli::cli_debug_server::CliDebugServer;
-use cli::cli_runtime_client::CliRuntimeClient;
 use cli::cli_submitter::CLISubmitter;
 #[cfg(feature = "debugger")]
-use cli::client_server::ClientConnection;
-use cli::client_server::ServerConnection;
+use cli::client_coordinator::ClientConnection;
+use cli::client_coordinator::CoordinatorConnection;
 #[cfg(feature = "debugger")]
 use cli::debug_server_message::DebugServerMessage;
 #[cfg(feature = "debugger")]
 use cli::debug_server_message::DebugServerMessage::{BlockBreakpoint, DataBreakpoint, ExecutionEnded, ExecutionStarted,
                                                     ExitingDebugger, JobCompleted, JobError, Panic, PriorToSendingJob,
                                                     Resetting, WaitingForCommand};
-use cli::runtime_messages::ClientMessage;
+use cli::messages::ClientMessage;
 use flowcore::errors::*;
 use flowcore::meta_provider::MetaProvider;
 use flowcore::model::flow_manifest::FlowManifest;
@@ -53,8 +53,8 @@ use flowrlib::info as flowrlib_info;
 use flowrlib::services::{CONTROL_SERVICE_NAME, JOB_QUEUES_DISCOVERY_PORT, JOB_SERVICE_NAME,
                          RESULTS_JOB_SERVICE_NAME};
 
-use crate::cli::client_server::{DEBUG_SERVICE_NAME, discover_service,
-                                enable_service_discovery, RUNTIME_SERVICE_NAME};
+use crate::cli::client_coordinator::{COORDINATOR_SERVICE_NAME, DEBUG_SERVICE_NAME,
+                                     discover_service, enable_service_discovery};
 
 #[cfg(feature = "debugger")]
 /// provides the `context functions` for interacting with the execution environment from a flow,
@@ -170,17 +170,17 @@ fn coordinator_only(
                 native_flowstdlib: bool,
                 ) -> Result<()> {
     let runtime_port = pick_unused_port().chain_err(|| "No ports free")?;
-    let runtime_server_connection = ServerConnection::new(RUNTIME_SERVICE_NAME,
-                                                          runtime_port)?;
+    let runtime_server_connection = CoordinatorConnection::new(COORDINATOR_SERVICE_NAME,
+                                                               runtime_port)?;
     let discovery_port = pick_unused_port().chain_err(|| "No ports free")?;
-    enable_service_discovery(discovery_port, RUNTIME_SERVICE_NAME,
+    enable_service_discovery(discovery_port, COORDINATOR_SERVICE_NAME,
                              runtime_port)?;
 
     #[cfg(feature = "debugger")]
     let debug_port = pick_unused_port().chain_err(|| "No ports free")?;
     #[cfg(feature = "debugger")]
-    let debug_server_connection = ServerConnection::new(DEBUG_SERVICE_NAME,
-        debug_port)?;
+    let debug_server_connection = CoordinatorConnection::new(DEBUG_SERVICE_NAME,
+                                                             debug_port)?;
     #[cfg(feature = "debugger")]
     enable_service_discovery(discovery_port, DEBUG_SERVICE_NAME,debug_port)?;
 
@@ -212,17 +212,17 @@ fn client_and_coordinator(
     debug_this_flow: bool,
 ) -> Result<()> {
     let runtime_port = pick_unused_port().chain_err(|| "No ports free")?;
-    let runtime_server_connection = ServerConnection::new(RUNTIME_SERVICE_NAME,
-        runtime_port)?;
+    let runtime_server_connection = CoordinatorConnection::new(COORDINATOR_SERVICE_NAME,
+                                                               runtime_port)?;
 
     let discovery_port = pick_unused_port().chain_err(|| "No ports free")?;
-    enable_service_discovery(discovery_port, RUNTIME_SERVICE_NAME, runtime_port)?;
+    enable_service_discovery(discovery_port, COORDINATOR_SERVICE_NAME, runtime_port)?;
 
     #[cfg(feature = "debugger")]
     let debug_port = pick_unused_port().chain_err(|| "No ports free")?;
     #[cfg(feature = "debugger")]
-    let debug_server_connection = ServerConnection::new(DEBUG_SERVICE_NAME,
-                                                        debug_port)?;
+    let debug_server_connection = CoordinatorConnection::new(DEBUG_SERVICE_NAME,
+                                                             debug_port)?;
     enable_service_discovery(discovery_port, DEBUG_SERVICE_NAME, debug_port)?;
 
     let server_lib_search_path = lib_search_path.clone();
@@ -239,9 +239,9 @@ fn client_and_coordinator(
         );
     });
 
-    let server_address = discover_service(discovery_port, RUNTIME_SERVICE_NAME)?;
+    let coordinator_address = discover_service(discovery_port, COORDINATOR_SERVICE_NAME)?;
 
-    let runtime_client_connection = ClientConnection::new(&server_address)?;
+    let runtime_client_connection = ClientConnection::new(&coordinator_address)?;
 
     client(
         matches,
@@ -296,8 +296,8 @@ fn coordinator(
     num_threads: usize,
     lib_search_path: Simpath,
     native_flowstdlib: bool,
-    runtime_server_connection: ServerConnection,
-    #[cfg(feature = "debugger")] debug_server_connection: ServerConnection,
+    runtime_server_connection: CoordinatorConnection,
+    #[cfg(feature = "debugger")] debug_server_connection: CoordinatorConnection,
     loop_forever: bool,
 ) -> Result<()> {
     let server_connection = Arc::new(Mutex::new(runtime_server_connection));
@@ -338,7 +338,7 @@ fn coordinator(
 
     let mut context_executor = Executor::new()?;
     context_executor.add_lib(
-        cli::cli_context::get_manifest(server_connection.clone())?,
+        cli::cli_manifest::get_manifest(server_connection.clone())?,
         Url::parse("memory://")? // Statically linked library has no resolved Url
     )?;
     context_executor.start(provider, 1,
@@ -371,7 +371,7 @@ fn client_only(
     #[cfg(feature = "debugger")] debug_this_flow: bool,
     discovery_port: &u16,
 ) -> Result<()> {
-    let server_address = discover_service(*discovery_port, RUNTIME_SERVICE_NAME)?;
+    let server_address = discover_service(*discovery_port, COORDINATOR_SERVICE_NAME)?;
     let context_client_connection = ClientConnection::new(&server_address)?;
 
     client(

@@ -5,13 +5,13 @@ use serde_json::Value;
 use flowcore::{DONT_RUN_AGAIN, Implementation, RUN_AGAIN, RunAgain};
 use flowcore::errors::*;
 
-use crate::cli::client_server::ServerConnection;
-use crate::cli::runtime_messages::{ClientMessage, ServerMessage};
+use crate::cli::client_coordinator::CoordinatorConnection;
+use crate::cli::messages::{ClientMessage, CoordinatorMessage};
 
 /// `Implementation` struct for the `readline` function
 pub struct Readline {
     /// It holds a reference to the runtime client in order to read input
-    pub server_connection: Arc<Mutex<ServerConnection>>,
+    pub server_connection: Arc<Mutex<CoordinatorConnection>>,
 }
 
 impl Implementation for Readline {
@@ -19,7 +19,7 @@ impl Implementation for Readline {
         let mut server = self.server_connection.lock()
             .map_err(|_| "Could not lock server")?;
 
-        let sent = server.send_and_receive_response(ServerMessage::GetLine);
+        let sent = server.send_and_receive_response(CoordinatorMessage::GetLine);
 
         match sent {
             Ok(ClientMessage::Line(contents)) => {
@@ -49,7 +49,7 @@ mod test {
 
     use flowcore::{DONT_RUN_AGAIN, Implementation, RUN_AGAIN};
 
-    use crate::cli::runtime_messages::{ClientMessage, ServerMessage};
+    use crate::cli::messages::{ClientMessage, CoordinatorMessage};
     use crate::cli::test_helper::test::wait_for_then_send;
 
     use super::Readline;
@@ -58,7 +58,7 @@ mod test {
     #[serial]
     fn gets_a_line_of_text() {
         let server_connection = wait_for_then_send(
-            ServerMessage::GetLine,
+            CoordinatorMessage::GetLine,
             ClientMessage::Line("line of text".into()),
         );
         let reader = &Readline { server_connection } as &dyn Implementation;
@@ -78,7 +78,7 @@ mod test {
     #[serial]
     fn gets_json() {
         let server_connection = wait_for_then_send(
-            ServerMessage::GetLine,
+            CoordinatorMessage::GetLine,
             ClientMessage::Line("\"json text\"".into()),
         );
         let reader = &Readline { server_connection } as &dyn Implementation;
@@ -98,7 +98,7 @@ mod test {
     #[serial]
     fn get_eof() {
         let server_connection =
-            wait_for_then_send(ServerMessage::GetLine, ClientMessage::GetLineEof);
+            wait_for_then_send(CoordinatorMessage::GetLine, ClientMessage::GetLineEof);
         let reader = &Readline { server_connection } as &dyn Implementation;
         let (value, run_again) = reader.run(&[]).expect("_readline() failed");
 

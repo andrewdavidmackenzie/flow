@@ -5,13 +5,13 @@ use serde_json::Value;
 use flowcore::{DONT_RUN_AGAIN, Implementation, RUN_AGAIN, RunAgain};
 use flowcore::errors::*;
 
-use crate::cli::client_server::ServerConnection;
-use crate::cli::runtime_messages::{ClientMessage, ServerMessage};
+use crate::cli::client_coordinator::CoordinatorConnection;
+use crate::cli::messages::{ClientMessage, CoordinatorMessage};
 
 /// `Implementation` struct for the `Stdin` function
 pub struct Stdin {
     /// It holds a reference to the runtime client in order to read input
-    pub server_connection: Arc<Mutex<ServerConnection>>,
+    pub server_connection: Arc<Mutex<CoordinatorConnection>>,
 }
 
 impl Implementation for Stdin {
@@ -19,7 +19,7 @@ impl Implementation for Stdin {
         let mut server = self.server_connection.lock()
             .map_err(|_| "Could not lock server")?;
 
-        let sent = server.send_and_receive_response(ServerMessage::GetStdin);
+        let sent = server.send_and_receive_response(CoordinatorMessage::GetStdin);
 
         match sent {
             Ok(ClientMessage::Stdin(contents)) => {
@@ -49,7 +49,7 @@ mod test {
 
     use flowcore::{DONT_RUN_AGAIN, Implementation, RUN_AGAIN};
 
-    use crate::cli::runtime_messages::{ClientMessage, ServerMessage};
+    use crate::cli::messages::{ClientMessage, CoordinatorMessage};
     use crate::cli::test_helper::test::wait_for_then_send;
 
     use super::Stdin;
@@ -58,7 +58,7 @@ mod test {
     #[serial]
     fn gets_a_line_of_text() {
         let server_connection = wait_for_then_send(
-            ServerMessage::GetStdin,
+            CoordinatorMessage::GetStdin,
             ClientMessage::Stdin("line of text".into()),
         );
         let stdin = &Stdin { server_connection } as &dyn Implementation;
@@ -77,7 +77,7 @@ mod test {
     #[test]
     #[serial]
     fn bad_reply_message() {
-        let server_connection = wait_for_then_send(ServerMessage::GetStdin, ClientMessage::Ack);
+        let server_connection = wait_for_then_send(CoordinatorMessage::GetStdin, ClientMessage::Ack);
         let stdin = &Stdin { server_connection } as &dyn Implementation;
         let (value, run_again) = stdin.run(&[]).expect("_stdin() failed");
 
@@ -89,7 +89,7 @@ mod test {
     #[serial]
     fn gets_json() {
         let server_connection = wait_for_then_send(
-            ServerMessage::GetStdin,
+            CoordinatorMessage::GetStdin,
             ClientMessage::Stdin("\"json text\"".into()),
         );
         let stdin = &Stdin { server_connection } as &dyn Implementation;
@@ -109,7 +109,7 @@ mod test {
     #[serial]
     fn get_eof() {
         let server_connection =
-            wait_for_then_send(ServerMessage::GetStdin, ClientMessage::GetStdinEof);
+            wait_for_then_send(CoordinatorMessage::GetStdin, ClientMessage::GetStdinEof);
         let stdin = &Stdin { server_connection } as &dyn Implementation;
         let (value, run_again) = stdin.run(&[]).expect("_stdin() failed");
 

@@ -8,11 +8,11 @@ use flowcore::model::lib_manifest::LibraryManifest;
 use flowcore::model::metadata::MetaData;
 
 use crate::cli::{args, file, image, stdio};
-use crate::ServerConnection;
+use crate::CoordinatorConnection;
 
 /// Return a `LibraryManifest` for the context functions
 pub fn get_manifest(
-    server_connection: Arc<Mutex<ServerConnection>>,
+    server_connection: Arc<Mutex<CoordinatorConnection>>,
 ) -> Result<LibraryManifest> {
     let metadata = MetaData {
         name: "context".into(),

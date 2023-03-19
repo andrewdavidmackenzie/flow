@@ -11,14 +11,14 @@ use flowrlib::protocols::SubmissionProtocol;
 use flowrlib::run_state::RunState;
 
 #[cfg(feature = "debugger")]
-use crate::cli::client_server::{DONT_WAIT, WAIT};
-use crate::cli::runtime_messages::ClientMessage;
-use crate::cli::runtime_messages::ServerMessage;
-use crate::ServerConnection;
+use crate::cli::client_coordinator::{DONT_WAIT, WAIT};
+use crate::cli::messages::ClientMessage;
+use crate::cli::messages::CoordinatorMessage;
+use crate::CoordinatorConnection;
 
 /// Get and Send messages to/from the runtime client
 pub(crate) struct CLISubmitter {
-    pub(crate) runtime_server_connection: Arc<Mutex<ServerConnection>>,
+    pub(crate) runtime_server_connection: Arc<Mutex<CoordinatorConnection>>,
 }
 
 impl SubmissionProtocol for CLISubmitter {
@@ -27,7 +27,7 @@ impl SubmissionProtocol for CLISubmitter {
         let _ = self.runtime_server_connection
             .lock()
             .map_err(|_| "Could not lock server connection")?
-            .send_and_receive_response::<ServerMessage, ClientMessage>(ServerMessage::FlowStart)?;
+            .send_and_receive_response::<CoordinatorMessage, ClientMessage>(CoordinatorMessage::FlowStart)?;
 
         Ok(())
     }
@@ -60,7 +60,7 @@ impl SubmissionProtocol for CLISubmitter {
         self.runtime_server_connection
             .lock()
             .map_err(|_| "Could not lock server connection")?
-            .send(ServerMessage::FlowEnd(metrics))?;
+            .send(CoordinatorMessage::FlowEnd(metrics))?;
         debug!("{}", state);
         Ok(())
     }
@@ -70,7 +70,7 @@ impl SubmissionProtocol for CLISubmitter {
         self.runtime_server_connection
             .lock()
             .map_err(|_| "Could not lock server connection")?
-            .send(ServerMessage::FlowEnd)?;
+            .send(CoordinatorMessage::FlowEnd)?;
         debug!("{}", state);
         Ok(())
     }
@@ -110,6 +110,6 @@ impl SubmissionProtocol for CLISubmitter {
         let mut connection = self.runtime_server_connection
             .lock()
             .map_err(|e| format!("Could not lock Server Connection: {e}"))?;
-        connection.send(ServerMessage::ServerExiting(result))
+        connection.send(CoordinatorMessage::CoordinatorExiting(result))
     }
 }
