@@ -125,6 +125,7 @@ fn run() -> Result<()> {
     #[cfg(feature = "debugger")]
     let debug_this_flow = matches.get_flag("debugger");
     let native_flowstdlib = matches.get_flag("native");
+    let context_only = matches.get_flag("context");
     let lib_dirs = if matches.contains_id("lib_dir") {
         matches
             .get_many::<String>("lib_dir")
@@ -149,6 +150,7 @@ fn run() -> Result<()> {
             num_threads,
             lib_search_path,
             native_flowstdlib,
+            context_only,
         )?;
     } else {
         client_and_server(
@@ -157,6 +159,7 @@ fn run() -> Result<()> {
             native_flowstdlib,
             &matches,
             #[cfg(feature = "debugger")] debug_this_flow,
+            context_only,
         )?;
     };
 
@@ -168,6 +171,7 @@ fn server_only(
                 num_threads: usize,
                 lib_search_path: Simpath,
                 native_flowstdlib: bool,
+                context_only: bool,
                 ) -> Result<()> {
     let runtime_port = pick_unused_port().chain_err(|| "No ports free")?;
     let runtime_server_connection = ServerConnection::new(RUNTIME_SERVICE_NAME,
@@ -194,6 +198,7 @@ fn server_only(
         runtime_server_connection,
         #[cfg(feature = "debugger")] debug_server_connection,
         true,
+        context_only,
     )?;
 
     info!("'flowr' server process has exited");
@@ -210,6 +215,7 @@ fn client_and_server(
     matches: &ArgMatches,
     #[cfg(feature = "debugger")]
     debug_this_flow: bool,
+    context_only: bool,
 ) -> Result<()> {
     let runtime_port = pick_unused_port().chain_err(|| "No ports free")?;
     let runtime_server_connection = ServerConnection::new(RUNTIME_SERVICE_NAME,
@@ -236,6 +242,7 @@ fn client_and_server(
             runtime_server_connection,
             #[cfg(feature = "debugger")] debug_server_connection,
             false,
+            context_only,
         );
     });
 
@@ -299,6 +306,7 @@ fn server(
     runtime_server_connection: ServerConnection,
     #[cfg(feature = "debugger")] debug_server_connection: ServerConnection,
     loop_forever: bool,
+    context_only: bool,
 ) -> Result<()> {
     let server_connection = Arc::new(Mutex::new(runtime_server_connection));
 
@@ -319,22 +327,24 @@ fn server(
     let (job_source_name, context_job_source_name, results_sink, control_socket) =
         get_connect_addresses(ports);
 
-    let mut executor = Executor::new()?;
-    // if the command line options request loading native implementation of available native libs
-    // if not, the native implementation is not loaded and later when a flow is loaded it's library
-    // references will be resolved and those libraries (WASM implementations) will be loaded at runtime
-    if native_flowstdlib {
-        executor.add_lib(
-            flowstdlib::manifest::get_manifest()
-                .chain_err(|| "Could not get 'native' flowstdlib manifest")?,
-            Url::parse("memory://")? // Statically linked library has no resolved Url
-        )?;
+    if !context_only {
+        let mut executor = Executor::new()?;
+        // if the command line options request loading native implementation of available native libs
+        // if not, the native implementation is not loaded and later when a flow is loaded it's library
+        // references will be resolved and those libraries (WASM implementations) will be loaded at runtime
+        if native_flowstdlib {
+            executor.add_lib(
+                flowstdlib::manifest::get_manifest()
+                    .chain_err(|| "Could not get 'native' flowstdlib manifest")?,
+                Url::parse("memory://")? // Statically linked library has no resolved Url
+            )?;
+        }
+        executor.start(provider.clone(), num_threads,
+                       &job_source_name,
+                       &results_sink,
+                       &control_socket,
+        );
     }
-    executor.start(provider.clone(), num_threads,
-                   &job_source_name,
-                   &results_sink,
-                   &control_socket,
-    );
 
     let mut context_executor = Executor::new()?;
     context_executor.add_lib(
@@ -495,6 +505,13 @@ fn get_matches() -> ArgMatches {
              .value_parser(clap::value_parser!(u16))
              .conflicts_with("server")
              .help("Start flowr as a client (only, no server) to connect to a flowr server"),
+        )
+        .arg(Arg::new("context")
+             .short('C')
+             .long("context")
+             .action(clap::ArgAction::SetTrue)
+             .conflicts_with("client")
+             .help("Only execute 'context' jobs in the server"),
         )
         .arg(Arg::new("jobs")
             .short('j')
