@@ -16,9 +16,9 @@ pub struct Submission {
     pub max_parallel_jobs: Option<usize>,
     /// The Duration to wait before timing out when waiting for jobs to complete
     pub job_timeout: Option<Duration>,
-    /// Whether to debug the flow while executing it
+    /// Whether debugging is enabled or not for the flow
     #[cfg(feature = "debugger")]
-    pub debug: bool,
+    pub debug_enabled: bool,
 }
 
 impl Submission {
@@ -40,7 +40,7 @@ impl Submission {
             max_parallel_jobs,
             job_timeout,
             #[cfg(feature = "debugger")]
-            debug,
+            debug_enabled: debug,
         }
     }
 }
@@ -51,7 +51,7 @@ impl fmt::Display for Submission {
         }
         writeln!(f,   "          Job Timeout: {:?}", self.job_timeout)?;
         #[cfg(feature = "debugger")]
-        writeln!(f,   "                Debug: {}", self.debug)?;
+        writeln!(f,   "                Debug: {}", self.debug_enabled)?;
         write!(f,     "             Manifest: \n{}", self.manifest)
     }
 }

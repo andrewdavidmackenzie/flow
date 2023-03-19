@@ -87,7 +87,7 @@ impl<'a> Coordinator<'a> {
         let mut metrics = Metrics::new(state.num_functions());
 
         #[cfg(feature = "debugger")]
-        if state.submission.debug {
+        if state.submission.debug_enabled {
             self.debugger.start();
         }
 
@@ -103,7 +103,7 @@ impl<'a> Coordinator<'a> {
 
             // If debugging - then prior to starting execution - enter the debugger
             #[cfg(feature = "debugger")]
-            if state.submission.debug {
+            if state.submission.debug_enabled {
                 (display_next_output, restart) = self.debugger.wait_for_command(&mut state)?;
             }
 
@@ -113,7 +113,7 @@ impl<'a> Coordinator<'a> {
             'jobs: loop {
                 trace!("{}", state);
                 #[cfg(feature = "debugger")]
-                if state.submission.debug && self.submission_handler.should_enter_debugger()? {
+                if state.submission.debug_enabled && self.submission_handler.should_enter_debugger()? {
                     (display_next_output, restart) = self.debugger.wait_for_command(&mut state)?;
                     if restart {
                         break 'jobs;
@@ -155,7 +155,7 @@ impl<'a> Coordinator<'a> {
                         Err(err) => {
                             error!("\t{}", err.to_string());
                             #[cfg(feature = "debugger")]
-                            if state.submission.debug {
+                            if state.submission.debug_enabled {
                                 (display_next_output, restart) = self.debugger.error(
                                     &mut state, err.to_string())?;
                                 if restart {
@@ -179,7 +179,7 @@ impl<'a> Coordinator<'a> {
             if !restart {
                 {
                     // If debugging then enter the debugger for a final time before ending flow execution
-                    if state.submission.debug {
+                    if state.submission.debug_enabled {
                         (display_next_output, restart) = self.debugger.execution_ended(&mut state)?;
                     }
                 }

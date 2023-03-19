@@ -40,8 +40,8 @@ pub mod info;
 pub mod job;
 
 /// Provides a number of traits that define methods used in protocols between server and clients
-/// that a client must implement. Such as [DebuggerProtocol][protocols::DebuggerProtocol] and
-/// [SubmissionProtocol][protocols::SubmissionProtocol]
+/// that a client must implement. Such as [DebuggerProtocol][debugger_protocol::DebuggerProtocol] and
+/// [SubmissionHandler][submission_handler::SubmissionHandler]
 pub mod submission_handler;
 
 /// A trait that defines methods a debugger handler in a client must implement in order to handle

@@ -192,7 +192,7 @@ impl<'a> Debugger<'a> {
     /// Return values are (display next output, reset execution)
     pub fn job_done(&mut self, state: &mut RunState, job: &Job) -> Result<(bool, bool)> {
         if job.result.is_err() {
-            if state.submission.debug {
+            if state.submission.debug_enabled {
                 let _ = self.job_error(state, job);
             }
         } else {

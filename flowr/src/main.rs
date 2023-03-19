@@ -15,7 +15,7 @@
 //! [Coordinator][flowrlib::coordinator::Coordinator] of flow execution in a background thread,
 //! or the [cli::cli_client] in the main thread (where the interaction with STDIO and
 //! File System happens) or both. They communicate via network messages using the
-//! [SubmissionProtocol][flowrlib::protocols::SubmissionProtocol] to submit flows for execution,
+//! [SubmissionHandler][flowrlib::submission_handler::SubmissionHandler] to submit flows for execution,
 //! and interchanging [ClientMessages][crate::cli::messages::ClientMessage]
 //! and [CoordinatorMessages][crate::cli::messages::CoordinatorMessage] for execution of context
 //! interaction in the client, as requested by functions running in the coordinator's
