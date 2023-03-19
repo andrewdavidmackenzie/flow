@@ -72,7 +72,7 @@ impl CliRuntimeClient {
         }
     }
 
-    pub fn process_server_message(&mut self, message: CoordinatorMessage) -> ClientMessage {
+    fn process_server_message(&mut self, message: CoordinatorMessage) -> ClientMessage {
         match message {
             #[cfg(feature = "metrics")]
             CoordinatorMessage::FlowEnd(metrics) => {
