@@ -110,7 +110,9 @@ fn run_sample(sample_dir: &Path, output_dir: &Path, flowrex: bool, native: bool)
     };
 
     if flowrex {
-        command_args.push("--context".into())
+        // set 0 executor threads in flowr coordinator, so that all job execution is done in flowrex
+        command_args.push("--threads".into());
+        command_args.push("0".into());
     }
 
     command_args.push( manifest_path.display().to_string());
@@ -212,7 +214,6 @@ mod test {
     use std::process::{Command, Stdio};
 
     use serial_test::serial;
-
     use tempdir::TempDir;
 
     use crate::{EXPECTED_FILE_FILENAME, EXPECTED_STDOUT_FILENAME, TEST_FILE_FILENAME, TEST_STDERR_FILENAME, TEST_STDOUT_FILENAME};
