@@ -22,7 +22,6 @@ pub(crate) struct CLISubmitter {
 }
 
 impl SubmissionProtocol for CLISubmitter {
-    // The flow is starting
     fn flow_execution_starting(&mut self) -> Result<()> {
         let _ = self.runtime_server_connection
             .lock()
@@ -104,7 +103,7 @@ impl SubmissionProtocol for CLISubmitter {
         }
     }
 
-    // The flow server is about to exit
+    // The coordinator is about to exit
     fn coordinator_is_exiting(&mut self, result: Result<()>) -> Result<()> {
         debug!("Coordinator exiting");
         let mut connection = self.runtime_server_connection

@@ -10,6 +10,16 @@
 //!
 //! The [cli] module implements a set of `context functions`, adapted to Terminal IO and local
 //! File System, that allow the flow program to interact with the environment where it is being run.
+//!
+//! Depending on the command line options supplied `flowr` executes the
+//! [Coordinator][flowrlib::coordinator::Coordinator] of flow execution in a background thread,
+//! or the [cli::cli_client] in the main thread (where the interaction with STDIO and
+//! File System happens) or both. They communicate via network messages using the
+//! [SubmissionProtocol][flowrlib::protocols::SubmissionProtocol] to submit flows for execution,
+//! and interchanging [ClientMessages][crate::cli::messages::ClientMessage]
+//! and [CoordinatorMessages][crate::cli::messages::CoordinatorMessage] for execution of context
+//! interaction in the client, as requested by functions running in the coordinator's
+//! [Executors][flowrlib::executor::Executor]
 
 use core::str::FromStr;
 use std::{env, thread};
