@@ -202,11 +202,11 @@ fn server_only(
 }
 
 /// Start a Server by running a [Coordinator][flowrlib::coordinator::Coordinator] in a background thread,
-/// then start clients in the calling thread
+/// then start a client in the calling thread
 fn client_and_server(
     num_threads: usize,
     lib_search_path: Simpath,
-    native: bool,
+    native_flowstdlib: bool,
     matches: &ArgMatches,
     #[cfg(feature = "debugger")]
     debug_this_flow: bool,
@@ -232,7 +232,7 @@ fn client_and_server(
         let _ = server(
             num_threads,
             server_lib_search_path,
-            native,
+            native_flowstdlib,
             runtime_server_connection,
             #[cfg(feature = "debugger")] debug_server_connection,
             false,
