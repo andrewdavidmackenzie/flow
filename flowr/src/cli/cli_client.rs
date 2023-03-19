@@ -106,6 +106,7 @@ impl CliRuntimeClient {
                 let _ = handle.write_all(format!("{contents}\n").as_bytes());
                 ClientMessage::Ack
             }
+            CoordinatorMessage::StderrEof => ClientMessage::Ack,
             CoordinatorMessage::Stderr(contents) => {
                 let stderr = io::stderr();
                 let mut handle = stderr.lock();
@@ -182,7 +183,6 @@ impl CliRuntimeClient {
                     ClientMessage::Args(self.args.clone())
                 }
             },
-            CoordinatorMessage::StderrEof => ClientMessage::Ack,
             CoordinatorMessage::Invalid => ClientMessage::Ack,
         }
     }
