@@ -15,7 +15,7 @@ use crate::{BlockBreakpoint, CoordinatorConnection, DataBreakpoint, ExecutionEnd
 use crate::cli::client_coordinator::WAIT;
 use crate::DebugServerMessage::{BlockState, Error, FlowUnblockBreakpoint, Functions, FunctionStates, InputState, Message, OutputState, OverallState};
 
-/// A [deb] that implements the trait required by the runtime
+/// A debug handler for interacting between the CLI client and the Debugger in the Coordinator
 pub(crate) struct CliDebugHandler {
     pub(crate) debug_server_connection: CoordinatorConnection,
 }
