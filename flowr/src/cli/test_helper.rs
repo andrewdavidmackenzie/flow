@@ -4,9 +4,9 @@ pub mod test {
 
     use portpicker::pick_unused_port;
 
-    use crate::cli::client_coordinator::{ClientConnection, CoordinatorConnection, discover_service,
-                                         enable_service_discovery, WAIT};
-    use crate::cli::messages::{ClientMessage, CoordinatorMessage};
+    use crate::cli::connections::{ClientConnection, CoordinatorConnection, discover_service,
+                                  enable_service_discovery, WAIT};
+    use crate::cli::coordinator_message::{ClientMessage, CoordinatorMessage};
 
     pub fn wait_for_then_send(
         wait_for_message: CoordinatorMessage,

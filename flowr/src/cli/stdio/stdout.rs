@@ -5,8 +5,8 @@ use serde_json::Value;
 use flowcore::{Implementation, RUN_AGAIN, RunAgain};
 use flowcore::errors::*;
 
-use crate::cli::client_coordinator::CoordinatorConnection;
-use crate::cli::messages::{ClientMessage, CoordinatorMessage};
+use crate::cli::connections::CoordinatorConnection;
+use crate::cli::coordinator_message::{ClientMessage, CoordinatorMessage};
 
 /// `Implementation` struct for the `Stdout` function
 pub struct Stdout {
@@ -49,7 +49,7 @@ mod test {
 
     use flowcore::{Implementation, RUN_AGAIN};
 
-    use crate::cli::messages::{ClientMessage, CoordinatorMessage};
+    use crate::cli::coordinator_message::{ClientMessage, CoordinatorMessage};
     use crate::cli::stdio::stdout::Stdout;
     use crate::cli::test_helper::test::wait_for_then_send;
 

@@ -188,7 +188,7 @@ mod test {
     use serde_derive::{Deserialize, Serialize};
     use serial_test::serial;
 
-    use crate::cli::client_coordinator::{ClientConnection, CoordinatorConnection, discover_service, DONT_WAIT, enable_service_discovery, WAIT};
+    use crate::cli::connections::{ClientConnection, CoordinatorConnection, discover_service, DONT_WAIT, enable_service_discovery, WAIT};
 
     #[derive(Serialize, Deserialize, PartialEq, Eq, Debug)]
     enum CoordinatorMessage {

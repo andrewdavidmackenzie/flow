@@ -41,15 +41,15 @@ use cli::cli_debug_client::CliDebugClient;
 use cli::cli_debug_handler::CliDebugHandler;
 use cli::cli_submission_handler::CLISubmissionHandler;
 #[cfg(feature = "debugger")]
-use cli::client_coordinator::ClientConnection;
-use cli::client_coordinator::CoordinatorConnection;
+use cli::connections::ClientConnection;
+use cli::connections::CoordinatorConnection;
+use cli::coordinator_message::ClientMessage;
 #[cfg(feature = "debugger")]
-use cli::debug_server_message::DebugServerMessage;
+use cli::debug_message::DebugServerMessage;
 #[cfg(feature = "debugger")]
-use cli::debug_server_message::DebugServerMessage::{BlockBreakpoint, DataBreakpoint, ExecutionEnded, ExecutionStarted,
-                                                    ExitingDebugger, JobCompleted, JobError, Panic, PriorToSendingJob,
-                                                    Resetting, WaitingForCommand};
-use cli::messages::ClientMessage;
+use cli::debug_message::DebugServerMessage::{BlockBreakpoint, DataBreakpoint, ExecutionEnded, ExecutionStarted,
+                                             ExitingDebugger, JobCompleted, JobError, Panic, PriorToSendingJob,
+                                             Resetting, WaitingForCommand};
 use flowcore::errors::*;
 use flowcore::meta_provider::MetaProvider;
 use flowcore::model::flow_manifest::FlowManifest;
@@ -63,8 +63,8 @@ use flowrlib::info as flowrlib_info;
 use flowrlib::services::{CONTROL_SERVICE_NAME, JOB_QUEUES_DISCOVERY_PORT, JOB_SERVICE_NAME,
                          RESULTS_JOB_SERVICE_NAME};
 
-use crate::cli::client_coordinator::{COORDINATOR_SERVICE_NAME, DEBUG_SERVICE_NAME,
-                                     discover_service, enable_service_discovery};
+use crate::cli::connections::{COORDINATOR_SERVICE_NAME, DEBUG_SERVICE_NAME,
+                              discover_service, enable_service_discovery};
 
 #[cfg(feature = "debugger")]
 /// provides the `context functions` for interacting with the execution environment from a flow,
@@ -349,7 +349,7 @@ fn coordinator(
 
     let mut context_executor = Executor::new()?;
     context_executor.add_lib(
-        cli::cli_manifest::get_manifest(connection.clone())?,
+        cli::get_manifest(connection.clone())?,
         Url::parse("memory://")? // Statically linked library has no resolved Url
     )?;
     context_executor.start(provider, 1,
