@@ -38,8 +38,8 @@ use cli::cli_client::CliRuntimeClient;
 #[cfg(feature = "debugger")]
 use cli::cli_debug_client::CliDebugClient;
 #[cfg(feature = "debugger")]
-use cli::cli_debug_server::CliDebugServer;
-use cli::cli_submitter::CLISubmitter;
+use cli::cli_debug_handler::CliDebugHandler;
+use cli::cli_submission_handler::CLISubmissionHandler;
 #[cfg(feature = "debugger")]
 use cli::client_coordinator::ClientConnection;
 use cli::client_coordinator::CoordinatorConnection;
@@ -314,7 +314,7 @@ fn coordinator(
     let connection = Arc::new(Mutex::new(coordinator_connection));
 
     #[cfg(feature = "debugger")]
-    let mut debug_server = CliDebugServer { debug_server_connection: debug_connection };
+    let mut debug_server = CliDebugHandler { debug_server_connection: debug_connection };
 
     let provider = Arc::new(MetaProvider::new(lib_search_path,
                                          PathBuf::from("/"))) as Arc<dyn Provider>;
@@ -358,7 +358,7 @@ fn coordinator(
                             &control_socket,
     );
 
-    let mut submitter = CLISubmitter::new(connection);
+    let mut submitter = CLISubmissionHandler::new(connection);
 
     let mut coordinator = Coordinator::new(
         dispatcher,

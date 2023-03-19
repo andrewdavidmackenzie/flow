@@ -11,7 +11,7 @@ use flowcore::model::submission::Submission;
 #[cfg(feature = "debugger")]
 use crate::debugger::Debugger;
 #[cfg(feature = "debugger")]
-use crate::debugger_protocol::DebuggerProtocol;
+use crate::debugger_handler::DebuggerHandler;
 use crate::dispatcher::Dispatcher;
 use crate::job::Job;
 use crate::run_state::RunState;
@@ -43,7 +43,7 @@ impl<'a> Coordinator<'a> {
     pub fn new(
         dispatcher: Dispatcher,
         #[cfg(feature = "submission")] submitter: &'a mut dyn SubmissionHandler,
-        #[cfg(feature = "debugger")] debug_server: &'a mut dyn DebuggerProtocol
+        #[cfg(feature = "debugger")] debug_server: &'a mut dyn DebuggerHandler
     ) -> Result<Self> {
         Ok(Coordinator {
             #[cfg(feature = "submission")]

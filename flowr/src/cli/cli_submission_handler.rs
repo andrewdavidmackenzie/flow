@@ -16,21 +16,21 @@ use crate::cli::messages::ClientMessage;
 use crate::cli::messages::CoordinatorMessage;
 use crate::CoordinatorConnection;
 
-/// Get and Send messages to/from the runtime client
-pub(crate) struct CLISubmitter {
+/// A [SubmissionHandler] to allow submitting flows for execution from the CLI
+pub(crate) struct CLISubmissionHandler {
     coordinator_connection: Arc<Mutex<CoordinatorConnection>>,
 }
 
-impl CLISubmitter {
+impl CLISubmissionHandler {
     /// Create a new Submission handler using the connection provided
     pub fn new(connection: Arc<Mutex<CoordinatorConnection>>) -> Self {
-        CLISubmitter {
+        CLISubmissionHandler {
             coordinator_connection: connection,
         }
     }
 }
 
-impl SubmissionHandler for CLISubmitter {
+impl SubmissionHandler for CLISubmissionHandler {
     fn flow_execution_starting(&mut self) -> Result<()> {
         let _ = self.coordinator_connection
             .lock()

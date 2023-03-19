@@ -11,8 +11,10 @@ use crate::job::Job;
 use crate::run_state::RunState;
 use crate::run_state::State;
 
-/// Programs that wish to offer a debugger (such as a CLI or UI) should implement this protocol
-pub trait DebuggerProtocol {
+/// Programs that wish to offer a debugger user interface (such as a CLI or UI) should implement
+/// this trait. The [Coordinator][crate::coordinator::Coordinator] uses it to interact with the
+/// client for debugging.
+pub trait DebuggerHandler {
     /// Start the debugger - which swallows the first message to initialize the connection
     fn start(&mut self);
     /// a breakpoint has been hit on a Job being created

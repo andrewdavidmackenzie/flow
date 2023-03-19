@@ -929,7 +929,7 @@ mod test {
     #[cfg(feature = "debugger")]
     use crate::debugger::Debugger;
     #[cfg(feature = "debugger")]
-    use crate::debugger_protocol::DebuggerProtocol;
+    use crate::debugger_handler::DebuggerHandler;
     #[cfg(feature = "debugger")]
     use crate::run_state::State;
 
@@ -1050,7 +1050,7 @@ mod test {
     #[cfg(feature = "debugger")]
     struct DummyServer;
     #[cfg(feature = "debugger")]
-    impl DebuggerProtocol for DummyServer {
+    impl DebuggerHandler for DummyServer {
         fn start(&mut self) {}
         fn job_breakpoint(&mut self, _job: &Job, _function: &RuntimeFunction, _states: Vec<State>) {}
         fn block_breakpoint(&mut self, _block: &Block) {}
@@ -1078,7 +1078,7 @@ mod test {
     }
 
     #[cfg(feature = "debugger")]
-    fn dummy_debugger(server: &mut dyn DebuggerProtocol) -> Debugger {
+    fn dummy_debugger(server: &mut dyn DebuggerHandler) -> Debugger {
         Debugger::new(server)
     }
 
