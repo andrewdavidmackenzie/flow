@@ -114,7 +114,7 @@ impl CliRuntimeClient {
             }
             CoordinatorMessage::GetStdin => {
                 let mut buffer = String::new();
-                if let Ok(size) = io::stdin().read_line(&mut buffer) {
+                if let Ok(size) = io::stdin().read_to_string(&mut buffer) {
                     return if size > 0 {
                         ClientMessage::Stdin(buffer.trim().to_string())
                     } else {
