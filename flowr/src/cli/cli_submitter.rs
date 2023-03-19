@@ -25,7 +25,7 @@ impl SubmissionProtocol for CLISubmitter {
     fn flow_execution_starting(&mut self) -> Result<()> {
         let _ = self.coordinator_connection
             .lock()
-            .map_err(|_| "Could not lock server connection")?
+            .map_err(|_| "Could not lock coordinator connection")?
             .send_and_receive_response::<CoordinatorMessage, ClientMessage>(CoordinatorMessage::FlowStart)?;
 
         Ok(())
@@ -39,7 +39,7 @@ impl SubmissionProtocol for CLISubmitter {
         let msg = self
             .coordinator_connection
             .lock()
-            .map_err(|_| "Could not lock server connection")?
+            .map_err(|_| "Could not lock coordinator connection")?
             .receive(DONT_WAIT);
         match msg {
             Ok(ClientMessage::EnterDebugger) => {
@@ -58,7 +58,7 @@ impl SubmissionProtocol for CLISubmitter {
     fn flow_execution_ended(&mut self, state: &RunState, metrics: Metrics) -> Result<()> {
         self.coordinator_connection
             .lock()
-            .map_err(|_| "Could not lock server connection")?
+            .map_err(|_| "Could not lock coordinator connection")?
             .send(CoordinatorMessage::FlowEnd(metrics))?;
         debug!("{}", state);
         Ok(())
@@ -68,7 +68,7 @@ impl SubmissionProtocol for CLISubmitter {
     fn flow_execution_ended(&mut self, state: &RunState) -> Result<()> {
         self.coordinator_connection
             .lock()
-            .map_err(|_| "Could not lock server connection")?
+            .map_err(|_| "Could not lock coordinator connection")?
             .send(CoordinatorMessage::FlowEnd)?;
         debug!("{}", state);
         Ok(())
@@ -79,36 +79,36 @@ impl SubmissionProtocol for CLISubmitter {
     //  - `ClientExiting` then return Ok(None)
     fn wait_for_submission(&mut self) -> Result<Option<Submission>> {
         loop {
-            info!("Server is waiting to receive a 'Submission'");
+            info!("Coordinator is waiting to receive a 'Submission'");
             let guard = self.coordinator_connection.lock();
             match guard {
                 Ok(locked) =>  {
                     let received = locked.receive(WAIT);
                     match received {
                         Ok(ClientMessage::ClientSubmission(submission)) => {
-                            info!("Server received a submission for execution");
+                            info!("Coordinator received a submission for execution");
                             trace!("\n{}", submission);
                             return Ok(Some(submission));
                         }
                         Ok(ClientMessage::ClientExiting(_)) => return Ok(None),
-                        Ok(r) => error!("Server did not expect response from client: '{:?}'", r),
-                        Err(e) => bail!("Server error while waiting for submission: '{}'", e),
+                        Ok(r) => error!("Coordinator did not expect response from client: '{:?}'", r),
+                        Err(e) => bail!("Coordinator error while waiting for submission: '{}'", e),
                     }
                 }
                 _ => {
-                    error!("Server could not lock connection");
+                    error!("Coordinator could not lock connection");
                     return Ok(None);
                 }
             }
         }
     }
 
-    // The coordinator is about to exit
     fn coordinator_is_exiting(&mut self, result: Result<()>) -> Result<()> {
         debug!("Coordinator exiting");
         let mut connection = self.coordinator_connection
             .lock()
-            .map_err(|e| format!("Could not lock Server Connection: {e}"))?;
+            .map_err(|e|
+                format!("Could not lock Coordinator Connection: {e}"))?;
         connection.send(CoordinatorMessage::CoordinatorExiting(result))
     }
 }
