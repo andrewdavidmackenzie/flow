@@ -68,7 +68,8 @@ use crate::cli::client_coordinator::{COORDINATOR_SERVICE_NAME, DEBUG_SERVICE_NAM
 
 #[cfg(feature = "debugger")]
 /// provides the `context functions` for interacting with the execution environment from a flow,
-/// plus client-server implementations of [flowrlib::protocols] for executing them on different threads
+/// plus client-[Coordinator][flowrlib::coordinator::Coordinator] implementations of
+/// [flowrlib::protocols] for executing them on different threads
 /// from the [Coordinator][flowrlib::coordinator::Coordinator]
 mod cli;
 
@@ -179,12 +180,12 @@ fn coordinator_only(
                 lib_search_path: Simpath,
                 native_flowstdlib: bool,
                 ) -> Result<()> {
-    let runtime_port = pick_unused_port().chain_err(|| "No ports free")?;
-    let runtime_server_connection = CoordinatorConnection::new(COORDINATOR_SERVICE_NAME,
-                                                               runtime_port)?;
+    let coordinator_port = pick_unused_port().chain_err(|| "No ports free")?;
+    let coordinator_connection = CoordinatorConnection::new(COORDINATOR_SERVICE_NAME,
+                                                            coordinator_port)?;
     let discovery_port = pick_unused_port().chain_err(|| "No ports free")?;
     enable_service_discovery(discovery_port, COORDINATOR_SERVICE_NAME,
-                             runtime_port)?;
+                             coordinator_port)?;
 
     #[cfg(feature = "debugger")]
     let debug_port = pick_unused_port().chain_err(|| "No ports free")?;
@@ -196,17 +197,17 @@ fn coordinator_only(
 
     println!("{discovery_port}");
 
-    info!("Starting 'flowr' server process in main thread");
+    info!("Starting coordinator in main thread");
     coordinator(
         num_threads,
         lib_search_path,
         native_flowstdlib,
-        runtime_server_connection,
+        coordinator_connection,
         #[cfg(feature = "debugger")] debug_server_connection,
         true,
     )?;
 
-    info!("'flowr' server process has exited");
+    info!("'flowr' coordinator has exited");
 
     Ok(())
 }
@@ -222,8 +223,8 @@ fn client_and_coordinator(
     debug_this_flow: bool,
 ) -> Result<()> {
     let runtime_port = pick_unused_port().chain_err(|| "No ports free")?;
-    let runtime_server_connection = CoordinatorConnection::new(COORDINATOR_SERVICE_NAME,
-                                                               runtime_port)?;
+    let coordinator_connection = CoordinatorConnection::new(COORDINATOR_SERVICE_NAME,
+                                                            runtime_port)?;
 
     let discovery_port = pick_unused_port().chain_err(|| "No ports free")?;
     enable_service_discovery(discovery_port, COORDINATOR_SERVICE_NAME, runtime_port)?;
@@ -231,20 +232,20 @@ fn client_and_coordinator(
     #[cfg(feature = "debugger")]
     let debug_port = pick_unused_port().chain_err(|| "No ports free")?;
     #[cfg(feature = "debugger")]
-    let debug_server_connection = CoordinatorConnection::new(DEBUG_SERVICE_NAME,
-                                                             debug_port)?;
+    let debug_connection = CoordinatorConnection::new(DEBUG_SERVICE_NAME,
+                                                      debug_port)?;
     enable_service_discovery(discovery_port, DEBUG_SERVICE_NAME, debug_port)?;
 
-    let server_lib_search_path = lib_search_path.clone();
+    let coordinator_lib_search_path = lib_search_path.clone();
 
+    info!("Starting coordinator in background thread");
     thread::spawn(move || {
-        info!("Starting 'flowr' server in background thread");
         let _ = coordinator(
             num_threads,
-            server_lib_search_path,
+            coordinator_lib_search_path,
             native_flowstdlib,
-            runtime_server_connection,
-            #[cfg(feature = "debugger")] debug_server_connection,
+            coordinator_connection,
+            #[cfg(feature = "debugger")] debug_connection,
             false,
         );
     });
@@ -290,7 +291,7 @@ fn get_bind_addresses(ports: (u16, u16, u16, u16)) -> (String, String, String, S
     )
 }
 
-/// Return four free ports to use for client-server message queues
+/// Return four free ports to use for client-coordinator message queues
 fn get_four_ports() -> Result<(u16, u16, u16, u16)> {
     Ok((pick_unused_port().chain_err(|| "No ports free")?,
         pick_unused_port().chain_err(|| "No ports free")?,
@@ -306,14 +307,14 @@ fn coordinator(
     num_threads: usize,
     lib_search_path: Simpath,
     native_flowstdlib: bool,
-    runtime_server_connection: CoordinatorConnection,
-    #[cfg(feature = "debugger")] debug_server_connection: CoordinatorConnection,
+    coordinator_connection: CoordinatorConnection,
+    #[cfg(feature = "debugger")] debug_connection: CoordinatorConnection,
     loop_forever: bool,
 ) -> Result<()> {
-    let server_connection = Arc::new(Mutex::new(runtime_server_connection));
+    let connection = Arc::new(Mutex::new(coordinator_connection));
 
     #[cfg(feature = "debugger")]
-    let mut debug_server = CliDebugServer { debug_server_connection };
+    let mut debug_server = CliDebugServer { debug_server_connection: debug_connection };
 
     let provider = Arc::new(MetaProvider::new(lib_search_path,
                                          PathBuf::from("/"))) as Arc<dyn Provider>;
@@ -348,7 +349,7 @@ fn coordinator(
 
     let mut context_executor = Executor::new()?;
     context_executor.add_lib(
-        cli::cli_manifest::get_manifest(server_connection.clone())?,
+        cli::cli_manifest::get_manifest(connection.clone())?,
         Url::parse("memory://")? // Statically linked library has no resolved Url
     )?;
     context_executor.start(provider, 1,
@@ -358,7 +359,7 @@ fn coordinator(
     );
 
     let mut submitter = CLISubmitter {
-        runtime_server_connection: server_connection,
+        coordinator_connection: connection,
     };
 
     let mut coordinator = Coordinator::new(
@@ -372,17 +373,15 @@ fn coordinator(
     Ok(())
 }
 
-/// Start only a client in the calling thread. Since we are *only* starting a client in this
-/// process, we don't have server information, so we create a set of ServerInfo from command
-/// line options for the server address and known service names and ports.
+/// Start only a client in the calling thread. Discover the remote Coordinator using service discovery
 fn client_only(
     matches: &ArgMatches,
     lib_search_path: Simpath,
     #[cfg(feature = "debugger")] debug_this_flow: bool,
     discovery_port: &u16,
 ) -> Result<()> {
-    let server_address = discover_service(*discovery_port, COORDINATOR_SERVICE_NAME)?;
-    let context_client_connection = ClientConnection::new(&server_address)?;
+    let coordinator_address = discover_service(*discovery_port, COORDINATOR_SERVICE_NAME)?;
+    let context_client_connection = ClientConnection::new(&coordinator_address)?;
 
     client(
         matches,
@@ -393,7 +392,7 @@ fn client_only(
     )
 }
 
-/// Start the clients that talks to the server thread or process
+/// Start the clients that talks to the coordinator
 #[cfg(feature = "debugger")]
 fn client(
     matches: &ArgMatches,
@@ -428,9 +427,9 @@ fn client(
 
     #[cfg(feature = "debugger")]
     if debug_this_flow {
-        let server_address = discover_service(discovery_post,
-                                              DEBUG_SERVICE_NAME)?;
-        let debug_client_connection = ClientConnection::new(&server_address)?;
+        let debug_server_address = discover_service(discovery_post,
+                                                    DEBUG_SERVICE_NAME)?;
+        let debug_client_connection = ClientConnection::new(&debug_server_address)?;
         let debug_client = CliDebugClient::new(debug_client_connection,
             override_args);
         let _ = thread::spawn(move || {
@@ -438,7 +437,7 @@ fn client(
         });
     }
 
-    info!("Client sending submission to server");
+    info!("Client sending submission to coordinator");
     client_connection.send(ClientMessage::ClientSubmission(submission))?;
 
     trace!("Entering client event loop");
@@ -493,7 +492,7 @@ fn get_matches() -> ArgMatches {
              .long("server")
              .action(clap::ArgAction::SetTrue)
              .conflicts_with("client")
-             .help("Launch as flowr server (only, no client)"),
+             .help("Launch only a Coordinator (no client)"),
         )
         .arg(Arg::new("client")
              .short('c')
@@ -501,7 +500,7 @@ fn get_matches() -> ArgMatches {
              .number_of_values(1)
              .value_parser(clap::value_parser!(u16))
              .conflicts_with("server")
-             .help("Start flowr as a client (only, no server) to connect to a flowr server"),
+             .help("Launch only a client (no coordinator) to connect to a remote coordinator"),
         )
         .arg(Arg::new("jobs")
             .short('j')

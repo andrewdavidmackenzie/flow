@@ -18,12 +18,12 @@ use crate::CoordinatorConnection;
 
 /// Get and Send messages to/from the runtime client
 pub(crate) struct CLISubmitter {
-    pub(crate) runtime_server_connection: Arc<Mutex<CoordinatorConnection>>,
+    pub(crate) coordinator_connection: Arc<Mutex<CoordinatorConnection>>,
 }
 
 impl SubmissionProtocol for CLISubmitter {
     fn flow_execution_starting(&mut self) -> Result<()> {
-        let _ = self.runtime_server_connection
+        let _ = self.coordinator_connection
             .lock()
             .map_err(|_| "Could not lock server connection")?
             .send_and_receive_response::<CoordinatorMessage, ClientMessage>(CoordinatorMessage::FlowStart)?;
@@ -37,7 +37,7 @@ impl SubmissionProtocol for CLISubmitter {
     #[cfg(feature = "debugger")]
     fn should_enter_debugger(&mut self) -> Result<bool> {
         let msg = self
-            .runtime_server_connection
+            .coordinator_connection
             .lock()
             .map_err(|_| "Could not lock server connection")?
             .receive(DONT_WAIT);
@@ -56,7 +56,7 @@ impl SubmissionProtocol for CLISubmitter {
 
     #[cfg(feature = "metrics")]
     fn flow_execution_ended(&mut self, state: &RunState, metrics: Metrics) -> Result<()> {
-        self.runtime_server_connection
+        self.coordinator_connection
             .lock()
             .map_err(|_| "Could not lock server connection")?
             .send(CoordinatorMessage::FlowEnd(metrics))?;
@@ -66,7 +66,7 @@ impl SubmissionProtocol for CLISubmitter {
 
     #[cfg(not(feature = "metrics"))]
     fn flow_execution_ended(&mut self, state: &RunState) -> Result<()> {
-        self.runtime_server_connection
+        self.coordinator_connection
             .lock()
             .map_err(|_| "Could not lock server connection")?
             .send(CoordinatorMessage::FlowEnd)?;
@@ -80,7 +80,7 @@ impl SubmissionProtocol for CLISubmitter {
     fn wait_for_submission(&mut self) -> Result<Option<Submission>> {
         loop {
             info!("Server is waiting to receive a 'Submission'");
-            let guard = self.runtime_server_connection.lock();
+            let guard = self.coordinator_connection.lock();
             match guard {
                 Ok(locked) =>  {
                     let received = locked.receive(WAIT);
@@ -106,7 +106,7 @@ impl SubmissionProtocol for CLISubmitter {
     // The coordinator is about to exit
     fn coordinator_is_exiting(&mut self, result: Result<()>) -> Result<()> {
         debug!("Coordinator exiting");
-        let mut connection = self.runtime_server_connection
+        let mut connection = self.coordinator_connection
             .lock()
             .map_err(|e| format!("Could not lock Server Connection: {e}"))?;
         connection.send(CoordinatorMessage::CoordinatorExiting(result))
