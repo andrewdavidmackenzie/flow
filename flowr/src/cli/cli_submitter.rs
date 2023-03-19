@@ -7,8 +7,8 @@ use flowcore::errors::*;
 #[cfg(feature = "metrics")]
 use flowcore::model::metrics::Metrics;
 use flowcore::model::submission::Submission;
-use flowrlib::protocols::SubmissionProtocol;
 use flowrlib::run_state::RunState;
+use flowrlib::submission_handler::SubmissionHandler;
 
 #[cfg(feature = "debugger")]
 use crate::cli::client_coordinator::{DONT_WAIT, WAIT};
@@ -18,10 +18,19 @@ use crate::CoordinatorConnection;
 
 /// Get and Send messages to/from the runtime client
 pub(crate) struct CLISubmitter {
-    pub(crate) coordinator_connection: Arc<Mutex<CoordinatorConnection>>,
+    coordinator_connection: Arc<Mutex<CoordinatorConnection>>,
 }
 
-impl SubmissionProtocol for CLISubmitter {
+impl CLISubmitter {
+    /// Create a new Submission handler using the connection provided
+    pub fn new(connection: Arc<Mutex<CoordinatorConnection>>) -> Self {
+        CLISubmitter {
+            coordinator_connection: connection,
+        }
+    }
+}
+
+impl SubmissionHandler for CLISubmitter {
     fn flow_execution_starting(&mut self) -> Result<()> {
         let _ = self.coordinator_connection
             .lock()

@@ -13,9 +13,9 @@ use crate::block::Block;
 use crate::debug_command::BreakpointSpec;
 use crate::debug_command::DebugCommand;
 use crate::debug_command::DebugCommand::{Ack, Breakpoint, Continue, DebugClientStarting, Delete, Error, ExitDebugger, Inspect, InspectBlock, InspectFunction, InspectInput, InspectOutput, Invalid, List, Modify, RunReset, Step, Validate};
+use crate::debugger_protocol::DebuggerProtocol;
 use crate::job::Job;
 use crate::run_state::RunState;
-use crate::protocols::DebuggerProtocol;
 
 /// Debugger struct contains all the info necessary to conduct a debugging session, storing
 /// set breakpoints, connections to the debug client etc
@@ -742,9 +742,9 @@ mod test {
     use crate::block::Block;
     use crate::debug_command::{BreakpointSpec, DebugCommand};
     use crate::debugger::{BlockerNode, BlockType, Debugger};
+    use crate::debugger_protocol::DebuggerProtocol;
     use crate::job::{Job, JobPayload};
     use crate::run_state::{RunState, State};
-    use crate::protocols::DebuggerProtocol;
 
     struct DummyServer {
         job_breakpoint: usize,

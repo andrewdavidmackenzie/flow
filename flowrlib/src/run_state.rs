@@ -929,9 +929,9 @@ mod test {
     #[cfg(feature = "debugger")]
     use crate::debugger::Debugger;
     #[cfg(feature = "debugger")]
-    use crate::run_state::State;
+    use crate::debugger_protocol::DebuggerProtocol;
     #[cfg(feature = "debugger")]
-    use crate::protocols::DebuggerProtocol;
+    use crate::run_state::State;
 
     use super::{Job, JobPayload};
     use super::RunState;

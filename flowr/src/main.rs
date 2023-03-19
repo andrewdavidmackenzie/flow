@@ -69,7 +69,7 @@ use crate::cli::client_coordinator::{COORDINATOR_SERVICE_NAME, DEBUG_SERVICE_NAM
 #[cfg(feature = "debugger")]
 /// provides the `context functions` for interacting with the execution environment from a flow,
 /// plus client-[Coordinator][flowrlib::coordinator::Coordinator] implementations of
-/// [flowrlib::protocols] for executing them on different threads
+/// [flowrlib::submission_handler] for executing them on different threads
 /// from the [Coordinator][flowrlib::coordinator::Coordinator]
 mod cli;
 
@@ -358,9 +358,7 @@ fn coordinator(
                             &control_socket,
     );
 
-    let mut submitter = CLISubmitter {
-        coordinator_connection: connection,
-    };
+    let mut submitter = CLISubmitter::new(connection);
 
     let mut coordinator = Coordinator::new(
         dispatcher,

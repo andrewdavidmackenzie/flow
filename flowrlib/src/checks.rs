@@ -260,10 +260,10 @@ mod test {
     #[cfg(feature = "debugger")]
     use crate::debugger::Debugger;
     #[cfg(feature = "debugger")]
+    use crate::debugger_protocol::DebuggerProtocol;
+    #[cfg(feature = "debugger")]
     use crate::job::Job;
     use crate::run_state::{RunState, State};
-    #[cfg(feature = "debugger")]
-    use crate::protocols::DebuggerProtocol;
 
     use super::blocked_check;
     use super::ready_check;

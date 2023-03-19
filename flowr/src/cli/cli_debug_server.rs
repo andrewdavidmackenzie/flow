@@ -5,9 +5,8 @@ use flowcore::model::output_connection::OutputConnection;
 use flowcore::model::runtime_function::RuntimeFunction;
 use flowrlib::block::Block;
 use flowrlib::debug_command::DebugCommand;
+use flowrlib::debugger_protocol::DebuggerProtocol;
 use flowrlib::job::Job;
-#[cfg(feature = "debugger")]
-use flowrlib::protocols::DebuggerProtocol;
 use flowrlib::run_state::{RunState, State};
 
 use crate::{BlockBreakpoint, CoordinatorConnection, DataBreakpoint, ExecutionEnded, ExecutionStarted,
