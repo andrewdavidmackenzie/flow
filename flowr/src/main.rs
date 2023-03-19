@@ -441,11 +441,8 @@ fn client(
     info!("Client sending submission to server");
     client_connection.send(ClientMessage::ClientSubmission(submission))?;
 
-    client.event_loop(
-        client_connection,
-    )?;
-
-    Ok(())
+    trace!("Entering client event loop");
+    client.event_loop(client_connection)
 }
 
 /// Determine the number of threads to use to execute flows
