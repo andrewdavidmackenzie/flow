@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `flowrlib/src/coordinator.rs`."><title>coordinator.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Bold-a2c9cd1067f8b328.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-c4dbdcde0fbd8430.css" id="mainThemeStyle"><div id="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="flowrlib" data-themes="" data-resource-suffix="" data-rustdoc-version="1.70.0-nightly (da7c50c08 2023-03-19)" data-search-js="search-d1bc581867fd0849.js" data-settings-js="settings-f0c5c39777a9a2f6.js" data-settings-css="settings-0bcba95ff279c1db.css" data-theme-light-css="light-db279b6232be9c13.css" data-theme-dark-css="dark-cf923f49f397b216.css" data-theme-ayu-css="ayu-be46fdc453a55015.css" ></div><script src="../../static.files/storage-9184409068f70b79.js"></script><script defer src="../../static.files/source-script-1b95b7cca98b26e5.js"></script><script defer src="../../source-files.js"></script><script defer src="../../static.files/main-f5a2577c5297a973.js"></script><noscript><link rel="stylesheet" media="(prefers-color-scheme:light)" href="../../static.files/light-db279b6232be9c13.css"><link rel="stylesheet" media="(prefers-color-scheme:dark)" href="../../static.files/dark-cf923f49f397b216.css"><link rel="stylesheet" href="../../static.files/noscript-13285aec31fa243e.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><a class="sub-logo-container" href="../../flowrlib/index.html"><img class="rust-logo" src="../../static.files/rust-logo-151179464ae7ed46.svg" alt="logo"></a><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `flowrlib/src/coordinator.rs`."><title>coordinator.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Bold-a2c9cd1067f8b328.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-c4dbdcde0fbd8430.css" id="mainThemeStyle"><div id="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="flowrlib" data-themes="" data-resource-suffix="" data-rustdoc-version="1.70.0-nightly (44f518058 2023-03-20)" data-search-js="search-a6dd7f063a44c279.js" data-settings-js="settings-f0c5c39777a9a2f6.js" data-settings-css="settings-0bcba95ff279c1db.css" data-theme-light-css="light-db279b6232be9c13.css" data-theme-dark-css="dark-cf923f49f397b216.css" data-theme-ayu-css="ayu-be46fdc453a55015.css" ></div><script src="../../static.files/storage-9184409068f70b79.js"></script><script defer src="../../static.files/source-script-1b95b7cca98b26e5.js"></script><script defer src="../../source-files.js"></script><script defer src="../../static.files/main-f5a2577c5297a973.js"></script><noscript><link rel="stylesheet" media="(prefers-color-scheme:light)" href="../../static.files/light-db279b6232be9c13.css"><link rel="stylesheet" media="(prefers-color-scheme:dark)" href="../../static.files/dark-cf923f49f397b216.css"><link rel="stylesheet" href="../../static.files/noscript-13285aec31fa243e.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><a class="sub-logo-container" href="../../flowrlib/index.html"><img class="rust-logo" src="../../static.files/rust-logo-151179464ae7ed46.svg" alt="logo"></a><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -273,13 +273,13 @@
 
 <span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)]
 </span><span class="kw">use </span><span class="kw">crate</span>::debugger::Debugger;
+<span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)]
+</span><span class="kw">use </span><span class="kw">crate</span>::debugger_handler::DebuggerHandler;
 <span class="kw">use </span><span class="kw">crate</span>::dispatcher::Dispatcher;
 <span class="kw">use </span><span class="kw">crate</span>::job::Job;
 <span class="kw">use </span><span class="kw">crate</span>::run_state::RunState;
-<span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)]
-</span><span class="kw">use </span><span class="kw">crate</span>::protocols::DebuggerProtocol;
 <span class="attr">#[cfg(feature = <span class="string">&quot;submission&quot;</span>)]
-</span><span class="kw">use </span><span class="kw">crate</span>::protocols::SubmissionProtocol;
+</span><span class="kw">use </span><span class="kw">crate</span>::submission_handler::SubmissionHandler;
 
 <span class="doccomment">/// The `Coordinator` is responsible for coordinating the dispatching of jobs (consisting
 /// of a set of Input values and an Implementation of a Function) for execution,
@@ -291,8 +291,8 @@
 </span><span class="kw">pub struct </span>Coordinator&lt;<span class="lifetime">&#39;a</span>&gt; {
     <span class="doccomment">/// A `Server` to communicate with clients
     </span><span class="attr">#[cfg(feature = <span class="string">&quot;submission&quot;</span>)]
-    </span>submitter: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span><span class="kw-2">mut </span><span class="kw">dyn </span>SubmissionProtocol,
-    <span class="doccomment">/// Dispatcher todispatch jobs for execution
+    </span>submission_handler: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span><span class="kw-2">mut </span><span class="kw">dyn </span>SubmissionHandler,
+    <span class="doccomment">/// Dispatcher to dispatch jobs for execution
     </span>dispatcher: Dispatcher,
     <span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)]
     </span><span class="doccomment">/// A `Debugger` to communicate with debug clients
@@ -305,12 +305,12 @@
     <span class="doccomment">/// Create a new `coordinator` with `num_threads` local executor threads
     </span><span class="kw">pub fn </span>new(
         dispatcher: Dispatcher,
-        <span class="attr">#[cfg(feature = <span class="string">&quot;submission&quot;</span>)] </span>submitter: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span><span class="kw-2">mut </span><span class="kw">dyn </span>SubmissionProtocol,
-        <span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)] </span>debug_server: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span><span class="kw-2">mut </span><span class="kw">dyn </span>DebuggerProtocol
+        <span class="attr">#[cfg(feature = <span class="string">&quot;submission&quot;</span>)] </span>submitter: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span><span class="kw-2">mut </span><span class="kw">dyn </span>SubmissionHandler,
+        <span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)] </span>debug_server: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span><span class="kw-2">mut </span><span class="kw">dyn </span>DebuggerHandler
     ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>&gt; {
         <span class="prelude-val">Ok</span>(Coordinator {
             <span class="attr">#[cfg(feature = <span class="string">&quot;submission&quot;</span>)]
-            </span>submitter,
+            </span>submission_handler: submitter,
             dispatcher,
             <span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)]
             </span>debugger: Debugger::new(debug_server),
@@ -325,14 +325,14 @@
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         loop_forever: bool,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
-        <span class="kw">while let </span><span class="prelude-val">Some</span>(submission) = <span class="self">self</span>.submitter.wait_for_submission()<span class="question-mark">? </span>{
+        <span class="kw">while let </span><span class="prelude-val">Some</span>(submission) = <span class="self">self</span>.submission_handler.wait_for_submission()<span class="question-mark">? </span>{
             <span class="kw">let _ </span>= <span class="self">self</span>.execute_flow(submission);
             <span class="kw">if </span>!loop_forever {
                 <span class="kw">break</span>;
             }
         }
 
-        <span class="self">self</span>.submitter.coordinator_is_exiting(<span class="prelude-val">Ok</span>(()))
+        <span class="self">self</span>.submission_handler.coordinator_is_exiting(<span class="prelude-val">Ok</span>(()))
     }
 
     <span class="comment">//noinspection RsReassignImmutable
@@ -350,7 +350,7 @@
         </span><span class="kw">let </span><span class="kw-2">mut </span>metrics = Metrics::new(state.num_functions());
 
         <span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)]
-        </span><span class="kw">if </span>state.submission.debug {
+        </span><span class="kw">if </span>state.submission.debug_enabled {
             <span class="self">self</span>.debugger.start();
         }
 
@@ -366,17 +366,17 @@
 
             <span class="comment">// If debugging - then prior to starting execution - enter the debugger
             </span><span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)]
-            </span><span class="kw">if </span>state.submission.debug {
+            </span><span class="kw">if </span>state.submission.debug_enabled {
                 (display_next_output, restart) = <span class="self">self</span>.debugger.wait_for_command(<span class="kw-2">&amp;mut </span>state)<span class="question-mark">?</span>;
             }
 
             <span class="attr">#[cfg(feature = <span class="string">&quot;submission&quot;</span>)]
-            </span><span class="self">self</span>.submitter.flow_execution_starting()<span class="question-mark">?</span>;
+            </span><span class="self">self</span>.submission_handler.flow_execution_starting()<span class="question-mark">?</span>;
 
             <span class="lifetime">&#39;jobs</span>: <span class="kw">loop </span>{
                 <span class="macro">trace!</span>(<span class="string">&quot;{}&quot;</span>, state);
                 <span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)]
-                </span><span class="kw">if </span>state.submission.debug &amp;&amp; <span class="self">self</span>.submitter.should_enter_debugger()<span class="question-mark">? </span>{
+                </span><span class="kw">if </span>state.submission.debug_enabled &amp;&amp; <span class="self">self</span>.submission_handler.should_enter_debugger()<span class="question-mark">? </span>{
                     (display_next_output, restart) = <span class="self">self</span>.debugger.wait_for_command(<span class="kw-2">&amp;mut </span>state)<span class="question-mark">?</span>;
                     <span class="kw">if </span>restart {
                         <span class="kw">break </span><span class="lifetime">&#39;jobs</span>;
@@ -418,7 +418,7 @@
                         <span class="prelude-val">Err</span>(err) =&gt; {
                             <span class="macro">error!</span>(<span class="string">&quot;\t{}&quot;</span>, err.to_string());
                             <span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)]
-                            </span><span class="kw">if </span>state.submission.debug {
+                            </span><span class="kw">if </span>state.submission.debug_enabled {
                                 (display_next_output, restart) = <span class="self">self</span>.debugger.error(
                                     <span class="kw-2">&amp;mut </span>state, err.to_string())<span class="question-mark">?</span>;
                                 <span class="kw">if </span>restart {
@@ -442,7 +442,7 @@
             </span><span class="kw">if </span>!restart {
                 {
                     <span class="comment">// If debugging then enter the debugger for a final time before ending flow execution
-                    </span><span class="kw">if </span>state.submission.debug {
+                    </span><span class="kw">if </span>state.submission.debug_enabled {
                         (display_next_output, restart) = <span class="self">self</span>.debugger.execution_ended(<span class="kw-2">&amp;mut </span>state)<span class="question-mark">?</span>;
                     }
                 }
@@ -458,7 +458,7 @@
         <span class="attr">#[cfg(feature = <span class="string">&quot;metrics&quot;</span>)]
         </span>metrics.set_jobs_created(state.get_number_of_jobs_created());
         <span class="attr">#[cfg(all(feature = <span class="string">&quot;submission&quot;</span>, feature = <span class="string">&quot;metrics&quot;</span>))]
-        </span><span class="self">self</span>.submitter.flow_execution_ended(<span class="kw-2">&amp;</span>state, metrics)<span class="question-mark">?</span>;
+        </span><span class="self">self</span>.submission_handler.flow_execution_ended(<span class="kw-2">&amp;</span>state, metrics)<span class="question-mark">?</span>;
         <span class="attr">#[cfg(all(feature = <span class="string">&quot;submission&quot;</span>, not(feature = <span class="string">&quot;metrics&quot;</span>)))]
         </span><span class="self">self</span>.submitter.flow_execution_ended(<span class="kw-2">&amp;</span>state)<span class="question-mark">?</span>;
 

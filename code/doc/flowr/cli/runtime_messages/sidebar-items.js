@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"constant":["FIELDS","VARIANTS"],"enum":["ClientMessage","ServerMessage","__Field"],"struct":["FileMetaData","__FieldVisitor","__Visitor"]};

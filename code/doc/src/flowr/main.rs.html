@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `flowr/src/main.rs`."><title>main.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Bold-a2c9cd1067f8b328.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-c4dbdcde0fbd8430.css" id="mainThemeStyle"><div id="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="flowr" data-themes="" data-resource-suffix="" data-rustdoc-version="1.70.0-nightly (da7c50c08 2023-03-19)" data-search-js="search-d1bc581867fd0849.js" data-settings-js="settings-f0c5c39777a9a2f6.js" data-settings-css="settings-0bcba95ff279c1db.css" data-theme-light-css="light-db279b6232be9c13.css" data-theme-dark-css="dark-cf923f49f397b216.css" data-theme-ayu-css="ayu-be46fdc453a55015.css" ></div><script src="../../static.files/storage-9184409068f70b79.js"></script><script defer src="../../static.files/source-script-1b95b7cca98b26e5.js"></script><script defer src="../../source-files.js"></script><script defer src="../../static.files/main-f5a2577c5297a973.js"></script><noscript><link rel="stylesheet" media="(prefers-color-scheme:light)" href="../../static.files/light-db279b6232be9c13.css"><link rel="stylesheet" media="(prefers-color-scheme:dark)" href="../../static.files/dark-cf923f49f397b216.css"><link rel="stylesheet" href="../../static.files/noscript-13285aec31fa243e.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><a class="sub-logo-container" href="../../flowr/index.html"><img class="rust-logo" src="../../static.files/rust-logo-151179464ae7ed46.svg" alt="logo"></a><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `flowr/src/main.rs`."><title>main.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Bold-a2c9cd1067f8b328.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-c4dbdcde0fbd8430.css" id="mainThemeStyle"><div id="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="flowr" data-themes="" data-resource-suffix="" data-rustdoc-version="1.70.0-nightly (44f518058 2023-03-20)" data-search-js="search-a6dd7f063a44c279.js" data-settings-js="settings-f0c5c39777a9a2f6.js" data-settings-css="settings-0bcba95ff279c1db.css" data-theme-light-css="light-db279b6232be9c13.css" data-theme-dark-css="dark-cf923f49f397b216.css" data-theme-ayu-css="ayu-be46fdc453a55015.css" ></div><script src="../../static.files/storage-9184409068f70b79.js"></script><script defer src="../../static.files/source-script-1b95b7cca98b26e5.js"></script><script defer src="../../source-files.js"></script><script defer src="../../static.files/main-f5a2577c5297a973.js"></script><noscript><link rel="stylesheet" media="(prefers-color-scheme:light)" href="../../static.files/light-db279b6232be9c13.css"><link rel="stylesheet" media="(prefers-color-scheme:dark)" href="../../static.files/dark-cf923f49f397b216.css"><link rel="stylesheet" href="../../static.files/noscript-13285aec31fa243e.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><a class="sub-logo-container" href="../../flowr/index.html"><img class="rust-logo" src="../../static.files/rust-logo-151179464ae7ed46.svg" alt="logo"></a><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -562,19 +562,6 @@
 <a href="#562" id="562">562</a>
 <a href="#563" id="563">563</a>
 <a href="#564" id="564">564</a>
-<a href="#565" id="565">565</a>
-<a href="#566" id="566">566</a>
-<a href="#567" id="567">567</a>
-<a href="#568" id="568">568</a>
-<a href="#569" id="569">569</a>
-<a href="#570" id="570">570</a>
-<a href="#571" id="571">571</a>
-<a href="#572" id="572">572</a>
-<a href="#573" id="573">573</a>
-<a href="#574" id="574">574</a>
-<a href="#575" id="575">575</a>
-<a href="#576" id="576">576</a>
-<a href="#577" id="577">577</a>
 </pre><pre class="rust"><code><span class="attr">#![deny(missing_docs)]
 #![warn(clippy::unwrap_used)]
 </span><span class="doccomment">//! `flowr` is a command line flow runner for running `flow` programs.
@@ -587,6 +574,16 @@
 //!
 //! The [cli] module implements a set of `context functions`, adapted to Terminal IO and local
 //! File System, that allow the flow program to interact with the environment where it is being run.
+//!
+//! Depending on the command line options supplied `flowr` executes the
+//! [Coordinator][flowrlib::coordinator::Coordinator] of flow execution in a background thread,
+//! or the [cli::cli_client] in the main thread (where the interaction with STDIO and
+//! File System happens) or both. They communicate via network messages using the
+//! [SubmissionHandler][flowrlib::submission_handler::SubmissionHandler] to submit flows for execution,
+//! and interchanging [ClientMessages][crate::cli::coordinator_message::ClientMessage]
+//! and [CoordinatorMessages][crate::cli::coordinator_message::CoordinatorMessage] for execution of context
+//! interaction in the client, as requested by functions running in the coordinator&#39;s
+//! [Executors][flowrlib::executor::Executor]
 
 </span><span class="kw">use </span>core::str::FromStr;
 <span class="kw">use </span>std::{env, thread};
@@ -601,22 +598,22 @@
 <span class="kw">use </span>simpath::Simpath;
 <span class="kw">use </span>url::Url;
 
+<span class="kw">use </span>cli::cli_client::CliRuntimeClient;
 <span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)]
 </span><span class="kw">use </span>cli::cli_debug_client::CliDebugClient;
 <span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)]
-</span><span class="kw">use </span>cli::cli_debug_server::CliDebugServer;
-<span class="kw">use </span>cli::cli_runtime_client::CliRuntimeClient;
-<span class="kw">use </span>cli::cli_submitter::CLISubmitter;
+</span><span class="kw">use </span>cli::cli_debug_handler::CliDebugHandler;
+<span class="kw">use </span>cli::cli_submission_handler::CLISubmissionHandler;
 <span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)]
-</span><span class="kw">use </span>cli::client_server::ClientConnection;
-<span class="kw">use </span>cli::client_server::ServerConnection;
+</span><span class="kw">use </span>cli::connections::ClientConnection;
+<span class="kw">use </span>cli::connections::CoordinatorConnection;
+<span class="kw">use </span>cli::coordinator_message::ClientMessage;
 <span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)]
-</span><span class="kw">use </span>cli::debug_server_message::DebugServerMessage;
+</span><span class="kw">use </span>cli::debug_message::DebugServerMessage;
 <span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)]
-</span><span class="kw">use </span>cli::debug_server_message::DebugServerMessage::{BlockBreakpoint, DataBreakpoint, ExecutionEnded, ExecutionStarted,
-                                                    ExitingDebugger, JobCompleted, JobError, Panic, PriorToSendingJob,
-                                                    Resetting, WaitingForCommand};
-<span class="kw">use </span>cli::runtime_messages::ClientMessage;
+</span><span class="kw">use </span>cli::debug_message::DebugServerMessage::{BlockBreakpoint, DataBreakpoint, ExecutionEnded, ExecutionStarted,
+                                             ExitingDebugger, JobCompleted, JobError, Panic, PriorToSendingJob,
+                                             Resetting, WaitingForCommand};
 <span class="kw">use </span>flowcore::errors::<span class="kw-2">*</span>;
 <span class="kw">use </span>flowcore::meta_provider::MetaProvider;
 <span class="kw">use </span>flowcore::model::flow_manifest::FlowManifest;
@@ -630,12 +627,13 @@
 <span class="kw">use </span>flowrlib::services::{CONTROL_SERVICE_NAME, JOB_QUEUES_DISCOVERY_PORT, JOB_SERVICE_NAME,
                          RESULTS_JOB_SERVICE_NAME};
 
-<span class="kw">use </span><span class="kw">crate</span>::cli::client_server::{DEBUG_SERVICE_NAME, discover_service,
-                                enable_service_discovery, RUNTIME_SERVICE_NAME};
+<span class="kw">use </span><span class="kw">crate</span>::cli::connections::{COORDINATOR_SERVICE_NAME, DEBUG_SERVICE_NAME,
+                              discover_service, enable_service_discovery};
 
 <span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)]
 </span><span class="doccomment">/// provides the `context functions` for interacting with the execution environment from a flow,
-/// plus client-server implementations of [flowrlib::protocols] for executing them on different threads
+/// plus client-[Coordinator][flowrlib::coordinator::Coordinator] implementations of
+/// [flowrlib::submission_handler] for executing them on different threads
 /// from the [Coordinator][flowrlib::coordinator::Coordinator]
 </span><span class="kw">mod </span>cli;
 
@@ -702,7 +700,6 @@
     <span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)]
     </span><span class="kw">let </span>debug_this_flow = matches.get_flag(<span class="string">&quot;debugger&quot;</span>);
     <span class="kw">let </span>native_flowstdlib = matches.get_flag(<span class="string">&quot;native&quot;</span>);
-    <span class="kw">let </span>context_only = matches.get_flag(<span class="string">&quot;context&quot;</span>);
     <span class="kw">let </span>lib_dirs = <span class="kw">if </span>matches.contains_id(<span class="string">&quot;lib_dir&quot;</span>) {
         matches
             .get_many::&lt;String&gt;(<span class="string">&quot;lib_dir&quot;</span>)
@@ -723,109 +720,103 @@
             discovery_port,
         )<span class="question-mark">?</span>;
     } <span class="kw">else if </span>matches.get_flag(<span class="string">&quot;server&quot;</span>) {
-        server_only(
+        coordinator_only(
             num_threads,
             lib_search_path,
             native_flowstdlib,
-            context_only,
         )<span class="question-mark">?</span>;
     } <span class="kw">else </span>{
-        client_and_server(
+        client_and_coordinator(
             num_threads,
             lib_search_path,
             native_flowstdlib,
             <span class="kw-2">&amp;</span>matches,
             <span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)] </span>debug_this_flow,
-            context_only,
         )<span class="question-mark">?</span>;
     };
 
     <span class="prelude-val">Ok</span>(())
 }
 
-<span class="doccomment">/// Start just a server - by running a Coordinator in the calling thread.
-</span><span class="kw">fn </span>server_only(
+<span class="doccomment">/// Start just a [Coordinator][flowrlib::coordinator::Coordinator] in the calling thread.
+</span><span class="kw">fn </span>coordinator_only(
                 num_threads: usize,
                 lib_search_path: Simpath,
                 native_flowstdlib: bool,
-                context_only: bool,
                 ) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
-    <span class="kw">let </span>runtime_port = pick_unused_port().chain_err(|| <span class="string">&quot;No ports free&quot;</span>)<span class="question-mark">?</span>;
-    <span class="kw">let </span>runtime_server_connection = ServerConnection::new(RUNTIME_SERVICE_NAME,
-                                                          runtime_port)<span class="question-mark">?</span>;
+    <span class="kw">let </span>coordinator_port = pick_unused_port().chain_err(|| <span class="string">&quot;No ports free&quot;</span>)<span class="question-mark">?</span>;
+    <span class="kw">let </span>coordinator_connection = CoordinatorConnection::new(COORDINATOR_SERVICE_NAME,
+                                                            coordinator_port)<span class="question-mark">?</span>;
     <span class="kw">let </span>discovery_port = pick_unused_port().chain_err(|| <span class="string">&quot;No ports free&quot;</span>)<span class="question-mark">?</span>;
-    enable_service_discovery(discovery_port, RUNTIME_SERVICE_NAME,
-                             runtime_port)<span class="question-mark">?</span>;
+    enable_service_discovery(discovery_port, COORDINATOR_SERVICE_NAME,
+                             coordinator_port)<span class="question-mark">?</span>;
 
     <span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)]
     </span><span class="kw">let </span>debug_port = pick_unused_port().chain_err(|| <span class="string">&quot;No ports free&quot;</span>)<span class="question-mark">?</span>;
     <span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)]
-    </span><span class="kw">let </span>debug_server_connection = ServerConnection::new(DEBUG_SERVICE_NAME,
-        debug_port)<span class="question-mark">?</span>;
+    </span><span class="kw">let </span>debug_server_connection = CoordinatorConnection::new(DEBUG_SERVICE_NAME,
+                                                             debug_port)<span class="question-mark">?</span>;
     <span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)]
     </span>enable_service_discovery(discovery_port, DEBUG_SERVICE_NAME,debug_port)<span class="question-mark">?</span>;
 
     <span class="macro">println!</span>(<span class="string">&quot;{discovery_port}&quot;</span>);
 
-    <span class="macro">info!</span>(<span class="string">&quot;Starting &#39;flowr&#39; server process in main thread&quot;</span>);
-    server(
+    <span class="macro">info!</span>(<span class="string">&quot;Starting coordinator in main thread&quot;</span>);
+    coordinator(
         num_threads,
         lib_search_path,
         native_flowstdlib,
-        runtime_server_connection,
+        coordinator_connection,
         <span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)] </span>debug_server_connection,
         <span class="bool-val">true</span>,
-        context_only,
     )<span class="question-mark">?</span>;
 
-    <span class="macro">info!</span>(<span class="string">&quot;&#39;flowr&#39; server process has exited&quot;</span>);
+    <span class="macro">info!</span>(<span class="string">&quot;&#39;flowr&#39; coordinator has exited&quot;</span>);
 
     <span class="prelude-val">Ok</span>(())
 }
 
-<span class="doccomment">/// Start a Server by running a [Coordinator][flowrlib::coordinator::Coordinator] in a background thread,
-/// then start clients in the calling thread
-</span><span class="kw">fn </span>client_and_server(
+<span class="doccomment">/// Start a [Coordinator][flowrlib::coordinator::Coordinator] in a background thread,
+/// then start a client in the calling thread
+</span><span class="kw">fn </span>client_and_coordinator(
     num_threads: usize,
     lib_search_path: Simpath,
-    native: bool,
+    native_flowstdlib: bool,
     matches: <span class="kw-2">&amp;</span>ArgMatches,
     <span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)]
     </span>debug_this_flow: bool,
-    context_only: bool,
 ) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
     <span class="kw">let </span>runtime_port = pick_unused_port().chain_err(|| <span class="string">&quot;No ports free&quot;</span>)<span class="question-mark">?</span>;
-    <span class="kw">let </span>runtime_server_connection = ServerConnection::new(RUNTIME_SERVICE_NAME,
-        runtime_port)<span class="question-mark">?</span>;
+    <span class="kw">let </span>coordinator_connection = CoordinatorConnection::new(COORDINATOR_SERVICE_NAME,
+                                                            runtime_port)<span class="question-mark">?</span>;
 
     <span class="kw">let </span>discovery_port = pick_unused_port().chain_err(|| <span class="string">&quot;No ports free&quot;</span>)<span class="question-mark">?</span>;
-    enable_service_discovery(discovery_port, RUNTIME_SERVICE_NAME, runtime_port)<span class="question-mark">?</span>;
+    enable_service_discovery(discovery_port, COORDINATOR_SERVICE_NAME, runtime_port)<span class="question-mark">?</span>;
 
     <span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)]
     </span><span class="kw">let </span>debug_port = pick_unused_port().chain_err(|| <span class="string">&quot;No ports free&quot;</span>)<span class="question-mark">?</span>;
     <span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)]
-    </span><span class="kw">let </span>debug_server_connection = ServerConnection::new(DEBUG_SERVICE_NAME,
-                                                        debug_port)<span class="question-mark">?</span>;
+    </span><span class="kw">let </span>debug_connection = CoordinatorConnection::new(DEBUG_SERVICE_NAME,
+                                                      debug_port)<span class="question-mark">?</span>;
     enable_service_discovery(discovery_port, DEBUG_SERVICE_NAME, debug_port)<span class="question-mark">?</span>;
 
-    <span class="kw">let </span>server_lib_search_path = lib_search_path.clone();
+    <span class="kw">let </span>coordinator_lib_search_path = lib_search_path.clone();
 
+    <span class="macro">info!</span>(<span class="string">&quot;Starting coordinator in background thread&quot;</span>);
     thread::spawn(<span class="kw">move </span>|| {
-        <span class="macro">info!</span>(<span class="string">&quot;Starting &#39;flowr&#39; server in background thread&quot;</span>);
-        <span class="kw">let _ </span>= server(
+        <span class="kw">let _ </span>= coordinator(
             num_threads,
-            server_lib_search_path,
-            native,
-            runtime_server_connection,
-            <span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)] </span>debug_server_connection,
+            coordinator_lib_search_path,
+            native_flowstdlib,
+            coordinator_connection,
+            <span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)] </span>debug_connection,
             <span class="bool-val">false</span>,
-            context_only,
         );
     });
 
-    <span class="kw">let </span>server_address = discover_service(discovery_port, RUNTIME_SERVICE_NAME)<span class="question-mark">?</span>;
+    <span class="kw">let </span>coordinator_address = discover_service(discovery_port, COORDINATOR_SERVICE_NAME)<span class="question-mark">?</span>;
 
-    <span class="kw">let </span>runtime_client_connection = ClientConnection::new(<span class="kw-2">&amp;</span>server_address)<span class="question-mark">?</span>;
+    <span class="kw">let </span>runtime_client_connection = ClientConnection::new(<span class="kw-2">&amp;</span>coordinator_address)<span class="question-mark">?</span>;
 
     client(
         matches,
@@ -864,7 +855,7 @@
     )
 }
 
-<span class="doccomment">/// Return four free ports to use for client-server message queues
+<span class="doccomment">/// Return four free ports to use for client-coordinator message queues
 </span><span class="kw">fn </span>get_four_ports() -&gt; <span class="prelude-ty">Result</span>&lt;(u16, u16, u16, u16)&gt; {
     <span class="prelude-val">Ok</span>((pick_unused_port().chain_err(|| <span class="string">&quot;No ports free&quot;</span>)<span class="question-mark">?</span>,
         pick_unused_port().chain_err(|| <span class="string">&quot;No ports free&quot;</span>)<span class="question-mark">?</span>,
@@ -876,19 +867,18 @@
 <span class="doccomment">/// Create a new `Coordinator`, pre-load any libraries in native format that we want to have before
 /// loading a flow and it&#39;s library references, then enter the `submission_loop()` accepting and
 /// executing flows submitted for execution, executing each one using the `Coordinator`
-</span><span class="kw">fn </span>server(
+</span><span class="kw">fn </span>coordinator(
     num_threads: usize,
     lib_search_path: Simpath,
     native_flowstdlib: bool,
-    runtime_server_connection: ServerConnection,
-    <span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)] </span>debug_server_connection: ServerConnection,
+    coordinator_connection: CoordinatorConnection,
+    <span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)] </span>debug_connection: CoordinatorConnection,
     loop_forever: bool,
-    context_only: bool,
 ) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
-    <span class="kw">let </span>server_connection = Arc::new(Mutex::new(runtime_server_connection));
+    <span class="kw">let </span>connection = Arc::new(Mutex::new(coordinator_connection));
 
     <span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)]
-    </span><span class="kw">let </span><span class="kw-2">mut </span>debug_server = CliDebugServer { debug_server_connection };
+    </span><span class="kw">let </span><span class="kw-2">mut </span>debug_server = CliDebugHandler { debug_server_connection: debug_connection };
 
     <span class="kw">let </span>provider = Arc::new(MetaProvider::new(lib_search_path,
                                          PathBuf::from(<span class="string">&quot;/&quot;</span>))) <span class="kw">as </span>Arc&lt;<span class="kw">dyn </span>Provider&gt;;
@@ -904,28 +894,26 @@
     <span class="kw">let </span>(job_source_name, context_job_source_name, results_sink, control_socket) =
         get_connect_addresses(ports);
 
-    <span class="kw">if </span>!context_only {
-        <span class="kw">let </span><span class="kw-2">mut </span>executor = Executor::new()<span class="question-mark">?</span>;
-        <span class="comment">// if the command line options request loading native implementation of available native libs
-        // if not, the native implementation is not loaded and later when a flow is loaded it&#39;s library
-        // references will be resolved and those libraries (WASM implementations) will be loaded at runtime
-        </span><span class="kw">if </span>native_flowstdlib {
-            executor.add_lib(
-                flowstdlib::manifest::get_manifest()
-                    .chain_err(|| <span class="string">&quot;Could not get &#39;native&#39; flowstdlib manifest&quot;</span>)<span class="question-mark">?</span>,
-                Url::parse(<span class="string">&quot;memory://&quot;</span>)<span class="question-mark">? </span><span class="comment">// Statically linked library has no resolved Url
-            </span>)<span class="question-mark">?</span>;
-        }
-        executor.start(provider.clone(), num_threads,
-                       <span class="kw-2">&amp;</span>job_source_name,
-                       <span class="kw-2">&amp;</span>results_sink,
-                       <span class="kw-2">&amp;</span>control_socket,
-        );
+    <span class="kw">let </span><span class="kw-2">mut </span>executor = Executor::new()<span class="question-mark">?</span>;
+    <span class="comment">// if the command line options request loading native implementation of available native libs
+    // if not, the native implementation is not loaded and later when a flow is loaded it&#39;s library
+    // references will be resolved and those libraries (WASM implementations) will be loaded at runtime
+    </span><span class="kw">if </span>native_flowstdlib {
+        executor.add_lib(
+            flowstdlib::manifest::get_manifest()
+                .chain_err(|| <span class="string">&quot;Could not get &#39;native&#39; flowstdlib manifest&quot;</span>)<span class="question-mark">?</span>,
+            Url::parse(<span class="string">&quot;memory://&quot;</span>)<span class="question-mark">? </span><span class="comment">// Statically linked library has no resolved Url
+        </span>)<span class="question-mark">?</span>;
     }
+    executor.start(provider.clone(), num_threads,
+                   <span class="kw-2">&amp;</span>job_source_name,
+                   <span class="kw-2">&amp;</span>results_sink,
+                   <span class="kw-2">&amp;</span>control_socket,
+    );
 
     <span class="kw">let </span><span class="kw-2">mut </span>context_executor = Executor::new()<span class="question-mark">?</span>;
     context_executor.add_lib(
-        cli::cli_context::get_manifest(server_connection.clone())<span class="question-mark">?</span>,
+        cli::get_manifest(connection.clone())<span class="question-mark">?</span>,
         Url::parse(<span class="string">&quot;memory://&quot;</span>)<span class="question-mark">? </span><span class="comment">// Statically linked library has no resolved Url
     </span>)<span class="question-mark">?</span>;
     context_executor.start(provider, <span class="number">1</span>,
@@ -934,9 +922,7 @@
                             <span class="kw-2">&amp;</span>control_socket,
     );
 
-    <span class="kw">let </span><span class="kw-2">mut </span>submitter = CLISubmitter {
-        runtime_server_connection: server_connection,
-    };
+    <span class="kw">let </span><span class="kw-2">mut </span>submitter = CLISubmissionHandler::new(connection);
 
     <span class="kw">let </span><span class="kw-2">mut </span>coordinator = Coordinator::new(
         dispatcher,
@@ -949,17 +935,15 @@
     <span class="prelude-val">Ok</span>(())
 }
 
-<span class="doccomment">/// Start only a client in the calling thread. Since we are *only* starting a client in this
-/// process, we don&#39;t have server information, so we create a set of ServerInfo from command
-/// line options for the server address and known service names and ports.
+<span class="doccomment">/// Start only a client in the calling thread. Discover the remote Coordinator using service discovery
 </span><span class="kw">fn </span>client_only(
     matches: <span class="kw-2">&amp;</span>ArgMatches,
     lib_search_path: Simpath,
     <span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)] </span>debug_this_flow: bool,
     discovery_port: <span class="kw-2">&amp;</span>u16,
 ) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
-    <span class="kw">let </span>server_address = discover_service(<span class="kw-2">*</span>discovery_port, RUNTIME_SERVICE_NAME)<span class="question-mark">?</span>;
-    <span class="kw">let </span>context_client_connection = ClientConnection::new(<span class="kw-2">&amp;</span>server_address)<span class="question-mark">?</span>;
+    <span class="kw">let </span>coordinator_address = discover_service(<span class="kw-2">*</span>discovery_port, COORDINATOR_SERVICE_NAME)<span class="question-mark">?</span>;
+    <span class="kw">let </span>context_client_connection = ClientConnection::new(<span class="kw-2">&amp;</span>coordinator_address)<span class="question-mark">?</span>;
 
     client(
         matches,
@@ -970,12 +954,12 @@
     )
 }
 
-<span class="doccomment">/// Start the clients that talks to the server thread or process
+<span class="doccomment">/// Start the clients that talks to the coordinator
 </span><span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)]
 </span><span class="kw">fn </span>client(
     matches: <span class="kw-2">&amp;</span>ArgMatches,
     lib_search_path: Simpath,
-    runtime_client_connection: ClientConnection,
+    client_connection: ClientConnection,
     <span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)] </span>debug_this_flow: bool,
     <span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)] </span>discovery_post: u16,
 ) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
@@ -997,7 +981,7 @@
     );
 
     <span class="macro">trace!</span>(<span class="string">&quot;Creating CliRuntimeClient&quot;</span>);
-    <span class="kw">let </span>runtime_client = CliRuntimeClient::new(
+    <span class="kw">let </span>client = CliRuntimeClient::new(
         flow_args,
         override_args.clone(),
         <span class="attr">#[cfg(feature = <span class="string">&quot;metrics&quot;</span>)] </span>matches.get_flag(<span class="string">&quot;metrics&quot;</span>),
@@ -1005,9 +989,9 @@
 
     <span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)]
     </span><span class="kw">if </span>debug_this_flow {
-        <span class="kw">let </span>server_address = discover_service(discovery_post,
-                                              DEBUG_SERVICE_NAME)<span class="question-mark">?</span>;
-        <span class="kw">let </span>debug_client_connection = ClientConnection::new(<span class="kw-2">&amp;</span>server_address)<span class="question-mark">?</span>;
+        <span class="kw">let </span>debug_server_address = discover_service(discovery_post,
+                                                    DEBUG_SERVICE_NAME)<span class="question-mark">?</span>;
+        <span class="kw">let </span>debug_client_connection = ClientConnection::new(<span class="kw-2">&amp;</span>debug_server_address)<span class="question-mark">?</span>;
         <span class="kw">let </span>debug_client = CliDebugClient::new(debug_client_connection,
             override_args);
         <span class="kw">let _ </span>= thread::spawn(<span class="kw">move </span>|| {
@@ -1015,14 +999,11 @@
         });
     }
 
-    <span class="macro">info!</span>(<span class="string">&quot;Client sending submission to server&quot;</span>);
-    runtime_client_connection.send(ClientMessage::ClientSubmission(submission))<span class="question-mark">?</span>;
+    <span class="macro">info!</span>(<span class="string">&quot;Client sending submission to coordinator&quot;</span>);
+    client_connection.send(ClientMessage::ClientSubmission(submission))<span class="question-mark">?</span>;
 
-    runtime_client.event_loop(
-                                runtime_client_connection,
-    )<span class="question-mark">?</span>;
-
-    <span class="prelude-val">Ok</span>(())
+    <span class="macro">trace!</span>(<span class="string">&quot;Entering client event loop&quot;</span>);
+    client.event_loop(client_connection)
 }
 
 <span class="doccomment">/// Determine the number of threads to use to execute flows
@@ -1073,7 +1054,7 @@
              .long(<span class="string">&quot;server&quot;</span>)
              .action(clap::ArgAction::SetTrue)
              .conflicts_with(<span class="string">&quot;client&quot;</span>)
-             .help(<span class="string">&quot;Launch as flowr server (only, no client)&quot;</span>),
+             .help(<span class="string">&quot;Launch only a Coordinator (no client)&quot;</span>),
         )
         .arg(Arg::new(<span class="string">&quot;client&quot;</span>)
              .short(<span class="string">&#39;c&#39;</span>)
@@ -1081,14 +1062,7 @@
              .number_of_values(<span class="number">1</span>)
              .value_parser(<span class="macro">clap::value_parser!</span>(u16))
              .conflicts_with(<span class="string">&quot;server&quot;</span>)
-             .help(<span class="string">&quot;Start flowr as a client (only, no server) to connect to a flowr server&quot;</span>),
-        )
-        .arg(Arg::new(<span class="string">&quot;context&quot;</span>)
-             .short(<span class="string">&#39;C&#39;</span>)
-             .long(<span class="string">&quot;context&quot;</span>)
-             .action(clap::ArgAction::SetTrue)
-             .conflicts_with(<span class="string">&quot;client&quot;</span>)
-             .help(<span class="string">&quot;Only execute &#39;context&#39; jobs in the server&quot;</span>),
+             .help(<span class="string">&quot;Launch only a client (no coordinator) to connect to a remote coordinator&quot;</span>),
         )
         .arg(Arg::new(<span class="string">&quot;jobs&quot;</span>)
             .short(<span class="string">&#39;j&#39;</span>)

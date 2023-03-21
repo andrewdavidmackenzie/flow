@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"constant":["DEBUG_SERVICE_NAME","RUNTIME_SERVICE_NAME","WAIT"],"fn":["discover_service","enable_service_discovery"],"static":["DONT_WAIT"],"struct":["ClientConnection","ServerConnection"]};
