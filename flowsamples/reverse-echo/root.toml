@@ -9,8 +9,7 @@ from = "readline/string"
 to = "reverse"
 
 [[process]]
-source = "lib://flowstdlib/fmt/reverse"
-#source = "reverse/reverse"
+source = "reverse/reverse"
 
 [[connection]]
 from = "reverse/reversed"
