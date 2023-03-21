@@ -10,9 +10,9 @@ use flowcore::model::submission::Submission;
 
 /// An Message sent from the runtime server to a runtime_client
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub enum ServerMessage {
-    /// ** These messages are used to implement the `SubmissionProtocol` between the cli_runtime_server
-    /// and the cli_runtime_client
+pub enum CoordinatorMessage {
+    /// ** These messages are used to implement the `SubmissionProtocol` between the coordinator
+    /// and the cli_client
     /// A flow has started executing
     FlowStart,
     /// A flow has stopped executing
@@ -21,8 +21,8 @@ pub enum ServerMessage {
     /// A flow has stopped executing
     #[cfg(not(feature = "metrics"))]
     FlowEnd,
-    /// Server is exiting, with a result (OK, or Err)
-    ServerExiting(Result<()>),
+    /// Coordinator is exiting, with a result (OK, or Err)
+    CoordinatorExiting(Result<()>),
 
     /// ** These messages are used to implement the context functions between the cli_runtime_server
     /// that runs as part of the `Coordinator` and the cli_runtime_client that interacts with
@@ -51,41 +51,41 @@ pub enum ServerMessage {
     Invalid,
 }
 
-impl fmt::Display for ServerMessage {
+impl fmt::Display for CoordinatorMessage {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
             f,
             "ServerMessage {}",
             match self {
                 #[cfg(feature = "metrics")]
-                ServerMessage::FlowEnd(_) => "FlowEnd".into(),
+                CoordinatorMessage::FlowEnd(_) => "FlowEnd".into(),
                 #[cfg(not(feature = "metrics"))]
-                ServerMessage::FlowEnd => "FlowEnd".into(),
-                ServerMessage::FlowStart => "FlowStart".into(),
-                ServerMessage::ServerExiting(result) =>
-                    format!("ServerExiting with result: {result:?}"),
-                ServerMessage::Stdout(_) => "Stdout".into(),
-                ServerMessage::Stderr(_) => "Stderr".into(),
-                ServerMessage::GetStdin => "GetStdIn".into(),
-                ServerMessage::GetLine => "GetLine".into(),
-                ServerMessage::GetArgs => "GetArgs".into(),
-                ServerMessage::Read(_) => "Read".into(),
-                ServerMessage::Write(_, _) => "Write".into(),
-                ServerMessage::PixelWrite(_, _, _, _) => "PixelWrite".into(),
-                ServerMessage::StdoutEof => "StdOutEof".into(),
-                ServerMessage::StderrEof => "StdErrEof".into(),
+                CoordinatorMessage::FlowEnd => "FlowEnd".into(),
+                CoordinatorMessage::FlowStart => "FlowStart".into(),
+                CoordinatorMessage::CoordinatorExiting(result) =>
+                    format!("CoordinatorExiting with result: {result:?}"),
+                CoordinatorMessage::Stdout(_) => "Stdout".into(),
+                CoordinatorMessage::Stderr(_) => "Stderr".into(),
+                CoordinatorMessage::GetStdin => "GetStdIn".into(),
+                CoordinatorMessage::GetLine => "GetLine".into(),
+                CoordinatorMessage::GetArgs => "GetArgs".into(),
+                CoordinatorMessage::Read(_) => "Read".into(),
+                CoordinatorMessage::Write(_, _) => "Write".into(),
+                CoordinatorMessage::PixelWrite(_, _, _, _) => "PixelWrite".into(),
+                CoordinatorMessage::StdoutEof => "StdOutEof".into(),
+                CoordinatorMessage::StderrEof => "StdErrEof".into(),
 
-                ServerMessage::Invalid => "Invalid".into(),
+                CoordinatorMessage::Invalid => "Invalid".into(),
             }
         )
     }
 }
 
-unsafe impl Send for ServerMessage {}
+unsafe impl Send for CoordinatorMessage {}
 
-unsafe impl Sync for ServerMessage {}
+unsafe impl Sync for CoordinatorMessage {}
 
-/// A simple struct with File MetaData for passing from Client to Server - std::fs::MetaData
+/// A simple struct with File MetaData for passing from Client to Coordinator - std::fs::MetaData
 /// Doesn't Serialize/Deserialize etc.
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone)]
 pub struct FileMetaData {
@@ -95,11 +95,11 @@ pub struct FileMetaData {
     pub is_dir: bool,
 }
 
-/// A Message from the a runtime_client to the runtime server
+/// A Message from the a client to the Coordinator
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum ClientMessage {
-    /// ** These messages are used to implement the `SubmissionProtocol` between the cli_runtime_server
-    /// and the cli_runtime_client
+    /// ** These messages are used to implement the `SubmissionProtocol` between the Coordinator
+    /// and the client
     /// A submission from the client for execution
     ClientSubmission(Submission),
     /// Client requests that server enters the ddebugger at the next opportunity
@@ -126,7 +126,7 @@ pub enum ClientMessage {
     /// Contents read from a file
     FileContents(PathBuf, Vec<u8>),
 
-    /// ** This message is just internal to the client and not sent to the server
+    /// ** This message is just internal to the client and not sent to the Coordinator
     /// Client is exiting Event loop
     ClientExiting(Result<()>),
 }
@@ -159,8 +159,8 @@ unsafe impl Send for ClientMessage {}
 
 unsafe impl Sync for ClientMessage {}
 
-impl From<ServerMessage> for String {
-    fn from(msg: ServerMessage) -> Self {
+impl From<CoordinatorMessage> for String {
+    fn from(msg: CoordinatorMessage) -> Self {
         match serde_json::to_string(&msg) {
             Ok(message_string) => message_string,
             _ => String::new(),
@@ -168,11 +168,11 @@ impl From<ServerMessage> for String {
     }
 }
 
-impl From<String> for ServerMessage {
+impl From<String> for CoordinatorMessage {
     fn from(string: String) -> Self {
         match serde_json::from_str(&string) {
             Ok(message) => message,
-            _ => ServerMessage::Invalid,
+            _ => CoordinatorMessage::Invalid,
         }
     }
 }

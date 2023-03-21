@@ -4,17 +4,17 @@ pub mod test {
 
     use portpicker::pick_unused_port;
 
-    use crate::cli::client_server::{ClientConnection, discover_service, enable_service_discovery,
-                                    ServerConnection, WAIT};
-    use crate::cli::runtime_messages::{ClientMessage, ServerMessage};
+    use crate::cli::connections::{ClientConnection, CoordinatorConnection, discover_service,
+                                  enable_service_discovery, WAIT};
+    use crate::cli::coordinator_message::{ClientMessage, CoordinatorMessage};
 
     pub fn wait_for_then_send(
-        wait_for_message: ServerMessage,
+        wait_for_message: CoordinatorMessage,
         then_send: ClientMessage,
-    ) -> Arc<Mutex<ServerConnection>> {
+    ) -> Arc<Mutex<CoordinatorConnection>> {
         let test_port = pick_unused_port().expect("No ports free");
         let server_connection = Arc::new(Mutex::new(
-            ServerConnection::new("foo", test_port)
+            CoordinatorConnection::new("foo", test_port)
                 .expect("Could not create server connection"),
         ));
         let discovery_port = pick_unused_port().expect("No ports free");
@@ -36,7 +36,7 @@ pub mod test {
         // background thread that acts as a client that waits for the "wait_for_message" to be sent
         // to it from the server, and once received it replies with the "then_send" message to the server
         std::thread::spawn(move || loop {
-            match client_connection.receive::<ServerMessage>() {
+            match client_connection.receive::<CoordinatorMessage>() {
                 Ok(received_message) => {
                     if std::mem::discriminant(&received_message) == std::mem::discriminant(&wait_for_message) {
                         client_connection

@@ -5,23 +5,23 @@ use flowcore::model::output_connection::OutputConnection;
 use flowcore::model::runtime_function::RuntimeFunction;
 use flowrlib::block::Block;
 use flowrlib::debug_command::DebugCommand;
+use flowrlib::debugger_handler::DebuggerHandler;
 use flowrlib::job::Job;
-#[cfg(feature = "debugger")]
-use flowrlib::protocols::DebuggerProtocol;
 use flowrlib::run_state::{RunState, State};
 
-use crate::{BlockBreakpoint, DataBreakpoint, ExecutionEnded, ExecutionStarted, ExitingDebugger,
-            JobCompleted, JobError, Panic, PriorToSendingJob, Resetting, ServerConnection,
+use crate::{BlockBreakpoint, CoordinatorConnection, DataBreakpoint, ExecutionEnded, ExecutionStarted,
+            ExitingDebugger, JobCompleted, JobError, Panic, PriorToSendingJob, Resetting,
             WaitingForCommand};
-use crate::cli::client_server::WAIT;
+use crate::cli::connections::WAIT;
 use crate::DebugServerMessage::{BlockState, Error, FlowUnblockBreakpoint, Functions, FunctionStates, InputState, Message, OutputState, OverallState};
 
-pub(crate) struct  CliDebugServer {
-    pub(crate) debug_server_connection: ServerConnection,
+/// A debug handler for interacting between the CLI client and the Debugger in the Coordinator
+pub(crate) struct CliDebugHandler {
+    pub(crate) debug_server_connection: CoordinatorConnection,
 }
 
 /// Implement a CLI debug server that implements the trait required by the runtime
-impl DebuggerProtocol for CliDebugServer {
+impl DebuggerHandler for CliDebugHandler {
     // Start the debugger - which swallows the first message to initialize the connection
     fn start(&mut self) {
         let _ = self.debug_server_connection.receive::<DebugCommand>(WAIT);

@@ -13,14 +13,14 @@ use crate::block::Block;
 use crate::debug_command::BreakpointSpec;
 use crate::debug_command::DebugCommand;
 use crate::debug_command::DebugCommand::{Ack, Breakpoint, Continue, DebugClientStarting, Delete, Error, ExitDebugger, Inspect, InspectBlock, InspectFunction, InspectInput, InspectOutput, Invalid, List, Modify, RunReset, Step, Validate};
+use crate::debugger_handler::DebuggerHandler;
 use crate::job::Job;
 use crate::run_state::RunState;
-use crate::protocols::DebuggerProtocol;
 
 /// Debugger struct contains all the info necessary to conduct a debugging session, storing
 /// set breakpoints, connections to the debug client etc
 pub struct Debugger<'a> {
-    debug_server: &'a mut dyn DebuggerProtocol,
+    debug_server: &'a mut dyn DebuggerHandler,
     input_breakpoints: HashSet<(usize, usize)>,
     block_breakpoints: HashSet<(usize, usize)>,
     /* blocked_id -> blocking_id */
@@ -65,7 +65,7 @@ impl fmt::Display for BlockerNode {
 
 impl<'a> Debugger<'a> {
     pub fn new(
-        debug_server: &'a mut dyn DebuggerProtocol,
+        debug_server: &'a mut dyn DebuggerHandler,
     ) -> Self {
         Debugger {
             debug_server,
@@ -192,7 +192,7 @@ impl<'a> Debugger<'a> {
     /// Return values are (display next output, reset execution)
     pub fn job_done(&mut self, state: &mut RunState, job: &Job) -> Result<(bool, bool)> {
         if job.result.is_err() {
-            if state.submission.debug {
+            if state.submission.debug_enabled {
                 let _ = self.job_error(state, job);
             }
         } else {
@@ -742,9 +742,9 @@ mod test {
     use crate::block::Block;
     use crate::debug_command::{BreakpointSpec, DebugCommand};
     use crate::debugger::{BlockerNode, BlockType, Debugger};
+    use crate::debugger_handler::DebuggerHandler;
     use crate::job::{Job, JobPayload};
     use crate::run_state::{RunState, State};
-    use crate::protocols::DebuggerProtocol;
 
     struct DummyServer {
         job_breakpoint: usize,
@@ -770,7 +770,7 @@ mod test {
         }
     }
 
-    impl DebuggerProtocol for DummyServer {
+    impl DebuggerHandler for DummyServer {
         fn start(&mut self) {}
         fn job_breakpoint(&mut self, job: &Job, _function: &RuntimeFunction, _states: Vec<State>) {
             self.job_breakpoint = job.payload.job_id;

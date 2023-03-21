@@ -1,6 +1,8 @@
 #![deny(missing_docs)]
 #![warn(clippy::unwrap_used)]
-//! `flowrex` is the minimal executor of flow jobs.
+//! `flowrex` is the minimal executor of flow jobs. It loads a native version of 'flowstdlib'
+//! flow library to allow execution of jobs using functions provided by 'flowstdlib', but it does
+//! *not* load 'context' and hence will not execute any jobs interacting with the context.
 use core::str::FromStr;
 /// It attempts to be as small as possible, and only accepts jobs for execution over the network
 /// and does not load flows, accept flow submissions run a coordinator or access the file system.
@@ -13,13 +15,13 @@ use std::process::exit;
 use std::sync::Arc;
 
 use clap::{Arg, ArgMatches, Command};
+use env_logger::Builder;
 use log::{info, LevelFilter, trace, warn};
 use simpath::Simpath;
 use simpdiscoverylib::BeaconListener;
 #[cfg(feature = "flowstdlib")]
 use url::Url;
 
-use env_logger::Builder;
 use flowcore::errors::*;
 use flowcore::meta_provider::MetaProvider;
 use flowcore::provider::Provider;
@@ -40,7 +42,7 @@ fn discover_service(discovery_port: u16, name: &str) -> Result<String> {
     Ok(server_address)
 }
 
-/// Main for flowr binary - call `run()` and print any error that results or exit silently if OK
+/// Main for flowrex binary - call `run()` and print any error that results or exit silently if OK
 fn main() {
     match run() {
         Err(ref e) => {
@@ -95,6 +97,7 @@ fn start_executors(num_threads: usize) -> Result<()> {
                 .chain_err(|| "Could not get 'native' flowstdlib manifest")?,
             Url::parse("memory://")?
         )?;
+        trace!("'flowstdlib' loaded into '{}' executors", env!("CARGO_PKG_NAME"));
 
         let provider = Arc::new(MetaProvider::new(Simpath::new(""),
             PathBuf::from("/"))) as Arc<dyn Provider>;
@@ -110,17 +113,18 @@ fn start_executors(num_threads: usize) -> Result<()> {
                                       discover_service(JOB_QUEUES_DISCOVERY_PORT,
                                                        CONTROL_SERVICE_NAME)?);
 
-        trace!("Starting flowrex executors");
+        trace!("Starting '{}' executors", env!("CARGO_PKG_NAME"));
         executor.start(provider, num_threads, &job_service, &results_service,
                        &control_service);
 
         trace!("Waiting for all executors to complete");
         executor.wait();
+        trace!("All executors completed, exiting");
     }
 }
 
 // Determine the number of threads to use to execute flows
-// - default (if value is not provided on the command line)of the number of cores
+// - default (if value is not provided on the command line) to the "available_parallelism()"
 fn num_threads(matches: &ArgMatches) -> usize {
     match matches.get_one::<usize>("threads") {
         Some(num_threads) => *num_threads,
@@ -140,7 +144,7 @@ fn get_matches() -> ArgMatches {
             .number_of_values(1)
             .value_parser(clap::value_parser!(usize))
             .value_name("THREADS")
-            .help("Set number of threads to use to execute jobs (min: 1, default: cores available)"))
+            .help("Set number of threads to use to execute jobs (default: cores available)"))
         .arg(Arg::new("verbosity")
             .short('v')
             .long("verbosity")

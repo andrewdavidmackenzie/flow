@@ -12,8 +12,8 @@ use flowrlib::debug_command::DebugCommand;
 use flowrlib::debug_command::DebugCommand::*;
 use flowrlib::run_state::{RunState, State};
 
-use crate::cli::client_server::ClientConnection;
-use crate::cli::debug_server_message::{DebugServerMessage, DebugServerMessage::*};
+use crate::cli::connections::ClientConnection;
+use crate::cli::debug_message::{DebugServerMessage, DebugServerMessage::*};
 
 const FLOWR_HISTORY_FILENAME: &str = ".flowr_history";
 

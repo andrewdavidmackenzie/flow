@@ -39,10 +39,15 @@ pub mod info;
 /// Provides [Job][job::Job] that holds jobs before and after their execution
 pub mod job;
 
-/// Provides a number of traits that define methods used in protocols between server and clients
-/// that a client must implement. Such as [DebuggerProtocol][protocols::DebuggerProtocol] and
-/// [SubmissionProtocol][protocols::SubmissionProtocol]
-pub mod protocols;
+/// The [SubmissionHandler][submission_handler::SubmissionHandler] trait defines  methods a client
+/// must implement in order to handle submissions from a client
+#[cfg(feature = "submission")]
+pub mod submission_handler;
+
+/// The [DebuggerHandler][debugger_handler::DebuggerHandler] trait defines methods a a client must
+/// implement in order to handle the interaction between a client and the debugger (in the Coordinator)
+#[cfg(feature = "debugger")]
+pub mod debugger_handler;
 
 /// Provides [RunState][run_state::RunState] that tracks the current runtime state,
 /// used by [Coordinator][coordinator::Coordinator]

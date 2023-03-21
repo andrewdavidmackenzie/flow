@@ -10,13 +10,13 @@ use flowcore::model::submission::Submission;
 
 #[cfg(feature = "debugger")]
 use crate::debugger::Debugger;
+#[cfg(feature = "debugger")]
+use crate::debugger_handler::DebuggerHandler;
 use crate::dispatcher::Dispatcher;
 use crate::job::Job;
 use crate::run_state::RunState;
-#[cfg(feature = "debugger")]
-use crate::protocols::DebuggerProtocol;
 #[cfg(feature = "submission")]
-use crate::protocols::SubmissionProtocol;
+use crate::submission_handler::SubmissionHandler;
 
 /// The `Coordinator` is responsible for coordinating the dispatching of jobs (consisting
 /// of a set of Input values and an Implementation of a Function) for execution,
@@ -28,8 +28,8 @@ use crate::protocols::SubmissionProtocol;
 pub struct Coordinator<'a> {
     /// A `Server` to communicate with clients
     #[cfg(feature = "submission")]
-    submitter: &'a mut dyn SubmissionProtocol,
-    /// Dispatcher todispatch jobs for execution
+    submission_handler: &'a mut dyn SubmissionHandler,
+    /// Dispatcher to dispatch jobs for execution
     dispatcher: Dispatcher,
     #[cfg(feature = "debugger")]
     /// A `Debugger` to communicate with debug clients
@@ -42,12 +42,12 @@ impl<'a> Coordinator<'a> {
     /// Create a new `coordinator` with `num_threads` local executor threads
     pub fn new(
         dispatcher: Dispatcher,
-        #[cfg(feature = "submission")] submitter: &'a mut dyn SubmissionProtocol,
-        #[cfg(feature = "debugger")] debug_server: &'a mut dyn DebuggerProtocol
+        #[cfg(feature = "submission")] submitter: &'a mut dyn SubmissionHandler,
+        #[cfg(feature = "debugger")] debug_server: &'a mut dyn DebuggerHandler
     ) -> Result<Self> {
         Ok(Coordinator {
             #[cfg(feature = "submission")]
-            submitter,
+            submission_handler: submitter,
             dispatcher,
             #[cfg(feature = "debugger")]
             debugger: Debugger::new(debug_server),
@@ -62,14 +62,14 @@ impl<'a> Coordinator<'a> {
         &mut self,
         loop_forever: bool,
     ) -> Result<()> {
-        while let Some(submission) = self.submitter.wait_for_submission()? {
+        while let Some(submission) = self.submission_handler.wait_for_submission()? {
             let _ = self.execute_flow(submission);
             if !loop_forever {
                 break;
             }
         }
 
-        self.submitter.coordinator_is_exiting(Ok(()))
+        self.submission_handler.coordinator_is_exiting(Ok(()))
     }
 
     //noinspection RsReassignImmutable
@@ -87,7 +87,7 @@ impl<'a> Coordinator<'a> {
         let mut metrics = Metrics::new(state.num_functions());
 
         #[cfg(feature = "debugger")]
-        if state.submission.debug {
+        if state.submission.debug_enabled {
             self.debugger.start();
         }
 
@@ -103,17 +103,17 @@ impl<'a> Coordinator<'a> {
 
             // If debugging - then prior to starting execution - enter the debugger
             #[cfg(feature = "debugger")]
-            if state.submission.debug {
+            if state.submission.debug_enabled {
                 (display_next_output, restart) = self.debugger.wait_for_command(&mut state)?;
             }
 
             #[cfg(feature = "submission")]
-            self.submitter.flow_execution_starting()?;
+            self.submission_handler.flow_execution_starting()?;
 
             'jobs: loop {
                 trace!("{}", state);
                 #[cfg(feature = "debugger")]
-                if state.submission.debug && self.submitter.should_enter_debugger()? {
+                if state.submission.debug_enabled && self.submission_handler.should_enter_debugger()? {
                     (display_next_output, restart) = self.debugger.wait_for_command(&mut state)?;
                     if restart {
                         break 'jobs;
@@ -155,7 +155,7 @@ impl<'a> Coordinator<'a> {
                         Err(err) => {
                             error!("\t{}", err.to_string());
                             #[cfg(feature = "debugger")]
-                            if state.submission.debug {
+                            if state.submission.debug_enabled {
                                 (display_next_output, restart) = self.debugger.error(
                                     &mut state, err.to_string())?;
                                 if restart {
@@ -179,7 +179,7 @@ impl<'a> Coordinator<'a> {
             if !restart {
                 {
                     // If debugging then enter the debugger for a final time before ending flow execution
-                    if state.submission.debug {
+                    if state.submission.debug_enabled {
                         (display_next_output, restart) = self.debugger.execution_ended(&mut state)?;
                     }
                 }
@@ -195,7 +195,7 @@ impl<'a> Coordinator<'a> {
         #[cfg(feature = "metrics")]
         metrics.set_jobs_created(state.get_number_of_jobs_created());
         #[cfg(all(feature = "submission", feature = "metrics"))]
-        self.submitter.flow_execution_ended(&state, metrics)?;
+        self.submission_handler.flow_execution_ended(&state, metrics)?;
         #[cfg(all(feature = "submission", not(feature = "metrics")))]
         self.submitter.flow_execution_ended(&state)?;
 

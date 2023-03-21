@@ -5,13 +5,13 @@ use serde_json::{json, Value};
 use flowcore::{DONT_RUN_AGAIN, Implementation, RunAgain};
 use flowcore::errors::Result;
 
-use crate::cli::client_server::ServerConnection;
-use crate::cli::runtime_messages::{ClientMessage, ServerMessage};
+use crate::cli::connections::CoordinatorConnection;
+use crate::cli::coordinator_message::{ClientMessage, CoordinatorMessage};
 
 /// `Implementation` struct for the `get` function
 pub struct Get {
     /// It holds a reference to the runtime client in order to Get the Args
-    pub server_connection: Arc<Mutex<ServerConnection>>,
+    pub server_connection: Arc<Mutex<CoordinatorConnection>>,
 }
 
 impl Implementation for Get {
@@ -19,7 +19,7 @@ impl Implementation for Get {
         let mut guard = self.server_connection.lock()
             .map_err(|_| "Could not lock server")?;
 
-        let sent = guard.send_and_receive_response(ServerMessage::GetArgs);
+        let sent = guard.send_and_receive_response(CoordinatorMessage::GetArgs);
 
         match sent {
             Ok(ClientMessage::Args(arg_vec)) => {
@@ -57,9 +57,9 @@ mod test {
 
     use flowcore::{DONT_RUN_AGAIN, Implementation};
 
-    use crate::cli::client_server::ServerConnection;
-    use crate::cli::runtime_messages::ClientMessage::Args;
-    use crate::cli::runtime_messages::ServerMessage::GetArgs;
+    use crate::cli::connections::CoordinatorConnection;
+    use crate::cli::coordinator_message::ClientMessage::Args;
+    use crate::cli::coordinator_message::CoordinatorMessage::GetArgs;
     use crate::cli::test_helper::test::wait_for_then_send;
 
     use super::Get;
@@ -70,7 +70,7 @@ mod test {
         let test_port = pick_unused_port().expect("No ports free");
         let getter = &Get {
             server_connection: Arc::new(Mutex::new(
-                ServerConnection::new("foo", test_port)
+                CoordinatorConnection::new("foo", test_port)
                     .expect("Could not create server connection"),
             )),
         } as &dyn Implementation;

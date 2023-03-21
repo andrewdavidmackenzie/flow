@@ -7,27 +7,35 @@ use flowcore::errors::*;
 #[cfg(feature = "metrics")]
 use flowcore::model::metrics::Metrics;
 use flowcore::model::submission::Submission;
-use flowrlib::protocols::SubmissionProtocol;
 use flowrlib::run_state::RunState;
+use flowrlib::submission_handler::SubmissionHandler;
 
 #[cfg(feature = "debugger")]
-use crate::cli::client_server::{DONT_WAIT, WAIT};
-use crate::cli::runtime_messages::ClientMessage;
-use crate::cli::runtime_messages::ServerMessage;
-use crate::ServerConnection;
+use crate::cli::connections::{DONT_WAIT, WAIT};
+use crate::cli::coordinator_message::ClientMessage;
+use crate::cli::coordinator_message::CoordinatorMessage;
+use crate::CoordinatorConnection;
 
-/// Get and Send messages to/from the runtime client
-pub(crate) struct CLISubmitter {
-    pub(crate) runtime_server_connection: Arc<Mutex<ServerConnection>>,
+/// A [SubmissionHandler] to allow submitting flows for execution from the CLI
+pub(crate) struct CLISubmissionHandler {
+    coordinator_connection: Arc<Mutex<CoordinatorConnection>>,
 }
 
-impl SubmissionProtocol for CLISubmitter {
-    // The flow is starting
+impl CLISubmissionHandler {
+    /// Create a new Submission handler using the connection provided
+    pub fn new(connection: Arc<Mutex<CoordinatorConnection>>) -> Self {
+        CLISubmissionHandler {
+            coordinator_connection: connection,
+        }
+    }
+}
+
+impl SubmissionHandler for CLISubmissionHandler {
     fn flow_execution_starting(&mut self) -> Result<()> {
-        let _ = self.runtime_server_connection
+        let _ = self.coordinator_connection
             .lock()
-            .map_err(|_| "Could not lock server connection")?
-            .send_and_receive_response::<ServerMessage, ClientMessage>(ServerMessage::FlowStart)?;
+            .map_err(|_| "Could not lock coordinator connection")?
+            .send_and_receive_response::<CoordinatorMessage, ClientMessage>(CoordinatorMessage::FlowStart)?;
 
         Ok(())
     }
@@ -38,9 +46,9 @@ impl SubmissionProtocol for CLISubmitter {
     #[cfg(feature = "debugger")]
     fn should_enter_debugger(&mut self) -> Result<bool> {
         let msg = self
-            .runtime_server_connection
+            .coordinator_connection
             .lock()
-            .map_err(|_| "Could not lock server connection")?
+            .map_err(|_| "Could not lock coordinator connection")?
             .receive(DONT_WAIT);
         match msg {
             Ok(ClientMessage::EnterDebugger) => {
@@ -57,20 +65,20 @@ impl SubmissionProtocol for CLISubmitter {
 
     #[cfg(feature = "metrics")]
     fn flow_execution_ended(&mut self, state: &RunState, metrics: Metrics) -> Result<()> {
-        self.runtime_server_connection
+        self.coordinator_connection
             .lock()
-            .map_err(|_| "Could not lock server connection")?
-            .send(ServerMessage::FlowEnd(metrics))?;
+            .map_err(|_| "Could not lock coordinator connection")?
+            .send(CoordinatorMessage::FlowEnd(metrics))?;
         debug!("{}", state);
         Ok(())
     }
 
     #[cfg(not(feature = "metrics"))]
     fn flow_execution_ended(&mut self, state: &RunState) -> Result<()> {
-        self.runtime_server_connection
+        self.coordinator_connection
             .lock()
-            .map_err(|_| "Could not lock server connection")?
-            .send(ServerMessage::FlowEnd)?;
+            .map_err(|_| "Could not lock coordinator connection")?
+            .send(CoordinatorMessage::FlowEnd)?;
         debug!("{}", state);
         Ok(())
     }
@@ -80,36 +88,36 @@ impl SubmissionProtocol for CLISubmitter {
     //  - `ClientExiting` then return Ok(None)
     fn wait_for_submission(&mut self) -> Result<Option<Submission>> {
         loop {
-            info!("Server is waiting to receive a 'Submission'");
-            let guard = self.runtime_server_connection.lock();
+            info!("Coordinator is waiting to receive a 'Submission'");
+            let guard = self.coordinator_connection.lock();
             match guard {
                 Ok(locked) =>  {
                     let received = locked.receive(WAIT);
                     match received {
                         Ok(ClientMessage::ClientSubmission(submission)) => {
-                            info!("Server received a submission for execution");
+                            info!("Coordinator received a submission for execution");
                             trace!("\n{}", submission);
                             return Ok(Some(submission));
                         }
                         Ok(ClientMessage::ClientExiting(_)) => return Ok(None),
-                        Ok(r) => error!("Server did not expect response from client: '{:?}'", r),
-                        Err(e) => bail!("Server error while waiting for submission: '{}'", e),
+                        Ok(r) => error!("Coordinator did not expect response from client: '{:?}'", r),
+                        Err(e) => bail!("Coordinator error while waiting for submission: '{}'", e),
                     }
                 }
                 _ => {
-                    error!("Server could not lock connection");
+                    error!("Coordinator could not lock connection");
                     return Ok(None);
                 }
             }
         }
     }
 
-    // The flow server is about to exit
     fn coordinator_is_exiting(&mut self, result: Result<()>) -> Result<()> {
         debug!("Coordinator exiting");
-        let mut connection = self.runtime_server_connection
+        let mut connection = self.coordinator_connection
             .lock()
-            .map_err(|e| format!("Could not lock Server Connection: {e}"))?;
-        connection.send(ServerMessage::ServerExiting(result))
+            .map_err(|e|
+                format!("Could not lock Coordinator Connection: {e}"))?;
+        connection.send(CoordinatorMessage::CoordinatorExiting(result))
     }
 }

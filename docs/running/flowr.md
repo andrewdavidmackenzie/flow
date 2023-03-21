@@ -27,9 +27,9 @@ Options:
   -d, --debugger                     Enable the debugger when running a flow
   -m, --metrics                      Calculate metrics during flow execution and print them out when done
   -n, --native                       Link with native (not WASM) version of flowstdlib
-  -s, --server                       Launch as flowr server (only, no client)
-  -c, --client                       Start flowr as a client (only, no server) to connect to a flowr server
-  -C, --context                      Only execute 'context' jobs in the server
+  -s, --server                       Launch flowr with a coordinator only, no client
+  -c, --client <port>                Launch flowr with a client only, no coordinator, to connect to a flowr coordinator
+  -C, --context                      Execute only 'context' (not general) jobs in the coordinator
   -j, --jobs <MAX_JOBS>              Set maximum number of jobs that can be running in parallel)
   -L, --libdir <LIB_DIR|BASE_URL>    Add a directory or base Url to the Library Search path
   -t, --threads <THREADS>            Set number of threads to use to execute jobs (min: 1, default: cores available)
@@ -37,20 +37,6 @@ Options:
   -h, --help                         Print help information
   -V, --version                      Print version information
 ```
-
-### Options
--d, --debugger                     Enable the debugger when running a flow
--m, --metrics                      Calculate metrics during flow execution and print them out when done
--n, --native                       Link with native (not WASM) version of flowstdlib
--s, --server                       Launch as flowr server (only, no client)
--c, --client                       Start flowr as a client (only, no server) to connect to a flowr server
--C, --context                      Only execute 'context' jobs in the server
--j, --jobs <MAX_JOBS>              Set maximum number of jobs that can be running in parallel)
--L, --libdir <LIB_DIR|BASE_URL>    Add a directory or base Url to the Library Search path
--t, --threads <THREADS>            Set number of threads to use to execute jobs (min: 1, default: cores available)
--v, --verbosity <VERBOSITY_LEVEL>  Set verbosity level for output (trace, debug, info, warn, default: error)
--h, --help                         Print help information
--V, --version                      Print version information
 
 Similarly to [flowc](flowc.md), in order to locate libraries used in flow execution, `flowr` needs to know where to 
 locate them. As for flowc, this can be done using the `$FLOW_LIB_PATH` environment variable, or one or more instance

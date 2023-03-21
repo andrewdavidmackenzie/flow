@@ -5,13 +5,13 @@ use serde_json::Value;
 use flowcore::{Implementation, RUN_AGAIN, RunAgain};
 use flowcore::errors::*;
 
-use crate::cli::client_server::ServerConnection;
-use crate::cli::runtime_messages::{ClientMessage, ServerMessage};
+use crate::cli::connections::CoordinatorConnection;
+use crate::cli::coordinator_message::{ClientMessage, CoordinatorMessage};
 
 /// `Implementation` struct for the `image_buffer` function
 pub struct ImageBuffer {
     /// It holds a reference to the runtime client in order to send commands
-    pub server_connection: Arc<Mutex<ServerConnection>>,
+    pub server_connection: Arc<Mutex<CoordinatorConnection>>,
 }
 
 impl Implementation for ImageBuffer {
@@ -32,7 +32,7 @@ impl Implementation for ImageBuffer {
         let w = size[0].as_u64().ok_or("Could not get w")?;
         let h = size[1].as_u64().ok_or("Could not get h")?;
 
-        let _: Result<ClientMessage> = server.send_and_receive_response(ServerMessage::PixelWrite(
+        let _: Result<ClientMessage> = server.send_and_receive_response(CoordinatorMessage::PixelWrite(
                 (x as u32, y as u32),
                 (r as u8, g as u8, b as u8),
                 (w as u32, h as u32),
@@ -50,7 +50,7 @@ mod test {
 
     use flowcore::{Implementation, RUN_AGAIN};
 
-    use crate::cli::runtime_messages::{ClientMessage, ServerMessage};
+    use crate::cli::coordinator_message::{ClientMessage, CoordinatorMessage};
     use crate::cli::test_helper::test::wait_for_then_send;
 
     use super::ImageBuffer;
@@ -69,7 +69,7 @@ mod test {
             json!(invalid_size),
             json!(buffer_name),
         ];
-        let pixel = ServerMessage::PixelWrite(pixel, color, size, buffer_name);
+        let pixel = CoordinatorMessage::PixelWrite(pixel, color, size, buffer_name);
 
         let server_connection = wait_for_then_send(pixel, ClientMessage::Ack);
         let buffer = &ImageBuffer { server_connection } as &dyn Implementation;
@@ -84,7 +84,7 @@ mod test {
         let size = (1, 3);
         let buffer_name = "image_buffer.png".into();
         let inputs = [json!(pixel), json!(color), json!(size), json!(buffer_name)];
-        let pixel = ServerMessage::PixelWrite(pixel, color, size, buffer_name);
+        let pixel = CoordinatorMessage::PixelWrite(pixel, color, size, buffer_name);
 
         let server_connection = wait_for_then_send(pixel, ClientMessage::Ack);
         let buffer = &ImageBuffer { server_connection } as &dyn Implementation;
