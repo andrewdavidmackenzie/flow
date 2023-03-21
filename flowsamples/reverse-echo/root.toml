@@ -12,7 +12,7 @@ to = "reverse"
 source = "reverse/reverse"
 
 [[connection]]
-from = "reverse/reversed"
+from = "reverse"
 to = "stdout"
 
 [[process]]
