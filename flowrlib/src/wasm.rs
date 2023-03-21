@@ -5,7 +5,7 @@ use log::info;
 use log::trace;
 use serde_json::Value;
 use url::Url;
-use wasmtime::*;
+use wasmtime::{Func, Instance, Memory, Module, Store, Val};
 
 use flowcore::{Implementation, RunAgain};
 use flowcore::errors::*;
@@ -153,9 +153,11 @@ pub fn load(provider: &dyn Provider, source_url: &Url) -> Result<WasmExecutor> {
 #[cfg(test)]
 mod test {
     use std::path::Path;
-    use url::Url;
-    use flowcore::content::file_provider::FileProvider;
+
     use serde_json::json;
+    use url::Url;
+
+    use flowcore::content::file_provider::FileProvider;
     use flowcore::Implementation;
 
     #[test]
@@ -163,7 +165,7 @@ mod test {
         let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/add.wasm");
         let url = Url::from_file_path(path).expect("Could not convert path to Url");
         let adder = &super::load(&FileProvider{}, &url)
-            .expect("Coudl not load test_wasm.wasm") as &dyn Implementation;
+            .expect("Could not load test_wasm.wasm") as &dyn Implementation;
 
         let inputs = vec![json!(1), json!(2)];
         let (value, run_again) = adder.run(&inputs).expect("Could not call run");
