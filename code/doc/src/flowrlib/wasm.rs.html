@@ -172,6 +172,8 @@
 <a href="#172" id="172">172</a>
 <a href="#173" id="173">173</a>
 <a href="#174" id="174">174</a>
+<a href="#175" id="175">175</a>
+<a href="#176" id="176">176</a>
 </pre><pre class="rust"><code><span class="kw">use </span>std::cmp::max;
 <span class="kw">use </span>std::sync::{Arc, Mutex};
 
@@ -179,7 +181,7 @@
 <span class="kw">use </span>log::trace;
 <span class="kw">use </span>serde_json::Value;
 <span class="kw">use </span>url::Url;
-<span class="kw">use </span>wasmtime::<span class="kw-2">*</span>;
+<span class="kw">use </span>wasmtime::{Func, Instance, Memory, Module, Store, Val};
 
 <span class="kw">use </span>flowcore::{Implementation, RunAgain};
 <span class="kw">use </span>flowcore::errors::<span class="kw-2">*</span>;
@@ -327,9 +329,11 @@
 <span class="attr">#[cfg(test)]
 </span><span class="kw">mod </span>test {
     <span class="kw">use </span>std::path::Path;
-    <span class="kw">use </span>url::Url;
-    <span class="kw">use </span>flowcore::content::file_provider::FileProvider;
+
     <span class="kw">use </span>serde_json::json;
+    <span class="kw">use </span>url::Url;
+
+    <span class="kw">use </span>flowcore::content::file_provider::FileProvider;
     <span class="kw">use </span>flowcore::Implementation;
 
     <span class="attr">#[test]
@@ -337,7 +341,7 @@
         <span class="kw">let </span>path = Path::new(<span class="macro">env!</span>(<span class="string">&quot;CARGO_MANIFEST_DIR&quot;</span>)).join(<span class="string">&quot;tests/add.wasm&quot;</span>);
         <span class="kw">let </span>url = Url::from_file_path(path).expect(<span class="string">&quot;Could not convert path to Url&quot;</span>);
         <span class="kw">let </span>adder = <span class="kw-2">&amp;</span><span class="kw">super</span>::load(<span class="kw-2">&amp;</span>FileProvider{}, <span class="kw-2">&amp;</span>url)
-            .expect(<span class="string">&quot;Coudl not load test_wasm.wasm&quot;</span>) <span class="kw">as </span><span class="kw-2">&amp;</span><span class="kw">dyn </span>Implementation;
+            .expect(<span class="string">&quot;Could not load test_wasm.wasm&quot;</span>) <span class="kw">as </span><span class="kw-2">&amp;</span><span class="kw">dyn </span>Implementation;
 
         <span class="kw">let </span>inputs = <span class="macro">vec!</span>[<span class="macro">json!</span>(<span class="number">1</span>), <span class="macro">json!</span>(<span class="number">2</span>)];
         <span class="kw">let </span>(value, run_again) = adder.run(<span class="kw-2">&amp;</span>inputs).expect(<span class="string">&quot;Could not call run&quot;</span>);
