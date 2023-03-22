@@ -36,7 +36,7 @@ serde_derive = "~1.0.27"
 serde = "~1.0.158"
 serde_json = { version = "1.0", default-features = false }
 error-chain = "0.12.2"
-multimap = "~0.8"
+multimap = "~0.9"
 portpicker = "0.1.1"
 zmq = "0.10.0"
 image = "=0.24.5"
