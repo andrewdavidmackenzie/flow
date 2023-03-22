@@ -122,12 +122,12 @@ impl CoordinatorConnection {
         let context = zmq::Context::new();
         let responder = context
             .socket(zmq::REP)
-            .chain_err(|| "Server Connection - could not create Socket")?;
+            .chain_err(|| "Coordinator Connection - could not create Socket")?;
 
-        debug!("Server Connection attempting to bind to: tcp://*:{port}");
+        debug!("Coordinator Connection attempting to bind to: tcp://*:{port}");
         responder.bind(&format!("tcp://*:{port}"))
             .chain_err(||
-                format!("Server Connection - could not bind on TCP Socket on: tcp://{port}"))?;
+                format!("Coordinator Connection - could not bind on TCP Socket on: tcp://{port}"))?;
 
         info!("Service '{}' listening on *:{}", service_name, port);
 
@@ -140,17 +140,17 @@ impl CoordinatorConnection {
     pub fn receive<CM>(&self, flags: i32) -> Result<CM>
     where
         CM: From<String> + Display {
-        trace!("Server waiting for message from client");
+        trace!("Coordinator waiting for message from client");
 
         let msg = self
             .responder
             .recv_msg(flags)
-            .map_err(|e| format!("Server error getting message: '{e}'"))?;
+            .map_err(|e| format!("Coordinator error getting message: '{e}'"))?;
 
         let message_string = msg.as_str().ok_or("Could not get message as str")?
             .to_string();
         let message = message_string.into();
-        trace!("                ---> Server Received {}", message);
+        trace!("                ---> Coordinator Received {}", message);
         Ok(message)
     }
 
@@ -169,11 +169,11 @@ impl CoordinatorConnection {
     pub fn send<SM>(&mut self, message: SM) -> Result<()>
     where
         SM: Into<String> + Display {
-        trace!("                <--- Server Sent {}", message);
+        trace!("                <--- Coordinator Sent {}", message);
 
         self.responder
             .send(&message.into(), 0)
-            .map_err(|e| format!("Server error sending to client: '{e}'"))?;
+            .map_err(|e| format!("Coordinator error sending to client: '{e}'"))?;
 
         Ok(())
     }
