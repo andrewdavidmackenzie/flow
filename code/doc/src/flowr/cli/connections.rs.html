@@ -448,12 +448,12 @@
         <span class="kw">let </span>context = zmq::Context::new();
         <span class="kw">let </span>responder = context
             .socket(zmq::REP)
-            .chain_err(|| <span class="string">&quot;Server Connection - could not create Socket&quot;</span>)<span class="question-mark">?</span>;
+            .chain_err(|| <span class="string">&quot;Coordinator Connection - could not create Socket&quot;</span>)<span class="question-mark">?</span>;
 
-        <span class="macro">debug!</span>(<span class="string">&quot;Server Connection attempting to bind to: tcp://*:{port}&quot;</span>);
+        <span class="macro">debug!</span>(<span class="string">&quot;Coordinator Connection attempting to bind to: tcp://*:{port}&quot;</span>);
         responder.bind(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;tcp://*:{port}&quot;</span>))
             .chain_err(||
-                <span class="macro">format!</span>(<span class="string">&quot;Server Connection - could not bind on TCP Socket on: tcp://{port}&quot;</span>))<span class="question-mark">?</span>;
+                <span class="macro">format!</span>(<span class="string">&quot;Coordinator Connection - could not bind on TCP Socket on: tcp://{port}&quot;</span>))<span class="question-mark">?</span>;
 
         <span class="macro">info!</span>(<span class="string">&quot;Service &#39;{}&#39; listening on *:{}&quot;</span>, service_name, port);
 
@@ -466,17 +466,17 @@
     </span><span class="kw">pub fn </span>receive&lt;CM&gt;(<span class="kw-2">&amp;</span><span class="self">self</span>, flags: i32) -&gt; <span class="prelude-ty">Result</span>&lt;CM&gt;
     <span class="kw">where
         </span>CM: From&lt;String&gt; + Display {
-        <span class="macro">trace!</span>(<span class="string">&quot;Server waiting for message from client&quot;</span>);
+        <span class="macro">trace!</span>(<span class="string">&quot;Coordinator waiting for message from client&quot;</span>);
 
         <span class="kw">let </span>msg = <span class="self">self
             </span>.responder
             .recv_msg(flags)
-            .map_err(|e| <span class="macro">format!</span>(<span class="string">&quot;Server error getting message: &#39;{e}&#39;&quot;</span>))<span class="question-mark">?</span>;
+            .map_err(|e| <span class="macro">format!</span>(<span class="string">&quot;Coordinator error getting message: &#39;{e}&#39;&quot;</span>))<span class="question-mark">?</span>;
 
         <span class="kw">let </span>message_string = msg.as_str().ok_or(<span class="string">&quot;Could not get message as str&quot;</span>)<span class="question-mark">?
             </span>.to_string();
         <span class="kw">let </span>message = message_string.into();
-        <span class="macro">trace!</span>(<span class="string">&quot;                ---&gt; Server Received {}&quot;</span>, message);
+        <span class="macro">trace!</span>(<span class="string">&quot;                ---&gt; Coordinator Received {}&quot;</span>, message);
         <span class="prelude-val">Ok</span>(message)
     }
 
@@ -495,11 +495,11 @@
     </span><span class="kw">pub fn </span>send&lt;SM&gt;(<span class="kw-2">&amp;mut </span><span class="self">self</span>, message: SM) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt;
     <span class="kw">where
         </span>SM: Into&lt;String&gt; + Display {
-        <span class="macro">trace!</span>(<span class="string">&quot;                &lt;--- Server Sent {}&quot;</span>, message);
+        <span class="macro">trace!</span>(<span class="string">&quot;                &lt;--- Coordinator Sent {}&quot;</span>, message);
 
         <span class="self">self</span>.responder
             .send(<span class="kw-2">&amp;</span>message.into(), <span class="number">0</span>)
-            .map_err(|e| <span class="macro">format!</span>(<span class="string">&quot;Server error sending to client: &#39;{e}&#39;&quot;</span>))<span class="question-mark">?</span>;
+            .map_err(|e| <span class="macro">format!</span>(<span class="string">&quot;Coordinator error sending to client: &#39;{e}&#39;&quot;</span>))<span class="question-mark">?</span>;
 
         <span class="prelude-val">Ok</span>(())
     }
