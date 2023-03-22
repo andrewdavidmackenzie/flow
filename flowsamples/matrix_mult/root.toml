@@ -35,9 +35,8 @@ from = "select_1/selected_value"
 to = "multiply/b"
 
 [[process]]
-alias = "print"
 source = "context://stdio/stdout"
 
 [[connection]]
 from = "multiply/product"
-to = "print"
+to = "stdout"

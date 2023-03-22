@@ -19,9 +19,9 @@ impl Implementation for Stdin {
         let mut server = self.server_connection.lock()
             .map_err(|_| "Could not lock server")?;
 
-        let sent = server.send_and_receive_response(CoordinatorMessage::GetStdin);
+        let stdin_response = server.send_and_receive_response(CoordinatorMessage::GetStdin);
 
-        match sent {
+        match stdin_response {
             Ok(ClientMessage::Stdin(contents)) => {
                 let mut output_map = serde_json::Map::new();
                 if let Ok(value) = serde_json::from_str(&contents) {

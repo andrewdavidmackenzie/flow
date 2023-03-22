@@ -29,7 +29,6 @@ from = "input/a"
 to ="a_info"
 
 [[process]]
-alias = "duplicate_rows"
 source = "lib://flowstdlib/data/duplicate_rows"
 
 [[connection]]
@@ -37,7 +36,6 @@ from = "input/a"
 to = "duplicate_rows"
 
 [[process]]
-alias = "transpose"
 source = "lib://flowstdlib/data/transpose"
 
 [[connection]]
@@ -45,7 +43,6 @@ from = "input/b"
 to = "transpose"
 
 [[process]]
-alias = "duplicate"
 source = "lib://flowstdlib/data/duplicate"
 
 [[connection]]

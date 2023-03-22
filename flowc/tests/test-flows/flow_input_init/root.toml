@@ -1,14 +1,12 @@
 flow = "flow_input_init"
 
 [[process]]
-alias = "sub_flow"
 source = "sub_flow.toml"
 input.input = {once =  42}
 
 [[process]]
-alias = "print"
 source = "context://stdio/stdout"
 
 [[connection]]
 from = "sub_flow/output"
-to = "print"
+to = "stdout"

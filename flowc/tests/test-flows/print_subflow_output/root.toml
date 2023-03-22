@@ -1,13 +1,11 @@
 flow = "print_subflow_output"
 
 [[process]]
-alias = "subflow"
 source = "initialize_flow_output"
 
 [[process]]
-alias = "print"
 source = "context://stdio/stdout"
 
 [[connection]]
-from = "subflow"
-to = "print"
+from = "initialize_flow_output"
+to = "stdout"

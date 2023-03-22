@@ -1,13 +1,11 @@
 flow = "object_to_array_connection"
 
 [[process]]
-alias = "args"
 source = "context://args/get"
 
 [[process]]
-alias = "print"
 source = "context://stdio/stdout"
 
 [[connection]]
-from = "args/json"
-to = "print"
+from = "get/json"
+to = "stdout"

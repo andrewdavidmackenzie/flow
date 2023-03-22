@@ -14,19 +14,18 @@ type = "array/array/number"
 
 # Args
 [[process]]
-alias = "args"
 source = "context://args/get"
 
 ############# filename
 [[connection]]
-from = "args/string/1"
+from = "get/string/1"
 to = "output/filename"
 
 ############## size
 [[connection]]
-from = "args/json/2"
+from = "get/json/2"
 to = "output/size"
 
 [[connection]]
-from = "args/json/3"
+from = "get/json/3"
 to = "output/bounds"

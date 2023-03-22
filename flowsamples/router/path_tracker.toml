@@ -102,7 +102,6 @@ to = "cross_sum/i1"
 
 # Compare the two distance so far
 [[process]]
-alias = "compare"
 source = "lib://flowstdlib/math/compare"
 
 [[connection]]

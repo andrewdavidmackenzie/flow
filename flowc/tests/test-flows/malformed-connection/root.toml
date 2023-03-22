@@ -1,13 +1,11 @@
 flow = "echo args"
 
 [[process]]
-alias = "args"
 source = "context://args/get"
 
 [[process]]
-alias = "print"
 source = "context://stdio/stdout"
 
 [[connection]]
 from = "blabla"
-to = "print"
+to = "stdout"

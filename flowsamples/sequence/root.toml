@@ -10,7 +10,6 @@ from = "get/json/1"
 to = "sequence/limit"
 
 [[process]]
-alias = "sequence"
 source = "lib://flowstdlib/math/sequence"
 input.start = {once =  2}
 input.step = {once =  3}

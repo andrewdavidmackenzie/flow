@@ -130,12 +130,12 @@ fn same_name_flow_ids() {
         let print_function = tables
             .functions
             .iter()
-            .find(|f| f.alias() == &Name::from("print"))
-            .expect("Could not find function named print");
+            .find(|f| f.alias() == &Name::from("stdout"))
+            .expect("Could not find function named stdout");
         assert_eq!(
             print_function.get_flow_id(),
             0,
-            "print function in context should have flow_id = 0"
+            "stdout function in context should have flow_id = 0"
         );
     } else {
         panic!("Process loaded was not a flow");
@@ -319,7 +319,7 @@ fn initialized_output_propagated() {
                     match tables
                         .functions
                         .iter()
-                        .find(|&f| f.route() == &Route::from("/print_subflow_output/print"))
+                        .find(|&f| f.route() == &Route::from("/print_subflow_output/stdout"))
                     {
                         Some(print_function) => {
                             let in_input = print_function.get_inputs().get(0)
@@ -330,7 +330,7 @@ fn initialized_output_propagated() {
                             }
                         }
                         None => {
-                            panic!("Could not find function at route '/print_subflow_output/print'")
+                            panic!("Could not find function at route '/print_subflow_output/stdout'")
                         }
                     }
                 }

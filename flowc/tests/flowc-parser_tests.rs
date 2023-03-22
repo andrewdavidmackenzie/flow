@@ -78,11 +78,12 @@ fn function_input_initialized() {
     );
 
     match parser::parse(&url, &meta_provider) {
-        Ok(FlowProcess(mut flow)) => match flow.subprocesses.get_mut(&Name::from("print")) {
+        Ok(FlowProcess(mut flow)) => match flow.subprocesses
+            .get_mut(&Name::from("stdout")) {
             Some(FunctionProcess(print_function)) => {
                 assert_eq!(
                     *print_function.alias(),
-                    Name::from("print"),
+                    Name::from("stdout"),
                     "Function alias does not match"
                 );
                 let default_input: &IO = print_function.get_inputs().get(0).expect("Could not get input 0");
