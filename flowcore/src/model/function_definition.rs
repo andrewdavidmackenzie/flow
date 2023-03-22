@@ -172,7 +172,12 @@ impl FunctionDefinition {
         self.set_source_url(source_url);
         if let Some(function_reference) = reference {
             match function_reference.scheme() {
-                "context" => self.set_context_reference(Some(function_reference)),
+                "context" => {
+                    if !alias.is_empty() {
+                        bail!("context:// functions cannot be aliased");
+                    }
+                    self.set_context_reference(Some(function_reference))
+                },
                 "lib" => self.set_lib_reference(Some(function_reference)),
                 _ => {}
             }

@@ -43,6 +43,22 @@ fn malformed_connection() {
 }
 
 #[test]
+fn aliased_context_not_allowed() {
+    let meta_provider = MetaProvider::new(helper::set_lib_search_path_to_project(),
+                                          helper::get_canonical_context_root()
+    );
+    let path = helper::absolute_file_url_from_relative_path(
+        "flowc/tests/test-flows/aliased_context/root.toml",
+    );
+    match parser::parse(&path, &meta_provider) {
+        Ok(_) => panic!("root.toml should not load successfully"),
+        Err(e) => {
+            assert!(e.to_string().contains("context:// functions cannot be aliased"))
+        }
+    }
+}
+
+#[test]
 fn invalid_toml() {
     let meta_provider = MetaProvider::new(helper::set_lib_search_path_to_project(),
                                           helper::get_canonical_context_root()
