@@ -15,18 +15,18 @@
 <polygon fill="none" stroke="black" points="8,-208 8,-427 598,-427 598,-208 8,-208"/>
 <text text-anchor="middle" x="303" y="-411.8" font-family="Times,serif" font-size="14.00">/pipeline/sequence</text>
 </g>
-<!-- r6 -->
+<!-- r5 -->
 <g id="node1" class="node">
-<title>r6</title>
-<g id="a_node1"><a xlink:href="file:///home/runner/.flow/lib/flowstdlib/control/compare_switch/compare_switch.html" xlink:title="compare_switch (#6)">
+<title>r5</title>
+<g id="a_node1"><a xlink:href="file:///home/runner/.flow/lib/flowstdlib/control/compare_switch/compare_switch.html" xlink:title="compare_switch (#5)">
 <ellipse fill="coral" stroke="black" cx="296" cy="-378" rx="108.58" ry="18"/>
-<text text-anchor="middle" x="296" y="-374.3" font-family="Times,serif" font-size="14.00">compare_switch (#6)</text>
+<text text-anchor="middle" x="296" y="-374.3" font-family="Times,serif" font-size="14.00">compare_switch (#5)</text>
 </a>
 </g>
 </g>
-<!-- r6&#45;&gt;r6 -->
+<!-- r5&#45;&gt;r5 -->
 <g id="edge2" class="edge">
-<title>r6:e&#45;&gt;r6:n</title>
+<title>r5:e&#45;&gt;r5:n</title>
 <path fill="none" stroke="black" d="M405,-378C428.54,-360 476.54,-360 476.54,-387 476.54,-412.58 368.54,-413.92 306,-398.7"/>
 <polygon fill="black" stroke="black" points="306.57,-395.22 296,-396 304.74,-401.98 306.57,-395.22"/>
 <text text-anchor="middle" x="283.5" y="-399.8" font-family="Times,serif" font-size="14.00">left</text>
@@ -41,51 +41,51 @@
 </a>
 </g>
 </g>
-<!-- r6&#45;&gt;r0 -->
+<!-- r5&#45;&gt;r0 -->
 <g id="edge1" class="edge">
-<title>r6:s&#45;&gt;r0:n</title>
+<title>r5:s&#45;&gt;r0:n</title>
 <path fill="none" stroke="black" d="M296,-360C296,-257.2 516.63,-418.44 532.14,-334.21"/>
 <polygon fill="black" stroke="black" points="535.65,-334.26 533,-324 528.67,-333.67 535.65,-334.26"/>
 <text text-anchor="middle" x="526" y="-327.8" font-family="Times,serif" font-size="14.00">i1</text>
 <text text-anchor="middle" x="264" y="-348.8" font-family="Times,serif" font-size="14.00">/right&#45;lte</text>
 </g>
-<!-- r5 -->
+<!-- r4 -->
 <g id="node3" class="node">
-<title>r5</title>
-<g id="a_node3"><a xlink:href="file:///home/runner/.flow/lib/flowstdlib/math/add/add.html" xlink:title="add (#5)">
+<title>r4</title>
+<g id="a_node3"><a xlink:href="file:///home/runner/.flow/lib/flowstdlib/math/add/add.html" xlink:title="add (#4)">
 <ellipse fill="coral" stroke="black" cx="67" cy="-306" rx="51.19" ry="18"/>
-<text text-anchor="middle" x="67" y="-302.3" font-family="Times,serif" font-size="14.00">add (#5)</text>
+<text text-anchor="middle" x="67" y="-302.3" font-family="Times,serif" font-size="14.00">add (#4)</text>
 </a>
 </g>
 </g>
-<!-- r6&#45;&gt;r5 -->
+<!-- r5&#45;&gt;r4 -->
 <g id="edge3" class="edge">
-<title>r6:se&#45;&gt;r5:n</title>
+<title>r5:se&#45;&gt;r4:n</title>
 <path fill="none" stroke="black" d="M314,-360C389.84,-284.16 88.17,-425.01 68.05,-334.19"/>
 <polygon fill="black" stroke="black" points="71.51,-333.59 67,-324 64.54,-334.31 71.51,-333.59"/>
 <text text-anchor="middle" x="60" y="-327.8" font-family="Times,serif" font-size="14.00">i1</text>
 <text text-anchor="middle" x="307" y="-348.8" font-family="Times,serif" font-size="14.00">:1</text>
 </g>
-<!-- r8 -->
+<!-- r7 -->
 <g id="node4" class="node">
-<title>r8</title>
-<g id="a_node4"><a xlink:href="file:///home/runner/.flow/lib/flowstdlib/math/compare/compare.html" xlink:title="not&#45;last (#8)">
+<title>r7</title>
+<g id="a_node4"><a xlink:href="file:///home/runner/.flow/lib/flowstdlib/math/compare/compare.html" xlink:title="not&#45;last (#7)">
 <ellipse fill="coral" stroke="black" cx="260" cy="-306" rx="69.59" ry="18"/>
-<text text-anchor="middle" x="260" y="-302.3" font-family="Times,serif" font-size="14.00">not&#45;last (#8)</text>
+<text text-anchor="middle" x="260" y="-302.3" font-family="Times,serif" font-size="14.00">not&#45;last (#7)</text>
 </a>
 </g>
 </g>
-<!-- r6&#45;&gt;r8 -->
+<!-- r5&#45;&gt;r7 -->
 <g id="edge4" class="edge">
-<title>r6:sw&#45;&gt;r8:ne</title>
+<title>r5:sw&#45;&gt;r7:ne</title>
 <path fill="none" stroke="black" d="M278,-360C269.78,-351.78 279.48,-342.47 281.06,-333.66"/>
 <polygon fill="black" stroke="black" points="284.35,-332.48 278,-324 277.68,-334.59 284.35,-332.48"/>
 <text text-anchor="middle" x="260" y="-327.8" font-family="Times,serif" font-size="14.00">right</text>
 <text text-anchor="middle" x="271" y="-363.8" font-family="Times,serif" font-size="14.00">:0</text>
 </g>
-<!-- r6&#45;&gt;r8 -->
+<!-- r5&#45;&gt;r7 -->
 <g id="edge5" class="edge">
-<title>r6:se&#45;&gt;r8:n</title>
+<title>r5:se&#45;&gt;r7:n</title>
 <path fill="none" stroke="black" d="M314,-360C331.69,-342.31 278.09,-349.92 263.54,-333.44"/>
 <polygon fill="black" stroke="black" points="266.79,-332.13 260,-324 260.23,-334.59 266.79,-332.13"/>
 <text text-anchor="middle" x="247.5" y="-327.8" font-family="Times,serif" font-size="14.00">left</text>
@@ -107,65 +107,65 @@
 <polygon fill="black" stroke="black" points="890.79,-260.58 897,-252 886.79,-254.83 890.79,-260.58"/>
 <text text-anchor="middle" x="866" y="-255.8" font-family="Times,serif" font-size="14.00">dividend</text>
 </g>
-<!-- r7 -->
+<!-- r6 -->
 <g id="node5" class="node">
-<title>r7</title>
-<g id="a_node5"><a xlink:href="file:///home/runner/.flow/lib/flowstdlib/control/tap/tap.html" xlink:title="next&#45;tap (#7)">
+<title>r6</title>
+<g id="a_node5"><a xlink:href="file:///home/runner/.flow/lib/flowstdlib/control/tap/tap.html" xlink:title="next&#45;tap (#6)">
 <ellipse fill="coral" stroke="black" cx="305" cy="-234" rx="72.59" ry="18"/>
-<text text-anchor="middle" x="305" y="-230.3" font-family="Times,serif" font-size="14.00">next&#45;tap (#7)</text>
+<text text-anchor="middle" x="305" y="-230.3" font-family="Times,serif" font-size="14.00">next&#45;tap (#6)</text>
 </a>
 </g>
 </g>
-<!-- r5&#45;&gt;r7 -->
+<!-- r4&#45;&gt;r6 -->
 <g id="edge6" class="edge">
-<title>r5:e&#45;&gt;r7:n</title>
+<title>r4:e&#45;&gt;r6:n</title>
 <path fill="none" stroke="black" d="M120,-306C137.1,-306 138,-294.03 154,-288 215.03,-265 295.61,-314.97 304.24,-262.22"/>
 <polygon fill="black" stroke="black" points="307.75,-262.23 305,-252 300.77,-261.71 307.75,-262.23"/>
 <text text-anchor="middle" x="289" y="-255.8" font-family="Times,serif" font-size="14.00">data</text>
 </g>
-<!-- r9 -->
+<!-- r8 -->
 <g id="node6" class="node">
-<title>r9</title>
-<g id="a_node6"><a xlink:href="file:///home/runner/.flow/lib/flowstdlib/control/tap/tap.html" xlink:title="step&#45;tap (#9)">
+<title>r8</title>
+<g id="a_node6"><a xlink:href="file:///home/runner/.flow/lib/flowstdlib/control/tap/tap.html" xlink:title="step&#45;tap (#8)">
 <ellipse fill="coral" stroke="black" cx="88" cy="-234" rx="72.29" ry="18"/>
-<text text-anchor="middle" x="88" y="-230.3" font-family="Times,serif" font-size="14.00">step&#45;tap (#9)</text>
+<text text-anchor="middle" x="88" y="-230.3" font-family="Times,serif" font-size="14.00">step&#45;tap (#8)</text>
 </a>
 </g>
 </g>
-<!-- r5&#45;&gt;r9 -->
+<!-- r4&#45;&gt;r8 -->
 <g id="edge7" class="edge">
-<title>r5:se&#45;&gt;r9:n</title>
+<title>r4:se&#45;&gt;r8:n</title>
 <path fill="none" stroke="black" d="M84,-288C92.72,-279.28 90.43,-272.25 88.88,-262.2"/>
 <polygon fill="black" stroke="black" points="92.35,-261.66 88,-252 85.37,-262.26 92.35,-261.66"/>
 <text text-anchor="middle" x="72" y="-255.8" font-family="Times,serif" font-size="14.00">data</text>
 <text text-anchor="middle" x="77" y="-276.8" font-family="Times,serif" font-size="14.00">:1</text>
 </g>
-<!-- r8&#45;&gt;r7 -->
+<!-- r7&#45;&gt;r6 -->
 <g id="edge10" class="edge">
-<title>r8:se&#45;&gt;r7:ne</title>
+<title>r7:se&#45;&gt;r6:ne</title>
 <path fill="none" stroke="black" d="M278,-288C292.29,-273.71 323.32,-270.83 326.88,-261.36"/>
 <polygon fill="black" stroke="black" points="330.06,-259.9 323,-252 323.6,-262.58 330.06,-259.9"/>
 <text text-anchor="middle" x="348.5" y="-255.8" font-family="Times,serif" font-size="14.00">control</text>
 <text text-anchor="middle" x="270" y="-276.8" font-family="Times,serif" font-size="14.00">/lt</text>
 </g>
-<!-- r8&#45;&gt;r9 -->
+<!-- r7&#45;&gt;r8 -->
 <g id="edge11" class="edge">
-<title>r8:se&#45;&gt;r9:ne</title>
+<title>r7:se&#45;&gt;r8:ne</title>
 <path fill="none" stroke="black" d="M278,-288C330.85,-235.15 175.59,-301.07 113.74,-258.42"/>
 <polygon fill="black" stroke="black" points="115.93,-255.69 106,-252 111.46,-261.08 115.93,-255.69"/>
 <text text-anchor="middle" x="131.5" y="-255.8" font-family="Times,serif" font-size="14.00">control</text>
 <text text-anchor="middle" x="286" y="-276.8" font-family="Times,serif" font-size="14.00">/lt</text>
 </g>
-<!-- r7&#45;&gt;r6 -->
+<!-- r6&#45;&gt;r5 -->
 <g id="edge8" class="edge">
-<title>r7:e&#45;&gt;r6:ne</title>
+<title>r6:e&#45;&gt;r5:ne</title>
 <path fill="none" stroke="black" d="M379,-234C455.22,-234 431.1,-369.15 404.54,-396 392.44,-408.24 345.19,-410.68 322.88,-402.23"/>
 <polygon fill="black" stroke="black" points="324.39,-399.05 314,-397 320.85,-405.09 324.39,-399.05"/>
 <text text-anchor="middle" x="332" y="-400.8" font-family="Times,serif" font-size="14.00">right</text>
 </g>
-<!-- r9&#45;&gt;r5 -->
+<!-- r8&#45;&gt;r4 -->
 <g id="edge9" class="edge">
-<title>r9:e&#45;&gt;r5:ne</title>
+<title>r8:e&#45;&gt;r4:ne</title>
 <path fill="none" stroke="black" d="M161,-234C182.93,-234 137.22,-311.82 118.35,-323 108.59,-328.78 100.35,-332.48 92.33,-329.59"/>
 <polygon fill="black" stroke="black" points="94.25,-326.67 84,-324 90.35,-332.48 94.25,-326.67"/>
 <text text-anchor="middle" x="77" y="-327.8" font-family="Times,serif" font-size="14.00">i2</text>
@@ -227,18 +227,18 @@
 <polygon fill="blue" stroke="blue" points="759.21,-167.92 768,-162 757.44,-161.14 759.21,-167.92"/>
 <text text-anchor="middle" x="691.49" y="-204.97" font-family="Times,serif" font-size="14.00">2</text>
 </g>
-<!-- r4 -->
+<!-- r9 -->
 <g id="node14" class="node">
-<title>r4</title>
-<g id="a_node14"><a xlink:href="file:///home/runner/work/flow/flow/flowr/src/cli/stdio/stdout.html" xlink:title="print (#4)">
-<ellipse fill="coral" stroke="black" cx="777" cy="-18" rx="57.39" ry="18"/>
-<text text-anchor="middle" x="777" y="-14.3" font-family="Times,serif" font-size="14.00">print (#4)</text>
+<title>r9</title>
+<g id="a_node14"><a xlink:href="file:///home/runner/work/flow/flow/flowr/src/cli/stdio/stdout.html" xlink:title="stdout (#9)">
+<ellipse fill="coral" stroke="black" cx="777" cy="-18" rx="63.89" ry="18"/>
+<text text-anchor="middle" x="777" y="-14.3" font-family="Times,serif" font-size="14.00">stdout (#9)</text>
 </a>
 </g>
 </g>
-<!-- r3&#45;&gt;r4 -->
+<!-- r3&#45;&gt;r9 -->
 <g id="edge19" class="edge">
-<title>r3:se&#45;&gt;r4:n</title>
+<title>r3:se&#45;&gt;r9:n</title>
 <path fill="none" stroke="black" d="M777,-72C785.66,-63.34 781.06,-56.22 778.43,-46.17"/>
 <polygon fill="black" stroke="black" points="781.86,-45.42 777,-36 774.92,-46.39 781.86,-45.42"/>
 <text text-anchor="middle" x="753.5" y="-60.8" font-family="Times,serif" font-size="14.00">/result</text>

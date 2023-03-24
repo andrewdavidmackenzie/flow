@@ -33,9 +33,9 @@
 <!-- r9 -->
 <g id="node1" class="node">
 <title>r9</title>
-<g id="a_node1"><a xlink:href="file:///home/runner/work/flow/flow/flowr/src/cli/args/get.html" xlink:title="args (#9)">
-<ellipse fill="coral" stroke="black" cx="300.84" cy="-186" rx="54.69" ry="18"/>
-<text text-anchor="middle" x="300.84" y="-182.3" font-family="Times,serif" font-size="14.00">args (#9)</text>
+<g id="a_node1"><a xlink:href="file:///home/runner/work/flow/flow/flowr/src/cli/args/get.html" xlink:title="get (#9)">
+<ellipse fill="coral" stroke="black" cx="300.84" cy="-186" rx="49.29" ry="18"/>
+<text text-anchor="middle" x="300.84" y="-182.3" font-family="Times,serif" font-size="14.00">get (#9)</text>
 </a>
 </g>
 </g>
@@ -79,7 +79,7 @@
 <path fill="none" stroke="black" d="M300.84,-167C300.84,-108.59 796.8,-184.55 851.05,-140.84"/>
 <polygon fill="black" stroke="black" points="854.15,-142.46 855.84,-132 848,-139.12 854.15,-142.46"/>
 <text text-anchor="middle" x="848.84" y="-135.8" font-family="Times,serif" font-size="14.00">i1</text>
-<text text-anchor="middle" x="331.34" y="-155.8" font-family="Times,serif" font-size="14.00">/json/2/1</text>
+<text text-anchor="middle" x="331.34" y="-170.8" font-family="Times,serif" font-size="14.00">/json/2/1</text>
 </g>
 <!-- r2 -->
 <g id="node4" class="node">
@@ -113,7 +113,7 @@
 <path fill="none" stroke="black" d="M300.84,-167C300.84,-86.16 76.38,-181.81 106.18,-139.63"/>
 <polygon fill="black" stroke="black" points="108.9,-141.83 112.84,-132 103.63,-137.23 108.9,-141.83"/>
 <text text-anchor="middle" x="98.84" y="-135.8" font-family="Times,serif" font-size="14.00">size</text>
-<text text-anchor="middle" x="324.84" y="-170.8" font-family="Times,serif" font-size="14.00">/json/2</text>
+<text text-anchor="middle" x="276.84" y="-155.8" font-family="Times,serif" font-size="14.00">/json/2</text>
 </g>
 <!-- r9&#45;&gt;r11 -->
 <g id="edge6" class="edge">
@@ -121,7 +121,7 @@
 <path fill="none" stroke="black" d="M317.84,-168C375.42,-110.43 150.6,-208 131.18,-141.92"/>
 <polygon fill="black" stroke="black" points="134.64,-141.45 129.84,-132 127.71,-142.38 134.64,-141.45"/>
 <text text-anchor="middle" x="155.84" y="-135.8" font-family="Times,serif" font-size="14.00">bounds</text>
-<text text-anchor="middle" x="341.84" y="-171.8" font-family="Times,serif" font-size="14.00">/json/3</text>
+<text text-anchor="middle" x="341.84" y="-156.8" font-family="Times,serif" font-size="14.00">/json/3</text>
 </g>
 <!-- r10&#45;&gt;r10 -->
 <g id="edge30" class="edge">

@@ -910,11 +910,11 @@ and the ability to refer to them separately and distinguish them in connections.
 </ul>
 </li>
 </ul>
-<p>For example, here the process called <code>stdout</code> is aliased as <code>print</code>and then can be referred to using <code>print</code>in
+<p>For example, here the process called <code>add</code> is aliased as <code>sum</code>and then can be referred to using <code>sum</code>in
 connections.</p>
 <pre><code class="language-toml">[[process]]
-alias = &quot;print&quot;
-source = &quot;context://stdio/stdout&quot;
+alias = &quot;sum&quot;
+source = &quot;lib://flowstdlib/math/add&quot;
 </code></pre>
 <h4 id="source-url-formats"><a class="header" href="#source-url-formats">Source Url formats</a></h4>
 <p>The following formats for the <code>source</code> Url are available:</p>
@@ -1907,12 +1907,11 @@ e.g. <code>cargo run -p flowc -- samples/mandlebrot mandel.png 4000x3000 -1.20,0
 allowing them to then be processed in the flow like any other inputs.</p>
 <p>Include the <code>args/get</code> function in your flow:</p>
 <pre><code class="language-toml">[[process]]
-alias = &quot;args&quot;
 source = &quot;lib://flkowr/args/get&quot;
 </code></pre>
 <p>Then create a connection from the desired output (second arg in this example) of <code>args/get</code> to another function:</p>
 <pre><code class="language-toml">[[connection]]
-from = &quot;function/args/2&quot;
+from = &quot;function/get/2&quot;
 to = &quot;function/parse_bounds/input&quot;
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h3 id="specifying-the-flows-root-file-to-load"><a class="header" href="#specifying-the-flows-root-file-to-load">Specifying the flow's root file to load</a></h3>

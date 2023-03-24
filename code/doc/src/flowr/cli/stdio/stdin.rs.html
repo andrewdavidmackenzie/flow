@@ -147,9 +147,9 @@
         <span class="kw">let </span><span class="kw-2">mut </span>server = <span class="self">self</span>.server_connection.lock()
             .map_err(|<span class="kw">_</span>| <span class="string">&quot;Could not lock server&quot;</span>)<span class="question-mark">?</span>;
 
-        <span class="kw">let </span>sent = server.send_and_receive_response(CoordinatorMessage::GetStdin);
+        <span class="kw">let </span>stdin_response = server.send_and_receive_response(CoordinatorMessage::GetStdin);
 
-        <span class="kw">match </span>sent {
+        <span class="kw">match </span>stdin_response {
             <span class="prelude-val">Ok</span>(ClientMessage::Stdin(contents)) =&gt; {
                 <span class="kw">let </span><span class="kw-2">mut </span>output_map = serde_json::Map::new();
                 <span class="kw">if let </span><span class="prelude-val">Ok</span>(value) = serde_json::from_str(<span class="kw-2">&amp;</span>contents) {
