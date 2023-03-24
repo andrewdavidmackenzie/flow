@@ -35,9 +35,6 @@ pub struct Connection {
     /// when collapsing connections to reduce work and avoid infinite recursion
     #[serde(skip)]
     level: usize,
-    /// Track the id of the flow where this connection originated
-    #[serde(skip)]
-    origin_flow_id: usize,
 }
 
 /// `Direction` defines whether a `Connection` is coming from an IO or to an IO
