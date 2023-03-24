@@ -1,0 +1,12 @@
+flow = "aliased_context"
+
+[[process]]
+source = "context://stdio/stdin"
+
+[[process]]
+alias = "print"
+source = "context://stdio/stdout"
+
+[[connection]]
+from = "stdin/string"
+to = "print"

@@ -43,6 +43,22 @@ fn malformed_connection() {
 }
 
 #[test]
+fn aliased_context_not_allowed() {
+    let meta_provider = MetaProvider::new(helper::set_lib_search_path_to_project(),
+                                          helper::get_canonical_context_root()
+    );
+    let path = helper::absolute_file_url_from_relative_path(
+        "flowc/tests/test-flows/aliased_context/root.toml",
+    );
+    match parser::parse(&path, &meta_provider) {
+        Ok(_) => panic!("root.toml should not load successfully"),
+        Err(e) => {
+            assert!(e.to_string().contains("context:// functions cannot be aliased"))
+        }
+    }
+}
+
+#[test]
 fn invalid_toml() {
     let meta_provider = MetaProvider::new(helper::set_lib_search_path_to_project(),
                                           helper::get_canonical_context_root()
@@ -78,11 +94,12 @@ fn function_input_initialized() {
     );
 
     match parser::parse(&url, &meta_provider) {
-        Ok(FlowProcess(mut flow)) => match flow.subprocesses.get_mut(&Name::from("print")) {
+        Ok(FlowProcess(mut flow)) => match flow.subprocesses
+            .get_mut(&Name::from("stdout")) {
             Some(FunctionProcess(print_function)) => {
                 assert_eq!(
                     *print_function.alias(),
-                    Name::from("print"),
+                    Name::from("stdout"),
                     "Function alias does not match"
                 );
                 let default_input: &IO = print_function.get_inputs().get(0).expect("Could not get input 0");

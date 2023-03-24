@@ -9,13 +9,12 @@ allowing them to then be processed in the flow like any other inputs.
 Include the `args/get` function in your flow:
 ```toml
 [[process]]
-alias = "args"
 source = "lib://flkowr/args/get"
 ```
 
 Then create a connection from the desired output (second arg in this example) of `args/get` to another function:
 ```toml
 [[connection]]
-from = "function/args/2"
+from = "function/get/2"
 to = "function/parse_bounds/input"
 ```

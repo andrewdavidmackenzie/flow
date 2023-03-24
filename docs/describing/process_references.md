@@ -20,12 +20,12 @@ as a source or destination of data.
   * This can be used to create two or more instances of a process in a flow,
     and the ability to refer to them separately and distinguish them in connections.
 
-For example, here the process called `stdout` is aliased as `print`and then can be referred to using `print`in
+For example, here the process called `add` is aliased as `sum`and then can be referred to using `sum`in
 connections.
 ```toml
 [[process]]
-alias = "print"
-source = "context://stdio/stdout"
+alias = "sum"
+source = "lib://flowstdlib/math/add"
 ```
 
 #### Source Url formats

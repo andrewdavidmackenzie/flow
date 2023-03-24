@@ -1,7 +1,6 @@
 flow = "same-name-parent"
 
 [[process]]
-alias = "args"
 source = "context://args/get"
 
 [[process]]
@@ -9,7 +8,7 @@ alias = "child"
 source = "same-name-child"
 
 [[connection]]
-from = "args/string/1"
+from = "get/string/1"
 to = "child/message"
 
 [[process]]
@@ -17,17 +16,16 @@ alias = "child2"
 source = "same-name-child"
 
 [[connection]]
-from = "args/string/1"
+from = "get/string/1"
 to = "child2/message"
 
 [[process]]
-alias = "print"
 source = "context://stdio/stdout"
 
 [[connection]]
 from = "child2/message"
-to = "print"
+to = "stdout"
 
 [[connection]]
 from = "child/message"
-to = "print"
+to = "stdout"

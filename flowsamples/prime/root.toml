@@ -3,12 +3,11 @@ docs = "DESCRIPTION.md"
 
 # Read the limit from the command line
 [[process]]
-alias = "args"
 source = "context://args/get"
 
 # Generate the list of all candidates for primes
 [[connection]]
-from = "args/json/1"
+from = "get/json/1"
 to = "candidates/limit"
 [[process]]
 source = "candidates"
@@ -20,7 +19,7 @@ to = "remove/array"
 [[process]]
 source = "composites"
 [[connection]]
-from = "args/json/1"
+from = "get/json/1"
 to = "composites/limit"
 
 ####### Remove composites from candidate list

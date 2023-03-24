@@ -2,6 +2,5 @@ flow = "hello-world"
 docs = "DESCRIPTION.md"
 
 [[process]]
-alias = "print"
 source = "context://stdio/stdout"
 input.default = {once =  "Hello World!"}

@@ -1,6 +1,5 @@
 flow = "hello-world"
 
 [[process]]
-alias = "print"
 source = "context://stdio/stdout"
 input.default = {once = "Hello World!"}

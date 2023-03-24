@@ -12,7 +12,6 @@ name = "number"
 type = "number"
 
 [[process]]
-alias = "range_split"
 source = "lib://flowstdlib/math/range_split"
 
 [[connection]]

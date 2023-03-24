@@ -3,15 +3,13 @@ docs = "DESCRIPTION.md"
 
 # Read 'n' from the command line
 [[process]]
-alias = "args"
 source = "context://args/get"
 
 [[connection]]
-from = "args/json/1"
+from = "get/json/1"
 to = "multiply/i2"
 
 [[process]]
-alias = "multiply"
 source = "lib://flowstdlib/math/multiply"
 input.i1 = { once =  1 }
 
@@ -21,7 +19,7 @@ source = "lib://flowstdlib/math/subtract"
 input.i2 = { always =  1 }
 
 [[connection]]
-from = "args/json/1"
+from = "get/json/1"
 to = "sub/i1"
 
 [[connection]]
@@ -29,7 +27,6 @@ from = "multiply"
 to = "multiply/i1"
 
 [[process]]
-alias = "compare"
 source = "lib://flowstdlib/math/compare"
 input.right = { always =  1 }
 
@@ -62,9 +59,8 @@ from = "multiply"
 to = "result-tap/data"
 
 [[process]]
-alias = "print"
 source = "context://stdio/stdout"
 
 [[connection]]
 from = "result-tap"
-to = "print"
+to = "stdout"

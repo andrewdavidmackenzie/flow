@@ -5,7 +5,6 @@ name = "only"
 type = "string"
 
 [[process]]
-alias = "subsubflow"
 source = "subsubflow"
 
 [[connection]]

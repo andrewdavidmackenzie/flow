@@ -1,12 +1,11 @@
 flow = "args"
 
 [[process]]
-alias = "args"
 source = "context://args/get"
 
 [[process]]
 source = "context://stdio/stdout"
 
 [[connection]]
-from = "args/json/3"
+from = "get/json/3"
 to = "stdout"
