@@ -201,15 +201,19 @@ fn compile_supplied_implementations(
 fn configure_output_connections(tables: &mut CompilerTables) -> Result<()> {
     info!("\n=== Compiler: Configuring Output Connections");
     for connection in &tables.collapsed_connections {
-        let (source, source_id) = get_source(&tables.sources, connection.from_io().route())
-            .ok_or(format!("Connection source for route '{}' was not found", connection.from_io().route()))?;
+        let (source, source_id) = get_source(&tables.sources,
+                                             connection.from_io().route())
+            .ok_or(format!("Connection source for route '{}' was not found",
+                           connection.from_io().route()))?;
 
         let (destination_function_id, destination_input_index, destination_flow_id) =
             tables.destination_routes.get(connection.to_io().route())
-                .ok_or(format!("Connection destination for route '{}' was not found", connection.to_io().route()))?;
+                .ok_or(format!("Connection destination for route '{}' was not found",
+                               connection.to_io().route()))?;
 
         let source_function = tables.functions.get_mut(source_id)
-            .ok_or("Could not find function with id: {source_id}")?;
+            .ok_or(format!("Could not find function with id: {source_id} \
+            while configuring output connection '{connection}'"))?;
 
         debug!(
             "Connection: from '{}' to '{}'",
@@ -317,15 +321,15 @@ mod test {
         use super::super::get_source;
 
         /*
-                                                                                    Create a HashTable of routes for use in tests.
-                                                                                    Each entry (K, V) is:
-                                                                                    - Key   - the route to a function's IO
-                                                                                    - Value - a tuple of
-                                                                                                - sub-route (or IO name) from the function to be used at runtime
-                                                                                                - the id number of the function in the functions table, to select it at runtime
+                                                                                            Create a HashTable of routes for use in tests.
+                                                                                            Each entry (K, V) is:
+                                                                                            - Key   - the route to a function's IO
+                                                                                            - Value - a tuple of
+                                                                                                        - sub-route (or IO name) from the function to be used at runtime
+                                                                                                        - the id number of the function in the functions table, to select it at runtime
 
-                                                                                    Plus a vector of test cases with the Route to search for and the expected function_id and output sub-route
-                                                                                */
+                                                                                            Plus a vector of test cases with the Route to search for and the expected function_id and output sub-route
+                                                                                        */
         #[allow(clippy::type_complexity)]
         fn test_source_routes() -> (
             BTreeMap<Route, (Source, usize)>,
