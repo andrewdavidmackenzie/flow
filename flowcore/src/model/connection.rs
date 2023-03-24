@@ -153,11 +153,6 @@ impl Connection {
         &mut self.to_io
     }
 
-    /// Set the flow id where this connection originated
-    pub fn set_origin_flow_id(&mut self, origin_flow_id: usize) {
-        self.origin_flow_id = origin_flow_id;
-    }
-
     /// Get at what level in the flow hierarchy this connection exists (source)
     pub fn level(&self) -> usize {
         self.level
