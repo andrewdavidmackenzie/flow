@@ -209,7 +209,8 @@ fn compile_functions(
                             options.optimize,
                             #[cfg(feature = "debugger")]
                             &mut lib_manifest.source_urls,
-                        ).chain_err(|| "Could not compile implementation to wasm")?;
+                        ).chain_err(|| format!("Could not compile implementation '{}' to wasm",
+                                        source_path.display()))?;
 
                         if built {
                             file_count += 1;

@@ -8,6 +8,7 @@ edition.workspace = true
 name = "select"
 crate-type = ["cdylib"]
 path = "select.rs"
+rustflags = ["-C", "link-arg=--gc-targets"]
 
 [dependencies]
 flowcore = { workspace = true }

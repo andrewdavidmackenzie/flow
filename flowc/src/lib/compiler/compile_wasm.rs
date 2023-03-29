@@ -152,9 +152,7 @@ fn run_optional_command(wasm_path: &Path, command: &str, mut args: Vec<String>) 
     mv $(file).opt $(file)
 */
 fn optimize_wasm_file_size(wasm_path: &Path) -> Result<()> {
-    run_optional_command(wasm_path, "wasm-gc", vec!["-o".into()])?;
     run_optional_command(wasm_path, "wasm-snip", vec!["-o".into()])?;
-    run_optional_command(wasm_path, "wasm-gc", vec!["-o".into()])?;
     run_optional_command(
         wasm_path,
         "wasm-opt",

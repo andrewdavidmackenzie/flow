@@ -8,6 +8,7 @@ edition.workspace = true
 name = "split"
 crate-type = ["cdylib"]
 path = "split.rs"
+rustflags = ["-C", "link-arg=--gc-targets"]
 
 [dependencies]
 flowcore = { workspace = true }

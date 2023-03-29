@@ -8,6 +8,7 @@ edition.workspace = true
 name = "accumulate"
 crate-type = ["cdylib"]
 path = "accumulate.rs"
+rustflags = ["-C", "link-arg=--gc-targets"]
 
 [dependencies]
 flowcore = { workspace = true }
