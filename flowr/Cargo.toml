@@ -39,7 +39,7 @@ error-chain = "0.12.2"
 multimap = "~0.9"
 portpicker = "0.1.1"
 zmq = "0.10.0"
-image = "=0.24.5"
+image = "=0.24.6"
 simpdiscover = "0.6.2"
 
 # Optional dependencies
