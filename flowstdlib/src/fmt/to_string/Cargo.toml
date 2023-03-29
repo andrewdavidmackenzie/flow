@@ -8,6 +8,7 @@ edition.workspace = true
 name = "to_string"
 crate-type = ["cdylib"]
 path = "to_string.rs"
+rustflags = ["-C", "link-arg=--gc-targets"]
 
 [dependencies]
 flowcore = { workspace = true }

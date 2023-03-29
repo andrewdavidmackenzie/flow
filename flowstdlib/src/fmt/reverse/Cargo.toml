@@ -8,6 +8,7 @@ edition.workspace = true
 name = "reverse"
 crate-type = ["cdylib"]
 path = "reverse.rs"
+rustflags = ["-C", "link-arg=--gc-targets"]
 
 [dependencies]
 flowcore = { workspace = true }

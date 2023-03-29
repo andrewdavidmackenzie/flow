@@ -8,6 +8,7 @@ edition = "2018"
 name = "escapes"
 crate-type = ["cdylib"]
 path = "escapes.rs"
+rustflags = ["-C", "link-arg=--gc-targets"]
 
 [profile.release]
 debug = false

@@ -8,6 +8,7 @@ edition.workspace = true
 name = "remove"
 crate-type = ["cdylib"]
 path = "remove.rs"
+rustflags = ["-C", "link-arg=--gc-targets"]
 
 [dependencies]
 flowcore = { workspace = true }

@@ -8,6 +8,7 @@ edition.workspace = true
 name = "count"
 crate-type = ["cdylib"]
 path = "count.rs"
+rustflags = ["-C", "link-arg=--gc-targets"]
 
 [dependencies]
 flowcore = { workspace = true }

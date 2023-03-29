@@ -8,6 +8,7 @@ edition.workspace = true
 name = "enumerate"
 crate-type = ["cdylib"]
 path = "enumerate.rs"
+rustflags = ["-C", "link-arg=--gc-targets"]
 
 [dependencies]
 flowcore = { workspace = true }
