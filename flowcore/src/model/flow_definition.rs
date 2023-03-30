@@ -216,13 +216,6 @@ impl FlowDefinition {
         &self.outputs
     }
 
-    /// Set the origin id of all connections to be this flow
-    pub fn set_connection_origin_flow_ids(&mut self) {
-        for connection in &mut self.connections {
-            connection.set_origin_flow_id(self.id);
-        }
-    }
-
     /// Set the initial values on the IOs in an IOSet using a set of Input Initializers
     fn set_initializers(&mut self, initializer_map: &BTreeMap<String, InputInitializer>)
     -> Result<()> {
@@ -253,7 +246,6 @@ impl FlowDefinition {
         self.set_alias(alias_from_reference);
         self.source_url = source_url.to_owned();
         self.set_initializers(initializations)?;
-        self.set_connection_origin_flow_ids();
         self.set_routes_from_parent(parent_route);
         self.validate()
     }
@@ -275,10 +267,7 @@ impl FlowDefinition {
         // and process so this below can avoid the match
         match self.subprocesses.get_mut(subprocess_alias) {
             Some(FlowProcess(ref mut sub_flow)) => {
-                debug!(
-                    "\tFlow sub-process with matching name found, name = '{}'",
-                    subprocess_alias
-                );
+                debug!("\tFlow sub-process with matching name found, name = '{subprocess_alias}'");
                 match direction {
                     TO => sub_flow
                         .inputs
@@ -290,10 +279,7 @@ impl FlowDefinition {
             },
 
             Some(FunctionProcess(ref mut function)) => {
-                debug!(
-                    "\tFunction sub-process with name = '{}' found",
-                    subprocess_alias
-                );
+                debug!("\tFunction sub-process with name = '{subprocess_alias}' found");
                 match direction {
                     TO => function.inputs.find_by_subroute(sub_route),
                     FROM => function.outputs.find_by_subroute(sub_route)
@@ -568,7 +554,7 @@ mod test {
     #[test]
     fn test_non_existent_subprocess_in_connection() {
         let mut flow = test_flow();
-        match flow.get_subprocess_io(&Name::from("blablabla"),
+        match flow.get_subprocess_io(&Name::from("foo"),
                                      Direction::FROM,
                                      &Route::from("who-cares")) {
             Ok(_) => panic!("Should not find non-existent sub-process"),

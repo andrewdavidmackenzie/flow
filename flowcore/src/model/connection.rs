@@ -35,9 +35,6 @@ pub struct Connection {
     /// when collapsing connections to reduce work and avoid infinite recursion
     #[serde(skip)]
     level: usize,
-    /// Track the id of the flow where this connection originated
-    #[serde(skip)]
-    origin_flow_id: usize,
 }
 
 /// `Direction` defines whether a `Connection` is coming from an IO or to an IO
@@ -154,11 +151,6 @@ impl Connection {
     /// Return a mutable reference to the to_io
     pub fn to_io_mut(&mut self) -> &mut IO {
         &mut self.to_io
-    }
-
-    /// Set the flow id where this connection originated
-    pub fn set_origin_flow_id(&mut self, origin_flow_id: usize) {
-        self.origin_flow_id = origin_flow_id;
     }
 
     /// Get at what level in the flow hierarchy this connection exists (source)
