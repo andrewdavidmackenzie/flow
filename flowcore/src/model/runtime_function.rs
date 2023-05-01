@@ -110,7 +110,7 @@ impl RuntimeFunction {
 
         // Remove destination routes if not wanted
         if !include_destination_routes {
-            for mut connection in &mut connections {
+            for connection in &mut connections {
                 connection.destination = String::default();
             }
         }
