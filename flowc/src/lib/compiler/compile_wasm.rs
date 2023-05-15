@@ -93,9 +93,9 @@ pub fn compile_implementation(
    Try and run a command that may or may not be installed in the system thus:
    - create a temporary directory where the output file will be created
    - run the command: $command $wasm_path $args $temp_file
-   - return the path to the $temp_file
+   - copy the resulting $temp_file to the desired output path (possibly across file systems)
 */
-fn run_optional_command(wasm_path: &Path, command: &str, mut args: Vec<String>) -> Result<()> {
+fn run_optional_command(wasm_path: &Path, command: &str, args: Vec<&str>) -> Result<()> {
     if let Ok(FoundType::File(command_path)) =
         Simpath::new("PATH").find_type(command, FileType::File)
     {
@@ -108,21 +108,13 @@ fn run_optional_command(wasm_path: &Path, command: &str, mut args: Vec<String>) 
         let temp_file_path = tmp_dir
             .path()
             .join(wasm_path.file_name().ok_or("Could not get wasm filename")?);
-        let mut command = Command::new(&command_path);
-        let mut command_args = vec![wasm_path.to_string_lossy().to_string()];
-        if !args.is_empty() {
-            command_args.append(&mut args);
-        }
-        command_args.append(&mut vec![temp_file_path.to_string_lossy().to_string()]);
-        let child = command
-            .args(command_args)
+        let mut command = Command::new(&command_path)
+            .arg(wasm_path).args(&args).arg(&temp_file_path)
             .stdin(Stdio::inherit())
             .stdout(Stdio::inherit())
             .stderr(Stdio::inherit());
 
-        let output = child.output()?;
-
-        match output.status.code() {
+        match command.output()?.status.code() {
             Some(0) | None => {
                 fs::copy(&temp_file_path, wasm_path)?;
                 fs::remove_file(&temp_file_path)?;
@@ -133,23 +125,19 @@ fn run_optional_command(wasm_path: &Path, command: &str, mut args: Vec<String>) 
             )),
         }
 
-        // remove the temp dir
         fs::remove_dir_all(&tmp_dir)?;
     }
 
-    Ok(())
+    Ok(()) // No error if the command was not present
 }
 
 /*
    Optimize a wasm file's size using external tools that maybe installed on user's system
 */
 fn optimize_wasm_file_size(wasm_path: &Path) -> Result<()> {
-    run_optional_command(wasm_path, "wasm-snip", vec!["-o".into()])?;
-    run_optional_command(wasm_path, "wasm-strip", vec!["-o".into()])?;
-    run_optional_command(
-        wasm_path,
-        "wasm-opt",
-        vec!["-O4".into(), "--dce".into(), "-o".into()],
+    run_optional_command(wasm_path, "wasm-snip", vec!["-o"])?;
+    run_optional_command(wasm_path, "wasm-strip", vec!["-o"])?;
+    run_optional_command(wasm_path, "wasm-opt", vec!["-O4", "--dce", "-o"],
     )
 }
 
@@ -203,7 +191,7 @@ mod test {
 
     #[test]
     fn test_run_optional_non_existent() {
-        let _ = run_optional_command(Path::new("/tmp"), "foo", vec!["bar".into()]);
+        let _ = run_optional_command(Path::new("/tmp"), "foo", vec!["bar"]);
     }
 
     #[test]
@@ -223,7 +211,7 @@ mod test {
         let _ = run_optional_command(
             temp_file_path.as_path(),
             "cp",
-            vec!["--no-such-flag".into()],
+            vec!["--no-such-flag"],
         );
         assert!(temp_file_path.exists());
     }
