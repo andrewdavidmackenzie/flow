@@ -141,18 +141,11 @@ fn run_optional_command(wasm_path: &Path, command: &str, mut args: Vec<String>) 
 }
 
 /*
-   Optimize a wasm file's size using equivalent of
-    wasm-gc $(file) -o $(file).gc && \
-    mv $(file).gc $(file) && \
-    wasm-snip $(file) -o $(file).snipped && \
-    mv $(file).snipped $(file) && \
-    wasm-gc $(file) -o $(file).gc && \
-    mv $(file).gc $(file) && \
-    wasm-opt $(file) -O4 --dce -o $(file).opt && \
-    mv $(file).opt $(file)
+   Optimize a wasm file's size using external tools that maybe installed on user's system
 */
 fn optimize_wasm_file_size(wasm_path: &Path) -> Result<()> {
     run_optional_command(wasm_path, "wasm-snip", vec!["-o".into()])?;
+    run_optional_command(wasm_path, "wasm-strip", vec!["-o".into()])?;
     run_optional_command(
         wasm_path,
         "wasm-opt",
