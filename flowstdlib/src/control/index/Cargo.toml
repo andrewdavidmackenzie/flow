@@ -8,7 +8,7 @@ edition.workspace = true
 name = "index"
 crate-type = ["cdylib"]
 path = "index.rs"
-rustflags = ["-C", "link-arg=--gc-targets"]
+rustflags = ["-C", "link-arg=--gc-sections"]
 
 [dependencies]
 flowcore = { workspace = true }

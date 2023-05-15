@@ -8,7 +8,7 @@ edition.workspace = true
 name = "tap"
 crate-type = ["cdylib"]
 path = "tap.rs"
-rustflags = ["-C", "link-arg=--gc-targets"]
+rustflags = ["-C", "link-arg=--gc-sections"]
 
 [dependencies]
 flowcore = { workspace = true }

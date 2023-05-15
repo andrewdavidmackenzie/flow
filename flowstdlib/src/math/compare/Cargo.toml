@@ -8,7 +8,7 @@ edition.workspace = true
 name = "compare"
 crate-type = ["cdylib"]
 path = "compare.rs"
-rustflags = ["-C", "link-arg=--gc-targets"]
+rustflags = ["-C", "link-arg=--gc-sections"]
 
 [dependencies]
 flowcore = { workspace = true }
