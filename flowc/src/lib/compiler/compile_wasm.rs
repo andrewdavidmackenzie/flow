@@ -108,13 +108,18 @@ fn run_optional_command(wasm_path: &Path, command: &str, args: Vec<&str>) -> Res
         let temp_file_path = tmp_dir
             .path()
             .join(wasm_path.file_name().ok_or("Could not get wasm filename")?);
-        let mut command = Command::new(&command_path)
-            .arg(wasm_path).args(&args).arg(&temp_file_path)
+        let mut command = Command::new(&command_path);
+        command.arg(wasm_path);
+        command.args(&args);
+        command.arg(&temp_file_path);
+        let child = command
             .stdin(Stdio::inherit())
             .stdout(Stdio::inherit())
             .stderr(Stdio::inherit());
 
-        match command.output()?.status.code() {
+        let output = child.output()?;
+
+        match output.status.code() {
             Some(0) | None => {
                 fs::copy(&temp_file_path, wasm_path)?;
                 fs::remove_file(&temp_file_path)?;
