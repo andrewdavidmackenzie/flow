@@ -8,7 +8,7 @@ edition.workspace = true
 name = "multiply_row"
 crate-type = ["cdylib"]
 path = "multiply_row.rs"
-rustflags = ["-C", "link-arg=--gc-targets"]
+rustflags = ["-C", "link-arg=--gc-sections"]
 
 [dependencies]
 flowcore = { workspace = true }

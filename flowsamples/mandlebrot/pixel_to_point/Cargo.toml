@@ -8,7 +8,7 @@ edition = "2018"
 name = "pixel_to_point"
 crate-type = ["cdylib"]
 path = "pixel_to_point.rs"
-rustflags = ["-C", "link-arg=--gc-targets"]
+rustflags = ["-C", "link-arg=--gc-sections"]
 
 [profile.release]
 debug = false

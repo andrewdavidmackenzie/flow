@@ -8,7 +8,7 @@ edition = "2018"
 name = "reverse"
 crate-type = ["cdylib"]
 path = "reverse.rs"
-rustflags = ["-C", "link-arg=--gc-targets"]
+rustflags = ["-C", "link-arg=--gc-sections"]
 
 [profile.release]
 debug = false
