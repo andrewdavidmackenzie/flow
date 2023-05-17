@@ -176,8 +176,9 @@ A function in the `Ready` state is selected to run (depending on the `ExecutionS
 A Job is created using the function's available input values and is sent for execution.
 - this may unblock another function which was blocked sending to this functions as it's input was full
 
-Jobs are created until either no function is available in the `Ready` state, or a maximum number of pending Jobs
-is reached.
+Execution of jobs by "pure" functions are non-blocking by nature, as their execution depends only on their
+input values (which are in the job) and the availability of an executor to run them one. So, once they start
+executing they complete as soon as possible.
 
 A blocking wait on completed jobs is performed. 
 For each completed job that is received:
@@ -185,15 +186,18 @@ For each completed job that is received:
   inputs on connected functions
     - This may satisfy the inputs of the other function, causing them to transition to the `Ready` state
 
-If the function has any "Constant" initializer on any of it's inputs, it is run, possible refilling one or more
+If the function has any "Always" initializer on any of it's inputs, it is run, possible refilling one or more
 of its inputs.
-According to the availability of data at its inputs and ability to send to its outputs a function may transition
-to the `Ready` or `Waiting` (for inputs) or `Blocked` (on sending) state. 
 
-The loop continues until there are no functions in the `ready`state, and the flow is terminated.
+According to the availability of data at its inputs and ability to send to its outputs a function may transition
+to the `Ready` or `Waiting` (for inputs) or `Blocked` (on sending) state. If a functions returns `DontRunAgain`
+then it will be moved to the `Completed` state. This is used in particular for "impure" functions (such as `readline`)
+so that when they read EndOfFile (and running them again makes no sense) they may complete, and when their outputs are 
+processed may cause the entire flow to complete. As such a function has no inputs, it otherwise would always be
+`Ready` and always be rerun, and "livelock" would occur and the flow would never end.
 
 ### Termination
-The execution of a flow terminates when there are no functions left on the ready list.
+The execution of a flow terminates when there are no functions left on the ready list to execute.
 Depending on options used and the runner, this may cause the output of some statistics, unloading
 of loaded objects and either runner program exit, or return to wait for a `Submission` and the whole
 process starts again.
