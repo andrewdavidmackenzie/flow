@@ -8,7 +8,6 @@ again.
 ### Include using
 ```toml
 [[process]]
-alias = "readline"
 source = "context://stdio/readline"
 ```
 

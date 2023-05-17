@@ -1,11 +1,10 @@
-## Write (//context/file/write)
+## Write (//context/file/file_write)
 Writes `bytes` of data supplied to the file named `filename`, creating it if necessary.
 
 ### Include using
 ```toml
 [[process]]
-alias = "write"
-source = "context://file/write"
+source = "context://file/file_write"
 ```
 
 ### Inputs
