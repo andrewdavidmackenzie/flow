@@ -5,7 +5,6 @@ is output on a separate line.
 ### Include using
 ```toml
 [[process]]
-alias = "stdout"
 source = "context://stdio/stdout"
 ```
 

@@ -5,7 +5,6 @@ again. If you wish to get the value of a line (i.e. after ENTER is pressed, then
 ### Include using
 ```toml
 [[process]]
-alias = "stdin"
 source = "context://stdio/stdin"
 ```
 

@@ -4,7 +4,6 @@ Write `pixels` to an image buffer
 ### Include using
 ```toml
 [[process]]
-alias = "buffer"
 source = "context://file/image_buffer"
 ```
 
