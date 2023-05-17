@@ -288,8 +288,9 @@ state (they are always ready until they return FALSE to &quot;RunAgain).</p>
 <ul>
 <li>this may unblock another function which was blocked sending to this functions as it's input was full</li>
 </ul>
-<p>Jobs are created until either no function is available in the <code>Ready</code> state, or a maximum number of pending Jobs
-is reached.</p>
+<p>Execution of jobs by &quot;pure&quot; functions are non-blocking by nature, as their execution depends only on their
+input values (which are in the job) and the availability of an executor to run them one. So, once they start
+executing they complete as soon as possible.</p>
 <p>A blocking wait on completed jobs is performed. 
 For each completed job that is received:</p>
 <ul>
@@ -300,13 +301,16 @@ inputs on connected functions
 </ul>
 </li>
 </ul>
-<p>If the function has any &quot;Constant&quot; initializer on any of it's inputs, it is run, possible refilling one or more
-of its inputs.
-According to the availability of data at its inputs and ability to send to its outputs a function may transition
-to the <code>Ready</code> or <code>Waiting</code> (for inputs) or <code>Blocked</code> (on sending) state. </p>
-<p>The loop continues until there are no functions in the <code>ready</code>state, and the flow is terminated.</p>
+<p>If the function has any &quot;Always&quot; initializer on any of it's inputs, it is run, possible refilling one or more
+of its inputs.</p>
+<p>According to the availability of data at its inputs and ability to send to its outputs a function may transition
+to the <code>Ready</code> or <code>Waiting</code> (for inputs) or <code>Blocked</code> (on sending) state. If a functions returns <code>DontRunAgain</code>
+then it will be moved to the <code>Completed</code> state. This is used in particular for &quot;impure&quot; functions (such as <code>readline</code>)
+so that when they read EndOfFile (and running them again makes no sense) they may complete, and when their outputs are 
+processed may cause the entire flow to complete. As such a function has no inputs, it otherwise would always be
+<code>Ready</code> and always be rerun, and &quot;livelock&quot; would occur and the flow would never end.</p>
 <h3 id="termination"><a class="header" href="#termination">Termination</a></h3>
-<p>The execution of a flow terminates when there are no functions left on the ready list.
+<p>The execution of a flow terminates when there are no functions left on the ready list to execute.
 Depending on options used and the runner, this may cause the output of some statistics, unloading
 of loaded objects and either runner program exit, or return to wait for a <code>Submission</code> and the whole
 process starts again.</p>
