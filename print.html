@@ -1633,7 +1633,6 @@ interact with the file system and standard input/output.</p>
 <p>Get the arguments the flow was executed with</p>
 <h3 id="include-using"><a class="header" href="#include-using">Include using</a></h3>
 <pre><code class="language-toml">[[process]]
-alias = &quot;get&quot;
 source = &quot;context://args/get&quot;
 </code></pre>
 <h3 id="inputs"><a class="header" href="#inputs">Inputs</a></h3>
@@ -1647,12 +1646,11 @@ source = &quot;context://args/get&quot;
 <ul>
 <li><a href="flowr/src/cli/file/file_write.html">write</a></li>
 </ul>
-<div style="break-before: page; page-break-before: always;"></div><h2 id="write-contextfilewrite"><a class="header" href="#write-contextfilewrite">Write (//context/file/write)</a></h2>
+<div style="break-before: page; page-break-before: always;"></div><h2 id="write-contextfilefile_write"><a class="header" href="#write-contextfilefile_write">Write (//context/file/file_write)</a></h2>
 <p>Writes <code>bytes</code> of data supplied to the file named <code>filename</code>, creating it if necessary.</p>
 <h3 id="include-using-1"><a class="header" href="#include-using-1">Include using</a></h3>
 <pre><code class="language-toml">[[process]]
-alias = &quot;write&quot;
-source = &quot;context://file/write&quot;
+source = &quot;context://file/file_write&quot;
 </code></pre>
 <h3 id="inputs-1"><a class="header" href="#inputs-1">Inputs</a></h3>
 <ul>
@@ -1670,7 +1668,6 @@ directory of the process invoking the flow.</li>
 <p>Write <code>pixels</code> to an image buffer</p>
 <h3 id="include-using-2"><a class="header" href="#include-using-2">Include using</a></h3>
 <pre><code class="language-toml">[[process]]
-alias = &quot;buffer&quot;
 source = &quot;context://file/image_buffer&quot;
 </code></pre>
 <h3 id="inputs-2"><a class="header" href="#inputs-2">Inputs</a></h3>
@@ -1698,7 +1695,6 @@ but leading and trailing whitespace are trimmed before being output.</p>
 again.</p>
 <h3 id="include-using-3"><a class="header" href="#include-using-3">Include using</a></h3>
 <pre><code class="language-toml">[[process]]
-alias = &quot;readline&quot;
 source = &quot;context://stdio/readline&quot;
 </code></pre>
 <h3 id="inputs-3"><a class="header" href="#inputs-3">Inputs</a></h3>
@@ -1715,7 +1711,6 @@ source = &quot;context://stdio/readline&quot;
 again. If you wish to get the value of a line (i.e. after ENTER is pressed, then use <a href="flowr/src/cli/stdio/readline.html">readline</a>)</p>
 <h3 id="include-using-4"><a class="header" href="#include-using-4">Include using</a></h3>
 <pre><code class="language-toml">[[process]]
-alias = &quot;stdin&quot;
 source = &quot;context://stdio/stdin&quot;
 </code></pre>
 <h3 id="inputs-4"><a class="header" href="#inputs-4">Inputs</a></h3>
@@ -1729,7 +1724,6 @@ source = &quot;context://stdio/stdin&quot;
 is output on a separate line.</p>
 <h3 id="include-using-5"><a class="header" href="#include-using-5">Include using</a></h3>
 <pre><code class="language-toml">[[process]]
-alias = &quot;stdout&quot;
 source = &quot;context://stdio/stdout&quot;
 </code></pre>
 <h3 id="input"><a class="header" href="#input">Input</a></h3>
@@ -1742,7 +1736,6 @@ source = &quot;context://stdio/stdout&quot;
 is output on a separate line.</p>
 <h3 id="include-using-6"><a class="header" href="#include-using-6">Include using</a></h3>
 <pre><code class="language-toml">[[process]]
-alias = &quot;stderr&quot;
 source = &quot;context://stdio/stderr&quot;
 </code></pre>
 <h3 id="input-1"><a class="header" href="#input-1">Input</a></h3>
@@ -1981,6 +1974,43 @@ and will not be added back to the ready list for re-execution.</p>
 <h3 id="standard-output--standard-error"><a class="header" href="#standard-output--standard-error">Standard Output &amp; Standard Error</a></h3>
 <p><code>context</code> provides functions to send output to STDOUT/STDERR. This output is printed on 
 stdout or stderr of the process that executed the <code>cargo run -p flowc</code> or <code>flowc</code> command to execute the flow.</p>
+<h3 id="writing-to-files"><a class="header" href="#writing-to-files">Writing to Files</a></h3>
+<p><code>context</code> supplies the <code>file_write</code>function (<code>context://file/file_write</code>) that allows flows to write
+to files hosted by the file system where the flow runner is running.</p>
+<p>Here is an example of a flow that writes the ASCII string &quot;hello&quot; to a file called &quot;pipe&quot;:</p>
+<pre><code>flow = &quot;test&quot;
+
+[[process]]
+source = &quot;context://file/file_write&quot;
+input.bytes = { once = [104, 101, 108, 108, 111] }
+input.filename = { once = &quot;pipe&quot; }
+</code></pre>
+<p>You can run that flow from the command line using:<code>flowc -C flowr/src/cli root.toml</code></p>
+<p>and see that it has worked using: <code>cat pipe</code></p>
+<p>which will show the text <code>hello</code></p>
+<p>Now clean-up: <code>rm pipe</code></p>
+<h3 id="named-pipes"><a class="header" href="#named-pipes">Named Pipes</a></h3>
+<p>On most *nix systems (including macos) there exists what are called &quot;named pipes&quot;,
+which allow interprocess communication via something that looks to them like files.</p>
+<p>An example of how to use that, using the above flow is:</p>
+<ul>
+<li>Terminal Window 1
+<ul>
+<li><code>mkfifo pipe</code></li>
+<li><code>cat pipe</code></li>
+<li>(process should block reading from that file and not display anything)</li>
+</ul>
+</li>
+<li>Terminal Window 2
+<ul>
+<li>Run the flow as before using <code>flowc -C flowr/src/cli root.toml</code></li>
+<li>The process blocked above in Terminal Window 1 will unblock and display <code>hello</code></li>
+<li>The flow will run to completion in Terminal Window 2</li>
+</ul>
+</li>
+</ul>
+<p>You can also run the flow first, it will block writing to the pipe, and then read from the pipe 
+using <code>cat pipe</code>. Both processes will run to completion and <code>hello</code> will be displayed.</p>
 <div style="break-before: page; page-break-before: always;"></div><h3 id="exceptions-and-panics"><a class="header" href="#exceptions-and-panics">Exceptions and Panics</a></h3>
 <p>Currently, there are no special provisions for handling or recovering from run-time exceptions.
 The functions are implemented in rust and when they fail they will panic as usual in rust. 

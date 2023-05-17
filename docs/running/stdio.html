@@ -154,6 +154,43 @@ and will not be added back to the ready list for re-execution.</p>
 <h3 id="standard-output--standard-error"><a class="header" href="#standard-output--standard-error">Standard Output &amp; Standard Error</a></h3>
 <p><code>context</code> provides functions to send output to STDOUT/STDERR. This output is printed on 
 stdout or stderr of the process that executed the <code>cargo run -p flowc</code> or <code>flowc</code> command to execute the flow.</p>
+<h3 id="writing-to-files"><a class="header" href="#writing-to-files">Writing to Files</a></h3>
+<p><code>context</code> supplies the <code>file_write</code>function (<code>context://file/file_write</code>) that allows flows to write
+to files hosted by the file system where the flow runner is running.</p>
+<p>Here is an example of a flow that writes the ASCII string &quot;hello&quot; to a file called &quot;pipe&quot;:</p>
+<pre><code>flow = &quot;test&quot;
+
+[[process]]
+source = &quot;context://file/file_write&quot;
+input.bytes = { once = [104, 101, 108, 108, 111] }
+input.filename = { once = &quot;pipe&quot; }
+</code></pre>
+<p>You can run that flow from the command line using:<code>flowc -C flowr/src/cli root.toml</code></p>
+<p>and see that it has worked using: <code>cat pipe</code></p>
+<p>which will show the text <code>hello</code></p>
+<p>Now clean-up: <code>rm pipe</code></p>
+<h3 id="named-pipes"><a class="header" href="#named-pipes">Named Pipes</a></h3>
+<p>On most *nix systems (including macos) there exists what are called &quot;named pipes&quot;,
+which allow interprocess communication via something that looks to them like files.</p>
+<p>An example of how to use that, using the above flow is:</p>
+<ul>
+<li>Terminal Window 1
+<ul>
+<li><code>mkfifo pipe</code></li>
+<li><code>cat pipe</code></li>
+<li>(process should block reading from that file and not display anything)</li>
+</ul>
+</li>
+<li>Terminal Window 2
+<ul>
+<li>Run the flow as before using <code>flowc -C flowr/src/cli root.toml</code></li>
+<li>The process blocked above in Terminal Window 1 will unblock and display <code>hello</code></li>
+<li>The flow will run to completion in Terminal Window 2</li>
+</ul>
+</li>
+</ul>
+<p>You can also run the flow first, it will block writing to the pipe, and then read from the pipe 
+using <code>cat pipe</code>. Both processes will run to completion and <code>hello</code> will be displayed.</p>
 
                     </main>
 
