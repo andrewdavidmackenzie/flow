@@ -2,7 +2,7 @@ flow = "line-echo"
 
 [[process]]
 source = "context://stdio/readline"
-input.prompt = { always =  "" }
+input.prompt = { always =  "> " }
 
 [[process]]
 source = "context://stdio/stdout"
