@@ -14,8 +14,8 @@ If you are a programmer, your intuition will probably tell you a lot already abo
 without any explanation.
 ![First flow](first.svg) 
 
-This is one of many samples that can be found in the flowsamples crate in `flow`, and the first thing
-I got working (much to my own delight!).
+This is one of many samples that can be found in the `flowsamples` crate that is part of the 
+`flow` project, and the first thing I got working (much to my own delight!).
 
 ## What is a `dataflow program`?
 A data flow program consists of a graph of processes (hierarchical in this case, as a process within it can be another
@@ -44,7 +44,7 @@ to a flow manifest, which is executed.
 
 The `flow` project includes:
 - Compiler: a library and a binary (`flowclib` and `flowc`) for compiling flows
-- Runner: a library and two binaries (`flowrlib`, `flowr` and `flowrex`) for running flows, including a 
+- Runner: a library (`flowrlib`) and two binaries (`flowr` and `flowrex`) for running flows, including a 
 command line debugger for debugging flows.
 - Standard Library: `flowstdlib` library of pre-defined flows and functions that can be re-used in flows
 - Samples: A set of sample flows to illustrate flow programming (more to come!)
