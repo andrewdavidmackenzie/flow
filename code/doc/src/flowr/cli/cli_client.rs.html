@@ -376,6 +376,10 @@
 <a href="#376" id="376">376</a>
 <a href="#377" id="377">377</a>
 <a href="#378" id="378">378</a>
+<a href="#379" id="379">379</a>
+<a href="#380" id="380">380</a>
+<a href="#381" id="381">381</a>
+<a href="#382" id="382">382</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::collections::HashMap;
 <span class="kw">use </span>std::fs::File;
 <span class="kw">use </span>std::io;
@@ -457,6 +461,7 @@
                 <span class="macro">debug!</span>(<span class="string">&quot;=========================== Flow execution ended ======================================&quot;</span>);
                 <span class="kw">if </span><span class="self">self</span>.display_metrics {
                     <span class="macro">println!</span>(<span class="string">&quot;\nMetrics: \n {metrics}&quot;</span>);
+                    <span class="kw">let _ </span>= io::stdout().flush();
                 }
 
                 <span class="self">self</span>.flush_image_buffers();
@@ -482,6 +487,7 @@
                 <span class="kw">let </span>stdout = io::stdout();
                 <span class="kw">let </span><span class="kw-2">mut </span>handle = stdout.lock();
                 <span class="kw">let _ </span>= handle.write_all(<span class="macro">format!</span>(<span class="string">&quot;{contents}\n&quot;</span>).as_bytes());
+                <span class="kw">let _ </span>= io::stdout().flush();
                 ClientMessage::Ack
             }
             CoordinatorMessage::StderrEof =&gt; ClientMessage::Ack,
@@ -489,6 +495,7 @@
                 <span class="kw">let </span>stderr = io::stderr();
                 <span class="kw">let </span><span class="kw-2">mut </span>handle = stderr.lock();
                 <span class="kw">let _ </span>= handle.write_all(<span class="macro">format!</span>(<span class="string">&quot;{contents}\n&quot;</span>).as_bytes());
+                <span class="kw">let _ </span>= io::stdout().flush();
                 ClientMessage::Ack
             }
             CoordinatorMessage::GetStdin =&gt; {
@@ -506,6 +513,7 @@
                 <span class="kw">let </span><span class="kw-2">mut </span>input = String::new();
                 <span class="kw">if </span>!prompt.is_empty() {
                     <span class="macro">print!</span>(<span class="string">&quot;{}&quot;</span>, prompt);
+                    <span class="kw">let _ </span>= io::stdout().flush();
                 }
                 <span class="kw">let </span>line = io::stdin().lock().read_line(<span class="kw-2">&amp;mut </span>input);
                 <span class="kw">match </span>line {
