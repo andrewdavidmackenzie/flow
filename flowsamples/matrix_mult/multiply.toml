@@ -1,4 +1,4 @@
-flow = "multiply_matrices"
+flow = "multiply"
 
 [[input]]
 name = "a"
