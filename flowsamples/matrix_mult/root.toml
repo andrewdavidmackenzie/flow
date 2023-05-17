@@ -24,7 +24,6 @@ from = "readline/json"
 to = "select_1/value"
 
 [[process]]
-alias = "multiply"
 source = "multiply"
 
 [[connection]]
