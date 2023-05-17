@@ -3,6 +3,10 @@ source = "readline.rs"
 docs = "readline.md"
 impure = true
 
+[[input]]
+name = "prompt"
+type = "string"
+
 [[output]]
 name = "string"
 type = "string"

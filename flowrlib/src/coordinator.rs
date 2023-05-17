@@ -136,11 +136,9 @@ impl<'a> Coordinator<'a> {
                             let job;
 
                             (display_next_output, restart, job) = state.retire_job(
-                                #[cfg(feature = "metrics")]
-                                    &mut metrics,
+                                #[cfg(feature = "metrics")] &mut metrics,
                                 result,
-                                #[cfg(feature = "debugger")]
-                                    &mut self.debugger,
+                                #[cfg(feature = "debugger")] &mut self.debugger,
                             )?;
                             #[cfg(feature = "debugger")]
                             if display_next_output {

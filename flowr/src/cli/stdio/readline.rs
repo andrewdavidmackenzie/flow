@@ -15,11 +15,17 @@ pub struct Readline {
 }
 
 impl Implementation for Readline {
-    fn run(&self, _inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
+    fn run(&self, inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
         let mut server = self.server_connection.lock()
             .map_err(|_| "Could not lock server")?;
 
-        let readline_response = server.send_and_receive_response(CoordinatorMessage::GetLine);
+        let prompt = match inputs.get(0) {
+            Some(Value::String(prompt)) => prompt.clone(),
+            _ => "".into()
+        };
+
+        let readline_response = server.send_and_receive_response(
+            CoordinatorMessage::GetLine(prompt));
 
         match readline_response {
             Ok(ClientMessage::Line(contents)) => {
@@ -58,7 +64,7 @@ mod test {
     #[serial]
     fn gets_a_line_of_text() {
         let server_connection = wait_for_then_send(
-            CoordinatorMessage::GetLine,
+            CoordinatorMessage::GetLine("".into()),
             ClientMessage::Line("line of text".into()),
         );
         let reader = &Readline { server_connection } as &dyn Implementation;
@@ -78,7 +84,7 @@ mod test {
     #[serial]
     fn gets_json() {
         let server_connection = wait_for_then_send(
-            CoordinatorMessage::GetLine,
+            CoordinatorMessage::GetLine("".into()),
             ClientMessage::Line("\"json text\"".into()),
         );
         let reader = &Readline { server_connection } as &dyn Implementation;
@@ -98,7 +104,8 @@ mod test {
     #[serial]
     fn get_eof() {
         let server_connection =
-            wait_for_then_send(CoordinatorMessage::GetLine, ClientMessage::GetLineEof);
+            wait_for_then_send(CoordinatorMessage::GetLine("".into()),
+                               ClientMessage::GetLineEof);
         let reader = &Readline { server_connection } as &dyn Implementation;
         let (value, run_again) = reader.run(&[]).expect("_readline() failed");
 

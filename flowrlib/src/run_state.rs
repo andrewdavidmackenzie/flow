@@ -835,10 +835,12 @@ impl RunState {
         Ok(())
     }
 
+    // Do not run initializers on functions that have completed
     fn run_flow_initializers(&mut self, flow_id: usize) -> Result<()> {
         let mut initialized_functions = Vec::<usize>::new();
         for function in &mut self.submission.manifest.get_functions().iter_mut() {
-            if function.get_flow_id() == flow_id {
+            if function.get_flow_id() == flow_id &&
+                !self.completed.contains(&function.id()){
                 let could_run_before = function.can_run();
                 function.init_inputs(false, true);
                 let can_run_now = function.can_run();

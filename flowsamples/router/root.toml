@@ -3,6 +3,7 @@ docs = "DESCRIPTION.md"
 
 [[process]]
 source = "context://stdio/readline"
+input.prompt = { always =  "" }
 
 [[connection]]
 from = "readline/json"

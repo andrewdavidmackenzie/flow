@@ -13,6 +13,8 @@ source = "context://stdio/readline"
 ```
 
 ### Inputs
+* prompty - String prompt, or "" (empty string) can be used for none.
+
 
 #### Output
 * text - Line of text read from STDIN - with leading and trailing whitespace trimmed.

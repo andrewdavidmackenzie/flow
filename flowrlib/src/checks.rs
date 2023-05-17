@@ -108,8 +108,8 @@ fn completed_check(state: &RunState, job_id: usize, function: &RuntimeFunction,
             state,
             job_id,
             &format!(
-                "Function #{} has Completed, but also appears as Ready or Blocked or Running",
-                function.id(),
+                "Function #{} has Completed, but states are: {:?}",
+                function.id(), function_states
             ),
             file!(),
             line!(),
