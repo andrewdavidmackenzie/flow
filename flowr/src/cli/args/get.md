@@ -4,7 +4,6 @@ Get the arguments the flow was executed with
 ### Include using
 ```toml
 [[process]]
-alias = "get"
 source = "context://args/get"
 ```
 
