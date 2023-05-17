@@ -79,6 +79,7 @@ impl CliRuntimeClient {
                 debug!("=========================== Flow execution ended ======================================");
                 if self.display_metrics {
                     println!("\nMetrics: \n {metrics}");
+                    let _ = io::stdout().flush();
                 }
 
                 self.flush_image_buffers();
@@ -104,6 +105,7 @@ impl CliRuntimeClient {
                 let stdout = io::stdout();
                 let mut handle = stdout.lock();
                 let _ = handle.write_all(format!("{contents}\n").as_bytes());
+                let _ = io::stdout().flush();
                 ClientMessage::Ack
             }
             CoordinatorMessage::StderrEof => ClientMessage::Ack,
@@ -111,6 +113,7 @@ impl CliRuntimeClient {
                 let stderr = io::stderr();
                 let mut handle = stderr.lock();
                 let _ = handle.write_all(format!("{contents}\n").as_bytes());
+                let _ = io::stdout().flush();
                 ClientMessage::Ack
             }
             CoordinatorMessage::GetStdin => {
@@ -128,6 +131,7 @@ impl CliRuntimeClient {
                 let mut input = String::new();
                 if !prompt.is_empty() {
                     print!("{}", prompt);
+                    let _ = io::stdout().flush();
                 }
                 let line = io::stdin().lock().read_line(&mut input);
                 match line {
