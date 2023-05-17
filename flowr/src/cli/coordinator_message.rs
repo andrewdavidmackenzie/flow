@@ -33,8 +33,8 @@ pub enum CoordinatorMessage {
     Stderr(String),
     /// A Request to read from Stdin
     GetStdin,
-    /// A Request to read a line of characters from Stdin
-    GetLine,
+    /// A Request to read a line of characters from Stdin, with a String prompt to show
+    GetLine(String),
     /// A Request to get the arguments for the flow
     GetArgs,
     /// A Request to read bytes from a file
@@ -67,14 +67,13 @@ impl fmt::Display for CoordinatorMessage {
                 CoordinatorMessage::Stdout(_) => "Stdout".into(),
                 CoordinatorMessage::Stderr(_) => "Stderr".into(),
                 CoordinatorMessage::GetStdin => "GetStdIn".into(),
-                CoordinatorMessage::GetLine => "GetLine".into(),
+                CoordinatorMessage::GetLine(_) => "GetLine".into(),
                 CoordinatorMessage::GetArgs => "GetArgs".into(),
                 CoordinatorMessage::Read(_) => "Read".into(),
                 CoordinatorMessage::Write(_, _) => "Write".into(),
                 CoordinatorMessage::PixelWrite(_, _, _, _) => "PixelWrite".into(),
                 CoordinatorMessage::StdoutEof => "StdOutEof".into(),
                 CoordinatorMessage::StderrEof => "StdErrEof".into(),
-
                 CoordinatorMessage::Invalid => "Invalid".into(),
             }
         )

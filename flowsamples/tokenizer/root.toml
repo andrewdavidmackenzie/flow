@@ -3,6 +3,7 @@ docs = "DESCRIPTION.md"
 
 [[process]] # Read a single line of inputs text into a stringn
 source = "context://stdio/readline"
+input.prompt = { always =  "" }
 
 [[process]] # Split a string on the space (" ") separator
 source = "lib://flowstdlib/data/split"

@@ -124,8 +124,11 @@ impl CliRuntimeClient {
                 }
                 ClientMessage::Error("Could not read Stdin".into())
             }
-            CoordinatorMessage::GetLine => {
+            CoordinatorMessage::GetLine(prompt) => {
                 let mut input = String::new();
+                if !prompt.is_empty() {
+                    print!("{}", prompt);
+                }
                 let line = io::stdin().lock().read_line(&mut input);
                 match line {
                     Ok(n) if n > 0 => ClientMessage::Line(input.trim().to_string()),
