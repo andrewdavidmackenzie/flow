@@ -261,7 +261,7 @@ mod test {
         let temp = TempDir::new("flow")
             .expect("Couldn't get TempDir")
             .into_path();
-        let file_path = temp.join("test_read");
+        let file_path = temp.join("test_read").to_string_lossy().to_string();
         {
             let mut file = File::create(&file_path).expect("Could not create test file");
             file.write_all(test_contents)
@@ -279,7 +279,7 @@ mod test {
                 assert_eq!(path_read, file_path);
                 assert_eq!(contents, test_contents)
             }
-            _ => panic!("Didn't get Write response as expected"),
+            _ => panic!("Didn't get Read response as expected"),
         }
     }
 
