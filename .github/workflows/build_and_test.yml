@@ -76,6 +76,7 @@ jobs:
         cargo build -p flowc
         cargo build -p flowr
         cargo build -p flowrex
+        cargo build -p flowide
 
     - name: clippy
       run: cargo clippy --tests -- -D warnings
