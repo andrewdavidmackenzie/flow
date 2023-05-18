@@ -1132,6 +1132,7 @@ dependencies = [
  "serial_test",
  "simpath",
  "tempdir",
+ "toml 0.7.3",
  "url",
  "wax",
 ]
@@ -1155,9 +1156,29 @@ dependencies = [
 
 [[package]]
 name = "flowide"
-version = "0.1.0"
+version = "0.95.0"
 dependencies = [
+ "clap",
+ "env_logger",
+ "error-chain",
+ "flowcore",
+ "flowrlib",
+ "flowstdlib",
  "iced",
+ "image",
+ "log",
+ "multimap",
+ "portpicker",
+ "rustyline",
+ "serde",
+ "serde_derive",
+ "serde_json",
+ "serial_test",
+ "simpath",
+ "simpdiscover",
+ "tempdir",
+ "url",
+ "zmq",
 ]
 
 [[package]]

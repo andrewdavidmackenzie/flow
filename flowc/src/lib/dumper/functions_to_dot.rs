@@ -31,10 +31,10 @@ use crate::errors::*;
 /// use std::path::Path;
 /// use std::path::PathBuf;
 ///
-/// // Create a lib_search_path including 'context' which is in flowr/src
+/// // Create a lib_search_path including a runner's 'context', such as in flowr/src/cli
 /// let mut lib_search_path = Simpath::new("TEST_LIBS");
 /// let root_str = Path::new(env!("CARGO_MANIFEST_DIR")).parent().unwrap();
-/// let runtime_parent = root_str.join("flowr/src");
+/// let runtime_parent = root_str.join("flowr/src/cli");
 /// lib_search_path.add_directory(runtime_parent.to_str().unwrap());
 /// let provider = MetaProvider::new(lib_search_path, PathBuf::from("/"));
 ///

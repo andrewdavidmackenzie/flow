@@ -66,7 +66,6 @@ use flowrlib::services::{CONTROL_SERVICE_NAME, JOB_QUEUES_DISCOVERY_PORT, JOB_SE
 use crate::cli::connections::{COORDINATOR_SERVICE_NAME, DEBUG_SERVICE_NAME,
                               discover_service, enable_service_discovery};
 
-#[cfg(feature = "debugger")]
 /// provides the `context functions` for interacting with the execution environment from a flow,
 /// plus client-[Coordinator][flowrlib::coordinator::Coordinator] implementations of
 /// [flowrlib::submission_handler] for executing them on different threads

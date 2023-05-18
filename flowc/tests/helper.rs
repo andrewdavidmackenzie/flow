@@ -18,6 +18,7 @@ pub fn set_lib_search_path_to_project() -> Simpath {
     lib_search_path
 }
 
+// Return a path to the context functions definitions provided by the CLI context of flowr
 pub fn get_canonical_context_root() -> PathBuf {
     let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     let samples_dir = manifest_dir.parent().ok_or("Could not get parent dir")

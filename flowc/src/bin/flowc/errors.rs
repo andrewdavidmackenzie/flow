@@ -13,5 +13,6 @@ error_chain! {
         Compiler(flowclib::errors::Error);
         Io(std::io::Error);
         Url(url::ParseError);
+        Toml(toml::de::Error);
     }
 }

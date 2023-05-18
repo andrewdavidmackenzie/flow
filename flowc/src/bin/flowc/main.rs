@@ -12,13 +12,14 @@
 //! description of the command line options.
 
 use core::str::FromStr;
-use std::env;
-use std::path::PathBuf;
+use std::{env, fs};
+use std::path::{Path, PathBuf};
 use std::process::exit;
 
 use clap::{Arg, ArgMatches, Command};
 use env_logger::Builder;
 use log::{debug, info, LevelFilter, warn};
+use serde_derive::Deserialize;
 use simpath::Simpath;
 use url::Url;
 
@@ -61,6 +62,11 @@ pub struct Options {
     optimize: bool,
 }
 
+#[derive(Deserialize)]
+struct RunnerSpec {
+    name: String
+}
+
 fn main() {
     match run() {
         Err(ref e) => {
@@ -98,6 +104,13 @@ fn get_lib_search_path(search_path_additions: &[String]) -> Result<Simpath> {
     Ok(lib_search_path)
 }
 
+// Load a `RunnerSpec` from the context at `context_root`
+fn load_runner_spec(context_root: &Path) -> Result<RunnerSpec> {
+    let path = context_root.join("runner.toml");
+    let runner_spec = fs::read_to_string(path)?;
+    Ok(toml::from_str(&runner_spec)?)
+}
+
 /*
     run the loader to load the process and (optionally) compile, generate code and run the flow.
     Return either an error string if anything goes wrong or
@@ -106,13 +119,16 @@ fn get_lib_search_path(search_path_additions: &[String]) -> Result<Simpath> {
 fn run() -> Result<()> {
     let options = parse_args(get_matches())?;
     let lib_search_path = get_lib_search_path(&options.lib_dirs)?;
-    let context_root = options.context_root.clone().unwrap_or_else(|| PathBuf::from(""));
-    let provider = &MetaProvider::new(lib_search_path, context_root);
 
     if options.lib {
+        let provider = &MetaProvider::new(lib_search_path, PathBuf::default());
         build_lib(&options, provider).chain_err(|| "Could not build library")
     } else {
-        compile_and_execute_flow(&options, provider)
+        let context_root = options.context_root.as_ref()
+            .ok_or("Context Root was not specified")?;
+        let provider = &MetaProvider::new(lib_search_path, context_root.clone());
+        let runner_spec = load_runner_spec(context_root)?;
+        compile_and_execute_flow(&options, provider, runner_spec.name)
     }
 }
 
