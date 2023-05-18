@@ -1,6 +1,9 @@
 [workspace]
-members = ["flowc", "flowstdlib", "flowrlib", "flowr", "flowrex", "flowcore", "flowmacro", "flowsamples"]
-default-members = ["flowc", "flowstdlib", "flowrlib", "flowr", "flowrex", "flowcore", "flowmacro", "flowsamples"]
+members = ["flowc", "flowstdlib", "flowrlib", "flowr", "flowrex", "flowcore", "flowmacro", "flowsamples",
+    "flowide"]
+default-members = ["flowc", "flowstdlib", "flowrlib", "flowr", "flowrex", "flowcore", "flowmacro",
+    "flowsamples", "flowide"]
+resolver = "2"
 
 [workspace.package]
 version = "0.95.0"
