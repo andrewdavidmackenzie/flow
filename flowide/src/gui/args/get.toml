@@ -1,0 +1,12 @@
+function = "get"
+source = "get.rs"
+docs = "get.md"
+impure = true
+
+[[output]]
+name = "string"
+type = "array/string"
+
+[[output]]
+name = "json"
+type = "array/"
