@@ -1,5 +1,4 @@
 use std::fmt;
-use std::path::PathBuf;
 
 use serde_derive::{Deserialize, Serialize};
 
@@ -38,7 +37,7 @@ pub enum CoordinatorMessage {
     /// A Request to get the arguments for the flow
     GetArgs,
     /// A Request to read bytes from a file
-    Read(PathBuf),
+    Read(String),
     /// A Request to write a series of bytes to a file
     Write(String, Vec<u8>),
     /// A Request to write a pixel to an ImageBuffer
@@ -123,7 +122,7 @@ pub enum ClientMessage {
     /// Invalid - used when deserialization goes wrong
     Invalid,
     /// Contents read from a file
-    FileContents(PathBuf, Vec<u8>),
+    FileContents(String, Vec<u8>),
 
     /// ** This message is just internal to the client and not sent to the Coordinator
     /// Client is exiting Event loop

@@ -62,6 +62,13 @@ pub fn get_manifest(
         })),
     );
     manifest.locators.insert(
+        Url::parse("context://file/file_read")
+            .chain_err(|| "Could not parse url")?,
+        Native(Arc::new(file::file_read::FileRead {
+            server_connection: server_connection.clone(),
+        })),
+    );
+    manifest.locators.insert(
         Url::parse("context://image/image_buffer")
             .chain_err(|| "Could not parse url")?,
         Native(Arc::new(image::image_buffer::ImageBuffer {
