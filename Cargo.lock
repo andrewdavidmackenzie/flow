@@ -1244,6 +1244,7 @@ dependencies = [
  "log",
  "multimap",
  "portpicker",
+ "rand 0.8.5",
  "serde",
  "serde_derive",
  "serde_json",
