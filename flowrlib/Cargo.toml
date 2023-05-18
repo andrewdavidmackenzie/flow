@@ -34,6 +34,7 @@ serde = "~1.0.163"
 serde_json = { version = "1.0", default-features = false }
 error-chain = "0.12.2"
 multimap = "~0.9"
+rand = "0.8"
 wasmtime = { version = "8.0.1", default-features = false, features = ["cranelift"] }
 zmq = "0.10.0"
 
