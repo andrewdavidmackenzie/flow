@@ -45,6 +45,21 @@
   - [Standard Output function](flowr/src/cli/stdio/stdout.md)
   - [Standard Error function](flowr/src/cli/stdio/stderr.md)
 
+# `flowide's` `context functions`
+- [flowide's context functions](flowide/src/gui/flowide_context_functions.md)
+- [Arg functions](flowide/src/gui/args/args.md)
+  - [Arg get function](flowide/src/gui/args/get.md)
+- [File functions](flowide/src/gui/file/file.md)
+  - [File Write function](flowide/src/gui/file/file_write.md)
+  - [File Read function](flowide/src/gui/file/file_read.md)
+- [Image manipulation functions](flowide/src/gui/image/image.md)
+  - [Image buffer](flowide/src/gui/image/image_buffer.md)
+- [Standard IO functions](flowide/src/gui/stdio/stdio.md)
+  - [Readline function](flowide/src/gui/stdio/readline.md)
+  - [Standard Input function](flowide/src/gui/stdio/stdin.md)
+  - [Standard Output function](flowide/src/gui/stdio/stdout.md)
+  - [Standard Error function](flowide/src/gui/stdio/stderr.md)
+
 # Running Flows
 - [Running flows](docs/running/running.md)
 - [flowc Command Line Arguments](docs/running/flowc.md)
