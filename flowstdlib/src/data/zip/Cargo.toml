@@ -8,7 +8,6 @@ edition.workspace = true
 name = "zip"
 crate-type = ["cdylib"]
 path = "zip.rs"
-rustflags = ["-C", "link-arg=--gc-sections"]
 
 [dependencies]
 flowcore = { workspace = true }
