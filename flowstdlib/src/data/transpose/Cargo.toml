@@ -8,7 +8,6 @@ edition.workspace = true
 name = "transpose"
 crate-type = ["cdylib"]
 path = "transpose.rs"
-rustflags = ["-C", "link-arg=--gc-sections"]
 
 [dependencies]
 flowcore = { workspace = true }

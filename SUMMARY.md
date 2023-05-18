@@ -36,6 +36,7 @@
   - [Arg get function](flowr/src/cli/args/get.md)
 - [File functions](flowr/src/cli/file/file.md)
   - [File Write function](flowr/src/cli/file/file_write.md)
+  - [File Read function](flowr/src/cli/file/file_read.md)
 - [Image manipulation functions](flowr/src/cli/image/image.md)
   - [Image buffer](flowr/src/cli/image/image_buffer.md)
 - [Standard IO functions](flowr/src/cli/stdio/stdio.md)
