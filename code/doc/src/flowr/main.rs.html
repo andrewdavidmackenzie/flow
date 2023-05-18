@@ -561,7 +561,6 @@
 <a href="#561" id="561">561</a>
 <a href="#562" id="562">562</a>
 <a href="#563" id="563">563</a>
-<a href="#564" id="564">564</a>
 </pre></div><pre class="rust"><code><span class="attr">#![deny(missing_docs)]
 #![warn(clippy::unwrap_used)]
 </span><span class="doccomment">//! `flowr` is a command line flow runner for running `flow` programs.
@@ -630,8 +629,7 @@
 <span class="kw">use </span><span class="kw">crate</span>::cli::connections::{COORDINATOR_SERVICE_NAME, DEBUG_SERVICE_NAME,
                               discover_service, enable_service_discovery};
 
-<span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)]
-</span><span class="doccomment">/// provides the `context functions` for interacting with the execution environment from a flow,
+<span class="doccomment">/// provides the `context functions` for interacting with the execution environment from a flow,
 /// plus client-[Coordinator][flowrlib::coordinator::Coordinator] implementations of
 /// [flowrlib::submission_handler] for executing them on different threads
 /// from the [Coordinator][flowrlib::coordinator::Coordinator]

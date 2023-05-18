@@ -178,6 +178,7 @@
 <a href="#178" id="178">178</a>
 <a href="#179" id="179">179</a>
 <a href="#180" id="180">180</a>
+<a href="#181" id="181">181</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::io::Write;
 <span class="kw">use </span>std::path::Path;
 
@@ -211,10 +212,11 @@
 /// use std::path::Path;
 /// use std::path::PathBuf;
 ///
-/// // Create a lib_search_path including &#39;context&#39; which is in flowr/src
+/// // Create a lib_search_path
 /// let mut lib_search_path = Simpath::new(&quot;TEST_LIBS&quot;);
+/// // Add a runner&#39;s &#39;context root&#39; directory, such as &#39;$FLOW_DIR/flowr/src/cli&#39;
 /// let root_str = Path::new(env!(&quot;CARGO_MANIFEST_DIR&quot;)).parent().unwrap();
-/// let runtime_parent = root_str.join(&quot;flowr/src&quot;);
+/// let runtime_parent = root_str.join(&quot;flowr/src/cli&quot;);
 /// lib_search_path.add_directory(runtime_parent.to_str().unwrap());
 /// let provider = MetaProvider::new(lib_search_path, PathBuf::from(&quot;/&quot;));
 ///

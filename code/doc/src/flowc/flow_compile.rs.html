@@ -232,6 +232,7 @@
 <a href="#232" id="232">232</a>
 <a href="#233" id="233">233</a>
 <a href="#234" id="234">234</a>
+<a href="#235" id="235">235</a>
 </pre></div><pre class="rust"><code><span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)]
 </span><span class="kw">use </span>std::collections::BTreeMap;
 <span class="kw">use </span>std::fs;
@@ -254,7 +255,8 @@
 <span class="kw">use </span><span class="kw">crate</span>::Options;
 
 <span class="doccomment">/// Compile a flow, maybe run it
-</span><span class="kw">pub fn </span>compile_and_execute_flow(options: <span class="kw-2">&amp;</span>Options, provider: <span class="kw-2">&amp;</span><span class="kw">dyn </span>Provider) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
+</span><span class="kw">pub fn </span>compile_and_execute_flow(options: <span class="kw-2">&amp;</span>Options, provider: <span class="kw-2">&amp;</span><span class="kw">dyn </span>Provider,
+                                runner_name: String) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
     <span class="macro">info!</span>(<span class="string">&quot;==== Parsing flow hierarchy from &#39;{}&#39;&quot;</span>, options.source_url);
     <span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)]
     </span><span class="kw">let </span><span class="kw-2">mut </span>source_urls = BTreeMap::&lt;String, Url&gt;::new();
@@ -301,7 +303,7 @@
                 <span class="kw">return </span><span class="prelude-val">Ok</span>(());
             }
 
-            execute_flow(<span class="kw-2">&amp;</span>manifest_path, options)
+            execute_flow(<span class="kw-2">&amp;</span>manifest_path, options, runner_name)
         }
         <span class="kw">_ </span>=&gt; <span class="macro">bail!</span>(<span class="string">&quot;Process parsed was not of type &#39;Flow&#39; and cannot be executed&quot;</span>),
     }
@@ -333,62 +335,62 @@
 }
 
 <span class="comment">/*
-    Run flow using &#39;flowr&#39;
     Inherit standard output and input and just let the process run as normal.
     Capture standard error.
     If the process exits correctly then just return an Ok() with message and no log
     If the process fails then return an Err() with message and log stderr in an ERROR level message
 */
-</span><span class="kw">fn </span>execute_flow(filepath: <span class="kw-2">&amp;</span>Path, options: <span class="kw-2">&amp;</span>Options) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
+</span><span class="kw">fn </span>execute_flow(filepath: <span class="kw-2">&amp;</span>Path, options: <span class="kw-2">&amp;</span>Options, runner_name: String) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
     <span class="macro">info!</span>(<span class="string">&quot;\n==== Executing flow from manifest at &#39;{}&#39;&quot;</span>, filepath.display());
 
-    <span class="kw">let </span><span class="kw-2">mut </span>flowr_args = <span class="macro">vec!</span>[];
+    <span class="kw">let </span><span class="kw-2">mut </span>runner_args = <span class="macro">vec!</span>[];
 
-    <span class="comment">// if a specific verbosity level was set on the CL to flowc, pass it on to flowr
+    <span class="comment">// if a specific verbosity level was set on the Command Line to flowc, pass it on to runner
     </span><span class="kw">if let </span><span class="prelude-val">Some</span>(verbosity) = <span class="kw-2">&amp;</span>options.verbosity {
-        flowr_args.push(<span class="string">&quot;-v&quot;</span>.to_string());
-        flowr_args.push(verbosity.to_string());
+        runner_args.push(<span class="string">&quot;-v&quot;</span>.to_string());
+        runner_args.push(verbosity.to_string());
     }
 
-    <span class="comment">// if execution metrics requested to flowc, pass that onto flowr
+    <span class="comment">// if execution metrics requested to flowc, pass that onto runner
     </span><span class="kw">if </span>options.execution_metrics {
-        flowr_args.push(<span class="string">&quot;-m&quot;</span>.to_string());
+        runner_args.push(<span class="string">&quot;-m&quot;</span>.to_string());
     }
 
-    <span class="comment">// if debug (symbols) requested to flowc, pass that onto flowr
+    <span class="comment">// if debug (symbols) requested to flowc, pass that onto runner
     </span><span class="kw">if </span>options.debug_symbols {
-        flowr_args.push(<span class="string">&quot;-d&quot;</span>.to_string());
+        runner_args.push(<span class="string">&quot;-d&quot;</span>.to_string());
     }
 
-    <span class="comment">// unless wasm execution requested, pass the native flag onto flowr
+    <span class="comment">// unless wasm execution requested, pass the native flag onto runner
     </span><span class="kw">if </span>!options.wasm_execution {
-        flowr_args.push(<span class="string">&quot;-n&quot;</span>.to_string());
+        runner_args.push(<span class="string">&quot;-n&quot;</span>.to_string());
     }
 
-    <span class="comment">// pass along any specified library directories to flowr also
+    <span class="comment">// pass along any specified library directories to runner
     </span><span class="kw">for </span>lib_dir <span class="kw">in </span><span class="kw-2">&amp;</span>options.lib_dirs {
-        flowr_args.push(<span class="string">&quot;-L&quot;</span>.to_string());
-        flowr_args.push(lib_dir.to_string());
+        runner_args.push(<span class="string">&quot;-L&quot;</span>.to_string());
+        runner_args.push(lib_dir.to_string());
     }
 
-    flowr_args.push(filepath.display().to_string());
+    runner_args.push(filepath.display().to_string());
 
-    <span class="comment">// any arguments for the flow itself (not flowr) go at the end
-    </span>flowr_args.append(<span class="kw-2">&amp;mut </span>options.flow_args.to_vec());
+    <span class="comment">// any arguments for the flow itself (not runner) go at the end
+    </span>runner_args.append(<span class="kw-2">&amp;mut </span>options.flow_args.to_vec());
 
-    <span class="macro">info!</span>(<span class="string">&quot;Running flow using &#39;flowr {:?}&#39;&quot;</span>, <span class="kw-2">&amp;</span>flowr_args);
-    <span class="kw">let </span><span class="kw-2">mut </span>flowr = Command::new(<span class="string">&quot;flowr&quot;</span>);
-    flowr
-        .args(flowr_args)
+    <span class="macro">info!</span>(<span class="string">&quot;Running flow using &#39;{} {:?}&#39;&quot;</span>, runner_name, <span class="kw-2">&amp;</span>runner_args);
+    <span class="kw">let </span><span class="kw-2">mut </span>runner = Command::new(<span class="kw-2">&amp;</span>runner_name);
+    runner
+        .args(runner_args)
         .stdin(Stdio::inherit())
         .stdout(Stdio::inherit())
         .stderr(Stdio::inherit());
 
     <span class="kw">if </span>options.stdin_file.is_some() {
-        flowr.stdin(Stdio::piped());
+        runner.stdin(Stdio::piped());
     }
 
-    <span class="kw">let </span><span class="kw-2">mut </span>flowr_child = flowr.spawn().chain_err(|| <span class="string">&quot;Could not spawn &#39;flowr&#39;&quot;</span>)<span class="question-mark">?</span>;
+    <span class="kw">let </span><span class="kw-2">mut </span>runner_child = runner.spawn()
+        .chain_err(|| <span class="macro">format!</span>(<span class="string">&quot;Could not spawn &#39;{}&#39;&quot;</span>, runner_name))<span class="question-mark">?</span>;
 
     <span class="kw">if let </span><span class="prelude-val">Some</span>(stdin_file) = <span class="kw-2">&amp;</span>options.stdin_file {
         <span class="macro">debug!</span>(<span class="string">&quot;Reading STDIN from file: &#39;{}&#39;&quot;</span>, stdin_file);
@@ -396,26 +398,26 @@
         <span class="kw">let _ </span>= Command::new(<span class="string">&quot;cat&quot;</span>)
             .args(<span class="macro">vec!</span>[stdin_file])
             .stdout(
-                flowr_child
+                runner_child
                     .stdin
                     .take()
                     .chain_err(|| <span class="string">&quot;Could not read child process stdin&quot;</span>)<span class="question-mark">?</span>,
             )
             .spawn()
-            .chain_err(|| <span class="string">&quot;Could not spawn &#39;cat&#39; to pipe STDIN to &#39;flowr&#39;&quot;</span>);
+            .chain_err(|| <span class="macro">format!</span>(<span class="string">&quot;Could not spawn &#39;cat&#39; to pipe STDIN to &#39;{}&#39;&quot;</span>, runner_name));
     }
 
-    <span class="kw">let </span>flowr_output = flowr_child
+    <span class="kw">let </span>runner_output = runner_child
         .wait_with_output()
-        .chain_err(|| <span class="string">&quot;Could not capture &#39;flowr&#39; output&quot;</span>)<span class="question-mark">?</span>;
+        .chain_err(|| <span class="macro">format!</span>(<span class="string">&quot;Could not capture &#39;{}&#39; output&quot;</span>, runner_name))<span class="question-mark">?</span>;
 
-    <span class="kw">match </span>flowr_output.status.code() {
+    <span class="kw">match </span>runner_output.status.code() {
         <span class="prelude-val">Some</span>(<span class="number">0</span>) =&gt; <span class="prelude-val">Ok</span>(()),
         <span class="prelude-val">Some</span>(code) =&gt; {
-            <span class="macro">error!</span>(<span class="string">&quot;Execution of &#39;flowr&#39; failed&quot;</span>);
-            <span class="macro">error!</span>(<span class="string">&quot;flowr STDOUT:\n{}&quot;</span>, String::from_utf8_lossy(<span class="kw-2">&amp;</span>flowr_output.stdout));
-            <span class="macro">error!</span>(<span class="string">&quot;flowr STDERR:\n{}&quot;</span>, String::from_utf8_lossy(<span class="kw-2">&amp;</span>flowr_output.stderr));
-            <span class="macro">bail!</span>(<span class="string">&quot;Execution of flowr failed. Exited with status code: {}&quot;</span>, code)
+            <span class="macro">error!</span>(<span class="string">&quot;Execution of &#39;{}&#39; failed&quot;</span>, runner_name);
+            <span class="macro">error!</span>(<span class="string">&quot;&#39;{}&#39; STDOUT:\n{}&quot;</span>, runner_name, String::from_utf8_lossy(<span class="kw-2">&amp;</span>runner_output.stdout));
+            <span class="macro">error!</span>(<span class="string">&quot;&#39;{}&#39; STDERR:\n{}&quot;</span>, runner_name, String::from_utf8_lossy(<span class="kw-2">&amp;</span>runner_output.stderr));
+            <span class="macro">bail!</span>(<span class="string">&quot;Execution of &#39;{}&#39; failed. Exited with status code: {}&quot;</span>, runner_name, code)
         }
         <span class="prelude-val">None </span>=&gt; <span class="prelude-val">Ok</span>(()),
     }

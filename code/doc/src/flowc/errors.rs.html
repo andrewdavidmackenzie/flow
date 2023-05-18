@@ -15,6 +15,7 @@
 <a href="#15" id="15">15</a>
 <a href="#16" id="16">16</a>
 <a href="#17" id="17">17</a>
+<a href="#18" id="18">18</a>
 </pre></div><pre class="rust"><code><span class="attr">#![allow(missing_docs)]
 
 </span><span class="kw">pub use </span>error_chain::bail;
@@ -30,6 +31,7 @@
         Compiler(flowclib::errors::Error);
         Io(std::io::Error);
         Url(url::ParseError);
+        Toml(toml::de::Error);
     }
 }
 </code></pre></div></section></main></body></html>

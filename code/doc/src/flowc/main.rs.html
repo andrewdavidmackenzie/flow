@@ -326,6 +326,22 @@
 <a href="#326" id="326">326</a>
 <a href="#327" id="327">327</a>
 <a href="#328" id="328">328</a>
+<a href="#329" id="329">329</a>
+<a href="#330" id="330">330</a>
+<a href="#331" id="331">331</a>
+<a href="#332" id="332">332</a>
+<a href="#333" id="333">333</a>
+<a href="#334" id="334">334</a>
+<a href="#335" id="335">335</a>
+<a href="#336" id="336">336</a>
+<a href="#337" id="337">337</a>
+<a href="#338" id="338">338</a>
+<a href="#339" id="339">339</a>
+<a href="#340" id="340">340</a>
+<a href="#341" id="341">341</a>
+<a href="#342" id="342">342</a>
+<a href="#343" id="343">343</a>
+<a href="#344" id="344">344</a>
 </pre></div><pre class="rust"><code><span class="attr">#![deny(missing_docs)]
 #![warn(clippy::unwrap_used)]
 #![allow(clippy::result_large_err)]
@@ -340,13 +356,14 @@
 //! description of the command line options.
 
 </span><span class="kw">use </span>core::str::FromStr;
-<span class="kw">use </span>std::env;
-<span class="kw">use </span>std::path::PathBuf;
+<span class="kw">use </span>std::{env, fs};
+<span class="kw">use </span>std::path::{Path, PathBuf};
 <span class="kw">use </span>std::process::exit;
 
 <span class="kw">use </span>clap::{Arg, ArgMatches, Command};
 <span class="kw">use </span>env_logger::Builder;
 <span class="kw">use </span>log::{debug, info, LevelFilter, warn};
+<span class="kw">use </span>serde_derive::Deserialize;
 <span class="kw">use </span>simpath::Simpath;
 <span class="kw">use </span>url::Url;
 
@@ -389,6 +406,11 @@
     optimize: bool,
 }
 
+<span class="attr">#[derive(Deserialize)]
+</span><span class="kw">struct </span>RunnerSpec {
+    name: String
+}
+
 <span class="kw">fn </span>main() {
     <span class="kw">match </span>run() {
         <span class="prelude-val">Err</span>(<span class="kw-2">ref </span>e) =&gt; {
@@ -426,6 +448,13 @@
     <span class="prelude-val">Ok</span>(lib_search_path)
 }
 
+<span class="comment">// Load a `RunnerSpec` from the context at `context_root`
+</span><span class="kw">fn </span>load_runner_spec(context_root: <span class="kw-2">&amp;</span>Path) -&gt; <span class="prelude-ty">Result</span>&lt;RunnerSpec&gt; {
+    <span class="kw">let </span>path = context_root.join(<span class="string">&quot;runner.toml&quot;</span>);
+    <span class="kw">let </span>runner_spec = fs::read_to_string(path)<span class="question-mark">?</span>;
+    <span class="prelude-val">Ok</span>(toml::from_str(<span class="kw-2">&amp;</span>runner_spec)<span class="question-mark">?</span>)
+}
+
 <span class="comment">/*
     run the loader to load the process and (optionally) compile, generate code and run the flow.
     Return either an error string if anything goes wrong or
@@ -434,13 +463,16 @@
 </span><span class="kw">fn </span>run() -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
     <span class="kw">let </span>options = parse_args(get_matches())<span class="question-mark">?</span>;
     <span class="kw">let </span>lib_search_path = get_lib_search_path(<span class="kw-2">&amp;</span>options.lib_dirs)<span class="question-mark">?</span>;
-    <span class="kw">let </span>context_root = options.context_root.clone().unwrap_or_else(|| PathBuf::from(<span class="string">&quot;&quot;</span>));
-    <span class="kw">let </span>provider = <span class="kw-2">&amp;</span>MetaProvider::new(lib_search_path, context_root);
 
     <span class="kw">if </span>options.lib {
+        <span class="kw">let </span>provider = <span class="kw-2">&amp;</span>MetaProvider::new(lib_search_path, PathBuf::default());
         build_lib(<span class="kw-2">&amp;</span>options, provider).chain_err(|| <span class="string">&quot;Could not build library&quot;</span>)
     } <span class="kw">else </span>{
-        compile_and_execute_flow(<span class="kw-2">&amp;</span>options, provider)
+        <span class="kw">let </span>context_root = options.context_root.as_ref()
+            .ok_or(<span class="string">&quot;Context Root was not specified&quot;</span>)<span class="question-mark">?</span>;
+        <span class="kw">let </span>provider = <span class="kw-2">&amp;</span>MetaProvider::new(lib_search_path, context_root.clone());
+        <span class="kw">let </span>runner_spec = load_runner_spec(context_root)<span class="question-mark">?</span>;
+        compile_and_execute_flow(<span class="kw-2">&amp;</span>options, provider, runner_spec.name)
     }
 }
 
