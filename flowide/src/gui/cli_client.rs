@@ -15,8 +15,8 @@ use flowcore::errors::*;
 use crate::gui::connections::ClientConnection;
 use crate::gui::coordinator_message::{ClientMessage, CoordinatorMessage};
 
-#[derive(Debug, Clone)]
 pub struct CliRuntimeClient {
+    connection: ClientConnection,
     args: Vec<String>,
     override_args: Arc<Mutex<Vec<String>>>,
     image_buffers: HashMap<String, ImageBuffer<Rgb<u8>, Vec<u8>>>,
@@ -25,8 +25,9 @@ pub struct CliRuntimeClient {
 
 impl CliRuntimeClient {
     /// Create a new runtime client
-    pub fn new() -> Self {
+    pub fn new(connection: ClientConnection) -> Self {
         CliRuntimeClient {
+            connection,
             args: Vec::default(),
             override_args: Arc::new(Mutex::new(vec!["".into()])),
             image_buffers: HashMap::<String, ImageBuffer<Rgb<u8>, Vec<u8>>>::new(),
@@ -34,11 +35,14 @@ impl CliRuntimeClient {
         }
     }
 
+    /// return a clone (reference) to the override args
+    pub fn override_args(&self) -> Arc<Mutex<Vec<String>>> {
+        self.override_args.clone()
+    }
+
     /// Set the args to pass to the flow
-    pub fn set_args(&mut self, args: Vec<String>,
-                    override_args: Arc<Mutex<Vec<String>>>) {
-        self.args = args;
-        self.override_args = override_args;
+    pub fn set_args(&mut self, args: &Vec<String>) {
+        self.args = args.clone();
     }
 
     /// Set or unset the flag to display metric
@@ -47,12 +51,9 @@ impl CliRuntimeClient {
     }
 
     /// Enter a loop where we receive events as a client and respond to them
-    pub fn event_loop(
-        mut self,
-        connection: ClientConnection,
-    ) -> Result<()> {
+    pub fn event_loop(&mut self) -> Result<()> {
         loop {
-            match connection.receive() {
+            match self.connection.receive() {
                 Ok(event) => {
                     let response = self.process_coordinator_message(event);
                     if let ClientMessage::ClientExiting(coordinator_result) = response {
@@ -60,7 +61,7 @@ impl CliRuntimeClient {
                         return coordinator_result;
                     }
 
-                    let _ = connection.send(response);
+                    let _ = self.connection.send(response);
                 }
                 Err(e) => {
                     // When debugging, a Control-C to break into the debugger will cause receive()
@@ -69,6 +70,11 @@ impl CliRuntimeClient {
                 }
             }
         }
+    }
+
+    /// Send a message
+    pub fn send(&mut self, message: ClientMessage) -> Result<()> {
+        self.connection.send(message)
     }
 
     fn flush_image_buffers(&mut self) {
