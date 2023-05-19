@@ -90,6 +90,20 @@ struct FlowIde {
     parallel_jobs_limit: Option<usize>,
 }
 
+/// Main for flowide binary - call `run()` and print any error that results or exit silently if OK
+fn main() -> crate::errors::Result<()>{
+    match FlowIde::run(Settings {
+        antialiasing: true,
+        ..Settings::default()
+    }) {
+        Err(ref e) => {
+            eprintln!("{e}");
+            exit(1);
+        }
+        Ok(_) => exit(0),
+    }
+}
+
 impl Application for FlowIde {
     type Executor = executor::Default;
     type Message = Message;
@@ -145,10 +159,9 @@ impl Application for FlowIde {
         match message {
             Message::Start => {
                 let _ = self.submit(false);
+                Command::none()
             }
         }
-
-        Command::none()
     }
 
     fn view(&self) -> Element<Message> {
@@ -157,20 +170,6 @@ impl Application for FlowIde {
             text(format!("{:?}", self.flow_args)),
             button("Play").on_press(Message::Start)
         ].into()
-    }
-}
-
-/// Main for flowide binary - call `run()` and print any error that results or exit silently if OK
-fn main() -> crate::errors::Result<()>{
-    match FlowIde::run(Settings {
-            antialiasing: true,
-            ..Settings::default()
-        }) {
-        Err(ref e) => {
-            eprintln!("{e}");
-            exit(1);
-        }
-        Ok(_) => exit(0),
     }
 }
 
