@@ -153,8 +153,8 @@ impl Application for FlowIde {
 
     fn view(&self) -> Element<Message> {
         row![
-            text(self.flow_manifest_url.to_string()).size(50),
-            text(format!("{:?}", self.flow_args)).size(50),
+            text(self.flow_manifest_url.to_string()),
+            text(format!("{:?}", self.flow_args)),
             button("Play").on_press(Message::Start)
         ].into()
     }
