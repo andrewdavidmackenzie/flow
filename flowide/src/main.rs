@@ -170,13 +170,12 @@ impl Application for FlowIde {
     fn update(&mut self, message: Message) -> Command<Message> {
         match message {
             Message::Start => {
-                // TODO read the value of the text inputs here instead of storing in Self
-                // TODO return a command that does the submit in background?
                 let _ = self.submit(false);
-                Command::none()
-            }
-            _ => Command::none()
+            },
+            Message::FlowArgsChanged(value) => self.flow_args = value,
+            Message::UrlChanged(value) => self.flow_manifest_url = value,
         }
+        Command::none()
     }
 
     fn view(&self) -> Element<Message> {
