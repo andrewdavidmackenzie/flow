@@ -59,10 +59,11 @@ use flowrlib::services::{CONTROL_SERVICE_NAME, JOB_QUEUES_DISCOVERY_PORT, JOB_SE
 use crate::gui::connections::{COORDINATOR_SERVICE_NAME, DEBUG_SERVICE_NAME,
                               discover_service, enable_service_discovery};
 
-use iced::{Application, Command, Element, Settings, Theme};
-use iced::widget::{button, row, text};
+use iced::{Alignment, Application, Command, Element, Length, Settings, Theme};
+use iced::widget::{button, Column, container, Row, text, text_input};
 
 use iced::executor;
+use iced::widget::scrollable::Scrollable;
 
 use crate::errors::*;
 use crate::gui::coordinator_message::ClientMessage;
@@ -77,17 +78,18 @@ mod gui;
 /// to get access to everything `error_chain` creates.
 mod errors;
 
-#[derive(Debug, Clone, Copy)]
-#[allow(dead_code)]
+#[derive(Debug, Clone)]
 enum Message {
     Start,
+    UrlChanged(String),
+    FlowArgsChanged(String)
 }
 
 struct FlowIde {
     client: CliRuntimeClient,
-    flow_manifest_url: Url,
-    flow_args: Vec<String>,
-    parallel_jobs_limit: Option<usize>,
+    flow_manifest_url: String,
+    flow_args: String,
+    parallel_jobs_limit: Option<usize>, // TODO read from settings or UI
 }
 
 /// Main for flowide binary - call `run()` and print any error that results or exit silently if OK
@@ -111,6 +113,8 @@ impl Application for FlowIde {
     type Flags = ();
 
     fn new(_flags: ()) -> (Self, Command<Message>) {
+        // TODO return a command that does much of this in background
+        // Maybe parse the command line args here inline
         let matches = Self::get_matches();
 
         let default = String::from("error");
@@ -138,8 +142,16 @@ impl Application for FlowIde {
             matches.get_flag("debugger"),
         ).unwrap(); // TODO
 
-        let flow_manifest_url =  Self::parse_flow_url(&matches).unwrap(); // TODO
-        let flow_args = Self::get_flow_args(&matches, &flow_manifest_url);
+        let flow_manifest_url =  matches.get_one::<String>("flow-manifest")
+            .unwrap_or(&"".into()).to_string();
+        let flow_args = match matches.get_many::<String>("flow-args") {
+            Some(values) => {
+                println!("values {:?}", values);
+                values.map(|s| s.to_string())
+                    .collect::<Vec<String>>().join(" ")
+            },
+            None => String::new()
+        };
 
         let flowide = FlowIde {
             client,
@@ -158,18 +170,45 @@ impl Application for FlowIde {
     fn update(&mut self, message: Message) -> Command<Message> {
         match message {
             Message::Start => {
+                // TODO read the value of the text inputs here instead of storing in Self
+                // TODO return a command that does the submit in background?
                 let _ = self.submit(false);
                 Command::none()
             }
+            _ => Command::none()
         }
     }
 
     fn view(&self) -> Element<Message> {
-        row![
-            text(self.flow_manifest_url.to_string()),
-            text(format!("{:?}", self.flow_args)),
-            button("Play").on_press(Message::Start)
-        ].into()
+        // .on_input(), .on_submit(), .on_paste(), .width()
+        let url = text_input("Flow location (relative, or absolute)",
+                             &self.flow_manifest_url.to_string())
+            .on_input(Message::UrlChanged);
+        let args = text_input("Space separated flow arguments",
+                              &self.flow_args)
+            .on_input(Message::FlowArgsChanged);
+        let play = button("Play").on_press(Message::Start);
+        let commands = Row::new()
+            .spacing(10)
+            .align_items(Alignment::End)
+            .push(url)
+            .push(args)
+            .push(play);
+        let stdout = text("bla bla bla");
+        let stdout_col = Column::new().padding(5).push(stdout);
+        let stdout_scroll = Scrollable::new(stdout_col);
+        let stdout_header = text("STDOUT");
+        let stdout_outer = Column::new().padding(5)
+            .push(stdout_header)
+            .push(stdout_scroll);
+        let main = Column::new().spacing(10)
+            .push(commands)
+            .push(stdout_outer);
+        container(main)
+            .width(Length::Fill)
+            .height(Length::Fill)
+            .padding(10)
+            .into()
     }
 }
 
@@ -324,11 +363,28 @@ impl FlowIde {
         Ok(client)
     }
 
+    /// Create absolute file:// Url for flow location
+    fn flow_url(&self) -> flowcore::errors::Result<Url> {
+        let cwd_url = Url::from_directory_path(env::current_dir()?)
+            .map_err(|_| "Could not form a Url for the current working directory")?;
+        url_from_string(&cwd_url, Some(&self.flow_manifest_url))
+    }
+
+    /// Create array of strings that are the args to the flow
+    fn get_flow_args(&self) -> Vec<String> {
+        // arg #0 is the flow url
+        let mut flow_args: Vec<String> = vec![self.flow_manifest_url.clone()];
+        let additional_args : Vec<String> = self.flow_args.split(' ')
+            .map(|s| s.to_string()).collect();
+        flow_args.extend(additional_args);
+        flow_args
+    }
+
     fn submit(&mut self, debug_this_flow: bool) -> Result<()> {
         let provider = &MetaProvider::new(Simpath::new(""),
-                                          PathBuf::default())
-            as &dyn Provider;
-        let (flow_manifest, _) = FlowManifest::load(provider, &self.flow_manifest_url)?;
+                                          PathBuf::default()) as &dyn Provider;
+        let url = self.flow_url()?;
+        let (flow_manifest, _) = FlowManifest::load(provider, &url)?;
         let submission = Submission::new(
             flow_manifest,
             self.parallel_jobs_limit,
@@ -336,7 +392,8 @@ impl FlowIde {
             debug_this_flow,
         );
 
-        self.client.set_args(&self.flow_args);
+        let args = self.get_flow_args();
+        self.client.set_args(&args);
         self.client.set_display_metrics(true);
 
         info!("Client sending submission to coordinator");
@@ -445,36 +502,11 @@ impl FlowIde {
             .arg(Arg::new("flow-manifest")
                 .num_args(1)
                 .help("the file path of the 'flow' manifest file"))
-            .arg(Arg::new("flow_args")
+            .arg(Arg::new("flow-args")
                 .num_args(0..)
                 .trailing_var_arg(true)
                 .help("A list of arguments to pass to the flow."));
 
         app.get_matches()
-    }
-
-    /// Parse the command line arguments passed onto the flow itself
-    fn parse_flow_url(matches: &ArgMatches) -> flowcore::errors::Result<Url> {
-        let cwd_url = Url::from_directory_path(env::current_dir()?)
-            .map_err(|_| "Could not form a Url for the current working directory")?;
-        url_from_string(&cwd_url, matches.get_one::<String>("flow-manifest")
-            .map(|s| s.as_str()))
-    }
-
-    /// Set environment variable with the args this will not be unique, but it will be used very
-    /// soon and removed
-    fn get_flow_args(matches: &ArgMatches, flow_manifest_url: &Url) -> Vec<String> {
-        // arg #0 is the flow url
-        let mut flow_args: Vec<String> = vec![flow_manifest_url.to_string()];
-
-        // append any other arguments for the flow passed from the command line
-        let additional_args = match matches.get_many::<String>("flow_args") {
-            Some(strings) => strings.map(|s| s.to_string()).collect(),
-            None => vec![]
-        };
-
-        flow_args.extend(additional_args);
-
-        flow_args
     }
 }
