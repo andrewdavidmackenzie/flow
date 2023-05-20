@@ -1,0 +1,11 @@
+function = "stdin"
+source = "stdin.rs"
+docs = "stdin.md"
+impure = true
+
+[[output]]
+name = "string"
+type = "string"
+
+[[output]]
+name = "json"
