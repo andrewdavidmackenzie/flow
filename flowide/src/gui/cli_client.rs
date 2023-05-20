@@ -41,8 +41,8 @@ impl CliRuntimeClient {
     }
 
     /// Set the args to pass to the flow
-    pub fn set_args(&mut self, args: &Vec<String>) {
-        self.args = args.clone();
+    pub fn set_args(&mut self, args: &[String]) {
+        self.args = args.to_vec();
     }
 
     /// Set or unset the flag to display metric

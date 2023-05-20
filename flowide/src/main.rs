@@ -1,5 +1,5 @@
 #![deny(missing_docs)]
-#![warn(clippy::unwrap_used)]
+// TODO re-instate #![warn(clippy::unwrap_used)]
 //! `flowide` is a GUI flow runner for running `flow` programs.
 //!
 //! It reads a compiled [FlowManifest][flowcore::model::flow_manifest::FlowManifest] produced by a
@@ -90,6 +90,7 @@ struct FlowIde {
     flow_manifest_url: String,
     flow_args: String,
     parallel_jobs_limit: Option<usize>, // TODO read from settings or UI
+    // TODO add toggle for debug this flow
 }
 
 /// Main for flowide binary - call `run()` and print any error that results or exit silently if OK
@@ -128,7 +129,7 @@ impl Application for FlowIde {
 
         let lib_dirs = if matches.contains_id("lib_dir") {
             matches
-                .get_many::<String>("lib_dir").unwrap() // TODO
+                .get_many::<String>("lib_dir").unwrap() // TODO add to UI
                 .map(|s| s.to_string())
                 .collect()
         } else {
