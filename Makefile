@@ -5,7 +5,7 @@ DNF := $(shell command -v dnf 2> /dev/null)
 BREW := $(shell command -v brew 2> /dev/null)
 RUSTUP := $(shell command -v rustup 2> /dev/null)
 export SHELL := /bin/bash
-export PATH := $(PWD)/target/debug:$(PATH)
+export PATH := $(PWD)/target/debug:$(PWD)/target/release:$(PATH)
 
 ifeq ($(FLOW_LIB_PATH),)
   export FLOW_LIB_PATH := $(HOME)/.flow/lib
@@ -136,7 +136,7 @@ coverage: clean-start build-binaries
 	@RUSTFLAGS="-C instrument-coverage" LLVM_PROFILE_FILE="flow-%p-%m.profraw" cargo doc --no-deps --target-dir=target/html/code
 	@echo "Gathering coverage information"
 	@grcov . --binary-path target/debug/ -s . -t lcov --branch --ignore-not-existing --ignore "/*" -o coverage.info
-	@lcov --remove coverage.info '/Applications/*' 'target/debug/build/**' '/usr*' '**/errors.rs' '**/build.rs' '*tests/*' -o coverage.info
+	@lcov --remove coverage.info '/Applications/*' 'target/debug/build/**' 'target/release/build/**' '/usr*' '**/errors.rs' '**/build.rs' '*tests/*' -o coverage.info
 	@find . -name "*.profraw" | xargs rm -f
 	@echo "Generating coverage report"
 	@genhtml -o target/coverage --quiet coverage.info
@@ -202,6 +202,7 @@ trim-docs:
 	@rm -rf target/html/flowc/tests/test-functions/stdio
 	@rm -rf target/html/flowc/tests/test_libs
 	@rm -rf target/html/code/debug
+	@rm -rf target/html/code/release
 	@rm -rf target/html/Makefile
 	@rm -rf target/html/.nojekyll
 	@rm -rf target/html/coverage.info
