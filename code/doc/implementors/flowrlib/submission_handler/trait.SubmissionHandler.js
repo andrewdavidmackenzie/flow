@@ -1,3 +1,4 @@
 (function() {var implementors = {
+"flowide":[["impl <a class=\"trait\" href=\"flowrlib/submission_handler/trait.SubmissionHandler.html\" title=\"trait flowrlib::submission_handler::SubmissionHandler\">SubmissionHandler</a> for <a class=\"struct\" href=\"flowide/gui/cli_submission_handler/struct.CLISubmissionHandler.html\" title=\"struct flowide::gui::cli_submission_handler::CLISubmissionHandler\">CLISubmissionHandler</a>"]],
 "flowr":[["impl <a class=\"trait\" href=\"flowrlib/submission_handler/trait.SubmissionHandler.html\" title=\"trait flowrlib::submission_handler::SubmissionHandler\">SubmissionHandler</a> for <a class=\"struct\" href=\"flowr/cli/cli_submission_handler/struct.CLISubmissionHandler.html\" title=\"struct flowr::cli::cli_submission_handler::CLISubmissionHandler\">CLISubmissionHandler</a>"]]
 };if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()
