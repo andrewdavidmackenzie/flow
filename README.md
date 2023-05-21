@@ -12,10 +12,17 @@ flow program to generate a sequence of fibonacci numbers.
 
 If you are a programmer, your intuition will probably tell you a lot already about how `flow` works
 without any explanation.
-![First flow](first.svg) 
+![First flow](first.svg)
+This flow program generates a fibonacci series on standard output.
+It is one of the samples ([fibonacci](flowsamples/fibonacci/DESCRIPTION.md)) in the `flowsamples` crate 
+that is part of the`flow` project, and the first thing I got working (much to my own delight!).
 
-This is one of many samples that can be found in the `flowsamples` crate that is part of the 
-`flow` project, and the first thing I got working (much to my own delight!).
+The two inputs to `add` (`i1` and `i2`) are initialized "once" (at startup) with 0 and 1. 
+The output (`sum`) is then fedback to input `i2` and the value presented at input `i2` previously is fedback to
+input `i1`. 
+The output (`sum`) is also sent to the default (unnamed) input of the `stdout` function which prints
+the value to standard output.
+The program runs until integer overflow causes no output to be produced and it stops.
 
 ## What is a `dataflow program`?
 A data flow program consists of a graph of processes (hierarchical in this case, as a process within it can be another
@@ -44,8 +51,11 @@ to a flow manifest, which is executed.
 
 The `flow` project includes:
 - Compiler: a library and a binary (`flowclib` and `flowc`) for compiling flows
-- Runner: a library (`flowrlib`) and two binaries (`flowr` and `flowrex`) for running flows, including a 
-command line debugger for debugging flows.
+- Runner: a library (`flowrlib`) and two binaries for running flows:
+  - `flowr` - default command line runner and debugger to use from a terminal
+  - `flowide` - initial steps of a GUI application for running and debugging flows
+- Job executor: `flowrex` binary can be discovered (on same machine or local network) 
+by a runner and used to execute jobs, distributing execution in a basic fashion
 - Standard Library: `flowstdlib` library of pre-defined flows and functions that can be re-used in flows
 - Samples: A set of sample flows to illustrate flow programming (more to come!)
 - Docs: Extensive documentation in the [book](SUMMARY.md) documentation on defining flows, the runtime semantics, a 
@@ -59,8 +69,9 @@ functions and flows, `flowr`'s context functions and more. The guide, including 
 You can read more about what made me want to do this project, based on ideas gathered over a few decades
 on and off (combined with looking for a "real" project to use to learn rust!) in the guide's 
 [Inspirations for flow](docs/introduction/inspirations.md) section. The core reason is: I wanted to know
-if I could do it and make it work, having stopped being a Software Engineer many years ago, based on rough ideas and intuition I 
-had in my head (no real formal knowledge in this area or reading of books and papers - that came later *after* I did it).
+if I could do it and make it work, having stopped being a Software Engineer many years ago, based on rough ideas 
+and intuition I had in my head (no real formal knowledge in this area or reading of books and papers - 
+that came later *after* I did it).
 
 I implemented the runtime "semantics" as needed as I implemented the samples. It's been a journey of discovery:
 of writing something like this (for me), learning rust in the process and learning how such a programming 
@@ -69,10 +80,20 @@ paradigm could work. I learned it could work, but requires a change in how you t
 algorithms in a completely new way. This reminded me of when I got stuck trying to write a loop in Prolog, in
 University. If you're trying to write a loop ...."you're thinking about it wrong".
 
+## Installing
+You can install many of the crates from crates.io, but due to unresolved issues in packaging
+non-source files, a total working installation cannot yet be achieved using `cargo install`.
+
+The workaround in the meantime is to clone the repo and build all from source (see below).
+
 ## Building `flow`
-For more details on how to build flow locally and contribute to it, please see [building flow](docs/developing/building.md)
-Install the dependencies with `make config`, then run `make`, which builds everything and installs the `flowc` and `flowr` and 
-`flowrex` binaries.
+For more details on how to build flow locally and contribute to it, please see
+[building flow](docs/developing/building.md)
+Install the dependencies with `make config`, then run `make`, which builds everything and installs the `flowc` and
+`flowr` and`flowrex` binaries.
+
+NOTE: Building of `flowstdlib` the first time will take a long time, as it is compiling
+many rust functions to WebAssembly.
 
 ## Running your first 'flow'
 With `flowc` and `flowr` installed, you can run the 'fibonacci' sample flow using:
@@ -83,13 +104,16 @@ You should get a fibonacci series of numbers output to the terminal.
 
 The [first flow](docs/first_flow/first_flow.md) section of the guide walks you through it.
 
-## Are we GUI yet?
+## GUI (`flowide`)
 Data-flow programming, declaratively defining a graph of `processes` (nodes) and `connections` (edges), fits
 naturally with visualization of the graph (not the current text format). 
 The ability to define a flow, execute it and view its execution and debug it with a visual tool would be great! 
-This tool would avoid the "hard work" of writing flow definition text files, just producing the flow definition files formats
-supported by the `flowc` compiler. I have ideas for an IDE and experimented a little, but that remains one big chunk of work
-I'd like to work on at some point.
+This tool would avoid the "hard work" of writing flow definition text files, just producing the flow definition 
+files formats supported by the `flowc` compiler. I have started work on a native rust GUI using the `Iced` 
+toolkit. Initially, it is focussed only on running and will replace the Command Line options
+for stdio, file output and image operations with graphical equivalents.
+Then I hope to add flow design and programming to it, using `flowclib`, either in a single
+binary, or in a second compile-time-only tool.
 
 ## What's next?
 I generate ideas for ways to improve the project faster than I can implement things in my spare time,
@@ -98,14 +122,21 @@ so over time I accumulated many many issues in Github, and had to organize them 
 to attack them kanban-style, to stop me going mad. 
 I still have plenty left and continue to generate new ones all the time.
 
-Probably the most important ones for external observers will be ones related to producing a GUI to make it
-more approachable, adding new `context functions` to allow integrations with the wbe and other systems
-being used, and providing more compelling samples closer to "real world problems"
+Probably the main areas of work short-term will be on the GUI, enabling me to learn `Iced`
+in the process.
+
+Other main themes of items in the [github project](https://github.com/users/andrewdavidmackenzie/projects/2/views/1) 
+are related to adding web functionality, better example programs, packaging/distribution/install,
+and true distributed flow execution with flow partitioning based on resources and constraints.
+
+## Contributing
+Refer to the [contributing](docs/developing/contributing.md) section of the book.
 
 ## Feedback and/or Encouragement
 You can open an issue or email me to let me know what you think.
 
-If you want to encourage me, even with a "token gesture", you can ["patreonize me"](https://www.patreon.com/andrewmackenzie)
+If you want to encourage me, even with a "token gesture", you can
+["patreonize me"](https://www.patreon.com/andrewmackenzie)
 
 Thanks for Reading this far!
 
