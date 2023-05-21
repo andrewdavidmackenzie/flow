@@ -44,8 +44,11 @@ to a flow manifest, which is executed.
 
 The `flow` project includes:
 - Compiler: a library and a binary (`flowclib` and `flowc`) for compiling flows
-- Runner: a library (`flowrlib`) and two binaries (`flowr` and `flowrex`) for running flows, including a 
-command line debugger for debugging flows.
+- Runner: a library (`flowrlib`) and two binaries for running flows:
+  - `flowr` - default command line runner and debugger to use from a terminal
+  - `flowide` - initial steps of a GUI application for running and debugging flows
+- Job executor: `flowrex` binary can be discovered (on same machine or local network) 
+by a runner and used to execute jobs, distributing execution in a basic fashion
 - Standard Library: `flowstdlib` library of pre-defined flows and functions that can be re-used in flows
 - Samples: A set of sample flows to illustrate flow programming (more to come!)
 - Docs: Extensive documentation in the [book](SUMMARY.md) documentation on defining flows, the runtime semantics, a 
@@ -83,13 +86,16 @@ You should get a fibonacci series of numbers output to the terminal.
 
 The [first flow](docs/first_flow/first_flow.md) section of the guide walks you through it.
 
-## Are we GUI yet?
+## GUI (`flowide`)
 Data-flow programming, declaratively defining a graph of `processes` (nodes) and `connections` (edges), fits
 naturally with visualization of the graph (not the current text format). 
 The ability to define a flow, execute it and view its execution and debug it with a visual tool would be great! 
 This tool would avoid the "hard work" of writing flow definition text files, just producing the flow definition files formats
-supported by the `flowc` compiler. I have ideas for an IDE and experimented a little, but that remains one big chunk of work
-I'd like to work on at some point.
+supported by the `flowc` compiler. I have started work on a native rust GUI using the `Iced` 
+toolkit. Initially, it is focussed only on running and will replace the Command Line options
+for stdio, file output and image operations with graphical equivalents.
+Then I hope to add flow design and programming to it, using `flowclib`, either in a single
+binary, or in a second compile-time-only tool.
 
 ## What's next?
 I generate ideas for ways to improve the project faster than I can implement things in my spare time,
@@ -98,9 +104,12 @@ so over time I accumulated many many issues in Github, and had to organize them 
 to attack them kanban-style, to stop me going mad. 
 I still have plenty left and continue to generate new ones all the time.
 
-Probably the most important ones for external observers will be ones related to producing a GUI to make it
-more approachable, adding new `context functions` to allow integrations with the wbe and other systems
-being used, and providing more compelling samples closer to "real world problems"
+Probably the main areas of work short-term will be on the GUI, enabling me to learn `Iced`
+in the process.
+
+Other main themes of items in the [github project](https://github.com/users/andrewdavidmackenzie/projects/2/views/1) 
+are related to adding web functionality, better example programs, and true distributed
+flow execution with flow partitioning based on resources and constraints.
 
 ## Feedback and/or Encouragement
 You can open an issue or email me to let me know what you think.
