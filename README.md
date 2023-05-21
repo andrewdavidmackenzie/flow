@@ -12,10 +12,17 @@ flow program to generate a sequence of fibonacci numbers.
 
 If you are a programmer, your intuition will probably tell you a lot already about how `flow` works
 without any explanation.
-![First flow](first.svg) 
+![First flow](first.svg)
+This flow program generates a fibonacci series on standard output.
+It is one of the samples ([fibonacci](flowsamples/fibonacci/DESCRIPTION.md)) in the `flowsamples` crate 
+that is part of the`flow` project, and the first thing I got working (much to my own delight!).
 
-This is one of many samples that can be found in the `flowsamples` crate that is part of the 
-`flow` project, and the first thing I got working (much to my own delight!).
+The two inputs to `add` (`i1` and `i2`) are initialized "once" (at startup) with 0 and 1. 
+The output (`sum`) is then fedback to input `i2` and the value presented at input `i2` previously is fedback to
+input `i1`. 
+The output (`sum`) is also sent to the default (unnamed) input of the `stdout` function which prints
+the value to standard output.
+The program runs until integer overflow causes no output to be produced and it stops.
 
 ## What is a `dataflow program`?
 A data flow program consists of a graph of processes (hierarchical in this case, as a process within it can be another
@@ -62,8 +69,9 @@ functions and flows, `flowr`'s context functions and more. The guide, including 
 You can read more about what made me want to do this project, based on ideas gathered over a few decades
 on and off (combined with looking for a "real" project to use to learn rust!) in the guide's 
 [Inspirations for flow](docs/introduction/inspirations.md) section. The core reason is: I wanted to know
-if I could do it and make it work, having stopped being a Software Engineer many years ago, based on rough ideas and intuition I 
-had in my head (no real formal knowledge in this area or reading of books and papers - that came later *after* I did it).
+if I could do it and make it work, having stopped being a Software Engineer many years ago, based on rough ideas 
+and intuition I had in my head (no real formal knowledge in this area or reading of books and papers - 
+that came later *after* I did it).
 
 I implemented the runtime "semantics" as needed as I implemented the samples. It's been a journey of discovery:
 of writing something like this (for me), learning rust in the process and learning how such a programming 
@@ -73,9 +81,10 @@ algorithms in a completely new way. This reminded me of when I got stuck trying 
 University. If you're trying to write a loop ...."you're thinking about it wrong".
 
 ## Building `flow`
-For more details on how to build flow locally and contribute to it, please see [building flow](docs/developing/building.md)
-Install the dependencies with `make config`, then run `make`, which builds everything and installs the `flowc` and `flowr` and 
-`flowrex` binaries.
+For more details on how to build flow locally and contribute to it, please see
+[building flow](docs/developing/building.md)
+Install the dependencies with `make config`, then run `make`, which builds everything and installs the `flowc` and
+`flowr` and`flowrex` binaries.
 
 ## Running your first 'flow'
 With `flowc` and `flowr` installed, you can run the 'fibonacci' sample flow using:
@@ -90,8 +99,8 @@ The [first flow](docs/first_flow/first_flow.md) section of the guide walks you t
 Data-flow programming, declaratively defining a graph of `processes` (nodes) and `connections` (edges), fits
 naturally with visualization of the graph (not the current text format). 
 The ability to define a flow, execute it and view its execution and debug it with a visual tool would be great! 
-This tool would avoid the "hard work" of writing flow definition text files, just producing the flow definition files formats
-supported by the `flowc` compiler. I have started work on a native rust GUI using the `Iced` 
+This tool would avoid the "hard work" of writing flow definition text files, just producing the flow definition 
+files formats supported by the `flowc` compiler. I have started work on a native rust GUI using the `Iced` 
 toolkit. Initially, it is focussed only on running and will replace the Command Line options
 for stdio, file output and image operations with graphical equivalents.
 Then I hope to add flow design and programming to it, using `flowclib`, either in a single
@@ -108,13 +117,17 @@ Probably the main areas of work short-term will be on the GUI, enabling me to le
 in the process.
 
 Other main themes of items in the [github project](https://github.com/users/andrewdavidmackenzie/projects/2/views/1) 
-are related to adding web functionality, better example programs, and true distributed
-flow execution with flow partitioning based on resources and constraints.
+are related to adding web functionality, better example programs, packaging/distribution/install,
+and true distributed flow execution with flow partitioning based on resources and constraints.
+
+## Contributing
+Refer to the [contributing](docs/developing/contributing.md) section of the book.
 
 ## Feedback and/or Encouragement
 You can open an issue or email me to let me know what you think.
 
-If you want to encourage me, even with a "token gesture", you can ["patreonize me"](https://www.patreon.com/andrewmackenzie)
+If you want to encourage me, even with a "token gesture", you can
+["patreonize me"](https://www.patreon.com/andrewmackenzie)
 
 Thanks for Reading this far!
 
