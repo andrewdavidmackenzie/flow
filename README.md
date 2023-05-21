@@ -80,11 +80,20 @@ paradigm could work. I learned it could work, but requires a change in how you t
 algorithms in a completely new way. This reminded me of when I got stuck trying to write a loop in Prolog, in
 University. If you're trying to write a loop ...."you're thinking about it wrong".
 
+## Installing
+You can install many of the crates from crates.io, but due to unresolved issues in packaging
+non-source files, a total working installation cannot yet be achieved using `cargo install`.
+
+The workaround in the meantime is to clone the repo and build all from source (see below).
+
 ## Building `flow`
 For more details on how to build flow locally and contribute to it, please see
 [building flow](docs/developing/building.md)
 Install the dependencies with `make config`, then run `make`, which builds everything and installs the `flowc` and
 `flowr` and`flowrex` binaries.
+
+NOTE: Building of `flowstdlib` the first time will take a long time, as it is compiling
+many rust functions to WebAssembly.
 
 ## Running your first 'flow'
 With `flowc` and `flowr` installed, you can run the 'fibonacci' sample flow using:
