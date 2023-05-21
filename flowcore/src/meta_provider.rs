@@ -1,4 +1,4 @@
-#[cfg(any(feature = "context"))]
+#[cfg(feature = "context")]
 use std::path::PathBuf;
 
 #[cfg(feature = "file_provider")]
