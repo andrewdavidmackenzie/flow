@@ -12,7 +12,7 @@ use flowrlib::debug_command::DebugCommand;
 use flowrlib::debug_command::DebugCommand::*;
 use flowrlib::run_state::{RunState, State};
 
-use crate::gui::connections::ClientConnection;
+use crate::gui::client_connection::ClientConnection;
 use crate::gui::debug_message::{DebugServerMessage, DebugServerMessage::*};
 
 const FLOWR_HISTORY_FILENAME: &str = ".flowr_history";
