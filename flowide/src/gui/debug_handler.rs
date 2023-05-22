@@ -12,8 +12,8 @@ use flowrlib::run_state::{RunState, State};
 use crate::{BlockBreakpoint, CoordinatorConnection, DataBreakpoint, ExecutionEnded, ExecutionStarted,
             ExitingDebugger, JobCompleted, JobError, Panic, PriorToSendingJob, Resetting,
             WaitingForCommand};
-use crate::gui::connections::WAIT;
 use crate::DebugServerMessage::{BlockState, Error, FlowUnblockBreakpoint, Functions, FunctionStates, InputState, Message, OutputState, OverallState};
+use crate::gui::coordinator_connection::WAIT;
 
 /// A debug handler for interacting between the CLI client and the Debugger in the Coordinator
 pub(crate) struct CliDebugHandler {

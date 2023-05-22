@@ -12,10 +12,10 @@ use log::info;
 
 use flowcore::errors::*;
 
-use crate::gui::connections::ClientConnection;
+use crate::gui::client_connection::ClientConnection;
 use crate::gui::coordinator_message::{ClientMessage, CoordinatorMessage};
 
-pub struct CliRuntimeClient {
+pub struct Client {
     connection: ClientConnection,
     args: Vec<String>,
     override_args: Arc<Mutex<Vec<String>>>,
@@ -23,10 +23,10 @@ pub struct CliRuntimeClient {
     display_metrics: bool,
 }
 
-impl CliRuntimeClient {
+impl Client {
     /// Create a new runtime client
     pub fn new(connection: ClientConnection) -> Self {
-        CliRuntimeClient {
+        Client {
             connection,
             args: Vec::default(),
             override_args: Arc::new(Mutex::new(vec!["".into()])),

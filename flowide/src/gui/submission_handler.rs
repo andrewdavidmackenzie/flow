@@ -9,10 +9,10 @@ use flowcore::model::submission::Submission;
 use flowrlib::run_state::RunState;
 use flowrlib::submission_handler::SubmissionHandler;
 
-use crate::gui::connections::{DONT_WAIT, WAIT};
+use crate::CoordinatorConnection;
+use crate::gui::coordinator_connection::{DONT_WAIT, WAIT};
 use crate::gui::coordinator_message::ClientMessage;
 use crate::gui::coordinator_message::CoordinatorMessage;
-use crate::CoordinatorConnection;
 
 /// A [SubmissionHandler] to allow submitting flows for execution from the CLI
 pub(crate) struct CLISubmissionHandler {

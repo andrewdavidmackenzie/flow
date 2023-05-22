@@ -5,7 +5,7 @@ use serde_json::Value;
 use flowcore::{Implementation, RUN_AGAIN, RunAgain};
 use flowcore::errors::*;
 
-use crate::gui::connections::CoordinatorConnection;
+use crate::gui::coordinator_connection::CoordinatorConnection;
 use crate::gui::coordinator_message::{ClientMessage, CoordinatorMessage};
 
 /// `Implementation` struct for the `Stderr` function
