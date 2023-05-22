@@ -142,16 +142,39 @@ with the environment where a flow runs) are implemented in the "runner" and can 
 That lead to some messy client/server message passing, that is now pretty stable and works on both CLI and GUI
 with the same backend (in ºflowrlibº) coordinating a flow and executing jobs - but with some complexity.
 
+### Testing
+Testing coverage is about 85%-90% and I try to keep it high. There are simple unit tests for functions, a
+lot of tests around the compiler semantics, integration tests of flow compile/run errors, and of flows
+that compile & run correctly, and the samples all have supplied test inputs files and expected output files
+and they are all tested to work correctly on every build. Additionally there are some integration 
+tests of the debugger and of executing a flow in client-server mode (separate processes for each) and
+the distribution of job execution using `flowrex`.
+
 ## GUI (`flowide`)
 Data-flow programming, declaratively defining a graph of `processes` (nodes) and `connections` (edges), fits
-naturally with visualization of the graph (not the current text format). 
+naturally with visualization of a graph. 
 The ability to define a flow, execute it and view its execution and debug it with a visual tool would be great! 
 This tool would avoid the "hard work" of writing flow definition text files, just producing the flow definition 
-files formats supported by the `flowc` compiler. I have started work on a native rust GUI using the `Iced` 
-toolkit. Initially, it is focussed only on running and will replace the Command Line options
-for stdio, file output and image operations with graphical equivalents.
-Then I hope to add flow design and programming to it, using `flowclib`, either in a single
+files formats to be compiled by the `flowc` compiler. 
+
+I have started work on a native rust GUI using the `Iced` 
+toolkit. Initially, it is focussed only on running flows and replaces the Terminal based stdio, file output 
+and image operations with visual equivalents.
+
+I hope to add flow design and programming to it, using `flowclib`, either in a single
 binary, or in a second compile-time-only tool.
+
+## Docs
+Apart from this README, I have written pretty extensive documentation in a "guide" or book 
+([Table of Contents](SUMMARY.md)), using Markdown
+and mdbook. That describes writing flows, using flow, general ideas, the standard library functions,
+the samples etc. It's hard to keep up to date but I try and am always generating GH issues for myself to
+improve it! It doesn't go into two many details on the implementation, to reduce the burden of keeping it up to date.
+
+The docs combine Markdown files from the code repos, Markdown files in the docs folder, and code docs 
+generated with rustdoc and image files I generate from "dot" files and graphviz into one "book". That is rebuilt
+and published to the ["flow guide"](https://mackenzie-serres.net/flow/docs/book_intro.html) on every merge to
+master.
 
 ## What's next?
 I generate ideas for ways to improve the project faster than I can implement things in my spare time,
