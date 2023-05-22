@@ -104,6 +104,44 @@ You should get a fibonacci series of numbers output to the terminal.
 
 The [first flow](docs/first_flow/first_flow.md) section of the guide walks you through it.
 
+## Tech decisions
+### Job/Work Distribution - with Threads
+Flow was started before async landed in rust, and so it uses a manually managed thread pool for executing 
+"jobs" (functions with their set of inputs). Rewriting in async rust would make sense in some areas but
+be quite a chunk of disruptive work, so I haven't done it yet.
+
+### Message Passing - with Zero MQ
+I started with channels for distributing Jobs and results between threads.
+I wanted to enable distributing work across the (local for now) network and so moved to ZeroMQ message queues 
+and passing messages. This is used for inter-thread and inter-process message passing indistinctly. 
+ZeroMQ rust bindings don't support all socket types (at the time of writing) so I had to use the REQ/REP
+pattern, which has some restrictions on the protocol, and which end writes first - which I also had to
+work around. For a while I kept 
+
+### Discovery - with mDNS and beacons
+To discover "executors" (processes with threads, able to execute flow jobs) on the network I wrote my own 
+small discovery crate (as I couldn't get libp2p mDNS or other mDNS crates to work). Not very happy with it
+as it frequently ties up ports and other issues I have had to work around.
+
+### Portability - with WebAssembly (WASM)
+Library functions are compiled both to native and optionally linked statically to a flow runner with a 
+feature, AND compiled to wasm (and their size optimized to around 110KB) and described in a library manifest.
+Libraries are referenced from a flow's compiled manifest and if the library is already statically linked then
+the native implementations can be used, or the WASM supplied files can be used, under control of an option.
+I have used this to have a flow program running on my mac, and with the flowrex job executor running on a
+connected RaspberryPi running native or WASM. 
+
+When a user writes a new flow and includes a "provided implementation" (a custom function used in the flow), 
+they write it in rust and it is compiled to WASM and loaded at run time.
+
+### Client - Server
+I knew I wanted to be able to distriubute flow execution between processes, and I know I wanted to have the
+ability to have a background process coordinate execution and execute jobs, and have different UIs (CLI, GUI)
+and be able to use standard input/output from CLI. So, the "context functions" (impure functions that interact
+with the environment where a flow runs) are implemented in the "runner" and can be CLI or GUI implementations.
+That lead to some messy client/server message passing, that is now pretty stable and works on both CLI and GUI
+with the same backend (in ºflowrlibº) coordinating a flow and executing jobs - but with some complexity.
+
 ## GUI (`flowide`)
 Data-flow programming, declaratively defining a graph of `processes` (nodes) and `connections` (edges), fits
 naturally with visualization of the graph (not the current text format). 
