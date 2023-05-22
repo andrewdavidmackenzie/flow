@@ -27,23 +27,14 @@ use std::path::PathBuf;
 use std::process::exit;
 use std::sync::{Arc, Mutex};
 
+use iced::{Alignment, Application, Command, Element, Length, Settings, Theme};
+use iced::executor;
+use iced::widget::{button, Column, container, Row, text, text_input};
+use iced::widget::scrollable::Scrollable;
+
 use clap::{Arg, ArgMatches};
 use clap::Command as ClapCommand;
 use env_logger::Builder;
-use log::{info, LevelFilter, trace, warn};
-use portpicker::pick_unused_port;
-use simpath::Simpath;
-use url::Url;
-
-use gui::cli_client::CliRuntimeClient;
-use gui::cli_debug_client::CliDebugClient;
-use gui::cli_debug_handler::CliDebugHandler;
-use gui::cli_submission_handler::CLISubmissionHandler;
-use gui::connections::ClientConnection;
-use gui::connections::CoordinatorConnection;
-//use gui::coordinator_message::ClientMessage;
-use gui::debug_message::DebugServerMessage;
-use gui::debug_message::DebugServerMessage::*;
 use flowcore::meta_provider::MetaProvider;
 use flowcore::model::flow_manifest::FlowManifest;
 use flowcore::model::submission::Submission;
@@ -55,17 +46,23 @@ use flowrlib::executor::Executor;
 use flowrlib::info as flowrlib_info;
 use flowrlib::services::{CONTROL_SERVICE_NAME, JOB_QUEUES_DISCOVERY_PORT, JOB_SERVICE_NAME,
                          RESULTS_JOB_SERVICE_NAME};
-
-use crate::gui::connections::{COORDINATOR_SERVICE_NAME, DEBUG_SERVICE_NAME,
-                              discover_service, enable_service_discovery};
-
-use iced::{Alignment, Application, Command, Element, Length, Settings, Theme};
-use iced::widget::{button, Column, container, Row, text, text_input};
-
-use iced::executor;
-use iced::widget::scrollable::Scrollable;
+use gui::cli_client::CliRuntimeClient;
+use gui::cli_debug_client::CliDebugClient;
+use gui::cli_debug_handler::CliDebugHandler;
+use gui::cli_submission_handler::CLISubmissionHandler;
+use gui::connections::ClientConnection;
+use gui::connections::CoordinatorConnection;
+//use gui::coordinator_message::ClientMessage;
+use gui::debug_message::DebugServerMessage;
+use gui::debug_message::DebugServerMessage::*;
+use log::{info, LevelFilter, trace, warn};
+use portpicker::pick_unused_port;
+use simpath::Simpath;
+use url::Url;
 
 use crate::errors::*;
+use crate::gui::connections::{COORDINATOR_SERVICE_NAME, DEBUG_SERVICE_NAME,
+                              discover_service, enable_service_discovery};
 use crate::gui::coordinator_message::ClientMessage;
 
 /// provides the `context functions` for interacting with the execution environment from a flow,
@@ -85,7 +82,11 @@ enum Message {
     FlowArgsChanged(String)
 }
 
-struct FlowIde {
+enum FlowIde {
+    Connected(State)
+}
+
+struct State {
     client: CliRuntimeClient,
     flow_manifest_url: String,
     flow_args: String,
@@ -136,9 +137,9 @@ impl Application for FlowIde {
             vec![]
         };
 
-        let client = Self::client_and_coordinator(
-            Self::num_threads(&matches),
-            Self::get_lib_search_path(&lib_dirs).unwrap(), // TODO
+        let client = State::client_and_coordinator(
+            State::num_threads(&matches),
+            State::get_lib_search_path(&lib_dirs).unwrap(), // TODO
             matches.get_flag("native"),
             matches.get_flag("debugger"),
         ).unwrap(); // TODO
@@ -154,12 +155,14 @@ impl Application for FlowIde {
             None => String::new()
         };
 
-        let flowide = FlowIde {
-            client,
-            flow_manifest_url,
-            flow_args,
-            parallel_jobs_limit: matches.get_one::<usize>("jobs").map(|i| i.to_owned())
-        };
+        let flowide = FlowIde::Connected(
+            State {
+                client,
+                flow_manifest_url,
+                flow_args,
+                parallel_jobs_limit: matches.get_one::<usize>("jobs").map(|i| i.to_owned())
+            }
+        );
 
         (flowide, Command::none())
     }
@@ -169,50 +172,97 @@ impl Application for FlowIde {
     }
 
     fn update(&mut self, message: Message) -> Command<Message> {
-        match message {
-            Message::Start => {
-                let _ = self.submit(false);
-            },
-            Message::FlowArgsChanged(value) => self.flow_args = value,
-            Message::UrlChanged(value) => self.flow_manifest_url = value,
+        match self {
+            FlowIde::Connected(state) =>
+                match message {
+                    Message::Start => {
+                        let _ = state.submit(false);
+                    },
+                    Message::FlowArgsChanged(value) => state.flow_args = value,
+                    Message::UrlChanged(value) => state.flow_manifest_url = value,
+                }
         }
         Command::none()
     }
 
     fn view(&self) -> Element<Message> {
-        // .on_input(), .on_submit(), .on_paste(), .width()
-        let url = text_input("Flow location (relative, or absolute)",
-                             &self.flow_manifest_url.to_string())
-            .on_input(Message::UrlChanged);
-        let args = text_input("Space separated flow arguments",
-                              &self.flow_args)
-            .on_input(Message::FlowArgsChanged);
-        let play = button("Play").on_press(Message::Start);
-        let commands = Row::new()
-            .spacing(10)
-            .align_items(Alignment::End)
-            .push(url)
-            .push(args)
-            .push(play);
-        let stdout = text("bla bla bla");
-        let stdout_col = Column::new().padding(5).push(stdout);
-        let stdout_scroll = Scrollable::new(stdout_col);
-        let stdout_header = text("STDOUT");
-        let stdout_outer = Column::new().padding(5)
-            .push(stdout_header)
-            .push(stdout_scroll);
-        let main = Column::new().spacing(10)
-            .push(commands)
-            .push(stdout_outer);
-        container(main)
-            .width(Length::Fill)
-            .height(Length::Fill)
-            .padding(10)
-            .into()
+        match self {
+            FlowIde::Connected(state) => {
+                // .on_input(), .on_submit(), .on_paste(), .width()
+                let url = text_input("Flow location (relative, or absolute)",
+                                     &state.flow_manifest_url)
+                    .on_input(Message::UrlChanged);
+                let args = text_input("Space separated flow arguments",
+                                      &state.flow_args)
+                    .on_input(Message::FlowArgsChanged);
+                let play = button("Play").on_press(Message::Start);
+                let commands = Row::new()
+                    .spacing(10)
+                    .align_items(Alignment::End)
+                    .push(url)
+                    .push(args)
+                    .push(play);
+                let stdout = text("bla bla bla\nbla bla bla\nbla bla bla\nbla bla bla\n");
+                let stdout_col = Column::new().padding(5).push(stdout);
+                let stdout_scroll = Scrollable::new(stdout_col);
+                let stdout_header = text("STDOUT");
+                let stdout_outer = Column::new().padding(5)
+                    .push(stdout_header)
+                    .push(stdout_scroll);
+                let main = Column::new().spacing(10)
+                    .push(commands)
+                    .push(stdout_outer);
+                container(main)
+                    .width(Length::Fill)
+                    .height(Length::Fill)
+                    .padding(10)
+                    .into()
+            }
+        }
     }
 }
 
-impl FlowIde {
+impl State {
+    /// Create absolute file:// Url for flow location
+    fn flow_url(&self) -> flowcore::errors::Result<Url> {
+        let cwd_url = Url::from_directory_path(env::current_dir()?)
+            .map_err(|_| "Could not form a Url for the current working directory")?;
+        url_from_string(&cwd_url, Some(&self.flow_manifest_url))
+    }
+
+    /// Create array of strings that are the args to the flow
+    fn get_flow_args(&self) -> Vec<String> {
+        // arg #0 is the flow url
+        let mut flow_args: Vec<String> = vec![self.flow_manifest_url.clone()];
+        let additional_args : Vec<String> = self.flow_args.split(' ')
+            .map(|s| s.to_string()).collect();
+        flow_args.extend(additional_args);
+        flow_args
+    }
+
+    fn submit(&mut self, debug_this_flow: bool) -> Result<()> {
+        let provider = &MetaProvider::new(Simpath::new(""),
+                                          PathBuf::default()) as &dyn Provider;
+        let url = self.flow_url()?;
+        let (flow_manifest, _) = FlowManifest::load(provider, &url)?;
+        let submission = Submission::new(
+            flow_manifest,
+            self.parallel_jobs_limit,
+            None, // No timeout waiting for job results
+            debug_this_flow, // TODO move to setting
+        );
+
+        let args = self.get_flow_args();
+        self.client.set_args(&args);
+        self.client.set_display_metrics(true);
+
+        info!("Client sending submission to coordinator");
+        self.client.send(ClientMessage::ClientSubmission(submission))?;
+
+        trace!("Entering client event loop");
+        Ok(self.client.event_loop()?)
+    }
+
     /// For the lib provider, libraries maybe installed in multiple places in the file system.
     /// In order to find the content, a FLOW_LIB_PATH environment variable can be configured with a
     /// list of directories in which to look for the library in question.
@@ -363,46 +413,6 @@ impl FlowIde {
         Ok(client)
     }
 
-    /// Create absolute file:// Url for flow location
-    fn flow_url(&self) -> flowcore::errors::Result<Url> {
-        let cwd_url = Url::from_directory_path(env::current_dir()?)
-            .map_err(|_| "Could not form a Url for the current working directory")?;
-        url_from_string(&cwd_url, Some(&self.flow_manifest_url))
-    }
-
-    /// Create array of strings that are the args to the flow
-    fn get_flow_args(&self) -> Vec<String> {
-        // arg #0 is the flow url
-        let mut flow_args: Vec<String> = vec![self.flow_manifest_url.clone()];
-        let additional_args : Vec<String> = self.flow_args.split(' ')
-            .map(|s| s.to_string()).collect();
-        flow_args.extend(additional_args);
-        flow_args
-    }
-
-    fn submit(&mut self, debug_this_flow: bool) -> Result<()> {
-        let provider = &MetaProvider::new(Simpath::new(""),
-                                          PathBuf::default()) as &dyn Provider;
-        let url = self.flow_url()?;
-        let (flow_manifest, _) = FlowManifest::load(provider, &url)?;
-        let submission = Submission::new(
-            flow_manifest,
-            self.parallel_jobs_limit,
-            None, // No timeout waiting for job results
-            debug_this_flow,
-        );
-
-        let args = self.get_flow_args();
-        self.client.set_args(&args);
-        self.client.set_display_metrics(true);
-
-        info!("Client sending submission to coordinator");
-        self.client.send(ClientMessage::ClientSubmission(submission))?;
-
-        trace!("Entering client event loop");
-        Ok(self.client.event_loop()?)
-    }
-
     /// Return addresses and ports to be used for each of the three queues
     /// - (general) job source
     /// - context job source
@@ -448,7 +458,9 @@ impl FlowIde {
             None => thread::available_parallelism().map(|n| n.get()).unwrap_or(1)
         }
     }
+}
 
+impl FlowIde {
     /// Parse the command line arguments using clap
     fn get_matches() -> ArgMatches {
         let app = ClapCommand::new(env!("CARGO_PKG_NAME"))
