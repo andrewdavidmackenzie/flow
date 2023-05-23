@@ -483,13 +483,13 @@ impl State {
     fn client(
         runtime_client_connection: ClientConnection,
         debug_this_flow: bool,
-        discovery_post: u16,
+        discovery_port: u16,
     ) -> Result<Client> {
         trace!("Creating CliRuntimeClient");
         let client = Client::new(runtime_client_connection);
 
         if debug_this_flow {
-            let debug_server_address = discover_service(discovery_post,
+            let debug_server_address = discover_service(discovery_port,
                                                         DEBUG_SERVICE_NAME)?;
             let debug_client_connection = ClientConnection::new(&debug_server_address)?;
             let debug_client = CliDebugClient::new(debug_client_connection,
