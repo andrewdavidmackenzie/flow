@@ -1,14 +1,9 @@
-use std::collections::HashMap;
 use std::fs::File;
 use std::io;
 use std::io::prelude::*;
-use std::path::Path;
-use std::sync::{Arc, Mutex};
 
-use image::{ImageBuffer, ImageFormat, Rgb, RgbImage};
 use log::debug;
 use log::error;
-use log::info;
 
 use flowcore::errors::*;
 
@@ -17,37 +12,12 @@ use crate::gui::coordinator_message::{ClientMessage, CoordinatorMessage};
 
 pub struct Client {
     connection: ClientConnection,
-    args: Vec<String>,
-    override_args: Arc<Mutex<Vec<String>>>,
-    image_buffers: HashMap<String, ImageBuffer<Rgb<u8>, Vec<u8>>>,
-    display_metrics: bool,
 }
 
 impl Client {
     /// Create a new runtime client
     pub fn new(connection: ClientConnection) -> Self {
-        Client {
-            connection,
-            args: Vec::default(),
-            override_args: Arc::new(Mutex::new(vec!["".into()])),
-            image_buffers: HashMap::<String, ImageBuffer<Rgb<u8>, Vec<u8>>>::new(),
-            display_metrics: false
-        }
-    }
-
-    /// return a clone (reference) to the override args
-    pub fn override_args(&self) -> Arc<Mutex<Vec<String>>> {
-        self.override_args.clone()
-    }
-
-    /// Set the args to pass to the flow
-    pub fn set_args(&mut self, args: &[String]) {
-        self.args = args.to_vec();
-    }
-
-    /// Set or unset the flag to display metric
-    pub fn set_display_metrics(&mut self, display_metrics: bool) {
-        self.display_metrics = display_metrics;
+        Client { connection }
     }
 
     /// Enter a loop where we receive events as a client and respond to them
@@ -73,37 +43,19 @@ impl Client {
     }
 
     /// Send a message
-    pub fn send(&mut self, message: ClientMessage) -> Result<()> {
+    pub async fn send(&mut self, message: ClientMessage) -> Result<()> {
         self.connection.send(message)
-    }
-
-    fn flush_image_buffers(&mut self) {
-        for (filename, image_buffer) in self.image_buffers.drain() {
-            info!("Flushing ImageBuffer to file: {}", filename);
-            if let Err(e) = image_buffer.save_with_format(Path::new(&filename), ImageFormat::Png) {
-                error!("Error saving ImageBuffer '{}': '{}'", filename, e);
-            }
-        }
     }
 
     fn process_coordinator_message(&mut self, message: CoordinatorMessage) -> ClientMessage {
         match message {
-            CoordinatorMessage::FlowEnd(metrics) => {
-                debug!("=========================== Flow execution ended ======================================");
-                if self.display_metrics {
-                    println!("\nMetrics: \n {metrics}");
-                    let _ = io::stdout().flush();
-                }
-
-                self.flush_image_buffers();
+            CoordinatorMessage::FlowEnd(_) => {
                 ClientMessage::ClientExiting(Ok(()))
             }
             CoordinatorMessage::FlowStart => {
-                debug!("===========================    Starting flow execution =============================");
                 ClientMessage::Ack
             }
             CoordinatorMessage::CoordinatorExiting(result) => {
-                debug!("Coordinator is exiting");
                 ClientMessage::ClientExiting(result)
             }
             CoordinatorMessage::StdoutEof => ClientMessage::Ack,
@@ -115,11 +67,7 @@ impl Client {
                 ClientMessage::Ack
             }
             CoordinatorMessage::StderrEof => ClientMessage::Ack,
-            CoordinatorMessage::Stderr(contents) => {
-                let stderr = io::stderr();
-                let mut handle = stderr.lock();
-                let _ = handle.write_all(format!("{contents}\n").as_bytes());
-                let _ = io::stdout().flush();
+            CoordinatorMessage::Stderr(_) => {
                 ClientMessage::Ack
             }
             CoordinatorMessage::GetStdin => {
@@ -173,28 +121,11 @@ impl Client {
                     ClientMessage::Error(msg)
                 }
             },
-            CoordinatorMessage::PixelWrite((x, y), (r, g, b), (width, height), name) => {
-                let image = self
-                    .image_buffers
-                    .entry(name)
-                    .or_insert_with(|| RgbImage::new(width, height));
-                image.put_pixel(x, y, Rgb([r, g, b]));
+            CoordinatorMessage::PixelWrite(_, ..) => {
                 ClientMessage::Ack
             },
             CoordinatorMessage::GetArgs => {
-                if let Ok(override_args) = self.override_args.lock() {
-                    if override_args.is_empty() {
-                        ClientMessage::Args(self.args.clone())
-                    } else {
-                        // we want to retain arg[0] which is the flow name and replace  all others
-                        // with the override args supplied
-                        let mut one_time_args = vec!(self.args[0].clone());
-                        one_time_args.append(&mut override_args.to_vec());
-                        ClientMessage::Args(one_time_args)
-                    }
-                } else {
-                    ClientMessage::Args(self.args.clone())
-                }
+                ClientMessage::Args(vec![])
             },
             CoordinatorMessage::Invalid => ClientMessage::Ack,
         }
