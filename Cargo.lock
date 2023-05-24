@@ -1178,6 +1178,7 @@ dependencies = [
  "simpath",
  "simpdiscover",
  "tempdir",
+ "tokio",
  "url",
  "zmq",
 ]

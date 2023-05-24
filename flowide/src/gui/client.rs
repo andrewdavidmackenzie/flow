@@ -2,6 +2,7 @@ use std::fs::File;
 use std::io;
 use std::io::prelude::*;
 
+use iced::subscription::{self, Subscription};
 use log::debug;
 use log::error;
 
@@ -130,4 +131,19 @@ impl Client {
             CoordinatorMessage::Invalid => ClientMessage::Ack,
         }
     }
+}
+
+pub fn connect() -> Subscription<CoordinatorMessage> {
+    struct Connect;
+
+    subscription::channel(
+        std::any::TypeId::of::<Connect>(),
+        100,
+        |mut output| async move {
+            loop {
+                tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
+                let _ = output.try_send(CoordinatorMessage::Stdout("Hi".to_string()));
+            }
+        },
+    )
 }
