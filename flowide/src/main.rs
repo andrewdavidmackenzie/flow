@@ -50,6 +50,7 @@ use iced_aw::{TabLabel, Tabs};
 
 use crate::coordinator::GuiCoordinator;
 use crate::errors::*;
+use crate::gui::client;
 use crate::gui::client::Client;
 use crate::gui::coordinator_message::CoordinatorMessage;
 
@@ -70,11 +71,13 @@ mod errors;
 #[derive(Debug, Clone)]
 enum Message {
     CoordinatorFound((String, u16)), // coordinator_address, discovery_port
+    CoordinatorLost,
+    Coordinator(CoordinatorMessage), // Message received from Coordinator
     SubmitFlow,
     UrlChanged(String),
     FlowArgsChanged(String),
-    Coordinator(CoordinatorMessage), // Message received from Coordinator
     TabSelected(usize),
+    Submitted,
     Running,
 }
 
@@ -91,19 +94,6 @@ fn main() -> Result<()>{
         Ok(_) => exit(0),
     }
 }
-
-/*fn not_connected<'a>() -> Element<'a, Message> {
-    container(
-        text("Connecting...")
-            .horizontal_alignment(alignment::Horizontal::Center)
-            .size(50),
-    )
-        .width(Length::Fill)
-        .height(Length::Fill)
-        .center_y()
-        .center_x()
-        .into()
-}*/
 
 struct FlowSettings {
     flow_manifest_url: String,
@@ -124,6 +114,7 @@ struct FlowIde {
     stdout: Vec<String>,
     stderr: Vec<String>,
     running: bool,
+    submitted: bool,
     override_args: Arc<Mutex<Vec<String>>>,
     image_buffers: HashMap<String, ImageBuffer<Rgb<u8>, Vec<u8>>>,
 }
@@ -148,6 +139,7 @@ impl Application for FlowIde {
             active_tab: 0,
             stdout: Vec::new(),
             stderr: Vec::new(),
+            submitted: false,
             running: false,
             override_args: Arc::new(Mutex::new(vec!["".into()])),
             image_buffers: HashMap::<String, ImageBuffer<Rgb<u8>, Vec<u8>>>::new(),
@@ -184,7 +176,7 @@ impl Application for FlowIde {
                             coordinator_info.clone(),
                             self.settings.debug_this_flow,
                             self.flow_url().unwrap(),
-                            self.settings.parallel_jobs_limit), |_| Message::Running);
+                            self.settings.parallel_jobs_limit), |_| Message::Submitted);
                     },
                     Message::FlowArgsChanged(value) => self.settings.flow_args = value,
                     Message::UrlChanged(value) => self.settings.flow_manifest_url = value,
@@ -193,6 +185,8 @@ impl Application for FlowIde {
                         return self.process_coordinator_message(coord_msg),
                     Message::TabSelected(tab_index) => self.active_tab = tab_index,
                     Message::Running => self.running = true,
+                    Message::Submitted => self.submitted = true,
+                    Message::CoordinatorLost => self.gui_coordinator = GuiCoordinator::Unknown
                 }
         }
         Command::none()
@@ -213,16 +207,16 @@ impl Application for FlowIde {
             .into()
     }
 
+    /*
     fn subscription(&self) -> Subscription<Message> {
         iced::time::every(std::time::Duration::from_millis(1000)).map(|_| {
             Message::Coordinator(CoordinatorMessage::Stdout("Tick".into()))
         })
-    }
+    }*/
 
-    // TODO
-//    fn subscription(&self) -> Subscription<Message> {
-//        coordinator::connect().map(Message::CoordinatorMessage)
-//    }
+    fn subscription(&self) -> Subscription<Message> {
+        client::connect().map(Message::Coordinator)
+    }
 }
 
 // TODO move to a settings struct?
@@ -264,7 +258,7 @@ impl FlowIde {
             .on_input(Message::FlowArgsChanged);
         // TODO disable until loaded flow
         let mut play = Button::new("Play");
-        if !self.running {
+        if !self.running && !self.submitted {
             play = play.on_press(Message::SubmitFlow);
         }
         Row::new()
@@ -474,8 +468,12 @@ impl FlowIde {
                 }
                 Command::none()
             }
-            CoordinatorMessage::CoordinatorExiting(_) => Command::none(),
+            CoordinatorMessage::CoordinatorExiting(_) => {
+                // TODO update UI with loss of connection/detection of coordinator
+                Command::none()
+            },
             CoordinatorMessage::Stdout(string) => {
+                println!("{string}");
                 self.stdout.push(string);
                 Command::none()
             },
