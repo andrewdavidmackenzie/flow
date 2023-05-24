@@ -73,11 +73,6 @@ impl GuiCoordinator {
 
         Ok(())
     }
-
-    pub(crate) fn event_loop(mut client: Client) -> Result<()> {
-        trace!("Entering client event loop");
-        Ok(client.event_loop()?)
-    }
 }
 
 pub(crate) fn start(

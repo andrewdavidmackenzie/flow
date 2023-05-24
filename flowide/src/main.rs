@@ -32,11 +32,10 @@ use clap::Command as ClapCommand;
 use env_logger::Builder;
 use iced::{Alignment, Application, Command, Element, Length, Settings, Subscription, Theme};
 use iced::executor;
-use iced::futures::executor::block_on;
 use iced::widget::{Button, Column, container, Row, text, text_input};
 use iced::widget::scrollable::Scrollable;
 use image::{ImageBuffer, Rgb, RgbImage};
-use log::{info, LevelFilter, warn};
+use log::{info, LevelFilter, trace, warn};
 use log::error;
 use simpath::Simpath;
 use url::Url;
@@ -180,26 +179,12 @@ impl Application for FlowIde {
             GuiCoordinator::Found(ref coordinator_info) =>
                 match message {
                     Message::SubmitFlow => {
-                        // TODO start as a Command in background and send a Started message
-
-                        let client_connection = ClientConnection::new(&coordinator_info.0)
-                            .unwrap(); // TODO
-
-                        let mut client = Client::new(client_connection);
-
-                        if self.settings.debug_this_flow {
-                            // TODO the debug client gets a clone of the ref to the args so it can override them
-                            let _ = GuiCoordinator::debug_client(self.override_args.clone(),
-                                                                 coordinator_info.1);
-                        }
-
-                        let url = self.flow_url().unwrap(); // TODO
-                        // Submit the flow to the coordinator for execution using the
-                        let _ = block_on(GuiCoordinator::submit(&mut client,
-                                                        url,
-                                                  self.settings.parallel_jobs_limit,
-                                                  self.settings.debug_this_flow));
-                        let _ = GuiCoordinator::event_loop(client);
+                        return Command::perform(FlowIde::submit(
+                            self.override_args.clone(),
+                            coordinator_info.clone(),
+                            self.settings.debug_this_flow,
+                            self.flow_url().unwrap(),
+                            self.settings.parallel_jobs_limit), |_| Message::Running);
                     },
                     Message::FlowArgsChanged(value) => self.settings.flow_args = value,
                     Message::UrlChanged(value) => self.settings.flow_manifest_url = value,
@@ -207,7 +192,7 @@ impl Application for FlowIde {
                     Message::Coordinator(coord_msg) =>
                         return self.process_coordinator_message(coord_msg),
                     Message::TabSelected(tab_index) => self.active_tab = tab_index,
-                    Message::Running => {}
+                    Message::Running => self.running = true,
                 }
         }
         Command::none()
@@ -242,6 +227,33 @@ impl Application for FlowIde {
 
 // TODO move to a settings struct?
 impl FlowIde {
+    async fn submit(override_args: Arc<Mutex<Vec<String>>>,
+                    coordinator_info: (String, u16),
+                    debug_this_flow: bool,
+                    url: Url,
+                    parallel_jobs_limit: Option<usize>,
+    ) {
+        let client_connection = ClientConnection::new(&coordinator_info.0)
+            .unwrap(); // TODO
+
+        let mut client = Client::new(client_connection);
+
+        if debug_this_flow {
+            // TODO the debug client gets a clone of the ref to the args so it can override them
+            let _ = GuiCoordinator::debug_client(override_args,
+                                                 coordinator_info.1);
+        }
+
+        // Submit the flow to the coordinator for execution using the
+        let _ = GuiCoordinator::submit(&mut client,
+                                url,
+                                parallel_jobs_limit,
+                                debug_this_flow).await;
+
+        trace!("Entering client event loop");
+        let _ = client.event_loop();
+    }
+
     fn command_row<'a>(&self) -> Element<'a, Message> {
         // .on_submit(), .on_paste(), .width()
         let url = text_input("Flow location (relative, or absolute)",
