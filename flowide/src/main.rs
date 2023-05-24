@@ -86,7 +86,7 @@ fn main() -> Result<()>{
     }
 }
 
-fn not_connected<'a>() -> Element<'a, Message> {
+/*fn not_connected<'a>() -> Element<'a, Message> {
     container(
         text("Connecting...")
             .horizontal_alignment(alignment::Horizontal::Center)
@@ -97,7 +97,7 @@ fn not_connected<'a>() -> Element<'a, Message> {
         .center_y()
         .center_x()
         .into()
-}
+}*/
 
 struct FlowIde {
     flow_manifest_url: String,
@@ -110,6 +110,7 @@ struct FlowIde {
     lib_dirs: Vec<String>,
     gui_coordinator: GuiCoordinator,
     stdout: Vec<String>,
+    stderr: Vec<String>,
 }
 
 // Implement the iced Application trait for FlowIde
@@ -177,6 +178,7 @@ impl Application for FlowIde {
             num_threads,
             gui_coordinator: GuiCoordinator::Unknown,
             stdout: Vec::new(),
+            stderr: Vec::new(),
         };
 
         flowide.gui_coordinator = GuiCoordinator::Found(coordinator::start(flowide.num_threads,
@@ -238,30 +240,13 @@ impl Application for FlowIde {
     }
 
     fn view(&self) -> Element<Message> {
-        // .on_submit(), .on_paste(), .width()
-        let url = text_input("Flow location (relative, or absolute)",
-                             &self.flow_manifest_url)
-            .on_input(Message::UrlChanged);
-        let args = text_input("Space separated flow arguments",
-                              &self.flow_args)
-            .on_input(Message::FlowArgsChanged);
-        // TODO disable until loaded flow
-        let play = button("Play").on_press(Message::SubmitFlow);
-        let commands = Row::new()
-            .spacing(10)
-            .align_items(Alignment::End)
-            .push(url)
-            .push(args)
-            .push(play);
-
-        let coordinator = match &self.gui_coordinator {
-            GuiCoordinator::Unknown => not_connected(),
-            GuiCoordinator::Found(coordinator_info) => self.connected(coordinator_info),
+        if matches!(self.gui_coordinator, GuiCoordinator::Unknown) {
+            // TODO add a not connected message
         };
 
         let main = Column::new().spacing(10)
-            .push(commands)
-            .push(coordinator);
+            .push(self.command_row())
+            .push(self.stdio());
         container(main)
             .width(Length::Fill)
             .height(Length::Fill)
@@ -283,7 +268,25 @@ impl Application for FlowIde {
 
 // TODO move to a settings struct?
 impl FlowIde {
-    fn connected<'a>(&self, _coordinator_info: &(String, u16)) -> Element<'a, Message> {
+    fn command_row<'a>(&self) -> Element<'a, Message> {
+        // .on_submit(), .on_paste(), .width()
+        let url = text_input("Flow location (relative, or absolute)",
+                             &self.flow_manifest_url)
+            .on_input(Message::UrlChanged);
+        let args = text_input("Space separated flow arguments",
+                              &self.flow_args)
+            .on_input(Message::FlowArgsChanged);
+        // TODO disable until loaded flow
+        let play = button("Play").on_press(Message::SubmitFlow);
+        Row::new()
+            .spacing(10)
+            .align_items(Alignment::End)
+            .push(url)
+            .push(args)
+            .push(play).into()
+    }
+
+    fn stdio<'a>(&self) -> Element<'a, Message> {
         let stdout_col = Column::with_children(
             self.stdout
                 .iter()
@@ -410,7 +413,7 @@ impl FlowIde {
             CoordinatorMessage::FlowEnd(metrics) => {println!("{}", metrics)}
             CoordinatorMessage::CoordinatorExiting(_) => {}
             CoordinatorMessage::Stdout(string) => self.stdout.push(string),
-            CoordinatorMessage::Stderr(_) => {}
+            CoordinatorMessage::Stderr(string) => self.stderr.push(string),
             CoordinatorMessage::GetStdin => {}
             CoordinatorMessage::GetLine(_) => {}
             CoordinatorMessage::GetArgs => {}
