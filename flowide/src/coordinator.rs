@@ -53,7 +53,7 @@ impl GuiCoordinator {
         Ok(())
     }
 
-    pub(crate) fn submit(mut client: Client,
+    pub(crate) async fn submit(client: &mut Client,
                          url: Url,
                          parallel_jobs_limit: Option<usize>,
                          debug_this_flow: bool) -> Result<()> {
@@ -69,12 +69,14 @@ impl GuiCoordinator {
         );
 
         info!("Client sending submission to coordinator");
-        client.send(ClientMessage::ClientSubmission(submission))?;
-
-        trace!("Entering client event loop");
-        client.event_loop()?;
+        client.send(ClientMessage::ClientSubmission(submission)).await?;
 
         Ok(())
+    }
+
+    pub(crate) fn event_loop(mut client: Client) -> Result<()> {
+        trace!("Entering client event loop");
+        Ok(client.event_loop()?)
     }
 }
 

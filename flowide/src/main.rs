@@ -23,15 +23,19 @@
 
 use core::str::FromStr;
 use std::{env, thread};
+use std::collections::HashMap;
 use std::process::exit;
+use std::sync::{Arc, Mutex};
 
 use clap::{Arg, ArgMatches};
 use clap::Command as ClapCommand;
 use env_logger::Builder;
-use iced::{Alignment, alignment, Application, Command, Element, Length, Settings, Subscription, Theme};
+use iced::{Alignment, Application, Command, Element, Length, Settings, Subscription, Theme};
 use iced::executor;
-use iced::widget::{button, Column, container, Row, text, text_input};
+use iced::futures::executor::block_on;
+use iced::widget::{Button, Column, container, Row, text, text_input};
 use iced::widget::scrollable::Scrollable;
+use image::{ImageBuffer, Rgb, RgbImage};
 use log::{info, LevelFilter, warn};
 use log::error;
 use simpath::Simpath;
@@ -43,6 +47,7 @@ use gui::client_connection::ClientConnection;
 use gui::coordinator_connection::CoordinatorConnection;
 use gui::debug_message::DebugServerMessage;
 use gui::debug_message::DebugServerMessage::*;
+use iced_aw::{TabLabel, Tabs};
 
 use crate::coordinator::GuiCoordinator;
 use crate::errors::*;
@@ -70,6 +75,8 @@ enum Message {
     UrlChanged(String),
     FlowArgsChanged(String),
     Coordinator(CoordinatorMessage), // Message received from Coordinator
+    TabSelected(usize),
+    Running,
 }
 
 /// Main for flowide binary - call `run()` and print any error that results or exit silently if OK
@@ -99,7 +106,7 @@ fn main() -> Result<()>{
         .into()
 }*/
 
-struct FlowIde {
+struct FlowSettings {
     flow_manifest_url: String,
     flow_args: String,
     parallel_jobs_limit: Option<usize>, // TODO read from settings or UI
@@ -108,9 +115,18 @@ struct FlowIde {
     num_threads: usize,
     #[allow(dead_code)]
     lib_dirs: Vec<String>,
+    display_metrics: bool,
+}
+
+struct FlowIde {
+    settings: FlowSettings,
     gui_coordinator: GuiCoordinator,
+    active_tab: usize,
     stdout: Vec<String>,
     stderr: Vec<String>,
+    running: bool,
+    override_args: Arc<Mutex<Vec<String>>>,
+    image_buffers: HashMap<String, ImageBuffer<Rgb<u8>, Vec<u8>>>,
 }
 
 // Implement the iced Application trait for FlowIde
@@ -122,68 +138,25 @@ impl Application for FlowIde {
 
     /// Create the FlowIde app and populate fields with options passed on the command line
     fn new(_flags: ()) -> (Self, Command<Message>) {
-        let matches = Self::parse_cli_args();
+        let settings = FlowIde::parse_cli_options();
 
-        // init logging
-        let default = String::from("error");
-        let verbosity = matches.get_one::<String>("verbosity").unwrap_or(&default);
-        let level = LevelFilter::from_str(verbosity).unwrap_or(LevelFilter::Error);
-        let mut builder = Builder::from_default_env();
-        builder.filter_level(level).init();
-
-        info!("'{}' version {}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"));
-        info!("'flowrlib' version {}", flowrlib_info::version());
-
-        let lib_dirs = if matches.contains_id("lib_dir") {
-            matches
-                .get_many::<String>("lib_dir").unwrap() // TODO add to UI
-                .map(|s| s.to_string())
-                .collect()
-        } else {
-            vec![]
-        };
-
-        let lib_search_path = FlowIde::lib_search_path(&lib_dirs).unwrap(); // TODO
-
-        let flow_manifest_url =  matches.get_one::<String>("flow-manifest")
-            .unwrap_or(&"".into()).to_string();
-        let flow_args = match matches.get_many::<String>("flow-args") {
-            Some(values) => {
-                println!("values {:?}", values);
-                values.map(|s| s.to_string())
-                    .collect::<Vec<String>>().join(" ")
-            },
-            None => String::new()
-        };
-
-        // TODO read from settings or UI
-        let parallel_jobs_limit = matches.get_one::<usize>("jobs").map(|i| i.to_owned());
-
-        // TODO make a UI setting
-        let debug_this_flow = matches.get_flag("debugger");
-
-        // TODO make a UI setting
-        let native_flowstdlib = matches.get_flag("native");
-
-        // TODO make a UI setting
-        let num_threads = FlowIde::num_threads(&matches);
+        let lib_search_path = FlowIde::lib_search_path(&settings.lib_dirs)
+            .unwrap(); // TODO
 
         let mut flowide = FlowIde {
-            flow_manifest_url,
-            flow_args,
-            parallel_jobs_limit,
-            debug_this_flow,
-            native_flowstdlib,
-            lib_dirs,
-            num_threads,
+            settings,
             gui_coordinator: GuiCoordinator::Unknown,
+            active_tab: 0,
             stdout: Vec::new(),
             stderr: Vec::new(),
+            running: false,
+            override_args: Arc::new(Mutex::new(vec!["".into()])),
+            image_buffers: HashMap::<String, ImageBuffer<Rgb<u8>, Vec<u8>>>::new(),
         };
 
-        flowide.gui_coordinator = GuiCoordinator::Found(coordinator::start(flowide.num_threads,
+        flowide.gui_coordinator = GuiCoordinator::Found(coordinator::start(flowide.settings.num_threads,
                                                                            lib_search_path,
-                                                                           flowide.native_flowstdlib));
+                                                                           flowide.settings.native_flowstdlib));
 
         // TODO ability to connect to an already running coordinator. Maybe try and detect one?
         (flowide, Command::none())
@@ -213,27 +186,28 @@ impl Application for FlowIde {
                             .unwrap(); // TODO
 
                         let mut client = Client::new(client_connection);
-                        client.set_args(&self.flow_arg_vec());
-                        client.set_display_metrics(true);
 
-                        if self.debug_this_flow {
-                            let _ = GuiCoordinator::debug_client(client.override_args(),
+                        if self.settings.debug_this_flow {
+                            // TODO the debug client gets a clone of the ref to the args so it can override them
+                            let _ = GuiCoordinator::debug_client(self.override_args.clone(),
                                                                  coordinator_info.1);
                         }
 
                         let url = self.flow_url().unwrap(); // TODO
                         // Submit the flow to the coordinator for execution using the
-                        let _ = GuiCoordinator::submit(client,
+                        let _ = block_on(GuiCoordinator::submit(&mut client,
                                                         url,
-                                                  self.parallel_jobs_limit,
-                                                  self.debug_this_flow); // TODO
+                                                  self.settings.parallel_jobs_limit,
+                                                  self.settings.debug_this_flow));
+                        let _ = GuiCoordinator::event_loop(client);
                     },
-                    Message::FlowArgsChanged(value) => self.flow_args = value,
-                    Message::UrlChanged(value) => self.flow_manifest_url = value,
+                    Message::FlowArgsChanged(value) => self.settings.flow_args = value,
+                    Message::UrlChanged(value) => self.settings.flow_manifest_url = value,
                     Message::CoordinatorFound(_) => error!("Unexpected Message CoordinatorFound"),
-                    Message::Coordinator(coord_msg) => {
-                        self.process_coordinator_message(coord_msg)
-                    }
+                    Message::Coordinator(coord_msg) =>
+                        return self.process_coordinator_message(coord_msg),
+                    Message::TabSelected(tab_index) => self.active_tab = tab_index,
+                    Message::Running => {}
                 }
         }
         Command::none()
@@ -271,13 +245,16 @@ impl FlowIde {
     fn command_row<'a>(&self) -> Element<'a, Message> {
         // .on_submit(), .on_paste(), .width()
         let url = text_input("Flow location (relative, or absolute)",
-                             &self.flow_manifest_url)
+                             &self.settings.flow_manifest_url)
             .on_input(Message::UrlChanged);
         let args = text_input("Space separated flow arguments",
-                              &self.flow_args)
+                              &self.settings.flow_args)
             .on_input(Message::FlowArgsChanged);
         // TODO disable until loaded flow
-        let play = button("Play").on_press(Message::SubmitFlow);
+        let mut play = Button::new("Play");
+        if !self.running {
+            play = play.on_press(Message::SubmitFlow);
+        }
         Row::new()
             .spacing(10)
             .align_items(Alignment::End)
@@ -286,20 +263,82 @@ impl FlowIde {
             .push(play).into()
     }
 
-    fn stdio<'a>(&self) -> Element<'a, Message> {
-        let stdout_col = Column::with_children(
-            self.stdout
+    fn stdio_area<'a>(content: &[String]) -> Element<'a, Message> {
+        let text_column = Column::with_children(
+            content
                 .iter()
                 .cloned()
                 .map(text)
                 .map(Element::from)
                 .collect(),
-        ).padding(1);
-        let stdout_scroll = Scrollable::new(stdout_col);
-        let stdout_header = text("STDOUT");
-        Column::new().padding(5)
-            .push(stdout_header)
-            .push(stdout_scroll).into()
+            )
+            .padding(1);
+
+        Scrollable::new(text_column).into()
+    }
+
+    fn stdio<'a>(&self) -> Element<'a, Message> {
+        Tabs::new(self.active_tab, Message::TabSelected)
+            .push(TabLabel::Text("stdout".to_owned()), Self::stdio_area(&self.stdout))
+            .push(TabLabel::Text("stderr".to_owned()), Self::stdio_area(&self.stderr))
+            .into()
+    }
+
+    fn parse_cli_options() -> FlowSettings {
+        let matches = Self::parse_cli_args();
+
+        // init logging
+        let default = String::from("error");
+        let verbosity = matches.get_one::<String>("verbosity").unwrap_or(&default);
+        let level = LevelFilter::from_str(verbosity).unwrap_or(LevelFilter::Error);
+        let mut builder = Builder::from_default_env();
+        builder.filter_level(level).init();
+
+        info!("'{}' version {}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"));
+        info!("'flowrlib' version {}", flowrlib_info::version());
+
+        let lib_dirs = if matches.contains_id("lib_dir") {
+            matches
+                .get_many::<String>("lib_dir").unwrap() // TODO add to UI
+                .map(|s| s.to_string())
+                .collect()
+        } else {
+            vec![]
+        };
+
+        let flow_manifest_url = matches.get_one::<String>("flow-manifest")
+            .unwrap_or(&"".into()).to_string();
+        let flow_args = match matches.get_many::<String>("flow-args") {
+            Some(values) => {
+                println!("values {:?}", values);
+                values.map(|s| s.to_string())
+                    .collect::<Vec<String>>().join(" ")
+            },
+            None => String::new()
+        };
+
+        // TODO read from settings or UI
+        let parallel_jobs_limit = matches.get_one::<usize>("jobs").map(|i| i.to_owned());
+
+        // TODO make a UI setting
+        let debug_this_flow = matches.get_flag("debugger");
+
+        // TODO make a UI setting
+        let native_flowstdlib = matches.get_flag("native");
+
+        // TODO make a UI setting
+        let num_threads = FlowIde::num_threads(&matches);
+
+        FlowSettings {
+            flow_manifest_url,
+            flow_args,
+            parallel_jobs_limit,
+            debug_this_flow,
+            native_flowstdlib,
+            lib_dirs,
+            num_threads,
+            display_metrics: true,
+        }
     }
 
     /// Parse the command line arguments using clap
@@ -367,14 +406,14 @@ impl FlowIde {
     fn flow_url(&self) -> flowcore::errors::Result<Url> {
         let cwd_url = Url::from_directory_path(env::current_dir()?)
             .map_err(|_| "Could not form a Url for the current working directory")?;
-        url_from_string(&cwd_url, Some(&self.flow_manifest_url))
+        url_from_string(&cwd_url, Some(&self.settings.flow_manifest_url))
     }
 
     /// Create array of strings that are the args to the flow
     fn flow_arg_vec(&self) -> Vec<String> {
         // arg #0 is the flow url
-        let mut flow_args: Vec<String> = vec![self.flow_manifest_url.clone()];
-        let additional_args : Vec<String> = self.flow_args.split(' ')
+        let mut flow_args: Vec<String> = vec![self.settings.flow_manifest_url.clone()];
+        let additional_args : Vec<String> = self.settings.flow_args.split(' ')
             .map(|s| s.to_string()).collect();
         flow_args.extend(additional_args);
         flow_args
@@ -384,7 +423,8 @@ impl FlowIde {
     /// In order to find the content, a FLOW_LIB_PATH environment variable can be configured with a
     /// list of directories in which to look for the library in question.
     fn lib_search_path(search_path_additions: &[String]) -> Result<Simpath> {
-        let mut lib_search_path = Simpath::new_with_separator("FLOW_LIB_PATH", ',');
+        let mut lib_search_path = Simpath::new_with_separator("FLOW_LIB_PATH",
+                                                              ',');
 
         for additions in search_path_additions {
             lib_search_path.add(additions);
@@ -407,23 +447,71 @@ impl FlowIde {
         }
     }
 
-    fn process_coordinator_message(&mut self, message: CoordinatorMessage) {
+    // TODO merge this into the client and avoid the need for both
+    fn process_coordinator_message(&mut self, message: CoordinatorMessage) -> Command<Message> {
         match message {
-            CoordinatorMessage::FlowStart => {}
-            CoordinatorMessage::FlowEnd(metrics) => {println!("{}", metrics)}
-            CoordinatorMessage::CoordinatorExiting(_) => {}
-            CoordinatorMessage::Stdout(string) => self.stdout.push(string),
-            CoordinatorMessage::Stderr(string) => self.stderr.push(string),
-            CoordinatorMessage::GetStdin => {}
-            CoordinatorMessage::GetLine(_) => {}
-            CoordinatorMessage::GetArgs => {}
-            CoordinatorMessage::Read(_) => {}
-            CoordinatorMessage::Write(_, _) => {}
-            CoordinatorMessage::PixelWrite(_, _, _, _) => {}
-            CoordinatorMessage::StdoutEof => {}
-            CoordinatorMessage::StderrEof => {}
-            CoordinatorMessage::Invalid => {}
+            CoordinatorMessage::FlowStart => {
+                self.running = true;
+                Command::none()
+            },
+            CoordinatorMessage::FlowEnd(metrics) => {
+                self.running = false;
+                if self.settings.display_metrics {
+                    // TODO put on UI
+                    println!("{}", metrics);
+                }
+                Command::none()
+            }
+            CoordinatorMessage::CoordinatorExiting(_) => Command::none(),
+            CoordinatorMessage::Stdout(string) => {
+                self.stdout.push(string);
+                Command::none()
+            },
+            CoordinatorMessage::Stderr(string) => {
+                self.stderr.push(string);
+                Command::none()
+            },
+            CoordinatorMessage::GetStdin => {
+                // TODO read the buffer entirely and reset the cursor to after that text
+                // grey out the text read?
+                Command::none()
+            }
+            CoordinatorMessage::GetLine(_prompt) => {
+                // TODO print the prompt, read one line of input, move cursor and grey out text
+                Command::none()
+            }
+            CoordinatorMessage::GetArgs => {
+                let _args = self.flow_arg_vec();
+                /*
+                if let Ok(override_args) = self.override_args.lock() {
+                    if override_args.is_empty() {
+                        ClientMessage::Args(self.args.clone())
+                    } else {
+                        // we want to retain arg[0] which is the flow name and replace  all others
+                        // with the override args supplied
+                        let mut one_time_args = vec!(self.args[0].clone());
+                        one_time_args.append(&mut override_args.to_vec());
+                        ClientMessage::Args(one_time_args)
+                    }
+                } else {
+                    ClientMessage::Args(self.args.clone())
+                }
+                */
+                Command::none()
+            }
+            CoordinatorMessage::Read(_) => Command::none(),
+            CoordinatorMessage::Write(_, _) => Command::none(),
+            CoordinatorMessage::PixelWrite((x, y), (r, g, b), (width, height), name) => {
+                let image = self
+                    .image_buffers
+                    .entry(name)
+                    .or_insert_with(|| RgbImage::new(width, height));
+                image.put_pixel(x, y, Rgb([r, g, b]));
+                Command::none()
+            }
+            CoordinatorMessage::StdoutEof => Command::none(),
+            CoordinatorMessage::StderrEof => Command::none(),
+            CoordinatorMessage::Invalid => Command::none(),
         }
-
     }
 }
