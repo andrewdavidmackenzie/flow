@@ -28,7 +28,7 @@ use std::process::exit;
 use clap::{Arg, ArgMatches};
 use clap::Command as ClapCommand;
 use env_logger::Builder;
-use iced::{Alignment, alignment, Application, Command, Element, Length, Settings, Theme};
+use iced::{Alignment, alignment, Application, Command, Element, Length, Settings, Subscription, Theme};
 use iced::executor;
 use iced::widget::{button, Column, container, Row, text, text_input};
 use iced::widget::scrollable::Scrollable;
@@ -99,17 +99,6 @@ fn not_connected<'a>() -> Element<'a, Message> {
         .into()
 }
 
-fn connected<'a>(_coordinator_info: &(String, u16)) -> Element<'a, Message> {
-    let stdout = text("bla bla bla\nbla bla bla\nbla bla bla\nbla bla bla\n");
-    let stdout_col = Column::new().padding(5).push(stdout);
-    let stdout_scroll = Scrollable::new(stdout_col);
-    let stdout_header = text("STDOUT");
-    let stdout_outer = Column::new().padding(5)
-        .push(stdout_header)
-        .push(stdout_scroll);
-    stdout_outer.into()
-}
-
 struct FlowIde {
     flow_manifest_url: String,
     flow_args: String,
@@ -120,6 +109,7 @@ struct FlowIde {
     #[allow(dead_code)]
     lib_dirs: Vec<String>,
     gui_coordinator: GuiCoordinator,
+    stdout: Vec<String>,
 }
 
 // Implement the iced Application trait for FlowIde
@@ -185,7 +175,8 @@ impl Application for FlowIde {
             native_flowstdlib,
             lib_dirs,
             num_threads,
-            gui_coordinator: GuiCoordinator::Unknown
+            gui_coordinator: GuiCoordinator::Unknown,
+            stdout: Vec::new(),
         };
 
         flowide.gui_coordinator = GuiCoordinator::Found(coordinator::start(flowide.num_threads,
@@ -238,7 +229,8 @@ impl Application for FlowIde {
                     Message::FlowArgsChanged(value) => self.flow_args = value,
                     Message::UrlChanged(value) => self.flow_manifest_url = value,
                     Message::CoordinatorFound(_) => error!("Unexpected Message CoordinatorFound"),
-                    Message::Coordinator(_) => { // TODO process message from coordinator
+                    Message::Coordinator(coord_msg) => {
+                        self.process_coordinator_message(coord_msg)
                     }
                 }
         }
@@ -264,7 +256,7 @@ impl Application for FlowIde {
 
         let coordinator = match &self.gui_coordinator {
             GuiCoordinator::Unknown => not_connected(),
-            GuiCoordinator::Found(coordinator_info) => connected(coordinator_info),
+            GuiCoordinator::Found(coordinator_info) => self.connected(coordinator_info),
         };
 
         let main = Column::new().spacing(10)
@@ -277,6 +269,12 @@ impl Application for FlowIde {
             .into()
     }
 
+    fn subscription(&self) -> Subscription<Message> {
+        iced::time::every(std::time::Duration::from_millis(1000)).map(|_| {
+            Message::Coordinator(CoordinatorMessage::Stdout("Tick".into()))
+        })
+    }
+
     // TODO
 //    fn subscription(&self) -> Subscription<Message> {
 //        coordinator::connect().map(Message::CoordinatorMessage)
@@ -285,6 +283,22 @@ impl Application for FlowIde {
 
 // TODO move to a settings struct?
 impl FlowIde {
+    fn connected<'a>(&self, _coordinator_info: &(String, u16)) -> Element<'a, Message> {
+        let stdout_col = Column::with_children(
+            self.stdout
+                .iter()
+                .cloned()
+                .map(text)
+                .map(Element::from)
+                .collect(),
+        ).padding(1);
+        let stdout_scroll = Scrollable::new(stdout_col);
+        let stdout_header = text("STDOUT");
+        Column::new().padding(5)
+            .push(stdout_header)
+            .push(stdout_scroll).into()
+    }
+
     /// Parse the command line arguments using clap
     fn parse_cli_args() -> ArgMatches {
         let app = ClapCommand::new(env!("CARGO_PKG_NAME"))
@@ -388,5 +402,25 @@ impl FlowIde {
             Some(num_threads) => *num_threads,
             None => thread::available_parallelism().map(|n| n.get()).unwrap_or(1)
         }
+    }
+
+    fn process_coordinator_message(&mut self, message: CoordinatorMessage) {
+        match message {
+            CoordinatorMessage::FlowStart => {}
+            CoordinatorMessage::FlowEnd(metrics) => {println!("{}", metrics)}
+            CoordinatorMessage::CoordinatorExiting(_) => {}
+            CoordinatorMessage::Stdout(string) => self.stdout.push(string),
+            CoordinatorMessage::Stderr(_) => {}
+            CoordinatorMessage::GetStdin => {}
+            CoordinatorMessage::GetLine(_) => {}
+            CoordinatorMessage::GetArgs => {}
+            CoordinatorMessage::Read(_) => {}
+            CoordinatorMessage::Write(_, _) => {}
+            CoordinatorMessage::PixelWrite(_, _, _, _) => {}
+            CoordinatorMessage::StdoutEof => {}
+            CoordinatorMessage::StderrEof => {}
+            CoordinatorMessage::Invalid => {}
+        }
+
     }
 }
