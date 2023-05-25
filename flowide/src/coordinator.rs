@@ -1,41 +1,39 @@
 use std::path::PathBuf;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, mpsc, Mutex};
 use std::thread;
 
+use iced::{Subscription, subscription};
 use log::{info, trace};
 use portpicker::pick_unused_port;
-use simpath::Simpath;
 use url::Url;
 
 use flowcore::meta_provider::MetaProvider;
-use flowcore::model::flow_manifest::FlowManifest;
-use flowcore::model::submission::Submission;
 use flowcore::provider::Provider;
 use flowrlib::coordinator::Coordinator;
 use flowrlib::dispatcher::Dispatcher;
 use flowrlib::executor::Executor;
 use flowrlib::services::{CONTROL_SERVICE_NAME, JOB_QUEUES_DISCOVERY_PORT, JOB_SERVICE_NAME, RESULTS_JOB_SERVICE_NAME};
 
+use crate::{CoordinatorSettings, gui, Message};
 use crate::errors::*;
-use crate::gui;
-use crate::gui::client::Client;
-use crate::gui::client_connection::ClientConnection;
+//use crate::gui::client_connection::ClientConnection;
 use crate::gui::client_connection::discover_service;
 use crate::gui::coordinator_connection::{COORDINATOR_SERVICE_NAME, DEBUG_SERVICE_NAME,
                                          enable_service_discovery};
 use crate::gui::coordinator_connection::CoordinatorConnection;
-use crate::gui::coordinator_message::ClientMessage;
-use crate::gui::debug_client::DebugClient;
+use crate::gui::coordinator_message::{ClientMessage, CoordinatorMessage};
+//use crate::gui::debug_client::DebugClient;
 use crate::gui::debug_handler::CliDebugHandler;
 use crate::gui::submission_handler::CLISubmissionHandler;
 
 #[derive(Debug, Clone)]
 pub(crate) enum GuiCoordinator {
     Unknown,
-    Found((String, u16)), // coordinator_address, discovery_port
+    Found(mpsc::Sender<ClientMessage>),
 }
 
 impl GuiCoordinator {
+    /*
     pub(crate) fn debug_client(
         override_args: Arc<Mutex<Vec<String>>>,
         discovery_port: u16,
@@ -52,34 +50,83 @@ impl GuiCoordinator {
 
         Ok(())
     }
-
-    pub(crate) async fn submit(client: &mut Client,
-                         url: Url,
-                         parallel_jobs_limit: Option<usize>,
-                         debug_this_flow: bool) -> Result<()> {
-        let provider = &MetaProvider::new(Simpath::new(""),
-                                          PathBuf::default()) as &dyn Provider;
-
-        let (flow_manifest, _) = FlowManifest::load(provider, &url)?;
-        let submission = Submission::new(
-            flow_manifest,
-            parallel_jobs_limit,
-            None, // No timeout waiting for job results
-            debug_this_flow,
-        );
-
-        info!("Client sending submission to coordinator");
-        client.send(ClientMessage::ClientSubmission(submission)).await?;
-
-        Ok(())
-    }
+     */
 }
 
-pub(crate) fn start(
-    num_threads: usize,
-    lib_search_path: Simpath,
-    native_flowstdlib: bool,
-) -> (String, u16) {
+enum State {
+    Starting,
+    Ready(mpsc::Receiver<ClientMessage>),
+}
+
+// Creates an asynchronous worker that sends messages back and forth between the App and
+// the Coordinator
+pub fn connect(coordinator_settings: CoordinatorSettings) -> Subscription<Message> {
+    struct Connect;
+
+
+/*    /// Create a new runtime client
+    pub fn new(connection: ClientConnection) -> Self {
+        Client { connection }
+    }
+
+    /// Send a message
+    pub async fn send(&mut self, message: ClientMessage) -> Result<()> {
+        self.connection.send(message)
+    }
+
+*/
+//    let client_connection = ClientConnection::new(&coordinator_info.0)
+//        .unwrap(); // TODO
+//    let mut client = Client::new(client_connection);
+
+//    override_args: Arc<Mutex<Vec<String>>>,
+//    if debug_this_flow {
+//        // TODO the debug client gets a clone of the ref to the args so it can override them
+//        let _ = GuiCoordinator::debug_client(override_args,
+//                                             coordinator_info.1);
+//    }
+
+    let _coordinator_info = start(coordinator_settings);
+
+    subscription::channel(
+        std::any::TypeId::of::<Connect>(),
+        100,
+        |mut output| async move {
+            let mut state = State::Starting;
+
+            loop {
+                match &mut state {
+                    State::Starting => {
+                        // Create channel to get messages from the app
+                        let (sender, receiver) = mpsc::channel();
+
+                        // Send the sender back to the application so it can send us message
+                        let _ = output.try_send(Message::CoordinatorReady(sender));
+
+                        // We are ready to receive messages
+                        state = State::Ready(receiver);
+                    }
+                    State::Ready(_receiver) => {
+                        // Need to select from channel and zmq to be able to handle both, or
+                        // toggle between them?
+                        // TODO wait for a coordinator message OR an App message
+                        tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
+
+                        // Send the message to the App
+                        let _ = output.try_send(Message::CoordinatorSent(
+                            CoordinatorMessage::Stdout("Hi".to_string())));
+
+                        // read the response
+                        let response = _receiver.recv().unwrap(); // TODO
+                        println!("App responded with {response}");
+                    }
+                }
+            }
+        }
+    )
+}
+
+fn start(coordinator_settings: CoordinatorSettings) -> (String, u16) {
     let runtime_port = pick_unused_port().chain_err(|| "No ports free").unwrap(); // TODO
     let coordinator_connection = CoordinatorConnection::new(COORDINATOR_SERVICE_NAME,
                                                             runtime_port).unwrap(); // TODO
@@ -97,9 +144,7 @@ pub(crate) fn start(
     info!("Starting coordinator in background thread");
     thread::spawn(move || {
         let _ = coordinator_main(
-            num_threads,
-            lib_search_path,
-            native_flowstdlib,
+            coordinator_settings,
             coordinator_connection,
             debug_connection,
             false,
@@ -113,9 +158,7 @@ pub(crate) fn start(
 }
 
 fn coordinator_main(
-    num_threads: usize,
-    lib_search_path: Simpath,
-    native_flowstdlib: bool,
+    coordinator_settings: CoordinatorSettings,
     coordinator_connection: CoordinatorConnection,
     debug_connection: CoordinatorConnection,
     loop_forever: bool,
@@ -124,7 +167,7 @@ fn coordinator_main(
 
     let mut debug_server = CliDebugHandler { debug_server_connection: debug_connection };
 
-    let provider = Arc::new(MetaProvider::new(lib_search_path,
+    let provider = Arc::new(MetaProvider::new(coordinator_settings.lib_search_path,
                                               PathBuf::from("/"))) as Arc<dyn Provider>;
 
     let ports = get_four_ports()?;
@@ -142,14 +185,14 @@ fn coordinator_main(
     // if the command line options request loading native implementation of available native libs
     // if not, the native implementation is not loaded and later when a flow is loaded it's library
     // references will be resolved and those libraries (WASM implementations) will be loaded at runtime
-    if native_flowstdlib {
+    if coordinator_settings.native_flowstdlib {
         executor.add_lib(
             flowstdlib::manifest::get_manifest()
                 .chain_err(|| "Could not get 'native' flowstdlib manifest")?,
             Url::parse("memory://")? // Statically linked library has no resolved Url
         )?;
     }
-    executor.start(provider.clone(), num_threads,
+    executor.start(provider.clone(), coordinator_settings.num_threads,
                    &job_source_name,
                    &results_sink,
                    &control_socket,
