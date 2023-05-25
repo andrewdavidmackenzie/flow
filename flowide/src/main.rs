@@ -12,9 +12,9 @@
 //! that allow the flow program to interact with the environment where it is being run.
 //!
 //! Depending on the command line options supplied `flowide` executes the
-//! [Coordinator][flowrlib::coordinator::Coordinator] of flow execution in a background thread,
-//! or the [gui::client] in the main thread (where the interaction with STDIO and
-//! File System happens) or both. They communicate via network messages using the
+//! [Coordinator][flowrlib::coordinator::Coordinator] of flow execution in a background thread or
+//! connects to an already running coordinator in another process.
+//! Application and Coordinator (thread or process) communicate via network messages using the
 //! [SubmissionHandler][flowrlib::submission_handler::SubmissionHandler] to submit flows for execution,
 //! and interchanging [ClientMessages][crate::gui::coordinator_message::ClientMessage]
 //! and [CoordinatorMessages][crate::gui::coordinator_message::CoordinatorMessage] for execution of context
@@ -22,10 +22,13 @@
 //! [Executors][flowrlib::executor::Executor]
 
 use core::str::FromStr;
-use std::{env, thread};
+use std::{env, io, thread};
 use std::collections::HashMap;
+use std::io::prelude::*;
+use std::path::PathBuf;
 use std::process::exit;
-use std::sync::{Arc, Mutex};
+//use std::sync::{Arc, Mutex};
+use std::sync::mpsc;
 
 use clap::{Arg, ArgMatches};
 use clap::Command as ClapCommand;
@@ -35,14 +38,17 @@ use iced::executor;
 use iced::widget::{Button, Column, container, Row, text, text_input};
 use iced::widget::scrollable::Scrollable;
 use image::{ImageBuffer, Rgb, RgbImage};
-use log::{info, LevelFilter, trace, warn};
+use log::{info, LevelFilter, warn};
 use log::error;
 use simpath::Simpath;
 use url::Url;
 
+use flowcore::meta_provider::MetaProvider;
+use flowcore::model::flow_manifest::FlowManifest;
+use flowcore::model::submission::Submission;
+use flowcore::provider::Provider;
 use flowcore::url_helper::url_from_string;
 use flowrlib::info as flowrlib_info;
-use gui::client_connection::ClientConnection;
 use gui::coordinator_connection::CoordinatorConnection;
 use gui::debug_message::DebugServerMessage;
 use gui::debug_message::DebugServerMessage::*;
@@ -50,9 +56,7 @@ use iced_aw::{TabLabel, Tabs};
 
 use crate::coordinator::GuiCoordinator;
 use crate::errors::*;
-use crate::gui::client;
-use crate::gui::client::Client;
-use crate::gui::coordinator_message::CoordinatorMessage;
+use crate::gui::coordinator_message::{ClientMessage, CoordinatorMessage};
 
 /// provides the `context functions` for interacting with the execution environment from a flow,
 /// plus client-[Coordinator][flowrlib::coordinator::Coordinator] implementations of
@@ -67,17 +71,26 @@ mod coordinator;
 /// to get access to everything `error_chain` creates.
 mod errors;
 
-#[allow(dead_code)] // TODO send Coordinator found message and handle coordinator messages
+/// [Message] enum captures all the types of messages that are sent to and processed by the
+/// [FlowIde] Iced Application
 #[derive(Debug, Clone)]
-enum Message {
-    CoordinatorFound((String, u16)), // coordinator_address, discovery_port
+pub enum Message {
+    /// Coordinator is ready to accept message - with the Sender to use to send [ClientMessages]
+    /// to it
+    CoordinatorReady(mpsc::Sender<ClientMessage>),
+    /// We lost contact with the coordinator
     CoordinatorLost,
-    Coordinator(CoordinatorMessage), // Message received from Coordinator
-    SubmitFlow,
+    /// The Coordinator sent to the client/App a Coordinator Message
+    CoordinatorSent(CoordinatorMessage),
+    /// The UI has requested to submit the flow to the Coordinator for execution
+    SubmitFlow, // TODO put SubmissionSettings into this variant?
+    /// The Url of the flow to run has been edited by the UI
     UrlChanged(String),
+    /// The arguments to send to the flow when executed have been edited by the UI
     FlowArgsChanged(String),
+    /// A different tab of stdio has been selected
     TabSelected(usize),
-    Submitted,
+    /// The flow has started execution in the coordinator
     Running,
 }
 
@@ -95,27 +108,35 @@ fn main() -> Result<()>{
     }
 }
 
-struct FlowSettings {
+struct SubmissionSettings {
     flow_manifest_url: String,
     flow_args: String,
-    parallel_jobs_limit: Option<usize>, // TODO read from settings or UI
     debug_this_flow: bool,
-    native_flowstdlib: bool,
-    num_threads: usize,
-    #[allow(dead_code)]
-    lib_dirs: Vec<String>,
     display_metrics: bool,
+    parallel_jobs_limit: Option<usize>, // TODO read from settings or UI
+}
+
+/// [CoordinatorSettings] captures the parameters to be used when creating a new Coordinator
+#[derive(Clone)]
+pub struct CoordinatorSettings {
+    /// Should the coordinator use the natively linked flowstdlib library, or the wasm version
+    native_flowstdlib: bool,
+    /// How many executor threads should be used
+    num_threads: usize,
+    /// The path to search for libs when a lib reference is found
+    lib_search_path: Simpath,
 }
 
 struct FlowIde {
-    settings: FlowSettings,
+    flow_settings: SubmissionSettings,
+    coordinator_settings: CoordinatorSettings,
     gui_coordinator: GuiCoordinator,
     active_tab: usize,
     stdout: Vec<String>,
     stderr: Vec<String>,
     running: bool,
     submitted: bool,
-    override_args: Arc<Mutex<Vec<String>>>,
+//    override_args: Arc<Mutex<Vec<String>>>,
     image_buffers: HashMap<String, ImageBuffer<Rgb<u8>, Vec<u8>>>,
 }
 
@@ -130,30 +151,20 @@ impl Application for FlowIde {
     fn new(_flags: ()) -> (Self, Command<Message>) {
         let settings = FlowIde::parse_cli_options();
 
-        let lib_search_path = FlowIde::lib_search_path(&settings.lib_dirs)
-            .unwrap(); // TODO
-
-        let mut flowide = FlowIde {
-            settings,
+        let flowide = FlowIde {
+            flow_settings: settings.0,
+            coordinator_settings: settings.1,
             gui_coordinator: GuiCoordinator::Unknown,
             active_tab: 0,
             stdout: Vec::new(),
             stderr: Vec::new(),
             submitted: false,
             running: false,
-            override_args: Arc::new(Mutex::new(vec!["".into()])),
+//            override_args: Arc::new(Mutex::new(vec!["".into()])),
             image_buffers: HashMap::<String, ImageBuffer<Rgb<u8>, Vec<u8>>>::new(),
         };
 
-        flowide.gui_coordinator = GuiCoordinator::Found(coordinator::start(flowide.settings.num_threads,
-                                                                           lib_search_path,
-                                                                           flowide.settings.native_flowstdlib));
-
-        // TODO ability to connect to an already running coordinator. Maybe try and detect one?
         (flowide, Command::none())
-//         Command::perform(coordinator::start(num_threads,
-//                                             lib_search_path,
-//                                             native_flowstdlib), |_| Message::CoordinatorFound))
     }
 
     fn title(&self) -> String {
@@ -164,29 +175,28 @@ impl Application for FlowIde {
         match self.gui_coordinator {
             GuiCoordinator::Unknown => {
                 match message {
-                    Message::CoordinatorFound(coordinator_info) => self.gui_coordinator = GuiCoordinator::Found(coordinator_info),
+                    Message::CoordinatorReady(sender) => self.gui_coordinator =
+                        GuiCoordinator::Found(sender),
                     _ => error!("Unexpected message: {:?} when in Disconnected state", message),
                 }
             },
-            GuiCoordinator::Found(ref coordinator_info) =>
+            GuiCoordinator::Found(ref sender) =>
                 match message {
                     Message::SubmitFlow => {
-                        return Command::perform(FlowIde::submit(
-                            self.override_args.clone(),
-                            coordinator_info.clone(),
-                            self.settings.debug_this_flow,
+                        FlowIde::submit(sender,
+                            self.flow_settings.debug_this_flow,
                             self.flow_url().unwrap(),
-                            self.settings.parallel_jobs_limit), |_| Message::Submitted);
+                            self.flow_settings.parallel_jobs_limit);
+                            self.submitted = true;
                     },
-                    Message::FlowArgsChanged(value) => self.settings.flow_args = value,
-                    Message::UrlChanged(value) => self.settings.flow_manifest_url = value,
-                    Message::CoordinatorFound(_) => error!("Unexpected Message CoordinatorFound"),
-                    Message::Coordinator(coord_msg) =>
+                    Message::FlowArgsChanged(value) => self.flow_settings.flow_args = value,
+                    Message::UrlChanged(value) => self.flow_settings.flow_manifest_url = value,
+                    Message::CoordinatorReady(_) => error!("Unexpected Message CoordinatorReady"),
+                    Message::CoordinatorLost => self.gui_coordinator = GuiCoordinator::Unknown,
+                    Message::CoordinatorSent(coord_msg) =>
                         return self.process_coordinator_message(coord_msg),
                     Message::TabSelected(tab_index) => self.active_tab = tab_index,
                     Message::Running => self.running = true,
-                    Message::Submitted => self.submitted = true,
-                    Message::CoordinatorLost => self.gui_coordinator = GuiCoordinator::Unknown
                 }
         }
         Command::none()
@@ -207,54 +217,41 @@ impl Application for FlowIde {
             .into()
     }
 
-    /*
     fn subscription(&self) -> Subscription<Message> {
-        iced::time::every(std::time::Duration::from_millis(1000)).map(|_| {
-            Message::Coordinator(CoordinatorMessage::Stdout("Tick".into()))
-        })
-    }*/
-
-    fn subscription(&self) -> Subscription<Message> {
-        client::connect().map(Message::Coordinator)
+        coordinator::connect(self.coordinator_settings.clone())
     }
 }
 
-// TODO move to a settings struct?
 impl FlowIde {
-    async fn submit(override_args: Arc<Mutex<Vec<String>>>,
-                    coordinator_info: (String, u16),
+    fn submit(sender: &mpsc::Sender<ClientMessage>,
                     debug_this_flow: bool,
                     url: Url,
                     parallel_jobs_limit: Option<usize>,
     ) {
-        let client_connection = ClientConnection::new(&coordinator_info.0)
+        // Submit the flow to the coordinator for execution
+        let provider = &MetaProvider::new(Simpath::new(""),
+                                          PathBuf::default()) as &dyn Provider;
+
+        let (flow_manifest, _) = FlowManifest::load(provider, &url)
             .unwrap(); // TODO
+        let submission = Submission::new(
+            flow_manifest,
+            parallel_jobs_limit,
+            None, // No timeout waiting for job results
+            debug_this_flow,
+        );
 
-        let mut client = Client::new(client_connection);
-
-        if debug_this_flow {
-            // TODO the debug client gets a clone of the ref to the args so it can override them
-            let _ = GuiCoordinator::debug_client(override_args,
-                                                 coordinator_info.1);
-        }
-
-        // Submit the flow to the coordinator for execution using the
-        let _ = GuiCoordinator::submit(&mut client,
-                                url,
-                                parallel_jobs_limit,
-                                debug_this_flow).await;
-
-        trace!("Entering client event loop");
-        let _ = client.event_loop();
+        info!("Client sending submission to coordinator");
+        let _ = sender.send(ClientMessage::ClientSubmission(submission));
     }
 
     fn command_row<'a>(&self) -> Element<'a, Message> {
         // .on_submit(), .on_paste(), .width()
         let url = text_input("Flow location (relative, or absolute)",
-                             &self.settings.flow_manifest_url)
+                             &self.flow_settings.flow_manifest_url)
             .on_input(Message::UrlChanged);
         let args = text_input("Space separated flow arguments",
-                              &self.settings.flow_args)
+                              &self.flow_settings.flow_args)
             .on_input(Message::FlowArgsChanged);
         // TODO disable until loaded flow
         let mut play = Button::new("Play");
@@ -290,7 +287,7 @@ impl FlowIde {
             .into()
     }
 
-    fn parse_cli_options() -> FlowSettings {
+    fn parse_cli_options() -> (SubmissionSettings, CoordinatorSettings) {
         let matches = Self::parse_cli_args();
 
         // init logging
@@ -311,6 +308,9 @@ impl FlowIde {
         } else {
             vec![]
         };
+
+        let lib_search_path = FlowIde::lib_search_path(&lib_dirs)
+            .unwrap(); // TODO
 
         let flow_manifest_url = matches.get_one::<String>("flow-manifest")
             .unwrap_or(&"".into()).to_string();
@@ -335,16 +335,19 @@ impl FlowIde {
         // TODO make a UI setting
         let num_threads = FlowIde::num_threads(&matches);
 
-        FlowSettings {
+        (SubmissionSettings {
             flow_manifest_url,
             flow_args,
-            parallel_jobs_limit,
             debug_this_flow,
-            native_flowstdlib,
-            lib_dirs,
-            num_threads,
             display_metrics: true,
+            parallel_jobs_limit,
+        },
+         CoordinatorSettings {
+            num_threads,
+            native_flowstdlib,
+            lib_search_path,
         }
+        )
     }
 
     /// Parse the command line arguments using clap
@@ -412,14 +415,14 @@ impl FlowIde {
     fn flow_url(&self) -> flowcore::errors::Result<Url> {
         let cwd_url = Url::from_directory_path(env::current_dir()?)
             .map_err(|_| "Could not form a Url for the current working directory")?;
-        url_from_string(&cwd_url, Some(&self.settings.flow_manifest_url))
+        url_from_string(&cwd_url, Some(&self.flow_settings.flow_manifest_url))
     }
 
     /// Create array of strings that are the args to the flow
     fn flow_arg_vec(&self) -> Vec<String> {
         // arg #0 is the flow url
-        let mut flow_args: Vec<String> = vec![self.settings.flow_manifest_url.clone()];
-        let additional_args : Vec<String> = self.settings.flow_args.split(' ')
+        let mut flow_args: Vec<String> = vec![self.flow_settings.flow_manifest_url.clone()];
+        let additional_args : Vec<String> = self.flow_settings.flow_args.split(' ')
             .map(|s| s.to_string()).collect();
         flow_args.extend(additional_args);
         flow_args
@@ -453,45 +456,76 @@ impl FlowIde {
         }
     }
 
+    fn send(&mut self, msg: ClientMessage) {
+        if let GuiCoordinator::Found(ref sender) = self.gui_coordinator {
+            let _ = sender.send(msg);
+        }
+    }
+
     // TODO merge this into the client and avoid the need for both
     fn process_coordinator_message(&mut self, message: CoordinatorMessage) -> Command<Message> {
         match message {
             CoordinatorMessage::FlowStart => {
                 self.running = true;
-                Command::none()
+                self.send(ClientMessage::Ack);
             },
             CoordinatorMessage::FlowEnd(metrics) => {
                 self.running = false;
-                if self.settings.display_metrics {
+                if self.flow_settings.display_metrics {
                     // TODO put on UI
                     println!("{}", metrics);
                 }
-                Command::none()
+                self.send(ClientMessage::Ack);
             }
             CoordinatorMessage::CoordinatorExiting(_) => {
                 // TODO update UI with loss of connection/detection of coordinator
-                Command::none()
+                self.send(ClientMessage::Ack);
             },
             CoordinatorMessage::Stdout(string) => {
                 println!("{string}");
                 self.stdout.push(string);
-                Command::none()
+                self.send(ClientMessage::Ack);
             },
             CoordinatorMessage::Stderr(string) => {
                 self.stderr.push(string);
-                Command::none()
+                self.send(ClientMessage::Ack);
             },
             CoordinatorMessage::GetStdin => {
                 // TODO read the buffer entirely and reset the cursor to after that text
                 // grey out the text read?
-                Command::none()
+                let mut buffer = String::new();
+                let msg = if let Ok(size) = io::stdin().read_to_string(&mut buffer) {
+                    if size > 0 {
+                        ClientMessage::Stdin(buffer.trim().to_string())
+                    } else {
+                        ClientMessage::GetStdinEof
+                    }
+                } else {
+                    ClientMessage::Error("Could not read Stdin".into())
+                };
+                let _ = self.send(msg);
             }
-            CoordinatorMessage::GetLine(_prompt) => {
+            CoordinatorMessage::GetLine(prompt) => {
                 // TODO print the prompt, read one line of input, move cursor and grey out text
-                Command::none()
+                // If there is no text to pickup beyond the cursos then prompt the user for more
+                let mut input = String::new();
+                if !prompt.is_empty() {
+                    print!("{}", prompt);
+                    let _ = io::stdout().flush();
+                }
+                let line = io::stdin().lock().read_line(&mut input);
+                let msg = match line {
+                    Ok(n) if n > 0 => ClientMessage::Line(input.trim().to_string()),
+                    Ok(n) if n == 0 => ClientMessage::GetLineEof,
+                    _ => ClientMessage::Error("Could not read Readline".into()),
+                };
+                let _ = self.send(msg);
             }
             CoordinatorMessage::GetArgs => {
-                let _args = self.flow_arg_vec();
+                let args = self.flow_arg_vec();
+                let msg = ClientMessage::Args(args);
+                let _ = self.send(msg);
+
                 /*
                 if let Ok(override_args) = self.override_args.lock() {
                     if override_args.is_empty() {
@@ -507,21 +541,108 @@ impl FlowIde {
                     ClientMessage::Args(self.args.clone())
                 }
                 */
-                Command::none()
             }
-            CoordinatorMessage::Read(_) => Command::none(),
-            CoordinatorMessage::Write(_, _) => Command::none(),
+            CoordinatorMessage::Read(_) => {
+                self.send(ClientMessage::Ack);
+            },
+            CoordinatorMessage::Write(_, _) => {
+                self.send(ClientMessage::Ack);
+            },
             CoordinatorMessage::PixelWrite((x, y), (r, g, b), (width, height), name) => {
                 let image = self
                     .image_buffers
                     .entry(name)
                     .or_insert_with(|| RgbImage::new(width, height));
                 image.put_pixel(x, y, Rgb([r, g, b]));
-                Command::none()
+                self.send(ClientMessage::Ack);
             }
-            CoordinatorMessage::StdoutEof => Command::none(),
-            CoordinatorMessage::StderrEof => Command::none(),
-            CoordinatorMessage::Invalid => Command::none(),
+            _ => {},
         }
+        Command::none()
     }
 }
+
+/*
+
+    fn process_coordinator_message(&mut self, message: CoordinatorMessage) -> ClientMessage {
+        match message {
+            CoordinatorMessage::FlowEnd(_metrics) => {
+                // TODO display metrics
+                ClientMessage::Ack
+            },
+            CoordinatorMessage::FlowStart => ClientMessage::Ack,
+            CoordinatorMessage::CoordinatorExiting(_result) => {
+                // TODO display the metrics
+                ClientMessage::Ack
+            },
+            CoordinatorMessage::StdoutEof => ClientMessage::Ack,
+            CoordinatorMessage::Stdout(contents) => {
+                let stdout = io::stdout();
+                let mut handle = stdout.lock();
+                let _ = handle.write_all(format!("{contents}\n").as_bytes());
+                let _ = io::stdout().flush();
+                ClientMessage::Ack
+            }
+            CoordinatorMessage::StderrEof => ClientMessage::Ack,
+            CoordinatorMessage::Stderr(_) => ClientMessage::Ack,
+            CoordinatorMessage::GetStdin => {
+                let mut buffer = String::new();
+                if let Ok(size) = io::stdin().read_to_string(&mut buffer) {
+                    return if size > 0 {
+                        ClientMessage::Stdin(buffer.trim().to_string())
+                    } else {
+                        ClientMessage::GetStdinEof
+                    };
+                }
+                ClientMessage::Error("Could not read Stdin".into())
+            }
+            CoordinatorMessage::GetLine(prompt) => {
+                let mut input = String::new();
+                if !prompt.is_empty() {
+                    print!("{}", prompt);
+                    let _ = io::stdout().flush();
+                }
+                let line = io::stdin().lock().read_line(&mut input);
+                match line {
+                    Ok(n) if n > 0 => ClientMessage::Line(input.trim().to_string()),
+                    Ok(n) if n == 0 => ClientMessage::GetLineEof,
+                    _ => ClientMessage::Error("Could not read Readline".into()),
+                }
+            }
+            CoordinatorMessage::Read(file_path) => match File::open(&file_path) {
+                Ok(mut f) => {
+                    let mut buffer = Vec::new();
+                    match f.read_to_end(&mut buffer) {
+                        Ok(_) => ClientMessage::FileContents(file_path, buffer),
+                        Err(_) => ClientMessage::Error(format!(
+                            "Could not read content from '{file_path:?}'"
+                        )),
+                    }
+                }
+                Err(_) => ClientMessage::Error(format!("Could not open file '{file_path:?}'")),
+            },
+            CoordinatorMessage::Write(filename, bytes) => match File::create(&filename) {
+                Ok(mut file) => match file.write_all(bytes.as_slice()) {
+                    Ok(_) => ClientMessage::Ack,
+                    Err(e) => {
+                        let msg = format!("Error writing to file: '{filename}': '{e}'");
+                        error!("{msg}");
+                        ClientMessage::Error(msg)
+                    }
+                },
+                Err(e) => {
+                    let msg = format!("Error creating file: '{filename}': '{e}'");
+                    error!("{msg}");
+                    ClientMessage::Error(msg)
+                }
+            },
+            CoordinatorMessage::PixelWrite(_, ..) => {
+                ClientMessage::Ack
+            },
+            CoordinatorMessage::GetArgs => {
+                ClientMessage::Args(vec![])
+            },
+            CoordinatorMessage::Invalid => ClientMessage::Ack,
+        }
+    }
+ */
