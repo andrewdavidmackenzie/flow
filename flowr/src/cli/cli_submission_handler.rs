@@ -35,7 +35,8 @@ impl SubmissionHandler for CLISubmissionHandler {
         let _ = self.coordinator_connection
             .lock()
             .map_err(|_| "Could not lock coordinator connection")?
-            .send_and_receive_response::<CoordinatorMessage, ClientMessage>(CoordinatorMessage::FlowStart)?;
+            .send_and_receive_response::<CoordinatorMessage, ClientMessage>(
+                CoordinatorMessage::FlowStart)?;
 
         Ok(())
     }
