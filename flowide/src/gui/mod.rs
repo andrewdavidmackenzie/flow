@@ -25,6 +25,7 @@ pub mod submission_handler;
 pub(crate) mod coordinator_connection;
 #[allow(dead_code)]
 pub(crate) mod client_connection;
+pub mod client_message;
 pub mod coordinator_message;
 
 /// Return a `LibraryManifest` for the context functions

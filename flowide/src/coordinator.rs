@@ -17,45 +17,21 @@ use flowrlib::services::{CONTROL_SERVICE_NAME, JOB_QUEUES_DISCOVERY_PORT, JOB_SE
 use crate::{CoordinatorSettings, gui, Message};
 use crate::errors::*;
 //use crate::gui::client_connection::ClientConnection;
-use crate::gui::client_connection::discover_service;
+use crate::gui::client_connection::{ClientConnection, discover_service};
+use crate::gui::client_message::ClientMessage;
 use crate::gui::coordinator_connection::{COORDINATOR_SERVICE_NAME, DEBUG_SERVICE_NAME,
                                          enable_service_discovery};
 use crate::gui::coordinator_connection::CoordinatorConnection;
-use crate::gui::coordinator_message::{ClientMessage, CoordinatorMessage};
+use crate::gui::coordinator_message::CoordinatorMessage;
 //use crate::gui::debug_client::DebugClient;
 use crate::gui::debug_handler::CliDebugHandler;
 use crate::gui::submission_handler::CLISubmissionHandler;
+use crate::Message::CoordinatorSent;
 
 #[derive(Debug, Clone)]
-pub(crate) enum GuiCoordinator {
-    Unknown,
-    Found(mpsc::Sender<ClientMessage>),
-}
-
-impl GuiCoordinator {
-    /*
-    pub(crate) fn debug_client(
-        override_args: Arc<Mutex<Vec<String>>>,
-        discovery_port: u16,
-    ) -> Result<()> {
-        trace!("Creating Debug Client");
-        let debug_server_address = discover_service(discovery_port,
-                                                    DEBUG_SERVICE_NAME)?;
-        let debug_client_connection = ClientConnection::new(&debug_server_address)?;
-        let debug_client = DebugClient::new(debug_client_connection,
-                                            override_args);
-        let _ = thread::spawn(move || {
-            debug_client.debug_client_loop();
-        });
-
-        Ok(())
-    }
-     */
-}
-
-enum State {
-    Starting,
-    Ready(mpsc::Receiver<ClientMessage>),
+pub(crate) enum CoordinatorState {
+    Unconnected,
+    Connected(mpsc::SyncSender<ClientMessage>),
 }
 
 // Creates an asynchronous worker that sends messages back and forth between the App and
@@ -63,63 +39,50 @@ enum State {
 pub fn connect(coordinator_settings: CoordinatorSettings) -> Subscription<Message> {
     struct Connect;
 
-
-/*    /// Create a new runtime client
-    pub fn new(connection: ClientConnection) -> Self {
-        Client { connection }
-    }
-
-    /// Send a message
-    pub async fn send(&mut self, message: ClientMessage) -> Result<()> {
-        self.connection.send(message)
-    }
-
-*/
-//    let client_connection = ClientConnection::new(&coordinator_info.0)
-//        .unwrap(); // TODO
-//    let mut client = Client::new(client_connection);
-
-//    override_args: Arc<Mutex<Vec<String>>>,
-//    if debug_this_flow {
-//        // TODO the debug client gets a clone of the ref to the args so it can override them
-//        let _ = GuiCoordinator::debug_client(override_args,
-//                                             coordinator_info.1);
-//    }
-
-    let _coordinator_info = start(coordinator_settings);
+    // TODO maybe try discovering one and start if not...
+    let coordinator_info = start(coordinator_settings);
+    let coordinator_address = Arc::new(coordinator_info.0);
+    println!("Coordinator started: {}", &coordinator_address);
 
     subscription::channel(
         std::any::TypeId::of::<Connect>(),
         100,
-        |mut output| async move {
-            let mut state = State::Starting;
+        move |mut app_sender| {
+            let address = coordinator_address.clone();
+            async move {
+                let coordinator = ClientConnection::new(&address)
+                    .unwrap(); // TODO
 
-            loop {
-                match &mut state {
-                    State::Starting => {
-                        // Create channel to get messages from the app
-                        let (sender, receiver) = mpsc::channel();
+                // Create channel to get messages from the app
+                let (app_side_sender, app_receiver) =
+                    mpsc::sync_channel(100);
 
-                        // Send the sender back to the application so it can send us message
-                        let _ = output.try_send(Message::CoordinatorReady(sender));
+                // Send the Sender for that channel to the App in a Message,
+                // for App to use to send us messages
+                let _ = app_sender.try_send(Message::CoordinatorConnected(app_side_sender));
+                println!("Sent CoordinatorReady to App");
 
-                        // We are ready to receive messages
-                        state = State::Ready(receiver);
+                // If I don't do this - the app doesn't receive the message before panic below
+                tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
+
+                // try reading first ack
+                let _ = app_receiver.recv().unwrap();// TODO
+
+                loop {
+                    // read the message from the app to send to the coordinator
+                    match app_receiver.recv() {
+                        Ok(client_message) => {
+                            println!("App sent ClientMessage: {client_message}");
+                            coordinator.send(client_message).unwrap(); // TODO
+                        },
+                        Err(e) => eprintln!("Error: '{e}'"),
                     }
-                    State::Ready(_receiver) => {
-                        // Need to select from channel and zmq to be able to handle both, or
-                        // toggle between them?
-                        // TODO wait for a coordinator message OR an App message
-                        tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
 
-                        // Send the message to the App
-                        let _ = output.try_send(Message::CoordinatorSent(
-                            CoordinatorMessage::Stdout("Hi".to_string())));
-
-                        // read the response
-                        let response = _receiver.recv().unwrap(); // TODO
-                        println!("App responded with {response}");
-                    }
+                    // read the message back from the Coordinator
+                    let coordinator_message: CoordinatorMessage = coordinator.receive().unwrap(); // TODO
+                    println!("Coordinator sent: {coordinator_message}");
+                    // Forward the message to the App
+                    let _ = app_sender.try_send(CoordinatorSent(coordinator_message));
                 }
             }
         }
@@ -143,7 +106,7 @@ fn start(coordinator_settings: CoordinatorSettings) -> (String, u16) {
 
     info!("Starting coordinator in background thread");
     thread::spawn(move || {
-        let _ = coordinator_main(
+        let _ = coordinator(
             coordinator_settings,
             coordinator_connection,
             debug_connection,
@@ -157,7 +120,7 @@ fn start(coordinator_settings: CoordinatorSettings) -> (String, u16) {
     (coordinator_address, discovery_port)
 }
 
-fn coordinator_main(
+fn coordinator(
     coordinator_settings: CoordinatorSettings,
     coordinator_connection: CoordinatorConnection,
     debug_connection: CoordinatorConnection,
@@ -219,7 +182,6 @@ fn coordinator_main(
 
     Ok(coordinator.submission_loop(loop_forever)?)
 }
-
 
 // Return addresses and ports to be used for each of the three queues
 // - (general) job source
