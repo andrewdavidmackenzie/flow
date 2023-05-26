@@ -30,7 +30,7 @@ use crate::Message::CoordinatorSent;
 
 #[derive(Debug, Clone)]
 pub(crate) enum CoordinatorState {
-    Unconnected,
+    Disconnected,
     Connected(mpsc::SyncSender<ClientMessage>),
 }
 
@@ -39,28 +39,26 @@ pub(crate) enum CoordinatorState {
 pub fn connect(coordinator_settings: CoordinatorSettings) -> Subscription<Message> {
     struct Connect;
 
-    // TODO maybe try discovering one and start if not...
-    let coordinator_info = start(coordinator_settings);
-    let coordinator_address = Arc::new(coordinator_info.0);
-    println!("Coordinator started: {}", &coordinator_address);
-
     subscription::channel(
         std::any::TypeId::of::<Connect>(),
         100,
         move |mut app_sender| {
-            let address = coordinator_address.clone();
+            let settings = coordinator_settings.clone();
             async move {
-                let coordinator = ClientConnection::new(&address)
+                // TODO maybe try discovering one and start if not...
+                let coordinator_info = start(settings);
+                println!("Coordinator started: {}", coordinator_info.0);
+
+                let coordinator = ClientConnection::new(&coordinator_info.0)
                     .unwrap(); // TODO
 
                 // Create channel to get messages from the app
                 let (app_side_sender, app_receiver) =
                     mpsc::sync_channel(100);
 
-                // Send the Sender for that channel to the App in a Message,
-                // for App to use to send us messages
+                // Send the Sender to the App in a Message, for App to use to send us messages
                 let _ = app_sender.try_send(Message::CoordinatorConnected(app_side_sender));
-                println!("Sent CoordinatorReady to App");
+                println!("Sent CoordinatorConnected to App");
 
                 // If I don't do this - the app doesn't receive the message before panic below
                 tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;

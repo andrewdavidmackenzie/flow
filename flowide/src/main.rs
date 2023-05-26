@@ -16,7 +16,7 @@
 //! connects to an already running coordinator in another process.
 //! Application and Coordinator (thread or process) communicate via network messages using the
 //! [SubmissionHandler][flowrlib::submission_handler::SubmissionHandler] to submit flows for execution,
-//! and interchanging [ClientMessages][crate::gui::coordinator_message::ClientMessage]
+//! and interchanging [ClientMessages][crate::gui::client_message::ClientMessage]
 //! and [CoordinatorMessages][crate::gui::coordinator_message::CoordinatorMessage] for execution of context
 //! interaction in the client, as requested by functions running in the coordinator's
 //! [Executors][flowrlib::executor::Executor]
@@ -77,8 +77,8 @@ mod errors;
 /// [FlowIde] Iced Application
 #[derive(Debug, Clone)]
 pub enum Message {
-    /// Coordinator is ready to accept message - with the Sender to use to send [ClientMessages]
-    /// to it
+    /// Coordinator is ready to accept message - with the Sender to use to send
+    /// [ClientMessages][crate::gui::client_message::ClientMessage] to it
     CoordinatorConnected(mpsc::SyncSender<ClientMessage>),
     /// We lost contact with the coordinator
     CoordinatorDisconnected,
@@ -149,7 +149,7 @@ impl Application for FlowIde {
         let flowide = FlowIde {
             flow_settings: settings.0,
             coordinator_settings: settings.1,
-            gui_coordinator: CoordinatorState::Unconnected,
+            gui_coordinator: CoordinatorState::Disconnected,
             active_tab: 0,
             stdout: Vec::new(),
             stderr: Vec::new(),
@@ -168,10 +168,9 @@ impl Application for FlowIde {
     fn update(&mut self, message: Message) -> Command<Message> {
         println!("update() got '{:?}'", message);
         match &self.gui_coordinator {
-            CoordinatorState::Unconnected => {
+            CoordinatorState::Disconnected => {
                 match message {
                     Message::CoordinatorConnected(sender) => {
-                        println!("CoordinatorReady received in App");
                         self.gui_coordinator = CoordinatorState::Connected(sender);
                     },
                     _ => error!("Unexpected message: {:?} when GuiCoordinator Unknown state", message),
@@ -186,7 +185,7 @@ impl Application for FlowIde {
                     Message::FlowArgsChanged(value) => self.flow_settings.flow_args = value,
                     Message::UrlChanged(value) => self.flow_settings.flow_manifest_url = value,
                     Message::CoordinatorConnected(_) => error!("Unexpected Message CoordinatorReady"),
-                    Message::CoordinatorDisconnected => self.gui_coordinator = CoordinatorState::Unconnected,
+                    Message::CoordinatorDisconnected => self.gui_coordinator = CoordinatorState::Disconnected,
                     Message::CoordinatorSent(coord_msg) =>
                         return self.process_coordinator_message(coord_msg),
                     Message::TabSelected(tab_index) => self.active_tab = tab_index,
@@ -198,7 +197,7 @@ impl Application for FlowIde {
     }
 
     fn view(&self) -> Element<Message> {
-        if matches!(self.gui_coordinator, CoordinatorState::Unconnected) {
+        if matches!(self.gui_coordinator, CoordinatorState::Disconnected) {
             // TODO add a not connected message
         };
 
