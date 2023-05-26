@@ -105,6 +105,6 @@ impl CoordinatorConnection {
         trace!("                <--- Coordinator Sending {}", message);
         self.responder
             .send(&message.into(), 0)
-            .chain_err(|| format!("Coordinator error sending to client"))
+            .chain_err(|| "Coordinator error sending to client".to_string())
     }
 }
