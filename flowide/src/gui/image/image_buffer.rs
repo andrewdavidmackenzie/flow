@@ -5,8 +5,9 @@ use serde_json::Value;
 use flowcore::{Implementation, RUN_AGAIN, RunAgain};
 use flowcore::errors::*;
 
-use crate::gui::connections::CoordinatorConnection;
-use crate::gui::coordinator_message::{ClientMessage, CoordinatorMessage};
+use crate::gui::client_message::ClientMessage;
+use crate::gui::coordinator_connection::CoordinatorConnection;
+use crate::gui::coordinator_message::CoordinatorMessage;
 
 /// `Implementation` struct for the `image_buffer` function
 pub struct ImageBuffer {
@@ -50,7 +51,8 @@ mod test {
 
     use flowcore::{Implementation, RUN_AGAIN};
 
-    use crate::gui::coordinator_message::{ClientMessage, CoordinatorMessage};
+    use crate::gui::client_message::ClientMessage;
+    use crate::gui::coordinator_message::CoordinatorMessage;
     use crate::gui::test_helper::test::wait_for_then_send;
 
     use super::ImageBuffer;

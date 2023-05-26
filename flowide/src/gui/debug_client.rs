@@ -12,7 +12,7 @@ use flowrlib::debug_command::DebugCommand;
 use flowrlib::debug_command::DebugCommand::*;
 use flowrlib::run_state::{RunState, State};
 
-use crate::gui::connections::ClientConnection;
+use crate::gui::client_connection::ClientConnection;
 use crate::gui::debug_message::{DebugServerMessage, DebugServerMessage::*};
 
 const FLOWR_HISTORY_FILENAME: &str = ".flowr_history";
@@ -38,20 +38,19 @@ const HELP_STRING: &str = "Debugger commands:
 ";
 
 /*
-    A simple CLI (i.e. stdin and stdout) debug client that implements the DebugClient trait
-    defined in the flowrlib library.
+    A debug client that implements the DebugClient trait defined in the flowrlib library.
 */
-pub struct CliDebugClient {
+pub struct DebugClient {
     connection: ClientConnection,
     override_args: Arc<Mutex<Vec<String>>>,
     editor: Editor<(), DefaultHistory>,
     last_command: String,
 }
 
-impl CliDebugClient {
+impl DebugClient {
     /// Create a new debug client accepting the debug connection
     pub fn new(connection: ClientConnection, override_args: Arc<Mutex<Vec<String>>>) -> Self {
-        CliDebugClient {
+        DebugClient {
             connection,
             override_args,
             editor: DefaultEditor::new().expect("Could not create Editor"),

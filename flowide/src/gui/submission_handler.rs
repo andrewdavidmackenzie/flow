@@ -9,10 +9,10 @@ use flowcore::model::submission::Submission;
 use flowrlib::run_state::RunState;
 use flowrlib::submission_handler::SubmissionHandler;
 
-use crate::gui::connections::{DONT_WAIT, WAIT};
-use crate::gui::coordinator_message::ClientMessage;
-use crate::gui::coordinator_message::CoordinatorMessage;
 use crate::CoordinatorConnection;
+use crate::gui::client_message::ClientMessage;
+use crate::gui::coordinator_connection::{DONT_WAIT, WAIT};
+use crate::gui::coordinator_message::CoordinatorMessage;
 
 /// A [SubmissionHandler] to allow submitting flows for execution from the CLI
 pub(crate) struct CLISubmissionHandler {
@@ -30,12 +30,11 @@ impl CLISubmissionHandler {
 
 impl SubmissionHandler for CLISubmissionHandler {
     fn flow_execution_starting(&mut self) -> Result<()> {
-        let _ = self.coordinator_connection
+        self.coordinator_connection
             .lock()
             .map_err(|_| "Could not lock coordinator connection")?
-            .send_and_receive_response::<CoordinatorMessage, ClientMessage>(CoordinatorMessage::FlowStart)?;
-
-        Ok(())
+            .send_and_receive_response::<CoordinatorMessage, ClientMessage>(CoordinatorMessage::FlowStart)
+            .map(|_| ())
     }
 
     // See if the runtime client has sent a message to request us to enter the debugger,
@@ -86,7 +85,7 @@ impl SubmissionHandler for CLISubmissionHandler {
                             return Ok(Some(submission));
                         }
                         Ok(ClientMessage::ClientExiting(_)) => return Ok(None),
-                        Ok(r) => error!("Coordinator did not expect response from client: '{:?}'", r),
+                        Ok(r) => error!("Coordinator did not expect message from client: '{:?}'", r),
                         Err(e) => bail!("Coordinator error while waiting for submission: '{}'", e),
                     }
                 }

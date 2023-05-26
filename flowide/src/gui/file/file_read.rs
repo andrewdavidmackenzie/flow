@@ -5,8 +5,9 @@ use serde_json::{json, Value};
 use flowcore::{DONT_RUN_AGAIN, Implementation, RUN_AGAIN, RunAgain};
 use flowcore::errors::*;
 
-use crate::gui::connections::CoordinatorConnection;
-use crate::gui::coordinator_message::{ClientMessage, CoordinatorMessage};
+use crate::gui::client_message::ClientMessage;
+use crate::gui::coordinator_connection::CoordinatorConnection;
+use crate::gui::coordinator_message::CoordinatorMessage;
 
 /// `Implementation` struct for the `file_read` function
 pub struct FileRead {
@@ -45,7 +46,7 @@ mod test {
 
     use flowcore::{Implementation, RUN_AGAIN};
 
-    use crate::gui::coordinator_message::ClientMessage::FileContents;
+    use crate::gui::client_message::ClientMessage::FileContents;
     use crate::gui::coordinator_message::CoordinatorMessage;
     use crate::gui::file::file_read::FileRead;
     use crate::gui::test_helper::test::wait_for_then_send;

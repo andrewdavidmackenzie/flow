@@ -12,61 +12,53 @@
 //! that allow the flow program to interact with the environment where it is being run.
 //!
 //! Depending on the command line options supplied `flowide` executes the
-//! [Coordinator][flowrlib::coordinator::Coordinator] of flow execution in a background thread,
-//! or the [gui::cli_client] in the main thread (where the interaction with STDIO and
-//! File System happens) or both. They communicate via network messages using the
+//! [Coordinator][flowrlib::coordinator::Coordinator] of flow execution in a background thread or
+//! connects to an already running coordinator in another process.
+//! Application and Coordinator (thread or process) communicate via network messages using the
 //! [SubmissionHandler][flowrlib::submission_handler::SubmissionHandler] to submit flows for execution,
-//! and interchanging [ClientMessages][crate::gui::coordinator_message::ClientMessage]
+//! and interchanging [ClientMessages][crate::gui::client_message::ClientMessage]
 //! and [CoordinatorMessages][crate::gui::coordinator_message::CoordinatorMessage] for execution of context
 //! interaction in the client, as requested by functions running in the coordinator's
 //! [Executors][flowrlib::executor::Executor]
 
 use core::str::FromStr;
-use std::{env, thread};
+use std::{env, io, thread};
+use std::collections::HashMap;
+use std::fs::File;
+use std::io::prelude::*;
 use std::path::PathBuf;
-use std::process::exit;
-use std::sync::{Arc, Mutex};
+//use std::sync::{Arc, Mutex};
+use std::sync::mpsc;
 
 use clap::{Arg, ArgMatches};
 use clap::Command as ClapCommand;
 use env_logger::Builder;
-use log::{info, LevelFilter, trace, warn};
-use portpicker::pick_unused_port;
+use iced::{Alignment, Application, Command, Element, Length, Settings, Subscription, Theme};
+use iced::executor;
+use iced::widget::{Button, Column, container, Row, text, text_input};
+use iced::widget::scrollable::Scrollable;
+use image::{ImageBuffer, Rgb, RgbImage};
+use log::{info, LevelFilter, warn};
+use log::error;
 use simpath::Simpath;
 use url::Url;
 
-use gui::cli_client::CliRuntimeClient;
-use gui::cli_debug_client::CliDebugClient;
-use gui::cli_debug_handler::CliDebugHandler;
-use gui::cli_submission_handler::CLISubmissionHandler;
-use gui::connections::ClientConnection;
-use gui::connections::CoordinatorConnection;
-//use gui::coordinator_message::ClientMessage;
-use gui::debug_message::DebugServerMessage;
-use gui::debug_message::DebugServerMessage::*;
 use flowcore::meta_provider::MetaProvider;
 use flowcore::model::flow_manifest::FlowManifest;
 use flowcore::model::submission::Submission;
 use flowcore::provider::Provider;
 use flowcore::url_helper::url_from_string;
-use flowrlib::coordinator::Coordinator;
-use flowrlib::dispatcher::Dispatcher;
-use flowrlib::executor::Executor;
 use flowrlib::info as flowrlib_info;
-use flowrlib::services::{CONTROL_SERVICE_NAME, JOB_QUEUES_DISCOVERY_PORT, JOB_SERVICE_NAME,
-                         RESULTS_JOB_SERVICE_NAME};
+use gui::coordinator_connection::CoordinatorConnection;
+use gui::debug_message::DebugServerMessage;
+use gui::debug_message::DebugServerMessage::*;
 
-use crate::gui::connections::{COORDINATOR_SERVICE_NAME, DEBUG_SERVICE_NAME,
-                              discover_service, enable_service_discovery};
-
-use iced::{Alignment, Application, Command, Element, Length, Settings, Theme};
-use iced::widget::{button, Column, container, Row, text, text_input};
-
-use iced::executor;
-use iced::widget::scrollable::Scrollable;
-
+use crate::coordinator::CoordinatorState;
 use crate::errors::*;
-use crate::gui::coordinator_message::ClientMessage;
+use crate::gui::client_message::ClientMessage;
+use crate::gui::coordinator_message::CoordinatorMessage;
+
+//use iced_aw::{TabLabel, Tabs};
 
 /// provides the `context functions` for interacting with the execution environment from a flow,
 /// plus client-[Coordinator][flowrlib::coordinator::Coordinator] implementations of
@@ -74,50 +66,221 @@ use crate::gui::coordinator_message::ClientMessage;
 /// from the [Coordinator][flowrlib::coordinator::Coordinator]
 mod gui;
 
+/// module that runs a coordinator in background
+mod coordinator;
+
 /// provides [Error][errors::Error] that other modules in this crate will `use crate::errors::*;`
 /// to get access to everything `error_chain` creates.
 mod errors;
 
+/// [Message] enum captures all the types of messages that are sent to and processed by the
+/// [FlowIde] Iced Application
 #[derive(Debug, Clone)]
-enum Message {
-    Start,
+pub enum Message {
+    /// We lost contact with the coordinator
+    CoordinatorDisconnected,
+    /// The Coordinator sent to the client/App a Coordinator Message
+    CoordinatorSent(CoordinatorMessage),
+    /// The UI has requested to submit the flow to the Coordinator for execution
+    SubmitFlow, // TODO put SubmissionSettings into this variant?
+    /// The Url of the flow to run has been edited by the UI
     UrlChanged(String),
-    FlowArgsChanged(String)
-}
-
-struct FlowIde {
-    client: CliRuntimeClient,
-    flow_manifest_url: String,
-    flow_args: String,
-    parallel_jobs_limit: Option<usize>, // TODO read from settings or UI
-    // TODO add toggle for debug this flow
+    /// The arguments to send to the flow when executed have been edited by the UI
+    FlowArgsChanged(String),
+    /// A different tab of stdio has been selected
+    TabSelected(usize),
 }
 
 /// Main for flowide binary - call `run()` and print any error that results or exit silently if OK
-fn main() -> crate::errors::Result<()>{
-    match FlowIde::run(Settings {
+fn main() -> iced::Result {
+    FlowIde::run(Settings {
         antialiasing: true,
         ..Settings::default()
-    }) {
-        Err(ref e) => {
-            eprintln!("{e}");
-            exit(1);
-        }
-        Ok(_) => exit(0),
-    }
+    })
 }
 
+struct SubmissionSettings {
+    flow_manifest_url: String,
+    flow_args: String,
+    debug_this_flow: bool,
+    display_metrics: bool,
+    parallel_jobs_limit: Option<usize>, // TODO read from settings or UI
+}
+
+/// [CoordinatorSettings] captures the parameters to be used when creating a new Coordinator
+#[derive(Clone)]
+pub struct CoordinatorSettings {
+    /// Should the coordinator use the natively linked flowstdlib library, or the wasm version
+    native_flowstdlib: bool,
+    /// How many executor threads should be used
+    num_threads: usize,
+    /// The path to search for libs when a lib reference is found
+    lib_search_path: Simpath,
+}
+
+struct FlowIde {
+    flow_settings: SubmissionSettings,
+    coordinator_settings: CoordinatorSettings,
+    gui_coordinator: CoordinatorState,
+    active_tab: usize,
+    stdout: Vec<String>,
+    stderr: Vec<String>,
+    running: bool,
+    submitted: bool,
+    image_buffers: HashMap<String, ImageBuffer<Rgb<u8>, Vec<u8>>>,
+}
+
+// Implement the iced Application trait for FlowIde
 impl Application for FlowIde {
     type Executor = executor::Default;
     type Message = Message;
     type Theme = Theme;
     type Flags = ();
 
+    /// Create the FlowIde app and populate fields with options passed on the command line
     fn new(_flags: ()) -> (Self, Command<Message>) {
-        // TODO return a command that does much of this in background
-        // Maybe parse the command line args here inline
-        let matches = Self::get_matches();
+        let settings = FlowIde::initial_settings();
 
+        let flowide = FlowIde {
+            flow_settings: settings.0,
+            coordinator_settings: settings.1,
+            gui_coordinator: CoordinatorState::Disconnected,
+            active_tab: 0,
+            stdout: Vec::new(),
+            stderr: Vec::new(),
+            submitted: false,
+            running: false,
+            image_buffers: HashMap::<String, ImageBuffer<Rgb<u8>, Vec<u8>>>::new(),
+        };
+
+        (flowide, Command::none())
+    }
+
+    fn title(&self) -> String {
+        String::from("FlowIde")
+    }
+
+    fn update(&mut self, message: Message) -> Command<Message> {
+        match &self.gui_coordinator {
+            CoordinatorState::Disconnected => {
+                match message {
+                    Message::CoordinatorSent(CoordinatorMessage::Connected(sender)) => {
+                        self.gui_coordinator = CoordinatorState::Connected(sender);
+                    },
+                    _ => error!("Unexpected message: {:?} when Coordinator Disconnected", message),
+                }
+            },
+            CoordinatorState::Connected(sender) => {
+                match message {
+                    Message::SubmitFlow => {
+                        self.submit(sender);
+                        self.submitted = true;
+                    },
+                    Message::FlowArgsChanged(value) => self.flow_settings.flow_args = value,
+                    Message::UrlChanged(value) => self.flow_settings.flow_manifest_url = value,
+                    Message::CoordinatorDisconnected => self.gui_coordinator = CoordinatorState::Disconnected,
+                    Message::CoordinatorSent(coord_msg) =>
+                        return self.process_coordinator_message(coord_msg),
+                    Message::TabSelected(tab_index) => self.active_tab = tab_index,
+                }
+            }
+        }
+        Command::none()
+    }
+
+    fn view(&self) -> Element<Message> {
+        if matches!(self.gui_coordinator, CoordinatorState::Disconnected) {
+            // TODO add a not connected message
+        };
+
+        let main = Column::new().spacing(10)
+            .push(self.command_row())
+            .push(self.stdio());
+        container(main)
+            .width(Length::Fill)
+            .height(Length::Fill)
+            .padding(10)
+            .into()
+    }
+
+    fn subscription(&self) -> Subscription<Message> {
+        println!("Subscription called");
+        coordinator::subscribe(self.coordinator_settings.clone())
+            .map(Message::CoordinatorSent)
+    }
+}
+
+impl FlowIde {
+    // Submit the flow to the coordinator for execution
+    fn submit(&self, sender: &mpsc::SyncSender<ClientMessage>) {
+        let provider = &MetaProvider::new(Simpath::new(""),
+                                          PathBuf::default()) as &dyn Provider;
+
+        let (flow_manifest, _) = FlowManifest::load(provider,
+                                                    &self.flow_url().unwrap())
+            .unwrap(); // TODO
+        let submission = Submission::new(
+            flow_manifest,
+            self.flow_settings.parallel_jobs_limit,
+            None, // No timeout waiting for job results
+            self.flow_settings.debug_this_flow,
+        );
+
+        info!("Sending submission to Coordinator");
+        let _ = sender.send(ClientMessage::ClientSubmission(submission));
+    }
+
+    fn command_row<'a>(&self) -> Element<'a, Message> {
+        // .on_submit(), .on_paste(), .width()
+        let url = text_input("Flow location (relative, or absolute)",
+                             &self.flow_settings.flow_manifest_url)
+            .on_input(Message::UrlChanged);
+        let args = text_input("Space separated flow arguments",
+                              &self.flow_settings.flow_args)
+            .on_input(Message::FlowArgsChanged);
+        // TODO disable until loaded flow
+        let mut play = Button::new("Play");
+        if  matches!(self.gui_coordinator, CoordinatorState::Connected(_)) && !self.running && !self.submitted {
+            play = play.on_press(Message::SubmitFlow);
+        }
+        Row::new()
+            .spacing(10)
+            .align_items(Alignment::End)
+            .push(url)
+            .push(args)
+            .push(play).into()
+    }
+
+    fn stdio_area<'a>(content: &[String]) -> Element<'a, Message> {
+        let text_column = Column::with_children(
+            content
+                .iter()
+                .cloned()
+                .map(text)
+                .map(Element::from)
+                .collect(),
+            )
+            .width(Length::Fill)
+            .padding(1);
+
+        Scrollable::new(text_column).into()
+    }
+
+    fn stdio<'a>(&self) -> Element<'a, Message> {
+        /*
+        Tabs::new(self.active_tab, Message::TabSelected)
+            .push(TabLabel::Text("stdout".to_owned()), Self::stdio_area(&self.stdout))
+            .push(TabLabel::Text("stderr".to_owned()), Self::stdio_area(&self.stderr))
+            .into()
+         */
+        Self::stdio_area(&self.stdout)
+    }
+
+    // Create initial Settings structs for Submission and Coordinator from the CLI options
+    fn initial_settings() -> (SubmissionSettings, CoordinatorSettings) {
+        let matches = Self::parse_cli_args();
+
+        // init logging
         let default = String::from("error");
         let verbosity = matches.get_one::<String>("verbosity").unwrap_or(&default);
         let level = LevelFilter::from_str(verbosity).unwrap_or(LevelFilter::Error);
@@ -136,14 +299,10 @@ impl Application for FlowIde {
             vec![]
         };
 
-        let client = Self::client_and_coordinator(
-            Self::num_threads(&matches),
-            Self::get_lib_search_path(&lib_dirs).unwrap(), // TODO
-            matches.get_flag("native"),
-            matches.get_flag("debugger"),
-        ).unwrap(); // TODO
+        let lib_search_path = FlowIde::lib_search_path(&lib_dirs)
+            .unwrap(); // TODO
 
-        let flow_manifest_url =  matches.get_one::<String>("flow-manifest")
+        let flow_manifest_url = matches.get_one::<String>("flow-manifest")
             .unwrap_or(&"".into()).to_string();
         let flow_args = match matches.get_many::<String>("flow-args") {
             Some(values) => {
@@ -154,303 +313,35 @@ impl Application for FlowIde {
             None => String::new()
         };
 
-        let flowide = FlowIde {
-            client,
+        // TODO read from settings or UI
+        let parallel_jobs_limit = matches.get_one::<usize>("jobs").map(|i| i.to_owned());
+
+        // TODO make a UI setting
+        let debug_this_flow = matches.get_flag("debugger");
+
+        // TODO make a UI setting
+        let native_flowstdlib = matches.get_flag("native");
+
+        // TODO make a UI setting
+        let num_threads = FlowIde::num_threads(&matches);
+
+        (SubmissionSettings {
             flow_manifest_url,
             flow_args,
-            parallel_jobs_limit: matches.get_one::<usize>("jobs").map(|i| i.to_owned())
-        };
-
-        (flowide, Command::none())
-    }
-
-    fn title(&self) -> String {
-        String::from("FlowIde")
-    }
-
-    fn update(&mut self, message: Message) -> Command<Message> {
-        match message {
-            Message::Start => {
-                let _ = self.submit(false);
-            },
-            Message::FlowArgsChanged(value) => self.flow_args = value,
-            Message::UrlChanged(value) => self.flow_manifest_url = value,
-        }
-        Command::none()
-    }
-
-    fn view(&self) -> Element<Message> {
-        // .on_input(), .on_submit(), .on_paste(), .width()
-        let url = text_input("Flow location (relative, or absolute)",
-                             &self.flow_manifest_url.to_string())
-            .on_input(Message::UrlChanged);
-        let args = text_input("Space separated flow arguments",
-                              &self.flow_args)
-            .on_input(Message::FlowArgsChanged);
-        let play = button("Play").on_press(Message::Start);
-        let commands = Row::new()
-            .spacing(10)
-            .align_items(Alignment::End)
-            .push(url)
-            .push(args)
-            .push(play);
-        let stdout = text("bla bla bla");
-        let stdout_col = Column::new().padding(5).push(stdout);
-        let stdout_scroll = Scrollable::new(stdout_col);
-        let stdout_header = text("STDOUT");
-        let stdout_outer = Column::new().padding(5)
-            .push(stdout_header)
-            .push(stdout_scroll);
-        let main = Column::new().spacing(10)
-            .push(commands)
-            .push(stdout_outer);
-        container(main)
-            .width(Length::Fill)
-            .height(Length::Fill)
-            .padding(10)
-            .into()
-    }
-}
-
-impl FlowIde {
-    /// For the lib provider, libraries maybe installed in multiple places in the file system.
-    /// In order to find the content, a FLOW_LIB_PATH environment variable can be configured with a
-    /// list of directories in which to look for the library in question.
-    fn get_lib_search_path(search_path_additions: &[String]) -> crate::errors::Result<Simpath> {
-        let mut lib_search_path = Simpath::new_with_separator("FLOW_LIB_PATH", ',');
-
-        for additions in search_path_additions {
-            lib_search_path.add(additions);
-            info!("'{}' added to the Library Search Path", additions);
-        }
-
-        if lib_search_path.is_empty() {
-            warn!("'$FLOW_LIB_PATH' not set and no LIB_DIRS supplied. Libraries may not be found.");
-        }
-
-        Ok(lib_search_path)
-    }
-
-    /// Start a [Coordinator][flowrlib::coordinator::Coordinator] in a background thread,
-    /// then start a client in the calling thread
-    fn client_and_coordinator(
-        num_threads: usize,
-        lib_search_path: Simpath,
-        native_flowstdlib: bool,
-        debug_this_flow: bool,
-    ) -> Result<CliRuntimeClient> {
-        let runtime_port = pick_unused_port().chain_err(|| "No ports free")?;
-        let coordinator_connection = CoordinatorConnection::new(COORDINATOR_SERVICE_NAME,
-                                                                runtime_port)?;
-
-        let discovery_port = pick_unused_port().chain_err(|| "No ports free")?;
-        enable_service_discovery(discovery_port, COORDINATOR_SERVICE_NAME, runtime_port)?;
-
-        let debug_port = pick_unused_port().chain_err(|| "No ports free")?;
-        let debug_connection = CoordinatorConnection::new(DEBUG_SERVICE_NAME,
-                                                          debug_port)?;
-        enable_service_discovery(discovery_port, DEBUG_SERVICE_NAME, debug_port)?;
-
-        info!("Starting coordinator in background thread");
-        thread::spawn(move || {
-            let _ = Self::coordinator(
-                num_threads,
-                lib_search_path,
-                native_flowstdlib,
-                coordinator_connection,
-                debug_connection,
-                false,
-            );
-        });
-
-        let coordinator_address = discover_service(discovery_port, COORDINATOR_SERVICE_NAME)?;
-
-        Self::client(
-            ClientConnection::new(&coordinator_address)?,
             debug_this_flow,
-            discovery_port,
-        )
-    }
-
-    /// Create a new `Coordinator`, pre-load any libraries in native format that we want to have before
-    /// loading a flow and it's library references, then enter the `submission_loop()` accepting and
-    /// executing flows submitted for execution, executing each one using the `Coordinator`
-    fn coordinator(
-        num_threads: usize,
-        lib_search_path: Simpath,
-        native_flowstdlib: bool,
-        coordinator_connection: CoordinatorConnection,
-        debug_connection: CoordinatorConnection,
-        loop_forever: bool,
-    ) -> Result<()> {
-        let connection = Arc::new(Mutex::new(coordinator_connection));
-
-        let mut debug_server = CliDebugHandler { debug_server_connection: debug_connection };
-
-        let provider = Arc::new(MetaProvider::new(lib_search_path,
-                                                  PathBuf::from("/"))) as Arc<dyn Provider>;
-
-        let ports = Self::get_four_ports()?;
-        trace!("Announcing three job queues and a control socket on ports: {ports:?}");
-        let job_queues = Self::get_bind_addresses(ports);
-        let dispatcher = Dispatcher::new(job_queues)?;
-        enable_service_discovery(JOB_QUEUES_DISCOVERY_PORT, JOB_SERVICE_NAME, ports.0)?;
-        enable_service_discovery(JOB_QUEUES_DISCOVERY_PORT, RESULTS_JOB_SERVICE_NAME, ports.2)?;
-        enable_service_discovery(JOB_QUEUES_DISCOVERY_PORT, CONTROL_SERVICE_NAME, ports.3)?;
-
-        let (job_source_name, context_job_source_name, results_sink, control_socket) =
-            Self::get_connect_addresses(ports);
-
-        let mut executor = Executor::new()?;
-        // if the command line options request loading native implementation of available native libs
-        // if not, the native implementation is not loaded and later when a flow is loaded it's library
-        // references will be resolved and those libraries (WASM implementations) will be loaded at runtime
-        if native_flowstdlib {
-            executor.add_lib(
-                flowstdlib::manifest::get_manifest()
-                    .chain_err(|| "Could not get 'native' flowstdlib manifest")?,
-                Url::parse("memory://")? // Statically linked library has no resolved Url
-            )?;
+            display_metrics: true,
+            parallel_jobs_limit,
+        },
+         CoordinatorSettings {
+            num_threads,
+            native_flowstdlib,
+            lib_search_path,
         }
-        executor.start(provider.clone(), num_threads,
-                       &job_source_name,
-                       &results_sink,
-                       &control_socket,
-        );
-
-        let mut context_executor = Executor::new()?;
-        context_executor.add_lib(
-            gui::get_manifest(connection.clone())?,
-            Url::parse("memory://")? // Statically linked library has no resolved Url
-        )?;
-        context_executor.start(provider, 1,
-                               &context_job_source_name,
-                               &results_sink,
-                               &control_socket,
-        );
-
-        let mut submitter = CLISubmissionHandler::new(connection);
-
-        let mut coordinator = Coordinator::new(
-            dispatcher,
-            &mut submitter,
-            &mut debug_server
-        )?;
-
-        Ok(coordinator.submission_loop(loop_forever)?)
-    }
-
-    /// Create the client that talks to the coordinator
-    fn client(
-        runtime_client_connection: ClientConnection,
-        debug_this_flow: bool,
-        discovery_post: u16,
-    ) -> Result<CliRuntimeClient> {
-        trace!("Creating CliRuntimeClient");
-        let client = CliRuntimeClient::new(runtime_client_connection);
-
-        if debug_this_flow {
-            let debug_server_address = discover_service(discovery_post,
-                                                        DEBUG_SERVICE_NAME)?;
-            let debug_client_connection = ClientConnection::new(&debug_server_address)?;
-            let debug_client = CliDebugClient::new(debug_client_connection,
-                                                   client.override_args());
-            let _ = thread::spawn(move || {
-                debug_client.debug_client_loop();
-            });
-        }
-
-        Ok(client)
-    }
-
-    /// Create absolute file:// Url for flow location
-    fn flow_url(&self) -> flowcore::errors::Result<Url> {
-        let cwd_url = Url::from_directory_path(env::current_dir()?)
-            .map_err(|_| "Could not form a Url for the current working directory")?;
-        url_from_string(&cwd_url, Some(&self.flow_manifest_url))
-    }
-
-    /// Create array of strings that are the args to the flow
-    fn get_flow_args(&self) -> Vec<String> {
-        // arg #0 is the flow url
-        let mut flow_args: Vec<String> = vec![self.flow_manifest_url.clone()];
-        let additional_args : Vec<String> = self.flow_args.split(' ')
-            .map(|s| s.to_string()).collect();
-        flow_args.extend(additional_args);
-        flow_args
-    }
-
-    fn submit(&mut self, debug_this_flow: bool) -> Result<()> {
-        let provider = &MetaProvider::new(Simpath::new(""),
-                                          PathBuf::default()) as &dyn Provider;
-        let url = self.flow_url()?;
-        let (flow_manifest, _) = FlowManifest::load(provider, &url)?;
-        let submission = Submission::new(
-            flow_manifest,
-            self.parallel_jobs_limit,
-            None, // No timeout waiting for job results
-            debug_this_flow,
-        );
-
-        let args = self.get_flow_args();
-        self.client.set_args(&args);
-        self.client.set_display_metrics(true);
-
-        info!("Client sending submission to coordinator");
-        self.client.send(ClientMessage::ClientSubmission(submission))?;
-
-        trace!("Entering client event loop");
-        Ok(self.client.event_loop()?)
-    }
-
-    /// Return addresses and ports to be used for each of the three queues
-    /// - (general) job source
-    /// - context job source
-    /// - results sink
-    /// - control messages
-    fn get_connect_addresses(ports: (u16, u16, u16, u16)) -> (String, String, String, String) {
-        (
-            format!("tcp://127.0.0.1:{}", ports.0),
-            format!("tcp://127.0.0.1:{}", ports.1),
-            format!("tcp://127.0.0.1:{}", ports.2),
-            format!("tcp://127.0.0.1:{}", ports.3),
         )
-    }
-
-    /// Return addresses to bind to for
-    /// - (general) job source
-    /// - context job source
-    /// - results sink
-    /// - control messages
-    fn get_bind_addresses(ports: (u16, u16, u16, u16)) -> (String, String, String, String) {
-        (
-            format!("tcp://*:{}", ports.0),
-            format!("tcp://*:{}", ports.1),
-            format!("tcp://*:{}", ports.2),
-            format!("tcp://*:{}", ports.3),
-        )
-    }
-
-    /// Return four free ports to use for client-coordinator message queues
-    fn get_four_ports() -> crate::errors::Result<(u16, u16, u16, u16)> {
-        Ok((pick_unused_port().chain_err(|| "No ports free")?,
-            pick_unused_port().chain_err(|| "No ports free")?,
-            pick_unused_port().chain_err(|| "No ports free")?,
-            pick_unused_port().chain_err(|| "No ports free")?,
-        ))
-    }
-
-    /// Determine the number of threads to use to execute flows
-    /// - default (if value is not provided on the command line) of the number of cores
-    fn num_threads(matches: &ArgMatches) -> usize {
-        match matches.get_one::<usize>("threads") {
-            Some(num_threads) => *num_threads,
-            None => thread::available_parallelism().map(|n| n.get()).unwrap_or(1)
-        }
     }
 
     /// Parse the command line arguments using clap
-    fn get_matches() -> ArgMatches {
+    fn parse_cli_args() -> ArgMatches {
         let app = ClapCommand::new(env!("CARGO_PKG_NAME"))
             .version(env!("CARGO_PKG_VERSION"));
 
@@ -508,5 +399,186 @@ impl FlowIde {
                 .help("A list of arguments to pass to the flow."));
 
         app.get_matches()
+    }
+
+    // Create absolute file:// Url for flow location - using the contents of UI field
+    fn flow_url(&self) -> flowcore::errors::Result<Url> {
+        let cwd_url = Url::from_directory_path(env::current_dir()?)
+            .map_err(|_| "Could not form a Url for the current working directory")?;
+        url_from_string(&cwd_url, Some(&self.flow_settings.flow_manifest_url))
+    }
+
+    // Create array of strings that are the args to the flow
+    fn flow_arg_vec(&self) -> Vec<String> {
+        // arg #0 is the flow url
+        let mut flow_args: Vec<String> = vec![self.flow_settings.flow_manifest_url.clone()];
+        let additional_args : Vec<String> = self.flow_settings.flow_args.split(' ')
+            .map(|s| s.to_string()).collect();
+        flow_args.extend(additional_args);
+        flow_args
+    }
+
+    // For the lib provider, libraries maybe installed in multiple places in the file system.
+    // In order to find the content, a FLOW_LIB_PATH environment variable can be configured with a
+    // list of directories in which to look for the library in question.
+    fn lib_search_path(search_path_additions: &[String]) -> Result<Simpath> {
+        let mut lib_search_path = Simpath::new_with_separator("FLOW_LIB_PATH",
+                                                              ',');
+
+        for additions in search_path_additions {
+            lib_search_path.add(additions);
+            info!("'{}' added to the Library Search Path", additions);
+        }
+
+        if lib_search_path.is_empty() {
+            warn!("'$FLOW_LIB_PATH' not set and no LIB_DIRS supplied. Libraries may not be found.");
+        }
+
+        Ok(lib_search_path)
+    }
+
+    // Determine the number of threads to use to execute flows
+    // - default (if value is not provided on the command line) of the number of cores
+    fn num_threads(matches: &ArgMatches) -> usize {
+        match matches.get_one::<usize>("threads") {
+            Some(num_threads) => *num_threads,
+            None => thread::available_parallelism().map(|n| n.get()).unwrap_or(1)
+        }
+    }
+
+    fn send(&mut self, msg: ClientMessage) {
+        if let CoordinatorState::Connected(ref sender) = self.gui_coordinator {
+            let _ = sender.try_send(msg);
+        }
+    }
+
+    fn process_coordinator_message(&mut self, message: CoordinatorMessage) -> Command<Message> {
+        match message {
+            CoordinatorMessage::Connected(_) => {
+                error!("Coordinator is already connected");
+            },
+            CoordinatorMessage::FlowStart => {
+                self.running = true;
+                self.submitted = false;
+                self.send(ClientMessage::Ack);
+            },
+            CoordinatorMessage::FlowEnd(metrics) => {
+                self.running = false;
+                if self.flow_settings.display_metrics {
+                    // TODO put on UI
+                    println!("{}", metrics);
+                }
+                self.send(ClientMessage::Ack);
+            }
+            CoordinatorMessage::CoordinatorExiting(_) => {
+                // TODO update state with loss of connection/detection of coordinator
+                self.send(ClientMessage::Ack);
+            },
+            CoordinatorMessage::Stdout(string) => {
+                self.stdout.push(string);
+                self.send(ClientMessage::Ack);
+            },
+            CoordinatorMessage::Stderr(string) => {
+                self.stderr.push(string);
+                self.send(ClientMessage::Ack);
+            },
+            CoordinatorMessage::GetStdin => {
+                // TODO read the buffer entirely and reset the cursor to after that text
+                // grey out the text read?
+                let mut buffer = String::new();
+                let msg = if let Ok(size) = io::stdin().read_to_string(&mut buffer) {
+                    if size > 0 {
+                        ClientMessage::Stdin(buffer.trim().to_string())
+                    } else {
+                        ClientMessage::GetStdinEof
+                    }
+                } else {
+                    ClientMessage::Error("Could not read Stdin".into())
+                };
+                self.send(msg);
+            }
+            CoordinatorMessage::GetLine(prompt) => {
+                // TODO print the prompt, read one line of input, move cursor and grey out text
+                // If there is no text to pickup beyond the cursos then prompt the user for more
+                let mut input = String::new();
+                if !prompt.is_empty() {
+                    print!("{}", prompt);
+                    let _ = io::stdout().flush();
+                }
+                let line = io::stdin().lock().read_line(&mut input);
+                let msg = match line {
+                    Ok(n) if n > 0 => ClientMessage::Line(input.trim().to_string()),
+                    Ok(n) if n == 0 => ClientMessage::GetLineEof,
+                    _ => ClientMessage::Error("Could not read Readline".into()),
+                };
+                self.send(msg);
+            }
+            CoordinatorMessage::GetArgs => {
+                let args = self.flow_arg_vec();
+                let msg = ClientMessage::Args(args);
+                self.send(msg);
+
+                /*
+                if let Ok(override_args) = self.override_args.lock() {
+                    if override_args.is_empty() {
+                        ClientMessage::Args(self.args.clone())
+                    } else {
+                        // we want to retain arg[0] which is the flow name and replace  all others
+                        // with the override args supplied
+                        let mut one_time_args = vec!(self.args[0].clone());
+                        one_time_args.append(&mut override_args.to_vec());
+                        ClientMessage::Args(one_time_args)
+                    }
+                } else {
+                    ClientMessage::Args(self.args.clone())
+                }
+                */
+            }
+            CoordinatorMessage::Read(file_path) => {
+                // TODO list file reads and write in the UI somewhere
+                let msg = match File::open(&file_path) {
+                    Ok(mut f) => {
+                        let mut buffer = Vec::new();
+                        match f.read_to_end(&mut buffer) {
+                            Ok(_) => ClientMessage::FileContents(file_path, buffer),
+                            Err(_) => ClientMessage::Error(format!(
+                                "Could not read content from '{file_path:?}'"
+                            )),
+                        }
+                    }
+                    Err(_) => ClientMessage::Error(format!("Could not open file '{file_path:?}'")),
+                };
+                self.send(msg);
+            },
+            CoordinatorMessage::Write(filename, bytes) => {
+                // TODO list file reads and write in the UI somewhere
+                let msg = match File::create(&filename) {
+                    Ok(mut file) => match file.write_all(bytes.as_slice()) {
+                        Ok(_) => ClientMessage::Ack,
+                        Err(e) => {
+                            let msg = format!("Error writing to file: '{filename}': '{e}'");
+                            error!("{msg}");
+                            ClientMessage::Error(msg)
+                        }
+                    },
+                    Err(e) => {
+                        let msg = format!("Error creating file: '{filename}': '{e}'");
+                        error!("{msg}");
+                        ClientMessage::Error(msg)
+                    }
+                };
+                self.send(msg);
+            },
+            CoordinatorMessage::PixelWrite((x, y), (r, g, b), (width, height), name) => {
+                let image = self
+                    .image_buffers
+                    .entry(name)
+                    .or_insert_with(|| RgbImage::new(width, height));
+                image.put_pixel(x, y, Rgb([r, g, b]));
+                self.send(ClientMessage::Ack);
+            }
+            _ => {},
+        }
+        Command::none()
     }
 }

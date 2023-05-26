@@ -262,43 +262,6 @@ fn client_and_coordinator(
     )
 }
 
-/// Return addresses and ports to be used for each of the three queues
-/// - (general) job source
-/// - context job source
-/// - results sink
-/// - control messages
-fn get_connect_addresses(ports: (u16, u16, u16, u16)) -> (String, String, String, String) {
-    (
-        format!("tcp://127.0.0.1:{}", ports.0),
-        format!("tcp://127.0.0.1:{}", ports.1),
-        format!("tcp://127.0.0.1:{}", ports.2),
-        format!("tcp://127.0.0.1:{}", ports.3),
-    )
-}
-
-/// Return addresses to bind to for
-/// - (general) job source
-/// - context job source
-/// - results sink
-/// - control messages
-fn get_bind_addresses(ports: (u16, u16, u16, u16)) -> (String, String, String, String) {
-    (
-        format!("tcp://*:{}", ports.0),
-        format!("tcp://*:{}", ports.1),
-        format!("tcp://*:{}", ports.2),
-        format!("tcp://*:{}", ports.3),
-    )
-}
-
-/// Return four free ports to use for client-coordinator message queues
-fn get_four_ports() -> Result<(u16, u16, u16, u16)> {
-    Ok((pick_unused_port().chain_err(|| "No ports free")?,
-        pick_unused_port().chain_err(|| "No ports free")?,
-        pick_unused_port().chain_err(|| "No ports free")?,
-        pick_unused_port().chain_err(|| "No ports free")?,
-    ))
-}
-
 /// Create a new `Coordinator`, pre-load any libraries in native format that we want to have before
 /// loading a flow and it's library references, then enter the `submission_loop()` accepting and
 /// executing flows submitted for execution, executing each one using the `Coordinator`
@@ -378,12 +341,12 @@ fn client_only(
     discovery_port: &u16,
 ) -> Result<()> {
     let coordinator_address = discover_service(*discovery_port, COORDINATOR_SERVICE_NAME)?;
-    let context_client_connection = ClientConnection::new(&coordinator_address)?;
+    let client_connection = ClientConnection::new(&coordinator_address)?;
 
     client(
         matches,
         lib_search_path,
-        context_client_connection,
+        client_connection,
         #[cfg(feature = "debugger")] debug_this_flow,
         #[cfg(feature = "debugger")] *discovery_port,
     )
@@ -396,7 +359,7 @@ fn client(
     lib_search_path: Simpath,
     client_connection: ClientConnection,
     #[cfg(feature = "debugger")] debug_this_flow: bool,
-    #[cfg(feature = "debugger")] discovery_post: u16,
+    #[cfg(feature = "debugger")] discovery_port: u16,
 ) -> Result<()> {
     // keep an Arc Mutex protected set of override args that debug client can override
     let override_args = Arc::new(Mutex::new(Vec::<String>::new()));
@@ -424,7 +387,7 @@ fn client(
 
     #[cfg(feature = "debugger")]
     if debug_this_flow {
-        let debug_server_address = discover_service(discovery_post,
+        let debug_server_address = discover_service(discovery_port,
                                                     DEBUG_SERVICE_NAME)?;
         let debug_client_connection = ClientConnection::new(&debug_server_address)?;
         let debug_client = CliDebugClient::new(debug_client_connection,
@@ -560,4 +523,41 @@ fn get_flow_args(matches: &ArgMatches, flow_manifest_url: &Url) -> Vec<String> {
     flow_args.extend(additional_args);
 
     flow_args
+}
+
+// Return addresses and ports to be used for each of the three queues
+// - (general) job source
+// - context job source
+// - results sink
+// - control messages
+fn get_connect_addresses(ports: (u16, u16, u16, u16)) -> (String, String, String, String) {
+    (
+        format!("tcp://127.0.0.1:{}", ports.0),
+        format!("tcp://127.0.0.1:{}", ports.1),
+        format!("tcp://127.0.0.1:{}", ports.2),
+        format!("tcp://127.0.0.1:{}", ports.3),
+    )
+}
+
+// Return addresses to bind to for
+// - (general) job source
+// - context job source
+// - results sink
+// - control messages
+fn get_bind_addresses(ports: (u16, u16, u16, u16)) -> (String, String, String, String) {
+    (
+        format!("tcp://*:{}", ports.0),
+        format!("tcp://*:{}", ports.1),
+        format!("tcp://*:{}", ports.2),
+        format!("tcp://*:{}", ports.3),
+    )
+}
+
+// Return four free ports to use for client-coordinator message queues
+fn get_four_ports() -> Result<(u16, u16, u16, u16)> {
+    Ok((pick_unused_port().chain_err(|| "No ports free")?,
+        pick_unused_port().chain_err(|| "No ports free")?,
+        pick_unused_port().chain_err(|| "No ports free")?,
+        pick_unused_port().chain_err(|| "No ports free")?,
+    ))
 }
