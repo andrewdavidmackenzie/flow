@@ -47,19 +47,18 @@ impl fmt::Display for ClientMessage {
             f,
             "{}",
             match self {
-                ClientMessage::Ack => "Ack".into(),
-                ClientMessage::Stdin(_) => "Stdin".into(),
-                ClientMessage::Line(_) => "Line".into(),
-                ClientMessage::Args(_) => "Args".into(),
-                ClientMessage::Error(_) => "Error".into(),
-                ClientMessage::GetStdinEof => "GetStdinEof".into(),
-                ClientMessage::GetLineEof => "GetLineEof".into(),
-                ClientMessage::ClientExiting(result) =>
-                    format!("ClientExiting with server result: {result:?}"),
-                ClientMessage::ClientSubmission(_) => "ClientSubmission".into(),
-                ClientMessage::EnterDebugger => "EnterDebugger".into(),
-                ClientMessage::Invalid => "Invalid".into(),
-                ClientMessage::FileContents(_, _) => "FileContents".into(),
+                ClientMessage::Ack => "Ack",
+                ClientMessage::Stdin(_) => "Stdin",
+                ClientMessage::Line(_) => "Line",
+                ClientMessage::Args(_) => "Args",
+                ClientMessage::Error(_) => "Error",
+                ClientMessage::GetStdinEof => "GetStdinEof",
+                ClientMessage::GetLineEof => "GetLineEof",
+                ClientMessage::ClientExiting(_) => "ClientExiting",
+                ClientMessage::ClientSubmission(_) => "ClientSubmission",
+                ClientMessage::EnterDebugger => "EnterDebugger",
+                ClientMessage::Invalid => "Invalid",
+                ClientMessage::FileContents(_, _) => "FileContents",
             }
         )
     }

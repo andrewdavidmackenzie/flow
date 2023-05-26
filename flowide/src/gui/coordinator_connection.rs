@@ -102,12 +102,9 @@ impl CoordinatorConnection {
     pub fn send<SM>(&mut self, message: SM) -> Result<()>
     where
         SM: Into<String> + Display {
-        trace!("                <--- Coordinator Sent {}", message);
-
+        trace!("                <--- Coordinator Sending {}", message);
         self.responder
             .send(&message.into(), 0)
-            .map_err(|e| format!("Coordinator error sending to client: '{e}'"))?;
-
-        Ok(())
+            .chain_err(|| format!("Coordinator error sending to client"))
     }
 }

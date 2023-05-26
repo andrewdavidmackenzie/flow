@@ -14,19 +14,16 @@ use flowrlib::dispatcher::Dispatcher;
 use flowrlib::executor::Executor;
 use flowrlib::services::{CONTROL_SERVICE_NAME, JOB_QUEUES_DISCOVERY_PORT, JOB_SERVICE_NAME, RESULTS_JOB_SERVICE_NAME};
 
-use crate::{CoordinatorSettings, gui, Message};
+use crate::{CoordinatorSettings, gui};
 use crate::errors::*;
-//use crate::gui::client_connection::ClientConnection;
 use crate::gui::client_connection::{ClientConnection, discover_service};
 use crate::gui::client_message::ClientMessage;
 use crate::gui::coordinator_connection::{COORDINATOR_SERVICE_NAME, DEBUG_SERVICE_NAME,
                                          enable_service_discovery};
 use crate::gui::coordinator_connection::CoordinatorConnection;
 use crate::gui::coordinator_message::CoordinatorMessage;
-//use crate::gui::debug_client::DebugClient;
 use crate::gui::debug_handler::CliDebugHandler;
 use crate::gui::submission_handler::CLISubmissionHandler;
-use crate::Message::CoordinatorSent;
 
 #[derive(Debug, Clone)]
 pub(crate) enum CoordinatorState {
@@ -36,7 +33,7 @@ pub(crate) enum CoordinatorState {
 
 // Creates an asynchronous worker that sends messages back and forth between the App and
 // the Coordinator
-pub fn connect(coordinator_settings: CoordinatorSettings) -> Subscription<Message> {
+pub fn subscribe(coordinator_settings: CoordinatorSettings) -> Subscription<CoordinatorMessage> {
     struct Connect;
 
     subscription::channel(
@@ -57,16 +54,14 @@ pub fn connect(coordinator_settings: CoordinatorSettings) -> Subscription<Messag
                     mpsc::sync_channel(100);
 
                 // Send the Sender to the App in a Message, for App to use to send us messages
-                let _ = app_sender.try_send(Message::CoordinatorConnected(app_side_sender));
-                println!("Sent CoordinatorConnected to App");
+                let _ = app_sender.try_send(CoordinatorMessage::Connected(app_side_sender));
 
                 // If I don't do this - the app doesn't receive the message before panic below
-                tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
+                tokio::time::sleep(tokio::time::Duration::from_millis(1)).await;
 
                 // read the Submit message from the app to send to the coordinator
                 match app_receiver.recv() {
                     Ok(client_message) => {
-                        println!("App sent: {client_message}");
                         coordinator.send(client_message).unwrap(); // TODO
                     },
                     Err(e) => eprintln!("Error: '{e}'"),
@@ -75,14 +70,14 @@ pub fn connect(coordinator_settings: CoordinatorSettings) -> Subscription<Messag
                 loop {
                     // read the message back from the Coordinator
                     let coordinator_message: CoordinatorMessage = coordinator.receive().unwrap(); // TODO
-                    println!("Coordinator sent: {coordinator_message}");
                     // Forward the message to the App
-                    let _ = app_sender.try_send(CoordinatorSent(coordinator_message));
+                    app_sender.try_send(coordinator_message).unwrap(); // TODO
+
+                    tokio::time::sleep(tokio::time::Duration::from_millis(1)).await;
 
                     // read the message from the app to send to the coordinator
                     match app_receiver.recv() {
                         Ok(client_message) => {
-                            println!("App sent: {client_message}");
                             coordinator.send(client_message).unwrap(); // TODO
                         },
                         Err(e) => eprintln!("Error: '{e}'"),

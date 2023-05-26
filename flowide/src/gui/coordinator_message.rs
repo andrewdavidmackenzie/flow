@@ -1,13 +1,19 @@
 use std::fmt;
+use std::sync::mpsc;
 
 use serde_derive::{Deserialize, Serialize};
 
 use flowcore::errors::*;
 use flowcore::model::metrics::Metrics;
 
+use crate::gui::client_message::ClientMessage;
+
 /// An Message sent from the runtime server to a runtime_client
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum CoordinatorMessage {
+    #[serde(skip_deserializing, skip_serializing)]
+    /// A connection has been made
+    Connected(mpsc::SyncSender<ClientMessage>),
     /// ** These messages are used to implement the `SubmissionProtocol` between the coordinator
     /// and the cli_client
     /// A flow has started executing
@@ -50,21 +56,21 @@ impl fmt::Display for CoordinatorMessage {
             f,
             "{}",
             match self {
-                CoordinatorMessage::FlowEnd(_) => "FlowEnd".into(),
-                CoordinatorMessage::FlowStart => "FlowStart".into(),
-                CoordinatorMessage::CoordinatorExiting(result) =>
-                    format!("CoordinatorExiting with result: {result:?}"),
-                CoordinatorMessage::Stdout(_) => "Stdout".into(),
-                CoordinatorMessage::Stderr(_) => "Stderr".into(),
-                CoordinatorMessage::GetStdin => "GetStdIn".into(),
-                CoordinatorMessage::GetLine(_) => "GetLine".into(),
-                CoordinatorMessage::GetArgs => "GetArgs".into(),
-                CoordinatorMessage::Read(_) => "Read".into(),
-                CoordinatorMessage::Write(_, _) => "Write".into(),
-                CoordinatorMessage::PixelWrite(_, _, _, _) => "PixelWrite".into(),
-                CoordinatorMessage::StdoutEof => "StdOutEof".into(),
-                CoordinatorMessage::StderrEof => "StdErrEof".into(),
-                CoordinatorMessage::Invalid => "Invalid".into(),
+                CoordinatorMessage::Connected(_) => "Connected",
+                CoordinatorMessage::FlowEnd(_) => "FlowEnd",
+                CoordinatorMessage::FlowStart => "FlowStart",
+                CoordinatorMessage::CoordinatorExiting(_) =>"CoordinatorExiting",
+                CoordinatorMessage::Stdout(_) => "Stdout",
+                CoordinatorMessage::Stderr(_) => "Stderr",
+                CoordinatorMessage::GetStdin => "GetStdIn",
+                CoordinatorMessage::GetLine(_) => "GetLine",
+                CoordinatorMessage::GetArgs => "GetArgs",
+                CoordinatorMessage::Read(_) => "Read",
+                CoordinatorMessage::Write(_, _) => "Write",
+                CoordinatorMessage::PixelWrite(_, _, _, _) => "PixelWrite",
+                CoordinatorMessage::StdoutEof => "StdOutEof",
+                CoordinatorMessage::StderrEof => "StdErrEof",
+                CoordinatorMessage::Invalid => "Invalid",
             }
         )
     }

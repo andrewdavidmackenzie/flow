@@ -57,6 +57,7 @@ use crate::coordinator::CoordinatorState;
 use crate::errors::*;
 use crate::gui::client_message::ClientMessage;
 use crate::gui::coordinator_message::CoordinatorMessage;
+use crate::Message::CoordinatorSent;
 
 //use iced_aw::{TabLabel, Tabs};
 
@@ -77,9 +78,6 @@ mod errors;
 /// [FlowIde] Iced Application
 #[derive(Debug, Clone)]
 pub enum Message {
-    /// Coordinator is ready to accept message - with the Sender to use to send
-    /// [ClientMessages][crate::gui::client_message::ClientMessage] to it
-    CoordinatorConnected(mpsc::SyncSender<ClientMessage>),
     /// We lost contact with the coordinator
     CoordinatorDisconnected,
     /// The Coordinator sent to the client/App a Coordinator Message
@@ -92,8 +90,6 @@ pub enum Message {
     FlowArgsChanged(String),
     /// A different tab of stdio has been selected
     TabSelected(usize),
-    /// The flow has started execution in the coordinator
-    Running,
 }
 
 /// Main for flowide binary - call `run()` and print any error that results or exit silently if OK
@@ -144,7 +140,7 @@ impl Application for FlowIde {
 
     /// Create the FlowIde app and populate fields with options passed on the command line
     fn new(_flags: ()) -> (Self, Command<Message>) {
-        let settings = FlowIde::parse_cli_options();
+        let settings = FlowIde::initial_settings();
 
         let flowide = FlowIde {
             flow_settings: settings.0,
@@ -169,10 +165,10 @@ impl Application for FlowIde {
         match &self.gui_coordinator {
             CoordinatorState::Disconnected => {
                 match message {
-                    Message::CoordinatorConnected(sender) => {
+                    CoordinatorSent(CoordinatorMessage::Connected(sender)) => {
                         self.gui_coordinator = CoordinatorState::Connected(sender);
                     },
-                    _ => error!("Unexpected message: {:?} when GuiCoordinator Unknown state", message),
+                    _ => error!("Unexpected message: {:?} when Coordinator Disconnected", message),
                 }
             },
             CoordinatorState::Connected(sender) => {
@@ -183,12 +179,10 @@ impl Application for FlowIde {
                     },
                     Message::FlowArgsChanged(value) => self.flow_settings.flow_args = value,
                     Message::UrlChanged(value) => self.flow_settings.flow_manifest_url = value,
-                    Message::CoordinatorConnected(_) => error!("Unexpected Message CoordinatorReady"),
                     Message::CoordinatorDisconnected => self.gui_coordinator = CoordinatorState::Disconnected,
                     Message::CoordinatorSent(coord_msg) =>
                         return self.process_coordinator_message(coord_msg),
                     Message::TabSelected(tab_index) => self.active_tab = tab_index,
-                    Message::Running => self.running = true,
                 }
             }
         }
@@ -211,13 +205,15 @@ impl Application for FlowIde {
     }
 
     fn subscription(&self) -> Subscription<Message> {
-        coordinator::connect(self.coordinator_settings.clone())
+        println!("Subscription called");
+        coordinator::subscribe(self.coordinator_settings.clone())
+            .map(Message::CoordinatorSent)
     }
 }
 
 impl FlowIde {
+    // Submit the flow to the coordinator for execution
     fn submit(&self, sender: &mpsc::SyncSender<ClientMessage>) {
-        // Submit the flow to the coordinator for execution
         let provider = &MetaProvider::new(Simpath::new(""),
                                           PathBuf::default()) as &dyn Provider;
 
@@ -231,7 +227,7 @@ impl FlowIde {
             self.flow_settings.debug_this_flow,
         );
 
-        info!("Client sending submission to coordinator");
+        info!("Sending submission to Coordinator");
         let _ = sender.send(ClientMessage::ClientSubmission(submission));
     }
 
@@ -280,7 +276,8 @@ impl FlowIde {
         Self::stdio_area(&self.stdout)
     }
 
-    fn parse_cli_options() -> (SubmissionSettings, CoordinatorSettings) {
+    // Create initial Settings structs for Submission and Coordinator from the CLI options
+    fn initial_settings() -> (SubmissionSettings, CoordinatorSettings) {
         let matches = Self::parse_cli_args();
 
         // init logging
@@ -404,14 +401,14 @@ impl FlowIde {
         app.get_matches()
     }
 
-    /// Create absolute file:// Url for flow location - using the contents of UI field
+    // Create absolute file:// Url for flow location - using the contents of UI field
     fn flow_url(&self) -> flowcore::errors::Result<Url> {
         let cwd_url = Url::from_directory_path(env::current_dir()?)
             .map_err(|_| "Could not form a Url for the current working directory")?;
         url_from_string(&cwd_url, Some(&self.flow_settings.flow_manifest_url))
     }
 
-    /// Create array of strings that are the args to the flow
+    // Create array of strings that are the args to the flow
     fn flow_arg_vec(&self) -> Vec<String> {
         // arg #0 is the flow url
         let mut flow_args: Vec<String> = vec![self.flow_settings.flow_manifest_url.clone()];
@@ -421,9 +418,9 @@ impl FlowIde {
         flow_args
     }
 
-    /// For the lib provider, libraries maybe installed in multiple places in the file system.
-    /// In order to find the content, a FLOW_LIB_PATH environment variable can be configured with a
-    /// list of directories in which to look for the library in question.
+    // For the lib provider, libraries maybe installed in multiple places in the file system.
+    // In order to find the content, a FLOW_LIB_PATH environment variable can be configured with a
+    // list of directories in which to look for the library in question.
     fn lib_search_path(search_path_additions: &[String]) -> Result<Simpath> {
         let mut lib_search_path = Simpath::new_with_separator("FLOW_LIB_PATH",
                                                               ',');
@@ -440,8 +437,8 @@ impl FlowIde {
         Ok(lib_search_path)
     }
 
-    /// Determine the number of threads to use to execute flows
-    /// - default (if value is not provided on the command line) of the number of cores
+    // Determine the number of threads to use to execute flows
+    // - default (if value is not provided on the command line) of the number of cores
     fn num_threads(matches: &ArgMatches) -> usize {
         match matches.get_one::<usize>("threads") {
             Some(num_threads) => *num_threads,
@@ -451,15 +448,18 @@ impl FlowIde {
 
     fn send(&mut self, msg: ClientMessage) {
         if let CoordinatorState::Connected(ref sender) = self.gui_coordinator {
-            println!("Gui sending: {msg}");
             let _ = sender.try_send(msg);
         }
     }
 
     fn process_coordinator_message(&mut self, message: CoordinatorMessage) -> Command<Message> {
         match message {
+            CoordinatorMessage::Connected(_) => {
+                error!("Coordinator is already connected");
+            },
             CoordinatorMessage::FlowStart => {
                 self.running = true;
+                self.submitted = false;
                 self.send(ClientMessage::Ack);
             },
             CoordinatorMessage::FlowEnd(metrics) => {
@@ -475,7 +475,6 @@ impl FlowIde {
                 self.send(ClientMessage::Ack);
             },
             CoordinatorMessage::Stdout(string) => {
-                println!("{string}");
                 self.stdout.push(string);
                 self.send(ClientMessage::Ack);
             },

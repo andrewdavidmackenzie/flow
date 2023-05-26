@@ -63,12 +63,12 @@ impl ClientConnection {
         Ok(message_string.into())
     }
 
-    /// Send a [ClientMessage][crate::gui::client_message] to the
+    /// Send a [ClientMessage][crate::gui::client_message::ClientMessage] to the
     /// [Coordinator][flowrlib::coordinator::Coordinator]
     pub fn send<CM>(&self, message: CM) -> Result<()>
     where
         CM: Into<String> + Display {
-        trace!("Client Sent     ---> {}", message);
+        trace!("Client Sending     ---> {}", message);
         self.requester
             .send(&message.into(), WAIT)
             .chain_err(|| "Error sending to coordinator")

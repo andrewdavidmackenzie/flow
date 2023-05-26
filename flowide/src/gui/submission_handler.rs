@@ -30,13 +30,11 @@ impl CLISubmissionHandler {
 
 impl SubmissionHandler for CLISubmissionHandler {
     fn flow_execution_starting(&mut self) -> Result<()> {
-        let _ = self.coordinator_connection
+        self.coordinator_connection
             .lock()
             .map_err(|_| "Could not lock coordinator connection")?
-            .send_and_receive_response::<CoordinatorMessage, ClientMessage>(CoordinatorMessage::FlowStart)?;
-
-        println!("Coordinator got response to flow start");
-        Ok(())
+            .send_and_receive_response::<CoordinatorMessage, ClientMessage>(CoordinatorMessage::FlowStart)
+            .map(|_| ())
     }
 
     // See if the runtime client has sent a message to request us to enter the debugger,
