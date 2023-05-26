@@ -55,14 +55,13 @@ impl ClientConnection {
             .recv_msg(0)
             .map_err(|e| format!("Error receiving from coordinator: {e}"))?;
 
-        let message_string = msg.as_str().ok_or("Could not get message as str")?
-            .to_string();
-        let message: CM = message_string.into();
-        trace!("Client Received <--- {}", message);
-        Ok(message)
+        let message_string = msg.as_str()
+            .ok_or("Could not get Message as String")?.to_owned();
+        trace!("Client Received <--- {}", message_string);
+        Ok(message_string.into())
     }
 
-    /// Send a [CoordinatorMessage][crate::gui::coordinator_message::CoordinatorMessage] to the
+    /// Send a [ClientMessage][crate::gui::client_message] to the
     /// [Coordinator][flowrlib::coordinator::Coordinator]
     pub fn send<CM>(&self, message: CM) -> Result<()>
     where

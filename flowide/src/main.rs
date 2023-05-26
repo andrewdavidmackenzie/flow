@@ -24,9 +24,9 @@
 use core::str::FromStr;
 use std::{env, io, thread};
 use std::collections::HashMap;
+use std::fs::File;
 use std::io::prelude::*;
 use std::path::PathBuf;
-use std::process::exit;
 //use std::sync::{Arc, Mutex};
 use std::sync::mpsc;
 
@@ -52,11 +52,13 @@ use flowrlib::info as flowrlib_info;
 use gui::coordinator_connection::CoordinatorConnection;
 use gui::debug_message::DebugServerMessage;
 use gui::debug_message::DebugServerMessage::*;
-use iced_aw::{TabLabel, Tabs};
 
-use crate::coordinator::GuiCoordinator;
+use crate::coordinator::CoordinatorState;
 use crate::errors::*;
-use crate::gui::coordinator_message::{ClientMessage, CoordinatorMessage};
+use crate::gui::client_message::ClientMessage;
+use crate::gui::coordinator_message::CoordinatorMessage;
+
+//use iced_aw::{TabLabel, Tabs};
 
 /// provides the `context functions` for interacting with the execution environment from a flow,
 /// plus client-[Coordinator][flowrlib::coordinator::Coordinator] implementations of
@@ -77,9 +79,9 @@ mod errors;
 pub enum Message {
     /// Coordinator is ready to accept message - with the Sender to use to send [ClientMessages]
     /// to it
-    CoordinatorReady(mpsc::Sender<ClientMessage>),
+    CoordinatorConnected(mpsc::SyncSender<ClientMessage>),
     /// We lost contact with the coordinator
-    CoordinatorLost,
+    CoordinatorDisconnected,
     /// The Coordinator sent to the client/App a Coordinator Message
     CoordinatorSent(CoordinatorMessage),
     /// The UI has requested to submit the flow to the Coordinator for execution
@@ -95,17 +97,11 @@ pub enum Message {
 }
 
 /// Main for flowide binary - call `run()` and print any error that results or exit silently if OK
-fn main() -> Result<()>{
-    match FlowIde::run(Settings {
+fn main() -> iced::Result {
+    FlowIde::run(Settings {
         antialiasing: true,
         ..Settings::default()
-    }) {
-        Err(ref e) => {
-            error!("{e}");
-            exit(1);
-        }
-        Ok(_) => exit(0),
-    }
+    })
 }
 
 struct SubmissionSettings {
@@ -130,13 +126,12 @@ pub struct CoordinatorSettings {
 struct FlowIde {
     flow_settings: SubmissionSettings,
     coordinator_settings: CoordinatorSettings,
-    gui_coordinator: GuiCoordinator,
+    gui_coordinator: CoordinatorState,
     active_tab: usize,
     stdout: Vec<String>,
     stderr: Vec<String>,
     running: bool,
     submitted: bool,
-//    override_args: Arc<Mutex<Vec<String>>>,
     image_buffers: HashMap<String, ImageBuffer<Rgb<u8>, Vec<u8>>>,
 }
 
@@ -154,13 +149,12 @@ impl Application for FlowIde {
         let flowide = FlowIde {
             flow_settings: settings.0,
             coordinator_settings: settings.1,
-            gui_coordinator: GuiCoordinator::Unknown,
+            gui_coordinator: CoordinatorState::Unconnected,
             active_tab: 0,
             stdout: Vec::new(),
             stderr: Vec::new(),
             submitted: false,
             running: false,
-//            override_args: Arc::new(Mutex::new(vec!["".into()])),
             image_buffers: HashMap::<String, ImageBuffer<Rgb<u8>, Vec<u8>>>::new(),
         };
 
@@ -172,38 +166,44 @@ impl Application for FlowIde {
     }
 
     fn update(&mut self, message: Message) -> Command<Message> {
-        match self.gui_coordinator {
-            GuiCoordinator::Unknown => {
+        match &self.gui_coordinator {
+            CoordinatorState::Unconnected => {
                 match message {
-                    Message::CoordinatorReady(sender) => self.gui_coordinator =
-                        GuiCoordinator::Found(sender),
-                    _ => error!("Unexpected message: {:?} when in Disconnected state", message),
+                    Message::CoordinatorConnected(sender) => {
+                        println!("CoordinatorReady received in App");
+                        let _ = sender.send(ClientMessage::Ack);
+                        println!("App replied with Ack");
+                        self.gui_coordinator = CoordinatorState::Connected(sender);
+                    },
+                    _ => error!("Unexpected message: {:?} when GuiCoordinator Unknown state", message),
                 }
             },
-            GuiCoordinator::Found(ref sender) =>
+            CoordinatorState::Connected(sender) => {
+                println!("Message sent to App GuiCoordinator: Found");
                 match message {
                     Message::SubmitFlow => {
                         FlowIde::submit(sender,
-                            self.flow_settings.debug_this_flow,
-                            self.flow_url().unwrap(),
-                            self.flow_settings.parallel_jobs_limit);
-                            self.submitted = true;
+                                        self.flow_settings.debug_this_flow,
+                                        self.flow_url().unwrap(),
+                                        self.flow_settings.parallel_jobs_limit);
+                        self.submitted = true;
                     },
                     Message::FlowArgsChanged(value) => self.flow_settings.flow_args = value,
                     Message::UrlChanged(value) => self.flow_settings.flow_manifest_url = value,
-                    Message::CoordinatorReady(_) => error!("Unexpected Message CoordinatorReady"),
-                    Message::CoordinatorLost => self.gui_coordinator = GuiCoordinator::Unknown,
+                    Message::CoordinatorConnected(_) => error!("Unexpected Message CoordinatorReady"),
+                    Message::CoordinatorDisconnected => self.gui_coordinator = CoordinatorState::Unconnected,
                     Message::CoordinatorSent(coord_msg) =>
                         return self.process_coordinator_message(coord_msg),
                     Message::TabSelected(tab_index) => self.active_tab = tab_index,
                     Message::Running => self.running = true,
                 }
+            }
         }
         Command::none()
     }
 
     fn view(&self) -> Element<Message> {
-        if matches!(self.gui_coordinator, GuiCoordinator::Unknown) {
+        if matches!(self.gui_coordinator, CoordinatorState::Unconnected) {
             // TODO add a not connected message
         };
 
@@ -223,7 +223,7 @@ impl Application for FlowIde {
 }
 
 impl FlowIde {
-    fn submit(sender: &mpsc::Sender<ClientMessage>,
+    fn submit(sender: &mpsc::SyncSender<ClientMessage>,
                     debug_this_flow: bool,
                     url: Url,
                     parallel_jobs_limit: Option<usize>,
@@ -255,7 +255,7 @@ impl FlowIde {
             .on_input(Message::FlowArgsChanged);
         // TODO disable until loaded flow
         let mut play = Button::new("Play");
-        if !self.running && !self.submitted {
+        if  matches!(self.gui_coordinator, CoordinatorState::Connected(_)) && !self.running && !self.submitted {
             play = play.on_press(Message::SubmitFlow);
         }
         Row::new()
@@ -281,10 +281,13 @@ impl FlowIde {
     }
 
     fn stdio<'a>(&self) -> Element<'a, Message> {
+        /*
         Tabs::new(self.active_tab, Message::TabSelected)
             .push(TabLabel::Text("stdout".to_owned()), Self::stdio_area(&self.stdout))
             .push(TabLabel::Text("stderr".to_owned()), Self::stdio_area(&self.stderr))
             .into()
+         */
+        Self::stdio_area(&self.stdout)
     }
 
     fn parse_cli_options() -> (SubmissionSettings, CoordinatorSettings) {
@@ -457,7 +460,8 @@ impl FlowIde {
     }
 
     fn send(&mut self, msg: ClientMessage) {
-        if let GuiCoordinator::Found(ref sender) = self.gui_coordinator {
+        if let CoordinatorState::Connected(ref sender) = self.gui_coordinator {
+            println!("Gui sending: {msg}");
             let _ = sender.send(msg);
         }
     }
@@ -478,7 +482,7 @@ impl FlowIde {
                 self.send(ClientMessage::Ack);
             }
             CoordinatorMessage::CoordinatorExiting(_) => {
-                // TODO update UI with loss of connection/detection of coordinator
+                // TODO update state with loss of connection/detection of coordinator
                 self.send(ClientMessage::Ack);
             },
             CoordinatorMessage::Stdout(string) => {
@@ -503,7 +507,7 @@ impl FlowIde {
                 } else {
                     ClientMessage::Error("Could not read Stdin".into())
                 };
-                let _ = self.send(msg);
+                self.send(msg);
             }
             CoordinatorMessage::GetLine(prompt) => {
                 // TODO print the prompt, read one line of input, move cursor and grey out text
@@ -519,12 +523,12 @@ impl FlowIde {
                     Ok(n) if n == 0 => ClientMessage::GetLineEof,
                     _ => ClientMessage::Error("Could not read Readline".into()),
                 };
-                let _ = self.send(msg);
+                self.send(msg);
             }
             CoordinatorMessage::GetArgs => {
                 let args = self.flow_arg_vec();
                 let msg = ClientMessage::Args(args);
-                let _ = self.send(msg);
+                self.send(msg);
 
                 /*
                 if let Ok(override_args) = self.override_args.lock() {
@@ -542,11 +546,40 @@ impl FlowIde {
                 }
                 */
             }
-            CoordinatorMessage::Read(_) => {
-                self.send(ClientMessage::Ack);
+            CoordinatorMessage::Read(file_path) => {
+                // TODO list file reads and write in the UI somewhere
+                let msg = match File::open(&file_path) {
+                    Ok(mut f) => {
+                        let mut buffer = Vec::new();
+                        match f.read_to_end(&mut buffer) {
+                            Ok(_) => ClientMessage::FileContents(file_path, buffer),
+                            Err(_) => ClientMessage::Error(format!(
+                                "Could not read content from '{file_path:?}'"
+                            )),
+                        }
+                    }
+                    Err(_) => ClientMessage::Error(format!("Could not open file '{file_path:?}'")),
+                };
+                self.send(msg);
             },
-            CoordinatorMessage::Write(_, _) => {
-                self.send(ClientMessage::Ack);
+            CoordinatorMessage::Write(filename, bytes) => {
+                // TODO list file reads and write in the UI somewhere
+                let msg = match File::create(&filename) {
+                    Ok(mut file) => match file.write_all(bytes.as_slice()) {
+                        Ok(_) => ClientMessage::Ack,
+                        Err(e) => {
+                            let msg = format!("Error writing to file: '{filename}': '{e}'");
+                            error!("{msg}");
+                            ClientMessage::Error(msg)
+                        }
+                    },
+                    Err(e) => {
+                        let msg = format!("Error creating file: '{filename}': '{e}'");
+                        error!("{msg}");
+                        ClientMessage::Error(msg)
+                    }
+                };
+                self.send(msg);
             },
             CoordinatorMessage::PixelWrite((x, y), (r, g, b), (width, height), name) => {
                 let image = self
@@ -561,88 +594,3 @@ impl FlowIde {
         Command::none()
     }
 }
-
-/*
-
-    fn process_coordinator_message(&mut self, message: CoordinatorMessage) -> ClientMessage {
-        match message {
-            CoordinatorMessage::FlowEnd(_metrics) => {
-                // TODO display metrics
-                ClientMessage::Ack
-            },
-            CoordinatorMessage::FlowStart => ClientMessage::Ack,
-            CoordinatorMessage::CoordinatorExiting(_result) => {
-                // TODO display the metrics
-                ClientMessage::Ack
-            },
-            CoordinatorMessage::StdoutEof => ClientMessage::Ack,
-            CoordinatorMessage::Stdout(contents) => {
-                let stdout = io::stdout();
-                let mut handle = stdout.lock();
-                let _ = handle.write_all(format!("{contents}\n").as_bytes());
-                let _ = io::stdout().flush();
-                ClientMessage::Ack
-            }
-            CoordinatorMessage::StderrEof => ClientMessage::Ack,
-            CoordinatorMessage::Stderr(_) => ClientMessage::Ack,
-            CoordinatorMessage::GetStdin => {
-                let mut buffer = String::new();
-                if let Ok(size) = io::stdin().read_to_string(&mut buffer) {
-                    return if size > 0 {
-                        ClientMessage::Stdin(buffer.trim().to_string())
-                    } else {
-                        ClientMessage::GetStdinEof
-                    };
-                }
-                ClientMessage::Error("Could not read Stdin".into())
-            }
-            CoordinatorMessage::GetLine(prompt) => {
-                let mut input = String::new();
-                if !prompt.is_empty() {
-                    print!("{}", prompt);
-                    let _ = io::stdout().flush();
-                }
-                let line = io::stdin().lock().read_line(&mut input);
-                match line {
-                    Ok(n) if n > 0 => ClientMessage::Line(input.trim().to_string()),
-                    Ok(n) if n == 0 => ClientMessage::GetLineEof,
-                    _ => ClientMessage::Error("Could not read Readline".into()),
-                }
-            }
-            CoordinatorMessage::Read(file_path) => match File::open(&file_path) {
-                Ok(mut f) => {
-                    let mut buffer = Vec::new();
-                    match f.read_to_end(&mut buffer) {
-                        Ok(_) => ClientMessage::FileContents(file_path, buffer),
-                        Err(_) => ClientMessage::Error(format!(
-                            "Could not read content from '{file_path:?}'"
-                        )),
-                    }
-                }
-                Err(_) => ClientMessage::Error(format!("Could not open file '{file_path:?}'")),
-            },
-            CoordinatorMessage::Write(filename, bytes) => match File::create(&filename) {
-                Ok(mut file) => match file.write_all(bytes.as_slice()) {
-                    Ok(_) => ClientMessage::Ack,
-                    Err(e) => {
-                        let msg = format!("Error writing to file: '{filename}': '{e}'");
-                        error!("{msg}");
-                        ClientMessage::Error(msg)
-                    }
-                },
-                Err(e) => {
-                    let msg = format!("Error creating file: '{filename}': '{e}'");
-                    error!("{msg}");
-                    ClientMessage::Error(msg)
-                }
-            },
-            CoordinatorMessage::PixelWrite(_, ..) => {
-                ClientMessage::Ack
-            },
-            CoordinatorMessage::GetArgs => {
-                ClientMessage::Args(vec![])
-            },
-            CoordinatorMessage::Invalid => ClientMessage::Ack,
-        }
-    }
- */

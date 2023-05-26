@@ -10,8 +10,8 @@ use flowrlib::run_state::RunState;
 use flowrlib::submission_handler::SubmissionHandler;
 
 use crate::CoordinatorConnection;
+use crate::gui::client_message::ClientMessage;
 use crate::gui::coordinator_connection::{DONT_WAIT, WAIT};
-use crate::gui::coordinator_message::ClientMessage;
 use crate::gui::coordinator_message::CoordinatorMessage;
 
 /// A [SubmissionHandler] to allow submitting flows for execution from the CLI
@@ -86,7 +86,7 @@ impl SubmissionHandler for CLISubmissionHandler {
                             return Ok(Some(submission));
                         }
                         Ok(ClientMessage::ClientExiting(_)) => return Ok(None),
-                        Ok(r) => error!("Coordinator did not expect response from client: '{:?}'", r),
+                        Ok(r) => error!("Coordinator did not expect message from client: '{:?}'", r),
                         Err(e) => bail!("Coordinator error while waiting for submission: '{}'", e),
                     }
                 }

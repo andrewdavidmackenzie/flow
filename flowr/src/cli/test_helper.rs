@@ -29,6 +29,7 @@ pub mod test {
         let client_connection = ClientConnection::new(&server_address)
             .expect("Could not create ClientConnection");
 
+        // First message must come from the client to open the connection
         client_connection
             .send(ClientMessage::Ack)
             .expect("Could not send initial 'Ack' message");
