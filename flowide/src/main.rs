@@ -166,26 +166,21 @@ impl Application for FlowIde {
     }
 
     fn update(&mut self, message: Message) -> Command<Message> {
+        println!("update() got '{:?}'", message);
         match &self.gui_coordinator {
             CoordinatorState::Unconnected => {
                 match message {
                     Message::CoordinatorConnected(sender) => {
                         println!("CoordinatorReady received in App");
-                        let _ = sender.send(ClientMessage::Ack);
-                        println!("App replied with Ack");
                         self.gui_coordinator = CoordinatorState::Connected(sender);
                     },
                     _ => error!("Unexpected message: {:?} when GuiCoordinator Unknown state", message),
                 }
             },
             CoordinatorState::Connected(sender) => {
-                println!("Message sent to App GuiCoordinator: Found");
                 match message {
                     Message::SubmitFlow => {
-                        FlowIde::submit(sender,
-                                        self.flow_settings.debug_this_flow,
-                                        self.flow_url().unwrap(),
-                                        self.flow_settings.parallel_jobs_limit);
+                        self.submit(sender);
                         self.submitted = true;
                     },
                     Message::FlowArgsChanged(value) => self.flow_settings.flow_args = value,
@@ -223,22 +218,19 @@ impl Application for FlowIde {
 }
 
 impl FlowIde {
-    fn submit(sender: &mpsc::SyncSender<ClientMessage>,
-                    debug_this_flow: bool,
-                    url: Url,
-                    parallel_jobs_limit: Option<usize>,
-    ) {
+    fn submit(&self, sender: &mpsc::SyncSender<ClientMessage>) {
         // Submit the flow to the coordinator for execution
         let provider = &MetaProvider::new(Simpath::new(""),
                                           PathBuf::default()) as &dyn Provider;
 
-        let (flow_manifest, _) = FlowManifest::load(provider, &url)
+        let (flow_manifest, _) = FlowManifest::load(provider,
+                                                    &self.flow_url().unwrap())
             .unwrap(); // TODO
         let submission = Submission::new(
             flow_manifest,
-            parallel_jobs_limit,
+            self.flow_settings.parallel_jobs_limit,
             None, // No timeout waiting for job results
-            debug_this_flow,
+            self.flow_settings.debug_this_flow,
         );
 
         info!("Client sending submission to coordinator");
@@ -462,11 +454,10 @@ impl FlowIde {
     fn send(&mut self, msg: ClientMessage) {
         if let CoordinatorState::Connected(ref sender) = self.gui_coordinator {
             println!("Gui sending: {msg}");
-            let _ = sender.send(msg);
+            let _ = sender.try_send(msg);
         }
     }
 
-    // TODO merge this into the client and avoid the need for both
     fn process_coordinator_message(&mut self, message: CoordinatorMessage) -> Command<Message> {
         match message {
             CoordinatorMessage::FlowStart => {

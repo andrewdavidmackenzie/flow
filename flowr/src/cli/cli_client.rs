@@ -44,22 +44,13 @@ impl CliRuntimeClient {
         connection: ClientConnection,
     ) -> Result<()> {
         loop {
-            match connection.receive() {
-                Ok(event) => {
-                    let response = self.process_coordinator_message(event);
-                    if let ClientMessage::ClientExiting(coordinator_result) = response {
-                        debug!("Client is exiting the event loop.");
-                        return coordinator_result;
-                    }
-
-                    let _ = connection.send(response);
-                }
-                Err(e) => {
-                    // When debugging, a Control-C to break into the debugger will cause receive()
-                    // to return an error. Ignore it so we continue to process events from coordinator
-                    bail!("Error receiving message from coordinator: '{}'", e);
-                }
+            let event = connection.receive()?;
+            let response = self.process_coordinator_message(event);
+            if let ClientMessage::ClientExiting(coordinator_result) = response {
+                debug!("Client is exiting the event loop.");
+                return coordinator_result;
             }
+            let _ = connection.send(response);
         }
     }
 

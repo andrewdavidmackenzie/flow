@@ -8,6 +8,8 @@ use zmq::Socket;
 
 use flowcore::errors::*;
 
+use crate::gui::coordinator_connection::WAIT;
+
 /// Try to discover a particular service by name
 pub fn discover_service(discovery_port: u16, name: &str) -> Result<String> {
     let listener = BeaconListener::new(name.as_bytes(), discovery_port)?;
@@ -52,7 +54,7 @@ impl ClientConnection {
 
         let msg = self
             .requester
-            .recv_msg(0)
+            .recv_msg(WAIT)
             .map_err(|e| format!("Error receiving from coordinator: {e}"))?;
 
         let message_string = msg.as_str()
@@ -68,7 +70,7 @@ impl ClientConnection {
         CM: Into<String> + Display {
         trace!("Client Sent     ---> {}", message);
         self.requester
-            .send(&message.into(), 0)
+            .send(&message.into(), WAIT)
             .chain_err(|| "Error sending to coordinator")
     }
 }

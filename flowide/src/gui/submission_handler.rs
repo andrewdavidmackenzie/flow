@@ -35,6 +35,7 @@ impl SubmissionHandler for CLISubmissionHandler {
             .map_err(|_| "Could not lock coordinator connection")?
             .send_and_receive_response::<CoordinatorMessage, ClientMessage>(CoordinatorMessage::FlowStart)?;
 
+        println!("Coordinator got response to flow start");
         Ok(())
     }
 

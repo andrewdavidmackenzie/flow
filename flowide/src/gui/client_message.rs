@@ -45,7 +45,7 @@ impl fmt::Display for ClientMessage {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
             f,
-            "ClientMessage {}",
+            "{}",
             match self {
                 ClientMessage::Ack => "Ack".into(),
                 ClientMessage::Stdin(_) => "Stdin".into(),

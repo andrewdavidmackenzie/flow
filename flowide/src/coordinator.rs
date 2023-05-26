@@ -65,24 +65,30 @@ pub fn connect(coordinator_settings: CoordinatorSettings) -> Subscription<Messag
                 // If I don't do this - the app doesn't receive the message before panic below
                 tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
 
-                // try reading first ack
-                let _ = app_receiver.recv().unwrap();// TODO
+                // read the Submit message from the app to send to the coordinator
+                match app_receiver.recv() {
+                    Ok(client_message) => {
+                        println!("App sent: {client_message}");
+                        coordinator.send(client_message).unwrap(); // TODO
+                    },
+                    Err(e) => eprintln!("Error: '{e}'"),
+                }
 
                 loop {
-                    // read the message from the app to send to the coordinator
-                    match app_receiver.recv() {
-                        Ok(client_message) => {
-                            println!("App sent ClientMessage: {client_message}");
-                            coordinator.send(client_message).unwrap(); // TODO
-                        },
-                        Err(e) => eprintln!("Error: '{e}'"),
-                    }
-
                     // read the message back from the Coordinator
                     let coordinator_message: CoordinatorMessage = coordinator.receive().unwrap(); // TODO
                     println!("Coordinator sent: {coordinator_message}");
                     // Forward the message to the App
                     let _ = app_sender.try_send(CoordinatorSent(coordinator_message));
+
+                    // read the message from the app to send to the coordinator
+                    match app_receiver.recv() {
+                        Ok(client_message) => {
+                            println!("App sent: {client_message}");
+                            coordinator.send(client_message).unwrap(); // TODO
+                        },
+                        Err(e) => eprintln!("Error: '{e}'"),
+                    }
                 }
             }
         }
