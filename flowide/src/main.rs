@@ -166,7 +166,6 @@ impl Application for FlowIde {
     }
 
     fn update(&mut self, message: Message) -> Command<Message> {
-        println!("update() got '{:?}'", message);
         match &self.gui_coordinator {
             CoordinatorState::Disconnected => {
                 match message {

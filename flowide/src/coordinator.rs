@@ -47,7 +47,7 @@ pub fn connect(coordinator_settings: CoordinatorSettings) -> Subscription<Messag
             async move {
                 // TODO maybe try discovering one and start if not...
                 let coordinator_info = start(settings);
-                println!("Coordinator started: {}", coordinator_info.0);
+                info!("Coordinator started: {}", coordinator_info.0);
 
                 let coordinator = ClientConnection::new(&coordinator_info.0)
                     .unwrap(); // TODO
