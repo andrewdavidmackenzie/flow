@@ -1,1 +1,1 @@
-{"rustc_vv":"rustc 1.71.0-nightly (c373194cb 2023-05-24)\nbinary: rustc\ncommit-hash: c373194cb6d882dc455a588bcc29c92a96b50252\ncommit-date: 2023-05-24\nhost: x86_64-unknown-linux-gnu\nrelease: 1.71.0-nightly\nLLVM version: 16.0.4\n"}
+{"rustc_vv":"rustc 1.71.0-nightly (a2b1646c5 2023-05-25)\nbinary: rustc\ncommit-hash: a2b1646c597329d0a25efa3889b66650f65de1de\ncommit-date: 2023-05-25\nhost: x86_64-unknown-linux-gnu\nrelease: 1.71.0-nightly\nLLVM version: 16.0.4\n"}
