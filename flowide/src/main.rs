@@ -57,7 +57,6 @@ use crate::coordinator::CoordinatorState;
 use crate::errors::*;
 use crate::gui::client_message::ClientMessage;
 use crate::gui::coordinator_message::CoordinatorMessage;
-use crate::Message::CoordinatorSent;
 
 //use iced_aw::{TabLabel, Tabs};
 
@@ -165,7 +164,7 @@ impl Application for FlowIde {
         match &self.gui_coordinator {
             CoordinatorState::Disconnected => {
                 match message {
-                    CoordinatorSent(CoordinatorMessage::Connected(sender)) => {
+                    Message::CoordinatorSent(CoordinatorMessage::Connected(sender)) => {
                         self.gui_coordinator = CoordinatorState::Connected(sender);
                     },
                     _ => error!("Unexpected message: {:?} when Coordinator Disconnected", message),
@@ -261,6 +260,7 @@ impl FlowIde {
                 .map(Element::from)
                 .collect(),
             )
+            .width(Length::Fill)
             .padding(1);
 
         Scrollable::new(text_column).into()
