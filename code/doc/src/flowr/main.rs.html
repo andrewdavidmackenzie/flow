@@ -825,43 +825,6 @@
     )
 }
 
-<span class="doccomment">/// Return addresses and ports to be used for each of the three queues
-/// - (general) job source
-/// - context job source
-/// - results sink
-/// - control messages
-</span><span class="kw">fn </span>get_connect_addresses(ports: (u16, u16, u16, u16)) -&gt; (String, String, String, String) {
-    (
-        <span class="macro">format!</span>(<span class="string">&quot;tcp://127.0.0.1:{}&quot;</span>, ports.<span class="number">0</span>),
-        <span class="macro">format!</span>(<span class="string">&quot;tcp://127.0.0.1:{}&quot;</span>, ports.<span class="number">1</span>),
-        <span class="macro">format!</span>(<span class="string">&quot;tcp://127.0.0.1:{}&quot;</span>, ports.<span class="number">2</span>),
-        <span class="macro">format!</span>(<span class="string">&quot;tcp://127.0.0.1:{}&quot;</span>, ports.<span class="number">3</span>),
-    )
-}
-
-<span class="doccomment">/// Return addresses to bind to for
-/// - (general) job source
-/// - context job source
-/// - results sink
-/// - control messages
-</span><span class="kw">fn </span>get_bind_addresses(ports: (u16, u16, u16, u16)) -&gt; (String, String, String, String) {
-    (
-        <span class="macro">format!</span>(<span class="string">&quot;tcp://*:{}&quot;</span>, ports.<span class="number">0</span>),
-        <span class="macro">format!</span>(<span class="string">&quot;tcp://*:{}&quot;</span>, ports.<span class="number">1</span>),
-        <span class="macro">format!</span>(<span class="string">&quot;tcp://*:{}&quot;</span>, ports.<span class="number">2</span>),
-        <span class="macro">format!</span>(<span class="string">&quot;tcp://*:{}&quot;</span>, ports.<span class="number">3</span>),
-    )
-}
-
-<span class="doccomment">/// Return four free ports to use for client-coordinator message queues
-</span><span class="kw">fn </span>get_four_ports() -&gt; <span class="prelude-ty">Result</span>&lt;(u16, u16, u16, u16)&gt; {
-    <span class="prelude-val">Ok</span>((pick_unused_port().chain_err(|| <span class="string">&quot;No ports free&quot;</span>)<span class="question-mark">?</span>,
-        pick_unused_port().chain_err(|| <span class="string">&quot;No ports free&quot;</span>)<span class="question-mark">?</span>,
-        pick_unused_port().chain_err(|| <span class="string">&quot;No ports free&quot;</span>)<span class="question-mark">?</span>,
-        pick_unused_port().chain_err(|| <span class="string">&quot;No ports free&quot;</span>)<span class="question-mark">?</span>,
-    ))
-}
-
 <span class="doccomment">/// Create a new `Coordinator`, pre-load any libraries in native format that we want to have before
 /// loading a flow and it&#39;s library references, then enter the `submission_loop()` accepting and
 /// executing flows submitted for execution, executing each one using the `Coordinator`
@@ -941,12 +904,12 @@
     discovery_port: <span class="kw-2">&amp;</span>u16,
 ) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
     <span class="kw">let </span>coordinator_address = discover_service(<span class="kw-2">*</span>discovery_port, COORDINATOR_SERVICE_NAME)<span class="question-mark">?</span>;
-    <span class="kw">let </span>context_client_connection = ClientConnection::new(<span class="kw-2">&amp;</span>coordinator_address)<span class="question-mark">?</span>;
+    <span class="kw">let </span>client_connection = ClientConnection::new(<span class="kw-2">&amp;</span>coordinator_address)<span class="question-mark">?</span>;
 
     client(
         matches,
         lib_search_path,
-        context_client_connection,
+        client_connection,
         <span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)] </span>debug_this_flow,
         <span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)] </span><span class="kw-2">*</span>discovery_port,
     )
@@ -959,7 +922,7 @@
     lib_search_path: Simpath,
     client_connection: ClientConnection,
     <span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)] </span>debug_this_flow: bool,
-    <span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)] </span>discovery_post: u16,
+    <span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)] </span>discovery_port: u16,
 ) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
     <span class="comment">// keep an Arc Mutex protected set of override args that debug client can override
     </span><span class="kw">let </span>override_args = Arc::new(Mutex::new(Vec::&lt;String&gt;::new()));
@@ -987,7 +950,7 @@
 
     <span class="attr">#[cfg(feature = <span class="string">&quot;debugger&quot;</span>)]
     </span><span class="kw">if </span>debug_this_flow {
-        <span class="kw">let </span>debug_server_address = discover_service(discovery_post,
+        <span class="kw">let </span>debug_server_address = discover_service(discovery_port,
                                                     DEBUG_SERVICE_NAME)<span class="question-mark">?</span>;
         <span class="kw">let </span>debug_client_connection = ClientConnection::new(<span class="kw-2">&amp;</span>debug_server_address)<span class="question-mark">?</span>;
         <span class="kw">let </span>debug_client = CliDebugClient::new(debug_client_connection,
@@ -1124,4 +1087,40 @@
 
     flow_args
 }
-</code></pre></div></section></main></body></html>
+
+<span class="comment">// Return addresses and ports to be used for each of the three queues
+// - (general) job source
+// - context job source
+// - results sink
+// - control messages
+</span><span class="kw">fn </span>get_connect_addresses(ports: (u16, u16, u16, u16)) -&gt; (String, String, String, String) {
+    (
+        <span class="macro">format!</span>(<span class="string">&quot;tcp://127.0.0.1:{}&quot;</span>, ports.<span class="number">0</span>),
+        <span class="macro">format!</span>(<span class="string">&quot;tcp://127.0.0.1:{}&quot;</span>, ports.<span class="number">1</span>),
+        <span class="macro">format!</span>(<span class="string">&quot;tcp://127.0.0.1:{}&quot;</span>, ports.<span class="number">2</span>),
+        <span class="macro">format!</span>(<span class="string">&quot;tcp://127.0.0.1:{}&quot;</span>, ports.<span class="number">3</span>),
+    )
+}
+
+<span class="comment">// Return addresses to bind to for
+// - (general) job source
+// - context job source
+// - results sink
+// - control messages
+</span><span class="kw">fn </span>get_bind_addresses(ports: (u16, u16, u16, u16)) -&gt; (String, String, String, String) {
+    (
+        <span class="macro">format!</span>(<span class="string">&quot;tcp://*:{}&quot;</span>, ports.<span class="number">0</span>),
+        <span class="macro">format!</span>(<span class="string">&quot;tcp://*:{}&quot;</span>, ports.<span class="number">1</span>),
+        <span class="macro">format!</span>(<span class="string">&quot;tcp://*:{}&quot;</span>, ports.<span class="number">2</span>),
+        <span class="macro">format!</span>(<span class="string">&quot;tcp://*:{}&quot;</span>, ports.<span class="number">3</span>),
+    )
+}
+
+<span class="comment">// Return four free ports to use for client-coordinator message queues
+</span><span class="kw">fn </span>get_four_ports() -&gt; <span class="prelude-ty">Result</span>&lt;(u16, u16, u16, u16)&gt; {
+    <span class="prelude-val">Ok</span>((pick_unused_port().chain_err(|| <span class="string">&quot;No ports free&quot;</span>)<span class="question-mark">?</span>,
+        pick_unused_port().chain_err(|| <span class="string">&quot;No ports free&quot;</span>)<span class="question-mark">?</span>,
+        pick_unused_port().chain_err(|| <span class="string">&quot;No ports free&quot;</span>)<span class="question-mark">?</span>,
+        pick_unused_port().chain_err(|| <span class="string">&quot;No ports free&quot;</span>)<span class="question-mark">?</span>,
+    ))
+}</code></pre></div></section></main></body></html>

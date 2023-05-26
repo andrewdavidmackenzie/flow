@@ -96,10 +96,6 @@
 <a href="#96" id="96">96</a>
 <a href="#97" id="97">97</a>
 <a href="#98" id="98">98</a>
-<a href="#99" id="99">99</a>
-<a href="#100" id="100">100</a>
-<a href="#101" id="101">101</a>
-<a href="#102" id="102">102</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::sync::{Arc, Mutex};
 
 <span class="kw">use </span>url::Url;
@@ -118,21 +114,17 @@
 <span class="kw">mod </span>image;
 <span class="kw">mod </span>stdio;
 
-<span class="kw">pub mod </span>cli_client;
-
 <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">mod </span>test_helper;
-<span class="doccomment">/// &#39;debug&#39; defines structs passed between the Server and the Client regarding debug events
-/// and client responses to them
-</span><span class="kw">pub mod </span>debug_message;
-<span class="kw">pub mod </span>cli_debug_client;
-<span class="kw">pub mod </span>cli_debug_handler;
-<span class="kw">pub mod </span>cli_submission_handler;
-<span class="doccomment">/// message_queue implementation of the communications between the runtime client, debug client and
-/// the runtime server and debug server.
-</span><span class="kw">pub mod </span>connections;
-<span class="doccomment">/// runtime_messages is the enum for the different messages sent back and fore between the client
-/// and server implementation of the CLI context functions
-</span><span class="kw">pub mod </span>coordinator_message;
+<span class="kw">pub mod </span>debug_message;
+<span class="attr">#[allow(dead_code)]
+</span><span class="kw">pub mod </span>debug_client;
+<span class="kw">pub mod </span>debug_handler;
+<span class="kw">pub mod </span>submission_handler;
+<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">mod </span>coordinator_connection;
+<span class="attr">#[allow(dead_code)]
+</span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">mod </span>client_connection;
+<span class="kw">pub mod </span>client_message;
+<span class="kw">pub mod </span>coordinator_message;
 
 <span class="doccomment">/// Return a `LibraryManifest` for the context functions
 </span><span class="kw">pub fn </span>get_manifest(

@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["Message"],"fn":["main"],"mod":["errors","gui"],"struct":["FlowIde"]};
+window.SIDEBAR_ITEMS = {"enum":["Message"],"fn":["main"],"mod":["coordinator","errors","gui"],"struct":["CoordinatorSettings","FlowIde","SubmissionSettings"]};

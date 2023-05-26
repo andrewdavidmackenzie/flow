@@ -122,6 +122,8 @@
 <a href="#122" id="122">122</a>
 <a href="#123" id="123">123</a>
 <a href="#124" id="124">124</a>
+<a href="#125" id="125">125</a>
+<a href="#126" id="126">126</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::sync::{Arc, Mutex};
 
 <span class="kw">use </span>serde_json::Value;
@@ -129,8 +131,9 @@
 <span class="kw">use </span>flowcore::{DONT_RUN_AGAIN, Implementation, RUN_AGAIN, RunAgain};
 <span class="kw">use </span>flowcore::errors::<span class="kw-2">*</span>;
 
-<span class="kw">use </span><span class="kw">crate</span>::gui::connections::CoordinatorConnection;
-<span class="kw">use </span><span class="kw">crate</span>::gui::coordinator_message::{ClientMessage, CoordinatorMessage};
+<span class="kw">use </span><span class="kw">crate</span>::gui::client_message::ClientMessage;
+<span class="kw">use </span><span class="kw">crate</span>::gui::coordinator_connection::CoordinatorConnection;
+<span class="kw">use </span><span class="kw">crate</span>::gui::coordinator_message::CoordinatorMessage;
 
 <span class="doccomment">/// `Implementation` struct for the `readline` function
 </span><span class="kw">pub struct </span>Readline {
@@ -179,7 +182,8 @@
 
     <span class="kw">use </span>flowcore::{DONT_RUN_AGAIN, Implementation, RUN_AGAIN};
 
-    <span class="kw">use </span><span class="kw">crate</span>::gui::coordinator_message::{ClientMessage, CoordinatorMessage};
+    <span class="kw">use </span><span class="kw">crate</span>::gui::client_message::ClientMessage;
+    <span class="kw">use </span><span class="kw">crate</span>::gui::coordinator_message::CoordinatorMessage;
     <span class="kw">use </span><span class="kw">crate</span>::gui::test_helper::test::wait_for_then_send;
 
     <span class="kw">use </span><span class="kw">super</span>::Readline;

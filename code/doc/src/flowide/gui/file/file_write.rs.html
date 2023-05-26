@@ -67,6 +67,8 @@
 <a href="#67" id="67">67</a>
 <a href="#68" id="68">68</a>
 <a href="#69" id="69">69</a>
+<a href="#70" id="70">70</a>
+<a href="#71" id="71">71</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::sync::{Arc, Mutex};
 
 <span class="kw">use </span>serde_json::Value;
@@ -74,8 +76,9 @@
 <span class="kw">use </span>flowcore::{Implementation, RUN_AGAIN, RunAgain};
 <span class="kw">use </span>flowcore::errors::<span class="kw-2">*</span>;
 
-<span class="kw">use </span><span class="kw">crate</span>::gui::connections::CoordinatorConnection;
-<span class="kw">use </span><span class="kw">crate</span>::gui::coordinator_message::{ClientMessage, CoordinatorMessage};
+<span class="kw">use </span><span class="kw">crate</span>::gui::client_message::ClientMessage;
+<span class="kw">use </span><span class="kw">crate</span>::gui::coordinator_connection::CoordinatorConnection;
+<span class="kw">use </span><span class="kw">crate</span>::gui::coordinator_message::CoordinatorMessage;
 
 <span class="doccomment">/// `Implementation` struct for the `file_write` function
 </span><span class="kw">pub struct </span>FileWrite {
@@ -113,7 +116,8 @@
 
     <span class="kw">use </span>flowcore::{Implementation, RUN_AGAIN};
 
-    <span class="kw">use </span><span class="kw">crate</span>::gui::coordinator_message::{ClientMessage, CoordinatorMessage};
+    <span class="kw">use </span><span class="kw">crate</span>::gui::client_message::ClientMessage;
+    <span class="kw">use </span><span class="kw">crate</span>::gui::coordinator_message::CoordinatorMessage;
     <span class="kw">use </span><span class="kw">crate</span>::gui::test_helper::test::wait_for_then_send;
 
     <span class="kw">use </span><span class="kw">super</span>::FileWrite;

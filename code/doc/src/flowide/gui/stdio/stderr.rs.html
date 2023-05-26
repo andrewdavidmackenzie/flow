@@ -136,6 +136,8 @@
 <a href="#136" id="136">136</a>
 <a href="#137" id="137">137</a>
 <a href="#138" id="138">138</a>
+<a href="#139" id="139">139</a>
+<a href="#140" id="140">140</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::sync::{Arc, Mutex};
 
 <span class="kw">use </span>serde_json::Value;
@@ -143,8 +145,9 @@
 <span class="kw">use </span>flowcore::{Implementation, RUN_AGAIN, RunAgain};
 <span class="kw">use </span>flowcore::errors::<span class="kw-2">*</span>;
 
-<span class="kw">use </span><span class="kw">crate</span>::gui::connections::CoordinatorConnection;
-<span class="kw">use </span><span class="kw">crate</span>::gui::coordinator_message::{ClientMessage, CoordinatorMessage};
+<span class="kw">use </span><span class="kw">crate</span>::gui::client_message::ClientMessage;
+<span class="kw">use </span><span class="kw">crate</span>::gui::coordinator_connection::CoordinatorConnection;
+<span class="kw">use </span><span class="kw">crate</span>::gui::coordinator_message::CoordinatorMessage;
 
 <span class="doccomment">/// `Implementation` struct for the `Stderr` function
 </span><span class="kw">pub struct </span>Stderr {
@@ -186,7 +189,8 @@
 
     <span class="kw">use </span>flowcore::{Implementation, RUN_AGAIN};
 
-    <span class="kw">use </span><span class="kw">crate</span>::gui::coordinator_message::{ClientMessage, CoordinatorMessage};
+    <span class="kw">use </span><span class="kw">crate</span>::gui::client_message::ClientMessage;
+    <span class="kw">use </span><span class="kw">crate</span>::gui::coordinator_message::CoordinatorMessage;
     <span class="kw">use </span><span class="kw">crate</span>::gui::stdio::stderr::Stderr;
     <span class="kw">use </span><span class="kw">crate</span>::gui::test_helper::test::wait_for_then_send;
 

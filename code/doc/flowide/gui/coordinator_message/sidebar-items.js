@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["ClientMessage","CoordinatorMessage"],"struct":["FileMetaData"]};
+window.SIDEBAR_ITEMS = {"enum":["CoordinatorMessage"],"struct":["FileMetaData"]};

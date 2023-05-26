@@ -371,15 +371,6 @@
 <a href="#371" id="371">371</a>
 <a href="#372" id="372">372</a>
 <a href="#373" id="373">373</a>
-<a href="#374" id="374">374</a>
-<a href="#375" id="375">375</a>
-<a href="#376" id="376">376</a>
-<a href="#377" id="377">377</a>
-<a href="#378" id="378">378</a>
-<a href="#379" id="379">379</a>
-<a href="#380" id="380">380</a>
-<a href="#381" id="381">381</a>
-<a href="#382" id="382">382</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::collections::HashMap;
 <span class="kw">use </span>std::fs::File;
 <span class="kw">use </span>std::io;
@@ -426,22 +417,13 @@
         connection: ClientConnection,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
         <span class="kw">loop </span>{
-            <span class="kw">match </span>connection.receive() {
-                <span class="prelude-val">Ok</span>(event) =&gt; {
-                    <span class="kw">let </span>response = <span class="self">self</span>.process_coordinator_message(event);
-                    <span class="kw">if let </span>ClientMessage::ClientExiting(coordinator_result) = response {
-                        <span class="macro">debug!</span>(<span class="string">&quot;Client is exiting the event loop.&quot;</span>);
-                        <span class="kw">return </span>coordinator_result;
-                    }
-
-                    <span class="kw">let _ </span>= connection.send(response);
-                }
-                <span class="prelude-val">Err</span>(e) =&gt; {
-                    <span class="comment">// When debugging, a Control-C to break into the debugger will cause receive()
-                    // to return an error. Ignore it so we continue to process events from coordinator
-                    </span><span class="macro">bail!</span>(<span class="string">&quot;Error receiving message from coordinator: &#39;{}&#39;&quot;</span>, e);
-                }
+            <span class="kw">let </span>event = connection.receive()<span class="question-mark">?</span>;
+            <span class="kw">let </span>response = <span class="self">self</span>.process_coordinator_message(event);
+            <span class="kw">if let </span>ClientMessage::ClientExiting(coordinator_result) = response {
+                <span class="macro">debug!</span>(<span class="string">&quot;Client is exiting the event loop.&quot;</span>);
+                <span class="kw">return </span>coordinator_result;
             }
+            <span class="kw">let _ </span>= connection.send(response);
         }
     }
 
