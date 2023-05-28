@@ -27,7 +27,6 @@ use std::collections::HashMap;
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::PathBuf;
-//use std::sync::{Arc, Mutex};
 use std::sync::mpsc;
 
 use clap::{Arg, ArgMatches};
@@ -35,8 +34,8 @@ use clap::Command as ClapCommand;
 use env_logger::Builder;
 use iced::{Alignment, Application, Command, Element, Length, Settings, Subscription, Theme};
 use iced::executor;
-use iced::widget::{Button, Column, container, Row, text, text_input};
-use iced::widget::scrollable::Scrollable;
+use iced::widget::{Button, Column, container, Row, scrollable, text, text_input, toggler};
+use iced::widget::scrollable::{Id, Scrollable};
 use image::{ImageBuffer, Rgb, RgbImage};
 use log::{info, LevelFilter, warn};
 use log::error;
@@ -52,11 +51,14 @@ use flowrlib::info as flowrlib_info;
 use gui::coordinator_connection::CoordinatorConnection;
 use gui::debug_message::DebugServerMessage;
 use gui::debug_message::DebugServerMessage::*;
+use once_cell::sync::Lazy;
 
 use crate::coordinator::CoordinatorState;
 use crate::errors::*;
 use crate::gui::client_message::ClientMessage;
 use crate::gui::coordinator_message::CoordinatorMessage;
+
+static STDOUT_SCROLLABLE_ID: Lazy<Id> = Lazy::new(Id::unique);
 
 //use iced_aw::{TabLabel, Tabs};
 
@@ -89,6 +91,8 @@ pub enum Message {
     FlowArgsChanged(String),
     /// A different tab of stdio has been selected
     TabSelected(usize),
+    /// The toggle to auto-scroll to bottom of STDIO has changed
+    StdioAutoScrollTogglerChanged(bool),
 }
 
 /// Main for flowide binary - call `run()` and print any error that results or exit silently if OK
@@ -125,6 +129,7 @@ struct FlowIde {
     active_tab: usize,
     stdout: Vec<String>,
     stderr: Vec<String>,
+    auto_scroll_stdout: bool,
     running: bool,
     submitted: bool,
     image_buffers: HashMap<String, ImageBuffer<Rgb<u8>, Vec<u8>>>,
@@ -148,6 +153,7 @@ impl Application for FlowIde {
             active_tab: 0,
             stdout: Vec::new(),
             stderr: Vec::new(),
+            auto_scroll_stdout: true,
             submitted: false,
             running: false,
             image_buffers: HashMap::<String, ImageBuffer<Rgb<u8>, Vec<u8>>>::new(),
@@ -182,6 +188,7 @@ impl Application for FlowIde {
                     Message::CoordinatorSent(coord_msg) =>
                         return self.process_coordinator_message(coord_msg),
                     Message::TabSelected(tab_index) => self.active_tab = tab_index,
+                    Message::StdioAutoScrollTogglerChanged(value) => self.auto_scroll_stdout = value,
                 }
             }
         }
@@ -189,10 +196,6 @@ impl Application for FlowIde {
     }
 
     fn view(&self) -> Element<Message> {
-        if matches!(self.gui_coordinator, CoordinatorState::Disconnected) {
-            // TODO add a not connected message
-        };
-
         let main = Column::new().spacing(10)
             .push(self.command_row())
             .push(self.stdio());
@@ -251,7 +254,7 @@ impl FlowIde {
             .push(play).into()
     }
 
-    fn stdio_area<'a>(content: &[String]) -> Element<'a, Message> {
+    fn stdio_area<'a>(content: &[String], id: Id) -> Element<'a, Message> {
         let text_column = Column::with_children(
             content
                 .iter()
@@ -263,17 +266,22 @@ impl FlowIde {
             .width(Length::Fill)
             .padding(1);
 
-        Scrollable::new(text_column).into()
+        Scrollable::new(text_column) //.snap_to_bottom()
+            .id(id)
+            .into()
     }
 
     fn stdio<'a>(&self) -> Element<'a, Message> {
-        /*
-        Tabs::new(self.active_tab, Message::TabSelected)
-            .push(TabLabel::Text("stdout".to_owned()), Self::stdio_area(&self.stdout))
-            .push(TabLabel::Text("stderr".to_owned()), Self::stdio_area(&self.stderr))
-            .into()
-         */
-        Self::stdio_area(&self.stdout)
+        let toggler = toggler(
+                "Auto-scroll Stdio".to_owned(),
+                self.auto_scroll_stdout,
+                Message::StdioAutoScrollTogglerChanged);
+
+        let stdout = Self::stdio_area(&self.stdout, STDOUT_SCROLLABLE_ID.clone());
+
+        Column::new()
+            .push(toggler)
+            .push(stdout).into()
     }
 
     // Create initial Settings structs for Submission and Coordinator from the CLI options
@@ -477,6 +485,10 @@ impl FlowIde {
             CoordinatorMessage::Stdout(string) => {
                 self.stdout.push(string);
                 self.send(ClientMessage::Ack);
+                if self.auto_scroll_stdout {
+                    return scrollable::snap_to(
+                        STDOUT_SCROLLABLE_ID.clone(), scrollable::RelativeOffset::END);
+                }
             },
             CoordinatorMessage::Stderr(string) => {
                 self.stderr.push(string);
