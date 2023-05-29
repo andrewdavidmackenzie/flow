@@ -582,6 +582,18 @@
 <a href="#582" id="582">582</a>
 <a href="#583" id="583">583</a>
 <a href="#584" id="584">584</a>
+<a href="#585" id="585">585</a>
+<a href="#586" id="586">586</a>
+<a href="#587" id="587">587</a>
+<a href="#588" id="588">588</a>
+<a href="#589" id="589">589</a>
+<a href="#590" id="590">590</a>
+<a href="#591" id="591">591</a>
+<a href="#592" id="592">592</a>
+<a href="#593" id="593">593</a>
+<a href="#594" id="594">594</a>
+<a href="#595" id="595">595</a>
+<a href="#596" id="596">596</a>
 </pre></div><pre class="rust"><code><span class="attr">#![deny(missing_docs)]
 </span><span class="comment">// TODO re-instate #![warn(clippy::unwrap_used)]
 </span><span class="doccomment">//! `flowide` is a GUI flow runner for running `flow` programs.
@@ -611,16 +623,15 @@
 <span class="kw">use </span>std::fs::File;
 <span class="kw">use </span>std::io::prelude::<span class="kw-2">*</span>;
 <span class="kw">use </span>std::path::PathBuf;
-<span class="comment">//use std::sync::{Arc, Mutex};
-</span><span class="kw">use </span>std::sync::mpsc;
+<span class="kw">use </span>std::sync::mpsc;
 
 <span class="kw">use </span>clap::{Arg, ArgMatches};
 <span class="kw">use </span>clap::Command <span class="kw">as </span>ClapCommand;
 <span class="kw">use </span>env_logger::Builder;
 <span class="kw">use </span>iced::{Alignment, Application, Command, Element, Length, Settings, Subscription, Theme};
 <span class="kw">use </span>iced::executor;
-<span class="kw">use </span>iced::widget::{Button, Column, container, Row, text, text_input};
-<span class="kw">use </span>iced::widget::scrollable::Scrollable;
+<span class="kw">use </span>iced::widget::{Button, Column, container, Row, scrollable, text, text_input, toggler};
+<span class="kw">use </span>iced::widget::scrollable::{Id, Scrollable};
 <span class="kw">use </span>image::{ImageBuffer, Rgb, RgbImage};
 <span class="kw">use </span>log::{info, LevelFilter, warn};
 <span class="kw">use </span>log::error;
@@ -636,11 +647,14 @@
 <span class="kw">use </span>gui::coordinator_connection::CoordinatorConnection;
 <span class="kw">use </span>gui::debug_message::DebugServerMessage;
 <span class="kw">use </span>gui::debug_message::DebugServerMessage::<span class="kw-2">*</span>;
+<span class="kw">use </span>once_cell::sync::Lazy;
 
 <span class="kw">use </span><span class="kw">crate</span>::coordinator::CoordinatorState;
 <span class="kw">use </span><span class="kw">crate</span>::errors::<span class="kw-2">*</span>;
 <span class="kw">use </span><span class="kw">crate</span>::gui::client_message::ClientMessage;
 <span class="kw">use </span><span class="kw">crate</span>::gui::coordinator_message::CoordinatorMessage;
+
+<span class="kw">static </span>STDOUT_SCROLLABLE_ID: Lazy&lt;Id&gt; = Lazy::new(Id::unique);
 
 <span class="comment">//use iced_aw::{TabLabel, Tabs};
 
@@ -673,6 +687,8 @@
     </span>FlowArgsChanged(String),
     <span class="doccomment">/// A different tab of stdio has been selected
     </span>TabSelected(usize),
+    <span class="doccomment">/// The toggle to auto-scroll to bottom of STDIO has changed
+    </span>StdioAutoScrollTogglerChanged(bool),
 }
 
 <span class="doccomment">/// Main for flowide binary - call `run()` and print any error that results or exit silently if OK
@@ -709,6 +725,7 @@
     active_tab: usize,
     stdout: Vec&lt;String&gt;,
     stderr: Vec&lt;String&gt;,
+    auto_scroll_stdout: bool,
     running: bool,
     submitted: bool,
     image_buffers: HashMap&lt;String, ImageBuffer&lt;Rgb&lt;u8&gt;, Vec&lt;u8&gt;&gt;&gt;,
@@ -732,6 +749,7 @@
             active_tab: <span class="number">0</span>,
             stdout: Vec::new(),
             stderr: Vec::new(),
+            auto_scroll_stdout: <span class="bool-val">true</span>,
             submitted: <span class="bool-val">false</span>,
             running: <span class="bool-val">false</span>,
             image_buffers: HashMap::&lt;String, ImageBuffer&lt;Rgb&lt;u8&gt;, Vec&lt;u8&gt;&gt;&gt;::new(),
@@ -766,6 +784,7 @@
                     Message::CoordinatorSent(coord_msg) =&gt;
                         <span class="kw">return </span><span class="self">self</span>.process_coordinator_message(coord_msg),
                     Message::TabSelected(tab_index) =&gt; <span class="self">self</span>.active_tab = tab_index,
+                    Message::StdioAutoScrollTogglerChanged(value) =&gt; <span class="self">self</span>.auto_scroll_stdout = value,
                 }
             }
         }
@@ -773,10 +792,6 @@
     }
 
     <span class="kw">fn </span>view(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; Element&lt;Message&gt; {
-        <span class="kw">if </span><span class="macro">matches!</span>(<span class="self">self</span>.gui_coordinator, CoordinatorState::Disconnected) {
-            <span class="comment">// TODO add a not connected message
-        </span>};
-
         <span class="kw">let </span>main = Column::new().spacing(<span class="number">10</span>)
             .push(<span class="self">self</span>.command_row())
             .push(<span class="self">self</span>.stdio());
@@ -835,7 +850,7 @@
             .push(play).into()
     }
 
-    <span class="kw">fn </span>stdio_area&lt;<span class="lifetime">&#39;a</span>&gt;(content: <span class="kw-2">&amp;</span>[String]) -&gt; Element&lt;<span class="lifetime">&#39;a</span>, Message&gt; {
+    <span class="kw">fn </span>stdio_area&lt;<span class="lifetime">&#39;a</span>&gt;(content: <span class="kw-2">&amp;</span>[String], id: Id) -&gt; Element&lt;<span class="lifetime">&#39;a</span>, Message&gt; {
         <span class="kw">let </span>text_column = Column::with_children(
             content
                 .iter()
@@ -847,17 +862,22 @@
             .width(Length::Fill)
             .padding(<span class="number">1</span>);
 
-        Scrollable::new(text_column).into()
+        Scrollable::new(text_column) <span class="comment">//.snap_to_bottom()
+            </span>.id(id)
+            .into()
     }
 
     <span class="kw">fn </span>stdio&lt;<span class="lifetime">&#39;a</span>&gt;(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; Element&lt;<span class="lifetime">&#39;a</span>, Message&gt; {
-        <span class="comment">/*
-        Tabs::new(self.active_tab, Message::TabSelected)
-            .push(TabLabel::Text(&quot;stdout&quot;.to_owned()), Self::stdio_area(&amp;self.stdout))
-            .push(TabLabel::Text(&quot;stderr&quot;.to_owned()), Self::stdio_area(&amp;self.stderr))
-            .into()
-         */
-        </span><span class="self">Self</span>::stdio_area(<span class="kw-2">&amp;</span><span class="self">self</span>.stdout)
+        <span class="kw">let </span>toggler = toggler(
+                <span class="string">&quot;Auto-scroll Stdio&quot;</span>.to_owned(),
+                <span class="self">self</span>.auto_scroll_stdout,
+                Message::StdioAutoScrollTogglerChanged);
+
+        <span class="kw">let </span>stdout = <span class="self">Self</span>::stdio_area(<span class="kw-2">&amp;</span><span class="self">self</span>.stdout, STDOUT_SCROLLABLE_ID.clone());
+
+        Column::new()
+            .push(toggler)
+            .push(stdout).into()
     }
 
     <span class="comment">// Create initial Settings structs for Submission and Coordinator from the CLI options
@@ -1061,6 +1081,10 @@
             CoordinatorMessage::Stdout(string) =&gt; {
                 <span class="self">self</span>.stdout.push(string);
                 <span class="self">self</span>.send(ClientMessage::Ack);
+                <span class="kw">if </span><span class="self">self</span>.auto_scroll_stdout {
+                    <span class="kw">return </span>scrollable::snap_to(
+                        STDOUT_SCROLLABLE_ID.clone(), scrollable::RelativeOffset::END);
+                }
             },
             CoordinatorMessage::Stderr(string) =&gt; {
                 <span class="self">self</span>.stderr.push(string);
