@@ -27,7 +27,7 @@ metrics = []  # feature for tracking of metrics during execution
 [dependencies]
 flowcore = {path = "../flowcore", version = "0.95.0", features = ["file_provider", "http_provider",
 "context", "meta_provider"]}
-log = "0.4.6"
+log = "0.4.18"
 url = { version = "2.2", features = ["serde"] }
 serde_derive = "~1.0.27"
 serde = "~1.0.163"
