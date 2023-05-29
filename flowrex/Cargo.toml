@@ -27,7 +27,7 @@ flowstdlib = {path = "../flowstdlib", version = "0.95.0", optional = true }
 env_logger = "0.10.0"
 simpath = { version = "~2.4", features = ["urls"]}
 clap = "~4"
-log = "0.4.6"
+log = "0.4.18"
 url = "2.2"
 error-chain = "0.12.2"
 simpdiscover = "0.6.2"

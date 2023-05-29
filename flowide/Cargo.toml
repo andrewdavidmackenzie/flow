@@ -16,7 +16,7 @@ flowcore = {path = "../flowcore", version = "0.95.0", features = ["context", "de
 flowrlib = {path = "../flowrlib", version = "0.95.0", features = ["context", "debugger", "metrics", "submission"] }
 flowstdlib = {path = "../flowstdlib", version = "0.95.0" }
 clap = "~4"
-log = "0.4.6"
+log = "0.4.18"
 env_logger = "0.10.0"
 simpath = { version = "~2.4", features = ["urls"]}
 url = { version = "2.2", features = ["serde"] }
