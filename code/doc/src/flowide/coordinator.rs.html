@@ -218,12 +218,39 @@
 <a href="#218" id="218">218</a>
 <a href="#219" id="219">219</a>
 <a href="#220" id="220">220</a>
+<a href="#221" id="221">221</a>
+<a href="#222" id="222">222</a>
+<a href="#223" id="223">223</a>
+<a href="#224" id="224">224</a>
+<a href="#225" id="225">225</a>
+<a href="#226" id="226">226</a>
+<a href="#227" id="227">227</a>
+<a href="#228" id="228">228</a>
+<a href="#229" id="229">229</a>
+<a href="#230" id="230">230</a>
+<a href="#231" id="231">231</a>
+<a href="#232" id="232">232</a>
+<a href="#233" id="233">233</a>
+<a href="#234" id="234">234</a>
+<a href="#235" id="235">235</a>
+<a href="#236" id="236">236</a>
+<a href="#237" id="237">237</a>
+<a href="#238" id="238">238</a>
+<a href="#239" id="239">239</a>
+<a href="#240" id="240">240</a>
+<a href="#241" id="241">241</a>
+<a href="#242" id="242">242</a>
+<a href="#243" id="243">243</a>
+<a href="#244" id="244">244</a>
+<a href="#245" id="245">245</a>
+<a href="#246" id="246">246</a>
+<a href="#247" id="247">247</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::path::PathBuf;
-<span class="kw">use </span>std::sync::{Arc, mpsc, Mutex};
+<span class="kw">use </span>std::sync::{Arc, Mutex};
 <span class="kw">use </span>std::thread;
 
 <span class="kw">use </span>iced::{Subscription, subscription};
-<span class="kw">use </span>log::{info, trace};
+<span class="kw">use </span>log::{debug, error, info, trace};
 <span class="kw">use </span>portpicker::pick_unused_port;
 <span class="kw">use </span>url::Url;
 
@@ -245,62 +272,89 @@
 <span class="kw">use </span><span class="kw">crate</span>::gui::debug_handler::CliDebugHandler;
 <span class="kw">use </span><span class="kw">crate</span>::gui::submission_handler::CLISubmissionHandler;
 
-<span class="attr">#[derive(Debug, Clone)]
-</span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">enum </span>CoordinatorState {
-    Disconnected,
-    Connected(mpsc::SyncSender&lt;ClientMessage&gt;),
+<span class="kw">enum </span>CoordinatorState {
+    <span class="prelude-val">None</span>,
+    Disconnected(String),
+    Connected(tokio::sync::mpsc::Receiver&lt;ClientMessage&gt;, ClientConnection),
+    FlowSubmitted(tokio::sync::mpsc::Receiver&lt;ClientMessage&gt;, Arc&lt;Mutex&lt;ClientConnection&gt;&gt;),
 }
 
 <span class="comment">// Creates an asynchronous worker that sends messages back and forth between the App and
 // the Coordinator
 </span><span class="kw">pub fn </span>subscribe(coordinator_settings: CoordinatorSettings) -&gt; Subscription&lt;CoordinatorMessage&gt; {
     <span class="kw">struct </span>Connect;
-
     subscription::channel(
         std::any::TypeId::of::&lt;Connect&gt;(),
         <span class="number">100</span>,
         <span class="kw">move </span>|<span class="kw-2">mut </span>app_sender| {
             <span class="kw">let </span>settings = coordinator_settings.clone();
             <span class="kw">async move </span>{
-                <span class="comment">// TODO maybe try discovering one and start if not...
-                </span><span class="kw">let </span>coordinator_info = start(settings);
-                <span class="macro">info!</span>(<span class="string">&quot;Coordinator started: {}&quot;</span>, coordinator_info.<span class="number">0</span>);
-
-                <span class="kw">let </span>coordinator = ClientConnection::new(<span class="kw-2">&amp;</span>coordinator_info.<span class="number">0</span>)
-                    .unwrap(); <span class="comment">// TODO
-
-                // Create channel to get messages from the app
-                </span><span class="kw">let </span>(app_side_sender, app_receiver) =
-                    mpsc::sync_channel(<span class="number">100</span>);
-
-                <span class="comment">// Send the Sender to the App in a Message, for App to use to send us messages
-                </span><span class="kw">let _ </span>= app_sender.try_send(CoordinatorMessage::Connected(app_side_sender));
-
-                <span class="comment">// If I don&#39;t do this - the app doesn&#39;t receive the message before panic below
-                </span>tokio::time::sleep(tokio::time::Duration::from_millis(<span class="number">1</span>)).<span class="kw">await</span>;
-
-                <span class="comment">// read the Submit message from the app to send to the coordinator
-                </span><span class="kw">match </span>app_receiver.recv() {
-                    <span class="prelude-val">Ok</span>(client_message) =&gt; {
-                        coordinator.send(client_message).unwrap(); <span class="comment">// TODO
-                    </span>},
-                    <span class="prelude-val">Err</span>(e) =&gt; <span class="macro">eprintln!</span>(<span class="string">&quot;Error: &#39;{e}&#39;&quot;</span>),
-                }
-
+                <span class="kw">let </span><span class="kw-2">mut </span>state = CoordinatorState::None;
                 <span class="kw">loop </span>{
-                    <span class="comment">// read the message back from the Coordinator
-                    </span><span class="kw">let </span>coordinator_message: CoordinatorMessage = coordinator.receive().unwrap(); <span class="comment">// TODO
-                    // Forward the message to the App
-                    </span>app_sender.try_send(coordinator_message).unwrap(); <span class="comment">// TODO
+                    <span class="kw">match </span>state {
+                        CoordinatorState::None =&gt; {
+                            <span class="comment">// TODO maybe try discovering one and start if not...
+                            </span><span class="kw">let </span>(address, <span class="kw">_</span>) = start(settings.clone());
+                            <span class="macro">info!</span>(<span class="string">&quot;Coordinator started at address &#39;{}&#39;&quot;</span>, address);
+                            state = CoordinatorState::Disconnected(address)
+                        },
 
-                    </span>tokio::time::sleep(tokio::time::Duration::from_millis(<span class="number">1</span>)).<span class="kw">await</span>;
+                        CoordinatorState::Disconnected(address) =&gt; {
+                            <span class="kw">let </span>coordinator = ClientConnection::new(<span class="kw-2">&amp;</span>address)
+                                .unwrap(); <span class="comment">// TODO
 
-                    <span class="comment">// read the message from the app to send to the coordinator
-                    </span><span class="kw">match </span>app_receiver.recv() {
-                        <span class="prelude-val">Ok</span>(client_message) =&gt; {
-                            coordinator.send(client_message).unwrap(); <span class="comment">// TODO
-                        </span>},
-                        <span class="prelude-val">Err</span>(e) =&gt; <span class="macro">eprintln!</span>(<span class="string">&quot;Error: &#39;{e}&#39;&quot;</span>),
+                            // Create channel to get messages from the app
+                            </span><span class="kw">let </span>(app_side_sender, app_receiver) = tokio::sync::mpsc::channel(<span class="number">100</span>);
+
+                            <span class="comment">// Send the Sender to the App in a Message, for App to use to send us messages
+                            </span><span class="kw">let _ </span>= app_sender.try_send(CoordinatorMessage::Connected(app_side_sender));
+
+                            <span class="macro">info!</span>(<span class="string">&quot;Connected to Coordinator at address: {}&quot;</span>, address);
+                            state = CoordinatorState::Connected(app_receiver,
+                                                                coordinator);
+                        },
+
+                        CoordinatorState::Connected(<span class="kw-2">mut </span>app_receiver,
+                                                    coordinator) =&gt; {
+                            <span class="comment">// read the Submit message from the app
+                            </span><span class="kw">match </span>app_receiver.recv().<span class="kw">await </span>{
+                                <span class="prelude-val">Some</span>(client_message) =&gt; {
+                                    <span class="comment">// TODO check it&#39;s the correct message?
+                                    // to send to the coordinator
+                                    </span>coordinator.send(client_message).unwrap();
+
+                                    <span class="macro">debug!</span>(<span class="string">&quot;Flow submitted to Coordinator&quot;</span>);
+                                    state = CoordinatorState::FlowSubmitted(app_receiver,
+                                                                    Arc::new(Mutex::new(coordinator)))
+                                },
+                                <span class="prelude-val">None </span>=&gt; {
+                                    <span class="macro">error!</span>(<span class="string">&quot;Error receiving from app&quot;</span>);
+                                    state = CoordinatorState::Connected(app_receiver,
+                                                                coordinator)
+                                },
+                            }
+                        },
+
+                        CoordinatorState::FlowSubmitted(<span class="kw-2">ref mut </span>app_receiver,
+                                                        <span class="kw-2">ref </span>coordinator) =&gt; {
+                            <span class="comment">// TODO Maybe handle Coordinator exiting message here and update state???
+                            // TODO maybe add a state for ended and process flow ended state also?
+
+                            // read the message back from the Coordinator
+                            </span><span class="kw">let </span>coordinator_message: CoordinatorMessage = coordinator
+                                .lock().unwrap().receive().unwrap(); <span class="comment">// TODO
+
+                            // Forward the message to the App - TODO check it&#39;s the flow started message
+                            </span>app_sender.try_send(coordinator_message).unwrap(); <span class="comment">// TODO
+
+                            // read the message from the app to send to the coordinator
+                            </span><span class="kw">match </span>app_receiver.recv().<span class="kw">await </span>{
+                                <span class="prelude-val">Some</span>(client_message) =&gt; {
+                                    coordinator.lock().unwrap().send(client_message).unwrap();
+                                }
+                                <span class="prelude-val">None </span>=&gt; <span class="macro">error!</span>(<span class="string">&quot;Error receiving from app&quot;</span>),
+                            }
+                        }
                     }
                 }
             }

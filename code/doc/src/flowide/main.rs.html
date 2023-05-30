@@ -594,6 +594,17 @@
 <a href="#594" id="594">594</a>
 <a href="#595" id="595">595</a>
 <a href="#596" id="596">596</a>
+<a href="#597" id="597">597</a>
+<a href="#598" id="598">598</a>
+<a href="#599" id="599">599</a>
+<a href="#600" id="600">600</a>
+<a href="#601" id="601">601</a>
+<a href="#602" id="602">602</a>
+<a href="#603" id="603">603</a>
+<a href="#604" id="604">604</a>
+<a href="#605" id="605">605</a>
+<a href="#606" id="606">606</a>
+<a href="#607" id="607">607</a>
 </pre></div><pre class="rust"><code><span class="attr">#![deny(missing_docs)]
 </span><span class="comment">// TODO re-instate #![warn(clippy::unwrap_used)]
 </span><span class="doccomment">//! `flowide` is a GUI flow runner for running `flow` programs.
@@ -623,7 +634,6 @@
 <span class="kw">use </span>std::fs::File;
 <span class="kw">use </span>std::io::prelude::<span class="kw-2">*</span>;
 <span class="kw">use </span>std::path::PathBuf;
-<span class="kw">use </span>std::sync::mpsc;
 
 <span class="kw">use </span>clap::{Arg, ArgMatches};
 <span class="kw">use </span>clap::Command <span class="kw">as </span>ClapCommand;
@@ -635,6 +645,7 @@
 <span class="kw">use </span>image::{ImageBuffer, Rgb, RgbImage};
 <span class="kw">use </span>log::{info, LevelFilter, warn};
 <span class="kw">use </span>log::error;
+<span class="kw">use </span>once_cell::sync::Lazy;
 <span class="kw">use </span>simpath::Simpath;
 <span class="kw">use </span>url::Url;
 
@@ -647,9 +658,7 @@
 <span class="kw">use </span>gui::coordinator_connection::CoordinatorConnection;
 <span class="kw">use </span>gui::debug_message::DebugServerMessage;
 <span class="kw">use </span>gui::debug_message::DebugServerMessage::<span class="kw-2">*</span>;
-<span class="kw">use </span>once_cell::sync::Lazy;
 
-<span class="kw">use </span><span class="kw">crate</span>::coordinator::CoordinatorState;
 <span class="kw">use </span><span class="kw">crate</span>::errors::<span class="kw-2">*</span>;
 <span class="kw">use </span><span class="kw">crate</span>::gui::client_message::ClientMessage;
 <span class="kw">use </span><span class="kw">crate</span>::gui::coordinator_message::CoordinatorMessage;
@@ -681,7 +690,9 @@
     </span>CoordinatorSent(CoordinatorMessage),
     <span class="doccomment">/// The UI has requested to submit the flow to the Coordinator for execution
     </span>SubmitFlow, <span class="comment">// TODO put SubmissionSettings into this variant?
-    </span><span class="doccomment">/// The Url of the flow to run has been edited by the UI
+    </span><span class="doccomment">/// ddd
+    </span>Submitted,
+    <span class="doccomment">/// The Url of the flow to run has been edited by the UI
     </span>UrlChanged(String),
     <span class="doccomment">/// The arguments to send to the flow when executed have been edited by the UI
     </span>FlowArgsChanged(String),
@@ -689,6 +700,11 @@
     </span>TabSelected(usize),
     <span class="doccomment">/// The toggle to auto-scroll to bottom of STDIO has changed
     </span>StdioAutoScrollTogglerChanged(bool),
+}
+
+<span class="kw">enum </span>CoordinatorState {
+    Disconnected,
+    Connected(tokio::sync::mpsc::Sender&lt;ClientMessage&gt;),
 }
 
 <span class="doccomment">/// Main for flowide binary - call `run()` and print any error that results or exit silently if OK
@@ -775,16 +791,22 @@
             CoordinatorState::Connected(sender) =&gt; {
                 <span class="kw">match </span>message {
                     Message::SubmitFlow =&gt; {
-                        <span class="self">self</span>.submit(sender);
-                        <span class="self">self</span>.submitted = <span class="bool-val">true</span>;
+                        <span class="kw">let </span>url = <span class="self">self</span>.flow_url().unwrap();
+                        <span class="kw">let </span>parallel_jobs_limit = <span class="self">self</span>.flow_settings.parallel_jobs_limit;
+                        <span class="kw">let </span>debug_this_flow = <span class="self">self</span>.flow_settings.debug_this_flow;
+                        <span class="kw">return </span>Command::perform(<span class="self">Self</span>::submit(sender.clone(),
+                                                            url, parallel_jobs_limit,
+                                                             debug_this_flow
+                        ), |<span class="kw">_</span>| Message::Submitted);
                     },
+                    Message::Submitted =&gt; <span class="self">self</span>.submitted = <span class="bool-val">true</span>,
                     Message::FlowArgsChanged(value) =&gt; <span class="self">self</span>.flow_settings.flow_args = value,
                     Message::UrlChanged(value) =&gt; <span class="self">self</span>.flow_settings.flow_manifest_url = value,
-                    Message::CoordinatorDisconnected =&gt; <span class="self">self</span>.gui_coordinator = CoordinatorState::Disconnected,
                     Message::CoordinatorSent(coord_msg) =&gt;
                         <span class="kw">return </span><span class="self">self</span>.process_coordinator_message(coord_msg),
                     Message::TabSelected(tab_index) =&gt; <span class="self">self</span>.active_tab = tab_index,
                     Message::StdioAutoScrollTogglerChanged(value) =&gt; <span class="self">self</span>.auto_scroll_stdout = value,
+                    Message::CoordinatorDisconnected =&gt; <span class="self">self</span>.gui_coordinator = CoordinatorState::Disconnected,
                 }
             }
         }
@@ -803,7 +825,6 @@
     }
 
     <span class="kw">fn </span>subscription(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; Subscription&lt;Message&gt; {
-        <span class="macro">println!</span>(<span class="string">&quot;Subscription called&quot;</span>);
         coordinator::subscribe(<span class="self">self</span>.coordinator_settings.clone())
             .map(Message::CoordinatorSent)
     }
@@ -811,22 +832,23 @@
 
 <span class="kw">impl </span>FlowIde {
     <span class="comment">// Submit the flow to the coordinator for execution
-    </span><span class="kw">fn </span>submit(<span class="kw-2">&amp;</span><span class="self">self</span>, sender: <span class="kw-2">&amp;</span>mpsc::SyncSender&lt;ClientMessage&gt;) {
+    </span><span class="kw">async fn </span>submit(sender: tokio::sync::mpsc::Sender&lt;ClientMessage&gt;,
+                    url: Url,
+                    parallel_jobs_limit: <span class="prelude-ty">Option</span>&lt;usize&gt;,
+                    debug_this_flow: bool) {
         <span class="kw">let </span>provider = <span class="kw-2">&amp;</span>MetaProvider::new(Simpath::new(<span class="string">&quot;&quot;</span>),
                                           PathBuf::default()) <span class="kw">as </span><span class="kw-2">&amp;</span><span class="kw">dyn </span>Provider;
 
-        <span class="kw">let </span>(flow_manifest, <span class="kw">_</span>) = FlowManifest::load(provider,
-                                                    <span class="kw-2">&amp;</span><span class="self">self</span>.flow_url().unwrap())
-            .unwrap(); <span class="comment">// TODO
+        <span class="kw">let </span>(flow_manifest, <span class="kw">_</span>) = FlowManifest::load(provider, <span class="kw-2">&amp;</span>url).unwrap(); <span class="comment">// TODO
         </span><span class="kw">let </span>submission = Submission::new(
             flow_manifest,
-            <span class="self">self</span>.flow_settings.parallel_jobs_limit,
+            parallel_jobs_limit,
             <span class="prelude-val">None</span>, <span class="comment">// No timeout waiting for job results
-            </span><span class="self">self</span>.flow_settings.debug_this_flow,
+            </span>debug_this_flow,
         );
 
         <span class="macro">info!</span>(<span class="string">&quot;Sending submission to Coordinator&quot;</span>);
-        <span class="kw">let _ </span>= sender.send(ClientMessage::ClientSubmission(submission));
+        <span class="kw">let _ </span>= sender.send(ClientMessage::ClientSubmission(submission)).<span class="kw">await</span>;
     }
 
     <span class="kw">fn </span>command_row&lt;<span class="lifetime">&#39;a</span>&gt;(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; Element&lt;<span class="lifetime">&#39;a</span>, Message&gt; {
@@ -1075,8 +1097,8 @@
                 <span class="self">self</span>.send(ClientMessage::Ack);
             }
             CoordinatorMessage::CoordinatorExiting(<span class="kw">_</span>) =&gt; {
-                <span class="comment">// TODO update state with loss of connection/detection of coordinator
-                </span><span class="self">self</span>.send(ClientMessage::Ack);
+                <span class="self">self</span>.gui_coordinator = CoordinatorState::Disconnected;
+                <span class="self">self</span>.send(ClientMessage::Ack);
             },
             CoordinatorMessage::Stdout(string) =&gt; {
                 <span class="self">self</span>.stdout.push(string);
