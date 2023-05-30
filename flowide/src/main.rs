@@ -27,7 +27,6 @@ use std::collections::HashMap;
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::PathBuf;
-use std::sync::mpsc;
 
 use clap::{Arg, ArgMatches};
 use clap::Command as ClapCommand;
@@ -84,6 +83,8 @@ pub enum Message {
     CoordinatorSent(CoordinatorMessage),
     /// The UI has requested to submit the flow to the Coordinator for execution
     SubmitFlow, // TODO put SubmissionSettings into this variant?
+    /// ddd
+    Submitted,
     /// The Url of the flow to run has been edited by the UI
     UrlChanged(String),
     /// The arguments to send to the flow when executed have been edited by the UI
@@ -96,7 +97,7 @@ pub enum Message {
 
 enum CoordinatorState {
     Disconnected,
-    Connected(mpsc::SyncSender<ClientMessage>),
+    Connected(tokio::sync::mpsc::Sender<ClientMessage>),
 }
 
 /// Main for flowide binary - call `run()` and print any error that results or exit silently if OK
@@ -183,9 +184,15 @@ impl Application for FlowIde {
             CoordinatorState::Connected(sender) => {
                 match message {
                     Message::SubmitFlow => {
-                        self.submit(sender);
-                        self.submitted = false;
+                        let url = self.flow_url().unwrap();
+                        let parallel_jobs_limit = self.flow_settings.parallel_jobs_limit;
+                        let debug_this_flow = self.flow_settings.debug_this_flow;
+                        return Command::perform(Self::submit(sender.clone(),
+                                                            url, parallel_jobs_limit,
+                                                             debug_this_flow
+                        ), |_| Message::Submitted);
                     },
+                    Message::Submitted => self.submitted = true,
                     Message::FlowArgsChanged(value) => self.flow_settings.flow_args = value,
                     Message::UrlChanged(value) => self.flow_settings.flow_manifest_url = value,
                     Message::CoordinatorSent(coord_msg) =>
@@ -211,7 +218,6 @@ impl Application for FlowIde {
     }
 
     fn subscription(&self) -> Subscription<Message> {
-        println!("Subscription called");
         coordinator::subscribe(self.coordinator_settings.clone())
             .map(Message::CoordinatorSent)
     }
@@ -219,22 +225,23 @@ impl Application for FlowIde {
 
 impl FlowIde {
     // Submit the flow to the coordinator for execution
-    fn submit(&self, sender: &mpsc::SyncSender<ClientMessage>) {
+    async fn submit(sender: tokio::sync::mpsc::Sender<ClientMessage>,
+                    url: Url,
+                    parallel_jobs_limit: Option<usize>,
+                    debug_this_flow: bool) {
         let provider = &MetaProvider::new(Simpath::new(""),
                                           PathBuf::default()) as &dyn Provider;
 
-        let (flow_manifest, _) = FlowManifest::load(provider,
-                                                    &self.flow_url().unwrap())
-            .unwrap(); // TODO
+        let (flow_manifest, _) = FlowManifest::load(provider, &url).unwrap(); // TODO
         let submission = Submission::new(
             flow_manifest,
-            self.flow_settings.parallel_jobs_limit,
+            parallel_jobs_limit,
             None, // No timeout waiting for job results
-            self.flow_settings.debug_this_flow,
+            debug_this_flow,
         );
 
         info!("Sending submission to Coordinator");
-        let _ = sender.send(ClientMessage::ClientSubmission(submission));
+        let _ = sender.send(ClientMessage::ClientSubmission(submission)).await;
     }
 
     fn command_row<'a>(&self) -> Element<'a, Message> {
