@@ -69,9 +69,6 @@ pub fn subscribe(coordinator_settings: CoordinatorSettings) -> Subscription<Coor
 
                         CoordinatorState::Connected(mut app_receiver,
                                                     coordinator) => {
-                            // If I don't do this - the app doesn't receive the message before panic below
-                            tokio::time::sleep(tokio::time::Duration::from_millis(1)).await;
-
                             // read the Submit message from the app
                             match app_receiver.recv().await {
                                 Some(client_message) => {
