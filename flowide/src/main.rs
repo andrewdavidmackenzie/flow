@@ -39,6 +39,7 @@ use iced::widget::scrollable::{Id, Scrollable};
 use image::{ImageBuffer, Rgb, RgbImage};
 use log::{info, LevelFilter, warn};
 use log::error;
+use once_cell::sync::Lazy;
 use simpath::Simpath;
 use url::Url;
 
@@ -51,9 +52,7 @@ use flowrlib::info as flowrlib_info;
 use gui::coordinator_connection::CoordinatorConnection;
 use gui::debug_message::DebugServerMessage;
 use gui::debug_message::DebugServerMessage::*;
-use once_cell::sync::Lazy;
 
-use crate::coordinator::CoordinatorState;
 use crate::errors::*;
 use crate::gui::client_message::ClientMessage;
 use crate::gui::coordinator_message::CoordinatorMessage;
@@ -93,6 +92,11 @@ pub enum Message {
     TabSelected(usize),
     /// The toggle to auto-scroll to bottom of STDIO has changed
     StdioAutoScrollTogglerChanged(bool),
+}
+
+enum CoordinatorState {
+    Disconnected,
+    Connected(mpsc::SyncSender<ClientMessage>),
 }
 
 /// Main for flowide binary - call `run()` and print any error that results or exit silently if OK
@@ -180,15 +184,15 @@ impl Application for FlowIde {
                 match message {
                     Message::SubmitFlow => {
                         self.submit(sender);
-                        self.submitted = true;
+                        self.submitted = false;
                     },
                     Message::FlowArgsChanged(value) => self.flow_settings.flow_args = value,
                     Message::UrlChanged(value) => self.flow_settings.flow_manifest_url = value,
-                    Message::CoordinatorDisconnected => self.gui_coordinator = CoordinatorState::Disconnected,
                     Message::CoordinatorSent(coord_msg) =>
                         return self.process_coordinator_message(coord_msg),
                     Message::TabSelected(tab_index) => self.active_tab = tab_index,
                     Message::StdioAutoScrollTogglerChanged(value) => self.auto_scroll_stdout = value,
+                    Message::CoordinatorDisconnected => self.gui_coordinator = CoordinatorState::Disconnected,
                 }
             }
         }
@@ -479,7 +483,7 @@ impl FlowIde {
                 self.send(ClientMessage::Ack);
             }
             CoordinatorMessage::CoordinatorExiting(_) => {
-                // TODO update state with loss of connection/detection of coordinator
+                self.gui_coordinator = CoordinatorState::Disconnected;
                 self.send(ClientMessage::Ack);
             },
             CoordinatorMessage::Stdout(string) => {

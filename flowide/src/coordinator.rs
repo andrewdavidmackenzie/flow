@@ -1,10 +1,12 @@
 use std::path::PathBuf;
 use std::sync::{Arc, mpsc, Mutex};
+use std::sync::mpsc::Receiver;
 use std::thread;
 
 use iced::{Subscription, subscription};
-use log::{info, trace};
+use log::{debug, error, info, trace};
 use portpicker::pick_unused_port;
+use tokio::task;
 use url::Url;
 
 use flowcore::meta_provider::MetaProvider;
@@ -25,14 +27,16 @@ use crate::gui::coordinator_message::CoordinatorMessage;
 use crate::gui::debug_handler::CliDebugHandler;
 use crate::gui::submission_handler::CLISubmissionHandler;
 
-#[derive(Debug, Clone)]
-pub(crate) enum CoordinatorState {
-    Disconnected,
-    Connected(mpsc::SyncSender<ClientMessage>),
+enum CoordinatorState {
+    None,
+    Disconnected(String),
+    Connected(Receiver<ClientMessage>, ClientConnection),
+    FlowSubmitted(Receiver<ClientMessage>, ClientConnection),
 }
 
 // Creates an asynchronous worker that sends messages back and forth between the App and
 // the Coordinator
+// TODO maybe try discovering one and start if not...
 pub fn subscribe(coordinator_settings: CoordinatorSettings) -> Subscription<CoordinatorMessage> {
     struct Connect;
 
@@ -42,45 +46,89 @@ pub fn subscribe(coordinator_settings: CoordinatorSettings) -> Subscription<Coor
         move |mut app_sender| {
             let settings = coordinator_settings.clone();
             async move {
-                // TODO maybe try discovering one and start if not...
-                let coordinator_info = start(settings);
-                info!("Coordinator started: {}", coordinator_info.0);
-
-                let coordinator = ClientConnection::new(&coordinator_info.0)
-                    .unwrap(); // TODO
-
-                // Create channel to get messages from the app
-                let (app_side_sender, app_receiver) =
-                    mpsc::sync_channel(100);
-
-                // Send the Sender to the App in a Message, for App to use to send us messages
-                let _ = app_sender.try_send(CoordinatorMessage::Connected(app_side_sender));
-
-                // If I don't do this - the app doesn't receive the message before panic below
-                tokio::time::sleep(tokio::time::Duration::from_millis(1)).await;
-
-                // read the Submit message from the app to send to the coordinator
-                match app_receiver.recv() {
-                    Ok(client_message) => {
-                        coordinator.send(client_message).unwrap(); // TODO
-                    },
-                    Err(e) => eprintln!("Error: '{e}'"),
-                }
+                let mut state = CoordinatorState::None;
 
                 loop {
-                    // read the message back from the Coordinator
-                    let coordinator_message: CoordinatorMessage = coordinator.receive().unwrap(); // TODO
-                    // Forward the message to the App
-                    app_sender.try_send(coordinator_message).unwrap(); // TODO
-
-                    tokio::time::sleep(tokio::time::Duration::from_millis(1)).await;
-
-                    // read the message from the app to send to the coordinator
-                    match app_receiver.recv() {
-                        Ok(client_message) => {
-                            coordinator.send(client_message).unwrap(); // TODO
+                    match state {
+                        CoordinatorState::None => {
+                            state = task::spawn_blocking( || {
+                                let (address, _) = start(settings.clone());
+                                println!("Coordinator started (but Disconnected). Address '{}'", address);
+                                CoordinatorState::Disconnected(address)
+                            }).await.unwrap();
                         },
-                        Err(e) => eprintln!("Error: '{e}'"),
+
+                        CoordinatorState::Disconnected(address) => {
+                            let coordinator = ClientConnection::new(&address)
+                                .unwrap(); // TODO
+
+                            // Create channel to get messages from the app
+                            let (app_side_sender, app_receiver) =
+                                mpsc::sync_channel(100);
+
+                            // Send the Sender to the App in a Message, for App to use to send us messages
+                            let _ = app_sender.try_send(CoordinatorMessage::Connected(app_side_sender));
+
+                            println!("Connected to Coordinator at address: {}", address);
+                            state = CoordinatorState::Connected(app_receiver,
+                                                                coordinator);
+                        },
+
+                        CoordinatorState::Connected(app_receiver,
+                                                    coordinator) => {
+                            state = task::spawn_blocking(move || {
+                                // read the Submit message from the app
+                                match app_receiver.recv() {
+                                    Ok(client_message) => {
+                                        // TODO check it's the correct message?
+                                        // to send to the coordinator
+                                        coordinator.send(client_message).unwrap();
+
+                                        println!("Flow submitted to Coordinator");
+                                        CoordinatorState::FlowSubmitted(app_receiver,
+                                                                        coordinator)
+                                    },
+                                    Err(e) => {
+                                        error!("Error: '{e}'");
+                                        CoordinatorState::Connected(app_receiver,
+                                                                    coordinator)
+                                    },
+                                }
+                            }).await.unwrap();
+                        },
+
+                        CoordinatorState::FlowSubmitted(ref app_receiver,
+                                                        ref coordinator) => {
+                            // TODO Maybe handle Coordinator exiting message here and update state???
+                            // TODO maybe add a state for ended and process flow ended state also?
+
+                            println!("Waiting for message from coordinator");
+
+                            let coordinator_message: CoordinatorMessage = task::spawn_blocking(move || {
+                                // read the message back from the Coordinator
+                                coordinator.receive().unwrap() // TODO
+                            }).await.unwrap();
+
+                            println!("Got message {}", coordinator_message);
+
+                            // Forward the message to the App - TODO check it's the flow started message
+                            app_sender.try_send(coordinator_message).unwrap(); // TODO
+
+                            println!("Waiting for message from app");
+
+                            let _ = task::spawn_blocking( move || {
+                                // read the message from the app to send to the coordinator
+                                match app_receiver.recv() {
+                                    Ok(client_message) => {
+                                        println!("FlowStarted state: message from app: {}", client_message);
+                                        coordinator.send(client_message).unwrap();
+                                    }
+                                    Err(e) => error!("Error: '{e}'"),
+                                }
+                            }).await.unwrap();
+
+                            println!("Flow started state ended");
+                        }
                     }
                 }
             }
