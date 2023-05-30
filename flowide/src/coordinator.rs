@@ -3,7 +3,7 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 
 use iced::{Subscription, subscription};
-use log::{error, info, trace};
+use log::{debug, error, info, trace};
 use portpicker::pick_unused_port;
 use url::Url;
 
@@ -36,8 +36,6 @@ enum CoordinatorState {
 // the Coordinator
 pub fn subscribe(coordinator_settings: CoordinatorSettings) -> Subscription<CoordinatorMessage> {
     struct Connect;
-    println!("Subscription called");
-
     subscription::channel(
         std::any::TypeId::of::<Connect>(),
         100,
@@ -50,7 +48,7 @@ pub fn subscribe(coordinator_settings: CoordinatorSettings) -> Subscription<Coor
                         CoordinatorState::None => {
                             // TODO maybe try discovering one and start if not...
                             let (address, _) = start(settings.clone());
-                            println!("Coordinator started (but Disconnected). Address '{}'", address);
+                            println!("Coordinator started at address '{}'", address);
                             state = CoordinatorState::Disconnected(address)
                         },
 
@@ -81,7 +79,7 @@ pub fn subscribe(coordinator_settings: CoordinatorSettings) -> Subscription<Coor
                                     // to send to the coordinator
                                     coordinator.send(client_message).unwrap();
 
-                                    println!("Flow submitted to Coordinator");
+                                    debug!("Flow submitted to Coordinator");
                                     state = CoordinatorState::FlowSubmitted(app_receiver,
                                                                     Arc::new(Mutex::new(coordinator)))
                                 },
@@ -104,15 +102,8 @@ pub fn subscribe(coordinator_settings: CoordinatorSettings) -> Subscription<Coor
                             let coordinator_message: CoordinatorMessage = coordinator
                                 .lock().unwrap().receive().unwrap(); // TODO
 
-                            println!("Got message {}", coordinator_message);
-
                             // Forward the message to the App - TODO check it's the flow started message
                             app_sender.try_send(coordinator_message).unwrap(); // TODO
-
-                            // If I don't do this - the app doesn't receive the message before panic below
-                            // tokio::time::sleep(tokio::time::Duration::from_millis(1)).await;
-
-                            println!("Waiting for message from app");
 
                             // read the message from the app to send to the coordinator
                             match app_receiver.recv().await {
@@ -122,8 +113,6 @@ pub fn subscribe(coordinator_settings: CoordinatorSettings) -> Subscription<Coor
                                 }
                                 None => error!("Error receiving from app"),
                             }
-
-                            println!("Flow started state ended");
                         }
                     }
                 }
