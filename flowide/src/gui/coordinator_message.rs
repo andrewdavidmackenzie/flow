@@ -1,5 +1,4 @@
 use std::fmt;
-use std::sync::mpsc;
 
 use serde_derive::{Deserialize, Serialize};
 
@@ -12,8 +11,10 @@ use crate::gui::client_message::ClientMessage;
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum CoordinatorMessage {
     #[serde(skip_deserializing, skip_serializing)]
+    /// ** These messages are used to communicate to the app the connection status to the Coordinator
     /// A connection has been made
-    Connected(mpsc::SyncSender<ClientMessage>),
+    Connected(tokio::sync::mpsc::Sender<ClientMessage>),
+
     /// ** These messages are used to implement the `SubmissionProtocol` between the coordinator
     /// and the cli_client
     /// A flow has started executing
