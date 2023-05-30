@@ -48,7 +48,7 @@ pub fn subscribe(coordinator_settings: CoordinatorSettings) -> Subscription<Coor
                         CoordinatorState::None => {
                             // TODO maybe try discovering one and start if not...
                             let (address, _) = start(settings.clone());
-                            println!("Coordinator started at address '{}'", address);
+                            info!("Coordinator started at address '{}'", address);
                             state = CoordinatorState::Disconnected(address)
                         },
 
@@ -62,7 +62,7 @@ pub fn subscribe(coordinator_settings: CoordinatorSettings) -> Subscription<Coor
                             // Send the Sender to the App in a Message, for App to use to send us messages
                             let _ = app_sender.try_send(CoordinatorMessage::Connected(app_side_sender));
 
-                            println!("Connected to Coordinator at address: {}", address);
+                            info!("Connected to Coordinator at address: {}", address);
                             state = CoordinatorState::Connected(app_receiver,
                                                                 coordinator);
                         },
@@ -96,8 +96,6 @@ pub fn subscribe(coordinator_settings: CoordinatorSettings) -> Subscription<Coor
                             // TODO Maybe handle Coordinator exiting message here and update state???
                             // TODO maybe add a state for ended and process flow ended state also?
 
-                            println!("Waiting for message from coordinator");
-
                             // read the message back from the Coordinator
                             let coordinator_message: CoordinatorMessage = coordinator
                                 .lock().unwrap().receive().unwrap(); // TODO
@@ -108,7 +106,6 @@ pub fn subscribe(coordinator_settings: CoordinatorSettings) -> Subscription<Coor
                             // read the message from the app to send to the coordinator
                             match app_receiver.recv().await {
                                 Some(client_message) => {
-                                    println!("FlowStarted state: message from app: {}", client_message);
                                     coordinator.lock().unwrap().send(client_message).unwrap();
                                 }
                                 None => error!("Error receiving from app"),
