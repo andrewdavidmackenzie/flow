@@ -1,1 +1,1 @@
-window.ALL_CRATES = ["flowc","flowcore","flowide","flowmacro","flowrcli","flowrclib","flowrex","flowrlib","flowsamples","flowstdlib"];
+window.ALL_CRATES = ["flowc","flowcore","flowmacro","flowrcli","flowrclib","flowrex","flowrgui","flowrlib","flowsamples","flowstdlib"];
