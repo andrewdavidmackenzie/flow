@@ -1205,7 +1205,6 @@ dependencies = [
  "env_logger",
  "error-chain",
  "flowcore",
- "flowrlib",
  "flowstdlib",
  "iced",
  "iced_aw",
@@ -1214,6 +1213,7 @@ dependencies = [
  "multimap",
  "once_cell",
  "portpicker",
+ "rand 0.8.5",
  "rustyline",
  "serde",
  "serde_derive",
@@ -1224,6 +1224,7 @@ dependencies = [
  "tempdir",
  "tokio",
  "url",
+ "wasmtime",
  "zmq",
 ]
 
@@ -1235,33 +1236,12 @@ dependencies = [
  "env_logger",
  "error-chain",
  "flowcore",
- "flowrlib",
+ "flowr",
  "flowstdlib",
  "log",
  "simpath",
  "simpdiscover",
  "url",
-]
-
-[[package]]
-name = "flowrlib"
-version = "0.95.0"
-dependencies = [
- "error-chain",
- "flowcore",
- "log",
- "multimap",
- "portpicker",
- "rand 0.8.5",
- "serde",
- "serde_derive",
- "serde_json",
- "serial_test",
- "simpath",
- "tempdir",
- "url",
- "wasmtime",
- "zmq",
 ]
 
 [[package]]

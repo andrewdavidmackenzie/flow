@@ -64,6 +64,7 @@ mod test {
     use url::Url;
 
     use flowcore::model::datatype::ARRAY_TYPE;
+
     use crate::job::JobPayload;
 
     #[test]
