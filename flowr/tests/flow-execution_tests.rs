@@ -71,7 +71,7 @@ fn execute_flow_client_server(test_name: &str, manifest: PathBuf) -> Result<()> 
     // separate 'flowr' server process args: -n for native libs, -s to get a server process
     let server_args = vec!["-n", "-s"];
 
-    println!("Starting 'flowr' server with command line: 'flowr {}'", server_args.join(" "));
+    println!("Starting 'flowrcli' as server with command line: 'flowrcli {}'", server_args.join(" "));
 
     // spawn the 'flowr' server process
     let mut server = server_command
@@ -80,7 +80,7 @@ fn execute_flow_client_server(test_name: &str, manifest: PathBuf) -> Result<()> 
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .spawn()
-        .expect("Failed to spawn flowr");
+        .expect("Failed to spawn flowrcli");
 
     // capture the discovery port by reading one line of stdout
     let stdout = server.stdout.as_mut().ok_or("Could not read stdout of server")?;
@@ -91,7 +91,7 @@ fn execute_flow_client_server(test_name: &str, manifest: PathBuf) -> Result<()> 
     let mut client = Command::new("flowrcli");
     let manifest_str = manifest.to_string_lossy();
     let client_args =  vec!["-c", discovery_port.trim(), &manifest_str];
-    println!("Starting 'flowr' client with command line: 'flowr {}'", client_args.join(" "));
+    println!("Starting 'flowrcli' client with command line: 'flowr {}'", client_args.join(" "));
 
     // spawn the 'flowr' client process
     let mut runner = client
@@ -100,7 +100,7 @@ fn execute_flow_client_server(test_name: &str, manifest: PathBuf) -> Result<()> 
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .spawn()
-        .expect("Could not spawn flowr process");
+        .expect("Could not spawn flowrcli process");
 
     // read it's stderr - don't fail, to ensure we kill the server
     let mut actual_stderr = String::new();
