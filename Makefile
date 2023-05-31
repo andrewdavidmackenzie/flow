@@ -16,7 +16,7 @@ ifeq ($(FLOW_CONTEXT_ROOT),)
 endif
 
 .PHONY: all
-all: clean-start clippy build test docs
+all: clean-start build clippy test docs
 
 .PHONY: clean-start
 clean-start:
@@ -79,48 +79,28 @@ clean:
 	@rm -rf $(HOME)/.flow/lib/flowstdlib
 	@rm -rf $(HOME)/.flow/samples/flowsamples
 
-.PHONY: build-binaries
-build-binaries: build-flowc build-flowr
-	@echo "binaries-built<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
-
-.PHONY: build-flowc
-build-flowc:
-	@echo "build-flowc<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
-	@cargo build -p flowc
-
-.PHONY: build-flowr
-build-flowr:
-	@echo "build-flowr<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
-	@cargo build -p flowr
-
-.PHONY: build-flowstdlib
-build-flowstdlib:
-	@echo "build-flowstdlib<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
-	@cargo build -p flowstdlib
+.PHONY: build
+build:
+	@echo "build<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
+	@cargo build -p flowc # Used to compile flowstdlib, so needed first
+	@cargo build
 
 .PHONY: clippy
-clippy: build-binaries build-flowstdlib
+clippy: build
 	@echo "clippy<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
 	@cargo clippy --tests --all-features -- -D warnings
 
-.PHONY: build
-build: build-binaries
-	@echo "build<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
-	@cargo build
-
 .PHONY: test
-test: build-binaries
+test: build
 	@echo "test<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
 	@cargo test
 
 .PHONY: coverage
-coverage: clean-start build-binaries
+coverage: clean-start
 	@echo "coverage<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
 	@find . -name "*.profraw"  | xargs rm -rf {}
-	@RUSTFLAGS="-C instrument-coverage" LLVM_PROFILE_FILE="flow-%p-%m.profraw" cargo build -p flowc
-	@RUSTFLAGS="-C instrument-coverage" LLVM_PROFILE_FILE="flow-%p-%m.profraw" cargo build -p flowr
-	@RUSTFLAGS="-C instrument-coverage" LLVM_PROFILE_FILE="flow-%p-%m.profraw" cargo clippy --tests -- -D warnings
 	@RUSTFLAGS="-C instrument-coverage" LLVM_PROFILE_FILE="flow-%p-%m.profraw" cargo build
+	@RUSTFLAGS="-C instrument-coverage" LLVM_PROFILE_FILE="flow-%p-%m.profraw" cargo clippy --tests -- -D warnings
 	@RUSTFLAGS="-C instrument-coverage" LLVM_PROFILE_FILE="flow-%p-%m.profraw" cargo test
 	@RUSTFLAGS="-C instrument-coverage" LLVM_PROFILE_FILE="flow-%p-%m.profraw" cargo doc --no-deps --target-dir=target/html/code
 	@echo "Gathering coverage information"
