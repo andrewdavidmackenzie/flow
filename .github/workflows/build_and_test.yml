@@ -71,16 +71,11 @@ jobs:
         echo RUSTFLAGS="-C instrument-coverage" >> "$GITHUB_ENV"
         echo LLVM_PROFILE_FILE="flow-%p-%m.profraw" >> "$GITHUB_ENV"
 
-    - name: build-binaries
-      run: |
-        cargo build -p flowc
-        cargo build -p flowr
+    - name: build
+      run: cargo build
 
     - name: clippy
       run: cargo clippy --tests -- -D warnings
-
-    - name: build
-      run: cargo build
 
     - name: test
       run: cargo test --features "online_tests"

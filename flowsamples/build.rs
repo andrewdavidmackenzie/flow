@@ -40,10 +40,8 @@ fn get_context_root() -> Result<String, String> {
             samples_dir.join("flowr/src/bin/flowrcli/cli")
         }
     };
-    assert!(context_root.exists(), "Context root directory '{}' does not exist",
-            context_root.display());
-    Ok(context_root.to_str()
-        .expect("Could not convert path to String").to_string())
+    assert!(context_root.exists(), "Context root directory '{}' does not exist", context_root.display());
+    Ok(context_root.to_str().expect("Could not convert path to String").to_string())
 }
 
 fn compile_sample(sample_dir: &str, output_dir: &str) {
