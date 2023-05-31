@@ -1,10 +1,11 @@
 use std::time::Duration;
 
-use log::{debug, trace, error};
-use zmq::DONTWAIT;
+use log::{debug, error, trace};
 use serde_json::Value;
-use flowcore::RunAgain;
+use zmq::DONTWAIT;
+
 use flowcore::errors::*;
+use flowcore::RunAgain;
 
 use crate::job::JobPayload;
 
@@ -111,15 +112,18 @@ impl Drop for Dispatcher {
 
 #[cfg(test)]
 mod test {
-    use url::Url;
-    use serde_json::Value;
-    use flowcore::RunAgain;
     use std::time::Duration;
-    use serial_test::serial;
-    use crate::job::JobPayload;
+
     use portpicker::pick_unused_port;
+    use serde_json::Value;
+    use serial_test::serial;
+    use url::Url;
+
     use flowcore::DONT_RUN_AGAIN;
     use flowcore::errors::*;
+    use flowcore::RunAgain;
+
+    use crate::job::JobPayload;
 
     fn get_bind_addresses(ports: (u16, u16, u16, u16)) -> (String, String, String, String) {
         (
