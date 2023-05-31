@@ -33,9 +33,9 @@ use crate::errors::*;
 ///
 /// // Create a lib_search_path
 /// let mut lib_search_path = Simpath::new("TEST_LIBS");
-/// // Add a runner's 'context root' directory, such as '$FLOW_DIR/flowr/src/cli'
+/// // Add a runner's 'context root' directory, such as '$FLOW_DIR/flowr/src/bin/flowrcli/cli'
 /// let root_str = Path::new(env!("CARGO_MANIFEST_DIR")).parent().unwrap();
-/// let runtime_parent = root_str.join("flowr/src/cli");
+/// let runtime_parent = root_str.join("flowr/src/bin/flowrcli/cli");
 /// lib_search_path.add_directory(runtime_parent.to_str().unwrap());
 /// let provider = MetaProvider::new(lib_search_path, PathBuf::from("/"));
 ///
@@ -44,17 +44,17 @@ use crate::errors::*;
 ///
 /// let output_dir = TempDir::new("flow-test").expect("A temp dir").into_path();
 ///
-/// if let Ok(FlowProcess(mut flow)) = flowclib::compiler::parser::parse(&url,
+/// if let Ok(FlowProcess(mut flow)) = flowrclib::compiler::parser::parse(&url,
 ///                                                    &provider) {
 ///     let mut source_urls = BTreeMap::<String, Url>::new();
-///     let tables = flowclib::compiler::compile::compile(&flow, &output_dir, false, false,
+///     let tables = flowrclib::compiler::compile::compile(&flow, &output_dir, false, false,
 ///                                                         &mut source_urls).unwrap();
 ///
 ///     // strip off filename so output_dir is where the root.toml file resides
 ///     let output_dir = TempDir::new("flow").unwrap().into_path();
 ///
 ///     // create a .dot format directed graph of all the functions after compiling down the flow
-///     flowclib::dumper::functions_to_dot::dump_functions(&flow, &tables, &output_dir).unwrap();
+///     flowrclib::dumper::functions_to_dot::dump_functions(&flow, &tables, &output_dir).unwrap();
 /// }
 /// ```
 pub fn dump_functions(

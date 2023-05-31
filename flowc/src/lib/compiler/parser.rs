@@ -61,7 +61,7 @@ pub enum LibType {
 /// let dummy_provider = DummyProvider{};
 ///
 /// // load the flow from `url = file:///example.toml` using the `dummy_provider`
-/// flowclib::compiler::parser::parse(&Url::parse("file:///example.toml").unwrap(), &dummy_provider)
+/// flowrclib::compiler::parser::parse(&Url::parse("file:///example.toml").unwrap(), &dummy_provider)
 /// .unwrap();
 /// ```
 pub fn parse(

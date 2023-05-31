@@ -3,15 +3,15 @@
 #[macro_use]
 extern crate error_chain;
 
-use serial_test::serial;
-use tempdir::TempDir;
-
 use std::fmt::Write as FormatWrite;
 use std::fs::File;
 use std::io::{BufRead, BufReader, Read};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::process::Stdio;
+
+use serial_test::serial;
+use tempdir::TempDir;
 
 #[doc(hidden)]
 mod errors {
@@ -66,7 +66,7 @@ fn execute_flow_client_server(test_name: &str, manifest: PathBuf) -> Result<()> 
     let root_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     let test_dir = root_dir.join("tests/test-flows").join(test_name);
 
-    let mut server_command = Command::new("flowr");
+    let mut server_command = Command::new("flowrcli");
 
     // separate 'flowr' server process args: -n for native libs, -s to get a server process
     let server_args = vec!["-n", "-s"];
@@ -88,7 +88,7 @@ fn execute_flow_client_server(test_name: &str, manifest: PathBuf) -> Result<()> 
     let mut discovery_port = String::new();
     reader.read_line(&mut discovery_port)?;
 
-    let mut client = Command::new("flowr");
+    let mut client = Command::new("flowrcli");
     let manifest_str = manifest.to_string_lossy();
     let client_args =  vec!["-c", discovery_port.trim(), &manifest_str];
     println!("Starting 'flowr' client with command line: 'flowr {}'", client_args.join(" "));
@@ -137,7 +137,7 @@ fn execute_flow_client_server(test_name: &str, manifest: PathBuf) -> Result<()> 
 
 fn compile_and_execute(test_name: &str, execute: bool) -> Result<PathBuf> {
     let root_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    let context_dir = root_dir.join("src/cli");
+    let context_dir = root_dir.join("src/bin/flowrcli/cli");
     let context_dir_str = context_dir.to_string_lossy().to_string();
     let test_dir = root_dir.join("tests/test-flows").join(test_name);
     let test_dir_str = test_dir.to_string_lossy().to_string();

@@ -1,4 +1,3 @@
-use flowclib::compiler::parser;
 use flowcore::meta_provider::MetaProvider;
 use flowcore::model::input::InputInitializer::Once;
 use flowcore::model::io::IO;
@@ -6,20 +5,21 @@ use flowcore::model::name::HasName;
 use flowcore::model::name::Name;
 use flowcore::model::process::Process::FlowProcess;
 use flowcore::model::process::Process::FunctionProcess;
+use flowrclib::compiler::parser;
 
 #[path = "helper.rs"]
 mod helper;
 
-/// flowclib integration tests
+/// flowrclib integration tests
 ///
-/// These tests are in flowc and not flowclib as we want to keep flowclib free of anything that
+/// These tests are in flowc and not flowrclib as we want to keep flowrclib free of anything that
 /// prevents it from being compiled to wasm32 for use in a browser or other wasm environment.
 ///
 /// These tests use pre-written flow definition (toml) files on the file system and use filesystem
 /// io to read them, which cannot be compiled to wasm, as no such concept (as stdio) exists in a
 /// generic wasm execution environment.
 ///
-/// They could be written as code (not reading files) and hence in flowclib, but that's quite
+/// They could be written as code (not reading files) and hence in flowrclib, but that's quite
 /// a lot of work to construct each flow in code, and so for now I've taken the easy route to write
 /// some test flow toml files and just compile those. Plus that also stresses the deserialization
 /// and parsing.

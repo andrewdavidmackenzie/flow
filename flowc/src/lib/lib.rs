@@ -16,7 +16,7 @@ pub mod dumper;
 /// (for later execution by a flow runner) from the [compiler tables][compiler::compile::CompilerTables]
 pub mod generator;
 
-/// provides methods to get information about this version of the flowclib library
+/// provides methods to get information about this version of the flowrclib library
 pub mod info;
 
 /// contains [errors::Error] that other modules in this crate will `use errors::*;`

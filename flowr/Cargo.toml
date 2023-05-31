@@ -1,6 +1,6 @@
 [package]
 name = "flowr"
-description = "A runner for compiled 'flow' programs"
+description = "Runners for compiled 'flow' programs"
 version.workspace = true
 authors.workspace = true
 license.workspace = true
@@ -12,10 +12,6 @@ edition.workspace = true
 
 [badges]
 maintenance = { status = "actively-developed" }
-
-[[bin]]
-name = "flowr"
-path = "src/main.rs"
 
 [features]
 default = ["debugger", "metrics"]

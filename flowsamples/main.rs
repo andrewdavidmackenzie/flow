@@ -144,7 +144,7 @@ fn run_sample(sample_dir: &Path, output_dir: &Path, flowrex: bool, native: bool)
     };
 
     println!("\tCommand line: 'flowr {}'", command_args.join(" "));
-    match Command::new("flowr")
+    match Command::new("flowrcli")
         .args(command_args)
         .current_dir(output_dir.canonicalize()?)
         .stdin(Stdio::piped())

@@ -1,4 +1,4 @@
-//! Info module provides methods to get additional information about the flowclib library
+//! Info module provides methods to get additional information about the flowrclib library
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
