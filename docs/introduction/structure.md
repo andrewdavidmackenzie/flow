@@ -13,7 +13,7 @@ Here is a summary of the project components, their purpose and a link to their `
 * [flowrlib](../../flowr/README.md) - The flow runner library that loads and executes compiled flows.
 * [flowr](../../flowr/README.md) - The `flowr` flow runner binary that can be used to run and debug 
   flows compiled with a flow compiler such as `flowc`.
-* [flowrex](../../flowrex/README.md) - `flowrex` is a minimal flow job executor, intended for use across the netowkr 
+* [flowrex](../../flowr/README.md) - `flowrex` is a minimal flow job executor, intended for use across the netowkr 
   associated with `flowr` (above).
   flows compiled with a flow compiler such as `flowc`.
 * [flowstdlib](../../flowstdlib/README.md) - the flow "standard library" which contains a set of functions that 

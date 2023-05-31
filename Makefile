@@ -80,7 +80,7 @@ clean:
 	@rm -rf $(HOME)/.flow/samples/flowsamples
 
 .PHONY: build-binaries
-build-binaries: build-flowc build-flowr build-flowrex
+build-binaries: build-flowc build-flowr
 	@echo "binaries-built<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
 
 .PHONY: build-flowc
@@ -92,11 +92,6 @@ build-flowc:
 build-flowr:
 	@echo "build-flowr<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
 	@cargo build -p flowr
-
-.PHONY: build-flowrex
-build-flowrex:
-	@echo "build-flowrex<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
-	@cargo build -p flowrex
 
 .PHONY: build-flowstdlib
 build-flowstdlib:
@@ -124,7 +119,6 @@ coverage: clean-start build-binaries
 	@find . -name "*.profraw"  | xargs rm -rf {}
 	@RUSTFLAGS="-C instrument-coverage" LLVM_PROFILE_FILE="flow-%p-%m.profraw" cargo build -p flowc
 	@RUSTFLAGS="-C instrument-coverage" LLVM_PROFILE_FILE="flow-%p-%m.profraw" cargo build -p flowr
-	@RUSTFLAGS="-C instrument-coverage" LLVM_PROFILE_FILE="flow-%p-%m.profraw" cargo build -p flowrex
 	@RUSTFLAGS="-C instrument-coverage" LLVM_PROFILE_FILE="flow-%p-%m.profraw" cargo clippy --tests -- -D warnings
 	@RUSTFLAGS="-C instrument-coverage" LLVM_PROFILE_FILE="flow-%p-%m.profraw" cargo build
 	@RUSTFLAGS="-C instrument-coverage" LLVM_PROFILE_FILE="flow-%p-%m.profraw" cargo test
