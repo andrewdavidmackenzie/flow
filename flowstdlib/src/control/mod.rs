@@ -4,6 +4,7 @@
 //!
 /// A flow wrapper for the [Index][crate::control::index::Index] function to simplify
 /// its use by supplying most frequently used initializers to some inputs.
+#[path = "index_f.rs"]
 pub mod index_f;
 
 /// A module with functions to compare data elements and output a value depending on comparison
