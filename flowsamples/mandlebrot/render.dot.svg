@@ -19,7 +19,7 @@
 <!-- /mandlebrot/render/image_buffer -->
 <g id="node7" class="node">
 <title>/mandlebrot/render/image_buffer</title>
-<g id="a_node7"><a xlink:href="../../flowr/src/cli/image/image_buffer.html" xlink:title="image_buffer">
+<g id="a_node7"><a xlink:href="../../flowr/src/bin/flowrcli/cli/image/image_buffer.html" xlink:title="image_buffer">
 <polygon fill="black" stroke="black" points="350.1,-35.58 261.86,-48.01 173.62,-35.58 173.7,-15.45 350.02,-15.45 350.1,-35.58"/>
 <text text-anchor="middle" x="261.86" y="-26.31" font-family="Times,serif" font-size="14.00" fill="white">image_buffer</text>
 </a>

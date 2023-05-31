@@ -13,7 +13,7 @@
 <!-- /prime/get -->
 <g id="node1" class="node">
 <title>/prime/get</title>
-<g id="a_node1"><a xlink:href="../../flowr/src/cli/args/get.html" xlink:title="get">
+<g id="a_node1"><a xlink:href="../../flowr/src/bin/flowrcli/cli/args/get.html" xlink:title="get">
 <polygon fill="white" stroke="black" points="182.02,-336.44 214.29,-324 246.56,-336.44 246.53,-356.56 182.05,-356.56 182.02,-336.44"/>
 <text text-anchor="middle" x="214.29" y="-338.3" font-family="Times,serif" font-size="14.00">get</text>
 </a>
@@ -82,7 +82,7 @@
 <!-- /prime/stdout -->
 <g id="node5" class="node">
 <title>/prime/stdout</title>
-<g id="a_node5"><a xlink:href="../../flowr/src/cli/stdio/stdout.html" xlink:title="stdout">
+<g id="a_node5"><a xlink:href="../../flowr/src/bin/flowrcli/cli/stdio/stdout.html" xlink:title="stdout">
 <polygon fill="black" stroke="black" points="973.91,-23.56 924.29,-36 874.67,-23.56 874.72,-3.44 973.86,-3.44 973.91,-23.56"/>
 <text text-anchor="middle" x="924.29" y="-14.3" font-family="Times,serif" font-size="14.00" fill="white">stdout</text>
 </a>

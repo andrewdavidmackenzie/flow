@@ -13,7 +13,7 @@
 <!-- /factorial/get -->
 <g id="node1" class="node">
 <title>/factorial/get</title>
-<g id="a_node1"><a xlink:href="../../flowr/src/cli/args/get.html" xlink:title="get">
+<g id="a_node1"><a xlink:href="../../flowr/src/bin/flowrcli/cli/args/get.html" xlink:title="get">
 <polygon fill="white" stroke="black" points="92.54,-569.66 124.81,-557.22 157.08,-569.66 157.05,-589.78 92.57,-589.78 92.54,-569.66"/>
 <text text-anchor="middle" x="124.81" y="-571.52" font-family="Times,serif" font-size="14.00">get</text>
 </a>
@@ -168,7 +168,7 @@
 <!-- /factorial/stdout -->
 <g id="node10" class="node">
 <title>/factorial/stdout</title>
-<g id="a_node10"><a xlink:href="../../flowr/src/cli/stdio/stdout.html" xlink:title="stdout">
+<g id="a_node10"><a xlink:href="../../flowr/src/bin/flowrcli/cli/stdio/stdout.html" xlink:title="stdout">
 <polygon fill="black" stroke="black" points="674.43,-23.56 624.81,-36 575.19,-23.56 575.24,-3.44 674.38,-3.44 674.43,-23.56"/>
 <text text-anchor="middle" x="624.81" y="-14.3" font-family="Times,serif" font-size="14.00" fill="white">stdout</text>
 </a>

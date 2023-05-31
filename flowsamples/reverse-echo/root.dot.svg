@@ -13,7 +13,7 @@
 <!-- /reverse&#45;echo/readline -->
 <g id="node1" class="node">
 <title>/reverse&#45;echo/readline</title>
-<g id="a_node1"><a xlink:href="../../flowr/src/cli/stdio/readline.html" xlink:title="readline">
+<g id="a_node1"><a xlink:href="../../flowr/src/bin/flowrcli/cli/stdio/readline.html" xlink:title="readline">
 <polygon fill="black" stroke="black" points="291.99,-23.56 231.99,-36 171.98,-23.56 172.03,-3.44 291.94,-3.44 291.99,-23.56"/>
 <text text-anchor="middle" x="231.99" y="-14.3" font-family="Times,serif" font-size="14.00" fill="white">readline</text>
 </a>
@@ -46,7 +46,7 @@
 <!-- /reverse&#45;echo/stdout -->
 <g id="node4" class="node">
 <title>/reverse&#45;echo/stdout</title>
-<g id="a_node4"><a xlink:href="../../flowr/src/cli/stdio/stdout.html" xlink:title="stdout">
+<g id="a_node4"><a xlink:href="../../flowr/src/bin/flowrcli/cli/stdio/stdout.html" xlink:title="stdout">
 <polygon fill="black" stroke="black" points="548.6,-23.56 498.99,-36 449.37,-23.56 449.41,-3.44 548.56,-3.44 548.6,-23.56"/>
 <text text-anchor="middle" x="498.99" y="-14.3" font-family="Times,serif" font-size="14.00" fill="white">stdout</text>
 </a>

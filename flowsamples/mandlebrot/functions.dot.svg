@@ -33,7 +33,7 @@
 <!-- r9 -->
 <g id="node1" class="node">
 <title>r9</title>
-<g id="a_node1"><a xlink:href="file:///home/runner/work/flow/flow/flowr/src/cli/args/get.html" xlink:title="get (#9)">
+<g id="a_node1"><a xlink:href="file:///home/runner/work/flow/flow/flowr/src/bin/flowrcli/cli/args/get.html" xlink:title="get (#9)">
 <ellipse fill="coral" stroke="black" cx="300.84" cy="-186" rx="49.29" ry="18"/>
 <text text-anchor="middle" x="300.84" y="-182.3" font-family="Times,serif" font-size="14.00">get (#9)</text>
 </a>
@@ -42,7 +42,7 @@
 <!-- r10 -->
 <g id="node2" class="node">
 <title>r10</title>
-<g id="a_node2"><a xlink:href="file:///home/runner/work/flow/flow/flowr/src/cli/image/image_buffer.html" xlink:title="image_buffer (#10)">
+<g id="a_node2"><a xlink:href="file:///home/runner/work/flow/flow/flowr/src/bin/flowrcli/cli/image/image_buffer.html" xlink:title="image_buffer (#10)">
 <ellipse fill="coral" stroke="black" cx="360.84" cy="-114" rx="100.98" ry="18"/>
 <text text-anchor="middle" x="360.84" y="-110.3" font-family="Times,serif" font-size="14.00">image_buffer (#10)</text>
 </a>

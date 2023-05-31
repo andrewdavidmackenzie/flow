@@ -230,7 +230,7 @@
 <!-- r9 -->
 <g id="node14" class="node">
 <title>r9</title>
-<g id="a_node14"><a xlink:href="file:///home/runner/work/flow/flow/flowr/src/cli/stdio/stdout.html" xlink:title="stdout (#9)">
+<g id="a_node14"><a xlink:href="file:///home/runner/work/flow/flow/flowr/src/bin/flowrcli/cli/stdio/stdout.html" xlink:title="stdout (#9)">
 <ellipse fill="coral" stroke="black" cx="777" cy="-18" rx="63.89" ry="18"/>
 <text text-anchor="middle" x="777" y="-14.3" font-family="Times,serif" font-size="14.00">stdout (#9)</text>
 </a>
