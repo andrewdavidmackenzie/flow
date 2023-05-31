@@ -8,13 +8,13 @@
 
 They handle the execution of `Functions` forming a `Flow` according to the defined semantics.
 
-## Flowrlib
+## flowrlib
 It is responsible for reading a flow definition in a `Manifest` file, loading the required libraries
 from `LibraryManifest` files and then coordinating the execution by dispatching `Jobs` to be executed
 by `Function` `Implementations`, providing them the `Inputs` required to run and gathering the `Outputs` produced
 and passing those `Outputs` to other connected `Functions` in the network of `Functions`.
 
-## `flowrlib` features
+### `flowrlib` features
 These are the conditionally compiled features of `flowrlib`:
 - default - none are activated by default
 - submission - include the ability to receive a submission of a flow for execution
@@ -22,7 +22,7 @@ These are the conditionally compiled features of `flowrlib`:
 - debugger - feature to add the debugger
 - metrics - feature for tracking of metrics during execution
 
-## Context Functions
+### Context Functions
 The `context` folder implements the context functions that each runtime provides for flows to interact with the 
 environment (such as Standard IO and File System) as well as providing definitions of the context functions 
 to be used when compiling a flow.

@@ -146,7 +146,7 @@
       - [flowc](flowc/README.md)
         - [Flowc Compiler and Parser Test flows](flowc/tests/test-flows/README.md)
     - [flowr](flowr/README.md)
-      - [flowrlib](flowr/README.md#flowrlib)
+      - [flowrlib](flowr/README.md)
       - [Flowr Execution Test Flows](flowr/tests/test-flows/README.md)
           - [args](flowr/tests/test-flows/args/args.md)
           - [args-json](flowr/tests/test-flows/args-json/args-json.md)
