@@ -9,6 +9,6 @@ The docs are reasonably extensive but can always be improved. They probably need
 to try to use them and flow to make the next round of improvements. There are issues in the repo
 and the [project](https://github.com/users/andrewdavidmackenzie/projects/2/views/1) related to improving docs.
 
-I moved some GUI/IDE experimentation into a separate repo that uses the `flowclib`  and `flowrlib` libs.
+I moved some GUI/IDE experimentation into a separate repo that uses the `flowrclib`  and `flowrlib` libs.
 The intention is to re-start some GUI experimentation with `egui` or `iced` rust GUI libraries when 1.0
 is released.

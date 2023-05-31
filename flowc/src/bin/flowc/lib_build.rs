@@ -8,13 +8,13 @@ use simpath::Simpath;
 use url::Url;
 use wax::Glob;
 
-use flowclib::compiler::{compile, compile_wasm};
-use flowclib::compiler::parser;
-use flowclib::dumper::flow_to_dot;
 use flowcore::meta_provider::MetaProvider;
 use flowcore::model::lib_manifest::LibraryManifest;
 use flowcore::model::process::Process::{FlowProcess, FunctionProcess};
 use flowcore::provider::Provider;
+use flowrclib::compiler::{compile, compile_wasm};
+use flowrclib::compiler::parser;
+use flowrclib::dumper::flow_to_dot;
 
 use crate::errors::*;
 use crate::Options;

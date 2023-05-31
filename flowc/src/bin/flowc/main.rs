@@ -24,9 +24,9 @@ use simpath::Simpath;
 use url::Url;
 
 use errors::*;
-use flowclib::info;
 use flowcore::meta_provider::MetaProvider;
 use flowcore::url_helper::url_from_string;
+use flowrclib::info;
 use lib_build::build_lib;
 
 use crate::flow_compile::compile_and_execute_flow;
@@ -283,7 +283,7 @@ fn parse_args(matches: ArgMatches) -> Result<Options> {
         env!("CARGO_PKG_NAME"),
         env!("CARGO_PKG_VERSION")
     );
-    debug!("'flowclib' version {}", info::version());
+    debug!("'flowrclib' version {}", info::version());
 
     let cwd = env::current_dir().chain_err(|| "Could not get current working directory value")?;
     let cwd_url = Url::from_directory_path(cwd)

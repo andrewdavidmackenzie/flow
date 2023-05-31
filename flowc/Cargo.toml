@@ -14,7 +14,7 @@ edition.workspace = true
 maintenance = { status = "actively-developed" }
 
 [lib]
-name = "flowclib"
+name = "flowrclib"
 path = "src/lib/lib.rs"
 
 [features]

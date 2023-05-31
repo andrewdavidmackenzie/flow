@@ -9,12 +9,12 @@ use log::{debug, error, info};
 #[cfg(feature = "debugger")]
 use url::Url;
 
-use flowclib::compiler::compile;
-use flowclib::compiler::parser;
-use flowclib::dumper::{flow_to_dot, functions_to_dot};
-use flowclib::generator::generate;
 use flowcore::model::process::Process::FlowProcess;
 use flowcore::provider::Provider;
+use flowrclib::compiler::compile;
+use flowrclib::compiler::parser;
+use flowrclib::dumper::{flow_to_dot, functions_to_dot};
+use flowrclib::generator::generate;
 
 use crate::errors::*;
 use crate::Options;

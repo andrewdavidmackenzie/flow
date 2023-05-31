@@ -25,10 +25,10 @@ it is up to date and built).
 It is structured as a library with a thin CLI wrapper around it that offers command line arguments
 and then uses the library to compile and optionally run the compiled flow.
 
-# `flowclib`
+# `flowrclib`
 This library contains most of the compilation and linking logic for `flowc`. 
 
-See also: [Code docs](http://andrewdavidmackenzie.github.io/flow/code/doc/flowclib/index.html)
+See also: [Code docs](http://andrewdavidmackenzie.github.io/flow/code/doc/flowrclib/index.html)
 
 ## features
 These are the conditionally compiled features of the `flowc` crate:

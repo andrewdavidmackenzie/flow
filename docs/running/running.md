@@ -24,7 +24,7 @@ If this environment variable is not set then compiling will fail:
 
 ```
 ❯ unset FLOW_LIB_PATH
-❯ flowc -C flowr/src/cli flowsamples/fibonacci
+❯ flowc -C flowr/src/bin/flowrcli/cli flowsamples/fibonacci
 error: Could not resolve the url: 'lib://flowstdlib/math/add'
 caused by: Could not resolve library Url 'lib://flowstdlib/math/add' using Search Path 'FLOW_LIB_PATH': Directories: {}, URLs: {}
 ```
@@ -36,12 +36,12 @@ instances of the `-L, --libdir <LIB_DIR|BASE_URL>` Option (see below for an exam
 See the next section [flowc](flowc.md) for a description of the command line arguments it accepts.
 
 ### Example Invocations
-- `flowc -C flowr/src/cli flowsamples/fibonacci`
+- `flowc -C flowr/src/bin/flowrcli/cli flowsamples/fibonacci`
 
   uses the `context_functions` provided by `flowr` and run the flow whose root flow is defined in `./flowsamples/fibonacci/root.toml`. 
   Do not pass in any arguments to the flow. 
   - You should get a fibonacci series output to the terminal, 
-- `echo "Hello" | flowc -C flowr/src/cli flowsamples/reverse-echo` - This samples reads from STDIN so we echo in 
+- `echo "Hello" | flowc -C flowr/src/bin/flowrcli/cli flowsamples/reverse-echo` - This samples reads from STDIN so we echo in 
   some text.
   - You may see some output like:
   
@@ -53,12 +53,12 @@ See the next section [flowc](flowc.md) for a description of the command line arg
     `olleH`
 
     which is the input string "Hello" reversed.
-- `unset FLOW_LIB_PATH;flowc -C flowr/src/cli -L target flowsamples/fibonacci` - first ensures that the $FLOW_LIB_PATH
+- `unset FLOW_LIB_PATH;flowc -C flowr/src/bin/flowrcli/cli -L target flowsamples/fibonacci` - first ensures that the $FLOW_LIB_PATH
 environment variable is not set and is not being used to locate libraries, and in order to help `flowc` and `flowr` 
 find the `flowstdlib` library used by the sample (previously compiled into `target` directory) it specified that as a
 directory for the library search path using the `-L, --libdir <LIB_DIR|BASE_URL>` Option
   - You should get a fibonacci series output to the terminal, 
-- `flowc -C flowr/src/cli flowsamples/sequence 10` - as previous examples except that after the `source_url` a 
+- `flowc -C flowr/src/bin/flowrcli/cli flowsamples/sequence 10` - as previous examples except that after the `source_url` a 
 `flow_argument` of "10" is passed in
   - A short sequence of numbers (2, 5, 8) and a string will be printed. The "10" represents the maximum of the sequence.
 
@@ -68,7 +68,7 @@ As stated, the `source_url` can be a Url to a web resource, or a flow definition
 ### Example running a flow from the web
 We can use a flow that is part of the `flow` project, where the flow definition is hosted on the web by GitHub:
 
-`flowc -C flowr/src/cli "https://raw.githubusercontent.com/andrewdavidmackenzie/flow/master/flowcore/tests/test-flows/hello-world/root.toml"`
+`flowc -C flowr/src/bin/flowrcli/cli "https://raw.githubusercontent.com/andrewdavidmackenzie/flow/master/flowcore/tests/test-flows/hello-world/root.toml"`
 
 
 That will pull the flow definition content from the web, compile it and run it, producing the expected output:

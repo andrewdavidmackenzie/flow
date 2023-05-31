@@ -10,7 +10,7 @@ error_chain! {
 
     foreign_links {
         Core(flowcore::errors::Error);
-        Compiler(flowclib::errors::Error);
+        Compiler(flowrclib::errors::Error);
         Io(std::io::Error);
         Url(url::ParseError);
         Toml(toml::de::Error);

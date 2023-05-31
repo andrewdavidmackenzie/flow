@@ -12,7 +12,7 @@ ifeq ($(FLOW_LIB_PATH),)
 endif
 
 ifeq ($(FLOW_CONTEXT_ROOT),)
-  export FLOW_CONTEXT_ROOT := $(PWD)/flowr/src/cli
+  export FLOW_CONTEXT_ROOT := $(PWD)/flowr/src/bin/flowrcli/cli
 endif
 
 .PHONY: all
@@ -80,7 +80,7 @@ clean:
 	@rm -rf $(HOME)/.flow/samples/flowsamples
 
 .PHONY: build-binaries
-build-binaries: build-flowc build-flowr build-flowrex build-flowide
+build-binaries: build-flowc build-flowrcli build-flowrex build-flowide
 	@echo "binaries-built<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
 
 .PHONY: build-flowc
@@ -88,8 +88,8 @@ build-flowc:
 	@echo "build-flowc<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
 	@cargo build -p flowc
 
-.PHONY: build-flowr
-build-flowr:
+.PHONY: build-flowrcli
+build-flowrcli:
 	@echo "build-flowr<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
 	@cargo build -p flowr
 

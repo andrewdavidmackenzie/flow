@@ -30,7 +30,7 @@ In a normal procedural language, an image would be rendered in memory in a 2D bl
 written out to file sequentially so that the pixels are placed in the correct order/location in the file.
 
 In a flow program, that could be gone, although accumulating the 2D array in memory may represent a bottleneck.
-`flowr`'s [image buffer](../../flowr/src/cli/image/image_buffer.md) `context function` is written such that it can 
+`flowr`'s [image buffer](../../flowr/src/bin/flowrcli/cli/image/image_buffer.md) `context function` is written such that it can 
 accept pixels in any random order and render them correctly, but having the following inputs:
 ```
 ### Inputs

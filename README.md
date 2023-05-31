@@ -52,7 +52,7 @@ to a flow manifest, which is executed.
 The `flow` project includes:
 - Compiler: a library and a binary (`flowclib` and `flowc`) for compiling flows
 - Runner: a library (`flowrlib`) and two binaries for running flows:
-  - `flowr` - default command line runner and debugger to use from a terminal
+  - `flowrcli` - default command line runner and debugger to use from a terminal
   - `flowide` - initial steps of a GUI application for running and debugging flows
 - Job executor: `flowrex` binary can be discovered (on same machine or local network) 
 by a runner and used to execute jobs, distributing execution in a basic fashion
@@ -161,7 +161,7 @@ I have started work on a native rust GUI using the `Iced`
 toolkit. Initially, it is focussed only on running flows and replaces the Terminal based stdio, file output 
 and image operations with visual equivalents.
 
-I hope to add flow design and programming to it, using `flowclib`, either in a single
+I hope to add flow design and programming to it, using `flowrclib`, either in a single
 binary, or in a second compile-time-only tool.
 
 ## Docs
