@@ -79,6 +79,7 @@ jobs:
 
     - name: build-flowstdlib # Used by flowsamples so needed first
       run: |
+        which flowc
         cargo build -p flowstdlib
         ls $HOME/.flow/lib/flowstdlib/control
 
