@@ -158,7 +158,7 @@
           - [line-echo](flowr/tests/test-flows/line-echo/line-echo.md)
           - [print-args](flowr/tests/test-flows/print-args/print-args.md)
           - [two-destinations](flowr/tests/test-flows/two-destinations/two-destinations.md)
-      - [flowrex](flowrex/README.md)
+      - [flowrex](flowr/README.md)
       - [flowstdlib](flowstdlib/README.md)
       - [flowsamples](flowsamples/README.md)
 - [Makefile targets](docs/developing/make.md)
