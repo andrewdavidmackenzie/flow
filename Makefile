@@ -83,6 +83,7 @@ clean:
 build:
 	@echo "build<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
 	@cargo build -p flowc # Used to compile flowstdlib, so needed first
+	@cargo build -p flowstdlib # Used by flowsamples so needed first
 	@cargo build
 
 .PHONY: clippy
