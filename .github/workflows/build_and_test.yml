@@ -38,18 +38,6 @@ jobs:
         override: true
         components: clippy
 
-    - name: Cargo Cache
-      uses: actions/cache@v1
-      with:
-        path: |
-          ~/.cargo
-          target/
-        key: ${{ runner.os }}-cargo_cache-${{ hashFiles('Cargo.toml') }}
-        restore-keys: |
-          ${{ runner.os }}-cargo_cache-${{ hashFiles('Cargo.toml') }}
-          ${{ runner.os }}-cargo_cache-
-
-
     - name: InstallLinuxDependencies
       if: matrix.os == 'ubuntu-latest'
       run: sudo apt-get update && sudo apt-get -y install libzmq3-dev binaryen
