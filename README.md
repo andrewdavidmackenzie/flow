@@ -53,7 +53,7 @@ The `flow` project includes:
 - Compiler: a library and a binary (`flowclib` and `flowc`) for compiling flows
 - Runner: a library (`flowrlib`) and two binaries for running flows:
   - `flowrcli` - default command line runner and debugger to use from a terminal
-  - `flowide` - initial steps of a GUI application for running and debugging flows
+  - `flowrgui` - a GUI application for running and debugging flows
 - Job executor: `flowrex` binary can be discovered (on same machine or local network) 
 by a runner and used to execute jobs, distributing execution in a basic fashion
 - Standard Library: `flowstdlib` library of pre-defined flows and functions that can be re-used in flows
@@ -150,7 +150,7 @@ and they are all tested to work correctly on every build. Additionally there are
 tests of the debugger and of executing a flow in client-server mode (separate processes for each) and
 the distribution of job execution using `flowrex`.
 
-## GUI (`flowide`)
+## GUI (`flowrgui`)
 Data-flow programming, declaratively defining a graph of `processes` (nodes) and `connections` (edges), fits
 naturally with visualization of a graph. 
 The ability to define a flow, execute it and view its execution and debug it with a visual tool would be great! 

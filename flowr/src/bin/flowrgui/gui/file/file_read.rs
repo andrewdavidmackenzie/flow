@@ -1,9 +1,8 @@
 use std::sync::{Arc, Mutex};
 
-use serde_json::{json, Value};
-
 use flowcore::{DONT_RUN_AGAIN, Implementation, RUN_AGAIN, RunAgain};
 use flowcore::errors::*;
+use serde_json::{json, Value};
 
 use crate::gui::client_message::ClientMessage;
 use crate::gui::coordinator_connection::CoordinatorConnection;
@@ -41,10 +40,9 @@ impl Implementation for FileRead {
 
 #[cfg(test)]
 mod test {
+    use flowcore::{Implementation, RUN_AGAIN};
     use serde_json::{json, Value};
     use serial_test::serial;
-
-    use flowcore::{Implementation, RUN_AGAIN};
 
     use crate::gui::client_message::ClientMessage::FileContents;
     use crate::gui::coordinator_message::CoordinatorMessage;

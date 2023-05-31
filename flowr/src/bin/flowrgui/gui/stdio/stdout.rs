@@ -1,9 +1,8 @@
 use std::sync::{Arc, Mutex};
 
-use serde_json::Value;
-
 use flowcore::{Implementation, RUN_AGAIN, RunAgain};
 use flowcore::errors::*;
+use serde_json::Value;
 
 use crate::gui::client_message::ClientMessage;
 use crate::gui::coordinator_connection::CoordinatorConnection;
@@ -45,10 +44,9 @@ impl Implementation for Stdout {
 mod test {
     use std::collections::HashMap;
 
+    use flowcore::{Implementation, RUN_AGAIN};
     use serde_json::{json, Value};
     use serial_test::serial;
-
-    use flowcore::{Implementation, RUN_AGAIN};
 
     use crate::gui::client_message::ClientMessage;
     use crate::gui::coordinator_message::CoordinatorMessage;

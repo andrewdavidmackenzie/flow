@@ -2,17 +2,16 @@ use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use std::thread;
 
-use iced::{Subscription, subscription};
-use log::{debug, error, info, trace};
-use portpicker::pick_unused_port;
-use url::Url;
-
 use flowcore::meta_provider::MetaProvider;
 use flowcore::provider::Provider;
 use flowrlib::coordinator::Coordinator;
 use flowrlib::dispatcher::Dispatcher;
 use flowrlib::executor::Executor;
 use flowrlib::services::{CONTROL_SERVICE_NAME, JOB_QUEUES_DISCOVERY_PORT, JOB_SERVICE_NAME, RESULTS_JOB_SERVICE_NAME};
+use iced::{Subscription, subscription};
+use log::{debug, error, info, trace};
+use portpicker::pick_unused_port;
+use url::Url;
 
 use crate::{CoordinatorSettings, gui};
 use crate::errors::*;

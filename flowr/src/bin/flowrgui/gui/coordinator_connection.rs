@@ -1,13 +1,12 @@
 use std::fmt::Display;
 use std::time::Duration;
 
+use flowcore::errors::*;
 /// This is the message-queue implementation of the Client<-->[Coordinator][flowrlib::coordinator::Coordinator]
 /// communications
 use log::{debug, info, trace};
 use simpdiscoverylib::BeaconSender;
 use zmq::Socket;
-
-use flowcore::errors::*;
 
 /// WAIT for a message to arrive when performing a receive()
 pub const WAIT:i32 = 0;

@@ -1,17 +1,17 @@
 #![deny(missing_docs)]
 // TODO re-instate #![warn(clippy::unwrap_used)]
-//! `flowide` is a GUI flow runner for running `flow` programs.
+//! `flowrgui` is a GUI flow runner for running `flow` programs.
 //!
 //! It reads a compiled [FlowManifest][flowcore::model::flow_manifest::FlowManifest] produced by a
 //! flow compiler, such as `flowc`, that describes the graph of communicating functions that
 //! constitute the flow program.
 //!
-//! Use `flowide --help` or `flowide -h` at the command line to see the command line options
+//! Use `flowrgui --help` or `flowrgui -h` at the command line to see the command line options
 //!
 //! The [gui] module implements a set of `context functions`, adapted to a GUI runner
 //! that allow the flow program to interact with the environment where it is being run.
 //!
-//! Depending on the command line options supplied `flowide` executes the
+//! Depending on the command line options supplied `flowrgui` executes the
 //! [Coordinator][flowrlib::coordinator::Coordinator] of flow execution in a background thread or
 //! connects to an already running coordinator in another process.
 //! Application and Coordinator (thread or process) communicate via network messages using the
@@ -31,6 +31,15 @@ use std::path::PathBuf;
 use clap::{Arg, ArgMatches};
 use clap::Command as ClapCommand;
 use env_logger::Builder;
+use flowcore::meta_provider::MetaProvider;
+use flowcore::model::flow_manifest::FlowManifest;
+use flowcore::model::submission::Submission;
+use flowcore::provider::Provider;
+use flowcore::url_helper::url_from_string;
+use flowrlib::info as flowrlib_info;
+use gui::coordinator_connection::CoordinatorConnection;
+use gui::debug_message::DebugServerMessage;
+use gui::debug_message::DebugServerMessage::*;
 use iced::{Alignment, Application, Command, Element, Length, Settings, Subscription, Theme};
 use iced::executor;
 use iced::widget::{Button, Column, container, Row, scrollable, text, text_input, toggler};
@@ -41,16 +50,6 @@ use log::error;
 use once_cell::sync::Lazy;
 use simpath::Simpath;
 use url::Url;
-
-use flowcore::meta_provider::MetaProvider;
-use flowcore::model::flow_manifest::FlowManifest;
-use flowcore::model::submission::Submission;
-use flowcore::provider::Provider;
-use flowcore::url_helper::url_from_string;
-use flowrlib::info as flowrlib_info;
-use gui::coordinator_connection::CoordinatorConnection;
-use gui::debug_message::DebugServerMessage;
-use gui::debug_message::DebugServerMessage::*;
 
 use crate::errors::*;
 use crate::gui::client_message::ClientMessage;
@@ -74,7 +73,7 @@ mod coordinator;
 mod errors;
 
 /// [Message] enum captures all the types of messages that are sent to and processed by the
-/// [FlowIde] Iced Application
+/// [FlowrGui] Iced Application
 #[derive(Debug, Clone)]
 pub enum Message {
     /// We lost contact with the coordinator
@@ -100,9 +99,9 @@ enum CoordinatorState {
     Connected(tokio::sync::mpsc::Sender<ClientMessage>),
 }
 
-/// Main for flowide binary - call `run()` and print any error that results or exit silently if OK
+/// Main for flowrgui binary - call `run()` and print any error that results or exit silently if OK
 fn main() -> iced::Result {
-    FlowIde::run(Settings {
+    FlowrGui::run(Settings {
         antialiasing: true,
         ..Settings::default()
     })
@@ -127,7 +126,7 @@ pub struct CoordinatorSettings {
     lib_search_path: Simpath,
 }
 
-struct FlowIde {
+struct FlowrGui {
     flow_settings: SubmissionSettings,
     coordinator_settings: CoordinatorSettings,
     gui_coordinator: CoordinatorState,
@@ -141,7 +140,7 @@ struct FlowIde {
 }
 
 // Implement the iced Application trait for FlowIde
-impl Application for FlowIde {
+impl Application for FlowrGui {
     type Executor = executor::Default;
     type Message = Message;
     type Theme = Theme;
@@ -149,9 +148,9 @@ impl Application for FlowIde {
 
     /// Create the FlowIde app and populate fields with options passed on the command line
     fn new(_flags: ()) -> (Self, Command<Message>) {
-        let settings = FlowIde::initial_settings();
+        let settings = FlowrGui::initial_settings();
 
-        let flowide = FlowIde {
+        let flowrgui = FlowrGui {
             flow_settings: settings.0,
             coordinator_settings: settings.1,
             gui_coordinator: CoordinatorState::Disconnected,
@@ -164,7 +163,7 @@ impl Application for FlowIde {
             image_buffers: HashMap::<String, ImageBuffer<Rgb<u8>, Vec<u8>>>::new(),
         };
 
-        (flowide, Command::none())
+        (flowrgui, Command::none())
     }
 
     fn title(&self) -> String {
@@ -223,7 +222,7 @@ impl Application for FlowIde {
     }
 }
 
-impl FlowIde {
+impl FlowrGui {
     // Submit the flow to the coordinator for execution
     async fn submit(sender: tokio::sync::mpsc::Sender<ClientMessage>,
                     url: Url,
@@ -318,7 +317,7 @@ impl FlowIde {
             vec![]
         };
 
-        let lib_search_path = FlowIde::lib_search_path(&lib_dirs)
+        let lib_search_path = FlowrGui::lib_search_path(&lib_dirs)
             .unwrap(); // TODO
 
         let flow_manifest_url = matches.get_one::<String>("flow-manifest")
@@ -342,7 +341,7 @@ impl FlowIde {
         let native_flowstdlib = matches.get_flag("native");
 
         // TODO make a UI setting
-        let num_threads = FlowIde::num_threads(&matches);
+        let num_threads = FlowrGui::num_threads(&matches);
 
         (SubmissionSettings {
             flow_manifest_url,
