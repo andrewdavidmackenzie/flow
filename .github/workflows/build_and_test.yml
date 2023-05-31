@@ -29,6 +29,7 @@ jobs:
         echo "PATH=$GITHUB_WORKSPACE/target/debug:$PATH" >> "$GITHUB_ENV"
         echo "CARGO_REGISTRIES_CRATES_IO_PROTOCOL=sparse" >> "$GITHUB_ENV"
 
+
     - name: Install latest nightly
       uses: actions-rs/toolchain@v1
       with:
@@ -47,6 +48,7 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-cargo_cache-${{ hashFiles('Cargo.toml') }}
           ${{ runner.os }}-cargo_cache-
+
 
     - name: InstallLinuxDependencies
       if: matrix.os == 'ubuntu-latest'
@@ -70,6 +72,7 @@ jobs:
         rustup component add llvm-tools-preview
         echo RUSTFLAGS="-C instrument-coverage" >> "$GITHUB_ENV"
         echo LLVM_PROFILE_FILE="flow-%p-%m.profraw" >> "$GITHUB_ENV"
+
 
     - name: build-flowc # Used to compile flowstdlib, so needed first
       run: cargo build -p flowc
