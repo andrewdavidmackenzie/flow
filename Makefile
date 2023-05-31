@@ -125,7 +125,7 @@ build-book:
 	@mdbook build
 
 .PHONY: code-docs
-code-docs: build-flowc
+code-docs: build
 	@echo "code-docs<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
 	@cargo doc --no-deps --target-dir=target/html/code
 
