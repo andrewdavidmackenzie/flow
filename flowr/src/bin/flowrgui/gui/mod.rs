@@ -1,11 +1,10 @@
 use std::sync::{Arc, Mutex};
 
-use url::Url;
-
 use flowcore::errors::*;
 use flowcore::model::lib_manifest::ImplementationLocator::Native;
 use flowcore::model::lib_manifest::LibraryManifest;
 use flowcore::model::metadata::MetaData;
+use url::Url;
 
 use crate::CoordinatorConnection;
 

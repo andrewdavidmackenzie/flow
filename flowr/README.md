@@ -1,12 +1,15 @@
 # `flowr`
 
-`flowr` is a binary run-time for running flows from the CLI built using the `flowrlib` library.
+`flowr` includes a number of "runner" applications (built using the `flowrlib` library) for running flows:
+- `flowrcli`to run flows from the command line
+- `flowrgui`a flow runner with a graphical user interface (GUI) built using Iced
 
-It handles the execution of `Functions` forming a `Flow` according to the defined semantics.
+They handle the execution of `Functions` forming a `Flow` according to the defined semantics.
 
 ## Context Functions
-The `flowr` `context` module implements the context functions that this runtime
-provides for flows to interact with the environment it is being run in, such as Standard IO and File System.
+The `context` folder implements the context functions that each runtime provides for flows to interact with the 
+environment (such as Standard IO and File System) as well as providing definitions of the context functions 
+to be used when compiling a flow.
 
 These are all impure functions, or functions with side effects, not part of the flow itself.
 
@@ -17,7 +20,7 @@ Those functions are organized into the following modules, each with multiple fun
 * [stdio](src/bin/flowrcli/cli/stdio/stdio.md) - used to interact with stdio
 
 ## Features
-These are the conditionally compiled features of `flowr`:
+These are the conditionally compiled features of `flowrcli`:
 - default - "debugger" and "metrics" features are enabled by default
 - debugger - feature to add the debugger
 - metrics - feature for tracking of metrics during execution

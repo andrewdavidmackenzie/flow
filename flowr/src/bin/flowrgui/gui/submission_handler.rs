@@ -1,13 +1,12 @@
 use std::sync::{Arc, Mutex};
 
 use error_chain::bail;
-use log::{debug, error, info, trace};
-
 use flowcore::errors::*;
 use flowcore::model::metrics::Metrics;
 use flowcore::model::submission::Submission;
 use flowrlib::run_state::RunState;
 use flowrlib::submission_handler::SubmissionHandler;
+use log::{debug, error, info, trace};
 
 use crate::CoordinatorConnection;
 use crate::gui::client_message::ClientMessage;

@@ -1,9 +1,8 @@
 use std::fmt;
 
-use serde_derive::{Deserialize, Serialize};
-
 use flowcore::errors::*;
 use flowcore::model::submission::Submission;
+use serde_derive::{Deserialize, Serialize};
 
 /// A Message from the a client to the Coordinator
 #[derive(Serialize, Deserialize, Debug, Clone)]

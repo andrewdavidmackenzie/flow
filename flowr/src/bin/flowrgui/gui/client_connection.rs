@@ -1,12 +1,11 @@
 use std::fmt::Display;
 
+use flowcore::errors::*;
 /// This is the message-queue implementation of the Client<-->[Coordinator][flowrlib::coordinator::Coordinator]
 /// communications
 use log::{info, trace};
 use simpdiscoverylib::BeaconListener;
 use zmq::Socket;
-
-use flowcore::errors::*;
 
 use crate::gui::coordinator_connection::WAIT;
 

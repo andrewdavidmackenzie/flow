@@ -1,16 +1,15 @@
 use std::sync::{Arc, Mutex};
 
-use log::error;
-use rustyline::{DefaultEditor, Editor};
-use rustyline::error::ReadlineError;
-use rustyline::history::DefaultHistory;
-
 use flowcore::errors::*;
 use flowcore::model::runtime_function::RuntimeFunction;
 use flowrlib::debug_command::BreakpointSpec;
 use flowrlib::debug_command::DebugCommand;
 use flowrlib::debug_command::DebugCommand::*;
 use flowrlib::run_state::{RunState, State};
+use log::error;
+use rustyline::{DefaultEditor, Editor};
+use rustyline::error::ReadlineError;
+use rustyline::history::DefaultHistory;
 
 use crate::gui::client_connection::ClientConnection;
 use crate::gui::debug_message::{DebugServerMessage, DebugServerMessage::*};

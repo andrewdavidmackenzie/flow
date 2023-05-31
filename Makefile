@@ -80,7 +80,7 @@ clean:
 	@rm -rf $(HOME)/.flow/samples/flowsamples
 
 .PHONY: build-binaries
-build-binaries: build-flowc build-flowrcli build-flowrex build-flowide
+build-binaries: build-flowc build-flowr build-flowrex
 	@echo "binaries-built<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
 
 .PHONY: build-flowc
@@ -88,8 +88,8 @@ build-flowc:
 	@echo "build-flowc<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
 	@cargo build -p flowc
 
-.PHONY: build-flowrcli
-build-flowrcli:
+.PHONY: build-flowr
+build-flowr:
 	@echo "build-flowr<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
 	@cargo build -p flowr
 
@@ -97,11 +97,6 @@ build-flowrcli:
 build-flowrex:
 	@echo "build-flowrex<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
 	@cargo build -p flowrex
-
-.PHONY: build-flowide
-build-flowide:
-	@echo "build-flowide<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
-	@cargo build -p flowide
 
 .PHONY: build-flowstdlib
 build-flowstdlib:
