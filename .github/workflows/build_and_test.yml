@@ -77,7 +77,7 @@ jobs:
     - name: build-flowstdlib # Used by flowsamples so needed first
       run: |
         cargo build -p flowstdlib
-        tree $HOME/.flow/lib
+        ls $HOME/.flow/lib
 
     - name: build
       run: cargo build
