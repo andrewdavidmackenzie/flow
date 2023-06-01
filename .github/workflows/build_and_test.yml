@@ -76,6 +76,9 @@ jobs:
           cargo build -p flowc
           cargo build -p flowr
 
+      - name: build-flowstdlib
+        run: cargo build -p flowstdlib
+
       - name: clippy
         run: cargo clippy --tests -- -D warnings
 
