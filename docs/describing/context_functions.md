@@ -54,15 +54,17 @@ The `flow` project directory structure is used in this example, with `flow` loca
 
 The fibonacci sample flow is thus found in the `/Users/me/flow/flowsamples/fibonacci` directory.
 
-The `flowr` flow runner directory is thus at `/Users/me/flow/flowr`. Within that folder flowr provides a set of 
-context function definitions for a Command Line Interface (CLI) implementation in the `src/bin/flowrcli/cli` sub-directory.
+The `flowrcli` flow runner directory is at `/Users/me/flow/flowr/src/bin/flowrcli`. 
+Within that folder flowrcli provides a set of context function definitions for a Command Line Interface (CLI) 
+implementation in the `context` sub-directory.
 
 If in the root directory of the `flow` project, using relative paths, the sample flow can be compiled and 
 run using the `-C, --context_root <CONTEXT_DIRECTORY>` option to `flowc`:
 ```
-> flowc -C flowr/src/bin/flowrcli/cli flowsamples/fibonacci
+> flowc -C flowr/src/bin/flowrcli/context flowsamples/fibonacci
 ```
 
 The `flowc` compiler sees the `"context://stdio/stdout"` reference. It has been told that the `Context Root` is
-at `flowr/src/bin/flowrcli/cli` so it searches for (and finds) a function definition file at `flowr/src/bin/flowrcli/cli/stdio/stdout/stdout.toml`
+at `flowr/src/bin/flowrcli/context` so it searches for (and finds) a function definition file at 
+`flowr/src/bin/flowrcli/context/stdio/stdout/stdout.toml`
 using the alrgorithm described in [process references](process_references.md).

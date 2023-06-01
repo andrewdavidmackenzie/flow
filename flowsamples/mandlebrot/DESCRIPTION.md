@@ -31,7 +31,7 @@ Features Used
 * Library Functions used to convert Number to String and to add numbers
 * Use of aliases to refer to functions with different names inside a flow
 * Connections between flows, functions and values
-* `flowr` `context function` used to render output to an [Image Buffer](../../flowr/src/bin/flowrcli/cli/image/image_buffer.md)
+* `flowr` `context function` used to render output to an [Image Buffer](../../flowr/src/bin/flowrcli/context/image/image_buffer.md)
 * `provided functions` in rust that get compiled to WASM and then loaded and executed by the runtime
 
 Functions Diagram

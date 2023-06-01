@@ -1,12 +1,12 @@
 use std::sync::{Arc, Mutex};
 
-use serde_json::{json, Value};
-
 use flowcore::{DONT_RUN_AGAIN, Implementation, RUN_AGAIN, RunAgain};
 use flowcore::errors::*;
+use serde_json::{json, Value};
 
-use crate::cli::connections::CoordinatorConnection;
-use crate::cli::coordinator_message::{ClientMessage, CoordinatorMessage};
+use crate::gui::client_message::ClientMessage;
+use crate::gui::coordinator_connection::CoordinatorConnection;
+use crate::gui::coordinator_message::CoordinatorMessage;
 
 /// `Implementation` struct for the `file_read` function
 pub struct FileRead {
@@ -40,15 +40,15 @@ impl Implementation for FileRead {
 
 #[cfg(test)]
 mod test {
+    use flowcore::{Implementation, RUN_AGAIN};
     use serde_json::{json, Value};
     use serial_test::serial;
 
-    use flowcore::{Implementation, RUN_AGAIN};
+    use crate::gui::client_message::ClientMessage::FileContents;
+    use crate::gui::coordinator_message::CoordinatorMessage;
+    use crate::gui::test_helper::test::wait_for_then_send;
 
-    use crate::cli::coordinator_message::ClientMessage::FileContents;
-    use crate::cli::coordinator_message::CoordinatorMessage;
-    use crate::cli::file::file_read::FileRead;
-    use crate::cli::test_helper::test::wait_for_then_send;
+    use super::FileRead;
 
     #[test]
     #[serial]

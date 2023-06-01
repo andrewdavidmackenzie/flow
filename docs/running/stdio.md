@@ -28,7 +28,7 @@ input.bytes = { once = [104, 101, 108, 108, 111] }
 input.filename = { once = "pipe" }
 ```
 
-You can run that flow from the command line using:`flowc -C flowr/src/bin/flowrcli/cli root.toml`
+You can run that flow from the command line using:`flowc -C flowr/src/bin/flowrcli/context root.toml`
 
 and see that it has worked using: `cat pipe`
 
@@ -46,7 +46,7 @@ An example of how to use that, using the above flow is:
     * `cat pipe`
     * (process should block reading from that file and not display anything)
   * Terminal Window 2
-    * Run the flow as before using `flowc -C flowr/src/bin/flowrcli/cli root.toml`
+    * Run the flow as before using `flowc -C flowr/src/bin/flowrcli/context root.toml`
     * The process blocked above in Terminal Window 1 will unblock and display `hello`
     * The flow will run to completion in Terminal Window 2
 

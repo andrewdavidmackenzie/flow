@@ -137,7 +137,7 @@ fn execute_flow_client_server(test_name: &str, manifest: PathBuf) -> Result<()> 
 
 fn compile_and_execute(runner_name: &str, test_name: &str, execute: bool) -> Result<PathBuf> {
     let root_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    let context_dir = root_dir.join(format!("src/bin/{}/cli", runner_name));
+    let context_dir = root_dir.join(format!("src/bin/{}/context", runner_name));
     let context_dir_str = context_dir.to_string_lossy().to_string();
     let test_dir = root_dir.join("tests/test-flows").join(test_name);
     let test_dir_str = test_dir.to_string_lossy().to_string();

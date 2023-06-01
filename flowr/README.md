@@ -37,10 +37,10 @@ to be used when compiling a flow.
 These are all impure functions, or functions with side effects, not part of the flow itself.
 
 Those functions are organized into the following modules, each with multiple functions:
-* [args](src/bin/flowrcli/cli/args/args.md) - used to get arguments that flow was invoked with
-* [file](src/bin/flowrcli/cli/file/file.md) - used to interact with the file system
-* [image](src/bin/flowrcli/cli/image/image.md) - used to create image files
-* [stdio](src/bin/flowrcli/cli/stdio/stdio.md) - used to interact with stdio
+* [args](src/bin/flowrcli/context/args/args.md) - used to get arguments that flow was invoked with
+* [file](src/bin/flowrcli/context/file/file.md) - used to interact with the file system
+* [image](src/bin/flowrcli/context/image/image.md) - used to create image files
+* [stdio](src/bin/flowrcli/context/stdio/stdio.md) - used to interact with stdio
 
 ## `flowrex`
 You can find more details about how to use it in running flows in the [distributed](../docs/running/distributed.md)

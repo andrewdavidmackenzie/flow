@@ -28,12 +28,6 @@ use std::process::exit;
 use std::sync::{Arc, Mutex};
 
 use clap::{Arg, ArgMatches, Command};
-use env_logger::Builder;
-use log::{info, LevelFilter, trace, warn};
-use portpicker::pick_unused_port;
-use simpath::Simpath;
-use url::Url;
-
 use cli::cli_client::CliRuntimeClient;
 #[cfg(feature = "debugger")]
 use cli::cli_debug_client::CliDebugClient;
@@ -50,6 +44,7 @@ use cli::debug_message::DebugServerMessage;
 use cli::debug_message::DebugServerMessage::{BlockBreakpoint, DataBreakpoint, ExecutionEnded, ExecutionStarted,
                                              ExitingDebugger, JobCompleted, JobError, Panic, PriorToSendingJob,
                                              Resetting, WaitingForCommand};
+use env_logger::Builder;
 use flowcore::errors::*;
 use flowcore::meta_provider::MetaProvider;
 use flowcore::model::flow_manifest::FlowManifest;
@@ -62,9 +57,16 @@ use flowrlib::executor::Executor;
 use flowrlib::info as flowrlib_info;
 use flowrlib::services::{CONTROL_SERVICE_NAME, JOB_QUEUES_DISCOVERY_PORT, JOB_SERVICE_NAME,
                          RESULTS_JOB_SERVICE_NAME};
+use log::{info, LevelFilter, trace, warn};
+use portpicker::pick_unused_port;
+use simpath::Simpath;
+use url::Url;
 
 use crate::cli::connections::{COORDINATOR_SERVICE_NAME, DEBUG_SERVICE_NAME,
                               discover_service, enable_service_discovery};
+
+/// Include the module that implements the context functions
+mod context;
 
 /// provides the `context functions` for interacting with the execution environment from a flow,
 /// plus client-[Coordinator][flowrlib::coordinator::Coordinator] implementations of
@@ -311,7 +313,7 @@ fn coordinator(
 
     let mut context_executor = Executor::new()?;
     context_executor.add_lib(
-        cli::get_manifest(connection.clone())?,
+        context::get_manifest(connection.clone())?,
         Url::parse("memory://")? // Statically linked library has no resolved Url
     )?;
     context_executor.start(provider, 1,

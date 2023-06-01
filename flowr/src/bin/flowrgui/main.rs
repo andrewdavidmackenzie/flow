@@ -59,6 +59,9 @@ static STDOUT_SCROLLABLE_ID: Lazy<Id> = Lazy::new(Id::unique);
 
 //use iced_aw::{TabLabel, Tabs};
 
+/// Include the module that implements the context functions
+mod context;
+
 /// provides the `context functions` for interacting with the execution environment from a flow,
 /// plus client-[Coordinator][flowrlib::coordinator::Coordinator] implementations of
 /// [flowrlib::submission_handler] for executing them on different threads

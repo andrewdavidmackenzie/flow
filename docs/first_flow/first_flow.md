@@ -17,7 +17,7 @@ You can see the TOML root flow definition for this flow in the flowsample crate'
 
 ### Interaction with the execution environment
 The root defines what the interaction with the surrounding execution environment is,
-such as [Stdout](../../flowr/src/bin/flowrcli/cli/stdio/stdout.md), or any other `context function` provided by the flow runtime 
+such as [Stdout](../../flowr/src/bin/flowrcli/context/stdio/stdout.md), or any other `context function` provided by the flow runtime 
 being used (e.g. `flowr`).
 
 The only interaction with the execution environment in this example is the use of `stdout` to print the numbers
