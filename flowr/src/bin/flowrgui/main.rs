@@ -22,7 +22,7 @@
 //! [Executors][flowrlib::executor::Executor]
 
 use core::str::FromStr;
-use std::{env, io, thread};
+use std::{env, io, process, thread};
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::prelude::*;
@@ -58,6 +58,9 @@ use crate::gui::coordinator_message::CoordinatorMessage;
 static STDOUT_SCROLLABLE_ID: Lazy<Id> = Lazy::new(Id::unique);
 
 //use iced_aw::{TabLabel, Tabs};
+
+/// Include the module that implements the context functions
+mod context;
 
 /// provides the `context functions` for interacting with the execution environment from a flow,
 /// plus client-[Coordinator][flowrlib::coordinator::Coordinator] implementations of
@@ -126,9 +129,14 @@ pub struct CoordinatorSettings {
     lib_search_path: Simpath,
 }
 
+struct UiSettings {
+    auto: bool,
+}
+
 struct FlowrGui {
     flow_settings: SubmissionSettings,
     coordinator_settings: CoordinatorSettings,
+    ui_settings: UiSettings,
     gui_coordinator: CoordinatorState,
     active_tab: usize,
     stdout: Vec<String>,
@@ -153,6 +161,7 @@ impl Application for FlowrGui {
         let flowrgui = FlowrGui {
             flow_settings: settings.0,
             coordinator_settings: settings.1,
+            ui_settings: settings.2,
             gui_coordinator: CoordinatorState::Disconnected,
             active_tab: 0,
             stdout: Vec::new(),
@@ -176,6 +185,9 @@ impl Application for FlowrGui {
                 match message {
                     Message::CoordinatorSent(CoordinatorMessage::Connected(sender)) => {
                         self.gui_coordinator = CoordinatorState::Connected(sender);
+                        if self.ui_settings.auto {
+                            return Command::perform(Self::auto_submit(), |_| Message::SubmitFlow);
+                        }
                     },
                     _ => error!("Unexpected message: {:?} when Coordinator Disconnected", message),
                 }
@@ -223,6 +235,10 @@ impl Application for FlowrGui {
 }
 
 impl FlowrGui {
+    async fn auto_submit() {
+        info!("Auto submitting flow");
+    }
+
     // Submit the flow to the coordinator for execution
     async fn submit(sender: tokio::sync::mpsc::Sender<ClientMessage>,
                     url: Url,
@@ -295,7 +311,7 @@ impl FlowrGui {
     }
 
     // Create initial Settings structs for Submission and Coordinator from the CLI options
-    fn initial_settings() -> (SubmissionSettings, CoordinatorSettings) {
+    fn initial_settings() -> (SubmissionSettings, CoordinatorSettings, UiSettings) {
         let matches = Self::parse_cli_args();
 
         // init logging
@@ -347,14 +363,17 @@ impl FlowrGui {
             flow_manifest_url,
             flow_args,
             debug_this_flow,
-            display_metrics: true,
+            display_metrics: matches.get_flag("metrics"),
             parallel_jobs_limit,
         },
          CoordinatorSettings {
             num_threads,
             native_flowstdlib,
             lib_search_path,
-        }
+        },
+            UiSettings {
+                auto: matches.get_flag("auto")
+            }
         )
     }
 
@@ -378,6 +397,22 @@ impl FlowrGui {
                 .long("native")
                 .action(clap::ArgAction::SetTrue)
                 .help("Link with native (not WASM) version of flowstdlib"),
+        );
+
+        let app = app.arg(
+            Arg::new("metrics")
+                .short('m')
+                .long("metrics")
+                .action(clap::ArgAction::SetTrue)
+                .help("Calculate metrics during flow execution and print them out when done"),
+        );
+
+        let app = app.arg(
+            Arg::new("auto")
+                .short('a')
+                .long("auto")
+                .action(clap::ArgAction::SetTrue)
+                .help("Run any flow specified automatically on start-up. Exit automatically."),
         );
 
         let app = app
@@ -487,6 +522,10 @@ impl FlowrGui {
                     println!("{}", metrics);
                 }
                 self.send(ClientMessage::Ack);
+                if self.ui_settings.auto {
+                    info!("Auto exiting on flow completion");
+                    process::exit(0);
+                }
             }
             CoordinatorMessage::CoordinatorExiting(_) => {
                 self.gui_coordinator = CoordinatorState::Disconnected;
@@ -521,7 +560,7 @@ impl FlowrGui {
             }
             CoordinatorMessage::GetLine(prompt) => {
                 // TODO print the prompt, read one line of input, move cursor and grey out text
-                // If there is no text to pickup beyond the cursos then prompt the user for more
+                // If there is no text to pickup beyond the cursor then prompt the user for more
                 let mut input = String::new();
                 if !prompt.is_empty() {
                     print!("{}", prompt);

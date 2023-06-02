@@ -12,7 +12,7 @@ ifeq ($(FLOW_LIB_PATH),)
 endif
 
 ifeq ($(FLOW_CONTEXT_ROOT),)
-  export FLOW_CONTEXT_ROOT := $(PWD)/flowr/src/bin/flowrcli/cli
+  export FLOW_CONTEXT_ROOT := $(PWD)/flowr/src/bin/flowrcli/context
 endif
 
 .PHONY: all

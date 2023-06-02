@@ -13,7 +13,8 @@ use log::{debug, error, info, trace};
 use portpicker::pick_unused_port;
 use url::Url;
 
-use crate::{CoordinatorSettings, gui};
+use crate::context;
+use crate::CoordinatorSettings;
 use crate::errors::*;
 use crate::gui::client_connection::{ClientConnection, discover_service};
 use crate::gui::client_message::ClientMessage;
@@ -188,7 +189,7 @@ fn coordinator(
 
     let mut context_executor = Executor::new()?;
     context_executor.add_lib(
-        gui::get_manifest(connection.clone())?,
+        context::get_manifest(connection.clone())?,
         Url::parse("memory://")? // Statically linked library has no resolved Url
     )?;
     context_executor.start(provider, 1,

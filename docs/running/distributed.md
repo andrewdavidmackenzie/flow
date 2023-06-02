@@ -66,7 +66,7 @@ Terminal 2
 
 First let's compile the fibonacci sample (but not run it) by using `flowc` with the `-c, --compile` option:
 
-`>  flowc -c -C flowr/src/bin/flowrcli/cli flowsamples/fibonacci`
+`>  flowc -c -C flowr/src/bin/flowrcli/context flowsamples/fibonacci`
 
 Let's check that worked:
 

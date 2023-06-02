@@ -93,7 +93,7 @@ fn execute_flow_client_server(test_name: &str, manifest: PathBuf) -> Result<()> 
     let client_args =  vec!["-c", discovery_port.trim(), &manifest_str];
     println!("Starting 'flowrcli' client with command line: 'flowr {}'", client_args.join(" "));
 
-    // spawn the 'flowr' client process
+    // spawn the 'flowrcli' client process
     let mut runner = client
         .args(client_args)
         .stdin(Stdio::piped())
@@ -127,17 +127,18 @@ fn execute_flow_client_server(test_name: &str, manifest: PathBuf) -> Result<()> 
 
     let expected_stdout = read_file(&test_dir, "expected.stdout");
     if expected_stdout != actual_stdout {
-        println!("Expected STDOUT: {expected_stdout}");
-        println!("Actual STDOUT: {actual_stdout}");
+        println!("Expected STDOUT:\n{expected_stdout}");
+        println!("Actual STDOUT:\n{actual_stdout}");
         bail!("Actual STDOUT did not match expected.stdout");
     }
 
     Ok(())
 }
 
-fn compile_and_execute(test_name: &str, execute: bool) -> Result<PathBuf> {
+fn compile_and_execute(runner_name: &str, test_name: &str, execute: bool,
+                       std_err_is_ok: bool) -> Result<PathBuf> {
     let root_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    let context_dir = root_dir.join("src/bin/flowrcli/cli");
+    let context_dir = root_dir.join(format!("src/bin/{}/context", runner_name));
     let context_dir_str = context_dir.to_string_lossy().to_string();
     let test_dir = root_dir.join("tests/test-flows").join(test_name);
     let test_dir_str = test_dir.to_string_lossy().to_string();
@@ -145,56 +146,80 @@ fn compile_and_execute(test_name: &str, execute: bool) -> Result<PathBuf> {
         .expect("A temp dir").into_path();
     let out_dir_str = out_dir.to_string_lossy().to_string();
 
-    let mut command = Command::new("flowc");
-    let mut command_args: Vec<String> = vec![
+    let mut compiler = Command::new("flowc");
+    let compiler_args: Vec<String> = vec![
         "--context_root".into(), context_dir_str, // Use flow context root
         "--graphs".into(), "--optimize".into(), // Optimize flows
-        "--output".into(), out_dir_str // Generate into {out_dir_str}
+        "--output".into(), out_dir_str.clone(), // Generate into {out_dir_str}
+        "--compile".into(), // just compile
+        test_dir_str
     ];
 
-    if !execute {
-        command_args.push("--compile".into());
+    println!("Command line: 'flowc {}'", compiler_args.join(" "));
+
+    let status = compiler
+        .args(compiler_args)
+        .status()
+        .map_err(|_| "Could not run compiled")?;
+
+    if !status.success() {
+        bail!("Compiler returned non-zero status");
     }
 
-    let test_stdin_path = test_dir.join("test.stdin");
-    let test_stdin_filename = test_stdin_path.to_string_lossy().to_string();
-    if test_stdin_path.exists() {
-        command_args.push("--stdin".into());
-        command_args.push(test_stdin_filename);
+    let manifest = out_dir.join("manifest.json");
+
+    if !manifest.exists() {
+        bail!("Compiled manifest.json does not exist in: '{}'", out_dir.display());
     }
-
-    command_args.push(test_dir_str);   // Compile and run this flow
-
-    // Add any args to pass onto the flow
-    if let Some(mut args) = test_args(&test_dir) {
-        command_args.append(&mut args);
-    }
-
-    println!("Command line: 'flowc {}'", command_args.join(" "));
-
-    let execution = command
-        .args(command_args)
-        .stdin(Stdio::piped())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .spawn()
-        .map_err(|_| "Could not spawn flowc process")?;
 
     if execute {
-        // read it's stderr
-        let mut actual_stderr = String::new();
-        let stderr = execution.stderr.ok_or("Could not get stderr")?;
-        for line in BufReader::new(stderr).lines() {
-            let _ = writeln!(actual_stderr, "{}", &line.expect("Could not read line"));
+        let mut runner = Command::new(runner_name);
+        let mut runner_args: Vec<String> = vec![];
+
+        runner_args.push(out_dir_str); // location of compiled manifest.json
+
+        // Add any args to pass onto the flow
+        if let Some(mut args) = test_args(&test_dir) {
+            runner_args.append(&mut args);
         }
 
-        if !actual_stderr.is_empty() {
-            bail!(format!("STDERR: {actual_stderr}"))
+        let mut run = runner.args(runner_args)
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn().map_err(|_| "Could not spawn runner process")?;
+
+        let test_stdin_path = test_dir.join("test.stdin");
+        let test_stdin_filename = test_stdin_path.to_string_lossy().to_string();
+        if test_stdin_path.exists() {
+            let _ = Command::new("cat")
+                .args(vec![test_stdin_filename])
+                .stdout(
+                    run
+                        .stdin
+                        .take()
+                        .chain_err(|| "Could not read child process stdin")?,
+                )
+                .spawn()
+                .chain_err(|| format!("Could not spawn 'cat' to pipe STDIN to '{}'", runner_name));
+        }
+
+        // read it's stderr
+        if !std_err_is_ok {
+            let mut actual_stderr = String::new();
+            let stderr = run.stderr.ok_or("Could not get stderr")?;
+            for line in BufReader::new(stderr).lines() {
+                let _ = writeln!(actual_stderr, "{}", &line.expect("Could not read line"));
+            }
+
+            if !actual_stderr.is_empty() {
+                bail!(format!("STDERR: {actual_stderr}"))
+            }
         }
 
         // read it's stdout
         let mut actual_stdout = String::new();
-        let stdout = execution.stdout.ok_or("Could not get stdout")?;
+        let stdout = run.stdout.ok_or("Could not get stdout")?;
         for line in BufReader::new(stdout).lines() {
             let _ = writeln!(actual_stdout, "{}", &line.expect("Could not read line"));
         }
@@ -205,75 +230,86 @@ fn compile_and_execute(test_name: &str, execute: bool) -> Result<PathBuf> {
         }
     }
 
-    Ok(out_dir.join("manifest.json"))
+    Ok(manifest)
 }
 
 #[cfg(feature = "debugger")]
 #[test]
 #[serial]
 fn debug_print_args() {
-    compile_and_execute("debug-print-args", true).expect("Test failed");
+    compile_and_execute("flowrcli", "debug-print-args", true,
+                        false).expect("Test failed");
 }
 
 #[cfg(feature = "debugger")]
 #[test]
 #[serial]
 fn debug_help_string() {
-    compile_and_execute("debug-help-string", true).expect("Test failed");
+    compile_and_execute("flowrcli", "debug-help-string", true,
+                        false).expect("Test failed");
 }
 
 #[test]
 #[serial]
 fn print_args() {
-    compile_and_execute("print-args", true).expect("Test failed");
+    compile_and_execute("flowrcli", "print-args", true,
+                        false).expect("Test failed");
 }
 
 #[test]
 #[serial]
 fn hello_world() {
-    compile_and_execute("hello-world", true).expect("Test failed");
+    compile_and_execute("flowrcli", "hello-world", true,
+                        false).expect("Test failed");
 }
 
 #[test]
 #[serial]
 fn line_echo() {
-    compile_and_execute("line-echo", true).expect("Test failed");
+    compile_and_execute("flowrcli", "line-echo", true,
+                        false).expect("Test failed");
 }
 
 #[test]
 #[serial]
 fn args() {
-    compile_and_execute("args", true).expect("Test failed");
+    compile_and_execute("flowrcli", "args", true,
+                        false).expect("Test failed");
 }
 
 #[test]
 #[serial]
 fn args_json() {
-    compile_and_execute("args-json", true).expect("Test failed");
+    compile_and_execute("flowrcli", "args-json", true,
+                        false).expect("Test failed");
 }
 
 #[test]
 #[serial]
 fn array_input() {
-    compile_and_execute("array-input", true).expect("Test failed");
+    compile_and_execute("flowrcli", "array-input", true,
+                        false).expect("Test failed");
 }
 
 #[test]
 #[serial]
 fn double_connection() {
-    compile_and_execute("double-connection", true).expect("Test failed");
+    compile_and_execute("flowrcli", "double-connection", true,
+                        false).expect("Test failed");
 }
 
 #[test]
 #[serial]
 fn two_destinations() {
-    compile_and_execute("two-destinations", true).expect("Test failed");
+    compile_and_execute("flowrcli", "two-destinations", true,
+                        false).expect("Test failed");
 }
 
 #[test]
 #[serial]
 fn flowc_hello_world() {
-    compile_and_execute("hello-world", true).expect("Test failed");
+    compile_and_execute("flowrcli", "hello-world", true,
+                        false).expect("Test failed");
 }
 
 #[test]
@@ -283,14 +319,22 @@ fn doesnt_create_if_not_exist() {
     let root_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     let non_existent = root_dir.join("tests/test-flows").join(non_existent_test);
     assert!(!non_existent.exists());
-    assert!(compile_and_execute(non_existent_test, true).is_err());
+    assert!(compile_and_execute("flowrcli", non_existent_test, true,
+                                false).is_err());
     assert!(!non_existent.exists(), "File {non_existent_test} should not have been created");
 }
 
 #[test]
 #[serial]
+fn fibonacci_flowrgui() {
+    // winit prints some std_err still so we have to ignore it.
+    compile_and_execute("flowrgui", "fibonacci", true, true).expect("Test failed");
+}
+
+#[test]
+#[serial]
 fn hello_world_client_server() {
-    let manifest = compile_and_execute("hello-world", false)
+    let manifest = compile_and_execute("flowrcli", "hello-world", false, false)
         .expect("Test failed");
 
     execute_flow_client_server("hello-world", manifest)

@@ -33,9 +33,9 @@ use crate::errors::*;
 ///
 /// // Create a lib_search_path
 /// let mut lib_search_path = Simpath::new("TEST_LIBS");
-/// // Add a runner's 'context root' directory, such as '$FLOW_DIR/flowr/src/bin/flowrcli/cli'
+/// // Add a runner's 'context root' directory, such as '$FLOW_DIR/flowr/src/bin/flowrcli/context'
 /// let root_str = Path::new(env!("CARGO_MANIFEST_DIR")).parent().unwrap();
-/// let runtime_parent = root_str.join("flowr/src/bin/flowrcli/cli");
+/// let runtime_parent = root_str.join("flowr/src/bin/flowrcli/context");
 /// lib_search_path.add_directory(runtime_parent.to_str().unwrap());
 /// let provider = MetaProvider::new(lib_search_path, PathBuf::from("/"));
 ///

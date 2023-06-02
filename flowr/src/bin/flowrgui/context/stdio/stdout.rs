@@ -50,8 +50,9 @@ mod test {
 
     use crate::gui::client_message::ClientMessage;
     use crate::gui::coordinator_message::CoordinatorMessage;
-    use crate::gui::stdio::stdout::Stdout;
     use crate::gui::test_helper::test::wait_for_then_send;
+
+    use super::Stdout;
 
     #[test]
     #[serial]
