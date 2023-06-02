@@ -135,7 +135,8 @@ fn execute_flow_client_server(test_name: &str, manifest: PathBuf) -> Result<()> 
     Ok(())
 }
 
-fn compile_and_execute(runner_name: &str, test_name: &str, execute: bool, run_option: Option<String>) -> Result<PathBuf> {
+fn compile_and_execute(runner_name: &str, test_name: &str, execute: bool,
+                       run_option: Option<String>, std_err_is_ok: bool) -> Result<PathBuf> {
     let root_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     let context_dir = root_dir.join(format!("src/bin/{}/context", runner_name));
     let context_dir_str = context_dir.to_string_lossy().to_string();
@@ -202,14 +203,16 @@ fn compile_and_execute(runner_name: &str, test_name: &str, execute: bool, run_op
         }
 
         // read it's stderr
-        let mut actual_stderr = String::new();
-        let stderr = run.stderr.ok_or("Could not get stderr")?;
-        for line in BufReader::new(stderr).lines() {
-            let _ = writeln!(actual_stderr, "{}", &line.expect("Could not read line"));
-        }
+        if !std_err_is_ok {
+            let mut actual_stderr = String::new();
+            let stderr = run.stderr.ok_or("Could not get stderr")?;
+            for line in BufReader::new(stderr).lines() {
+                let _ = writeln!(actual_stderr, "{}", &line.expect("Could not read line"));
+            }
 
-        if !actual_stderr.is_empty() {
-            bail!(format!("STDERR: {actual_stderr}"))
+            if !actual_stderr.is_empty() {
+                bail!(format!("STDERR: {actual_stderr}"))
+            }
         }
 
         // read it's stdout
@@ -232,68 +235,79 @@ fn compile_and_execute(runner_name: &str, test_name: &str, execute: bool, run_op
 #[test]
 #[serial]
 fn debug_print_args() {
-    compile_and_execute("flowrcli", "debug-print-args", true, None).expect("Test failed");
+    compile_and_execute("flowrcli", "debug-print-args", true,
+                        None, false).expect("Test failed");
 }
 
 #[cfg(feature = "debugger")]
 #[test]
 #[serial]
 fn debug_help_string() {
-    compile_and_execute("flowrcli", "debug-help-string", true, None).expect("Test failed");
+    compile_and_execute("flowrcli", "debug-help-string", true,
+                        None, false).expect("Test failed");
 }
 
 #[test]
 #[serial]
 fn print_args() {
-    compile_and_execute("flowrcli", "print-args", true, None).expect("Test failed");
+    compile_and_execute("flowrcli", "print-args", true,
+                        None, false).expect("Test failed");
 }
 
 #[test]
 #[serial]
 fn hello_world() {
-    compile_and_execute("flowrcli", "hello-world", true,  None).expect("Test failed");
+    compile_and_execute("flowrcli", "hello-world", true,
+                        None, false).expect("Test failed");
 }
 
 #[test]
 #[serial]
 fn line_echo() {
-    compile_and_execute("flowrcli", "line-echo", true,  None).expect("Test failed");
+    compile_and_execute("flowrcli", "line-echo", true,
+                        None, false).expect("Test failed");
 }
 
 #[test]
 #[serial]
 fn args() {
-    compile_and_execute("flowrcli", "args", true,  None).expect("Test failed");
+    compile_and_execute("flowrcli", "args", true,
+                        None, false).expect("Test failed");
 }
 
 #[test]
 #[serial]
 fn args_json() {
-    compile_and_execute("flowrcli", "args-json", true,  None).expect("Test failed");
+    compile_and_execute("flowrcli", "args-json", true,
+                        None, false).expect("Test failed");
 }
 
 #[test]
 #[serial]
 fn array_input() {
-    compile_and_execute("flowrcli", "array-input", true,  None).expect("Test failed");
+    compile_and_execute("flowrcli", "array-input", true,
+                        None, false).expect("Test failed");
 }
 
 #[test]
 #[serial]
 fn double_connection() {
-    compile_and_execute("flowrcli", "double-connection", true,  None).expect("Test failed");
+    compile_and_execute("flowrcli", "double-connection", true,
+                        None, false).expect("Test failed");
 }
 
 #[test]
 #[serial]
 fn two_destinations() {
-    compile_and_execute("flowrcli", "two-destinations", true,  None).expect("Test failed");
+    compile_and_execute("flowrcli", "two-destinations", true,
+                        None, false).expect("Test failed");
 }
 
 #[test]
 #[serial]
 fn flowc_hello_world() {
-    compile_and_execute("flowrcli", "hello-world", true,  None).expect("Test failed");
+    compile_and_execute("flowrcli", "hello-world", true,
+                        None, false).expect("Test failed");
 }
 
 #[test]
@@ -303,23 +317,24 @@ fn doesnt_create_if_not_exist() {
     let root_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     let non_existent = root_dir.join("tests/test-flows").join(non_existent_test);
     assert!(!non_existent.exists());
-    assert!(compile_and_execute("flowrcli", non_existent_test, true,  None).is_err());
+    assert!(compile_and_execute("flowrcli", non_existent_test, true,
+                                None, false).is_err());
     assert!(!non_existent.exists(), "File {non_existent_test} should not have been created");
 }
 
-/*
 #[test]
 #[serial]
 fn fibonacci_flowrgui() {
+    // winit prints some std_err still so we have to ignore it.
     compile_and_execute("flowrgui", "fibonacci", true,
-                        Some("auto".to_string())).expect("Test failed");
+                        Some("--auto".to_string()),true).expect("Test failed");
 }
- */
 
 #[test]
 #[serial]
 fn hello_world_client_server() {
-    let manifest = compile_and_execute("flowrcli", "hello-world", false,  None)
+    let manifest = compile_and_execute("flowrcli", "hello-world", false,
+                                       None, false)
         .expect("Test failed");
 
     execute_flow_client_server("hello-world", manifest)
