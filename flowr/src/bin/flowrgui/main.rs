@@ -363,7 +363,7 @@ impl FlowrGui {
             flow_manifest_url,
             flow_args,
             debug_this_flow,
-            display_metrics: true,
+            display_metrics: matches.get_flag("metrics"),
             parallel_jobs_limit,
         },
          CoordinatorSettings {
@@ -397,6 +397,14 @@ impl FlowrGui {
                 .long("native")
                 .action(clap::ArgAction::SetTrue)
                 .help("Link with native (not WASM) version of flowstdlib"),
+        );
+
+        let app = app.arg(
+            Arg::new("metrics")
+                .short('m')
+                .long("metrics")
+                .action(clap::ArgAction::SetTrue)
+                .help("Calculate metrics during flow execution and print them out when done"),
         );
 
         let app = app.arg(
