@@ -13,7 +13,7 @@
 <!-- /router/readline -->
 <g id="node1" class="node">
 <title>/router/readline</title>
-<g id="a_node1"><a xlink:href="../../flowr/src/bin/flowrcli/cli/stdio/readline.html" xlink:title="readline">
+<g id="a_node1"><a xlink:href="../../flowr/src/bin/flowrcli/context/stdio/readline.html" xlink:title="readline">
 <polygon fill="black" stroke="black" points="251.44,-23.56 191.44,-36 131.43,-23.56 131.49,-3.44 251.39,-3.44 251.44,-23.56"/>
 <text text-anchor="middle" x="191.44" y="-14.3" font-family="Times,serif" font-size="14.00" fill="white">readline</text>
 </a>
@@ -180,7 +180,7 @@
 <!-- /router/stdout -->
 <g id="node10" class="node">
 <title>/router/stdout</title>
-<g id="a_node10"><a xlink:href="../../flowr/src/bin/flowrcli/cli/stdio/stdout.html" xlink:title="stdout">
+<g id="a_node10"><a xlink:href="../../flowr/src/bin/flowrcli/context/stdio/stdout.html" xlink:title="stdout">
 <polygon fill="black" stroke="black" points="2522.06,-23.56 2472.44,-36 2422.82,-23.56 2422.87,-3.44 2522.01,-3.44 2522.06,-23.56"/>
 <text text-anchor="middle" x="2472.44" y="-14.3" font-family="Times,serif" font-size="14.00" fill="white">stdout</text>
 </a>

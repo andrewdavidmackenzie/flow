@@ -23,7 +23,7 @@
 <!-- r18 -->
 <g id="node1" class="node">
 <title>r18</title>
-<g id="a_node1"><a xlink:href="file:///home/runner/work/flow/flow/flowr/src/bin/flowrcli/cli/stdio/readline.html" xlink:title="readline (#18)">
+<g id="a_node1"><a xlink:href="file:///home/runner/work/flow/flow/flowr/src/bin/flowrcli/context/stdio/readline.html" xlink:title="readline (#18)">
 <ellipse fill="coral" stroke="black" cx="498" cy="-600" rx="77.99" ry="18"/>
 <text text-anchor="middle" x="498" y="-596.3" font-family="Times,serif" font-size="14.00">readline (#18)</text>
 </a>
@@ -443,7 +443,7 @@
 <!-- r19 -->
 <g id="node24" class="node">
 <title>r19</title>
-<g id="a_node24"><a xlink:href="file:///home/runner/work/flow/flow/flowr/src/bin/flowrcli/cli/stdio/stdout.html" xlink:title="stdout (#19)">
+<g id="a_node24"><a xlink:href="file:///home/runner/work/flow/flow/flowr/src/bin/flowrcli/context/stdio/stdout.html" xlink:title="stdout (#19)">
 <ellipse fill="coral" stroke="black" cx="443" cy="-18" rx="69.59" ry="18"/>
 <text text-anchor="middle" x="443" y="-14.3" font-family="Times,serif" font-size="14.00">stdout (#19)</text>
 </a>

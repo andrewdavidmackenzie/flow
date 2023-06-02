@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["get_manifest"],"mod":["args","cli_client","cli_debug_client","cli_debug_handler","cli_submission_handler","connections","coordinator_message","debug_message","file","image","stdio","test_helper"]};
+window.SIDEBAR_ITEMS = {"mod":["cli_client","cli_debug_client","cli_debug_handler","cli_submission_handler","connections","coordinator_message","debug_message","test_helper"]};

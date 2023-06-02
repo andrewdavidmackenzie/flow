@@ -13,7 +13,7 @@
 <!-- r0 -->
 <g id="node1" class="node">
 <title>r0</title>
-<g id="a_node1"><a xlink:href="file:///home/runner/work/flow/flow/flowr/src/bin/flowrcli/cli/stdio/stdout.html" xlink:title="stdout (#0)">
+<g id="a_node1"><a xlink:href="file:///home/runner/work/flow/flow/flowr/src/bin/flowrcli/context/stdio/stdout.html" xlink:title="stdout (#0)">
 <ellipse fill="coral" stroke="black" cx="174.84" cy="-18" rx="63.89" ry="18"/>
 <text text-anchor="middle" x="174.84" y="-14.3" font-family="Times,serif" font-size="14.00">stdout (#0)</text>
 </a>

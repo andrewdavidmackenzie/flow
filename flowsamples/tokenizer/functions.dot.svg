@@ -13,7 +13,7 @@
 <!-- r1 -->
 <g id="node1" class="node">
 <title>r1</title>
-<g id="a_node1"><a xlink:href="file:///home/runner/work/flow/flow/flowr/src/bin/flowrcli/cli/stdio/readline.html" xlink:title="readline (#1)">
+<g id="a_node1"><a xlink:href="file:///home/runner/work/flow/flow/flowr/src/bin/flowrcli/context/stdio/readline.html" xlink:title="readline (#1)">
 <ellipse fill="coral" stroke="black" cx="376.39" cy="-378" rx="72.29" ry="18"/>
 <text text-anchor="middle" x="376.39" y="-374.3" font-family="Times,serif" font-size="14.00">readline (#1)</text>
 </a>
@@ -167,7 +167,7 @@
 <!-- r3 -->
 <g id="node11" class="node">
 <title>r3</title>
-<g id="a_node11"><a xlink:href="file:///home/runner/work/flow/flow/flowr/src/bin/flowrcli/cli/stdio/stdout.html" xlink:title="stdout (#3)">
+<g id="a_node11"><a xlink:href="file:///home/runner/work/flow/flow/flowr/src/bin/flowrcli/context/stdio/stdout.html" xlink:title="stdout (#3)">
 <ellipse fill="coral" stroke="black" cx="443.39" cy="-18" rx="63.89" ry="18"/>
 <text text-anchor="middle" x="443.39" y="-14.3" font-family="Times,serif" font-size="14.00">stdout (#3)</text>
 </a>

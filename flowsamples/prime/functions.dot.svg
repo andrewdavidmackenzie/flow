@@ -38,7 +38,7 @@
 <!-- r18 -->
 <g id="node1" class="node">
 <title>r18</title>
-<g id="a_node1"><a xlink:href="file:///home/runner/work/flow/flow/flowr/src/bin/flowrcli/cli/args/get.html" xlink:title="get (#18)">
+<g id="a_node1"><a xlink:href="file:///home/runner/work/flow/flow/flowr/src/bin/flowrcli/context/args/get.html" xlink:title="get (#18)">
 <ellipse fill="coral" stroke="black" cx="1160" cy="-367" rx="55.49" ry="18"/>
 <text text-anchor="middle" x="1160" y="-363.3" font-family="Times,serif" font-size="14.00">get (#18)</text>
 </a>
@@ -357,7 +357,7 @@
 <!-- r20 -->
 <g id="node23" class="node">
 <title>r20</title>
-<g id="a_node23"><a xlink:href="file:///home/runner/work/flow/flow/flowr/src/bin/flowrcli/cli/stdio/stdout.html" xlink:title="stdout (#20)">
+<g id="a_node23"><a xlink:href="file:///home/runner/work/flow/flow/flowr/src/bin/flowrcli/context/stdio/stdout.html" xlink:title="stdout (#20)">
 <ellipse fill="coral" stroke="black" cx="938" cy="-42" rx="69.59" ry="18"/>
 <text text-anchor="middle" x="938" y="-38.3" font-family="Times,serif" font-size="14.00">stdout (#20)</text>
 </a>

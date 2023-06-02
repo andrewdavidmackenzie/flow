@@ -31,7 +31,7 @@
 <!-- /mandlebrot/parse_args/get -->
 <g id="node4" class="node">
 <title>/mandlebrot/parse_args/get</title>
-<g id="a_node4"><a xlink:href="../../flowr/src/bin/flowrcli/cli/args/get.html" xlink:title="get">
+<g id="a_node4"><a xlink:href="../../flowr/src/bin/flowrcli/context/args/get.html" xlink:title="get">
 <polygon fill="white" stroke="black" points="112.59,-84.44 144.86,-72 177.13,-84.44 177.1,-104.56 112.62,-104.56 112.59,-84.44"/>
 <text text-anchor="middle" x="144.86" y="-86.3" font-family="Times,serif" font-size="14.00">get</text>
 </a>

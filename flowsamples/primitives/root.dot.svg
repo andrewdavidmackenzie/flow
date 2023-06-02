@@ -88,7 +88,7 @@
 <!-- /primitives/stdout -->
 <g id="node10" class="node">
 <title>/primitives/stdout</title>
-<g id="a_node10"><a xlink:href="../../flowr/src/bin/flowrcli/cli/stdio/stdout.html" xlink:title="stdout">
+<g id="a_node10"><a xlink:href="../../flowr/src/bin/flowrcli/context/stdio/stdout.html" xlink:title="stdout">
 <polygon fill="black" stroke="black" points="540.46,-23.56 490.84,-36 441.22,-23.56 441.27,-3.44 540.41,-3.44 540.46,-23.56"/>
 <text text-anchor="middle" x="490.84" y="-14.3" font-family="Times,serif" font-size="14.00" fill="white">stdout</text>
 </a>

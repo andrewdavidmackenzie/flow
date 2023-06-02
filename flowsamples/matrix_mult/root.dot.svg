@@ -13,7 +13,7 @@
 <!-- /matrix_mult/readline -->
 <g id="node1" class="node">
 <title>/matrix_mult/readline</title>
-<g id="a_node1"><a xlink:href="../../flowr/src/bin/flowrcli/cli/stdio/readline.html" xlink:title="readline">
+<g id="a_node1"><a xlink:href="../../flowr/src/bin/flowrcli/context/stdio/readline.html" xlink:title="readline">
 <polygon fill="black" stroke="black" points="487.74,-23.56 427.74,-36 367.73,-23.56 367.78,-3.44 487.69,-3.44 487.74,-23.56"/>
 <text text-anchor="middle" x="427.74" y="-14.3" font-family="Times,serif" font-size="14.00" fill="white">readline</text>
 </a>
@@ -83,7 +83,7 @@
 <!-- /matrix_mult/stdout -->
 <g id="node6" class="node">
 <title>/matrix_mult/stdout</title>
-<g id="a_node6"><a xlink:href="../../flowr/src/bin/flowrcli/cli/stdio/stdout.html" xlink:title="stdout">
+<g id="a_node6"><a xlink:href="../../flowr/src/bin/flowrcli/context/stdio/stdout.html" xlink:title="stdout">
 <polygon fill="black" stroke="black" points="1189.35,-23.56 1139.74,-36 1090.12,-23.56 1090.16,-3.44 1189.31,-3.44 1189.35,-23.56"/>
 <text text-anchor="middle" x="1139.74" y="-14.3" font-family="Times,serif" font-size="14.00" fill="white">stdout</text>
 </a>
