@@ -242,6 +242,7 @@ mod test {
         }
     }
 
+    // Requires network access
     #[test]
     #[serial]
     fn coordinator_receive_wait_get_reply() {
@@ -281,6 +282,7 @@ mod test {
         assert_eq!(coordinator_message, CoordinatorMessage::World);
     }
 
+    // Requires network access
     #[test]
     #[serial]
     fn coordinator_receive_nowait_get_reply() {
