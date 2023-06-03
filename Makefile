@@ -5,6 +5,7 @@ DNF := $(shell command -v dnf 2> /dev/null)
 BREW := $(shell command -v brew 2> /dev/null)
 RUSTUP := $(shell command -v rustup 2> /dev/null)
 CODESIGN := $(shell command -v codesign 2> /dev/null) # Detect codesigning app on mac to avoid security dialogs
+$(eval SELFCERT = $(shell security find-certificate -c "self" 2>&1 | grep "self")) # Detect codesigning app on mac to avoid security dialogs
 
 export SHELL := /bin/bash
 export PATH := $(PWD)/target/debug:$(PWD)/target/release:$(PATH)
@@ -87,9 +88,6 @@ build:
 	@cargo build -p flowc # Used to compile flowstdlib and flowsamples, so needed first
 	@cargo build -p flowstdlib # Used by flowsamples so needed first
 	@cargo build
-ifeq ($(CODESIGN),)
-	find target -name "flow*" -perm +111 -type f | xargs codesign -fs self
-endif
 
 .PHONY: clippy
 clippy: build
@@ -99,6 +97,14 @@ clippy: build
 .PHONY: test
 test: build
 	@echo "test<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
+ifneq ($(CODESIGN),)
+	@echo "Code signing tool \"codesign\" detected"
+ifneq ($(SELFCERT),)
+	@echo "Self-signing certificate called \"self\" found"
+	@cargo test --no-run
+	@find target -name "flow*" -perm +111 -type f | xargs codesign -s self || true
+endif
+endif
 	@cargo test
 
 .PHONY: coverage
