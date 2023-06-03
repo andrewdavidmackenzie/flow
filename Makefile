@@ -4,6 +4,8 @@ YUM := $(shell command -v yum 2> /dev/null)
 DNF := $(shell command -v dnf 2> /dev/null)
 BREW := $(shell command -v brew 2> /dev/null)
 RUSTUP := $(shell command -v rustup 2> /dev/null)
+CODESIGN := $(shell command -v codesign 2> /dev/null) # Detect codesigning app on mac to avoid security dialogs
+
 export SHELL := /bin/bash
 export PATH := $(PWD)/target/debug:$(PWD)/target/release:$(PATH)
 
@@ -82,9 +84,12 @@ clean:
 .PHONY: build
 build:
 	@echo "build<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
-	@cargo build -p flowc # Used to compile flowstdlib, so needed first
+	@cargo build -p flowc # Used to compile flowstdlib and flowsamples, so needed first
 	@cargo build -p flowstdlib # Used by flowsamples so needed first
 	@cargo build
+ifeq ($(CODESIGN),)
+	find target -name "flow*" -perm +111 -type f | xargs codesign -fs self
+endif
 
 .PHONY: clippy
 clippy: build
@@ -99,8 +104,13 @@ test: build
 .PHONY: coverage
 coverage: clean-start
 	@echo "coverage<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
-	@find . -name "*.profraw"  | xargs rm -rf {}
+	@find . -name "*.profraw"  | xargs rm -rf {} # Remove old coverage measurements
+	@RUSTFLAGS="-C instrument-coverage" LLVM_PROFILE_FILE="flow-%p-%m.profraw" cargo build -p flowc # Used to compile flowstdlib and flowsamples, so needed first
+	@RUSTFLAGS="-C instrument-coverage" LLVM_PROFILE_FILE="flow-%p-%m.profraw" cargo build -p flowstdlib # Used by flowsamples so needed first
 	@RUSTFLAGS="-C instrument-coverage" LLVM_PROFILE_FILE="flow-%p-%m.profraw" cargo build
+ifeq ($(CODESIGN),)
+	find target -perm +111 -type f | xargs codesign -fs self
+endif
 	@RUSTFLAGS="-C instrument-coverage" LLVM_PROFILE_FILE="flow-%p-%m.profraw" cargo clippy --tests -- -D warnings
 	@RUSTFLAGS="-C instrument-coverage" LLVM_PROFILE_FILE="flow-%p-%m.profraw" cargo test
 	@RUSTFLAGS="-C instrument-coverage" LLVM_PROFILE_FILE="flow-%p-%m.profraw" cargo doc --no-deps --target-dir=target/html/code
