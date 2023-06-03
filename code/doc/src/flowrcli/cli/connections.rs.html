@@ -324,6 +324,8 @@
 <a href="#324" id="324">324</a>
 <a href="#325" id="325">325</a>
 <a href="#326" id="326">326</a>
+<a href="#327" id="327">327</a>
+<a href="#328" id="328">328</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::fmt::Display;
 <span class="kw">use </span>std::time::Duration;
 
@@ -568,7 +570,8 @@
         }
     }
 
-    <span class="attr">#[test]
+    <span class="comment">// Requires network access
+    </span><span class="attr">#[test]
     #[serial]
     </span><span class="kw">fn </span>coordinator_receive_wait_get_reply() {
         <span class="kw">let </span>test_port = pick_unused_port().expect(<span class="string">&quot;No ports free&quot;</span>);
@@ -607,7 +610,8 @@
         <span class="macro">assert_eq!</span>(coordinator_message, CoordinatorMessage::World);
     }
 
-    <span class="attr">#[test]
+    <span class="comment">// Requires network access
+    </span><span class="attr">#[test]
     #[serial]
     </span><span class="kw">fn </span>coordinator_receive_nowait_get_reply() {
         <span class="kw">let </span>test_port = pick_unused_port().expect(<span class="string">&quot;No ports free&quot;</span>);
