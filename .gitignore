@@ -5,7 +5,6 @@
 **/*.rs.bk
 **/*.profraw
 **/.rustc_info.json
-.cargo
 coverage.info
 coverage
 flowstdlib/src/Cargo.lock

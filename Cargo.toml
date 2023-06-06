@@ -32,4 +32,3 @@ targets = ["x86_64-unknown-linux-gnu", "x86_64-apple-darwin"]
 inherits = "release"
 debug = true
 split-debuginfo = "packed"
-
