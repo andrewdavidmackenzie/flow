@@ -31,6 +31,19 @@ use std::path::PathBuf;
 use clap::{Arg, ArgMatches};
 use clap::Command as ClapCommand;
 use env_logger::Builder;
+use iced::{Alignment, Application, Command, Element, Length, Settings, Subscription, Theme};
+use iced::executor;
+use iced::widget::{Button, Column, container, Row, scrollable, text, text_input, toggler};
+use iced::widget::image::Handle;
+use iced::widget::image::Viewer;
+use iced::widget::scrollable::{Id, Scrollable};
+use image::{ImageBuffer, Rgba, RgbaImage};
+use log::{info, LevelFilter, warn};
+use log::error;
+use once_cell::sync::Lazy;
+use simpath::Simpath;
+use url::Url;
+
 use flowcore::meta_provider::MetaProvider;
 use flowcore::model::flow_manifest::FlowManifest;
 use flowcore::model::submission::Submission;
@@ -40,16 +53,6 @@ use flowrlib::info as flowrlib_info;
 use gui::coordinator_connection::CoordinatorConnection;
 use gui::debug_message::DebugServerMessage;
 use gui::debug_message::DebugServerMessage::*;
-use iced::{Alignment, Application, Command, Element, Length, Settings, Subscription, Theme};
-use iced::executor;
-use iced::widget::{Button, Column, container, Row, scrollable, text, text_input, toggler};
-use iced::widget::scrollable::{Id, Scrollable};
-use image::{ImageBuffer, Rgb, RgbImage};
-use log::{info, LevelFilter, warn};
-use log::error;
-use once_cell::sync::Lazy;
-use simpath::Simpath;
-use url::Url;
 
 use crate::errors::*;
 use crate::gui::client_message::ClientMessage;
@@ -108,6 +111,54 @@ fn main() -> iced::Result {
         antialiasing: true,
         ..Settings::default()
     })
+    /*
+    use std::path::Path;
+    use iced::window::icon;
+
+    let icon_path = "assets/icon.png";
+    let icon = match get_icon(icon_path) {
+        Ok(icon) => icon,
+        Err(err) => panic!("Error: {:?}", err)
+    };
+
+    window: window::Settings {
+            size: (1190, 670),
+            position: Position::Centered,
+            min_size: None,
+            max_size: None,
+            visible: true,
+            resizable: true,
+            decorations: true,
+            transparent: false,
+            always_on_top: false,
+            icon: Some(icon),
+            platform_specific: PlatformSpecific::default(),
+        },
+
+        fn get_icon(file_path: &str) -> Result<icon::Icon, Box<dyn std::error::Error>> {
+    let icon_path = Path::new(file_path);
+    let icon = icon::from_file(icon_path)?;
+
+    Ok(icon)
+
+https://docs.rs/iced/latest/iced/window/icon/fn.from_file.html
+    https://docs.rs/iced/latest/iced/window/icon/fn.from_rgba.html
+
+    https://docs.rs/iced/latest/iced/window/icon/fn.from_file_data.html
+    Function iced::window::icon::from_file_dataCopy item path
+source · [−]
+pub fn from_file_data(
+    data: &[u8],
+    explicit_format: Option<ImageFormat>
+) -> Result<Icon, Error>
+Available on
+crate feature image
+ only.
+Creates an icon from the content of an image file.
+
+This content can be included in your application at compile-time, e.g. using the include_bytes! macro. You can pass an explicit file format. Otherwise, the file format will be guessed at runtime.
+}
+     */
 }
 
 struct SubmissionSettings {
@@ -144,7 +195,7 @@ struct FlowrGui {
     auto_scroll_stdout: bool,
     running: bool,
     submitted: bool,
-    image_buffers: HashMap<String, ImageBuffer<Rgb<u8>, Vec<u8>>>,
+    image_buffers: HashMap<String, ImageBuffer<Rgba<u8>, Vec<u8>>>,
 }
 
 // Implement the iced Application trait for FlowIde
@@ -158,6 +209,10 @@ impl Application for FlowrGui {
     fn new(_flags: ()) -> (Self, Command<Message>) {
         let settings = FlowrGui::initial_settings();
 
+        let image = RgbaImage::new(100, 100);
+        let mut image_buffers = HashMap::<String, ImageBuffer<Rgba<u8>, Vec<u8>>>::new();
+        image_buffers.insert("image".to_string(), image);
+
         let flowrgui = FlowrGui {
             flow_settings: settings.0,
             coordinator_settings: settings.1,
@@ -169,7 +224,7 @@ impl Application for FlowrGui {
             auto_scroll_stdout: true,
             submitted: false,
             running: false,
-            image_buffers: HashMap::<String, ImageBuffer<Rgb<u8>, Vec<u8>>>::new(),
+            image_buffers,
         };
 
         (flowrgui, Command::none())
@@ -209,7 +264,13 @@ impl Application for FlowrGui {
                     Message::CoordinatorSent(coord_msg) =>
                         return self.process_coordinator_message(coord_msg),
                     Message::TabSelected(tab_index) => self.active_tab = tab_index,
-                    Message::StdioAutoScrollTogglerChanged(value) => self.auto_scroll_stdout = value,
+                    Message::StdioAutoScrollTogglerChanged(value) => {
+                        self.auto_scroll_stdout = value;
+                        if self.auto_scroll_stdout {
+                            return scrollable::snap_to(
+                                STDOUT_SCROLLABLE_ID.clone(), scrollable::RelativeOffset::END);
+                        }
+                    },
                     Message::CoordinatorDisconnected => self.gui_coordinator = CoordinatorState::Disconnected,
                 }
             }
@@ -218,7 +279,15 @@ impl Application for FlowrGui {
     }
 
     fn view(&self) -> Element<Message> {
+        // TODO just get the first image buffer for now
+        let (_image_name, image_buffer) =
+            self.image_buffers.iter().next().unwrap();
+        let handle = Handle::from_pixels(  image_buffer.width(),
+                                            image_buffer.height(),
+                                            image_buffer.as_raw().clone());
+        let image = Viewer::new(handle);
         let main = Column::new().spacing(10)
+            .push(image)
             .push(self.command_row())
             .push(self.stdio());
         container(main)
@@ -634,8 +703,8 @@ impl FlowrGui {
                 let image = self
                     .image_buffers
                     .entry(name)
-                    .or_insert_with(|| RgbImage::new(width, height));
-                image.put_pixel(x, y, Rgb([r, g, b]));
+                    .or_insert_with(|| RgbaImage::new(width, height));
+                image.put_pixel(x, y, Rgba([r, g, b, 0xFF]));
                 self.send(ClientMessage::Ack);
             }
             _ => {},
