@@ -34,7 +34,7 @@ serde_json = { version = "1.0", default-features = false, features = ["alloc"] }
 serde_derive = { version = "~1.0.27"}
 error-chain = {version = "0.12.2"}
 url = { version = "2.2", features = ["serde"] }
-log = {version = "0.4.18"}
+log = {version = "0.4.19"}
 shrinkwraprs = { version = "0.3.0" }
 serde = { version = "~1.0.164"}
 toml = { version = "0.7.4" }
