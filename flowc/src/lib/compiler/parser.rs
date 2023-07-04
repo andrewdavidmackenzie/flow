@@ -226,13 +226,13 @@ mod test {
 
     #[test]
     fn deserialize_library() {
-        let cargo_toml = r###"[package]
+        let cargo_toml = r#"[package]
 name = "Flow Standard Library"
 version = "0.11.0"
 authors = ["Andrew Mackenzie <andrew@mackenzie-serres.net>"]
 description = "The standard library for 'flow' programs compiled with the 'flowc' compiler"
 
-exclude = "../..""###;
+exclude = "../..""#;
         let url = Url::parse("file:///fake.toml").expect("Could not parse URL");
         let deserializer = get_deserializer::<Cargo>(&url).expect("Could not get deserializer");
         let cargo: Cargo = deserializer
