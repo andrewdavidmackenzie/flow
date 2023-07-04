@@ -1,8 +1,9 @@
 use std::sync::{Arc, Mutex};
 
+use serde_json::{json, Value};
+
 use flowcore::{DONT_RUN_AGAIN, Implementation, RunAgain};
 use flowcore::errors::Result;
-use serde_json::{json, Value};
 
 use crate::gui::client_message::ClientMessage;
 use crate::gui::coordinator_connection::CoordinatorConnection;
@@ -51,10 +52,11 @@ impl Implementation for Get {
 mod test {
     use std::sync::{Arc, Mutex};
 
-    use flowcore::{DONT_RUN_AGAIN, Implementation};
     use portpicker::pick_unused_port;
     use serde_json::json;
     use serial_test::serial;
+
+    use flowcore::{DONT_RUN_AGAIN, Implementation};
 
     use crate::gui::client_message::ClientMessage::Args;
     use crate::gui::coordinator_connection::CoordinatorConnection;
@@ -82,7 +84,7 @@ mod test {
     #[test]
     #[serial]
     fn gets_args() {
-        let args: Vec<String> = vec!["flow_name", "arg1", "arg2"]
+        let args: Vec<String> = ["flow_name", "arg1", "arg2"]
             .iter()
             .map(|s| s.to_string())
             .collect();
@@ -107,7 +109,7 @@ mod test {
     #[test]
     #[serial]
     fn gets_args_num() {
-        let args: Vec<String> = vec!["flow_name", "10"]
+        let args: Vec<String> = ["flow_name", "10"]
             .iter()
             .map(|s| s.to_string())
             .collect();
@@ -130,7 +132,7 @@ mod test {
     #[test]
     #[serial]
     fn gets_args_array_num() {
-        let args: Vec<String> = vec!["flow_name", "[10,20]"]
+        let args: Vec<String> = ["flow_name", "[10,20]"]
             .iter()
             .map(|s| s.to_string())
             .collect();
@@ -153,7 +155,7 @@ mod test {
     #[test]
     #[serial]
     fn gets_args_array_array_num() {
-        let args: Vec<String> = vec!["flow_name", "[[10,20],[30,40]]"]
+        let args: Vec<String> = ["flow_name", "[[10,20],[30,40]]"]
             .iter()
             .map(|s| s.to_string())
             .collect();
