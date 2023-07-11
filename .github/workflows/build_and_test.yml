@@ -86,7 +86,10 @@ jobs:
         run: cargo build
 
       - name: test
-        run: cargo test --features "online_tests"
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --features "online_tests"
 
       - name: UploadCoverage
         if: matrix.os == 'ubuntu-latest'
