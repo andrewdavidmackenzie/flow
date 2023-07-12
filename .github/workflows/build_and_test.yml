@@ -21,7 +21,8 @@ jobs:
         rust: [ nightly ]
 
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout
+        uses: actions/checkout@v3
 
       - name: SetupEnv
         run: |
@@ -36,6 +37,7 @@ jobs:
           toolchain: nightly
           override: true
           components: clippy
+          target: wasm32-unknown-unknown
 
       - name: Cargo Cache
         uses: actions/cache@v1
@@ -56,11 +58,11 @@ jobs:
         if: matrix.os == 'macos-latest'
         run: brew install zmq binaryen
 
-      - name: AddWasmTarget
-        run: rustup target add wasm32-unknown-unknown
-
       - name: InstallWasmTools
-        run: cargo install wasm-gc wasm-snip
+        uses: actions-rs/cargo@v1
+        with:
+          command: install
+          args: wasm-gc wasm-snip
 
       - name: ConfigureCoverage
         if: matrix.os == 'ubuntu-latest'
@@ -71,22 +73,42 @@ jobs:
           echo RUSTFLAGS="-C instrument-coverage" >> "$GITHUB_ENV"
           echo LLVM_PROFILE_FILE="flow-%p-%m.profraw" >> "$GITHUB_ENV"
 
-      - name: build-binaries
-        run: |
-          cargo build -p flowc
-          cargo build -p flowr
+      # Binaries of flowc and flowr are required to run clippy on flowstdlib, as it's build.rs script uses them
+      - name: build-flowc
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: -p flowc
 
+      - name: build-flowr
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: -p flowr
+
+      # flowstdlib is required to run some tests and most samples
       - name: build-flowstdlib
-        run: cargo build -p flowstdlib
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: -p flowstdlib
 
       - name: clippy
-        run: cargo clippy --tests -- -D warnings
+        uses: actions-rs/cargo@v1
+        with:
+          command: clippy
+          args: --tests -- -D warnings
 
-      - name: build
-        run: cargo build
+      - name: build all
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
 
       - name: test
-        run: cargo test --features "online_tests"
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --features "online_tests"
 
       - name: UploadCoverage
         if: matrix.os == 'ubuntu-latest'
