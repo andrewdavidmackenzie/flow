@@ -73,7 +73,7 @@ jobs:
           echo RUSTFLAGS="-C instrument-coverage" >> "$GITHUB_ENV"
           echo LLVM_PROFILE_FILE="flow-%p-%m.profraw" >> "$GITHUB_ENV"
 
-# Binaries of flowc and flowr are required to run clippy on flowstdlib, as it's build.rs script uses them
+      # Binaries of flowc and flowr are required to run clippy on flowstdlib, as it's build.rs script uses them
       - name: build-flowc
         uses: actions-rs/cargo@v1
         with:
@@ -86,7 +86,7 @@ jobs:
           command: build
           args: -p flowr
 
-# flowstdlib is required to run some tests and most samples
+      # flowstdlib is required to run some tests and most samples
       - name: build-flowstdlib
         uses: actions-rs/cargo@v1
         with:
@@ -118,14 +118,8 @@ jobs:
           bash <(curl -s https://codecov.io/bash) -f lcov.info
           rm -f lcov.info
 
-  build-and-deploy-docs:
-    runs-on: ubuntu-latest
-    needs: build-and-test
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-
       - name: Generate docs
+        if: github.ref == 'refs/heads/master' && matrix.os == 'ubuntu-latest'
         run: |
           sudo apt-get update && sudo apt-get -y install graphviz
           curl -sSL https://github.com/rust-lang/mdBook/releases/download/v0.4.27/mdbook-v0.4.27-x86_64-unknown-linux-gnu.tar.gz | tar -xz --directory=$HOME/.cargo/bin
@@ -140,6 +134,7 @@ jobs:
           make trim-docs
 
       - name: Deploy docs
+        if: github.ref == 'refs/heads/master' && matrix.os == 'ubuntu-latest'
         uses: JamesIves/github-pages-deploy-action@4.1.4
         with:
           branch: gh-pages
