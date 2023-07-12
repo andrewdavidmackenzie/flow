@@ -74,19 +74,19 @@ jobs:
           echo LLVM_PROFILE_FILE="flow-%p-%m.profraw" >> "$GITHUB_ENV"
 
 # Binaries of flowc and flowr are required to run clippy on flowstdlib, as it's build.rs script uses them
-      - name: build-flowr
-        uses: actions-rs/cargo@v1
-        with:
-          command: build
-          args: -p flowr
-
       - name: build-flowc
         uses: actions-rs/cargo@v1
         with:
           command: build
           args: -p flowc
 
-# flowstdlib is required to clippy, run some tests and most samples
+      - name: build-flowr
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: -p flowr
+
+# flowstdlib is required to run some tests and most samples
       - name: build-flowstdlib
         uses: actions-rs/cargo@v1
         with:
