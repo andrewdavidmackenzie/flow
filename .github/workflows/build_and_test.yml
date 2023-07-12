@@ -37,6 +37,7 @@ jobs:
           toolchain: nightly
           override: true
           components: clippy
+          target: wasm32-unknown-unknown
 
       - name: Cargo Cache
         uses: actions/cache@v1
@@ -57,9 +58,6 @@ jobs:
         if: matrix.os == 'macos-latest'
         run: brew install zmq binaryen
 
-      - name: AddWasmTarget
-        run: rustup target add wasm32-unknown-unknown
-
       - name: InstallWasmTools
         uses: actions-rs/cargo@v1
         with:
@@ -75,13 +73,25 @@ jobs:
           echo RUSTFLAGS="-C instrument-coverage" >> "$GITHUB_ENV"
           echo LLVM_PROFILE_FILE="flow-%p-%m.profraw" >> "$GITHUB_ENV"
 
-      - name: build-binaries
-        run: |
-          cargo build -p flowc
-          cargo build -p flowr
+# Binaries of flowc and flowr are required to clippy, build and test flowstdlib
+      - name: build-flowr
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: build -p flowr
 
+      - name: build-flowc
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: build -p flowc
+
+# flowstdlib is required to clippy, run some tests and most samples
       - name: build-flowstdlib
-        run: cargo build -p flowstdlib
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: build -p flowstdlib
 
       - name: clippy
         uses: actions-rs/cargo@v1
