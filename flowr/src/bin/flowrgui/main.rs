@@ -109,6 +109,7 @@ enum CoordinatorState {
 fn main() -> iced::Result {
     FlowrGui::run(Settings {
         antialiasing: true,
+        exit_on_close_request: true,
         ..Settings::default()
     })
     /*
@@ -195,7 +196,8 @@ struct FlowrGui {
     auto_scroll_stdout: bool,
     running: bool,
     submitted: bool,
-    image_buffers: HashMap<String, ImageBuffer<Rgba<u8>, Vec<u8>>>,
+    images: HashMap<String, Handle>,
+    image: Option<ImageBuffer<Rgba<u8>, Vec<u8>>>,
 }
 
 // Implement the iced Application trait for FlowIde
@@ -209,10 +211,6 @@ impl Application for FlowrGui {
     fn new(_flags: ()) -> (Self, Command<Message>) {
         let settings = FlowrGui::initial_settings();
 
-        let image = RgbaImage::new(100, 100);
-        let mut image_buffers = HashMap::<String, ImageBuffer<Rgba<u8>, Vec<u8>>>::new();
-        image_buffers.insert("image".to_string(), image);
-
         let flowrgui = FlowrGui {
             flow_settings: settings.0,
             coordinator_settings: settings.1,
@@ -224,7 +222,8 @@ impl Application for FlowrGui {
             auto_scroll_stdout: true,
             submitted: false,
             running: false,
-            image_buffers,
+            images: HashMap::<String, Handle>::new(),
+            image: None,
         };
 
         (flowrgui, Command::none())
@@ -235,6 +234,7 @@ impl Application for FlowrGui {
     }
 
     fn update(&mut self, message: Message) -> Command<Message> {
+        // TODO to refactor to switch by message first then state in ifs
         match &self.gui_coordinator {
             CoordinatorState::Disconnected => {
                 match message {
@@ -244,7 +244,17 @@ impl Application for FlowrGui {
                             return Command::perform(Self::auto_submit(), |_| Message::SubmitFlow);
                         }
                     },
-                    _ => error!("Unexpected message: {:?} when Coordinator Disconnected", message),
+                    Message::FlowArgsChanged(value) => self.flow_settings.flow_args = value,
+                    Message::UrlChanged(value) => self.flow_settings.flow_manifest_url = value,
+                    Message::TabSelected(tab_index) => self.active_tab = tab_index,
+                    Message::StdioAutoScrollTogglerChanged(value) => {
+                        self.auto_scroll_stdout = value;
+                        if self.auto_scroll_stdout {
+                            return scrollable::snap_to(
+                                STDOUT_SCROLLABLE_ID.clone(), scrollable::RelativeOffset::END);
+                        }
+                    },
+                    _ => error!("Unexpected message: {:?} when coordinator disconnected", message),
                 }
             },
             CoordinatorState::Connected(sender) => {
@@ -259,10 +269,10 @@ impl Application for FlowrGui {
                         ), |_| Message::Submitted);
                     },
                     Message::Submitted => self.submitted = true,
-                    Message::FlowArgsChanged(value) => self.flow_settings.flow_args = value,
-                    Message::UrlChanged(value) => self.flow_settings.flow_manifest_url = value,
                     Message::CoordinatorSent(coord_msg) =>
                         return self.process_coordinator_message(coord_msg),
+                    Message::FlowArgsChanged(value) => self.flow_settings.flow_args = value,
+                    Message::UrlChanged(value) => self.flow_settings.flow_manifest_url = value,
                     Message::TabSelected(tab_index) => self.active_tab = tab_index,
                     Message::StdioAutoScrollTogglerChanged(value) => {
                         self.auto_scroll_stdout = value;
@@ -279,17 +289,18 @@ impl Application for FlowrGui {
     }
 
     fn view(&self) -> Element<Message> {
+        let mut main = Column::new().spacing(10);
+
         // TODO just get the first image buffer for now
-        let (_image_name, image_buffer) =
-            self.image_buffers.iter().next().unwrap();
-        let handle = Handle::from_pixels(  image_buffer.width(),
-                                            image_buffer.height(),
-                                            image_buffer.as_raw().clone());
-        let image = Viewer::new(handle);
-        let main = Column::new().spacing(10)
-            .push(image)
+        if let Some((_name, image_handle)) = self.images.iter().next() {
+            // TODO add a scrollable row of images
+            main = main.push(Viewer::new(image_handle.clone())); // Handle has Arc, so cheap clone
+        }
+
+        main = main
             .push(self.command_row())
             .push(self.stdio());
+
         container(main)
             .width(Length::Fill)
             .height(Length::Fill)
@@ -648,7 +659,7 @@ impl FlowrGui {
                 let msg = ClientMessage::Args(args);
                 self.send(msg);
 
-                /*
+                /* Override args for the debugger to use
                 if let Ok(override_args) = self.override_args.lock() {
                     if override_args.is_empty() {
                         ClientMessage::Args(self.args.clone())
@@ -700,11 +711,18 @@ impl FlowrGui {
                 self.send(msg);
             },
             CoordinatorMessage::PixelWrite((x, y), (r, g, b), (width, height), name) => {
-                let image = self
-                    .image_buffers
+                let _image_handle = self
+                    .images
                     .entry(name)
-                    .or_insert_with(|| RgbaImage::new(width, height));
-                image.put_pixel(x, y, Rgba([r, g, b, 0xFF]));
+                    .or_insert_with(|| {
+                        self.image = Some(RgbaImage::new(width, height));
+                        let data = self.image.as_ref().unwrap().as_raw();
+                        Handle::from_pixels( width, height, data.clone())
+                    });
+
+                if let Some(ref mut img) = self.image {
+                    img.put_pixel(x, y, Rgba([r, g, b, 255]));
+                }
                 self.send(ClientMessage::Ack);
             }
             _ => {},
