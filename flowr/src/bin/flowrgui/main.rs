@@ -23,7 +23,6 @@
 
 use core::str::FromStr;
 use std::{env, io, process, thread};
-use std::collections::HashMap;
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::PathBuf;
@@ -146,8 +145,7 @@ struct FlowrGui {
     auto_scroll_stdout: bool,
     running: bool,
     submitted: bool,
-    images: HashMap<String, Handle>,
-    image: Option<ImageBuffer<Rgba<u8>, Vec<u8>>>,
+    image: Option<(String, u32, u32, ImageBuffer<Rgba<u8>, Vec<u8>>)>,
 }
 
 // Implement the iced Application trait for FlowIde
@@ -172,7 +170,6 @@ impl Application for FlowrGui {
             auto_scroll_stdout: true,
             submitted: false,
             running: false,
-            images: HashMap::<String, Handle>::new(),
             image: None,
         };
 
@@ -180,7 +177,7 @@ impl Application for FlowrGui {
     }
 
     fn title(&self) -> String {
-        String::from("FlowIde")
+        String::from("flowrgui")
     }
 
     fn update(&mut self, message: Message) -> Command<Message> {
@@ -241,10 +238,10 @@ impl Application for FlowrGui {
     fn view(&self) -> Element<Message> {
         let mut main = Column::new().spacing(10);
 
-        // TODO just get the first image buffer for now
-        if let Some((_name, image_handle)) = self.images.iter().next() {
-            // TODO add a scrollable row of images
-            main = main.push(Viewer::new(image_handle.clone())); // Handle has Arc, so cheap clone
+        // TODO add a scrollable row of images
+        if let Some((_name, width, height, image)) = &self.image {
+            main = main.push(Viewer::new(
+                Handle::from_pixels( *width, *height, image.as_raw().clone())));
         }
 
         main = main
@@ -661,17 +658,12 @@ impl FlowrGui {
                 self.send(msg);
             },
             CoordinatorMessage::PixelWrite((x, y), (r, g, b), (width, height), name) => {
-                let _image_handle = self
-                    .images
-                    .entry(name)
-                    .or_insert_with(|| {
-                        self.image = Some(RgbaImage::new(width, height));
-                        let data = self.image.as_ref().unwrap().as_raw();
-                        Handle::from_pixels( width, height, data.clone())
-                    });
-
-                if let Some(ref mut img) = self.image {
-                    img.put_pixel(x, y, Rgba([r, g, b, 255]));
+                if self.image.is_none() {
+                    let image = RgbaImage::new(width, height);
+                    self.image = Some((name, width, height, image));
+                }
+                if let Some((_, _, _, image)) = &mut self.image {
+                        image.put_pixel(x, y, Rgba([r, g, b, 255]));
                 }
                 self.send(ClientMessage::Ack);
             }
