@@ -23,7 +23,6 @@
 
 use core::str::FromStr;
 use std::{env, io, process, thread};
-use std::collections::HashMap;
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::PathBuf;
@@ -31,6 +30,18 @@ use std::path::PathBuf;
 use clap::{Arg, ArgMatches};
 use clap::Command as ClapCommand;
 use env_logger::Builder;
+use iced::{Alignment, Application, Command, Element, Length, Settings, Subscription, Theme};
+use iced::executor;
+use iced::widget::{Button, Column, container, Row, scrollable, text, text_input, toggler};
+use iced::widget::image::{Handle, Viewer};
+use iced::widget::scrollable::{Id, Scrollable};
+use image::{ImageBuffer, Rgba, RgbaImage};
+use log::{info, LevelFilter, warn};
+use log::error;
+use once_cell::sync::Lazy;
+use simpath::Simpath;
+use url::Url;
+
 use flowcore::meta_provider::MetaProvider;
 use flowcore::model::flow_manifest::FlowManifest;
 use flowcore::model::submission::Submission;
@@ -40,16 +51,6 @@ use flowrlib::info as flowrlib_info;
 use gui::coordinator_connection::CoordinatorConnection;
 use gui::debug_message::DebugServerMessage;
 use gui::debug_message::DebugServerMessage::*;
-use iced::{Alignment, Application, Command, Element, Length, Settings, Subscription, Theme};
-use iced::executor;
-use iced::widget::{Button, Column, container, Row, scrollable, text, text_input, toggler};
-use iced::widget::scrollable::{Id, Scrollable};
-use image::{ImageBuffer, Rgb, RgbImage};
-use log::{info, LevelFilter, warn};
-use log::error;
-use once_cell::sync::Lazy;
-use simpath::Simpath;
-use url::Url;
 
 use crate::errors::*;
 use crate::gui::client_message::ClientMessage;
@@ -133,6 +134,14 @@ struct UiSettings {
     auto: bool,
 }
 
+struct ImageReference {
+    #[allow(dead_code)]
+    pub name: String,
+    pub width: u32,
+    pub height: u32,
+    pub data: ImageBuffer<Rgba<u8>, Vec<u8>>,
+}
+
 struct FlowrGui {
     flow_settings: SubmissionSettings,
     coordinator_settings: CoordinatorSettings,
@@ -144,7 +153,7 @@ struct FlowrGui {
     auto_scroll_stdout: bool,
     running: bool,
     submitted: bool,
-    image_buffers: HashMap<String, ImageBuffer<Rgb<u8>, Vec<u8>>>,
+    image: Option<ImageReference>,
 }
 
 // Implement the iced Application trait for FlowIde
@@ -169,17 +178,18 @@ impl Application for FlowrGui {
             auto_scroll_stdout: true,
             submitted: false,
             running: false,
-            image_buffers: HashMap::<String, ImageBuffer<Rgb<u8>, Vec<u8>>>::new(),
+            image: None,
         };
 
         (flowrgui, Command::none())
     }
 
     fn title(&self) -> String {
-        String::from("FlowIde")
+        String::from("flowrgui")
     }
 
     fn update(&mut self, message: Message) -> Command<Message> {
+        // TODO to refactor to switch by message first then state in ifs
         match &self.gui_coordinator {
             CoordinatorState::Disconnected => {
                 match message {
@@ -189,7 +199,17 @@ impl Application for FlowrGui {
                             return Command::perform(Self::auto_submit(), |_| Message::SubmitFlow);
                         }
                     },
-                    _ => error!("Unexpected message: {:?} when Coordinator Disconnected", message),
+                    Message::FlowArgsChanged(value) => self.flow_settings.flow_args = value,
+                    Message::UrlChanged(value) => self.flow_settings.flow_manifest_url = value,
+                    Message::TabSelected(tab_index) => self.active_tab = tab_index,
+                    Message::StdioAutoScrollTogglerChanged(value) => {
+                        self.auto_scroll_stdout = value;
+                        if self.auto_scroll_stdout {
+                            return scrollable::snap_to(
+                                STDOUT_SCROLLABLE_ID.clone(), scrollable::RelativeOffset::END);
+                        }
+                    },
+                    _ => error!("Unexpected message: {:?} when coordinator disconnected", message),
                 }
             },
             CoordinatorState::Connected(sender) => {
@@ -204,12 +224,18 @@ impl Application for FlowrGui {
                         ), |_| Message::Submitted);
                     },
                     Message::Submitted => self.submitted = true,
-                    Message::FlowArgsChanged(value) => self.flow_settings.flow_args = value,
-                    Message::UrlChanged(value) => self.flow_settings.flow_manifest_url = value,
                     Message::CoordinatorSent(coord_msg) =>
                         return self.process_coordinator_message(coord_msg),
+                    Message::FlowArgsChanged(value) => self.flow_settings.flow_args = value,
+                    Message::UrlChanged(value) => self.flow_settings.flow_manifest_url = value,
                     Message::TabSelected(tab_index) => self.active_tab = tab_index,
-                    Message::StdioAutoScrollTogglerChanged(value) => self.auto_scroll_stdout = value,
+                    Message::StdioAutoScrollTogglerChanged(value) => {
+                        self.auto_scroll_stdout = value;
+                        if self.auto_scroll_stdout {
+                            return scrollable::snap_to(
+                                STDOUT_SCROLLABLE_ID.clone(), scrollable::RelativeOffset::END);
+                        }
+                    },
                     Message::CoordinatorDisconnected => self.gui_coordinator = CoordinatorState::Disconnected,
                 }
             }
@@ -218,9 +244,18 @@ impl Application for FlowrGui {
     }
 
     fn view(&self) -> Element<Message> {
-        let main = Column::new().spacing(10)
+        let mut main = Column::new().spacing(10);
+
+        // TODO add a scrollable row of images
+        if let Some(ImageReference { name: _, width, height, data}) = &self.image {
+            main = main.push(Viewer::new(
+                Handle::from_pixels( *width, *height, data.as_raw().clone())));
+        }
+
+        main = main
             .push(self.command_row())
             .push(self.stdio());
+
         container(main)
             .width(Length::Fill)
             .height(Length::Fill)
@@ -579,7 +614,7 @@ impl FlowrGui {
                 let msg = ClientMessage::Args(args);
                 self.send(msg);
 
-                /*
+                /* Override args for the debugger to use
                 if let Ok(override_args) = self.override_args.lock() {
                     if override_args.is_empty() {
                         ClientMessage::Args(self.args.clone())
@@ -631,11 +666,13 @@ impl FlowrGui {
                 self.send(msg);
             },
             CoordinatorMessage::PixelWrite((x, y), (r, g, b), (width, height), name) => {
-                let image = self
-                    .image_buffers
-                    .entry(name)
-                    .or_insert_with(|| RgbImage::new(width, height));
-                image.put_pixel(x, y, Rgb([r, g, b]));
+                if self.image.is_none() {
+                    let data = RgbaImage::new(width, height);
+                    self.image = Some(ImageReference {name, width, height, data });
+                }
+                if let Some(ImageReference{name: _, width: _, height: _, data}) = &mut self.image {
+                        data.put_pixel(x, y, Rgba([r, g, b, 255]));
+                }
                 self.send(ClientMessage::Ack);
             }
             _ => {},
