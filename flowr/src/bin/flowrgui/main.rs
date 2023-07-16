@@ -134,6 +134,14 @@ struct UiSettings {
     auto: bool,
 }
 
+struct ImageReference {
+    #[allow(dead_code)]
+    pub name: String,
+    pub width: u32,
+    pub height: u32,
+    pub data: ImageBuffer<Rgba<u8>, Vec<u8>>,
+}
+
 struct FlowrGui {
     flow_settings: SubmissionSettings,
     coordinator_settings: CoordinatorSettings,
@@ -145,7 +153,7 @@ struct FlowrGui {
     auto_scroll_stdout: bool,
     running: bool,
     submitted: bool,
-    image: Option<(String, u32, u32, ImageBuffer<Rgba<u8>, Vec<u8>>)>,
+    image: Option<ImageReference>,
 }
 
 // Implement the iced Application trait for FlowIde
@@ -239,9 +247,9 @@ impl Application for FlowrGui {
         let mut main = Column::new().spacing(10);
 
         // TODO add a scrollable row of images
-        if let Some((_name, width, height, image)) = &self.image {
+        if let Some(ImageReference { name: _, width, height, data}) = &self.image {
             main = main.push(Viewer::new(
-                Handle::from_pixels( *width, *height, image.as_raw().clone())));
+                Handle::from_pixels( *width, *height, data.as_raw().clone())));
         }
 
         main = main
@@ -659,11 +667,11 @@ impl FlowrGui {
             },
             CoordinatorMessage::PixelWrite((x, y), (r, g, b), (width, height), name) => {
                 if self.image.is_none() {
-                    let image = RgbaImage::new(width, height);
-                    self.image = Some((name, width, height, image));
+                    let data = RgbaImage::new(width, height);
+                    self.image = Some(ImageReference {name, width, height, data });
                 }
-                if let Some((_, _, _, image)) = &mut self.image {
-                        image.put_pixel(x, y, Rgba([r, g, b, 255]));
+                if let Some(ImageReference{name: _, width: _, height: _, data}) = &mut self.image {
+                        data.put_pixel(x, y, Rgba([r, g, b, 255]));
                 }
                 self.send(ClientMessage::Ack);
             }
