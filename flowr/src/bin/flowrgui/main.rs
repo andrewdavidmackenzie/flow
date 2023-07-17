@@ -96,8 +96,8 @@ pub enum Message {
     FlowArgsChanged(String),
     /// A different tab of stdio has been selected
     TabSelected(usize),
-    /// The toggle to auto-scroll to bottom of STDIO has changed
-    StdioAutoScrollTogglerChanged(bool),
+    /// The toggle to auto-scroll to bottom of STDOUT has changed
+    StdoutAutoScrollTogglerChanged(bool),
     /// closing of the Modal was requested
     CloseModal,
 }
@@ -197,59 +197,42 @@ impl Application for FlowrGui {
     }
 
     fn update(&mut self, message: Message) -> Command<Message> {
-        // TODO to refactor to switch by message first then state in ifs
-        match &self.gui_coordinator {
-            CoordinatorState::Disconnected => {
-                match message {
-                    Message::CoordinatorSent(CoordinatorMessage::Connected(sender)) => {
-                        self.gui_coordinator = CoordinatorState::Connected(sender);
-                        if self.ui_settings.auto {
-                            return Command::perform(Self::auto_submit(), |_| Message::SubmitFlow);
-                        }
-                    },
-                    Message::FlowArgsChanged(value) => self.flow_settings.flow_args = value,
-                    Message::UrlChanged(value) => self.flow_settings.flow_manifest_url = value,
-                    Message::TabSelected(tab_index) => self.active_tab = tab_index,
-                    Message::StdioAutoScrollTogglerChanged(value) => {
-                        self.auto_scroll_stdout = value;
-                        if self.auto_scroll_stdout {
-                            return scrollable::snap_to(
-                                STDOUT_SCROLLABLE_ID.clone(), scrollable::RelativeOffset::END);
-                        }
-                    },
-                    Message::CloseModal => self.show_modal = false,
-                    _ => error!("Unexpected message: {:?} when coordinator disconnected", message),
+        match message {
+            Message::SubmitFlow => {
+                if let CoordinatorState::Connected(sender) =
+                    &self.gui_coordinator {
+                    let url = self.flow_url().unwrap();
+                    let parallel_jobs_limit = self.flow_settings.parallel_jobs_limit;
+                    let debug_this_flow = self.flow_settings.debug_this_flow;
+                    return Command::perform(Self::submit(sender.clone(),
+                                                         url, parallel_jobs_limit,
+                                                         debug_this_flow
+                    ), |_| Message::Submitted);
                 }
             },
-            CoordinatorState::Connected(sender) => {
-                match message {
-                    Message::SubmitFlow => {
-                        let url = self.flow_url().unwrap();
-                        let parallel_jobs_limit = self.flow_settings.parallel_jobs_limit;
-                        let debug_this_flow = self.flow_settings.debug_this_flow;
-                        return Command::perform(Self::submit(sender.clone(),
-                                                            url, parallel_jobs_limit,
-                                                             debug_this_flow
-                        ), |_| Message::Submitted);
-                    },
-                    Message::Submitted => self.submitted = true,
-                    Message::CoordinatorSent(coord_msg) =>
-                        return self.process_coordinator_message(coord_msg),
-                    Message::FlowArgsChanged(value) => self.flow_settings.flow_args = value,
-                    Message::UrlChanged(value) => self.flow_settings.flow_manifest_url = value,
-                    Message::TabSelected(tab_index) => self.active_tab = tab_index,
-                    Message::StdioAutoScrollTogglerChanged(value) => {
-                        self.auto_scroll_stdout = value;
-                        if self.auto_scroll_stdout {
-                            return scrollable::snap_to(
-                                STDOUT_SCROLLABLE_ID.clone(), scrollable::RelativeOffset::END);
-                        }
-                    },
-                    Message::CoordinatorDisconnected => self.gui_coordinator = CoordinatorState::Disconnected,
-                    Message::CloseModal => self.show_modal = false,
+            Message::Submitted => self.submitted = true,
+            Message::CoordinatorSent(CoordinatorMessage::Connected(sender)) => {
+                self.gui_coordinator = CoordinatorState::Connected(sender);
+                if self.ui_settings.auto {
+                    return Command::perform(Self::auto_submit(), |_| Message::SubmitFlow);
                 }
-            }
+            },
+            Message::CoordinatorSent(coord_msg) =>
+                return self.process_coordinator_message(coord_msg),
+            Message::FlowArgsChanged(value) => self.flow_settings.flow_args = value,
+            Message::UrlChanged(value) => self.flow_settings.flow_manifest_url = value,
+            Message::TabSelected(tab_index) => self.active_tab = tab_index,
+            Message::StdoutAutoScrollTogglerChanged(value) => {
+                self.auto_scroll_stdout = value;
+                if self.auto_scroll_stdout {
+                    return scrollable::snap_to(
+                        STDOUT_SCROLLABLE_ID.clone(), scrollable::RelativeOffset::END);
+                }
+            },
+            Message::CoordinatorDisconnected => self.gui_coordinator = CoordinatorState::Disconnected,
+            Message::CloseModal => self.show_modal = false,
         }
+
         Command::none()
     }
 
@@ -367,11 +350,12 @@ impl FlowrGui {
 
     fn stdio<'a>(&self) -> Element<'a, Message> {
         let toggler = toggler(
-                "Auto-scroll Stdio".to_owned(),
+                "Auto-scroll Stdout".to_owned(),
                 self.auto_scroll_stdout,
-                Message::StdioAutoScrollTogglerChanged);
+                Message::StdoutAutoScrollTogglerChanged);
 
-        let stdout = Self::stdio_area(&self.stdout, STDOUT_SCROLLABLE_ID.clone());
+        let stdout = Self::stdio_area(&self.stdout,
+                                      STDOUT_SCROLLABLE_ID.clone());
 
         Column::new()
             .push(toggler)
