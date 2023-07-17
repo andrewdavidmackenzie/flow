@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `flowr/src/bin/flowrgui/main.rs`."><title>main.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Bold-a2c9cd1067f8b328.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-07416f8512e0e04c.css" id="mainThemeStyle"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="flowrgui" data-themes="" data-resource-suffix="" data-rustdoc-version="1.73.0-nightly (4c8bb79d9 2023-07-15)" data-channel="nightly" data-search-js="search-f6292fe389d70017.js" data-settings-js="settings-de11bff964e9d4e5.js" data-settings-css="settings-8c76f75bfb6bd192.css" data-theme-light-css="light-6d2c9675f3d09c26.css" data-theme-dark-css="dark-45ceb8f2e522f4d1.css" data-theme-ayu-css="ayu-fd19013d6ce078bf.css" ><script src="../../static.files/storage-db41da1a38ea3cb8.js"></script><script defer src="../../static.files/src-script-3280b574d94e47b4.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-0795b7d26be81095.js"></script><noscript><link rel="stylesheet" media="(prefers-color-scheme:light)" href="../../static.files/light-6d2c9675f3d09c26.css"><link rel="stylesheet" media="(prefers-color-scheme:dark)" href="../../static.files/dark-45ceb8f2e522f4d1.css"><link rel="stylesheet" href="../../static.files/noscript-cffde32267a19fd6.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><a class="sub-logo-container" href="../../flowrgui/index.html"><img class="rust-logo" src="../../static.files/rust-logo-151179464ae7ed46.svg" alt="logo"></a><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `flowr/src/bin/flowrgui/main.rs`."><title>main.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Bold-a2c9cd1067f8b328.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-07416f8512e0e04c.css" id="mainThemeStyle"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="flowrgui" data-themes="" data-resource-suffix="" data-rustdoc-version="1.73.0-nightly (0e8e857b1 2023-07-16)" data-channel="nightly" data-search-js="search-f6292fe389d70017.js" data-settings-js="settings-de11bff964e9d4e5.js" data-settings-css="settings-8c76f75bfb6bd192.css" data-theme-light-css="light-6d2c9675f3d09c26.css" data-theme-dark-css="dark-45ceb8f2e522f4d1.css" data-theme-ayu-css="ayu-fd19013d6ce078bf.css" ><script src="../../static.files/storage-db41da1a38ea3cb8.js"></script><script defer src="../../static.files/src-script-3280b574d94e47b4.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-0795b7d26be81095.js"></script><noscript><link rel="stylesheet" media="(prefers-color-scheme:light)" href="../../static.files/light-6d2c9675f3d09c26.css"><link rel="stylesheet" media="(prefers-color-scheme:dark)" href="../../static.files/dark-45ceb8f2e522f4d1.css"><link rel="stylesheet" href="../../static.files/noscript-cffde32267a19fd6.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><a class="sub-logo-container" href="../../flowrgui/index.html"><img class="rust-logo" src="../../static.files/rust-logo-151179464ae7ed46.svg" alt="logo"></a><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -680,6 +680,42 @@
 <a href="#680" id="680">680</a>
 <a href="#681" id="681">681</a>
 <a href="#682" id="682">682</a>
+<a href="#683" id="683">683</a>
+<a href="#684" id="684">684</a>
+<a href="#685" id="685">685</a>
+<a href="#686" id="686">686</a>
+<a href="#687" id="687">687</a>
+<a href="#688" id="688">688</a>
+<a href="#689" id="689">689</a>
+<a href="#690" id="690">690</a>
+<a href="#691" id="691">691</a>
+<a href="#692" id="692">692</a>
+<a href="#693" id="693">693</a>
+<a href="#694" id="694">694</a>
+<a href="#695" id="695">695</a>
+<a href="#696" id="696">696</a>
+<a href="#697" id="697">697</a>
+<a href="#698" id="698">698</a>
+<a href="#699" id="699">699</a>
+<a href="#700" id="700">700</a>
+<a href="#701" id="701">701</a>
+<a href="#702" id="702">702</a>
+<a href="#703" id="703">703</a>
+<a href="#704" id="704">704</a>
+<a href="#705" id="705">705</a>
+<a href="#706" id="706">706</a>
+<a href="#707" id="707">707</a>
+<a href="#708" id="708">708</a>
+<a href="#709" id="709">709</a>
+<a href="#710" id="710">710</a>
+<a href="#711" id="711">711</a>
+<a href="#712" id="712">712</a>
+<a href="#713" id="713">713</a>
+<a href="#714" id="714">714</a>
+<a href="#715" id="715">715</a>
+<a href="#716" id="716">716</a>
+<a href="#717" id="717">717</a>
+<a href="#718" id="718">718</a>
 </pre></div><pre class="rust"><code><span class="attr">#![deny(missing_docs)]
 </span><span class="comment">// TODO re-instate #![warn(clippy::unwrap_used)]
 </span><span class="doccomment">//! `flowrgui` is a GUI flow runner for running `flow` programs.
@@ -713,10 +749,12 @@
 <span class="kw">use </span>clap::Command <span class="kw">as </span>ClapCommand;
 <span class="kw">use </span>env_logger::Builder;
 <span class="kw">use </span>iced::{Alignment, Application, Command, Element, Length, Settings, Subscription, Theme};
+<span class="kw">use </span>iced::alignment::Horizontal;
 <span class="kw">use </span>iced::executor;
-<span class="kw">use </span>iced::widget::{Button, Column, container, Row, scrollable, text, text_input, toggler};
+<span class="kw">use </span>iced::widget::{Button, Column, container, Row, scrollable, text, Text, text_input, toggler};
 <span class="kw">use </span>iced::widget::image::{Handle, Viewer};
 <span class="kw">use </span>iced::widget::scrollable::{Id, Scrollable};
+<span class="kw">use </span>iced_aw::{Card, Modal};
 <span class="kw">use </span>image::{ImageBuffer, Rgba, RgbaImage};
 <span class="kw">use </span>log::{info, LevelFilter, warn};
 <span class="kw">use </span>log::error;
@@ -778,6 +816,8 @@
     </span>TabSelected(usize),
     <span class="doccomment">/// The toggle to auto-scroll to bottom of STDIO has changed
     </span>StdioAutoScrollTogglerChanged(bool),
+    <span class="doccomment">/// closing of the Modal was requested
+    </span>CloseModal,
 }
 
 <span class="kw">enum </span>CoordinatorState {
@@ -836,6 +876,8 @@
     running: bool,
     submitted: bool,
     image: <span class="prelude-ty">Option</span>&lt;ImageReference&gt;,
+    show_modal: bool,
+    modal_content: (String, String),
 }
 
 <span class="comment">// Implement the iced Application trait for FlowIde
@@ -861,6 +903,8 @@
             submitted: <span class="bool-val">false</span>,
             running: <span class="bool-val">false</span>,
             image: <span class="prelude-val">None</span>,
+            show_modal: <span class="bool-val">false</span>,
+            modal_content: (<span class="string">&quot;&quot;</span>.to_owned(), <span class="string">&quot;&quot;</span>.to_owned()),
         };
 
         (flowrgui, Command::none())
@@ -891,6 +935,7 @@
                                 STDOUT_SCROLLABLE_ID.clone(), scrollable::RelativeOffset::END);
                         }
                     },
+                    Message::CloseModal =&gt; <span class="self">self</span>.show_modal = <span class="bool-val">false</span>,
                     <span class="kw">_ </span>=&gt; <span class="macro">error!</span>(<span class="string">&quot;Unexpected message: {:?} when coordinator disconnected&quot;</span>, message),
                 }
             },
@@ -919,6 +964,7 @@
                         }
                     },
                     Message::CoordinatorDisconnected =&gt; <span class="self">self</span>.gui_coordinator = CoordinatorState::Disconnected,
+                    Message::CloseModal =&gt; <span class="self">self</span>.show_modal = <span class="bool-val">false</span>,
                 }
             }
         }
@@ -938,11 +984,34 @@
             .push(<span class="self">self</span>.command_row())
             .push(<span class="self">self</span>.stdio());
 
-        container(main)
+        <span class="kw">let </span>content = container(main)
             .width(Length::Fill)
             .height(Length::Fill)
-            .padding(<span class="number">10</span>)
+            .padding(<span class="number">10</span>);
+
+        Modal::new(<span class="self">self</span>.show_modal, content, || {
+            Card::new(
+                Text::new(<span class="self">self</span>.modal_content.clone().<span class="number">0</span>),
+                Text::new(<span class="self">self</span>.modal_content.clone().<span class="number">1</span>),
+            )
+            .foot(
+                Row::new()
+                    .spacing(<span class="number">10</span>)
+                    .padding(<span class="number">5</span>)
+                    .width(Length::Fill)
+                    .push(
+                        Button::new(Text::new(<span class="string">&quot;Ok&quot;</span>)
+                            .horizontal_alignment(Horizontal::Center))
+                            .width(Length::Fill)
+                            .on_press(Message::CloseModal),
+                    ),
+            )
+            .max_width(<span class="number">300.0</span>)
             .into()
+        })
+        .backdrop(Message::CloseModal)
+        .on_esc(Message::CloseModal)
+        .into()
     }
 
     <span class="kw">fn </span>subscription(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; Subscription&lt;Message&gt; {
@@ -1228,19 +1297,22 @@
                 <span class="macro">error!</span>(<span class="string">&quot;Coordinator is already connected&quot;</span>);
             },
             CoordinatorMessage::FlowStart =&gt; {
-                <span class="self">self</span>.running = <span class="bool-val">true</span>;
+                <span class="comment">// TODO put in status bar when exists
+                </span><span class="self">self</span>.running = <span class="bool-val">true</span>;
                 <span class="self">self</span>.submitted = <span class="bool-val">false</span>;
                 <span class="self">self</span>.send(ClientMessage::Ack);
             },
             CoordinatorMessage::FlowEnd(metrics) =&gt; {
                 <span class="self">self</span>.running = <span class="bool-val">false</span>;
                 <span class="kw">if </span><span class="self">self</span>.flow_settings.display_metrics {
-                    <span class="comment">// TODO put on UI
-                    </span><span class="macro">println!</span>(<span class="string">&quot;{}&quot;</span>, metrics);
+                    <span class="self">self</span>.show_modal = <span class="bool-val">true</span>;
+                    <span class="self">self</span>.modal_content = (<span class="string">&quot;Flow Ended - Metrics&quot;</span>.into(),
+                                          <span class="macro">format!</span>(<span class="string">&quot;{}&quot;</span>, metrics));
                 }
                 <span class="self">self</span>.send(ClientMessage::Ack);
                 <span class="kw">if </span><span class="self">self</span>.ui_settings.auto {
-                    <span class="macro">info!</span>(<span class="string">&quot;Auto exiting on flow completion&quot;</span>);
+                    <span class="comment">// TODO put in status bar when exists
+                    </span><span class="macro">info!</span>(<span class="string">&quot;Auto exiting on flow completion&quot;</span>);
                     process::exit(<span class="number">0</span>);
                 }
             }
