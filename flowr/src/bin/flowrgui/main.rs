@@ -31,10 +31,12 @@ use clap::{Arg, ArgMatches};
 use clap::Command as ClapCommand;
 use env_logger::Builder;
 use iced::{Alignment, Application, Command, Element, Length, Settings, Subscription, Theme};
+use iced::alignment::Horizontal;
 use iced::executor;
-use iced::widget::{Button, Column, container, Row, scrollable, text, text_input, toggler};
+use iced::widget::{Button, Column, container, Row, scrollable, text, Text, text_input, toggler};
 use iced::widget::image::{Handle, Viewer};
 use iced::widget::scrollable::{Id, Scrollable};
+use iced_aw::{Card, Modal};
 use image::{ImageBuffer, Rgba, RgbaImage};
 use log::{info, LevelFilter, warn};
 use log::error;
@@ -96,6 +98,8 @@ pub enum Message {
     TabSelected(usize),
     /// The toggle to auto-scroll to bottom of STDIO has changed
     StdioAutoScrollTogglerChanged(bool),
+    /// closing of the Modal was requested
+    CloseModal,
 }
 
 enum CoordinatorState {
@@ -154,6 +158,8 @@ struct FlowrGui {
     running: bool,
     submitted: bool,
     image: Option<ImageReference>,
+    show_modal: bool,
+    modal_content: (String, String),
 }
 
 // Implement the iced Application trait for FlowIde
@@ -179,6 +185,8 @@ impl Application for FlowrGui {
             submitted: false,
             running: false,
             image: None,
+            show_modal: false,
+            modal_content: ("".to_owned(), "".to_owned()),
         };
 
         (flowrgui, Command::none())
@@ -209,6 +217,7 @@ impl Application for FlowrGui {
                                 STDOUT_SCROLLABLE_ID.clone(), scrollable::RelativeOffset::END);
                         }
                     },
+                    Message::CloseModal => self.show_modal = false,
                     _ => error!("Unexpected message: {:?} when coordinator disconnected", message),
                 }
             },
@@ -237,6 +246,7 @@ impl Application for FlowrGui {
                         }
                     },
                     Message::CoordinatorDisconnected => self.gui_coordinator = CoordinatorState::Disconnected,
+                    Message::CloseModal => self.show_modal = false,
                 }
             }
         }
@@ -256,11 +266,34 @@ impl Application for FlowrGui {
             .push(self.command_row())
             .push(self.stdio());
 
-        container(main)
+        let content = container(main)
             .width(Length::Fill)
             .height(Length::Fill)
-            .padding(10)
+            .padding(10);
+
+        Modal::new(self.show_modal, content, || {
+            Card::new(
+                Text::new(self.modal_content.clone().0),
+                Text::new(self.modal_content.clone().1),
+            )
+            .foot(
+                Row::new()
+                    .spacing(10)
+                    .padding(5)
+                    .width(Length::Fill)
+                    .push(
+                        Button::new(Text::new("Ok")
+                            .horizontal_alignment(Horizontal::Center))
+                            .width(Length::Fill)
+                            .on_press(Message::CloseModal),
+                    ),
+            )
+            .max_width(300.0)
             .into()
+        })
+        .backdrop(Message::CloseModal)
+        .on_esc(Message::CloseModal)
+        .into()
     }
 
     fn subscription(&self) -> Subscription<Message> {
@@ -546,6 +579,7 @@ impl FlowrGui {
                 error!("Coordinator is already connected");
             },
             CoordinatorMessage::FlowStart => {
+                // TODO put in status bar when exists
                 self.running = true;
                 self.submitted = false;
                 self.send(ClientMessage::Ack);
@@ -553,11 +587,13 @@ impl FlowrGui {
             CoordinatorMessage::FlowEnd(metrics) => {
                 self.running = false;
                 if self.flow_settings.display_metrics {
-                    // TODO put on UI
-                    println!("{}", metrics);
+                    self.show_modal = true;
+                    self.modal_content = ("Flow Ended - Metrics".into(),
+                                          format!("{}", metrics));
                 }
                 self.send(ClientMessage::Ack);
                 if self.ui_settings.auto {
+                    // TODO put in status bar when exists
                     info!("Auto exiting on flow completion");
                     process::exit(0);
                 }
