@@ -397,7 +397,7 @@ impl FlowDefinition {
     // "function_name/io_name"  - An Input or an Output of a function within this flow
     //
     // Propagate any initializers on a flow output to the input (subflow or function) it is connected to
-    fn build_connection(&mut self, connection: &mut Connection, level: usize) -> Result<()> {
+    fn build_connection(&mut self, connection: &Connection, level: usize) -> Result<()> {
         let from_io = self.get_io_by_route(FROM, connection.from())
             .chain_err(|| format!("Did not find connection source: '{}' specified in flow '{}'\n",
                    connection.from(), self.source_url))?;
@@ -441,7 +441,7 @@ mod test {
     use crate::model::io::IO;
     use crate::model::name::{HasName, Name};
     use crate::model::process::Process;
-    use crate::model::route::{HasRoute, Route, SetRoute, RouteType};
+    use crate::model::route::{HasRoute, Route, RouteType, SetRoute};
     use crate::model::validation::Validate;
 
     // Create a test flow we can use in connection building testing
