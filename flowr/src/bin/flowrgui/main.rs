@@ -334,7 +334,8 @@ impl FlowrGui {
             .align_items(Alignment::End)
             .push(url)
             .push(args)
-            .push(play).into()
+            .push(play)
+            .into()
     }
 
     fn io_tabs(&self) -> Element<Message> {
@@ -746,6 +747,7 @@ impl Tab for StdIOTab {
             .padding(1);
 
         let scrollable = Scrollable::new(text_column)
+            .height(Length::Fill)
             .id(self.id.clone());
 
         let toggler = toggler(
