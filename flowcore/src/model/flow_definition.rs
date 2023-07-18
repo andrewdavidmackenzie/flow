@@ -703,70 +703,70 @@ mod test {
         #[test]
         fn build_compatible_internal_connection() {
             let mut flow = test_flow();
-            let mut connection = Connection::new("process_1", "process_2");
+            let connection = Connection::new("process_1", "process_2");
             assert!(flow.build_connection(&connection, 0).is_ok());
         }
 
         #[test]
         fn build_incompatible_internal_connection() {
             let mut flow = test_flow();
-            let mut connection = Connection::new("process_2", "process_1");
+            let connection = Connection::new("process_2", "process_1");
             assert!(flow.build_connection(&connection, 0).is_err());
         }
 
         #[test]
         fn build_from_flow_input_to_sub_process() {
             let mut flow = test_flow();
-            let mut connection = Connection::new("input/string", "process_1");
+            let connection = Connection::new("input/string", "process_1");
             assert!(flow.build_connection(&connection, 1).is_ok());
         }
 
         #[test]
         fn build_from_sub_process_flow_output() {
             let mut flow = test_flow();
-            let mut connection = Connection::new("process_1", "output/string");
+            let connection = Connection::new("process_1", "output/string");
             assert!(flow.build_connection(&connection, 0).is_ok());
         }
 
         #[test]
         fn build_from_flow_input_to_flow_output() {
             let mut flow = test_flow();
-            let mut connection = Connection::new("input/string", "output/string");
+            let connection = Connection::new("input/string", "output/string");
             assert!(flow.build_connection(&connection, 1).is_ok());
         }
 
         #[test]
         fn build_incompatible_from_flow_input_to_sub_process() {
             let mut flow = test_flow();
-            let mut connection = Connection::new("input/number", "process_1");
+            let connection = Connection::new("input/number", "process_1");
             assert!(flow.build_connection(&connection, 1).is_err());
         }
 
         #[test]
         fn build_incompatible_from_sub_process_flow_output() {
             let mut flow = test_flow();
-            let mut connection = Connection::new("process_1", "output/number");
+            let connection = Connection::new("process_1", "output/number");
             assert!(flow.build_connection(&connection, 0).is_err());
         }
 
         #[test]
         fn build_incompatible_from_flow_input_to_flow_output() {
             let mut flow = test_flow();
-            let mut connection = Connection::new("input/string", "output/number");
+            let connection = Connection::new("input/string", "output/number");
             assert!(flow.build_connection(&connection, 1).is_err());
         }
 
         #[test]
         fn fail_build_from_flow_input_to_flow_input() {
             let mut flow = test_flow();
-            let mut connection = Connection::new("input/string", "input/number");
+            let connection = Connection::new("input/string", "input/number");
             assert!(flow.build_connection(&connection, 1).is_err());
         }
 
         #[test]
         fn fail_build_from_flow_output_to_flow_output() {
             let mut flow = test_flow();
-            let mut connection = Connection::new("output/string", "output/number");
+            let connection = Connection::new("output/string", "output/number");
             assert!(flow.build_connection(&connection, 1).is_err());
         }
 

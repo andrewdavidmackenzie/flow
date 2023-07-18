@@ -12,7 +12,7 @@ use crate::errors::*;
 /// All inputs must be connected and receive values at run-time or a function can never run
 /// This is different from Outputs can be used selectively, and so if one is not connected that
 /// is not a problem for compiling or running necessarily.
-pub fn check_function_inputs(tables: &mut CompilerTables) -> Result<()> {
+pub fn check_function_inputs(tables: &CompilerTables) -> Result<()> {
     info!("\n=== Compiler: Checking all Function Inputs are connected");
     for function in &tables.functions {
         for input in function.get_inputs() {
@@ -38,7 +38,7 @@ fn got_constant_initializer(input: &IO) -> bool {
 }
 
 /// Check that some impure function producing a side effect is called or return an error
-pub fn check_side_effects(tables: &mut CompilerTables) -> Result<()> {
+pub fn check_side_effects(tables: &CompilerTables) -> Result<()> {
     info!("\n=== Compiler: Checking flow has side-effects");
     for function in &tables.functions {
         // Until we separate impure inputs and side-effects we will assume that if a function

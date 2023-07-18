@@ -153,12 +153,12 @@ fn execution_loop(
                 if items.get(0).ok_or("Could not get poll item 0")?.is_readable() {
                     let msg = job_source.recv_msg(0).map_err(|_| "Error receiving Job for execution")?;
                     let message_string = msg.as_str().ok_or("Could not get message as str")?;
-                    let mut payload: JobPayload = serde_json::from_str(message_string)
+                    let payload: JobPayload = serde_json::from_str(message_string)
                         .map_err(|_| "Could not deserialize Message to Job")?;
 
                     debug!("Job #{}: Received for execution", payload.job_id);
                     match execute_job(provider.clone(),
-                                      &mut payload,
+                                      &payload,
                                       &results_sink,
                                       &name,
                                       loaded_implementations.clone(),
@@ -205,7 +205,7 @@ fn set_panic_hook() {
 // Return Ok(keep_processing) flag as true or false to keep processing
 fn execute_job(
     provider: Arc<dyn Provider>,
-    payload: &mut JobPayload,
+    payload: &JobPayload,
     results_sink: &zmq::Socket,
     name: &str,
     loaded_implementations: Arc<RwLock<HashMap<Url, Arc<dyn Implementation>>>>,
@@ -417,7 +417,7 @@ mod test {
             result: Ok((None, false)),
         };
 
-        for mut job in vec![job1, job2, job3] {
+        for job in vec![job1, job2, job3] {
             let loaded_implementations = Arc::new(RwLock::new(HashMap::<Url, Arc<dyn Implementation>>::new()));
             let loaded_lib_manifests = Arc::new(RwLock::new(HashMap::<Url, (LibraryManifest, Url)>::new()));
             let provider = Arc::new(TestProvider{test_content: ""});
@@ -428,7 +428,7 @@ mod test {
                 .expect("Could not connect to PULL end of results-sink socket");
 
             assert!(super::execute_job(provider,
-                                       &mut job.payload,
+                                       &job.payload,
                                        &results_sink,
                                        "test executor",
                                        loaded_implementations,
