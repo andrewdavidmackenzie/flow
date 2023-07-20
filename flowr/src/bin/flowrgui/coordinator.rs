@@ -2,16 +2,18 @@ use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use std::thread;
 
+use iced::{Subscription, subscription};
+use log::{debug, error, info, trace};
+use portpicker::pick_unused_port;
+use tokio::sync::mpsc::Receiver;
+use url::Url;
+
 use flowcore::meta_provider::MetaProvider;
 use flowcore::provider::Provider;
 use flowrlib::coordinator::Coordinator;
 use flowrlib::dispatcher::Dispatcher;
 use flowrlib::executor::Executor;
 use flowrlib::services::{CONTROL_SERVICE_NAME, JOB_QUEUES_DISCOVERY_PORT, JOB_SERVICE_NAME, RESULTS_JOB_SERVICE_NAME};
-use iced::{Subscription, subscription};
-use log::{debug, error, info, trace};
-use portpicker::pick_unused_port;
-use url::Url;
 
 use crate::context;
 use crate::CoordinatorSettings;
@@ -26,10 +28,11 @@ use crate::gui::debug_handler::CliDebugHandler;
 use crate::gui::submission_handler::CLISubmissionHandler;
 
 enum CoordinatorState {
-    None,
+    Init,
+    Discovery(u16),
     Disconnected(String),
-    Connected(tokio::sync::mpsc::Receiver<ClientMessage>, ClientConnection),
-    FlowSubmitted(tokio::sync::mpsc::Receiver<ClientMessage>, Arc<Mutex<ClientConnection>>),
+    Connected(Receiver<ClientMessage>, ClientConnection),
+    FlowSubmitted(Receiver<ClientMessage>, Arc<Mutex<ClientConnection>>),
 }
 
 // Creates an asynchronous worker that sends messages back and forth between the App and
@@ -42,18 +45,23 @@ pub fn subscribe(coordinator_settings: CoordinatorSettings) -> Subscription<Coor
         move |mut app_sender| {
             let settings = coordinator_settings.clone();
             async move {
-                let mut state = CoordinatorState::None;
+                let mut state = CoordinatorState::Init;
                 loop {
                     match state {
-                        CoordinatorState::None => {
-                            // TODO maybe try discovering one and start if not...
-                            let (address, _) = start(settings.clone());
-                            info!("Coordinator started at address '{}'", address);
-                            state = CoordinatorState::Disconnected(address)
+                        CoordinatorState::Init => {
+                            let discovery_port = start_server(settings.clone())
+                                .unwrap(); // TODO
+                            state = CoordinatorState::Discovery(discovery_port);
                         },
 
+                        CoordinatorState::Discovery(discovery_port) => {
+                            let address = discover_service(discovery_port, COORDINATOR_SERVICE_NAME)
+                                .unwrap(); // TODO
+                            state = CoordinatorState::Disconnected(address)
+                        }
+
                         CoordinatorState::Disconnected(address) => {
-                            let coordinator = ClientConnection::new(&address)
+                            let connection = ClientConnection::new(&address)
                                 .unwrap(); // TODO
 
                             // Create channel to get messages from the app
@@ -62,9 +70,8 @@ pub fn subscribe(coordinator_settings: CoordinatorSettings) -> Subscription<Coor
                             // Send the Sender to the App in a Message, for App to use to send us messages
                             let _ = app_sender.try_send(CoordinatorMessage::Connected(app_side_sender));
 
-                            info!("Connected to Coordinator at address: {}", address);
                             state = CoordinatorState::Connected(app_receiver,
-                                                                coordinator);
+                                                                connection);
                         },
 
                         CoordinatorState::Connected(mut app_receiver,
@@ -115,7 +122,8 @@ pub fn subscribe(coordinator_settings: CoordinatorSettings) -> Subscription<Coor
     )
 }
 
-fn start(coordinator_settings: CoordinatorSettings) -> (String, u16) {
+// Start a coordinator server in a background thread, then discover it and return the address
+fn start_server(coordinator_settings: CoordinatorSettings) -> Result<u16> {
     let runtime_port = pick_unused_port().chain_err(|| "No ports free").unwrap(); // TODO
     let coordinator_connection = CoordinatorConnection::new(COORDINATOR_SERVICE_NAME,
                                                             runtime_port).unwrap(); // TODO
@@ -140,10 +148,7 @@ fn start(coordinator_settings: CoordinatorSettings) -> (String, u16) {
         );
     });
 
-    let coordinator_address = discover_service(discovery_port, COORDINATOR_SERVICE_NAME)
-        .unwrap(); // TODO;
-
-    (coordinator_address, discovery_port)
+    Ok(discovery_port)
 }
 
 fn coordinator(

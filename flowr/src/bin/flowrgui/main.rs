@@ -60,8 +60,6 @@ use crate::gui::coordinator_message::CoordinatorMessage;
 
 static STDOUT_SCROLLABLE_ID: Lazy<Id> = Lazy::new(Id::unique);
 
-//use iced_aw::{TabLabel, Tabs};
-
 /// Include the module that implements the context functions
 mod context;
 
