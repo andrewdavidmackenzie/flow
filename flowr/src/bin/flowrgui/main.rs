@@ -60,8 +60,6 @@ use crate::gui::coordinator_message::CoordinatorMessage;
 
 static STDOUT_SCROLLABLE_ID: Lazy<Id> = Lazy::new(Id::unique);
 
-//use iced_aw::{TabLabel, Tabs};
-
 /// Include the module that implements the context functions
 mod context;
 
@@ -232,7 +230,10 @@ impl Application for FlowrGui {
                                                              debug_this_flow
                         ), |_| Message::Submitted);
                     },
-                    Message::Submitted => self.submitted = true,
+                    Message::Submitted => {
+                        self.clear_io_output();
+                        self.submitted = true
+                    },
                     Message::CoordinatorSent(coord_msg) =>
                         return self.process_coordinator_message(coord_msg),
                     Message::FlowArgsChanged(value) => self.flow_settings.flow_args = value,
@@ -346,6 +347,12 @@ impl FlowrGui {
             .push(url)
             .push(args)
             .push(play).into()
+    }
+
+    fn clear_io_output(&mut self) {
+        self.stdout.clear();
+        self.stderr.clear();
+        // TODO clear images and others
     }
 
     fn stdio_area<'a>(content: &[String], id: Id) -> Element<'a, Message> {
@@ -591,9 +598,8 @@ impl FlowrGui {
                     self.modal_content = ("Flow Ended - Metrics".into(),
                                           format!("{}", metrics));
                 }
-                self.send(ClientMessage::Ack);
+                // NO response - so we can use next request sent to submit another flow
                 if self.ui_settings.auto {
-                    // TODO put in status bar when exists
                     info!("Auto exiting on flow completion");
                     process::exit(0);
                 }
