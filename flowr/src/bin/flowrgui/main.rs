@@ -230,7 +230,10 @@ impl Application for FlowrGui {
                                                              debug_this_flow
                         ), |_| Message::Submitted);
                     },
-                    Message::Submitted => self.submitted = true,
+                    Message::Submitted => {
+                        self.clear_io_output();
+                        self.submitted = true
+                    },
                     Message::CoordinatorSent(coord_msg) =>
                         return self.process_coordinator_message(coord_msg),
                     Message::FlowArgsChanged(value) => self.flow_settings.flow_args = value,
@@ -344,6 +347,12 @@ impl FlowrGui {
             .push(url)
             .push(args)
             .push(play).into()
+    }
+
+    fn clear_io_output(&mut self) {
+        self.stdout.clear();
+        self.stderr.clear();
+        // TODO clear images and others
     }
 
     fn stdio_area<'a>(content: &[String], id: Id) -> Element<'a, Message> {
