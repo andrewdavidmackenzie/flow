@@ -598,9 +598,8 @@ impl FlowrGui {
                     self.modal_content = ("Flow Ended - Metrics".into(),
                                           format!("{}", metrics));
                 }
-                self.send(ClientMessage::Ack);
+//                self.send(ClientMessage::Ack);
                 if self.ui_settings.auto {
-                    // TODO put in status bar when exists
                     info!("Auto exiting on flow completion");
                     process::exit(0);
                 }

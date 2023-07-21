@@ -93,16 +93,16 @@ pub fn subscribe(coordinator_settings: CoordinatorSettings) -> Subscription<Coor
                                 // TODO check it's the flow started message
                                 app_sender.try_send(coordinator_message.clone()).unwrap(); // TODO
 
-                                // read the message back from the app and send it to the Coordinator
-                                match app_receiver.recv().await {
-                                    Some(client_message) => {
-                                        connection.lock().unwrap().send(client_message).unwrap();
-                                    }
-                                    None => error!("Error receiving from app"),
-                                }
-
                                 if matches!(&coordinator_message, &CoordinatorMessage::FlowEnd(_)) {
                                     running = false;
+                                } else {
+                                    // read the message back from the app and send it to the Coordinator
+                                    match app_receiver.recv().await {
+                                        Some(client_message) => {
+                                            connection.lock().unwrap().send(client_message).unwrap();
+                                        }
+                                        None => error!("Error receiving from app"),
+                                    }
                                 }
 
                                 // TODO handle coordinator exit, disconnection or error
@@ -137,7 +137,7 @@ fn start_server(coordinator_settings: CoordinatorSettings) -> Result<u16> {
             coordinator_settings,
             coordinator_connection,
             debug_connection,
-            false,
+            true,
         );
     });
 
