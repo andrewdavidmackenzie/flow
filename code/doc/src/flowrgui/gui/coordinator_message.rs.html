@@ -107,11 +107,15 @@
 <a href="#107" id="107">107</a>
 <a href="#108" id="108">108</a>
 <a href="#109" id="109">109</a>
+<a href="#110" id="110">110</a>
+<a href="#111" id="111">111</a>
+<a href="#112" id="112">112</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::fmt;
+
+<span class="kw">use </span>serde_derive::{Deserialize, Serialize};
 
 <span class="kw">use </span>flowcore::errors::<span class="kw-2">*</span>;
 <span class="kw">use </span>flowcore::model::metrics::Metrics;
-<span class="kw">use </span>serde_derive::{Deserialize, Serialize};
 
 <span class="kw">use </span><span class="kw">crate</span>::gui::client_message::ClientMessage;
 
@@ -122,7 +126,8 @@
     </span><span class="doccomment">/// ** These messages are used to communicate to the app the connection status to the Coordinator
     /// A connection has been made
     </span>Connected(tokio::sync::mpsc::Sender&lt;ClientMessage&gt;),
-
+    <span class="doccomment">/// Connection with the Coordinator has been lost
+    </span>Disconnected(String),
     <span class="doccomment">/// ** These messages are used to implement the `SubmissionProtocol` between the coordinator
     /// and the cli_client
     /// A flow has started executing
@@ -166,6 +171,7 @@
             <span class="string">&quot;{}&quot;</span>,
             <span class="kw">match </span><span class="self">self </span>{
                 CoordinatorMessage::Connected(<span class="kw">_</span>) =&gt; <span class="string">&quot;Connected&quot;</span>,
+                CoordinatorMessage::Disconnected(<span class="kw">_</span>) =&gt; <span class="string">&quot;Disconnected&quot;</span>,
                 CoordinatorMessage::FlowEnd(<span class="kw">_</span>) =&gt; <span class="string">&quot;FlowEnd&quot;</span>,
                 CoordinatorMessage::FlowStart =&gt; <span class="string">&quot;FlowStart&quot;</span>,
                 CoordinatorMessage::CoordinatorExiting(<span class="kw">_</span>) =&gt;<span class="string">&quot;CoordinatorExiting&quot;</span>,

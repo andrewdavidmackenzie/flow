@@ -244,6 +244,7 @@
 <a href="#244" id="244">244</a>
 <a href="#245" id="245">245</a>
 <a href="#246" id="246">246</a>
+<a href="#247" id="247">247</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::path::PathBuf;
 <span class="kw">use </span>std::sync::{Arc, Mutex};
 <span class="kw">use </span>std::thread;
@@ -261,8 +262,7 @@
 <span class="kw">use </span>flowrlib::executor::Executor;
 <span class="kw">use </span>flowrlib::services::{CONTROL_SERVICE_NAME, JOB_QUEUES_DISCOVERY_PORT, JOB_SERVICE_NAME, RESULTS_JOB_SERVICE_NAME};
 
-<span class="kw">use </span><span class="kw">crate</span>::context;
-<span class="kw">use </span><span class="kw">crate</span>::CoordinatorSettings;
+<span class="kw">use crate</span>::{context, CoordinatorSettings, ServerSettings};
 <span class="kw">use </span><span class="kw">crate</span>::errors::<span class="kw-2">*</span>;
 <span class="kw">use </span><span class="kw">crate</span>::gui::client_connection::{ClientConnection, discover_service};
 <span class="kw">use </span><span class="kw">crate</span>::gui::client_message::ClientMessage;
@@ -275,7 +275,7 @@
 
 <span class="doccomment">/// States in which the Connection to the Coordinator can find itself
 </span><span class="kw">pub enum </span>CoordinatorState {
-    Init,
+    Init(ServerSettings),
     Discovery(u16),
     Discovered(String),
     Connected(Receiver&lt;ClientMessage&gt;, Arc&lt;Mutex&lt;ClientConnection&gt;&gt;),
@@ -291,12 +291,16 @@
         <span class="kw">move </span>|<span class="kw-2">mut </span>app_sender| {
             <span class="kw">let </span>settings = coordinator_settings.clone();
             <span class="kw">async move </span>{
-                <span class="kw">let </span><span class="kw-2">mut </span>state = CoordinatorState::Init;
+                <span class="kw">let </span><span class="kw-2">mut </span>state = <span class="kw">match </span>settings {
+                    CoordinatorSettings::Server(sett) =&gt; CoordinatorState::Init(sett.clone()),
+                    CoordinatorSettings::ClientOnly(port) =&gt; CoordinatorState::Discovery(port),
+                };
+
                 <span class="kw">let </span><span class="kw-2">mut </span>running = <span class="bool-val">false</span>;
                 <span class="kw">loop </span>{
                     <span class="kw">match </span>state {
-                        CoordinatorState::Init =&gt; {
-                            <span class="kw">let </span>discovery_port = start_server(settings.clone())
+                        CoordinatorState::Init(settings) =&gt; {
+                            <span class="kw">let </span>discovery_port = start_server(settings)
                                 .unwrap(); <span class="comment">// TODO
                             </span>state = CoordinatorState::Discovery(discovery_port);
                         },
@@ -324,10 +328,9 @@
                         CoordinatorState::Connected(<span class="kw-2">ref mut </span>app_receiver,
                                                     <span class="kw-2">ref </span>connection) =&gt; {
                             <span class="kw">if </span>!running {
-                                <span class="comment">// read the Submit message from the app and send ti to the coordinator
+                                <span class="comment">// read the Submit message from the app and send it to the coordinator
                                 </span><span class="kw">if let </span><span class="prelude-val">Some</span>(client_message) = app_receiver.recv().<span class="kw">await </span>{
-                                    <span class="comment">// TODO check is a submit message
-                                    </span>connection.lock().unwrap().send(client_message).unwrap();
+                                    connection.lock().unwrap().send(client_message).unwrap();
                                     running = <span class="bool-val">true</span>;
                                 }
                             } <span class="kw">else </span>{
@@ -336,7 +339,6 @@
                                     .lock().unwrap().receive().unwrap(); <span class="comment">// TODO
 
                                 // Forward the message to the app
-                                // TODO check it&#39;s the flow started message
                                 </span>app_sender.try_send(coordinator_message.clone()).unwrap(); <span class="comment">// TODO
 
                                 // If that was end of flow, there will be no response from app
@@ -348,8 +350,8 @@
                                         <span class="prelude-val">Some</span>(client_message) =&gt; {
                                             connection.lock().unwrap().send(client_message).unwrap();
                                         }
-                                        <span class="prelude-val">None </span>=&gt; <span class="macro">error!</span>(<span class="string">&quot;Error receiving from app&quot;</span>),
-                                    }
+                                        <span class="prelude-val">None </span>=&gt; <span class="macro">error!</span>(<span class="string">&quot;Error receiving from app&quot;</span>), <span class="comment">// TODO
+                                    </span>}
                                 }
 
                                 <span class="comment">// TODO handle coordinator exit, disconnection or error
@@ -363,7 +365,7 @@
 }
 
 <span class="comment">// Start a coordinator server in a background thread, then discover it and return the address
-</span><span class="kw">fn </span>start_server(coordinator_settings: CoordinatorSettings) -&gt; <span class="prelude-ty">Result</span>&lt;u16&gt; {
+</span><span class="kw">fn </span>start_server(coordinator_settings: ServerSettings) -&gt; <span class="prelude-ty">Result</span>&lt;u16&gt; {
     <span class="kw">let </span>runtime_port = pick_unused_port().chain_err(|| <span class="string">&quot;No ports free&quot;</span>).unwrap(); <span class="comment">// TODO
     </span><span class="kw">let </span>coordinator_connection = CoordinatorConnection::new(COORDINATOR_SERVICE_NAME,
                                                             runtime_port).unwrap(); <span class="comment">// TODO
@@ -392,7 +394,7 @@
 }
 
 <span class="kw">fn </span>coordinator(
-    coordinator_settings: CoordinatorSettings,
+    coordinator_settings: ServerSettings,
     coordinator_connection: CoordinatorConnection,
     debug_connection: CoordinatorConnection,
     loop_forever: bool,

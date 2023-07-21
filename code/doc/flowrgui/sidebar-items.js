@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["CoordinatorState","Message"],"fn":["main"],"mod":["context","coordinator","errors","gui"],"static":["STDOUT_SCROLLABLE_ID"],"struct":["CoordinatorSettings","FlowrGui","ImageReference","SubmissionSettings","UiSettings"]};
+window.SIDEBAR_ITEMS = {"enum":["CoordinatorSettings","CoordinatorState","Message"],"fn":["main"],"mod":["context","coordinator","errors","gui"],"static":["STDOUT_SCROLLABLE_ID"],"struct":["FlowrGui","ImageReference","ServerSettings","SubmissionSettings","UiSettings"]};
