@@ -93,6 +93,7 @@ pub fn subscribe(coordinator_settings: CoordinatorSettings) -> Subscription<Coor
                                 // TODO check it's the flow started message
                                 app_sender.try_send(coordinator_message.clone()).unwrap(); // TODO
 
+                                // If that was end of flow, there will be no response from app
                                 if matches!(&coordinator_message, &CoordinatorMessage::FlowEnd(_)) {
                                     running = false;
                                 } else {

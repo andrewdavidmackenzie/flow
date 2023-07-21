@@ -598,7 +598,7 @@ impl FlowrGui {
                     self.modal_content = ("Flow Ended - Metrics".into(),
                                           format!("{}", metrics));
                 }
-//                self.send(ClientMessage::Ack);
+                // NO response - so we can use next request sent to submit another flow
                 if self.ui_settings.auto {
                     info!("Auto exiting on flow completion");
                     process::exit(0);
