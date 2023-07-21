@@ -81,9 +81,8 @@ pub fn subscribe(coordinator_settings: CoordinatorSettings) -> Subscription<Coor
                         CoordinatorState::Connected(ref mut app_receiver,
                                                     ref connection) => {
                             if !running {
-                                // read the Submit message from the app and send ti to the coordinator
+                                // read the Submit message from the app and send it to the coordinator
                                 if let Some(client_message) = app_receiver.recv().await {
-                                    // TODO check is a submit message
                                     connection.lock().unwrap().send(client_message).unwrap();
                                     running = true;
                                 }
@@ -93,7 +92,6 @@ pub fn subscribe(coordinator_settings: CoordinatorSettings) -> Subscription<Coor
                                     .lock().unwrap().receive().unwrap(); // TODO
 
                                 // Forward the message to the app
-                                // TODO check it's the flow started message
                                 app_sender.try_send(coordinator_message.clone()).unwrap(); // TODO
 
                                 // If that was end of flow, there will be no response from app
@@ -105,7 +103,7 @@ pub fn subscribe(coordinator_settings: CoordinatorSettings) -> Subscription<Coor
                                         Some(client_message) => {
                                             connection.lock().unwrap().send(client_message).unwrap();
                                         }
-                                        None => error!("Error receiving from app"),
+                                        None => error!("Error receiving from app"), // TODO
                                     }
                                 }
 

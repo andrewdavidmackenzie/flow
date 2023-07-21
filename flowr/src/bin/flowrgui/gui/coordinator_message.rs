@@ -1,8 +1,9 @@
 use std::fmt;
 
+use serde_derive::{Deserialize, Serialize};
+
 use flowcore::errors::*;
 use flowcore::model::metrics::Metrics;
-use serde_derive::{Deserialize, Serialize};
 
 use crate::gui::client_message::ClientMessage;
 
@@ -13,7 +14,8 @@ pub enum CoordinatorMessage {
     /// ** These messages are used to communicate to the app the connection status to the Coordinator
     /// A connection has been made
     Connected(tokio::sync::mpsc::Sender<ClientMessage>),
-
+    /// Connection with the Coordinator has been lost
+    Disconnected(String),
     /// ** These messages are used to implement the `SubmissionProtocol` between the coordinator
     /// and the cli_client
     /// A flow has started executing
@@ -57,6 +59,7 @@ impl fmt::Display for CoordinatorMessage {
             "{}",
             match self {
                 CoordinatorMessage::Connected(_) => "Connected",
+                CoordinatorMessage::Disconnected(_) => "Disconnected",
                 CoordinatorMessage::FlowEnd(_) => "FlowEnd",
                 CoordinatorMessage::FlowStart => "FlowStart",
                 CoordinatorMessage::CoordinatorExiting(_) =>"CoordinatorExiting",

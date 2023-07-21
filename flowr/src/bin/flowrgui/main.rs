@@ -81,7 +81,7 @@ mod errors;
 #[derive(Debug, Clone)]
 pub enum Message {
     /// We lost contact with the coordinator
-    CoordinatorDisconnected,
+    CoordinatorDisconnected(String),
     /// The Coordinator sent to the client/App a Coordinator Message
     CoordinatorSent(CoordinatorMessage),
     /// The UI has requested to submit the flow to the Coordinator for execution
@@ -101,7 +101,7 @@ pub enum Message {
 }
 
 enum CoordinatorState {
-    Disconnected,
+    Disconnected(String),
     Connected(tokio::sync::mpsc::Sender<ClientMessage>),
 }
 
@@ -157,7 +157,7 @@ struct FlowrGui {
     flow_settings: SubmissionSettings,
     coordinator_settings: CoordinatorSettings,
     ui_settings: UiSettings,
-    gui_coordinator: CoordinatorState,
+    coordinator_state: CoordinatorState,
     active_tab: usize,
     stdout: Vec<String>,
     stderr: Vec<String>,
@@ -184,7 +184,7 @@ impl Application for FlowrGui {
             flow_settings: settings.0,
             coordinator_settings: settings.1,
             ui_settings: settings.2,
-            gui_coordinator: CoordinatorState::Disconnected,
+            coordinator_state: CoordinatorState::Disconnected("Starting".into()),
             active_tab: 0,
             stdout: Vec::new(),
             stderr: Vec::new(),
@@ -205,11 +205,11 @@ impl Application for FlowrGui {
 
     fn update(&mut self, message: Message) -> Command<Message> {
         // TODO to refactor to switch by message first then state in ifs
-        match &self.gui_coordinator {
-            CoordinatorState::Disconnected => {
+        match &self.coordinator_state {
+            CoordinatorState::Disconnected(_) => {
                 match message {
                     Message::CoordinatorSent(CoordinatorMessage::Connected(sender)) => {
-                        self.gui_coordinator = CoordinatorState::Connected(sender);
+                        self.coordinator_state = CoordinatorState::Connected(sender);
                         if self.ui_settings.auto {
                             return Command::perform(Self::auto_submit(), |_| Message::SubmitFlow);
                         }
@@ -255,7 +255,9 @@ impl Application for FlowrGui {
                                 STDOUT_SCROLLABLE_ID.clone(), scrollable::RelativeOffset::END);
                         }
                     },
-                    Message::CoordinatorDisconnected => self.gui_coordinator = CoordinatorState::Disconnected,
+                    Message::CoordinatorDisconnected(reason) => {
+                        self.coordinator_state = CoordinatorState::Disconnected(reason)
+                    },
                     Message::CloseModal => self.show_modal = false,
                 }
             }
@@ -275,6 +277,13 @@ impl Application for FlowrGui {
         main = main
             .push(self.command_row())
             .push(self.stdio());
+
+        /*
+        match self.coordinator_state {
+            CoordinatorState::Disconnected(_) => println!("Disconnected"),
+            CoordinatorState::Connected(_) => println!("Connected"),
+        }
+         */
 
         let content = container(main)
             .width(Length::Fill)
@@ -347,7 +356,7 @@ impl FlowrGui {
             .on_input(Message::FlowArgsChanged);
         // TODO disable until loaded flow
         let mut play = Button::new("Play");
-        if  matches!(self.gui_coordinator, CoordinatorState::Connected(_)) && !self.running && !self.submitted {
+        if  matches!(self.coordinator_state, CoordinatorState::Connected(_)) && !self.running && !self.submitted {
             play = play.on_press(Message::SubmitFlow);
         }
         Row::new()
@@ -601,7 +610,7 @@ impl FlowrGui {
     }
 
     fn send(&mut self, msg: ClientMessage) {
-        if let CoordinatorState::Connected(ref sender) = self.gui_coordinator {
+        if let CoordinatorState::Connected(ref sender) = self.coordinator_state {
             let _ = sender.try_send(msg);
         }
     }
@@ -631,7 +640,7 @@ impl FlowrGui {
                 }
             }
             CoordinatorMessage::CoordinatorExiting(_) => {
-                self.gui_coordinator = CoordinatorState::Disconnected;
+                self.coordinator_state = CoordinatorState::Disconnected("Exited".into());
                 self.send(ClientMessage::Ack);
             },
             CoordinatorMessage::Stdout(string) => {
