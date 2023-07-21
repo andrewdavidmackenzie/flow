@@ -716,6 +716,12 @@
 <a href="#716" id="716">716</a>
 <a href="#717" id="717">717</a>
 <a href="#718" id="718">718</a>
+<a href="#719" id="719">719</a>
+<a href="#720" id="720">720</a>
+<a href="#721" id="721">721</a>
+<a href="#722" id="722">722</a>
+<a href="#723" id="723">723</a>
+<a href="#724" id="724">724</a>
 </pre></div><pre class="rust"><code><span class="attr">#![deny(missing_docs)]
 </span><span class="comment">// TODO re-instate #![warn(clippy::unwrap_used)]
 </span><span class="doccomment">//! `flowrgui` is a GUI flow runner for running `flow` programs.
@@ -778,9 +784,7 @@
 
 <span class="kw">static </span>STDOUT_SCROLLABLE_ID: Lazy&lt;Id&gt; = Lazy::new(Id::unique);
 
-<span class="comment">//use iced_aw::{TabLabel, Tabs};
-
-</span><span class="doccomment">/// Include the module that implements the context functions
+<span class="doccomment">/// Include the module that implements the context functions
 </span><span class="kw">mod </span>context;
 
 <span class="doccomment">/// provides the `context functions` for interacting with the execution environment from a flow,
@@ -950,7 +954,10 @@
                                                              debug_this_flow
                         ), |<span class="kw">_</span>| Message::Submitted);
                     },
-                    Message::Submitted =&gt; <span class="self">self</span>.submitted = <span class="bool-val">true</span>,
+                    Message::Submitted =&gt; {
+                        <span class="self">self</span>.clear_io_output();
+                        <span class="self">self</span>.submitted = <span class="bool-val">true
+                    </span>},
                     Message::CoordinatorSent(coord_msg) =&gt;
                         <span class="kw">return </span><span class="self">self</span>.process_coordinator_message(coord_msg),
                     Message::FlowArgsChanged(value) =&gt; <span class="self">self</span>.flow_settings.flow_args = value,
@@ -1065,6 +1072,12 @@
             .push(args)
             .push(play).into()
     }
+
+    <span class="kw">fn </span>clear_io_output(<span class="kw-2">&amp;mut </span><span class="self">self</span>) {
+        <span class="self">self</span>.stdout.clear();
+        <span class="self">self</span>.stderr.clear();
+        <span class="comment">// TODO clear images and others
+    </span>}
 
     <span class="kw">fn </span>stdio_area&lt;<span class="lifetime">&#39;a</span>&gt;(content: <span class="kw-2">&amp;</span>[String], id: Id) -&gt; Element&lt;<span class="lifetime">&#39;a</span>, Message&gt; {
         <span class="kw">let </span>text_column = Column::with_children(
@@ -1309,10 +1322,9 @@
                     <span class="self">self</span>.modal_content = (<span class="string">&quot;Flow Ended - Metrics&quot;</span>.into(),
                                           <span class="macro">format!</span>(<span class="string">&quot;{}&quot;</span>, metrics));
                 }
-                <span class="self">self</span>.send(ClientMessage::Ack);
-                <span class="kw">if </span><span class="self">self</span>.ui_settings.auto {
-                    <span class="comment">// TODO put in status bar when exists
-                    </span><span class="macro">info!</span>(<span class="string">&quot;Auto exiting on flow completion&quot;</span>);
+                <span class="comment">// NO response - so we can use next request sent to submit another flow
+                </span><span class="kw">if </span><span class="self">self</span>.ui_settings.auto {
+                    <span class="macro">info!</span>(<span class="string">&quot;Auto exiting on flow completion&quot;</span>);
                     process::exit(<span class="number">0</span>);
                 }
             }

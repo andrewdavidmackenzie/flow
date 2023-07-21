@@ -244,10 +244,15 @@
 <a href="#244" id="244">244</a>
 <a href="#245" id="245">245</a>
 <a href="#246" id="246">246</a>
-<a href="#247" id="247">247</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::path::PathBuf;
 <span class="kw">use </span>std::sync::{Arc, Mutex};
 <span class="kw">use </span>std::thread;
+
+<span class="kw">use </span>iced::{Subscription, subscription};
+<span class="kw">use </span>log::{error, info, trace};
+<span class="kw">use </span>portpicker::pick_unused_port;
+<span class="kw">use </span>tokio::sync::mpsc::Receiver;
+<span class="kw">use </span>url::Url;
 
 <span class="kw">use </span>flowcore::meta_provider::MetaProvider;
 <span class="kw">use </span>flowcore::provider::Provider;
@@ -255,10 +260,6 @@
 <span class="kw">use </span>flowrlib::dispatcher::Dispatcher;
 <span class="kw">use </span>flowrlib::executor::Executor;
 <span class="kw">use </span>flowrlib::services::{CONTROL_SERVICE_NAME, JOB_QUEUES_DISCOVERY_PORT, JOB_SERVICE_NAME, RESULTS_JOB_SERVICE_NAME};
-<span class="kw">use </span>iced::{Subscription, subscription};
-<span class="kw">use </span>log::{debug, error, info, trace};
-<span class="kw">use </span>portpicker::pick_unused_port;
-<span class="kw">use </span>url::Url;
 
 <span class="kw">use </span><span class="kw">crate</span>::context;
 <span class="kw">use </span><span class="kw">crate</span>::CoordinatorSettings;
@@ -272,11 +273,12 @@
 <span class="kw">use </span><span class="kw">crate</span>::gui::debug_handler::CliDebugHandler;
 <span class="kw">use </span><span class="kw">crate</span>::gui::submission_handler::CLISubmissionHandler;
 
-<span class="kw">enum </span>CoordinatorState {
-    <span class="prelude-val">None</span>,
-    Disconnected(String),
-    Connected(tokio::sync::mpsc::Receiver&lt;ClientMessage&gt;, ClientConnection),
-    FlowSubmitted(tokio::sync::mpsc::Receiver&lt;ClientMessage&gt;, Arc&lt;Mutex&lt;ClientConnection&gt;&gt;),
+<span class="doccomment">/// States in which the Connection to the Coordinator can find itself
+</span><span class="kw">pub enum </span>CoordinatorState {
+    Init,
+    Discovery(u16),
+    Discovered(String),
+    Connected(Receiver&lt;ClientMessage&gt;, Arc&lt;Mutex&lt;ClientConnection&gt;&gt;),
 }
 
 <span class="comment">// Creates an asynchronous worker that sends messages back and forth between the App and
@@ -289,18 +291,24 @@
         <span class="kw">move </span>|<span class="kw-2">mut </span>app_sender| {
             <span class="kw">let </span>settings = coordinator_settings.clone();
             <span class="kw">async move </span>{
-                <span class="kw">let </span><span class="kw-2">mut </span>state = CoordinatorState::None;
+                <span class="kw">let </span><span class="kw-2">mut </span>state = CoordinatorState::Init;
+                <span class="kw">let </span><span class="kw-2">mut </span>running = <span class="bool-val">false</span>;
                 <span class="kw">loop </span>{
                     <span class="kw">match </span>state {
-                        CoordinatorState::None =&gt; {
-                            <span class="comment">// TODO maybe try discovering one and start if not...
-                            </span><span class="kw">let </span>(address, <span class="kw">_</span>) = start(settings.clone());
-                            <span class="macro">info!</span>(<span class="string">&quot;Coordinator started at address &#39;{}&#39;&quot;</span>, address);
-                            state = CoordinatorState::Disconnected(address)
+                        CoordinatorState::Init =&gt; {
+                            <span class="kw">let </span>discovery_port = start_server(settings.clone())
+                                .unwrap(); <span class="comment">// TODO
+                            </span>state = CoordinatorState::Discovery(discovery_port);
                         },
 
-                        CoordinatorState::Disconnected(address) =&gt; {
-                            <span class="kw">let </span>coordinator = ClientConnection::new(<span class="kw-2">&amp;</span>address)
+                        CoordinatorState::Discovery(discovery_port) =&gt; {
+                            <span class="kw">let </span>address = discover_service(discovery_port, COORDINATOR_SERVICE_NAME)
+                                .unwrap(); <span class="comment">// TODO
+                            </span>state = CoordinatorState::Discovered(address)
+                        }
+
+                        CoordinatorState::Discovered(address) =&gt; {
+                            <span class="kw">let </span>connection = ClientConnection::new(<span class="kw-2">&amp;</span>address)
                                 .unwrap(); <span class="comment">// TODO
 
                             // Create channel to get messages from the app
@@ -309,51 +317,43 @@
                             <span class="comment">// Send the Sender to the App in a Message, for App to use to send us messages
                             </span><span class="kw">let _ </span>= app_sender.try_send(CoordinatorMessage::Connected(app_side_sender));
 
-                            <span class="macro">info!</span>(<span class="string">&quot;Connected to Coordinator at address: {}&quot;</span>, address);
                             state = CoordinatorState::Connected(app_receiver,
-                                                                coordinator);
+                                                                Arc::new(Mutex::new(connection)));
                         },
 
-                        CoordinatorState::Connected(<span class="kw-2">mut </span>app_receiver,
-                                                    coordinator) =&gt; {
-                            <span class="comment">// read the Submit message from the app
-                            </span><span class="kw">match </span>app_receiver.recv().<span class="kw">await </span>{
-                                <span class="prelude-val">Some</span>(client_message) =&gt; {
-                                    <span class="comment">// TODO check it&#39;s the correct message?
-                                    // to send to the coordinator
-                                    </span>coordinator.send(client_message).unwrap();
-
-                                    <span class="macro">debug!</span>(<span class="string">&quot;Flow submitted to Coordinator&quot;</span>);
-                                    state = CoordinatorState::FlowSubmitted(app_receiver,
-                                                                    Arc::new(Mutex::new(coordinator)))
-                                },
-                                <span class="prelude-val">None </span>=&gt; {
-                                    <span class="macro">error!</span>(<span class="string">&quot;Error receiving from app&quot;</span>);
-                                    state = CoordinatorState::Connected(app_receiver,
-                                                                coordinator)
-                                },
-                            }
-                        },
-
-                        CoordinatorState::FlowSubmitted(<span class="kw-2">ref mut </span>app_receiver,
-                                                        <span class="kw-2">ref </span>coordinator) =&gt; {
-                            <span class="comment">// TODO Maybe handle Coordinator exiting message here and update state???
-                            // TODO maybe add a state for ended and process flow ended state also?
-
-                            // read the message back from the Coordinator
-                            </span><span class="kw">let </span>coordinator_message: CoordinatorMessage = coordinator
-                                .lock().unwrap().receive().unwrap(); <span class="comment">// TODO
-
-                            // Forward the message to the App - TODO check it&#39;s the flow started message
-                            </span>app_sender.try_send(coordinator_message).unwrap(); <span class="comment">// TODO
-
-                            // read the message from the app to send to the coordinator
-                            </span><span class="kw">match </span>app_receiver.recv().<span class="kw">await </span>{
-                                <span class="prelude-val">Some</span>(client_message) =&gt; {
-                                    coordinator.lock().unwrap().send(client_message).unwrap();
+                        CoordinatorState::Connected(<span class="kw-2">ref mut </span>app_receiver,
+                                                    <span class="kw-2">ref </span>connection) =&gt; {
+                            <span class="kw">if </span>!running {
+                                <span class="comment">// read the Submit message from the app and send ti to the coordinator
+                                </span><span class="kw">if let </span><span class="prelude-val">Some</span>(client_message) = app_receiver.recv().<span class="kw">await </span>{
+                                    <span class="comment">// TODO check is a submit message
+                                    </span>connection.lock().unwrap().send(client_message).unwrap();
+                                    running = <span class="bool-val">true</span>;
                                 }
-                                <span class="prelude-val">None </span>=&gt; <span class="macro">error!</span>(<span class="string">&quot;Error receiving from app&quot;</span>),
-                            }
+                            } <span class="kw">else </span>{
+                                <span class="comment">// read the message back from the Coordinator
+                                </span><span class="kw">let </span>coordinator_message: CoordinatorMessage = connection
+                                    .lock().unwrap().receive().unwrap(); <span class="comment">// TODO
+
+                                // Forward the message to the app
+                                // TODO check it&#39;s the flow started message
+                                </span>app_sender.try_send(coordinator_message.clone()).unwrap(); <span class="comment">// TODO
+
+                                // If that was end of flow, there will be no response from app
+                                </span><span class="kw">if </span><span class="macro">matches!</span>(<span class="kw-2">&amp;</span>coordinator_message, <span class="kw-2">&amp;</span>CoordinatorMessage::FlowEnd(<span class="kw">_</span>)) {
+                                    running = <span class="bool-val">false</span>;
+                                } <span class="kw">else </span>{
+                                    <span class="comment">// read the message back from the app and send it to the Coordinator
+                                    </span><span class="kw">match </span>app_receiver.recv().<span class="kw">await </span>{
+                                        <span class="prelude-val">Some</span>(client_message) =&gt; {
+                                            connection.lock().unwrap().send(client_message).unwrap();
+                                        }
+                                        <span class="prelude-val">None </span>=&gt; <span class="macro">error!</span>(<span class="string">&quot;Error receiving from app&quot;</span>),
+                                    }
+                                }
+
+                                <span class="comment">// TODO handle coordinator exit, disconnection or error
+                            </span>}
                         }
                     }
                 }
@@ -362,7 +362,8 @@
     )
 }
 
-<span class="kw">fn </span>start(coordinator_settings: CoordinatorSettings) -&gt; (String, u16) {
+<span class="comment">// Start a coordinator server in a background thread, then discover it and return the address
+</span><span class="kw">fn </span>start_server(coordinator_settings: CoordinatorSettings) -&gt; <span class="prelude-ty">Result</span>&lt;u16&gt; {
     <span class="kw">let </span>runtime_port = pick_unused_port().chain_err(|| <span class="string">&quot;No ports free&quot;</span>).unwrap(); <span class="comment">// TODO
     </span><span class="kw">let </span>coordinator_connection = CoordinatorConnection::new(COORDINATOR_SERVICE_NAME,
                                                             runtime_port).unwrap(); <span class="comment">// TODO
@@ -383,14 +384,11 @@
             coordinator_settings,
             coordinator_connection,
             debug_connection,
-            <span class="bool-val">false</span>,
+            <span class="bool-val">true</span>,
         );
     });
 
-    <span class="kw">let </span>coordinator_address = discover_service(discovery_port, COORDINATOR_SERVICE_NAME)
-        .unwrap(); <span class="comment">// TODO;
-
-    </span>(coordinator_address, discovery_port)
+    <span class="prelude-val">Ok</span>(discovery_port)
 }
 
 <span class="kw">fn </span>coordinator(
