@@ -81,7 +81,7 @@ mod errors;
 #[derive(Debug, Clone)]
 pub enum Message {
     /// We lost contact with the coordinator
-    CoordinatorDisconnected,
+    CoordinatorDisconnected(String),
     /// The Coordinator sent to the client/App a Coordinator Message
     CoordinatorSent(CoordinatorMessage),
     /// The UI has requested to submit the flow to the Coordinator for execution
@@ -101,7 +101,7 @@ pub enum Message {
 }
 
 enum CoordinatorState {
-    Disconnected,
+    Disconnected(String),
     Connected(tokio::sync::mpsc::Sender<ClientMessage>),
 }
 
@@ -121,15 +121,24 @@ struct SubmissionSettings {
     parallel_jobs_limit: Option<usize>, // TODO read from settings or UI
 }
 
-/// [CoordinatorSettings] captures the parameters to be used when creating a new Coordinator
+/// Settings to use when starting a coordinator server
 #[derive(Clone)]
-pub struct CoordinatorSettings {
+pub struct ServerSettings {
     /// Should the coordinator use the natively linked flowstdlib library, or the wasm version
     native_flowstdlib: bool,
     /// How many executor threads should be used
     num_threads: usize,
     /// The path to search for libs when a lib reference is found
     lib_search_path: Simpath,
+}
+
+/// [CoordinatorSettings] captures the parameters to be used when creating a new Coordinator
+#[derive(Clone)]
+pub enum CoordinatorSettings {
+    /// Start a server coordinator using the settings supplied
+    Server(ServerSettings),
+    /// Don't start a coordinator server, just discover existing one on this port
+    ClientOnly(u16),
 }
 
 struct UiSettings {
@@ -148,7 +157,7 @@ struct FlowrGui {
     flow_settings: SubmissionSettings,
     coordinator_settings: CoordinatorSettings,
     ui_settings: UiSettings,
-    gui_coordinator: CoordinatorState,
+    coordinator_state: CoordinatorState,
     active_tab: usize,
     stdout: Vec<String>,
     stderr: Vec<String>,
@@ -175,7 +184,7 @@ impl Application for FlowrGui {
             flow_settings: settings.0,
             coordinator_settings: settings.1,
             ui_settings: settings.2,
-            gui_coordinator: CoordinatorState::Disconnected,
+            coordinator_state: CoordinatorState::Disconnected("Starting".into()),
             active_tab: 0,
             stdout: Vec::new(),
             stderr: Vec::new(),
@@ -196,11 +205,11 @@ impl Application for FlowrGui {
 
     fn update(&mut self, message: Message) -> Command<Message> {
         // TODO to refactor to switch by message first then state in ifs
-        match &self.gui_coordinator {
-            CoordinatorState::Disconnected => {
+        match &self.coordinator_state {
+            CoordinatorState::Disconnected(_) => {
                 match message {
                     Message::CoordinatorSent(CoordinatorMessage::Connected(sender)) => {
-                        self.gui_coordinator = CoordinatorState::Connected(sender);
+                        self.coordinator_state = CoordinatorState::Connected(sender);
                         if self.ui_settings.auto {
                             return Command::perform(Self::auto_submit(), |_| Message::SubmitFlow);
                         }
@@ -246,7 +255,9 @@ impl Application for FlowrGui {
                                 STDOUT_SCROLLABLE_ID.clone(), scrollable::RelativeOffset::END);
                         }
                     },
-                    Message::CoordinatorDisconnected => self.gui_coordinator = CoordinatorState::Disconnected,
+                    Message::CoordinatorDisconnected(reason) => {
+                        self.coordinator_state = CoordinatorState::Disconnected(reason)
+                    },
                     Message::CloseModal => self.show_modal = false,
                 }
             }
@@ -266,6 +277,13 @@ impl Application for FlowrGui {
         main = main
             .push(self.command_row())
             .push(self.stdio());
+
+        /*
+        match self.coordinator_state {
+            CoordinatorState::Disconnected(_) => println!("Disconnected"),
+            CoordinatorState::Connected(_) => println!("Connected"),
+        }
+         */
 
         let content = container(main)
             .width(Length::Fill)
@@ -338,7 +356,7 @@ impl FlowrGui {
             .on_input(Message::FlowArgsChanged);
         // TODO disable until loaded flow
         let mut play = Button::new("Play");
-        if  matches!(self.gui_coordinator, CoordinatorState::Connected(_)) && !self.running && !self.submitted {
+        if  matches!(self.coordinator_state, CoordinatorState::Connected(_)) && !self.running && !self.submitted {
             play = play.on_press(Message::SubmitFlow);
         }
         Row::new()
@@ -399,18 +417,6 @@ impl FlowrGui {
         info!("'{}' version {}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"));
         info!("'flowrlib' version {}", flowrlib_info::version());
 
-        let lib_dirs = if matches.contains_id("lib_dir") {
-            matches
-                .get_many::<String>("lib_dir").unwrap() // TODO add to UI
-                .map(|s| s.to_string())
-                .collect()
-        } else {
-            vec![]
-        };
-
-        let lib_search_path = FlowrGui::lib_search_path(&lib_dirs)
-            .unwrap(); // TODO
-
         let flow_manifest_url = matches.get_one::<String>("flow-manifest")
             .unwrap_or(&"".into()).to_string();
         let flow_args = match matches.get_many::<String>("flow-args") {
@@ -428,11 +434,35 @@ impl FlowrGui {
         // TODO make a UI setting
         let debug_this_flow = matches.get_flag("debugger");
 
-        // TODO make a UI setting
-        let native_flowstdlib = matches.get_flag("native");
+        let coordinator_settings = match matches.get_one::<u16>("client") {
+            Some(port) => CoordinatorSettings::ClientOnly(*port),
+            None => {
+                let lib_dirs = if matches.contains_id("lib_dir") {
+                    matches
+                        .get_many::<String>("lib_dir").unwrap() // TODO add to UI
+                        .map(|s| s.to_string())
+                        .collect()
+                } else {
+                    vec![]
+                };
 
-        // TODO make a UI setting
-        let num_threads = FlowrGui::num_threads(&matches);
+                let lib_search_path = FlowrGui::lib_search_path(&lib_dirs)
+                    .unwrap(); // TODO
+
+                // TODO make a UI setting
+                let native_flowstdlib = matches.get_flag("native");
+
+                // TODO make a UI setting
+                let num_threads = FlowrGui::num_threads(&matches);
+
+                let server_settings = ServerSettings {
+                    num_threads,
+                    native_flowstdlib,
+                    lib_search_path,
+                };
+
+                CoordinatorSettings::Server(server_settings)            },
+        };
 
         (SubmissionSettings {
             flow_manifest_url,
@@ -441,14 +471,10 @@ impl FlowrGui {
             display_metrics: matches.get_flag("metrics"),
             parallel_jobs_limit,
         },
-         CoordinatorSettings {
-            num_threads,
-            native_flowstdlib,
-            lib_search_path,
-        },
-            UiSettings {
-                auto: matches.get_flag("auto")
-            }
+        coordinator_settings,
+        UiSettings {
+            auto: matches.get_flag("auto")
+        }
         )
     }
 
@@ -475,11 +501,20 @@ impl FlowrGui {
         );
 
         let app = app.arg(
+            Arg::new("client")
+                 .short('c')
+                 .long("client")
+                 .number_of_values(1)
+                 .value_parser(clap::value_parser!(u16))
+                 .help("Launch only a client (no coordinator) to connect to a remote coordinator")
+        );
+
+        let app = app.arg(
             Arg::new("metrics")
                 .short('m')
                 .long("metrics")
                 .action(clap::ArgAction::SetTrue)
-                .help("Calculate metrics during flow execution and print them out when done"),
+                .help("Calculate metrics during flow execution and print them out when done")
         );
 
         let app = app.arg(
@@ -487,7 +522,7 @@ impl FlowrGui {
                 .short('a')
                 .long("auto")
                 .action(clap::ArgAction::SetTrue)
-                .help("Run any flow specified automatically on start-up. Exit automatically."),
+                .help("Run any flow specified automatically on start-up. Exit automatically.")
         );
 
         let app = app
@@ -575,7 +610,7 @@ impl FlowrGui {
     }
 
     fn send(&mut self, msg: ClientMessage) {
-        if let CoordinatorState::Connected(ref sender) = self.gui_coordinator {
+        if let CoordinatorState::Connected(ref sender) = self.coordinator_state {
             let _ = sender.try_send(msg);
         }
     }
@@ -605,7 +640,7 @@ impl FlowrGui {
                 }
             }
             CoordinatorMessage::CoordinatorExiting(_) => {
-                self.gui_coordinator = CoordinatorState::Disconnected;
+                self.coordinator_state = CoordinatorState::Disconnected("Exited".into());
                 self.send(ClientMessage::Ack);
             },
             CoordinatorMessage::Stdout(string) => {
