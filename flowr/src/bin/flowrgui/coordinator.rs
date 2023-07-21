@@ -15,8 +15,7 @@ use flowrlib::dispatcher::Dispatcher;
 use flowrlib::executor::Executor;
 use flowrlib::services::{CONTROL_SERVICE_NAME, JOB_QUEUES_DISCOVERY_PORT, JOB_SERVICE_NAME, RESULTS_JOB_SERVICE_NAME};
 
-use crate::context;
-use crate::CoordinatorSettings;
+use crate::{context, CoordinatorSettings, ServerSettings};
 use crate::errors::*;
 use crate::gui::client_connection::{ClientConnection, discover_service};
 use crate::gui::client_message::ClientMessage;
@@ -29,7 +28,7 @@ use crate::gui::submission_handler::CLISubmissionHandler;
 
 /// States in which the Connection to the Coordinator can find itself
 pub enum CoordinatorState {
-    Init,
+    Init(ServerSettings),
     Discovery(u16),
     Discovered(String),
     Connected(Receiver<ClientMessage>, Arc<Mutex<ClientConnection>>),
@@ -45,12 +44,16 @@ pub fn subscribe(coordinator_settings: CoordinatorSettings) -> Subscription<Coor
         move |mut app_sender| {
             let settings = coordinator_settings.clone();
             async move {
-                let mut state = CoordinatorState::Init;
+                let mut state = match settings {
+                    CoordinatorSettings::Server(sett) => CoordinatorState::Init(sett.clone()),
+                    CoordinatorSettings::ClientOnly(port) => CoordinatorState::Discovery(port),
+                };
+
                 let mut running = false;
                 loop {
                     match state {
-                        CoordinatorState::Init => {
-                            let discovery_port = start_server(settings.clone())
+                        CoordinatorState::Init(settings) => {
+                            let discovery_port = start_server(settings)
                                 .unwrap(); // TODO
                             state = CoordinatorState::Discovery(discovery_port);
                         },
@@ -117,7 +120,7 @@ pub fn subscribe(coordinator_settings: CoordinatorSettings) -> Subscription<Coor
 }
 
 // Start a coordinator server in a background thread, then discover it and return the address
-fn start_server(coordinator_settings: CoordinatorSettings) -> Result<u16> {
+fn start_server(coordinator_settings: ServerSettings) -> Result<u16> {
     let runtime_port = pick_unused_port().chain_err(|| "No ports free").unwrap(); // TODO
     let coordinator_connection = CoordinatorConnection::new(COORDINATOR_SERVICE_NAME,
                                                             runtime_port).unwrap(); // TODO
@@ -146,7 +149,7 @@ fn start_server(coordinator_settings: CoordinatorSettings) -> Result<u16> {
 }
 
 fn coordinator(
-    coordinator_settings: CoordinatorSettings,
+    coordinator_settings: ServerSettings,
     coordinator_connection: CoordinatorConnection,
     debug_connection: CoordinatorConnection,
     loop_forever: bool,
