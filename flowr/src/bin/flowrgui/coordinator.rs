@@ -3,7 +3,7 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 
 use iced::{Subscription, subscription};
-use log::{debug, error, info, trace};
+use log::{error, info, trace};
 use portpicker::pick_unused_port;
 use tokio::sync::mpsc::Receiver;
 use url::Url;
@@ -27,12 +27,12 @@ use crate::gui::coordinator_message::CoordinatorMessage;
 use crate::gui::debug_handler::CliDebugHandler;
 use crate::gui::submission_handler::CLISubmissionHandler;
 
-enum CoordinatorState {
+/// States in which the Connection to the Coordinator can find itself
+pub enum CoordinatorState {
     Init,
     Discovery(u16),
-    Disconnected(String),
-    Connected(Receiver<ClientMessage>, ClientConnection),
-    FlowSubmitted(Receiver<ClientMessage>, Arc<Mutex<ClientConnection>>),
+    Discovered(String),
+    Connected(Receiver<ClientMessage>, Arc<Mutex<ClientConnection>>),
 }
 
 // Creates an asynchronous worker that sends messages back and forth between the App and
@@ -46,6 +46,7 @@ pub fn subscribe(coordinator_settings: CoordinatorSettings) -> Subscription<Coor
             let settings = coordinator_settings.clone();
             async move {
                 let mut state = CoordinatorState::Init;
+                let mut running = false;
                 loop {
                     match state {
                         CoordinatorState::Init => {
@@ -57,10 +58,10 @@ pub fn subscribe(coordinator_settings: CoordinatorSettings) -> Subscription<Coor
                         CoordinatorState::Discovery(discovery_port) => {
                             let address = discover_service(discovery_port, COORDINATOR_SERVICE_NAME)
                                 .unwrap(); // TODO
-                            state = CoordinatorState::Disconnected(address)
+                            state = CoordinatorState::Discovered(address)
                         }
 
-                        CoordinatorState::Disconnected(address) => {
+                        CoordinatorState::Discovered(address) => {
                             let connection = ClientConnection::new(&address)
                                 .unwrap(); // TODO
 
@@ -71,48 +72,40 @@ pub fn subscribe(coordinator_settings: CoordinatorSettings) -> Subscription<Coor
                             let _ = app_sender.try_send(CoordinatorMessage::Connected(app_side_sender));
 
                             state = CoordinatorState::Connected(app_receiver,
-                                                                connection);
+                                                                Arc::new(Mutex::new(connection)));
                         },
 
-                        CoordinatorState::Connected(mut app_receiver,
-                                                    coordinator) => {
-                            // read the Submit message from the app
-                            match app_receiver.recv().await {
-                                Some(client_message) => {
-                                    // TODO check it's the correct message?
-                                    // to send to the coordinator
-                                    coordinator.send(client_message).unwrap();
-
-                                    debug!("Flow submitted to Coordinator");
-                                    state = CoordinatorState::FlowSubmitted(app_receiver,
-                                                                    Arc::new(Mutex::new(coordinator)))
-                                },
-                                None => {
-                                    error!("Error receiving from app");
-                                    state = CoordinatorState::Connected(app_receiver,
-                                                                coordinator)
-                                },
-                            }
-                        },
-
-                        CoordinatorState::FlowSubmitted(ref mut app_receiver,
-                                                        ref coordinator) => {
-                            // TODO Maybe handle Coordinator exiting message here and update state???
-                            // TODO maybe add a state for ended and process flow ended state also?
-
-                            // read the message back from the Coordinator
-                            let coordinator_message: CoordinatorMessage = coordinator
-                                .lock().unwrap().receive().unwrap(); // TODO
-
-                            // Forward the message to the App - TODO check it's the flow started message
-                            app_sender.try_send(coordinator_message).unwrap(); // TODO
-
-                            // read the message from the app to send to the coordinator
-                            match app_receiver.recv().await {
-                                Some(client_message) => {
-                                    coordinator.lock().unwrap().send(client_message).unwrap();
+                        CoordinatorState::Connected(ref mut app_receiver,
+                                                    ref connection) => {
+                            if !running {
+                                // read the Submit message from the app and send ti to the coordinator
+                                if let Some(client_message) = app_receiver.recv().await {
+                                    // TODO check is a submit message
+                                    connection.lock().unwrap().send(client_message).unwrap();
+                                    running = true;
                                 }
-                                None => error!("Error receiving from app"),
+                            } else {
+                                // read the message back from the Coordinator
+                                let coordinator_message: CoordinatorMessage = connection
+                                    .lock().unwrap().receive().unwrap(); // TODO
+
+                                // Forward the message to the app
+                                // TODO check it's the flow started message
+                                app_sender.try_send(coordinator_message.clone()).unwrap(); // TODO
+
+                                // read the message back from the app and send it to the Coordinator
+                                match app_receiver.recv().await {
+                                    Some(client_message) => {
+                                        connection.lock().unwrap().send(client_message).unwrap();
+                                    }
+                                    None => error!("Error receiving from app"),
+                                }
+
+                                if matches!(&coordinator_message, &CoordinatorMessage::FlowEnd(_)) {
+                                    running = false;
+                                }
+
+                                // TODO handle coordinator exit, disconnection or error
                             }
                         }
                     }
