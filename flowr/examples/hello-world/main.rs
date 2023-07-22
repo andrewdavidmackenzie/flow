@@ -11,6 +11,8 @@ fn main() {
 
 #[cfg(test)]
 mod test {
+    use std::path::PathBuf;
+
     #[test]
     fn test_hello_world_example() {
         let mut sample_dir = PathBuf::from(file!());
