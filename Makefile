@@ -88,6 +88,7 @@ build:
 	@cargo build -p flowc # Used to compile flowstdlib and flowsamples, so needed first
 	@cargo build -p flowstdlib # Used by flowsamples so needed first
 	@cargo build
+	@cargo build --examples
 
 .PHONY: clippy
 clippy: build
@@ -106,6 +107,7 @@ ifneq ($(SELFCERT),)
 endif
 endif
 	@cargo test
+	@cargo test --examples
 
 .PHONY: coverage
 coverage: clean-start

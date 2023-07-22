@@ -1,0 +1,12 @@
+[package]
+name = "utilities"
+description = "A set of utilities for tests and examples"
+version = "0.95.0"
+readme = "README.md"
+
+[badges]
+maintenance = { status = "actively-developed" }
+
+[lib]
+name = "utilities"
+path = "src/lib.rs"

@@ -160,7 +160,7 @@ fn compile_and_execute(runner_name: &str, test_name: &str, execute: bool,
     let status = compiler
         .args(compiler_args)
         .status()
-        .map_err(|_| "Could not run compiled")?;
+        .map_err(|_| "Could not run compiler")?;
 
     if !status.success() {
         bail!("Compiler returned non-zero status");
