@@ -114,25 +114,25 @@
     - [sqrt](flowstdlib/src/math/sqrt/sqrt.md)
     - [subtract](flowstdlib/src/math/subtract/subtract.md)
     
-# Sample flows
-- [Samples Intro](flowsamples/README.md)
-    - [args](flowsamples/args/DESCRIPTION.md)
-    - [arrays](flowsamples/arrays/DESCRIPTION.md)
-    - [factorial](flowsamples/factorial/DESCRIPTION.md)
-    - [fibonacci](flowsamples/fibonacci/DESCRIPTION.md)
-    - [hello-world](flowsamples/hello-world/DESCRIPTION.md)
-    - [mandlebrot](flowsamples/mandlebrot/DESCRIPTION.md)
-      - [escapes](flowsamples/mandlebrot/escapes/escapes.md) provided function
-      - [pixel_to_point](flowsamples/mandlebrot/pixel_to_point/pixel_to_point.md) provided function
-    - [matrix multiplication](flowsamples/matrix_mult/DESCRIPTION.md)
-    - [pipeline](flowsamples/pipeline/DESCRIPTION.md)
-    - [prime](flowsamples/prime/DESCRIPTION.md)
-    - [primitives](flowsamples/primitives/DESCRIPTION.md)
-    - [reverse-echo](flowsamples/reverse-echo/DESCRIPTION.md)
-    - [router](flowsamples/router/DESCRIPTION.md)
-    - [sequence](flowsamples/sequence/DESCRIPTION.md)
-    - [sequence-of-sequences](flowsamples/sequence-of-sequences/DESCRIPTION.md)
-    - [tokenizer](flowsamples/tokenizer/DESCRIPTION.md)
+# Examples flows
+- [Samples Intro](flowr/examples/README.md)
+    - [args](flowr/examples/args/DESCRIPTION.md)
+    - [arrays](flowr/examples/arrays/DESCRIPTION.md)
+    - [factorial](flowr/examples/factorial/DESCRIPTION.md)
+    - [fibonacci](flowr/examples/fibonacci/DESCRIPTION.md)
+    - [hello-world](flowr/examples/hello-world/DESCRIPTION.md)
+    - [mandlebrot](flowr/examples/mandlebrot/DESCRIPTION.md)
+      - [escapes](flowr/examples/mandlebrot/escapes/escapes.md) provided function
+      - [pixel_to_point](flowr/examples/mandlebrot/pixel_to_point/pixel_to_point.md) provided function
+    - [matrix multiplication](flowr/examples/matrix_mult/DESCRIPTION.md)
+    - [pipeline](flowr/examples/pipeline/DESCRIPTION.md)
+    - [prime](flowr/examples/prime/DESCRIPTION.md)
+    - [primitives](flowr/examples/primitives/DESCRIPTION.md)
+    - [reverse-echo](flowr/examples/reverse-echo/DESCRIPTION.md)
+    - [router](flowr/examples/router/DESCRIPTION.md)
+    - [sequence](flowr/examples/sequence/DESCRIPTION.md)
+    - [sequence-of-sequences](flowr/examples/sequence-of-sequences/DESCRIPTION.md)
+    - [tokenizer](flowr/examples/tokenizer/DESCRIPTION.md)
     
 --------------------------------------------------------------------------------
 
@@ -160,12 +160,12 @@
           - [two-destinations](flowr/tests/test-flows/two-destinations/two-destinations.md)
       - [flowrex](flowr/README.md)
       - [flowstdlib](flowstdlib/README.md)
-      - [flowsamples](flowsamples/README.md)
+      - [examples](flowr/examples/README.md)
 - [Makefile targets](docs/developing/make.md)
 - [Ways to contribute](docs/developing/contributing.md)
     - [Issues](docs/developing/issues.md)
     - [PRs](docs/developing/prs.md)
-    - [Developing a sample](flowsamples/README.md)
+    - [Developing a sample](flowr/examples/README.md)
     - [Continuous Integration Tests](docs/developing/ci.md)
         
 # Internals of the `flow` Project

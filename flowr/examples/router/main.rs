@@ -7,7 +7,7 @@ fn main() {
 #[cfg(test)]
 mod test {
     #[test]
-    fn test_hello_world_example() {
+    fn test_router_example() {
         utilities::test_example(file!(), "flowrcli", false, true);
     }
 }

@@ -1224,14 +1224,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "flowsamples"
-version = "0.95.0"
-dependencies = [
- "serial_test",
- "tempdir",
-]
-
-[[package]]
 name = "flowstdlib"
 version = "0.95.0"
 dependencies = [

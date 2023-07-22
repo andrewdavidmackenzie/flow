@@ -80,13 +80,12 @@ clean:
 	@cargo clean
 	@find . -name target -type d | xargs rm -rf
 	@rm -rf $(HOME)/.flow/lib/flowstdlib
-	@rm -rf $(HOME)/.flow/samples/flowsamples
 
 .PHONY: build
 build:
 	@echo "build<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
-	@cargo build -p flowc # Used to compile flowstdlib and flowsamples, so needed first
-	@cargo build -p flowstdlib # Used by flowsamples so needed first
+	@cargo build -p flowc # Used to compile flowstdlib and examples so needed first
+	@cargo build -p flowstdlib # Used by examples so needed first
 	@cargo build
 	@cargo build --examples
 
@@ -113,8 +112,8 @@ endif
 coverage: clean-start
 	@echo "coverage<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
 	@find . -name "*.profraw"  | xargs rm -rf {} # Remove old coverage measurements
-	@RUSTFLAGS="-C instrument-coverage" LLVM_PROFILE_FILE="flow-%p-%m.profraw" cargo build -p flowc # Used to compile flowstdlib and flowsamples, so needed first
-	@RUSTFLAGS="-C instrument-coverage" LLVM_PROFILE_FILE="flow-%p-%m.profraw" cargo build -p flowstdlib # Used by flowsamples so needed first
+	@RUSTFLAGS="-C instrument-coverage" LLVM_PROFILE_FILE="flow-%p-%m.profraw" cargo build -p flowc # Used to compile flowstdlib and examples, so needed first
+	@RUSTFLAGS="-C instrument-coverage" LLVM_PROFILE_FILE="flow-%p-%m.profraw" cargo build -p flowstdlib # Used by examples so needed first
 	@RUSTFLAGS="-C instrument-coverage" LLVM_PROFILE_FILE="flow-%p-%m.profraw" cargo build
 ifeq ($(CODESIGN),)
 	find target -perm +111 -type f | xargs codesign -fs self
@@ -150,8 +149,8 @@ code-docs: build
 .PHONE: copy-svgs
 copy-svgs:
 	@echo "copy-svgs<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
-	@for i in $(shell cd $$HOME/.flow/samples/flowsamples && find . -name '*.dot.svg' ); do \
-      cp $$HOME/.flow/samples/flowsamples/$$i target/html/flowsamples/$$i; \
+	@for i in $(shell find flowr/examples -name '*.dot.svg' ); do \
+      cp $$i target/html/flowr/examples/$$i; \
     done
 	@for i in $(shell cd $$HOME/.flow/lib/flowstdlib && find . -name '*.dot.svg' ); do \
       cp $$HOME/.flow/lib/flowstdlib/$$i target/html/flowstdlib/src/$$i; \
@@ -194,10 +193,8 @@ trim-docs:
 	@rm -rf target/html/Makefile
 	@rm -rf target/html/.nojekyll
 	@rm -rf target/html/coverage.info
-	@rm -rf target/html/flowsamples/build.rs
-	@rm -rf target/html/flowsamples/main.rs
-	@rm -rf target/html/flowsamples/Cargo.toml
-	@rm -rf target/html/flowsamples/mandlebrot/project
+	@rm -rf target/html/flowr/examples/Cargo.toml
+	@rm -rf target/html/flowr/examples/mandlebrot/project
 	@find target/html -depth -type d -empty -delete
 
 .PHONY: release

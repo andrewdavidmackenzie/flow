@@ -1,6 +1,6 @@
 use std::{env, fs, io};
 use std::fs::File;
-use std::io::{BufRead, BufReader, ErrorKind};
+use std::io::{BufRead, BufReader};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 
@@ -26,20 +26,26 @@ const EXPECTED_FILE_FILENAME : &str = "expected.file";
 const TEST_ARGS_FILENAME: &str = "test.args";
 
 /// Run one specific flow sample
-pub fn run_sample(source_file: &str, flowrex: bool, native: bool) -> io::Result<()> {
+pub fn run_example(source_file: &str, runner: &str, flowrex: bool, native: bool) {
     let mut sample_dir = PathBuf::from(source_file);
     sample_dir.pop();
 
-    compile_sample(&sample_dir);
+    println!("sample_dir = {}", sample_dir.display());
 
-    let manifest_path = sample_dir.join("manifest.json");
-    println!("\n\tRunning Sample: {:?}", sample_dir.file_name());
-    assert!(manifest_path.exists(), "Manifest not found at '{}'", manifest_path.display());
+    compile_sample(&sample_dir, runner);
+
+    println!("\n\tRunning example: {}", sample_dir.display());
+    println!("\t\tRunner: {}", runner);
     println!("\t\tSTDIN is read from {TEST_STDIN_FILENAME}");
     println!("\t\tArguments are read from {TEST_ARGS_FILENAME}");
     println!("\t\tSTDOUT is sent to {TEST_STDOUT_FILENAME}");
     println!("\t\tSTDERR to {TEST_STDERR_FILENAME}");
     println!("\t\tFile output to {TEST_FILE_FILENAME}");
+
+    // Remove any previous output
+    let _ = fs::remove_file(sample_dir.join(TEST_STDERR_FILENAME));
+    let _ = fs::remove_file(sample_dir.join(TEST_FILE_FILENAME));
+    let _ = fs::remove_file(sample_dir.join(TEST_STDOUT_FILENAME));
 
     let mut command_args: Vec<String> = if native {
         vec!["--native".into()]
@@ -52,92 +58,59 @@ pub fn run_sample(source_file: &str, flowrex: bool, native: bool) -> io::Result<
         command_args.push("--threads".into());
         command_args.push("0".into());
     }
+    let flowrex_child = if flowrex {
+        Some(Command::new("flowrex").spawn().expect("Could not spawn flowrex"))
+    } else {
+        None
+    };
 
-    command_args.push( manifest_path.display().to_string());
-
-    command_args.append(&mut args(&sample_dir)?);
-
-    // Remove any previous output
-    let _ = fs::remove_file(sample_dir.join(TEST_STDERR_FILENAME));
-    let _ = fs::remove_file(sample_dir.join(TEST_FILE_FILENAME));
-    let _ = fs::remove_file(sample_dir.join(TEST_STDOUT_FILENAME));
+    command_args.push( "manifest.json".into());
+    command_args.append(&mut args(&sample_dir).expect("Could not get flow args"));
 
     let output = File::create(sample_dir.join(TEST_STDOUT_FILENAME))
         .expect("Could not create Test StdOutput File");
     let error = File::create(sample_dir.join(TEST_STDERR_FILENAME))
         .expect("Could not create Test StdError File ");
 
-    let flowrex_child = if flowrex {
-        match Command::new("flowrex").spawn() {
-            Ok(child) => Some(child),
-            Err(e) => return match e.kind() {
-                ErrorKind::NotFound => Err(io::Error::new(
-                    ErrorKind::Other,
-                    format!("`flowrex` was not found! Check your $PATH. {e}"),
-                )),
-                _ => Err(io::Error::new(
-                    ErrorKind::Other,
-                    format!("Unexpected error running `flowrex`: {e}"),
-                )),
-            },
-        }
-    } else {
-        None
-    };
-
-    println!("\tCommand line: 'flowr {}'", command_args.join(" "));
-    match Command::new("flowrcli")
+    println!("\tCommand line: '{} {}'",runner, command_args.join(" "));
+    let mut runner_child = Command::new(runner)
         .args(command_args)
-        .current_dir(sample_dir.canonicalize()?)
+        .current_dir(sample_dir.canonicalize().expect("Could not canonicalize path"))
         .stdin(Stdio::piped())
         .stdout(Stdio::from(output))
         .stderr(Stdio::from(error))
-        .spawn()
-    {
-        Ok(mut flowr_child) => {
-            let stdin_file = sample_dir.join(TEST_STDIN_FILENAME);
-            if stdin_file.exists() {
-                let _ = Command::new("cat")
-                    .args(vec![stdin_file])
-                    .stdout(flowr_child.stdin.take().ok_or_else(|| {
-                        io::Error::new(
-                            ErrorKind::Other,
-                            "Could not take STDIN of `flowr` process",
-                        )
-                    })?)
-                    .spawn();
-            }
+        .spawn().expect("Could not spawn runner");
 
-            flowr_child.wait_with_output()?;
-        }
-        Err(e) => return match e.kind() {
-            ErrorKind::NotFound => Err(io::Error::new(
-                ErrorKind::Other,
-                format!("`flowr` was not found! Check your $PATH. {e}"),
-            )),
-            _ => Err(io::Error::new(
-                ErrorKind::Other,
-                format!("Unexpected error running `flowr`: {e}"),
-            )),
-        },
+    let stdin_file = sample_dir.join(TEST_STDIN_FILENAME);
+    if stdin_file.exists() {
+        let _ = Command::new("cat")
+            .args(vec![stdin_file])
+            .stdout(runner_child.stdin.take().expect("Could not take STDIN"))
+            .spawn();
     }
+
+    runner_child.wait_with_output().expect("Could not get sub process output");
 
     // If flowrex was started - then kill it
     if let Some(mut child) = flowrex_child {
         println!("Killing 'flowrex'");
         child.kill().expect("Failed to kill server child process");
     }
-
-    Ok(())
 }
 
 /// Run an example and check the output matches the expected
-pub fn test_example(source_file: &str, flowrex: bool, native: bool) {
-    run_sample(source_file, flowrex, native).expect("Running of example failed");
+pub fn test_example(source_file: &str, runner: &str, flowrex: bool, native: bool) {
+    // tests run in the "flowr" subdirectory, to CD to root so the same as when running
+    let _ = env::set_current_dir(env::current_dir()
+        .expect("Could not get current directory")
+        .parent()
+        .expect("Could not CD to parent directory"));
+
+    run_example(source_file, runner, flowrex, native);
     check_test_output(source_file);
 }
 
-/// Read the flow args from a file and return them as a Vector of Strings that will be passed to `flowr`
+/// Read the flow args from a file and return them as a Vector of Strings that will be passed in
 fn args(sample_dir: &Path) -> io::Result<Vec<String>> {
     let args_file = sample_dir.join(TEST_ARGS_FILENAME);
 
@@ -156,7 +129,7 @@ fn args(sample_dir: &Path) -> io::Result<Vec<String>> {
 }
 
 // Compile a flow sample in-place in the `sample_dir` directory using flowc
-fn compile_sample(sample_path: &Path) {
+fn compile_sample(sample_path: &Path, runner: &str) {
     let sample_dir = sample_path.to_string_lossy();
     let mut command = Command::new("flowc");
     // -d for debug symbols
@@ -165,12 +138,14 @@ fn compile_sample(sample_path: &Path) {
     // -O to optimize the WASM files generated
     // -C <dir> to set the context root dir
     // <sample_dir> is the path to the directory of the sample flow to compile
-    let context_root = get_context_root().expect("Could not get context root");
+    let context_root = get_context_root(runner).expect("Could not get context root");
     let command_args = vec!["-d", "-g", "-c", "-O",
                             "-C", &context_root,
                             &sample_dir];
 
-    match command.args(&command_args).status() {
+    match command
+        .args(&command_args)
+        .status() {
         Ok(stat) => {
             if !stat.success() {
                 eprintln!("Error building sample, command line\n flowc {}",
@@ -185,13 +160,13 @@ fn compile_sample(sample_path: &Path) {
     }
 }
 
-fn get_context_root() -> Result<String, String> {
+fn get_context_root(runner: &str) -> Result<String, String> {
     let context_root = match env::var("FLOW_CONTEXT_ROOT") {
         Ok(var) => PathBuf::from(&var),
         Err(_) => {
             let samples_dir = Path::new(env!("CARGO_MANIFEST_DIR")).parent()
                 .ok_or("Could not get parent dir")?;
-            samples_dir.join("src/bin/flowrcli/context")
+            samples_dir.join(format!("src/bin/{}/context", runner))
         }
     };
     assert!(context_root.exists(), "Context root directory '{}' does not exist", context_root.display());
@@ -234,107 +209,4 @@ fn compare_and_fail(expected_path: PathBuf, actual_path: PathBuf) {
         panic!("Contents of '{}' doesn't match the expected contents in '{}'",
                actual_path.display(), expected_path.display());
     }
-}
-
-#[test]
-#[serial]
-fn test_args() {
-    test_example("args", false, true);
-}
-
-#[test]
-#[serial]
-fn test_arrays() {
-    test_example("arrays", false, true);
-}
-
-#[test]
-#[serial]
-fn test_factorial() {
-    test_example("factorial", false, true);
-}
-
-#[test]
-#[serial]
-fn test_fibonacci() {
-    test_example("fibonacci", false, true);
-}
-
-#[test]
-#[serial]
-fn test_fibonacci_wasm() {
-    test_example("fibonacci", false, false);
-}
-
-#[test]
-#[serial]
-fn test_fibonacci_flowrex() {
-    test_example("fibonacci", true, true);
-}
-
-#[test]
-#[serial]
-fn test_hello_world() {
-}
-
-#[test]
-#[serial]
-fn test_matrix_mult() {
-    test_example("matrix_mult", false, true);
-}
-
-#[test]
-#[serial]
-fn test_pipeline() {
-    test_example("pipeline", false, true);
-}
-
-#[test]
-#[serial]
-fn test_primitives() {
-    test_example("primitives", false, true);
-}
-
-#[test]
-#[serial]
-fn test_sequence() {
-    test_example("sequence", false, true);
-}
-
-#[test]
-#[serial]
-fn test_sequence_of_sequences() {
-    test_example("sequence-of-sequences", false, true);
-}
-
-#[test]
-#[serial]
-fn test_router() {
-    test_example("router", false, true);
-}
-
-#[test]
-#[serial]
-fn test_tokenizer() {
-    test_example("tokenizer", false, true);
-}
-
-// This sample uses provided implementations and hence is executing WASM
-#[test]
-#[serial]
-fn test_reverse_echo() {
-    test_example("reverse-echo", false, true);
-}
-
-// This sample uses provided implementations and hence is executing WASM
-#[test]
-#[serial]
-fn test_mandlebrot() {
-    test_example("mandlebrot", false, true);
-}
-
-#[test]
-#[serial]
-fn test_prime() {
-    test_example("prime", false, true);
 }

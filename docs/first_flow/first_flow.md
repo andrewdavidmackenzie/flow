@@ -13,7 +13,7 @@ separate flow description files, to enable encapsulation and flow reuse.
 
 In this case it is the only one, and no hierarchy of flows descriptions is used or needed.
 You can see the TOML root flow definition for this flow in the flowsample crate's fibonacci sample.
-[root.toml](../../flowsamples/fibonacci/root.toml)
+[root.toml](../../flowr/examples/fibonacci/root.toml)
 
 ### Interaction with the execution environment
 The root defines what the interaction with the surrounding execution environment is,

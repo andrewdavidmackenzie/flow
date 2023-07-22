@@ -66,19 +66,19 @@ Terminal 2
 
 First let's compile the fibonacci sample (but not run it) by using `flowc` with the `-c, --compile` option:
 
-`>  flowc -c -C flowr/src/bin/flowrcli/context flowsamples/fibonacci`
+`>  flowc -c -C flowr/src/bin/flowrcli/context flowr/examples/fibonacci`
 
 Let's check that worked:
 
 ```
-> ls flowsamples/fibonacci/manifest.json
-flowsamples/fibonacci/manifest.json
+> ls flowr/examples/fibonacci/manifest.json
+flowr/examples/fibonacci/manifest.json
 ```
 
 Then let's run the sample fibonacci flow, forcing zero executors threads so that we 
 see `flowrex` executing all (non context) jobs
 
-`> flowr -t 0 flowsamples/fibonacci`
+`> flowr -t 0 flowr/examples/fibonacci`
 
 That will produce the usual fibonacci series on the STDOUT of Terminal 2, then `flowr` exiting
 

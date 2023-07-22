@@ -41,13 +41,13 @@ the same network.
 ### Example of running a flow with "client" separate from "server"
 First let's compile the fibonacci sample (but not run it) by using `flowc` with the `-c, --compile` option:
 
-`>  flowc -c -C flowr/src/bin/flowrcli/context flowsamples/fibonacci`
+`>  flowc -c -C flowr/src/bin/flowrcli/context flowr/examples/fibonacci`
 
 Let's check that worked:
 
 ```
-> ls flowsamples/fibonacci/manifest.json
-flowsamples/fibonacci/manifest.json
+> ls flowr/examples/fibonacci/manifest.json
+flowr/examples/fibonacci/manifest.json
 ```
 
 In Terminal 1, lets start the server that will wait for a flow to be submitted for execution,
@@ -64,7 +64,7 @@ This will submit the flow to the server for execution over the network, reading 
 System. It will then execute the `client functions`, in response to messages from the server, providing STDIO (just 
 standard out in this example)
 
-`> flowr -c flowsamples/fibonacci`
+`> flowr -c flowr/examples/fibonacci`
 
 That will produce the usual fibonacci series on the STDOUT of Terminal 2.
 

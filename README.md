@@ -14,7 +14,7 @@ If you are a programmer, your intuition will probably tell you a lot already abo
 without any explanation.
 ![First flow](first.svg)
 This flow program generates a fibonacci series on standard output.
-It is one of the samples ([fibonacci](flowsamples/fibonacci/DESCRIPTION.md)) in the `flowsamples` crate 
+It is one of the samples ([fibonacci](flowr/examples/fibonacci/DESCRIPTION.md)) in the `flowr` crate 
 that is part of the`flow` project, and the first thing I got working (much to my own delight!).
 
 The two inputs to `add` (`i1` and `i2`) are initialized "once" (at startup) with 0 and 1. 
@@ -98,7 +98,7 @@ many rust functions to WebAssembly.
 ## Running your first 'flow'
 With `flowc` and `flowr` installed, you can run the 'fibonacci' sample flow using:
 
-`flowc flowsamples/fibonacci`
+`cargo run --example fibonacci`
 
 You should get a fibonacci series of numbers output to the terminal.
 

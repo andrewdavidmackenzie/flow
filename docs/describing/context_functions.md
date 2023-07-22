@@ -52,7 +52,7 @@ the `Context Root`. The rest of the Url specifies the location under the `Contex
 The `flow` project directory structure is used in this example, with `flow` located at `/Users/me/flow` and 
 `flow` in the users `$PATH`.
 
-The fibonacci sample flow is thus found in the `/Users/me/flow/flowsamples/fibonacci` directory.
+The fibonacci sample flow is thus found in the `/Users/me/flow/flowr/examples/fibonacci` directory.
 
 The `flowrcli` flow runner directory is at `/Users/me/flow/flowr/src/bin/flowrcli`. 
 Within that folder flowrcli provides a set of context function definitions for a Command Line Interface (CLI) 
@@ -61,7 +61,7 @@ implementation in the `context` sub-directory.
 If in the root directory of the `flow` project, using relative paths, the sample flow can be compiled and 
 run using the `-C, --context_root <CONTEXT_DIRECTORY>` option to `flowc`:
 ```
-> flowc -C flowr/src/bin/flowrcli/context flowsamples/fibonacci
+> flowc -C flowr/src/bin/flowrcli/context flowr/examples/fibonacci
 ```
 
 The `flowc` compiler sees the `"context://stdio/stdout"` reference. It has been told that the `Context Root` is
