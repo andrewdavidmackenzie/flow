@@ -3,3 +3,4 @@
 **/*.dot.svg
 **/*.stderr
 **/*.stdout
+**/*.wasm
