@@ -25,52 +25,12 @@ const EXPECTED_FILE_FILENAME : &str = "expected.file";
 /// Name of file where flow arguments for a flow sample test are read from
 const TEST_ARGS_FILENAME: &str = "test.args";
 
-// Compile a flow sample in-place in the `sample_dir` directory using flowc
-fn compile_sample(sample_path: &Path) {
-    let sample_dir = sample_path.to_string_lossy();
-    let mut command = Command::new("flowc");
-    // -d for debug symbols
-    // -g to dump graphs
-    // -c to skip running and only compile the flow
-    // -O to optimize the WASM files generated
-    // -C <dir> to set the context root dir
-    // <sample_dir> is the path to the directory of the sample flow to compile
-    let context_root = get_context_root().expect("Could not get context root");
-    let command_args = vec!["-d", "-g", "-c", "-O",
-                            "-C", &context_root,
-                            &sample_dir];
-
-    match command.args(&command_args).status() {
-        Ok(stat) => {
-            if !stat.success() {
-                eprintln!("Error building sample, command line\n flowc {}",
-                          command_args.join(" "));
-                std::process::exit(1);
-            }
-        }
-        Err(err) => {
-            eprintln!("'{}' running command 'flowc {}'", err, command_args.join(" "));
-            std::process::exit(1);
-        }
-    }
-}
-
-fn get_context_root() -> Result<String, String> {
-    let context_root = match env::var("FLOW_CONTEXT_ROOT") {
-        Ok(var) => PathBuf::from(&var),
-        Err(_) => {
-            let samples_dir = Path::new(env!("CARGO_MANIFEST_DIR")).parent()
-                .ok_or("Could not get parent dir")?;
-            samples_dir.join("src/bin/flowrcli/context")
-        }
-    };
-    assert!(context_root.exists(), "Context root directory '{}' does not exist", context_root.display());
-    Ok(context_root.to_str().expect("Could not convert path to String").to_string())
-}
-
 /// Run one specific flow sample
-pub fn run_sample(sample_dir: &Path, flowrex: bool, native: bool) -> io::Result<()> {
-    compile_sample(sample_dir);
+pub fn run_sample(source_file: &str, flowrex: bool, native: bool) -> io::Result<()> {
+    let mut sample_dir = PathBuf::from(source_file);
+    sample_dir.pop();
+
+    compile_sample(&sample_dir);
 
     let manifest_path = sample_dir.join("manifest.json");
     println!("\n\tRunning Sample: {:?}", sample_dir.file_name());
@@ -95,7 +55,7 @@ pub fn run_sample(sample_dir: &Path, flowrex: bool, native: bool) -> io::Result<
 
     command_args.push( manifest_path.display().to_string());
 
-    command_args.append(&mut args(sample_dir)?);
+    command_args.append(&mut args(&sample_dir)?);
 
     // Remove any previous output
     let _ = fs::remove_file(sample_dir.join(TEST_STDERR_FILENAME));
@@ -171,6 +131,12 @@ pub fn run_sample(sample_dir: &Path, flowrex: bool, native: bool) -> io::Result<
     Ok(())
 }
 
+/// Run an example and check the output matches the expected
+pub fn test_example(source_file: &str, flowrex: bool, native: bool) {
+    run_sample(source_file, flowrex, native).expect("Running of example failed");
+    check_test_output(source_file);
+}
+
 /// Read the flow args from a file and return them as a Vector of Strings that will be passed to `flowr`
 fn args(sample_dir: &Path) -> io::Result<Vec<String>> {
     let args_file = sample_dir.join(TEST_ARGS_FILENAME);
@@ -189,13 +155,53 @@ fn args(sample_dir: &Path) -> io::Result<Vec<String>> {
     Ok(args)
 }
 
-/// Run an example and check the output matches the expected
-pub fn test_example(sample_dir: &Path, flowrex: bool, native: bool) {
-    run_sample(sample_dir, flowrex, native).expect("Running of example failed");
-    check_test_output(sample_dir);
+// Compile a flow sample in-place in the `sample_dir` directory using flowc
+fn compile_sample(sample_path: &Path) {
+    let sample_dir = sample_path.to_string_lossy();
+    let mut command = Command::new("flowc");
+    // -d for debug symbols
+    // -g to dump graphs
+    // -c to skip running and only compile the flow
+    // -O to optimize the WASM files generated
+    // -C <dir> to set the context root dir
+    // <sample_dir> is the path to the directory of the sample flow to compile
+    let context_root = get_context_root().expect("Could not get context root");
+    let command_args = vec!["-d", "-g", "-c", "-O",
+                            "-C", &context_root,
+                            &sample_dir];
+
+    match command.args(&command_args).status() {
+        Ok(stat) => {
+            if !stat.success() {
+                eprintln!("Error building sample, command line\n flowc {}",
+                          command_args.join(" "));
+                std::process::exit(1);
+            }
+        }
+        Err(err) => {
+            eprintln!("'{}' running command 'flowc {}'", err, command_args.join(" "));
+            std::process::exit(1);
+        }
+    }
 }
 
-fn check_test_output(sample_dir: &Path) {
+fn get_context_root() -> Result<String, String> {
+    let context_root = match env::var("FLOW_CONTEXT_ROOT") {
+        Ok(var) => PathBuf::from(&var),
+        Err(_) => {
+            let samples_dir = Path::new(env!("CARGO_MANIFEST_DIR")).parent()
+                .ok_or("Could not get parent dir")?;
+            samples_dir.join("src/bin/flowrcli/context")
+        }
+    };
+    assert!(context_root.exists(), "Context root directory '{}' does not exist", context_root.display());
+    Ok(context_root.to_str().expect("Could not convert path to String").to_string())
+}
+
+fn check_test_output(source_file: &str) {
+    let mut sample_dir = PathBuf::from(source_file);
+    sample_dir.pop();
+
     let error_output = sample_dir.join(TEST_STDERR_FILENAME);
     if error_output.exists() {
         let contents = fs::read_to_string(&error_output).expect("Could not read from {STDERR_FILENAME} file");
