@@ -1,0 +1,5 @@
+**/manifest.json
+**/*.dot
+**/*.dot.svg
+**/*.stderr
+**/*.stdout
