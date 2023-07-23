@@ -51,7 +51,7 @@ pub fn run_example(source_file: &str, runner: &str, flowrex: bool, native: bool)
         vec![]
     };
 
-    lmaet flowrex_child = if flowrex {
+    let flowrex_child = if flowrex {
         // set 0 executor threads in flowr coordinator, so that all job execution is done in flowrex
         command_args.push("--threads".into());
         command_args.push("0".into());
