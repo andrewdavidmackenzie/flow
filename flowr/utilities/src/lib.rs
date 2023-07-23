@@ -30,8 +30,6 @@ pub fn run_example(source_file: &str, runner: &str, flowrex: bool, native: bool)
     let mut sample_dir = PathBuf::from(source_file);
     sample_dir.pop();
 
-    println!("sample_dir = {}", sample_dir.display());
-
     compile_sample(&sample_dir, runner);
 
     println!("\n\tRunning example: {}", sample_dir.display());
@@ -131,6 +129,8 @@ fn args(sample_dir: &Path) -> io::Result<Vec<String>> {
 // Compile a flow sample in-place in the `sample_dir` directory using flowc
 fn compile_sample(sample_path: &Path, runner: &str) {
     let sample_dir = sample_path.to_string_lossy();
+    let context_root = get_context_root(runner).expect("Could not get context root");
+
     let mut command = Command::new("flowc");
     // -d for debug symbols
     // -g to dump graphs
@@ -138,25 +138,16 @@ fn compile_sample(sample_path: &Path, runner: &str) {
     // -O to optimize the WASM files generated
     // -C <dir> to set the context root dir
     // <sample_dir> is the path to the directory of the sample flow to compile
-    let context_root = get_context_root(runner).expect("Could not get context root");
     let command_args = vec!["-d", "-g", "-c", "-O",
                             "-C", &context_root,
                             &sample_dir];
 
-    match command
+    let stat = command
         .args(&command_args)
-        .status() {
-        Ok(stat) => {
-            if !stat.success() {
-                eprintln!("Error building sample, command line\n flowc {}",
-                          command_args.join(" "));
-                std::process::exit(1);
-            }
-        }
-        Err(err) => {
-            eprintln!("'{}' running command 'flowc {}'", err, command_args.join(" "));
-            std::process::exit(1);
-        }
+        .status().expect("Could not get status of 'flowc' execution");
+
+    if !stat.success() {
+        panic!("Error building sample, command line\n flowc {}", command_args.join(" "));
     }
 }
 
