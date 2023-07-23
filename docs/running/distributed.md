@@ -64,7 +64,7 @@ indicating that it is waiting to discover the `flowr` process on the network.
 
 Terminal 2
 
-First let's compile the fibonacci sample (but not run it) by using `flowc` with the `-c, --compile` option:
+First let's compile the fibonacci example (but not run it) by using `flowc` with the `-c, --compile` option:
 
 `>  flowc -c -C flowr/src/bin/flowrcli/context flowr/examples/fibonacci`
 
@@ -75,7 +75,7 @@ Let's check that worked:
 flowr/examples/fibonacci/manifest.json
 ```
 
-Then let's run the sample fibonacci flow, forcing zero executors threads so that we 
+Then let's run the example fibonacci flow, forcing zero executors threads so that we 
 see `flowrex` executing all (non context) jobs
 
 `> flowr -t 0 flowr/examples/fibonacci`

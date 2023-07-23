@@ -1,6 +1,6 @@
 # Running the flow
 
-This flow exists as a sample in the `flowr/examples/fibonacci` folder. See the 
+This flow exists as an example in the `flowr/examples/fibonacci` folder. See the 
 [root.toml](../../flowr/examples/fibonacci/root.toml) root flow definition file
 
 You can run this flow and observe its output from the terminal, while in the flow project root folder:

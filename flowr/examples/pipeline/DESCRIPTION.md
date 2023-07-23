@@ -3,7 +3,7 @@ pipeline
 
 Description
 ===
-A sample that shows a simple "pipeline flow" with a number of functions organized into a
+A example that shows a simple "pipeline flow" with a number of functions organized into a
 pipeline. When supplied with a "stream" of inputs, multiple functions are able to run in
 parallel utilizing more than one core on the machine.
 

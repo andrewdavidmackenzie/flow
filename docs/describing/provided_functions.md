@@ -15,7 +15,7 @@ them to still be found and the flow compiled and ran.
 ### Examples
 The `flowr` crate has two examples that provide functions as part of the flow:
 * [Reverse Echo](../../flowr/examples/reverse-echo/DESCRIPTION.md) in the folder `flowr/examples/reverse-echo` - a
-  simple sample that provides a function to reverse a string
+  simple example that provides a function to reverse a string
 * [Mandlebrot](../../flowr/examples/mandlebrot/DESCRIPTION.md) in the folder `flowr/examples/mandlebrot` - provides
   two functions:
   * `pixel_to_point` to do conversions from pixels to points in 2D imaginary

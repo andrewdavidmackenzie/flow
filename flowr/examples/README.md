@@ -1,9 +1,9 @@
 # Flow Examples
-`examples` contains a set of sample flows used to demonstrate flow (flowc, flowr, flowstdlib), the different 
+`examples` contains a set of example flows used to demonstrate flow (flowc, flowr, flowstdlib), the different 
 semantics and characteristics of flows that can be written, and test them to ensure they continue to run
 correctly over time.
 
-Each subdirectory holds a self-contained flow sample, with flow definition, docs etc and some of 
+Each subdirectory holds a self-contained flow example, with flow definition, docs etc and some of 
 them provide their own function implementations that get compiled to WASM by flowc when the flow is compiled.
 
 ## Environment Variable Requirements

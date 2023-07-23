@@ -14,7 +14,7 @@ If you are a programmer, your intuition will probably tell you a lot already abo
 without any explanation.
 ![First flow](first.svg)
 This flow program generates a fibonacci series on standard output.
-It is one of the samples ([fibonacci](flowr/examples/fibonacci/DESCRIPTION.md)) in the `flowr` crate 
+It is one of the examples ([fibonacci](flowr/examples/fibonacci/DESCRIPTION.md)) in the `flowr` crate 
 that is part of the`flow` project, and the first thing I got working (much to my own delight!).
 
 The two inputs to `add` (`i1` and `i2`) are initialized "once" (at startup) with 0 and 1. 
@@ -57,7 +57,7 @@ The `flow` project includes:
 - Job executor: `flowrex` binary can be discovered (on same machine or local network) 
 by a runner and used to execute jobs, distributing execution in a basic fashion
 - Standard Library: `flowstdlib` library of pre-defined flows and functions that can be re-used in flows
-- Samples: A set of sample flows to illustrate flow programming (more to come!)
+- Examples: A set of example flows to illustrate flow programming (more to come!)
 - Docs: Extensive documentation in the [book](SUMMARY.md) documentation on defining flows, the runtime semantics, a 
   programmers guide, docs on tool command line options and how to use them, the `flowstdlib` library
 functions and flows, `flowr`'s context functions and more. The guide, including linked Code docs and rust
@@ -73,7 +73,7 @@ if I could do it and make it work, having stopped being a Software Engineer many
 and intuition I had in my head (no real formal knowledge in this area or reading of books and papers - 
 that came later *after* I did it).
 
-I implemented the runtime "semantics" as needed as I implemented the samples. It's been a journey of discovery:
+I implemented the runtime "semantics" as needed as I implemented the examples. It's been a journey of discovery:
 of writing something like this (for me), learning rust in the process and learning how such a programming 
 paradigm could work. I learned it could work, but requires a change in how you think about programming 
 (with procedural programming so ingrained in us). Sometimes I struggled to think about relatively simple
@@ -96,7 +96,7 @@ NOTE: Building of `flowstdlib` the first time will take a long time, as it is co
 many rust functions to WebAssembly.
 
 ## Running your first 'flow'
-With `flowc` and `flowr` installed, you can run the 'fibonacci' sample flow using:
+With `flowc` and `flowr` installed, you can run the 'fibonacci' example flow using:
 
 `cargo run --example fibonacci`
 
@@ -145,7 +145,7 @@ with the same backend (in ºflowrlibº) coordinating a flow and executing jobs -
 ### Testing
 Testing coverage is about 85%-90% and I try to keep it high. There are simple unit tests for functions, a
 lot of tests around the compiler semantics, integration tests of flow compile/run errors, and of flows
-that compile & run correctly, and the samples all have supplied test inputs files and expected output files
+that compile & run correctly, and the examples all have supplied test inputs files and expected output files
 and they are all tested to work correctly on every build. Additionally there are some integration 
 tests of the debugger and of executing a flow in client-server mode (separate processes for each) and
 the distribution of job execution using `flowrex`.
@@ -168,7 +168,7 @@ binary, or in a second compile-time-only tool.
 Apart from this README, I have written pretty extensive documentation in a "guide" or book 
 ([Table of Contents](SUMMARY.md)), using Markdown
 and mdbook. That describes writing flows, using flow, general ideas, the standard library functions,
-the samples etc. It's hard to keep up to date but I try and am always generating GH issues for myself to
+the examples etc. It's hard to keep up to date but I try and am always generating GH issues for myself to
 improve it! It doesn't go into two many details on the implementation, to reduce the burden of keeping it up to date.
 
 The docs combine Markdown files from the code repos, Markdown files in the docs folder, and code docs 

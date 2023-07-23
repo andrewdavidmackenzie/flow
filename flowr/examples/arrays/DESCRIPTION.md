@@ -14,7 +14,7 @@ a connection from an array of Type to Type.
 * P3 - adder    - input of type Number and output of type Number, adding 1 in the process
 * P4 - print    - print the output (the original sequence with '1' added to each number)
 
-This sample (with default settings on a multi-core machine) shows parallelism of the add function, dispatching
+This example (with default settings on a multi-core machine) shows parallelism of the add function, dispatching
 multiple jobs for it in parallel as the array of number output from the previous process is decomposed, creating
 a job for each Number. You can see this by using the `-j` option of the runtime to limit the number of outstanding
 jobs and the `-m` options to dump metrics after execution. The "Max Number of Parallel Jobs" should be similar or

@@ -39,7 +39,7 @@ They use mDNS and service discovery to discover the network address and port of 
 the same network.
 
 ### Example of running a flow with "client" separate from "server"
-First let's compile the fibonacci sample (but not run it) by using `flowc` with the `-c, --compile` option:
+First let's compile the fibonacci example (but not run it) by using `flowc` with the `-c, --compile` option:
 
 `>  flowc -c -C flowr/src/bin/flowrcli/context flowr/examples/fibonacci`
 

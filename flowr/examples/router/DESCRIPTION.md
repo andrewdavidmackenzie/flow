@@ -3,7 +3,7 @@ router
 
 Description
 ===
-This sample implements the algorithm (as described here https://github.com/andrewdavidmackenzie/router) for
+This example implements the algorithm (as described here https://github.com/andrewdavidmackenzie/router) for
 calculating the shortest route from a start-point to an end-point through a simplified road 
 network.
 

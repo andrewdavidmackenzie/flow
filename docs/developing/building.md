@@ -22,7 +22,7 @@ The `make config` target should install them all for you. It should work on `mac
 or `yum` package managers (PRs to Makefile are welcome for other linux package managers).
 
 ### Build and test
-To build and test, including building and testing docs and running the samples and checking their output is correct:
+To build and test, including building and testing docs and running the examples and checking their output is correct:
 
 `make`
 

@@ -27,7 +27,7 @@ error_chain! {
 
 /// Execution tests
 ///
-/// These are a set of System tests that compile a sample flow, and then execute it, capturing
+/// These are a set of System tests that compile a example flow, and then execute it, capturing
 /// the output and comparing it to the expected output.
 ///
 /// They depend on flowc being built already and in the users $PATH, in order that Command()

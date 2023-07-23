@@ -59,8 +59,8 @@ For each of these examples, there is first a `flowc` line showing how the flow c
 a compiled `manifest.json` flow manifest alongside the flow's root definition file. That manifest is then run using
 `flowr`
 
-- `flowc -C flowr/src/bin/flowrcli/context -c flowr/examples/fibonacci` - compile the fibonacci sample
-- `flowr flowr/examples/fibonacci` - run the pre-compiled fibonacci sample flow manifest
+- `flowc -C flowr/src/bin/flowrcli/context -c flowr/examples/fibonacci` - compile the fibonacci example
+- `flowr flowr/examples/fibonacci` - run the pre-compiled fibonacci example flow manifest
     - You should get a fibonacci series output to the terminal,
 - `unset FLOW_LIB_PATH;flowc -C flowr/src/bin/flowrcli/context -c -L $HOME/.flow/lib flowr/examples/fibonacci` - compile the flow
 - `unset FLOW_LIB_PATH;flowr -L $HOME/.flow/lib flowr/examples/fibonacci` - 

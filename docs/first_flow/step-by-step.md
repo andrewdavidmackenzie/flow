@@ -1,5 +1,5 @@
 ## Step-by-Step
-Here we walk you through the execution of the previous "my first flow" (the fibonacci series sample).
+Here we walk you through the execution of the previous "my first flow" (the fibonacci series example).
 
 Compiled flows consist of only functions, so flow execution consists of executing functions, or more precisely, jobs
 formed from a set of inputs, and a reference to the function implementation.

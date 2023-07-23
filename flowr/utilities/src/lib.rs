@@ -4,28 +4,28 @@ use std::io::{BufRead, BufReader};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 
-/// Name of file where any Stdout will be written while executing a flowsample in test mode
+/// Name of file where any Stdout will be written while executing an example
 const TEST_STDOUT_FILENAME: &str = "test.stdout";
 
 /// Name of file where the Stdout is defined
 const EXPECTED_STDOUT_FILENAME : &str = "expected.stdout";
 
-/// Name of file where any Stdin will be read from while executing a flowsample in test mode
+/// Name of file where any Stdin will be read from while executing am example
 const TEST_STDIN_FILENAME : &str = "test.stdin";
 
-/// Name of file where any Stderr will be written from while executing a flowsample in test mode
+/// Name of file where any Stderr will be written from while executing an example
 const TEST_STDERR_FILENAME : &str = "test.stderr";
 
-/// Name of file used for file output of a sample
+/// Name of file used for file output of a example
 const TEST_FILE_FILENAME: &str = "test.file";
 
 /// Name of file where expected file output is defined
 const EXPECTED_FILE_FILENAME : &str = "expected.file";
 
-/// Name of file where flow arguments for a flow sample test are read from
+/// Name of file where flow arguments for a flow example test are read from
 const TEST_ARGS_FILENAME: &str = "test.args";
 
-/// Run one specific flow sample
+/// Run one specific flow example
 pub fn run_example(source_file: &str, runner: &str, flowrex: bool, native: bool) {
     let mut sample_dir = PathBuf::from(source_file);
     sample_dir.pop();
@@ -136,7 +136,7 @@ fn args(sample_dir: &Path) -> io::Result<Vec<String>> {
     Ok(args)
 }
 
-// Compile a flow sample in-place in the `sample_dir` directory using flowc
+// Compile a flow example in-place in the `sample_dir` directory using flowc
 fn compile_sample(sample_path: &Path, runner: &str) {
     let sample_dir = sample_path.to_string_lossy();
     let context_root = get_context_root(runner).expect("Could not get context root");
@@ -157,7 +157,7 @@ fn compile_sample(sample_path: &Path, runner: &str) {
         .status().expect("Could not get status of 'flowc' execution");
 
     if !stat.success() {
-        panic!("Error building sample, command line\n flowc {}", command_args.join(" "));
+        panic!("Error building example, command line\n flowc {}", command_args.join(" "));
     }
 }
 

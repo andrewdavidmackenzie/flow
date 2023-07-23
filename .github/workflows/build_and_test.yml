@@ -86,7 +86,7 @@ jobs:
           command: build
           args: -p flowr
 
-      # flowstdlib is required to run some tests and most samples
+      # flowstdlib is required to run some tests and most flowr examples
       - name: build-flowstdlib
         uses: actions-rs/cargo@v1
         with:

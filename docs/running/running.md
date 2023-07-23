@@ -41,21 +41,21 @@ See the next section [flowc](flowc.md) for a description of the command line arg
   uses the `context_functions` provided by `flowr` and run the flow whose root flow is defined in `./flowr/examples/fibonacci/root.toml`. 
   Do not pass in any arguments to the flow. 
   - You should get a fibonacci series output to the terminal, 
-- `echo "Hello" | flowc -C flowr/src/bin/flowrcli/context flowr/examples/reverse-echo` - This samples reads from STDIN so we echo in 
+- `echo "Hello" | flowc -C flowr/src/bin/flowrcli/context flowr/examples/reverse-echo` - This example reads from STDIN so we echo in 
   some text.
   - You may see some output like:
   
     `Testing /Users/andrew/workspace/flow/flowr/examples/reverse-echo/reverse/Cargo.toml WASM Project
      Compiling /Users/andrew/workspace/flow/flowr/examples/reverse-echo/reverse/Cargo.toml WASM project`
 
-    the first time this sample is run as the `provided function` is tested and compiled to WASM, followed by
+    the first time this example is run as the `provided function` is tested and compiled to WASM, followed by
 
     `olleH`
 
     which is the input string "Hello" reversed.
 - `unset FLOW_LIB_PATH;flowc -C flowr/src/bin/flowrcli/context -L target flowr/examples/fibonacci` - first ensures that the $FLOW_LIB_PATH
 environment variable is not set and is not being used to locate libraries, and in order to help `flowc` and `flowr` 
-find the `flowstdlib` library used by the sample (previously compiled into `target` directory) it specified that as a
+find the `flowstdlib` library used by the example (previously compiled into `target` directory) it specified that as a
 directory for the library search path using the `-L, --libdir <LIB_DIR|BASE_URL>` Option
   - You should get a fibonacci series output to the terminal, 
 - `flowc -C flowr/src/bin/flowrcli/context flowr/examples/sequence 10` - as previous examples except that after the `source_url` a 

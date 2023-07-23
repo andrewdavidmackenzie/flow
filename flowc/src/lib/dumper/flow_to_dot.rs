@@ -46,7 +46,7 @@ pub(crate) static OUTPUT_PORTS: &[&str] = &["s", "se", "sw", "e"];
 /// let provider = MetaProvider::new(lib_search_path, PathBuf::from("/"));
 ///
 /// let mut url = Url::from_file_path(env::current_dir().unwrap()).unwrap();
-/// url = url.join("samples/hello-world/root.toml").unwrap();
+/// url = url.join("flowr/examples/hello-world/root.toml").unwrap();
 ///
 /// if let Ok(FlowProcess(mut flow)) = flowrclib::compiler::parser::parse(&url, &provider) {
 ///     // strip off filename so output_dir is where the root.toml file resides
@@ -440,8 +440,8 @@ mod test {
 
     #[test]
     fn sub_dir_relative_path() {
-        let target = Path::new("/Users/andrew/.flow/samples/flowr/examples/mandlebrot/escapes/escapes.html");
-        let parent = Path::new("/Users/andrew/.flow/samples/flowr/examples/mandlebrot/render.dot.svg");
+        let target = Path::new("flowr/examples/mandlebrot/escapes/escapes.html");
+        let parent = Path::new("flowr/examples/mandlebrot/render.dot.svg");
 
         let relative = absolute_to_relative(target, parent.to_path_buf())
             .expect("Could not form a relative path");

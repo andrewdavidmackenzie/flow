@@ -165,7 +165,7 @@
 - [Ways to contribute](docs/developing/contributing.md)
     - [Issues](docs/developing/issues.md)
     - [PRs](docs/developing/prs.md)
-    - [Developing a sample](flowr/examples/README.md)
+    - [Developing an example](flowr/examples/README.md)
     - [Continuous Integration Tests](docs/developing/ci.md)
         
 # Internals of the `flow` Project

@@ -52,7 +52,7 @@ using the `-v/--verbosity` option.
 So, if you want to walk through each and every step of the flow's execution, similar to the previous [step by step section](step-by-step.md) 
 then you can do so by using `-v debug` and piping the output to `more` (as there is a lot of output!):
  
- `cargo run -p flowc -- samples/fibonacci -- -v debug| more`
+ `cargo run -p flowc -- flowr/examples/fibonacci -- -v debug| more`
 
 which should produce output similar to this:
 
