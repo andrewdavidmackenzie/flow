@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `flowc/src/bin/flowc/main.rs`."><title>main.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Bold-a2c9cd1067f8b328.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-cb6f1f67f1bcd037.css" id="mainThemeStyle"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="flowc" data-themes="" data-resource-suffix="" data-rustdoc-version="1.73.0-nightly (0308df23e 2023-07-21)" data-channel="nightly" data-search-js="search-6dfdfced5eff6596.js" data-settings-js="settings-de11bff964e9d4e5.js" data-settings-css="settings-8c76f75bfb6bd192.css" data-theme-light-css="light-6d2c9675f3d09c26.css" data-theme-dark-css="dark-45ceb8f2e522f4d1.css" data-theme-ayu-css="ayu-fd19013d6ce078bf.css" ><script src="../../static.files/storage-db41da1a38ea3cb8.js"></script><script defer src="../../static.files/src-script-3280b574d94e47b4.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-0795b7d26be81095.js"></script><noscript><link rel="stylesheet" media="(prefers-color-scheme:light)" href="../../static.files/light-6d2c9675f3d09c26.css"><link rel="stylesheet" media="(prefers-color-scheme:dark)" href="../../static.files/dark-45ceb8f2e522f4d1.css"><link rel="stylesheet" href="../../static.files/noscript-cffde32267a19fd6.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><a class="sub-logo-container" href="../../flowc/index.html"><img class="rust-logo" src="../../static.files/rust-logo-151179464ae7ed46.svg" alt="logo"></a><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `flowc/src/bin/flowc/main.rs`."><title>main.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Bold-a2c9cd1067f8b328.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-cb6f1f67f1bcd037.css" id="mainThemeStyle"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="flowc" data-themes="" data-resource-suffix="" data-rustdoc-version="1.73.0-nightly (1d56e3a6d 2023-07-22)" data-channel="nightly" data-search-js="search-6dfdfced5eff6596.js" data-settings-js="settings-de11bff964e9d4e5.js" data-settings-css="settings-8c76f75bfb6bd192.css" data-theme-light-css="light-6d2c9675f3d09c26.css" data-theme-dark-css="dark-45ceb8f2e522f4d1.css" data-theme-ayu-css="ayu-fd19013d6ce078bf.css" ><script src="../../static.files/storage-db41da1a38ea3cb8.js"></script><script defer src="../../static.files/src-script-3280b574d94e47b4.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-0795b7d26be81095.js"></script><noscript><link rel="stylesheet" media="(prefers-color-scheme:light)" href="../../static.files/light-6d2c9675f3d09c26.css"><link rel="stylesheet" media="(prefers-color-scheme:dark)" href="../../static.files/dark-45ceb8f2e522f4d1.css"><link rel="stylesheet" href="../../static.files/noscript-cffde32267a19fd6.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><a class="sub-logo-container" href="../../flowc/index.html"><img class="rust-logo" src="../../static.files/rust-logo-151179464ae7ed46.svg" alt="logo"></a><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -338,10 +338,6 @@
 <a href="#338" id="338">338</a>
 <a href="#339" id="339">339</a>
 <a href="#340" id="340">340</a>
-<a href="#341" id="341">341</a>
-<a href="#342" id="342">342</a>
-<a href="#343" id="343">343</a>
-<a href="#344" id="344">344</a>
 </pre></div><pre class="rust"><code><span class="attr">#![deny(missing_docs)]
 #![warn(clippy::unwrap_used)]
 #![allow(clippy::result_large_err)]
@@ -362,7 +358,7 @@
 
 <span class="kw">use </span>clap::{Arg, ArgMatches, Command};
 <span class="kw">use </span>env_logger::Builder;
-<span class="kw">use </span>log::{debug, info, LevelFilter, warn};
+<span class="kw">use </span>log::{debug, error, info, LevelFilter, warn};
 <span class="kw">use </span>serde_derive::Deserialize;
 <span class="kw">use </span>simpath::Simpath;
 <span class="kw">use </span>url::Url;
@@ -414,14 +410,14 @@
 <span class="kw">fn </span>main() {
     <span class="kw">match </span>run() {
         <span class="prelude-val">Err</span>(<span class="kw-2">ref </span>e) =&gt; {
-            <span class="macro">eprintln!</span>(<span class="string">&quot;{e}&quot;</span>);
+            <span class="macro">error!</span>(<span class="string">&quot;{e}&quot;</span>);
             <span class="kw">for </span>e <span class="kw">in </span>e.iter().skip(<span class="number">1</span>) {
-                <span class="macro">eprintln!</span>(<span class="string">&quot;caused by: {e}&quot;</span>);
+                <span class="macro">error!</span>(<span class="string">&quot;caused by: {e}&quot;</span>);
             }
 
             <span class="comment">// The backtrace is generated if env var `RUST_BACKTRACE` is set to `1` or `full`
             </span><span class="kw">if let </span><span class="prelude-val">Some</span>(backtrace) = e.backtrace() {
-                <span class="macro">eprintln!</span>(<span class="string">&quot;backtrace: {backtrace:?}&quot;</span>);
+                <span class="macro">error!</span>(<span class="string">&quot;backtrace: {backtrace:?}&quot;</span>);
             }
 
             exit(<span class="number">1</span>);
@@ -476,9 +472,7 @@
     }
 }
 
-<span class="comment">/*
-    Parse the command line arguments using clap
-*/
+<span class="comment">// Parse the command line arguments using clap
 </span><span class="kw">fn </span>get_matches() -&gt; ArgMatches {
     <span class="kw">let </span>app = Command::new(<span class="macro">env!</span>(<span class="string">&quot;CARGO_PKG_NAME&quot;</span>))
         .version(<span class="macro">env!</span>(<span class="string">&quot;CARGO_PKG_VERSION&quot;</span>));
@@ -585,7 +579,7 @@
                 .num_args(<span class="number">0</span>..<span class="number">1</span>)
                 .number_of_values(<span class="number">1</span>)
                 .value_name(<span class="string">&quot;VERBOSITY_LEVEL&quot;</span>)
-                .help(<span class="string">&quot;Set verbosity level for output (trace, debug, info, warn, error (default))&quot;</span>),
+                .help(<span class="string">&quot;Set verbosity level for output (trace, debug, info, warn, error (default), off)&quot;</span>),
         )
         .arg(
             Arg::new(<span class="string">&quot;stdin&quot;</span>)
@@ -611,9 +605,7 @@
     app.get_matches()
 }
 
-<span class="comment">/*
-    Parse the command line arguments
-*/
+<span class="comment">// Parse the command line arguments
 </span><span class="kw">fn </span>parse_args(matches: ArgMatches) -&gt; <span class="prelude-ty">Result</span>&lt;Options&gt; {
     <span class="kw">let </span>default = String::from(<span class="string">&quot;error&quot;</span>);
     <span class="kw">let </span>verbosity_option = matches.get_one::&lt;String&gt;(<span class="string">&quot;verbosity&quot;</span>);
