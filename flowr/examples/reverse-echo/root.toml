@@ -1,0 +1,20 @@
+flow = "reverse-echo"
+docs = "DESCRIPTION.md"
+
+[[process]]
+source = "context://stdio/readline"
+input.prompt = { always =  "" }
+
+[[connection]]
+from = "readline/string"
+to = "reverse"
+
+[[process]]
+source = "reverse/reverse"
+
+[[connection]]
+from = "reverse"
+to = "stdout"
+
+[[process]]
+source = "context://stdio/stdout"

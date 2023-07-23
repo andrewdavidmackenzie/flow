@@ -112,7 +112,7 @@ jobs:
         # The two platforms don't agree on how to talk about env vars but they
         # do agree on 'cat' and '$()' so we use that to marshal values between commands.
         run: |
-          # build debug versions of flowc and flowstdlib for use in building flowstdlib and flowsamples
+          # build debug versions of flowc and flowstdlib for use in building flowr
           cargo build -p flowc
           cargo build -p flowstdlib
           # Actually do builds and make zips and whatnot
@@ -149,8 +149,6 @@ jobs:
           echo "uploaded manifest!"
           gh release upload ${{ needs.create-release.outputs.tag }} $HOME/.flow/lib/flowstdlib
           echo "Added flowstdlib compiled library to the release"
-          gh release upload ${{ needs.create-release.outputs.tag }} $HOME/.flow/samples/flowsamples
-          echo "Added the flowsamples to the release"
           # Edit the Github Release™️ title/body to match what cargo-dist thinks it should be
           CHANGELOG_TITLE=$(cat dist-manifest.json | jq --raw-output ".releases[].changelog_title")
           cat dist-manifest.json | jq --raw-output ".releases[].changelog_body" > new_dist_changelog.md

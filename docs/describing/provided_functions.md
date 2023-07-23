@@ -13,10 +13,10 @@ between directories, files systems and systems/nodes and the relative locations 
 them to still be found and the flow compiled and ran.
 
 ### Examples
-The `flowsamples` crates has two samples that provide functions as part of the flow:
-* [Reverse Echo](../../flowsamples/reverse-echo/DESCRIPTION.md) in the folder `flowsamples/reverse-echo` - a
-  simple sample that provides a function to reverse a string
-* [Mandlebrot](../../flowsamples/mandlebrot/DESCRIPTION.md) in the folder `flowsamples/mandlebrot` - provides
+The `flowr` crate has two examples that provide functions as part of the flow:
+* [Reverse Echo](../../flowr/examples/reverse-echo/DESCRIPTION.md) in the folder `flowr/examples/reverse-echo` - a
+  simple example that provides a function to reverse a string
+* [Mandlebrot](../../flowr/examples/mandlebrot/DESCRIPTION.md) in the folder `flowr/examples/mandlebrot` - provides
   two functions:
   * `pixel_to_point` to do conversions from pixels to points in 2D imaginary
     coordinates space
@@ -27,7 +27,7 @@ In order to provide a function as part of a flow the developer must provide:
 
 #### Function definition file
 Definition of the function in a TOML file.   
-Example [escapes.toml](../../flowsamples/mandlebrot/escapes/escapes.toml)  
+Example [escapes.toml](../../flowr/examples/mandlebrot/escapes/escapes.toml)  
 The same as any other function definition it must define:
    * `function` - field to show this is a function definition file and provide the function's name 
    * `source` - the name of the implementation file (relative path to this file)
@@ -35,11 +35,11 @@ The same as any other function definition it must define:
    * `input`- the function's inputs - as described in [IOs](ios.md)
    * `output`- the function's outputs - as described in [IOs](ios.md)
    * `docs` - Documentation markdown file (relative path)  
-Example [escapes.md](../../flowsamples/mandlebrot/escapes/escapes.md)
+Example [escapes.md](../../flowr/examples/mandlebrot/escapes/escapes.md)
 
 #### Implementation
 Code that implements the function of the type specified by `type` in the file specified by `source`.  
-Example: [escapes.rs](../../flowsamples/mandlebrot/escapes/escapes.rs)
+Example: [escapes.rs](../../flowr/examples/mandlebrot/escapes/escapes.rs)
 
 This may optionally include tests, that will be compiled and run natively.
 

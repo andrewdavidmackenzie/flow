@@ -3,7 +3,7 @@ The CI build and test run in Travis on each push to a branch or PR can be run lo
 using ```make travis```.
 
 These tests include unit and integration tests, rust doc-tests and it also compiles, generates, runs and checks the 
-output of all the samples found in the ./samples folder.
+output of all the examples in `flowr`
 
 This will also rebuild the guide locally.
 

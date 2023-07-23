@@ -16,7 +16,7 @@ use std::sync::Arc;
 
 use clap::{Arg, ArgMatches, Command};
 use env_logger::Builder;
-use log::{info, LevelFilter, trace, warn};
+use log::{error, info, LevelFilter, trace, warn};
 use simpath::Simpath;
 use simpdiscoverylib::BeaconListener;
 #[cfg(feature = "flowstdlib")]
@@ -46,14 +46,14 @@ fn discover_service(discovery_port: u16, name: &str) -> Result<String> {
 fn main() {
     match run() {
         Err(ref e) => {
-            eprintln!("{e}");
+            error!("{e}");
             for e in e.iter().skip(1) {
-                eprintln!("caused by: {e}");
+                error!("caused by: {e}");
             }
 
             // The backtrace is generated if env var `RUST_BACKTRACE` is set to `1` or `full`
             if let Some(backtrace) = e.backtrace() {
-                eprintln!("backtrace: {backtrace:?}");
+                error!("backtrace: {backtrace:?}");
             }
 
             exit(1);
@@ -150,7 +150,7 @@ fn get_matches() -> ArgMatches {
             .long("verbosity")
             .number_of_values(1)
             .value_name("VERBOSITY_LEVEL")
-            .help("Set verbosity level for output (trace, debug, info, warn, error (default))"));
+            .help("Set verbosity level for output (trace, debug, info, warn, error (default), off)"));
 
     app.get_matches()
 }

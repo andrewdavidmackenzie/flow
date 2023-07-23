@@ -1,17 +1,17 @@
 # Running the flow
 
-This flow exists as a sample in the `flowsamples/fibonacci` folder. See the 
-[root.toml](../../flowsamples/fibonacci/root.toml) root flow definition file
+This flow exists as an example in the `flowr/examples/fibonacci` folder. See the 
+[root.toml](../../flowr/examples/fibonacci/root.toml) root flow definition file
 
 You can run this flow and observe its output from the terminal, while in the flow project root folder:
 
 ```shell script
-> cargo run -p flowc -- -C flowr/src/bin/flowrcli/context flowsamples/fibonacci
+> cargo run -p flowc -- -C flowr/src/bin/flowrcli/context flowr/examples/fibonacci
 ```
 
 `flowc` will compile the flow definition from the root flow definition file (`root.toml`) using the `context functions`
 offered by `flowr` (defined in the `flowr/src/bin/flowrcli/context` folder) to generate a `manifest.json` compiled flow manifest in the 
-`flowsamples/fibonacci` folder.
+`flowr/examples/fibonacci` folder.
 
 `flowc` then runs `flowr` to execute the flow.
 
@@ -20,10 +20,10 @@ offered by `flowr` (defined in the `flowr/src/bin/flowrcli/context` folder) to g
 The flow will produce a fibonacci series printed to Stdout on the terminal.
 
 ```shell script
-> cargo run -p flowc -- -C flowr/src/bin/flowrcli/context flowsamples/fibonacci
+> cargo run -p flowc -- -C flowr/src/bin/flowrcli/context flowr/examples/fibonacci
    Compiling flowstdlib v0.6.0 (/Users/andrew/workspace/flow/flowstdlib)
     Finished dev [unoptimized + debuginfo] target(s) in 1.75s
-     Running `target/debug/flowc flowsamples/first`
+     Running `target/debug/flowc flowr/examples/first`
 1
 2
 3

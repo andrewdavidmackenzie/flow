@@ -9,7 +9,7 @@ folder in the code.
 ### Structure of each test
 Each test flow of name 'test-name' is in its own folder, which includes:
 * A `root.toml` file that contains the flow description
-* Files used in the automated testing of each sample:
+* Files used in the automated testing of each example:
     * `test.args` any arguments to be passed to the flow when running it. If doesn't exist, no arguments are passed.
     * `test.stdin` any input supplied to the flow on standard input when running it. If doesn't exist, no input is sent.
     * `expected.stdout` the output that the flow is expected to produce when run

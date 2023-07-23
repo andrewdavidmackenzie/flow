@@ -38,7 +38,7 @@ The input values used in an execution are made available at the output alongside
 *when completes execution*. Thus a connection can be formed from this input value and the value is
 sent via connections when the function completes, similar to the output value. It is also possible to
 feedback this input value back to the same or different input for use in recursion. An example of this can be
-seen in the [fibonacci example](../../flowsamples/fibonacci/root.toml) flow definition.
+seen in the [fibonacci example](../../flowr/examples/fibonacci/root.toml) flow definition.
 ```
 # Loop back the input value #2 from this calculation, to be the input to input #1 on the next iteration
 [[connection]]
@@ -106,7 +106,7 @@ When a function runs it produces a result that can contain an output. The result
 inputs used to produce any output. Thus input values can be reused by connecting from this "output input-value"
 in connections to other processes, or looped back to an input of the same function.
 
-Example, the [fibonacci example](../../flowsamples/fibonacci/root.toml) uses this to define recursion.
+Example, the [fibonacci example](../../flowr/examples/fibonacci/root.toml) uses this to define recursion.
 
 ```
 ...

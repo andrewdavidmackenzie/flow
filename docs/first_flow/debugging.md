@@ -52,7 +52,7 @@ using the `-v/--verbosity` option.
 So, if you want to walk through each and every step of the flow's execution, similar to the previous [step by step section](step-by-step.md) 
 then you can do so by using `-v debug` and piping the output to `more` (as there is a lot of output!):
  
- `cargo run -p flowc -- samples/fibonacci -- -v debug| more`
+ `cargo run -p flowc -- flowr/examples/fibonacci -- -v debug| more`
 
 which should produce output similar to this:
 
@@ -64,7 +64,7 @@ INFO    - Library 'context' loaded.
 DEBUG   - Loading library 'flowstdlib' from 'native'
 INFO    - Library 'flowstdlib' loaded.
 INFO    - Starting 4 executor threads
-DEBUG   - Loading flow manifest from 'file:///Users/andrew/workspace/flow/flowsamples/fibonacci/manifest.json'
+DEBUG   - Loading flow manifest from 'file:///Users/andrew/workspace/flow/flowr/examples/fibonacci/manifest.json'
 DEBUG   - Loading libraries used by the flow
 DEBUG   - Resolving implementations
 DEBUG   - Setup 'FLOW_ARGS' with values = '["my-first-flow"]'

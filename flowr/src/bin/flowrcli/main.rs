@@ -28,6 +28,12 @@ use std::process::exit;
 use std::sync::{Arc, Mutex};
 
 use clap::{Arg, ArgMatches, Command};
+use env_logger::Builder;
+use log::{error, info, LevelFilter, trace, warn};
+use portpicker::pick_unused_port;
+use simpath::Simpath;
+use url::Url;
+
 use cli::cli_client::CliRuntimeClient;
 #[cfg(feature = "debugger")]
 use cli::cli_debug_client::CliDebugClient;
@@ -44,7 +50,6 @@ use cli::debug_message::DebugServerMessage;
 use cli::debug_message::DebugServerMessage::{BlockBreakpoint, DataBreakpoint, ExecutionEnded, ExecutionStarted,
                                              ExitingDebugger, JobCompleted, JobError, Panic, PriorToSendingJob,
                                              Resetting, WaitingForCommand};
-use env_logger::Builder;
 use flowcore::errors::*;
 use flowcore::meta_provider::MetaProvider;
 use flowcore::model::flow_manifest::FlowManifest;
@@ -57,10 +62,6 @@ use flowrlib::executor::Executor;
 use flowrlib::info as flowrlib_info;
 use flowrlib::services::{CONTROL_SERVICE_NAME, JOB_QUEUES_DISCOVERY_PORT, JOB_SERVICE_NAME,
                          RESULTS_JOB_SERVICE_NAME};
-use log::{info, LevelFilter, trace, warn};
-use portpicker::pick_unused_port;
-use simpath::Simpath;
-use url::Url;
 
 use crate::cli::connections::{COORDINATOR_SERVICE_NAME, DEBUG_SERVICE_NAME,
                               discover_service, enable_service_discovery};
@@ -82,14 +83,14 @@ mod errors;
 fn main() {
     match run() {
         Err(ref e) => {
-            eprintln!("{e}");
+            error!("{e}");
             for e in e.iter().skip(1) {
-                eprintln!("caused by: {e}");
+                error!("caused by: {e}");
             }
 
             // The backtrace is generated if env var `RUST_BACKTRACE` is set to `1` or `full`
             if let Some(backtrace) = e.backtrace() {
-                eprintln!("backtrace: {backtrace:?}");
+                error!("backtrace: {backtrace:?}");
             }
 
             exit(1);
@@ -490,7 +491,7 @@ fn get_matches() -> ArgMatches {
             .long("verbosity")
             .number_of_values(1)
             .value_name("VERBOSITY_LEVEL")
-            .help("Set verbosity level for output (trace, debug, info, warn, default: error)"))
+            .help("Set verbosity level for output (trace, debug, info, warn, error(default), off)"))
         .arg(Arg::new("flow-manifest")
             .num_args(1)
             .help("the file path of the 'flow' manifest file"))

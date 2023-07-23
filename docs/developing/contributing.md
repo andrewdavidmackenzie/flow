@@ -5,7 +5,7 @@ There are many ways of contributing:
 [issue](https://github.com/users/andrewdavidmackenzie/projects/2/views/1) and try 
 and fix it (I am not very good at labelling these, but will try)
 - adding to or correcting the docs and this guide
-- adding a new sample
+- adding a new example
 - improvements to the libraries, compiler, standard library, run-time
 - improvements to unit or integration tests
 - improvements to build processes
@@ -13,7 +13,7 @@ and fix it (I am not very good at labelling these, but will try)
 To get started, fork the [repo](http://github.com/andrewdavidmackenzie/flow), 
 clone it locally and build from source, as described in [building](building.md).
 
-Maybe run a sample or two. Samples that don't require specific arguments or standard 
+Maybe run an example or two. Samples that don't require specific arguments or standard 
 input to work correctly (such as fibonacci) are the easiest to get started.
 
 Then, once you know everything is working correctly, chose an issue to work on 

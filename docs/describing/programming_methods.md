@@ -36,9 +36,9 @@ determined by the logic of the flow itself, preventing, for example, that one va
 some change to the context before another one.
 
 Examples of ways to create determinism are:
-- [fibonacci example](../../flowsamples/fibonacci/root.toml) use of a feedback connection so that one value is used
+- [fibonacci example](../../flowr/examples/fibonacci/root.toml) use of a feedback connection so that one value is used
 in the calculation of the next value, thus guaranteeing the order of the series.
-- [sequence example](../../flowsamples/sequence/root.toml) use of a "data flow control" function (`join`) to ensure
+- [sequence example](../../flowr/examples/sequence/root.toml) use of a "data flow control" function (`join`) to ensure
 that a string is not sent to the `stdout` function until a specific condition (`end-of-sequence`) is met.
   ```
   # Output a string to show we're done when the Sequence ends
@@ -113,7 +113,7 @@ array of elements gathered so far, and so on until the desired size of chunk is 
 What would be a nested for loop in a procedural program can be implemented by putting two flows in series, with
 one feeding the other. 
 
-For example in the [sequence-of-sequences](../../flowsamples/sequence-of-sequences/root.toml) 
+For example in the [sequence-of-sequences](../../flowr/examples/sequence-of-sequences/root.toml) 
 example a first instance of a `sequence` flow generates a series of "limits" for sequence of sequences to count up to.
 
 A value for the start of each sequence, and the series of sequence limits is fed into another instance of the 

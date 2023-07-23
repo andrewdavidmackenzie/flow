@@ -11,7 +11,7 @@ In this case the data is such that it can be segmented and worked on in parallel
 for each chunk of data.
 
 An example would be some image processing or image generation task, such as generating the mandlebrot set
-(see the [mandlebrot](../../flowsamples/mandlebrot/DESCRIPTION.md) example in `flowsamples`).
+(see the [mandlebrot](../../flowr/examples/mandlebrot/DESCRIPTION.md) example in `flowr/examples`).
 
 The two-dimensional space is broken up into a 2D Array of pixels or points, and then they are streamed through
 a function or sub-flow that does some processing or calculation, producing a new 2D Array of output values.
@@ -47,7 +47,7 @@ final output.
 
 ## Pipelining
 A `flow` program to implement pipeline processing of data is trivial and there is a 
-[pipeline](../../flowsamples/pipeline/DESCRIPTION.md) example in`flowsamples`.
+[pipeline](../../flowr/examples/pipeline/DESCRIPTION.md) example in`flowr/examples`.
 
 A series of processes (they can be `functions` or `subflows`) are defined. Input data is connected to flow
 to the first, whose output is sent to the second, and so on and the output rendered for the user.
