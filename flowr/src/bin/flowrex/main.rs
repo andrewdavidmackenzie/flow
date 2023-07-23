@@ -150,7 +150,7 @@ fn get_matches() -> ArgMatches {
             .long("verbosity")
             .number_of_values(1)
             .value_name("VERBOSITY_LEVEL")
-            .help("Set verbosity level for output (trace, debug, info, warn, error (default))"));
+            .help("Set verbosity level for output (trace, debug, info, warn, error (default), off)"));
 
     app.get_matches()
 }

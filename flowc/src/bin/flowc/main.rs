@@ -239,7 +239,7 @@ fn get_matches() -> ArgMatches {
                 .num_args(0..1)
                 .number_of_values(1)
                 .value_name("VERBOSITY_LEVEL")
-                .help("Set verbosity level for output (trace, debug, info, warn, error (default))"),
+                .help("Set verbosity level for output (trace, debug, info, warn, error (default), off)"),
         )
         .arg(
             Arg::new("stdin")

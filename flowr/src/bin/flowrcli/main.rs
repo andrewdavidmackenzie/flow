@@ -491,7 +491,7 @@ fn get_matches() -> ArgMatches {
             .long("verbosity")
             .number_of_values(1)
             .value_name("VERBOSITY_LEVEL")
-            .help("Set verbosity level for output (trace, debug, info, warn, default: error)"))
+            .help("Set verbosity level for output (trace, debug, info, warn, error(default), off)"))
         .arg(Arg::new("flow-manifest")
             .num_args(1)
             .help("the file path of the 'flow' manifest file"))
