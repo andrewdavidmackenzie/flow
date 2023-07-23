@@ -111,10 +111,8 @@ impl FileProvider {
                 }
             }
         }
-        let msg = format!("No file found at path '{}' with any of these extensions '{extensions:?}'",
+        bail!("No file found at path '{}' with any of these extensions '{extensions:?}'",
                             file.display());
-        trace!("{}", msg);
-        bail!(msg)
     }
 }
 

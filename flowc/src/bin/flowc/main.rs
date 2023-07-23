@@ -18,7 +18,7 @@ use std::process::exit;
 
 use clap::{Arg, ArgMatches, Command};
 use env_logger::Builder;
-use log::{debug, info, LevelFilter, warn};
+use log::{debug, error, info, LevelFilter, warn};
 use serde_derive::Deserialize;
 use simpath::Simpath;
 use url::Url;
@@ -70,14 +70,14 @@ struct RunnerSpec {
 fn main() {
     match run() {
         Err(ref e) => {
-            eprintln!("{e}");
+            error!("{e}");
             for e in e.iter().skip(1) {
-                eprintln!("caused by: {e}");
+                error!("caused by: {e}");
             }
 
             // The backtrace is generated if env var `RUST_BACKTRACE` is set to `1` or `full`
             if let Some(backtrace) = e.backtrace() {
-                eprintln!("backtrace: {backtrace:?}");
+                error!("backtrace: {backtrace:?}");
             }
 
             exit(1);
@@ -132,9 +132,7 @@ fn run() -> Result<()> {
     }
 }
 
-/*
-    Parse the command line arguments using clap
-*/
+// Parse the command line arguments using clap
 fn get_matches() -> ArgMatches {
     let app = Command::new(env!("CARGO_PKG_NAME"))
         .version(env!("CARGO_PKG_VERSION"));
@@ -267,9 +265,7 @@ fn get_matches() -> ArgMatches {
     app.get_matches()
 }
 
-/*
-    Parse the command line arguments
-*/
+// Parse the command line arguments
 fn parse_args(matches: ArgMatches) -> Result<Options> {
     let default = String::from("error");
     let verbosity_option = matches.get_one::<String>("verbosity");
