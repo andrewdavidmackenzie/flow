@@ -13,21 +13,17 @@ mod test {
     #[test]
     #[serial]
     fn test_fibonacci_example() {
-        utilities::test_example(file!(), "flowrcli", false, true);
+        utilities::test_example(file!(), "flowrcli", false, true, false);
     }
 
-/*
     #[test]
     #[serial]
     fn test_fibonacci_wasm_example() {
-        utilities::test_example(file!(), "flowrcli", false, false);
+        utilities::test_example(file!(), "flowrcli", false, false, false);
     }
-*/
-    /*
+
     #[test]
     fn test_fibonacci_flowrex_example() {
-        utilities::test_example(file!(), "flowrcli", true, true);
+        utilities::test_example(file!(), "flowrcli", true, true, false);
     }
-     */
-
 }

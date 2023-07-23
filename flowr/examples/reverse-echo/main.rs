@@ -8,6 +8,6 @@ fn main() {
 mod test {
     #[test]
     fn test_reverse_echo_example() {
-        utilities::test_example(file!(), "flowrcli", false, true);
+        utilities::test_example(file!(), "flowrcli", false, true, true);
     }
 }

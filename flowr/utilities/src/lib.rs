@@ -97,15 +97,25 @@ pub fn run_example(source_file: &str, runner: &str, flowrex: bool, native: bool)
 }
 
 /// Run an example and check the output matches the expected
-pub fn test_example(source_file: &str, runner: &str, flowrex: bool, native: bool) {
-    // tests run in the "flowr" subdirectory, to CD to root so the same as when running
-    let _ = env::set_current_dir(env::current_dir()
-        .expect("Could not get current directory")
-        .parent()
-        .expect("Could not CD to parent directory"));
+///
+/// It turns out that when an example is run (`cargo run --example name`), the CWD is the workspace
+/// root (./flow)
+/// When an example's test (single test) is being run (`cargo test --example name`), the CWD is the
+/// workspace member crate root (./flow/flowr)
+/// However, if there are multiple tests in the example, then the CWD is the workspace root (./flow)
+///
+/// So, we have a flag to indicate if the process should change the CWD to the parent directory or
+/// not, before running the example
+pub fn test_example(source_file: &str, runner: &str, flowrex: bool, native: bool, parent_dir: bool) {
+    if parent_dir {
+        let _ = env::set_current_dir(env::current_dir()
+            .expect("Could not get current directory")
+            .parent()
+            .expect("Could not CD to parent directory"));
 
-    run_example(source_file, runner, flowrex, native);
-    check_test_output(source_file);
+        run_example(source_file, runner, flowrex, native);
+        check_test_output(source_file);
+    }
 }
 
 /// Read the flow args from a file and return them as a Vector of Strings that will be passed in
