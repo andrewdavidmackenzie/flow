@@ -150,7 +150,7 @@ code-docs: build
 copy-svgs:
 	@echo "copy-svgs<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
 	@for i in $(shell find flowr/examples -name '*.dot.svg' ); do \
-      cp $$i target/html/flowr/examples/$$i; \
+      cp $$i target/html/$$i; \
     done
 	@for i in $(shell cd $$HOME/.flow/lib/flowstdlib && find . -name '*.dot.svg' ); do \
       cp $$HOME/.flow/lib/flowstdlib/$$i target/html/flowstdlib/src/$$i; \
