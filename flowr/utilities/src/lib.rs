@@ -51,12 +51,10 @@ pub fn run_example(source_file: &str, runner: &str, flowrex: bool, native: bool)
         vec![]
     };
 
-    if flowrex {
+    lmaet flowrex_child = if flowrex {
         // set 0 executor threads in flowr coordinator, so that all job execution is done in flowrex
         command_args.push("--threads".into());
         command_args.push("0".into());
-    }
-    let flowrex_child = if flowrex {
         Some(Command::new("flowrex").spawn().expect("Could not spawn flowrex"))
     } else {
         None

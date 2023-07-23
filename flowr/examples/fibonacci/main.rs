@@ -26,4 +26,9 @@ mod test {
     fn test_fibonacci_flowrex_example() {
         utilities::test_example(file!(), "flowrcli", true, true, false);
     }
+
+    #[test]
+    fn test_fibonacci_flowrgui_example() {
+        utilities::test_example(file!(), "flowrgui", false, true, false);
+    }
 }
