@@ -5,3 +5,4 @@
 **/*.stdout
 **/*.wasm
 **/*.file
+**/Cargo.lock
