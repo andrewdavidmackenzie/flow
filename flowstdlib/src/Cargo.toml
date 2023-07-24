@@ -8,6 +8,8 @@ members = ["control/compare_switch", "control/index", "control/join", "control/r
     "math/multiply", "math/range_split", "math/sqrt", "math/subtract"
 ]
 
+resolver = "2"
+
 [workspace.package]
 description = "The standard library of functions and flows for 'flow' programs"
 version = "0.95.0"
@@ -31,6 +33,6 @@ strip = true
 split-debuginfo = "unpacked"
 
 [workspace.dependencies]
-flowcore = {path = "../../flowcore", version = "0.95.0"}
-flowmacro = {path = "../../flowmacro", version = "0.95.0"}
+flowcore = {path = "../../flowcore", version = "0"}
+flowmacro = {path = "../../flowmacro", version = "0"}
 serde_json = { version = "1.0", default-features = false }
