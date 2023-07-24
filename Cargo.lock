@@ -1142,7 +1142,7 @@ dependencies = [
 
 [[package]]
 name = "flowc"
-version = "0.95.0"
+version = "0.96.0"
 dependencies = [
  "clap",
  "colored",
@@ -1163,7 +1163,7 @@ dependencies = [
 
 [[package]]
 name = "flowcore"
-version = "0.95.0"
+version = "0.96.0"
 dependencies = [
  "curl",
  "error-chain",
@@ -1180,7 +1180,7 @@ dependencies = [
 
 [[package]]
 name = "flowmacro"
-version = "0.95.0"
+version = "0.96.0"
 dependencies = [
  "flowcore",
  "proc-macro2",
@@ -1192,7 +1192,7 @@ dependencies = [
 
 [[package]]
 name = "flowr"
-version = "0.95.0"
+version = "0.96.0"
 dependencies = [
  "clap",
  "env_logger",
@@ -1225,7 +1225,7 @@ dependencies = [
 
 [[package]]
 name = "flowstdlib"
-version = "0.95.0"
+version = "0.96.0"
 dependencies = [
  "error-chain",
  "flowcore",
@@ -3807,7 +3807,7 @@ checksum = "711b9620af191e0cdc7468a8d14e709c3dcdb115b36f838e601583af800a370a"
 
 [[package]]
 name = "utilities"
-version = "0.95.0"
+version = "0.96.0"
 
 [[package]]
 name = "uuid"
