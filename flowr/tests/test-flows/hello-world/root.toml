@@ -1,5 +1,0 @@
-flow = "hello-world"
-
-[[process]]
-source = "context://stdio/stdout"
-input.default = {once = "Hello World!"}

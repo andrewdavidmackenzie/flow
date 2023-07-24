@@ -7,7 +7,7 @@ fn main() {
 #[cfg(test)]
 mod test {
     #[test]
-    fn test_sequence_example() {
+    fn test_line_echo_example() {
         utilities::test_example(file!(), "flowrcli", false, true);
     }
 }

@@ -1,5 +1,4 @@
 flow = "args"
-docs = "DESCRIPTION.md"
 
 [[process]]
 source = "context://args/get"
@@ -8,6 +7,5 @@ source = "context://args/get"
 source = "context://stdio/stdout"
 
 [[connection]]
-name = "print-flow-name"
-from = "get/json/2"
+from = "get/string/3"
 to = "stdout"

@@ -45,34 +45,36 @@ pub fn run_example(source_file: &str, runner: &str, flowrex: bool, native: bool)
     let _ = fs::remove_file(sample_dir.join(TEST_FILE_FILENAME));
     let _ = fs::remove_file(sample_dir.join(TEST_STDOUT_FILENAME));
 
-    let mut command_args: Vec<String> = if native {
+    let mut runner_args: Vec<String> = if native {
         vec!["--native".into()]
     } else {
         vec![]
     };
 
-    if flowrex {
-        // set 0 executor threads in flowr coordinator, so that all job execution is done in flowrex
-        command_args.push("--threads".into());
-        command_args.push("0".into());
+    if runner == "flowrgui" {
+        runner_args.push("--auto".into());
     }
+
     let flowrex_child = if flowrex {
+        // set 0 executor threads in flowr coordinator, so that all job execution is done in flowrex
+        runner_args.push("--threads".into());
+        runner_args.push("0".into());
         Some(Command::new("flowrex").spawn().expect("Could not spawn flowrex"))
     } else {
         None
     };
 
-    command_args.push( "manifest.json".into());
-    command_args.append(&mut args(&sample_dir).expect("Could not get flow args"));
+    runner_args.push( "manifest.json".into());
+    runner_args.append(&mut args(&sample_dir).expect("Could not get flow args"));
 
     let output = File::create(sample_dir.join(TEST_STDOUT_FILENAME))
         .expect("Could not create Test StdOutput File");
     let error = File::create(sample_dir.join(TEST_STDERR_FILENAME))
         .expect("Could not create Test StdError File ");
 
-    println!("\tCommand line: '{} {}'",runner, command_args.join(" "));
+    println!("\tCommand line: '{} {}'", runner, runner_args.join(" "));
     let mut runner_child = Command::new(runner)
-        .args(command_args)
+        .args(runner_args)
         .current_dir(sample_dir.canonicalize().expect("Could not canonicalize path"))
         .stdin(Stdio::piped())
         .stdout(Stdio::from(output))
@@ -97,25 +99,13 @@ pub fn run_example(source_file: &str, runner: &str, flowrex: bool, native: bool)
 }
 
 /// Run an example and check the output matches the expected
-///
-/// It turns out that when an example is run (`cargo run --example name`), the CWD is the workspace
-/// root (./flow)
-/// When an example's test (single test) is being run (`cargo test --example name`), the CWD is the
-/// workspace member crate root (./flow/flowr)
-/// However, if there are multiple tests in the example, then the CWD is the workspace root (./flow)
-///
-/// So, we have a flag to indicate if the process should change the CWD to the parent directory or
-/// not, before running the example
-pub fn test_example(source_file: &str, runner: &str, flowrex: bool, native: bool, parent_dir: bool) {
-    if parent_dir {
-        let _ = env::set_current_dir(env::current_dir()
-            .expect("Could not get current directory")
-            .parent()
-            .expect("Could not CD to parent directory"));
+pub fn test_example(source_file: &str, runner: &str, flowrex: bool, native: bool) {
+    let _ = std::env::set_current_dir(PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .parent().expect("Could not cd into flowr directory")
+        .parent().expect("Could not cd into flow directory"));
 
-        run_example(source_file, runner, flowrex, native);
-        check_test_output(source_file);
-    }
+    run_example(source_file, runner, flowrex, native);
+    check_test_output(source_file);
 }
 
 /// Read the flow args from a file and return them as a Vector of Strings that will be passed in

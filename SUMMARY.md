@@ -115,12 +115,17 @@
     - [subtract](flowstdlib/src/math/subtract/subtract.md)
     
 # Examples flows
-- [Samples Intro](flowr/examples/README.md)
+- [Examples Intro](flowr/examples/README.md)
     - [args](flowr/examples/args/DESCRIPTION.md)
+    - [args-json](flowr/examples/args-json/DESCRIPTION.md)
     - [arrays](flowr/examples/arrays/DESCRIPTION.md)
+    - [debug-help-string](flowr/examples/debug-help-string/DESCRIPTION.md)
+    - [debug-print-args](flowr/examples/debug-print-args/DESCRIPTION.md)
+    - [double-connection](flowr/examples/double-connection/DESCRIPTION.md)
     - [factorial](flowr/examples/factorial/DESCRIPTION.md)
     - [fibonacci](flowr/examples/fibonacci/DESCRIPTION.md)
     - [hello-world](flowr/examples/hello-world/DESCRIPTION.md)
+    - [line-echo](flowr/examples/line-echo/DESCRIPTION.md)
     - [mandlebrot](flowr/examples/mandlebrot/DESCRIPTION.md)
       - [escapes](flowr/examples/mandlebrot/escapes/escapes.md) provided function
       - [pixel_to_point](flowr/examples/mandlebrot/pixel_to_point/pixel_to_point.md) provided function
@@ -133,6 +138,8 @@
     - [sequence](flowr/examples/sequence/DESCRIPTION.md)
     - [sequence-of-sequences](flowr/examples/sequence-of-sequences/DESCRIPTION.md)
     - [tokenizer](flowr/examples/tokenizer/DESCRIPTION.md)
+    - [two-destinations](flowr/examples/two-destinations/DESCRIPTION.md)
+
     
 --------------------------------------------------------------------------------
 
@@ -147,17 +154,6 @@
         - [Flowc Compiler and Parser Test flows](flowc/tests/test-flows/README.md)
     - [flowr](flowr/README.md)
       - [flowrlib](flowr/README.md)
-      - [Flowr Execution Test Flows](flowr/tests/test-flows/README.md)
-          - [args](flowr/tests/test-flows/args/args.md)
-          - [args-json](flowr/tests/test-flows/args-json/args-json.md)
-          - [array-input](flowr/tests/test-flows/array-input/array-input.md)
-          - [debug-help-string](flowr/tests/test-flows/debug-help-string/debug-help-string.md)
-          - [debug-print-args](flowr/tests/test-flows/debug-print-args/debug-print-args.md)
-          - [double-connection](flowr/tests/test-flows/double-connection/double-connection.md)
-          - [hello-world](flowr/tests/test-flows/hello-world/hello-world.md)
-          - [line-echo](flowr/tests/test-flows/line-echo/line-echo.md)
-          - [print-args](flowr/tests/test-flows/print-args/print-args.md)
-          - [two-destinations](flowr/tests/test-flows/two-destinations/two-destinations.md)
       - [flowrex](flowr/README.md)
       - [flowstdlib](flowstdlib/README.md)
       - [examples](flowr/examples/README.md)

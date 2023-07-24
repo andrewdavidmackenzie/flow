@@ -3,7 +3,8 @@ extern crate serial_test;
 use utilities;
 
 fn main() {
-    utilities::run_example(file!(), "flowrcli", false, true);
+    utilities::run_example(file!(), "flowrcli",
+                           false, true);
 }
 
 #[cfg(test)]
@@ -13,17 +14,30 @@ mod test {
     #[test]
     #[serial]
     fn test_fibonacci_example() {
-        utilities::test_example(file!(), "flowrcli", false, true, false);
+        utilities::test_example(file!(), "flowrcli",
+                                false, true);
     }
 
     #[test]
     #[serial]
     fn test_fibonacci_wasm_example() {
-        utilities::test_example(file!(), "flowrcli", false, false, false);
+        utilities::test_example(file!(), "flowrcli",
+                                false, false);
     }
 
     #[test]
+    #[serial]
     fn test_fibonacci_flowrex_example() {
-        utilities::test_example(file!(), "flowrcli", true, true, false);
+        utilities::test_example(file!(), "flowrcli",
+                                true, true);
     }
+
+    /*
+    #[test]
+    #[serial]
+    fn test_fibonacci_flowrgui_example() {
+        utilities::test_example(file!(), "flowrgui",
+                                false, true);
+    }
+     */
 }
