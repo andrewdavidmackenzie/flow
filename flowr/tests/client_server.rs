@@ -1,7 +1,5 @@
 use std::path::PathBuf;
 
-use utilities;
-
 #[test]
 fn hello_world_client_server() {
     let example_dir = PathBuf::from("examples/hello-world");
