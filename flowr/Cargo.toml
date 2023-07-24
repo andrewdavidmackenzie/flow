@@ -67,4 +67,4 @@ serial_test = "2.0.0"
 # TODO check needed
 simpath = { version = "~2.4", features = ["urls"]}
 portpicker = "0.1.1"
-utilities = { path = "utilities" }
+flowr-utilities = { path = "utilities" }
