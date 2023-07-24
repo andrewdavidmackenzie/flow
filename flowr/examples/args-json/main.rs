@@ -8,6 +8,6 @@ fn main() {
 mod test {
     #[test]
     fn test_args_json_example() {
-        utilities::test_example(file!(), "flowrcli", false, true, true);
+        utilities::test_example(file!(), "flowrcli", false, true);
     }
 }

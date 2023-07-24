@@ -10,6 +10,6 @@ mod test {
     #[cfg(feature = "debugger")]
     #[test]
     fn test_debug_print_args_example() {
-        utilities::test_example(file!(), "flowrcli", false, true, true);
+        utilities::test_example(file!(), "flowrcli", false, true);
     }
 }
