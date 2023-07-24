@@ -110,6 +110,12 @@ jobs:
           command: test
           args: --features "online_tests"
 
+      - name: test-examples
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --examples
+
       - name: UploadCoverage
         if: matrix.os == 'ubuntu-latest'
         run: |
