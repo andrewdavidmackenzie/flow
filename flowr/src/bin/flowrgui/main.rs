@@ -301,7 +301,7 @@ impl Application for FlowrGui {
                     .padding(5)
                     .width(Length::Fill)
                     .push(
-                        Button::new(Text::new("Ok")
+                        Button::new(Text::new("OK")
                             .horizontal_alignment(Horizontal::Center))
                             .width(Length::Fill)
                             .on_press(Message::CloseModal),
