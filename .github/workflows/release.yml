@@ -54,17 +54,22 @@ jobs:
           # (required) GitHub token for creating GitHub Releases.
           token: ${{ secrets.GITHUB_TOKEN }}
 
-  # Install all the dependencies needed for the builds to work
-  install-dependencies:
+  # Build and packages all the things
+  upload-artifacts:
+    needs: create-release
     strategy:
       matrix:
         # For these target platforms
         include:
-          - target: x86_64-unknown-linux-gnu
-            os: ubuntu-latest
-          - target: x86_64-apple-darwin
-            os: macos-latest
+        - target: x86_64-unknown-linux-gnu
+          os: ubuntu-latest
+          install-dist: curl --proto '=https' --tlsv1.2 -L -sSf https://github.com/axodotdev/cargo-dist/releases/download/v0.0.2/installer.sh | sh
+        - target: x86_64-apple-darwin
+          os: macos-latest
+          install-dist: curl --proto '=https' --tlsv1.2 -L -sSf https://github.com/axodotdev/cargo-dist/releases/download/v0.0.2/installer.sh | sh
     runs-on: ${{ matrix.os }}
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - uses: actions-rs/toolchain@v1
         with:
@@ -81,24 +86,6 @@ jobs:
         run: rustup target add wasm32-unknown-unknown
       - name: InstallWasmTools
         run: cargo install wasm-gc wasm-snip
-
-  # Build and packages all the things
-  upload-artifacts:
-    needs: [create-release, install-dependencies]
-    strategy:
-      matrix:
-        # For these target platforms
-        include:
-        - target: x86_64-unknown-linux-gnu
-          os: ubuntu-latest
-          install-dist: curl --proto '=https' --tlsv1.2 -L -sSf https://github.com/axodotdev/cargo-dist/releases/download/v0.0.2/installer.sh | sh
-        - target: x86_64-apple-darwin
-          os: macos-latest
-          install-dist: curl --proto '=https' --tlsv1.2 -L -sSf https://github.com/axodotdev/cargo-dist/releases/download/v0.0.2/installer.sh | sh
-    runs-on: ${{ matrix.os }}
-    env:
-      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    steps:
       - uses: actions/checkout@v3
       - name: Install cargo-dist
         run: ${{ matrix.install-dist }}
