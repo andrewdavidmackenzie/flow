@@ -388,9 +388,11 @@ impl FlowrGui {
         let toggler = toggler(
                 "Auto-scroll Stdio".to_owned(),
                 self.auto_scroll_stdout,
-                Message::StdioAutoScrollTogglerChanged);
+                Message::StdioAutoScrollTogglerChanged)
+            .width(Length::Shrink);
 
-        let stdout = Self::stdio_area(&self.stdout, STDOUT_SCROLLABLE_ID.clone());
+        let stdout = Self::stdio_area(&self.stdout,
+                                      STDOUT_SCROLLABLE_ID.clone());
 
         Column::new()
             .push(toggler)
