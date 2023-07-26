@@ -1,5 +1,9 @@
-use flowmacro::flow_function;
 use serde_json::Value;
+
+use flowcore::{RUN_AGAIN, RunAgain};
+use flowcore::errors::*;
+use flowcore::Implementation;
+use flowmacro::flow_function;
 
 #[flow_function]
 fn _join(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
@@ -11,8 +15,9 @@ fn _join(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
 
 #[cfg(test)]
 mod test {
-    use flowcore::RUN_AGAIN;
     use serde_json::json;
+
+    use flowcore::RUN_AGAIN;
 
     use super::_join;
 
