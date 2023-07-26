@@ -276,14 +276,8 @@ impl Application for FlowrGui {
 
         main = main
             .push(self.command_row())
-            .push(self.stdio());
-
-        /*
-        match self.coordinator_state {
-            CoordinatorState::Disconnected(_) => println!("Disconnected"),
-            CoordinatorState::Connected(_) => println!("Connected"),
-        }
-         */
+            .push(self.stdio())
+            .push(self.status_bar());
 
         let content = container(main)
             .width(Length::Fill)
@@ -400,7 +394,27 @@ impl FlowrGui {
 
         Column::new()
             .push(toggler)
-            .push(stdout).into()
+            .push(stdout)
+            .height(Length::Fill)
+            .into()
+    }
+
+    fn status_bar<'a>(&self) -> Element<'a, Message> {
+        let status = match &self.coordinator_state {
+            CoordinatorState::Disconnected(reason) => format!("Disconnected({reason})"),
+            CoordinatorState::Connected(_) => {
+                let msg = match (self.submitted, self.running) {
+                    (false, false) => "Ready",
+                    (_, true) => "Running",
+                    (true, false) => "Submitted",
+                };
+                format!("Connected({})", msg)
+            },
+        };
+
+        Row::new()
+            .push(Text::new(format!("Coordinator: {}", status)))
+            .into()
     }
 
     // Create initial Settings structs for Submission and Coordinator from the CLI options
