@@ -18,7 +18,7 @@ use flowcore::model::function_definition::FunctionDefinition;
 
 /// The `flow_function` macro definition
 #[proc_macro_attribute]
-pub fn flow_function(_attr: TokenStream, implementation: proc_macro::TokenStream) -> TokenStream {
+pub fn flow_function(_attr: TokenStream, implementation: TokenStream) -> TokenStream {
     // Get the full path to the file where the macro was used, and join the relative filename from
     // the macro's attributes, to find the path to the function's definition file
     let span = Span::call_site();
@@ -214,7 +214,7 @@ fn generate_code(function_implementation: TokenStream,
         #definition_comment
         #[derive(Debug)]
         pub struct #struct_name;
-
+        use flowcore::Implementation;
         impl Implementation for #struct_name {
             fn run(&self, inputs: &[Value]) -> flowcore::errors::Result<(Option<Value>, flowcore::RunAgain)> {
 //                #input_conversion

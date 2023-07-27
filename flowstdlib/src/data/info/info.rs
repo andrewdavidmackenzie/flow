@@ -2,7 +2,6 @@ use serde_json::{json, Value};
 
 use flowcore::{RUN_AGAIN, RunAgain};
 use flowcore::errors::*;
-use flowcore::Implementation;
 use flowcore::model::datatype::{ARRAY_TYPE, BOOLEAN_TYPE, NULL_TYPE, NUMBER_TYPE, OBJECT_TYPE, STRING_TYPE};
 use flowmacro::flow_function;
 

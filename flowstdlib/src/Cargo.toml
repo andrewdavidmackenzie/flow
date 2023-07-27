@@ -21,17 +21,6 @@ repository = "https://github.com/andrewdavidmackenzie/flow/"
 readme = "../README.md"
 edition = "2021"
 
-[workspace.profile.release]
-debug = false
-lto = true
-codegen-units = 1
-opt-level = 's' # Optimize for size
-panic = 'abort' # About unwinding code
-strip = true
-
-[workspace.profile.dev]
-split-debuginfo = "unpacked"
-
 [workspace.dependencies]
 flowcore = {path = "../../flowcore", version = "0"}
 flowmacro = {path = "../../flowmacro", version = "0"}

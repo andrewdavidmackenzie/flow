@@ -3,7 +3,6 @@ use serde_json::Value;
 
 use flowcore::{RUN_AGAIN, RunAgain};
 use flowcore::errors::*;
-use flowcore::Implementation;
 use flowmacro::flow_function;
 
 #[flow_function]
