@@ -1,3 +1,4 @@
+#![warn(clippy::unwrap_used)]
 #![deny(missing_docs)]
 // TODO re-instate #![warn(clippy::unwrap_used)]
 //! `flowrgui` is a GUI flow runner for running `flow` programs.
@@ -54,7 +55,6 @@ use gui::coordinator_connection::CoordinatorConnection;
 use gui::debug_message::DebugServerMessage;
 use gui::debug_message::DebugServerMessage::*;
 
-use crate::errors::*;
 use crate::gui::client_message::ClientMessage;
 use crate::gui::coordinator_message::CoordinatorMessage;
 
@@ -113,7 +113,11 @@ fn main() -> iced::Result {
     })
 }
 
+#[derive(Clone)]
 struct SubmissionSettings {
+    // TODO make native a UI setting
+    // TODO num threads make a UI setting
+    // TODO make lib search path a UI setting
     flow_manifest_url: String,
     flow_args: String,
     debug_this_flow: bool,
@@ -154,7 +158,7 @@ struct ImageReference {
 }
 
 struct FlowrGui {
-    flow_settings: SubmissionSettings,
+    submission_settings: SubmissionSettings,
     coordinator_settings: CoordinatorSettings,
     ui_settings: UiSettings,
     coordinator_state: CoordinatorState,
@@ -181,7 +185,7 @@ impl Application for FlowrGui {
         let settings = FlowrGui::initial_settings();
 
         let flowrgui = FlowrGui {
-            flow_settings: settings.0,
+            submission_settings: settings.0,
             coordinator_settings: settings.1,
             ui_settings: settings.2,
             coordinator_state: CoordinatorState::Disconnected("Starting".into()),
@@ -214,8 +218,8 @@ impl Application for FlowrGui {
                             return Command::perform(Self::auto_submit(), |_| Message::SubmitFlow);
                         }
                     },
-                    Message::FlowArgsChanged(value) => self.flow_settings.flow_args = value,
-                    Message::UrlChanged(value) => self.flow_settings.flow_manifest_url = value,
+                    Message::FlowArgsChanged(value) => self.submission_settings.flow_args = value,
+                    Message::UrlChanged(value) => self.submission_settings.flow_manifest_url = value,
                     Message::TabSelected(tab_index) => self.active_tab = tab_index,
                     Message::StdioAutoScrollTogglerChanged(value) => {
                         self.auto_scroll_stdout = value;
@@ -225,19 +229,15 @@ impl Application for FlowrGui {
                         }
                     },
                     Message::CloseModal => self.show_modal = false,
-                    _ => error!("Unexpected message: {:?} when coordinator disconnected", message),
+                    _ => self.error(format!("Unexpected message: {:?} when coordinator disconnected",
+                                            message)),
                 }
             },
             CoordinatorState::Connected(sender) => {
                 match message {
                     Message::SubmitFlow => {
-                        let url = self.flow_url().unwrap();
-                        let parallel_jobs_limit = self.flow_settings.parallel_jobs_limit;
-                        let debug_this_flow = self.flow_settings.debug_this_flow;
                         return Command::perform(Self::submit(sender.clone(),
-                                                            url, parallel_jobs_limit,
-                                                             debug_this_flow
-                        ), |_| Message::Submitted);
+                                                             self.submission_settings.clone()), |_| Message::Submitted);
                     },
                     Message::Submitted => {
                         self.clear_io_output();
@@ -245,8 +245,8 @@ impl Application for FlowrGui {
                     },
                     Message::CoordinatorSent(coord_msg) =>
                         return self.process_coordinator_message(coord_msg),
-                    Message::FlowArgsChanged(value) => self.flow_settings.flow_args = value,
-                    Message::UrlChanged(value) => self.flow_settings.flow_manifest_url = value,
+                    Message::FlowArgsChanged(value) => self.submission_settings.flow_args = value,
+                    Message::UrlChanged(value) => self.submission_settings.flow_manifest_url = value,
                     Message::TabSelected(tab_index) => self.active_tab = tab_index,
                     Message::StdioAutoScrollTogglerChanged(value) => {
                         self.auto_scroll_stdout = value;
@@ -322,37 +322,67 @@ impl FlowrGui {
 
     // Submit the flow to the coordinator for execution
     async fn submit(sender: tokio::sync::mpsc::Sender<ClientMessage>,
-                    url: Url,
-                    parallel_jobs_limit: Option<usize>,
-                    debug_this_flow: bool) {
-        let provider = &MetaProvider::new(Simpath::new(""),
-                                          PathBuf::default()) as &dyn Provider;
+                    settings: SubmissionSettings) {
+        match Self::flow_url(settings.flow_manifest_url) {
+            Ok(url) => {
+                let provider = &MetaProvider::new(Simpath::new(""),
+                                                  PathBuf::default()) as &dyn Provider;
 
-        let (flow_manifest, _) = FlowManifest::load(provider, &url).unwrap(); // TODO
-        let submission = Submission::new(
-            flow_manifest,
-            parallel_jobs_limit,
-            None, // No timeout waiting for job results
-            debug_this_flow,
-        );
+                match FlowManifest::load(provider, &url) {
+                    Ok((flow_manifest, _)) => {
+                        let submission = Submission::new(
+                            flow_manifest,
+                            settings.parallel_jobs_limit,
+                            None, // No timeout waiting for job results
+                            settings.debug_this_flow,
+                        );
 
-        info!("Sending submission to Coordinator");
-        let _ = sender.send(ClientMessage::ClientSubmission(submission)).await;
+                        info!("Sending submission to Coordinator");
+                        match sender.send(ClientMessage::ClientSubmission(submission)).await {
+                            Ok(_) => {
+                                // TODO report info that submitted
+                            }
+                            Err(_) => {
+                                // TODO report submit error
+                            }
+                        }
+                    }
+                    Err(_e) => {
+                        // TODO report manifest loading error
+                    }
+                }
+            },
+            Err(_e) => {
+                // TODO report Invalid Url error
+            }
+        }
+    }
+
+    // report a new error
+    fn error<S>(&mut self, _msg: S) where S: Into<String> {
+
+    }
+
+    // report a new info message
+    fn info(&mut self, _msg: String) {
+
     }
 
     fn command_row<'a>(&self) -> Element<'a, Message> {
-        // .on_submit(), .on_paste(), .width()
         let url = text_input("Flow location (relative, or absolute)",
-                             &self.flow_settings.flow_manifest_url)
+                             &self.submission_settings.flow_manifest_url)
             .on_input(Message::UrlChanged);
         let args = text_input("Space separated flow arguments",
-                              &self.flow_settings.flow_args)
-            .on_input(Message::FlowArgsChanged);
-        // TODO disable until loaded flow
+                              &self.submission_settings.flow_args)
+            .on_submit(Message::SubmitFlow)
+            .on_input(Message::FlowArgsChanged)
+            .on_paste(Message::FlowArgsChanged);
+
         let mut play = Button::new("Play");
         if  matches!(self.coordinator_state, CoordinatorState::Connected(_)) && !self.running && !self.submitted {
             play = play.on_press(Message::SubmitFlow);
         }
+
         Row::new()
             .spacing(10)
             .align_items(Alignment::End)
@@ -454,21 +484,19 @@ impl FlowrGui {
             Some(port) => CoordinatorSettings::ClientOnly(*port),
             None => {
                 let lib_dirs = if matches.contains_id("lib_dir") {
-                    matches
-                        .get_many::<String>("lib_dir").unwrap() // TODO add to UI
-                        .map(|s| s.to_string())
-                        .collect()
+                    if let Some(dirs) = matches.get_many::<String>("lib_dir") {
+                            dirs.map(|s| s.to_string()).collect()
+                    } else {
+                        vec![]
+                    }
                 } else {
                     vec![]
                 };
 
-                let lib_search_path = FlowrGui::lib_search_path(&lib_dirs)
-                    .unwrap(); // TODO
+                let lib_search_path = FlowrGui::lib_search_path(&lib_dirs);
 
-                // TODO make a UI setting
                 let native_flowstdlib = matches.get_flag("native");
 
-                // TODO make a UI setting
                 let num_threads = FlowrGui::num_threads(&matches);
 
                 let server_settings = ServerSettings {
@@ -581,17 +609,17 @@ impl FlowrGui {
     }
 
     // Create absolute file:// Url for flow location - using the contents of UI field
-    fn flow_url(&self) -> flowcore::errors::Result<Url> {
+    fn flow_url(flow_url_string: String) -> flowcore::errors::Result<Url> {
         let cwd_url = Url::from_directory_path(env::current_dir()?)
             .map_err(|_| "Could not form a Url for the current working directory")?;
-        url_from_string(&cwd_url, Some(&self.flow_settings.flow_manifest_url))
+        url_from_string(&cwd_url, Some(&flow_url_string))
     }
 
     // Create array of strings that are the args to the flow
     fn flow_arg_vec(&self) -> Vec<String> {
         // arg #0 is the flow url
-        let mut flow_args: Vec<String> = vec![self.flow_settings.flow_manifest_url.clone()];
-        let additional_args : Vec<String> = self.flow_settings.flow_args.split(' ')
+        let mut flow_args: Vec<String> = vec![self.submission_settings.flow_manifest_url.clone()];
+        let additional_args : Vec<String> = self.submission_settings.flow_args.split(' ')
             .map(|s| s.to_string()).collect();
         flow_args.extend(additional_args);
         flow_args
@@ -600,7 +628,7 @@ impl FlowrGui {
     // For the lib provider, libraries maybe installed in multiple places in the file system.
     // In order to find the content, a FLOW_LIB_PATH environment variable can be configured with a
     // list of directories in which to look for the library in question.
-    fn lib_search_path(search_path_additions: &[String]) -> Result<Simpath> {
+    fn lib_search_path(search_path_additions: &[String]) -> Simpath {
         let mut lib_search_path = Simpath::new_with_separator("FLOW_LIB_PATH",
                                                               ',');
 
@@ -613,7 +641,7 @@ impl FlowrGui {
             warn!("'$FLOW_LIB_PATH' not set and no LIB_DIRS supplied. Libraries may not be found.");
         }
 
-        Ok(lib_search_path)
+        lib_search_path
     }
 
     // Determine the number of threads to use to execute flows
@@ -637,21 +665,20 @@ impl FlowrGui {
                 error!("Coordinator is already connected");
             },
             CoordinatorMessage::FlowStart => {
-                // TODO put in status bar when exists
                 self.running = true;
                 self.submitted = false;
                 self.send(ClientMessage::Ack);
             },
             CoordinatorMessage::FlowEnd(metrics) => {
                 self.running = false;
-                if self.flow_settings.display_metrics {
+                if self.submission_settings.display_metrics {
                     self.show_modal = true;
                     self.modal_content = ("Flow Ended - Metrics".into(),
                                           format!("{}", metrics));
                 }
                 // NO response - so we can use next request sent to submit another flow
                 if self.ui_settings.auto {
-                    info!("Auto exiting on flow completion");
+                    self.info("Auto exiting on flow completion".into());
                     process::exit(0);
                 }
             }
