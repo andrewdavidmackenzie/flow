@@ -74,8 +74,15 @@ endif
 	@echo "installing wasm optimization tools"
 	@cargo install wasm-gc wasm-snip
 
+.PHONY: clean_examples
+clean_examples:
+	@find flowr/examples -name manifest.json | xargs rm -rf
+	@find flowr/examples -name \*.dot | xargs rm -rf
+	@find flowr/examples -name \*.dot.svg | xargs rm -rf
+	@find flowr/examples -name \*.wasm | xargs rm -rf
+
 .PHONY: clean
-clean:
+clean: clean_examples
 	@echo "clean<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
 	@cargo clean
 	@find . -name target -type d | xargs rm -rf

@@ -7,8 +7,8 @@
 extern crate proc_macro;
 
 use proc_macro::{Span, TokenStream};
-use std::path::{Path, PathBuf};
 use std::fs;
+use std::path::{Path, PathBuf};
 
 use proc_macro2::Ident;
 use quote::{format_ident, quote, ToTokens};
@@ -18,7 +18,7 @@ use flowcore::model::function_definition::FunctionDefinition;
 
 /// The `flow_function` macro definition
 #[proc_macro_attribute]
-pub fn flow_function(_attr: TokenStream, implementation: proc_macro::TokenStream) -> TokenStream {
+pub fn flow_function(_attr: TokenStream, implementation: TokenStream) -> TokenStream {
     // Get the full path to the file where the macro was used, and join the relative filename from
     // the macro's attributes, to find the path to the function's definition file
     let span = Span::call_site();
@@ -135,7 +135,7 @@ fn generate_code(function_implementation: TokenStream,
     let input_number_check = quote! {
         // check at run time that the number of values in inputs matches the inputs number expected
         if inputs.len() != #number_of_defined_inputs {
-            bail!("'inputs' does not have the expected number of input values");
+            flowcore::errors::bail!("'inputs' does not have the expected number of input values");
         }
     };
 
@@ -171,23 +171,21 @@ fn generate_code(function_implementation: TokenStream,
     // input structure expected by run(), and build a flat memory return from the serde_json
     // returned from run()
     let wasm_boilerplate = quote! {
-        use std::os::raw::c_void;
-
         // Allocate a chunk of memory of `size` bytes in wasm module
         #[cfg(target_arch = "wasm32")]
         #[no_mangle]
-        pub extern "C" fn alloc(size: usize) -> *mut c_void {
+        pub extern "C" fn alloc(size: usize) -> *mut std::os::raw::c_void {
             use std::mem;
             let mut buf = Vec::with_capacity(size);
             let ptr = buf.as_mut_ptr();
             mem::forget(buf);
-            return ptr as *mut c_void;
+            return ptr as *mut std::os::raw::c_void;
         }
 
         // Wrapper function for running a wasm implementation
         #[cfg(target_arch = "wasm32")]
         #[no_mangle]
-        pub extern "C" fn run_wasm(input_data_ptr: *mut c_void, input_data_length: i32) -> i32 {
+        pub extern "C" fn run_wasm(input_data_ptr: *mut std::os::raw::c_void, input_data_length: i32) -> i32 {
             use std::ptr::copy;
             let input_data: Vec<u8> = unsafe {
                 Vec::from_raw_parts(input_data_ptr as *mut u8,
@@ -208,10 +206,6 @@ fn generate_code(function_implementation: TokenStream,
 
     let gen = quote! {
         #[allow(unused_imports)]
-        use flowcore::Implementation;
-        use flowcore::{RUN_AGAIN, DONT_RUN_AGAIN, RunAgain};
-        use flowcore::errors::*;
-
         #wasm_boilerplate
 
         #implementation
@@ -220,9 +214,9 @@ fn generate_code(function_implementation: TokenStream,
         #definition_comment
         #[derive(Debug)]
         pub struct #struct_name;
-
+        use flowcore::Implementation;
         impl Implementation for #struct_name {
-            fn run(&self, inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
+            fn run(&self, inputs: &[Value]) -> flowcore::errors::Result<(Option<Value>, flowcore::RunAgain)> {
 //                #input_conversion
                 #input_number_check
 
