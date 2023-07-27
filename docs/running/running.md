@@ -1,12 +1,12 @@
 ## Running Flows
 
-In order to run a flow, it must first be compiled. Then a "flow runner" (such as `flowr`) can be used to run the
+In order to run a flow, it must first be compiled. Then a "flow runner" (such as `flowrcli`) can be used to run the
 compiled flow manifest.
 
-For convenience, `flowc`, the flow compiler, compiles the flow, then uses `flowr` to run it for you (unless you 
+For convenience, `flowc`, the flow compiler, compiles the flow, then uses `flowrcli` to run it for you (unless you 
 specify otherwise). So that is the easiest way to run a flow and is used below.
 
-If you have run `make` or `make install_flow` then you will have `flowc` and `flowr` installed on your system.
+If you have run `make` or `make install_flow` then you will have `flowc` and `flowrcli` installed on your system.
 Be sure they are in your $PATH so that can be invoked directly.
 
 Then you can run flows easily using `flowc`. 
@@ -18,7 +18,7 @@ User's terminal Current Working Directory should be the root directory of the `f
 
 ### Finding Libraries
 Environment variable `$FLOW_LIB_PATH` is set to a directory where the `flowstdlib` is compiled by default 
-`$HOME/.flow/lib`, in order for `flowc` and `flowr` to be able to find library functions used.
+`$HOME/.flow/lib`, in order for `flowc` and `flowrcli` to be able to find library functions used.
 
 If this environment variable is not set then compiling will fail:
 
@@ -38,7 +38,7 @@ See the next section [flowc](flowc.md) for a description of the command line arg
 ### Example Invocations
 - `flowc -C flowr/src/bin/flowrcli/context flowr/examples/fibonacci`
 
-  uses the `context_functions` provided by `flowr` and run the flow whose root flow is defined in `./flowr/examples/fibonacci/root.toml`. 
+  uses the `context_functions` provided by `flowrcli` and run the flow whose root flow is defined in `./flowr/examples/fibonacci/root.toml`. 
   Do not pass in any arguments to the flow. 
   - You should get a fibonacci series output to the terminal, 
 - `echo "Hello" | flowc -C flowr/src/bin/flowrcli/context flowr/examples/reverse-echo` - This example reads from STDIN so we echo in 
@@ -54,7 +54,7 @@ See the next section [flowc](flowc.md) for a description of the command line arg
 
     which is the input string "Hello" reversed.
 - `unset FLOW_LIB_PATH;flowc -C flowr/src/bin/flowrcli/context -L target flowr/examples/fibonacci` - first ensures that the $FLOW_LIB_PATH
-environment variable is not set and is not being used to locate libraries, and in order to help `flowc` and `flowr` 
+environment variable is not set and is not being used to locate libraries, and in order to help `flowc` and `flowrcli` 
 find the `flowstdlib` library used by the example (previously compiled into `target` directory) it specified that as a
 directory for the library search path using the `-L, --libdir <LIB_DIR|BASE_URL>` Option
   - You should get a fibonacci series output to the terminal, 

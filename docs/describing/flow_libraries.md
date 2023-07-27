@@ -89,8 +89,8 @@ wherever it is being run.
 The `flowrlib` runtime library accepts a "search path" where it should look for the library (using the library's
 name "lib_name" from the Url)
 
-Different flow runners (e.g. `flowr` or `flowrex` are included examples here but others can be written) can provide
-different ways to provide entries in the search path. Below we describe how `flowr` and `flowrex` do this.
+Different flow runners (e.g. `flowrcli` or `flowrex` are included examples here but others can be written) can provide
+different ways to provide entries in the search path. Below we describe how `flowrcli` and `flowrex` do this.
 
 ### Configuring the Library Search Path
 The library search path is initialized from the contents of the `$FLOW_LIB_PATH` environment variable

@@ -47,7 +47,7 @@ languages (or even assembly, WebAssembly or something else).
 Program logic (control flow, loops) emerges from how the processes are "wired together" in 'flows'. 
 
 I have chosen to implement the functions included with `flow` (in the `flowstdlib` standard 
-library and the `context functions` of the `flowr` flow runner) in in rust, but they could be in other
+library and the `context functions` of the `flowrcli` flow runner) in in rust, but they could be in other
 languages.
 
 I don't consider `flow` (or the flow description format) a DSL. The file format is chosen for describing 

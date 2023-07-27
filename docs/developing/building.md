@@ -38,7 +38,7 @@ viewing [here](http://andrewdavidmackenzie.github.io/flow/)
 ## Project components and structure
 The Project is structured into a number of rust crates that form part of a rust cargo "workspace".
 
-Currently, two binaries are built: `flowc` the flow compiler and `flowr` the flow runner.
+Currently, two binaries are built: `flowc` the flow compiler two flow runners `flowrcli` and `flowrgui`.
 
 See the [Project Components and Structure section](../introduction/structure.md) of the Guide for more details.
 

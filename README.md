@@ -24,6 +24,12 @@ The output (`sum`) is also sent to the default (unnamed) input of the `stdout` f
 the value to standard output.
 The program runs until integer overflow causes no output to be produced and it stops.
 
+
+Here you can see it being executed by the `flowrgui` graphical flow runner:
+
+![Fibonacci Series](docs/images/fibonacci.gif)
+
+
 ## What is a `dataflow program`?
 A data flow program consists of a graph of processes (hierarchical in this case, as a process within it can be another
 graph of processes, and so on down) that act on data that flow between them on defined connections. 
@@ -58,6 +64,10 @@ The `flow` project includes:
 by a runner and used to execute jobs, distributing execution in a basic fashion
 - Standard Library: `flowstdlib` library of pre-defined flows and functions that can be re-used in flows
 - Examples: A set of example flows to illustrate flow programming (more to come!)
+   - Here is a screenshot of the mandlebrot example rendering a monochrome mandlebrot set using `flowrgui`
+
+![Mandlebrot set](docs/images/mandlebrot.png)
+
 - Docs: Extensive documentation in the [book](SUMMARY.md) documentation on defining flows, the runtime semantics, a 
   programmers guide, docs on tool command line options and how to use them, the `flowstdlib` library
 functions and flows, `flowr`'s context functions and more. The guide, including linked Code docs and rust

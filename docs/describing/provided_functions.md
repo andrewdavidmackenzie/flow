@@ -1,5 +1,5 @@
 ## Provided Functions
-As described previously, flows can use `provided functions` provided by the flow runner app (e.g. `flowr`)
+As described previously, flows can use `provided functions` provided by the flow runner app (e.g. `flowrcli`)
 and by flow libraries.
 
 However, a flow can also provide its own functions (a definition, for the compiler, and an implementation, 
@@ -12,7 +12,7 @@ Using relative paths means that flows are "encapsulated" and portable (by locati
 between directories, files systems and systems/nodes and the relative locations of the provided functions allow 
 them to still be found and the flow compiled and ran.
 
-### Examples
+### Examples of Provided Functions
 The `flowr` crate has two examples that provide functions as part of the flow:
 * [Reverse Echo](../../flowr/examples/reverse-echo/DESCRIPTION.md) in the folder `flowr/examples/reverse-echo` - a
   simple example that provides a function to reverse a string

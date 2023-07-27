@@ -1,7 +1,7 @@
 ### The Flow Debugger
 
-NOTE: To be able to use the flow debugger that is part of `flowr`, `flowr` must be compiled with
-the `"debugger"` feature enabled. If not, the debugger code is not included in `flowr`.
+NOTE: To be able to use the flow debugger that is part of `flowrcli`, `flowrcli` must be compiled with
+the `"debugger"` feature enabled. If not, the debugger code is not included in `flowrcli`.
 
 #### Compiling with Debug Symbols
 The debugger can be used to debug any flow, but flows compiled by `flowc` using the `-g` or `--symbols`
@@ -9,10 +9,10 @@ option will have extra human readable content included in the compiled manifest 
 etc) and be more convenient to debug.
 
 #### Running the flow with the debugger
-To start debugging a flow, run it using `flowr` as normal, but using the `-d` or `--debugger`
+To start debugging a flow, run it using `flowrcli` as normal, but using the `-d` or `--debugger`
 options.
 
-The compiled flow manifest will be loaded by `flowr` as usual, functions initialized and a command prompt
+The compiled flow manifest will be loaded by `flowrcli` as usual, functions initialized and a command prompt
 for the debugger will be shown.
 
 You can use the `'h'` or `'help'` command at the prompt to to get help on debugger commands.

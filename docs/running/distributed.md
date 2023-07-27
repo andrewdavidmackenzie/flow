@@ -1,4 +1,4 @@
-## Distributed execution of jobs with `flowr` and `flowrex`
+## Distributed execution of jobs with `flowrcli` and `flowrex`
 
 ### Job Dispatch and Job Execution
 The `flowrlib` that is used by flow runner applications to execute a flow has two important functions:
@@ -17,7 +17,7 @@ in parallel on a multi-core machine. Job execution on "pure" functions can run i
 the input data and the function implementation.
 
 ### Normal Execution
-Normally, the `flowr` process runs the coordinator in one thread and a number of executors in additional
+Normally, the `flowrcli` process runs the coordinator in one thread and a number of executors in additional
 threads.
 
 However, due to the "pure" nature of the job execution, it can be done anywhere, including in additional 
@@ -30,7 +30,7 @@ It cannot coordinate the execution of a flow but it can execute (just library fo
 Additional instances of `flowrex` can be started in other processes on the same machine and have it 
 execute some of the jobs, increasing compute resources and concurrency/parallelism of flow execution.
 
-It is possible to start `flowr` with 0 executor threads and force `flowrex` to execute all the 
+It is possible to start `flowrcli` with 0 executor threads and force `flowrex` to execute all the 
 (library) jobs.
 
 It can also be ran on another node, even one with a different architecture such as ARM, on the network and have job 
@@ -38,9 +38,9 @@ execution done entirely by it or shared with flowr.
 
 How many jobs are done in one process/machine or another depends on the number of executors and network and cpu speed.
 
-The `flowr` flow runner and the `flowrex` job executor discover each other using mDNS
+The `flowrcli` flow runner and the `flowrex` job executor discover each other using mDNS
 and then jobs are distributed out over the network and results are sent back
-to the coordinator running in `flowr` also over the network.
+to the coordinator running in `flowrcli` also over the network.
 
 ### TODO
 It is pending to allow `flowrec` to also execute provided functions, by distributing the architecture-neutral WASM 
@@ -60,7 +60,7 @@ The log output should end with
 
 `INFO    - Waiting for beacon matching 'jobs._flowr._tcp.local'`
 
-indicating that it is waiting to discover the `flowr` process on the network.
+indicating that it is waiting to discover the `flowrcli` process on the network.
 
 Terminal 2
 
@@ -80,7 +80,7 @@ see `flowrex` executing all (non context) jobs
 
 `> flowr -t 0 flowr/examples/fibonacci`
 
-That will produce the usual fibonacci series on the STDOUT of Terminal 2, then `flowr` exiting
+That will produce the usual fibonacci series on the STDOUT of Terminal 2, then `flowrcli` exiting
 
 Logs of what is happening in order to execute the flow jobs will be produced in Terminal 1, ending with the same line
 as before:

@@ -1,18 +1,18 @@
-## Running flows with `flowr`
+## Running flows with `flowrcli`
 
-In order to run a flow, it must first be compiled. Then a "flow runner" such as `flowr`can be used to run the compiled
-flow manifest).
+In order to run a flow, it must first be compiled. Then a "flow runner" such as `flowrcli` can be used to run the 
+compiled flow manifest).
 
-Flow runners in general and `flowr` run the compiled flow manifest (by default named `manifest.json`).
+Flow runners in general and `flowrcli` run the compiled flow manifest (by default named `manifest.json`).
 
 In order to compile a flow definition down to a flow manifest that can be run, you use `flowc` as usual, with the
-addition of the `-c, --compile` option. This compiles the flow but does not invoke `flowr` to run it.
+addition of the `-c, --compile` option. This compiles the flow but does not invoke `flowrcli` to run it.
 
-Then `flowr` as described below can be used to run the compiled flow.
+Then `flowrcli` as described below can be used to run the compiled flow.
 
-This section describes command line arguments that can be supplied to `flowr` and what they are useful for.
+This section describes command line arguments that can be supplied to `flowrcli` and what they are useful for.
 
-### Getting help
+### Getting help for `flowrcli`
 Use `-h, --help` (e.g. `flowc -h` or `cargo run -p flowc -- -h`) to print out help for the usage of `flowc`. 
 
 This will print something like this:
@@ -38,7 +38,7 @@ Options:
   -V, --version                      Print version information
 ```
 
-Similarly to [flowc](flowc.md), in order to locate libraries used in flow execution, `flowr` needs to know where to 
+Similarly to [flowc](flowc.md), in order to locate libraries used in flow execution, `flowrcli` needs to know where to 
 locate them. As for flowc, this can be done using the `$FLOW_LIB_PATH` environment variable, or one or more instance
 of the `-L, --libdir <LIB_DIR|BASE_URL>` option.
 
@@ -57,7 +57,7 @@ retrieve the value of these parameters using `context functions`.
 ### Example Invocations
 For each of these examples, there is first a `flowc` line showing how the flow can be compiled. This will leave
 a compiled `manifest.json` flow manifest alongside the flow's root definition file. That manifest is then run using
-`flowr`
+`flowrcli`
 
 - `flowc -C flowr/src/bin/flowrcli/context -c flowr/examples/fibonacci` - compile the fibonacci example
 - `flowr flowr/examples/fibonacci` - run the pre-compiled fibonacci example flow manifest
@@ -69,3 +69,13 @@ a compiled `manifest.json` flow manifest alongside the flow's root definition fi
 - `flowr flowr/examples/sequence 10` - compile the flow
     - A short sequence of numbers (2, 5, 8) and a string will be printed. The "10" represents the maximum of the sequence.
 - `flowr flowr/examples/sequence/manifest.json 10` - compile the flow, specifying the full path to the manifest.json file
+
+
+### `flowrgui`
+Similar to `flowrcli` that interacts with the terminal and the file system for IO, `flowrgui` is another runner
+for flows, but with a Graphical User Interface (GUI). It displays STDIO and STDERR on the UI, shows images written
+to visually and tracks writes to files during execution.
+
+Most (but not all) of the same command line options as `flowrcli` are supported, and help can be see using:
+
+`flowrgui --help`
