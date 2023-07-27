@@ -36,6 +36,7 @@ pub enum CoordinatorState {
 
 // Creates an asynchronous worker that sends messages back and forth between the App and
 // the Coordinator
+#[allow(clippy::unwrap_used)]
 pub fn subscribe(coordinator_settings: CoordinatorSettings) -> Subscription<CoordinatorMessage> {
     struct Connect;
     subscription::channel(
@@ -119,19 +120,17 @@ pub fn subscribe(coordinator_settings: CoordinatorSettings) -> Subscription<Coor
 
 // Start a coordinator server in a background thread, then discover it and return the address
 fn start_server(coordinator_settings: ServerSettings) -> Result<u16> {
-    let runtime_port = pick_unused_port().chain_err(|| "No ports free").unwrap(); // TODO
+    let runtime_port = pick_unused_port().chain_err(|| "No ports free")?;
     let coordinator_connection = CoordinatorConnection::new(COORDINATOR_SERVICE_NAME,
-                                                            runtime_port).unwrap(); // TODO
+                                                            runtime_port)?;
 
-    let discovery_port = pick_unused_port().chain_err(|| "No ports free").unwrap(); //TODO
-    enable_service_discovery(discovery_port, COORDINATOR_SERVICE_NAME, runtime_port)
-        .unwrap(); // TODO
+    let discovery_port = pick_unused_port().chain_err(|| "No ports free")?;
+    enable_service_discovery(discovery_port, COORDINATOR_SERVICE_NAME, runtime_port)?;
 
-    let debug_port = pick_unused_port().chain_err(|| "No ports free").unwrap(); // TODO
+    let debug_port = pick_unused_port().chain_err(|| "No ports free")?;
     let debug_connection = CoordinatorConnection::new(DEBUG_SERVICE_NAME,
-                                                      debug_port).unwrap(); // TODO
-    enable_service_discovery(discovery_port, DEBUG_SERVICE_NAME, debug_port)
-        .unwrap(); // TODO
+                                                      debug_port)?;
+    enable_service_discovery(discovery_port, DEBUG_SERVICE_NAME, debug_port)?;
 
     info!("Starting coordinator in background thread");
     thread::spawn(move || {

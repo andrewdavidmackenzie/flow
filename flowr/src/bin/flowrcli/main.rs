@@ -1,5 +1,5 @@
 #![deny(missing_docs)]
-#![warn(clippy::unwrap_used)]
+#![forbid(clippy::unwrap_used)]
 //! `flowr` is a command line flow runner for running `flow` programs.
 //!
 //! It reads a compiled [FlowManifest][flowcore::model::flow_manifest::FlowManifest] produced by a
