@@ -1,5 +1,5 @@
 ## Status
-The semantics of flows, processes and connections along with the implementation of the `flowc` compiler, `flowr` 
+The semantics of flows, processes and connections along with the implementation of the `flowc` compiler, `flowrcli` 
 runner, `context` functions and the `flowstdlib` library has allowed for the 
 creation of a set of example flows that execute as expected.
 

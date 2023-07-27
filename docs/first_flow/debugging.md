@@ -37,13 +37,13 @@ ARGS:
 
 ```
 
-### Command line options to `flowr`
-By default `flowc` uses `flowr` to run the flow once it has compiled it. Also it defaults to passing the `-n/--native`
-flag to `flowr` so that flows are executed using the native implementations of library functions.
+### Command line options to `flowrcli`
+By default `flowc` uses `flowrcli` to run the flow once it has compiled it. Also it defaults to passing the `-n/--native`
+flag to `flowrcli` so that flows are executed using the native implementations of library functions.
 
-In order to pass command line options on to `flowr` you separate them from the options to `flowc` after another `--` separator.
+In order to pass command line options on to `flowrcli` you separate them from the options to `flowc` after another `--` separator.
 
-`flowr` accepts the same `-v/--verbosity` verbosity options as `flowc`.
+`flowrcli` accepts the same `-v/--verbosity` verbosity options as `flowc`.
 
 ### Getting debug output
 If you want to follow what the run-time is doing in more detail, you can increase the verbosity level (default level is ERROR)

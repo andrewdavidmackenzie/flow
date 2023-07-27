@@ -27,7 +27,7 @@ The above is repeated until there are no more functions in the ready state, then
 Below is a description of what happens in the flor runtime to execute the flow.
 
 You can see log output (printed to STDOUT and mixed with the number series output) of what is happening using 
-the `-v, verbosity <Verbosity Level>` command line option to `flowr`. 
+the `-v, verbosity <Verbosity Level>` command line option to `flowrcli`. 
 - Values accepted (from less to more output verbosity) are: `error` (the default), `warn`, `info` `debug` and `trace`.
 
 #### Init:

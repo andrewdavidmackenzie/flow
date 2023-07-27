@@ -80,7 +80,7 @@ CPU architectures and operating systems.
 
 ## Separate the program from the context
 There is an explicit separation between the flow program itself, and the environment in which it runs.
-Flows contain only pure functions, but they are run by a "flow runner" program (such as `flowr`) that
+Flows contain only pure functions, but they are run by a "flow runner" program (such as `flowrcli`) that
 provides "impure" `context functions` for interacting with the context in which it is runs, for things
 like STDIO, File System, etc.
 

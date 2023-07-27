@@ -1,7 +1,7 @@
-## Running a flow in client/server mode of `flowr`
+## Running a flow in client/server mode of `flowrcli`
 
 ### `flowrlib` architecture
-The `flowrlib` library is designed to be used, not just in `flowr` CLI-style flow runners, but in other incarnations
+The `flowrlib` library is designed to be used, not just in `flowrcli` CLI-style flow runners, but in other incarnations
 such as a GUI application, or web application, etc.
 
 In order to have `flowrlib` work well in such applications, it avoids running any `context function` function that
@@ -15,18 +15,18 @@ For this reason, it implements a "client/server" architecture, where a "server" 
 and sends and receives messages to a client thread (in the flow runner app) that runs the `context functions` whose 
 implementations are provided by the flow runner application that links the `flowrlib` library.
 
-### `flowr` - an example of a flow runner app
-`flowr` is one example of a flow runner app that uses `flowrlib` to build an application to run flows.
+### `flowrcli` - an example of a flow runner app
+`flowrcli` is one example of a flow runner app that uses `flowrlib` to build an application to run flows.
 
 It implements a set of `client function`, that interact with STDIO etc, on a client thread.
 
-The `flowr` process running that client thread must be able to interact with STDIO.
+The `flowrcli` process running that client thread must be able to interact with STDIO.
 
-In normal use, `flowr` runs the client and server threads in the same process and the user is unaware of this
+In normal use, `flowrcli` runs the client and server threads in the same process and the user is unaware of this
 separation.
 
 ### Separating the client from the server
-However, `flowr` can be run as two separate processes, one "client" process that executes the `context functions`
+However, `flowrcli` can be run as two separate processes, one "client" process that executes the `context functions`
 and interacts with STDIO, and another "server" process with a thread that that runs the coordinator plus a number 
 of threads running executors for job execution.
 
@@ -51,15 +51,15 @@ flowr/examples/fibonacci/manifest.json
 ```
 
 In Terminal 1, lets start the server that will wait for a flow to be submitted for execution,
-using `flowr` with debug logging verbosity level to be able to see what it's doing.
+using `flowrcli` with debug logging verbosity level to be able to see what it's doing.
 
-`> flowr -n -s -v debug`
+`> flowrcli -n -s -v debug`
 
 which will log some lines, ending with:
 
 `INFO    - Server is waiting to receive a 'Submission'`
 
-In Terminal 2, let's start a client using `flowr` with the `-c, --client` option. 
+In Terminal 2, let's start a client using `flowrcli` with the `-c, --client` option. 
 This will submit the flow to the server for execution over the network, reading the flow manifest from the File
 System. It will then execute the `client functions`, in response to messages from the server, providing STDIO (just 
 standard out in this example)

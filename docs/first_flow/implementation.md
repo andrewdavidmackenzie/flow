@@ -10,12 +10,12 @@ You can run this flow and observe its output from the terminal, while in the flo
 ```
 
 `flowc` will compile the flow definition from the root flow definition file (`root.toml`) using the `context functions`
-offered by `flowr` (defined in the `flowr/src/bin/flowrcli/context` folder) to generate a `manifest.json` compiled flow manifest in the 
+offered by `flowrcli` (defined in the `flowr/src/bin/flowrcli/context` folder) to generate a `manifest.json` compiled flow manifest in the 
 `flowr/examples/fibonacci` folder.
 
-`flowc` then runs `flowr` to execute the flow.
+`flowc` then runs `flowrcli` to execute the flow.
 
-`flowr` is a Command Line flow runner and provides implementations for `context` functions to read and write to `stdio` (e.g. `stdout`).
+`flowrcli` is a Command Line flow runner and provides implementations for `context` functions to read and write to `stdio` (e.g. `stdout`).
 
 The flow will produce a fibonacci series printed to Stdout on the terminal.
 

@@ -12,13 +12,13 @@ All flows start with a root "flow definition". Other sub-flows can be nested und
 separate flow description files, to enable encapsulation and flow reuse.
 
 In this case it is the only one, and no hierarchy of flows descriptions is used or needed.
-You can see the TOML root flow definition for this flow in the `flowr` crate's fibonacci example.
+You can see the TOML root flow definition for this flow in the `flowrcli` crate's fibonacci example.
 [root.toml](../../flowr/examples/fibonacci/root.toml)
 
 ### Interaction with the execution environment
 The root defines what the interaction with the surrounding execution environment is,
 such as [Stdout](../../flowr/src/bin/flowrcli/context/stdio/stdout.md), or any other `context function` provided by the flow runtime 
-being used (e.g. `flowr`).
+being used (e.g. `flowrcli`).
 
 The only interaction with the execution environment in this example is the use of `stdout` to print the numbers
 in the series to the Terminal.
@@ -32,7 +32,7 @@ produce outputs, as in the case of the impure `stdout` function.
 This flow uses two functions (shown as orange ovals):
 - `stdout` from the `context functions` as described above
   - `stdout` only has one, unnamed, default input and no outputs. It will print the value on STDOUT of the process
-  running the flow runner (`flowr`) that is executing the flow.
+  running the flow runner (`flowrcli`) that is executing the flow.
 - the `add` function from the flow standard library `flowstdlib` to add two integers together.
   - `add` has two inputs "i1" and "i2" and produces the sum of them on the only, unnamed, "default" output.
 
