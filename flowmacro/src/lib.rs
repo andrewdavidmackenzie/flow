@@ -135,7 +135,7 @@ fn generate_code(function_implementation: TokenStream,
     let input_number_check = quote! {
         // check at run time that the number of values in inputs matches the inputs number expected
         if inputs.len() != #number_of_defined_inputs {
-            bail!("'inputs' does not have the expected number of input values");
+            flowcore::errors::bail!("'inputs' does not have the expected number of input values");
         }
     };
 
