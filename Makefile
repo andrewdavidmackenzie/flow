@@ -207,6 +207,3 @@ trim-docs:
 .PHONY: release
 release:
 	cargo release --no-verify --workspace --execute minor
-	echo "Once GH Actions on master have completed, create and push a release tag to trigger release workflow"
-	echo "> git tag v0.93.0 (using correct release version number)"
-	echo "> git push origin --tag"
