@@ -85,7 +85,7 @@ jobs:
         with:
           command: build
 
-      - name: compile flowstdlib
+      - name: compile flowstdlib to WASM
         run: ./target/debug/flowstdlib ./flowstdlib
 
       - name: clippy
