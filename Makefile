@@ -91,7 +91,7 @@ clean: clean_examples
 .PHONY: build
 build:
 	@echo "build<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
-	@cargo build -p flowc # Used to compile flowstdlib and examples so needed first
+	@cargo build -p flowc # flowc binary used to compile flowstdlib and examples so needed first
 	@cargo build -p flowstdlib # Used by examples so needed first
 	@cargo build
 	@cargo build --examples
@@ -188,6 +188,9 @@ trim-docs:
 	@find target/html -name \*.wasm | xargs rm -rf {}
 	@find target/html -name \*.lock  | xargs rm -rf {}
 	@find target/html -name \*.profraw  | xargs rm -rf {}
+	@find target/html -name \*.rs  | xargs rm -rf {}
+	@find target/html -name Cargo.toml  | xargs rm -rf {}
+	@find target/html -name src -type d | xargs rm -rf {}
 	@rm -rf target/html/.mdbookignore
 	@rm -rf target/html/.DS_Store
 	@rm -rf target/html/book.toml
