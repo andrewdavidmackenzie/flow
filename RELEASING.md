@@ -40,22 +40,6 @@ there are two assets (macos and linux versions) for each of the member crates , 
 the usual source code zip & tarball.
 
 ## Remaining Work
-When publishing to crates.io, each crate is copied to a clean directory and built from scratch and 
-tests ran, to make sure it is OK to publish it (and downloaders will be able to compile and install it). 
-
-This is the verification process used by `cargo publish` and `cargo release`
-
-### `flowstdlib` exception
-Because building flowstdlib takes so long (compiling many small projects to generate the WASM files 
-for each function), it is not compiled to the $OUT_DIR as rust crates should do, but to $HOME/.flow/lib
-so that only modified files are re-compiled each time.
-
-That causes the verification process to fail. Hence to publish the `flowstdlib` crate we need to use the
-`--no-verify` option to `cargo publish` and hence to `cargo release`
-
-https://github.com/andrewdavidmackenzie/flow/issues/1633
-
-If that issue can be avoided, then the `--no-verify` option can be dropped.
 
 ### Projects in the tree but not in the workspace
 There are a number of rust cargo projects in the directory tree, that for various reasons
