@@ -92,9 +92,7 @@ clean: clean_examples
 build:
 	@echo "build<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
 	@cargo build -p flowc # flowc binary used to compile flowstdlib and examples so needed first
-	@cargo build -p flowstdlib # Used by examples so needed first
 	@cargo build
-	@cargo build --examples
 
 .PHONY: clippy
 clippy: build
