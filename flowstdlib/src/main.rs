@@ -2,8 +2,10 @@ use std::env;
 use std::io;
 use std::process::Command;
 
-// Build script to compile the flowstdlib library (compile WASM files and generate manifest)
-// using flowc
+// This binary compiles the flowstdlib library (compile WASM files and generate manifest)
+// using flowc.
+// It takes the root of the flowstdlib source directory as its only argument.
+// It compiles the flowstdlib (wasm, docs etc) to $HOME/.flow/lib/flowstdlib
 fn main() -> io::Result<()> {
     let mut command = Command::new("flowc");
     // flowc options:   -v info : to log output at INFO level,
@@ -17,8 +19,13 @@ fn main() -> io::Result<()> {
 
     let home_dir = env::var("HOME").expect("Could not get $HOME");
     let out_dir = format!("{}/.flow/lib/flowstdlib", home_dir);
-//    let out_dir = env::var("OUT_DIR").unwrap();
-    let command_args = vec!["-d", "-g", "-l", "-O", "-o", &out_dir, env!("CARGO_MANIFEST_DIR")];
+
+    let lib_root_dir = env::args().nth(1).unwrap_or_else(
+        || "No lib root directory specified. Please specify the directory where the flowstdlib \
+        source resides".into()
+    );
+
+    let command_args = vec!["-d", "-g", "-l", "-O", "-o", &out_dir, &lib_root_dir];
 
     match command.args(&command_args).status() {
         Ok(stat) => {

@@ -85,6 +85,9 @@ jobs:
         with:
           command: build
 
+      - name: compile flowstdlib
+        run: ./target/debug/flowstdlib ./flowstdlib
+
       - name: clippy
         uses: actions-rs/cargo@v1
         with:

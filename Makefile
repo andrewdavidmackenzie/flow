@@ -91,8 +91,8 @@ clean: clean_examples
 .PHONY: build
 build:
 	@echo "build<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
-	@cargo build -p flowc # flowc binary used to compile flowstdlib and examples so needed first
 	@cargo build
+	@./target/debug/flowstdlib ./flowstdlib
 
 .PHONY: clippy
 clippy: build
