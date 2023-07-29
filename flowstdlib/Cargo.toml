@@ -12,10 +12,12 @@ repository.workspace = true
 readme = "README.md"
 edition.workspace = true
 
-build = "build.rs"
-
 [badges]
 maintenance = { status = "actively-developed" }
+
+[[bin]]
+name = "flowstdlib"
+path = "src/main.rs"
 
 [lib]
 name = "flowstdlib"
