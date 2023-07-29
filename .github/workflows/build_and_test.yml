@@ -80,29 +80,16 @@ jobs:
           command: build
           args: -p flowc
 
-      - name: build-flowr
+      - name: build all
         uses: actions-rs/cargo@v1
         with:
           command: build
-          args: -p flowr
-
-      # flowstdlib is required to run some tests and most flowr/examples
-      - name: build-flowstdlib
-        uses: actions-rs/cargo@v1
-        with:
-          command: build
-          args: -p flowstdlib
 
       - name: clippy
         uses: actions-rs/cargo@v1
         with:
           command: clippy
           args: --tests -- -D warnings
-
-      - name: build all
-        uses: actions-rs/cargo@v1
-        with:
-          command: build
 
       - name: test
         uses: actions-rs/cargo@v1
