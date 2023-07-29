@@ -8,7 +8,7 @@ fn main() -> io::Result<()> {
     let lib_root_dir_str = env!("CARGO_MANIFEST_DIR");
 
     // Tell Cargo that if any file changes it should rerun this build script
-    println!("cargo:rerun-if-changed={lib_root_dir_str}");
+    println!("cargo:rerun-if-changed={lib_root_dir_str}/src");
 
     let mut command = Command::new("flowc");
     // flowc options:   -v info : to log output at INFO level,
