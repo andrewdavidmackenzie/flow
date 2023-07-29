@@ -117,9 +117,8 @@ endif
 coverage: clean-start
 	@echo "coverage<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
 	@find . -name "*.profraw"  | xargs rm -rf {} # Remove old coverage measurements
-	@RUSTFLAGS="-C instrument-coverage" LLVM_PROFILE_FILE="flow-%p-%m.profraw" cargo build -p flowc # Used to compile flowstdlib and examples, so needed first
-	@RUSTFLAGS="-C instrument-coverage" LLVM_PROFILE_FILE="flow-%p-%m.profraw" cargo build -p flowstdlib # Used by examples so needed first
 	@RUSTFLAGS="-C instrument-coverage" LLVM_PROFILE_FILE="flow-%p-%m.profraw" cargo build
+	@./target/debug/flowstdlib ./flowstdlib
 ifeq ($(CODESIGN),)
 	find target -perm +111 -type f | xargs codesign -fs self
 endif
@@ -207,4 +206,4 @@ trim-docs:
 
 .PHONY: release
 release:
-	cargo release --no-verify --workspace --execute minor
+	cargo release --workspace --execute minor
