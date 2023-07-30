@@ -97,7 +97,7 @@ build:
 .PHONY: clippy
 clippy: build
 	@echo "clippy<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
-	@cargo clippy --tests --all-features -- -D warnings
+	@cargo clippy --tests --no-deps --all-features -- -D warnings
 
 .PHONY: test
 test: build
@@ -122,7 +122,7 @@ coverage: clean-start
 ifeq ($(CODESIGN),)
 	find target -perm +111 -type f | xargs codesign -fs self
 endif
-	@RUSTFLAGS="-C instrument-coverage" LLVM_PROFILE_FILE="flow-%p-%m.profraw" cargo clippy --tests -- -D warnings
+	@RUSTFLAGS="-C instrument-coverage" LLVM_PROFILE_FILE="flow-%p-%m.profraw" cargo clippy --tests --no-deps --all-features -- -D warnings
 	@RUSTFLAGS="-C instrument-coverage" LLVM_PROFILE_FILE="flow-%p-%m.profraw" cargo test
 	@RUSTFLAGS="-C instrument-coverage" LLVM_PROFILE_FILE="flow-%p-%m.profraw" cargo doc --no-deps --target-dir=target/html/code
 	@echo "Gathering coverage information"
