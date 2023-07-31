@@ -11,8 +11,6 @@ fn main() -> io::Result<()> {
     // used flowc options:
     //   -d         : generate debug symbols in some output files (e.g. manifest.json)
     //   -g         : dump 'dot' graphs for documentation
-    //   -L dir     : add 'dir' to the Lib Search path. This is so flows in the lib
-    //                being compiled can reference flows or functions in the same
     //   -l         : compile a flow library (not a flow) who's path is the last arg
     //   -O         : optimize the generated WASM output files
     //   -v warn    : Set verbosity to warning level
@@ -26,7 +24,7 @@ fn main() -> io::Result<()> {
     let lib_source_dir = env::args().nth(1).expect("No lib root directory specified.\
      Please specify directory where flowstdlib source resides");
 
-    let command_args = vec!["-d", "-g", "-L", &lib_home,  "-l", "-O",
+    let command_args = vec!["-d", "-g", "-l", "-O",
                             "-v", "warn", "-o", &out_dir, &lib_source_dir];
 
     match command.args(&command_args).status() {
