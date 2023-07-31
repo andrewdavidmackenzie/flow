@@ -118,7 +118,10 @@ fn check_manifest_status(manifest_json_file: &PathBuf, file_count: i32,
 fn copy_definition_to_output_dir(toml_path: &Path, output_dir: &Path) -> Result<i32> {
     let mut file_count = 0;
 
-    // copy the definition toml to output directory
+    debug!("Copying definition file from: {} to {}",
+        toml_path.display(),
+        output_dir.display());
+
     fs::copy(
         toml_path,
         output_dir.join(
@@ -316,7 +319,7 @@ fn compile_flows(
                             )
                             .chain_err(|| "Could not add entry to library manifest")?;
                     }
-                    Err(err) => debug!("Skipping file '{}'. Reason: '{}'", url, err),
+                    Err(err) => debug!("sle '{}'. Reason: '{}'", url, err),
                 }
             },
             Err(e) => bail!("Error walking glob entries: {}", e.to_string())
