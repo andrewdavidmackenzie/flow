@@ -81,7 +81,7 @@ jobs:
       - name: compile flowstdlib to WASM
         run: |
           ./target/debug/flowstdlib ./flowstdlib
-          ls flow/target/debug/flowstdlib/math
+          ls ./flowstdlib/math
           ls $HOME/.flow/lib/flowstdlib/math
 
       - name: clippy
