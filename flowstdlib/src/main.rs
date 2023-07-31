@@ -25,7 +25,7 @@ fn main() -> io::Result<()> {
         source resides".into()
     );
 
-    let command_args = vec!["-d", "-g", "-l", "-O", "-o", &out_dir, &lib_root_dir];
+    let command_args = vec!["-d", "-v", "debug", "-g", "-l", "-O", "-o", &out_dir, &lib_root_dir];
 
     match command.args(&command_args).status() {
         Ok(stat) => {
