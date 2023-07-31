@@ -223,7 +223,7 @@ fn compile_functions(
 
                         file_count += copy_definition_to_output_dir(toml_path, &output_dir)?;
                     }
-                    Ok(FlowProcess(_)) => {},
+                    Ok(FlowProcess(_)) => debug!("Skipping file '{}'. Reason: 'It is a Flow'", url),
                     Err(err) => debug!("Skipping file '{}'. Reason: '{}'", url, err),
                 }
             },
@@ -274,7 +274,7 @@ fn compile_flows(
                     &url,
                     provider,
                 ) {
-                    Ok(FunctionProcess(_)) => {}
+                    Ok(FunctionProcess(_)) => debug!("Skipping file '{}'. Reason: 'It is a Function'", url),
                     Ok(FlowProcess(ref mut flow)) => {
                         // calculate the path of the file's directory, relative to lib_root
                         let relative_dir = toml_path
@@ -312,7 +312,7 @@ fn compile_flows(
                             )
                             .chain_err(|| "Could not add entry to library manifest")?;
                     }
-                    Err(err) => debug!("sle '{}'. Reason: '{}'", url, err),
+                    Err(err) => debug!("Error parsing '{}'. Reason: '{}'", url, err),
                 }
             },
             Err(e) => bail!("Error walking glob entries: {}", e.to_string())
