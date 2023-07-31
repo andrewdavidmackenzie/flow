@@ -22,8 +22,7 @@ fn main() -> io::Result<()> {
     let out_dir = format!("{}/flowstdlib", lib_home);
 
     let lib_source_dir = env::args().nth(1).expect("No lib root directory specified.\
-     Please specify directory where flowstdlib source resides".into()
-    );
+     Please specify directory where flowstdlib source resides");
 
     // TODO remove debugging
     let command_args = vec!["-d", "-v", "debug", "-L", &lib_home,
