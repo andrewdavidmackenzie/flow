@@ -52,7 +52,7 @@ rand = "0.8"
 wasmtime = { version = "11.0.1", default-features = false, features = ["cranelift"] }
 
 # for flowrgui
-iced = { version = "0.9.0", features = ["canvas", "tokio", "debug", "image"] }
+iced = { version = "0.10.0", features = ["canvas", "tokio", "debug", "image"] }
 iced_aw = { version = "0.5.2", default-features = false, features = ["tabs", "card", "modal",] }
 iced_native = "0.10.3"
 once_cell = "1.18.0"
