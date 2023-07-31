@@ -124,7 +124,7 @@ fn run() -> Result<()> {
         // Add the parent of the out_dir to the search path so compiler can find internal
         // references functions and flows during the build process
         let output_dir_parent = options.output_dir.parent()
-            .ok_or_else(|| "Could not get parent of output dir")?
+            .ok_or("Could not get parent of output dir")?
             .to_string_lossy();
         lib_search_path.add(&output_dir_parent);
         let provider = &MetaProvider::new(lib_search_path, PathBuf::default());
