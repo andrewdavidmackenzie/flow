@@ -153,12 +153,12 @@ section <a href="../describing/definition_overview.html">Defining Flows</a></p>
 <p>All flows start with a root &quot;flow definition&quot;. Other sub-flows can be nested under the root, via references to 
 separate flow description files, to enable encapsulation and flow reuse.</p>
 <p>In this case it is the only one, and no hierarchy of flows descriptions is used or needed.
-You can see the TOML root flow definition for this flow in the <code>flowr</code> crate's fibonacci example.
+You can see the TOML root flow definition for this flow in the <code>flowrcli</code> crate's fibonacci example.
 <a href="../../flowr/examples/fibonacci/root.toml">root.toml</a></p>
 <h3 id="interaction-with-the-execution-environment"><a class="header" href="#interaction-with-the-execution-environment">Interaction with the execution environment</a></h3>
 <p>The root defines what the interaction with the surrounding execution environment is,
 such as <a href="../../flowr/src/bin/flowrcli/context/stdio/stdout.html">Stdout</a>, or any other <code>context function</code> provided by the flow runtime 
-being used (e.g. <code>flowr</code>).</p>
+being used (e.g. <code>flowrcli</code>).</p>
 <p>The only interaction with the execution environment in this example is the use of <code>stdout</code> to print the numbers
 in the series to the Terminal.</p>
 <h3 id="functions"><a class="header" href="#functions">Functions</a></h3>
@@ -170,7 +170,7 @@ produce outputs, as in the case of the impure <code>stdout</code> function.</p>
 <li><code>stdout</code> from the <code>context functions</code> as described above
 <ul>
 <li><code>stdout</code> only has one, unnamed, default input and no outputs. It will print the value on STDOUT of the process
-running the flow runner (<code>flowr</code>) that is executing the flow.</li>
+running the flow runner (<code>flowrcli</code>) that is executing the flow.</li>
 </ul>
 </li>
 <li>the <code>add</code> function from the flow standard library <code>flowstdlib</code> to add two integers together.

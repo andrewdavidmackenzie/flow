@@ -142,9 +142,9 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h2 id="running-a-flow-in-clientserver-mode-of-flowr"><a class="header" href="#running-a-flow-in-clientserver-mode-of-flowr">Running a flow in client/server mode of <code>flowr</code></a></h2>
+                        <h2 id="running-a-flow-in-clientserver-mode-of-flowrcli"><a class="header" href="#running-a-flow-in-clientserver-mode-of-flowrcli">Running a flow in client/server mode of <code>flowrcli</code></a></h2>
 <h3 id="flowrlib-architecture"><a class="header" href="#flowrlib-architecture"><code>flowrlib</code> architecture</a></h3>
-<p>The <code>flowrlib</code> library is designed to be used, not just in <code>flowr</code> CLI-style flow runners, but in other incarnations
+<p>The <code>flowrlib</code> library is designed to be used, not just in <code>flowrcli</code> CLI-style flow runners, but in other incarnations
 such as a GUI application, or web application, etc.</p>
 <p>In order to have <code>flowrlib</code> work well in such applications, it avoids running any <code>context function</code> function that
 interacts with the environment (Read/Write to a FIle, Read/Write to STDIO, etc) and that may block, on the main
@@ -154,14 +154,14 @@ those functions, provided by the application and not the library.</p>
 <p>For this reason, it implements a &quot;client/server&quot; architecture, where a &quot;server&quot; thread runs the coordinator
 and sends and receives messages to a client thread (in the flow runner app) that runs the <code>context functions</code> whose 
 implementations are provided by the flow runner application that links the <code>flowrlib</code> library.</p>
-<h3 id="flowr---an-example-of-a-flow-runner-app"><a class="header" href="#flowr---an-example-of-a-flow-runner-app"><code>flowr</code> - an example of a flow runner app</a></h3>
-<p><code>flowr</code> is one example of a flow runner app that uses <code>flowrlib</code> to build an application to run flows.</p>
+<h3 id="flowrcli---an-example-of-a-flow-runner-app"><a class="header" href="#flowrcli---an-example-of-a-flow-runner-app"><code>flowrcli</code> - an example of a flow runner app</a></h3>
+<p><code>flowrcli</code> is one example of a flow runner app that uses <code>flowrlib</code> to build an application to run flows.</p>
 <p>It implements a set of <code>client function</code>, that interact with STDIO etc, on a client thread.</p>
-<p>The <code>flowr</code> process running that client thread must be able to interact with STDIO.</p>
-<p>In normal use, <code>flowr</code> runs the client and server threads in the same process and the user is unaware of this
+<p>The <code>flowrcli</code> process running that client thread must be able to interact with STDIO.</p>
+<p>In normal use, <code>flowrcli</code> runs the client and server threads in the same process and the user is unaware of this
 separation.</p>
 <h3 id="separating-the-client-from-the-server"><a class="header" href="#separating-the-client-from-the-server">Separating the client from the server</a></h3>
-<p>However, <code>flowr</code> can be run as two separate processes, one &quot;client&quot; process that executes the <code>context functions</code>
+<p>However, <code>flowrcli</code> can be run as two separate processes, one &quot;client&quot; process that executes the <code>context functions</code>
 and interacts with STDIO, and another &quot;server&quot; process with a thread that that runs the coordinator plus a number 
 of threads running executors for job execution.</p>
 <p>These two &quot;client&quot; and &quot;server&quot; processes exchange messages over the network.
@@ -178,11 +178,11 @@ the same network.</p>
 flowr/examples/fibonacci/manifest.json
 </code></pre>
 <p>In Terminal 1, lets start the server that will wait for a flow to be submitted for execution,
-using <code>flowr</code> with debug logging verbosity level to be able to see what it's doing.</p>
-<p><code>&gt; flowr -n -s -v debug</code></p>
+using <code>flowrcli</code> with debug logging verbosity level to be able to see what it's doing.</p>
+<p><code>&gt; flowrcli -n -s -v debug</code></p>
 <p>which will log some lines, ending with:</p>
 <p><code>INFO    - Server is waiting to receive a 'Submission'</code></p>
-<p>In Terminal 2, let's start a client using <code>flowr</code> with the <code>-c, --client</code> option. 
+<p>In Terminal 2, let's start a client using <code>flowrcli</code> with the <code>-c, --client</code> option. 
 This will submit the flow to the server for execution over the network, reading the flow manifest from the File
 System. It will then execute the <code>client functions</code>, in response to messages from the server, providing STDIO (just 
 standard out in this example)</p>

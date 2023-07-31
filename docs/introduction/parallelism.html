@@ -167,7 +167,7 @@ the flow runner's <code>context functions</code> leaving the flow itself totally
 <p>In a normal procedural language, an image would be rendered in memory in a 2D block of pixels and then 
 written out to file sequentially so that the pixels are placed in the correct order/location in the file.</p>
 <p>In a flow program, that could be gone, although accumulating the 2D array in memory may represent a bottleneck.
-<code>flowr</code>'s <a href="../../flowr/src/bin/flowrcli/context/image/image_buffer.html">image buffer</a> <code>context function</code> is written such that it can 
+<code>flowrcli</code>'s <a href="../../flowr/src/bin/flowrcli/context/image/image_buffer.html">image buffer</a> <code>context function</code> is written such that it can 
 accept pixels in any random order and render them correctly, but having the following inputs:</p>
 <pre><code>### Inputs
 * `pixel` - the (x, y) coordinate of the pixel

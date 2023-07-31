@@ -143,16 +143,16 @@
                 <div id="content" class="content">
                     <main>
                         <h3 id="the-flow-debugger"><a class="header" href="#the-flow-debugger">The Flow Debugger</a></h3>
-<p>NOTE: To be able to use the flow debugger that is part of <code>flowr</code>, <code>flowr</code> must be compiled with
-the <code>&quot;debugger&quot;</code> feature enabled. If not, the debugger code is not included in <code>flowr</code>.</p>
+<p>NOTE: To be able to use the flow debugger that is part of <code>flowrcli</code>, <code>flowrcli</code> must be compiled with
+the <code>&quot;debugger&quot;</code> feature enabled. If not, the debugger code is not included in <code>flowrcli</code>.</p>
 <h4 id="compiling-with-debug-symbols"><a class="header" href="#compiling-with-debug-symbols">Compiling with Debug Symbols</a></h4>
 <p>The debugger can be used to debug any flow, but flows compiled by <code>flowc</code> using the <code>-g</code> or <code>--symbols</code>
 option will have extra human readable content included in the compiled manifest (names of processes
 etc) and be more convenient to debug.</p>
 <h4 id="running-the-flow-with-the-debugger"><a class="header" href="#running-the-flow-with-the-debugger">Running the flow with the debugger</a></h4>
-<p>To start debugging a flow, run it using <code>flowr</code> as normal, but using the <code>-d</code> or <code>--debugger</code>
+<p>To start debugging a flow, run it using <code>flowrcli</code> as normal, but using the <code>-d</code> or <code>--debugger</code>
 options.</p>
-<p>The compiled flow manifest will be loaded by <code>flowr</code> as usual, functions initialized and a command prompt
+<p>The compiled flow manifest will be loaded by <code>flowrcli</code> as usual, functions initialized and a command prompt
 for the debugger will be shown.</p>
 <p>You can use the <code>'h'</code> or <code>'help'</code> command at the prompt to to get help on debugger commands.</p>
 <p>If you want to inspect the state of the flow at a particular point to debug a problem or understand 

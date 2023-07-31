@@ -142,15 +142,15 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h2 id="running-flows-with-flowr"><a class="header" href="#running-flows-with-flowr">Running flows with <code>flowr</code></a></h2>
-<p>In order to run a flow, it must first be compiled. Then a &quot;flow runner&quot; such as <code>flowr</code>can be used to run the compiled
-flow manifest).</p>
-<p>Flow runners in general and <code>flowr</code> run the compiled flow manifest (by default named <code>manifest.json</code>).</p>
+                        <h2 id="running-flows-with-flowrcli"><a class="header" href="#running-flows-with-flowrcli">Running flows with <code>flowrcli</code></a></h2>
+<p>In order to run a flow, it must first be compiled. Then a &quot;flow runner&quot; such as <code>flowrcli</code> can be used to run the 
+compiled flow manifest).</p>
+<p>Flow runners in general and <code>flowrcli</code> run the compiled flow manifest (by default named <code>manifest.json</code>).</p>
 <p>In order to compile a flow definition down to a flow manifest that can be run, you use <code>flowc</code> as usual, with the
-addition of the <code>-c, --compile</code> option. This compiles the flow but does not invoke <code>flowr</code> to run it.</p>
-<p>Then <code>flowr</code> as described below can be used to run the compiled flow.</p>
-<p>This section describes command line arguments that can be supplied to <code>flowr</code> and what they are useful for.</p>
-<h3 id="getting-help"><a class="header" href="#getting-help">Getting help</a></h3>
+addition of the <code>-c, --compile</code> option. This compiles the flow but does not invoke <code>flowrcli</code> to run it.</p>
+<p>Then <code>flowrcli</code> as described below can be used to run the compiled flow.</p>
+<p>This section describes command line arguments that can be supplied to <code>flowrcli</code> and what they are useful for.</p>
+<h3 id="getting-help-for-flowrcli"><a class="header" href="#getting-help-for-flowrcli">Getting help for <code>flowrcli</code></a></h3>
 <p>Use <code>-h, --help</code> (e.g. <code>flowc -h</code> or <code>cargo run -p flowc -- -h</code>) to print out help for the usage of <code>flowc</code>. </p>
 <p>This will print something like this:</p>
 <pre><code class="language-shell script">Usage: flowr [OPTIONS] [flow-manifest] [flow_args]...
@@ -173,7 +173,7 @@ Options:
   -h, --help                         Print help information
   -V, --version                      Print version information
 </code></pre>
-<p>Similarly to <a href="flowc.html">flowc</a>, in order to locate libraries used in flow execution, <code>flowr</code> needs to know where to 
+<p>Similarly to <a href="flowc.html">flowc</a>, in order to locate libraries used in flow execution, <code>flowrcli</code> needs to know where to 
 locate them. As for flowc, this can be done using the <code>$FLOW_LIB_PATH</code> environment variable, or one or more instance
 of the <code>-L, --libdir &lt;LIB_DIR|BASE_URL&gt;</code> option.</p>
 <h3 id="flow-manifest"><a class="header" href="#flow-manifest"><code>flow-manifest</code></a></h3>
@@ -191,7 +191,7 @@ retrieve the value of these parameters using <code>context functions</code>.</p>
 <h3 id="example-invocations"><a class="header" href="#example-invocations">Example Invocations</a></h3>
 <p>For each of these examples, there is first a <code>flowc</code> line showing how the flow can be compiled. This will leave
 a compiled <code>manifest.json</code> flow manifest alongside the flow's root definition file. That manifest is then run using
-<code>flowr</code></p>
+<code>flowrcli</code></p>
 <ul>
 <li><code>flowc -C flowr/src/bin/flowrcli/context -c flowr/examples/fibonacci</code> - compile the fibonacci example</li>
 <li><code>flowr flowr/examples/fibonacci</code> - run the pre-compiled fibonacci example flow manifest
@@ -213,6 +213,12 @@ a compiled <code>manifest.json</code> flow manifest alongside the flow's root de
 </li>
 <li><code>flowr flowr/examples/sequence/manifest.json 10</code> - compile the flow, specifying the full path to the manifest.json file</li>
 </ul>
+<h3 id="flowrgui"><a class="header" href="#flowrgui"><code>flowrgui</code></a></h3>
+<p>Similar to <code>flowrcli</code> that interacts with the terminal and the file system for IO, <code>flowrgui</code> is another runner
+for flows, but with a Graphical User Interface (GUI). It displays STDIO and STDERR on the UI, shows images written
+to visually and tracks writes to files during execution.</p>
+<p>Most (but not all) of the same command line options as <code>flowrcli</code> are supported, and help can be see using:</p>
+<p><code>flowrgui --help</code></p>
 
                     </main>
 

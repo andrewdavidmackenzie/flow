@@ -143,11 +143,11 @@
                 <div id="content" class="content">
                     <main>
                         <h2 id="running-flows"><a class="header" href="#running-flows">Running Flows</a></h2>
-<p>In order to run a flow, it must first be compiled. Then a &quot;flow runner&quot; (such as <code>flowr</code>) can be used to run the
+<p>In order to run a flow, it must first be compiled. Then a &quot;flow runner&quot; (such as <code>flowrcli</code>) can be used to run the
 compiled flow manifest.</p>
-<p>For convenience, <code>flowc</code>, the flow compiler, compiles the flow, then uses <code>flowr</code> to run it for you (unless you 
+<p>For convenience, <code>flowc</code>, the flow compiler, compiles the flow, then uses <code>flowrcli</code> to run it for you (unless you 
 specify otherwise). So that is the easiest way to run a flow and is used below.</p>
-<p>If you have run <code>make</code> or <code>make install_flow</code> then you will have <code>flowc</code> and <code>flowr</code> installed on your system.
+<p>If you have run <code>make</code> or <code>make install_flow</code> then you will have <code>flowc</code> and <code>flowrcli</code> installed on your system.
 Be sure they are in your $PATH so that can be invoked directly.</p>
 <p>Then you can run flows easily using <code>flowc</code>. </p>
 <p>If you do not wish to install <code>flowc</code> then you can run it using <code>cargo</code> from the root of the project directory by
@@ -155,7 +155,7 @@ substituting <code>cargo run -p flowc --</code> for <code>flowc</code>in the exa
 <p>User's terminal Current Working Directory should be the root directory of the <code>flow</code> project</p>
 <h3 id="finding-libraries"><a class="header" href="#finding-libraries">Finding Libraries</a></h3>
 <p>Environment variable <code>$FLOW_LIB_PATH</code> is set to a directory where the <code>flowstdlib</code> is compiled by default 
-<code>$HOME/.flow/lib</code>, in order for <code>flowc</code> and <code>flowr</code> to be able to find library functions used.</p>
+<code>$HOME/.flow/lib</code>, in order for <code>flowc</code> and <code>flowrcli</code> to be able to find library functions used.</p>
 <p>If this environment variable is not set then compiling will fail:</p>
 <pre><code>❯ unset FLOW_LIB_PATH
 ❯ flowc -C flowr/src/bin/flowrcli/context flowr/examples/fibonacci
@@ -170,7 +170,7 @@ instances of the <code>-L, --libdir &lt;LIB_DIR|BASE_URL&gt;</code> Option (see 
 <ul>
 <li>
 <p><code>flowc -C flowr/src/bin/flowrcli/context flowr/examples/fibonacci</code></p>
-<p>uses the <code>context_functions</code> provided by <code>flowr</code> and run the flow whose root flow is defined in <code>./flowr/examples/fibonacci/root.toml</code>. 
+<p>uses the <code>context_functions</code> provided by <code>flowrcli</code> and run the flow whose root flow is defined in <code>./flowr/examples/fibonacci/root.toml</code>. 
 Do not pass in any arguments to the flow. </p>
 <ul>
 <li>You should get a fibonacci series output to the terminal, </li>
@@ -191,7 +191,7 @@ some text.</p>
 </li>
 <li>
 <p><code>unset FLOW_LIB_PATH;flowc -C flowr/src/bin/flowrcli/context -L target flowr/examples/fibonacci</code> - first ensures that the $FLOW_LIB_PATH
-environment variable is not set and is not being used to locate libraries, and in order to help <code>flowc</code> and <code>flowr</code> 
+environment variable is not set and is not being used to locate libraries, and in order to help <code>flowc</code> and <code>flowrcli</code> 
 find the <code>flowstdlib</code> library used by the example (previously compiled into <code>target</code> directory) it specified that as a
 directory for the library search path using the <code>-L, --libdir &lt;LIB_DIR|BASE_URL&gt;</code> Option</p>
 <ul>

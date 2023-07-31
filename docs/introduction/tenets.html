@@ -208,7 +208,7 @@ processes, machines and (via portability and WASM) even a heterogeneous network 
 CPU architectures and operating systems.</p>
 <h2 id="separate-the-program-from-the-context"><a class="header" href="#separate-the-program-from-the-context">Separate the program from the context</a></h2>
 <p>There is an explicit separation between the flow program itself, and the environment in which it runs.
-Flows contain only pure functions, but they are run by a &quot;flow runner&quot; program (such as <code>flowr</code>) that
+Flows contain only pure functions, but they are run by a &quot;flow runner&quot; program (such as <code>flowrcli</code>) that
 provides &quot;impure&quot; <code>context functions</code> for interacting with the context in which it is runs, for things
 like STDIO, File System, etc.</p>
 <h2 id="efficiency"><a class="header" href="#efficiency">Efficiency</a></h2>

@@ -196,7 +196,7 @@ combination of functions, that can be very fine grained and implemented in many 
 languages (or even assembly, WebAssembly or something else). </p>
 <p>Program logic (control flow, loops) emerges from how the processes are &quot;wired together&quot; in 'flows'. </p>
 <p>I have chosen to implement the functions included with <code>flow</code> (in the <code>flowstdlib</code> standard 
-library and the <code>context functions</code> of the <code>flowr</code> flow runner) in in rust, but they could be in other
+library and the <code>context functions</code> of the <code>flowrcli</code> flow runner) in in rust, but they could be in other
 languages.</p>
 <p>I don't consider <code>flow</code> (or the flow description format) a DSL. The file format is chosen for describing 
 a flow in text. The file format is not important, providing it can describe the flow (<code>processes</code> and
@@ -281,7 +281,7 @@ processes, machines and (via portability and WASM) even a heterogeneous network 
 CPU architectures and operating systems.</p>
 <h2 id="separate-the-program-from-the-context"><a class="header" href="#separate-the-program-from-the-context">Separate the program from the context</a></h2>
 <p>There is an explicit separation between the flow program itself, and the environment in which it runs.
-Flows contain only pure functions, but they are run by a &quot;flow runner&quot; program (such as <code>flowr</code>) that
+Flows contain only pure functions, but they are run by a &quot;flow runner&quot; program (such as <code>flowrcli</code>) that
 provides &quot;impure&quot; <code>context functions</code> for interacting with the context in which it is runs, for things
 like STDIO, File System, etc.</p>
 <h2 id="efficiency"><a class="header" href="#efficiency">Efficiency</a></h2>
@@ -298,18 +298,16 @@ and to wasm</li>
 takes a number of command line arguments and source files or URLs and compiles the flow or library referenced.
 <ul>
 <li><code>flowrclib</code> is the library for compiling flow program and library definitions from toml 
-files, producing generated output projects that can be run by <code>flowr</code>.</li>
+files, producing generated output projects that can be run by <code>flowrcli</code> or <code>flowrgui</code>.</li>
 </ul>
 </li>
 <li><a href="docs/introduction/../../flowr/README.html">flowrlib</a> - The flow runner library that loads and executes compiled flows.</li>
 <li><a href="docs/introduction/../../flowr/README.html">flowr</a> - The <code>flowr</code> flow runner binary that can be used to run and debug 
 flows compiled with a flow compiler such as <code>flowc</code>.</li>
-<li><a href="docs/introduction/../../flowr/README.html">flowrex</a> - <code>flowrex</code> is a minimal flow job executor, intended for use across the netowkr 
-associated with <code>flowr</code> (above).
-flows compiled with a flow compiler such as <code>flowc</code>.</li>
+<li><a href="docs/introduction/../../flowr/README.html">flowrex</a> - <code>flowrex</code> is a minimal flow job executor, intended for use across the network 
+associated with <code>flowrcli</code> or <code>flowgui</code> (above).</li>
 <li><a href="docs/introduction/../../flowstdlib/README.html">flowstdlib</a> - the flow &quot;standard library&quot; which contains a set of functions that 
-can be 
-used by flows being defined by the user</li>
+can be used by flows being defined by the user</li>
 <li><a href="docs/introduction/../../flowr/examples/README.html">examples</a> - A set of examples flows that can be run</li>
 </ul>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="the-inspirations-for-flow"><a class="header" href="#the-inspirations-for-flow">The Inspirations for 'flow'</a></h1>
@@ -422,7 +420,7 @@ the flow runner's <code>context functions</code> leaving the flow itself totally
 <p>In a normal procedural language, an image would be rendered in memory in a 2D block of pixels and then 
 written out to file sequentially so that the pixels are placed in the correct order/location in the file.</p>
 <p>In a flow program, that could be gone, although accumulating the 2D array in memory may represent a bottleneck.
-<code>flowr</code>'s <a href="docs/introduction/../../flowr/src/bin/flowrcli/context/image/image_buffer.html">image buffer</a> <code>context function</code> is written such that it can 
+<code>flowrcli</code>'s <a href="docs/introduction/../../flowr/src/bin/flowrcli/context/image/image_buffer.html">image buffer</a> <code>context function</code> is written such that it can 
 accept pixels in any random order and render them correctly, but having the following inputs:</p>
 <pre><code>### Inputs
 * `pixel` - the (x, y) coordinate of the pixel
@@ -461,7 +459,7 @@ output value, thus introducing a data dependency and this final step will operat
 <p>Providing the final (non-parallel step) is less compute intensive than the earlier steps, an overall 
 gain can be made by dividing and conquering (and then combining).</p>
 <div style="break-before: page; page-break-before: always;"></div><h2 id="status"><a class="header" href="#status">Status</a></h2>
-<p>The semantics of flows, processes and connections along with the implementation of the <code>flowc</code> compiler, <code>flowr</code> 
+<p>The semantics of flows, processes and connections along with the implementation of the <code>flowc</code> compiler, <code>flowrcli</code> 
 runner, <code>context</code> functions and the <code>flowstdlib</code> library has allowed for the 
 creation of a set of example flows that execute as expected.</p>
 <p>There has pretty good overall test coverage (&gt; 82%) that allows for safer refactoring.</p>
@@ -482,12 +480,12 @@ section <a href="docs/first_flow/../describing/definition_overview.html">Definin
 <p>All flows start with a root &quot;flow definition&quot;. Other sub-flows can be nested under the root, via references to 
 separate flow description files, to enable encapsulation and flow reuse.</p>
 <p>In this case it is the only one, and no hierarchy of flows descriptions is used or needed.
-You can see the TOML root flow definition for this flow in the <code>flowr</code> crate's fibonacci example.
+You can see the TOML root flow definition for this flow in the <code>flowrcli</code> crate's fibonacci example.
 <a href="docs/first_flow/../../flowr/examples/fibonacci/root.toml">root.toml</a></p>
 <h3 id="interaction-with-the-execution-environment"><a class="header" href="#interaction-with-the-execution-environment">Interaction with the execution environment</a></h3>
 <p>The root defines what the interaction with the surrounding execution environment is,
 such as <a href="docs/first_flow/../../flowr/src/bin/flowrcli/context/stdio/stdout.html">Stdout</a>, or any other <code>context function</code> provided by the flow runtime 
-being used (e.g. <code>flowr</code>).</p>
+being used (e.g. <code>flowrcli</code>).</p>
 <p>The only interaction with the execution environment in this example is the use of <code>stdout</code> to print the numbers
 in the series to the Terminal.</p>
 <h3 id="functions"><a class="header" href="#functions">Functions</a></h3>
@@ -499,7 +497,7 @@ produce outputs, as in the case of the impure <code>stdout</code> function.</p>
 <li><code>stdout</code> from the <code>context functions</code> as described above
 <ul>
 <li><code>stdout</code> only has one, unnamed, default input and no outputs. It will print the value on STDOUT of the process
-running the flow runner (<code>flowr</code>) that is executing the flow.</li>
+running the flow runner (<code>flowrcli</code>) that is executing the flow.</li>
 </ul>
 </li>
 <li>the <code>add</code> function from the flow standard library <code>flowstdlib</code> to add two integers together.
@@ -535,10 +533,10 @@ it ran) using input initializers (dotted lines)</p>
 <pre><code class="language-shell script">&gt; cargo run -p flowc -- -C flowr/src/bin/flowrcli/context flowr/examples/fibonacci
 </code></pre>
 <p><code>flowc</code> will compile the flow definition from the root flow definition file (<code>root.toml</code>) using the <code>context functions</code>
-offered by <code>flowr</code> (defined in the <code>flowr/src/bin/flowrcli/context</code> folder) to generate a <code>manifest.json</code> compiled flow manifest in the 
+offered by <code>flowrcli</code> (defined in the <code>flowr/src/bin/flowrcli/context</code> folder) to generate a <code>manifest.json</code> compiled flow manifest in the 
 <code>flowr/examples/fibonacci</code> folder.</p>
-<p><code>flowc</code> then runs <code>flowr</code> to execute the flow.</p>
-<p><code>flowr</code> is a Command Line flow runner and provides implementations for <code>context</code> functions to read and write to <code>stdio</code> (e.g. <code>stdout</code>).</p>
+<p><code>flowc</code> then runs <code>flowrcli</code> to execute the flow.</p>
+<p><code>flowrcli</code> is a Command Line flow runner and provides implementations for <code>context</code> functions to read and write to <code>stdio</code> (e.g. <code>stdout</code>).</p>
 <p>The flow will produce a fibonacci series printed to Stdout on the terminal.</p>
 <pre><code class="language-shell script">&gt; cargo run -p flowc -- -C flowr/src/bin/flowrcli/context flowr/examples/fibonacci
    Compiling flowstdlib v0.6.0 (/Users/andrew/workspace/flow/flowstdlib)
@@ -573,7 +571,7 @@ Sending an input value to a function may make that function ready to run.</p>
 <h3 id="specific-sequence-for-this-example"><a class="header" href="#specific-sequence-for-this-example">Specific Sequence for this example</a></h3>
 <p>Below is a description of what happens in the flor runtime to execute the flow.</p>
 <p>You can see log output (printed to STDOUT and mixed with the number series output) of what is happening using 
-the <code>-v, verbosity &lt;Verbosity Level&gt;</code> command line option to <code>flowr</code>. </p>
+the <code>-v, verbosity &lt;Verbosity Level&gt;</code> command line option to <code>flowrcli</code>. </p>
 <ul>
 <li>Values accepted (from less to more output verbosity) are: <code>error</code> (the default), <code>warn</code>, <code>info</code> <code>debug</code> and <code>trace</code>.</li>
 </ul>
@@ -712,11 +710,11 @@ ARGS:
     &lt;flow_args&gt;...    Arguments that will get passed onto the flow if it is executed
 
 </code></pre>
-<h3 id="command-line-options-to-flowr"><a class="header" href="#command-line-options-to-flowr">Command line options to <code>flowr</code></a></h3>
-<p>By default <code>flowc</code> uses <code>flowr</code> to run the flow once it has compiled it. Also it defaults to passing the <code>-n/--native</code>
-flag to <code>flowr</code> so that flows are executed using the native implementations of library functions.</p>
-<p>In order to pass command line options on to <code>flowr</code> you separate them from the options to <code>flowc</code> after another <code>--</code> separator.</p>
-<p><code>flowr</code> accepts the same <code>-v/--verbosity</code> verbosity options as <code>flowc</code>.</p>
+<h3 id="command-line-options-to-flowrcli"><a class="header" href="#command-line-options-to-flowrcli">Command line options to <code>flowrcli</code></a></h3>
+<p>By default <code>flowc</code> uses <code>flowrcli</code> to run the flow once it has compiled it. Also it defaults to passing the <code>-n/--native</code>
+flag to <code>flowrcli</code> so that flows are executed using the native implementations of library functions.</p>
+<p>In order to pass command line options on to <code>flowrcli</code> you separate them from the options to <code>flowc</code> after another <code>--</code> separator.</p>
+<p><code>flowrcli</code> accepts the same <code>-v/--verbosity</code> verbosity options as <code>flowc</code>.</p>
 <h3 id="getting-debug-output"><a class="header" href="#getting-debug-output">Getting debug output</a></h3>
 <p>If you want to follow what the run-time is doing in more detail, you can increase the verbosity level (default level is ERROR)
 using the <code>-v/--verbosity</code> option.</p>
@@ -1367,8 +1365,8 @@ installations thus flows that use library functions are portable, providing the 
 wherever it is being run.</p>
 <p>The <code>flowrlib</code> runtime library accepts a &quot;search path&quot; where it should look for the library (using the library's
 name &quot;lib_name&quot; from the Url)</p>
-<p>Different flow runners (e.g. <code>flowr</code> or <code>flowrex</code> are included examples here but others can be written) can provide
-different ways to provide entries in the search path. Below we describe how <code>flowr</code> and <code>flowrex</code> do this.</p>
+<p>Different flow runners (e.g. <code>flowrcli</code> or <code>flowrex</code> are included examples here but others can be written) can provide
+different ways to provide entries in the search path. Below we describe how <code>flowrcli</code> and <code>flowrex</code> do this.</p>
 <h3 id="configuring-the-library-search-path"><a class="header" href="#configuring-the-library-search-path">Configuring the Library Search Path</a></h3>
 <p>The library search path is initialized from the contents of the <code>$FLOW_LIB_PATH</code> environment variable
 (if it is defined).
@@ -1450,7 +1448,7 @@ at <code>flowr/src/bin/flowrcli/context</code> so it searches for (and finds) a 
 <code>flowr/src/bin/flowrcli/context/stdio/stdout/stdout.toml</code>
 using the alrgorithm described in <a href="docs/describing/process_references.html">process references</a>.</p>
 <div style="break-before: page; page-break-before: always;"></div><h2 id="provided-functions"><a class="header" href="#provided-functions">Provided Functions</a></h2>
-<p>As described previously, flows can use <code>provided functions</code> provided by the flow runner app (e.g. <code>flowr</code>)
+<p>As described previously, flows can use <code>provided functions</code> provided by the flow runner app (e.g. <code>flowrcli</code>)
 and by flow libraries.</p>
 <p>However, a flow can also provide its own functions (a definition, for the compiler, and an implementation, 
 for the runtime).</p>
@@ -1459,7 +1457,7 @@ for the runtime).</p>
 <p>Using relative paths means that flows are &quot;encapsulated&quot; and portable (by location) as they can be moved
 between directories, files systems and systems/nodes and the relative locations of the provided functions allow 
 them to still be found and the flow compiled and ran.</p>
-<h3 id="examples"><a class="header" href="#examples">Examples</a></h3>
+<h3 id="examples-of-provided-functions"><a class="header" href="#examples-of-provided-functions">Examples of Provided Functions</a></h3>
 <p>The <code>flowr</code> crate has two examples that provide functions as part of the flow:</p>
 <ul>
 <li><a href="docs/describing/../../flowr/examples/reverse-echo/DESCRIPTION.html">Reverse Echo</a> in the folder <code>flowr/examples/reverse-echo</code> - a
@@ -1906,11 +1904,11 @@ source = &quot;context://stdio/stderr&quot;
 </ul>
 <h4 id="output-9"><a class="header" href="#output-9">Output</a></h4>
 <div style="break-before: page; page-break-before: always;"></div><h2 id="running-flows"><a class="header" href="#running-flows">Running Flows</a></h2>
-<p>In order to run a flow, it must first be compiled. Then a &quot;flow runner&quot; (such as <code>flowr</code>) can be used to run the
+<p>In order to run a flow, it must first be compiled. Then a &quot;flow runner&quot; (such as <code>flowrcli</code>) can be used to run the
 compiled flow manifest.</p>
-<p>For convenience, <code>flowc</code>, the flow compiler, compiles the flow, then uses <code>flowr</code> to run it for you (unless you 
+<p>For convenience, <code>flowc</code>, the flow compiler, compiles the flow, then uses <code>flowrcli</code> to run it for you (unless you 
 specify otherwise). So that is the easiest way to run a flow and is used below.</p>
-<p>If you have run <code>make</code> or <code>make install_flow</code> then you will have <code>flowc</code> and <code>flowr</code> installed on your system.
+<p>If you have run <code>make</code> or <code>make install_flow</code> then you will have <code>flowc</code> and <code>flowrcli</code> installed on your system.
 Be sure they are in your $PATH so that can be invoked directly.</p>
 <p>Then you can run flows easily using <code>flowc</code>. </p>
 <p>If you do not wish to install <code>flowc</code> then you can run it using <code>cargo</code> from the root of the project directory by
@@ -1918,7 +1916,7 @@ substituting <code>cargo run -p flowc --</code> for <code>flowc</code>in the exa
 <p>User's terminal Current Working Directory should be the root directory of the <code>flow</code> project</p>
 <h3 id="finding-libraries"><a class="header" href="#finding-libraries">Finding Libraries</a></h3>
 <p>Environment variable <code>$FLOW_LIB_PATH</code> is set to a directory where the <code>flowstdlib</code> is compiled by default 
-<code>$HOME/.flow/lib</code>, in order for <code>flowc</code> and <code>flowr</code> to be able to find library functions used.</p>
+<code>$HOME/.flow/lib</code>, in order for <code>flowc</code> and <code>flowrcli</code> to be able to find library functions used.</p>
 <p>If this environment variable is not set then compiling will fail:</p>
 <pre><code>❯ unset FLOW_LIB_PATH
 ❯ flowc -C flowr/src/bin/flowrcli/context flowr/examples/fibonacci
@@ -1933,7 +1931,7 @@ instances of the <code>-L, --libdir &lt;LIB_DIR|BASE_URL&gt;</code> Option (see 
 <ul>
 <li>
 <p><code>flowc -C flowr/src/bin/flowrcli/context flowr/examples/fibonacci</code></p>
-<p>uses the <code>context_functions</code> provided by <code>flowr</code> and run the flow whose root flow is defined in <code>./flowr/examples/fibonacci/root.toml</code>. 
+<p>uses the <code>context_functions</code> provided by <code>flowrcli</code> and run the flow whose root flow is defined in <code>./flowr/examples/fibonacci/root.toml</code>. 
 Do not pass in any arguments to the flow. </p>
 <ul>
 <li>You should get a fibonacci series output to the terminal, </li>
@@ -1954,7 +1952,7 @@ some text.</p>
 </li>
 <li>
 <p><code>unset FLOW_LIB_PATH;flowc -C flowr/src/bin/flowrcli/context -L target flowr/examples/fibonacci</code> - first ensures that the $FLOW_LIB_PATH
-environment variable is not set and is not being used to locate libraries, and in order to help <code>flowc</code> and <code>flowr</code> 
+environment variable is not set and is not being used to locate libraries, and in order to help <code>flowc</code> and <code>flowrcli</code> 
 find the <code>flowstdlib</code> library used by the example (previously compiled into <code>target</code> directory) it specified that as a
 directory for the library search path using the <code>-L, --libdir &lt;LIB_DIR|BASE_URL&gt;</code> Option</p>
 <ul>
@@ -2179,15 +2177,15 @@ The functions are implemented in rust and when they fail they will panic as usua
 The panic will be caught by the runtime and a crash avoided, and an error logged, but nothing else is done.</p>
 <p>This may cause the result of the flow to not be what is expected, or to terminate early due to lack of jobs
 to execute.</p>
-<div style="break-before: page; page-break-before: always;"></div><h2 id="running-flows-with-flowr"><a class="header" href="#running-flows-with-flowr">Running flows with <code>flowr</code></a></h2>
-<p>In order to run a flow, it must first be compiled. Then a &quot;flow runner&quot; such as <code>flowr</code>can be used to run the compiled
-flow manifest).</p>
-<p>Flow runners in general and <code>flowr</code> run the compiled flow manifest (by default named <code>manifest.json</code>).</p>
+<div style="break-before: page; page-break-before: always;"></div><h2 id="running-flows-with-flowrcli"><a class="header" href="#running-flows-with-flowrcli">Running flows with <code>flowrcli</code></a></h2>
+<p>In order to run a flow, it must first be compiled. Then a &quot;flow runner&quot; such as <code>flowrcli</code> can be used to run the 
+compiled flow manifest).</p>
+<p>Flow runners in general and <code>flowrcli</code> run the compiled flow manifest (by default named <code>manifest.json</code>).</p>
 <p>In order to compile a flow definition down to a flow manifest that can be run, you use <code>flowc</code> as usual, with the
-addition of the <code>-c, --compile</code> option. This compiles the flow but does not invoke <code>flowr</code> to run it.</p>
-<p>Then <code>flowr</code> as described below can be used to run the compiled flow.</p>
-<p>This section describes command line arguments that can be supplied to <code>flowr</code> and what they are useful for.</p>
-<h3 id="getting-help-1"><a class="header" href="#getting-help-1">Getting help</a></h3>
+addition of the <code>-c, --compile</code> option. This compiles the flow but does not invoke <code>flowrcli</code> to run it.</p>
+<p>Then <code>flowrcli</code> as described below can be used to run the compiled flow.</p>
+<p>This section describes command line arguments that can be supplied to <code>flowrcli</code> and what they are useful for.</p>
+<h3 id="getting-help-for-flowrcli"><a class="header" href="#getting-help-for-flowrcli">Getting help for <code>flowrcli</code></a></h3>
 <p>Use <code>-h, --help</code> (e.g. <code>flowc -h</code> or <code>cargo run -p flowc -- -h</code>) to print out help for the usage of <code>flowc</code>. </p>
 <p>This will print something like this:</p>
 <pre><code class="language-shell script">Usage: flowr [OPTIONS] [flow-manifest] [flow_args]...
@@ -2210,7 +2208,7 @@ Options:
   -h, --help                         Print help information
   -V, --version                      Print version information
 </code></pre>
-<p>Similarly to <a href="docs/running/flowc.html">flowc</a>, in order to locate libraries used in flow execution, <code>flowr</code> needs to know where to 
+<p>Similarly to <a href="docs/running/flowc.html">flowc</a>, in order to locate libraries used in flow execution, <code>flowrcli</code> needs to know where to 
 locate them. As for flowc, this can be done using the <code>$FLOW_LIB_PATH</code> environment variable, or one or more instance
 of the <code>-L, --libdir &lt;LIB_DIR|BASE_URL&gt;</code> option.</p>
 <h3 id="flow-manifest"><a class="header" href="#flow-manifest"><code>flow-manifest</code></a></h3>
@@ -2228,7 +2226,7 @@ retrieve the value of these parameters using <code>context functions</code>.</p>
 <h3 id="example-invocations-1"><a class="header" href="#example-invocations-1">Example Invocations</a></h3>
 <p>For each of these examples, there is first a <code>flowc</code> line showing how the flow can be compiled. This will leave
 a compiled <code>manifest.json</code> flow manifest alongside the flow's root definition file. That manifest is then run using
-<code>flowr</code></p>
+<code>flowrcli</code></p>
 <ul>
 <li><code>flowc -C flowr/src/bin/flowrcli/context -c flowr/examples/fibonacci</code> - compile the fibonacci example</li>
 <li><code>flowr flowr/examples/fibonacci</code> - run the pre-compiled fibonacci example flow manifest
@@ -2250,9 +2248,15 @@ a compiled <code>manifest.json</code> flow manifest alongside the flow's root de
 </li>
 <li><code>flowr flowr/examples/sequence/manifest.json 10</code> - compile the flow, specifying the full path to the manifest.json file</li>
 </ul>
-<div style="break-before: page; page-break-before: always;"></div><h2 id="running-a-flow-in-clientserver-mode-of-flowr"><a class="header" href="#running-a-flow-in-clientserver-mode-of-flowr">Running a flow in client/server mode of <code>flowr</code></a></h2>
+<h3 id="flowrgui"><a class="header" href="#flowrgui"><code>flowrgui</code></a></h3>
+<p>Similar to <code>flowrcli</code> that interacts with the terminal and the file system for IO, <code>flowrgui</code> is another runner
+for flows, but with a Graphical User Interface (GUI). It displays STDIO and STDERR on the UI, shows images written
+to visually and tracks writes to files during execution.</p>
+<p>Most (but not all) of the same command line options as <code>flowrcli</code> are supported, and help can be see using:</p>
+<p><code>flowrgui --help</code></p>
+<div style="break-before: page; page-break-before: always;"></div><h2 id="running-a-flow-in-clientserver-mode-of-flowrcli"><a class="header" href="#running-a-flow-in-clientserver-mode-of-flowrcli">Running a flow in client/server mode of <code>flowrcli</code></a></h2>
 <h3 id="flowrlib-architecture"><a class="header" href="#flowrlib-architecture"><code>flowrlib</code> architecture</a></h3>
-<p>The <code>flowrlib</code> library is designed to be used, not just in <code>flowr</code> CLI-style flow runners, but in other incarnations
+<p>The <code>flowrlib</code> library is designed to be used, not just in <code>flowrcli</code> CLI-style flow runners, but in other incarnations
 such as a GUI application, or web application, etc.</p>
 <p>In order to have <code>flowrlib</code> work well in such applications, it avoids running any <code>context function</code> function that
 interacts with the environment (Read/Write to a FIle, Read/Write to STDIO, etc) and that may block, on the main
@@ -2262,14 +2266,14 @@ those functions, provided by the application and not the library.</p>
 <p>For this reason, it implements a &quot;client/server&quot; architecture, where a &quot;server&quot; thread runs the coordinator
 and sends and receives messages to a client thread (in the flow runner app) that runs the <code>context functions</code> whose 
 implementations are provided by the flow runner application that links the <code>flowrlib</code> library.</p>
-<h3 id="flowr---an-example-of-a-flow-runner-app"><a class="header" href="#flowr---an-example-of-a-flow-runner-app"><code>flowr</code> - an example of a flow runner app</a></h3>
-<p><code>flowr</code> is one example of a flow runner app that uses <code>flowrlib</code> to build an application to run flows.</p>
+<h3 id="flowrcli---an-example-of-a-flow-runner-app"><a class="header" href="#flowrcli---an-example-of-a-flow-runner-app"><code>flowrcli</code> - an example of a flow runner app</a></h3>
+<p><code>flowrcli</code> is one example of a flow runner app that uses <code>flowrlib</code> to build an application to run flows.</p>
 <p>It implements a set of <code>client function</code>, that interact with STDIO etc, on a client thread.</p>
-<p>The <code>flowr</code> process running that client thread must be able to interact with STDIO.</p>
-<p>In normal use, <code>flowr</code> runs the client and server threads in the same process and the user is unaware of this
+<p>The <code>flowrcli</code> process running that client thread must be able to interact with STDIO.</p>
+<p>In normal use, <code>flowrcli</code> runs the client and server threads in the same process and the user is unaware of this
 separation.</p>
 <h3 id="separating-the-client-from-the-server"><a class="header" href="#separating-the-client-from-the-server">Separating the client from the server</a></h3>
-<p>However, <code>flowr</code> can be run as two separate processes, one &quot;client&quot; process that executes the <code>context functions</code>
+<p>However, <code>flowrcli</code> can be run as two separate processes, one &quot;client&quot; process that executes the <code>context functions</code>
 and interacts with STDIO, and another &quot;server&quot; process with a thread that that runs the coordinator plus a number 
 of threads running executors for job execution.</p>
 <p>These two &quot;client&quot; and &quot;server&quot; processes exchange messages over the network.
@@ -2286,11 +2290,11 @@ the same network.</p>
 flowr/examples/fibonacci/manifest.json
 </code></pre>
 <p>In Terminal 1, lets start the server that will wait for a flow to be submitted for execution,
-using <code>flowr</code> with debug logging verbosity level to be able to see what it's doing.</p>
-<p><code>&gt; flowr -n -s -v debug</code></p>
+using <code>flowrcli</code> with debug logging verbosity level to be able to see what it's doing.</p>
+<p><code>&gt; flowrcli -n -s -v debug</code></p>
 <p>which will log some lines, ending with:</p>
 <p><code>INFO    - Server is waiting to receive a 'Submission'</code></p>
-<p>In Terminal 2, let's start a client using <code>flowr</code> with the <code>-c, --client</code> option. 
+<p>In Terminal 2, let's start a client using <code>flowrcli</code> with the <code>-c, --client</code> option. 
 This will submit the flow to the server for execution over the network, reading the flow manifest from the File
 System. It will then execute the <code>client functions</code>, in response to messages from the server, providing STDIO (just 
 standard out in this example)</p>
@@ -2301,7 +2305,7 @@ standard out in this example)</p>
 <p>which indicates the server has returned to the initial state, ready to receive another flow for execution.</p>
 <p>You can execute the flow again by repeating the same command in Terminal 2.</p>
 <p>In order to exit the server, in Terminal 1 just hit Control-C.</p>
-<div style="break-before: page; page-break-before: always;"></div><h2 id="distributed-execution-of-jobs-with-flowr-and-flowrex"><a class="header" href="#distributed-execution-of-jobs-with-flowr-and-flowrex">Distributed execution of jobs with <code>flowr</code> and <code>flowrex</code></a></h2>
+<div style="break-before: page; page-break-before: always;"></div><h2 id="distributed-execution-of-jobs-with-flowrcli-and-flowrex"><a class="header" href="#distributed-execution-of-jobs-with-flowrcli-and-flowrex">Distributed execution of jobs with <code>flowrcli</code> and <code>flowrex</code></a></h2>
 <h3 id="job-dispatch-and-job-execution"><a class="header" href="#job-dispatch-and-job-execution">Job Dispatch and Job Execution</a></h3>
 <p>The <code>flowrlib</code> that is used by flow runner applications to execute a flow has two important functions:</p>
 <ul>
@@ -2318,7 +2322,7 @@ new functions to be run.</p>
 in parallel on a multi-core machine. Job execution on &quot;pure&quot; functions can run in isolation, just needing
 the input data and the function implementation.</p>
 <h3 id="normal-execution"><a class="header" href="#normal-execution">Normal Execution</a></h3>
-<p>Normally, the <code>flowr</code> process runs the coordinator in one thread and a number of executors in additional
+<p>Normally, the <code>flowrcli</code> process runs the coordinator in one thread and a number of executors in additional
 threads.</p>
 <p>However, due to the &quot;pure&quot; nature of the job execution, it can be done anywhere, including in additional 
 processes, or on processes in additional machines.</p>
@@ -2327,14 +2331,14 @@ processes, or on processes in additional machines.</p>
 It cannot coordinate the execution of a flow but it can execute (just library for now) jobs.</p>
 <p>Additional instances of <code>flowrex</code> can be started in other processes on the same machine and have it 
 execute some of the jobs, increasing compute resources and concurrency/parallelism of flow execution.</p>
-<p>It is possible to start <code>flowr</code> with 0 executor threads and force <code>flowrex</code> to execute all the 
+<p>It is possible to start <code>flowrcli</code> with 0 executor threads and force <code>flowrex</code> to execute all the 
 (library) jobs.</p>
 <p>It can also be ran on another node, even one with a different architecture such as ARM, on the network and have job 
 execution done entirely by it or shared with flowr.</p>
 <p>How many jobs are done in one process/machine or another depends on the number of executors and network and cpu speed.</p>
-<p>The <code>flowr</code> flow runner and the <code>flowrex</code> job executor discover each other using mDNS
+<p>The <code>flowrcli</code> flow runner and the <code>flowrex</code> job executor discover each other using mDNS
 and then jobs are distributed out over the network and results are sent back
-to the coordinator running in <code>flowr</code> also over the network.</p>
+to the coordinator running in <code>flowrcli</code> also over the network.</p>
 <h3 id="todo"><a class="header" href="#todo">TODO</a></h3>
 <p>It is pending to allow <code>flowrec</code> to also execute provided functions, by distributing the architecture-neutral WASM 
 function implementations to other nodes and hence allow them to load and run those functions also.</p>
@@ -2346,7 +2350,7 @@ function implementations to other nodes and hence allow them to load and run tho
 <p><code>&gt; flowrex -v debug</code></p>
 <p>The log output should end with</p>
 <p><code>INFO    - Waiting for beacon matching 'jobs._flowr._tcp.local'</code></p>
-<p>indicating that it is waiting to discover the <code>flowr</code> process on the network.</p>
+<p>indicating that it is waiting to discover the <code>flowrcli</code> process on the network.</p>
 <p>Terminal 2</p>
 <p>First let's compile the fibonacci example (but not run it) by using <code>flowc</code> with the <code>-c, --compile</code> option:</p>
 <p><code>&gt;  flowc -c -C flowr/src/bin/flowrcli/context flowr/examples/fibonacci</code></p>
@@ -2357,22 +2361,22 @@ flowr/examples/fibonacci/manifest.json
 <p>Then let's run the example fibonacci flow, forcing zero executors threads so that we 
 see <code>flowrex</code> executing all (non context) jobs</p>
 <p><code>&gt; flowr -t 0 flowr/examples/fibonacci</code></p>
-<p>That will produce the usual fibonacci series on the STDOUT of Terminal 2, then <code>flowr</code> exiting</p>
+<p>That will produce the usual fibonacci series on the STDOUT of Terminal 2, then <code>flowrcli</code> exiting</p>
 <p>Logs of what is happening in order to execute the flow jobs will be produced in Terminal 1, ending with the same line
 as before:</p>
 <p><code>INFO    - Waiting for beacon matching 'jobs._flowr._tcp.local'</code></p>
 <p>Indicating that it has returned to the initial state and is ready to discover a new flowr dispatcher of jobs to it.</p>
 <div style="break-before: page; page-break-before: always;"></div><h3 id="the-flow-debugger"><a class="header" href="#the-flow-debugger">The Flow Debugger</a></h3>
-<p>NOTE: To be able to use the flow debugger that is part of <code>flowr</code>, <code>flowr</code> must be compiled with
-the <code>&quot;debugger&quot;</code> feature enabled. If not, the debugger code is not included in <code>flowr</code>.</p>
+<p>NOTE: To be able to use the flow debugger that is part of <code>flowrcli</code>, <code>flowrcli</code> must be compiled with
+the <code>&quot;debugger&quot;</code> feature enabled. If not, the debugger code is not included in <code>flowrcli</code>.</p>
 <h4 id="compiling-with-debug-symbols"><a class="header" href="#compiling-with-debug-symbols">Compiling with Debug Symbols</a></h4>
 <p>The debugger can be used to debug any flow, but flows compiled by <code>flowc</code> using the <code>-g</code> or <code>--symbols</code>
 option will have extra human readable content included in the compiled manifest (names of processes
 etc) and be more convenient to debug.</p>
 <h4 id="running-the-flow-with-the-debugger"><a class="header" href="#running-the-flow-with-the-debugger">Running the flow with the debugger</a></h4>
-<p>To start debugging a flow, run it using <code>flowr</code> as normal, but using the <code>-d</code> or <code>--debugger</code>
+<p>To start debugging a flow, run it using <code>flowrcli</code> as normal, but using the <code>-d</code> or <code>--debugger</code>
 options.</p>
-<p>The compiled flow manifest will be loaded by <code>flowr</code> as usual, functions initialized and a command prompt
+<p>The compiled flow manifest will be loaded by <code>flowrcli</code> as usual, functions initialized and a command prompt
 for the debugger will be shown.</p>
 <p>You can use the <code>'h'</code> or <code>'help'</code> command at the prompt to to get help on debugger commands.</p>
 <p>If you want to inspect the state of the flow at a particular point to debug a problem or understand 
@@ -3264,7 +3268,7 @@ dependencies are tracked by the <code>flowc</code> compiler and implementations 
 viewing <a href="http://andrewdavidmackenzie.github.io/flow/">here</a></p>
 <h2 id="project-components-and-structure-1"><a class="header" href="#project-components-and-structure-1">Project components and structure</a></h2>
 <p>The Project is structured into a number of rust crates that form part of a rust cargo &quot;workspace&quot;.</p>
-<p>Currently, two binaries are built: <code>flowc</code> the flow compiler and <code>flowr</code> the flow runner.</p>
+<p>Currently, two binaries are built: <code>flowc</code> the flow compiler two flow runners <code>flowrcli</code> and <code>flowrgui</code>.</p>
 <p>See the <a href="docs/developing/../introduction/structure.html">Project Components and Structure section</a> of the Guide for more details.</p>
 <h2 id="contributing"><a class="header" href="#contributing">Contributing</a></h2>
 <p>I organize all issues in a <a href="https://github.com/andrewdavidmackenzie/flow/projects/2">Github Project</a>
@@ -3699,7 +3703,7 @@ output (defined in files in the directory). If the output does not match the exp
 <p>The CI build and test run in Travis on each push to a branch or PR can be run locally 
 using <code>make travis</code>.</p>
 <p>These tests include unit and integration tests, rust doc-tests and it also compiles, generates, runs and checks the 
-output of all the examples in <code>flowr</code></p>
+output of all the examples in <code>flowrcli</code></p>
 <p>This will also rebuild the guide locally.</p>
 <p>I recommend to make sure this runs without errors and passes before pushing to GitHub.</p>
 <div style="break-before: page; page-break-before: always;"></div><h2 id="internals-overview"><a class="header" href="#internals-overview">Internals Overview</a></h2>

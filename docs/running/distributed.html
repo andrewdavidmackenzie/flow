@@ -142,7 +142,7 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h2 id="distributed-execution-of-jobs-with-flowr-and-flowrex"><a class="header" href="#distributed-execution-of-jobs-with-flowr-and-flowrex">Distributed execution of jobs with <code>flowr</code> and <code>flowrex</code></a></h2>
+                        <h2 id="distributed-execution-of-jobs-with-flowrcli-and-flowrex"><a class="header" href="#distributed-execution-of-jobs-with-flowrcli-and-flowrex">Distributed execution of jobs with <code>flowrcli</code> and <code>flowrex</code></a></h2>
 <h3 id="job-dispatch-and-job-execution"><a class="header" href="#job-dispatch-and-job-execution">Job Dispatch and Job Execution</a></h3>
 <p>The <code>flowrlib</code> that is used by flow runner applications to execute a flow has two important functions:</p>
 <ul>
@@ -159,7 +159,7 @@ new functions to be run.</p>
 in parallel on a multi-core machine. Job execution on &quot;pure&quot; functions can run in isolation, just needing
 the input data and the function implementation.</p>
 <h3 id="normal-execution"><a class="header" href="#normal-execution">Normal Execution</a></h3>
-<p>Normally, the <code>flowr</code> process runs the coordinator in one thread and a number of executors in additional
+<p>Normally, the <code>flowrcli</code> process runs the coordinator in one thread and a number of executors in additional
 threads.</p>
 <p>However, due to the &quot;pure&quot; nature of the job execution, it can be done anywhere, including in additional 
 processes, or on processes in additional machines.</p>
@@ -168,14 +168,14 @@ processes, or on processes in additional machines.</p>
 It cannot coordinate the execution of a flow but it can execute (just library for now) jobs.</p>
 <p>Additional instances of <code>flowrex</code> can be started in other processes on the same machine and have it 
 execute some of the jobs, increasing compute resources and concurrency/parallelism of flow execution.</p>
-<p>It is possible to start <code>flowr</code> with 0 executor threads and force <code>flowrex</code> to execute all the 
+<p>It is possible to start <code>flowrcli</code> with 0 executor threads and force <code>flowrex</code> to execute all the 
 (library) jobs.</p>
 <p>It can also be ran on another node, even one with a different architecture such as ARM, on the network and have job 
 execution done entirely by it or shared with flowr.</p>
 <p>How many jobs are done in one process/machine or another depends on the number of executors and network and cpu speed.</p>
-<p>The <code>flowr</code> flow runner and the <code>flowrex</code> job executor discover each other using mDNS
+<p>The <code>flowrcli</code> flow runner and the <code>flowrex</code> job executor discover each other using mDNS
 and then jobs are distributed out over the network and results are sent back
-to the coordinator running in <code>flowr</code> also over the network.</p>
+to the coordinator running in <code>flowrcli</code> also over the network.</p>
 <h3 id="todo"><a class="header" href="#todo">TODO</a></h3>
 <p>It is pending to allow <code>flowrec</code> to also execute provided functions, by distributing the architecture-neutral WASM 
 function implementations to other nodes and hence allow them to load and run those functions also.</p>
@@ -187,7 +187,7 @@ function implementations to other nodes and hence allow them to load and run tho
 <p><code>&gt; flowrex -v debug</code></p>
 <p>The log output should end with</p>
 <p><code>INFO    - Waiting for beacon matching 'jobs._flowr._tcp.local'</code></p>
-<p>indicating that it is waiting to discover the <code>flowr</code> process on the network.</p>
+<p>indicating that it is waiting to discover the <code>flowrcli</code> process on the network.</p>
 <p>Terminal 2</p>
 <p>First let's compile the fibonacci example (but not run it) by using <code>flowc</code> with the <code>-c, --compile</code> option:</p>
 <p><code>&gt;  flowc -c -C flowr/src/bin/flowrcli/context flowr/examples/fibonacci</code></p>
@@ -198,7 +198,7 @@ flowr/examples/fibonacci/manifest.json
 <p>Then let's run the example fibonacci flow, forcing zero executors threads so that we 
 see <code>flowrex</code> executing all (non context) jobs</p>
 <p><code>&gt; flowr -t 0 flowr/examples/fibonacci</code></p>
-<p>That will produce the usual fibonacci series on the STDOUT of Terminal 2, then <code>flowr</code> exiting</p>
+<p>That will produce the usual fibonacci series on the STDOUT of Terminal 2, then <code>flowrcli</code> exiting</p>
 <p>Logs of what is happening in order to execute the flow jobs will be produced in Terminal 1, ending with the same line
 as before:</p>
 <p><code>INFO    - Waiting for beacon matching 'jobs._flowr._tcp.local'</code></p>

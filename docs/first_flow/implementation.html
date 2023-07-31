@@ -149,10 +149,10 @@
 <pre><code class="language-shell script">&gt; cargo run -p flowc -- -C flowr/src/bin/flowrcli/context flowr/examples/fibonacci
 </code></pre>
 <p><code>flowc</code> will compile the flow definition from the root flow definition file (<code>root.toml</code>) using the <code>context functions</code>
-offered by <code>flowr</code> (defined in the <code>flowr/src/bin/flowrcli/context</code> folder) to generate a <code>manifest.json</code> compiled flow manifest in the 
+offered by <code>flowrcli</code> (defined in the <code>flowr/src/bin/flowrcli/context</code> folder) to generate a <code>manifest.json</code> compiled flow manifest in the 
 <code>flowr/examples/fibonacci</code> folder.</p>
-<p><code>flowc</code> then runs <code>flowr</code> to execute the flow.</p>
-<p><code>flowr</code> is a Command Line flow runner and provides implementations for <code>context</code> functions to read and write to <code>stdio</code> (e.g. <code>stdout</code>).</p>
+<p><code>flowc</code> then runs <code>flowrcli</code> to execute the flow.</p>
+<p><code>flowrcli</code> is a Command Line flow runner and provides implementations for <code>context</code> functions to read and write to <code>stdio</code> (e.g. <code>stdout</code>).</p>
 <p>The flow will produce a fibonacci series printed to Stdout on the terminal.</p>
 <pre><code class="language-shell script">&gt; cargo run -p flowc -- -C flowr/src/bin/flowrcli/context flowr/examples/fibonacci
    Compiling flowstdlib v0.6.0 (/Users/andrew/workspace/flow/flowstdlib)
