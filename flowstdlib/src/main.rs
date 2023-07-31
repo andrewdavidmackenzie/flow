@@ -18,14 +18,16 @@ fn main() -> io::Result<()> {
     //                  -l      : compile a flow library (not a flow) who's path is the last arg
 
     let home_dir = env::var("HOME").expect("Could not get $HOME");
-    let out_dir = format!("{}/.flow/lib/flowstdlib", home_dir);
+    let lib_home = format!("{}/.flow/lib", home_dir);
+    let out_dir = format!("{}/flowstdlib", lib_home);
 
-    let lib_root_dir = env::args().nth(1).unwrap_or_else(
-        || "No lib root directory specified. Please specify the directory where the flowstdlib \
-        source resides".into()
+    let lib_source_dir = env::args().nth(1).expect("No lib root directory specified.\
+     Please specify directory where flowstdlib source resides".into()
     );
 
-    let command_args = vec!["-d", "-v", "debug", "-g", "-l", "-O", "-o", &out_dir, &lib_root_dir];
+    // TODO remove debugging
+    let command_args = vec!["-d", "-v", "debug", "-L", lib_home,
+                            "-g", "-l", "-O", "-o", &out_dir, &lib_source_dir];
 
     match command.args(&command_args).status() {
         Ok(stat) => {
