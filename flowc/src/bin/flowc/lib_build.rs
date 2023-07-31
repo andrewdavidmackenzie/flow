@@ -1,3 +1,4 @@
+use std::ffi::OsStr;
 use std::fs;
 use std::path::Path;
 use std::path::PathBuf;
@@ -152,6 +153,10 @@ fn compile_functions(
     for entry in glob.walk(&lib_root_path) {
         match &entry {
             Ok(walk_entry) => {
+                if walk_entry.path().file_name() == Some(OsStr::new("Cargo.toml")) {
+                    continue;
+                }
+
                 let toml_path = walk_entry.path();
 
                 let url = Url::from_file_path(toml_path).map_err(|_| {
@@ -260,6 +265,10 @@ fn compile_flows(
     for entry in glob.walk(&lib_root_path) {
         match &entry {
             Ok(walk_entry) => {
+                if walk_entry.path().file_name() == Some(OsStr::new("Cargo.toml")) {
+                    continue;
+                }
+
                 let toml_path = walk_entry.path();
 
                 let url = Url::from_file_path(toml_path).map_err(|_| {
