@@ -80,6 +80,7 @@ jobs:
 
       - name: compile flowstdlib to WASM
         run: |
+          ls target/debug/flowstdlib/math
           ./target/debug/flowstdlib ./flowstdlib
           ls $HOME/.flow/lib/flowstdlib/math
 
