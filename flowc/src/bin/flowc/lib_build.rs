@@ -116,23 +116,16 @@ fn check_manifest_status(manifest_json_file: &PathBuf, file_count: i32,
    Copy definition toml file for function or flow into the output dir
 */
 fn copy_definition_to_output_dir(toml_path: &Path, output_dir: &Path) -> Result<i32> {
-    let mut file_count = 0;
+    let output_file = output_dir.join(toml_path.file_name()
+                                          .ok_or("Could not get Toml file filename")?);
 
-    debug!("Copying definition file from: {} to {}",
-        toml_path.display(),
-        output_dir.display());
+    debug!("Copying definition file from: {} to {}", toml_path.display(), output_file.display());
 
-    fs::copy(
-        toml_path,
-        output_dir.join(
-            toml_path
-                .file_name()
-                .ok_or("Could not get Toml file filename")?,
-        ),
-    )?;
-    file_count += 1;
+    fs::copy(toml_path, &output_file)?;
 
-    Ok(file_count)
+    assert!(output_file.exists(), "Copied file does not exist");
+
+    Ok(1)
 }
 
 /*
