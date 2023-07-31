@@ -29,7 +29,7 @@ default = []
 [dependencies]
 flowmacro = {path = "../flowmacro", version = "0.101.0" }
 flowcore = {path = "../flowcore", version = "0.101.0" }
-simpath = { version = "~2.4", features = ["urls"]}
+simpath = { version = "~2.5", features = ["urls"]}
 url = { version = "2.2", features = ["serde"] }
 serde_json = "1.0"
 error-chain = "0.12.2"
@@ -41,5 +41,5 @@ flowmacro = {path = "../flowmacro", version = "0.101.0" }
 serde_json = { version = "1.0", default-features = false }
 
 [build-dependencies]
-simpath = { version = "~2.4", features = ["urls"]}
+simpath = { version = "~2.5", features = ["urls"]}
 url = { version = "2.2", features = ["serde"] }

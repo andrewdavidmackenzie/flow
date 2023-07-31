@@ -42,4 +42,4 @@ serde_yaml = { version = "~0.9" }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 curl = {version = "~0.4" }
-simpath = { version = "~2.4", features = ["urls"] }
+simpath = { version = "~2.5", features = ["urls"] }

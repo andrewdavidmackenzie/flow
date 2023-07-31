@@ -80,7 +80,6 @@ jobs:
 
       - name: compile flowstdlib to WASM
         run: |
-          mkdir -p $HOME/.flow/lib
           ./target/debug/flowstdlib ./flowstdlib
 
       - name: clippy
