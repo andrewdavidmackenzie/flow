@@ -184,6 +184,8 @@ fn compile_functions(
                             fs::create_dir_all(&output_dir)?;
                         }
 
+                        assert!(output_dir.exists());
+
                         let (source_path, wasm_destination) = compile::get_paths(&output_dir, function)?;
 
                         // here we assume that the library has a workspace at lib_root_path
