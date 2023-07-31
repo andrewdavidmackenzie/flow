@@ -26,7 +26,7 @@ fn main() -> io::Result<()> {
     );
 
     // TODO remove debugging
-    let command_args = vec!["-d", "-v", "debug", "-L", lib_home,
+    let command_args = vec!["-d", "-v", "debug", "-L", &lib_home,
                             "-g", "-l", "-O", "-o", &out_dir, &lib_source_dir];
 
     match command.args(&command_args).status() {
