@@ -8,14 +8,16 @@ use std::process::Command;
 // It compiles the flowstdlib (wasm, docs etc) to $HOME/.flow/lib/flowstdlib
 fn main() -> io::Result<()> {
     let mut command = Command::new("flowc");
-    // flowc options:   -v info : to log output at INFO level,
-    //                  -n      : only build native implementations and not compile WASM files
-    //                  -d      : generate debug symbols in some output files (e.g. manifest.json)
-    //                  -g      : dump 'dot' graphs for documentation
-    //                  -O      : optimize the generated WASM output files
-    //                  -o      : generate files in $out_dir instead of current working directory
-    //                  -n      : do not compile to WASM, only compile a native version of the lib
-    //                  -l      : compile a flow library (not a flow) who's path is the last arg
+    // used flowc options:
+    //   -d         : generate debug symbols in some output files (e.g. manifest.json)
+    //   -g         : dump 'dot' graphs for documentation
+    //   -L dir     : add 'dir' to the Lib Search path. This is so flows in the lib
+    //                being compiled can reference flows or functions in the same
+    //   -l         : compile a flow library (not a flow) who's path is the last arg
+    //   -O         : optimize the generated WASM output files
+    //   -v warn    : Set verbosity to warning level
+    //   -o out_dir : generate files in $out_dir instead of current working directory
+    //   source_dir : the source directory where the library resides
 
     let home_dir = env::var("HOME").expect("Could not get $HOME");
     let lib_home = format!("{}/.flow/lib", home_dir);
@@ -24,9 +26,8 @@ fn main() -> io::Result<()> {
     let lib_source_dir = env::args().nth(1).expect("No lib root directory specified.\
      Please specify directory where flowstdlib source resides");
 
-    // TODO remove debugging
-    let command_args = vec!["-d", "-v", "debug", "-L", &lib_home,
-                            "-g", "-l", "-O", "-o", &out_dir, &lib_source_dir];
+    let command_args = vec!["-d", "-g", "-L", &lib_home,  "-l", "-O",
+                            "-v", "warn", "-o", &out_dir, &lib_source_dir];
 
     match command.args(&command_args).status() {
         Ok(stat) => {
