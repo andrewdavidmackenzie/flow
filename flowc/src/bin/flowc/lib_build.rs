@@ -244,7 +244,11 @@ fn compile_functions(
 }
 
 /*
-    Find all flow definitions under the base_dir, copy to target and add them all to the manifest
+    Find all library flow definitions under `lib_root_path`
+      - copy to target and add to the manifest
+
+    Flow definitions are described in .toml format and can be at multiple levels in
+    a library's directory structure.
 */
 fn compile_flows(
     lib_root_path: PathBuf,
@@ -253,9 +257,6 @@ fn compile_flows(
     provider: &dyn Provider,
 ) -> Result<i32> {
     let mut file_count = 0;
-    // Flow implementations are described in .toml format and can be at multiple levels in
-    // a library's directory structure.
-
     debug!(
         "Searching for flow definitions using search pattern: '{}/**/*.toml'",
         lib_root_path.display(),
