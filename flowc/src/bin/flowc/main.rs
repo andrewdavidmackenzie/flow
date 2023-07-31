@@ -118,7 +118,7 @@ fn load_runner_spec(context_root: &Path) -> Result<RunnerSpec> {
 */
 fn run() -> Result<()> {
     let options = parse_args(get_matches())?;
-    let lib_search_path = get_lib_search_path(&options.lib_dirs)?;
+    let mut lib_search_path = get_lib_search_path(&options.lib_dirs)?;
 
     if options.lib {
         // Add the parent of the out_dir to the search path so compiler can find internal
