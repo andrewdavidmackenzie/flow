@@ -102,8 +102,8 @@ For more details on how to build flow locally and contribute to it, please see
 Install the dependencies with `make config`, then run `make`, which builds everything and installs the `flowc` and
 `flowr` and`flowrex` binaries.
 
-NOTE: Building of `flowstdlib` the first time will take a long time, as it is compiling
-many rust functions to WebAssembly.
+NOTE: Building of `flowstdlib` the first time will take a long time, as it is compiling many rust functions to 
+WebAssembly.
 
 ## Running your first 'flow'
 With `flowc` and `flowr` installed, you can run the 'fibonacci' example flow using:

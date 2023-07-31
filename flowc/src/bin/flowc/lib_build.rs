@@ -1,3 +1,4 @@
+use std::ffi::OsStr;
 use std::fs;
 use std::path::Path;
 use std::path::PathBuf;
@@ -116,20 +117,16 @@ fn check_manifest_status(manifest_json_file: &PathBuf, file_count: i32,
    Copy definition toml file for function or flow into the output dir
 */
 fn copy_definition_to_output_dir(toml_path: &Path, output_dir: &Path) -> Result<i32> {
-    let mut file_count = 0;
+    let output_file = output_dir.join(toml_path.file_name()
+                                          .ok_or("Could not get Toml file filename")?);
 
-    // copy the definition toml to output directory
-    fs::copy(
-        toml_path,
-        output_dir.join(
-            toml_path
-                .file_name()
-                .ok_or("Could not get Toml file filename")?,
-        ),
-    )?;
-    file_count += 1;
+    debug!("Copying definition file from: {} to {}", toml_path.display(), output_file.display());
 
-    Ok(file_count)
+    fs::copy(toml_path, &output_file)?;
+
+    assert!(output_file.exists(), "Copied file does not exist");
+
+    Ok(1)
 }
 
 /*
@@ -156,6 +153,10 @@ fn compile_functions(
     for entry in glob.walk(&lib_root_path) {
         match &entry {
             Ok(walk_entry) => {
+                if walk_entry.path().file_name() == Some(OsStr::new("Cargo.toml")) {
+                    continue;
+                }
+
                 let toml_path = walk_entry.path();
 
                 let url = Url::from_file_path(toml_path).map_err(|_| {
@@ -227,7 +228,7 @@ fn compile_functions(
 
                         file_count += copy_definition_to_output_dir(toml_path, &output_dir)?;
                     }
-                    Ok(FlowProcess(_)) => {},
+                    Ok(FlowProcess(_)) => debug!("Skipping file '{}'. Reason: 'It is a Flow'", url),
                     Err(err) => debug!("Skipping file '{}'. Reason: '{}'", url, err),
                 }
             },
@@ -243,7 +244,11 @@ fn compile_functions(
 }
 
 /*
-    Find all flow definitions under the base_dir, copy to target and add them all to the manifest
+    Find all library flow definitions under `lib_root_path`
+      - copy to target and add to the manifest
+
+    Flow definitions are described in .toml format and can be at multiple levels in
+    a library's directory structure.
 */
 fn compile_flows(
     lib_root_path: PathBuf,
@@ -252,9 +257,6 @@ fn compile_flows(
     provider: &dyn Provider,
 ) -> Result<i32> {
     let mut file_count = 0;
-    // Flow implementations are described in .toml format and can be at multiple levels in
-    // a library's directory structure.
-
     debug!(
         "Searching for flow definitions using search pattern: '{}/**/*.toml'",
         lib_root_path.display(),
@@ -264,6 +266,10 @@ fn compile_flows(
     for entry in glob.walk(&lib_root_path) {
         match &entry {
             Ok(walk_entry) => {
+                if walk_entry.path().file_name() == Some(OsStr::new("Cargo.toml")) {
+                    continue;
+                }
+
                 let toml_path = walk_entry.path();
 
                 let url = Url::from_file_path(toml_path).map_err(|_| {
@@ -278,7 +284,7 @@ fn compile_flows(
                     &url,
                     provider,
                 ) {
-                    Ok(FunctionProcess(_)) => {}
+                    Ok(FunctionProcess(_)) => debug!("Skipping file '{}'. Reason: 'It is a Function'", url),
                     Ok(FlowProcess(ref mut flow)) => {
                         // calculate the path of the file's directory, relative to lib_root
                         let relative_dir = toml_path
@@ -316,7 +322,7 @@ fn compile_flows(
                             )
                             .chain_err(|| "Could not add entry to library manifest")?;
                     }
-                    Err(err) => debug!("Skipping file '{}'. Reason: '{}'", url, err),
+                    Err(err) => debug!("Error parsing '{}'. Reason: '{}'", url, err),
                 }
             },
             Err(e) => bail!("Error walking glob entries: {}", e.to_string())

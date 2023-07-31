@@ -91,15 +91,13 @@ clean: clean_examples
 .PHONY: build
 build:
 	@echo "build<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
-	@cargo build -p flowc # Used to compile flowstdlib and examples so needed first
-	@cargo build -p flowstdlib # Used by examples so needed first
 	@cargo build
-	@cargo build --examples
+	@./target/debug/flowstdlib ./flowstdlib
 
 .PHONY: clippy
 clippy: build
 	@echo "clippy<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
-	@cargo clippy --tests --all-features -- -D warnings
+	@cargo clippy --tests --no-deps --all-features -- -D warnings
 
 .PHONY: test
 test: build
@@ -119,13 +117,12 @@ endif
 coverage: clean-start
 	@echo "coverage<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
 	@find . -name "*.profraw"  | xargs rm -rf {} # Remove old coverage measurements
-	@RUSTFLAGS="-C instrument-coverage" LLVM_PROFILE_FILE="flow-%p-%m.profraw" cargo build -p flowc # Used to compile flowstdlib and examples, so needed first
-	@RUSTFLAGS="-C instrument-coverage" LLVM_PROFILE_FILE="flow-%p-%m.profraw" cargo build -p flowstdlib # Used by examples so needed first
 	@RUSTFLAGS="-C instrument-coverage" LLVM_PROFILE_FILE="flow-%p-%m.profraw" cargo build
+	@./target/debug/flowstdlib ./flowstdlib
 ifeq ($(CODESIGN),)
 	find target -perm +111 -type f | xargs codesign -fs self
 endif
-	@RUSTFLAGS="-C instrument-coverage" LLVM_PROFILE_FILE="flow-%p-%m.profraw" cargo clippy --tests -- -D warnings
+	@RUSTFLAGS="-C instrument-coverage" LLVM_PROFILE_FILE="flow-%p-%m.profraw" cargo clippy --tests --no-deps --all-features -- -D warnings
 	@RUSTFLAGS="-C instrument-coverage" LLVM_PROFILE_FILE="flow-%p-%m.profraw" cargo test
 	@RUSTFLAGS="-C instrument-coverage" LLVM_PROFILE_FILE="flow-%p-%m.profraw" cargo doc --no-deps --target-dir=target/html/code
 	@echo "Gathering coverage information"
@@ -188,6 +185,9 @@ trim-docs:
 	@find target/html -name \*.wasm | xargs rm -rf {}
 	@find target/html -name \*.lock  | xargs rm -rf {}
 	@find target/html -name \*.profraw  | xargs rm -rf {}
+	@find target/html -name \*.rs  | xargs rm -rf {}
+	@find target/html -name Cargo.toml  | xargs rm -rf {}
+	@find target/html -name src -type d | xargs rm -rf {}
 	@rm -rf target/html/.mdbookignore
 	@rm -rf target/html/.DS_Store
 	@rm -rf target/html/book.toml
@@ -206,4 +206,4 @@ trim-docs:
 
 .PHONY: release
 release:
-	cargo release --no-verify --workspace --execute minor
+	cargo release --workspace --execute minor

@@ -16,6 +16,13 @@ substituting `cargo run -p flowc --` for `flowc`in the examples below.
 
 User's terminal Current Working Directory should be the root directory of the `flow` project
 
+### Compiling `flowstdlib` if you have used `cargo install` to install `flowstdlib`
+If you have not compiled the project from source using `make`, then it's probable that `flowstdlib` has not
+been compiled to WASM. However, there should be a `flowstdlib` binary on your system. This should be run, passing it
+the path to the flowstdlib source folder (the root, not `src` inside it) in order to compile it.
+
+This will take considerable time, and leave the compiled WASM files in `$HOME/.flow/flib/flowstdlib`
+
 ### Finding Libraries
 Environment variable `$FLOW_LIB_PATH` is set to a directory where the `flowstdlib` is compiled by default 
 `$HOME/.flow/lib`, in order for `flowc` and `flowrcli` to be able to find library functions used.

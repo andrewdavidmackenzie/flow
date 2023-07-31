@@ -35,10 +35,10 @@ flowstdlib = {path = "../flowstdlib", version = "0.101.0", optional = true }
 clap = "~4"
 log = "0.4.19"
 env_logger = "0.10.0"
-simpath = { version = "~2.4", features = ["urls"]}
+simpath = { version = "~2.5", features = ["urls"]}
 url = { version = "2.2", features = ["serde"] }
-serde_derive = "~1.0.27"
-serde = "~1.0.179"
+serde_derive = "~1.0"
+serde = "~1.0"
 serde_json = { version = "1.0", default-features = false }
 error-chain = "0.12.2"
 multimap = "~0.9"
@@ -64,7 +64,7 @@ rustyline = {version = "12.0.0", optional = true } # for debugger
 [dev-dependencies]
 tempdir = "~0.3.5"
 serial_test = "2.0.0"
-# TODO check needed
-simpath = { version = "~2.4", features = ["urls"]}
 portpicker = "0.1.1"
+# These two are needed for examples
 flowr-utilities = { path = "utilities" }
+flowstdlib = {path = "../flowstdlib", version = "0.101.0" }

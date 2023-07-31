@@ -27,9 +27,9 @@ To build and test, including building and testing docs and running the examples 
 `make`
 
 **NOTE**
-The first time you build, it will take a long time. This is due to a large number of function implementations
-in the `flowstdlib` standard library - each being compiled to WASM as individual projects. After the first build,
-dependencies are tracked by the `flowc` compiler and implementations are only re-compiled when required.
+The first time you build (using `make` or `make all`), it will take a long time. 
+This is due the function implementations in the `flowstdlib` standard library being compiled to WASM. 
+After the first build, dependencies are tracked by the `flowc` compiler and implementations are only re-compiled when required.
 
 ## Make docs or guide changes
 After a PR is merged, and the build of `master` succeeds, the guide is rebuilt and the resulting html is deployed for

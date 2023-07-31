@@ -39,16 +39,16 @@ jobs:
           components: clippy
           target: wasm32-unknown-unknown
 
-      - name: Cargo Cache
-        uses: actions/cache@v1
-        with:
-          path: |
-            ~/.cargo
-            target/
-          key: ${{ runner.os }}-cargo_cache-${{ hashFiles('Cargo.toml') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo_cache-${{ hashFiles('Cargo.toml') }}
-            ${{ runner.os }}-cargo_cache-
+#      - name: Cargo Cache
+#        uses: actions/cache@v1
+#        with:
+#          path: |
+#            ~/.cargo
+#            target/
+#          key: ${{ runner.os }}-cargo_cache-${{ hashFiles('Cargo.toml') }}
+#          restore-keys: |
+#            ${{ runner.os }}-cargo_cache-${{ hashFiles('Cargo.toml') }}
+#            ${{ runner.os }}-cargo_cache-
 
       - name: InstallLinuxDependencies
         if: matrix.os == 'ubuntu-latest'
@@ -73,36 +73,20 @@ jobs:
           echo RUSTFLAGS="-C instrument-coverage" >> "$GITHUB_ENV"
           echo LLVM_PROFILE_FILE="flow-%p-%m.profraw" >> "$GITHUB_ENV"
 
-      # Binaries of flowc and flowr are required to run clippy on flowstdlib, as it's build.rs script uses them
-      - name: build-flowc
+      - name: build
         uses: actions-rs/cargo@v1
         with:
           command: build
-          args: -p flowc
 
-      - name: build-flowr
-        uses: actions-rs/cargo@v1
-        with:
-          command: build
-          args: -p flowr
-
-      # flowstdlib is required to run some tests and most flowr examples
-      - name: build-flowstdlib
-        uses: actions-rs/cargo@v1
-        with:
-          command: build
-          args: -p flowstdlib
+      - name: compile flowstdlib to WASM
+        run: |
+          ./target/debug/flowstdlib ./flowstdlib
 
       - name: clippy
         uses: actions-rs/cargo@v1
         with:
           command: clippy
-          args: --tests -- -D warnings
-
-      - name: build all
-        uses: actions-rs/cargo@v1
-        with:
-          command: build
+          args: --tests --no-deps --all-features -- -D warnings
 
       - name: test
         uses: actions-rs/cargo@v1
