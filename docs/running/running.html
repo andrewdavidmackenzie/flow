@@ -153,6 +153,11 @@ Be sure they are in your $PATH so that can be invoked directly.</p>
 <p>If you do not wish to install <code>flowc</code> then you can run it using <code>cargo</code> from the root of the project directory by
 substituting <code>cargo run -p flowc --</code> for <code>flowc</code>in the examples below.</p>
 <p>User's terminal Current Working Directory should be the root directory of the <code>flow</code> project</p>
+<h3 id="compiling-flowstdlib-if-you-have-used-cargo-install-to-install-flowstdlib"><a class="header" href="#compiling-flowstdlib-if-you-have-used-cargo-install-to-install-flowstdlib">Compiling <code>flowstdlib</code> if you have used <code>cargo install</code> to install <code>flowstdlib</code></a></h3>
+<p>If you have not compiled the project from source using <code>make</code>, then it's probable that <code>flowstdlib</code> has not
+been compiled to WASM. However, there should be a <code>flowstdlib</code> binary on your system. This should be run, passing it
+the path to the flowstdlib source folder (the root, not <code>src</code> inside it) in order to compile it.</p>
+<p>This will take considerable time, and leave the compiled WASM files in <code>$HOME/.flow/flib/flowstdlib</code></p>
 <h3 id="finding-libraries"><a class="header" href="#finding-libraries">Finding Libraries</a></h3>
 <p>Environment variable <code>$FLOW_LIB_PATH</code> is set to a directory where the <code>flowstdlib</code> is compiled by default 
 <code>$HOME/.flow/lib</code>, in order for <code>flowc</code> and <code>flowrcli</code> to be able to find library functions used.</p>

@@ -160,9 +160,9 @@ or <code>yum</code> package managers (PRs to Makefile are welcome for other linu
 <p>To build and test, including building and testing docs and running the examples and checking their output is correct:</p>
 <p><code>make</code></p>
 <p><strong>NOTE</strong>
-The first time you build, it will take a long time. This is due to a large number of function implementations
-in the <code>flowstdlib</code> standard library - each being compiled to WASM as individual projects. After the first build,
-dependencies are tracked by the <code>flowc</code> compiler and implementations are only re-compiled when required.</p>
+The first time you build (using <code>make</code> or <code>make all</code>), it will take a long time. 
+This is due the function implementations in the <code>flowstdlib</code> standard library being compiled to WASM. 
+After the first build, dependencies are tracked by the <code>flowc</code> compiler and implementations are only re-compiled when required.</p>
 <h2 id="make-docs-or-guide-changes"><a class="header" href="#make-docs-or-guide-changes">Make docs or guide changes</a></h2>
 <p>After a PR is merged, and the build of <code>master</code> succeeds, the guide is rebuilt and the resulting html is deployed for
 viewing <a href="http://andrewdavidmackenzie.github.io/flow/">here</a></p>
