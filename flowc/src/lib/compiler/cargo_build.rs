@@ -136,13 +136,22 @@ fn cargo_build(
 }
 
 /// Run the cargo build to compile wasm from function source
+/// Functions must supply a Cargo.toml file named as function.toml that is used
+/// to build the function.
+/// If it has already been copied to Cargo.toml for building then skip that step
+/// otherwise copy it, and delete it when done, as these files get in the way of
+/// publishing the library as a crate
 pub fn run(implementation_source_path: &Path, target_dir: PathBuf, wasm_destination: &Path, release_build: bool) -> Result<()> {
     let mut cargo_toml = implementation_source_path.to_path_buf();
     cargo_toml.set_file_name("Cargo.toml");
     let mut function_toml = implementation_source_path.to_path_buf();
     function_toml.set_file_name("function.toml");
 
-    fs::copy(function_toml, &cargo_toml)?;
+    let create_cargo = !cargo_toml.exists();
+
+    if create_cargo {
+        fs::copy(function_toml, &cargo_toml)?;
+    };
 
     cargo_test(cargo_toml.clone())?;
 
@@ -154,10 +163,9 @@ pub fn run(implementation_source_path: &Path, target_dir: PathBuf, wasm_destinat
         wasm_destination,
     )?;
 
-    // cleanup
-    fs::remove_file(&cargo_toml)?;
-    cargo_toml.set_extension("lock");
-    fs::remove_file(cargo_toml)?;
+    if create_cargo {
+        fs::remove_file(cargo_toml)?;
+    }
 
     Ok(())
 }
