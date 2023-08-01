@@ -2,7 +2,7 @@
 # Don't inherit from workspace as this is parsed by flowc for MetaData and it is not workspace inheritance aware
 name = "flowstdlib"
 description = "The standard library of functions and flows for 'flow' programs"
-version = "0.105.0"
+version = "0.106.0"
 authors = ["Andrew Mackenzie <andrew@mackenzie-serres.net>"]
 # Inherit the others that is not parsed by flowc
 license.workspace = true
@@ -20,8 +20,8 @@ name = "flowstdlib"
 path = "src/lib.rs"
 
 [dependencies]
-flowmacro = {path = "../flowmacro", version = "0.105.0" }
-flowcore = {path = "../flowcore", version = "0.105.0" }
+flowmacro = {path = "../flowmacro", version = "0.106.0" }
+flowcore = {path = "../flowcore", version = "0.106.0" }
 simpath = { version = "~2.5", features = ["urls"]}
 url = { version = "2.2", features = ["serde"] }
 serde_json = "1.0"
@@ -29,8 +29,8 @@ error-chain = "0.12.2"
 
 [dev-dependencies]
 tempdir = "~0.3.5"
-flowcore = {path = "../flowcore", version = "0.105.0" }
-flowmacro = {path = "../flowmacro", version = "0.105.0" }
+flowcore = {path = "../flowcore", version = "0.106.0" }
+flowmacro = {path = "../flowmacro", version = "0.106.0" }
 serde_json = { version = "1.0", default-features = false }
 
 [build-dependencies]
