@@ -15,16 +15,13 @@ edition.workspace = true
 [badges]
 maintenance = { status = "actively-developed" }
 
-[[bin]]
-name = "flowstdlib"
-path = "src/main.rs"
-
 [lib]
 name = "flowstdlib"
 path = "src/lib.rs"
 
-[features]
-default = []
+[[bin]]
+name = "flowstdlib"
+path = "src/main.rs"
 
 [dependencies]
 flowmacro = {path = "../flowmacro", version = "0.103.0" }
