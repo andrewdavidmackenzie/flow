@@ -164,7 +164,7 @@ fn compile_functions(
     for entry in glob.walk(&lib_root_path) {
         match &entry {
             Ok(walk_entry) => {
-                if walk_entry.path().file_name() == Some(OsStr::new("Cargo.toml")) {
+                if walk_entry.path().file_name() == Some(OsStr::new("function.toml")) {
                     continue;
                 }
 
@@ -277,7 +277,7 @@ fn compile_flows(
     for entry in glob.walk(&lib_root_path) {
         match &entry {
             Ok(walk_entry) => {
-                if walk_entry.path().file_name() == Some(OsStr::new("Cargo.toml")) {
+                if walk_entry.path().file_name() == Some(OsStr::new("function.toml")) {
                     continue;
                 }
 

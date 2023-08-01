@@ -139,6 +139,10 @@ fn cargo_build(
 pub fn run(implementation_source_path: &Path, target_dir: PathBuf, wasm_destination: &Path, release_build: bool) -> Result<()> {
     let mut cargo_toml = implementation_source_path.to_path_buf();
     cargo_toml.set_file_name("Cargo.toml");
+    let mut function_toml = implementation_source_path.to_path_buf();
+    function_toml.set_file_name("function.toml");
+
+    fs::copy(function_toml, &cargo_toml)?;
 
     cargo_test(cargo_toml.clone())?;
 
@@ -150,8 +154,10 @@ pub fn run(implementation_source_path: &Path, target_dir: PathBuf, wasm_destinat
         wasm_destination,
     )?;
 
+    // cleanup
+    fs::remove_file(&cargo_toml)?;
     cargo_toml.set_extension("lock");
-    let _ = fs::remove_file(cargo_toml);
+    fs::remove_file(cargo_toml)?;
 
     Ok(())
 }

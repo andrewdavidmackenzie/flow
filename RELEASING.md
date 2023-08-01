@@ -46,9 +46,9 @@ There are a number of rust cargo projects in the directory tree, that for variou
 are not part of the workspace, and not sub-crates of others, but disjoint.
 
 An example would be the directories to produce WASM files for provided implementations in
-some of the flowr examples ([mandlebrot](flowr/examples/mandlebrot/pixel_to_point/Cargo.toml)
-and [reverse-echo](flowr/examples/reverse-echo/reverse/Cargo.toml)), and each of 
-the functions in the flowstdlib (e.g. [add](flowstdlib/src/math/add/Cargo.toml)).
+some of the flowr examples ([mandlebrot](flowr/examples/mandlebrot/pixel_to_point/function.toml)
+and [reverse-echo](flowr/examples/reverse-echo/reverse/function.toml)), and each of 
+the functions in the flowstdlib (e.g. [add](flowstdlib/src/math/add/function.toml)).
 
 These projects have dependencies on `flowcore` and `flowmacro` but the release process
 will not see them as members of the project and is unable to update the version numbers.
