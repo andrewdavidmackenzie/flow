@@ -19,10 +19,6 @@ maintenance = { status = "actively-developed" }
 name = "flowstdlib"
 path = "src/lib.rs"
 
-[[bin]]
-name = "flowstdlib"
-path = "src/main.rs"
-
 [dependencies]
 flowmacro = {path = "../flowmacro", version = "0.104.0" }
 flowcore = {path = "../flowcore", version = "0.104.0" }
