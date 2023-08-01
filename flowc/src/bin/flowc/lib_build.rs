@@ -41,6 +41,15 @@ pub fn build_lib(options: &Options, provider: &dyn Provider) -> Result<()> {
         .to_file_path()
         .map_err(|_| "Could not convert Url to File path")?;
 
+    // ensure lib.toml exists in the root and if so copy it to Cargo.toml for building
+    let toml_path = lib_root_path.join("src/lib.toml");
+    if !toml_path.exists() {
+        bail!("Flow libraries must have a valid 'lib.toml' file in the 'src' directory");
+    }
+    let mut cargo_toml = toml_path.clone();
+    cargo_toml.set_file_name("Cargo.toml");
+    fs::copy(toml_path, &cargo_toml)?;
+
     // compile all functions to the output directory first, as they maybe referenced later in flows
     let mut file_count = compile_functions(
         lib_root_path.join("src"),
@@ -71,6 +80,8 @@ pub fn build_lib(options: &Options, provider: &dyn Provider) -> Result<()> {
     if write_manifest {
         lib_manifest.write_json(&manifest_json_file)?;
     }
+
+    fs::remove_file(cargo_toml)?;
 
     println!("    {} {name}", "Finished".green());
     Ok(())
