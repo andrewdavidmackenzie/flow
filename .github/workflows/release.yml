@@ -29,6 +29,11 @@ permissions:
 # the published package's Cargo.toml (this is the default behaviour of cargo-release).
 # In the future this may be made more robust/configurable.
 on:
+  workflow_run:
+    workflows: [ "Build and Test with Coverage" ]
+    branches: [ main ]
+    types:
+      - completed
   push:
     tags:
       - v[0-9]+.*
