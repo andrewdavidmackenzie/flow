@@ -105,17 +105,14 @@ jobs:
         # do agree on 'cat' and '$()' so we use that to marshal values between commands.
         run: |
           cargo build
-          ./target/debug/flowstdlib ./flowstdlib
+          #./target/debug/flowstdlib ./flowstdlib
           # make zips and whatnot
           cargo dist --target=${{ matrix.target }} --output-format=json > dist-manifest.json
-          echo "dist ran successfully"
           cat dist-manifest.json
           # Parse out what we just built and upload it to the Github Release™️
           cat dist-manifest.json | jq --raw-output ".releases[].artifacts[].path" > uploads.txt
-          echo "uploading..."
           cat uploads.txt
           gh release upload ${{ needs.create-release.outputs.tag }} $(cat uploads.txt)
-          echo "uploaded!"
 
   # Compute and upload the manifest for everything
   upload-manifest:
@@ -135,11 +132,8 @@ jobs:
           cargo dist manifest --no-local-paths --output-format=json $ALL_CARGO_DIST_TARGET_ARGS $ALL_CARGO_DIST_INSTALLER_ARGS > dist-manifest.json
           echo "dist manifest ran successfully"
           cat dist-manifest.json
-          # Upload the manifest to the Github Release™️
           gh release upload ${{ needs.create-release.outputs.tag }} dist-manifest.json
-          echo "uploaded manifest!"
-          gh release upload ${{ needs.create-release.outputs.tag }} $HOME/.flow/lib/flowstdlib
-          echo "Added flowstdlib compiled library to the release"
+          #gh release upload ${{ needs.create-release.outputs.tag }} $HOME/.flow/lib/flowstdlib
           # Edit the Github Release™️ title/body to match what cargo-dist thinks it should be
           CHANGELOG_TITLE=$(cat dist-manifest.json | jq --raw-output ".releases[].changelog_title")
           cat dist-manifest.json | jq --raw-output ".releases[].changelog_body" > new_dist_changelog.md
