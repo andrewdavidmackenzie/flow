@@ -99,10 +99,9 @@ jobs:
         # The two platforms don't agree on how to talk about env vars but they
         # do agree on 'cat' and '$()' so we use that to marshal values between commands.
         run: |
-          # build debug versions of flowc and flowstdlib for use in building flowr
-          cargo build -p flowc
-          cargo build -p flowstdlib
-          # Actually do builds and make zips and whatnot
+          cargo build
+          ./target/debug/flowstdlib ./flowstdlib
+          # make zips and whatnot
           cargo dist --target=${{ matrix.target }} --output-format=json > dist-manifest.json
           echo "dist ran successfully"
           cat dist-manifest.json
