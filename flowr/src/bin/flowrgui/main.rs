@@ -34,10 +34,10 @@ use env_logger::Builder;
 use iced::{Alignment, Application, Command, Element, Length, Settings, Subscription, Theme};
 use iced::alignment::Horizontal;
 use iced::executor;
-use iced::widget::{Button, Column, container, Row, scrollable, text, Text, text_input, toggler};
+use iced::widget::{Button, Column, Row, scrollable, text, Text, text_input, toggler};
 use iced::widget::image::{Handle, Viewer};
 use iced::widget::scrollable::{Id, Scrollable};
-use iced_aw::{Card, modal};
+use iced_aw::{Card, modal, TabLabel, Tabs};
 use image::{ImageBuffer, Rgba, RgbaImage};
 use log::{info, LevelFilter, warn};
 use log::error;
@@ -57,8 +57,6 @@ use gui::debug_message::DebugServerMessage::*;
 
 use crate::gui::client_message::ClientMessage;
 use crate::gui::coordinator_message::CoordinatorMessage;
-
-static STDOUT_SCROLLABLE_ID: Lazy<Id> = Lazy::new(Id::unique);
 
 /// Include the module that implements the context functions
 mod context;
@@ -94,8 +92,8 @@ pub enum Message {
     FlowArgsChanged(String),
     /// A different tab of stdio has been selected
     TabSelected(usize),
-    /// The toggle to auto-scroll to bottom of STDIO has changed
-    StdioAutoScrollTogglerChanged(bool),
+    /// toggle to auto-scroll to bottom of STDIO has changed
+    StdioAutoScrollTogglerChanged(Id, bool),
     /// closing of the Modal was requested
     CloseModal,
 }
@@ -163,9 +161,8 @@ struct FlowrGui {
     ui_settings: UiSettings,
     coordinator_state: CoordinatorState,
     active_tab: usize,
-    stdout: Vec<String>,
-    stderr: Vec<String>,
-    auto_scroll_stdout: bool,
+    stdout_tab: StdIOTab,
+    stderr_tab: StdIOTab,
     running: bool,
     submitted: bool,
     image: Option<ImageReference>,
@@ -190,9 +187,10 @@ impl Application for FlowrGui {
             ui_settings: settings.2,
             coordinator_state: CoordinatorState::Disconnected("Starting".into()),
             active_tab: 0,
-            stdout: Vec::new(),
-            stderr: Vec::new(),
-            auto_scroll_stdout: true,
+            stdout_tab: StdIOTab { name: "Stdout".to_owned(), id: Lazy::new(Id::unique).clone(),
+                content: vec!(), auto_scroll: true},
+            stderr_tab: StdIOTab { name: "Stderr".to_owned(), id: Lazy::new(Id::unique).clone(),
+                content: vec!(), auto_scroll: true},
             submitted: false,
             running: false,
             image: None,
@@ -209,82 +207,71 @@ impl Application for FlowrGui {
 
     fn update(&mut self, message: Message) -> Command<Message> {
         // TODO to refactor to switch by message first then state in ifs
-        match &self.coordinator_state {
-            CoordinatorState::Disconnected(_) => {
-                match message {
-                    Message::CoordinatorSent(CoordinatorMessage::Connected(sender)) => {
-                        self.coordinator_state = CoordinatorState::Connected(sender);
-                        if self.ui_settings.auto {
-                            return Command::perform(Self::auto_submit(), |_| Message::SubmitFlow);
-                        }
-                    },
-                    Message::FlowArgsChanged(value) => self.submission_settings.flow_args = value,
-                    Message::UrlChanged(value) => self.submission_settings.flow_manifest_url = value,
-                    Message::TabSelected(tab_index) => self.active_tab = tab_index,
-                    Message::StdioAutoScrollTogglerChanged(value) => {
-                        self.auto_scroll_stdout = value;
-                        if self.auto_scroll_stdout {
-                            return scrollable::snap_to(
-                                STDOUT_SCROLLABLE_ID.clone(), scrollable::RelativeOffset::END);
-                        }
-                    },
-                    Message::CloseModal => self.show_modal = false,
-                    _ => self.error(format!("Unexpected message: {:?} when coordinator disconnected",
-                                            message)),
+        match message {
+            Message::CoordinatorSent(CoordinatorMessage::Connected(sender)) => {
+                self.coordinator_state = CoordinatorState::Connected(sender);
+                if self.ui_settings.auto {
+                    return Command::perform(Self::auto_submit(), |_| Message::SubmitFlow);
                 }
             },
-            CoordinatorState::Connected(sender) => {
-                match message {
-                    Message::SubmitFlow => {
-                        return Command::perform(Self::submit(sender.clone(),
-                                                             self.submission_settings.clone()), |_| Message::Submitted);
-                    },
-                    Message::Submitted => {
-                        self.clear_io_output();
-                        self.submitted = true
-                    },
-                    Message::CoordinatorSent(coord_msg) =>
-                        return self.process_coordinator_message(coord_msg),
-                    Message::FlowArgsChanged(value) => self.submission_settings.flow_args = value,
-                    Message::UrlChanged(value) => self.submission_settings.flow_manifest_url = value,
-                    Message::TabSelected(tab_index) => self.active_tab = tab_index,
-                    Message::StdioAutoScrollTogglerChanged(value) => {
-                        self.auto_scroll_stdout = value;
-                        if self.auto_scroll_stdout {
-                            return scrollable::snap_to(
-                                STDOUT_SCROLLABLE_ID.clone(), scrollable::RelativeOffset::END);
-                        }
-                    },
-                    Message::CoordinatorDisconnected(reason) => {
-                        self.coordinator_state = CoordinatorState::Disconnected(reason)
-                    },
-                    Message::CloseModal => self.show_modal = false,
+            Message::SubmitFlow => {
+                if let CoordinatorState::Connected(sender) = &self.coordinator_state {
+                    return Command::perform(Self::submit(sender.clone(),
+                                                         self.submission_settings.clone()), |_| Message::Submitted);
                 }
-            }
+            },
+            Message::Submitted => {
+                self.clear_io_output();
+                self.submitted = true
+            },
+            Message::FlowArgsChanged(value) => self.submission_settings.flow_args = value,
+            Message::UrlChanged(value) => self.submission_settings.flow_manifest_url = value,
+            Message::TabSelected(tab_index) => self.active_tab = tab_index,
+            Message::StdioAutoScrollTogglerChanged(id, value) => {
+                if id == self.stdout_tab.id {
+                    self.stdout_tab.auto_scroll = value;
+                }
+                else {
+                    self.stderr_tab.auto_scroll = value
+                }
+
+                if value {
+                    return scrollable::snap_to(id,scrollable::RelativeOffset::END);
+                }
+            },
+            Message::CoordinatorSent(coord_msg) =>
+                return self.process_coordinator_message(coord_msg),
+            Message::CloseModal => self.show_modal = false,
+            Message::CoordinatorDisconnected(reason) => {
+                self.coordinator_state = CoordinatorState::Disconnected(reason)
+            },
         }
+
         Command::none()
     }
 
     fn view(&self) -> Element<'_, Message> {
         let mut main = Column::new().spacing(10);
 
-        // TODO add a scrollable row of images
+        // TODO add a scrollable row of images in a Tab
         if let Some(ImageReference { name: _, width, height, data}) = &self.image {
             main = main.push(Viewer::new(
                 Handle::from_pixels( *width, *height, data.as_raw().clone())));
+            // TODO switch to the images tab when image first written to
         }
+
+        let tabs = Tabs::new(Message::TabSelected)
+            .push(0, self.stdout_tab.tab_label(), self.stdout_tab.view())
+            .push(1, self.stderr_tab.tab_label(), self.stderr_tab.view())
+            .set_active_tab(&self.active_tab);
 
         main = main
             .push(self.command_row())
-            .push(self.stdio())
-            .push(self.status_bar());
-
-        let content = container(main)
-            .width(Length::Fill)
-            .height(Length::Fill)
+            .push(tabs)
+            .push(self.status_row())
             .padding(10);
 
-        modal(self.show_modal, content,
+        modal(self.show_modal, main,
             Card::new(
                 Text::new(self.modal_content.clone().0),
                 Text::new(self.modal_content.clone().1),
@@ -356,6 +343,7 @@ impl FlowrGui {
     }
 
     // report a new error
+    #[allow(dead_code)]
     fn error<S>(&mut self, _msg: S) where S: Into<String> {
 
     }
@@ -365,10 +353,11 @@ impl FlowrGui {
 
     }
 
-    fn command_row<'a>(&self) -> Element<'a, Message> {
+    fn command_row(&self) -> Row<Message> {
         let url = text_input("Flow location (relative, or absolute)",
                              &self.submission_settings.flow_manifest_url)
             .on_input(Message::UrlChanged);
+
         let args = text_input("Space separated flow arguments",
                               &self.submission_settings.flow_args)
             .on_submit(Message::SubmitFlow)
@@ -385,50 +374,16 @@ impl FlowrGui {
             .align_items(Alignment::End)
             .push(url)
             .push(args)
-            .push(play).into()
+            .push(play)
     }
 
     fn clear_io_output(&mut self) {
-        self.stdout.clear();
-        self.stderr.clear();
+        self.stdout_tab.clear();
+        self.stderr_tab.clear();
         // TODO clear images and others
     }
 
-    fn stdio_area<'a>(content: &[String], id: Id) -> Element<'a, Message> {
-        let text_column = Column::with_children(
-            content
-                .iter()
-                .cloned()
-                .map(text)
-                .map(Element::from)
-                .collect(),
-            )
-            .width(Length::Fill)
-            .padding(1);
-
-        Scrollable::new(text_column) //.snap_to_bottom()
-            .id(id)
-            .into()
-    }
-
-    fn stdio<'a>(&self) -> Element<'a, Message> {
-        let toggler = toggler(
-                "Auto-scroll Stdio".to_owned(),
-                self.auto_scroll_stdout,
-                Message::StdioAutoScrollTogglerChanged)
-            .width(Length::Shrink);
-
-        let stdout = Self::stdio_area(&self.stdout,
-                                      STDOUT_SCROLLABLE_ID.clone());
-
-        Column::new()
-            .push(toggler)
-            .push(stdout)
-            .height(Length::Fill)
-            .into()
-    }
-
-    fn status_bar<'a>(&self) -> Element<'a, Message> {
+    fn status_row(&self) -> Row<Message> {
         let status = match &self.coordinator_state {
             CoordinatorState::Disconnected(reason) => format!("Disconnected({reason})"),
             CoordinatorState::Connected(_) => {
@@ -443,7 +398,6 @@ impl FlowrGui {
 
         Row::new()
             .push(Text::new(format!("Coordinator: {}", status)))
-            .into()
     }
 
     // Create initial Settings structs for Submission and Coordinator from the CLI options
@@ -684,16 +638,20 @@ impl FlowrGui {
                 self.send(ClientMessage::Ack);
             },
             CoordinatorMessage::Stdout(string) => {
-                self.stdout.push(string);
+                self.stdout_tab.content.push(string);
                 self.send(ClientMessage::Ack);
-                if self.auto_scroll_stdout {
+                if self.stdout_tab.auto_scroll {
                     return scrollable::snap_to(
-                        STDOUT_SCROLLABLE_ID.clone(), scrollable::RelativeOffset::END);
+                        self.stdout_tab.id.clone(), scrollable::RelativeOffset::END);
                 }
             },
             CoordinatorMessage::Stderr(string) => {
-                self.stderr.push(string);
+                self.stderr_tab.content.push(string);
                 self.send(ClientMessage::Ack);
+                if self.stderr_tab.auto_scroll {
+                    return scrollable::snap_to(
+                        self.stderr_tab.id.clone(), scrollable::RelativeOffset::END);
+                }
             },
             CoordinatorMessage::GetStdin => {
                 // TODO read the buffer entirely and reset the cursor to after that text
@@ -795,5 +753,68 @@ impl FlowrGui {
             _ => {},
         }
         Command::none()
+    }
+}
+
+trait Tab {
+    type Message;
+
+    fn title(&self) -> String;
+
+    fn tab_label(&self) -> TabLabel;
+
+    fn view(&self) -> Element<'_, Self::Message>;
+
+    fn clear(&mut self);
+}
+
+struct StdIOTab {
+    name: String,
+    id: Id,
+    content: Vec<String>,
+    auto_scroll: bool,
+}
+
+impl Tab for StdIOTab {
+    type Message = Message;
+
+    fn title(&self) -> String {
+        String::from(&self.name)
+    }
+
+    fn tab_label(&self) -> TabLabel {
+        TabLabel::Text(self.name.to_string())
+    }
+
+    fn view(&self) -> Element<Message> {
+        let text_column = Column::with_children(
+            self.content
+                .iter()
+                .cloned()
+                .map(text)
+                .map(Element::from)
+                .collect(),
+        )
+            .width(Length::Fill)
+            .padding(1);
+
+        let scrollable = Scrollable::new(text_column)
+            .height(Length::Fill)
+            .id(self.id.clone());
+
+        let toggler = toggler(
+            format!("Auto-scroll {}", self.name),
+            self.auto_scroll,
+            |v| Message::StdioAutoScrollTogglerChanged(self.id.clone(), v))
+            .width(Length::Shrink);
+
+        Column::new()
+            .push(toggler)
+            .push(scrollable)
+            .into()
+    }
+
+    fn clear(&mut self) {
+        self.content.clear();
     }
 }
