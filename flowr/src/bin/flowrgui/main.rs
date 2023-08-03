@@ -207,69 +207,46 @@ impl Application for FlowrGui {
 
     fn update(&mut self, message: Message) -> Command<Message> {
         // TODO to refactor to switch by message first then state in ifs
-        match &self.coordinator_state {
-            CoordinatorState::Disconnected(_) => {
-                match message {
-                    Message::CoordinatorSent(CoordinatorMessage::Connected(sender)) => {
-                        self.coordinator_state = CoordinatorState::Connected(sender);
-                        if self.ui_settings.auto {
-                            return Command::perform(Self::auto_submit(), |_| Message::SubmitFlow);
-                        }
-                    },
-                    Message::FlowArgsChanged(value) => self.submission_settings.flow_args = value,
-                    Message::UrlChanged(value) => self.submission_settings.flow_manifest_url = value,
-                    Message::TabSelected(tab_index) => self.active_tab = tab_index,
-                    Message::StdioAutoScrollTogglerChanged(id, value) => {
-                        if id == self.stdout_tab.id {
-                            self.stdout_tab.auto_scroll = value;
-                        }
-                        else {
-                            self.stderr_tab.auto_scroll = value
-                        }
-
-                        if value {
-                            return scrollable::snap_to(id,scrollable::RelativeOffset::END);
-                        }
-                    },
-                    Message::CloseModal => self.show_modal = false,
-                    _ => self.error(format!("Unexpected message: {:?} when coordinator disconnected",
-                                            message)),
+        match message {
+            Message::CoordinatorSent(CoordinatorMessage::Connected(sender)) => {
+                self.coordinator_state = CoordinatorState::Connected(sender);
+                if self.ui_settings.auto {
+                    return Command::perform(Self::auto_submit(), |_| Message::SubmitFlow);
                 }
             },
-            CoordinatorState::Connected(sender) => {
-                match message {
-                    Message::SubmitFlow => {
-                        return Command::perform(Self::submit(sender.clone(),
-                                                             self.submission_settings.clone()), |_| Message::Submitted);
-                    },
-                    Message::Submitted => {
-                        self.clear_io_output();
-                        self.submitted = true
-                    },
-                    Message::CoordinatorSent(coord_msg) =>
-                        return self.process_coordinator_message(coord_msg),
-                    Message::FlowArgsChanged(value) => self.submission_settings.flow_args = value,
-                    Message::UrlChanged(value) => self.submission_settings.flow_manifest_url = value,
-                    Message::TabSelected(tab_index) => self.active_tab = tab_index,
-                    Message::StdioAutoScrollTogglerChanged(id, value) => {
-                        if id == self.stdout_tab.id {
-                            self.stdout_tab.auto_scroll = value;
-                        }
-                        else {
-                            self.stderr_tab.auto_scroll = value
-                        }
-
-                        if value {
-                            return scrollable::snap_to(id,scrollable::RelativeOffset::END);
-                        }
-                    },
-                    Message::CoordinatorDisconnected(reason) => {
-                        self.coordinator_state = CoordinatorState::Disconnected(reason)
-                    },
-                    Message::CloseModal => self.show_modal = false,
+            Message::SubmitFlow => {
+                if let CoordinatorState::Connected(sender) = &self.coordinator_state {
+                    return Command::perform(Self::submit(sender.clone(),
+                                                         self.submission_settings.clone()), |_| Message::Submitted);
                 }
-            }
+            },
+            Message::Submitted => {
+                self.clear_io_output();
+                self.submitted = true
+            },
+            Message::FlowArgsChanged(value) => self.submission_settings.flow_args = value,
+            Message::UrlChanged(value) => self.submission_settings.flow_manifest_url = value,
+            Message::TabSelected(tab_index) => self.active_tab = tab_index,
+            Message::StdioAutoScrollTogglerChanged(id, value) => {
+                if id == self.stdout_tab.id {
+                    self.stdout_tab.auto_scroll = value;
+                }
+                else {
+                    self.stderr_tab.auto_scroll = value
+                }
+
+                if value {
+                    return scrollable::snap_to(id,scrollable::RelativeOffset::END);
+                }
+            },
+            Message::CoordinatorSent(coord_msg) =>
+                return self.process_coordinator_message(coord_msg),
+            Message::CloseModal => self.show_modal = false,
+            Message::CoordinatorDisconnected(reason) => {
+                self.coordinator_state = CoordinatorState::Disconnected(reason)
+            },
         }
+
         Command::none()
     }
 
@@ -365,6 +342,7 @@ impl FlowrGui {
     }
 
     // report a new error
+    #[allow(dead_code)]
     fn error<S>(&mut self, _msg: S) where S: Into<String> {
 
     }
