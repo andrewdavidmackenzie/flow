@@ -34,7 +34,7 @@ use env_logger::Builder;
 use iced::{Alignment, Application, Command, Element, Length, Settings, Subscription, Theme};
 use iced::alignment::Horizontal;
 use iced::executor;
-use iced::widget::{Button, Column, container, Row, scrollable, text, Text, text_input, toggler};
+use iced::widget::{Button, Column, Row, scrollable, text, Text, text_input, toggler};
 use iced::widget::image::{Handle, Viewer};
 use iced::widget::scrollable::{Id, Scrollable};
 use iced_aw::{Card, modal, TabLabel, Tabs};
@@ -260,17 +260,18 @@ impl Application for FlowrGui {
             // TODO switch to the images tab when image first written to
         }
 
+        let tabs = Tabs::new(Message::TabSelected)
+            .push(0, self.stdout_tab.tab_label(), self.stdout_tab.view())
+            .push(1, self.stderr_tab.tab_label(), self.stderr_tab.view())
+            .set_active_tab(&self.active_tab);
+
         main = main
             .push(self.command_row())
-            .push(self.io_tabs())
-            .push(self.status_bar());
-
-        let content = container(main)
-            .width(Length::Fill)
-            .height(Length::Fill)
+            .push(tabs)
+            .push(self.status_row())
             .padding(10);
 
-        modal(self.show_modal, content,
+        modal(self.show_modal, main,
             Card::new(
                 Text::new(self.modal_content.clone().0),
                 Text::new(self.modal_content.clone().1),
@@ -352,7 +353,7 @@ impl FlowrGui {
 
     }
 
-    fn command_row<'a>(&self) -> Element<'a, Message> {
+    fn command_row<'a>(&self) -> Row<Message> {
         let url = text_input("Flow location (relative, or absolute)",
                              &self.submission_settings.flow_manifest_url)
             .on_input(Message::UrlChanged);
@@ -373,9 +374,8 @@ impl FlowrGui {
             .align_items(Alignment::End)
             .push(url)
             .push(args)
-            .push(play).into()
+            .push(play)
     }
-
 
     fn clear_io_output(&mut self) {
         self.stdout_tab.clear();
@@ -383,15 +383,7 @@ impl FlowrGui {
         // TODO clear images and others
     }
 
-    fn io_tabs(&self) -> Element<Message> {
-        Tabs::new(Message::TabSelected)
-            .push(0, self.stdout_tab.tab_label(), self.stdout_tab.view())
-            .push(1, self.stderr_tab.tab_label(), self.stderr_tab.view())
-            .set_active_tab(&self.active_tab)
-            .into()
-    }
-
-    fn status_bar<'a>(&self) -> Element<'a, Message> {
+    fn status_row<'a>(&self) -> Row<Message> {
         let status = match &self.coordinator_state {
             CoordinatorState::Disconnected(reason) => format!("Disconnected({reason})"),
             CoordinatorState::Connected(_) => {
@@ -406,7 +398,6 @@ impl FlowrGui {
 
         Row::new()
             .push(Text::new(format!("Coordinator: {}", status)))
-            .into()
     }
 
     // Create initial Settings structs for Submission and Coordinator from the CLI options
