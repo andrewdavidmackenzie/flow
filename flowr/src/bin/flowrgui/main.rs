@@ -32,9 +32,9 @@ use clap::{Arg, ArgMatches};
 use clap::Command as ClapCommand;
 use env_logger::Builder;
 use iced::{Alignment, Application, Command, Element, Length, Settings, Subscription, Theme};
-use iced::alignment::{Horizontal, Vertical};
+use iced::alignment::Horizontal;
 use iced::executor;
-use iced::widget::{Button, Column, container, Container, Row, scrollable, text, Text, text_input, toggler};
+use iced::widget::{Button, Column, container, Row, scrollable, text, Text, text_input, toggler};
 use iced::widget::image::{Handle, Viewer};
 use iced::widget::scrollable::{Id, Scrollable};
 use iced_aw::{Card, modal, TabLabel, Tabs};
@@ -794,20 +794,7 @@ trait Tab {
 
     fn tab_label(&self) -> TabLabel;
 
-    fn view(&self) -> Element<'_, Self::Message> {
-        let column = Column::new()
-            .spacing(20)
-            .push(self.content());
-
-        Container::new(column)
-            .width(Length::Fill)
-            .height(Length::Fill)
-            .align_x(Horizontal::Center)
-            .align_y(Vertical::Center)
-            .into()
-    }
-
-    fn content(&self) -> Element<'_, Self::Message>;
+    fn view(&self) -> Element<'_, Self::Message>;
 
     fn clear(&mut self);
 }
@@ -830,7 +817,7 @@ impl Tab for StdIOTab {
         TabLabel::Text(self.name.to_string())
     }
 
-    fn content(&self) -> Element<Message> {
+    fn view(&self) -> Element<Message> {
         let text_column = Column::with_children(
             self.content
                 .iter()
