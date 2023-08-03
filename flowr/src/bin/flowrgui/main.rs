@@ -31,20 +31,6 @@ use std::path::PathBuf;
 use clap::{Arg, ArgMatches};
 use clap::Command as ClapCommand;
 use env_logger::Builder;
-use iced::{Alignment, Application, Command, Element, Length, Settings, Subscription, Theme};
-use iced::alignment::Horizontal;
-use iced::executor;
-use iced::widget::{Button, Column, Row, scrollable, text, Text, text_input, toggler};
-use iced::widget::image::{Handle, Viewer};
-use iced::widget::scrollable::{Id, Scrollable};
-use iced_aw::{Card, modal, TabLabel, Tabs};
-use image::{ImageBuffer, Rgba, RgbaImage};
-use log::{info, LevelFilter, warn};
-use log::error;
-use once_cell::sync::Lazy;
-use simpath::Simpath;
-use url::Url;
-
 use flowcore::meta_provider::MetaProvider;
 use flowcore::model::flow_manifest::FlowManifest;
 use flowcore::model::submission::Submission;
@@ -54,9 +40,23 @@ use flowrlib::info as flowrlib_info;
 use gui::coordinator_connection::CoordinatorConnection;
 use gui::debug_message::DebugServerMessage;
 use gui::debug_message::DebugServerMessage::*;
+use iced::{Alignment, Application, Command, Element, Length, Settings, Subscription, Theme};
+use iced::alignment::Horizontal;
+use iced::executor;
+use iced::widget::{Button, Column, Row, scrollable, Text, text_input};
+use iced::widget::image::{Handle, Viewer};
+use iced::widget::scrollable::Id;
+use iced_aw::{Card, modal, Tabs};
+use image::{ImageBuffer, Rgba, RgbaImage};
+use log::{info, LevelFilter, warn};
+use log::error;
+use once_cell::sync::Lazy;
+use simpath::Simpath;
+use url::Url;
 
 use crate::gui::client_message::ClientMessage;
 use crate::gui::coordinator_message::CoordinatorMessage;
+use crate::tabs::{StdIOTab, Tab};
 
 /// Include the module that implements the context functions
 mod context;
@@ -69,6 +69,9 @@ mod gui;
 
 /// module that runs a coordinator in background
 mod coordinator;
+
+/// module with the different UI tabs
+mod tabs;
 
 /// provides [Error][errors::Error] that other modules in this crate will `use crate::errors::*;`
 /// to get access to everything `error_chain` creates.
@@ -753,68 +756,5 @@ impl FlowrGui {
             _ => {},
         }
         Command::none()
-    }
-}
-
-trait Tab {
-    type Message;
-
-    fn title(&self) -> String;
-
-    fn tab_label(&self) -> TabLabel;
-
-    fn view(&self) -> Element<'_, Self::Message>;
-
-    fn clear(&mut self);
-}
-
-struct StdIOTab {
-    name: String,
-    id: Id,
-    content: Vec<String>,
-    auto_scroll: bool,
-}
-
-impl Tab for StdIOTab {
-    type Message = Message;
-
-    fn title(&self) -> String {
-        String::from(&self.name)
-    }
-
-    fn tab_label(&self) -> TabLabel {
-        TabLabel::Text(self.name.to_string())
-    }
-
-    fn view(&self) -> Element<Message> {
-        let text_column = Column::with_children(
-            self.content
-                .iter()
-                .cloned()
-                .map(text)
-                .map(Element::from)
-                .collect(),
-        )
-            .width(Length::Fill)
-            .padding(1);
-
-        let scrollable = Scrollable::new(text_column)
-            .height(Length::Fill)
-            .id(self.id.clone());
-
-        let toggler = toggler(
-            format!("Auto-scroll {}", self.name),
-            self.auto_scroll,
-            |v| Message::StdioAutoScrollTogglerChanged(self.id.clone(), v))
-            .width(Length::Shrink);
-
-        Column::new()
-            .push(toggler)
-            .push(scrollable)
-            .into()
-    }
-
-    fn clear(&mut self) {
-        self.content.clear();
     }
 }
