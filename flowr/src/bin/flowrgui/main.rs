@@ -32,12 +32,12 @@ use clap::{Arg, ArgMatches};
 use clap::Command as ClapCommand;
 use env_logger::Builder;
 use iced::{Alignment, Application, Command, Element, Length, Settings, Subscription, Theme};
-use iced::alignment::Horizontal;
+use iced::alignment::{Horizontal, Vertical};
 use iced::executor;
-use iced::widget::{Button, Column, container, Row, scrollable, text, Text, text_input, toggler};
+use iced::widget::{Button, Column, container, Container, Row, scrollable, text, Text, text_input, toggler};
 use iced::widget::image::{Handle, Viewer};
 use iced::widget::scrollable::{Id, Scrollable};
-use iced_aw::{Card, modal};
+use iced_aw::{Card, modal, TabLabel, Tabs};
 use image::{ImageBuffer, Rgba, RgbaImage};
 use log::{info, LevelFilter, warn};
 use log::error;
@@ -57,8 +57,6 @@ use gui::debug_message::DebugServerMessage::*;
 
 use crate::gui::client_message::ClientMessage;
 use crate::gui::coordinator_message::CoordinatorMessage;
-
-static STDOUT_SCROLLABLE_ID: Lazy<Id> = Lazy::new(Id::unique);
 
 /// Include the module that implements the context functions
 mod context;
@@ -94,8 +92,8 @@ pub enum Message {
     FlowArgsChanged(String),
     /// A different tab of stdio has been selected
     TabSelected(usize),
-    /// The toggle to auto-scroll to bottom of STDIO has changed
-    StdioAutoScrollTogglerChanged(bool),
+    /// toggle to auto-scroll to bottom of STDIO has changed
+    StdioAutoScrollTogglerChanged(Id, bool),
     /// closing of the Modal was requested
     CloseModal,
 }
@@ -163,9 +161,8 @@ struct FlowrGui {
     ui_settings: UiSettings,
     coordinator_state: CoordinatorState,
     active_tab: usize,
-    stdout: Vec<String>,
-    stderr: Vec<String>,
-    auto_scroll_stdout: bool,
+    stdout_tab: StdIOTab,
+    stderr_tab: StdIOTab,
     running: bool,
     submitted: bool,
     image: Option<ImageReference>,
@@ -190,9 +187,10 @@ impl Application for FlowrGui {
             ui_settings: settings.2,
             coordinator_state: CoordinatorState::Disconnected("Starting".into()),
             active_tab: 0,
-            stdout: Vec::new(),
-            stderr: Vec::new(),
-            auto_scroll_stdout: true,
+            stdout_tab: StdIOTab { name: "Stdout".to_owned(), id: Lazy::new(Id::unique).clone(),
+                content: vec!(), auto_scroll: true},
+            stderr_tab: StdIOTab { name: "Stderr".to_owned(), id: Lazy::new(Id::unique).clone(),
+                content: vec!(), auto_scroll: true},
             submitted: false,
             running: false,
             image: None,
@@ -221,11 +219,16 @@ impl Application for FlowrGui {
                     Message::FlowArgsChanged(value) => self.submission_settings.flow_args = value,
                     Message::UrlChanged(value) => self.submission_settings.flow_manifest_url = value,
                     Message::TabSelected(tab_index) => self.active_tab = tab_index,
-                    Message::StdioAutoScrollTogglerChanged(value) => {
-                        self.auto_scroll_stdout = value;
-                        if self.auto_scroll_stdout {
-                            return scrollable::snap_to(
-                                STDOUT_SCROLLABLE_ID.clone(), scrollable::RelativeOffset::END);
+                    Message::StdioAutoScrollTogglerChanged(id, value) => {
+                        if id == self.stdout_tab.id {
+                            self.stdout_tab.auto_scroll = value;
+                        }
+                        else {
+                            self.stderr_tab.auto_scroll = value
+                        }
+
+                        if value {
+                            return scrollable::snap_to(id,scrollable::RelativeOffset::END);
                         }
                     },
                     Message::CloseModal => self.show_modal = false,
@@ -248,11 +251,16 @@ impl Application for FlowrGui {
                     Message::FlowArgsChanged(value) => self.submission_settings.flow_args = value,
                     Message::UrlChanged(value) => self.submission_settings.flow_manifest_url = value,
                     Message::TabSelected(tab_index) => self.active_tab = tab_index,
-                    Message::StdioAutoScrollTogglerChanged(value) => {
-                        self.auto_scroll_stdout = value;
-                        if self.auto_scroll_stdout {
-                            return scrollable::snap_to(
-                                STDOUT_SCROLLABLE_ID.clone(), scrollable::RelativeOffset::END);
+                    Message::StdioAutoScrollTogglerChanged(id, value) => {
+                        if id == self.stdout_tab.id {
+                            self.stdout_tab.auto_scroll = value;
+                        }
+                        else {
+                            self.stderr_tab.auto_scroll = value
+                        }
+
+                        if value {
+                            return scrollable::snap_to(id,scrollable::RelativeOffset::END);
                         }
                     },
                     Message::CoordinatorDisconnected(reason) => {
@@ -276,7 +284,7 @@ impl Application for FlowrGui {
 
         main = main
             .push(self.command_row())
-            .push(self.stdio())
+            .push(self.io_tabs())
             .push(self.status_bar());
 
         let content = container(main)
@@ -388,43 +396,18 @@ impl FlowrGui {
             .push(play).into()
     }
 
+
     fn clear_io_output(&mut self) {
-        self.stdout.clear();
-        self.stderr.clear();
+        self.stdout_tab.clear();
+        self.stderr_tab.clear();
         // TODO clear images and others
     }
 
-    fn stdio_area<'a>(content: &[String], id: Id) -> Element<'a, Message> {
-        let text_column = Column::with_children(
-            content
-                .iter()
-                .cloned()
-                .map(text)
-                .map(Element::from)
-                .collect(),
-            )
-            .width(Length::Fill)
-            .padding(1);
-
-        Scrollable::new(text_column) //.snap_to_bottom()
-            .id(id)
-            .into()
-    }
-
-    fn stdio<'a>(&self) -> Element<'a, Message> {
-        let toggler = toggler(
-                "Auto-scroll Stdio".to_owned(),
-                self.auto_scroll_stdout,
-                Message::StdioAutoScrollTogglerChanged)
-            .width(Length::Shrink);
-
-        let stdout = Self::stdio_area(&self.stdout,
-                                      STDOUT_SCROLLABLE_ID.clone());
-
-        Column::new()
-            .push(toggler)
-            .push(stdout)
-            .height(Length::Fill)
+    fn io_tabs(&self) -> Element<Message> {
+        Tabs::new(Message::TabSelected)
+            .push(0, self.stdout_tab.tab_label(), self.stdout_tab.view())
+            .push(1, self.stderr_tab.tab_label(), self.stderr_tab.view())
+            .set_active_tab(&self.active_tab)
             .into()
     }
 
@@ -684,16 +667,20 @@ impl FlowrGui {
                 self.send(ClientMessage::Ack);
             },
             CoordinatorMessage::Stdout(string) => {
-                self.stdout.push(string);
+                self.stdout_tab.content.push(string);
                 self.send(ClientMessage::Ack);
-                if self.auto_scroll_stdout {
+                if self.stdout_tab.auto_scroll {
                     return scrollable::snap_to(
-                        STDOUT_SCROLLABLE_ID.clone(), scrollable::RelativeOffset::END);
+                        self.stdout_tab.id.clone(), scrollable::RelativeOffset::END);
                 }
             },
             CoordinatorMessage::Stderr(string) => {
-                self.stderr.push(string);
+                self.stderr_tab.content.push(string);
                 self.send(ClientMessage::Ack);
+                if self.stderr_tab.auto_scroll {
+                    return scrollable::snap_to(
+                        self.stderr_tab.id.clone(), scrollable::RelativeOffset::END);
+                }
             },
             CoordinatorMessage::GetStdin => {
                 // TODO read the buffer entirely and reset the cursor to after that text
@@ -795,5 +782,81 @@ impl FlowrGui {
             _ => {},
         }
         Command::none()
+    }
+}
+
+trait Tab {
+    type Message;
+
+    fn title(&self) -> String;
+
+    fn tab_label(&self) -> TabLabel;
+
+    fn view(&self) -> Element<'_, Self::Message> {
+        let column = Column::new()
+            .spacing(20)
+            .push(self.content());
+
+        Container::new(column)
+            .width(Length::Fill)
+            .height(Length::Fill)
+            .align_x(Horizontal::Center)
+            .align_y(Vertical::Center)
+            .into()
+    }
+
+    fn content(&self) -> Element<'_, Self::Message>;
+
+    fn clear(&mut self);
+}
+
+struct StdIOTab {
+    name: String,
+    id: Id,
+    content: Vec<String>,
+    auto_scroll: bool,
+}
+
+impl Tab for StdIOTab {
+    type Message = Message;
+
+    fn title(&self) -> String {
+        String::from(&self.name)
+    }
+
+    fn tab_label(&self) -> TabLabel {
+        TabLabel::Text(self.name.to_string())
+    }
+
+    fn content(&self) -> Element<Message> {
+        let text_column = Column::with_children(
+            self.content
+                .iter()
+                .cloned()
+                .map(text)
+                .map(Element::from)
+                .collect(),
+        )
+            .width(Length::Fill)
+            .padding(1);
+
+        let scrollable = Scrollable::new(text_column)
+            .height(Length::Fill)
+            .id(self.id.clone());
+
+        let toggler = toggler(
+            format!("Auto-scroll {}", self.name),
+            self.auto_scroll,
+            |v| Message::StdioAutoScrollTogglerChanged(self.id.clone(), v))
+            .width(Length::Shrink);
+
+        Column::new()
+            .push(toggler)
+            .push(scrollable)
+            .into()
+    }
+
+    fn clear(&mut self) {
+        self.content.clear();
     }
 }
