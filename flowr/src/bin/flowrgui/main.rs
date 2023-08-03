@@ -353,7 +353,7 @@ impl FlowrGui {
 
     }
 
-    fn command_row<'a>(&self) -> Row<Message> {
+    fn command_row(&self) -> Row<Message> {
         let url = text_input("Flow location (relative, or absolute)",
                              &self.submission_settings.flow_manifest_url)
             .on_input(Message::UrlChanged);
@@ -383,7 +383,7 @@ impl FlowrGui {
         // TODO clear images and others
     }
 
-    fn status_row<'a>(&self) -> Row<Message> {
+    fn status_row(&self) -> Row<Message> {
         let status = match &self.coordinator_state {
             CoordinatorState::Disconnected(reason) => format!("Disconnected({reason})"),
             CoordinatorState::Connected(_) => {
