@@ -378,6 +378,7 @@ impl FlowrGui {
         let url = text_input("Flow location (relative, or absolute)",
                              &self.submission_settings.flow_manifest_url)
             .on_input(Message::UrlChanged);
+
         let args = text_input("Space separated flow arguments",
                               &self.submission_settings.flow_args)
             .on_submit(Message::SubmitFlow)
