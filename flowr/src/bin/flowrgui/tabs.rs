@@ -1,9 +1,51 @@
 use iced::{Element, Length};
 use iced::widget::{Column, text, toggler};
 use iced::widget::scrollable::{Id, Scrollable};
-use iced_aw::TabLabel;
+use iced_aw::{TabLabel, Tabs};
+use once_cell::sync::Lazy;
 
 use crate::Message;
+
+pub(crate) struct TabSet {
+    pub active_tab: usize,
+    pub stdout_tab: StdIOTab,
+    pub stderr_tab: StdIOTab,
+}
+
+impl TabSet {
+    pub(crate) fn new() -> Self {
+        TabSet {
+            active_tab: 0,
+            stdout_tab: StdIOTab {
+                name: "Stdout".to_owned(),
+                id: Lazy::new(Id::unique).clone(),
+                content: vec!(),
+                auto_scroll: true
+            },
+            stderr_tab: StdIOTab {
+                name: "Stderr".to_owned(),
+                id: Lazy::new(Id::unique).clone(),
+                content: vec!(),
+                auto_scroll: true
+            },
+        }
+    }
+
+    pub(crate) fn view(&self) -> Element<'_, Message> {
+        Tabs::new(Message::TabSelected)
+            .push(0, self.stdout_tab.tab_label(), self.stdout_tab.view())
+            .push(1, self.stderr_tab.tab_label(), self.stderr_tab.view())
+            .set_active_tab(&self.active_tab)
+            .into()
+    }
+
+    pub(crate) fn clear(&mut self) {
+        self.stdout_tab.clear();
+        self.stderr_tab.clear();
+        // TODO clear images and others
+    }
+
+}
 
 pub trait Tab {
     type Message;

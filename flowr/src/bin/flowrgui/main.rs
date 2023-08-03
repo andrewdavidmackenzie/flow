@@ -31,6 +31,19 @@ use std::path::PathBuf;
 use clap::{Arg, ArgMatches};
 use clap::Command as ClapCommand;
 use env_logger::Builder;
+use iced::{Alignment, Application, Command, Element, Length, Settings, Subscription, Theme};
+use iced::alignment::Horizontal;
+use iced::executor;
+use iced::widget::{Button, Column, Row, scrollable, Text, text_input};
+use iced::widget::image::{Handle, Viewer};
+use iced::widget::scrollable::Id;
+use iced_aw::{Card, modal};
+use image::{ImageBuffer, Rgba, RgbaImage};
+use log::{info, LevelFilter, warn};
+use log::error;
+use simpath::Simpath;
+use url::Url;
+
 use flowcore::meta_provider::MetaProvider;
 use flowcore::model::flow_manifest::FlowManifest;
 use flowcore::model::submission::Submission;
@@ -40,23 +53,10 @@ use flowrlib::info as flowrlib_info;
 use gui::coordinator_connection::CoordinatorConnection;
 use gui::debug_message::DebugServerMessage;
 use gui::debug_message::DebugServerMessage::*;
-use iced::{Alignment, Application, Command, Element, Length, Settings, Subscription, Theme};
-use iced::alignment::Horizontal;
-use iced::executor;
-use iced::widget::{Button, Column, Row, scrollable, Text, text_input};
-use iced::widget::image::{Handle, Viewer};
-use iced::widget::scrollable::Id;
-use iced_aw::{Card, modal, Tabs};
-use image::{ImageBuffer, Rgba, RgbaImage};
-use log::{info, LevelFilter, warn};
-use log::error;
-use once_cell::sync::Lazy;
-use simpath::Simpath;
-use url::Url;
 
 use crate::gui::client_message::ClientMessage;
 use crate::gui::coordinator_message::CoordinatorMessage;
-use crate::tabs::{StdIOTab, Tab};
+use crate::tabs::TabSet;
 
 /// Include the module that implements the context functions
 mod context;
@@ -163,9 +163,7 @@ struct FlowrGui {
     coordinator_settings: CoordinatorSettings,
     ui_settings: UiSettings,
     coordinator_state: CoordinatorState,
-    active_tab: usize,
-    stdout_tab: StdIOTab,
-    stderr_tab: StdIOTab,
+    tab_set: TabSet,
     running: bool,
     submitted: bool,
     image: Option<ImageReference>,
@@ -189,11 +187,7 @@ impl Application for FlowrGui {
             coordinator_settings: settings.1,
             ui_settings: settings.2,
             coordinator_state: CoordinatorState::Disconnected("Starting".into()),
-            active_tab: 0,
-            stdout_tab: StdIOTab { name: "Stdout".to_owned(), id: Lazy::new(Id::unique).clone(),
-                content: vec!(), auto_scroll: true},
-            stderr_tab: StdIOTab { name: "Stderr".to_owned(), id: Lazy::new(Id::unique).clone(),
-                content: vec!(), auto_scroll: true},
+            tab_set: TabSet::new(),
             submitted: false,
             running: false,
             image: None,
@@ -224,18 +218,18 @@ impl Application for FlowrGui {
                 }
             },
             Message::Submitted => {
-                self.clear_io_output();
+                self.tab_set.clear();
                 self.submitted = true
             },
             Message::FlowArgsChanged(value) => self.submission_settings.flow_args = value,
             Message::UrlChanged(value) => self.submission_settings.flow_manifest_url = value,
-            Message::TabSelected(tab_index) => self.active_tab = tab_index,
-            Message::StdioAutoScrollTogglerChanged(id, value) => {
-                if id == self.stdout_tab.id {
-                    self.stdout_tab.auto_scroll = value;
+            Message::TabSelected(tab_index) => self.tab_set.active_tab = tab_index,
+            Message::StdioAutoScrollTogglerChanged(id, value) => { // TODO extract
+                if id == self.tab_set.stdout_tab.id {
+                    self.tab_set.stdout_tab.auto_scroll = value;
                 }
                 else {
-                    self.stderr_tab.auto_scroll = value
+                    self.tab_set.stderr_tab.auto_scroll = value
                 }
 
                 if value {
@@ -263,14 +257,9 @@ impl Application for FlowrGui {
             // TODO switch to the images tab when image first written to
         }
 
-        let tabs = Tabs::new(Message::TabSelected)
-            .push(0, self.stdout_tab.tab_label(), self.stdout_tab.view())
-            .push(1, self.stderr_tab.tab_label(), self.stderr_tab.view())
-            .set_active_tab(&self.active_tab);
-
         main = main
             .push(self.command_row())
-            .push(tabs)
+            .push(self.tab_set.view())
             .push(self.status_row())
             .padding(10);
 
@@ -378,12 +367,6 @@ impl FlowrGui {
             .push(url)
             .push(args)
             .push(play)
-    }
-
-    fn clear_io_output(&mut self) {
-        self.stdout_tab.clear();
-        self.stderr_tab.clear();
-        // TODO clear images and others
     }
 
     fn status_row(&self) -> Row<Message> {
@@ -641,19 +624,19 @@ impl FlowrGui {
                 self.send(ClientMessage::Ack);
             },
             CoordinatorMessage::Stdout(string) => {
-                self.stdout_tab.content.push(string);
+                self.tab_set.stdout_tab.content.push(string);
                 self.send(ClientMessage::Ack);
-                if self.stdout_tab.auto_scroll {
+                if self.tab_set.stdout_tab.auto_scroll {
                     return scrollable::snap_to(
-                        self.stdout_tab.id.clone(), scrollable::RelativeOffset::END);
+                        self.tab_set.stdout_tab.id.clone(), scrollable::RelativeOffset::END);
                 }
             },
             CoordinatorMessage::Stderr(string) => {
-                self.stderr_tab.content.push(string);
+                self.tab_set.stderr_tab.content.push(string);
                 self.send(ClientMessage::Ack);
-                if self.stderr_tab.auto_scroll {
+                if self.tab_set.stderr_tab.auto_scroll {
                     return scrollable::snap_to(
-                        self.stderr_tab.id.clone(), scrollable::RelativeOffset::END);
+                        self.tab_set.stderr_tab.id.clone(), scrollable::RelativeOffset::END);
                 }
             },
             CoordinatorMessage::GetStdin => {
