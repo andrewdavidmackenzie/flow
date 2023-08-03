@@ -200,6 +200,11 @@ Other main themes of items in the [GitHub project](https://github.com/users/andr
 are related to adding web functionality, better example programs, packaging/distribution/install,
 and true distributed flow execution with flow partitioning based on resources and constraints.
 
+## Discuss
+I have started using the [discussions](https://github.com/andrewdavidmackenzie/flow/discussions) feature of
+GitHub, although it's just me here for now. If you have suggestions, questions or want to chat about the 
+project or learn more, just go there and let me know!
+
 ## Contributing
 Refer to the [contributing](docs/developing/contributing.md) section of the book.
 
