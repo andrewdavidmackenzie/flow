@@ -37,7 +37,7 @@ use iced::executor;
 use iced::widget::{Button, Column, container, Row, scrollable, text, Text, text_input, toggler};
 use iced::widget::image::{Handle, Viewer};
 use iced::widget::scrollable::{Id, Scrollable};
-use iced_aw::{Card, Modal};
+use iced_aw::{Card, modal};
 use image::{ImageBuffer, Rgba, RgbaImage};
 use log::{info, LevelFilter, warn};
 use log::error;
@@ -265,7 +265,7 @@ impl Application for FlowrGui {
         Command::none()
     }
 
-    fn view(&self) -> Element<Message> {
+    fn view(&self) -> Element<'_, Message> {
         let mut main = Column::new().spacing(10);
 
         // TODO add a scrollable row of images
@@ -284,7 +284,7 @@ impl Application for FlowrGui {
             .height(Length::Fill)
             .padding(10);
 
-        Modal::new(self.show_modal, content, || {
+        modal(self.show_modal, content,
             Card::new(
                 Text::new(self.modal_content.clone().0),
                 Text::new(self.modal_content.clone().1),
@@ -298,12 +298,9 @@ impl Application for FlowrGui {
                         Button::new(Text::new("OK")
                             .horizontal_alignment(Horizontal::Center))
                             .width(Length::Fill)
-                            .on_press(Message::CloseModal),
-                    ),
+                            .on_press(Message::CloseModal)),
             )
-            .max_width(300.0)
-            .into()
-        })
+            .max_width(300.0))
         .backdrop(Message::CloseModal)
         .on_esc(Message::CloseModal)
         .into()
