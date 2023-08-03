@@ -1,15 +1,17 @@
 use iced::{Element, Length};
 use iced::widget::{Column, text, toggler};
+use iced::widget::image::{Handle, Viewer};
 use iced::widget::scrollable::{Id, Scrollable};
 use iced_aw::{TabLabel, Tabs};
 use once_cell::sync::Lazy;
 
-use crate::Message;
+use crate::{ImageReference, Message};
 
 pub(crate) struct TabSet {
     pub active_tab: usize,
     pub stdout_tab: StdIOTab,
     pub stderr_tab: StdIOTab,
+    pub images_tab: ImageTab,
 }
 
 impl TabSet {
@@ -28,6 +30,10 @@ impl TabSet {
                 content: vec!(),
                 auto_scroll: true
             },
+            images_tab: ImageTab {
+                name: "Images".to_owned(),
+                image: None,
+            }
         }
     }
 
@@ -35,6 +41,7 @@ impl TabSet {
         Tabs::new(Message::TabSelected)
             .push(0, self.stdout_tab.tab_label(), self.stdout_tab.view())
             .push(1, self.stderr_tab.tab_label(), self.stderr_tab.view())
+            .push(2, self.images_tab.tab_label(), self.images_tab.view())
             .set_active_tab(&self.active_tab)
             .into()
     }
@@ -59,7 +66,7 @@ pub trait Tab {
     fn clear(&mut self);
 }
 
-pub struct StdIOTab {
+pub(crate) struct StdIOTab {
     pub name: String,
     pub id: Id,
     pub content: Vec<String>,
@@ -107,5 +114,38 @@ impl Tab for StdIOTab {
 
     fn clear(&mut self) {
         self.content.clear();
+    }
+}
+
+pub(crate) struct ImageTab {
+    name: String,
+    pub image: Option<ImageReference>,
+}
+impl Tab for ImageTab {
+    type Message = Message;
+
+    fn title(&self) -> String {
+        String::from(&self.name)
+    }
+
+    fn tab_label(&self) -> TabLabel {
+        TabLabel::Text(self.name.to_string())
+    }
+
+    fn view(&self) -> Element<'_, Self::Message> {
+        let mut col = Column::new();
+
+        // TODO add a scrollable row of images in a Tab
+        if let Some(ImageReference { name: _, width, height, data}) = &self.image {
+            col = col.push(Viewer::new(
+                Handle::from_pixels( *width, *height, data.as_raw().clone())));
+            // TODO switch to the images tab when image first written to
+        }
+
+        col.into()
+    }
+
+    fn clear(&mut self) {
+        todo!()
     }
 }

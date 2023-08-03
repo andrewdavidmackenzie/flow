@@ -35,7 +35,6 @@ use iced::{Alignment, Application, Command, Element, Length, Settings, Subscript
 use iced::alignment::Horizontal;
 use iced::executor;
 use iced::widget::{Button, Column, Row, scrollable, Text, text_input};
-use iced::widget::image::{Handle, Viewer};
 use iced::widget::scrollable::Id;
 use iced_aw::{Card, modal};
 use image::{ImageBuffer, Rgba, RgbaImage};
@@ -166,7 +165,6 @@ struct FlowrGui {
     tab_set: TabSet,
     running: bool,
     submitted: bool,
-    image: Option<ImageReference>,
     show_modal: bool,
     modal_content: (String, String),
 }
@@ -190,7 +188,6 @@ impl Application for FlowrGui {
             tab_set: TabSet::new(),
             submitted: false,
             running: false,
-            image: None,
             show_modal: false,
             modal_content: ("".to_owned(), "".to_owned()),
         };
@@ -203,7 +200,6 @@ impl Application for FlowrGui {
     }
 
     fn update(&mut self, message: Message) -> Command<Message> {
-        // TODO to refactor to switch by message first then state in ifs
         match message {
             Message::CoordinatorSent(CoordinatorMessage::Connected(sender)) => {
                 self.coordinator_state = CoordinatorState::Connected(sender);
@@ -249,13 +245,6 @@ impl Application for FlowrGui {
 
     fn view(&self) -> Element<'_, Message> {
         let mut main = Column::new().spacing(10);
-
-        // TODO add a scrollable row of images in a Tab
-        if let Some(ImageReference { name: _, width, height, data}) = &self.image {
-            main = main.push(Viewer::new(
-                Handle::from_pixels( *width, *height, data.as_raw().clone())));
-            // TODO switch to the images tab when image first written to
-        }
 
         main = main
             .push(self.command_row())
@@ -727,11 +716,12 @@ impl FlowrGui {
                 self.send(msg);
             },
             CoordinatorMessage::PixelWrite((x, y), (r, g, b), (width, height), name) => {
-                if self.image.is_none() {
+                if self.tab_set.images_tab.image.is_none() {
                     let data = RgbaImage::new(width, height);
-                    self.image = Some(ImageReference {name, width, height, data });
+                    self.tab_set.images_tab.image = Some(ImageReference {name, width, height, data });
                 }
-                if let Some(ImageReference{name: _, width: _, height: _, data}) = &mut self.image {
+                if let Some(ImageReference{name: _, width: _, height: _, data})
+                    = &mut self.tab_set.images_tab.image {
                         data.put_pixel(x, y, Rgba([r, g, b, 255]));
                 }
                 self.send(ClientMessage::Ack);
