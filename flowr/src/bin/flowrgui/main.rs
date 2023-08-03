@@ -276,10 +276,11 @@ impl Application for FlowrGui {
     fn view(&self) -> Element<'_, Message> {
         let mut main = Column::new().spacing(10);
 
-        // TODO add a scrollable row of images
+        // TODO add a scrollable row of images in a Tab
         if let Some(ImageReference { name: _, width, height, data}) = &self.image {
             main = main.push(Viewer::new(
                 Handle::from_pixels( *width, *height, data.as_raw().clone())));
+            // TODO switch to the images tab when image first written to
         }
 
         main = main
