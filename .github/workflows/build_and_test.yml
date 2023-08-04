@@ -17,7 +17,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ macos-latest, ubuntu-latest ]
+        os: [ macos-13, ubuntu-latest ]
         rust: [ nightly ]
 
     steps:
@@ -40,11 +40,11 @@ jobs:
           target: wasm32-unknown-unknown
 
       - name: InstallLinuxDependencies
-        if: matrix.os == 'ubuntu-latest'
+        if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get -y install libzmq3-dev binaryen
 
       - name: InstallMacDependencies
-        if: matrix.os == 'macos-latest'
+        if: runner.os == 'macOS'
         run: brew install zmq binaryen
 
       - name: InstallWasmTools
@@ -54,7 +54,7 @@ jobs:
           args: wasm-gc wasm-snip
 
       - name: ConfigureCoverage
-        if: matrix.os == 'ubuntu-latest'
+        if: runner.os == 'Linux'
         run: |
           cargo install grcov
           sudo apt-get -y install lcov
@@ -90,7 +90,7 @@ jobs:
           args: --examples
 
       - name: UploadCoverage
-        if: matrix.os == 'ubuntu-latest'
+        if: runner.os == 'Linux'
         run: |
           grcov . --binary-path target/debug/ -s . -t lcov --branch --ignore-not-existing --ignore "/*" -o lcov.info
           lcov --remove lcov.info '/Applications/*' 'target/debug/build/**' '/usr*' '**/errors.rs' '**/build.rs' '*tests/*' -o lcov.info
@@ -98,7 +98,7 @@ jobs:
           rm -f lcov.info
 
       - name: Generate docs
-        if: github.ref == 'refs/heads/master' && matrix.os == 'ubuntu-latest'
+        if: github.ref == 'refs/heads/master' && runner.os == 'Linux'
         run: |
           sudo apt-get update && sudo apt-get -y install graphviz
           curl -sSL https://github.com/rust-lang/mdBook/releases/download/v0.4.27/mdbook-v0.4.27-x86_64-unknown-linux-gnu.tar.gz | tar -xz --directory=$HOME/.cargo/bin
@@ -113,7 +113,7 @@ jobs:
           make trim-docs
 
       - name: Deploy docs
-        if: github.ref == 'refs/heads/master' && matrix.os == 'ubuntu-latest'
+        if: github.ref == 'refs/heads/master' && runner.os == 'Linux'
         uses: JamesIves/github-pages-deploy-action@4.1.4
         with:
           branch: gh-pages
