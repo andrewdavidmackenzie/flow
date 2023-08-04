@@ -219,19 +219,8 @@ impl Application for FlowrGui {
             },
             Message::FlowArgsChanged(value) => self.submission_settings.flow_args = value,
             Message::UrlChanged(value) => self.submission_settings.flow_manifest_url = value,
-            Message::TabSelected(tab_index) => self.tab_set.active_tab = tab_index,
-            Message::StdioAutoScrollTogglerChanged(id, value) => { // TODO extract
-                if id == self.tab_set.stdout_tab.id {
-                    self.tab_set.stdout_tab.auto_scroll = value;
-                }
-                else {
-                    self.tab_set.stderr_tab.auto_scroll = value
-                }
-
-                if value {
-                    return scrollable::snap_to(id,scrollable::RelativeOffset::END);
-                }
-            },
+            Message::TabSelected(_) => return self.tab_set.update(message),
+            Message::StdioAutoScrollTogglerChanged(_, _) => return self.tab_set.update(message),
             Message::CoordinatorSent(coord_msg) =>
                 return self.process_coordinator_message(coord_msg),
             Message::CloseModal => self.show_modal = false,

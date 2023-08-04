@@ -1,5 +1,5 @@
-use iced::{Element, Length};
-use iced::widget::{Column, text, toggler};
+use iced::{Command, Element, Length};
+use iced::widget::{Column, scrollable, text, toggler};
 use iced::widget::image::{Handle, Viewer};
 use iced::widget::scrollable::{Id, Scrollable};
 use iced_aw::{TabLabel, Tabs};
@@ -35,6 +35,27 @@ impl TabSet {
                 image: None,
             }
         }
+    }
+
+    pub(crate) fn update(&mut self, message: Message) -> Command<Message> {
+        match message {
+            Message::TabSelected(tab_index) => self.active_tab = tab_index,
+            Message::StdioAutoScrollTogglerChanged(id, value) => { // TODO extract
+                if id == self.stdout_tab.id {
+                    self.stdout_tab.auto_scroll = value;
+                }
+                else {
+                    self.stderr_tab.auto_scroll = value
+                }
+
+                if value {
+                    return scrollable::snap_to(id,scrollable::RelativeOffset::END);
+                }
+            },
+            _ => {},
+        }
+
+        Command::none()
     }
 
     pub(crate) fn view(&self) -> Element<'_, Message> {
