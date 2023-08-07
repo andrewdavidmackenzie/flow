@@ -9,22 +9,23 @@ use crate::{ImageReference, Message};
 
 pub(crate) struct TabSet {
     pub active_tab: usize,
-    pub stdout_tab: StdIOTab,
-    pub stderr_tab: StdIOTab,
+    pub stdout_tab: StdOutTab,
+    pub stderr_tab: StdOutTab,
     pub images_tab: ImageTab,
+    pub fileio_tab: StdOutTab,
 }
 
 impl TabSet {
     pub(crate) fn new() -> Self {
         TabSet {
             active_tab: 0,
-            stdout_tab: StdIOTab {
+            stdout_tab: StdOutTab {
                 name: "Stdout".to_owned(),
                 id: Lazy::new(Id::unique).clone(),
                 content: vec!(),
                 auto_scroll: true
             },
-            stderr_tab: StdIOTab {
+            stderr_tab: StdOutTab {
                 name: "Stderr".to_owned(),
                 id: Lazy::new(Id::unique).clone(),
                 content: vec!(),
@@ -33,14 +34,20 @@ impl TabSet {
             images_tab: ImageTab {
                 name: "Images".to_owned(),
                 image: None,
-            }
+            },
+            fileio_tab: StdOutTab {
+                name: "FileIO".to_owned(),
+                id: Lazy::new(Id::unique).clone(),
+                content: vec!(),
+                auto_scroll: true
+            },
         }
     }
 
     pub(crate) fn update(&mut self, message: Message) -> Command<Message> {
         match message {
             Message::TabSelected(tab_index) => self.active_tab = tab_index,
-            Message::StdioAutoScrollTogglerChanged(id, value) => { // TODO extract
+            Message::StdioAutoScrollTogglerChanged(id, value) => {
                 if id == self.stdout_tab.id {
                     self.stdout_tab.auto_scroll = value;
                 }
@@ -63,6 +70,7 @@ impl TabSet {
             .push(0, self.stdout_tab.tab_label(), self.stdout_tab.view())
             .push(1, self.stderr_tab.tab_label(), self.stderr_tab.view())
             .push(2, self.images_tab.tab_label(), self.images_tab.view())
+            .push(3, self.fileio_tab.tab_label(), self.fileio_tab.view())
             .set_active_tab(&self.active_tab)
             .into()
     }
@@ -70,9 +78,9 @@ impl TabSet {
     pub(crate) fn clear(&mut self) {
         self.stdout_tab.clear();
         self.stderr_tab.clear();
-        // TODO clear images and others
+        self.images_tab.clear();
+        self.fileio_tab.clear();
     }
-
 }
 
 pub trait Tab {
@@ -87,14 +95,14 @@ pub trait Tab {
     fn clear(&mut self);
 }
 
-pub(crate) struct StdIOTab {
+pub(crate) struct StdOutTab {
     pub name: String,
     pub id: Id,
     pub content: Vec<String>,
     pub auto_scroll: bool,
 }
 
-impl Tab for StdIOTab {
+impl Tab for StdOutTab {
     type Message = Message;
 
     fn title(&self) -> String {
@@ -142,6 +150,7 @@ pub(crate) struct ImageTab {
     name: String,
     pub image: Option<ImageReference>,
 }
+
 impl Tab for ImageTab {
     type Message = Message;
 

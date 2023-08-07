@@ -39,7 +39,6 @@ use iced::widget::scrollable::Id;
 use iced_aw::{Card, modal};
 use image::{ImageBuffer, Rgba, RgbaImage};
 use log::{info, LevelFilter, warn};
-use log::error;
 use simpath::Simpath;
 use url::Url;
 
@@ -67,7 +66,7 @@ mod context;
 mod gui;
 
 /// module that runs a coordinator in background
-mod coordinator;
+mod connection_manager;
 
 /// module with the different UI tabs
 mod tabs;
@@ -264,7 +263,7 @@ impl Application for FlowrGui {
     }
 
     fn subscription(&self) -> Subscription<Message> {
-        coordinator::subscribe(self.coordinator_settings.clone())
+        connection_manager::subscribe(self.coordinator_settings.clone())
             .map(Message::CoordinatorSent)
     }
 }
@@ -313,7 +312,6 @@ impl FlowrGui {
     }
 
     // report a new error
-    #[allow(dead_code)]
     fn error<S>(&mut self, _msg: S) where S: Into<String> {
 
     }
@@ -577,7 +575,7 @@ impl FlowrGui {
     fn process_coordinator_message(&mut self, message: CoordinatorMessage) -> Command<Message> {
         match message {
             CoordinatorMessage::Connected(_) => {
-                error!("Coordinator is already connected");
+                self.error("Coordinator is already connected");
             },
             CoordinatorMessage::FlowStart => {
                 self.running = true;
@@ -675,7 +673,17 @@ impl FlowrGui {
                     Ok(mut f) => {
                         let mut buffer = Vec::new();
                         match f.read_to_end(&mut buffer) {
-                            Ok(_) => ClientMessage::FileContents(file_path, buffer),
+                            Ok(_) => {
+                                self.tab_set.fileio_tab.content.push(
+                                    format!("READ <-- {}", file_path));
+/*
+                                if self.tab_set.stdout_tab.auto_scroll {
+                                    return scrollable::snap_to(
+                                        self.tab_set.stdout_tab.id.clone(), scrollable::RelativeOffset::END);
+                                }
+ */
+                                ClientMessage::FileContents(file_path, buffer)
+                            },
                             Err(_) => ClientMessage::Error(format!(
                                 "Could not read content from '{file_path:?}'"
                             )),
@@ -689,16 +697,27 @@ impl FlowrGui {
                 // TODO list file reads and write in the UI somewhere
                 let msg = match File::create(&filename) {
                     Ok(mut file) => match file.write_all(bytes.as_slice()) {
-                        Ok(_) => ClientMessage::Ack,
+                        Ok(_) => {
+                            self.tab_set.fileio_tab.content.push(
+                                format!("WRITE --> {}", filename));
+                            /*
+                                                            if self.tab_set.stdout_tab.auto_scroll {
+                                                                return scrollable::snap_to(
+                                                                    self.tab_set.stdout_tab.id.clone(), scrollable::RelativeOffset::END);
+                                                            }
+                             */
+
+                            ClientMessage::Ack
+                        },
                         Err(e) => {
                             let msg = format!("Error writing to file: '{filename}': '{e}'");
-                            error!("{msg}");
+                            self.error("{msg}");
                             ClientMessage::Error(msg)
                         }
                     },
                     Err(e) => {
                         let msg = format!("Error creating file: '{filename}': '{e}'");
-                        error!("{msg}");
+                        self.error("{msg}");
                         ClientMessage::Error(msg)
                     }
                 };
