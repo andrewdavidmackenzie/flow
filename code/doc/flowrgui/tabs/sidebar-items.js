@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"struct":["ImageTab","StdIOTab","TabSet"],"trait":["Tab"]};
+window.SIDEBAR_ITEMS = {"struct":["ImageTab","StdOutTab","TabSet"],"trait":["Tab"]};
