@@ -2,6 +2,7 @@ use iced::{Command, Element, Length};
 use iced::widget::{Column, scrollable, text, toggler};
 use iced::widget::image::{Handle, Viewer};
 use iced::widget::scrollable::{Id, Scrollable};
+use iced::widget::TextInput;
 use iced_aw::{TabLabel, Tabs};
 use once_cell::sync::Lazy;
 
@@ -32,11 +33,7 @@ impl TabSet {
                 content: vec!(),
                 auto_scroll: true
             },
-            stdin_tab: StdInTab {
-                name: "Stdin".to_owned(),
-                id: Lazy::new(Id::unique).clone(),
-                content: vec!(),
-            },
+            stdin_tab: StdInTab::new("Stdin"),
             images_tab: ImageTab {
                 name: "Images".to_owned(),
                 image: None,
@@ -193,6 +190,45 @@ pub(crate) struct StdInTab {
     pub name: String,
     pub id: Id,
     pub content: Vec<String>,
+    pub cursor: usize,
+    pub text: String,
+}
+
+impl StdInTab {
+    pub fn new(name: &str) -> Self {
+        Self {
+            name: name.to_owned(),
+            id: Lazy::new(Id::unique).clone(),
+            content: vec!(),
+            cursor: 0,
+            text: "".into(),
+        }
+    }
+
+    /// New text has been typed into the STDIN text box
+    pub fn text_entered(&mut self, text: String) {
+        self.text = text;
+    }
+
+    /// A new line of text for standard input has been sent
+    pub fn new_line(&mut self, line: String) {
+        self.content.push(line);
+        self.text = "".to_string();
+    }
+
+    /// return the next available line of standard input, or EOF
+    pub fn next_line(&mut self, prompt: String) -> Option<String> {
+        if let Some(line) = self.content.get_mut(self.cursor) {
+            if !prompt.is_empty() {
+                line.insert_str(0, &prompt);
+            }
+            self.cursor += 1;
+            Some(line.to_string())
+        } else {
+            // advanced beyond the available text!
+            None
+        }
+    }
 }
 
 impl Tab for StdInTab {
@@ -218,12 +254,19 @@ impl Tab for StdInTab {
             .width(Length::Fill)
             .padding(1);
 
+        let text_input = TextInput::new(
+            "Enter new line of Standard input", &self.text)
+            .on_input(Message::NewStdin)
+            .on_submit(Message::LineOfStdin(self.text.clone()))
+            .width(Length::Fill)
+            .padding(10);
         let scrollable = Scrollable::new(text_column)
             .height(Length::Fill)
             .id(self.id.clone());
 
         Column::new()
             .push(scrollable)
+            .push(text_input)
             .into()
     }
 
