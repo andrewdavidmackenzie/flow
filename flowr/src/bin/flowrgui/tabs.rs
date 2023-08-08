@@ -34,10 +34,7 @@ impl TabSet {
                 auto_scroll: true
             },
             stdin_tab: StdInTab::new("Stdin"),
-            images_tab: ImageTab {
-                name: "Images".to_owned(),
-                image: None,
-            },
+            images_tab: ImageTab::new("Images"),
             fileio_tab: StdOutTab {
                 name: "FileIO".to_owned(),
                 id: Lazy::new(Id::unique).clone(),
@@ -156,6 +153,15 @@ pub(crate) struct ImageTab {
     pub image: Option<ImageReference>,
 }
 
+impl ImageTab {
+    pub fn new(name: &str) -> Self {
+        Self {
+            name: name.to_owned(),
+            image: None,
+        }
+    }
+}
+
 impl Tab for ImageTab {
     type Message = Message;
 
@@ -182,7 +188,7 @@ impl Tab for ImageTab {
     }
 
     fn clear(&mut self) {
-        todo!()
+        self.image = None;
     }
 }
 
@@ -257,6 +263,7 @@ impl Tab for StdInTab {
         let text_input = TextInput::new(
             "Enter new line of Standard input", &self.text)
             .on_input(Message::NewStdin)
+            .on_paste(Message::NewStdin)
             .on_submit(Message::LineOfStdin(self.text.clone()))
             .width(Length::Fill)
             .padding(10);
@@ -270,7 +277,7 @@ impl Tab for StdInTab {
             .into()
     }
 
-    fn clear(&mut self) {
-        self.content.clear();
-    }
+    // Avoid clearing standard input - to allow the user to type in input ahead of the
+    // flow being run
+    fn clear(&mut self) {}
 }
