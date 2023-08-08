@@ -691,7 +691,6 @@ impl FlowrGui {
                 self.send(msg);
             },
             CoordinatorMessage::Write(filename, bytes) => {
-                // TODO list file reads and write in the UI somewhere
                 let msg = match File::create(&filename) {
                     Ok(mut file) => match file.write_all(bytes.as_slice()) {
                         Ok(_) => {
