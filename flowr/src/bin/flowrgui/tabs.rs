@@ -11,6 +11,7 @@ pub(crate) struct TabSet {
     pub active_tab: usize,
     pub stdout_tab: StdOutTab,
     pub stderr_tab: StdOutTab,
+    pub stdin_tab: StdInTab,
     pub images_tab: ImageTab,
     pub fileio_tab: StdOutTab,
 }
@@ -30,6 +31,11 @@ impl TabSet {
                 id: Lazy::new(Id::unique).clone(),
                 content: vec!(),
                 auto_scroll: true
+            },
+            stdin_tab: StdInTab {
+                name: "Stdin".to_owned(),
+                id: Lazy::new(Id::unique).clone(),
+                content: vec!(),
             },
             images_tab: ImageTab {
                 name: "Images".to_owned(),
@@ -69,8 +75,9 @@ impl TabSet {
         Tabs::new(Message::TabSelected)
             .push(0, self.stdout_tab.tab_label(), self.stdout_tab.view())
             .push(1, self.stderr_tab.tab_label(), self.stderr_tab.view())
-            .push(2, self.images_tab.tab_label(), self.images_tab.view())
-            .push(3, self.fileio_tab.tab_label(), self.fileio_tab.view())
+            .push(2, self.stdin_tab.tab_label(), self.stdin_tab.view())
+            .push(3, self.images_tab.tab_label(), self.images_tab.view())
+            .push(4, self.fileio_tab.tab_label(), self.fileio_tab.view())
             .set_active_tab(&self.active_tab)
             .into()
     }
@@ -78,6 +85,7 @@ impl TabSet {
     pub(crate) fn clear(&mut self) {
         self.stdout_tab.clear();
         self.stderr_tab.clear();
+        self.stdin_tab.clear();
         self.images_tab.clear();
         self.fileio_tab.clear();
     }
@@ -166,7 +174,8 @@ impl Tab for ImageTab {
         let mut col = Column::new();
 
         // TODO add a scrollable row of images in a Tab
-        if let Some(ImageReference { name: _, width, height, data}) = &self.image {
+        if let Some(ImageReference { name: _, width, height,
+                        data}) = &self.image {
             col = col.push(Viewer::new(
                 Handle::from_pixels( *width, *height, data.as_raw().clone())));
             // TODO switch to the images tab when image first written to
@@ -177,5 +186,48 @@ impl Tab for ImageTab {
 
     fn clear(&mut self) {
         todo!()
+    }
+}
+
+pub(crate) struct StdInTab {
+    pub name: String,
+    pub id: Id,
+    pub content: Vec<String>,
+}
+
+impl Tab for StdInTab {
+    type Message = Message;
+
+    fn title(&self) -> String {
+        String::from(&self.name)
+    }
+
+    fn tab_label(&self) -> TabLabel {
+        TabLabel::Text(self.name.to_string())
+    }
+
+    fn view(&self) -> Element<'_, Self::Message> {
+        let text_column = Column::with_children(
+            self.content
+                .iter()
+                .cloned()
+                .map(text)
+                .map(Element::from)
+                .collect(),
+        )
+            .width(Length::Fill)
+            .padding(1);
+
+        let scrollable = Scrollable::new(text_column)
+            .height(Length::Fill)
+            .id(self.id.clone());
+
+        Column::new()
+            .push(scrollable)
+            .into()
+    }
+
+    fn clear(&mut self) {
+        self.content.clear();
     }
 }
