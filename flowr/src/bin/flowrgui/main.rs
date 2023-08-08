@@ -23,7 +23,7 @@
 //! [Executors][flowrlib::executor::Executor]
 
 use core::str::FromStr;
-use std::{env, io, process, thread};
+use std::{env, process, thread};
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::PathBuf;
@@ -93,6 +93,10 @@ pub enum Message {
     FlowArgsChanged(String),
     /// A different tab of stdio has been selected
     TabSelected(usize),
+    /// Text has been entered into STDIN text box
+    NewStdin(String),
+    /// A new line entered for STDIN
+    LineOfStdin(String),
     /// toggle to auto-scroll to bottom of STDIO has changed
     StdioAutoScrollTogglerChanged(Id, bool),
     /// closing of the Modal was requested
@@ -226,6 +230,8 @@ impl Application for FlowrGui {
             Message::CoordinatorDisconnected(reason) => {
                 self.coordinator_state = CoordinatorState::Disconnected(reason)
             },
+            Message::NewStdin(text) => self.tab_set.stdin_tab.text_entered(text),
+            Message::LineOfStdin(line) => self.tab_set.stdin_tab.new_line(line),
         }
 
         Command::none()
@@ -616,33 +622,16 @@ impl FlowrGui {
                 }
             },
             CoordinatorMessage::GetStdin => {
-                // TODO read the buffer entirely and reset the cursor to after that text
-                // grey out the text read?
-                let mut buffer = String::new();
-                let msg = if let Ok(size) = io::stdin().read_to_string(&mut buffer) {
-                    if size > 0 {
-                        ClientMessage::Stdin(buffer.trim().to_string())
-                    } else {
-                        ClientMessage::GetStdinEof
-                    }
-                } else {
-                    ClientMessage::Error("Could not read Stdin".into())
+                let msg = match self.tab_set.stdin_tab.get_all() {
+                    Some(buf) => ClientMessage::Stdin(buf),
+                    None => ClientMessage::GetLineEof,
                 };
                 self.send(msg);
             }
             CoordinatorMessage::GetLine(prompt) => {
-                // TODO print the prompt, read one line of input, move cursor and grey out text
-                // If there is no text to pickup beyond the cursor then prompt the user for more
-                let mut input = String::new();
-                if !prompt.is_empty() {
-                    print!("{}", prompt);
-                    let _ = io::stdout().flush();
-                }
-                let line = io::stdin().lock().read_line(&mut input);
-                let msg = match line {
-                    Ok(n) if n > 0 => ClientMessage::Line(input.trim().to_string()),
-                    Ok(0) => ClientMessage::GetLineEof,
-                    _ => ClientMessage::Error("Could not read Readline".into()),
+                let msg = match self.tab_set.stdin_tab.get_line(prompt) {
+                    Some(line) => ClientMessage::Line(line),
+                    None => ClientMessage::GetLineEof,
                 };
                 self.send(msg);
             }
@@ -694,7 +683,6 @@ impl FlowrGui {
                 self.send(msg);
             },
             CoordinatorMessage::Write(filename, bytes) => {
-                // TODO list file reads and write in the UI somewhere
                 let msg = match File::create(&filename) {
                     Ok(mut file) => match file.write_all(bytes.as_slice()) {
                         Ok(_) => {
