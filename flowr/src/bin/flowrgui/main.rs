@@ -23,7 +23,7 @@
 //! [Executors][flowrlib::executor::Executor]
 
 use core::str::FromStr;
-use std::{env, io, process, thread};
+use std::{env, process, thread};
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::PathBuf;
@@ -622,22 +622,14 @@ impl FlowrGui {
                 }
             },
             CoordinatorMessage::GetStdin => {
-                // TODO read the buffer entirely and reset the cursor to after that text
-                // grey out the text read?
-                let mut buffer = String::new();
-                let msg = if let Ok(size) = io::stdin().read_to_string(&mut buffer) {
-                    if size > 0 {
-                        ClientMessage::Stdin(buffer.trim().to_string())
-                    } else {
-                        ClientMessage::GetStdinEof
-                    }
-                } else {
-                    ClientMessage::Error("Could not read Stdin".into())
+                let msg = match self.tab_set.stdin_tab.get_all() {
+                    Some(buf) => ClientMessage::Stdin(buf),
+                    None => ClientMessage::GetLineEof,
                 };
                 self.send(msg);
             }
             CoordinatorMessage::GetLine(prompt) => {
-                let msg = match self.tab_set.stdin_tab.next_line(prompt) {
+                let msg = match self.tab_set.stdin_tab.get_line(prompt) {
                     Some(line) => ClientMessage::Line(line),
                     None => ClientMessage::GetLineEof,
                 };

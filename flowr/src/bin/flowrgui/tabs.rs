@@ -223,13 +223,30 @@ impl StdInTab {
     }
 
     /// return the next available line of standard input, or EOF
-    pub fn next_line(&mut self, prompt: String) -> Option<String> {
+    pub fn get_line(&mut self, prompt: String) -> Option<String> {
         if let Some(line) = self.content.get_mut(self.cursor) {
             if !prompt.is_empty() {
                 line.insert_str(0, &prompt);
             }
             self.cursor += 1;
             Some(line.to_string())
+        } else {
+            // advanced beyond the available text!
+            None
+        }
+    }
+
+    /// return all available standard input between the cursor and the end of content
+    pub fn get_all(&mut self) -> Option<String> {
+        if self.content.len() > self.cursor {
+            let mut buf = String::new();
+            for line in self.cursor..self.content.len() {
+                if let Some(line) = self.content.get(line) {
+                    buf.push_str(line);
+                }
+            }
+            self.cursor = self.content.len();
+            Some(buf)
         } else {
             // advanced beyond the available text!
             None
