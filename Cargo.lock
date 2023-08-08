@@ -1609,7 +1609,7 @@ dependencies = [
 [[package]]
 name = "iced_aw"
 version = "0.6.0"
-source = "git+https://github.com/iced-rs/iced_aw.git?branch=main#1165bfee5535527388b47f5da02f17f374aa2083"
+source = "git+https://github.com/iced-rs/iced_aw.git?branch=main#41754f2ffebb60760cdc19267bec4f8d36111ba7"
 dependencies = [
  "iced_widget",
 ]
