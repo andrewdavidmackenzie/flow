@@ -3,7 +3,7 @@ use iced::widget::{Column, scrollable, text, toggler};
 use iced::widget::image::{Handle, Viewer};
 use iced::widget::scrollable::{Id, Scrollable};
 use iced::widget::TextInput;
-use iced_aw::{TabLabel, Tabs};
+use iced_aw::{TabBarStyles, TabLabel, Tabs};
 use once_cell::sync::Lazy;
 
 use crate::{ImageReference, Message};
@@ -73,6 +73,7 @@ impl TabSet {
             .push(3, self.images_tab.tab_label(), self.images_tab.view())
             .push(4, self.fileio_tab.tab_label(), self.fileio_tab.view())
             .set_active_tab(&self.active_tab)
+            .tab_bar_style(TabBarStyles::Blue)
             .into()
     }
 
