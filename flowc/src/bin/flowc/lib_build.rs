@@ -90,7 +90,7 @@ fn prepare_workspace(lib_root_path: &PathBuf) -> Result<()> {
         bail!("Flow libraries must have a valid 'lib.toml' file in the library's root directory");
     }
     let lib_src_path = lib_root_path.join("src");
-    let mut cargo_toml = lib_root_path.clone().join("src/Cargo.toml");
+    let cargo_toml = lib_root_path.clone().join("src/Cargo.toml");
     fs::copy(lib_toml_path, &cargo_toml)?;
 
     // copy all function.toml files to Cargo.toml files in same directory so the
