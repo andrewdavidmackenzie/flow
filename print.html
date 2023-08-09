@@ -1304,7 +1304,7 @@ path = &quot;src/lib.rs&quot;
 each function will re-compile all of the source dependencies, even if many of the dependencies are shared across
 all the functions, making the library compile to WASM very slow.</p>
 <p>To speed up library builds, a solution (&quot;hack&quot;) is used. A cargo workspace is defined in parallel with the Native 
-crate mentioned above, with it's root workspace <a href="docs/describing/../../flowstdlib/src/lib.toml">Cargo.toml</a> in the {lib_name}/src/
+crate mentioned above, with it's root workspace <a href="docs/describing/../../flowstdlib/lib.toml">Cargo.toml</a> in the {lib_name}/src/
 folder. This workspace includes as members references to all the <code>Cargo.toml</code> files of the functions (see below).
 Thus when any of them are compiled they share a single target directory and the common dependencies are only
 compiled once</p>
