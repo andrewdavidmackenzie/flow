@@ -41,21 +41,18 @@ pub mod errors;
 #[cfg(test)]
 pub mod test {
     use std::env;
-    use std::fs::File;
-    use std::io::{Read, Write};
+    use std::io::Read;
     use std::path::PathBuf;
     use std::process::{Command, Stdio};
 
-    use tempdir::TempDir;
-
-    pub fn get_context_root() -> PathBuf {
+    fn get_context_root() -> PathBuf {
         let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         let samples_dir = manifest_dir.parent().ok_or("Could not get parent dir")
             .expect("Could not get parent dir");
         samples_dir.join("flowr/src/bin/flowrcli/context")
     }
 
-    fn execute_flow(filepath: PathBuf) -> String {
+    pub fn execute_flow(filepath: PathBuf) -> String {
         let mut command = Command::new("flowc");
         let context_root = get_context_root();
         let command_args = vec![
@@ -81,67 +78,6 @@ pub mod test {
 
         assert!(result.success(), );
         output
-    }
-
-    #[test]
-    fn test_range_flow() {
-        let flow = "\
-flow = \"range_test\"
-
-[[process]]
-source = \"lib://flowstdlib/math/range\"
-input.range = { once = [1, 10] }
-
-[[process]]
-source = \"context://stdio/stdout\"
-
-[[connection]]
-from = \"range/number\"
-to = \"stdout\"
-";
-
-        let temp_dir = TempDir::new("flow").expect("Could not create TempDir").into_path();
-        let flow_filename = temp_dir.join("range_test.toml");
-        let mut flow_file =
-            File::create(&flow_filename).expect("Could not create lib manifest file");
-        flow_file.write_all(flow.as_bytes()).expect("Could not write data bytes to created flow file");
-
-        let stdout = execute_flow(flow_filename);
-
-        let mut numbers: Vec<i32> = stdout.lines().map(|l| l.parse::<i32>().expect("Not a number")).collect::<Vec<i32>>();
-        numbers.sort_unstable();
-        assert_eq!(numbers, vec!(1, 2, 3, 4, 5, 6, 7, 8, 9, 10));
-    }
-
-    #[test]
-    fn test_sequence_flow() {
-        let flow = "\
-flow = \"sequence_test\"
-
-[[process]]
-source = \"lib://flowstdlib/math/sequence\"
-input.start = { once = 1 }
-input.limit = { once = 10 }
-input.step = { once = 1 }
-
-[[process]]
-source = \"context://stdio/stdout\"
-
-[[connection]]
-from = \"sequence/sequence\"
-to = \"stdout\"
-";
-
-        let temp_dir = TempDir::new("flow").expect("Could not create TempDir").into_path();
-        let flow_filename = temp_dir.join("sequence_test.toml");
-        let mut flow_file =
-            File::create(&flow_filename).expect("Could not create lib manifest file");
-        flow_file.write_all(flow.as_bytes()).expect("Could not write data bytes to created flow file");
-
-        let stdout = execute_flow(flow_filename);
-
-        let numbers: Vec<i32> = stdout.lines().map(|l| l.parse::<i32>().expect("Not a number")).collect::<Vec<i32>>();
-        assert_eq!(numbers, vec!(1, 2, 3, 4, 5, 6, 7, 8, 9, 10));
     }
 
 }
