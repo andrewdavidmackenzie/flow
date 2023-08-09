@@ -105,9 +105,9 @@ jobs:
         # do agree on 'cat' and '$()' so we use that to marshal values between commands.
         run: |
           cargo build
-          #./target/debug/flowstdlib ./flowstdlib
+          #target/debug/flowc -d -g -O -v warn -o $HOME/.flow/lib/flowstdlib flowstdlib
           # make zips and whatnot
-          cargo dist --target=${{ matrix.target }} --output-format=json > dist-manifest.json
+          cargo dist --target=${{ matrix.target }} --output-format=json > dist-manifest.jsonl
           cat dist-manifest.json
           # Parse out what we just built and upload it to the Github Release™️
           cat dist-manifest.json | jq --raw-output ".releases[].artifacts[].path" > uploads.txt

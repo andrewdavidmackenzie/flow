@@ -68,8 +68,7 @@ jobs:
           command: build
 
       - name: compile flowstdlib to WASM
-        run: |
-          ./target/debug/flowstdlib ./flowstdlib
+        run: target/debug/flowc -d -g -O -v warn -o $HOME/.flow/lib/flowstdlib flowstdlib
 
       - name: clippy
         uses: actions-rs/cargo@v1
