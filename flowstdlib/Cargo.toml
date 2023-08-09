@@ -22,7 +22,7 @@ path = "src/lib.rs"
 [dependencies]
 flowmacro = {path = "../flowmacro", version = "0.110.0" }
 flowcore = {path = "../flowcore", version = "0.110.0" }
-simpath = { version = "~2.5", features = ["urls"]}
+simpath = { version = "2", features = ["urls"]}
 url = { version = "2.2", features = ["serde"] }
 serde_json = "1.0"
 error-chain = "0.12.2"
