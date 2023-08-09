@@ -18,7 +18,7 @@ this library must be part of `FLOW_LIB_PATH` or specified using an instance of t
 NOTE: That flows are compiled down to a graph of functions at compile time, and do not exist at runtime.
 
 ## Building this library from Source
-Libraries like `flowstdlib` are built using `flowc` with the `-l` option.
+Libraries like `flowstdlib` are built using `flowc`, specifying the library root folder as the source url.
 
 This builds a directory tree (in `target/{lib_name}`) of all required files for a portable library, including:-
 * documentation files (.md MarkDown files, .dot graphs of flows, graphs rendered as .dot.svg SVG files)
@@ -29,7 +29,7 @@ This builds a directory tree (in `target/{lib_name}`) of all required files for 
 
 ## Dual nature of flow libraries
 Flow libraries such as `flowstdlib` have a dual nature. They can compiled and linked natively to a binary such
-as `flowr`, or when compiled by `flowc` (using the `-l`) all the functions implementations are compiled to
+as `flowr`, or when compiled by `flowc` all the functions implementations are compiled to
 `.wasm` WASM files.
 
 ## Native use by a Runtime

@@ -19,7 +19,6 @@ FLAGS:
     -d, --dump        Dump the flow to .dump files after loading it
     -z, --graphs      Create .dot files for graph generation
     -h, --help        Prints help information
-    -l, --lib         Compile a flow library
     -p, --provided    Provided function implementations should NOT be compiled from source
     -s, --skip        Skip execution of flow
     -g, --symbols     Generate debug symbols (like process names and full routes)
@@ -32,7 +31,7 @@ OPTIONS:
     -v, --verbosity <VERBOSITY_LEVEL>     Set verbosity level for output (trace, debug, info, warn, error (default))
 
 ARGS:
-    <FLOW>            the name of the 'flow' definition file to compile
+    <FLOW>            the name of the 'flow' definition file or library to compile
     <flow_args>...    Arguments that will get passed onto the flow if it is executed
 
 ```

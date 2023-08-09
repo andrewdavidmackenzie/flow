@@ -24,7 +24,7 @@ fn main() -> io::Result<()> {
     let lib_source_dir = env::args().nth(1).expect("No lib root directory specified.\
      Please specify directory where flowstdlib source resides");
 
-    let command_args = vec!["-d", "-g", "-l", "-O",
+    let command_args = vec!["-d", "-g", "-O",
                             "-v", "warn", "-o", &out_dir, &lib_source_dir];
 
     match command.args(&command_args).status() {
