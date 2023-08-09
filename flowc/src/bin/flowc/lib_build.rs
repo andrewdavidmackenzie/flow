@@ -41,8 +41,7 @@ pub fn build_lib(options: &Options, provider: &dyn Provider) -> Result<()> {
         .to_file_path()
         .map_err(|_| "Could not convert Url to File path")?;
 
-    let lib_src_path = lib_root_path.join("src");
-    prepare_workspace(&lib_src_path)?;
+    prepare_workspace(&lib_root_path)?;
 
     // compile all functions to the output directory first, as they maybe referenced later in flows
     let mut file_count = compile_functions(
@@ -75,7 +74,7 @@ pub fn build_lib(options: &Options, provider: &dyn Provider) -> Result<()> {
         lib_manifest.write_json(&manifest_json_file)?;
     }
 
-    teardown_workspace(&lib_src_path)?;
+    teardown_workspace(&lib_root_path)?;
 
     println!("    {} {name}", "Finished".green());
     Ok(())
@@ -84,18 +83,19 @@ pub fn build_lib(options: &Options, provider: &dyn Provider) -> Result<()> {
 // prepare the library's internal virtual workspace for building under 'src' directory,
 // as this allows all functions being built to share the same target directory and built
 // dependencies, greatly speeding builds
-fn prepare_workspace(lib_src_path: &PathBuf) -> Result<()> {
-    // ensure lib.toml exists in the root and if so copy it to Cargo.toml for building
-    let toml_path = lib_src_path.join("lib.toml");
-    if !toml_path.exists() {
-        bail!("Flow libraries must have a valid 'lib.toml' file in the 'src' directory");
+fn prepare_workspace(lib_root_path: &Path) -> Result<()> {
+    // ensure lib.toml exists in the root and if so copy it to src/Cargo.toml for building
+    let lib_toml_path = lib_root_path.join("lib.toml");
+    if !lib_toml_path.exists() {
+        bail!("Flow libraries must have a valid 'lib.toml' file in the library's root directory");
     }
-    let mut cargo_toml = toml_path.clone();
-    cargo_toml.set_file_name("Cargo.toml");
-    fs::copy(toml_path, &cargo_toml)?;
+    let lib_src_path = lib_root_path.join("src");
+    let cargo_toml = lib_root_path.join("src/Cargo.toml");
+    fs::copy(lib_toml_path, &cargo_toml)?;
 
     // copy all function.toml files to Cargo.toml files in same directory so the
     // workspace members references from lib.toml can be found
+
     let glob = Glob::new("**/function.toml").map_err(|_| "Globbing error")?;
     for entry in glob.walk(lib_src_path).flatten() {
         let mut cargo_toml = entry.path().to_path_buf();
@@ -109,9 +109,9 @@ fn prepare_workspace(lib_src_path: &PathBuf) -> Result<()> {
 // Delete any temporary Cargo.toml files that were created under 'src' in prepare_workspace()
 // as these will prevent the directory containing them from being included in the crate when
 // we attempt to publish it
-fn teardown_workspace(lib_src_path: &PathBuf) -> Result<()> {
-    let glob = Glob::new("**/Cargo.toml").map_err(|_| "Globbing error")?;
-    for entry in glob.walk(lib_src_path).flatten() {
+fn teardown_workspace(lib_root_path: &PathBuf) -> Result<()> {
+    let glob = Glob::new("src/**/Cargo.toml").map_err(|_| "Globbing error")?;
+    for entry in glob.walk(lib_root_path).flatten() {
         fs::remove_file(entry.path())?;
     }
 
