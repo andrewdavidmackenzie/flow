@@ -26,7 +26,7 @@ each function will re-compile all of the source dependencies, even if many of th
 all the functions, making the library compile to WASM very slow.
 
 To speed up library builds, a solution ("hack") is used. A cargo workspace is defined in parallel with the Native 
-crate mentioned above, with it's root workspace [Cargo.toml](../../flowstdlib/src/lib.toml) in the {lib_name}/src/
+crate mentioned above, with it's root workspace [Cargo.toml](../../flowstdlib/lib.toml) in the {lib_name}/src/
 folder. This workspace includes as members references to all the `Cargo.toml` files of the functions (see below).
 Thus when any of them are compiled they share a single target directory and the common dependencies are only
 compiled once
