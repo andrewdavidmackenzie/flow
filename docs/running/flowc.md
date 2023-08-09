@@ -23,8 +23,6 @@ Options:
           Compile the flow and implementations, but do not execute
   -C, --context_root <CONTEXT_DIRECTORY>
           Set the directory to use as the root dir for context function definitions
-  -l, --lib
-          Compile a flow library
   -n, --native
           Compile only native (not wasm) implementations when compiling a library
   -L, --libdir <LIB_DIR|BASE_URL>
@@ -57,7 +55,6 @@ Options:
 *  `-d, --debug` Generate symbols for debugging. If executing the flow, do so with the debugger
 *  `-c, --compile` Compile the flow and implementations, but do not execute
 *  `-C, --context_root <CONTEXT_DIRECTORY>` Set the directory to use as the root dir for context function definitions
-*  `-l, --lib` Compile a flow library. The `source_url` supplied should be the root of the library to compile.
 *  `-n, --native` Compile only native (not wasm) implementations when compiling a library
 *  `-L, --libdir <LIB_DIR|BASE_URL>` Add a directory or base Url to the Library Search path
 *  `-t, --tables` Write flow and compiler tables to .dump and .dot files

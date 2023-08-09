@@ -50,9 +50,9 @@ Each function should have a subdirectory named after function (`{function_name}`
 - `{function_name}.rs` - referenced from function definition file. Must be valid rust and implement required traits
 
 ### Compiling a library
-Flow libraries can be compiled using the `flowc` flow compiler and its `-l, --lib` option. This will compiler
-and/or copy all required files from the library source directory into a library directory structure (where
-can be specified with the `-o, --output <OUTPUT_DIR>` option). This directory is a self-contained, portable
+Flow libraries can be compiled using the `flowc` flow compiler, specifying the library root directory as the source url.
+This will compiler and/or copy all required files from the library source directory into a library directory structure 
+(where can be specified with the `-o, --output <OUTPUT_DIR>` option). This directory is a self-contained, portable
 library. It can be packaged, moved, unpackaged and used elsewhere, providing it can be found by the compiler
 and runtime (using `FLOW_LIB_PATH` env var and `-L, --libdir <LIB_DIR|BASE_URL>` options) when needed.
 

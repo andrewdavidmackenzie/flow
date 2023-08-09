@@ -44,7 +44,6 @@ mod source_arg;
 
 /// information from the parsing of the command line options, to be used to configure execution
 pub struct Options {
-    lib: bool,
     source_url: Url,
     flow_args: Vec<String>,
     graphs: bool,
@@ -111,6 +110,24 @@ fn load_runner_spec(context_root: &Path) -> Result<RunnerSpec> {
     Ok(toml::from_str(&runner_spec)?)
 }
 
+fn is_a_library(url: &Url) -> Result<bool> {
+    let mut path = url.to_file_path()
+        .map_err(|_| "Could not get local file path for Url")?;
+
+    if path.exists() && path.is_dir() {
+        path = path.join("lib.toml");
+    }
+
+    if path.exists() && path.is_file() {
+        let file_name = path.file_name().ok_or("Could not get file name")?;
+        if file_name == "lib.toml" {
+            return Ok(true);
+        }
+    }
+
+    Ok(false)
+}
+
 /*
     run the loader to load the process and (optionally) compile, generate code and run the flow.
     Return either an error string if anything goes wrong or
@@ -120,7 +137,7 @@ fn run() -> Result<()> {
     let options = parse_args(get_matches())?;
     let mut lib_search_path = get_lib_search_path(&options.lib_dirs)?;
 
-    if options.lib {
+    if is_a_library(&options.source_url)? {
         // Add the parent of the out_dir to the search path so compiler can find internal
         // references functions and flows during the build process
         let output_dir_parent = options.output_dir.parent()
@@ -168,13 +185,6 @@ fn get_matches() -> ArgMatches {
                 .number_of_values(1)
                 .value_name("CONTEXT_DIRECTORY")
                 .help("Set the directory to use as the root dir for context function definitions"),
-        )
-        .arg(
-            Arg::new("lib")
-                .short('l')
-                .long("lib")
-                .action(clap::ArgAction::SetTrue)
-                .help("Compile a flow library"),
         )
         .arg(
             Arg::new("native")
@@ -326,7 +336,6 @@ fn parse_args(matches: ArgMatches) -> Result<Options> {
     };
 
     Ok(Options {
-        lib: matches.get_flag("lib"),
         source_url: url,
         flow_args,
         graphs: matches.get_flag("graphs"),
