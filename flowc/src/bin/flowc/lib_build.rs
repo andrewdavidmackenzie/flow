@@ -83,14 +83,14 @@ pub fn build_lib(options: &Options, provider: &dyn Provider) -> Result<()> {
 // prepare the library's internal virtual workspace for building under 'src' directory,
 // as this allows all functions being built to share the same target directory and built
 // dependencies, greatly speeding builds
-fn prepare_workspace(lib_root_path: &PathBuf) -> Result<()> {
+fn prepare_workspace(lib_root_path: &Path) -> Result<()> {
     // ensure lib.toml exists in the root and if so copy it to src/Cargo.toml for building
     let lib_toml_path = lib_root_path.join("lib.toml");
     if !lib_toml_path.exists() {
         bail!("Flow libraries must have a valid 'lib.toml' file in the library's root directory");
     }
     let lib_src_path = lib_root_path.join("src");
-    let cargo_toml = lib_root_path.clone().join("src/Cargo.toml");
+    let cargo_toml = lib_root_path.join("src/Cargo.toml");
     fs::copy(lib_toml_path, &cargo_toml)?;
 
     // copy all function.toml files to Cargo.toml files in same directory so the
