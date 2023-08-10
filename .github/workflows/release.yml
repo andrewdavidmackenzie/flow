@@ -60,7 +60,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
 
   # Build and packages all the things
-  upload-artifacts:
+  upload-target-artifacts:
     needs: create-release
     strategy:
       matrix:
@@ -96,7 +96,7 @@ jobs:
         run: ${{ matrix.install-dist }}
       - name: Setup FLOW_LIB_PATH
         run: echo "FLOW_LIB_PATH=$HOME/.flow/lib" >> "$GITHUB_ENV"
-      - name: Ensure flowc in PATH
+      - name: Ensure flowc will be in PATH
         run: echo "PATH=$GITHUB_WORKSPACE/target/debug:$GITHUB_WORKSPACE/target/release:$PATH" >> "$GITHUB_ENV"
       - name: Run cargo-dist
         # This logic is a bit janky because it's trying to be a polyglot between
@@ -104,15 +104,19 @@ jobs:
         # The two platforms don't agree on how to talk about env vars but they
         # do agree on 'cat' and '$()' so we use that to marshal values between commands.
         run: |
-          cargo build
-          #target/debug/flowc -d -g -O -v warn -o $HOME/.flow/lib/flowstdlib flowstdlib
           # make zips and whatnot
-          cargo dist --target=${{ matrix.target }} --output-format=json > dist-manifest.jsonl
+          cargo dist --target=${{ matrix.target }} --output-format=json > dist-manifest.json
           cat dist-manifest.json
           # Parse out what we just built and upload it to the Github Release™️
           cat dist-manifest.json | jq --raw-output ".releases[].artifacts[].path" > uploads.txt
           cat uploads.txt
           gh release upload ${{ needs.create-release.outputs.tag }} $(cat uploads.txt)
+      - name: build flowstdlib in wasm (on Linux)
+        if: matrix.os == 'ubuntu-latest'
+        run: target/debug/flowc -d -g -O -v warn -o $HOME/.flow/lib/flowstdlib flowstdlib
+      - name: Upload flowstdlib (on Linux)
+        if: matrix.os == 'ubuntu-latest'
+        run: gh release upload ${{ needs.create-release.outputs.tag }} $HOME/.flow/lib/flowstdlib
 
   # Compute and upload the manifest for everything
   upload-manifest:
@@ -130,7 +134,6 @@ jobs:
         run: |
           # Generate a manifest describing everything
           cargo dist manifest --no-local-paths --output-format=json $ALL_CARGO_DIST_TARGET_ARGS $ALL_CARGO_DIST_INSTALLER_ARGS > dist-manifest.json
-          echo "dist manifest ran successfully"
           cat dist-manifest.json
           gh release upload ${{ needs.create-release.outputs.tag }} dist-manifest.json
           #gh release upload ${{ needs.create-release.outputs.tag }} $HOME/.flow/lib/flowstdlib
