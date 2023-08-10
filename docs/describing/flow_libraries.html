@@ -188,9 +188,9 @@ referenced in the flow definition file using the <code>docs</code> field (e.g. <
 <li><code>{function_name}.rs</code> - referenced from function definition file. Must be valid rust and implement required traits</li>
 </ul>
 <h3 id="compiling-a-library"><a class="header" href="#compiling-a-library">Compiling a library</a></h3>
-<p>Flow libraries can be compiled using the <code>flowc</code> flow compiler and its <code>-l, --lib</code> option. This will compiler
-and/or copy all required files from the library source directory into a library directory structure (where
-can be specified with the <code>-o, --output &lt;OUTPUT_DIR&gt;</code> option). This directory is a self-contained, portable
+<p>Flow libraries can be compiled using the <code>flowc</code> flow compiler, specifying the library root directory as the source url.
+This will compiler and/or copy all required files from the library source directory into a library directory structure 
+(where can be specified with the <code>-o, --output &lt;OUTPUT_DIR&gt;</code> option). This directory is a self-contained, portable
 library. It can be packaged, moved, unpackaged and used elsewhere, providing it can be found by the compiler
 and runtime (using <code>FLOW_LIB_PATH</code> env var and <code>-L, --libdir &lt;LIB_DIR|BASE_URL&gt;</code> options) when needed.</p>
 <p>The output directory structure will have the same structure as the library source (subdirs for modules) and will

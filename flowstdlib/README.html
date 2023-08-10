@@ -158,7 +158,7 @@
 this library must be part of <code>FLOW_LIB_PATH</code> or specified using an instance of the <code>-L</code> command line option to <code>flowc</code>,</p>
 <p>NOTE: That flows are compiled down to a graph of functions at compile time, and do not exist at runtime.</p>
 <h2 id="building-this-library-from-source"><a class="header" href="#building-this-library-from-source">Building this library from Source</a></h2>
-<p>Libraries like <code>flowstdlib</code> are built using <code>flowc</code> with the <code>-l</code> option.</p>
+<p>Libraries like <code>flowstdlib</code> are built using <code>flowc</code>, specifying the library root folder as the source url.</p>
 <p>This builds a directory tree (in <code>target/{lib_name}</code>) of all required files for a portable library, including:-</p>
 <ul>
 <li>documentation files (.md MarkDown files, .dot graphs of flows, graphs rendered as .dot.svg SVG files)</li>
@@ -169,7 +169,7 @@ This is used by the Runtime to be able to load it.</li>
 </ul>
 <h2 id="dual-nature-of-flow-libraries"><a class="header" href="#dual-nature-of-flow-libraries">Dual nature of flow libraries</a></h2>
 <p>Flow libraries such as <code>flowstdlib</code> have a dual nature. They can compiled and linked natively to a binary such
-as <code>flowr</code>, or when compiled by <code>flowc</code> (using the <code>-l</code>) all the functions implementations are compiled to
+as <code>flowr</code>, or when compiled by <code>flowc</code> all the functions implementations are compiled to
 <code>.wasm</code> WASM files.</p>
 <h2 id="native-use-by-a-runtime"><a class="header" href="#native-use-by-a-runtime">Native use by a Runtime</a></h2>
 <p><code>flowr</code> offers the <code>-n/--native</code> option for the <code>flowstdlib</code> to be used natively. When used, functions it

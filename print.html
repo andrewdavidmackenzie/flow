@@ -693,7 +693,6 @@ FLAGS:
     -d, --dump        Dump the flow to .dump files after loading it
     -z, --graphs      Create .dot files for graph generation
     -h, --help        Prints help information
-    -l, --lib         Compile a flow library
     -p, --provided    Provided function implementations should NOT be compiled from source
     -s, --skip        Skip execution of flow
     -g, --symbols     Generate debug symbols (like process names and full routes)
@@ -706,7 +705,7 @@ OPTIONS:
     -v, --verbosity &lt;VERBOSITY_LEVEL&gt;     Set verbosity level for output (trace, debug, info, warn, error (default))
 
 ARGS:
-    &lt;FLOW&gt;            the name of the 'flow' definition file to compile
+    &lt;FLOW&gt;            the name of the 'flow' definition file or library to compile
     &lt;flow_args&gt;...    Arguments that will get passed onto the flow if it is executed
 
 </code></pre>
@@ -1329,9 +1328,9 @@ referenced in the flow definition file using the <code>docs</code> field (e.g. <
 <li><code>{function_name}.rs</code> - referenced from function definition file. Must be valid rust and implement required traits</li>
 </ul>
 <h3 id="compiling-a-library"><a class="header" href="#compiling-a-library">Compiling a library</a></h3>
-<p>Flow libraries can be compiled using the <code>flowc</code> flow compiler and its <code>-l, --lib</code> option. This will compiler
-and/or copy all required files from the library source directory into a library directory structure (where
-can be specified with the <code>-o, --output &lt;OUTPUT_DIR&gt;</code> option). This directory is a self-contained, portable
+<p>Flow libraries can be compiled using the <code>flowc</code> flow compiler, specifying the library root directory as the source url.
+This will compiler and/or copy all required files from the library source directory into a library directory structure 
+(where can be specified with the <code>-o, --output &lt;OUTPUT_DIR&gt;</code> option). This directory is a self-contained, portable
 library. It can be packaged, moved, unpackaged and used elsewhere, providing it can be found by the compiler
 and runtime (using <code>FLOW_LIB_PATH</code> env var and <code>-L, --libdir &lt;LIB_DIR|BASE_URL&gt;</code> options) when needed.</p>
 <p>The output directory structure will have the same structure as the library source (subdirs for modules) and will
@@ -1999,8 +1998,6 @@ Options:
           Compile the flow and implementations, but do not execute
   -C, --context_root &lt;CONTEXT_DIRECTORY&gt;
           Set the directory to use as the root dir for context function definitions
-  -l, --lib
-          Compile a flow library
   -n, --native
           Compile only native (not wasm) implementations when compiling a library
   -L, --libdir &lt;LIB_DIR|BASE_URL&gt;
@@ -2033,7 +2030,6 @@ Options:
 <li><code>-d, --debug</code> Generate symbols for debugging. If executing the flow, do so with the debugger</li>
 <li><code>-c, --compile</code> Compile the flow and implementations, but do not execute</li>
 <li><code>-C, --context_root &lt;CONTEXT_DIRECTORY&gt;</code> Set the directory to use as the root dir for context function definitions</li>
-<li><code>-l, --lib</code> Compile a flow library. The <code>source_url</code> supplied should be the root of the library to compile.</li>
 <li><code>-n, --native</code> Compile only native (not wasm) implementations when compiling a library</li>
 <li><code>-L, --libdir &lt;LIB_DIR|BASE_URL&gt;</code> Add a directory or base Url to the Library Search path</li>
 <li><code>-t, --tables</code> Write flow and compiler tables to .dump and .dot files</li>
@@ -2446,7 +2442,7 @@ and the <code>Step</code> command to step forward one function invocation.</p>
 this library must be part of <code>FLOW_LIB_PATH</code> or specified using an instance of the <code>-L</code> command line option to <code>flowc</code>,</p>
 <p>NOTE: That flows are compiled down to a graph of functions at compile time, and do not exist at runtime.</p>
 <h2 id="building-this-library-from-source"><a class="header" href="#building-this-library-from-source">Building this library from Source</a></h2>
-<p>Libraries like <code>flowstdlib</code> are built using <code>flowc</code> with the <code>-l</code> option.</p>
+<p>Libraries like <code>flowstdlib</code> are built using <code>flowc</code>, specifying the library root folder as the source url.</p>
 <p>This builds a directory tree (in <code>target/{lib_name}</code>) of all required files for a portable library, including:-</p>
 <ul>
 <li>documentation files (.md MarkDown files, .dot graphs of flows, graphs rendered as .dot.svg SVG files)</li>
@@ -2457,7 +2453,7 @@ This is used by the Runtime to be able to load it.</li>
 </ul>
 <h2 id="dual-nature-of-flow-libraries"><a class="header" href="#dual-nature-of-flow-libraries">Dual nature of flow libraries</a></h2>
 <p>Flow libraries such as <code>flowstdlib</code> have a dual nature. They can compiled and linked natively to a binary such
-as <code>flowr</code>, or when compiled by <code>flowc</code> (using the <code>-l</code>) all the functions implementations are compiled to
+as <code>flowr</code>, or when compiled by <code>flowc</code> all the functions implementations are compiled to
 <code>.wasm</code> WASM files.</p>
 <h2 id="native-use-by-a-runtime"><a class="header" href="#native-use-by-a-runtime">Native use by a Runtime</a></h2>
 <p><code>flowr</code> offers the <code>-n/--native</code> option for the <code>flowstdlib</code> to be used natively. When used, functions it
@@ -3544,7 +3540,7 @@ section.</p>
 this library must be part of <code>FLOW_LIB_PATH</code> or specified using an instance of the <code>-L</code> command line option to <code>flowc</code>,</p>
 <p>NOTE: That flows are compiled down to a graph of functions at compile time, and do not exist at runtime.</p>
 <h2 id="building-this-library-from-source-1"><a class="header" href="#building-this-library-from-source-1">Building this library from Source</a></h2>
-<p>Libraries like <code>flowstdlib</code> are built using <code>flowc</code> with the <code>-l</code> option.</p>
+<p>Libraries like <code>flowstdlib</code> are built using <code>flowc</code>, specifying the library root folder as the source url.</p>
 <p>This builds a directory tree (in <code>target/{lib_name}</code>) of all required files for a portable library, including:-</p>
 <ul>
 <li>documentation files (.md MarkDown files, .dot graphs of flows, graphs rendered as .dot.svg SVG files)</li>
@@ -3555,7 +3551,7 @@ This is used by the Runtime to be able to load it.</li>
 </ul>
 <h2 id="dual-nature-of-flow-libraries-1"><a class="header" href="#dual-nature-of-flow-libraries-1">Dual nature of flow libraries</a></h2>
 <p>Flow libraries such as <code>flowstdlib</code> have a dual nature. They can compiled and linked natively to a binary such
-as <code>flowr</code>, or when compiled by <code>flowc</code> (using the <code>-l</code>) all the functions implementations are compiled to
+as <code>flowr</code>, or when compiled by <code>flowc</code> all the functions implementations are compiled to
 <code>.wasm</code> WASM files.</p>
 <h2 id="native-use-by-a-runtime-1"><a class="header" href="#native-use-by-a-runtime-1">Native use by a Runtime</a></h2>
 <p><code>flowr</code> offers the <code>-n/--native</code> option for the <code>flowstdlib</code> to be used natively. When used, functions it
