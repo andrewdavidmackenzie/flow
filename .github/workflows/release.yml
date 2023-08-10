@@ -60,7 +60,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
 
   # Build and packages all the things
-  upload-target-artifacts:
+  upload-artifacts:
     needs: create-release
     strategy:
       matrix:
