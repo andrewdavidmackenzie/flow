@@ -297,7 +297,8 @@ fn parse_args(matches: ArgMatches) -> Result<Options> {
     );
     debug!("'flowrclib' version {}", info::version());
 
-    let cwd = env::current_dir().chain_err(|| "Could not get current working directory value")?;
+    let cwd = env::current_dir()
+        .chain_err(|| "Could not get the current working directory")?;
     let cwd_url = Url::from_directory_path(cwd)
         .map_err(|_| "Could not form a Url for the current working directory")?;
 
