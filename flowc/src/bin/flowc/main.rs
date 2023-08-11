@@ -257,7 +257,7 @@ fn get_matches() -> ArgMatches {
                 .num_args(0..1)
                 .number_of_values(1)
                 .value_name("OUTPUT_DIR")
-                .help("Specify the output directory for generated manifest"),
+                .help("the directory where output will be generated"),
         )
         .arg(
             Arg::new("verbosity")
