@@ -257,7 +257,8 @@ fn get_matches() -> ArgMatches {
                 .num_args(0..1)
                 .number_of_values(1)
                 .value_name("OUTPUT_DIR")
-                .help("the directory where output will be generated"),
+                .help("Specify a non-default directory for generated output. \
+                Default is $HOME/.flow/lib/{lib_name} for a library."),
         )
         .arg(
             Arg::new("verbosity")

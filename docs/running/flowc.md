@@ -40,7 +40,7 @@ Options:
   -p, --provided
           Provided function implementations should NOT be compiled from source
   -o, --output <OUTPUT_DIR>
-          Specify the output directory for generated manifest
+          Specify a non-default directory for generated output. Default is $HOME/.flow/lib/{lib_name} for a library.
   -v, --verbosity <VERBOSITY_LEVEL>
           Set verbosity level for output (trace, debug, info, warn, error (default))
   -i, --stdin <STDIN_FILENAME>

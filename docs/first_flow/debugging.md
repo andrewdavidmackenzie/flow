@@ -26,7 +26,7 @@ FLAGS:
 
 OPTIONS:
     -L, --libdir <LIB_DIR|BASE_URL>...    Add a directory or base Url to the Library Search path
-    -o, --output <OUTPUT_DIR>             Specify the output directory for generated manifest
+    -o, --output <OUTPUT_DIR>             Specify a non-default directory for generated output. Default is $HOME/.flow/lib/{lib_name} for a library.
     -i, --stdin <STDIN_FILENAME>          Read STDIN from the named file
     -v, --verbosity <VERBOSITY_LEVEL>     Set verbosity level for output (trace, debug, info, warn, error (default))
 
