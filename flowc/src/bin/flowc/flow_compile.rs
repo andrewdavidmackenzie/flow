@@ -20,8 +20,10 @@ use crate::errors::*;
 use crate::Options;
 
 /// Compile a flow, maybe run it
-pub fn compile_and_execute_flow(options: &Options, provider: &dyn Provider,
-                                runner_name: String) -> Result<()> {
+pub fn compile_and_execute_flow(options: &Options,
+                                provider: &dyn Provider,
+                                runner_name: String,
+                                output_dir: PathBuf) -> Result<()> {
     info!("==== Parsing flow hierarchy from '{}'", options.source_url);
     #[cfg(feature = "debugger")]
     let mut source_urls = BTreeMap::<String, Url>::new();
@@ -35,18 +37,18 @@ pub fn compile_and_execute_flow(options: &Options, provider: &dyn Provider,
         FlowProcess(flow) => {
             info!("Finished parsing flow hierarchy starting at root flow '{}'", flow.name);
             let tables = compile::compile(&flow,
-                                              &options.output_dir,
+                                              output_dir.as_path(),
                                               options.provided_implementations,
                                               options.optimize,
                                                 &mut source_urls
             ).chain_err(|| format!("Could not compile the flow '{}'", options.source_url))?;
 
-            make_writeable(&options.output_dir)?;
+            make_writeable(&output_dir)?;
 
             if options.graphs {
-                flow_to_dot::dump_flow(&flow, &options.output_dir, provider)?;
-                functions_to_dot::dump_functions(&flow, &tables, &options.output_dir)?;
-                flow_to_dot::generate_svgs(&options.output_dir, true)?;
+                flow_to_dot::dump_flow(&flow, &output_dir, provider)?;
+                functions_to_dot::dump_functions(&flow, &tables, &output_dir)?;
+                flow_to_dot::generate_svgs(&output_dir, true)?;
             }
 
             if !flow.is_runnable() {
@@ -57,7 +59,7 @@ pub fn compile_and_execute_flow(options: &Options, provider: &dyn Provider,
             let manifest_path = generate::write_flow_manifest(
                 flow,
                 options.debug_symbols,
-                &options.output_dir,
+                &output_dir,
                 &tables,
                 #[cfg(feature = "debugger")] source_urls,
             )

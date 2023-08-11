@@ -22,7 +22,7 @@ use crate::Options;
 
 /// Build a library from source and generate a manifest for it so it can be used at runtime when
 /// a flow referencing it is loaded and ran
-pub fn build_lib(options: &Options, provider: &dyn Provider) -> Result<()> {
+pub fn build_lib(options: &Options, provider: &dyn Provider, output_dir: PathBuf) -> Result<()> {
     let (metadata, _) = parser::parse_metadata(&options.source_url, provider)?;
 
     let name = metadata.name.clone();
@@ -49,6 +49,7 @@ pub fn build_lib(options: &Options, provider: &dyn Provider) -> Result<()> {
         options,
         &mut lib_manifest,
         provider,
+        &output_dir,
     )?;
 
     file_count += compile_flows(
@@ -56,14 +57,12 @@ pub fn build_lib(options: &Options, provider: &dyn Provider) -> Result<()> {
         options,
         &mut lib_manifest,
         provider,
+        &output_dir,
     )?;
 
-    file_count += copy_docs(
-        lib_root_path.join("src"),
-        options,
-    )?;
+    file_count += copy_docs(lib_root_path.join("src"), &output_dir)?;
 
-    let manifest_json_file = LibraryManifest::manifest_filename(&options.output_dir);
+    let manifest_json_file = LibraryManifest::manifest_filename(&output_dir);
 
     let (message, write_manifest) = check_manifest_status(&manifest_json_file, file_count,
                                                           &lib_manifest)?;
@@ -181,6 +180,7 @@ fn compile_functions(
     options: &Options,
     lib_manifest: &mut LibraryManifest,
     provider: &dyn Provider,
+    output_dir: &PathBuf,
 ) -> Result<i32> {
     let mut file_count = 0;
     // Function implementations are described in .toml format and can be at multiple levels in
@@ -222,12 +222,12 @@ fn compile_functions(
                             .map_err(|_| "Could not calculate relative_dir")?;
                         // calculate the target directory for generating output using the relative path from the
                         // lib_root appended to the root of the output directory
-                        let output_dir = options.output_dir.join(relative_dir);
-                        if !output_dir.exists() {
-                            fs::create_dir_all(&output_dir)?;
+                        let out_dir = output_dir.join(relative_dir);
+                        if !out_dir.exists() {
+                            fs::create_dir_all(&out_dir)?;
                         }
 
-                        let (source_path, wasm_destination) = compile::get_paths(&output_dir, function)?;
+                        let (source_path, wasm_destination) = compile::get_paths(&out_dir, function)?;
 
                         // here we assume that the library has a workspace at lib_root_path
                         let mut target_dir = lib_root_path.clone();
@@ -239,11 +239,11 @@ fn compile_functions(
                         }
 
                         let wasm_relative_path = wasm_destination
-                            .strip_prefix(&options.output_dir)
+                            .strip_prefix(output_dir)
                             .map_err(|_| "Could not calculate wasm_relative_path")?;
 
                         let built = compile_wasm::compile_implementation(
-                            output_dir.as_path(),
+                            out_dir.as_path(),
                             target_dir,
                             &wasm_destination,
                             &source_path,
@@ -268,7 +268,7 @@ fn compile_functions(
                             )
                             .chain_err(|| "Could not add entry to library manifest")?;
 
-                        file_count += copy_definition_to_output_dir(toml_path, &output_dir)?;
+                        file_count += copy_definition_to_output_dir(toml_path, &out_dir)?;
                     }
                     Ok(FlowProcess(_)) => debug!("Skipping file '{}'. Reason: 'It is a Flow'", url),
                     Err(err) => debug!("Skipping file '{}'. Reason: '{}'", url, err),
@@ -297,6 +297,7 @@ fn compile_flows(
     options: &Options,
     lib_manifest: &mut LibraryManifest,
     provider: &dyn Provider,
+    output_dir: &Path
 ) -> Result<i32> {
     let mut file_count = 0;
     debug!(
@@ -336,17 +337,17 @@ fn compile_flows(
                             .map_err(|_| "Could not calculate relative_dir")?;
                         // calculate the target directory for generating output using the relative path from the
                         // lib_root appended to the root of the output directory
-                        let output_dir = options.output_dir.join(relative_dir);
-                        if !output_dir.exists() {
-                            fs::create_dir_all(&output_dir)?;
+                        let out_dir = output_dir.join(relative_dir);
+                        if !out_dir.exists() {
+                            fs::create_dir_all(&out_dir)?;
                         }
 
                         if options.graphs {
-                            flow_to_dot::dump_flow(flow, &output_dir, provider)?;
-                            flow_to_dot::generate_svgs(&output_dir, true)?;
+                            flow_to_dot::dump_flow(flow, &out_dir, provider)?;
+                            flow_to_dot::generate_svgs(&out_dir, true)?;
                         }
 
-                        file_count += copy_definition_to_output_dir(toml_path, &output_dir)?;
+                        file_count += copy_definition_to_output_dir(toml_path, &out_dir)?;
 
                         let flow_relative_path = toml_path
                             .strip_prefix(&lib_root_path)
@@ -384,7 +385,7 @@ fn compile_flows(
 */
 fn copy_docs(
     lib_root_path: PathBuf,
-    options: &Options,
+    output_dir: &Path,
 ) -> Result<i32> {
     let mut file_count = 0;
     debug!(
@@ -404,7 +405,7 @@ fn copy_docs(
                     .map_err(|_| "Could not calculate relative path")?;
                 // calculate the target file for copying to using the relative path from the
                 // lib_root appended to the output directory
-                let target_file = options.output_dir.join(relative_file_path);
+                let target_file = output_dir.join(relative_file_path);
 
                 if !target_file.exists() {
                     // copy the md file from the source tree to the target tree if not already there

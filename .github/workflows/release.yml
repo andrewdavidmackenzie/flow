@@ -105,7 +105,7 @@ jobs:
           gh release upload ${{ needs.create-release.outputs.tag }} $(cat uploads.txt)
       - name: build flowstdlib in wasm (on Linux)
         if: matrix.os == 'ubuntu-latest'
-        run: target/${{ matrix.target }}/dist/flowc -d -g -O -o $HOME/.flow/lib/flowstdlib flowstdlib
+        run: target/${{ matrix.target }}/dist/flowc -d -g -O flowstdlib
       - name: Upload flowstdlib tarball (on Linux)
         if: matrix.os == 'ubuntu-latest'
         run:

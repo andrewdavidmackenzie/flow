@@ -92,7 +92,7 @@ clean: clean_examples
 build:
 	@echo "build<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
 	@cargo build
-	@target/debug/flowc -d -g -O -v warn -o $(HOME)/.flow/lib/flowstdlib flowstdlib
+	@target/debug/flowc -d -g -O flowstdlib
 
 .PHONY: clippy
 clippy: build

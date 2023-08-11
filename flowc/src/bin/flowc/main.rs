@@ -52,7 +52,7 @@ pub struct Options {
     compile_only: bool,
     debug_symbols: bool,
     provided_implementations: bool,
-    output_dir: PathBuf,
+    output_dir: Option<String>,
     stdin_file: Option<String>,
     lib_dirs: Vec<String>,
     native_only: bool,
@@ -110,6 +110,9 @@ fn load_runner_spec(context_root: &Path) -> Result<RunnerSpec> {
     Ok(toml::from_str(&runner_spec)?)
 }
 
+// Determine if the specified source url points to a library, by detecting
+// - it points to a lib.toml file
+// - it points to a directory that contains a lib.toml file
 fn is_a_library(url: &Url) -> Result<bool> {
     let mut path = url.to_file_path()
         .map_err(|_| "Could not get local file path for Url")?;
@@ -138,20 +141,28 @@ fn run() -> Result<()> {
     let mut lib_search_path = get_lib_search_path(&options.lib_dirs)?;
 
     if is_a_library(&options.source_url)? {
-        // Add the parent of the out_dir to the search path so compiler can find internal
-        // references functions and flows during the build process
-        let output_dir_parent = options.output_dir.parent()
+        let output_dir = source_arg::get_output_dir(&options.source_url,
+                                                    &options.output_dir, true)
+            .chain_err(|| "Could not get the output directory")?;
+
+        // Add the parent of the output_dir to the search path so compiler can find internal
+        // references functions and flows during the lib build process
+        let output_dir_parent = output_dir.parent()
             .ok_or("Could not get parent of output dir")?
             .to_string_lossy();
         lib_search_path.add(&output_dir_parent);
         let provider = &MetaProvider::new(lib_search_path, PathBuf::default());
-        build_lib(&options, provider).chain_err(|| "Could not build library")
+        build_lib(&options, provider, output_dir).chain_err(|| "Could not build library")
     } else {
+        let output_dir = source_arg::get_output_dir(&options.source_url,
+                                                    &options.output_dir, false)
+            .chain_err(|| "Could not get the output directory")?;
+
         let context_root = options.context_root.as_ref()
             .ok_or("Context Root was not specified")?;
         let provider = &MetaProvider::new(lib_search_path, context_root.clone());
         let runner_spec = load_runner_spec(context_root)?;
-        compile_and_execute_flow(&options, provider, runner_spec.name)
+        compile_and_execute_flow(&options, provider, runner_spec.name, output_dir)
     }
 }
 
@@ -302,15 +313,10 @@ fn parse_args(matches: ArgMatches) -> Result<Options> {
     let cwd_url = Url::from_directory_path(cwd)
         .map_err(|_| "Could not form a Url for the current working directory")?;
 
-    let url = url_from_string(&cwd_url,
-                              matches.get_one::<String>("source_url")
+    let source_url = url_from_string(&cwd_url,
+                                     matches.get_one::<String>("source_url")
                                   .map(|s| s.as_str()))
         .chain_err(|| "Could not create a url for flow from the 'FLOW' command line parameter")?;
-
-    let output_dir = source_arg::get_output_dir(&url,
-                                                matches.get_one::<String>("output")
-                                                    .map(|s| s.as_str()))
-        .chain_err(|| "Could not get or create the output directory")?;
 
     let lib_dirs = if matches.contains_id("lib_dir") {
         matches
@@ -337,7 +343,7 @@ fn parse_args(matches: ArgMatches) -> Result<Options> {
     };
 
     Ok(Options {
-        source_url: url,
+        source_url,
         flow_args,
         graphs: matches.get_flag("graphs"),
         wasm_execution: matches.get_flag("wasm"),
@@ -345,7 +351,7 @@ fn parse_args(matches: ArgMatches) -> Result<Options> {
         compile_only: matches.get_flag("compile"),
         debug_symbols: matches.get_flag("debug"),
         provided_implementations: matches.get_flag("provided"),
-        output_dir,
+        output_dir: matches.get_one::<String>("output").map(|s| s.to_string()),
         stdin_file: matches.get_one::<String>("stdin").map(|s| s.to_string()),
         lib_dirs,
         native_only: matches.get_flag("native"),
