@@ -86,7 +86,7 @@ jobs:
         if: matrix.os == 'macos-latest'
         run: brew install zmq binaryen
       - name: AddWasmTarget
-        run: rustup target add wasm32-unknown-unknown
+        run: rustup +nightly target add wasm32-unknown-unknown
       - name: InstallWasmTools
         run: cargo install wasm-gc wasm-snip
       - uses: actions/checkout@v3
@@ -94,12 +94,10 @@ jobs:
         run: ${{ matrix.install-dist }}
       - name: Setup FLOW_LIB_PATH
         run: echo "FLOW_LIB_PATH=$HOME/.flow/lib" >> "$GITHUB_ENV"
-      - name: Ensure flowc will be in PATH
-        run: echo "PATH=$GITHUB_WORKSPACE/target/release:$PATH" >> "$GITHUB_ENV"
       - name: Run cargo-dist
         run: |
           # make zips and whatnot
-          cargo dist --target=${{ matrix.target }} --output-format=json > dist-manifest.json
+          cargo +nightly dist --target=${{ matrix.target }} --output-format=json > dist-manifest.json
           cat dist-manifest.json
           # Parse out what we just built and upload it to the Github Release™️
           cat dist-manifest.json | jq --raw-output ".releases[].artifacts[].path" > uploads.txt
@@ -107,9 +105,7 @@ jobs:
           gh release upload ${{ needs.create-release.outputs.tag }} $(cat uploads.txt)
       - name: build flowstdlib in wasm (on Linux)
         if: matrix.os == 'ubuntu-latest'
-        run: | 
-          find . -name flowc -type f
-          target/${{ matrix.target }}/dist/flowc -d -g -O -o $HOME/.flow/lib/flowstdlib flowstdlib
+        run: target/${{ matrix.target }}/dist/flowc -d -g -O -o $HOME/.flow/lib/flowstdlib flowstdlib
       - name: Upload flowstdlib (on Linux)
         if: matrix.os == 'ubuntu-latest'
         run: gh release upload ${{ needs.create-release.outputs.tag }} $HOME/.flow/lib/flowstdlib
@@ -129,7 +125,7 @@ jobs:
       - name: Run cargo-dist manifest
         run: |
           # Generate a manifest describing everything
-          cargo dist manifest --no-local-paths --output-format=json $ALL_CARGO_DIST_TARGET_ARGS $ALL_CARGO_DIST_INSTALLER_ARGS > dist-manifest.json
+          cargo +nightly dist manifest --no-local-paths --output-format=json $ALL_CARGO_DIST_TARGET_ARGS $ALL_CARGO_DIST_INSTALLER_ARGS > dist-manifest.json
           cat dist-manifest.json
           echo "Tag is " ${{ needs.create-release.outputs.tag }}
           gh release upload ${{ needs.create-release.outputs.tag }} dist-manifest.json
