@@ -113,7 +113,10 @@ jobs:
           gh release upload ${{ needs.create-release.outputs.tag }} $(cat uploads.txt)
       - name: build flowstdlib in wasm (on Linux)
         if: matrix.os == 'ubuntu-latest'
-        run: flowc -d -g -O -v warn -o $HOME/.flow/lib/flowstdlib flowstdlib
+        run: | 
+          ls $GITHUB_WORKSPACE/target/debug
+          ls $GITHUB_WORKSPACE/target/release
+          $GITHUB_WORKSPACE/target/debug/flowc -d -g -O -v warn -o $HOME/.flow/lib/flowstdlib flowstdlib
       - name: Upload flowstdlib (on Linux)
         if: matrix.os == 'ubuntu-latest'
         run: gh release upload ${{ needs.create-release.outputs.tag }} $HOME/.flow/lib/flowstdlib
@@ -136,7 +139,6 @@ jobs:
           cargo dist manifest --no-local-paths --output-format=json $ALL_CARGO_DIST_TARGET_ARGS $ALL_CARGO_DIST_INSTALLER_ARGS > dist-manifest.json
           cat dist-manifest.json
           gh release upload ${{ needs.create-release.outputs.tag }} dist-manifest.json
-          #gh release upload ${{ needs.create-release.outputs.tag }} $HOME/.flow/lib/flowstdlib
           # Edit the Github Release™️ title/body to match what cargo-dist thinks it should be
           CHANGELOG_TITLE=$(cat dist-manifest.json | jq --raw-output ".releases[].changelog_title")
           cat dist-manifest.json | jq --raw-output ".releases[].changelog_body" > new_dist_changelog.md
