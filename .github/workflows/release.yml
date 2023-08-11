@@ -108,9 +108,8 @@ jobs:
       - name: build flowstdlib in wasm (on Linux)
         if: matrix.os == 'ubuntu-latest'
         run: | 
-          ls /home/runner/work/flow/flow/target
           find . -name flowc -type f
-          $GITHUB_WORKSPACE/target/release/flowc -d -g -O -o $HOME/.flow/lib/flowstdlib flowstdlib
+          target/${{ matrix.target }}/dist/flowc -d -g -O -o $HOME/.flow/lib/flowstdlib flowstdlib
       - name: Upload flowstdlib (on Linux)
         if: matrix.os == 'ubuntu-latest'
         run: gh release upload ${{ needs.create-release.outputs.tag }} $HOME/.flow/lib/flowstdlib
