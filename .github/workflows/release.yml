@@ -111,7 +111,8 @@ jobs:
         run: |
           cd $HOME/.flow/lib
           tar -cJf flowstdlib.tar.xz flowstdlib
-          gh release upload ${{ needs.create-release.outputs.tag }} flowstdlib.tar.xz
+          cd -
+          gh release upload ${{ needs.create-release.outputs.tag }} $HOME/.flow/lib/flowstdlib.tar.xz
 
   # Compute and upload the manifest for everything
   upload-manifest:
