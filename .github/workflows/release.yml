@@ -106,9 +106,12 @@ jobs:
       - name: build flowstdlib in wasm (on Linux)
         if: matrix.os == 'ubuntu-latest'
         run: target/${{ matrix.target }}/dist/flowc -d -g -O -o $HOME/.flow/lib/flowstdlib flowstdlib
-      - name: Upload flowstdlib (on Linux)
+      - name: Upload flowstdlib tarball (on Linux)
         if: matrix.os == 'ubuntu-latest'
-        run: gh release upload ${{ needs.create-release.outputs.tag }} $HOME/.flow/lib/flowstdlib
+        run:
+          cd $HOME/.flow/lib
+          tar -cJf flowstdlib.tar.xz flowstdlib
+          gh release upload ${{ needs.create-release.outputs.tag }} flowstdlib.tar.xz
 
   # Compute and upload the manifest for everything
   upload-manifest:
