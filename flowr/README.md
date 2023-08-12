@@ -45,10 +45,3 @@ Those functions are organized into the following modules, each with multiple fun
 ## `flowrex`
 You can find more details about how to use it in running flows in the [distributed](../docs/running/distributed.md)
 section.
-
-## Code Docs
-See also:
-- [flowrcli Code docs](https://mackenzie-serres.net/flow/code/doc/flowrcli/index.html)
-- [flowrgui Code docs](https://mackenzie-serres.net/flow/code/doc/flowrgui/index.html)
-- [flowrex Code docs](https://mackenzie-serres.net/flow/code/doc/flowrex/index.html)
-- [flowrlib Code docs](https://mackenzie-serres.net/flow/code/doc/flowrlib/index.html)

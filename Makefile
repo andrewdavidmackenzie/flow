@@ -19,7 +19,7 @@ ifeq ($(FLOW_CONTEXT_ROOT),)
 endif
 
 .PHONY: all
-all: clean-start build clippy test docs
+all: clean-start build clippy test book
 
 .PHONY: clean-start
 clean-start:
@@ -133,22 +133,13 @@ endif
 	@genhtml -o target/coverage --quiet coverage.info
 	@echo "View coverage report using 'open target/coverage/index.html'"
 
-.PHONY: docs
-docs: generate-docs copy-svgs trim-docs
-
-.PHONY: generate-docs
-generate-docs: build-book code-docs
-	@echo "generate-docs<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
+.PHONY: book
+book: build-book copy-svgs trim-book
 
 .PHONY: build-book
 build-book:
 	@echo "build-book<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
 	@mdbook build
-
-.PHONY: code-docs
-code-docs: build
-	@echo "code-docs<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
-	@cargo doc --no-deps --target-dir=target/html/code
 
 .PHONE: copy-svgs
 copy-svgs:
@@ -160,9 +151,9 @@ copy-svgs:
       cp $$HOME/.flow/lib/flowstdlib/$$i target/html/flowstdlib/src/$$i; \
     done
 
-.PHONY: trim-docs
-trim-docs:
-	@echo "trim-docs<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
+.PHONY: trim-book
+trim-book:
+	@echo "trim-book<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
 	@find target/html -name .git | xargs rm -rf {}
 	@rm -rf target/html/.git
 	@find target/html -name .github | xargs rm -rf {}
@@ -195,8 +186,6 @@ trim-docs:
 	@rm -rf target/html/flowc/tests/test-flows
 	@rm -rf target/html/flowc/tests/test-functions/stdio
 	@rm -rf target/html/flowc/tests/test_libs
-	@rm -rf target/html/code/debug
-	@rm -rf target/html/code/release
 	@rm -rf target/html/Makefile
 	@rm -rf target/html/.nojekyll
 	@rm -rf target/html/coverage.info
