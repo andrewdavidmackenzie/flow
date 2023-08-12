@@ -76,8 +76,6 @@ jobs:
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
-      - name: debug release name
-        run: echo Release name ${{ needs.create-release.outputs.tag }}
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: nightly
@@ -152,7 +150,7 @@ jobs:
       - uses: actions/checkout@v3
       - name: mark release as non-draft
         run: |
-          gh release edit ${{ needs.create-release.outputs.tag }} --draft=false
+          gh release edit ${{ needs.create-release.outputs.tag }} --title ${{ needs.create-release.outputs.tag }} --draft=false
 
   build-and-publish-book:
     needs: [publish-release]
