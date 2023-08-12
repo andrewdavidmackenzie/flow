@@ -7,7 +7,3 @@ passed across the native/wasm boundary.
 
 ## Features
 `flowmacro` has no features
-
-## Code Docs
-
-See also: [Code docs](http://andrewdavidmackenzie.github.io/flow/code/doc/flowmacro/index.html)

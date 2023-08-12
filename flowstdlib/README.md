@@ -1,7 +1,5 @@
 # `flowstdlib` Library
 
-See also: [Code docs](http://andrewdavidmackenzie.github.io/flow/code/doc/flowstdlib/index.html)
-
 `flowstdlib` is a standard library of functions and flows for `flow` programs to use.
 
 ## Modules

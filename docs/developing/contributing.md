@@ -4,7 +4,7 @@ There are many ways of contributing:
 - pick up an
 [issue](https://github.com/users/andrewdavidmackenzie/projects/2/views/1) and try 
 and fix it (I am not very good at labelling these, but will try)
-- adding to or correcting the docs and this guide
+- adding to or correcting the code documentation or the book
 - adding a new example
 - improvements to the libraries, compiler, standard library, run-time
 - improvements to unit or integration tests
@@ -22,8 +22,8 @@ from the [GitHub project kanban](https://github.com/users/andrewdavidmackenzie/p
 Create a branch to work on, and dive in. Try to make descriptive commit messages
 of limited scope, and stick to the scope of the issue.
 
-Make sure all code builds, there are no clippy errors, tests pass, and docs build
-before pushing by running `make`.
+Make sure all code builds, there are no clippy errors, tests pass, and the books builds,
+before pushing, by running `make`.
 
 When you think you are done, you can create a Pull-Request to the upstream project.
 If you include "Fixes #xyq" in the PR description, it will close the issue "xyz"

@@ -4,7 +4,7 @@ These are the pre-requisites that are required to build and test 'flow':
     * with `wasm32-unknown-unknown` target for compiling to wasm
     * `clippy` for checking coding best practices
 * `zmq` (Zero Message Queue) library
-* `graphviz` utilities for automatic generation of SVG files for docs
+* `graphviz` utilities for automatic generation of SVG files for the book
 
 For building the guide:
 	```mdbook``` and the ```mdbook-linkcheck``` plug-in

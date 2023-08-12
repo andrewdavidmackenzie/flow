@@ -45,6 +45,3 @@ Those functions are organized into the following modules, each with multiple fun
 ## `flowrex`
 You can find more details about how to use it in running flows in the [distributed](../docs/running/distributed.md)
 section.
-
-## Code Docs
-See [docs.rs](https://docs.rs/flowr/0.126.0/flowrlib/)

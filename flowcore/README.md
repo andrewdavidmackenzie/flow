@@ -8,8 +8,8 @@ crates in the `flow`project.
 This is a trait that implementations of flow 'functions' must implement in order for them to be invoked
 by the flowrlib (or other) run-time library.
 
-An example of a function implementing the `Implementation` trait can be found in the
-docs for [Implementation](http://andrewdavidmackenzie.github.io/flow/code/doc/flowcore/trait.Implementation.html)
+An example of a function implementing the `Implementation` trait can be found in docs.rs for 
+[Implementation](https://docs.rs/flowcore/0.126.0/flowcore/trait.Implementation.html)
 
 ## `Provider`
 This implements a `content provider` that resolves URLs and then gets the content of the url.
@@ -39,7 +39,3 @@ of `flowcore` as it does not provide ant `context functions` ("context" feature)
 running and provide a debugger ("debugger" feature), nor does it have the need for running "online_tests",
 and lastly it does not fetch content via any of the various "providers" ("meta_provider", "file_provider",
 and "http_provider" features).
-
-## Code Docs
-
-See also: [Code docs](http://andrewdavidmackenzie.github.io/flow/code/doc/flowcore/index.html)
