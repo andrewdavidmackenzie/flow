@@ -76,6 +76,8 @@ jobs:
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
+      - name: debug release name
+        run: echo Release name ${{ needs.create-release.outputs.tag }}
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: nightly
