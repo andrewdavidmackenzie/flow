@@ -156,6 +156,7 @@ jobs:
     needs: [publish-release]
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v3
       - name: build-book
         run: |
           sudo apt-get update && sudo apt-get -y install graphviz
