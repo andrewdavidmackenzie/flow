@@ -19,7 +19,7 @@ ifeq ($(FLOW_CONTEXT_ROOT),)
 endif
 
 .PHONY: all
-all: clean-start build clippy test docs
+all: clean-start build clippy test book
 
 .PHONY: clean-start
 clean-start:
@@ -133,8 +133,8 @@ endif
 	@genhtml -o target/coverage --quiet coverage.info
 	@echo "View coverage report using 'open target/coverage/index.html'"
 
-.PHONY: docs
-docs: build-book copy-svgs trim-docs
+.PHONY: book
+book: build-book copy-svgs trim-book
 
 .PHONY: build-book
 build-book:
@@ -151,9 +151,9 @@ copy-svgs:
       cp $$HOME/.flow/lib/flowstdlib/$$i target/html/flowstdlib/src/$$i; \
     done
 
-.PHONY: trim-docs
-trim-docs:
-	@echo "trim-docs<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
+.PHONY: trim-book
+trim-book:
+	@echo "trim-book<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
 	@find target/html -name .git | xargs rm -rf {}
 	@rm -rf target/html/.git
 	@find target/html -name .github | xargs rm -rf {}

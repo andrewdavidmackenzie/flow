@@ -96,8 +96,8 @@ jobs:
           bash <(curl -s https://codecov.io/bash) -f lcov.info
           rm -f lcov.info
 
-      - name: Generate docs
-        if: github.ref == 'refs/heads/master' && runner.os == 'Linux'
+      - name: Test book build
+        if: runner.os == 'Linux'
         run: |
           sudo apt-get update && sudo apt-get -y install graphviz
           curl -sSL https://github.com/rust-lang/mdBook/releases/download/v0.4.27/mdbook-v0.4.27-x86_64-unknown-linux-gnu.tar.gz | tar -xz --directory=$HOME/.cargo/bin
@@ -106,14 +106,4 @@ jobs:
           unzip mdbook-linkcheck.zip -d $HOME/.cargo/bin
           chmod +x $HOME/.cargo/bin/mdbook-linkcheck
           echo "PATH=$HOME/.cargo/bin:$PATH" >> "$GITHUB_ENV"
-          mdbook build
-          cargo doc --no-deps --target-dir=target/html/code
-          make copy-svgs
-          make trim-docs
-
-      - name: Deploy docs
-        if: github.ref == 'refs/heads/master' && runner.os == 'Linux'
-        uses: JamesIves/github-pages-deploy-action@4.1.4
-        with:
-          branch: gh-pages
-          folder: target/html
+          make book
