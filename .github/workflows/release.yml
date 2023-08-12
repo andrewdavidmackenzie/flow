@@ -137,7 +137,7 @@ jobs:
           CHANGELOG_TITLE=$(cat dist-manifest.json | jq --raw-output ".releases[].changelog_title")
           echo "Changelog Title is " $CHANGELOG_TITLE
           cat dist-manifest.json | jq --raw-output ".releases[].changelog_body" > new_dist_changelog.md
-          gh release edit ${{ needs.create-release.outputs.tag }} --title="$CHANGELOG_TITLE" --notes-file=new_dist_changelog.md
+          gh release edit ${{ needs.create-release.outputs.tag }} --notes-file=new_dist_changelog.md
           echo "updated release notes!"
 
   # Mark the Github Release™️ as a non-draft now that everything has succeeded!
