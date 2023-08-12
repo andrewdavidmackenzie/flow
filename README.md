@@ -68,12 +68,10 @@ by a runner and used to execute jobs, distributing execution in a basic fashion
 
 ![Mandlebrot set](docs/images/mandlebrot.png)
 
-- Docs: Extensive documentation in the [book](SUMMARY.md) documentation on defining flows, the runtime semantics, a 
-  programmers guide, docs on tool command line options and how to use them, the `flowstdlib` library
-functions and flows, `flowr`'s context functions and more. The guide, including linked Code docs and rust
-"doc tests" are all published together online [here](https://mackenzie-serres.net/flow/docs/book_intro.html).
-- How to build flow locally and contribute to it
-- Internal design and how some things are implemented
+- Docs: The [book](SUMMARY.md) covers defining flows, the runtime semantics, a 
+  programmer's guide, docs on tool command line options and how to use them, the `flowstdlib` library
+functions and flows, `flowrcli/flowrgui`'s context functions and more. It is published online 
+[here](https://mackenzie-serres.net/flow/docs/book_intro.html).
  
 ## What made me want to do it?
 You can read more about what made me want to do this project, based on ideas gathered over a few decades
@@ -175,16 +173,14 @@ I hope to add flow design and programming to it, using `flowrclib`, either in a 
 binary, or in a second compile-time-only tool.
 
 ## Docs
-Apart from this README, I have written pretty extensive documentation in a "guide" or book 
+Apart from this README, I have written pretty extensive documentation in a book 
 ([Table of Contents](SUMMARY.md)), using Markdown
 and mdbook. That describes writing flows, using flow, general ideas, the standard library functions,
 the examples etc. It's hard to keep up to date but I try and am always generating GH issues for myself to
 improve it! It doesn't go into two many details on the implementation, to reduce the burden of keeping it up to date.
 
-The docs combine Markdown files from the code repos, Markdown files in the docs folder, and code docs 
-generated with rustdoc and image files I generate from "dot" files and graphviz into one "book". That is rebuilt
-and published to the ["flow guide"](https://mackenzie-serres.net/flow/docs/book_intro.html) on every merge to
-master.
+The book is rebuilt on every PR and Merge (to make sure it is not broken) and the re-published 
+[here](https://mackenzie-serres.net/flow/docs/book_intro.html) as part of every release.
 
 ## What's next?
 I generate ideas for ways to improve the project faster than I can implement things in my spare time,
