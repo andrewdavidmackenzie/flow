@@ -153,8 +153,6 @@ struct UiSettings {
 }
 
 struct ImageReference {
-    #[allow(dead_code)]
-    pub name: String,
     pub width: u32,
     pub height: u32,
     pub data: ImageBuffer<Rgba<u8>, Vec<u8>>,
@@ -711,13 +709,14 @@ impl FlowrGui {
                 };
                 self.send(msg);
             },
-            CoordinatorMessage::PixelWrite((x, y), (r, g, b), (width, height), name) => {
-                if self.tab_set.images_tab.image.is_none() {
+            CoordinatorMessage::PixelWrite((x, y), (r, g, b), (width, height), ref name) => {
+                if self.tab_set.images_tab.images.is_empty() {
                     let data = RgbaImage::new(width, height);
-                    self.tab_set.images_tab.image = Some(ImageReference {name, width, height, data });
+                    self.tab_set.images_tab.images.insert(name.clone(), ImageReference {width, height, data });
+                    // TODO switch to the images tab when image first written to
                 }
-                if let Some(ImageReference{name: _, width: _, height: _, data})
-                    = &mut self.tab_set.images_tab.image {
+                if let Some(ImageReference{width: _, height: _, ref mut data})
+                    = &mut self.tab_set.images_tab.images.get_mut(name) {
                         data.put_pixel(x, y, Rgba([r, g, b, 255]));
                 }
                 self.send(ClientMessage::Ack);

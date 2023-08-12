@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use iced::{Command, Element, Length};
 use iced::widget::{Column, scrollable, text, toggler};
 use iced::widget::image::{Handle, Viewer};
@@ -151,14 +153,14 @@ impl Tab for StdOutTab {
 
 pub(crate) struct ImageTab {
     name: String,
-    pub image: Option<ImageReference>,
+    pub images: HashMap<String, ImageReference>,
 }
 
 impl ImageTab {
     pub fn new(name: &str) -> Self {
         Self {
             name: name.to_owned(),
-            image: None,
+            images: Default::default(),
         }
     }
 }
@@ -177,19 +179,17 @@ impl Tab for ImageTab {
     fn view(&self) -> Element<'_, Self::Message> {
         let mut col = Column::new();
 
-        // TODO add a scrollable row of images in a Tab
-        if let Some(ImageReference { name: _, width, height,
-                        data}) = &self.image {
+        for image_ref in self.images.values() {
             col = col.push(Viewer::new(
-                Handle::from_pixels( *width, *height, data.as_raw().clone())));
-            // TODO switch to the images tab when image first written to
+                Handle::from_pixels( image_ref.width, image_ref.height,
+                                     image_ref.data.as_raw().clone())));
         }
 
         col.into()
     }
 
     fn clear(&mut self) {
-        self.image = None;
+        self.images = Default::default();
     }
 }
 
