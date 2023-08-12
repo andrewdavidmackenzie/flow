@@ -47,8 +47,4 @@ You can find more details about how to use it in running flows in the [distribut
 section.
 
 ## Code Docs
-See also:
-- [flowrcli Code docs](https://mackenzie-serres.net/flow/code/doc/flowrcli/index.html)
-- [flowrgui Code docs](https://mackenzie-serres.net/flow/code/doc/flowrgui/index.html)
-- [flowrex Code docs](https://mackenzie-serres.net/flow/code/doc/flowrex/index.html)
-- [flowrlib Code docs](https://mackenzie-serres.net/flow/code/doc/flowrlib/index.html)
+See [docs.rs](https://docs.rs/flowr/0.126.0/flowrlib/)

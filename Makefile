@@ -134,21 +134,12 @@ endif
 	@echo "View coverage report using 'open target/coverage/index.html'"
 
 .PHONY: docs
-docs: generate-docs copy-svgs trim-docs
-
-.PHONY: generate-docs
-generate-docs: build-book code-docs
-	@echo "generate-docs<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
+docs: build-book copy-svgs trim-docs
 
 .PHONY: build-book
 build-book:
 	@echo "build-book<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
 	@mdbook build
-
-.PHONY: code-docs
-code-docs: build
-	@echo "code-docs<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
-	@cargo doc --no-deps --target-dir=target/html/code
 
 .PHONE: copy-svgs
 copy-svgs:
@@ -195,8 +186,6 @@ trim-docs:
 	@rm -rf target/html/flowc/tests/test-flows
 	@rm -rf target/html/flowc/tests/test-functions/stdio
 	@rm -rf target/html/flowc/tests/test_libs
-	@rm -rf target/html/code/debug
-	@rm -rf target/html/code/release
 	@rm -rf target/html/Makefile
 	@rm -rf target/html/.nojekyll
 	@rm -rf target/html/coverage.info
