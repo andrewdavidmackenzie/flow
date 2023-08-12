@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"mod":["file_provider","http_provider"]};

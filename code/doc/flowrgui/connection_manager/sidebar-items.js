@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"enum":["CoordinatorState"],"fn":["coordinator","get_bind_addresses","get_connect_addresses","get_four_ports","start_server","subscribe"]};

@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"constant":["DEFAULT_LIB_JSON_MANIFEST_FILENAME","DEFAULT_LIB_RUST_MANIFEST_FILENAME"],"enum":["ImplementationLocator"],"struct":["LibraryManifest"]};

@@ -1,1 +1,0 @@
-window.ALL_CRATES = ["flowc","flowcore","flowmacro","flowrcli","flowrclib","flowrex","flowrgui","flowrlib","flowstdlib"];

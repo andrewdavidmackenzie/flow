@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"fn":["compile","get_paths"],"struct":["CompilerTables"]};

@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"fn":["url_from_string"]};

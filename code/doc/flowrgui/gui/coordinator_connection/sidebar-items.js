@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"constant":["COORDINATOR_SERVICE_NAME","DEBUG_SERVICE_NAME","WAIT"],"fn":["enable_service_discovery"],"static":["DONT_WAIT"],"struct":["CoordinatorConnection"]};

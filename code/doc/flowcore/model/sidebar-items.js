@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"mod":["connection","datatype","flow_definition","flow_manifest","function_definition","input","io","lib_manifest","metadata","metrics","name","output_connection","process","process_reference","route","runtime_function","submission","validation"]};

@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"enum":["CoordinatorSettings","CoordinatorState","Message"],"fn":["main"],"mod":["connection_manager","context","errors","gui","tabs"],"struct":["FlowrGui","ImageReference","ServerSettings","SubmissionSettings","UiSettings"]};

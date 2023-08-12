@@ -144,12 +144,14 @@
                     <main>
                         <h2 id="important-make-targets"><a class="header" href="#important-make-targets">Important make targets</a></h2>
 <ul>
-<li>(default) <code>make</code> will build, run local tests and generate docs.</li>
-<li><code>make build-guide</code> will just generate the HTML for the guide if you are writing docs. But better
-would be to just <code>cd guide &amp;&amp; mdbook serve</code> as that will track and update the generated content as 
-you make changes, allowing you to view them instantly with a browser refresh.</li>
-<li><code>make test</code> this should be what you run to check changes you have made work OK. At the moment it is the 
-same as 'make travis' until I re-instate some tests I was having issues with.</li>
+<li>(default) <code>make</code> will build, run local tests and build the book and check links are valid</li>
+</ul>
+<p>other targets you can run to perform only a part of the whole build </p>
+<ul>
+<li><code>make build</code> will build the libs and binaries</li>
+<li><code>make clippy</code> will run clippy on all code including tests</li>
+<li><code>make test</code> will run all tests, including testing flowr examples run and pass</li>
+<li><code>make book</code> will build the book and check all links are valid</li>
 </ul>
 
                     </main>

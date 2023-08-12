@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"mod":["client_connection","client_message","coordinator_connection","coordinator_message","debug_client","debug_handler","debug_message","submission_handler","test_helper"]};

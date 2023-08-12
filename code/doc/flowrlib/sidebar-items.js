@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"mod":["block","coordinator","debug_command","debugger_handler","dispatcher","errors","executor","info","job","run_state","services","submission_handler"]};

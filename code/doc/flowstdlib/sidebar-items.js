@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"mod":["control","data","errors","fmt","manifest","math"]};

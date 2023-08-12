@@ -463,9 +463,9 @@ gain can be made by dividing and conquering (and then combining).</p>
 runner, <code>context</code> functions and the <code>flowstdlib</code> library has allowed for the 
 creation of a set of example flows that execute as expected.</p>
 <p>There has pretty good overall test coverage (&gt; 82%) that allows for safer refactoring.</p>
-<p>The docs are reasonably extensive but can always be improved. They probably need &quot;real users&quot; (not the author)
+<p>The book is reasonably extensive but can always be improved. They probably need &quot;real users&quot; (not the author)
 to try to use them and flow to make the next round of improvements. There are issues in the repo
-and the <a href="https://github.com/users/andrewdavidmackenzie/projects/2/views/1">project</a> related to improving docs.</p>
+and the <a href="https://github.com/users/andrewdavidmackenzie/projects/2/views/1">project</a> related to improving the book.</p>
 <p>I moved some GUI/IDE experimentation into a separate repo that uses the <code>flowrclib</code>  and <code>flowrlib</code> libs.
 The intention is to re-start some GUI experimentation with <code>egui</code> or <code>iced</code> rust GUI libraries when 1.0
 is released.</p>
@@ -2427,7 +2427,6 @@ and the <code>Step</code> command to step forward one function invocation.</p>
 </li>
 </ul>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="flowstdlib-library"><a class="header" href="#flowstdlib-library"><code>flowstdlib</code> Library</a></h1>
-<p>See also: <a href="http://andrewdavidmackenzie.github.io/flow/code/doc/flowstdlib/index.html">Code docs</a></p>
 <p><code>flowstdlib</code> is a standard library of functions and flows for <code>flow</code> programs to use.</p>
 <h2 id="modules"><a class="header" href="#modules">Modules</a></h2>
 <p><code>flowstdlib</code> contains the following modules:</p>
@@ -3231,7 +3230,7 @@ portable but I develop on Mac OS X and don't know the status on other OS.</p>
 </ul>
 </li>
 <li><code>zmq</code> (Zero Message Queue) library</li>
-<li><code>graphviz</code> utilities for automatic generation of SVG files for docs</li>
+<li><code>graphviz</code> utilities for automatic generation of SVG files for the book</li>
 </ul>
 <p>For building the guide:
 <code>mdbook</code> and the <code>mdbook-linkcheck</code> plug-in</p>
@@ -3254,19 +3253,20 @@ I decided to stop short of futzing with people's installed toolchains.</p>
 (I suggest using <a href="https://rustup.rs/">rustup</a>).</p>
 <p>Once you have those, you can install the remaining pre-requisites using:</p>
 <p><code>make config</code></p>
-<p>These include libraries like <code>ssl</code> and tools like <code>mdbook</code>, <code>mdbook-linkcheck</code> and <code>graphviz</code> to build the docs.</p>
+<p>These include libraries like <code>ssl</code> and tools like <code>mdbook</code>, <code>mdbook-linkcheck</code> and <code>graphviz</code> to build the book.</p>
 <p>The <code>make config</code> target should install them all for you. It should work on <code>macos</code> and <code>linux</code> variants using <code>apt-get</code>
 or <code>yum</code> package managers (PRs to Makefile are welcome for other linux package managers).</p>
 <h3 id="build-and-test"><a class="header" href="#build-and-test">Build and test</a></h3>
-<p>To build and test, including building and testing docs and running the examples and checking their output is correct:</p>
+<p>To build and test (includign running the examples and checking their output is correct) as well as building the book 
+and ensuring all links are value, use:</p>
 <p><code>make</code></p>
 <p><strong>NOTE</strong>
 The first time you build (using <code>make</code> or <code>make all</code>), it will take a long time. 
 This is due the function implementations in the <code>flowstdlib</code> standard library being compiled to WASM. 
 After the first build, dependencies are tracked by the <code>flowc</code> compiler and implementations are only re-compiled when required.</p>
-<h2 id="make-docs-or-guide-changes"><a class="header" href="#make-docs-or-guide-changes">Make docs or guide changes</a></h2>
-<p>After a PR is merged, and the build of <code>master</code> succeeds, the guide is rebuilt and the resulting html is deployed for
-viewing <a href="http://andrewdavidmackenzie.github.io/flow/">here</a></p>
+<h2 id="make-book-changes"><a class="header" href="#make-book-changes">Make book changes</a></h2>
+<p>The book is rebuilt as part of every PR and Merge to master to ensure it is not broken.
+The book is rebuild and deployed <a href="http://andrewdavidmackenzie.github.io/flow/">here</a> on every release.</p>
 <h2 id="project-components-and-structure-1"><a class="header" href="#project-components-and-structure-1">Project components and structure</a></h2>
 <p>The Project is structured into a number of rust crates that form part of a rust cargo &quot;workspace&quot;.</p>
 <p>Currently, two binaries are built: <code>flowc</code> the flow compiler two flow runners <code>flowrcli</code> and <code>flowrgui</code>.</p>
@@ -3294,8 +3294,8 @@ crates in the <code>flow</code>project.</p>
 <h2 id="implementation-trait"><a class="header" href="#implementation-trait"><code>Implementation</code> trait</a></h2>
 <p>This is a trait that implementations of flow 'functions' must implement in order for them to be invoked
 by the flowrlib (or other) run-time library.</p>
-<p>An example of a function implementing the <code>Implementation</code> trait can be found in the
-docs for <a href="http://andrewdavidmackenzie.github.io/flow/code/doc/flowcore/trait.Implementation.html">Implementation</a></p>
+<p>An example of a function implementing the <code>Implementation</code> trait can be found in docs.rs for 
+<a href="https://docs.rs/flowcore/0.126.0/flowcore/trait.Implementation.html">Implementation</a></p>
 <h2 id="provider"><a class="header" href="#provider"><code>Provider</code></a></h2>
 <p>This implements a <code>content provider</code> that resolves URLs and then gets the content of the url.</p>
 <h2 id="features-1"><a class="header" href="#features-1">Features</a></h2>
@@ -3325,8 +3325,6 @@ running and provide a debugger (&quot;debugger&quot; feature), nor does it have 
 and lastly it does not fetch content via any of the various &quot;providers&quot; (&quot;meta_provider&quot;, &quot;file_provider&quot;,
 and &quot;http_provider&quot; features).</li>
 </ul>
-<h2 id="code-docs"><a class="header" href="#code-docs">Code Docs</a></h2>
-<p>See also: <a href="http://andrewdavidmackenzie.github.io/flow/code/doc/flowcore/index.html">Code docs</a></p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="flowmacro"><a class="header" href="#flowmacro"><code>flowmacro</code></a></h1>
 <p><code>flow_function</code> is a proc macro to be used on the structure that provides an implementation for a function (by 
 implementing the <code>FlowImpl</code> trait), so that when compiled for the <code>wasm32</code> target, code is inserted to help read 
@@ -3334,8 +3332,6 @@ the inputs, help form the outputs and allocate memory (<code>alloc</code>) as we
 passed across the native/wasm boundary.</p>
 <h2 id="features-3"><a class="header" href="#features-3">Features</a></h2>
 <p><code>flowmacro</code> has no features</p>
-<h2 id="code-docs-1"><a class="header" href="#code-docs-1">Code Docs</a></h2>
-<p>See also: <a href="http://andrewdavidmackenzie.github.io/flow/code/doc/flowmacro/index.html">Code docs</a></p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="flowc"><a class="header" href="#flowc"><code>flowc</code></a></h1>
 <p><code>flowc</code> is the &quot;compiler and linker&quot; for flows and flow libraries, although it is not 
 very similar to what you might be familiar with as a compiler or linker.</p>
@@ -3355,15 +3351,12 @@ it is up to date and built).</p>
 and then uses the library to compile and optionally run the compiled flow.</p>
 <h1 id="flowrclib"><a class="header" href="#flowrclib"><code>flowrclib</code></a></h1>
 <p>This library contains most of the compilation and linking logic for <code>flowc</code>. </p>
-<p>See also: <a href="http://andrewdavidmackenzie.github.io/flow/code/doc/flowrclib/index.html">Code docs</a></p>
 <h2 id="features-4"><a class="header" href="#features-4">features</a></h2>
 <p>These are the conditionally compiled features of the <code>flowc</code> crate:</p>
 <ul>
 <li>default - The &quot;debugger&quot; feature is enabled by default</li>
 <li>debugger - feature to add the debugger</li>
 </ul>
-<p>##Code Docs
-See also: <a href="http://andrewdavidmackenzie.github.io/flow/code/doc/flowc/index.html">Code docs</a></p>
 <div style="break-before: page; page-break-before: always;"></div><h2 id="flowc-parser-and-compiler-test-flows"><a class="header" href="#flowc-parser-and-compiler-test-flows">Flowc Parser and Compiler Test flows</a></h2>
 <p>These are a number of test flows to exercise specific features of <code>flowc</code>'s parser and compiler and are not intended
 to be &quot;real world programs&quot; or solutions to problems.</p>
@@ -3416,14 +3409,6 @@ to be used when compiling a flow.</p>
 <h2 id="flowrex"><a class="header" href="#flowrex"><code>flowrex</code></a></h2>
 <p>You can find more details about how to use it in running flows in the <a href="flowr/../docs/running/distributed.html">distributed</a>
 section.</p>
-<h2 id="code-docs-2"><a class="header" href="#code-docs-2">Code Docs</a></h2>
-<p>See also:</p>
-<ul>
-<li><a href="https://mackenzie-serres.net/flow/code/doc/flowrcli/index.html">flowrcli Code docs</a></li>
-<li><a href="https://mackenzie-serres.net/flow/code/doc/flowrgui/index.html">flowrgui Code docs</a></li>
-<li><a href="https://mackenzie-serres.net/flow/code/doc/flowrex/index.html">flowrex Code docs</a></li>
-<li><a href="https://mackenzie-serres.net/flow/code/doc/flowrlib/index.html">flowrlib Code docs</a></li>
-</ul>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="flowr-1"><a class="header" href="#flowr-1"><code>flowr</code></a></h1>
 <p><code>flowr</code> includes the <code>flowrlib</code>library for running flows (see below for details)</p>
 <p><code>flowr</code> includes a number of &quot;runner&quot; applications (built using the <code>flowrlib</code> library) for running flows:</p>
@@ -3466,14 +3451,6 @@ to be used when compiling a flow.</p>
 <h2 id="flowrex-1"><a class="header" href="#flowrex-1"><code>flowrex</code></a></h2>
 <p>You can find more details about how to use it in running flows in the <a href="flowr/../docs/running/distributed.html">distributed</a>
 section.</p>
-<h2 id="code-docs-3"><a class="header" href="#code-docs-3">Code Docs</a></h2>
-<p>See also:</p>
-<ul>
-<li><a href="https://mackenzie-serres.net/flow/code/doc/flowrcli/index.html">flowrcli Code docs</a></li>
-<li><a href="https://mackenzie-serres.net/flow/code/doc/flowrgui/index.html">flowrgui Code docs</a></li>
-<li><a href="https://mackenzie-serres.net/flow/code/doc/flowrex/index.html">flowrex Code docs</a></li>
-<li><a href="https://mackenzie-serres.net/flow/code/doc/flowrlib/index.html">flowrlib Code docs</a></li>
-</ul>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="flowr-2"><a class="header" href="#flowr-2"><code>flowr</code></a></h1>
 <p><code>flowr</code> includes the <code>flowrlib</code>library for running flows (see below for details)</p>
 <p><code>flowr</code> includes a number of &quot;runner&quot; applications (built using the <code>flowrlib</code> library) for running flows:</p>
@@ -3516,16 +3493,7 @@ to be used when compiling a flow.</p>
 <h2 id="flowrex-2"><a class="header" href="#flowrex-2"><code>flowrex</code></a></h2>
 <p>You can find more details about how to use it in running flows in the <a href="flowr/../docs/running/distributed.html">distributed</a>
 section.</p>
-<h2 id="code-docs-4"><a class="header" href="#code-docs-4">Code Docs</a></h2>
-<p>See also:</p>
-<ul>
-<li><a href="https://mackenzie-serres.net/flow/code/doc/flowrcli/index.html">flowrcli Code docs</a></li>
-<li><a href="https://mackenzie-serres.net/flow/code/doc/flowrgui/index.html">flowrgui Code docs</a></li>
-<li><a href="https://mackenzie-serres.net/flow/code/doc/flowrex/index.html">flowrex Code docs</a></li>
-<li><a href="https://mackenzie-serres.net/flow/code/doc/flowrlib/index.html">flowrlib Code docs</a></li>
-</ul>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="flowstdlib-library-1"><a class="header" href="#flowstdlib-library-1"><code>flowstdlib</code> Library</a></h1>
-<p>See also: <a href="http://andrewdavidmackenzie.github.io/flow/code/doc/flowstdlib/index.html">Code docs</a></p>
 <p><code>flowstdlib</code> is a standard library of functions and flows for <code>flow</code> programs to use.</p>
 <h2 id="modules-1"><a class="header" href="#modules-1">Modules</a></h2>
 <p><code>flowstdlib</code> contains the following modules:</p>
@@ -3605,12 +3573,14 @@ output (defined in files in the directory). If the output does not match the exp
 <p>Will run the tests in all examples.</p>
 <div style="break-before: page; page-break-before: always;"></div><h2 id="important-make-targets"><a class="header" href="#important-make-targets">Important make targets</a></h2>
 <ul>
-<li>(default) <code>make</code> will build, run local tests and generate docs.</li>
-<li><code>make build-guide</code> will just generate the HTML for the guide if you are writing docs. But better
-would be to just <code>cd guide &amp;&amp; mdbook serve</code> as that will track and update the generated content as 
-you make changes, allowing you to view them instantly with a browser refresh.</li>
-<li><code>make test</code> this should be what you run to check changes you have made work OK. At the moment it is the 
-same as 'make travis' until I re-instate some tests I was having issues with.</li>
+<li>(default) <code>make</code> will build, run local tests and build the book and check links are valid</li>
+</ul>
+<p>other targets you can run to perform only a part of the whole build </p>
+<ul>
+<li><code>make build</code> will build the libs and binaries</li>
+<li><code>make clippy</code> will run clippy on all code including tests</li>
+<li><code>make test</code> will run all tests, including testing flowr examples run and pass</li>
+<li><code>make book</code> will build the book and check all links are valid</li>
 </ul>
 <div style="break-before: page; page-break-before: always;"></div><h2 id="contributing-1"><a class="header" href="#contributing-1">Contributing</a></h2>
 <p>There are many ways of contributing:</p>
@@ -3619,7 +3589,7 @@ same as 'make travis' until I re-instate some tests I was having issues with.</l
 <li>pick up an
 <a href="https://github.com/users/andrewdavidmackenzie/projects/2/views/1">issue</a> and try 
 and fix it (I am not very good at labelling these, but will try)</li>
-<li>adding to or correcting the docs and this guide</li>
+<li>adding to or correcting the code documentation or the book</li>
 <li>adding a new example</li>
 <li>improvements to the libraries, compiler, standard library, run-time</li>
 <li>improvements to unit or integration tests</li>
@@ -3633,8 +3603,8 @@ input to work correctly (such as fibonacci) are the easiest to get started.</p>
 from the <a href="https://github.com/users/andrewdavidmackenzie/projects/2/views/1">GitHub project kanban</a>.</p>
 <p>Create a branch to work on, and dive in. Try to make descriptive commit messages
 of limited scope, and stick to the scope of the issue.</p>
-<p>Make sure all code builds, there are no clippy errors, tests pass, and docs build
-before pushing by running <code>make</code>.</p>
+<p>Make sure all code builds, there are no clippy errors, tests pass, and the books builds,
+before pushing, by running <code>make</code>.</p>
 <p>When you think you are done, you can create a Pull-Request to the upstream project.
 If you include &quot;Fixes #xyq&quot; in the PR description, it will close the issue &quot;xyz&quot;
 when it is merged.</p>
@@ -3651,7 +3621,7 @@ the same. </p>
 <p>Adding new issues you find can also be helpful, although with my limited time on the project, fixing issues
 and sending PRs are more welcome! :-)</p>
 <div style="break-before: page; page-break-before: always;"></div><h3 id="prs"><a class="header" href="#prs">PRs</a></h3>
-<p>If you want to contribute a code or test or docs or tolling change....</p>
+<p>If you want to contribute code or a test or to the book:</p>
 <ul>
 <li>if no existing issue exists for it, create one so we can agree on what to do before starting (a good idea 
 to make later PR merges easier to accept I think!)</li>

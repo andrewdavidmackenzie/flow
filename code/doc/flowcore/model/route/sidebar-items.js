@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"enum":["RouteType"],"struct":["Route"],"trait":["HasRoute","SetIORoutes","SetRoute"]};

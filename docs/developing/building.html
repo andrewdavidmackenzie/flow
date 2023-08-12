@@ -153,19 +153,20 @@
 (I suggest using <a href="https://rustup.rs/">rustup</a>).</p>
 <p>Once you have those, you can install the remaining pre-requisites using:</p>
 <p><code>make config</code></p>
-<p>These include libraries like <code>ssl</code> and tools like <code>mdbook</code>, <code>mdbook-linkcheck</code> and <code>graphviz</code> to build the docs.</p>
+<p>These include libraries like <code>ssl</code> and tools like <code>mdbook</code>, <code>mdbook-linkcheck</code> and <code>graphviz</code> to build the book.</p>
 <p>The <code>make config</code> target should install them all for you. It should work on <code>macos</code> and <code>linux</code> variants using <code>apt-get</code>
 or <code>yum</code> package managers (PRs to Makefile are welcome for other linux package managers).</p>
 <h3 id="build-and-test"><a class="header" href="#build-and-test">Build and test</a></h3>
-<p>To build and test, including building and testing docs and running the examples and checking their output is correct:</p>
+<p>To build and test (includign running the examples and checking their output is correct) as well as building the book 
+and ensuring all links are value, use:</p>
 <p><code>make</code></p>
 <p><strong>NOTE</strong>
 The first time you build (using <code>make</code> or <code>make all</code>), it will take a long time. 
 This is due the function implementations in the <code>flowstdlib</code> standard library being compiled to WASM. 
 After the first build, dependencies are tracked by the <code>flowc</code> compiler and implementations are only re-compiled when required.</p>
-<h2 id="make-docs-or-guide-changes"><a class="header" href="#make-docs-or-guide-changes">Make docs or guide changes</a></h2>
-<p>After a PR is merged, and the build of <code>master</code> succeeds, the guide is rebuilt and the resulting html is deployed for
-viewing <a href="http://andrewdavidmackenzie.github.io/flow/">here</a></p>
+<h2 id="make-book-changes"><a class="header" href="#make-book-changes">Make book changes</a></h2>
+<p>The book is rebuilt as part of every PR and Merge to master to ensure it is not broken.
+The book is rebuild and deployed <a href="http://andrewdavidmackenzie.github.io/flow/">here</a> on every release.</p>
 <h2 id="project-components-and-structure"><a class="header" href="#project-components-and-structure">Project components and structure</a></h2>
 <p>The Project is structured into a number of rust crates that form part of a rust cargo &quot;workspace&quot;.</p>
 <p>Currently, two binaries are built: <code>flowc</code> the flow compiler two flow runners <code>flowrcli</code> and <code>flowrgui</code>.</p>

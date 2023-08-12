@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"constant":["DEFAULT_MANIFEST_FILENAME"],"struct":["Cargo","FlowManifest"]};

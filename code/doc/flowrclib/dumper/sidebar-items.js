@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"mod":["flow_to_dot","functions_to_dot"]};

@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"fn":["default_flow_compile_dir","default_lib_compile_dir","get_output_dir"]};

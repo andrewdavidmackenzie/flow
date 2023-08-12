@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"mod":["compiler","dumper","errors","generator","info"]};

@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"constant":["ARRAY_TYPE","BOOLEAN_TYPE","GENERIC_TYPE","NULL_TYPE","NUMBER_TYPE","OBJECT_TYPE","STRING_TYPE"],"struct":["DataType","DataTypeList"],"trait":["HasDataTypes"]};

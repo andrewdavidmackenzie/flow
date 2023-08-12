@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"mod":["accumulate","append","count","duplicate","duplicate_rows","enumerate","info","multiply_row","ordered_split","remove","sort","split","transpose","zip"]};
