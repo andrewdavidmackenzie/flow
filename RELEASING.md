@@ -14,7 +14,7 @@ in the correct order based on the dependency tree they form.
 This is invoked locally with (where minor indicates to increment the minor part of the versions number:
 
 ```
-cargo release --no-verify --workspace --execute minor
+cargo release --workspace --execute minor
 ```
 
 There is a make target in the Makefile to facilitate this:
@@ -24,20 +24,22 @@ make release
 ```
 
 ## Release Github Actions workflow
-Once the local publish actions have completed and the git tags push, then the [release.yaml](.github/workflows/release.yml)
+Once the local publish actions have completed and the git tags pushed, then the [release.yaml](.github/workflows/release.yml)
 Github Action release workflow takes over, executing in Github.
 
 A summary of what this workflow does is:
    * It creates a DRAFT release in Github
-   * It does a build of the project on each of the supported targets (x86_64-unknown-linux-gnu and x86_64-apple-darwin)
+   * It does a build of the project for each supported target (x86_64-unknown-linux-gnu and x86_64-apple-darwin)
+   * It builds the portable, WASM, version of flowstdlib
    * It uploads to Github the built assets and attaches them the release 
    * It uploads the manifest of contents to the GH Release
    * It removes the DRAFT marker on the release (if all went well)
+   * It builds the book and publishes it to github pages
 
-An example release (before the removal of "flowsamples" crate) can be seen 
-[here](https://github.com/andrewdavidmackenzie/flow/releases/tag/v0.92.0). You can see that
-there are two assets (macos and linux versions) for each of the member crates , plus 
-the usual source code zip & tarball.
+Releases can be found [here](https://github.com/andrewdavidmackenzie/flow/releases). 
+You can see that there are two assets (macos and linux versions) for each of the 
+member crates , plus the cross-platform WASM flowstdlib and the usual source code
+zip & tarball.
 
 ## Remaining Work
 
