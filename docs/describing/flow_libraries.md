@@ -50,11 +50,14 @@ Each function should have a subdirectory named after function (`{function_name}`
 - `{function_name}.rs` - referenced from function definition file. Must be valid rust and implement required traits
 
 ### Compiling a library
-Flow libraries can be compiled using the `flowc` flow compiler, specifying the library root directory as the source url.
-This will compiler and/or copy all required files from the library source directory into a library directory structure 
-(where can be specified with the `-o, --output <OUTPUT_DIR>` option). This directory is a self-contained, portable
-library. It can be packaged, moved, unpackaged and used elsewhere, providing it can be found by the compiler
-and runtime (using `FLOW_LIB_PATH` env var and `-L, --libdir <LIB_DIR|BASE_URL>` options) when needed.
+Flow libraries are compiled using the `flowc` flow compiler, specifying the library root directory as the source url.
+
+This will compile and copy all required files from the library source directory into a library directory. 
+This directory is then a self-contained, portable library. 
+
+It can be packaged, moved, unpackaged and used elsewhere, providing it can be found by the compiler
+and runtime (using either the default location `$HOME/.flow/lib`, `FLOW_LIB_PATH` env var or
+`-L, --libdir <LIB_DIR|BASE_URL>` options).
 
 The output directory structure will have the same structure as the library source (subdirs for modules) and will
 include:
@@ -86,15 +89,19 @@ to load the actual library with it's definitions and implementation from differe
 installations thus flows that use library functions are portable, providing the library is present and can be found 
 wherever it is being run.
 
-The `flowrlib` runtime library accepts a "search path" where it should look for the library (using the library's
-name "lib_name" from the Url)
+The `flowrlib` runtime library by default looks for libraries in `$HOME/.flow/lib`, but can accept a "search path" 
+where it should also look (using the library's name "lib_name" from the Url)
 
-Different flow runners (e.g. `flowrcli` or `flowrex` are included examples here but others can be written) can provide
-different ways to provide entries in the search path. Below we describe how `flowrcli` and `flowrex` do this.
+Different flow runners (e.g. `flowrcli` or `flowrgui` or others) provide provide a command line option (`-L`) 
+to add entries to the search path.
+
+### Default locaiton
+If the library you are referencing is in the default location (`$HOME/.flow/lib`) then there is no need to 
+configure the library search path or provide additional entries to it at runtime.
 
 ### Configuring the Library Search Path
-The library search path is initialized from the contents of the `$FLOW_LIB_PATH` environment variable
-(if it is defined).
+The library search path is initialized from the contents of the `$FLOW_LIB_PATH` environment variable.
+
 This path maybe augmented by supplying additional directories or URLs to search using one
 or more instances of the `-L` command line option.
 
@@ -111,10 +118,7 @@ All the directories in the search path are searched for a top-level sub-director
 If a directory matching the library name is found, the path to the process within the library is used to try and
 find the process definition file.
 
-For example, if `FLOW_LIB_PATH` environment variable is defined thus:
-* `export FLOW_LIB_PATH=/Users/me/.flow/lib`
-
-And the flow references a process thus:
+For example, if a flow references a process thus:
 ```toml
 [[process]]
 source = "flowstdlib://math/add"
