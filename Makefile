@@ -14,10 +14,6 @@ ifeq ($(FLOW_LIB_PATH),)
   export FLOW_LIB_PATH := $(HOME)/.flow/lib
 endif
 
-ifeq ($(FLOW_CONTEXT_ROOT),)
-  export FLOW_CONTEXT_ROOT := $(PWD)/flowr/src/bin/flowrcli/context
-endif
-
 .PHONY: all
 all: clean-start build clippy test book
 

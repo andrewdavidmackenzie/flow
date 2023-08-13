@@ -8,6 +8,7 @@ Page through this guide using the '>' and '<' buttons on the side of the page or
 to a section using the Table of Contents on the left.
 
 The top-level sections are:
+* [Installing flow](../INSTALLING.md)
 * [Introduction to Flow](introduction/what_is_flow.md)
 * [Your First Flow](first_flow/first_flow.md)
 * [Guide to Defining Flows](describing/definition_overview.md)
