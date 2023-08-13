@@ -16,9 +16,6 @@ installed into $HOME/.flow/lib.
 
 You can use them from there or you can install using `cargo install`.
 
-You will need to configure the environment variable `FLOW_LIB_PATH` to be `$HOME/.flow/lib` to allow
-the compiler to find libraries (`flowstdlib` for now).
-
 ## Downloading the latest release
 From [latest GitHub release](https://github.com/andrewdavidmackenzie/flow/releases/latest) download
 and manually install the executables for your target system:
@@ -28,9 +25,6 @@ and manually install the executables for your target system:
 - flowrgui
 
 Then download the portable WASM `flowstdlib` and expand to the directory `$HOME/.flow/lib/flowstdlib`
-
-You will need to configure the environment variable `FLOW_LIB_PATH` to be `$HOME/.flow/lib` to allow
-the compiler to find libraries (`flowstdlib` for now).
 
 ## Homebrew tap
 A homebrew tap repo is maintained [here](https://github.com/andrewdavidmackenzie/homebrew-dataflow) which 

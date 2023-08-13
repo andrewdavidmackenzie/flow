@@ -39,8 +39,8 @@ Options:
 ```
 
 Similarly to [flowc](flowc.md), in order to locate libraries used in flow execution, `flowrcli` needs to know where to 
-locate them. As for flowc, this can be done using the `$FLOW_LIB_PATH` environment variable, or one or more instance
-of the `-L, --libdir <LIB_DIR|BASE_URL>` option.
+locate them. As for flowc, you can rely on the default (`$HOME/.flow/lib`), modified using the `$FLOW_LIB_PATH` 
+environment variable, or using one or more instance of the `-L, --libdir <LIB_DIR|BASE_URL>` option.
 
 ### `flow-manifest`
 After the Options you can supply an optional field for where to load the root flow from. This can be a relative or 
@@ -59,17 +59,14 @@ For each of these examples, there is first a `flowc` line showing how the flow c
 a compiled `manifest.json` flow manifest alongside the flow's root definition file. That manifest is then run using
 `flowrcli`
 
-- `flowc -C flowr/src/bin/flowrcli/context -c flowr/examples/fibonacci` - compile the fibonacci example
-- `flowr flowr/examples/fibonacci` - run the pre-compiled fibonacci example flow manifest
+- `flowc -C flowr/src/bin/flowrcli/context -c flowr/examples/fibonacci` - compile the fibonacci example only
+- `flowrcli flowr/examples/fibonacci` - run the pre-compiled fibonacci example flow manifest
     - You should get a fibonacci series output to the terminal,
-- `unset FLOW_LIB_PATH;flowc -C flowr/src/bin/flowrcli/context -c -L $HOME/.flow/lib flowr/examples/fibonacci` - compile the flow
-- `unset FLOW_LIB_PATH;flowr -L $HOME/.flow/lib flowr/examples/fibonacci` - 
-    - You should get a fibonacci series output to the terminal,
-- `flowc -C flowr/src/bin/flowrcli/context -c flowr/examples/sequence` - compile the flow
-- `flowr flowr/examples/sequence 10` - compile the flow
-    - A short sequence of numbers (2, 5, 8) and a string will be printed. The "10" represents the maximum of the sequence.
-- `flowr flowr/examples/sequence/manifest.json 10` - compile the flow, specifying the full path to the manifest.json file
-
+- `flowc -C flowr/src/bin/flowrcli/context -c flowr/examples/sequence` - compile the flow only, do not run it
+- `flowrcli flowr/examples/sequence 10` - run the compiled flow, a short sequence of numbers (2, 5, 8) and a string 
+will be printed. The "10" represents the maximum of the sequence.
+- `flowrcli flowr/examples/sequence/manifest.json 10` - run the compiled flow, specifying the full path to the 
+manifest.json file
 
 ### `flowrgui`
 Similar to `flowrcli` that interacts with the terminal and the file system for IO, `flowrgui` is another runner

@@ -97,7 +97,9 @@ fn get_lib_search_path(search_path_additions: &[String]) -> Result<Simpath> {
     }
 
     if lib_search_path.is_empty() {
-        warn!("'$FLOW_LIB_PATH' not set and no LIB_DIRS supplied. Libraries may not be found.");
+        let home_dir = env::var("HOME")
+            .unwrap_or_else(|_| "Could not get $HOME".to_string());
+        lib_search_path.add(&format!("{}/.flow/lib", home_dir))
     }
 
     Ok(lib_search_path)

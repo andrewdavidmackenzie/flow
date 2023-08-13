@@ -3,6 +3,7 @@
 [Intro](docs/book_intro.md)
 
 # Introduction to `flow`
+- [Installing flow](INSTALLING.md)
 - [What is `flow`?](docs/introduction/what_is_flow.md)
 - [Tenets of `flow`](docs/introduction/tenets.md)
 - [Project Components and Structure](docs/introduction/structure.md)

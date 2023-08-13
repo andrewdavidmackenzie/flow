@@ -10,10 +10,6 @@ $(eval SELFCERT = $(shell security find-certificate -c "self" 2>&1 | grep "self"
 export SHELL := /bin/bash
 export PATH := $(PWD)/target/debug:$(PWD)/target/release:$(PATH)
 
-ifeq ($(FLOW_LIB_PATH),)
-  export FLOW_LIB_PATH := $(HOME)/.flow/lib
-endif
-
 .PHONY: all
 all: clean-start build clippy test book
 

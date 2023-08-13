@@ -24,17 +24,8 @@ the path to the flowstdlib source folder (the root, not `src` inside it) in orde
 This will take considerable time, and leave the compiled WASM files in `$HOME/.flow/flib/flowstdlib`
 
 ### Finding Libraries
-Environment variable `$FLOW_LIB_PATH` is set to a directory where the `flowstdlib` is compiled by default 
-`$HOME/.flow/lib`, in order for `flowc` and `flowrcli` to be able to find library functions used.
-
-If this environment variable is not set then compiling will fail:
-
-```
-❯ unset FLOW_LIB_PATH
-❯ flowc -C flowr/src/bin/flowrcli/context flowr/examples/fibonacci
-error: Could not resolve the url: 'lib://flowstdlib/math/add'
-caused by: Could not resolve library Url 'lib://flowstdlib/math/add' using Search Path 'FLOW_LIB_PATH': Directories: {}, URLs: {}
-```
+In order for `flowc` and `flowrcli` to be able to find library functions, the (default) directory where the `flowstdlib`
+is built by default (`$HOME/.flow/lib`) is searched
 
 Directories to add to the library search path to help find libraries used can be passed to `flowc` via one or more
 instances of the `-L, --libdir <LIB_DIR|BASE_URL>` Option (see below for an example).
@@ -60,11 +51,7 @@ See the next section [flowc](flowc.md) for a description of the command line arg
     `olleH`
 
     which is the input string "Hello" reversed.
-- `unset FLOW_LIB_PATH;flowc -C flowr/src/bin/flowrcli/context -L target flowr/examples/fibonacci` - first ensures that the $FLOW_LIB_PATH
-environment variable is not set and is not being used to locate libraries, and in order to help `flowc` and `flowrcli` 
-find the `flowstdlib` library used by the example (previously compiled into `target` directory) it specified that as a
-directory for the library search path using the `-L, --libdir <LIB_DIR|BASE_URL>` Option
-  - You should get a fibonacci series output to the terminal, 
+- `flowc -C flowr/src/bin/flowrcli/context flowr/examples/fibonacci` - You should get a fibonacci series output to the terminal
 - `flowc -C flowr/src/bin/flowrcli/context flowr/examples/sequence 10` - as previous examples except that after the `source_url` a 
 `flow_argument` of "10" is passed in
   - A short sequence of numbers (2, 5, 8) and a string will be printed. The "10" represents the maximum of the sequence.
