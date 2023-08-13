@@ -31,7 +31,8 @@ A homebrew tap repo is maintained [here](https://github.com/andrewdavidmackenzie
 you can use to install with homebrew:
 
 ```
-> brew tap dataflow
+> brew tap andrewdavidmackenzie/dataflow
+> brew install dataflow
 ```
 
 That should install the binaries, the portable `flowstdlib` WASM library and be ready for running.
