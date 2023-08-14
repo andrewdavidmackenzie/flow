@@ -85,6 +85,8 @@ build:
 	@echo "build<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
 	@cargo build
 	@target/debug/flowc -d -g -O flowstdlib
+	@target/debug/flowc flowr/src/bin/flowrcli
+	@target/debug/flowc flowr/src/bin/flowrgui
 
 .PHONY: clippy
 clippy: build

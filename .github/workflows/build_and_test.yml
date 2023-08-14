@@ -69,6 +69,12 @@ jobs:
       - name: compile flowstdlib to WASM
         run: target/debug/flowc -d -g -O flowstdlib
 
+      - name: compile flowrcli
+        run: target/debug/flowc flowr/src/bin/flowrcli
+
+      - name: compile flowrgui
+        run: target/debug/flowc flowr/src/bin/flowrgui
+
       - name: clippy
         uses: actions-rs/cargo@v1
         with:
