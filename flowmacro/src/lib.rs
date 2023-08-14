@@ -46,19 +46,14 @@ fn load_function_definition(path: &Path) -> FunctionDefinition {
 // function from the vector of Values passed in.
 // Full of hacks as TokenStream2 from into_token_stream() doesn't implement PartialEq to be
 // able to compare it with a quote!() version of what I'm expecting
-fn input_conversion(definition: &FunctionDefinition,
-                    implementation_ast: &ItemFn) -> Ident {
+fn input_conversion(definition: &FunctionDefinition, implementation_ast: &ItemFn) -> Ident {
     let implementation_name = &implementation_ast.sig.ident;
     let implemented_inputs = &implementation_ast.sig.inputs;
 
-    // if there is only one form and it matches the expected standard form
+    // if there is only one input (`inputs`) and it matches the expected standard form (`&[Value]`)
     if implemented_inputs.len() == 1 {
         let input = implemented_inputs.first()
-            .expect("the 'flow' macro could not get the implementation function's arguments");
-
-        let _input_checker = quote! {
-                        // runtime code to check the number of inputs matches the definition
-        };
+            .expect("the 'flow' macro could not get the function's first argument type");
 
         if input.into_token_stream().to_string() == quote! { inputs : &[Value] }.to_string() {
             return format_ident!("inputs");
@@ -74,6 +69,7 @@ fn input_conversion(definition: &FunctionDefinition,
                implementation_name, implemented_inputs.len());
     }
 
+    // TODO If function accepts types directly (not `&[Value]`), check they match function definition
     // for input_pair in implemented_inputs.pairs() {
     //    match input_pair {
     //       Punctuated(t, p) => {
@@ -108,16 +104,14 @@ fn check_return_type(return_type: &ReturnType) {
 // Generate the code for the implementation struct, including some extra functions to help
 // manage memory and pass parameters to and from a wasm compiled version of it
 fn generate_code(function_implementation: TokenStream,
-                 definition: FunctionDefinition,
-                ) -> TokenStream {
+                 definition: FunctionDefinition) -> TokenStream {
     let implementation: proc_macro2::TokenStream = function_implementation.clone().into();
     let implementation_ast = parse_macro_input!(function_implementation as syn::ItemFn);
     let implementation_name = &implementation_ast.sig.ident;
 
     check_return_type(&implementation_ast.sig.output);
 
-    let input_list = input_conversion(&definition,
-                         &implementation_ast);
+    let input_list = input_conversion(&definition, &implementation_ast);
 
     let number_of_defined_inputs = definition.inputs.len();
 
