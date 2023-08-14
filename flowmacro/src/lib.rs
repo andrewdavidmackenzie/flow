@@ -8,7 +8,7 @@ extern crate proc_macro;
 
 use proc_macro::{Span, TokenStream};
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use proc_macro2::Ident;
 use quote::{format_ident, quote, ToTokens};
@@ -21,28 +21,23 @@ use flowcore::model::function_definition::FunctionDefinition;
 pub fn flow_function(_attr: TokenStream, implementation: TokenStream) -> TokenStream {
     // Get the full path to the file where the macro was used, and join the relative filename from
     // the macro's attributes, to find the path to the function's definition file
-    let span = Span::call_site();
-    let implementation_file_path = span.source_file().path().canonicalize()
+    let mut definition_file_path = Span::call_site().source_file().path().canonicalize()
         .expect("the 'flow' macro could not get the full file path of the file where it was invoked");
-
-    let mut definition_file_path = implementation_file_path.clone();
     definition_file_path.set_extension("toml");
-//    print!("file_path = {}", file_path.display());
 
     let function_definition = load_function_definition(&definition_file_path);
 
     // Build the output token stream with generated code around original supplied code
-    generate_code(implementation, implementation_file_path,
-                  function_definition, definition_file_path)
+    generate_code(implementation, function_definition)
 }
 
 // Load a `FunctionDefinition` from the file at `path`
 fn load_function_definition(path: &Path) -> FunctionDefinition {
     let function = fs::read_to_string(path)
-        .unwrap_or_else(|e| panic!("the 'flow' macro could not read from the function definition file '{}'\n{e}",
+        .unwrap_or_else(|e| panic!("'flow' macro could not read from the function definition file '{}'\n{e}",
                                    path.display()));
     toml::from_str(&function)
-        .unwrap_or_else(|e| panic!("the 'flow' macro could not deserialize the Toml function definition file
+        .unwrap_or_else(|e| panic!("'flow' macro could not deserialize the Toml function definition file
         '{}'\n{e}", path.display()))
 }
 
@@ -52,9 +47,7 @@ fn load_function_definition(path: &Path) -> FunctionDefinition {
 // Full of hacks as TokenStream2 from into_token_stream() doesn't implement PartialEq to be
 // able to compare it with a quote!() version of what I'm expecting
 fn input_conversion(definition: &FunctionDefinition,
-                    definition_file_path: PathBuf,
-                    implementation_ast: &ItemFn,
-                    implementation_file_path: PathBuf) -> Ident {
+                    implementation_ast: &ItemFn) -> Ident {
     let implementation_name = &implementation_ast.sig.ident;
     let implemented_inputs = &implementation_ast.sig.inputs;
 
@@ -75,10 +68,10 @@ fn input_conversion(definition: &FunctionDefinition,
     // perform some checks before attempting input conversion
     if implemented_inputs.len() != definition.inputs.len() {
         panic!("a 'flow_function' macro check failed:\n\
-            '{}' define {} inputs ({})\n\
-            '{}()' implements {} inputs ({})",
-               definition.name, definition.inputs.len(), definition_file_path.display(),
-               implementation_name, implemented_inputs.len(), implementation_file_path.display());
+            '{}' define {} inputs\n\
+            '{}()' implements {} inputs",
+               definition.name, definition.inputs.len(),
+               implementation_name, implemented_inputs.len());
     }
 
     // for input_pair in implemented_inputs.pairs() {
@@ -115,9 +108,7 @@ fn check_return_type(return_type: &ReturnType) {
 // Generate the code for the implementation struct, including some extra functions to help
 // manage memory and pass parameters to and from a wasm compiled version of it
 fn generate_code(function_implementation: TokenStream,
-                 implementation_file_path: PathBuf,
                  definition: FunctionDefinition,
-                 definition_file_path: PathBuf
                 ) -> TokenStream {
     let implementation: proc_macro2::TokenStream = function_implementation.clone().into();
     let implementation_ast = parse_macro_input!(function_implementation as syn::ItemFn);
@@ -125,8 +116,8 @@ fn generate_code(function_implementation: TokenStream,
 
     check_return_type(&implementation_ast.sig.output);
 
-    let input_list = input_conversion(&definition, definition_file_path.clone(),
-                         &implementation_ast, implementation_file_path);
+    let input_list = input_conversion(&definition,
+                         &implementation_ast);
 
     let number_of_defined_inputs = definition.inputs.len();
 
@@ -148,19 +139,6 @@ fn generate_code(function_implementation: TokenStream,
     } else {
         quote! {
             // No documentation was supplied
-        }
-    };
-
-    let definition_comment = if let Some(definition_file) = definition_file_path.as_path().file_name() {
-        let definition_file_str = definition_file.to_string_lossy();
-        quote! {
-            #[doc = "\n### Definition\n```toml\n"]
-            #[doc = include_str!(#definition_file_str)]
-            #[doc = "\n```"]
-        }
-    } else {
-        quote! {
-            // No definition was found
         }
     };
 
@@ -211,7 +189,6 @@ fn generate_code(function_implementation: TokenStream,
         #implementation
 
         #docs_comment
-        #definition_comment
         #[derive(Debug)]
         pub struct #struct_name;
         use flowcore::Implementation;
