@@ -79,6 +79,38 @@ pub fn build_lib(options: &Options, provider: &dyn Provider, output_dir: PathBuf
     Ok(())
 }
 
+
+/// Build a runner into the output_dir
+pub fn build_runner(options: &Options, provider: &dyn Provider, output_dir: PathBuf) -> Result<()> {
+    let (metadata, _) = parser::parse_metadata(&options.source_url, provider)?;
+
+    let name = metadata.name.clone();
+    println!(
+        "   {} {} v{} ({}) with 'flowc'",
+        "Compiling".green(),
+        metadata.name,
+        metadata.version,
+        options.source_url
+    );
+
+    let runner_context_path = options
+        .source_url
+        .to_file_path()
+        .map_err(|_| "Could not convert Url to File path")?
+        .join("context");
+
+    // compile all functions to the output directory first, as they maybe referenced later in flows
+    copy_definitions(
+        &runner_context_path,
+        &output_dir,
+    )?;
+
+    let _ = copy_docs(runner_context_path, &output_dir)?;
+
+    println!("    {} {name}", "Finished".green());
+    Ok(())
+}
+
 // prepare the library's internal virtual workspace for building under 'src' directory,
 // as this allows all functions being built to share the same target directory and built
 // dependencies, greatly speeding builds
@@ -283,6 +315,45 @@ fn compile_functions(
     }
 
     Ok(file_count)
+}
+
+// Find all function definitions under the base_dir copy them to output dir
+fn copy_definitions(
+    root_path: &PathBuf,
+    output_dir: &Path,
+) -> Result<()> {
+    // Function implementations are described in .toml format and can be at multiple levels in
+
+    debug!(
+        "Searching for function definitions using search pattern: '{}/**/*.toml'",
+        root_path.display(),
+    );
+
+    let glob = Glob::new("**/*.toml").map_err(|_| "Globbing error")?;
+    for entry in glob.walk(root_path) {
+        match &entry {
+            Ok(walk_entry) => {
+                let toml_path = walk_entry.path();
+
+                // calculate the path of the file's directory, relative to root
+                let relative_dir = toml_path
+                    .parent()
+                    .ok_or("Could not get toml path parent dir")?
+                    .strip_prefix(root_path)
+                    .map_err(|_| "Could not calculate relative_dir")?;
+                // calculate the output directory relative path to the root
+                let out_dir = output_dir.join(relative_dir);
+                if !out_dir.exists() {
+                    fs::create_dir_all(&out_dir)?;
+                }
+
+                let _ = copy_definition_to_output_dir(toml_path, &out_dir)?;
+            },
+            Err(e) => bail!("Error walking glob entries: {}", e.to_string())
+        }
+    }
+
+    Ok(())
 }
 
 /*

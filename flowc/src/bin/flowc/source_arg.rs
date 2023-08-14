@@ -1,10 +1,17 @@
-use std::env;
-use std::path::PathBuf;
+use std::{env, fs};
+use std::path::{Path, PathBuf};
 
 use tempdir::TempDir;
 use url::Url;
 
 use crate::errors::*;
+use crate::RunnerSpec;
+
+pub(crate) enum CompileType {
+    Library,
+    Flow,
+    Runner
+}
 
 fn default_lib_compile_dir(source_url: &Url) -> Result<PathBuf> {
     let lib_name = source_url.path_segments()
@@ -14,6 +21,21 @@ fn default_lib_compile_dir(source_url: &Url) -> Result<PathBuf> {
     let home_dir = env::var("HOME").expect("Could not get $HOME");
 
     Ok(PathBuf::from(format!("{}/.flow/lib/{}", home_dir, lib_name)))
+}
+
+// Load a `RunnerSpec` from the context at `context_root`
+pub(crate) fn load_runner_spec(context_root: &Path) -> Result<RunnerSpec> {
+    let path = context_root.join("runner.toml");
+    let runner_spec = fs::read_to_string(path)?;
+    Ok(toml::from_str(&runner_spec)?)
+}
+
+fn default_runner_compile_dir(source_url: &Url) -> Result<PathBuf> {
+    let runner_spec = load_runner_spec(
+        source_url.to_file_path().map_err(|_| "Could not get Url as file path")?
+            .as_path())?;
+    let home_dir = env::var("HOME").expect("Could not get $HOME");
+    Ok(PathBuf::from(format!("{}/.flow/runner/{}", home_dir, runner_spec.name)))
 }
 
 fn default_flow_compile_dir(source_url: &Url) -> Result<PathBuf> {
@@ -44,7 +66,7 @@ fn default_flow_compile_dir(source_url: &Url) -> Result<PathBuf> {
 /// function of the url of the source flow, and the optional argument to specify the output
 /// directory to use.
 /// The flow source location can be http url, or file url
-pub fn get_output_dir(source_url: &Url, option: &Option<String>, lib: bool) -> Result<PathBuf> {
+pub(crate) fn get_output_dir(source_url: &Url, option: &Option<String>, compile_type: CompileType) -> Result<PathBuf> {
     let mut output_dir;
 
     // Allow the optional command line argument to force output_dir
@@ -56,10 +78,12 @@ pub fn get_output_dir(source_url: &Url, option: &Option<String>, lib: bool) -> R
         if output_dir.is_file() {
             output_dir.pop(); // remove trailing filename
         }
-    } else if lib {
-        output_dir = default_lib_compile_dir(source_url)?;
     } else {
-        output_dir = default_flow_compile_dir(source_url)?;
+        match compile_type {
+            CompileType::Library => output_dir = default_lib_compile_dir(source_url)?,
+            CompileType::Flow => output_dir = default_flow_compile_dir(source_url)?,
+            CompileType::Runner => output_dir = default_runner_compile_dir(source_url)?,
+        }
     }
 
     Ok(output_dir)
@@ -73,13 +97,15 @@ mod test {
     use tempdir::TempDir;
     use url::Url;
 
+    use crate::source_arg::CompileType;
+
 // Tests for get_output_dir, after the url for flow has been determined
 
     #[test]
     fn http_url_no_output_dir_arg() {
         let url = &Url::parse("http://test.com/dir/file.flow").expect("Could not parse test url");
 
-        let dir = super::get_output_dir(url, &None, false)
+        let dir = super::get_output_dir(url, &None, CompileType::Flow)
             .expect("Could not get output dir");
 
         assert!(dir.exists());
@@ -97,7 +123,7 @@ mod test {
             .expect("Could not convert temp dir to String");
 
         let dir = super::get_output_dir(url, &Some(out_dir_arg.to_string()),
-                                        false)
+                                        CompileType::Flow)
             .expect("Could not get output dir");
 
         assert_eq!(
@@ -121,7 +147,7 @@ mod test {
         let url = Url::parse(&format!("file://{flow_path}"))
             .expect("Could not parse test Url");
 
-        let dir = super::get_output_dir(&url, &None, false)
+        let dir = super::get_output_dir(&url, &None, CompileType::Flow)
             .expect("Could not get output dir");
 
         assert_eq!(
@@ -154,7 +180,7 @@ mod test {
             .expect("Could not convert temp dir name to string");
 
         let dir =
-            super::get_output_dir(&url, &Some(out_dir_arg.to_string()), false)
+            super::get_output_dir(&url, &Some(out_dir_arg.to_string()), CompileType::Flow)
                 .expect("Could not get output dir");
 
         assert_eq!(

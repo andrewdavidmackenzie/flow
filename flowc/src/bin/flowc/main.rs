@@ -12,8 +12,8 @@
 //! description of the command line options.
 
 use core::str::FromStr;
-use std::{env, fs};
-use std::path::{Path, PathBuf};
+use std::env;
+use std::path::PathBuf;
 use std::process::exit;
 
 use clap::{Arg, ArgMatches, Command};
@@ -30,6 +30,8 @@ use flowrclib::info;
 use lib_build::build_lib;
 
 use crate::flow_compile::compile_and_execute_flow;
+use crate::lib_build::build_runner;
+use crate::source_arg::{CompileType, load_runner_spec};
 
 /// Contains [Error] types that other modules in this crate will
 /// `use crate::errors::*;` to get access to everything `error_chain` creates.
@@ -105,32 +107,35 @@ fn get_lib_search_path(search_path_additions: &[String]) -> Result<Simpath> {
     Ok(lib_search_path)
 }
 
-// Load a `RunnerSpec` from the context at `context_root`
-fn load_runner_spec(context_root: &Path) -> Result<RunnerSpec> {
-    let path = context_root.join("runner.toml");
-    let runner_spec = fs::read_to_string(path)?;
-    Ok(toml::from_str(&runner_spec)?)
-}
-
-// Determine if the specified source url points to a library, by detecting
+// Determine the type of compile to be done
 // - it points to a lib.toml file
 // - it points to a directory that contains a lib.toml file
-fn is_a_library(url: &Url) -> Result<bool> {
-    let mut path = url.to_file_path()
+// - it points to a runner.toml file
+// - it points to a directory that contains a runner.toml file
+fn compile_type(url: &Url) -> Result<CompileType> {
+    let path = url.to_file_path()
         .map_err(|_| "Could not get local file path for Url")?;
-
-    if path.exists() && path.is_dir() {
-        path = path.join("lib.toml");
-    }
 
     if path.exists() && path.is_file() {
         let file_name = path.file_name().ok_or("Could not get file name")?;
         if file_name == "lib.toml" {
-            return Ok(true);
+            return Ok(CompileType::Library);
+        }
+        if file_name == "runner.toml" {
+            return Ok(CompileType::Runner);
         }
     }
 
-    Ok(false)
+    if path.exists() && path.is_dir() {
+        if path.join("lib.toml").exists() {
+            return Ok(CompileType::Library);
+        }
+        if path.join("runner.toml").exists() {
+            return Ok(CompileType::Runner);
+        }
+    }
+
+    Ok(CompileType::Flow)
 }
 
 /*
@@ -142,29 +147,39 @@ fn run() -> Result<()> {
     let options = parse_args(get_matches())?;
     let mut lib_search_path = get_lib_search_path(&options.lib_dirs)?;
 
-    if is_a_library(&options.source_url)? {
-        let output_dir = source_arg::get_output_dir(&options.source_url,
-                                                    &options.output_dir, true)
-            .chain_err(|| "Could not get the output directory")?;
+    match compile_type(&options.source_url)? {
+        CompileType::Library => {
+            let output_dir = source_arg::get_output_dir(&options.source_url,
+                                                        &options.output_dir, CompileType::Library)
+                .chain_err(|| "Could not get the output directory")?;
 
-        // Add the parent of the output_dir to the search path so compiler can find internal
-        // references functions and flows during the lib build process
-        let output_dir_parent = output_dir.parent()
-            .ok_or("Could not get parent of output dir")?
-            .to_string_lossy();
-        lib_search_path.add(&output_dir_parent);
-        let provider = &MetaProvider::new(lib_search_path, PathBuf::default());
-        build_lib(&options, provider, output_dir).chain_err(|| "Could not build library")
-    } else {
-        let output_dir = source_arg::get_output_dir(&options.source_url,
-                                                    &options.output_dir, false)
-            .chain_err(|| "Could not get the output directory")?;
+            // Add the parent of the output_dir to the search path so compiler can find internal
+            // references functions and flows during the lib build process
+            let output_dir_parent = output_dir.parent()
+                .ok_or("Could not get parent of output dir")?
+                .to_string_lossy();
+            lib_search_path.add(&output_dir_parent);
+            let provider = &MetaProvider::new(lib_search_path, PathBuf::default());
+            build_lib(&options, provider, output_dir).chain_err(|| "Could not build library")
+        },
+        CompileType::Runner => {
+            let output_dir = source_arg::get_output_dir(&options.source_url,
+                                                        &options.output_dir, CompileType::Library)
+                .chain_err(|| "Could not get the output directory")?;
+            let provider = &MetaProvider::new(lib_search_path, PathBuf::default());
+            build_runner(&options, provider, output_dir).chain_err(|| "Could not build runner")
+        },
+        CompileType::Flow => {
+            let output_dir = source_arg::get_output_dir(&options.source_url,
+                                                        &options.output_dir, CompileType::Flow)
+                .chain_err(|| "Could not get the output directory")?;
 
-        let context_root = options.context_root.as_ref()
-            .ok_or("Context Root was not specified")?;
-        let provider = &MetaProvider::new(lib_search_path, context_root.clone());
-        let runner_spec = load_runner_spec(context_root)?;
-        compile_and_execute_flow(&options, provider, runner_spec.name, output_dir)
+            let context_root = options.context_root.as_ref()
+                .ok_or("Context Root was not specified")?;
+            let provider = &MetaProvider::new(lib_search_path, context_root.clone());
+            let runner_spec = load_runner_spec(context_root)?;
+            compile_and_execute_flow(&options, provider, runner_spec.name, output_dir)
+        }
     }
 }
 
