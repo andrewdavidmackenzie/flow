@@ -40,23 +40,14 @@ pub mod errors;
 
 #[cfg(test)]
 pub mod test {
-    use std::env;
     use std::io::Read;
     use std::path::PathBuf;
     use std::process::{Command, Stdio};
 
-    fn get_context_root() -> PathBuf {
-        let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        let samples_dir = manifest_dir.parent().ok_or("Could not get parent dir")
-            .expect("Could not get parent dir");
-        samples_dir.join("flowr/src/bin/flowrcli/context")
-    }
-
     pub fn execute_flow(filepath: PathBuf) -> String {
         let mut command = Command::new("flowc");
-        let context_root = get_context_root();
         let command_args = vec![
-            "-C", context_root.to_str().expect("Could not get context root"),
+            "-r", "flowrcli",
             filepath.to_str().expect("Couldn't convert file path to string")];
 
         // spawn the 'flowc' child process

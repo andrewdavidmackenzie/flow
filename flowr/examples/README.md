@@ -7,7 +7,7 @@ Each subdirectory holds a self-contained flow example, with flow definition, doc
 them provide their own function implementations that get compiled to WASM by flowc when the flow is compiled.
 
 ## Environment Variable Requirements
-If you are using the makefile, then temporari additions to $PATH will be made for you so that the required
+If you are using the makefile, then temporary additions to $PATH will be made for you so that the required
 flow executables (`flowc`and `flowr`) are found.
 
 However, if you wish to run an example from the command line, then you will need to make sure the `flowc` and
@@ -18,13 +18,6 @@ You can do this using:
 `export PATH="target/debug:target/release:$PATH"`
 
 from the project root directory.
-
-
-In order for the `flowc` compiler to find context functions used during compilation
-you will also need `FLOW_CONTEXT_ROOT` to be set correctly (this is also done by
-the Makefile)
-
-`export FLOW_CONTEXT_ROOT="/Users/andrew/workspace/flow/flowr/src/bin/flowrcli/context"`
 
 ## Building all examples 
 `cargo test` 
