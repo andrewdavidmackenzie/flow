@@ -59,10 +59,10 @@ For each of these examples, there is first a `flowc` line showing how the flow c
 a compiled `manifest.json` flow manifest alongside the flow's root definition file. That manifest is then run using
 `flowrcli`
 
-- `flowc -C flowr/src/bin/flowrcli/context -c flowr/examples/fibonacci` - compile the fibonacci example only
+- `flowc -C flowr/src/bin/flowrcli -c flowr/examples/fibonacci` - compile the fibonacci example only
 - `flowrcli flowr/examples/fibonacci` - run the pre-compiled fibonacci example flow manifest
     - You should get a fibonacci series output to the terminal,
-- `flowc -C flowr/src/bin/flowrcli/context -c flowr/examples/sequence` - compile the flow only, do not run it
+- `flowc -C flowr/src/bin/flowrcli -c flowr/examples/sequence` - compile the flow only, do not run it
 - `flowrcli flowr/examples/sequence 10` - run the compiled flow, a short sequence of numbers (2, 5, 8) and a string 
 will be printed. The "10" represents the maximum of the sequence.
 - `flowrcli flowr/examples/sequence/manifest.json 10` - run the compiled flow, specifying the full path to the 

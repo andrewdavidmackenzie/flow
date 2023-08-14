@@ -131,18 +131,15 @@ fn args(sample_dir: &Path) -> io::Result<Vec<String>> {
 /// Compile a flow example in-place in the `sample_dir` directory using flowc
 pub fn compile_example(sample_path: &Path, runner: &str) {
     let sample_dir = sample_path.to_string_lossy();
-    let context_root = get_context_root(runner).expect("Could not get context root");
 
     let mut command = Command::new("flowc");
     // -d for debug symbols
     // -g to dump graphs
     // -c to skip running and only compile the flow
     // -O to optimize the WASM files generated
-    // -C <dir> to set the context root dir
+    // -r <runner> to specify the runner to use
     // <sample_dir> is the path to the directory of the sample flow to compile
-    let command_args = vec!["-d", "-g", "-c", "-O",
-                            "-C", &context_root,
-                            &sample_dir];
+    let command_args = vec!["-d", "-g", "-c", "-O", "-r", runner, &sample_dir];
 
     let stat = command
         .args(&command_args)
@@ -151,19 +148,6 @@ pub fn compile_example(sample_path: &Path, runner: &str) {
     if !stat.success() {
         panic!("Error building example, command line\n flowc {}", command_args.join(" "));
     }
-}
-
-fn get_context_root(runner: &str) -> Result<String, String> {
-    let context_root = match env::var("FLOW_CONTEXT_ROOT") {
-        Ok(var) => PathBuf::from(&var),
-        Err(_) => {
-            let samples_dir = Path::new(env!("CARGO_MANIFEST_DIR")).parent()
-                .ok_or("Could not get parent dir")?;
-            samples_dir.join(format!("src/bin/{}/context", runner))
-        }
-    };
-    assert!(context_root.exists(), "Context root directory '{}' does not exist", context_root.display());
-    Ok(context_root.to_str().expect("Could not convert path to String").to_string())
 }
 
 fn check_test_output(source_file: &str) {

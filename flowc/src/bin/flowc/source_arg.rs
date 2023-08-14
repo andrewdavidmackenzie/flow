@@ -10,7 +10,7 @@ use crate::RunnerSpec;
 pub(crate) enum CompileType {
     Library,
     Flow,
-    Runner
+    Runner(String),
 }
 
 fn default_lib_compile_dir(source_url: &Url) -> Result<PathBuf> {
@@ -22,20 +22,15 @@ fn default_lib_compile_dir(source_url: &Url) -> Result<PathBuf> {
 
     Ok(PathBuf::from(format!("{}/.flow/lib/{}", home_dir, lib_name)))
 }
-
-// Load a `RunnerSpec` from the context at `context_root`
-pub(crate) fn load_runner_spec(context_root: &Path) -> Result<RunnerSpec> {
-    let path = context_root.join("runner.toml");
-    let runner_spec = fs::read_to_string(path)?;
-    Ok(toml::from_str(&runner_spec)?)
+pub(crate) fn default_runner_dir(runner_name: String) -> Result<PathBuf> {
+    let home_dir = env::var("HOME").expect("Could not get $HOME");
+    Ok(PathBuf::from(format!("{}/.flow/runner/{}", home_dir, runner_name)))
 }
 
-fn default_runner_compile_dir(source_url: &Url) -> Result<PathBuf> {
-    let runner_spec = load_runner_spec(
-        source_url.to_file_path().map_err(|_| "Could not get Url as file path")?
-            .as_path())?;
-    let home_dir = env::var("HOME").expect("Could not get $HOME");
-    Ok(PathBuf::from(format!("{}/.flow/runner/{}", home_dir, runner_spec.name)))
+// Load a `RunnerSpec` from the context at `context_root`
+pub(crate) fn load_runner_spec(path: &Path) -> Result<RunnerSpec> {
+    let runner_spec = fs::read_to_string(path)?;
+    Ok(toml::from_str(&runner_spec)?)
 }
 
 fn default_flow_compile_dir(source_url: &Url) -> Result<PathBuf> {
@@ -82,7 +77,7 @@ pub(crate) fn get_output_dir(source_url: &Url, option: &Option<String>, compile_
         match compile_type {
             CompileType::Library => output_dir = default_lib_compile_dir(source_url)?,
             CompileType::Flow => output_dir = default_flow_compile_dir(source_url)?,
-            CompileType::Runner => output_dir = default_runner_compile_dir(source_url)?,
+            CompileType::Runner(name) => output_dir = default_runner_dir(name)?,
         }
     }
 

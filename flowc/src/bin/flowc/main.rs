@@ -31,7 +31,7 @@ use lib_build::build_lib;
 
 use crate::flow_compile::compile_and_execute_flow;
 use crate::lib_build::build_runner;
-use crate::source_arg::{CompileType, load_runner_spec};
+use crate::source_arg::{CompileType, default_runner_dir, load_runner_spec};
 
 /// Contains [Error] types that other modules in this crate will
 /// `use crate::errors::*;` to get access to everything `error_chain` creates.
@@ -58,14 +58,14 @@ pub struct Options {
     stdin_file: Option<String>,
     lib_dirs: Vec<String>,
     native_only: bool,
-    context_root: Option<PathBuf>,
+    runner_name: Option<String>,
     verbosity: Option<String>,
     optimize: bool,
 }
 
 #[derive(Deserialize)]
-struct RunnerSpec {
-    name: String
+pub(crate) struct RunnerSpec {
+    pub(crate) name: String
 }
 
 fn main() {
@@ -122,7 +122,8 @@ fn compile_type(url: &Url) -> Result<CompileType> {
             return Ok(CompileType::Library);
         }
         if file_name == "runner.toml" {
-            return Ok(CompileType::Runner);
+            let runner_name = load_runner_spec(&path)?.name;
+            return Ok(CompileType::Runner(runner_name));
         }
     }
 
@@ -131,7 +132,9 @@ fn compile_type(url: &Url) -> Result<CompileType> {
             return Ok(CompileType::Library);
         }
         if path.join("runner.toml").exists() {
-            return Ok(CompileType::Runner);
+            let spec_path =  path.join("runner.toml");
+            let runner_name = load_runner_spec(&spec_path)?.name;
+            return Ok(CompileType::Runner(runner_name));
         }
     }
 
@@ -147,10 +150,13 @@ fn run() -> Result<()> {
     let options = parse_args(get_matches())?;
     let mut lib_search_path = get_lib_search_path(&options.lib_dirs)?;
 
-    match compile_type(&options.source_url)? {
+    let compile_type = compile_type(&options.source_url)?;
+
+    match compile_type {
         CompileType::Library => {
             let output_dir = source_arg::get_output_dir(&options.source_url,
-                                                        &options.output_dir, CompileType::Library)
+                                                        &options.output_dir,
+                                                        compile_type)
                 .chain_err(|| "Could not get the output directory")?;
 
             // Add the parent of the output_dir to the search path so compiler can find internal
@@ -159,26 +165,27 @@ fn run() -> Result<()> {
                 .ok_or("Could not get parent of output dir")?
                 .to_string_lossy();
             lib_search_path.add(&output_dir_parent);
-            let provider = &MetaProvider::new(lib_search_path, PathBuf::default());
+            let provider = &MetaProvider::new(lib_search_path,
+                                              PathBuf::default());
             build_lib(&options, provider, output_dir).chain_err(|| "Could not build library")
         },
-        CompileType::Runner => {
+        CompileType::Runner(_) => {
             let output_dir = source_arg::get_output_dir(&options.source_url,
-                                                        &options.output_dir, CompileType::Library)
+                                                        &options.output_dir,
+                                                        compile_type)
                 .chain_err(|| "Could not get the output directory")?;
-            let provider = &MetaProvider::new(lib_search_path, PathBuf::default());
-            build_runner(&options, provider, output_dir).chain_err(|| "Could not build runner")
+            build_runner(&options, output_dir).chain_err(|| "Could not build runner")
         },
         CompileType::Flow => {
             let output_dir = source_arg::get_output_dir(&options.source_url,
-                                                        &options.output_dir, CompileType::Flow)
+                                                        &options.output_dir,
+                                                        compile_type)
                 .chain_err(|| "Could not get the output directory")?;
 
-            let context_root = options.context_root.as_ref()
-                .ok_or("Context Root was not specified")?;
-            let provider = &MetaProvider::new(lib_search_path, context_root.clone());
-            let runner_spec = load_runner_spec(context_root)?;
-            compile_and_execute_flow(&options, provider, runner_spec.name, output_dir)
+            let runner_name = options.runner_name.as_ref().ok_or("Runner name was not specified")?;
+            let runner_dir = default_runner_dir(runner_name.to_string())?;
+            let provider = &MetaProvider::new(lib_search_path, runner_dir);
+            compile_and_execute_flow(&options, provider, runner_name.to_string(), output_dir)
         }
     }
 }
@@ -206,13 +213,13 @@ fn get_matches() -> ArgMatches {
                 .help("Compile the flow and implementations, but do not execute"),
         )
         .arg(
-            Arg::new("context_root")
-                .short('C')
-                .long("context_root")
+            Arg::new("runner")
+                .short('r')
+                .long("runner")
                 .num_args(0..1)
                 .number_of_values(1)
-                .value_name("CONTEXT_DIRECTORY")
-                .help("Set the directory to use as the root dir for context function definitions"),
+                .value_name("RUNNER_NAME")
+                .help("The runner that will be used to run the flow"),
         )
         .arg(
             Arg::new("native")
@@ -346,15 +353,6 @@ fn parse_args(matches: ArgMatches) -> Result<Options> {
         vec![]
     };
 
-    let context_root = if matches.contains_id("context_root") {
-        let root_string = matches.get_one::<String>("context_root")
-            .ok_or("Could not get the 'CONTEXT_DIRECTORY' option specified")?;
-        let root = PathBuf::from(root_string);
-        Some(root.canonicalize()?)
-    } else {
-        None
-    };
-
     let flow_args = match matches.get_many::<String>("flow_args") {
         Some(strings) => strings.map(|s| s.to_string()).collect(),
         None => vec![]
@@ -373,7 +371,7 @@ fn parse_args(matches: ArgMatches) -> Result<Options> {
         stdin_file: matches.get_one::<String>("stdin").map(|s| s.to_string()),
         lib_dirs,
         native_only: matches.get_flag("native"),
-        context_root,
+        runner_name: matches.get_one::<String>("runner").map(|s| s.to_string()),
         verbosity: verbosity_option.map(|s| s.to_string()),
         optimize: matches.get_flag("optimize")
     })

@@ -111,6 +111,26 @@ jobs:
           tar -cJf flowstdlib.tar.xz flowstdlib
           cd -
           gh release upload ${{ needs.create-release.outputs.tag }} $HOME/.flow/lib/flowstdlib.tar.xz
+      - name: build flowrcli
+        if: matrix.os == 'ubuntu-latest'
+        run: target/${{ matrix.target }}/dist/flowc flowr/src/bin/flowrcli
+      - name: Upload flowrcli
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          cd $HOME/.flow/runner
+          tar -cJf flowrcli.tar.xz flowrcli
+          cd -
+          gh release upload ${{ needs.create-release.outputs.tag }} $HOME/.flow/runner/flowrcli.tar.xz
+      - name: build flowrgui
+        if: matrix.os == 'ubuntu-latest'
+        run: target/${{ matrix.target }}/dist/flowc flowr/src/bin/flowrgui
+      - name: Upload flowrgui
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          cd $HOME/.flow/runner
+          tar -cJf flowrgui.tar.xz flowrgui
+          cd -
+          gh release upload ${{ needs.create-release.outputs.tag }} $HOME/.flow/runner/flowrgui.tar.xz
 
   # Compute and upload the manifest for everything
   upload-manifest:
