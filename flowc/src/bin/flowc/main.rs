@@ -164,10 +164,9 @@ fn run() -> Result<()> {
         },
         CompileType::Runner => {
             let output_dir = source_arg::get_output_dir(&options.source_url,
-                                                        &options.output_dir, CompileType::Library)
+                                                        &options.output_dir, CompileType::Runner)
                 .chain_err(|| "Could not get the output directory")?;
-            let provider = &MetaProvider::new(lib_search_path, PathBuf::default());
-            build_runner(&options, provider, output_dir).chain_err(|| "Could not build runner")
+            build_runner(&options, output_dir).chain_err(|| "Could not build runner")
         },
         CompileType::Flow => {
             let output_dir = source_arg::get_output_dir(&options.source_url,

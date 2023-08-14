@@ -41,7 +41,7 @@ the same network.
 ### Example of running a flow with "client" separate from "server"
 First let's compile the fibonacci example (but not run it) by using `flowc` with the `-c, --compile` option:
 
-`>  flowc -c -C flowr/src/bin/flowrcli/context flowr/examples/fibonacci`
+`>  flowc -c -C flowr/src/bin/flowrcli flowr/examples/fibonacci`
 
 Let's check that worked:
 

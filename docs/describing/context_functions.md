@@ -61,7 +61,7 @@ implementation in the `context` sub-directory.
 If in the root directory of the `flow` project, using relative paths, an example flow can be compiled and 
 run using the `-C, --context_root <CONTEXT_DIRECTORY>` option to `flowc`:
 ```
-> flowc -C flowr/src/bin/flowrcli/context flowr/examples/fibonacci
+> flowc -C flowr/src/bin/flowrcli flowr/examples/fibonacci
 ```
 
 The `flowc` compiler sees the `"context://stdio/stdout"` reference. It has been told that the `Context Root` is

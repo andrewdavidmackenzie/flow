@@ -41,7 +41,7 @@ pub fn build_lib(options: &Options, provider: &dyn Provider, output_dir: PathBuf
         .to_file_path()
         .map_err(|_| "Could not convert Url to File path")?;
 
-    prepare_workspace(&lib_root_path)?;
+    prepare_lib_workspace(&lib_root_path)?;
 
     // compile all functions to the output directory first, as they maybe referenced later in flows
     let mut file_count = compile_functions(
@@ -73,7 +73,7 @@ pub fn build_lib(options: &Options, provider: &dyn Provider, output_dir: PathBuf
         lib_manifest.write_json(&manifest_json_file)?;
     }
 
-    teardown_workspace(&lib_root_path)?;
+    teardown_lib_workspace(&lib_root_path)?;
 
     println!("    {} {name}", "Finished".green());
     Ok(())
@@ -81,15 +81,10 @@ pub fn build_lib(options: &Options, provider: &dyn Provider, output_dir: PathBuf
 
 
 /// Build a runner into the output_dir
-pub fn build_runner(options: &Options, provider: &dyn Provider, output_dir: PathBuf) -> Result<()> {
-    let (metadata, _) = parser::parse_metadata(&options.source_url, provider)?;
-
-    let name = metadata.name.clone();
+pub fn build_runner(options: &Options, output_dir: PathBuf) -> Result<()> {
     println!(
-        "   {} {} v{} ({}) with 'flowc'",
+        "   {} runner ({}) with 'flowc'",
         "Compiling".green(),
-        metadata.name,
-        metadata.version,
         options.source_url
     );
 
@@ -107,14 +102,14 @@ pub fn build_runner(options: &Options, provider: &dyn Provider, output_dir: Path
 
     let _ = copy_docs(runner_context_path, &output_dir)?;
 
-    println!("    {} {name}", "Finished".green());
+    println!("    {}", "Finished".green());
     Ok(())
 }
 
 // prepare the library's internal virtual workspace for building under 'src' directory,
 // as this allows all functions being built to share the same target directory and built
 // dependencies, greatly speeding builds
-fn prepare_workspace(lib_root_path: &Path) -> Result<()> {
+fn prepare_lib_workspace(lib_root_path: &Path) -> Result<()> {
     // ensure lib.toml exists in the root and if so copy it to src/Cargo.toml for building
     let lib_toml_path = lib_root_path.join("lib.toml");
     if !lib_toml_path.exists() {
@@ -140,7 +135,7 @@ fn prepare_workspace(lib_root_path: &Path) -> Result<()> {
 // Delete any temporary Cargo.toml files that were created under 'src' in prepare_workspace()
 // as these will prevent the directory containing them from being included in the crate when
 // we attempt to publish it
-fn teardown_workspace(lib_root_path: &PathBuf) -> Result<()> {
+fn teardown_lib_workspace(lib_root_path: &PathBuf) -> Result<()> {
     let glob = Glob::new("src/**/Cargo.toml").map_err(|_| "Globbing error")?;
     for entry in glob.walk(lib_root_path).flatten() {
         fs::remove_file(entry.path())?;

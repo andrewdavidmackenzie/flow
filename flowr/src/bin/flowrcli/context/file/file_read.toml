@@ -1,0 +1,21 @@
+function = "file_read"
+source = "file_read.rs"
+docs = "file_read.md"
+impure = true
+
+[[input]]
+name = "path"
+type = "string"
+
+[[output]]
+name = "bytes"
+type = "array/number"
+
+[[output]]
+name = "string"
+type = "string"
+
+# TODO remove this as can be got from input via connection
+[[output]]
+name = "path"
+type = "string"
