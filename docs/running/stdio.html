@@ -165,7 +165,7 @@ source = &quot;context://file/file_write&quot;
 input.bytes = { once = [104, 101, 108, 108, 111] }
 input.filename = { once = &quot;pipe&quot; }
 </code></pre>
-<p>You can run that flow from the command line using:<code>flowc -C flowr/src/bin/flowrcli/context root.toml</code></p>
+<p>You can run that flow from the command line using:<code>flowc -C flowr/src/bin/flowrcli root.toml</code></p>
 <p>and see that it has worked using: <code>cat pipe</code></p>
 <p>which will show the text <code>hello</code></p>
 <p>Now clean-up: <code>rm pipe</code></p>
@@ -183,7 +183,7 @@ which allow interprocess communication via something that looks to them like fil
 </li>
 <li>Terminal Window 2
 <ul>
-<li>Run the flow as before using <code>flowc -C flowr/src/bin/flowrcli/context root.toml</code></li>
+<li>Run the flow as before using <code>flowc -C flowr/src/bin/flowrcli root.toml</code></li>
 <li>The process blocked above in Terminal Window 1 will unblock and display <code>hello</code></li>
 <li>The flow will run to completion in Terminal Window 2</li>
 </ul>

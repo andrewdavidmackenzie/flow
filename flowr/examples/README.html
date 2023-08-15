@@ -149,17 +149,13 @@ correctly over time.</p>
 <p>Each subdirectory holds a self-contained flow example, with flow definition, docs etc and some of 
 them provide their own function implementations that get compiled to WASM by flowc when the flow is compiled.</p>
 <h2 id="environment-variable-requirements"><a class="header" href="#environment-variable-requirements">Environment Variable Requirements</a></h2>
-<p>If you are using the makefile, then temporari additions to $PATH will be made for you so that the required
+<p>If you are using the makefile, then temporary additions to $PATH will be made for you so that the required
 flow executables (<code>flowc</code>and <code>flowr</code>) are found.</p>
 <p>However, if you wish to run an example from the command line, then you will need to make sure the <code>flowc</code> and
 <code>flowr</code> executables (built by the Makefile) are in your path.</p>
 <p>You can do this using:</p>
 <p><code>export PATH=&quot;target/debug:target/release:$PATH&quot;</code></p>
 <p>from the project root directory.</p>
-<p>In order for the <code>flowc</code> compiler to find context functions used during compilation
-you will also need <code>FLOW_CONTEXT_ROOT</code> to be set correctly (this is also done by
-the Makefile)</p>
-<p><code>export FLOW_CONTEXT_ROOT=&quot;/Users/andrew/workspace/flow/flowr/src/bin/flowrcli/context&quot;</code></p>
 <h2 id="building-all-examples"><a class="header" href="#building-all-examples">Building all examples</a></h2>
 <p><code>cargo test</code> </p>
 <p>Builds all examples to make sure they compile, but they are not run.</p>

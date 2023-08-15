@@ -193,13 +193,13 @@ retrieve the value of these parameters using <code>context functions</code>.</p>
 a compiled <code>manifest.json</code> flow manifest alongside the flow's root definition file. That manifest is then run using
 <code>flowrcli</code></p>
 <ul>
-<li><code>flowc -C flowr/src/bin/flowrcli/context -c flowr/examples/fibonacci</code> - compile the fibonacci example only</li>
+<li><code>flowc -C flowr/src/bin/flowrcli -c flowr/examples/fibonacci</code> - compile the fibonacci example only</li>
 <li><code>flowrcli flowr/examples/fibonacci</code> - run the pre-compiled fibonacci example flow manifest
 <ul>
 <li>You should get a fibonacci series output to the terminal,</li>
 </ul>
 </li>
-<li><code>flowc -C flowr/src/bin/flowrcli/context -c flowr/examples/sequence</code> - compile the flow only, do not run it</li>
+<li><code>flowc -C flowr/src/bin/flowrcli -c flowr/examples/sequence</code> - compile the flow only, do not run it</li>
 <li><code>flowrcli flowr/examples/sequence 10</code> - run the compiled flow, a short sequence of numbers (2, 5, 8) and a string 
 will be printed. The &quot;10&quot; represents the maximum of the sequence.</li>
 <li><code>flowrcli flowr/examples/sequence/manifest.json 10</code> - run the compiled flow, specifying the full path to the 

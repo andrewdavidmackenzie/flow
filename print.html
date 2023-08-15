@@ -193,7 +193,8 @@ and manually install the executables for your target system:</p>
 <h2 id="homebrew-tap"><a class="header" href="#homebrew-tap">Homebrew tap</a></h2>
 <p>A homebrew tap repo is maintained <a href="https://github.com/andrewdavidmackenzie/homebrew-dataflow">here</a> which 
 you can use to install with homebrew:</p>
-<pre><code>&gt; brew tap dataflow
+<pre><code>&gt; brew tap andrewdavidmackenzie/dataflow
+&gt; brew install dataflow
 </code></pre>
 <p>That should install the binaries, the portable <code>flowstdlib</code> WASM library and be ready for running.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="what-is-flow"><a class="header" href="#what-is-flow">What is 'flow'</a></h1>
@@ -564,7 +565,7 @@ it ran) using input initializers (dotted lines)</p>
 <p>This flow exists as an example in the <code>flowr/examples/fibonacci</code> folder. See the 
 <a href="docs/first_flow/../../flowr/examples/fibonacci/root.toml">root.toml</a> root flow definition file</p>
 <p>You can run this flow and observe its output from the terminal, while in the flow project root folder:</p>
-<pre><code class="language-shell script">&gt; cargo run -p flowc -- -C flowr/src/bin/flowrcli/context flowr/examples/fibonacci
+<pre><code class="language-shell script">&gt; cargo run -p flowc -- -C flowr/src/bin/flowrcli flowr/examples/fibonacci
 </code></pre>
 <p><code>flowc</code> will compile the flow definition from the root flow definition file (<code>root.toml</code>) using the <code>context functions</code>
 offered by <code>flowrcli</code> (defined in the <code>flowr/src/bin/flowrcli/context</code> folder) to generate a <code>manifest.json</code> compiled flow manifest in the 
@@ -572,7 +573,7 @@ offered by <code>flowrcli</code> (defined in the <code>flowr/src/bin/flowrcli/co
 <p><code>flowc</code> then runs <code>flowrcli</code> to execute the flow.</p>
 <p><code>flowrcli</code> is a Command Line flow runner and provides implementations for <code>context</code> functions to read and write to <code>stdio</code> (e.g. <code>stdout</code>).</p>
 <p>The flow will produce a fibonacci series printed to Stdout on the terminal.</p>
-<pre><code class="language-shell script">&gt; cargo run -p flowc -- -C flowr/src/bin/flowrcli/context flowr/examples/fibonacci
+<pre><code class="language-shell script">&gt; cargo run -p flowc -- -C flowr/src/bin/flowrcli flowr/examples/fibonacci
    Compiling flowstdlib v0.6.0 (/Users/andrew/workspace/flow/flowstdlib)
     Finished dev [unoptimized + debuginfo] target(s) in 1.75s
      Running `target/debug/flowc flowr/examples/first`
@@ -1473,7 +1474,7 @@ Within that folder flowrcli provides a set of context function definitions for a
 implementation in the <code>context</code> sub-directory.</p>
 <p>If in the root directory of the <code>flow</code> project, using relative paths, an example flow can be compiled and 
 run using the <code>-C, --context_root &lt;CONTEXT_DIRECTORY&gt;</code> option to <code>flowc</code>:</p>
-<pre><code>&gt; flowc -C flowr/src/bin/flowrcli/context flowr/examples/fibonacci
+<pre><code>&gt; flowc -C flowr/src/bin/flowrcli flowr/examples/fibonacci
 </code></pre>
 <p>The <code>flowc</code> compiler sees the <code>&quot;context://stdio/stdout&quot;</code> reference. It has been told that the <code>Context Root</code> is
 at <code>flowr/src/bin/flowrcli/context</code> so it searches for (and finds) a function definition file at 
@@ -1651,10 +1652,10 @@ and end of the sequence.</p>
 <p>Another mechanism used for convenience (it may abbreviate written flows) is to have a simple flow to wrap a function or
 process for a common use case, maybe initializing an input with a pre-defined value or creating feedback loops around 
 the process to create a specific behaviour.</p>
-<div style="break-before: page; page-break-before: always;"></div><h2 id="flowrs-context-functions"><a class="header" href="#flowrs-context-functions">flowr's Context Functions</a></h2>
+<div style="break-before: page; page-break-before: always;"></div><h2 id="flowrcli-context-functions"><a class="header" href="#flowrcli-context-functions">flowrcli Context Functions</a></h2>
 <p>Each flow runner application can provide a set of functions (referred to as <code>context functions</code>) to flows for 
 interacting with the execution environment.</p>
-<p><code>flowr</code> is one particular, Command Line oriented, flow runner, and it provides a set of <code>context functions</code> to 
+<p><code>flowrcli</code> is a, Command Line oriented, flow runner, and it provides a set of <code>context functions</code> to 
 interact with the file system and standard input/output.</p>
 <div style="break-before: page; page-break-before: always;"></div><h2 id="args-contextargs"><a class="header" href="#args-contextargs">Args (//context/args)</a></h2>
 <p>Functions to handle run-time arguments, command line arguments from invocation, etc</p>
@@ -1961,7 +1962,7 @@ instances of the <code>-L, --libdir &lt;LIB_DIR|BASE_URL&gt;</code> Option (see 
 <h3 id="example-invocations"><a class="header" href="#example-invocations">Example Invocations</a></h3>
 <ul>
 <li>
-<p><code>flowc -C flowr/src/bin/flowrcli/context flowr/examples/fibonacci</code></p>
+<p><code>flowc -C flowr/src/bin/flowrcli flowr/examples/fibonacci</code></p>
 <p>uses the <code>context_functions</code> provided by <code>flowrcli</code> and run the flow whose root flow is defined in <code>./flowr/examples/fibonacci/root.toml</code>. 
 Do not pass in any arguments to the flow. </p>
 <ul>
@@ -1969,7 +1970,7 @@ Do not pass in any arguments to the flow. </p>
 </ul>
 </li>
 <li>
-<p><code>echo &quot;Hello&quot; | flowc -C flowr/src/bin/flowrcli/context flowr/examples/reverse-echo</code> - This example reads from STDIN so we echo in 
+<p><code>echo &quot;Hello&quot; | flowc -C flowr/src/bin/flowrcli flowr/examples/reverse-echo</code> - This example reads from STDIN so we echo in 
 some text.</p>
 <ul>
 <li>
@@ -1982,10 +1983,10 @@ some text.</p>
 </ul>
 </li>
 <li>
-<p><code>flowc -C flowr/src/bin/flowrcli/context flowr/examples/fibonacci</code> - You should get a fibonacci series output to the terminal</p>
+<p><code>flowc -C flowr/src/bin/flowrcli flowr/examples/fibonacci</code> - You should get a fibonacci series output to the terminal</p>
 </li>
 <li>
-<p><code>flowc -C flowr/src/bin/flowrcli/context flowr/examples/sequence 10</code> - as previous examples except that after the <code>source_url</code> a 
+<p><code>flowc -C flowr/src/bin/flowrcli flowr/examples/sequence 10</code> - as previous examples except that after the <code>source_url</code> a 
 <code>flow_argument</code> of &quot;10&quot; is passed in</p>
 <ul>
 <li>A short sequence of numbers (2, 5, 8) and a string will be printed. The &quot;10&quot; represents the maximum of the sequence.</li>
@@ -1996,7 +1997,7 @@ some text.</p>
 <p>As stated, the <code>source_url</code> can be a Url to a web resource, or a flow definition hosted on a web server.</p>
 <h3 id="example-running-a-flow-from-the-web"><a class="header" href="#example-running-a-flow-from-the-web">Example running a flow from the web</a></h3>
 <p>We can use a flow that is part of the <code>flow</code> project, where the flow definition is hosted on the web by GitHub:</p>
-<p><code>flowc -C flowr/src/bin/flowrcli/context &quot;https://raw.githubusercontent.com/andrewdavidmackenzie/flow/master/flowcore/tests/test-flows/hello-world/root.toml&quot;</code></p>
+<p><code>flowc -C flowr/src/bin/flowrcli &quot;https://raw.githubusercontent.com/andrewdavidmackenzie/flow/master/flowcore/tests/test-flows/hello-world/root.toml&quot;</code></p>
 <p>That will pull the flow definition content from the web, compile it and run it, producing the expected output:</p>
 <p><code>Hello World!</code></p>
 <div style="break-before: page; page-break-before: always;"></div><h2 id="flowc-command-line-arguments"><a class="header" href="#flowc-command-line-arguments"><code>flowc</code> Command Line Arguments</a></h2>
@@ -2167,7 +2168,7 @@ source = &quot;context://file/file_write&quot;
 input.bytes = { once = [104, 101, 108, 108, 111] }
 input.filename = { once = &quot;pipe&quot; }
 </code></pre>
-<p>You can run that flow from the command line using:<code>flowc -C flowr/src/bin/flowrcli/context root.toml</code></p>
+<p>You can run that flow from the command line using:<code>flowc -C flowr/src/bin/flowrcli root.toml</code></p>
 <p>and see that it has worked using: <code>cat pipe</code></p>
 <p>which will show the text <code>hello</code></p>
 <p>Now clean-up: <code>rm pipe</code></p>
@@ -2185,7 +2186,7 @@ which allow interprocess communication via something that looks to them like fil
 </li>
 <li>Terminal Window 2
 <ul>
-<li>Run the flow as before using <code>flowc -C flowr/src/bin/flowrcli/context root.toml</code></li>
+<li>Run the flow as before using <code>flowc -C flowr/src/bin/flowrcli root.toml</code></li>
 <li>The process blocked above in Terminal Window 1 will unblock and display <code>hello</code></li>
 <li>The flow will run to completion in Terminal Window 2</li>
 </ul>
@@ -2250,13 +2251,13 @@ retrieve the value of these parameters using <code>context functions</code>.</p>
 a compiled <code>manifest.json</code> flow manifest alongside the flow's root definition file. That manifest is then run using
 <code>flowrcli</code></p>
 <ul>
-<li><code>flowc -C flowr/src/bin/flowrcli/context -c flowr/examples/fibonacci</code> - compile the fibonacci example only</li>
+<li><code>flowc -C flowr/src/bin/flowrcli -c flowr/examples/fibonacci</code> - compile the fibonacci example only</li>
 <li><code>flowrcli flowr/examples/fibonacci</code> - run the pre-compiled fibonacci example flow manifest
 <ul>
 <li>You should get a fibonacci series output to the terminal,</li>
 </ul>
 </li>
-<li><code>flowc -C flowr/src/bin/flowrcli/context -c flowr/examples/sequence</code> - compile the flow only, do not run it</li>
+<li><code>flowc -C flowr/src/bin/flowrcli -c flowr/examples/sequence</code> - compile the flow only, do not run it</li>
 <li><code>flowrcli flowr/examples/sequence 10</code> - run the compiled flow, a short sequence of numbers (2, 5, 8) and a string 
 will be printed. The &quot;10&quot; represents the maximum of the sequence.</li>
 <li><code>flowrcli flowr/examples/sequence/manifest.json 10</code> - run the compiled flow, specifying the full path to the 
@@ -2298,7 +2299,7 @@ any such function and does not need to interact with the user.</p>
 the same network.</p>
 <h3 id="example-of-running-a-flow-with-client-separate-from-server"><a class="header" href="#example-of-running-a-flow-with-client-separate-from-server">Example of running a flow with &quot;client&quot; separate from &quot;server&quot;</a></h3>
 <p>First let's compile the fibonacci example (but not run it) by using <code>flowc</code> with the <code>-c, --compile</code> option:</p>
-<p><code>&gt;  flowc -c -C flowr/src/bin/flowrcli/context flowr/examples/fibonacci</code></p>
+<p><code>&gt;  flowc -c -C flowr/src/bin/flowrcli flowr/examples/fibonacci</code></p>
 <p>Let's check that worked:</p>
 <pre><code>&gt; ls flowr/examples/fibonacci/manifest.json
 flowr/examples/fibonacci/manifest.json
@@ -2367,7 +2368,7 @@ function implementations to other nodes and hence allow them to load and run tho
 <p>indicating that it is waiting to discover the <code>flowrcli</code> process on the network.</p>
 <p>Terminal 2</p>
 <p>First let's compile the fibonacci example (but not run it) by using <code>flowc</code> with the <code>-c, --compile</code> option:</p>
-<p><code>&gt;  flowc -c -C flowr/src/bin/flowrcli/context flowr/examples/fibonacci</code></p>
+<p><code>&gt;  flowc -c -C flowr/src/bin/flowrcli flowr/examples/fibonacci</code></p>
 <p>Let's check that worked:</p>
 <pre><code>&gt; ls flowr/examples/fibonacci/manifest.json
 flowr/examples/fibonacci/manifest.json
@@ -2790,17 +2791,13 @@ correctly over time.</p>
 <p>Each subdirectory holds a self-contained flow example, with flow definition, docs etc and some of 
 them provide their own function implementations that get compiled to WASM by flowc when the flow is compiled.</p>
 <h2 id="environment-variable-requirements"><a class="header" href="#environment-variable-requirements">Environment Variable Requirements</a></h2>
-<p>If you are using the makefile, then temporari additions to $PATH will be made for you so that the required
+<p>If you are using the makefile, then temporary additions to $PATH will be made for you so that the required
 flow executables (<code>flowc</code>and <code>flowr</code>) are found.</p>
 <p>However, if you wish to run an example from the command line, then you will need to make sure the <code>flowc</code> and
 <code>flowr</code> executables (built by the Makefile) are in your path.</p>
 <p>You can do this using:</p>
 <p><code>export PATH=&quot;target/debug:target/release:$PATH&quot;</code></p>
 <p>from the project root directory.</p>
-<p>In order for the <code>flowc</code> compiler to find context functions used during compilation
-you will also need <code>FLOW_CONTEXT_ROOT</code> to be set correctly (this is also done by
-the Makefile)</p>
-<p><code>export FLOW_CONTEXT_ROOT=&quot;/Users/andrew/workspace/flow/flowr/src/bin/flowrcli/context&quot;</code></p>
 <h2 id="building-all-examples"><a class="header" href="#building-all-examples">Building all examples</a></h2>
 <p><code>cargo test</code> </p>
 <p>Builds all examples to make sure they compile, but they are not run.</p>
@@ -3550,17 +3547,13 @@ correctly over time.</p>
 <p>Each subdirectory holds a self-contained flow example, with flow definition, docs etc and some of 
 them provide their own function implementations that get compiled to WASM by flowc when the flow is compiled.</p>
 <h2 id="environment-variable-requirements-1"><a class="header" href="#environment-variable-requirements-1">Environment Variable Requirements</a></h2>
-<p>If you are using the makefile, then temporari additions to $PATH will be made for you so that the required
+<p>If you are using the makefile, then temporary additions to $PATH will be made for you so that the required
 flow executables (<code>flowc</code>and <code>flowr</code>) are found.</p>
 <p>However, if you wish to run an example from the command line, then you will need to make sure the <code>flowc</code> and
 <code>flowr</code> executables (built by the Makefile) are in your path.</p>
 <p>You can do this using:</p>
 <p><code>export PATH=&quot;target/debug:target/release:$PATH&quot;</code></p>
 <p>from the project root directory.</p>
-<p>In order for the <code>flowc</code> compiler to find context functions used during compilation
-you will also need <code>FLOW_CONTEXT_ROOT</code> to be set correctly (this is also done by
-the Makefile)</p>
-<p><code>export FLOW_CONTEXT_ROOT=&quot;/Users/andrew/workspace/flow/flowr/src/bin/flowrcli/context&quot;</code></p>
 <h2 id="building-all-examples-1"><a class="header" href="#building-all-examples-1">Building all examples</a></h2>
 <p><code>cargo test</code> </p>
 <p>Builds all examples to make sure they compile, but they are not run.</p>
@@ -3649,17 +3642,13 @@ correctly over time.</p>
 <p>Each subdirectory holds a self-contained flow example, with flow definition, docs etc and some of 
 them provide their own function implementations that get compiled to WASM by flowc when the flow is compiled.</p>
 <h2 id="environment-variable-requirements-2"><a class="header" href="#environment-variable-requirements-2">Environment Variable Requirements</a></h2>
-<p>If you are using the makefile, then temporari additions to $PATH will be made for you so that the required
+<p>If you are using the makefile, then temporary additions to $PATH will be made for you so that the required
 flow executables (<code>flowc</code>and <code>flowr</code>) are found.</p>
 <p>However, if you wish to run an example from the command line, then you will need to make sure the <code>flowc</code> and
 <code>flowr</code> executables (built by the Makefile) are in your path.</p>
 <p>You can do this using:</p>
 <p><code>export PATH=&quot;target/debug:target/release:$PATH&quot;</code></p>
 <p>from the project root directory.</p>
-<p>In order for the <code>flowc</code> compiler to find context functions used during compilation
-you will also need <code>FLOW_CONTEXT_ROOT</code> to be set correctly (this is also done by
-the Makefile)</p>
-<p><code>export FLOW_CONTEXT_ROOT=&quot;/Users/andrew/workspace/flow/flowr/src/bin/flowrcli/context&quot;</code></p>
 <h2 id="building-all-examples-2"><a class="header" href="#building-all-examples-2">Building all examples</a></h2>
 <p><code>cargo test</code> </p>
 <p>Builds all examples to make sure they compile, but they are not run.</p>

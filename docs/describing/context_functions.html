@@ -186,7 +186,7 @@ Within that folder flowrcli provides a set of context function definitions for a
 implementation in the <code>context</code> sub-directory.</p>
 <p>If in the root directory of the <code>flow</code> project, using relative paths, an example flow can be compiled and 
 run using the <code>-C, --context_root &lt;CONTEXT_DIRECTORY&gt;</code> option to <code>flowc</code>:</p>
-<pre><code>&gt; flowc -C flowr/src/bin/flowrcli/context flowr/examples/fibonacci
+<pre><code>&gt; flowc -C flowr/src/bin/flowrcli flowr/examples/fibonacci
 </code></pre>
 <p>The <code>flowc</code> compiler sees the <code>&quot;context://stdio/stdout&quot;</code> reference. It has been told that the <code>Context Root</code> is
 at <code>flowr/src/bin/flowrcli/context</code> so it searches for (and finds) a function definition file at 

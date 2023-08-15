@@ -168,7 +168,7 @@ instances of the <code>-L, --libdir &lt;LIB_DIR|BASE_URL&gt;</code> Option (see 
 <h3 id="example-invocations"><a class="header" href="#example-invocations">Example Invocations</a></h3>
 <ul>
 <li>
-<p><code>flowc -C flowr/src/bin/flowrcli/context flowr/examples/fibonacci</code></p>
+<p><code>flowc -C flowr/src/bin/flowrcli flowr/examples/fibonacci</code></p>
 <p>uses the <code>context_functions</code> provided by <code>flowrcli</code> and run the flow whose root flow is defined in <code>./flowr/examples/fibonacci/root.toml</code>. 
 Do not pass in any arguments to the flow. </p>
 <ul>
@@ -176,7 +176,7 @@ Do not pass in any arguments to the flow. </p>
 </ul>
 </li>
 <li>
-<p><code>echo &quot;Hello&quot; | flowc -C flowr/src/bin/flowrcli/context flowr/examples/reverse-echo</code> - This example reads from STDIN so we echo in 
+<p><code>echo &quot;Hello&quot; | flowc -C flowr/src/bin/flowrcli flowr/examples/reverse-echo</code> - This example reads from STDIN so we echo in 
 some text.</p>
 <ul>
 <li>
@@ -189,10 +189,10 @@ some text.</p>
 </ul>
 </li>
 <li>
-<p><code>flowc -C flowr/src/bin/flowrcli/context flowr/examples/fibonacci</code> - You should get a fibonacci series output to the terminal</p>
+<p><code>flowc -C flowr/src/bin/flowrcli flowr/examples/fibonacci</code> - You should get a fibonacci series output to the terminal</p>
 </li>
 <li>
-<p><code>flowc -C flowr/src/bin/flowrcli/context flowr/examples/sequence 10</code> - as previous examples except that after the <code>source_url</code> a 
+<p><code>flowc -C flowr/src/bin/flowrcli flowr/examples/sequence 10</code> - as previous examples except that after the <code>source_url</code> a 
 <code>flow_argument</code> of &quot;10&quot; is passed in</p>
 <ul>
 <li>A short sequence of numbers (2, 5, 8) and a string will be printed. The &quot;10&quot; represents the maximum of the sequence.</li>
@@ -203,7 +203,7 @@ some text.</p>
 <p>As stated, the <code>source_url</code> can be a Url to a web resource, or a flow definition hosted on a web server.</p>
 <h3 id="example-running-a-flow-from-the-web"><a class="header" href="#example-running-a-flow-from-the-web">Example running a flow from the web</a></h3>
 <p>We can use a flow that is part of the <code>flow</code> project, where the flow definition is hosted on the web by GitHub:</p>
-<p><code>flowc -C flowr/src/bin/flowrcli/context &quot;https://raw.githubusercontent.com/andrewdavidmackenzie/flow/master/flowcore/tests/test-flows/hello-world/root.toml&quot;</code></p>
+<p><code>flowc -C flowr/src/bin/flowrcli &quot;https://raw.githubusercontent.com/andrewdavidmackenzie/flow/master/flowcore/tests/test-flows/hello-world/root.toml&quot;</code></p>
 <p>That will pull the flow definition content from the web, compile it and run it, producing the expected output:</p>
 <p><code>Hello World!</code></p>
 
