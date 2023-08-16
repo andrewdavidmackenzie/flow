@@ -17,6 +17,18 @@ maintenance = { status = "actively-developed" }
 name = "flowrlib"
 path = "src/lib/lib.rs"
 
+[[bin]]
+name = "flowrcli"
+path = "src/bin/flowrcli/main.rs"
+
+[[bin]]
+name = "flowrgui"
+path = "src/bin/flowrgui/main.rs"
+
+[[bin]]
+name = "flowrex"
+path = "src/bin/flowrex/main.rs"
+
 [features]
 default = ["debugger", "metrics", "context", "submission", "flowstdlib"]
 # feature to add the debugger, requires flowcore crate to have feature enabled also, rustyline optional dependency too
