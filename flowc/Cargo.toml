@@ -17,6 +17,10 @@ maintenance = { status = "actively-developed" }
 name = "flowrclib"
 path = "src/lib/lib.rs"
 
+[[bin]]
+name = "flowc"
+path = "src/bin/flowc/main.rs"
+
 [features]
 default = ["debugger"]
 debugger = ["flowcore/debugger"] # feature to add output for the debugger
