@@ -35,7 +35,6 @@ jobs:
           profile: minimal
           toolchain: nightly
           override: true
-          components: clippy
           target: wasm32-unknown-unknown
 
       - name: InstallLinuxDependencies
@@ -98,6 +97,13 @@ jobs:
   clippy:
     runs-on: ubuntu-latest
     steps:
+    - name: Install latest nightly
+      uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: nightly
+        override: true
+        components: clippy
     - name: Checkout
       uses: actions/checkout@v3
     - name: run clippy
