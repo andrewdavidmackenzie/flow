@@ -67,15 +67,12 @@ jobs:
           command: build
 
       - name: compile flowstdlib to WASM
-        if: runner.os == 'Linux'
         run: target/debug/flowc -d -g -O flowstdlib
 
       - name: compile flowrcli
-        if: runner.os == 'Linux'
         run: target/debug/flowc flowr/src/bin/flowrcli
 
       - name: compile flowrgui
-        if: runner.os == 'Linux'
         run: target/debug/flowc flowr/src/bin/flowrgui
 
       - name: clippy
