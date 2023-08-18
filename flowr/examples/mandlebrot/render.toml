@@ -25,7 +25,7 @@ source = "pixel_to_point/pixel_to_point"
 from = "input/bounds"
 to = "p2p/bounds"
 
-# Loop back the bounds for each pixel
+# Loop back the bounds input value for each subsequent pixel
 [[connection]]
 from = "p2p/bounds"
 to = "p2p/bounds"
@@ -34,7 +34,7 @@ to = "p2p/bounds"
 from = "input/size"
 to = "p2p/size"
 
-# Loop back the size for each pixel
+# Loop back the size input value for each subsequent pixel
 [[connection]]
 from = "p2p/size"
 to = "p2p/size"
@@ -48,7 +48,7 @@ to = "p2p/pixel"
 alias = "p2v"
 source = "escapes/escapes"
 
-# Output of p2p is a [pixel, point] pair -> pass it to render
+# Output of p2p is a [pixel, complex_point] pair -> pass it to render
 [[connection]]
 from = "p2p"
 to = "p2v/pixel_point"
@@ -75,12 +75,12 @@ to = "image_buffer/size"
 from = "image_buffer/size"
 to = "image_buffer/size"
 
-# send each pixel from [pixel, value] pair from p2v to the image buffer
+# send each pixel from [pixel, complex_point] pair from p2v to the image buffer
 [[connection]]
 from = "p2v/0"
 to = "image_buffer/pixel"
 
-# send each value from [pixel, value] pair from p2v to the image buffer
+# send each value from [pixel, complex_point] pair from p2v to the image buffer
 [[connection]]
 from = "p2v/1"
 to = "image_buffer/value"
