@@ -118,7 +118,6 @@ ifeq ($(CODESIGN),)
 endif
 	@RUSTFLAGS="-C instrument-coverage" LLVM_PROFILE_FILE="flow-%p-%m.profraw" cargo clippy --tests --no-deps --all-features -- -D warnings
 	@RUSTFLAGS="-C instrument-coverage" LLVM_PROFILE_FILE="flow-%p-%m.profraw" cargo test
-	@RUSTFLAGS="-C instrument-coverage" LLVM_PROFILE_FILE="flow-%p-%m.profraw" cargo doc --no-deps --target-dir=target/html/code
 	@echo "Gathering coverage information"
 	@grcov . --binary-path target/debug/ -s . -t lcov --branch --ignore-not-existing --ignore "/*" -o coverage.info
 	@lcov --remove coverage.info '/Applications/*' 'target/debug/build/**' 'target/release/build/**' '/usr*' '**/errors.rs' '**/build.rs' '*tests/*' -o coverage.info
@@ -149,12 +148,9 @@ copy-svgs:
 trim-book:
 	@echo "trim-book<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
 	@find target/html -name .git | xargs rm -rf {}
-	@rm -rf target/html/.git
 	@find target/html -name .github | xargs rm -rf {}
-	@rm -rf target/html/.github
 	@find target/html -name .gitignore | xargs rm -rf {}
 	@find target/html -name .idea | xargs rm -rf {}
-	@rm -rf target/html/.idea
 	@find target/html -name \*.iml | xargs rm -rf {}
 	@find target/html -name \*.toml | xargs rm -rf {}
 	@find target/html -name \*.profraw | xargs rm -rf {}
@@ -183,7 +179,6 @@ trim-book:
 	@rm -rf target/html/Makefile
 	@rm -rf target/html/.nojekyll
 	@rm -rf target/html/coverage.info
-	@rm -rf target/html/flowr/examples/Cargo.toml
 	@rm -rf target/html/flowr/examples/mandlebrot/project
 	@find target/html -depth -type d -empty -delete
 

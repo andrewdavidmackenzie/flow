@@ -27,7 +27,7 @@ The program runs until integer overflow causes no output to be produced and it s
 
 Here you can see it being executed by the `flowrgui` graphical flow runner:
 
-![Fibonacci Series](docs/images/fibonacci.gif)
+![Fibonacci Series](book/images/fibonacci.gif)
 
 
 ## What is a `dataflow program`?
@@ -66,17 +66,16 @@ by a runner and used to execute jobs, distributing execution in a basic fashion
 - Examples: A set of example flows to illustrate flow programming (more to come!)
    - Here is a screenshot of the mandlebrot example rendering a monochrome mandlebrot set using `flowrgui`
 
-![Mandlebrot set](docs/images/mandlebrot.png)
+![Mandlebrot set](book/images/mandlebrot.png)
 
-- Docs: The [book](SUMMARY.md) covers defining flows, the runtime semantics, a 
-  programmer's guide, docs on tool command line options and how to use them, the `flowstdlib` library
-functions and flows, `flowrcli/flowrgui`'s context functions and more. It is published online 
-[here](https://mackenzie-serres.net/flow/docs/book_intro.html).
+- The [book](SUMMARY.md) covers defining flows, the runtime semantics, command line tool options and how to use them, 
+the `flowstdlib` library functions and flows, `flowrcli/flowrgui`'s context functions and more. It is published online 
+[here](https://mackenzie-serres.net/flow/book/book_intro.html).
  
 ## What made me want to do it?
 You can read more about what made me want to do this project, based on ideas gathered over a few decades
-on and off (combined with looking for a "real" project to use to learn rust!) in the guide's 
-[Inspirations for flow](docs/introduction/inspirations.md) section. The core reason is: I wanted to know
+on and off (combined with looking for a "real" project to use to learn rust!) in the book's 
+[Inspirations for flow](book/introduction/inspirations.md) section. The core reason is: I wanted to know
 if I could do it and make it work, having stopped being a Software Engineer many years ago, based on rough ideas 
 and intuition I had in my head (no real formal knowledge in this area or reading of books and papers - 
 that came later *after* I did it).
@@ -96,7 +95,7 @@ The workaround in the meantime is to clone the repo and build all from source (s
 
 ## Building `flow`
 For more details on how to build flow locally and contribute to it, please see
-[building flow](docs/developing/building.md)
+[building flow](book/developing/building.md)
 Install the dependencies with `make config`, then run `make`, which builds everything and installs the `flowc` and
 `flowr` and`flowrex` binaries.
 
@@ -110,7 +109,7 @@ With `flowc` and `flowr` installed, you can run the 'fibonacci' example flow usi
 
 You should get a fibonacci series of numbers output to the terminal.
 
-The [first flow](docs/first_flow/first_flow.md) section of the guide walks you through it.
+The [first flow](book/first_flow/first_flow.md) section of the book walks you through it.
 
 ## Tech decisions
 ### Job/Work Distribution - with Threads
@@ -180,7 +179,7 @@ the examples etc. It's hard to keep up to date but I try and am always generatin
 improve it! It doesn't go into two many details on the implementation, to reduce the burden of keeping it up to date.
 
 The book is rebuilt on every PR and Merge (to make sure it is not broken) and the re-published 
-[here](https://mackenzie-serres.net/flow/docs/book_intro.html) as part of every release.
+[here](https://mackenzie-serres.net/flow/book/book_intro.html) as part of every release.
 
 ## What's next?
 I generate ideas for ways to improve the project faster than I can implement things in my spare time,
@@ -202,7 +201,7 @@ GitHub, although it's just me here for now. If you have suggestions, questions o
 project or learn more, just go there and let me know!
 
 ## Contributing
-Refer to the [contributing](docs/developing/contributing.md) section of the book.
+Refer to the [contributing](book/developing/contributing.md) section of the book.
 
 ## Feedback and/or Encouragement
 You can open an issue or email me to let me know what you think.

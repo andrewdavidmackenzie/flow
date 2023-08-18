@@ -4,14 +4,14 @@ Welcome to `flow`, a system for defining and running parallel,
 
 ![First flow](first_flow/first.svg)
 
-Page through this guide using the '>' and '<' buttons on the side of the page or navigating directly
+Page through this book using the '>' and '<' buttons on the side of the page or navigating directly
 to a section using the Table of Contents on the left.
 
 The top-level sections are:
 * [Installing flow](../INSTALLING.md)
 * [Introduction to Flow](introduction/what_is_flow.md)
 * [Your First Flow](first_flow/first_flow.md)
-* [Guide to Defining Flows](describing/definition_overview.md)
+* [Defining Flows](describing/definition_overview.md)
 * [flowr's context functions](../flowr/src/bin/flowrcli/context/flowr_context_functions.md)
 * [Running flows](running/running.md)
 * [Debugging Flows](debugging/debugger.md)

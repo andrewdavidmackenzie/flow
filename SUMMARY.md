@@ -1,35 +1,35 @@
 # The `flow` book
 
-[Intro](docs/book_intro.md)
+[Intro](book/book_intro.md)
 
 # Introduction to `flow`
 - [Installing flow](INSTALLING.md)
-- [What is `flow`?](docs/introduction/what_is_flow.md)
-- [Tenets of `flow`](docs/introduction/tenets.md)
-- [Project Components and Structure](docs/introduction/structure.md)
-- [The Inspirations for `flow`](docs/introduction/inspirations.md)
-- [Non-Inspirations](docs/introduction/non_inspirations.md)
-- [Parallelism](docs/introduction/parallelism.md)
-- [Status](docs/introduction/status.md)
+- [What is `flow`?](book/introduction/what_is_flow.md)
+- [Tenets of `flow`](book/introduction/tenets.md)
+- [Project Components and Structure](book/introduction/structure.md)
+- [The Inspirations for `flow`](book/introduction/inspirations.md)
+- [Non-Inspirations](book/introduction/non_inspirations.md)
+- [Parallelism](book/introduction/parallelism.md)
+- [Status](book/introduction/status.md)
 
 # Your First Flow
-- [Your First Flow](docs/first_flow/first_flow.md)
-- [Running the flow](docs/first_flow/implementation.md)
-- [Step-by-Step](docs/first_flow/step-by-step.md)
-- [Debugging your first flow](docs/first_flow/debugging.md)
+- [Your First Flow](book/first_flow/first_flow.md)
+- [Running the flow](book/first_flow/implementation.md)
+- [Step-by-Step](book/first_flow/step-by-step.md)
+- [Debugging your first flow](book/first_flow/debugging.md)
 
-# Guide to Defining Flows
-- [Defining flows](docs/describing/definition_overview.md)
-- [Names](docs/describing/names.md)
-- [Flow IOs](docs/describing/ios.md)
-- [Process References](docs/describing/process_references.md)
-- [Function Definitions](docs/describing/function_definitions.md)
-- [Data Types](docs/describing/types.md)
-- [Connections](docs/describing/connections.md)
-- [Flow Libraries](docs/describing/flow_libraries.md)
-- [Context Functions](docs/describing/context_functions.md)
-- [Provided Functions](docs/describing/provided_functions.md)
-- [Programming Methods](docs/describing/programming_methods.md)
+# Defining Flows
+- [Defining flows](book/describing/definition_overview.md)
+- [Names](book/describing/names.md)
+- [Flow IOs](book/describing/ios.md)
+- [Process References](book/describing/process_references.md)
+- [Function Definitions](book/describing/function_definitions.md)
+- [Data Types](book/describing/types.md)
+- [Connections](book/describing/connections.md)
+- [Flow Libraries](book/describing/flow_libraries.md)
+- [Context Functions](book/describing/context_functions.md)
+- [Provided Functions](book/describing/provided_functions.md)
+- [Programming Methods](book/describing/programming_methods.md)
 
 # `flowrcli's` `context functions`
 - [flowr's context functions](flowr/src/bin/flowrcli/context/flowr_context_functions.md)
@@ -62,18 +62,18 @@
   - [Standard Error function](flowr/src/bin/flowrgui/context/stdio/stderr.md)
 
 # Running Flows
-- [Running flows](docs/running/running.md)
-- [flowc Command Line Arguments](docs/running/flowc.md)
-- [Passing command line arguments to flows](docs/running/arguments.md)
-- [Specifying the root file to load](docs/running/root_file_selection.md)
-- [Standard Input and Output](docs/running/stdio.md)
-- [Exceptions and Panics](docs/running/panics.md)
-- [Running Flows using `flowr`](docs/running/flowr.md)
-- [Running a flow in client/server mode of `flowr`](docs/running/client_server.md)
-- [Distributed execution of jobs with `flowr` and `flowrex`](docs/running/distributed.md)
+- [Running flows](book/running/running.md)
+- [flowc Command Line Arguments](book/running/flowc.md)
+- [Passing command line arguments to flows](book/running/arguments.md)
+- [Specifying the root file to load](book/running/root_file_selection.md)
+- [Standard Input and Output](book/running/stdio.md)
+- [Exceptions and Panics](book/running/panics.md)
+- [Running Flows using `flowr`](book/running/flowr.md)
+- [Running a flow in client/server mode of `flowr`](book/running/client_server.md)
+- [Distributed execution of jobs with `flowr` and `flowrex`](book/running/distributed.md)
 
 # Debugging Flows
-- [The Debugger](docs/debugging/debugger.md)
+- [The Debugger](book/debugging/debugger.md)
 
 # The `flowstdlib` Standard Library
 - [README](flowstdlib/README.md)
@@ -145,10 +145,10 @@
 --------------------------------------------------------------------------------
 
 # Developing `flow`
-- [Developing flow](docs/developing/overview.md)
-- [Pre-requisites](docs/developing/prereqs.md)
-- [Building](docs/developing/building.md)
-- [Crates](docs/developing/crates.md)
+- [Developing flow](book/developing/overview.md)
+- [Pre-requisites](book/developing/prereqs.md)
+- [Building](book/developing/building.md)
+- [Crates](book/developing/crates.md)
     - [flowcore](flowcore/README.md)
     - [flowmacro](flowmacro/README.md)
       - [flowc](flowc/README.md)
@@ -158,17 +158,17 @@
       - [flowrex](flowr/README.md)
       - [flowstdlib](flowstdlib/README.md)
       - [examples](flowr/examples/README.md)
-- [Makefile targets](docs/developing/make.md)
-- [Ways to contribute](docs/developing/contributing.md)
-    - [Issues](docs/developing/issues.md)
-    - [PRs](docs/developing/prs.md)
+- [Makefile targets](book/developing/make.md)
+- [Ways to contribute](book/developing/contributing.md)
+    - [Issues](book/developing/issues.md)
+    - [PRs](book/developing/prs.md)
     - [Developing an example](flowr/examples/README.md)
-    - [Continuous Integration Tests](docs/developing/ci.md)
+    - [Continuous Integration Tests](book/developing/ci.md)
         
 # Internals of the `flow` Project
-- [Internals of flow](docs/internals/overview.md)
-    - [Flow Loading](docs/internals/flow_loading.md)
-    - [Flow Compiling](docs/internals/flow_compiling.md)
-    - [Flow Execution](docs/internals/flow_execution.md)
-    - [Flow Execution State Transitions](docs/internals/state_transitions.md)
+- [Internals of flow](book/internals/overview.md)
+    - [Flow Loading](book/internals/flow_loading.md)
+    - [Flow Compiling](book/internals/flow_compiling.md)
+    - [Flow Execution](book/internals/flow_execution.md)
+    - [Flow Execution State Transitions](book/internals/state_transitions.md)
 

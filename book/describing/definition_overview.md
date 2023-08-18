@@ -1,5 +1,5 @@
-## Guide to Defining Flows
-In this guide to defining flows, we will describe the syntax of definitions files, but also the run-time semantics
+## Defining Flows
+We will describe the syntax of definitions files, but also the run-time semantics
 of flows, functions, jobs, inputs etc in order to understand how a flow will run when defined.
 
 A flow is a static hierarchical grouping of functions that produce and consume data, connected via 
