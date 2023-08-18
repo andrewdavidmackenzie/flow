@@ -1609,7 +1609,7 @@ dependencies = [
 [[package]]
 name = "iced_aw"
 version = "0.6.0"
-source = "git+https://github.com/iced-rs/iced_aw.git?branch=main#d2c04418bb35b5534f07381179aa657026c65a81"
+source = "git+https://github.com/iced-rs/iced_aw.git?branch=main#1c3b933289035380e556961b5e8f9149737b0759"
 dependencies = [
  "iced_widget",
 ]
@@ -3812,7 +3812,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "97fee6b57c6a41524a810daee9286c02d7752c4253064d0b05472833a438f675"
 dependencies = [
  "cfg-if",
- "rand 0.8.5",
+ "rand 0.4.6",
  "static_assertions",
 ]
 
