@@ -43,5 +43,5 @@ Those functions are organized into the following modules, each with multiple fun
 * [stdio](src/bin/flowrcli/context/stdio/stdio.md) - used to interact with stdio
 
 ## `flowrex`
-You can find more details about how to use it in running flows in the [distributed](../docs/running/distributed.md)
+You can find more details about how to use it in running flows in the [distributed](../book/running/distributed.md)
 section.

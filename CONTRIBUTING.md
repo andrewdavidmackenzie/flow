@@ -1,2 +1,2 @@
 # Contributing
-Refer to the [contributing](docs/developing/contributing.md) section of the book.
+Refer to the [contributing](book/developing/contributing.md) section of the book.
