@@ -68,14 +68,13 @@ by a runner and used to execute jobs, distributing execution in a basic fashion
 
 ![Mandlebrot set](docs/images/mandlebrot.png)
 
-- Docs: The [book](SUMMARY.md) covers defining flows, the runtime semantics, a 
-  programmer's guide, docs on tool command line options and how to use them, the `flowstdlib` library
-functions and flows, `flowrcli/flowrgui`'s context functions and more. It is published online 
+- The [book](SUMMARY.md) covers defining flows, the runtime semantics, command line tool options and how to use them, 
+the `flowstdlib` library functions and flows, `flowrcli/flowrgui`'s context functions and more. It is published online 
 [here](https://mackenzie-serres.net/flow/docs/book_intro.html).
  
 ## What made me want to do it?
 You can read more about what made me want to do this project, based on ideas gathered over a few decades
-on and off (combined with looking for a "real" project to use to learn rust!) in the guide's 
+on and off (combined with looking for a "real" project to use to learn rust!) in the book's 
 [Inspirations for flow](docs/introduction/inspirations.md) section. The core reason is: I wanted to know
 if I could do it and make it work, having stopped being a Software Engineer many years ago, based on rough ideas 
 and intuition I had in my head (no real formal knowledge in this area or reading of books and papers - 
@@ -110,7 +109,7 @@ With `flowc` and `flowr` installed, you can run the 'fibonacci' example flow usi
 
 You should get a fibonacci series of numbers output to the terminal.
 
-The [first flow](docs/first_flow/first_flow.md) section of the guide walks you through it.
+The [first flow](docs/first_flow/first_flow.md) section of the book walks you through it.
 
 ## Tech decisions
 ### Job/Work Distribution - with Threads

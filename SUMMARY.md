@@ -18,7 +18,7 @@
 - [Step-by-Step](docs/first_flow/step-by-step.md)
 - [Debugging your first flow](docs/first_flow/debugging.md)
 
-# Guide to Defining Flows
+# Defining Flows
 - [Defining flows](docs/describing/definition_overview.md)
 - [Names](docs/describing/names.md)
 - [Flow IOs](docs/describing/ios.md)

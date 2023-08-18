@@ -1,7 +1,7 @@
 [book]
-title = "The 'flow' Guide"
+title = "The 'flow' book"
 authors = ["Andrew Mackenzie"]
-description = "A guide to 'flow': what it is and how to use it"
+description = "What is 'flow' and how to use it?"
 multilingual = false
 src = "."
 

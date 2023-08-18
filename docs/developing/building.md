@@ -22,7 +22,7 @@ The `make config` target should install them all for you. It should work on `mac
 or `yum` package managers (PRs to Makefile are welcome for other linux package managers).
 
 ### Build and test
-To build and test (includign running the examples and checking their output is correct) as well as building the book 
+To build and test (including running the examples and checking their output is correct) as well as building the book 
 and ensuring all links are value, use:
 
 `make`
@@ -41,7 +41,7 @@ The Project is structured into a number of rust crates that form part of a rust 
 
 Currently, two binaries are built: `flowc` the flow compiler two flow runners `flowrcli` and `flowrgui`.
 
-See the [Project Components and Structure section](../introduction/structure.md) of the Guide for more details.
+See the [Project Components and Structure section](../introduction/structure.md) of the book for more details.
 
 ## Contributing
 I organize all issues in a [Github Project](https://github.com/andrewdavidmackenzie/flow/projects/2)

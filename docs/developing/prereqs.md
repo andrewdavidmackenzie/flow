@@ -6,7 +6,7 @@ These are the pre-requisites that are required to build and test 'flow':
 * `zmq` (Zero Message Queue) library
 * `graphviz` utilities for automatic generation of SVG files for the book
 
-For building the guide:
+For building the book:
 	```mdbook``` and the ```mdbook-linkcheck``` plug-in
 
 ## Installing pre-requisites
