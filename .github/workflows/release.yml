@@ -108,9 +108,9 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         run: |
           cd $HOME/.flow/lib
-          tar -cJf flowstdlib.tar.xz flowstdlib
+          tar -cJf flowstdlib-${{ needs.create-release.outputs.tag }}.tar.xz flowstdlib
           cd -
-          gh release upload ${{ needs.create-release.outputs.tag }} $HOME/.flow/lib/flowstdlib.tar.xz
+          gh release upload ${{ needs.create-release.outputs.tag }} $HOME/.flow/lib/flowstdlib-${{ needs.create-release.outputs.tag }}.tar.xz
       - name: build flowrcli
         if: matrix.os == 'ubuntu-latest'
         run: target/${{ matrix.target }}/dist/flowc flowr/src/bin/flowrcli
@@ -118,9 +118,9 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         run: |
           cd $HOME/.flow/runner
-          tar -cJf flowrcli.tar.xz flowrcli
+          tar -cJf flowrcli-${{ needs.create-release.outputs.tag }}.tar.xz flowrcli
           cd -
-          gh release upload ${{ needs.create-release.outputs.tag }} $HOME/.flow/runner/flowrcli.tar.xz
+          gh release upload ${{ needs.create-release.outputs.tag }} $HOME/.flow/runner/flowrcli-${{ needs.create-release.outputs.tag }}.tar.xz
       - name: build flowrgui
         if: matrix.os == 'ubuntu-latest'
         run: target/${{ matrix.target }}/dist/flowc flowr/src/bin/flowrgui
@@ -128,9 +128,9 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         run: |
           cd $HOME/.flow/runner
-          tar -cJf flowrgui.tar.xz flowrgui
+          tar -cJf flowrgui-${{ needs.create-release.outputs.tag }}.tar.xz flowrgui
           cd -
-          gh release upload ${{ needs.create-release.outputs.tag }} $HOME/.flow/runner/flowrgui.tar.xz
+          gh release upload ${{ needs.create-release.outputs.tag }} $HOME/.flow/runner/flowrgui-${{ needs.create-release.outputs.tag }}.tar.xz
 
   # Compute and upload the manifest for everything
   upload-manifest:
