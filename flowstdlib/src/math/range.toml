@@ -20,7 +20,7 @@ to = "range_split/range"
 
 # Send the numbers (ranges that cannot be split further) to the output
 [[connection]]
-from = "range_split/same"
+from = "range_split/number"
 to = "output/number"
 
 # Feedback the two sub-ranges for further splitting

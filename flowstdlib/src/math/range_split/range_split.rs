@@ -13,7 +13,7 @@ fn _range_split(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
 
     if min == max {
         // if the two are the same, we are done, output as "number"
-        output_map.insert("same".into(), json!(min));
+        output_map.insert("number".into(), json!(min));
     } else {
         // split the range_split into two and output for further subdivision
         let bottom: Vec<i64> = vec!(min, ((max-min)/2) + min);
@@ -25,7 +25,7 @@ fn _range_split(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
             output_map.insert("top".into(), json!(top));
         } else {
             // if the two are the same, we are done, output as "number"
-            output_map.insert("same".into(), json!(max));
+            output_map.insert("number".into(), json!(max));
         }
     }
 
@@ -77,7 +77,7 @@ mod test {
             if let Some(top) = result.pointer("/top") {
                 requires_further_splitting.push(top.clone());
             }
-            if let Some(sequence) = result.pointer("/same") {
+            if let Some(sequence) = result.pointer("/number") {
                 acquired_set.push(sequence.clone());
             }
         }
