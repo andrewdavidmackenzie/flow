@@ -32,7 +32,7 @@ alias = "width-gate"
 source = "lib://flowstdlib/control/join"
 
 [[connection]]
-from = "y-sequence/sequence"
+from = "y-sequence/number"
 to = "width-gate/control"
 
 [[connection]]
@@ -51,7 +51,7 @@ source = "lib://flowstdlib/data/duplicate"
 
 # Connect y value to a duplicator that will produce 'width' instances of it
 [[connection]]
-from = "y-sequence/sequence"
+from = "y-sequence/number"
 to = "y-duplicator/value"
 
 [[connection]]

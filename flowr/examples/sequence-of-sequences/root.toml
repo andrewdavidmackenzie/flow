@@ -23,7 +23,7 @@ input.start = {always =  0}
 # Connect the list of limits to use for each sequence to the generator of the sequence of sequences
 # use the limit as the step and the limit, so sequences will all be 0..'n' where 'n' is the limit
 [[connection]]
-from = "limit-sequence/sequence"
+from = "limit-sequence/number"
 to = ["sequence-of-sequences/step", "sequence-of-sequences/limit"]
 
 # Print the sequence-of-sequences to stdout
@@ -31,5 +31,5 @@ to = ["sequence-of-sequences/step", "sequence-of-sequences/limit"]
 source = "context://stdio/stdout"
 
 [[connection]]
-from = "sequence-of-sequences/sequence"
+from = "sequence-of-sequences/number"
 to = "stdout"

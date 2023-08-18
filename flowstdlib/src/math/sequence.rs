@@ -27,7 +27,7 @@ input.step = { once = 1 }
 source = \"context://stdio/stdout\"
 
 [[connection]]
-from = \"sequence/sequence\"
+from = \"sequence/number\"
 to = \"stdout\"
 ";
 

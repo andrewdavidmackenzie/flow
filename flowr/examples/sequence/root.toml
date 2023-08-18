@@ -15,7 +15,7 @@ input.start = {once =  2}
 input.step = {once =  3}
 
 [[connection]]
-from = "sequence/sequence"
+from = "sequence/number"
 to = "stdout"
 
 # Output a string to show we're done when the Sequence ends

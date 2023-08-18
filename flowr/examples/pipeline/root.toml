@@ -12,7 +12,7 @@ input.limit = {once =  20}
 input.step = {once =  1}
 
 [[connection]]
-from = "sequence/sequence"
+from = "sequence/number"
 to = "add1/i1"
 
 [[process]]

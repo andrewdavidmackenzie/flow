@@ -25,7 +25,7 @@ source = "lib://flowstdlib/data/accumulate"
 input.partial = {once =  []}
 
 [[connection]]
-from = "sequence/sequence"
+from = "sequence/number"
 to = "accumulate/values"
 
 [[connection]]

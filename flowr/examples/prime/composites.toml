@@ -28,7 +28,7 @@ to = "divisors/limit"
 source = "lib://flowstdlib/math/multiply"
 input.i2 = {always =  2}
 [[connection]]
-from = "divisors/sequence"
+from = "divisors/number"
 to = "multiply/i1"
 [[connection]]
 from = "multiply"
@@ -36,7 +36,7 @@ to = "composite-sequence/start"
 
 # the step each time will be the divisors. e.g. 2, 3
 [[connection]]
-from = "divisors/sequence"
+from = "divisors/number"
 to = "composite-sequence/step"
 
 [[connection]]
@@ -53,7 +53,7 @@ source = "lib://flowstdlib/math/sequence"
 name = "composites"
 type = "number"
 [[connection]]
-from = "composite-sequence/sequence"
+from = "composite-sequence/number"
 to = "output/composites"
 
 

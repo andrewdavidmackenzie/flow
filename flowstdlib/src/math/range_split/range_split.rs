@@ -1,6 +1,3 @@
-use serde_json::{json, Value};
-
-use flowcore::{RUN_AGAIN, RunAgain};
 use flowcore::errors::*;
 use flowmacro::flow_function;
 
@@ -15,7 +12,7 @@ fn _range_split(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
     let mut output_map = serde_json::Map::new();
 
     if min == max {
-        // if the two are the same, we are done, output in the sequence
+        // if the two are the same, we are done, output as "number"
         output_map.insert("same".into(), json!(min));
     } else {
         // split the range_split into two and output for further subdivision
@@ -27,7 +24,7 @@ fn _range_split(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
             let top: Vec<i64> = vec!(above_middle, max);
             output_map.insert("top".into(), json!(top));
         } else {
-            // if the two are the same, we are done, output in the sequence
+            // if the two are the same, we are done, output as "number"
             output_map.insert("same".into(), json!(max));
         }
     }

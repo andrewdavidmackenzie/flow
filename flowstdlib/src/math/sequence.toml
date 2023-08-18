@@ -6,7 +6,7 @@ docs = "sequence.md"
 name = "start"
 type = "number"
 
-# limit of the sequence
+# limit of the sequence - non-inclusive
 [[input]]
 name = "limit"
 type = "number"
@@ -18,7 +18,7 @@ type = "number"
 
 # The sequence of numbers we will generate
 [[output]]
-name = "sequence"
+name = "number"
 type = "number"
 
 # the last value is output when the sequence ends (may not be == limit if step is not 1)
@@ -44,7 +44,7 @@ name = "limit"
 # connect the /right-lte output of compare_switch to the output of this process - the sequence of numbers being generated
 [[connection]]
 from = "compare_switch/right-lte"
-to = "output/sequence"
+to = "output/number"
 name = "sequence"
 
 # while the sequence is running - loopback the left value (limit) to compare against next time

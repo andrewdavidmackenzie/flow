@@ -3,17 +3,20 @@ source = "range_split.rs"
 docs = "range_split.md"
 type = "rust"
 
-# The range_split definition: an array of [smallest number in the range_split, The largest number in the range_split]
+# The range_split definition: an array of
+# [smallest number in the range_split, The largest number in the range_split] - both inclusive
 [[input]]
 name = "range"
 type = "array/number"
 
 # This will be a new range (array of two numbers) in the bottom half of the input range_split
+# Again, both inclusive
 [[output]]
 name = "bottom"
 type = "array/number"
 
 # This will be a new range (array of two numbers) in the top half of the input range_split
+# Again, both inclusive
 [[output]]
 name = "top"
 type = "array/number"
