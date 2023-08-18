@@ -18,21 +18,21 @@ to = "height/i1"
 
 # Sequence of y-coordinates
 [[process]]
-alias = "y-sequence"
+alias = "rows"
 source = "lib://flowstdlib/math/sequence"
 input.start = { once = 0 }
 input.step = { once = 1 }
 
 [[connection]]
 from = "height"
-to = "y-sequence/limit"
+to = "rows/limit"
 
 [[process]]
 alias = "width-gate"
 source = "lib://flowstdlib/control/join"
 
 [[connection]]
-from = "y-sequence/number"
+from = "rows/number"
 to = "width-gate/control"
 
 [[connection]]
@@ -51,7 +51,7 @@ source = "lib://flowstdlib/data/duplicate"
 
 # Connect y value to a duplicator that will produce 'width' instances of it
 [[connection]]
-from = "y-sequence/number"
+from = "rows/number"
 to = "y-duplicator/value"
 
 [[connection]]
