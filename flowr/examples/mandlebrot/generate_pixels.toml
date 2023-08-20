@@ -16,16 +16,22 @@ input.i2 = { once = 1 }
 from = "input/size/1" # 'height' of ['width', 'height'] size input array
 to = "height/i1"
 
-# Sequence of y-coordinates
 [[process]]
-alias = "rows"
-source = "lib://flowstdlib/math/sequence"
-input.start = { once = 0 }
-input.step = { once = 1 }
+source = "lib://flowstdlib/data/zip"
+input.left = { once = 0 }
 
 [[connection]]
 from = "height"
-to = "rows/limit"
+to = "zip/right"
+
+# range of y-coordinates
+[[process]]
+alias = "rows"
+source = "lib://flowstdlib/math/range"
+
+[[connection]]
+from = "zip"
+to = "rows/range"
 
 [[process]]
 alias = "width-gate"

@@ -12,5 +12,4 @@ name = "right" # - the 'right' array
 type = "array/"
 
 [[output]]
-name = "tuples" # - tuples - the array of tuples of (left, right)
 type = "array/"

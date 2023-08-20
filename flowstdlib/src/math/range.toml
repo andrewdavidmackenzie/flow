@@ -6,7 +6,7 @@ docs = "range.md"
 name = "range"
 type = "array/number"
 
-# The series of numbers in the range generated
+# The numbers in the range (inclusive of min and max)
 [[output]]
 name = "number"
 type = "number"

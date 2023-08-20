@@ -6,7 +6,7 @@ docs = "sequence.md"
 name = "start"
 type = "number"
 
-# limit of the sequence - non-inclusive
+# limit of the sequence - inclusive
 [[input]]
 name = "limit"
 type = "number"
@@ -45,7 +45,6 @@ name = "limit"
 [[connection]]
 from = "compare_switch/right-lte"
 to = "output/number"
-name = "sequence"
 
 # while the sequence is running - loopback the left value (limit) to compare against next time
 [[connection]]
