@@ -28,16 +28,16 @@ use crate::job::{Job, JobPayload};
 #[cfg(any(debug_assertions, feature = "debugger", test))]
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum State {
-    /// Ready     - Function will be in Ready state when all of it's inputs are full and there are no inputs
-    ///           it sends to that are full (unless that input is it's own)
+    /// Ready     - Function will be in Ready state when all of it's inputs are full and there are
+    /// no inputs it sends to that are full (unless that input is it's own)
     Ready,
-    /// Blocked   - Function is in Blocked state when there is at least one input it sends to that is full
-    ///           (unless that input is it's own, as then it will be emptied when the function runs)
+    /// Blocked   - Function is in Blocked state when there is at least one input it sends to that
+    /// is full (unless that input is it's own, as then it will be emptied when the function runs)
     Blocked,
     /// Waiting   - Function is in Blocked state when at least one of it's inputs is not full
     Waiting,
-    /// Running   - Function is in Running state when it has been picked from the Ready list for execution
-    ///           using the next() function
+    /// Running   - Function is in Running state when it has been picked from the Ready list for
+    /// execution using the next() function
     Running,
     /// Completed - Function has indicated that it no longer wants to be run, so it's execution
     ///           has completed.
