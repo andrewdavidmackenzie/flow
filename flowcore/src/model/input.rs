@@ -230,7 +230,7 @@ impl Input {
     {
         for value in array {
             trace!("\t\t\tPushing array element '{value}'");
-            self.received.push(value.clone());
+            self.received.push(value);
         }
     }
 
