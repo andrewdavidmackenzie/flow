@@ -426,41 +426,6 @@ impl RunState {
         self.number_of_jobs_created
     }
 
-    // Given a function id, prepare a job for execution that contains the input values, the
-    // implementation and the destination functions the output should be sent to when done
-    // When creating the job we make the Url referring to the implementation absolute, as provided
-    // implementation paths are relative to the location of the manifest
-    fn create_job(&mut self, function_id: usize, flow_id: usize) -> Result<Job> {
-        self.number_of_jobs_created += 1;
-        let job_id = self.number_of_jobs_created;
-        let function = self.get_mut(function_id)
-            .ok_or_else(|| format!("Could not get the function with id = {function_id}"))?;
-        let implementation_url = function.get_implementation_url().clone();
-
-        match function.take_input_set() {
-            Ok(input_set) => {
-
-                let job = Job {
-                    function_id,
-                    flow_id,
-                    connections: function.get_output_connections().clone(),
-                    payload: JobPayload {
-                        job_id,
-                        implementation_url,
-                        input_set,
-                    },
-                    result: Ok((None, false)),
-                };
-                trace!("Job #{job_id}: Job Created for Function #{function_id}({flow_id})");
-
-                Ok(job)
-            }
-            Err(_) => {
-                bail!("Job #{job_id}: Error while creating job for Function #{function_id}");
-            }
-        }
-    }
-
     // Complete a Job by taking its output and updating the run-list accordingly.
     //
     // If other functions were blocked trying to send to this one - we can now unblock them
@@ -603,7 +568,7 @@ impl RunState {
 
         let function = self.get_mut(connection.destination_id)
             .ok_or("Could not get function")?;
-        let count_before = function.input_set_count();
+        let job_count_before = function.input_sets_available();
         function.send(connection.destination_io_number, output_value);
 
         #[cfg(feature = "metrics")]
@@ -613,7 +578,7 @@ impl RunState {
         // blocking sending internally within a flow
         let block = (function.input_count(connection.destination_io_number) > 0)
             && !loopback && !same_flow;
-        let new_input_set_available = function.input_set_count() > count_before;
+        let new_job_available = function.input_sets_available() > job_count_before;
 
         if block {
             // TODO pass in connection
@@ -631,7 +596,7 @@ impl RunState {
         // postpone the decision about making the sending function Ready when we have a loopback
         // connection that sends a value to itself, as it may also send to other functions and need
         // to be blocked. But for all other receivers of values, make them Ready or Blocked
-        if new_input_set_available && !loopback {
+        if new_job_available && !loopback {
             self.make_ready_or_blocked(connection.destination_id,
                                        connection.destination_flow_id)?;
         }
@@ -737,13 +702,44 @@ impl RunState {
         Ok(())
     }
 
-    // Make a function ready by creating a new job for it in the ready_job queue
+    // Make a function ready by creating one or more new jobs for it in the ready_job queue
+    // And marking the flow containing it as busy
     fn make_ready(&mut self, function_id: usize, flow_id: usize) -> Result<()>{
         trace!("\t\t\tFunction #{function_id} State set to 'Ready'");
-        let job = self.create_job(function_id, flow_id)?;
-        self.ready_jobs.push_back(job);
+
+        let job = self.create_job(function_id, flow_id).ok_or("Error")?;
+//        while let Some(job) = self.create_job(function_id, flow_id) {
+            self.ready_jobs.push_back(job);
+//        }
+        // TODO will we need multiple entries in busy flows if multiple jobs?
         self.busy_flows.insert(flow_id, function_id);
         Ok(())
+    }
+
+    // Given a function id, prepare a job for execution that contains the input values, the
+    // implementation and the destination functions the output should be sent to when done
+    // When creating the job we make the Url referring to the implementation absolute, as provided
+    // implementation paths are relative to the location of the manifest
+    fn create_job(&mut self, function_id: usize, flow_id: usize) -> Option<Job> {
+        self.number_of_jobs_created += 1;
+        let job_id = self.number_of_jobs_created;
+        let function = self.get_mut(function_id)?;
+        let input_set  = function.take_input_set()?;
+        let implementation_url = function.get_implementation_url().clone();
+        let job = Job {
+            function_id,
+            flow_id,
+            connections: function.get_output_connections().clone(),
+            payload: JobPayload {
+                job_id,
+                implementation_url,
+                input_set,
+            },
+            result: Ok((None, false)),
+        };
+        trace!("Job #{job_id}: Job Created for Function #{function_id}({flow_id})");
+
+        Some(job)
     }
 
     /// Return how many functions exist in this flow being executed

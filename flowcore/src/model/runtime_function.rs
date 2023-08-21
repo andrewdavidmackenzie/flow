@@ -216,10 +216,10 @@ impl RuntimeFunction {
         self.inputs[input_number].count()
     }
 
-    /// Returns how many inputs sets are available across all the `RuntimeFunction` `Inputs`
+    /// Returns how many jobs can be created for this function with the available inputs
     /// NOTE: For Impure functions without inputs (that can always run and produce a value)
     /// this will return usize::MAX
-    pub fn input_set_count(&self) -> usize {
+    pub fn input_sets_available(&self) -> usize {
         let mut num_input_sets = usize::MAX;
 
         for input in &self.inputs {
@@ -233,7 +233,7 @@ impl RuntimeFunction {
     ///     - it has input sets to allow it to run
     ///     - it has no inputs and so can always run
     pub fn can_run(&self) -> bool {
-        self.inputs.is_empty() || self.input_set_count() > 0
+        self.inputs.is_empty() || self.input_sets_available() > 0
     }
 
     /// Inspect the values of the `inputs` of a `RuntimeFunction`
@@ -249,12 +249,12 @@ impl RuntimeFunction {
     }
 
     /// Read the values from the inputs and return them for use in executing the `RuntimeFunction`
-    pub fn take_input_set(&mut self) -> Result<Vec<Value>> {
-        let mut input_set: Vec<Value> = Vec::new();
+    pub fn take_input_set(&mut self) -> Option<Vec<Value>> {
+        let mut input_set: Vec<Value> = Vec::with_capacity(self.inputs.len());
         for input in &mut self.inputs {
             input_set.push(input.take()?);
         }
-        Ok(input_set)
+        Some(input_set)
     }
 }
 
