@@ -706,8 +706,6 @@ impl RunState {
     // Make a function ready by creating one or more new jobs for it in the ready_job queue
     // And marking the flow containing it as busy
     fn make_ready(&mut self, function_id: usize, flow_id: usize) -> Result<()> {
-
-    //    let job = self.create_job(function_id, flow_id).ok_or("Error")?;
         loop {
             self.number_of_jobs_created += 1;
             let job_id = self.number_of_jobs_created;
