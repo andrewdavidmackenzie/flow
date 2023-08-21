@@ -150,6 +150,11 @@ impl Input {
         &self.name
     }
 
+    /// Return a reference to the initializer
+    pub fn initializer(&self) -> &Option<InputInitializer> {
+        &self.initializer
+    }
+
     /// Initialize an input with the InputInitializer if it has one, either on the function directly
     /// or via a connection from a flow input
     /// When called at start-up    it will initialize      if it's a OneTime or Always initializer
