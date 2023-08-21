@@ -232,13 +232,13 @@ impl Input {
     /// Take the first element from the Input and return it.
     pub fn take(&mut self) -> Option<Value> {
         if self.received.is_empty() {
-            if let Some(Always(value)) = &self.initializer {
-                return Some(value.clone());
+            return if let Some(Always(value)) = &self.initializer {
+                Some(value.clone())
             } else if let Some(Always(value)) = &self.flow_initializer {
                 // TODO take into account if flow blocked
-                return Some(value.clone());
+                Some(value.clone())
             } else {
-                return None;
+                None
             }
         }
 
