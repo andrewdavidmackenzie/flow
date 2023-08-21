@@ -8,6 +8,7 @@ use url::Url;
 
 use crate::errors::*;
 use crate::model::input::Input;
+use crate::model::input::InputInitializer;
 use crate::model::output_connection::OutputConnection;
 
 #[derive(Deserialize, Serialize, Clone, PartialEq, Eq, Debug,)]
@@ -255,6 +256,21 @@ impl RuntimeFunction {
             input_set.push(input.take()?);
         }
         Some(input_set)
+    }
+
+    /// Will this function always be able to create new jobs no matter what
+    pub fn is_always_ready(&self) -> bool {
+        if self.inputs.is_empty() {
+            return true;
+        }
+
+        for input in &self.inputs {
+            if !matches!(input.initializer(), Some(InputInitializer::Always(_))) {
+                return false;
+            }
+        }
+
+        true
     }
 }
 
