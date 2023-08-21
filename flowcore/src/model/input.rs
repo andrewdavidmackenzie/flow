@@ -5,7 +5,6 @@ use log::trace;
 use serde_derive::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
-use crate::errors::*;
 use crate::model::datatype::DataType;
 use crate::model::input::InputInitializer::{Always, Once};
 use crate::model::io::IO;
@@ -152,12 +151,12 @@ impl Input {
     }
 
     /// Take the first element from the Input and return it.
-    pub fn take(&mut self) -> Result<Value> {
+    pub fn take(&mut self) -> Option<Value> {
         if self.received.is_empty() {
-            bail!("Trying to take from an empty Input");
+            return None;
         }
 
-        Ok(self.received.remove(0))
+        Some(self.received.remove(0))
     }
 
     /// Initialize an input with the InputInitializer if it has one, either on the function directly
@@ -261,7 +260,7 @@ mod test {
     #[test]
     fn take_from_empty_fails() {
         let mut input = Input::new(#[cfg(feature = "debugger")] "", 0, false,  None, None);
-        assert!(input.take().is_err());
+        assert!(input.take().is_none());
     }
 
     #[test]
