@@ -210,7 +210,7 @@ impl<'a> Coordinator<'a> {
         let mut display_output = false;
         let mut restart = false;
 
-        while let Some(job) = state.get_job() {
+        while let Some(job) = state.get_next_job() {
             match self.dispatch_a_job(
                 job.clone(),
                 state,

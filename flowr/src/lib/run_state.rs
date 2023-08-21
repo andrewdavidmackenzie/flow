@@ -363,7 +363,7 @@ impl RunState {
     }
 
     // Return a new job to run, if there is one and there are not too many jobs already running
-    pub(crate) fn get_job(&mut self) -> Option<Job> {
+    pub(crate) fn get_next_job(&mut self) -> Option<Job> {
         if let Some(limit) = self.submission.max_parallel_jobs {
             if self.number_jobs_running() >= limit {
                 trace!("Max Pending Job count of {limit} reached, skipping new jobs");
@@ -705,41 +705,41 @@ impl RunState {
 
     // Make a function ready by creating one or more new jobs for it in the ready_job queue
     // And marking the flow containing it as busy
-    fn make_ready(&mut self, function_id: usize, flow_id: usize) -> Result<()>{
+    fn make_ready(&mut self, function_id: usize, flow_id: usize) -> Result<()> {
 
-        let job = self.create_job(function_id, flow_id).ok_or("Error")?;
-  //      while let Some(job) = self.create_job(function_id, flow_id) {
-            self.ready_jobs.push_back(job);
-  //      }
-        // TODO will we need multiple entries in busy flows if multiple jobs?
-        self.busy_flows.insert(flow_id, function_id);
-        Ok(())
-    }
+    //    let job = self.create_job(function_id, flow_id).ok_or("Error")?;
+        loop {
+            self.number_of_jobs_created += 1;
+            let job_id = self.number_of_jobs_created;
+            let function = self.get_mut(function_id)
+                .ok_or("Could not get function")?;
+            if let Some(input_set)  = function.take_input_set() {
+                let implementation_url = function.get_implementation_url().clone();
+                let job = Job {
+                    function_id,
+                    flow_id,
+                    connections: function.get_output_connections().clone(),
+                    payload: JobPayload {
+                        job_id,
+                        implementation_url,
+                        input_set,
+                    },
+                    result: Ok((None, false)),
+                };
+                debug!("Job #{job_id}: Job Created for Function #{function_id}({flow_id}) in 'ready_jobs'");
 
-    // Given a function id, prepare a job for execution that contains the input values, the
-    // implementation and the destination functions the output should be sent to when done
-    // When creating the job we make the Url referring to the implementation absolute, as provided
-    // implementation paths are relative to the location of the manifest
-    fn create_job(&mut self, function_id: usize, flow_id: usize) -> Option<Job> {
-        self.number_of_jobs_created += 1;
-        let job_id = self.number_of_jobs_created;
-        let function = self.get_mut(function_id)?;
-        let input_set  = function.take_input_set()?;
-        let implementation_url = function.get_implementation_url().clone();
-        let job = Job {
-            function_id,
-            flow_id,
-            connections: function.get_output_connections().clone(),
-            payload: JobPayload {
-                job_id,
-                implementation_url,
-                input_set,
-            },
-            result: Ok((None, false)),
-        };
-        debug!("Job #{job_id}: Job Created for Function #{function_id}({flow_id}) in 'ready_jobs'");
-
-        Some(job)
+                // avoid getting stuck in a loop generating jobs for a function
+                if function.is_always_ready() {
+                    self.ready_jobs.push_back(job);
+                    self.busy_flows.insert(flow_id, function_id);
+                    return Ok(());
+                }
+                self.ready_jobs.push_back(job);
+                self.busy_flows.insert(flow_id, function_id);
+            } else {
+                return Ok(())
+            }
+        }
     }
 
     /// Return how many functions exist in this flow being executed
@@ -1292,7 +1292,7 @@ mod test {
             assert!(state.function_state_is_only(0, State::Ready), "f_a should be Ready");
 
             // Event
-            let job = state.get_job().expect("Couldn't get next job");
+            let job = state.get_next_job().expect("Couldn't get next job");
             state.start_job(job.clone()).expect("Could not start job");
 
             // Test
@@ -1308,7 +1308,7 @@ mod test {
             assert!(state.function_state_is_only(0, State::Waiting), "f_a should be Waiting");
 
             // Event
-            assert!(state.get_job().is_none(), "next_job() should return None");
+            assert!(state.get_next_job().is_none(), "next_job() should return None");
 
             // Test
             assert!(state.function_state_is_only(0, State::Waiting), "f_a should be Waiting");
@@ -1356,8 +1356,8 @@ mod test {
 
             state.init().expect("Could not init state");
             assert!(state.function_state_is_only(0, State::Ready), "f_a should be Ready");
-            let job = state.get_job().expect("Couldn't get next job");
-            assert_eq!(0, job.function_id, "next() should return function_id = 0");
+            let job = state.get_next_job().expect("Couldn't get next job");
+            assert_eq!(0, job.function_id, "get_next_job() should return function_id = 0");
             state.start_job(job.clone()).expect("Could not start job");
 
             state.running_jobs.get(&job.payload.job_id).expect("Job with f_a should be Running");
@@ -1395,7 +1395,7 @@ mod test {
 
             state.init().expect("Could not init state");
             assert!(state.function_state_is_only(0, State::Ready), "f_a should be Ready");
-            let job = state.get_job().expect("Couldn't get next job");
+            let job = state.get_next_job().expect("Couldn't get next job");
             assert_eq!(0, job.function_id, "next() should return function_id = 0");
             state.start_job(job.clone()).expect("Could not start job");
 
@@ -1644,7 +1644,7 @@ mod test {
         #[test]
         fn no_next_if_none_ready() {
             let mut state = RunState::new(super::test_submission(test_functions()));
-            assert!(state.get_job().is_none());
+            assert!(state.get_next_job().is_none());
         }
 
         #[test]
@@ -1654,7 +1654,7 @@ mod test {
             // Put 0 on the blocked/ready
             state.make_ready_or_blocked(0, 0).expect("Could not make ready or blocked");
 
-            state.get_job().expect("Couldn't get next job");
+            state.get_next_job().expect("Couldn't get next job");
         }
 
         #[test]
@@ -1664,7 +1664,7 @@ mod test {
             // Put 0 on the blocked/ready list depending on blocked status
             state.make_ready_or_blocked(0, 0).expect("Could not make ready or blocked");
 
-            state.get_job().expect("Couldn't get next job");
+            state.get_next_job().expect("Couldn't get next job");
         }
 
         #[test]
@@ -1690,7 +1690,7 @@ mod test {
             // Put 0 on the blocked/ready list depending on blocked status
             state.make_ready_or_blocked(0, 0).expect("Could not make ready or blocked");
 
-            assert!(state.get_job().is_none());
+            assert!(state.get_next_job().is_none());
         }
 
         #[test]
@@ -1726,14 +1726,14 @@ mod test {
             // Put 0 on the blocked/ready list depending on blocked status
             state.make_ready_or_blocked(0, 0).expect("Could not make ready or blocked");
 
-            assert!(state.get_job().is_none());
+            assert!(state.get_next_job().is_none());
 
             // now unblock 0 by 1
             state.block_external_flow_senders(0, 1, 0)
                 .expect("Could not unblock");
 
             // Now function with id 0 should still not be ready as still blocked on 2
-            assert!(state.get_job().is_none());
+            assert!(state.get_next_job().is_none());
         }
 
         #[test]
@@ -1743,9 +1743,9 @@ mod test {
 
             state.init().expect("Could not init state");
 
-            let _ = state.get_job().expect("Couldn't get next job");
+            let _ = state.get_next_job().expect("Couldn't get next job");
 
-            assert!(state.get_job().is_none(), "Did not expect a Ready job!");
+            assert!(state.get_next_job().is_none(), "Did not expect a Ready job!");
         }
 
         /*
@@ -1768,7 +1768,7 @@ mod test {
 
             state.init().expect("Could not init state");
 
-            let job = state.get_job().expect("Couldn't get next job");
+            let job = state.get_next_job().expect("Couldn't get next job");
             state.start_job(job.clone()).expect("Could not start job");
 
             // Test there is no problem producing an Output when no destinations to send it to
