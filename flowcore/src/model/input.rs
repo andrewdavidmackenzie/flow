@@ -1,7 +1,7 @@
 #[cfg(feature = "debugger")]
 use std::fmt;
 
-use log::trace;
+use log::debug;
 use serde_derive::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
@@ -150,15 +150,6 @@ impl Input {
         &self.name
     }
 
-    /// Take the first element from the Input and return it.
-    pub fn take(&mut self) -> Option<Value> {
-        if self.received.is_empty() {
-            return None;
-        }
-
-        Some(self.received.remove(0))
-    }
-
     /// Initialize an input with the InputInitializer if it has one, either on the function directly
     /// or via a connection from a flow input
     /// When called at start-up    it will initialize      if it's a OneTime or Always initializer
@@ -228,19 +219,42 @@ impl Input {
     fn send_array(&mut self, array: Vec<Value>)
     {
         for value in array {
-            trace!("\t\t\tPushing array element '{value}'");
+            debug!("\t\t\tPushing array element '{value}'");
             self.received.push(value);
         }
     }
 
-    /// Return the total number of values queued up, across all priorities, in this input
+    /// Take the first element from the Input and return it.
+    pub fn take(&mut self) -> Option<Value> {
+        if self.received.is_empty() {
+            if let Some(Always(value)) = &self.initializer {
+                return Some(value.clone());
+            } else if let Some(Always(value)) = &self.flow_initializer {
+                // TODO take into account if flow blocked
+                return Some(value.clone());
+            } else {
+                return None;
+            }
+        }
+
+        Some(self.received.remove(0))
+    }
+
+    /// Return the total number of values queued up in this input, if it has
+    /// an 'Always' initializer, then return usize::MAX as it can always return a value
     pub fn count(&self) -> usize {
-        self.received.len()
+        if let Some(Always(_)) = self.initializer {
+            usize::MAX
+        } else if let Some(Always(_)) = self.flow_initializer {
+            usize::MAX
+        } else {
+            self.received.len()
+        }
     }
 
     /// Return true if there are no more values available from this input
     pub fn is_empty(&self) -> bool {
-        self.received.is_empty()
+        self.count() == 0
     }
 }
 

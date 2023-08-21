@@ -496,7 +496,8 @@ impl RunState {
                     // Refill any inputs with function initializers
                     function.init_inputs(false, false);
 
-                    // NOTE: May have input sets due to sending to self via a loopback
+                    // NOTE: The function we are retiring may have new input sets due to sending
+                    // to itself via a loopback
                     if function.can_run() {
                         self.make_ready(job.function_id, job.flow_id)?;
                     }
@@ -705,12 +706,11 @@ impl RunState {
     // Make a function ready by creating one or more new jobs for it in the ready_job queue
     // And marking the flow containing it as busy
     fn make_ready(&mut self, function_id: usize, flow_id: usize) -> Result<()>{
-        trace!("\t\t\tFunction #{function_id} State set to 'Ready'");
 
         let job = self.create_job(function_id, flow_id).ok_or("Error")?;
-//        while let Some(job) = self.create_job(function_id, flow_id) {
+  //      while let Some(job) = self.create_job(function_id, flow_id) {
             self.ready_jobs.push_back(job);
-//        }
+  //      }
         // TODO will we need multiple entries in busy flows if multiple jobs?
         self.busy_flows.insert(flow_id, function_id);
         Ok(())
@@ -737,7 +737,7 @@ impl RunState {
             },
             result: Ok((None, false)),
         };
-        trace!("Job #{job_id}: Job Created for Function #{function_id}({flow_id})");
+        debug!("Job #{job_id}: Job Created for Function #{function_id}({flow_id}) in 'ready_jobs'");
 
         Some(job)
     }
