@@ -1,8 +1,8 @@
 **/manifest.json
 **/*.dot
 **/*.dot.svg
-**/*.stderr
-**/*.stdout
+**/test.stderr
+**/test.stdout
 **/*.wasm
-**/*.file
+**/test.file
 **/Cargo.lock
