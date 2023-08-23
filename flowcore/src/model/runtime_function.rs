@@ -251,6 +251,10 @@ impl RuntimeFunction {
 
     /// Read the values from the inputs and return them for use in executing the `RuntimeFunction`
     pub fn take_input_set(&mut self) -> Option<Vec<Value>> {
+        if !self.can_run() {
+            return None;
+        }
+
         let mut input_set: Vec<Value> = Vec::with_capacity(self.inputs.len());
         for input in &mut self.inputs {
             input_set.push(input.take()?);

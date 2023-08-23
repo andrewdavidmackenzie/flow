@@ -179,7 +179,7 @@ fn compare_and_fail(expected_path: PathBuf, actual_path: PathBuf) {
             .stdout(Stdio::inherit())
             .spawn()
             .expect("Could not get child process");
-        let output = diff.wait_with_output().expect("Could not get child process output");
+        let output = diff.wait_with_output().expect("Could not get diff output");
         if output.status.success() {
             return;
         }

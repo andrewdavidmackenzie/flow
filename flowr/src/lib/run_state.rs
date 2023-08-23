@@ -713,6 +713,8 @@ impl RunState {
                 .ok_or("Could not get function")?;
             if let Some(input_set)  = function.take_input_set() {
                 let implementation_url = function.get_implementation_url().clone();
+                debug!("Job #{job_id}: Job Created for Function #{function_id}({flow_id}) \
+                in 'ready_jobs' with inputs: {:?}", input_set);
                 let job = Job {
                     function_id,
                     flow_id,
@@ -724,7 +726,6 @@ impl RunState {
                     },
                     result: Ok((None, false)),
                 };
-                debug!("Job #{job_id}: Job Created for Function #{function_id}({flow_id}) in 'ready_jobs'");
 
                 // avoid getting stuck in a loop generating jobs for a function
                 if function.is_always_ready() {

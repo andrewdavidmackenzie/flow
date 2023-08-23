@@ -5,37 +5,56 @@ docs = "DESCRIPTION.md"
 version = "0.11.0"
 authors = ["Andrew Mackenzie <andrew@mackenzie-serres.net>"]
 
+# Generate a sequence of numbers from 10 to 29 inclusive
 [[process]]
 source = "lib://flowstdlib/math/sequence"
-input.start = {once =  1}
-input.limit = {once =  20}
+input.start = {once =  10}
+input.limit = {once =  29}
 input.step = {once =  1}
+
+# Accumulate the stream of numbers from sequence into arrays of size 4
+[[process]]
+alias = "accumulator"
+source = "lib://flowstdlib/data/accumulate"
+input.partial = {once = []}
+input.chunk_size = {always =  4}
 
 [[connection]]
 from = "sequence/number"
 to = "accumulator/values"
 
-[[process]]
-alias = "accumulator"
-source = "lib://flowstdlib/data/accumulate"
-input.partial = {once =  []}
-input.chunk_size = {always =  4}
-
+# Loop back the partially accumulated array
 [[connection]]
 from = "accumulator/partial"
 to = "accumulator/partial"
 
-[[connection]]
-from = "accumulator/chunk"
-to = "add/i1"
-
+# Add one to every number generated
 [[process]]
 source = "lib://flowstdlib/math/add"
 input.i2 = {always =  1}
 
+# Runtime will deserialize array chunks into individual numbers that are sent to 'add'
+[[connection]]
+from = "accumulator/chunk"
+to = "add/i1"
+
+# Count the number of numbers that are produced, initialized to 0
+[[process]]
+source = "lib://flowstdlib/data/count"
+input.count = { once = 0 }
+
 [[connection]]
 from = "add"
-to = "stdout"
+to = "count/data"
+
+# Loop back the accumulating count
+[[connection]]
+from = "count/count"
+to = "count/count"
 
 [[process]]
 source = "context://stdio/stdout"
+
+[[connection]]
+from = "count/count"
+to = "stdout"
