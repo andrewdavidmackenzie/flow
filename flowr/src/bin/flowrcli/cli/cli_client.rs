@@ -69,7 +69,7 @@ impl CliRuntimeClient {
             CoordinatorMessage::FlowEnd(metrics) => {
                 debug!("=========================== Flow execution ended ======================================");
                 if self.display_metrics {
-                    println!("\nMetrics: \n {metrics}");
+                    println!("\nMetrics: \n{metrics}");
                     let _ = io::stdout().flush();
                 }
 

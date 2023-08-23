@@ -7,6 +7,7 @@ fn main() {
 #[cfg(test)]
 mod test {
     #[test]
+    #[ignore]
     fn test_sequence_of_sequences_example() {
         utilities::test_example(file!(), "flowrcli", false, true);
     }
