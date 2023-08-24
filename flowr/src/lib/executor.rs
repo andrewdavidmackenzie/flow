@@ -156,7 +156,7 @@ fn execution_loop(
                     let payload: JobPayload = serde_json::from_str(message_string)
                         .map_err(|_| "Could not deserialize Message to Job")?;
 
-                    debug!("Job #{}: Received for execution", payload.job_id);
+                    debug!("Job #{}: Received by {}", payload.job_id, name);
                     match execute_job(provider.clone(),
                                       &payload,
                                       &results_sink,
