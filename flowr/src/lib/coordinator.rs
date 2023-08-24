@@ -130,38 +130,14 @@ impl<'a> Coordinator<'a> {
                     break 'jobs;
                 }
 
-                if state.number_jobs_running() > 0 {
-                    match self.dispatcher.get_next_result() {
-                        Ok(result) => {
-                            let job;
+                (display_next_output, restart) = self.retire_jobs(
+                    &mut state,
+                    #[cfg(feature = "metrics")]
+                    &mut metrics,
+                )?;
 
-                            (display_next_output, restart, job) = state.retire_job(
-                                #[cfg(feature = "metrics")] &mut metrics,
-                                result,
-                                #[cfg(feature = "debugger")] &mut self.debugger,
-                            )?;
-                            #[cfg(feature = "debugger")]
-                            if display_next_output {
-                                (display_next_output, restart) =
-                                    self.debugger.job_done(&mut state, &job)?;
-                                if restart {
-                                    break 'jobs;
-                                }
-                            }
-                        }
-
-                        Err(err) => {
-                            error!("\t{}", err.to_string());
-                            #[cfg(feature = "debugger")]
-                            if state.submission.debug_enabled {
-                                (display_next_output, restart) = self.debugger.error(
-                                    &mut state, err.to_string())?;
-                                if restart {
-                                    break 'jobs;
-                                }
-                            }
-                        }
-                    }
+                if restart {
+                    break 'jobs;
                 }
 
                 if state.number_jobs_running() == 0 && state.number_jobs_ready() == 0 {
@@ -200,6 +176,47 @@ impl<'a> Coordinator<'a> {
         Ok(()) // Normal flow completion exit
     }
 
+    // Retire as many jobs as possible, based on returned results
+    fn retire_jobs(&mut self,
+                   state: &mut RunState,
+                   #[cfg(feature = "metrics")] metrics: &mut Metrics,
+    ) -> Result<(bool, bool)> {
+        let mut display_next_output = false;
+        let mut restart = false;
+
+        if state.number_jobs_running() > 0 {
+            match self.dispatcher.get_next_result() {
+                Ok(result) => {
+                    let job;
+
+                    (display_next_output, restart, job) = state.retire_a_job(
+                        #[cfg(feature = "metrics")] metrics,
+                        result,
+                        #[cfg(feature = "debugger")] &mut self.debugger,
+                    )?;
+                    #[cfg(feature = "debugger")]
+                    if display_next_output {
+                        (display_next_output, restart) = self.debugger.job_done(state, &job)?;
+                        if restart {
+                            return Ok((display_next_output, restart));
+                        }
+                    }
+                }
+
+                Err(err) => {
+                    error!("\t{}", err.to_string());
+                    #[cfg(feature = "debugger")]
+                    if state.submission.debug_enabled {
+                        return self.debugger.error(state, err.to_string());
+                    }
+                    return Ok((display_next_output, restart));
+                }
+            }
+        }
+
+        Ok((display_next_output, restart))
+    }
+
     // Dispatch as many jobs as possible for parallel execution.
     // Return if the debugger is requesting (display output, restart)
     fn dispatch_jobs(
@@ -207,7 +224,7 @@ impl<'a> Coordinator<'a> {
         state: &mut RunState,
         #[cfg(feature = "metrics")] metrics: &mut Metrics,
     ) -> Result<(bool, bool)> {
-        let mut display_output = false;
+        let mut display_next_output = false;
         let mut restart = false;
 
         while let Some(job) = state.get_next_job() {
@@ -218,7 +235,7 @@ impl<'a> Coordinator<'a> {
                 metrics,
             ) {
                 Ok((display, rest)) => {
-                    display_output = display;
+                    display_next_output = display;
                     restart = rest;
                 }
                 Err(err) => {
@@ -231,7 +248,7 @@ impl<'a> Coordinator<'a> {
             }
         }
 
-        Ok((display_output, restart))
+        Ok((display_next_output, restart))
     }
 
     // Dispatch a job for execution
