@@ -192,8 +192,6 @@ pub struct RunState {
     ready_jobs: VecDeque<Job>,
     /// running: set of [Jobs][crate::job::Job] that are running
     running_jobs: HashMap<usize, Job>,
-    /// maintain a count of the number of jobs running
-    num_running: usize,
     /// completed: [RuntimeFunction][flowcore::model::runtime_function::RuntimeFunction]
     /// that have run to completion and won't run again
     completed: HashSet<usize>,
@@ -216,7 +214,6 @@ impl RunState {
             blocks: HashSet::<Block>::new(),
             ready_jobs: VecDeque::<Job>::new(),
             running_jobs: HashMap::<usize, Job>::new(),
-            num_running: 0,
             completed: HashSet::<usize>::new(),
             number_of_jobs_created: 0,
             busy_flows: MultiMap::<usize, usize>::new(),
@@ -241,7 +238,6 @@ impl RunState {
         self.blocks.clear();
         self.ready_jobs.clear();
         self.running_jobs.clear();
-        self.num_running = 0;
         self.completed.clear();
         self.number_of_jobs_created = 0;
         self.busy_flows.clear();
@@ -379,7 +375,6 @@ impl RunState {
         self.block_external_flow_senders(job.payload.job_id, job.function_id,
                                          job.flow_id)?;
         self.running_jobs.insert(job.payload.job_id, job);
-        self.num_running += 1;
         Ok(())
     }
 
@@ -447,8 +442,6 @@ impl RunState {
         let mut job = self.running_jobs.remove(&result.0)
             .ok_or_else(|| format!("Job#{} was not running, so not applying results returned",
                                    result.0))?;
-
-        self.num_running -= 1;
 
         match &result.1 {
             Ok((output_value, function_can_run_again)) => {
@@ -632,7 +625,7 @@ impl RunState {
 
     /// Return how many jobs are currently running
     pub fn number_jobs_running(&self) -> usize {
-        self.num_running
+        self.running_jobs.len()
     }
 
     /// Return how many jobs are ready to be run, but not running yet
@@ -893,7 +886,7 @@ impl fmt::Display for RunState {
 
         writeln!(f, "RunState:")?;
         writeln!(f, "          Jobs Created: {}", self.number_of_jobs_created)?;
-        writeln!(f, "Number of Jobs Running: {}", self.num_running)?;
+        writeln!(f, "Number of Jobs Running: {}", self.running_jobs.len())?;
         writeln!(f, "          Jobs Running: {:?}", self.running_jobs.keys())?;
         writeln!(f, "     Functions Blocked: {:?}", self.blocked)?;
         writeln!(f, "                Blocks: {:?}", self.blocks)?;
@@ -1020,7 +1013,7 @@ mod test {
         )
     }
 
-    fn test_job(state: &mut RunState, source_function_id: usize, destination_function_id: usize) -> Job {
+    fn test_job(source_function_id: usize, destination_function_id: usize) -> Job {
         let out_conn = OutputConnection::new(
             Source::default(),
             destination_function_id,
@@ -1030,7 +1023,6 @@ mod test {
             #[cfg(feature = "debugger")]
             String::default(),
         );
-        state.num_running += 1;
         Job {
             function_id: source_function_id,
             flow_id: 0,
@@ -1455,7 +1447,7 @@ mod test {
             assert!(state.function_state_is_only(0, State::Waiting), "f_a should be Waiting");
 
             // Event run f_b which will send to f_a
-            let job = super::test_job(&mut state, 1, 0);
+            let job = super::test_job(1, 0);
             state.start_job(job.clone()).expect("Could not start job");
 
             state.retire_job(
@@ -1518,7 +1510,7 @@ mod test {
             );
 
             // create output from f_b as if it had run - will send to f_a
-            let job = super::test_job(&mut state, 1, 0);
+            let job = super::test_job(1, 0);
             state.start_job(job.clone()).expect("Could not start job");
 
             state.retire_job(
