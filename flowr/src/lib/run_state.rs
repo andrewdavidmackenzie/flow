@@ -430,7 +430,7 @@ impl RunState {
     // sent to, marking the source function as blocked because those others must consume the output
     // if those other function have all their inputs, then mark them accordingly.
     #[allow(unused_variables, unused_assignments, unused_mut)]
-    pub(crate) fn retire_job(
+    pub(crate) fn retire_a_job(
         &mut self,
         #[cfg(feature = "metrics")] metrics: &mut Metrics,
         result: (usize, Result<(Option<Value>, RunAgain)>),
@@ -1354,7 +1354,7 @@ mod test {
 
             // Event
             let job = test_job();
-            state.retire_job(
+            state.retire_a_job(
                 #[cfg(feature = "metrics")]
                 &mut metrics,
                 (job.payload.job_id, job.result),
@@ -1393,7 +1393,7 @@ mod test {
 
             // Event
             let job = test_job();
-            state.retire_job(
+            state.retire_a_job(
                 #[cfg(feature = "metrics")]
                 &mut metrics,
                 (job.payload.job_id, job.result),
@@ -1449,7 +1449,7 @@ mod test {
             let job = super::test_job(1, 0);
             state.start_job(job.clone()).expect("Could not start job");
 
-            state.retire_job(
+            state.retire_a_job(
                 #[cfg(feature = "metrics")]
                 &mut metrics,
                 (job.payload.job_id, job.result),
@@ -1512,7 +1512,7 @@ mod test {
             let job = super::test_job(1, 0);
             state.start_job(job.clone()).expect("Could not start job");
 
-            state.retire_job(
+            state.retire_a_job(
                 #[cfg(feature = "metrics")]
                 &mut metrics,
                 (job.payload.job_id, job.result),
@@ -1762,7 +1762,7 @@ mod test {
             state.start_job(job.clone()).expect("Could not start job");
 
             // Test there is no problem producing an Output when no destinations to send it to
-            state.retire_job(
+            state.retire_a_job(
                 #[cfg(feature = "metrics")]
                 &mut metrics,
                 (job.payload.job_id, job.result),
