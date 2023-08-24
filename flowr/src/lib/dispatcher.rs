@@ -69,14 +69,14 @@ impl Dispatcher {
         }.map_err(|e| format!("Error setting results timeout: {e}").into())
     }
 
-    // Wait for, then return the next Job with results returned from executors
+    // Wait for, then return the next Result returned from executors
     #[allow(clippy::type_complexity)]
     pub(crate) fn get_next_result(&mut self) -> Result<(usize, Result<(Option<Value>, RunAgain)>)> {
         let msg = self.results_socket.recv_msg(0)
             .map_err(|_| "Error receiving result")?;
         let message_string = msg.as_str().ok_or("Could not get message as str")?;
         serde_json::from_str(message_string)
-            .map_err(|_| "Could not Deserialize JobPayload from zmq message string".into())
+            .map_err(|_| "Could not Deserialize from zmq message string".into())
     }
 
     // Send a `Job` for execution to executors
