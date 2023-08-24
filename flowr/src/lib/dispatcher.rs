@@ -9,6 +9,9 @@ use flowcore::RunAgain;
 
 use crate::job::JobPayload;
 
+const WAIT:i32 = 0;
+// static DONT_WAIT:i32 = DONTWAIT;
+
 /// `Dispatcher` structure holds information required to send jobs for execution and receive results back
 pub struct Dispatcher {
     // A source of lib jobs to be executed
@@ -72,7 +75,7 @@ impl Dispatcher {
     // Wait for, then return the next Result returned from executors
     #[allow(clippy::type_complexity)]
     pub(crate) fn get_next_result(&mut self) -> Result<(usize, Result<(Option<Value>, RunAgain)>)> {
-        let msg = self.results_socket.recv_msg(0)
+        let msg = self.results_socket.recv_msg(WAIT)
             .map_err(|_| "Error receiving result")?;
         let message_string = msg.as_str().ok_or("Could not get message as str")?;
         serde_json::from_str(message_string)
