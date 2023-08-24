@@ -14,15 +14,14 @@ Click image to navigate flow hierarchy.
 Features Used
 ===
 * Root Flow
+* Getting structured json input from readline/stdin
 * Connections between functions
-* Loop-back connections to accumulate an array, used to gather Numbers into array/number and then array/number into
-array/array/number (i.e. Matrix)
-* Initializing function inputs with values, once and constantly
 * Multiple connections into and out of functions
-* Library Functions `to_json`, `multiply`, `subtract` from `flowstdlib`
-* Library Functions `tap`, `compare` from `flowstdlib`
+* Library Function `multiply` from `flowstdlib`
 * Use of aliases to refer to functions with different names inside a flow
-* Automatic array decomposing into the elements the array holds when target function input does not accept the array type
+* Automatic array decomposing into the elements the array holds when target function input does not accept the 
+array type
+* Accumulating stream of items into an array of items using 'accumulate'
 
 Functions Diagram
 ===
