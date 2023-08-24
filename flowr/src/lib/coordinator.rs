@@ -176,7 +176,8 @@ impl<'a> Coordinator<'a> {
         Ok(()) // Normal flow completion exit
     }
 
-    // Retire as many jobs as possible, based on returned results
+    // Retire as many jobs as possible, based on returned results.
+    // NOTE: This will block waiting for the last pending result
     fn retire_jobs(&mut self,
                    state: &mut RunState,
                    #[cfg(feature = "metrics")] metrics: &mut Metrics,
