@@ -440,8 +440,7 @@ impl RunState {
         let mut restart = false;
 
         let mut job = self.running_jobs.remove(&result.0)
-            .ok_or_else(|| format!("Job#{} was not running, so not applying results returned",
-                                   result.0))?;
+            .ok_or_else(|| format!("Could not find Job#{} to retire it", result.0))?;
 
         match &result.1 {
             Ok((output_value, function_can_run_again)) => {
