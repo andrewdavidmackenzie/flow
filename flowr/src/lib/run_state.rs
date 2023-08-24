@@ -362,7 +362,7 @@ impl RunState {
     pub(crate) fn get_next_job(&mut self) -> Option<Job> {
         if let Some(limit) = self.submission.max_parallel_jobs {
             if self.number_jobs_running() >= limit {
-                trace!("Max Pending Job count of {limit} reached, skipping new jobs");
+                trace!("max_parallel_jobs limit of {limit} reached");
                 return None;
             }
         }
