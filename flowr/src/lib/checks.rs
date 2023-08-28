@@ -319,7 +319,7 @@ mod test {
         let mut state = test_state(vec![function]);
 
         // Mark the flow the function is in as busy via ready
-        state.make_ready_or_blocked(0, 0).expect("Couldn't get next job");
+        state.create_jobs_or_block(0, 0).expect("Couldn't get next job");
 
         // this ready_check() should pass
         ready_check(&state, 0, state.get_function(0)
@@ -345,7 +345,7 @@ mod test {
 
         // mark flow_id as busy - to pass the running check a running function's flow_id
         // should be in the list of busy flows
-        state.make_ready_or_blocked(0, 0).expect("Couldn't get next job");
+        state.create_jobs_or_block(0, 0).expect("Couldn't get next job");
 
         // this running check should fail
         running_check(&state, 0, state.get_function(0)
