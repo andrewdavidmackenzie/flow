@@ -273,7 +273,7 @@ impl RunState {
         }
 
         for (function_id, flow_id) in make_ready_list {
-            self.make_ready(function_id, flow_id)?;
+            self.create_jobs(function_id, flow_id)?;
         }
 
         Ok(())
@@ -491,7 +491,7 @@ impl RunState {
                     // NOTE: The function we are retiring may have new input sets due to sending
                     // to itself via a loopback
                     if function.can_run() {
-                        self.make_ready(job.function_id, job.flow_id)?;
+                        self.create_jobs(job.function_id, job.flow_id)?;
                     }
                 } else {
                     // otherwise mark it as completed as it will never run again
@@ -590,8 +590,8 @@ impl RunState {
         // connection that sends a value to itself, as it may also send to other functions and need
         // to be blocked. But for all other receivers of values, make them Ready or Blocked
         if new_job_available && !loopback {
-            self.make_ready_or_blocked(connection.destination_id,
-                                       connection.destination_flow_id)?;
+            self.create_jobs_or_block(connection.destination_id,
+                                      connection.destination_flow_id)?;
         }
 
         Ok((display_next_output, restart))
@@ -683,13 +683,13 @@ impl RunState {
     // - it has a full set of inputs, so can be run and produce an output
     // - it has no input and is impure, so can run and produce an output
     // In which case it should transition to one of two states: Ready or Blocked
-    pub(crate) fn make_ready_or_blocked(&mut self, function_id: usize, flow_id: usize)
-    -> Result<()> {
+    pub(crate) fn create_jobs_or_block(&mut self, function_id: usize, flow_id: usize)
+                                       -> Result<()> {
         if self.block_exists(function_id) {
             trace!( "\t\t\tFunction #{function_id} blocked on output. State set to 'Blocked'");
             self.blocked.insert(function_id);
         } else {
-            self.make_ready(function_id, flow_id)?;
+            self.create_jobs(function_id, flow_id)?;
         }
 
         Ok(())
@@ -697,7 +697,7 @@ impl RunState {
 
     // Make a function ready by creating one or more new jobs for it in the ready_job queue
     // And marking the flow containing it as busy
-    fn make_ready(&mut self, function_id: usize, flow_id: usize) -> Result<()> {
+    fn create_jobs(&mut self, function_id: usize, flow_id: usize) -> Result<()> {
         loop {
             self.number_of_jobs_created += 1;
             let job_id = self.number_of_jobs_created;
@@ -813,7 +813,7 @@ impl RunState {
 
                 let function = self.get_function(block.blocked_function_id).ok_or("No such function")?;
                 if function.can_run() {
-                    self.make_ready_or_blocked(block.blocked_function_id, block.blocked_flow_id)?;
+                    self.create_jobs_or_block(block.blocked_function_id, block.blocked_flow_id)?;
                 }
             }
         }
@@ -826,7 +826,7 @@ impl RunState {
         let mut initialized_functions = Vec::<usize>::new();
         for function in &mut self.submission.manifest.get_functions().iter_mut() {
             if function.get_flow_id() == flow_id &&
-                !self.completed.contains(&function.id()){
+                !self.completed.contains(&function.id()) {
                 let could_run_before = function.can_run();
                 function.init_inputs(false, true);
                 let can_run_now = function.can_run();
@@ -838,7 +838,7 @@ impl RunState {
         }
 
         for function_id in initialized_functions {
-            self.make_ready_or_blocked(function_id, flow_id)?;
+            self.create_jobs_or_block(function_id, flow_id)?;
         }
 
         Ok(())
@@ -1641,7 +1641,7 @@ mod test {
             let mut state = RunState::new(super::test_submission(test_functions()));
 
             // Put 0 on the blocked/ready
-            state.make_ready_or_blocked(0, 0).expect("Could not make ready or blocked");
+            state.create_jobs_or_block(0, 0).expect("Could not make ready or blocked");
 
             state.get_next_job().expect("Couldn't get next job");
         }
@@ -1651,7 +1651,7 @@ mod test {
             let mut state = RunState::new(super::test_submission(test_functions()));
 
             // Put 0 on the blocked/ready list depending on blocked status
-            state.make_ready_or_blocked(0, 0).expect("Could not make ready or blocked");
+            state.create_jobs_or_block(0, 0).expect("Could not make ready or blocked");
 
             state.get_next_job().expect("Couldn't get next job");
         }
@@ -1677,7 +1677,7 @@ mod test {
             );
 
             // Put 0 on the blocked/ready list depending on blocked status
-            state.make_ready_or_blocked(0, 0).expect("Could not make ready or blocked");
+            state.create_jobs_or_block(0, 0).expect("Could not make ready or blocked");
 
             assert!(state.get_next_job().is_none());
         }
@@ -1713,7 +1713,7 @@ mod test {
             );
 
             // Put 0 on the blocked/ready list depending on blocked status
-            state.make_ready_or_blocked(0, 0).expect("Could not make ready or blocked");
+            state.create_jobs_or_block(0, 0).expect("Could not make ready or blocked");
 
             assert!(state.get_next_job().is_none());
 
