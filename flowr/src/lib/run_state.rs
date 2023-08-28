@@ -719,14 +719,13 @@ impl RunState {
                     result: Ok((None, false)),
                 };
 
-                // avoid getting stuck in a loop generating jobs for a function
-                if function.is_always_ready() {
-                    self.ready_jobs.push_back(job);
-                    self.busy_flows.insert(flow_id, function_id);
-                    return Ok(());
-                }
+                // avoid getting stuck in a loop generating jobs for a function - generate just one
+                let always_ready = function.is_always_ready();
                 self.ready_jobs.push_back(job);
                 self.busy_flows.insert(flow_id, function_id);
+                if always_ready {
+                    return Ok(());
+                }
             } else {
                 return Ok(())
             }
