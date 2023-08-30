@@ -132,7 +132,6 @@
     - [mandlebrot](flowr/examples/mandlebrot/DESCRIPTION.md)
       - [escapes](flowr/examples/mandlebrot/escapes/escapes.md) provided function
       - [pixel_to_point](flowr/examples/mandlebrot/pixel_to_point/pixel_to_point.md) provided function
-    - [matrix multiplication](flowr/examples/matrix_mult/DESCRIPTION.md)
     - [pipeline](flowr/examples/pipeline/DESCRIPTION.md)
     - [prime](flowr/examples/prime/DESCRIPTION.md)
     - [primitives](flowr/examples/primitives/DESCRIPTION.md)
