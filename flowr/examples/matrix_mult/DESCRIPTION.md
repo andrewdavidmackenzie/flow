@@ -1,4 +1,4 @@
-factorial
+matrix_mult
 ==
 
 Description
@@ -17,7 +17,7 @@ Features Used
 * Getting structured json input from readline/stdin
 * Connections between functions
 * Multiple connections into and out of functions
-* Library Function `multiply` from `flowstdlib`
+* Library Function `multiply` from `flowstdlib` `matrix` module
 * Use of aliases to refer to functions with different names inside a flow
 * Automatic array decomposing into the elements the array holds when target function input does not accept the 
 array type

@@ -6,7 +6,7 @@ use flowcore::model::lib_manifest::ImplementationLocator::Native;
 use flowcore::model::lib_manifest::LibraryManifest;
 use flowcore::model::metadata::MetaData;
 
-use crate::{control, data, fmt, math};
+use crate::{control, data, fmt, math, matrix};
 use crate::errors::Result;
 
 /// Return the LibraryManifest for this library
@@ -36,11 +36,6 @@ pub fn get_manifest() -> Result<LibraryManifest> {
     manifest.locators.insert(
             Url::parse("lib://flowstdlib/data/duplicate")?,
             Native(Arc::new(data::duplicate::Duplicate)),
-        );
-
-    manifest.locators.insert(
-            Url::parse("lib://flowstdlib/data/duplicate_rows")?,
-            Native(Arc::new(data::duplicate_rows::DuplicateRows)),
         );
 
     manifest.locators.insert(
@@ -109,11 +104,6 @@ pub fn get_manifest() -> Result<LibraryManifest> {
         );
 
     manifest.locators.insert(
-            Url::parse("lib://flowstdlib/data/multiply_row")?,
-            Native(Arc::new(data::multiply_row::MultiplyRow)),
-        );
-
-    manifest.locators.insert(
             Url::parse("lib://flowstdlib/math/compare")?,
             Native(Arc::new(math::compare::Compare)),
         );
@@ -168,9 +158,20 @@ pub fn get_manifest() -> Result<LibraryManifest> {
             Native(Arc::new(data::sort::Sort)),
         );
 
+    // Matrix module functions
     manifest.locators.insert(
-            Url::parse("lib://flowstdlib/data/transpose")?,
-            Native(Arc::new(data::transpose::Transpose)),
+        Url::parse("lib://flowstdlib/matrix/duplicate_rows")?,
+        Native(Arc::new(matrix::duplicate_rows::DuplicateRows)),
+    );
+
+    manifest.locators.insert(
+        Url::parse("lib://flowstdlib/matrix/multiply_row")?,
+        Native(Arc::new(matrix::multiply_row::MultiplyRow)),
+    );
+
+    manifest.locators.insert(
+            Url::parse("lib://flowstdlib/matrix/transpose")?,
+            Native(Arc::new(matrix::transpose::Transpose)),
         );
 
     Ok(manifest)

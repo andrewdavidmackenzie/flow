@@ -1,4 +1,4 @@
-#[doc = include_str!("sequence.md")]
+#[doc = include_str!("multiply.md")]
 
 #[cfg(test)]
 mod test {
@@ -10,34 +10,31 @@ mod test {
     use super::super::super::test::execute_flow;
 
     #[test]
-    fn test_sequence_flow() {
+    fn test_multiply_flow() {
         let flow = "\
-flow = \"sequence_test\"
+flow = \"matrix_multiply_test\"
 
 [[process]]
-source = \"lib://flowstdlib/math/sequence\"
-input.start = { once = 1 }
-input.limit = { once = 10 }
-input.step = { once = 1 }
+source = \"lib://flowstdlib/matrix/multiply\"
+input.a = { once = [[1, 2],[3, 4]] }
+input.b = { once = [[4, 5],[6, 7]] }
 
 [[process]]
 source = \"context://stdio/stdout\"
 
 [[connection]]
-from = \"sequence/number\"
+from = \"multiply/product\"
 to = \"stdout\"
 ";
 
         let temp_dir = TempDir::new("flow").expect("Could not create TempDir").into_path();
-        let flow_filename = temp_dir.join("sequence_test.toml");
+        let flow_filename = temp_dir.join("matrix_multiply_test.toml");
         let mut flow_file =
             File::create(&flow_filename).expect("Could not create lib manifest file");
         flow_file.write_all(flow.as_bytes()).expect("Could not write data bytes to created flow file");
 
         let stdout = execute_flow(flow_filename);
-
-        let numbers: Vec<i32> = stdout.lines().map(|l| l.parse::<i32>().expect("Not a number")).collect::<Vec<i32>>();
-        assert_eq!(numbers, vec!(1, 2, 3, 4, 5, 6, 7, 8, 9, 10));
+        assert_eq!(stdout, "[[19,22],[43,50]]".to_string());
     }
 
 }

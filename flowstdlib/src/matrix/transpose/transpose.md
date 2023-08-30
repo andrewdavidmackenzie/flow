@@ -1,5 +1,5 @@
 ## Transpose (//flowstdlib/data/transpose)
-Transpose a matricies rows and columns
+Transpose a matrix's rows and columns
 
 ### Include using
 ```toml

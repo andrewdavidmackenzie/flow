@@ -1,4 +1,5 @@
 flow = "multiply"
+docs = "multiply.md"
 
 [[input]]
 name = "a"
@@ -29,7 +30,7 @@ from = "input/a"
 to ="a_info"
 
 [[process]]
-source = "lib://flowstdlib/data/duplicate_rows"
+source = "lib://flowstdlib/matrix/duplicate_rows"
 
 [[connection]]
 from = "input/a"

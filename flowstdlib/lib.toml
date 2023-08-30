@@ -11,15 +11,12 @@ members = [
     "data/append",
     "data/count",
     "data/duplicate",
-    "data/duplicate_rows",
     "data/enumerate",
     "data/info",
-    "data/multiply_row",
     "data/ordered_split",
     "data/remove",
     "data/sort",
     "data/split",
-    "data/transpose",
     "data/zip",
     "fmt/reverse",
     "fmt/to_json",
@@ -30,7 +27,10 @@ members = [
     "math/multiply",
     "math/range_split",
     "math/sqrt",
-    "math/subtract"
+    "math/subtract",
+    "matrix/duplicate_rows",
+    "matrix/multiply_row",
+    "matrix/transpose",
 ]
 
 resolver = "2"
