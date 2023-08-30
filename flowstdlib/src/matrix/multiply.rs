@@ -16,8 +16,8 @@ flow = \"matrix_multiply_test\"
 
 [[process]]
 source = \"lib://flowstdlib/matrix/multiply\"
-input.a = { once = [[1, 2],[3, 4]] }
-input.b = { once = [[4, 5],[6, 7]] }
+input.a = { once = [[1,2],[3,4]] }
+input.b = { once = [[5,6],[7,8]] }
 
 [[process]]
 source = \"context://stdio/stdout\"
@@ -34,7 +34,7 @@ to = \"stdout\"
         flow_file.write_all(flow.as_bytes()).expect("Could not write data bytes to created flow file");
 
         let stdout = execute_flow(flow_filename);
-        assert_eq!(stdout, "[[19,22],[43,50]]".to_string());
+        assert_eq!(stdout, "[[19,22],[43,50]]\n".to_string());
     }
 
 }
