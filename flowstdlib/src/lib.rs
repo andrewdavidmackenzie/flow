@@ -27,6 +27,9 @@ pub mod data;
 /// Math Functions and flows
 pub mod math;
 
+/// Matrix functions and flows
+pub mod matrix;
+
 /// Functions for the formatting of values and conversion from one type to another.
 pub mod fmt;
 

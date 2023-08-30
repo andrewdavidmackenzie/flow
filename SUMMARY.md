@@ -90,15 +90,12 @@
     - [append](flowstdlib/src/data/append/append.md)
     - [count](flowstdlib/src/data/count/count.md)
     - [duplicate](flowstdlib/src/data/duplicate/duplicate.md)
-    - [duplicate_rows](flowstdlib/src/data/duplicate_rows/duplicate_rows.md)
     - [enumerate](flowstdlib/src/data/enumerate/enumerate.md)
     - [info](flowstdlib/src/data/info/info.md)
-    - [multiply_row](flowstdlib/src/data/multiply_row/multiply_row.md)
     - [ordered_split](flowstdlib/src/data/ordered_split/ordered_split.md)
     - [remove](flowstdlib/src/data/remove/remove.md)
     - [sort](flowstdlib/src/data/sort/sort.md)
     - [split](flowstdlib/src/data/split/split.md)
-    - [transpose](flowstdlib/src/data/transpose/transpose.md)
     - [zip](flowstdlib/src/data/zip/zip.md)
 - [fmt](flowstdlib/src/fmt/fmt.md)
     - [reverse](flowstdlib/src/fmt/reverse/reverse.md)
@@ -114,6 +111,11 @@
     - [sequence](flowstdlib/src/math/sequence.md)
     - [sqrt](flowstdlib/src/math/sqrt/sqrt.md)
     - [subtract](flowstdlib/src/math/subtract/subtract.md)
+- [matrix] 
+    - [duplicate_rows](flowstdlib/src/matrix/duplicate_rows/duplicate_rows.md)
+    - [multiply](flowstdlib/src/matrix/multiply.md)
+    - [multiply_row](flowstdlib/src/matrix/multiply_row/multiply_row.md)
+    - [transpose](flowstdlib/src/matrix/transpose/transpose.md)
     
 # Examples flows
 - [Examples Intro](flowr/examples/README.md)

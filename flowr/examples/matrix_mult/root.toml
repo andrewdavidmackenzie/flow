@@ -24,7 +24,7 @@ from = "readline/json"
 to = "select_1/value"
 
 [[process]]
-source = "multiply"
+source = "lib://flowstdlib/matrix/multiply"
 
 [[connection]]
 from = "select_0/selected_value"

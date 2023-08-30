@@ -1,8 +1,5 @@
 #[doc = include_str!("range.md")]
 
-#[allow(unused_imports)]
-use flowmacro::flow_function;
-
 #[cfg(test)]
 mod test {
     use std::fs::File;
