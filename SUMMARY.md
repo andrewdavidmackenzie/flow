@@ -111,7 +111,7 @@
     - [sequence](flowstdlib/src/math/sequence.md)
     - [sqrt](flowstdlib/src/math/sqrt/sqrt.md)
     - [subtract](flowstdlib/src/math/subtract/subtract.md)
-- [matrix] 
+- [matrix](flowstdlib/src/matrix/matrix.md)
     - [duplicate_rows](flowstdlib/src/matrix/duplicate_rows/duplicate_rows.md)
     - [multiply](flowstdlib/src/matrix/multiply.md)
     - [multiply_row](flowstdlib/src/matrix/multiply_row/multiply_row.md)
