@@ -37,7 +37,7 @@ from = "input/a"
 to = "duplicate_rows"
 
 [[process]]
-source = "lib://flowstdlib/data/transpose"
+source = "lib://flowstdlib/matrix/transpose"
 
 [[connection]]
 from = "input/b"
@@ -60,7 +60,7 @@ to = "duplicate_rows/factor"
 
 [[process]]
 alias = "multiply"
-source = "lib://flowstdlib/data/multiply_row"
+source = "lib://flowstdlib/matrix/multiply_row"
 
 [[connection]]
 from = "duplicate_rows"
