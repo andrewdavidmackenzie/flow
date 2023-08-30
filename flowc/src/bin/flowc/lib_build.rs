@@ -189,7 +189,7 @@ fn copy_definition_to_output_dir(toml_path: &Path, output_dir: &Path) -> Result<
                                           .ok_or("Could not get Toml file filename")?);
 
     println!("   {} {} to {}", "Copying".green(),
-        toml_path.file_name().ok_or_else(|| "Could not get file name")?.to_string_lossy(),
+        toml_path.file_name().ok_or("Could not get file name")?.to_string_lossy(),
              output_file.display());
 
     fs::copy(toml_path, &output_file)?;
@@ -224,7 +224,7 @@ fn compile_functions(
             Ok(walk_entry) => {
                 let toml_path = walk_entry.path();
                 let toml_filename = toml_path.file_name()
-                    .ok_or_else(|| "Could not get toml file name")?.to_string_lossy();
+                    .ok_or("Could not get toml file name")?.to_string_lossy();
                 if toml_filename == "function.toml" {
                     continue;
                 }
