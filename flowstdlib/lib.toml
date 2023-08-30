@@ -4,7 +4,8 @@
 members = [
     "control/compare_switch",
     "control/index",
-    "control/join", "control/route",
+    "control/join",
+    "control/route",
     "control/select",
     "control/tap",
     "data/accumulate",
