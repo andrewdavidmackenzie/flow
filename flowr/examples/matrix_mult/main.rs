@@ -7,7 +7,6 @@ fn main() {
 #[cfg(test)]
 mod test {
     #[test]
-    #[ignore]
     fn test_matrix_mult_example() {
         utilities::test_example(file!(), "flowrcli", false, true);
     }
