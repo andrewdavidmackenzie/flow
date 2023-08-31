@@ -236,31 +236,34 @@ impl Application for FlowrGui {
     }
 
     fn view(&self) -> Element<'_, Message> {
-        let mut main = Column::new().spacing(10);
-
-        main = main
+        let main = Column::new().spacing(10)
             .push(self.command_row())
             .push(self.tab_set.view())
             .push(self.status_row())
             .padding(10);
 
-        modal(self.show_modal, main,
-            Card::new(
+        let overlay = if self.show_modal {
+            Some(Card::new(
                 Text::new(self.modal_content.clone().0),
                 Text::new(self.modal_content.clone().1),
             )
-            .foot(
-                Row::new()
-                    .spacing(10)
-                    .padding(5)
-                    .width(Length::Fill)
-                    .push(
-                        Button::new(Text::new("OK")
-                            .horizontal_alignment(Horizontal::Center))
-                            .width(Length::Fill)
-                            .on_press(Message::CloseModal)),
-            )
-            .max_width(300.0))
+                .foot(
+                    Row::new()
+                        .spacing(10)
+                        .padding(5)
+                        .width(Length::Fill)
+                        .push(
+                            Button::new(Text::new("OK")
+                                .horizontal_alignment(Horizontal::Center))
+                                .width(Length::Fill)
+                                .on_press(Message::CloseModal)),
+                )
+                .max_width(300.0))
+        } else {
+            None
+        };
+
+        modal(main, overlay)
         .backdrop(Message::CloseModal)
         .on_esc(Message::CloseModal)
         .into()
