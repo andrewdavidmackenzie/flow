@@ -1,4 +1,4 @@
-range-of-ranges
+sequence-of-sequences
 ==
 
 Description
@@ -6,7 +6,7 @@ Description
 A flow that generates a sequence of numbers, and for each of those numbers it generates a sequence
 from 1 upto the number from the sequence.
 
-This is intended as a test case for having nested flows.
+This shows nested flows, and the inner flow running an "inner loop"
 
 Root Diagram
 ===
