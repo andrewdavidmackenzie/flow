@@ -38,9 +38,9 @@ pub fn run_example(source_file: &str, runner: &str, flowrex: bool, native: bool)
     println!("\t\tRunner: {}", runner);
     println!("\t\tSTDIN is read from {TEST_STDIN_FILENAME}");
     println!("\t\tArguments are read from {TEST_ARGS_FILENAME}");
-    println!("\t\tSTDOUT is sent to {TEST_STDOUT_FILENAME}");
-    println!("\t\tSTDERR to {TEST_STDERR_FILENAME}");
-    println!("\t\tFile output to {TEST_FILE_FILENAME}");
+    println!("\t\tSTDOUT is saved in {TEST_STDOUT_FILENAME}");
+    println!("\t\tSTDERR is saved in {TEST_STDERR_FILENAME}");
+    println!("\t\tFile output is saved in {TEST_FILE_FILENAME}");
 
     // Remove any previous output
     let _ = fs::remove_file(sample_dir.join(TEST_STDERR_FILENAME));
