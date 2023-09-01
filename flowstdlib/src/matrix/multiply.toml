@@ -50,15 +50,25 @@ from = "input/b"
 to = "transpose"
 
 [[process]]
+alias = "duplicate_columns"
 source = "lib://flowstdlib/data/duplicate"
 
 [[connection]]
 from = "transpose/matrix"
-to = "duplicate/value"
+to = "duplicate_columns/value"
+
+[[process]]
+alias = "duplicate_column_indexes"
+source = "lib://flowstdlib/data/duplicate"
+
+[[connection]]
+from = "transpose/column_indexes"
+to = "duplicate_column_indexes/value"
 
 [[connection]]
 from = "b_info/columns"
-to = "duplicate/factor"
+to = ["duplicate_columns/factor", "duplicate_column_indexes/factor"]
+
 
 # Do the row x column product for the rows and columns
 [[process]]
@@ -71,7 +81,7 @@ from = "duplicate_rows/matrix"
 to = "multiply_row/a"
 
 [[connection]]
-from = "duplicate"
+from = "duplicate_columns"
 to = "multiply_row/b"
 
 # Gather the values into rows of the matrix product

@@ -8,6 +8,7 @@ use flowmacro::flow_function;
 #[allow(clippy::needless_range_loop)]
 fn _transpose(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
     let mut output_matrix: Vec<Value> = vec![]; // vector of Value::Array - i.e. array of rows
+    let mut col_indexes = vec![];
     let mut output_map = serde_json::Map::new();
 
     let matrix = inputs[0].as_array().ok_or("Could not get array")?;
@@ -24,9 +25,11 @@ fn _transpose(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
             new_row.push(matrix[new_col_num][new_row_num].clone());
         }
         output_matrix.push(Value::Array(new_row));
+        col_indexes.push(new_row_num);
     }
 
     output_map.insert("matrix".into(), json!(output_matrix));
+    output_map.insert("column_indexes".into(), json!(col_indexes));
 
     Ok((Some(Value::Object(output_map)), RUN_AGAIN))
 }
