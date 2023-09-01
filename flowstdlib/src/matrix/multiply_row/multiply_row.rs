@@ -7,6 +7,8 @@ use flowmacro::flow_function;
 #[flow_function]
 fn _multiply_row(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
     let mut product = 0;
+    let mut output_map = serde_json::Map::new();
+
     let row0 = inputs[0].as_array().ok_or("Could not get row0")?;
     let row1 = inputs[1].as_array().ok_or("Could not get row1")?;
 
@@ -18,7 +20,9 @@ fn _multiply_row(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
         }
     }
 
-    Ok((Some(json!(product)), RUN_AGAIN))
+    output_map.insert("product".into(), json!(product));
+
+    Ok((Some(Value::Object(output_map)), RUN_AGAIN))
 }
 
 #[cfg(test)]
@@ -37,8 +41,8 @@ mod test {
 
         let (result, _) = _multiply_row(&inputs).expect("_multiply_row() failed");
 
-        let product = result.expect("Could not get the Value from the output");
+        let output = result.expect("Could not get the Value from the output");
 
-        assert_eq!(product, json!(11));
+        assert_eq!(output.pointer("/product").expect("Could not get 'product' output"), &json!(11));
     }
 }

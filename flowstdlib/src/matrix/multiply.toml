@@ -59,16 +59,15 @@ from = "b_info/columns"
 to = "duplicate_rows/factor"
 
 [[process]]
-alias = "multiply"
 source = "lib://flowstdlib/matrix/multiply_row"
 
 [[connection]]
 from = "duplicate_rows"
-to = "multiply/a"
+to = "multiply_row/a"
 
 [[connection]]
 from = "duplicate"
-to = "multiply/b"
+to = "multiply_row/b"
 
 [[process]]
 alias = "compose_rows"
@@ -84,7 +83,7 @@ from = "compose_rows/chunk_size"
 to = "compose_rows/chunk_size"
 
 [[connection]]
-from = "multiply"
+from = "multiply_row/product"
 to = "compose_rows/values"
 
 [[connection]]

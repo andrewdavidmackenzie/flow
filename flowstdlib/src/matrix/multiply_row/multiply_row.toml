@@ -12,4 +12,13 @@ name = "b"
 type = "array/number"
 
 [[output]]
+name = "product"
+type = "number"
+
+[[output]]
+name = "a_index"
+type = "number"
+
+[[output]]
+name = "b_index"
 type = "number"
