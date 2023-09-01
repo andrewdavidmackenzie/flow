@@ -53,7 +53,7 @@ to = "transpose"
 source = "lib://flowstdlib/data/duplicate"
 
 [[connection]]
-from = "transpose"
+from = "transpose/matrix"
 to = "duplicate/value"
 
 [[connection]]
