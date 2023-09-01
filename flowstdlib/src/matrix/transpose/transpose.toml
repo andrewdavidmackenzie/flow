@@ -3,8 +3,8 @@ source = "transpose.rs"
 docs = "transpose.md"
 type = "rust"
 
-[[input]]
+[[input]] # Input matrix
 type = "array/array/number"
 
-[[output]]
+[[output]] # Output matrix with rows and columns transposed
 type = "array/array/number"

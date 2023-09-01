@@ -11,4 +11,9 @@ name = "factor" # - duplication factor
 type = "number"
 
 [[output]]
+name = "matrix"
 type = "array/array/number" # - matrix with duplicated rows
+
+[[output]]
+name = "row_indexes"
+type = "array/number"

@@ -29,6 +29,7 @@ source = "lib://flowstdlib/data/info"
 from = "input/a"
 to ="a_info"
 
+# Duplicate the rows in matrix a
 [[process]]
 source = "lib://flowstdlib/matrix/duplicate_rows"
 
@@ -36,6 +37,11 @@ source = "lib://flowstdlib/matrix/duplicate_rows"
 from = "input/a"
 to = "duplicate_rows"
 
+[[connection]]
+from = "b_info/columns"
+to = "duplicate_rows/factor"
+
+# Transpose rows and columns of matrix b, then duplicate it to have the number of columns required to multiple by rows
 [[process]]
 source = "lib://flowstdlib/matrix/transpose"
 
@@ -54,21 +60,21 @@ to = "duplicate/value"
 from = "b_info/columns"
 to = "duplicate/factor"
 
-[[connection]]
-from = "b_info/columns"
-to = "duplicate_rows/factor"
-
+# Do the row x column product for the rows and columns
 [[process]]
 source = "lib://flowstdlib/matrix/multiply_row"
+input.a_index = { always = 0 }
+input.b_index = { always = 0 }
 
 [[connection]]
-from = "duplicate_rows"
+from = "duplicate_rows/matrix"
 to = "multiply_row/a"
 
 [[connection]]
 from = "duplicate"
 to = "multiply_row/b"
 
+# Gather the values into rows of the matrix product
 [[process]]
 alias = "compose_rows"
 source = "lib://flowstdlib/data/accumulate"
@@ -90,6 +96,7 @@ to = "compose_rows/values"
 from = "b_info/columns"
 to = "compose_rows/chunk_size"
 
+# Gather the rows of values into the final 2D matrix that is the product of a and b
 [[process]]
 alias = "compose_matrix"
 source = "lib://flowstdlib/data/accumulate"
@@ -111,6 +118,7 @@ to = "compose_matrix/values"
 from = "a_info/rows"
 to = "compose_matrix/chunk_size"
 
+# Output the final matrix product
 [[connection]]
 from = "compose_matrix/chunk"
 to = "output/product"
