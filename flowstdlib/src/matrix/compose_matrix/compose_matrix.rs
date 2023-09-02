@@ -22,11 +22,11 @@ fn _compose_matrix(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
             if element_added {
                 // copy original element, whatever it is
                 new_row.push(element.clone());
-                if element == &Value::Null {
-                    matrix_full = false; // nulls remain after adding element
+                if element.as_f64() == Some(0.0) {
+                    matrix_full = false; // empty cells remain after adding element
                 }
             }
-            else if element == &Value::Null {
+            else if element.as_f64() == Some(0.0) { // empty cell, put value into it
                     new_row.push(element_to_add.clone());
                     element_added = true;
                 } else {
@@ -49,14 +49,13 @@ fn _compose_matrix(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
 #[cfg(test)]
 mod test {
     use serde_json::json;
-    use serde_json::Value;
 
     use super::_compose_matrix;
 
     #[test]
     fn compose_1_element() {
-        let partial = json!([[Value::Null,Value::Null],[Value::Null,Value::Null]]);
-        let element = json!(1);
+        let partial = json!([[0.0, 0.0],[0.0,0.0]]);
+        let element = json!(1.0);
         let inputs = vec![element, partial];
 
         let (result, _) = _compose_matrix(&inputs).expect("_compose_matrix() failed");
@@ -68,12 +67,11 @@ mod test {
 
         let partial = output.pointer("/partial");
         assert!(partial.is_some());
-        println!("partial = {:?}", partial);
     }
 
     #[test]
     fn compose_full_matrix() {
-        let mut partial = json!([[Value::Null,Value::Null],[Value::Null,Value::Null]]);
+        let mut partial = json!([[0.0, 0.0],[0.0,0.0]]);
 
         for element in [1, 2, 3, 4] {
             let inputs = vec![json!(element), partial];

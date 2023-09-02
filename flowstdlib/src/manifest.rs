@@ -178,5 +178,10 @@ pub fn get_manifest() -> Result<LibraryManifest> {
             Native(Arc::new(matrix::transpose::Transpose)),
         );
 
+    manifest.locators.insert(
+        Url::parse("lib://flowstdlib/matrix/compose_matrix")?,
+        Native(Arc::new(matrix::compose_matrix::ComposeMatrix)),
+    );
+
     Ok(manifest)
 }

@@ -89,51 +89,21 @@ to = "multiply_row/b"
 from = "duplicate_column_indexes"
 to = "multiply_row/b_index"
 
-# Gather the values into rows of the matrix product
+# Gather the values into the matrix product
 [[process]]
-alias = "compose_rows"
-source = "lib://flowstdlib/data/accumulate"
-input.partial = { once =  [] }
-
-[[connection]]
-from = "compose_rows/partial"
-to = "compose_rows/partial"
-
-[[connection]]
-from = "compose_rows/chunk_size"
-to = "compose_rows/chunk_size"
+source = "lib://flowstdlib/matrix/compose_matrix"
+input.partial = { once = [[0.0,0.0],[0.0,0.0]] }
 
 [[connection]]
 from = "multiply_row/product"
-to = "compose_rows/values"
+to = "compose_matrix"
 
-[[connection]]
-from = "b_info/columns"
-to = "compose_rows/chunk_size"
-
-# Gather the rows of values into the final 2D matrix that is the product of a and b
-[[process]]
-alias = "compose_matrix"
-source = "lib://flowstdlib/data/accumulate"
-input.partial = { once =  [] }
-
+#loop back the partial matrix
 [[connection]]
 from = "compose_matrix/partial"
 to = "compose_matrix/partial"
 
-[[connection]]
-from = "compose_matrix/chunk_size"
-to = "compose_matrix/chunk_size"
-
-[[connection]]
-from = "compose_rows/chunk"
-to = "compose_matrix/values"
-
-[[connection]]
-from = "a_info/rows"
-to = "compose_matrix/chunk_size"
-
 # Output the final matrix product
 [[connection]]
-from = "compose_matrix/chunk"
+from = "compose_matrix/matrix"
 to = "output/product"
