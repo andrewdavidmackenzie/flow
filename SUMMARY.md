@@ -116,6 +116,7 @@
     - [multiply](flowstdlib/src/matrix/multiply.md)
     - [multiply_row](flowstdlib/src/matrix/multiply_row/multiply_row.md)
     - [transpose](flowstdlib/src/matrix/transpose/transpose.md)
+    - [compose_matrix](flowstdlib/src/matrix/compose_matrix/compose_matrix.md)
     
 # Examples flows
 - [Examples Intro](flowr/examples/README.md)
