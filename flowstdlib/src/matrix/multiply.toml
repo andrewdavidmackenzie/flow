@@ -69,20 +69,25 @@ to = "duplicate_column_indexes/value"
 from = "b_info/columns"
 to = ["duplicate_columns/factor", "duplicate_column_indexes/factor"]
 
-
 # Do the row x column product for the rows and columns
 [[process]]
 source = "lib://flowstdlib/matrix/multiply_row"
-input.a_index = { always = 0 }
-input.b_index = { always = 0 }
 
 [[connection]]
 from = "duplicate_rows/matrix"
 to = "multiply_row/a"
 
 [[connection]]
+from = "duplicate_rows/row_indexes"
+to = "multiply_row/a_index"
+
+[[connection]]
 from = "duplicate_columns"
 to = "multiply_row/b"
+
+[[connection]]
+from = "duplicate_column_indexes"
+to = "multiply_row/b_index"
 
 # Gather the values into rows of the matrix product
 [[process]]

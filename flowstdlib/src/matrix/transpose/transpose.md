@@ -1,8 +1,8 @@
-## Transpose (//flowstdlib/data/transpose)
+## Transpose (//flowstdlib/matrix/transpose)
 Transpose a matrix's rows and columns
 
 ### Include using
 ```toml
 [[process]]
-source = "lib://flowstdlib/data/transpose"
+source = "lib://flowstdlib/matrix/transpose"
 ```

@@ -1,0 +1,19 @@
+function = "compose_matrix"
+source = "compose_matrix.rs"
+docs = "compose_matrix.md"
+type = "rust"
+
+[[input]]
+type = "number" # matrix elements
+
+[[input]]
+name = "partial"
+type = "array/array/number"
+
+[[output]]
+name = "matrix"
+type = "array/array/number"
+
+[[output]]
+name = "partial"
+type = "array/array/number"
