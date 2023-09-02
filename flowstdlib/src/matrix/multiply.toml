@@ -90,13 +90,18 @@ from = "duplicate_column_indexes"
 to = "multiply_row/b_index"
 
 # Gather the values into the matrix product
+# TODO HACK - hardcoded size of 2x2, needes generalization using rows and columns to create correct initial partial
 [[process]]
 source = "lib://flowstdlib/matrix/compose_matrix"
 input.partial = { once = [[0.0,0.0],[0.0,0.0]] }
 
 [[connection]]
 from = "multiply_row/product"
-to = "compose_matrix"
+to = "compose_matrix/element"
+
+[[connection]]
+from = "multiply_row/a_b_index"
+to = "compose_matrix/element_indexes"
 
 #loop back the partial matrix
 [[connection]]

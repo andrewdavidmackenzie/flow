@@ -4,7 +4,12 @@ docs = "compose_matrix.md"
 type = "rust"
 
 [[input]]
+name = "element"
 type = "number" # matrix elements
+
+[[input]]
+name = "element_indexes"
+type = "array/number"
 
 [[input]]
 name = "partial"

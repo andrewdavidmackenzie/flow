@@ -10,34 +10,32 @@ fn _compose_matrix(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
     let mut output_map = serde_json::Map::new();
 
     let element_to_add = inputs[0].clone();
-    let partial = inputs[1].as_array().ok_or("Could not get partial")?;
-    let mut matrix_full = true;
-    let mut element_added = false;
+
+    let element_indexes = inputs[1].as_array().ok_or("Could not get element index array")?;
+
+    let partial = inputs[2].as_array().ok_or("Could not get partial")?;
+    let mut unwritten_cell_count = 0;
 
     // put element into the first null value we find, and only once
-    for (_row_index, row) in partial.iter().enumerate() {
+    for (row_index, row) in partial.iter().enumerate() {
         let mut new_row: Vec<Value> = vec!();
         let row_array = row.as_array().ok_or("Could not get row")?;
-        for (_column_index, element) in row_array.iter().enumerate() {
-            if element_added {
+        for (column_index, element) in row_array.iter().enumerate() {
+            if row_index == element_indexes[0] && column_index == element_indexes[1] {
+                // This is the cell we want to write the element into
+                new_row.push(element_to_add.clone());
+            } else {
                 // copy original element, whatever it is
                 new_row.push(element.clone());
                 if element.as_f64() == Some(0.0) {
-                    matrix_full = false; // empty cells remain after adding element
+                    unwritten_cell_count+= 1;
                 }
             }
-            else if element.as_f64() == Some(0.0) { // empty cell, put value into it
-                    new_row.push(element_to_add.clone());
-                    element_added = true;
-                } else {
-                    // copy original element, whatever it is
-                    new_row.push(element.clone());
-                }
         }
         new_matrix.push(Value::Array(new_row));
     }
 
-    if matrix_full {
+    if unwritten_cell_count == 0 {
         output_map.insert("matrix".into(), json!(new_matrix));
     } else {
         output_map.insert("partial".into(), json!(new_matrix));
@@ -54,9 +52,10 @@ mod test {
 
     #[test]
     fn compose_1_element() {
+        let element = json!(42);
+        let element_indexes = json!([0,1]);
         let partial = json!([[0.0, 0.0],[0.0,0.0]]);
-        let element = json!(1.0);
-        let inputs = vec![element, partial];
+        let inputs = vec![element, element_indexes, partial];
 
         let (result, _) = _compose_matrix(&inputs).expect("_compose_matrix() failed");
 
@@ -66,15 +65,16 @@ mod test {
         assert!(matrix.is_none());
 
         let partial = output.pointer("/partial");
-        assert!(partial.is_some());
+        assert_eq!(partial, Some(&json!([[0.0, 42],[0.0,0.0]])));
     }
 
     #[test]
     fn compose_full_matrix() {
         let mut partial = json!([[0.0, 0.0],[0.0,0.0]]);
 
-        for element in [1, 2, 3, 4] {
-            let inputs = vec![json!(element), partial];
+        for (index, element) in [1, 2, 3, 4].iter().enumerate() {
+            let element_indexes = json!([index / 2, index % 2]);
+            let inputs = vec![json!(element), element_indexes, partial];
             let (result, _) = _compose_matrix(&inputs).expect("_compose_matrix() failed");
             let output = result.expect("Could not get the Value from the output");
 
