@@ -32,6 +32,7 @@ members = [
     "matrix/duplicate_rows",
     "matrix/multiply_row",
     "matrix/transpose",
+    "matrix/compose_matrix",
 ]
 
 resolver = "2"

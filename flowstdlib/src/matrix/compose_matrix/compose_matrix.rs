@@ -26,15 +26,13 @@ fn _compose_matrix(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
                     matrix_full = false; // nulls remain after adding element
                 }
             }
-            else {
-                if element == &Value::Null {
+            else if element == &Value::Null {
                     new_row.push(element_to_add.clone());
                     element_added = true;
                 } else {
                     // copy original element, whatever it is
                     new_row.push(element.clone());
                 }
-            }
         }
         new_matrix.push(Value::Array(new_row));
     }
@@ -89,6 +87,6 @@ mod test {
             partial = output.pointer("/partial").expect("Could not get partial").clone();
         }
 
-        assert!(false, "Should not get this far");
+        panic!("Should not get this far");
     }
 }
