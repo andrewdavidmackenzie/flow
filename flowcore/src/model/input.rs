@@ -233,13 +233,9 @@ impl Input {
         }
     }
 
-    /// Take the first element from the Input and return it.
-    pub fn take(&mut self) -> Option<Value> {
-        if self.received.is_empty() {
-            None
-        } else {
-            Some(self.received.remove(0))
-        }
+    /// Take the first element from the Input and return it. Could panic!
+    pub fn take(&mut self) -> Value {
+        self.received.remove(0)
     }
 
     /// Return the total number of values queued up in this input
@@ -267,9 +263,10 @@ mod test {
     }
 
     #[test]
+    #[should_panic]
     fn take_from_empty_fails() {
         let mut input = Input::new(#[cfg(feature = "debugger")] "", 0, false,  None, None);
-        assert!(input.take().is_none());
+        input.take();
     }
 
     #[test]
@@ -291,7 +288,7 @@ mod test {
         let mut input = Input::new(#[cfg(feature = "debugger")] "", 0, false,  None, None);
         input.send(json!(10));
         assert!(!input.is_empty());
-        let _value = input.take().expect("Could not take the input value as expected");
+        let _value = input.take();
         assert!(input.is_empty());
     }
 

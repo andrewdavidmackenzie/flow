@@ -261,7 +261,7 @@ impl RuntimeFunction {
 
         let mut input_set: Vec<Value> = Vec::with_capacity(self.inputs.len());
         for input in &mut self.inputs {
-            input_set.push(input.take()?);
+            input_set.push(input.take());
         }
 
         Some(input_set)

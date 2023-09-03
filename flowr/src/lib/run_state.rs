@@ -491,7 +491,6 @@ impl RunState {
                     // NOTE: The function we are retiring may have new input sets due to sending
                     // to itself via a loopback
                     if function.can_run() {
-                        // TODO take into account if flow blocked
                         self.create_jobs(job.function_id, job.flow_id)?;
                     }
                 } else {
