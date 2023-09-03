@@ -1,9 +1,9 @@
-use serde_json::json;
-use serde_json::Value;
-
-use flowcore::{RUN_AGAIN, RunAgain};
 use flowcore::errors::*;
 use flowmacro::flow_function;
+use serde_json::json;
+use serde_json::Value;
+use flowcore::RunAgain;
+use flowcore::RUN_AGAIN;
 
 #[flow_function]
 fn _count(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
@@ -28,13 +28,15 @@ mod test {
     #[test]
     fn count_returns_value() {
         let data = json!(42);
-        let count = json!(0);
-        let inputs = vec![data, count];
+        let previous_count = json!(0);
+        let inputs = vec![data, previous_count];
 
         let (result, _) = _count(&inputs).expect("_count() failed");
         let output = result.expect("Could not get the Value from the output");
 
-        assert_eq!(output.pointer("/data").expect("Could not get the /data from the output"), &json!(42));
-        assert_eq!(output.pointer("/count").expect("Could not get the /count from the output"), &json!(1));
+        assert_eq!(output.pointer("/data")
+                       .expect("Could not get the /data from the output"), &json!(42));
+        assert_eq!(output.pointer("/count")
+                       .expect("Could not get the /count from the output"), &json!(1));
     }
 }

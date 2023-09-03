@@ -1,0 +1,114 @@
+flow = "multiply"
+docs = "multiply.md"
+
+[[input]]
+name = "a"
+type = "array/array/number"
+
+[[input]]
+name = "b"
+type = "array/array/number"
+
+[[output]]
+name = "product"
+type = "array/array/number"
+
+[[process]]
+alias = "b_info"
+source = "lib://flowstdlib/data/info"
+
+[[connection]]
+from = "input/b"
+to ="b_info"
+
+[[process]]
+alias = "a_info"
+source = "lib://flowstdlib/data/info"
+
+[[connection]]
+from = "input/a"
+to ="a_info"
+
+# Duplicate the rows in matrix a
+[[process]]
+source = "lib://flowstdlib/matrix/duplicate_rows"
+
+[[connection]]
+from = "input/a"
+to = "duplicate_rows"
+
+[[connection]]
+from = "b_info/columns"
+to = "duplicate_rows/factor"
+
+# Transpose rows and columns of matrix b, then duplicate it to have the number of columns required to multiple by rows
+[[process]]
+source = "lib://flowstdlib/matrix/transpose"
+
+[[connection]]
+from = "input/b"
+to = "transpose"
+
+[[process]]
+alias = "duplicate_columns"
+source = "lib://flowstdlib/data/duplicate"
+
+[[connection]]
+from = "transpose/matrix"
+to = "duplicate_columns/value"
+
+[[process]]
+alias = "duplicate_column_indexes"
+source = "lib://flowstdlib/data/duplicate"
+
+[[connection]]
+from = "transpose/column_indexes"
+to = "duplicate_column_indexes/value"
+
+[[connection]]
+from = "b_info/columns"
+to = ["duplicate_columns/factor", "duplicate_column_indexes/factor"]
+
+# Do the row x column product for the rows and columns
+[[process]]
+source = "lib://flowstdlib/matrix/multiply_row"
+
+[[connection]]
+from = "duplicate_rows/matrix"
+to = "multiply_row/a"
+
+[[connection]]
+from = "duplicate_rows/row_indexes"
+to = "multiply_row/a_index"
+
+[[connection]]
+from = "duplicate_columns"
+to = "multiply_row/b"
+
+[[connection]]
+from = "duplicate_column_indexes"
+to = "multiply_row/b_index"
+
+# Gather the values into the matrix product
+# TODO HACK - hardcoded size of 2x2, needes generalization using rows and columns to create correct initial partial
+[[process]]
+source = "lib://flowstdlib/matrix/compose_matrix"
+input.partial = { once = [[0.0,0.0],[0.0,0.0]] }
+
+[[connection]]
+from = "multiply_row/product"
+to = "compose_matrix/element"
+
+[[connection]]
+from = "multiply_row/a_b_index"
+to = "compose_matrix/element_indexes"
+
+#loop back the partial matrix
+[[connection]]
+from = "compose_matrix/partial"
+to = "compose_matrix/partial"
+
+# Output the final matrix product
+[[connection]]
+from = "compose_matrix/matrix"
+to = "output/product"

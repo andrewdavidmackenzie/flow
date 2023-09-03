@@ -2,6 +2,8 @@
 A flow that wraps the [index](index/index.md) function to simplify its use by supplying most frequently
 used initializers to some inputs. 
  
+Use it to select an item from a stream of items by index.
+
 ### Include using
 ```toml
 [[process]]

@@ -1,8 +1,5 @@
 #[doc = include_str!("sequence.md")]
 
-#[allow(unused_imports)]
-use flowmacro::flow_function;
-
 #[cfg(test)]
 mod test {
     use std::fs::File;

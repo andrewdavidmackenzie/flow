@@ -1,11 +1,10 @@
 #[cfg(feature = "debugger")]
 use std::fmt;
 
-use log::trace;
+use log::debug;
 use serde_derive::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
-use crate::errors::*;
 use crate::model::datatype::DataType;
 use crate::model::input::InputInitializer::{Always, Once};
 use crate::model::io::IO;
@@ -151,13 +150,14 @@ impl Input {
         &self.name
     }
 
-    /// Take the first element from the Input and return it.
-    pub fn take(&mut self) -> Result<Value> {
-        if self.received.is_empty() {
-            bail!("Trying to take from an empty Input");
-        }
+    /// Return a reference to the initializer
+    pub fn initializer(&self) -> &Option<InputInitializer> {
+        &self.initializer
+    }
 
-        Ok(self.received.remove(0))
+    /// Return a reference to the flow initializer
+    pub fn flow_initializer(&self) -> &Option<InputInitializer> {
+        &self.flow_initializer
     }
 
     /// Initialize an input with the InputInitializer if it has one, either on the function directly
@@ -226,22 +226,26 @@ impl Input {
     }
 
     // Send an array of values to this `Input`, by sending them one by one
-    fn send_array(&mut self, array: Vec<Value>)
-    {
+    fn send_array(&mut self, array: Vec<Value>) {
         for value in array {
-            trace!("\t\t\tPushing array element '{value}'");
-            self.received.push(value.clone());
+            debug!("\t\t\tPushing array element '{value}'");
+            self.received.push(value);
         }
     }
 
-    /// Return the total number of values queued up, across all priorities, in this input
-    pub fn count(&self) -> usize {
+    /// Take the first element from the Input and return it. Could panic!
+    pub fn take(&mut self) -> Value {
+        self.received.remove(0)
+    }
+
+    /// Return the total number of values queued up in this input
+    pub fn values_available(&self) -> usize {
         self.received.len()
     }
 
     /// Return true if there are no more values available from this input
     pub fn is_empty(&self) -> bool {
-        self.received.is_empty()
+        self.values_available() == 0
     }
 }
 
@@ -259,9 +263,10 @@ mod test {
     }
 
     #[test]
+    #[should_panic]
     fn take_from_empty_fails() {
         let mut input = Input::new(#[cfg(feature = "debugger")] "", 0, false,  None, None);
-        assert!(input.take().is_err());
+        input.take();
     }
 
     #[test]
@@ -283,7 +288,7 @@ mod test {
         let mut input = Input::new(#[cfg(feature = "debugger")] "", 0, false,  None, None);
         input.send(json!(10));
         assert!(!input.is_empty());
-        let _value = input.take().expect("Could not take the input value as expected");
+        let _value = input.take();
         assert!(input.is_empty());
     }
 

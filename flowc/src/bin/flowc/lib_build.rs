@@ -188,11 +188,11 @@ fn copy_definition_to_output_dir(toml_path: &Path, output_dir: &Path) -> Result<
     let output_file = output_dir.join(toml_path.file_name()
                                           .ok_or("Could not get Toml file filename")?);
 
-    debug!("Copying definition file from: {} to {}", toml_path.display(), output_file.display());
+    println!("   {} {} to {}", "Copying".green(),
+        toml_path.file_name().ok_or("Could not get file name")?.to_string_lossy(),
+             output_file.display());
 
     fs::copy(toml_path, &output_file)?;
-
-    assert!(output_file.exists(), "Copied file does not exist");
 
     Ok(1)
 }
@@ -222,11 +222,12 @@ fn compile_functions(
     for entry in glob.walk(&lib_root_path) {
         match &entry {
             Ok(walk_entry) => {
-                if walk_entry.path().file_name() == Some(OsStr::new("function.toml")) {
+                let toml_path = walk_entry.path();
+                let toml_filename = toml_path.file_name()
+                    .ok_or("Could not get toml file name")?.to_string_lossy();
+                if toml_filename == "function.toml" {
                     continue;
                 }
-
-                let toml_path = walk_entry.path();
 
                 let url = Url::from_file_path(toml_path).map_err(|_| {
                     format!(
@@ -375,7 +376,8 @@ fn compile_flows(
     for entry in glob.walk(&lib_root_path) {
         match &entry {
             Ok(walk_entry) => {
-                if walk_entry.path().file_name() == Some(OsStr::new("function.toml")) {
+                if walk_entry.path().file_name() == Some(OsStr::new("function.toml")) ||
+                   walk_entry.path().file_name() == Some(OsStr::new("Cargo.toml")) {
                     continue;
                 }
 
@@ -431,7 +433,7 @@ fn compile_flows(
                             )
                             .chain_err(|| "Could not add entry to library manifest")?;
                     }
-                    Err(err) => debug!("Error parsing '{}'. Reason: '{}'", url, err),
+                    Err(err) => bail!("Error parsing '{}'. Reason: '{}'", url, err),
                 }
             },
             Err(e) => bail!("Error walking glob entries: {}", e.to_string())

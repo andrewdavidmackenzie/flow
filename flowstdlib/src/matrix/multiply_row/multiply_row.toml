@@ -8,8 +8,21 @@ name = "a"
 type = "array/number"
 
 [[input]]
+name = "a_index"
+type = "number"
+
+[[input]]
 name = "b"
 type = "array/number"
 
-[[output]]
+[[input]]
+name = "b_index"
 type = "number"
+
+[[output]]
+name = "product"
+type = "number"
+
+[[output]]
+name = "a_b_index"
+type = "array/number"

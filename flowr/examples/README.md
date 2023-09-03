@@ -6,12 +6,17 @@ correctly over time.
 Each subdirectory holds a self-contained flow example, with flow definition, docs etc and some of 
 them provide their own function implementations that get compiled to WASM by flowc when the flow is compiled.
 
+Flow enables higher levels of parallelization of execution of 'jobs' within flows by allowing many jobs to be
+run in parallel, which then may be executed out of order. This can lead to unpredictable ordering of the output 
+values of some operations. To embrace this, the examples typically avoid requiring a specific ordering of the output
+values.
+
 ## Environment Variable Requirements
-If you are using the makefile, then temporary additions to $PATH will be made for you so that the required
+If you are using `make`, then temporary additions to $PATH will be made for you so that the required
 flow executables (`flowc`and `flowr`) are found.
 
 However, if you wish to run an example from the command line, then you will need to make sure the `flowc` and
-`flowr` executables (built by the Makefile) are in your path.
+`flowr` executables (built by the Makefile) are in your path (or use the full path when running them).
 
 You can do this using:
 

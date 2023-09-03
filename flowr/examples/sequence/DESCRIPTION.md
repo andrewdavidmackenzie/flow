@@ -18,7 +18,8 @@ Features Used
 * Connections between functions
 * Library function `join` used
 * Library subflow `sequence` used
-* `contextc Functions used
+* Detecting end of sequence and outputting a message when completed
+* `context` Functions used
     * `stdout` to print a String to standard output
     
 Functions Diagram

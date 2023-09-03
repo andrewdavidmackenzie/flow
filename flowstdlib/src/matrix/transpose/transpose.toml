@@ -1,0 +1,15 @@
+function = "transpose"
+source = "transpose.rs"
+docs = "transpose.md"
+type = "rust"
+
+[[input]] # Input matrix
+type = "array/array/number"
+
+[[output]] # Output matrix with rows and columns transposed
+name = "matrix"
+type = "array/array/number"
+
+[[output]]
+name = "column_indexes"
+type = "array/number"
