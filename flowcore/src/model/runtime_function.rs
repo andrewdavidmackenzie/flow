@@ -214,17 +214,21 @@ impl RuntimeFunction {
 
     /// Determine if the `RuntimeFunction` `input` number `input_number` is full or not
     pub fn input_count(&self, input_number: usize) -> usize {
-        self.inputs[input_number].count()
+        self.inputs[input_number].values_available()
     }
 
     /// Returns how many jobs can be created for this function with the available inputs
     /// NOTE: For Impure functions without inputs (that can always run and produce a value)
-    /// this will return usize::MAX
+    /// this will return 1 always
     pub fn input_sets_available(&self) -> usize {
+        if self.inputs.is_empty() {
+            return 1;
+        }
+
         let mut num_input_sets = usize::MAX;
 
         for input in &self.inputs {
-            num_input_sets = std::cmp::min(num_input_sets, input.count());
+            num_input_sets = std::cmp::min(num_input_sets, input.values_available());
         }
 
         num_input_sets
@@ -234,7 +238,7 @@ impl RuntimeFunction {
     ///     - it has input sets to allow it to run
     ///     - it has no inputs and so can always run
     pub fn can_run(&self) -> bool {
-        self.inputs.is_empty() || self.input_sets_available() > 0
+        self.input_sets_available() > 0
     }
 
     /// Inspect the values of the `inputs` of a `RuntimeFunction`
@@ -259,17 +263,20 @@ impl RuntimeFunction {
         for input in &mut self.inputs {
             input_set.push(input.take()?);
         }
+
         Some(input_set)
     }
 
     /// Will this function always be able to create new jobs no matter what
+    /// // TODO make this an internal bool on creation!
     pub fn is_always_ready(&self) -> bool {
         if self.inputs.is_empty() {
             return true;
         }
 
         for input in &self.inputs {
-            if !matches!(input.initializer(), Some(InputInitializer::Always(_))) {
+            if !(matches!(input.initializer(), Some(InputInitializer::Always(_))) ||
+                matches!(input.flow_initializer(), Some(InputInitializer::Always(_)))) {
                 return false;
             }
         }

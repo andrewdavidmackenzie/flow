@@ -155,6 +155,11 @@ impl Input {
         &self.initializer
     }
 
+    /// Return a reference to the flow initializer
+    pub fn flow_initializer(&self) -> &Option<InputInitializer> {
+        &self.flow_initializer
+    }
+
     /// Initialize an input with the InputInitializer if it has one, either on the function directly
     /// or via a connection from a flow input
     /// When called at start-up    it will initialize      if it's a OneTime or Always initializer
@@ -221,8 +226,7 @@ impl Input {
     }
 
     // Send an array of values to this `Input`, by sending them one by one
-    fn send_array(&mut self, array: Vec<Value>)
-    {
+    fn send_array(&mut self, array: Vec<Value>) {
         for value in array {
             debug!("\t\t\tPushing array element '{value}'");
             self.received.push(value);
@@ -232,34 +236,20 @@ impl Input {
     /// Take the first element from the Input and return it.
     pub fn take(&mut self) -> Option<Value> {
         if self.received.is_empty() {
-            return if let Some(Always(value)) = &self.initializer {
-                Some(value.clone())
-            } else if let Some(Always(value)) = &self.flow_initializer {
-                // TODO take into account if flow blocked
-                Some(value.clone())
-            } else {
-                None
-            }
+            None
+        } else {
+            Some(self.received.remove(0))
         }
-
-        Some(self.received.remove(0))
     }
 
-    /// Return the total number of values queued up in this input, if it has
-    /// an 'Always' initializer, then return usize::MAX as it can always return a value
-    pub fn count(&self) -> usize {
-        if let Some(Always(_)) = self.initializer {
-            usize::MAX
-        } else if let Some(Always(_)) = self.flow_initializer {
-            usize::MAX
-        } else {
-            self.received.len()
-        }
+    /// Return the total number of values queued up in this input
+    pub fn values_available(&self) -> usize {
+        self.received.len()
     }
 
     /// Return true if there are no more values available from this input
     pub fn is_empty(&self) -> bool {
-        self.count() == 0
+        self.values_available() == 0
     }
 }
 
