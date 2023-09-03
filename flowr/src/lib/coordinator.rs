@@ -262,9 +262,6 @@ impl<'a> Coordinator<'a> {
         #[cfg(not(feature = "debugger"))]
         let debug_options = (false, false);
 
-        #[cfg(feature = "metrics")]
-        metrics.track_max_jobs(state.number_jobs_running());
-
         #[cfg(feature = "debugger")]
         let debug_options = self
             .debugger
@@ -273,6 +270,9 @@ impl<'a> Coordinator<'a> {
         self.dispatcher.send_job_for_execution(&job.payload)?;
 
         state.start_job(job)?;
+
+        #[cfg(feature = "metrics")]
+        metrics.track_max_jobs(state.number_jobs_running());
 
         Ok(debug_options)
     }
