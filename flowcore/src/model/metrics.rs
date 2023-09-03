@@ -6,7 +6,7 @@ use log::debug;
 use serde_derive::{Deserialize, Serialize};
 
 /// `Metrics` stacks a number of statistics on flow execution while being executed
-#[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone)]
+#[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
 pub struct Metrics {
     num_functions: usize,
     jobs_created: usize,
@@ -14,6 +14,7 @@ pub struct Metrics {
     #[serde(skip)]
     #[serde(default = "Metrics::default_start_time")]
     start_time: Instant,
+    elapsed_time_seconds: f64,
     max_simultaneous_jobs: usize,
 }
 
@@ -25,6 +26,7 @@ impl Metrics {
             jobs_created: 0,
             outputs_sent: 0,
             start_time: Instant::now(),
+            elapsed_time_seconds: 0.0,
             max_simultaneous_jobs: 0,
         }
     }
@@ -59,25 +61,21 @@ impl Metrics {
     pub fn default_start_time() -> Instant {
         Instant::now()
     }
+
+    /// Stop the timer
+    pub fn stop_timer(&mut self) {
+        let elapsed = self.start_time.elapsed();
+        self.elapsed_time_seconds = elapsed.as_secs() as f64;
+    }
 }
 
 impl fmt::Display for Metrics {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let elapsed = self.start_time.elapsed();
         writeln!(f, "Number of Functions: {}", self.num_functions)?;
         writeln!(f, "Number of Jobs Created: {}", self.jobs_created)?;
         writeln!(f, "Values sent: {}", self.outputs_sent)?;
-        writeln!(
-            f,
-            "Elapsed time(s): {:.*}",
-            6,
-            elapsed.as_secs() as f64 + elapsed.subsec_nanos() as f64 * 1e-9
-        )?;
-        write!(
-            f,
-            "Max Jobs in Parallel: {}",
-            self.max_simultaneous_jobs
-        )
+        writeln!(f, "Elapsed time(s): {:.*}", 1, self.elapsed_time_seconds)?;
+        write!(f, "Max Jobs in Parallel: {}", self.max_simultaneous_jobs)
     }
 }
 

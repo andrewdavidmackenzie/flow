@@ -167,6 +167,8 @@ impl<'a> Coordinator<'a> {
         }
 
         #[cfg(feature = "metrics")]
+        metrics.stop_timer();
+        #[cfg(feature = "metrics")]
         metrics.set_jobs_created(state.get_number_of_jobs_created());
         #[cfg(all(feature = "submission", feature = "metrics"))]
         self.submission_handler.flow_execution_ended(&state, metrics)?;
