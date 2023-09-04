@@ -1,12 +1,14 @@
 #[cfg(all(not(feature = "debugger"), not(feature = "submission")))]
 use std::marker::PhantomData;
 
-use log::{debug, error, trace};
+use log::{debug, error, info, trace};
+use serde_json::Value;
 
 use flowcore::errors::*;
 #[cfg(feature = "metrics")]
 use flowcore::model::metrics::Metrics;
 use flowcore::model::submission::Submission;
+use flowcore::RunAgain;
 
 #[cfg(feature = "debugger")]
 use crate::debugger::Debugger;
@@ -178,6 +180,23 @@ impl<'a> Coordinator<'a> {
         Ok(()) // Normal flow completion exit
     }
 
+    // Get a result back from an executor
+    #[allow(clippy::type_complexity)]
+    fn get_result(&mut self, state: &RunState) -> Result<Option<(usize, Result<(Option<Value>, RunAgain)>)>> {
+        if let Ok(result) = self.dispatcher.get_next_result(false) {
+            return Ok(Some(result));
+        }
+
+        if state.number_jobs_ready() > 0 {
+            return Ok(None);
+        }
+
+        match self.dispatcher.get_next_result(true) {
+            Ok(result) => Ok(Some(result)),
+            Err(e) => Err(e)
+        }
+    }
+
     // Retire as many jobs as possible, based on returned results.
     // NOTE: This will block waiting for the last pending result
     fn retire_jobs(&mut self,
@@ -188,8 +207,8 @@ impl<'a> Coordinator<'a> {
         let mut restart = false;
 
         if state.number_jobs_running() > 0 {
-            match self.dispatcher.get_next_result() {
-                Ok(result) => {
+            match self.get_result(state) {
+                Ok(Some(result)) => {
                     let job;
 
                     (display_next_output, restart, job) = state.retire_a_job(
@@ -204,7 +223,12 @@ impl<'a> Coordinator<'a> {
                             return Ok((display_next_output, restart));
                         }
                     }
-                }
+                },
+
+                Ok(None) => {
+                    info!("No result was immediately available, but jobs are ready to be dispatched.\
+                     So coordinator avoided blocking for result. Will be received next time around");
+                },
 
                 Err(err) => {
                     error!("\t{}", err.to_string());

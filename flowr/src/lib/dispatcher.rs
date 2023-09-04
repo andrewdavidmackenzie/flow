@@ -10,7 +10,6 @@ use flowcore::RunAgain;
 use crate::job::JobPayload;
 
 const WAIT:i32 = 0;
-// static DONT_WAIT:i32 = DONTWAIT;
 
 /// `Dispatcher` structure holds information required to send jobs for execution and receive results back
 pub struct Dispatcher {
@@ -74,8 +73,14 @@ impl Dispatcher {
 
     // Wait for, then return the next Result returned from executors
     #[allow(clippy::type_complexity)]
-    pub(crate) fn get_next_result(&mut self) -> Result<(usize, Result<(Option<Value>, RunAgain)>)> {
-        let msg = self.results_socket.recv_msg(WAIT)
+    pub(crate) fn get_next_result(&mut self, block: bool) -> Result<(usize, Result<(Option<Value>, RunAgain)>)> {
+        let flags = if block {
+            WAIT
+        } else {
+            DONTWAIT
+        };
+
+        let msg = self.results_socket.recv_msg(flags)
             .map_err(|_| "Error receiving result")?;
         let message_string = msg.as_str().ok_or("Could not get message as str")?;
         serde_json::from_str(message_string)
@@ -235,6 +240,6 @@ mod test {
                               .expect("Could not convert to serde")
                               .as_bytes(), 0).expect("Could not send result of Job");
 
-        assert!(dispatcher.get_next_result().is_ok());
+        assert!(dispatcher.get_next_result(true).is_ok());
     }
 }
