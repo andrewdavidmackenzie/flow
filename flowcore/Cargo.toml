@@ -37,7 +37,7 @@ url = { version = "2.2", features = ["serde"] }
 log = {version = "0.4.20"}
 shrinkwraprs = { version = "0.3.0" }
 serde = { version = "~1.0.188"}
-toml = { version = "0.7.7" }
+toml = { version = "0.7.8" }
 serde_yaml = { version = "~0.9" }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
