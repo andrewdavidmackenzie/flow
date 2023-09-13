@@ -52,10 +52,10 @@ jobs:
           args: wasm-gc wasm-snip
 
       - name: ConfigureCoverage
-        if: runner.os == 'Linux'
+        if: runner.os == 'macOS'
         run: |
           cargo install grcov
-          sudo apt-get -y install lcov
+          brew install lcov
           rustup component add llvm-tools-preview
           echo RUSTFLAGS="-C instrument-coverage" >> "$GITHUB_ENV"
           echo LLVM_PROFILE_FILE="flow-%p-%m.profraw" >> "$GITHUB_ENV"
@@ -87,7 +87,7 @@ jobs:
           args: --examples
 
       - name: UploadCoverage
-        if: runner.os == 'Linux'
+        if: runner.os == 'macOS'
         run: |
           grcov . --binary-path target/debug/ -s . -t lcov --branch --ignore-not-existing --ignore "/*" -o lcov.info
           lcov --remove lcov.info '/Applications/*' 'target/debug/build/**' '/usr*' '**/errors.rs' '**/build.rs' '*tests/*' -o lcov.info
@@ -95,7 +95,7 @@ jobs:
           rm -f lcov.info
 
   clippy:
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
     steps:
     - name: Install latest nightly
       uses: actions-rs/toolchain@v1
