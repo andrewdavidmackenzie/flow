@@ -112,15 +112,16 @@ coverage: clean-start
 	@echo "coverage<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
 	@find . -name "*.profraw"  | xargs rm -rf {} # Remove old coverage measurements
 	@RUSTFLAGS="-C instrument-coverage" LLVM_PROFILE_FILE="flow-%p-%m.profraw" cargo build
-	@./target/debug/flowstdlib ./flowstdlib
+	@target/debug/flowc -d -g -O flowstdlib
+	@target/debug/flowc flowr/src/bin/flowrcli
+	@target/debug/flowc flowr/src/bin/flowrgui
 ifeq ($(CODESIGN),)
 	find target -perm +111 -type f | xargs codesign -fs self
 endif
-	@RUSTFLAGS="-C instrument-coverage" LLVM_PROFILE_FILE="flow-%p-%m.profraw" cargo clippy --tests --no-deps --all-features -- -D warnings
 	@RUSTFLAGS="-C instrument-coverage" LLVM_PROFILE_FILE="flow-%p-%m.profraw" cargo test
 	@echo "Gathering coverage information"
 	@grcov . --binary-path target/debug/ -s . -t lcov --branch --ignore-not-existing --ignore "/*" -o coverage.info
-	@lcov --remove coverage.info '/Applications/*' 'target/debug/build/**' 'target/release/build/**' '/usr*' '**/errors.rs' '**/build.rs' '*tests/*' -o coverage.info
+	@lcov --remove coverage.info '/Applications/*' 'target/debug/build/**' 'target/release/build/**' '/usr*' '**/errors.rs' '**/build.rs' 'flowr/examples/**' '*tests/*' -o coverage.info
 	@find . -name "*.profraw" | xargs rm -f
 	@echo "Generating coverage report"
 	@genhtml -o target/coverage --quiet coverage.info

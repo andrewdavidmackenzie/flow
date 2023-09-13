@@ -1139,8 +1139,8 @@ dependencies = [
  "proc-macro2",
  "quote",
  "serde_json",
- "toml 0.8.0",
  "syn 2.0.32",
+ "toml 0.8.0",
 ]
 
 [[package]]
