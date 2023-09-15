@@ -1,7 +1,5 @@
 extern crate serial_test;
 
-use utilities;
-
 fn main() {
     utilities::run_example(file!(), "flowrcli",
                            false, true);
