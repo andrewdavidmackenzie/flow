@@ -1,5 +1,3 @@
-use utilities;
-
 fn main() {
     utilities::run_example(file!(), "flowrcli",
                            false, true);
