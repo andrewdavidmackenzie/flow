@@ -20,9 +20,10 @@ pub struct Connection {
     #[serde(default, skip_serializing_if = "String::is_empty")]
     name: Name,
     /// `from` defines the origin of the connection
+    #[serde(deserialize_with = "super::route::route_string")]
     from: Route,
     /// `to` defines the destination(s) of this connection
-    #[serde(deserialize_with = "super::route_array_serde::route_or_route_array")]
+    #[serde(deserialize_with = "super::route::route_or_route_array")]
     to: Vec<Route>,
     /// `from_io` is used during the compilation process and refers to a found output for the connection
     // TODO make these references, not clones

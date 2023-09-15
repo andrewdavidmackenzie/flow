@@ -243,7 +243,7 @@ fn process_references_to_dot(flow: &FlowDefinition) -> Result<String> {
     Ok(contents)
 }
 
-fn subflow_to_dot(flow: &FlowDefinition, parent: PathBuf, flow_route: &str) -> Result<String> {
+fn subflow_to_dot(flow: &FlowDefinition, parent: PathBuf, flow_route: &Route) -> Result<String> {
     let flow_source_path = flow.source_url.to_file_path()
         .map_err(|_| "Could not convert flow's source_url to a File Path")?;
     let relative_path = absolute_to_relative(&flow_source_path, parent)?;
@@ -343,7 +343,7 @@ fn connection_to_dot(connection: &Connection) -> String {
     } else {
         (output_name_to_port(connection.from_io().name()),
          connection.from_io().name().as_str(),
-         strip_io_name(&from_route, connection.from_io().name().as_str()))
+         from_route.parent(connection.from_io().name()))
     };
 
     let (to_port, to_name, to_node) = if connection.to_io().flow_io() {
@@ -354,7 +354,7 @@ fn connection_to_dot(connection: &Connection) -> String {
     } else {
         (input_name_to_port(connection.to_io().name()),
          connection.to_io().name().as_str(),
-         strip_io_name(connection.to_io().route(), connection.to_io().name().as_str())
+         connection.to_io().route().parent(connection.to_io().name())
         )
     };
 
@@ -401,12 +401,6 @@ fn input_name_to_port<T: Hash>(t: &T) -> &str {
 
 pub(crate) fn output_name_to_port<T: Hash>(t: &T) -> &str {
     OUTPUT_PORTS[index_from_name(t, OUTPUT_PORTS.len())]
-}
-
-// Return the route to a node (function, flow) from an IO route by stripping off any IO Name at the end
-// TODO Make this a parent() method of Route!!!
-fn strip_io_name(route: &Route, name: &str) -> String {
-    route.to_string().strip_suffix(&format!("/{name}")).unwrap_or(route).to_string()
 }
 
 // figure out a relative path to get to target from source

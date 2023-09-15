@@ -54,7 +54,7 @@ pub struct IO {
     #[serde(skip_deserializing)]
     flow_initializer: Option<InputInitializer>,
 
-    /// `route` defines where in the full flow hierarchy this IO is located, including it's `name`
+    /// `route` ([Route]) defines where in the full flow hierarchy this IO is located, including it's [Name]
     /// as the last segment
     #[serde(skip_deserializing)]
     route: Route,
