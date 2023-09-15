@@ -110,7 +110,7 @@ jobs:
       uses: actions-rs/cargo@v1
       with:
         command: clippy
-        args: --tests --no-deps --all-features -- -D warnings
+        args: --tests --no-deps --all-features --all-targets -- -D warnings
 
   test-book-build:
     runs-on: ubuntu-latest
