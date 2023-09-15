@@ -1,5 +1,3 @@
-use utilities;
-
 fn main() {
     #[cfg(feature = "debugger")]
     utilities::run_example(file!(), "flowrcli", false, true);
