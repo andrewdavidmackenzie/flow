@@ -42,7 +42,7 @@ fn object_to_array_connection() {
         "flowc/tests/test-flows/object_to_array_connection/root.toml",
     );
     let process = parser::parse(&path, &meta_provider)
-        .expect("Could not load test flow");
+        .expect("Could not parse test flow");
     if let FlowProcess(ref flow) = process {
         let output_dir = TempDir::new("flow-test").expect("A temp dir").into_path();
 
@@ -65,7 +65,7 @@ fn context_with_io() {
         "flowc/tests/test-flows/context_with_io/root.toml",
     );
     let process = parser::parse(&path, &meta_provider)
-        .expect("Could not load test flow");
+        .expect("Could not parse test flow");
     if let FlowProcess(ref flow) = process {
         let output_dir = TempDir::new("flow-test").expect("A temp dir").into_path();
 
@@ -91,7 +91,7 @@ fn same_name_input_and_output() {
         "flowc/tests/test-flows/same-name-parent/root.toml",
     );
     let process = parser::parse(&path, &meta_provider)
-        .expect("Could not load test flow");
+        .expect("Could not parse test flow");
     if let FlowProcess(ref flow) = process {
         let output_dir = TempDir::new("flow-test").expect("A temp dir").into_path();
 
@@ -116,7 +116,7 @@ fn same_name_flow_ids() {
         "flowc/tests/test-flows/same-name-parent/root.toml",
     );
     let process = parser::parse(&path, &meta_provider)
-        .expect("Could not load test flow");
+        .expect("Could not parse test flow");
     if let FlowProcess(ref flow) = process {
         let output_dir = TempDir::new("flow-test").expect("A temp dir").into_path();
 
@@ -151,7 +151,7 @@ fn connection_to_input_with_constant_initializer() {
         "flowc/tests/test-flows/connect_to_constant/root.toml",
     );
     let process = parser::parse(&path, &meta_provider)
-        .expect("Could not load test flow");
+        .expect("Could not parse test flow");
     if let FlowProcess(ref flow) = process {
         let output_dir = TempDir::new("flow-test").expect("A temp dir").into_path();
 
@@ -174,7 +174,7 @@ fn args() {
     let path =
         helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/args/root.toml");
     let process = parser::parse(&path, &meta_provider)
-        .expect("Could not load test flow");
+        .expect("Could not parse test flow");
     if let FlowProcess(ref flow) = process {
         let output_dir = TempDir::new("flow-test").expect("A temp dir").into_path();
 
@@ -195,7 +195,7 @@ fn no_side_effects() {
     );
     let path = helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/no_side_effects/root.toml");
     let process = parser::parse(&path, &meta_provider)
-        .expect("Could not load test flow");
+        .expect("Could not parse test flow");
     match process {
         FlowProcess(ref flow) => {
             let output_dir = TempDir::new("flow-test").expect("A temp dir").into_path();
@@ -220,7 +220,7 @@ fn compile_echo_ok() {
     );
     let process = parser::parse(
         &helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/echo/root.toml"),
-        &meta_provider).expect("Could not load test flow");
+        &meta_provider).expect("Could not parse test flow");
     if let FlowProcess(ref flow) = process {
         let output_dir = TempDir::new("flow-test").expect("A temp dir").into_path();
 
@@ -243,7 +243,7 @@ fn compiler_detects_unused_input() {
         &helper::absolute_file_url_from_relative_path(
             "flowc/tests/test-flows/unused_input/root.toml",
         ),
-        &meta_provider).expect("Could not load test flow");
+        &meta_provider).expect("Could not parse test flow");
     if let FlowProcess(ref flow) = process {
         let output_dir = TempDir::new("flow-test").expect("A temp dir").into_path();
 
@@ -289,7 +289,7 @@ fn flow_input_propagated_back_out() {
             }
         },
         Ok(FunctionProcess(_)) => panic!("Unexpected compile result from test file at '{url}'"),
-        Err(error) => panic!("Couldn't load the flow from test file at '{url}'.\n{}", error),
+        Err(error) => panic!("Couldn't parse the flow from test file at '{url}'.\n{}", error),
     }
 }
 
@@ -340,7 +340,7 @@ fn initialized_output_propagated() {
             }
         }
         Ok(FunctionProcess(_)) => panic!("Unexpected compile result from test file at '{url}'"),
-        Err(error) => panic!("Couldn't load the flow from test file at '{url}'.\n{}", error
+        Err(error) => panic!("Couldn't parse the flow from test file at '{url}'.\n{}", error
         ),
     }
 }
@@ -394,7 +394,30 @@ fn initialized_input_to_subflow() {
             }
         }
         Ok(FunctionProcess(_)) => panic!("Unexpected compile result from test file at '{url}'"),
-        Err(error) => panic!("Couldn't load the flow from test file at '{url}'.\n{}",
+        Err(error) => panic!("Couldn't parse the flow from test file at '{url}'.\n{}",
                              error),
+    }
+}
+
+#[test]
+fn json_indexing() {
+    let meta_provider = MetaProvider::new(
+        helper::set_lib_search_path_to_project(),
+                                          helper::get_canonical_context_root()
+    );
+    let path =
+        helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/json-indexing/root.toml");
+    let process = parser::parse(&path, &meta_provider)
+        .expect("Could not parse flow");
+    if let FlowProcess(ref flow) = process {
+        let output_dir = TempDir::new("flow-test").expect("A temp dir").into_path();
+
+        #[cfg(feature = "debugger")]
+            let mut source_urls = BTreeMap::<String, Url>::new();
+
+        let _tables = compile::compile(flow, &output_dir, false, false,
+                                       &mut source_urls).expect("Could not compile flow");
+    } else {
+        panic!("Process loaded was not a flow");
     }
 }

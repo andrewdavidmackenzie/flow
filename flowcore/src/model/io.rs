@@ -277,7 +277,7 @@ impl Find for IOSet {
     ) -> Result<IO> {
         for io in &mut *self {
             for datatype in io.datatypes().clone() {
-                if datatype.is_array() {
+                if datatype.is_array() || datatype.is_generic() {
                     let (array_route, index, array_index) = sub_route.without_trailing_array_index();
                     if array_index && (Route::from(io.name()) == array_route.into_owned())
                     {

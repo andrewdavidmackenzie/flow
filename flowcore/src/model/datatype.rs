@@ -166,7 +166,13 @@ impl DataType {
 
     /// Return Option of the data type the array holds, or None if not an array
     pub fn array_type(&self) -> Option<DataType> {
-        self.string.strip_prefix(&format!("{ARRAY_TYPE}/")).map(DataType::from)
+        if self.is_generic() {
+            Some(DataType::from(""))
+        } else if self.is_array() {
+            self.string.strip_prefix(&format!("{ARRAY_TYPE}/")).map(DataType::from)
+        } else {
+            None
+        }
     }
 
     /// Return the `DataType` for a Json `Value`, including nested values in arrays or maps
