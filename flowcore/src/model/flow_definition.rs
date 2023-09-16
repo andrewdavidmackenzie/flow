@@ -65,7 +65,7 @@ pub struct FlowDefinition {
     /// `source_url` is the url of the file/resource where this flow definition was read from
     #[serde(skip, default = "FlowDefinition::default_url")]
     pub source_url: Url,
-    /// `route` defines the location in the hierarchy of flows where this ones resides
+    /// `route` defines the location in the hierarchy of flows where this flow resides
     #[serde(skip)]
     pub route: Route,
     /// `subprocesses` are the loaded definition of the processes reference (used) within this flow
@@ -299,19 +299,6 @@ impl FlowDefinition {
         }
     }
 
-    fn parse_subroute(&self, route: &Route) -> Result<RouteType> {
-        let segments: Vec<&str> = route.split('/').collect();
-
-        match segments[0] {
-            "input" => Ok(RouteType::FlowInput(segments[1].into(),
-                                        segments[2..].join("/").into())),
-            "output" => Ok(RouteType::FlowOutput(segments[1].into())),
-            "" => bail!("Invalid Route in connection - must be an input, output or sub-process name"),
-            process_name => Ok(RouteType::SubProcess(process_name.into(),
-                                         segments[1..].join("/").into())),
-        }
-    }
-
     // Find an IO in a flow using its Route. Depending on the direction, possible IOs inside a flow are:
     //
     // FROM an Input of the Flow itself (FlowInput)
@@ -328,7 +315,7 @@ impl FlowDefinition {
         route: &Route,
     ) -> Result<IO> {
         debug!("Looking for connection {:?} '{}'", direction, route);
-        match (&direction, self.parse_subroute(route)?) {
+        match (&direction, route.parse_subroute()?) {
             (&FROM, RouteType::FlowInput(input_name, sub_route)) => {
                 // make sure the sub-route of the input is added to the source of the connection
                 let mut from = self
@@ -441,7 +428,7 @@ mod test {
     use crate::model::io::IO;
     use crate::model::name::{HasName, Name};
     use crate::model::process::Process;
-    use crate::model::route::{HasRoute, Route, RouteType, SetRoute};
+    use crate::model::route::{HasRoute, Route, SetRoute};
     use crate::model::validation::Validate;
 
     // Create a test flow we can use in connection building testing
@@ -514,41 +501,6 @@ mod test {
     fn test_route() {
         let flow = FlowDefinition::default();
         assert_eq!(flow.route(), &Route::default());
-    }
-
-    #[test]
-    fn test_invalid_connection_route() {
-        let flow = test_flow();
-        match flow.parse_subroute(&Route::from("")) {
-            Ok(_) => panic!("Connection route should not be valid"),
-            Err(e) => assert!(e.to_string()
-                    .contains("Invalid Route in connection"))
-        }
-    }
-
-    #[test]
-    fn test_parse_valid_input() {
-        let flow = test_flow();
-        assert_eq!(flow.parse_subroute(&Route::from("input/string"))
-                       .expect("Could not find input"),
-                   RouteType::FlowInput(Name::from("string"),
-                                           Route::default()));
-    }
-
-    #[test]
-    fn test_parse_valid_output() {
-        let flow = test_flow();
-        assert_eq!(flow.parse_subroute(&Route::from("output/string"))
-                       .expect("Could not find input"),
-                   RouteType::FlowOutput(Name::from("string")));
-    }
-
-    #[test]
-    fn test_parse_valid_subprocess() {
-        let flow = test_flow();
-        assert_eq!(flow.parse_subroute(&Route::from("sub-process"))
-                       .expect("Could not find input"),
-                   RouteType::SubProcess(Name::from("sub-process"), Route::default()));
     }
 
     #[test]

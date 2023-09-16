@@ -193,32 +193,23 @@ impl DataType {
     }
 
     fn subtype_using_subroute(full_type: &DataType, subroute: &Route) -> Result<DataType> {
-        if subroute.is_empty() || !subroute.contains('/') {
+        if subroute.depth() == 0 {
             return Ok(full_type.clone());
         }
-
-        /*
-        // to select an element from a source, the source must be an array
-        if from_subroute.is_array_selector() && !from.is_array() {
-            bail!("Incompatible types - {}, {} - is array = {}", from, from_subroute, from.is_array());
-        }
-        */
 
         if full_type.is_generic() {
             return Ok(full_type.clone());
         }
 
-        let depth = subroute.split('/').count() -1;
-
         let mut full_type_split = full_type.split('/').collect::<Vec<&str>>();
 
-        if depth >= full_type_split.len() {
+        if subroute.depth() > full_type_split.len() {
             bail!("Depth of subroute '{}' is greater than the depth of the type '{}'",
                 subroute, full_type)
         }
 
-        // drop the first 'depth' segments
-        Ok(DataType::from(full_type_split.split_off(depth).join("/")))
+        // drop the first 'depth' segments in order to get the sub-type referred to by the route
+        Ok(DataType::from(full_type_split.split_off(subroute.depth() -1).join("/")))
     }
 
     /// Determine if a source type and a destination type are compatible, counting on

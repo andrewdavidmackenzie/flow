@@ -1,28 +1,144 @@
 use std::borrow::Cow;
 use std::fmt;
+use std::marker::PhantomData;
+use std::str::FromStr;
+use serde::de::Visitor;
+use serde::{de, Deserialize, Deserializer};
 
-use serde_derive::{Deserialize, Serialize};
-use shrinkwraprs::Shrinkwrap;
+use serde_derive::Serialize;
+use crate::errors;
 
 use crate::errors::*;
 use crate::model::io::IOType;
 use crate::model::name::Name;
 use crate::model::validation::Validate;
 
-/// A `Route` is a String that refers to a particular location within the flow hierarchy
-/// and can be used to locate a function, flow, input or output uniquely
-#[derive(Shrinkwrap, Hash, Debug, PartialEq, Ord, PartialOrd, Eq, Clone, Default, Serialize, Deserialize)]
-#[shrinkwrap(mutable)]
-pub struct Route(pub String);
+/// A [Route] defines a particular location within the flow hierarchy
+/// and can be used to refer to a function, flow, input or output uniquely
+#[derive(Hash, Debug, PartialEq, Ord, PartialOrd, Eq, Clone, Default, Serialize, Deserialize)]
+pub struct Route {
+    string: String,
+}
 
-/// A `Route` can be of various Types
+impl fmt::Display for Route {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.string)
+    }
+}
+
+impl FromStr for Route {
+    type Err = errors::Error;
+
+    fn from_str(s: &str) -> Result<Self> {
+        Ok(Route {
+            string: s.to_string()
+        })
+    }
+}
+
+impl From<&str> for Route {
+    fn from(string: &str) -> Self {
+        Route {
+            string: string.to_string()
+        }
+    }
+}
+
+impl From<String> for Route {
+    fn from(string: String) -> Self {
+        Route {
+            string
+        }
+    }
+}
+
+impl From<&String> for Route {
+    fn from(string: &String) -> Self {
+        Route {
+            string: string.to_string()
+        }
+    }
+}
+
+impl From<&Name> for Route {
+    fn from(name: &Name) -> Self {
+        Route {
+            string: name.to_string()
+        }
+    }
+}
+
+/// A customer Deserializer for a String into a [Route]
+pub fn route_string<'de, T, D>(deserializer: D) -> std::result::Result<T, D::Error>
+    where
+        T: Deserialize<'de> + FromStr<Err = Error>,
+        D: Deserializer<'de>,
+{
+    struct RouteString<T>(PhantomData<fn() -> T>);
+
+    impl<'de, Route> Visitor<'de> for RouteString<Route>
+        where
+            Route: Deserialize<'de> + FromStr<Err = Error>,
+    {
+        type Value = Route;
+
+        fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+            formatter.write_str("String")
+        }
+
+        fn visit_str<E>(self, value: &str) -> std::result::Result<Route, E>
+        where E: de::Error {
+            #[allow(clippy::unwrap_used)]
+            Ok(FromStr::from_str(value).unwrap())
+        }
+    }
+
+    deserializer.deserialize_any(RouteString(PhantomData))
+}
+
+/// A custom deserializer for a String or an Array (Sequence) of Strings for Routes
+pub fn route_or_route_array<'de, D>(deserializer: D) -> std::result::Result<Vec<Route>, D::Error>
+    where
+        D: Deserializer<'de>,
+{
+    struct StringOrVec(PhantomData<Vec<Route>>);
+
+    impl<'de> de::Visitor<'de> for StringOrVec {
+        type Value = Vec<Route>;
+
+        fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+            formatter.write_str("Route or Array of Routes")
+        }
+
+        fn visit_str<E>(self, value: &str) -> std::result::Result<Self::Value, E>
+        where E: de::Error {
+            #[allow(clippy::unwrap_used)]
+            Ok(vec![FromStr::from_str(value).unwrap()])
+        }
+
+        fn visit_seq<S>(self, mut visitor: S) -> std::result::Result<Self::Value, S::Error>
+        where S: de::SeqAccess<'de> {
+            let mut vec: Vec<Route> = Vec::new();
+
+            while let Some(element) = visitor.next_element::<String>()? {
+                vec.push(Route::from(element));
+            }
+
+            Ok(vec)
+        }
+    }
+
+    deserializer.deserialize_any(StringOrVec(PhantomData))
+}
+
+/// A [Route] can refer to a number of different types of objects in the flow hierarchy
 #[derive(Debug, PartialEq)]
 pub enum RouteType {
     /// The route refers to an Input of a Flow
     FlowInput(Name, Route),
     /// The Route refers to the Output of a Flow
     FlowOutput(Name),
-    /// The route specifies a sub-process of a flow (Input or Output)
+    /// The route specifies a sub-process of a flow (i.e. a sub-flow or a function)
     SubProcess(Name, Route)
 }
 
@@ -48,35 +164,35 @@ impl Route {
     ///     Some(Route::from(diff)) - `self` is a sub-route of `other` - with `diff` added
     ///     (e.g. ("/my-route1/something", "/my-route1")
     pub fn sub_route_of(&self, other: &Route) -> Option<Route> {
-        if self == other {
+        if self.string == other.string {
             return Some(Route::from(""));
         }
 
-        self.strip_prefix(&format!("{other}/")).map(Route::from)
+        self.string.strip_prefix(&format!("{other}/")).map(Route::from)
     }
 
     /// Insert another Route at the front of this Route
     pub fn insert<R: AsRef<str>>(&mut self, sub_route: R) -> &Self {
-        self.insert_str(0, sub_route.as_ref());
+        self.string.insert_str(0, sub_route.as_ref());
         self
     }
 
     /// Extend a Route by appending another Route to the end, adding the '/' separator if needed
     pub fn extend(&mut self, sub_route: &Route) -> &Self {
         if !sub_route.is_empty() {
-            if !self.to_string().ends_with('/') && !sub_route.starts_with('/') {
-                self.push('/');
+            if !self.string.ends_with('/') && !sub_route.string.starts_with('/') {
+                self.string.push('/');
             }
-            self.push_str(sub_route);
+            self.string.push_str(&sub_route.string);
         }
 
         self
     }
 
-    /// Return a route that is one level up, such that
-    ///     `/context/function/output/subroute -> /context/function/output`
+    /// Return the [Route] that is one level up, if it exists
+    /// Example: `/context/function/output/subroute -> /context/function/output`
     pub fn pop(&self) -> (Cow<Route>, Option<Route>) {
-        let mut segments: Vec<&str> = self.split('/').collect();
+        let mut segments: Vec<&str> = self.string.split('/').collect();
         let sub_route = segments.pop();
         match sub_route {
             None => (Cow::Borrowed(self), None),
@@ -88,10 +204,10 @@ impl Route {
         }
     }
 
-    /// Return the io route without a trailing number (array index) and if it has one or not
+    /// Return the io [Route] without a trailing number (array index) and if it has one or not
     /// If the trailing number was present then return the route with a trailing '/'
     pub fn without_trailing_array_index(&self) -> (Cow<Route>, usize, bool) {
-        let mut parts: Vec<&str> = self.split('/').collect();
+        let mut parts: Vec<&str> = self.string.split('/').collect();
         if let Some(last_part) = parts.pop() {
             if let Ok(index) = last_part.parse::<usize>() {
                 let route_without_number = parts.join("/");
@@ -102,34 +218,72 @@ impl Route {
         (Cow::Borrowed(self), 0, false)
     }
 
-    /// Return true if the route selects an element from an array
+    /// Return true if the [Route] selects an element from an array
     pub fn is_array_selector(&self) -> bool {
-        if self.is_empty() {
+        if self.string.is_empty() {
             return false;
         }
 
-        let mut parts: Vec<&str> = self.split('/').collect();
+        let mut parts: Vec<&str> = self.string.split('/').collect();
         if let Some(last_part) = parts.pop() {
             return last_part.parse::<usize>().is_ok();
         }
 
         false
     }
+
+    /// Return the depth of the [Route] used to specify types and subtypes such as
+    /// "" -> 0
+    /// "string" -> 0
+    /// "array/string" -> 1
+    /// "array/array/string" -> 2
+    pub fn depth(&self) -> usize {
+        if self.string.is_empty() {
+            return 0;
+        }
+
+        self.string.split('/').count()
+    }
+
+    /// Return true if this [Route] is empty, false otherwise
+    pub fn is_empty(&self) -> bool {
+        self.string.is_empty()
+    }
+
+    /// Parse the [Route] into the specific type of sub-route
+    pub fn parse_subroute(&self) -> Result<RouteType> {
+        let segments: Vec<&str> = self.string.split('/').collect();
+
+        match segments[0] {
+            "input" => Ok(RouteType::FlowInput(segments[1].into(),
+                                               segments[2..].join("/").into())),
+            "output" => Ok(RouteType::FlowOutput(segments[1].into())),
+            "" => bail!("Invalid Route in connection - must be an input, output or sub-process name"),
+            process_name => Ok(RouteType::SubProcess(process_name.into(),
+                                                     segments[1..].join("/").into())),
+        }
+    }
+
+    /// Return the [Route] the parent of the supplied [Name]
+    pub fn parent(&self, name: &Name) -> String {
+        self.string.strip_suffix(&format!("/{}", name.as_str()))
+            .unwrap_or(&self.string).to_string()
+    }
 }
 
 impl AsRef<str> for Route {
     fn as_ref(&self) -> &str {
-        self.as_str()
+        self.string.as_str()
     }
 }
 
 impl Validate for Route {
     fn validate(&self) -> Result<()> {
-        if self.is_empty() {
+        if self.string.is_empty() {
             bail!("Route '{}' is invalid - a route must specify an input, output or subprocess by name", self);
         }
 
-        if self.parse::<usize>().is_ok() {
+        if self.string.parse::<usize>().is_ok() {
             bail!("Route '{}' is invalid - cannot be an integer", self);
         }
 
@@ -137,7 +291,7 @@ impl Validate for Route {
     }
 }
 
-/// A trait implemented by objects that have Routes
+/// A trait that should be implemented by structs to indicate it has Routes
 pub trait HasRoute {
     /// Return a reference to the Route of the struct that implements this trait
     fn route(&self) -> &Route;
@@ -158,42 +312,44 @@ pub trait SetIORoutes {
     fn set_io_routes_from_parent(&mut self, parent: &Route, io_type: IOType);
 }
 
-impl fmt::Display for Route {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.0)
-    }
-}
-
-impl From<&str> for Route {
-    fn from(string: &str) -> Self {
-        Route(string.to_string())
-    }
-}
-
-impl From<String> for Route {
-    fn from(string: String) -> Self {
-        Route(string)
-    }
-}
-
-impl From<&String> for Route {
-    fn from(string: &String) -> Self {
-        Route(string.to_string())
-    }
-}
-
-impl From<&Name> for Route {
-    fn from(name: &Name) -> Self {
-        Route(name.to_string())
-    }
-}
-
 #[cfg(test)]
 mod test {
     use crate::model::name::Name;
+    use crate::model::route::RouteType;
     use crate::model::validation::Validate;
 
     use super::Route;
+
+    #[test]
+    fn test_invalid_connection_route() {
+        match Route::from("").parse_subroute() {
+            Ok(_) => panic!("Connection route should not be valid"),
+            Err(e) => assert!(e.to_string()
+                .contains("Invalid Route in connection"))
+        }
+    }
+
+    #[test]
+    fn test_parse_valid_input() {
+        let route = Route::from("input/string");
+        assert_eq!(route.parse_subroute().expect("Could not find input"),
+                   RouteType::FlowInput(Name::from("string"),
+                                        Route::default()));
+    }
+
+    #[test]
+    fn test_parse_valid_output() {
+        let route = Route::from("output/string");
+        assert_eq!(route.parse_subroute().expect("Could not find input"),
+                   RouteType::FlowOutput(Name::from("string")));
+    }
+
+    #[test]
+    fn test_parse_valid_subprocess() {
+        let route = Route::from("sub-process");
+        assert_eq!(route.parse_subroute().expect("Could not find input"),
+                   RouteType::SubProcess(Name::from("sub-process"), Route::default()));
+    }
 
     #[test]
     fn test_from_string() {
