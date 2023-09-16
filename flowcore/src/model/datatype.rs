@@ -8,7 +8,6 @@ use std::str::FromStr;
 
 use serde::de;
 use serde::de::Deserializer;
-use crate::errors;
 use crate::errors::*;
 use crate::model::route::Route;
 
@@ -43,7 +42,7 @@ pub struct DataType {
 }
 
 impl FromStr for DataType {
-    type Err = errors::Error;
+    type Err = Error;
 
     fn from_str(s: &str) -> Result<Self> {
         Ok(DataType {
@@ -159,15 +158,10 @@ impl DataType {
         self.string.is_empty()
     }
 
-    /// Determine if this data type is an array of the `second` type
-    pub fn is_array_of(&self, second: &Self) -> bool {
-        &DataType::from(format!("{ARRAY_TYPE}/{second}").as_str()) == self
-    }
-
-    /// Return Option of the data type the array holds, or None if not an array
+    /// Return Option of the [DataType] the array holds, or None if not an array
     pub fn array_type(&self) -> Option<DataType> {
         if self.is_generic() {
-            Some(DataType::from(""))
+            Some(GENERIC_TYPE.into()) // We can only assume Generic for the contents of array
         } else if self.is_array() {
             self.string.strip_prefix(&format!("{ARRAY_TYPE}/")).map(DataType::from)
         } else {
@@ -201,7 +195,9 @@ impl DataType {
 
     /// Determine how deeply nested in arrays this data type is. Not an array = 0
     pub fn array_order(&self) -> i32 {
-        if let Some(array_contents) = self.array_type() {
+        if self.is_generic() {
+            1 // The best we can assume
+        } else if let Some(array_contents) = self.array_type() {
             let sub_order = array_contents.array_order();
             1 + sub_order
         } else {
@@ -275,12 +271,12 @@ impl DataType {
         // generic at compile time, can't assume it won't be compatible with the destination
         // Relies on serialization of an array of generics into an input of some type or
         // array of generics sent to array of some specific type (runtime conversion)
-        if from.is_generic() || from.is_array_of(&DataType::from(GENERIC_TYPE)) {
+        if from.array_type() == Some(GENERIC_TYPE.into()) {
             return Ok(());
         }
 
         // destination can accept any type - with or without the runtime serializing
-        if to.is_generic() || to.is_array_of(&DataType::from(GENERIC_TYPE)) {
+        if to.array_type() == Some(GENERIC_TYPE.into()) {
             return Ok(());
         }
 
@@ -481,6 +477,9 @@ mod test {
                 (format!("{ARRAY_TYPE}/{STRING_TYPE}"), STRING_TYPE.into(), "/0"),
                 (format!("{ARRAY_TYPE}/{BOOLEAN_TYPE}"), BOOLEAN_TYPE.into(), "/0"),
                 (format!("{ARRAY_TYPE}/{OBJECT_TYPE}"), OBJECT_TYPE.into(), "/0"),
+
+                // Selection from a generic that maybe an array at runtime
+                (GENERIC_TYPE.into(), GENERIC_TYPE.into(), "/0"),
 
                 // equality of first order arrays of types
                 (format!("{ARRAY_TYPE}/{NUMBER_TYPE}"), format!("{ARRAY_TYPE}/{NUMBER_TYPE}"), ""),
