@@ -8,5 +8,5 @@ input.prompt = { always = ">"}
 source = "context://stdio/stdout"
 
 [[connection]]
-from = "readline/json/3"
+from = "readline/json/0"
 to = "stdout"
