@@ -3,8 +3,12 @@ use std::fmt;
 use error_chain::bail;
 use serde_derive::{Deserialize, Serialize};
 use serde_json::Value;
-use shrinkwraprs::Shrinkwrap;
+use std::marker::PhantomData;
+use std::str::FromStr;
 
+use serde::de;
+use serde::de::Deserializer;
+use crate::errors;
 use crate::errors::*;
 use crate::model::route::Route;
 
@@ -32,31 +36,78 @@ pub const NULL_TYPE: &str = "null";
 const DATA_TYPES: &[&str] = &[OBJECT_TYPE, STRING_TYPE, NUMBER_TYPE, BOOLEAN_TYPE, ARRAY_TYPE,
     NULL_TYPE, GENERIC_TYPE];
 
-/// Datatype is just a string defining what data type is being used
-#[derive(Shrinkwrap, Hash, Clone, PartialEq, Eq, Default, Serialize, Deserialize, Ord, PartialOrd)]
-pub struct DataType(String);
+/// `DataType` is just a String defining what data type is being used
+#[derive(Hash, Debug, PartialEq, Ord, PartialOrd, Eq, Clone, Default, Serialize, Deserialize)]
+pub struct DataType {
+    string: String,
+}
+
+impl FromStr for DataType {
+    type Err = errors::Error;
+
+    fn from_str(s: &str) -> Result<Self> {
+        Ok(DataType {
+            string: s.to_string()
+        })
+    }
+}
+
+/// A custom deserializer for a String or a Sequence of Strings for DataTypes
+pub fn datatype_or_datatype_array<'de, D>(deserializer: D) -> std::result::Result<Vec<DataType>, D::Error>
+    where
+        D: Deserializer<'de>,
+{
+    struct StringOrVec(PhantomData<Vec<DataType>>);
+
+    impl<'de> de::Visitor<'de> for StringOrVec {
+        type Value = Vec<DataType>;
+
+        fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+            formatter.write_str("DataType or list of DataTypes")
+        }
+
+        fn visit_str<E>(self, value: &str) -> std::result::Result<Self::Value, E>
+            where
+                E: de::Error,
+        {
+            Ok(vec![DataType::from(value)])
+        }
+
+        fn visit_seq<S>(self, mut visitor: S) -> std::result::Result<Self::Value, S::Error>
+            where
+                S: de::SeqAccess<'de> {
+            let mut vec: Vec<DataType> = Vec::new();
+
+            while let Some(element) = visitor.next_element::<String>()? {
+                vec.push(DataType::from(element));
+            }
+
+            Ok(vec)
+        }
+    }
+
+    deserializer.deserialize_any(StringOrVec(PhantomData))
+}
 
 impl From<&str> for DataType {
     fn from(s: &str) -> Self {
-        DataType(s.to_string())
+        DataType {
+            string: s.to_string()
+        }
     }
 }
 
 impl From<String> for DataType {
     fn from(s: String) -> Self {
-        DataType(s)
+        DataType {
+            string: s
+        }
     }
 }
 
 impl fmt::Display for DataType {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.0)
-    }
-}
-
-impl fmt::Debug for DataType {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.0)
+        write!(f, "{}", self.string)
     }
 }
 
@@ -67,7 +118,7 @@ impl fmt::Display for DataTypeList {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "[")?;
         for dt in &self.0 {
-            write!(f, "{}, ", dt.0)?;
+            write!(f, "{}, ", dt.string)?;
         }
         write!(f, "]")
     }
@@ -82,12 +133,12 @@ pub trait HasDataTypes {
 impl DataType {
     /// Determine if a datatype specified in a flow is a valid datatype or not
     pub fn valid(&self) -> Result<()> {
-        if self.is_empty() {  // generic type
+        if self.string.is_empty() {  // generic type
             return Ok(());
         }
 
         // Split the type hierarchy and check all levels are valid
-        let type_levels = self.split('/');
+        let type_levels = self.string.split('/');
 
         for type_level in type_levels {
             if !DATA_TYPES.contains(&type_level) {
@@ -99,13 +150,13 @@ impl DataType {
 
     /// Return if this datatype is an array or not
     pub fn is_array(&self) -> bool {
-        self.starts_with(ARRAY_TYPE)
+        self.string.starts_with(ARRAY_TYPE)
     }
 
     /// Return true if this datatype is generic (not specified at compile time and can contain
     /// any other datatype) or not
     pub fn is_generic(&self) -> bool {
-        self.is_empty()
+        self.string.is_empty()
     }
 
     /// Determine if this data type is an array of the `second` type
@@ -115,7 +166,7 @@ impl DataType {
 
     /// Return Option of the data type the array holds, or None if not an array
     pub fn array_type(&self) -> Option<DataType> {
-        self.strip_prefix(&format!("{ARRAY_TYPE}/")).map(DataType::from)
+        self.string.strip_prefix(&format!("{ARRAY_TYPE}/")).map(DataType::from)
     }
 
     /// Return the `DataType` for a Json `Value`, including nested values in arrays or maps
@@ -126,14 +177,14 @@ impl DataType {
             Value::Number(_) => NUMBER_TYPE.into(),
             Value::Array(array) => {
                 if array.is_empty() {
-                    DataType(format!("{ARRAY_TYPE}/{GENERIC_TYPE}"))
+                    DataType::from(format!("{ARRAY_TYPE}/{GENERIC_TYPE}"))
                 } else {
-                    DataType(format!("{ARRAY_TYPE}/{}", Self::value_type(&array[0])))
+                    DataType::from(format!("{ARRAY_TYPE}/{}", Self::value_type(&array[0])))
                 }
             },
             Value::Object(map) => {
                 if let Some(map_entry) = map.values().next() {
-                    DataType(format!("{OBJECT_TYPE}/{}", Self::value_type(map_entry)))
+                    DataType::from(format!("{OBJECT_TYPE}/{}", Self::value_type(map_entry)))
                 } else {
                     OBJECT_TYPE.into()
                 }
@@ -201,7 +252,7 @@ impl DataType {
             return Ok(full_type.clone());
         }
 
-        let mut full_type_split = full_type.split('/').collect::<Vec<&str>>();
+        let mut full_type_split = full_type.string.split('/').collect::<Vec<&str>>();
 
         if subroute.depth() > full_type_split.len() {
             bail!("Depth of subroute '{}' is greater than the depth of the type '{}'",

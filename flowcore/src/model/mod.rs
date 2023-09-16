@@ -10,8 +10,6 @@ pub mod validation;
 pub mod io;
 /// `datatype` specifies the type of data permitted on a input, output or connection
 pub mod datatype;
-/// A custom deserializer for a String or a Sequence of Strings for DataTypes
-mod datatype_array_serde;
 /// `connection` defines the connection between one process output to another process's input
 pub mod connection;
 /// `flow` is the definition of an entire flow, including children flows
