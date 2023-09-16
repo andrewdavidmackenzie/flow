@@ -52,14 +52,6 @@ impl From<String> for Route {
     }
 }
 
-impl From<&String> for Route {
-    fn from(string: &String) -> Self {
-        Route {
-            string: string.to_string()
-        }
-    }
-}
-
 impl From<&Name> for Route {
     fn from(name: &Name) -> Self {
         Route {

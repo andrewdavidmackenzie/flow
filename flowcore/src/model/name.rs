@@ -1,24 +1,9 @@
-use std::fmt;
-
 use error_chain::bail;
-use serde_derive::{Deserialize, Serialize};
-use shrinkwraprs::Shrinkwrap;
-
 use crate::errors::*;
-use crate::model::route::Route;
 use crate::model::validation::Validate;
 
 /// `Name` is a String that names various types of objects
-#[derive(Shrinkwrap, Hash, Debug, Clone, PartialEq, Ord, PartialOrd, Eq, Default, Serialize, Deserialize)]
-pub struct Name(String);
-
-/// Implement Name struct
-impl Name {
-    /// Return true if the Name is empty
-    pub fn empty(&self) -> bool {
-        self.is_empty()
-    }
-}
+pub type Name = String;
 
 /// Trait implemented by objects that have a Name
 pub trait HasName {
@@ -39,42 +24,6 @@ impl Validate for Name {
         }
 
         Ok(())
-    }
-}
-
-impl fmt::Display for Name {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.0)
-    }
-}
-
-impl From<&str> for Name {
-    fn from(string: &str) -> Self {
-        Name(string.to_string())
-    }
-}
-
-impl From<String> for Name {
-    fn from(string: String) -> Self {
-        Name(string)
-    }
-}
-
-impl From<&String> for Name {
-    fn from(string: &String) -> Self {
-        Name(string.to_string())
-    }
-}
-
-impl From<&Name> for Name {
-    fn from(string: &Name) -> Self {
-        string.clone()
-    }
-}
-
-impl From<&Route> for Name {
-    fn from(route: &Route) -> Self {
-        Name::from(&route.to_string())
     }
 }
 

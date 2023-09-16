@@ -297,7 +297,7 @@ impl FunctionDefinition {
         for (input_name, initializer) in initializer_map {
             // initializer.0 is io name, initializer.1 is the initial value to set it to
             for (index, input) in self.inputs.iter_mut().enumerate() {
-                if *input.name() == Name::from(input_name)
+                if input.name() == input_name
                     || (input_name.as_str() == "default" && index == 0)
                 {
                     input.set_initializer(Some(initializer.clone()))
