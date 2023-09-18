@@ -7,5 +7,4 @@ type = "rust"
 type = "string" # The String to reverse
 
 [[output]]
-name = "reversed" # - The input string reversed
 type = "string"
