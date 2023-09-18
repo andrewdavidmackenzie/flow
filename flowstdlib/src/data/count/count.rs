@@ -8,7 +8,6 @@ use flowcore::RUN_AGAIN;
 #[flow_function]
 fn _count(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
     let mut output_map = serde_json::Map::new();
-    output_map.insert("data".into(), inputs[0].clone());
 
     let mut count = inputs[1].as_i64().ok_or("Could not get count")?;
     count += 1;
@@ -34,8 +33,6 @@ mod test {
         let (result, _) = _count(&inputs).expect("_count() failed");
         let output = result.expect("Could not get the Value from the output");
 
-        assert_eq!(output.pointer("/data")
-                       .expect("Could not get the /data from the output"), &json!(42));
         assert_eq!(output.pointer("/count")
                        .expect("Could not get the /count from the output"), &json!(1));
     }

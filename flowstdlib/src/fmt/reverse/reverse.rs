@@ -12,10 +12,7 @@ fn _reverse(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
 
     let input = &inputs[0];
     if let JsonString(ref s) = input {
-        value = Some(json!({
-            "reversed" : s.chars().rev().collect::<String>(),
-            "original": s
-        }));
+        value = Some(json!({"reversed" : s.chars().rev().collect::<String>()}));
     }
 
     Ok((value, RUN_AGAIN))
@@ -38,10 +35,6 @@ mod test {
         assert!(output.is_some());
         let value = output.expect("No value was returned in the output");
         let map = value.as_object().expect("Expected a object");
-        assert_eq!(
-            map.get("original").expect("No 'original' value in map"),
-            &json!("Hello")
-        );
         assert_eq!(
             map.get("reversed").expect("No 'reversed' value in map"),
             &json!("olleH")

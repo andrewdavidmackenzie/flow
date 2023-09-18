@@ -11,8 +11,5 @@ name = "count" #teh previous count
 type = "number"
 
 [[output]]
-name = "data" # - the value passed on
-
-[[output]]
 name = "count" # - the incremented count of values passed thru
 type = "number"

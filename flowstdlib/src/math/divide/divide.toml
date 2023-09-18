@@ -12,14 +12,6 @@ name = "divisor" # - the number to divide by, of type `Number`
 type = "number"
 
 [[output]]
-name = "dividend" # - re output the `dividend` input, of type `Number`
-type = "number"
-
-[[output]]
-name = "divisor" # - re output the `divisor` input, of type `Number`
-type = "number"
-
-[[output]]
 name = "result" # - the result of the division, of type `Number`
 type = "number"
 
