@@ -8,6 +8,10 @@ use flowcore::{RUN_AGAIN, RunAgain};
 fn _range_split(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
     let min_and_max = inputs[0].as_array().ok_or("Could not get min and max array")?;
 
+    if min_and_max.len() != 2 {
+        bail!("Range (array/number) should have two values");
+    }
+
     let min = min_and_max[0].as_i64().ok_or("Could not get min")?;
     let max = min_and_max[1].as_i64().ok_or("Could not get max")?;
 

@@ -1,0 +1,12 @@
+flow = "json-indexing"
+
+[[process]]
+source = "context://stdio/readline"
+input.prompt = { always = ""}
+
+[[process]]
+source = "context://stdio/stdout"
+
+[[connection]]
+from = "readline/json/2"
+to = "stdout"

@@ -36,8 +36,12 @@ impl InputInitializer {
 }
 
 #[derive(Deserialize, Serialize, Clone, PartialEq, Eq, Debug)]
-/// An `Input` to a `RuntimeFunction`
+/// An [Input] to a [RuntimeFunction]
 pub struct Input {
+    #[cfg(feature = "debugger")]
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    name: Name,
+
     /// `array_order` defines how many levels of arrays of non-array values does the destination accept
     #[serde(
     default,
@@ -61,10 +65,6 @@ pub struct Input {
     // with first will be at the head and last at the tail
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     received: Vec<Value>,
-
-    #[cfg(feature = "debugger")]
-    #[serde(default, skip_serializing_if = "String::is_empty")]
-    name: Name
 }
 
 #[allow(clippy::trivially_copy_pass_by_ref)] // As this is imposed on us by serde
@@ -80,11 +80,11 @@ fn is_not_generic(generic: &bool) -> bool {
 impl From<&IO> for Input {
     fn from(io: &IO) -> Self {
         Input::new(
-            #[cfg(feature = "debugger")]
-            io.name(), io.datatypes()[0].array_order(),
+            #[cfg(feature = "debugger")] io.name(),
+            io.datatypes()[0].type_array_order(),
             io.datatypes()[0].is_generic(),
             io.get_initializer().clone(),
-        io.get_flow_initializer().clone())
+            io.get_flow_initializer().clone())
     }
 }
 
@@ -209,26 +209,35 @@ impl Input {
         } else {
             match (DataType::value_array_order(&value) - self.array_order(), &value) {
                 (0, _) => self.received.push(value),
-                (1, Value::Array(array)) => self.send_array(array.clone()),
+                (1, Value::Array(array)) => self.send_array_elements(array.clone()),
                 (2, Value::Array(array_2)) => {
                     for array in array_2.iter() {
                         if let Value::Array(sub_array) = array {
-                            self.send_array(sub_array.clone())
+                            self.send_array_elements(sub_array.clone())
                         }
                     }
                 }
-                (-1, _) => self.received.push(json!([value])),
-                (-2, _) => self.received.push(json!([[value]])),
+                (-1, _) => {
+                    debug!("\t\tSending value '{value}' wrapped in an Array: '{}'",
+                        json!([value]));
+                    self.received.push(json!([value]))
+                },
+                (-2, _) => {
+                    debug!("\t\tSending value '{value}' wrapped in an Array of Array: '{}'",
+                        json!([[value]]));
+                    self.received.push(json!([[value]]))
+                },
                 _ => return false,
             }
         }
         true // a value was sent!
     }
 
-    // Send an array of values to this `Input`, by sending them one by one
-    fn send_array(&mut self, array: Vec<Value>) {
+    // Send an array of values to this `Input`, by sending them one element at a time
+    fn send_array_elements(&mut self, array: Vec<Value>) {
+        debug!("\t\tSending Array as a series of Values");
         for value in array {
-            debug!("\t\t\tPushing array element '{value}'");
+            debug!("\t\t\tSending array element as Value; '{value}'");
             self.received.push(value);
         }
     }
@@ -279,7 +288,7 @@ mod test {
     #[test]
     fn accepts_array() {
         let mut input = Input::new(#[cfg(feature = "debugger")] "", 0, false,  None, None);
-        input.send_array(vec![json!(5), json!(10), json!(15)]);
+        input.send_array_elements(vec![json!(5), json!(10), json!(15)]);
         assert!(!input.is_empty());
     }
 

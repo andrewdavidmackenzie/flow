@@ -1,0 +1,12 @@
+flow = "args"
+
+[[process]]
+source = "context://stdio/readline"
+input.prompt = { always = ">"}
+
+[[process]]
+source = "context://stdio/stdout"
+
+[[connection]]
+from = "readline/json/0"
+to = "stdout"
