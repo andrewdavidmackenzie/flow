@@ -49,12 +49,12 @@ to = "count/data"
 
 # Loop back the accumulating count
 [[connection]]
-from = "count/count"
+from = "count"
 to = "count/count"
 
 [[process]]
 source = "context://stdio/stdout"
 
 [[connection]]
-from = "count/count"
+from = "count"
 to = "stdout"
