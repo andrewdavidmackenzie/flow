@@ -498,7 +498,9 @@ impl RunState {
                     self.mark_as_completed(job.function_id);
                 }
             },
-            Err(e) => error!("Error in Job#{}: {e}", job.payload.job_id)
+            Err(e) => {
+                error!("Error in Job #{}: {e}", job.payload.job_id)
+            }
         }
 
         // unblock any senders from other flows that can now run due to this function completing

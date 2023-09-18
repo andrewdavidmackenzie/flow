@@ -11,5 +11,6 @@ type = "array/"
 name = "right" # - the 'right' array
 type = "array/"
 
+# Array of tuples of values from 'left' Array and 'right' Array
 [[output]]
 type = "array/"

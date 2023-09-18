@@ -158,7 +158,9 @@ impl DataType {
         self.string.is_empty()
     }
 
-    /// Return Option of the [DataType] the array holds, or None if not an array
+    /// If an Array --> Return Option of the [DataType] the array holds
+    /// If Generic  --> Return Generic
+    /// If not an Array --> Return None
     pub fn array_type(&self) -> Option<DataType> {
         if self.is_generic() {
             Some(GENERIC_TYPE.into()) // We can only assume Generic for the contents of array
@@ -193,19 +195,27 @@ impl DataType {
         }
     }
 
-    /// Determine how deeply nested in arrays this data type is. Not an array = 0
-    pub fn array_order(&self) -> i32 {
+    /// Determine how deeply nested in arrays this [DataType] is.
+    /// If not an array, returns 0
+    ///
+    /// This is used at compile time by the compiler to determine the array order
+    /// of an input or output
+    pub fn type_array_order(&self) -> i32 {
+        // Avoid recursing into array type if Generic (see array_type above)
         if self.is_generic() {
-            1 // The best we can assume
+            0
         } else if let Some(array_contents) = self.array_type() {
-            let sub_order = array_contents.array_order();
-            1 + sub_order
+            array_contents.type_array_order() + 1
         } else {
             0
         }
     }
 
-    /// Determine how deeply nested in arrays this Value is. Not an array = 0
+    /// Determine how deeply nested in arrays this [serde_json::value::Value] is.
+    /// If not an array, returns 0
+    ///
+    /// This is used at run time to determine the array order of
+    /// an actual value being processed
     pub fn value_array_order(value: &Value) -> i32 {
         match value {
             Value::Array(array) if !array.is_empty() => {
@@ -280,7 +290,7 @@ impl DataType {
             return Ok(());
         }
 
-        match from.array_order() - to.array_order() {
+        match from.type_array_order() - to.type_array_order() {
             0 => if from == to { // from and to types are the same - hence compatible
                     return Ok(());
                 },
