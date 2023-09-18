@@ -150,7 +150,7 @@ pub fn compile_example(sample_path: &Path, runner: &str) {
     }
 }
 
-fn check_test_output(source_file: &str) {
+pub fn check_test_output(source_file: &str) {
     let mut sample_dir = PathBuf::from(source_file);
     sample_dir.pop();
 

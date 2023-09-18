@@ -4,15 +4,11 @@ docs = "count.md"
 type = "rust"
 
 [[input]]
-name = "data" # the value to count and pass on
+name = "data" # the data to count the number of instances sent
 
 [[input]]
-name = "count" #teh previous count
+name = "count" # the previous count
 type = "number"
 
-[[output]]
-name = "data" # - the value passed on
-
-[[output]]
-name = "count" # - the incremented count of values passed thru
+[[output]] # the incremented count of values passed in
 type = "number"

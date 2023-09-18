@@ -22,7 +22,4 @@ name = "index" # the index of the value just processed and output on "value"
 type = "number"
 
 [[output]]
-name = "value" # the value just processed
-
-[[output]]
 name = "selected_value" # the value selected by index - only output when selected

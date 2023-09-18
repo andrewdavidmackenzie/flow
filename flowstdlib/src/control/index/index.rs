@@ -14,7 +14,6 @@ fn _index(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
         let index = previous_index + 1;
 
         // Always output the 'value" and its index
-        output_map.insert("value".into(), json!(value));
         output_map.insert("index".into(), json!(index));
 
         if let Some(select_index) = inputs[3].as_i64() {

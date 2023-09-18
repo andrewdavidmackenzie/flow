@@ -10,8 +10,6 @@ fn _divide(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
 
     let dividend = inputs[0].as_f64().ok_or("Could not get dividend")?;
     let divisor = inputs[1].as_f64().ok_or("Could not get divisor")?;
-    output_map.insert("dividend".into(), json!(dividend));
-    output_map.insert("divisor".into(), json!(divisor));
     output_map.insert("result".into(), json!(dividend / divisor));
     output_map.insert("remainder".into(), json!(dividend % divisor));
 
@@ -34,14 +32,6 @@ mod test {
         assert!(run_again);
 
         let outputs = output.expect("Could not get the output value");
-
-        let dividend = outputs
-            .pointer("/dividend")
-            .expect("Could not get /dividend");
-        assert_eq!(dividend, &json!(test_data.0 as f64));
-
-        let divisor = outputs.pointer("/divisor").expect("Could not get /divisor");
-        assert_eq!(divisor, &json!(test_data.1 as f64));
 
         let result = outputs.pointer("/result").expect("Could not get /result");
         assert_eq!(result, &json!(test_data.2 ));
