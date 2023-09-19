@@ -1,0 +1,418 @@
+<!DOCTYPE HTML>
+<html lang="en" class="sidebar-visible no-js light">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Connections - The &#x27;flow&#x27; book</title>
+
+
+        <!-- Custom HTML head -->
+        
+        <meta name="description" content="What is &#x27;flow&#x27; and how to use it?">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff" />
+
+        <link rel="icon" href="../../favicon.svg">
+        <link rel="shortcut icon" href="../../favicon.png">
+        <link rel="stylesheet" href="../../css/variables.css">
+        <link rel="stylesheet" href="../../css/general.css">
+        <link rel="stylesheet" href="../../css/chrome.css">
+        <link rel="stylesheet" href="../../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../../fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="../../highlight.css">
+        <link rel="stylesheet" href="../../tomorrow-night.css">
+        <link rel="stylesheet" href="../../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+
+    </head>
+    <body>
+    <div id="body-container">
+        <!-- Provide site root to javascript -->
+        <script>
+            var path_to_root = "../../";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('no-js')
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add('js');
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            var html = document.querySelector('html');
+            var sidebar = 'hidden';
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            }
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="../../book/book_intro.html">Intro</a></li><li class="chapter-item expanded affix "><li class="part-title">Introduction to flow</li><li class="chapter-item expanded "><a href="../../INSTALLING.html"><strong aria-hidden="true">1.</strong> Installing flow</a></li><li class="chapter-item expanded "><a href="../../book/introduction/what_is_flow.html"><strong aria-hidden="true">2.</strong> What is flow?</a></li><li class="chapter-item expanded "><a href="../../book/introduction/tenets.html"><strong aria-hidden="true">3.</strong> Tenets of flow</a></li><li class="chapter-item expanded "><a href="../../book/introduction/structure.html"><strong aria-hidden="true">4.</strong> Project Components and Structure</a></li><li class="chapter-item expanded "><a href="../../book/introduction/inspirations.html"><strong aria-hidden="true">5.</strong> The Inspirations for flow</a></li><li class="chapter-item expanded "><a href="../../book/introduction/non_inspirations.html"><strong aria-hidden="true">6.</strong> Non-Inspirations</a></li><li class="chapter-item expanded "><a href="../../book/introduction/parallelism.html"><strong aria-hidden="true">7.</strong> Parallelism</a></li><li class="chapter-item expanded "><a href="../../book/introduction/status.html"><strong aria-hidden="true">8.</strong> Status</a></li><li class="chapter-item expanded affix "><li class="part-title">Your First Flow</li><li class="chapter-item expanded "><a href="../../book/first_flow/first_flow.html"><strong aria-hidden="true">9.</strong> Your First Flow</a></li><li class="chapter-item expanded "><a href="../../book/first_flow/implementation.html"><strong aria-hidden="true">10.</strong> Running the flow</a></li><li class="chapter-item expanded "><a href="../../book/first_flow/step-by-step.html"><strong aria-hidden="true">11.</strong> Step-by-Step</a></li><li class="chapter-item expanded "><a href="../../book/first_flow/debugging.html"><strong aria-hidden="true">12.</strong> Debugging your first flow</a></li><li class="chapter-item expanded affix "><li class="part-title">Defining Flows</li><li class="chapter-item expanded "><a href="../../book/describing/definition_overview.html"><strong aria-hidden="true">13.</strong> Defining flows</a></li><li class="chapter-item expanded "><a href="../../book/describing/names.html"><strong aria-hidden="true">14.</strong> Names</a></li><li class="chapter-item expanded "><a href="../../book/describing/ios.html"><strong aria-hidden="true">15.</strong> Flow IOs</a></li><li class="chapter-item expanded "><a href="../../book/describing/process_references.html"><strong aria-hidden="true">16.</strong> Process References</a></li><li class="chapter-item expanded "><a href="../../book/describing/function_definitions.html"><strong aria-hidden="true">17.</strong> Function Definitions</a></li><li class="chapter-item expanded "><a href="../../book/describing/types.html"><strong aria-hidden="true">18.</strong> Data Types</a></li><li class="chapter-item expanded "><a href="../../book/describing/connections.html" class="active"><strong aria-hidden="true">19.</strong> Connections</a></li><li class="chapter-item expanded "><a href="../../book/describing/flow_libraries.html"><strong aria-hidden="true">20.</strong> Flow Libraries</a></li><li class="chapter-item expanded "><a href="../../book/describing/context_functions.html"><strong aria-hidden="true">21.</strong> Context Functions</a></li><li class="chapter-item expanded "><a href="../../book/describing/provided_functions.html"><strong aria-hidden="true">22.</strong> Provided Functions</a></li><li class="chapter-item expanded "><a href="../../book/describing/programming_methods.html"><strong aria-hidden="true">23.</strong> Programming Methods</a></li><li class="chapter-item expanded affix "><li class="part-title">flowrcli's context functions</li><li class="chapter-item expanded "><a href="../../flowr/src/bin/flowrcli/context/flowr_context_functions.html"><strong aria-hidden="true">24.</strong> flowr's context functions</a></li><li class="chapter-item expanded "><a href="../../flowr/src/bin/flowrcli/context/args/args.html"><strong aria-hidden="true">25.</strong> Arg functions</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../flowr/src/bin/flowrcli/context/args/get.html"><strong aria-hidden="true">25.1.</strong> Arg get function</a></li></ol></li><li class="chapter-item expanded "><a href="../../flowr/src/bin/flowrcli/context/file/file.html"><strong aria-hidden="true">26.</strong> File functions</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../flowr/src/bin/flowrcli/context/file/file_write.html"><strong aria-hidden="true">26.1.</strong> File Write function</a></li><li class="chapter-item expanded "><a href="../../flowr/src/bin/flowrcli/context/file/file_read.html"><strong aria-hidden="true">26.2.</strong> File Read function</a></li></ol></li><li class="chapter-item expanded "><a href="../../flowr/src/bin/flowrcli/context/image/image.html"><strong aria-hidden="true">27.</strong> Image manipulation functions</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../flowr/src/bin/flowrcli/context/image/image_buffer.html"><strong aria-hidden="true">27.1.</strong> Image buffer</a></li></ol></li><li class="chapter-item expanded "><a href="../../flowr/src/bin/flowrcli/context/stdio/stdio.html"><strong aria-hidden="true">28.</strong> Standard IO functions</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../flowr/src/bin/flowrcli/context/stdio/readline.html"><strong aria-hidden="true">28.1.</strong> Readline function</a></li><li class="chapter-item expanded "><a href="../../flowr/src/bin/flowrcli/context/stdio/stdin.html"><strong aria-hidden="true">28.2.</strong> Standard Input function</a></li><li class="chapter-item expanded "><a href="../../flowr/src/bin/flowrcli/context/stdio/stdout.html"><strong aria-hidden="true">28.3.</strong> Standard Output function</a></li><li class="chapter-item expanded "><a href="../../flowr/src/bin/flowrcli/context/stdio/stderr.html"><strong aria-hidden="true">28.4.</strong> Standard Error function</a></li></ol></li><li class="chapter-item expanded "><li class="part-title">flowrgui's context functions</li><li class="chapter-item expanded "><a href="../../flowr/src/bin/flowrgui/context/flowrgui_context_functions.html"><strong aria-hidden="true">29.</strong> flowrgui's context functions</a></li><li class="chapter-item expanded "><a href="../../flowr/src/bin/flowrgui/context/args/args.html"><strong aria-hidden="true">30.</strong> Arg functions</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../flowr/src/bin/flowrgui/context/args/get.html"><strong aria-hidden="true">30.1.</strong> Arg get function</a></li></ol></li><li class="chapter-item expanded "><a href="../../flowr/src/bin/flowrgui/context/file/file.html"><strong aria-hidden="true">31.</strong> File functions</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../flowr/src/bin/flowrgui/context/file/file_write.html"><strong aria-hidden="true">31.1.</strong> File Write function</a></li><li class="chapter-item expanded "><a href="../../flowr/src/bin/flowrgui/context/file/file_read.html"><strong aria-hidden="true">31.2.</strong> File Read function</a></li></ol></li><li class="chapter-item expanded "><a href="../../flowr/src/bin/flowrgui/context/image/image.html"><strong aria-hidden="true">32.</strong> Image manipulation functions</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../flowr/src/bin/flowrgui/context/image/image_buffer.html"><strong aria-hidden="true">32.1.</strong> Image buffer</a></li></ol></li><li class="chapter-item expanded "><a href="../../flowr/src/bin/flowrgui/context/stdio/stdio.html"><strong aria-hidden="true">33.</strong> Standard IO functions</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../flowr/src/bin/flowrgui/context/stdio/readline.html"><strong aria-hidden="true">33.1.</strong> Readline function</a></li><li class="chapter-item expanded "><a href="../../flowr/src/bin/flowrgui/context/stdio/stdin.html"><strong aria-hidden="true">33.2.</strong> Standard Input function</a></li><li class="chapter-item expanded "><a href="../../flowr/src/bin/flowrgui/context/stdio/stdout.html"><strong aria-hidden="true">33.3.</strong> Standard Output function</a></li><li class="chapter-item expanded "><a href="../../flowr/src/bin/flowrgui/context/stdio/stderr.html"><strong aria-hidden="true">33.4.</strong> Standard Error function</a></li></ol></li><li class="chapter-item expanded "><li class="part-title">Running Flows</li><li class="chapter-item expanded "><a href="../../book/running/running.html"><strong aria-hidden="true">34.</strong> Running flows</a></li><li class="chapter-item expanded "><a href="../../book/running/flowc.html"><strong aria-hidden="true">35.</strong> flowc Command Line Arguments</a></li><li class="chapter-item expanded "><a href="../../book/running/arguments.html"><strong aria-hidden="true">36.</strong> Passing command line arguments to flows</a></li><li class="chapter-item expanded "><a href="../../book/running/root_file_selection.html"><strong aria-hidden="true">37.</strong> Specifying the root file to load</a></li><li class="chapter-item expanded "><a href="../../book/running/stdio.html"><strong aria-hidden="true">38.</strong> Standard Input and Output</a></li><li class="chapter-item expanded "><a href="../../book/running/panics.html"><strong aria-hidden="true">39.</strong> Exceptions and Panics</a></li><li class="chapter-item expanded "><a href="../../book/running/flowr.html"><strong aria-hidden="true">40.</strong> Running Flows using flowr</a></li><li class="chapter-item expanded "><a href="../../book/running/client_server.html"><strong aria-hidden="true">41.</strong> Running a flow in client/server mode of flowr</a></li><li class="chapter-item expanded "><a href="../../book/running/distributed.html"><strong aria-hidden="true">42.</strong> Distributed execution of jobs with flowr and flowrex</a></li><li class="chapter-item expanded affix "><li class="part-title">Debugging Flows</li><li class="chapter-item expanded "><a href="../../book/debugging/debugger.html"><strong aria-hidden="true">43.</strong> The Debugger</a></li><li class="chapter-item expanded affix "><li class="part-title">The flowstdlib Standard Library</li><li class="chapter-item expanded "><a href="../../flowstdlib/README.html"><strong aria-hidden="true">44.</strong> README</a></li><li class="chapter-item expanded "><a href="../../flowstdlib/src/control/control.html"><strong aria-hidden="true">45.</strong> control</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../flowstdlib/src/control/compare_switch/compare_switch.html"><strong aria-hidden="true">45.1.</strong> compare_switch</a></li><li class="chapter-item expanded "><a href="../../flowstdlib/src/control/index/index.html"><strong aria-hidden="true">45.2.</strong> index</a></li><li class="chapter-item expanded "><a href="../../flowstdlib/src/control/index_f.html"><strong aria-hidden="true">45.3.</strong> index_f</a></li><li class="chapter-item expanded "><a href="../../flowstdlib/src/control/join/join.html"><strong aria-hidden="true">45.4.</strong> join</a></li><li class="chapter-item expanded "><a href="../../flowstdlib/src/control/route/route.html"><strong aria-hidden="true">45.5.</strong> route</a></li><li class="chapter-item expanded "><a href="../../flowstdlib/src/control/select/select.html"><strong aria-hidden="true">45.6.</strong> select</a></li><li class="chapter-item expanded "><a href="../../flowstdlib/src/control/tap/tap.html"><strong aria-hidden="true">45.7.</strong> tap</a></li></ol></li><li class="chapter-item expanded "><a href="../../flowstdlib/src/data/data.html"><strong aria-hidden="true">46.</strong> data</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../flowstdlib/src/data/accumulate/accumulate.html"><strong aria-hidden="true">46.1.</strong> accumulate</a></li><li class="chapter-item expanded "><a href="../../flowstdlib/src/data/append/append.html"><strong aria-hidden="true">46.2.</strong> append</a></li><li class="chapter-item expanded "><a href="../../flowstdlib/src/data/count/count.html"><strong aria-hidden="true">46.3.</strong> count</a></li><li class="chapter-item expanded "><a href="../../flowstdlib/src/data/duplicate/duplicate.html"><strong aria-hidden="true">46.4.</strong> duplicate</a></li><li class="chapter-item expanded "><a href="../../flowstdlib/src/data/enumerate/enumerate.html"><strong aria-hidden="true">46.5.</strong> enumerate</a></li><li class="chapter-item expanded "><a href="../../flowstdlib/src/data/info/info.html"><strong aria-hidden="true">46.6.</strong> info</a></li><li class="chapter-item expanded "><a href="../../flowstdlib/src/data/ordered_split/ordered_split.html"><strong aria-hidden="true">46.7.</strong> ordered_split</a></li><li class="chapter-item expanded "><a href="../../flowstdlib/src/data/remove/remove.html"><strong aria-hidden="true">46.8.</strong> remove</a></li><li class="chapter-item expanded "><a href="../../flowstdlib/src/data/sort/sort.html"><strong aria-hidden="true">46.9.</strong> sort</a></li><li class="chapter-item expanded "><a href="../../flowstdlib/src/data/split/split.html"><strong aria-hidden="true">46.10.</strong> split</a></li><li class="chapter-item expanded "><a href="../../flowstdlib/src/data/zip/zip.html"><strong aria-hidden="true">46.11.</strong> zip</a></li></ol></li><li class="chapter-item expanded "><a href="../../flowstdlib/src/fmt/fmt.html"><strong aria-hidden="true">47.</strong> fmt</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../flowstdlib/src/fmt/reverse/reverse.html"><strong aria-hidden="true">47.1.</strong> reverse</a></li><li class="chapter-item expanded "><a href="../../flowstdlib/src/fmt/to_json/to_json.html"><strong aria-hidden="true">47.2.</strong> to_json</a></li><li class="chapter-item expanded "><a href="../../flowstdlib/src/fmt/to_string/to_string.html"><strong aria-hidden="true">47.3.</strong> to_string</a></li></ol></li><li class="chapter-item expanded "><a href="../../flowstdlib/src/math/math.html"><strong aria-hidden="true">48.</strong> math</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../flowstdlib/src/math/add/add.html"><strong aria-hidden="true">48.1.</strong> add</a></li><li class="chapter-item expanded "><a href="../../flowstdlib/src/math/compare/compare.html"><strong aria-hidden="true">48.2.</strong> compare</a></li><li class="chapter-item expanded "><a href="../../flowstdlib/src/math/divide/divide.html"><strong aria-hidden="true">48.3.</strong> divide</a></li><li class="chapter-item expanded "><a href="../../flowstdlib/src/math/multiply/multiply.html"><strong aria-hidden="true">48.4.</strong> multiply</a></li><li class="chapter-item expanded "><a href="../../flowstdlib/src/math/range.html"><strong aria-hidden="true">48.5.</strong> range</a></li><li class="chapter-item expanded "><a href="../../flowstdlib/src/math/range_split/range_split.html"><strong aria-hidden="true">48.6.</strong> range_split</a></li><li class="chapter-item expanded "><a href="../../flowstdlib/src/math/sequence.html"><strong aria-hidden="true">48.7.</strong> sequence</a></li><li class="chapter-item expanded "><a href="../../flowstdlib/src/math/sqrt/sqrt.html"><strong aria-hidden="true">48.8.</strong> sqrt</a></li><li class="chapter-item expanded "><a href="../../flowstdlib/src/math/subtract/subtract.html"><strong aria-hidden="true">48.9.</strong> subtract</a></li></ol></li><li class="chapter-item expanded "><a href="../../flowstdlib/src/matrix/matrix.html"><strong aria-hidden="true">49.</strong> matrix</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../flowstdlib/src/matrix/duplicate_rows/duplicate_rows.html"><strong aria-hidden="true">49.1.</strong> duplicate_rows</a></li><li class="chapter-item expanded "><a href="../../flowstdlib/src/matrix/multiply.html"><strong aria-hidden="true">49.2.</strong> multiply</a></li><li class="chapter-item expanded "><a href="../../flowstdlib/src/matrix/multiply_row/multiply_row.html"><strong aria-hidden="true">49.3.</strong> multiply_row</a></li><li class="chapter-item expanded "><a href="../../flowstdlib/src/matrix/transpose/transpose.html"><strong aria-hidden="true">49.4.</strong> transpose</a></li><li class="chapter-item expanded "><a href="../../flowstdlib/src/matrix/compose_matrix/compose_matrix.html"><strong aria-hidden="true">49.5.</strong> compose_matrix</a></li></ol></li><li class="chapter-item expanded "><li class="part-title">Examples flows</li><li class="chapter-item expanded "><a href="../../flowr/examples/README.html"><strong aria-hidden="true">50.</strong> Examples Intro</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../flowr/examples/args/DESCRIPTION.html"><strong aria-hidden="true">50.1.</strong> args</a></li><li class="chapter-item expanded "><a href="../../flowr/examples/args-json/DESCRIPTION.html"><strong aria-hidden="true">50.2.</strong> args-json</a></li><li class="chapter-item expanded "><a href="../../flowr/examples/arrays/DESCRIPTION.html"><strong aria-hidden="true">50.3.</strong> arrays</a></li><li class="chapter-item expanded "><a href="../../flowr/examples/debug-help-string/DESCRIPTION.html"><strong aria-hidden="true">50.4.</strong> debug-help-string</a></li><li class="chapter-item expanded "><a href="../../flowr/examples/debug-print-args/DESCRIPTION.html"><strong aria-hidden="true">50.5.</strong> debug-print-args</a></li><li class="chapter-item expanded "><a href="../../flowr/examples/double-connection/DESCRIPTION.html"><strong aria-hidden="true">50.6.</strong> double-connection</a></li><li class="chapter-item expanded "><a href="../../flowr/examples/factorial/DESCRIPTION.html"><strong aria-hidden="true">50.7.</strong> factorial</a></li><li class="chapter-item expanded "><a href="../../flowr/examples/fibonacci/DESCRIPTION.html"><strong aria-hidden="true">50.8.</strong> fibonacci</a></li><li class="chapter-item expanded "><a href="../../flowr/examples/hello-world/DESCRIPTION.html"><strong aria-hidden="true">50.9.</strong> hello-world</a></li><li class="chapter-item expanded "><a href="../../flowr/examples/line-echo/DESCRIPTION.html"><strong aria-hidden="true">50.10.</strong> line-echo</a></li><li class="chapter-item expanded "><a href="../../flowr/examples/mandlebrot/DESCRIPTION.html"><strong aria-hidden="true">50.11.</strong> mandlebrot</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../flowr/examples/mandlebrot/escapes/escapes.html"><strong aria-hidden="true">50.11.1.</strong> escapes</a></li><li class="chapter-item expanded "><a href="../../flowr/examples/mandlebrot/pixel_to_point/pixel_to_point.html"><strong aria-hidden="true">50.11.2.</strong> pixel_to_point</a></li></ol></li><li class="chapter-item expanded "><a href="../../flowr/examples/pipeline/DESCRIPTION.html"><strong aria-hidden="true">50.12.</strong> pipeline</a></li><li class="chapter-item expanded "><a href="../../flowr/examples/prime/DESCRIPTION.html"><strong aria-hidden="true">50.13.</strong> prime</a></li><li class="chapter-item expanded "><a href="../../flowr/examples/primitives/DESCRIPTION.html"><strong aria-hidden="true">50.14.</strong> primitives</a></li><li class="chapter-item expanded "><a href="../../flowr/examples/reverse-echo/DESCRIPTION.html"><strong aria-hidden="true">50.15.</strong> reverse-echo</a></li><li class="chapter-item expanded "><a href="../../flowr/examples/router/DESCRIPTION.html"><strong aria-hidden="true">50.16.</strong> router</a></li><li class="chapter-item expanded "><a href="../../flowr/examples/sequence/DESCRIPTION.html"><strong aria-hidden="true">50.17.</strong> sequence</a></li><li class="chapter-item expanded "><a href="../../flowr/examples/sequence-of-sequences/DESCRIPTION.html"><strong aria-hidden="true">50.18.</strong> sequence-of-sequences</a></li><li class="chapter-item expanded "><a href="../../flowr/examples/tokenizer/DESCRIPTION.html"><strong aria-hidden="true">50.19.</strong> tokenizer</a></li><li class="chapter-item expanded "><a href="../../flowr/examples/two-destinations/DESCRIPTION.html"><strong aria-hidden="true">50.20.</strong> two-destinations</a></li><li class="spacer"></li></ol></li><li class="chapter-item expanded "><li class="part-title">Developing flow</li><li class="chapter-item expanded "><a href="../../book/developing/overview.html"><strong aria-hidden="true">51.</strong> Developing flow</a></li><li class="chapter-item expanded "><a href="../../book/developing/prereqs.html"><strong aria-hidden="true">52.</strong> Pre-requisites</a></li><li class="chapter-item expanded "><a href="../../book/developing/building.html"><strong aria-hidden="true">53.</strong> Building</a></li><li class="chapter-item expanded "><a href="../../book/developing/crates.html"><strong aria-hidden="true">54.</strong> Crates</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../flowcore/README.html"><strong aria-hidden="true">54.1.</strong> flowcore</a></li><li class="chapter-item expanded "><a href="../../flowmacro/README.html"><strong aria-hidden="true">54.2.</strong> flowmacro</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../flowc/README.html"><strong aria-hidden="true">54.2.1.</strong> flowc</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../flowc/tests/test-flows/README.html"><strong aria-hidden="true">54.2.1.1.</strong> Flowc Compiler and Parser Test flows</a></li></ol></li></ol></li><li class="chapter-item expanded "><a href="../../flowr/README.html"><strong aria-hidden="true">54.3.</strong> flowr</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../flowr/README.html"><strong aria-hidden="true">54.3.1.</strong> flowrlib</a></li><li class="chapter-item expanded "><a href="../../flowr/README.html"><strong aria-hidden="true">54.3.2.</strong> flowrex</a></li><li class="chapter-item expanded "><a href="../../flowstdlib/README.html"><strong aria-hidden="true">54.3.3.</strong> flowstdlib</a></li><li class="chapter-item expanded "><a href="../../flowr/examples/README.html"><strong aria-hidden="true">54.3.4.</strong> examples</a></li></ol></li></ol></li><li class="chapter-item expanded "><a href="../../book/developing/make.html"><strong aria-hidden="true">55.</strong> Makefile targets</a></li><li class="chapter-item expanded "><a href="../../book/developing/contributing.html"><strong aria-hidden="true">56.</strong> Ways to contribute</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../book/developing/issues.html"><strong aria-hidden="true">56.1.</strong> Issues</a></li><li class="chapter-item expanded "><a href="../../book/developing/prs.html"><strong aria-hidden="true">56.2.</strong> PRs</a></li><li class="chapter-item expanded "><a href="../../flowr/examples/README.html"><strong aria-hidden="true">56.3.</strong> Developing an example</a></li><li class="chapter-item expanded "><a href="../../book/developing/ci.html"><strong aria-hidden="true">56.4.</strong> Continuous Integration Tests</a></li></ol></li><li class="chapter-item expanded "><li class="part-title">Internals of the flow Project</li><li class="chapter-item expanded "><a href="../../book/internals/overview.html"><strong aria-hidden="true">57.</strong> Internals of flow</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../book/internals/flow_loading.html"><strong aria-hidden="true">57.1.</strong> Flow Loading</a></li><li class="chapter-item expanded "><a href="../../book/internals/flow_compiling.html"><strong aria-hidden="true">57.2.</strong> Flow Compiling</a></li><li class="chapter-item expanded "><a href="../../book/internals/flow_execution.html"><strong aria-hidden="true">57.3.</strong> Flow Execution</a></li><li class="chapter-item expanded "><a href="../../book/internals/state_transitions.html"><strong aria-hidden="true">57.4.</strong> Flow Execution State Transitions</a></li></ol></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky bordered">
+                    <div class="left-buttons">
+                        <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </button>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">The &#x27;flow&#x27; book</h1>
+
+                    <div class="right-buttons">
+                        <a href="../../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h2 id="connection"><a class="header" href="#connection">Connection</a></h2>
+<p>Connections connect a source of data (via an IO Reference) to a sink of data (via an IO Reference) 
+of a compatible <a href="types.html">type</a> within a flow.</p>
+<ul>
+<li><code>name</code> (Optional) - an Optional name for the flow. This can be used to help in debugging flows</li>
+<li><code>from</code> = IO Reference to the data source that this connection comes from</li>
+<li><code>to</code> = IO Reference to a data sink that this connection goes to</li>
+</ul>
+<h3 id="connections-at-multiple-level-in-flow-hierarchy"><a class="header" href="#connections-at-multiple-level-in-flow-hierarchy">Connections at multiple level in flow hierarchy</a></h3>
+<p>A flow is a hierarchy from the root flow down, including functions and sub-flows (collectively sub-processes).</p>
+<p>Connections are defined within each flow or sub-flow from a source to a destination.</p>
+<p>Within a flow sources include:</p>
+<ul>
+<li>an input of this flow</li>
+<li>an output from one of the sub-processes</li>
+</ul>
+<p>and destinations include</p>
+<ul>
+<li>an input of one of the sub-processes</li>
+<li>an output of this flow</li>
+</ul>
+<p>A connection may be defined with multiple destinations and/or there maybe multiple connections a one source or to a 
+destination.</p>
+<h3 id="connection-branching"><a class="header" href="#connection-branching">Connection &quot;branching&quot;</a></h3>
+<p>Within a sub-flow there may exist a connection to one of it's outputs, as a destination.
+At the next level up in the flow hierarchy that sub-flow output becomes a possible source for connections
+defined at that level.</p>
+<p>Thus a single connection originating at a single source in the sub-flow may &quot;branch&quot; into multiple connections, 
+reaching multiple destinations.</p>
+<h3 id="connection-feedback"><a class="header" href="#connection-feedback">Connection feedback</a></h3>
+<p>It is possible to make a connection from a process's output back to one of its inputs. This is useful for
+looping, recursion, accumulation etc as described later in <a href="programming_methods.html">programming methods</a></p>
+<h3 id="connection-from-input-values"><a class="header" href="#connection-from-input-values">Connection <em>from</em> input values</a></h3>
+<p>The input values used in an execution are made available at the output alongside the output value calculated,
+<em>when completes execution</em>. Thus a connection can be formed from this input value and the value is
+sent via connections when the function completes, similar to the output value. It is also possible to
+feedback this input value back to the same or different input for use in recursion. An example of this can be
+seen in the <a href="../../flowr/examples/fibonacci/root.toml">fibonacci example</a> flow definition.</p>
+<pre><code># Loop back the input value #2 from this calculation, to be the input to input #1 on the next iteration
+[[connection]]
+from = &quot;add/i2&quot;
+to = &quot;add/i1&quot;
+</code></pre>
+<h3 id="connection-gathering-and-collapsing"><a class="header" href="#connection-gathering-and-collapsing">Connection Gathering and Collapsing</a></h3>
+<p>When a flow is compiled, sources of data (function outputs) are followed through the through layers of 
+sub-flows/super-flow definition of the flow hierarchy and the resulting &quot;tree&quot; of connections to be eventually 
+connected (possibly branching to become multiple connections) to destination(s).</p>
+<p>The chain of connections involved in connecting a source to each of the destinations is 
+&quot;collapsed&quot; as part of the compilation process, to leave a single connection from the source to each of the destinations. </p>
+<h3 id="connection-optimizing"><a class="header" href="#connection-optimizing">Connection Optimizing</a></h3>
+<p>Thru flow re-use, come connections may end up not reaching any destination. The compiler optimizes these connections
+away by dropping them.</p>
+<p>If in the process of dropping dead connections a function ends up not having any output and/or input (for &quot;pure
+functions) it maybe removed, and an error or warning reported by the compiler.</p>
+<h3 id="io-references"><a class="header" href="#io-references">IO References</a></h3>
+<p>An IO Reference uniquely identifies an Input/Data-source (flow/function) or an Output/Data-sink in the flow
+hierarchy.</p>
+<p>If any flows or functions defined in other files are referenced with an alias, then it should be
+used in the IO references to inputs or outputs of that referenced flow/function.</p>
+<p>Thus valid IO reference formats to use in connections are:</p>
+<h4 id="data-sinks"><a class="header" href="#data-sinks">Data sinks</a></h4>
+<ul>
+<li><code>input/{input_name}</code> (where input is a keyword and thus a sub-flow cannot be named <code>input</code> or <code>output</code>)</li>
+<li><code>{sub_process_name}/{output_name}</code> or <code>{sub_process}</code> for the default output</li>
+</ul>
+<p>Where <code>sub_process_name</code> is a <code>process</code> referenced in this flow, and maybe a function or a sub-flow.
+The reference use the process's name (if the process was not given an alias when referenced) or it's alias.</p>
+<h4 id="data-sinks-1"><a class="header" href="#data-sinks-1">Data sinks</a></h4>
+<ul>
+<li><code>output/{output_name}</code> (where output is a keyword and thus a sub-flow cannot be named <code>input</code> or <code>output</code>)</li>
+<li><code>{sub_process_name}/{input_name}</code> or <code>{sub_process}</code> for the default input</li>
+</ul>
+<h3 id="selecting-parts-of-a-connections-value"><a class="header" href="#selecting-parts-of-a-connections-value">Selecting parts of a connection's value</a></h3>
+<p>A connection can select to &quot;connect&quot; only part of the data values passed on the source of the connection.
+See below <a href="#selecting-sub-structures-of-an-output">Selecting sub-structures of an output</a> for more details.</p>
+<h3 id="run-time-semantics"><a class="header" href="#run-time-semantics">Run-time Semantics</a></h3>
+<p>An input IO can be connected to multiple outputs, via multiple connections. </p>
+<p>An output IO can be connected to multiple inputs on other flows or functions via multiple connections.</p>
+<p>When the data is produced on the output by a function the data is copied to each destination function
+using all the connections that exists from that output.</p>
+<p>Data can be buffered at each input of a function.</p>
+<p>The order of data arrival at a functions input is the order of creation of jobs executed by that function.
+However, that does not guarantee order of completion of the job.</p>
+<p>A function cannot run until data is available on all inputs.</p>
+<p>Loops are permitted from an output to an input, and are used as a feature to achieve certain behaviours.</p>
+<p>When a function runs it produces a result that can contain an output. The result also contains all the 
+inputs used to produce any output. Thus input values can be reused by connecting from this &quot;output input-value&quot;
+in connections to other processes, or looped back to an input of the same function.</p>
+<p>Example, the <a href="../../flowr/examples/fibonacci/root.toml">fibonacci example</a> uses this to define recursion.</p>
+<pre><code>...
+# Loop back the input value #2 from this calculation, to be the input to input #1 on the next iteration
+[[connection]]
+from = &quot;add/i2&quot;
+to = &quot;add/i1&quot;
+...
+</code></pre>
+<h3 id="type-match"><a class="header" href="#type-match">Type Match</a></h3>
+<p>For a connection to be valid and used in execution of a flow, the data source must be found,
+the data sink must be found and the two must be of compatible DataTypes.</p>
+<p>If those conditions are not met, then a connection will be dropped (with an error message output)
+and the flow will attempted to be built and executed without it.</p>
+<p>By not specifying the data type on intermediary connections thru the flow hierarchy, the flow author can enable
+connections that are not constrained by the intermediate inputs/outputs used and those types are not need to be 
+known when the flow is being authored. In this case the type check will pass on the intermediate connections to 
+those &quot;generic&quot; inputs our output.</p>
+<p>However, once the connection chain is collapsed down to one end-to-end connection, the source and destination 
+types must also pass the type check. This includes intermediate connections that may select part of the value.</p>
+<p>Example</p>
+<ul>
+<li>Subflow 1 has a connection: A function <code>series</code> with default output Array/Number --&gt; Generic output of the subflow
+<ul>
+<li>The destination of the connection is generic and so the intermediate type check passes</li>
+</ul>
+</li>
+<li>Root flow (which contains Subflow 1) as a connection: Generic output of the subflow --&gt; Function <code>add</code> input <code>i1</code>
+(which has a data type <code>Number</code>) that includes selection of an element of the array of numbers <code>/1</code>
+<ul>
+<li>The source is generic, so the intermediate type check passes</li>
+</ul>
+</li>
+<li>A connection chain is built from the <code>series</code> output thru the intermediate connection to the <code>add</code> function input <code>i1</code></li>
+<li>The connection chain is collapsed to a connection from the Array element of index 1 of the <code>series</code> function's 
+output to the <code>add</code> functions input <code>i1</code></li>
+<li>The <code>from</code> and <code>to</code>types of this collapsed connection are both <code>Number</code> and so the type check passes</li>
+</ul>
+<h3 id="runtime-type-conversion-of-compatible-types"><a class="header" href="#runtime-type-conversion-of-compatible-types">Runtime type conversion of Compatible Types</a></h3>
+<p>The flow runtime library implements some type conversions during flow execution, permitting non-identical
+types from an output and input to be connected by the compiler, knowing the runtime will handle it.</p>
+<p>These are know as <code>compatible types</code>. At the moment the following conversions are implemented but more 
+maybe added over time:</p>
+<h4 id="matching-types"><a class="header" href="#matching-types">Matching Types</a></h4>
+<ul>
+<li>Type 'T' --&gt; Type 'T'. No conversion required.</li>
+</ul>
+<h4 id="generics"><a class="header" href="#generics">Generics</a></h4>
+<ul>
+<li>Generic type --&gt; any input. This assumes the input will check the type and handle appropriately.</li>
+<li>Array/Generic type --&gt; any input. This assumes the input will check the type and handle appropriately.</li>
+<li>any output --&gt; Generic type. This assumes the input will check the type and handle appropriately.</li>
+<li>any output --&gt; Array/Generic type. This assumes the input will check the type and handle appropriately.</li>
+</ul>
+<h4 id="array-deserialization"><a class="header" href="#array-deserialization">Array Deserialization</a></h4>
+<ul>
+<li>Array/'T' --&gt; 'T'. The runtime will &quot;deserialize&quot; the array and send it's elements one-by-one to the input.
+<em>NOTE</em> that 'T' maybe any type, including an Array, which is just a special case.</li>
+<li>Array/Array/'T' --&gt; 'T'. The runtime will &quot;deserialize&quot; the array of arrays and send elements one-by-one to the input</li>
+</ul>
+<h4 id="array-wrapping"><a class="header" href="#array-wrapping">Array Wrapping</a></h4>
+<ul>
+<li>'T' --&gt; Array/'T'. The runtime will take the value and wrap it in an array and send that one-element array to the 
+input. Again, 'T' can be any type, including an Array.</li>
+<li>'T' --&gt; Array/Array/'T'. The runtime will take the value and wrap it in an array in an array and send that 
+one-element array of arrays to the input.</li>
+</ul>
+<h3 id="default-input-or-output"><a class="header" href="#default-input-or-output">Default input or output</a></h3>
+<p>If a function only has one input or one output, then naming that input/output is optional.
+If not names it is referred to as the default input. Connections may connect data to/from this input just
+by referencing the function.</p>
+<p>Example, the <code>stdout</code> context function only has one input and it is not named</p>
+<pre><code>function = &quot;stdout&quot;
+source = &quot;stdout.rs&quot;
+docs = &quot;stdout.md&quot;
+impure = true
+
+[[input]]
+</code></pre>
+<p>and a connection to it can be defined thus:</p>
+<pre><code>[[connection]]
+from = &quot;add&quot;
+to = &quot;stdout&quot;
+</code></pre>
+<h3 id="named-inputs"><a class="header" href="#named-inputs">Named inputs</a></h3>
+<p>If an input is defined with a name, then connections to it should include the function name and the input name
+to define which input is being used.</p>
+<p>Example</p>
+<pre><code>[[connection]]
+from = &quot;add&quot;
+to = &quot;add/i2&quot;
+</code></pre>
+<h3 id="selecting-an-output"><a class="header" href="#selecting-an-output">Selecting an output</a></h3>
+<p>When a function runs it produces a set of outputs, producing data on zero or more of it's outputs, all at once.</p>
+<p>A connection can be formed from an output to another input by specifying the output's <code>route</code> as part of the 
+<code>IO Reference</code> in the <code>from</code> field of the connection.</p>
+<p>Example:</p>
+<pre><code>[[connection]]
+from = &quot;function_name/output_name&quot;
+to = &quot;stdout&quot;
+</code></pre>
+<h3 id="selecting-sub-structures-of-an-output"><a class="header" href="#selecting-sub-structures-of-an-output">Selecting sub-structures of an output</a></h3>
+<p>As described in <a href="types.html">types</a>, flow supports Json data types. This includes two &quot;container types&quot;, namely:
+&quot;object&quot; (a Map) and &quot;array&quot;.</p>
+<p>If an output produces an object, a connection can be formed from an entry of the map (not the entire map) to a
+destination input. This allows (say) connecting a function that produces a Map of strings to another function
+that accepts a string. This is done extending the <code>route</code> used in the <code>IO Reference</code> of the <code>connection</code> with 
+the output name (to select the output) and the key of the map entry (to select just that map entry).</p>
+<p>Example: function called &quot;function&quot; has an output named &quot;output&quot; that produces a Map of strings. 
+One of those Map entries has the key &quot;key&quot;. Then the string value associated with that key is used in the 
+connection.</p>
+<pre><code>[[connection]]
+from = &quot;function/output/key&quot;
+to = &quot;stdout&quot;
+</code></pre>
+<p>Similarly, if the output is an array of values, a single element from the array can be specified in the <code>connection</code>
+using a numeric subscript.</p>
+<p>Example: function called &quot;function&quot; has an output named &quot;output&quot; that produces an array of strings.
+Then a single string from the array can be sent to a destination input thus:</p>
+<pre><code>[[connection]]
+from = &quot;function/output/1&quot;
+to = &quot;stdout&quot;
+</code></pre>
+<p>If a function runs and produces an output which does not contain the sub-structure selected by a connection, 
+for the purpose of the destination of that connection it is just as if the output was not produced, 
+or the function had not run. Thus, no value will arrive at the destination function and it will not run.</p>
+<h3 id="connecting-to-multiple-destinations"><a class="header" href="#connecting-to-multiple-destinations">Connecting to multiple destinations</a></h3>
+<p>A single output can be connected to multiple destinations by creating multiple connections referencing the output.
+But, to make it easier (less typing) to connect an output to multiple destinations the <code>[[connection]]</code> format
+permits specifying more than one <code>to = &quot;destination&quot;</code>.</p>
+<p>Example</p>
+<pre><code>[[connection]]
+from = &quot;output&quot;
+to = [&quot;destination&quot;, &quot;destination2&quot;]
+</code></pre>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../../book/describing/types.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next" href="../../book/describing/flow_libraries.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../../book/describing/types.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next" href="../../book/describing/flow_libraries.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../../elasticlunr.min.js"></script>
+        <script src="../../mark.min.js"></script>
+        <script src="../../searcher.js"></script>
+
+        <script src="../../clipboard.min.js"></script>
+        <script src="../../highlight.js"></script>
+        <script src="../../book.js"></script>
+
+        <!-- Custom JS scripts -->
+
+
+    </div>
+    </body>
+</html>
