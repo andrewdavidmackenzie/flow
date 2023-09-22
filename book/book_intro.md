@@ -12,7 +12,7 @@ The top-level sections are:
 * [Introduction to Flow](introduction/what_is_flow.md)
 * [Your First Flow](first_flow/first_flow.md)
 * [Defining Flows](describing/definition_overview.md)
-* [flowr's context functions](../flowr/src/bin/flowrcli/context/flowr_context_functions.md)
+* [flowr's context functions](../flowr/src/bin/flowrcli/context/flowrcli_context_functions.md)
 * [Running flows](running/running.md)
 * [Debugging Flows](debugging/debugger.md)
 * [The Flow Standard Library](../flowstdlib/README.md)

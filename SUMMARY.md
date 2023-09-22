@@ -32,7 +32,7 @@
 - [Programming Methods](book/describing/programming_methods.md)
 
 # `flowrcli's` `context functions`
-- [flowr's context functions](flowr/src/bin/flowrcli/context/flowr_context_functions.md)
+- [flowr's context functions](flowr/src/bin/flowrcli/context/flowrcli_context_functions.md)
 - [Arg functions](flowr/src/bin/flowrcli/context/args/args.md)
   - [Arg get function](flowr/src/bin/flowrcli/context/args/get.md)
 - [File functions](flowr/src/bin/flowrcli/context/file/file.md)
