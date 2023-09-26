@@ -68,10 +68,8 @@ jobs:
         include:
         - target: x86_64-unknown-linux-gnu
           os: ubuntu-latest
-          install-dist: curl --proto '=https' --tlsv1.2 -L -sSf https://github.com/axodotdev/cargo-dist/releases/download/v0.0.2/installer.sh | sh
         - target: x86_64-apple-darwin
           os: macos-latest
-          install-dist: curl --proto '=https' --tlsv1.2 -L -sSf https://github.com/axodotdev/cargo-dist/releases/download/v0.0.2/installer.sh | sh
     runs-on: ${{ matrix.os }}
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -91,7 +89,9 @@ jobs:
         run: cargo install wasm-gc wasm-snip
       - uses: actions/checkout@v3
       - name: Install cargo-dist
-        run: ${{ matrix.install-dist }}
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-dist
       - name: Run cargo-dist
         run: |
           # make zips and whatnot
@@ -143,7 +143,9 @@ jobs:
       - name: Install Rust
         run: rustup update nightly && rustup default nightly
       - name: Install cargo-dist
-        run: curl --proto '=https' --tlsv1.2 -L -sSf https://github.com/axodotdev/cargo-dist/releases/download/v0.0.2/installer.sh | sh
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-dist
       - name: Run cargo-dist manifest
         run: |
           # Generate a manifest describing everything
