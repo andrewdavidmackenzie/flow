@@ -24,41 +24,39 @@ ifeq ($(RUSTUP),)
 	curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 endif
 
+#NOTE: Linux distros may also have brew installed - so I put it last. WIll probably only be used for mac
 .PHONY: config
 config: rustup
 	@export PATH="$$PATH:~/.cargo/bin"
-	@echo "Installing clippy command using rustup"
 	@echo "Installing nightly with rustup for clippy nightly and coverage measurement"
 	@rustup install nightly
+	@echo "Installing clippy component using rustup"
 	@rustup --quiet component add clippy
 	@echo "Installing wasm32 target using rustup"
 	@rustup --quiet target add wasm32-unknown-unknown
-	@echo "Installing llvm-tools-preview for coverage"
+	@echo "Installing llvm-tools-preview component for coverage"
 	@rustup component add llvm-tools-preview
-ifneq ($(BREW),)
-	@echo "Installing Mac OS X specific dependencies using $(BREW)"
-	@brew install --quiet zmq graphviz binaryen lcov
-endif
 ifneq ($(DNF),)
-	@echo "Installing linux specific dependencies using $(DNF)"
+	@echo "Installing dependencies using $(DNF)"
 	@echo "To build OpenSSL you need perl installed"
 	@sudo dnf install perl
 	@sudo dnf install curl-devel elfutils-libelf-devel elfutils-devel openssl openssl-devel binutils-devel || true
 	@sudo dnf install zeromq zeromq-devel graphviz binaryen lcov || true
-endif
-ifneq ($(YUM),)
-	@echo "Installing linux specific dependencies using $(YUM)"
+else ifneq ($(YUM),)
+	@echo "Installing dependencies using $(YUM)"
 	@echo "To build OpenSSL you need perl installed"
 	@sudo yum install perl
 	@sudo yum install curl-devel elfutils-libelf-devel elfutils-devel openssl openssl-devel binutils-devel || true
 	@sudo yum install zeromq zeromq-devel graphviz binaryen lcov || true
-endif
-ifneq ($(APTGET),)
-	@echo "Installing linux specific dependencies using $(APTGET)"
+else ifneq ($(APTGET),)
+	@echo "Installing dependencies using $(APTGET)"
 	@echo "To build OpenSSL you need perl installed"
 	@sudo apt-get install perl
 	@sudo apt-get -y install libcurl4-openssl-dev libelf-dev libdw-dev libssl-dev binutils-dev || true
 	@sudo apt-get -y install libzmq3-dev graphviz binaryen lcov || true
+else ifneq ($(BREW),)
+	@echo "Installing dependencies using $(BREW)"
+	@brew install --quiet zmq graphviz binaryen lcov
 endif
 	@echo "Installing grcov using cargo"
 	@cargo install grcov
