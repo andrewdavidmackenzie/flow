@@ -37,30 +37,32 @@ config: rustup
 	@rustup component add llvm-tools-preview
 ifneq ($(BREW),)
 	@echo "Installing Mac OS X specific dependencies using $(BREW)"
-	@brew install --quiet zmq graphviz binaryen
+	@brew install --quiet zmq graphviz binaryen lcov
 endif
 ifneq ($(DNF),)
 	@echo "Installing linux specific dependencies using $(DNF)"
 	@echo "To build OpenSSL you need perl installed"
 	@sudo dnf install perl
 	@sudo dnf install curl-devel elfutils-libelf-devel elfutils-devel openssl openssl-devel binutils-devel || true
-	@sudo dnf install zeromq zeromq-devel graphviz binaryen || true
+	@sudo dnf install zeromq zeromq-devel graphviz binaryen lcov || true
 endif
 ifneq ($(YUM),)
 	@echo "Installing linux specific dependencies using $(YUM)"
 	@echo "To build OpenSSL you need perl installed"
 	@sudo yum install perl
 	@sudo yum install curl-devel elfutils-libelf-devel elfutils-devel openssl openssl-devel binutils-devel || true
-	@sudo yum install zeromq zeromq-devel graphviz binaryen || true
+	@sudo yum install zeromq zeromq-devel graphviz binaryen lcov || true
 endif
 ifneq ($(APTGET),)
 	@echo "Installing linux specific dependencies using $(APTGET)"
 	@echo "To build OpenSSL you need perl installed"
 	@sudo apt-get install perl
 	@sudo apt-get -y install libcurl4-openssl-dev libelf-dev libdw-dev libssl-dev binutils-dev || true
-	@sudo apt-get -y install libzmq3-dev graphviz binaryen || true
+	@sudo apt-get -y install libzmq3-dev graphviz binaryen lcov || true
 endif
-	@echo "	Installing mdbook and mdbook-linkcheck using cargo"
+	@echo "Installing grcov using cargo"
+	@cargo install grcov
+	@echo "Installing mdbook and mdbook-linkcheck using cargo"
 	@cargo install mdbook
 	@cargo install mdbook-linkcheck
 	@echo "installing wasm optimization tools"
@@ -89,12 +91,12 @@ build:
 	@target/debug/flowc flowr/src/bin/flowrgui
 
 .PHONY: clippy
-clippy: build
+clippy:
 	@echo "clippy<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
 	@cargo clippy --tests --no-deps --all-features -- -D warnings
 
 .PHONY: test
-test: build
+test:
 	@echo "test<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
 ifneq ($(CODESIGN),)
 	@echo "Code signing tool \"codesign\" detected"
@@ -110,7 +112,6 @@ endif
 .PHONY: coverage
 coverage: clean-start
 	@echo "coverage<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
-	@find . -name "*.profraw"  | xargs rm -rf {} # Remove old coverage measurements
 	@RUSTFLAGS="-C instrument-coverage" LLVM_PROFILE_FILE="flow-%p-%m.profraw" cargo build
 	@target/debug/flowc -d -g -O flowstdlib
 	@target/debug/flowc flowr/src/bin/flowrcli
