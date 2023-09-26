@@ -70,21 +70,8 @@ fn blocked_check(state: &RunState, job_id: usize, function: &RuntimeFunction) ->
             state,
             job_id,
             &format!(
-                "Function #{} is in Blocked state, but no block exists",
+                "Function #{} is in Blocked state, but no block for it exists",
                 function.id()
-            ),
-            file!(),
-            line!(),
-        );
-    }
-
-    if !function.can_run() {
-        return runtime_error(
-            state,
-            job_id,
-            &format!(
-                "Function #{} is Blocked, but can_run() returns false",
-                function.id(),
             ),
             file!(),
             line!(),

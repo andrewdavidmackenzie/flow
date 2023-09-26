@@ -571,7 +571,7 @@ impl RunState {
 
         // Avoid a function blocking on itself when sending itself a value via a loopback and avoid
         // blocking sending internally within a flow
-        let block = (function.input_count(connection.destination_io_number) > 0)
+        let block = (function.values_available(connection.destination_io_number) > 0)
             && !loopback && !same_flow;
         let new_job_available = function.input_sets_available() > job_count_before;
 
@@ -599,8 +599,7 @@ impl RunState {
         Ok((display_next_output, restart))
     }
 
-    /// Get the set of (blocking_function_id, function's IO number causing the block)
-    /// of blockers for a specific function of `id`
+    /// Get the set of blocking_function_id causing the block on function `id`
     #[cfg(any(feature = "debugger", debug_assertions))]
     pub fn get_output_blockers(&self, id: usize) -> Vec<usize> {
         let mut blockers = vec![];
