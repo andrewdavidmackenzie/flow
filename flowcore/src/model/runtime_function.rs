@@ -212,8 +212,8 @@ impl RuntimeFunction {
             .chain_err(|| "Could not create Url from 'manifest_url' and 'location'")
     }
 
-    /// Determine if the `RuntimeFunction` `input` number `input_number` is full or not
-    pub fn input_count(&self, input_number: usize) -> usize {
+    /// Returns the number of values available on [RuntimeFunction]'s [Input] number `input_number`
+    pub fn values_available(&self, input_number: usize) -> usize {
         self.inputs[input_number].values_available()
     }
 
