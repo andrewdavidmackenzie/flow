@@ -113,29 +113,34 @@ fn get_lib_search_path(search_path_additions: &[String]) -> Result<Simpath> {
 // - it points to a runner.toml file
 // - it points to a directory that contains a runner.toml file
 fn compile_type(url: &Url) -> Result<CompileType> {
-    let path = url.to_file_path()
-        .map_err(|_| "Could not get local file path for Url")?;
+    match url.scheme() {
+        "file" | "" => {
+            let path = url.to_file_path()
+                .map_err(|_| "Could not get local file path for Url")?;
 
-    if path.exists() && path.is_file() {
-        let file_name = path.file_name().ok_or("Could not get file name")?;
-        if file_name == "lib.toml" {
-            return Ok(CompileType::Library);
-        }
-        if file_name == "runner.toml" {
-            let runner_name = load_runner_spec(&path)?.name;
-            return Ok(CompileType::Runner(runner_name));
-        }
-    }
+            if path.exists() && path.is_file() {
+                let file_name = path.file_name().ok_or("Could not get file name")?;
+                if file_name == "lib.toml" {
+                    return Ok(CompileType::Library);
+                }
+                if file_name == "runner.toml" {
+                    let runner_name = load_runner_spec(&path)?.name;
+                    return Ok(CompileType::Runner(runner_name));
+                }
+            }
 
-    if path.exists() && path.is_dir() {
-        if path.join("lib.toml").exists() {
-            return Ok(CompileType::Library);
+            if path.exists() && path.is_dir() {
+                if path.join("lib.toml").exists() {
+                    return Ok(CompileType::Library);
+                }
+                if path.join("runner.toml").exists() {
+                    let spec_path =  path.join("runner.toml");
+                    let runner_name = load_runner_spec(&spec_path)?.name;
+                    return Ok(CompileType::Runner(runner_name));
+                }
+            }
         }
-        if path.join("runner.toml").exists() {
-            let spec_path =  path.join("runner.toml");
-            let runner_name = load_runner_spec(&spec_path)?.name;
-            return Ok(CompileType::Runner(runner_name));
-        }
+        _ => {}
     }
 
     Ok(CompileType::Flow)
