@@ -52,8 +52,7 @@ You can test your install works by running an example flow directly from the web
 the examples:
 
 ```
-flowc -r flowrcli https://raw.githubusercontent.com/andrewdavidmackenzie/flow/master/flowr/examples/fibonacci/root.
-toml
+flowc -r flowrcli https://raw.githubusercontent.com/andrewdavidmackenzie/flow/master/flowr/examples/fibonacci/root.toml
 ```
 
 Which should download and run the fibonacci series example, which will produce a stream of numbers on standard output.
