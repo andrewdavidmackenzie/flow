@@ -2,8 +2,8 @@
 
 There are three main options to getting a working install of flow on your system:
 - from source
-- downloading a release
-- install script
+- downloading the latest release
+- using the install script
 
 ## From Source
 All pretty standard:
@@ -29,7 +29,7 @@ From [latest GitHub release](https://github.com/andrewdavidmackenzie/flow/releas
 Then download the portable WASM `flowstdlib` and expand to the directory `$HOME/.flow/lib/flowstdlib`
 
 ## Install script
-You can run the install script to install the latest release using:
+Install the latest release using the following install script from the source repo:
 
 ```
 curl --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/andrewdavidmackenzie/flow/master/install.sh | sh
@@ -41,13 +41,13 @@ That will:
    * `flowrcli`
    * `flowrex`
    * `flowrgui`
-- install the portable `flowstdlib` WASM library into $HOME/.flow/lib
-- install the context definition of `flowrcli` flow runner into $HOME/.flow/runner
-- install the context definition of `flowrgui` flow runner into $HOME/.flow/runner
+- install the portable `flowstdlib` WASM library into `$HOME/.flow/lib`
+- install the context definition of `flowrcli` flow runner into `$HOME/.flow/runner`
+- install the context definition of `flowrgui` flow runner into `$HOME/.flow/runner`
 
 and leave things ready for running.
 
-## Testing your install
+## Test your install
 You can test your install works by running an example flow directly from the web, without cloning the repo to get
 the examples:
 
