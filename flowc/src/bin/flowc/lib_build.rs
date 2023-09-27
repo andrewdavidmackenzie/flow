@@ -117,7 +117,7 @@ fn prepare_lib_workspace(lib_root_path: &Path) -> Result<()> {
     }
     let lib_src_path = lib_root_path.join("src");
     let cargo_toml = lib_root_path.join("src/Cargo.toml");
-    fs::copy(lib_toml_path, &cargo_toml)?;
+    fs::copy(lib_toml_path, cargo_toml)?;
 
     // copy all function.toml files to Cargo.toml files in same directory so the
     // workspace members references from lib.toml can be found
