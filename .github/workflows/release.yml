@@ -95,13 +95,13 @@ jobs:
       - name: Run cargo-dist
         run: |
           # make zips and whatnot
-          cargo +nightly dist --target=${{ matrix.target }} --output-format=json > dist-manifest.json
+          cargo +nightly dist build --target=${{ matrix.target }} --output-format=json > dist-manifest.json
           cat dist-manifest.json
           # Parse out what we just built and upload it to the Github Release™️
           cat dist-manifest.json | jq --raw-output ".releases[].artifacts[].path" > uploads.txt
           cat uploads.txt
           gh release upload ${{ needs.create-release.outputs.tag }} $(cat uploads.txt)
-      - name: build flowstdlib in wasm (on Linux)
+      - name: flowc compile flowstdlib to wasm (on Linux)
         if: matrix.os == 'ubuntu-latest'
         run: target/${{ matrix.target }}/dist/flowc -d -g -O flowstdlib
       - name: Upload flowstdlib tarball (on Linux)
@@ -111,7 +111,7 @@ jobs:
           tar -cJf flowstdlib-${{ needs.create-release.outputs.tag }}.tar.xz flowstdlib
           cd -
           gh release upload ${{ needs.create-release.outputs.tag }} $HOME/.flow/lib/flowstdlib-${{ needs.create-release.outputs.tag }}.tar.xz
-      - name: build flowrcli
+      - name: flowc compile flowrcli
         if: matrix.os == 'ubuntu-latest'
         run: target/${{ matrix.target }}/dist/flowc flowr/src/bin/flowrcli
       - name: Upload flowrcli
@@ -121,7 +121,7 @@ jobs:
           tar -cJf flowrcli-${{ needs.create-release.outputs.tag }}.tar.xz flowrcli
           cd -
           gh release upload ${{ needs.create-release.outputs.tag }} $HOME/.flow/runner/flowrcli-${{ needs.create-release.outputs.tag }}.tar.xz
-      - name: build flowrgui
+      - name: flowc compile flowrgui
         if: matrix.os == 'ubuntu-latest'
         run: target/${{ matrix.target }}/dist/flowc flowr/src/bin/flowrgui
       - name: Upload flowrgui
