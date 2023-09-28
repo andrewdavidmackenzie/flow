@@ -149,7 +149,7 @@ jobs:
       - name: Run cargo-dist manifest
         run: |
           # Generate a manifest describing everything
-          cargo +nightly dist manifest --allow-dirty --no-local-paths --output-format=json $ALL_CARGO_DIST_TARGET_ARGS $ALL_CARGO_DIST_INSTALLER_ARGS > dist-manifest.json
+          cargo +nightly dist manifest --no-local-paths --output-format=json $ALL_CARGO_DIST_TARGET_ARGS $ALL_CARGO_DIST_INSTALLER_ARGS > dist-manifest.json
           cat dist-manifest.json
           echo "Tag is " ${{ needs.create-release.outputs.tag }}
           gh release upload ${{ needs.create-release.outputs.tag }} dist-manifest.json
