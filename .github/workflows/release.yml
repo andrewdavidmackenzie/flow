@@ -95,7 +95,7 @@ jobs:
       - name: Run cargo-dist
         run: |
           # make zips and whatnot
-          cargo +nightly dist build --target=${{ matrix.target }} --output-format=json > dist-manifest.json
+          cargo +nightly dist build --allow-dirty --target=${{ matrix.target }} --output-format=json > dist-manifest.json
           cat dist-manifest.json
           # Parse out what we just built and upload it to the Github Release™️
           cat dist-manifest.json | jq --raw-output ".releases[].artifacts[].path" > uploads.txt
