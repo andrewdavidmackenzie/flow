@@ -146,7 +146,7 @@ fn execution_loop(
         trace!("{name} waiting for a job to execute or a DONE signal");
         match zmq::poll(&mut items, -1).map_err(|_| "Error while polling for Jobs to execute") {
             Ok(_) => {
-                if items.get(0).ok_or("Could not get poll item 0")?.is_readable() {
+                if items.first().ok_or("Could not get poll item 0")?.is_readable() {
                     let msg = job_source.recv_msg(0).map_err(|_| "Error receiving Job for execution")?;
                     let message_string = msg.as_str().ok_or("Could not get message as str")?;
                     let payload: JobPayload = serde_json::from_str(message_string)

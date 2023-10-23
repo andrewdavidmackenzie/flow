@@ -19,7 +19,7 @@ impl Implementation for Readline {
         let mut server = self.server_connection.lock()
             .map_err(|_| "Could not lock server")?;
 
-        let prompt = match inputs.get(0) {
+        let prompt = match inputs.first() {
             Some(Value::String(prompt)) => prompt.clone(),
             _ => "".into()
         };

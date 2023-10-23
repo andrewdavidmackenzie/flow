@@ -219,7 +219,7 @@ impl DataType {
     pub fn value_array_order(value: &Value) -> i32 {
         match value {
             Value::Array(array) if !array.is_empty() => {
-                if let Some(value) = array.get(0) {
+                if let Some(value) = array.first() {
                     1 + Self::value_array_order(value)
                 } else {
                     1

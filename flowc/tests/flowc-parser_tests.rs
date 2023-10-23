@@ -102,7 +102,7 @@ fn function_input_initialized() {
                     Name::from("stdout"),
                     "Function alias does not match"
                 );
-                let default_input: &IO = print_function.get_inputs().get(0).expect("Could not get input 0");
+                let default_input: &IO = print_function.get_inputs().first().expect("Could not get input 0");
                 let initial_value = default_input.get_initializer().clone().expect("Could not get initializer");
                 match initial_value {
                     Once(one_time) => assert_eq!(one_time, "hello"),
