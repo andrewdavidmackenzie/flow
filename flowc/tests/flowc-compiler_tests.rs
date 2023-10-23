@@ -322,7 +322,7 @@ fn initialized_output_propagated() {
                         .find(|&f| f.route() == &Route::from("/print_subflow_output/stdout"))
                     {
                         Some(print_function) => {
-                            let in_input = print_function.get_inputs().get(0)
+                            let in_input = print_function.get_inputs().first()
                                 .expect("Could not get inputs");
                             match in_input.get_flow_initializer() {
                                 Some(Once(one_time)) => assert_eq!(one_time, &json!("Hello")), // PASS
@@ -375,7 +375,7 @@ fn initialized_input_to_subflow() {
                         .find(|&f| f.route() == &Route::from("/initialized_input_to_subflow/subflow/subsubflow/stdout"))
                     {
                         Some(print_function) => {
-                            let in_input = print_function.get_inputs().get(0)
+                            let in_input = print_function.get_inputs().first()
                                 .expect("Could not get inputs");
 
                             match in_input.get_flow_initializer() {

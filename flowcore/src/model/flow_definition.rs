@@ -621,7 +621,7 @@ mod test {
 
         assert_eq!(
             flow.inputs()
-                .get(0)
+                .first()
                 .expect("Could not get input")
                 .get_initializer()
                 .as_ref()
