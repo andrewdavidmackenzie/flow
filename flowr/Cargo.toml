@@ -46,7 +46,7 @@ flowcore = {path = "../flowcore", version = "0.142.0", features = ["context", "f
 flowstdlib = {path = "../flowstdlib", version = "0.142.0", optional = true }
 clap = "~4"
 log = "0.4.20"
-env_logger = "0.10.0"
+env_logger = "0.10.1"
 simpath = { version = "~2.5", features = ["urls"]}
 url = { version = "2.2", features = ["serde"] }
 serde_derive = "~1.0"
@@ -61,7 +61,7 @@ simpdiscover = "0.6.2"
 
 # for flowrlib
 rand = "0.8"
-wasmtime = { version = "14.0.0", default-features = false, features = ["cranelift"] }
+wasmtime = { version = "15.0.0", default-features = false, features = ["cranelift"] }
 
 # for flowrgui
 iced = { version = "0.10.0", features = ["canvas", "tokio", "debug", "image"] }
