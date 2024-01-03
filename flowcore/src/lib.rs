@@ -1,6 +1,3 @@
-#![deny(missing_docs)]
-#![warn(clippy::unwrap_used)]
-
 //! `flowcore` defines core structs and traits used by other flow libraries and implementations
 
 use serde_json::Value;

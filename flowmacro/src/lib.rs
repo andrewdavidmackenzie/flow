@@ -1,4 +1,3 @@
-#![deny(missing_docs)]
 #![feature(proc_macro_span)]
 //! `flow_function` is a `proc_macro_attribute` macro that wraps a `fn` with a struct and a method
 //! to implement the [Implementation][flowcore::Implementation] trait, so it can be used as the

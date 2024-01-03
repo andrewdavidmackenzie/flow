@@ -9,6 +9,7 @@ homepage.workspace = true
 repository = "https://github.com/andrewdavidmackenzie/flow/"
 readme = "README.md"
 edition.workspace = true
+lints.workspace = true
 
 [badges]
 maintenance = { status = "actively-developed" }
