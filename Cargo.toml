@@ -16,6 +16,9 @@ edition = "2021"
 
 [profile.dev]
 split-debuginfo = "unpacked"
+opt-level = 1
+[profile.dev.package."*"]
+opt-level = 3
 
 # The profile that 'cargo dist' will build with
 [profile.dist]
