@@ -1,5 +1,3 @@
-#![deny(missing_docs)]
-#![warn(clippy::unwrap_used)]
 //! `flowstdlib` is a library of flows and functions that can be used from flows.
 //!
 //! The flow and function definition are used at compile time when compile flows that reference

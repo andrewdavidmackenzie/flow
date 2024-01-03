@@ -1,6 +1,3 @@
-#![deny(missing_docs)]
-#![warn(clippy::unwrap_used)]
-#![allow(clippy::result_large_err)]
 //! `flowc` is a "flow compiler" that takes a hierarchical description of a flow
 //! using [flow definitions][flowcore::model::flow_definition::FlowDefinition],
 //! [function definitions][flowcore::model::function_definition::FunctionDefinition] and
@@ -18,7 +15,7 @@ use std::process::exit;
 
 use clap::{Arg, ArgMatches, Command};
 use env_logger::Builder;
-use log::{debug, error, info, LevelFilter, warn};
+use log::{debug, error, info, LevelFilter};
 use serde_derive::Deserialize;
 use simpath::Simpath;
 use url::Url;

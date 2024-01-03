@@ -1,6 +1,3 @@
-#![deny(missing_docs)]
-#![deny(clippy::unwrap_used)]
-#![deny(clippy::indexing_slicing)]
 //! `flowrlib` is the runtime library for flow execution. This can be used to produce a flow runner,
 //! such as the `flowr` command line runner.
 //!

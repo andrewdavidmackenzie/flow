@@ -40,3 +40,12 @@ ci = ["github"]
 installers = ["shell"]
 # Target platforms to build apps for (Rust target-triple syntax)
 targets = ["x86_64-unknown-linux-gnu", "x86_64-apple-darwin", "aarch64-apple-darwin"]
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+missing_docs = "deny"
+
+[workspace.lints.clippy]
+unwrap_used = "forbid"
+result_large_err = "allow"
+indexing_slicing = "deny"

@@ -1,6 +1,3 @@
-#![warn(clippy::unwrap_used)]
-#![deny(missing_docs)]
-// TODO re-instate #![warn(clippy::unwrap_used)]
 //! `flowrgui` is a GUI flow runner for running `flow` programs.
 //!
 //! It reads a compiled [FlowManifest][flowcore::model::flow_manifest::FlowManifest] produced by a
@@ -38,7 +35,7 @@ use iced::widget::{Button, Column, Row, scrollable, Text, text_input};
 use iced::widget::scrollable::Id;
 use iced_aw::{Card, modal};
 use image::{ImageBuffer, Rgba, RgbaImage};
-use log::{info, LevelFilter, warn};
+use log::{info, LevelFilter};
 use simpath::Simpath;
 use url::Url;
 

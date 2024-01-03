@@ -1,5 +1,3 @@
-#![deny(missing_docs)]
-#![warn(clippy::unwrap_used)]
 //! `flowrex` is the minimal executor of flow jobs. It loads a native version of 'flowstdlib'
 //! flow library to allow execution of jobs using functions provided by 'flowstdlib', but it does
 //! *not* load 'context' and hence will not execute any jobs interacting with the context.
@@ -16,7 +14,7 @@ use std::sync::Arc;
 
 use clap::{Arg, ArgMatches, Command};
 use env_logger::Builder;
-use log::{error, info, LevelFilter, trace, warn};
+use log::{error, info, LevelFilter, trace};
 use simpath::Simpath;
 use simpdiscoverylib::BeaconListener;
 #[cfg(feature = "flowstdlib")]

@@ -4,13 +4,14 @@ name = "flowstdlib"
 description = "The standard library of functions and flows for 'flow' programs"
 version = "0.142.0"
 authors = ["Andrew Mackenzie <andrew@mackenzie-serres.net>"]
-# Inherit the others that is not parsed by flowc
+# Inherit the other keys that are not parsed by flowc itself
 license.workspace = true
 documentation.workspace = true
 homepage.workspace = true
 repository.workspace = true
 readme = "README.md"
 edition.workspace = true
+lints.workspace = true
 
 [badges]
 maintenance = { status = "actively-developed" }
