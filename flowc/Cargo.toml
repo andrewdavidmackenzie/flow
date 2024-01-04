@@ -9,6 +9,7 @@ homepage.workspace = true
 repository.workspace = true
 readme = "README.md"
 edition.workspace = true
+lints.workspace = true
 
 [lints]
 workspace = true
@@ -40,7 +41,7 @@ wax = "0.6.0"
 serde_json = "1.0"
 error-chain = "0.12.2"
 serde_derive = "~1.0.27"
-serde = "~1.0.193"
+serde = "~1.0.194"
 colored = "2"
 toml = { version = "0.8.2" }
 

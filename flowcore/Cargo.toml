@@ -9,6 +9,7 @@ homepage.workspace = true
 repository.workspace = true
 readme = "README.md"
 edition.workspace = true
+lints.workspace = true
 
 # Files to exclude from packaging and publishing
 exclude = [".gitignore", "Cargo.lock"]
@@ -35,7 +36,7 @@ serde_derive = { version = "~1.0.27"}
 error-chain = {version = "0.12.2"}
 url = { version = "2.2", features = ["serde"] }
 log = {version = "0.4.20"}
-serde = { version = "~1.0.193"}
+serde = { version = "~1.0.194"}
 toml = { version = "0.8.2" }
 serde_yaml = { version = "~0.9" }
 
