@@ -9,14 +9,14 @@ fn _multiply_row(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
     let mut product = 0;
     let mut output_map = serde_json::Map::new();
 
-    let a = inputs[0].as_array().ok_or("Could not get a")?;
-    let a_index = inputs[1].as_u64();
-    let b = inputs[2].as_array().ok_or("Could not get b")?;
-    let b_index = inputs[3].as_u64();
+    let a = inputs.first().ok_or("Could not get a")?.as_array().ok_or("Could not get a")?;
+    let a_index = inputs.get(1).ok_or("Could not get a_index")?.as_u64();
+    let b = inputs.get(2).ok_or("Could not get b")?.as_array().ok_or("Could not get b")?;
+    let b_index = inputs.get(3).ok_or("Could not get b_index")?.as_u64();
 
     for index in 0..a.len() {
-        if let Some(row0_entry) = a[index].as_i64() {
-            if let Some(row1_entry) = b[index].as_i64() {
+        if let Some(row0_entry) = a.get(index).ok_or("Could not get entry")?.as_i64() {
+            if let Some(row1_entry) = b.get(index).ok_or("Could not get entry")?.as_i64() {
                 product += row0_entry * row1_entry;
             }
         }

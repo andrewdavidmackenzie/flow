@@ -1,3 +1,4 @@
+//! A runner for the example using flowrcli
 fn main() {
     utilities::run_example(file!(), "flowrcli", false, true);
 }

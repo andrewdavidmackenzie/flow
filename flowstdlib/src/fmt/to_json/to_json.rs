@@ -6,7 +6,7 @@ use flowmacro::flow_function;
 
 #[flow_function]
 fn _to_json(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
-    let input = &inputs[0];
+    let input = inputs.first().ok_or("Could not get input")?;
 
     if input.is_null() {
         return Ok((Some(Value::Null), RUN_AGAIN))

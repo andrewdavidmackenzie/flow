@@ -149,7 +149,8 @@ impl IO {
             Some(_) => bail!("Attempt to set two InputInitializers on IO @ {}", self.route),
             None => {
                 if let Some(initializer) = &function_initializer {
-                    DataType::compatible_types( &[DataType::value_type(initializer.get_value())], self.datatypes(), &Route::default())
+                    DataType::compatible_types( &[DataType::value_type(initializer.get_value())?],
+                                                self.datatypes(), &Route::default())
                         .chain_err(|| "Incompatible type of initializer and Input")?;
                 }
 
@@ -166,7 +167,8 @@ impl IO {
             Some(_) => bail!("Attempt to set two InputInitializers on same IO"),
             None => {
                 if let Some(initializer) = &flow_initializer {
-                    DataType::compatible_types( &[DataType::value_type(initializer.get_value())], self.datatypes(), &Route::default())
+                    DataType::compatible_types( &[DataType::value_type(initializer.get_value())?],
+                                                self.datatypes(), &Route::default())
                         .chain_err(|| "Incompatible type of flow initializer and Input")?;
                 }
                 self.flow_initializer = flow_initializer
@@ -335,7 +337,7 @@ mod test {
             Err(_) => panic!("TOML does not parse"),
         };
         assert!(output.validate().is_ok(), "IO does not validate()");
-        assert_eq!(output.datatypes[0], DataType::from(GENERIC_TYPE));
+        assert_eq!(output.datatypes.first(), Some(&DataType::from(GENERIC_TYPE)));
         assert_eq!(output.name, Name::default());
     }
 
@@ -407,7 +409,7 @@ mod test {
         };
         assert_eq!(Name::from("input"), *input.name());
         assert_eq!(1, input.datatypes().len());
-        assert_eq!(DataType::from(STRING_TYPE), input.datatypes()[0]);
+        assert_eq!(Some(&DataType::from(STRING_TYPE)), input.datatypes().first());
     }
 
     #[test]

@@ -8,7 +8,7 @@ use flowmacro::flow_function;
 fn _enumerate(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
     let mut output_array: Vec<(usize, Value)> = vec![];
 
-    let array = inputs[0].as_array().ok_or("Could not get array")?;
+    let array = inputs.first().ok_or("Could not get array")?.as_array().ok_or("Could not get array")?;
     for (index, value) in array.iter().enumerate() {
         output_array.push((index, value.clone()));
     }
@@ -34,15 +34,15 @@ mod test {
 
         assert_eq!(enumerated_array.len(), 2);
         assert_eq!(
-            enumerated_array[0],
-            Value::Array(vec!(
+            enumerated_array.first().expect("Could not get [0]"),
+            &Value::Array(vec!(
                 Value::Number(Number::from(0)),
                 Value::String(String::from("a"))
             ))
         );
         assert_eq!(
-            enumerated_array[1],
-            Value::Array(vec!(
+            enumerated_array.get(1).expect("Could not get [1]"),
+            &Value::Array(vec!(
                 Value::Number(Number::from(1)),
                 Value::String(String::from("b"))
             ))

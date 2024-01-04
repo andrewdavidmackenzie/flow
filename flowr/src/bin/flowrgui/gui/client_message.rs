@@ -63,10 +63,6 @@ impl fmt::Display for ClientMessage {
     }
 }
 
-unsafe impl Send for ClientMessage {}
-
-unsafe impl Sync for ClientMessage {}
-
 impl From<ClientMessage> for String {
     fn from(msg: ClientMessage) -> Self {
         match serde_json::to_string(&msg) {

@@ -16,21 +16,21 @@ pub struct ImageBuffer {
 
 impl Implementation for ImageBuffer {
     fn run(&self, inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
-        let pixel = inputs[0].as_array().ok_or("Could not get pixel")?;
-        let value = inputs[1].as_array().ok_or("Could not get value")?;
-        let size = inputs[2].as_array().ok_or("Could not get size")?;
-        let filename = &inputs[3].as_str().ok_or("Could not get filename")?;
+        let pixel = inputs.first().ok_or("Could not get pixels")?.as_array().ok_or("Could not get pixels")?;
+        let value = inputs.get(1).ok_or("Could not get value")?.as_array().ok_or("Could not get value")?;
+        let size = inputs.get(2).ok_or("Could not get size")?.as_array().ok_or("Could not get size")?;
+        let filename = inputs.get(3).ok_or("Could not get filename")?.as_str().ok_or("Could not get filename")?;
 
         let mut server = self.server_connection.lock()
             .map_err(|_| "Could not lock server")?;
 
-        let x = pixel[0].as_u64().ok_or("Could not get x")?;
-        let y = pixel[1].as_u64().ok_or("Could not get y")?;
-        let r = value[0].as_u64().ok_or("Could not get r")?;
-        let g = value[1].as_u64().ok_or("Could not get g")?;
-        let b = value[2].as_u64().ok_or("Could not get b")?;
-        let w = size[0].as_u64().ok_or("Could not get w")?;
-        let h = size[1].as_u64().ok_or("Could not get h")?;
+        let x = pixel.first().ok_or("Could not get x")?.as_u64().ok_or("Could not get x")?;
+        let y = pixel.get(1).ok_or("Could not get y")?.as_u64().ok_or("Could not get y")?;
+        let r = value.first().ok_or("Could not get r")?.as_u64().ok_or("Could not get r")?;
+        let g = value.get(1).ok_or("Could not get g")?.as_u64().ok_or("Could not get g")?;
+        let b = value.get(2).ok_or("Could not get b")?.as_u64().ok_or("Could not get b")?;
+        let w = size.first().ok_or("Could not get w")?.as_u64().ok_or("Could not get w")?;
+        let h = size.get(1).ok_or("Could not get h")?.as_u64().ok_or("Could not get h")?;
 
         let _: Result<ClientMessage> = server.send_and_receive_response(CoordinatorMessage::PixelWrite(
                 (x as u32, y as u32),

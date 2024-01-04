@@ -11,18 +11,21 @@ fn _transpose(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
     let mut col_indexes = vec![];
     let mut output_map = serde_json::Map::new();
 
-    let matrix = inputs[0].as_array().ok_or("Could not get array")?;
+    let matrix = inputs.first().ok_or("Could not get matrix")?.as_array().ok_or("Could not get array")?;
 
     let rows = matrix.len();
 
-    let row = matrix[0].as_array().ok_or("Could not get array")?;
+    let row = matrix.first().ok_or("Could not get row")?.as_array().ok_or("Could not get array")?;
 
     let cols = row.len();
     let mut new_row; // Vector of Value::Number - i.e. a row
     for new_row_num in 0..cols {
         new_row = Vec::with_capacity(rows);
         for new_col_num in 0..rows {
-            new_row.push(matrix[new_col_num][new_row_num].clone());
+            // matrix[new_col_num][new_row_num]
+            let matrix_row = matrix.get(new_col_num).ok_or("Could not get row")?;
+            let element = matrix_row.get(new_row_num).ok_or("Could not get element")?;
+            new_row.push(element.clone());
         }
         output_matrix.push(Value::Array(new_row));
         col_indexes.push(new_row_num);
@@ -66,8 +69,10 @@ mod test {
 
         let output = result.expect("Could not get the Value from the output");
 
-        let new_matrix = output.pointer("/matrix").expect("Could not get 'matrix' output");
-        let new_row0 = new_matrix[0].clone();
+        let new_matrix = output.pointer("/matrix").expect("Could not get 'matrix' output")
+            .as_array().expect("Could not get array");
+
+        let new_row0 = new_matrix.first().expect("Could not get first").clone();
 
         assert_eq!(new_row0, json!([1]));
     }
@@ -84,9 +89,10 @@ mod test {
 
         let output = result.expect("Could not get the Value from the output");
 
-        let new_matrix = output.pointer("/matrix").expect("Could not get 'matrix' output");
-        let new_row0 = new_matrix[0].clone();
-        let new_row1 = new_matrix[1].clone();
+        let new_matrix = output.pointer("/matrix").expect("Could not get 'matrix' output")
+            .as_array().expect("Could not get array");
+        let new_row0 = new_matrix.first().expect("Could not get [0]").clone();
+        let new_row1 = new_matrix.get(1).expect("Could not get [1]").clone();
 
         assert_eq!(new_row0, json!([1, 3]));
         assert_eq!(new_row1, json!([2, 4]));
@@ -104,10 +110,11 @@ mod test {
 
         let output = result.expect("Could not get the Value from the output");
 
-        let new_matrix = output.pointer("/matrix").expect("Could not get 'matrix' output");
-        let new_row0 = new_matrix[0].clone();
-        let new_row1 = new_matrix[1].clone();
-        let new_row2 = new_matrix[2].clone();
+        let new_matrix = output.pointer("/matrix").expect("Could not get 'matrix' output")
+            .as_array().expect("Could not get array");
+        let new_row0 = new_matrix.first().expect("Could not get [0]").clone();
+        let new_row1 = new_matrix.get(1).expect("Could not get [1]").clone();
+        let new_row2 = new_matrix.get(2).expect("Could not get [2]").clone();
 
         assert_eq!(new_row0, json!([1, 4]));
         assert_eq!(new_row1, json!([2, 5]));

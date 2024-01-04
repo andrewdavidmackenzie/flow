@@ -6,8 +6,8 @@ use flowmacro::flow_function;
 
 #[flow_function]
 fn _append(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
-    let v1 = inputs[0].clone();
-    let v2 = inputs[1].clone();
+    let v1 = inputs.first().ok_or("Could not get v1")?.clone();
+    let v2 = inputs.get(1).ok_or("Could not get v2")?.clone();
 
     let s1 = v1.as_str().ok_or("Could not get s1")?;
     let s2 = v2.as_str().ok_or("Could not get s2")?;

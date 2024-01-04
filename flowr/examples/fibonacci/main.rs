@@ -1,3 +1,4 @@
+//! A runner for the example using flowrcli
 extern crate serial_test;
 
 fn main() {

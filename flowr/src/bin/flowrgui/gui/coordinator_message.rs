@@ -79,10 +79,6 @@ impl fmt::Display for CoordinatorMessage {
     }
 }
 
-unsafe impl Send for CoordinatorMessage {}
-
-unsafe impl Sync for CoordinatorMessage {}
-
 /// A simple struct with File MetaData for passing from Client to Coordinator - std::fs::MetaData
 /// Doesn't Serialize/Deserialize etc.
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone)]

@@ -7,7 +7,7 @@ use flowmacro::flow_function;
 
 #[flow_function]
 fn _sqrt(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
-    if let Number(ref a) = &inputs[0] {
+    if let Number(ref a) = inputs.first().ok_or("Could not get a")? {
         let num = a.as_f64().ok_or("Could not get num")?;
         Ok((Some(json!(num.sqrt())), RUN_AGAIN))
     } else {

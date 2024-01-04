@@ -5,20 +5,20 @@ use flowcore::errors::*;
 use flowcore::model::datatype::{ARRAY_TYPE, BOOLEAN_TYPE, NULL_TYPE, NUMBER_TYPE, OBJECT_TYPE, STRING_TYPE};
 use flowmacro::flow_function;
 
-fn type_string(value: &Value) -> String {
+fn type_string(value: &Value) -> Result<String> {
     match value {
-        Value::String(_) => STRING_TYPE.into(),
-        Value::Bool(_) => BOOLEAN_TYPE.into(),
-        Value::Number(_) => NUMBER_TYPE.into(),
-        Value::Array(array) => format!("{ARRAY_TYPE}/{}", type_string(&array[0])),
+        Value::String(_) => Ok(STRING_TYPE.into()),
+        Value::Bool(_) => Ok(BOOLEAN_TYPE.into()),
+        Value::Number(_) => Ok(NUMBER_TYPE.into()),
+        Value::Array(array) => Ok(format!("{ARRAY_TYPE}/{}", type_string(array.first().ok_or("Could not get array")?)?)),
         Value::Object(map) => {
             if let Some(value) = &map.values().next().cloned() {
-                format!("{OBJECT_TYPE}/{}", type_string(value))
+                Ok(format!("{OBJECT_TYPE}/{}", type_string(value)?))
             } else {
-                format!("{OBJECT_TYPE}/Unknown")
+                Ok(format!("{OBJECT_TYPE}/Unknown"))
             }
         }
-        Value::Null => NULL_TYPE.into(),
+        Value::Null => Ok(NULL_TYPE.into()),
     }
 }
 
@@ -26,11 +26,11 @@ fn type_string(value: &Value) -> String {
 fn _info(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
     let mut output_map = serde_json::Map::new();
 
-    let (rows, cols) = match &inputs[0] {
+    let (rows, cols) = match inputs.first().ok_or("Could not get rows & cols")? {
         Value::String(string) => (1, string.len()),
         Value::Bool(_boolean) => (1, 1),
         Value::Number(_number) => (1, 1),
-        Value::Array(vec) => match &vec[0] {
+        Value::Array(vec) => match vec.first().ok_or("Could not get array")? {
             Value::Array(row) => (vec.len(), row.len()), // Array of Arrays
             _ => (1, vec.len()),
         },
@@ -38,9 +38,10 @@ fn _info(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
         Value::Null => (0, 0),
     };
 
+    let data_type = type_string(inputs.first().ok_or("Could not get type")?)?;
     output_map.insert("rows".into(), json!(rows));
     output_map.insert("columns".into(), json!(cols));
-    output_map.insert("type".into(), json!(type_string(&inputs[0])));
+    output_map.insert("type".into(), json!(data_type));
 
     Ok((Some(Value::Object(output_map)), RUN_AGAIN))
 }
@@ -97,8 +98,8 @@ mod test {
         let (result, _) = _info(&inputs).expect("_info() failed");
         let output_map = result.expect("Could not get the Value from the output");
 
-        assert_eq!(output_map.pointer("/type").expect("Could not get the /type from the output"), &json!(NULL_TYPE));
         assert_eq!(output_map.pointer("/rows").expect("Could not get the /rows from the output"), &json!(0));
+        assert_eq!(output_map.pointer("/type").expect("Could not get the /type from the output"), &json!(NULL_TYPE));
         assert_eq!(output_map.pointer("/columns").expect("Could not get the /column from the output"), &json!(0));
     }
 

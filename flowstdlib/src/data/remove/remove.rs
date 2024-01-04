@@ -7,8 +7,8 @@ use flowmacro::flow_function;
 #[flow_function]
 fn _remove(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
     // Inputs
-    let value = &inputs[0];
-    let input1 = &inputs[1];
+    let value = inputs.first().ok_or("Could not get value")?;
+    let input1 = inputs.get(1).ok_or("Could not get input1")?;
     let mut input_array = input1.clone();
 
     let output = if let Some(array) = input_array.as_array_mut() {

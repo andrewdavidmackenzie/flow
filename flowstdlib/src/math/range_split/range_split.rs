@@ -6,14 +6,15 @@ use flowcore::{RUN_AGAIN, RunAgain};
 /// Generate numbers within a Range
 #[flow_function]
 fn _range_split(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
-    let min_and_max = inputs[0].as_array().ok_or("Could not get min and max array")?;
+    let min_and_max = inputs.first().ok_or("Could not get min_and_max")?
+        .as_array().ok_or("Could not get min and max array")?;
 
     if min_and_max.len() != 2 {
         bail!("Range (array/number) should have two values");
     }
 
-    let min = min_and_max[0].as_i64().ok_or("Could not get min")?;
-    let max = min_and_max[1].as_i64().ok_or("Could not get max")?;
+    let min = min_and_max.first().ok_or("Could not get min")?.as_i64().ok_or("Could not get min")?;
+    let max = min_and_max.get(1).ok_or("Could not get max")?.as_i64().ok_or("Could not get max")?;
 
     let mut output_map = serde_json::Map::new();
 

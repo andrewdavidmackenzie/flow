@@ -6,7 +6,7 @@ use flowmacro::flow_function;
 
 #[flow_function]
 fn _to_string(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
-    let input = &inputs[0];
+    let input = inputs.first().ok_or("Could not get input")?;
     Ok((Some(json!(input.to_string())), RUN_AGAIN))
 }
 

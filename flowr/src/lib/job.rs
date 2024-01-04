@@ -36,9 +36,6 @@ pub struct Job {
     pub connections: Vec<OutputConnection>,
 }
 
-unsafe impl Send for Job{}
-unsafe impl Sync for Job{}
-
 impl fmt::Display for Job {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         writeln!(f, "{}", self.payload)?;

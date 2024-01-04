@@ -6,8 +6,8 @@ use flowmacro::flow_function;
 
 #[flow_function]
 fn compare(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
-    let left = &inputs[0];
-    let right = &inputs[1];
+    let left = inputs.first().ok_or("Could not get lh value")?;
+    let right = inputs.get(1).ok_or("Could not get rh value")?;
     match (left.as_f64(), right.as_f64()) {
         (Some(lhs), Some(rhs)) => {
             let mut output_map = serde_json::Map::new();

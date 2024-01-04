@@ -120,7 +120,7 @@ fn function_to_runtimefunction(
 
     let mut runtime_inputs = vec![];
     for input in function.get_inputs() {
-        runtime_inputs.push(Input::from(input));
+        runtime_inputs.push(Input::try_from(input)?);
     }
 
     Ok(RuntimeFunction::new(

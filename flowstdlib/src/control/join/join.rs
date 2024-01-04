@@ -6,7 +6,8 @@ use flowmacro::flow_function;
 
 #[flow_function]
 fn _join(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
-    let data = Some(inputs[0].clone());
+    let input = inputs.first().ok_or("Could not get input")?;
+    let data = Some(input.clone());
     // second input of 'control' is not used, it just "controls" the execution of this process
     // via it's availability
     Ok((data, RUN_AGAIN))

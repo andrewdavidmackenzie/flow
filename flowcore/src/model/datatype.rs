@@ -172,26 +172,27 @@ impl DataType {
     }
 
     /// Return the `DataType` for a Json `Value`, including nested values in arrays or maps
-    pub fn value_type(value: &Value) -> DataType {
+    pub(crate) fn value_type(value: &Value) -> Result<DataType> {
         match value {
-            Value::String(_) => STRING_TYPE.into(),
-            Value::Bool(_) => BOOLEAN_TYPE.into(),
-            Value::Number(_) => NUMBER_TYPE.into(),
+            Value::String(_) => Ok(STRING_TYPE.into()),
+            Value::Bool(_) => Ok(BOOLEAN_TYPE.into()),
+            Value::Number(_) => Ok(NUMBER_TYPE.into()),
             Value::Array(array) => {
                 if array.is_empty() {
-                    DataType::from(format!("{ARRAY_TYPE}/{GENERIC_TYPE}"))
+                    Ok(DataType::from(format!("{ARRAY_TYPE}/{GENERIC_TYPE}")))
                 } else {
-                    DataType::from(format!("{ARRAY_TYPE}/{}", Self::value_type(&array[0])))
+                    Ok(DataType::from(format!("{ARRAY_TYPE}/{}",
+                                           Self::value_type(array.first().ok_or("Could not get input")?)?)))
                 }
             },
             Value::Object(map) => {
                 if let Some(map_entry) = map.values().next() {
-                    DataType::from(format!("{OBJECT_TYPE}/{}", Self::value_type(map_entry)))
+                    Ok(DataType::from(format!("{OBJECT_TYPE}/{}", Self::value_type(map_entry)?)))
                 } else {
-                    OBJECT_TYPE.into()
+                    Ok(OBJECT_TYPE.into())
                 }
             }
-            Value::Null => NULL_TYPE.into(),
+            Value::Null => Ok(NULL_TYPE.into()),
         }
     }
 

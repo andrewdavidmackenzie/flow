@@ -7,8 +7,8 @@ use flowmacro::flow_function;
 
 #[flow_function]
 fn _add(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
-    let input_a = &inputs[0];
-    let input_b = &inputs[1];
+    let input_a = inputs.first().ok_or("Could not get input_a")?;
+    let input_b = inputs.get(1).ok_or("Could not get input_b")?;
 
     let sum = match (&input_a, &input_b) {
         (Number(a), Number(b)) => {

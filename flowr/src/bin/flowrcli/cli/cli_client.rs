@@ -17,6 +17,8 @@ use flowcore::errors::*;
 use crate::cli::connections::ClientConnection;
 use crate::cli::coordinator_message::{ClientMessage, CoordinatorMessage};
 
+const DEFAULT_NAME : &str = "unknown";
+
 #[derive(Debug, Clone)]
 pub struct CliRuntimeClient {
     args: Vec<String>,
@@ -173,7 +175,8 @@ impl CliRuntimeClient {
                     } else {
                         // we want to retain arg[0] which is the flow name and replace  all others
                         // with the override args supplied
-                        let mut one_time_args = vec!(self.args[0].clone());
+                        let arg_zero = self.args.first().unwrap_or(&DEFAULT_NAME.to_string()).to_owned();
+                        let mut one_time_args = vec!(arg_zero);
                         one_time_args.append(&mut override_args.to_vec());
                         ClientMessage::Args(one_time_args)
                     }
