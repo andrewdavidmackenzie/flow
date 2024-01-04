@@ -46,6 +46,6 @@ unsafe_code = "forbid"
 missing_docs = "deny"
 
 [workspace.lints.clippy]
-unwrap_used = "forbid"
+unwrap_used = "deny"
 result_large_err = "allow"
 indexing_slicing = "deny"

@@ -16,7 +16,7 @@ pub struct FileRead {
 
 impl Implementation for FileRead {
     fn run(&self, inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
-        let path = &inputs[0];
+        let path = inputs.first().ok_or("Could not get filename")?;
 
         let mut server = self.server_connection.lock()
             .map_err(|_| "Could not lock server")?;

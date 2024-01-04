@@ -16,7 +16,7 @@ pub struct Stdout {
 
 impl Implementation for Stdout {
     fn run(&self, inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
-        let input = &inputs[0];
+        let input = inputs.first().ok_or("Could not get input")?;
 
         // Gain sole access to send to the client to avoid mixing output from other functions
         let mut server = self.server_connection.lock()

@@ -7,7 +7,7 @@ use flowcore::RUN_AGAIN;
 
 #[flow_function]
 fn _count(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
-    let mut count = inputs[1].as_i64().ok_or("Could not get count")?;
+    let mut count = inputs.get(1).ok_or("Could not get count")?.as_i64().ok_or("Could not get count")?;
     count += 1;
 
     Ok((Some(json!(count)), RUN_AGAIN))

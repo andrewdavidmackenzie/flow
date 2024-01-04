@@ -564,14 +564,14 @@ impl RunState {
         let function = self.get_mut(connection.destination_id)
             .ok_or("Could not get function")?;
         let job_count_before = function.input_sets_available();
-        function.send(connection.destination_io_number, output_value);
+        function.send(connection.destination_io_number, output_value)?;
 
         #[cfg(feature = "metrics")]
         metrics.increment_outputs_sent(); // not distinguishing array serialization / wrapping etc
 
         // Avoid a function blocking on itself when sending itself a value via a loopback and avoid
         // blocking sending internally within a flow
-        let block = (function.values_available(connection.destination_io_number) > 0)
+        let block = (function.values_available(connection.destination_io_number)? > 0)
             && !loopback && !same_flow;
         let new_job_available = function.input_sets_available() > job_count_before;
 

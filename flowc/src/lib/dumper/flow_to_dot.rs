@@ -151,7 +151,7 @@ fn write_flow_to_dot(
     contents.push_str(&input_set_to_dot(flow.inputs(), flow.route()));
 
     // Outputs
-    contents.push_str(&output_set_to_dot(flow.outputs(), flow.route(), false));
+    contents.push_str(&output_set_to_dot(flow.outputs(), flow.route(), false)?);
 
     // Process References
     contents.push_str(&process_references_to_dot(flow)?);
@@ -159,7 +159,7 @@ fn write_flow_to_dot(
     // Connections
     contents.push_str("\n\t// Connections");
     for connection in &flow.connections {
-        contents.push_str(&connection_to_dot(connection));
+        contents.push_str(&connection_to_dot(connection)?);
     }
 
     dot_file.write_all(contents.as_bytes())?;
@@ -195,7 +195,7 @@ fn input_set_to_dot(input_set: &IOSet, to: &Route) -> String {
 /*
     Add the outputs from a flow to add points to connect to
 */
-fn output_set_to_dot(output_set: &IOSet, from: &Route, connect_subflow: bool) -> String {
+fn output_set_to_dot(output_set: &IOSet, from: &Route, connect_subflow: bool) -> Result<String> {
     let mut string = String::new();
 
     string.push_str("\n\t// Outputs\n\t{ rank=sink\n");
@@ -208,7 +208,7 @@ fn output_set_to_dot(output_set: &IOSet, from: &Route, connect_subflow: bool) ->
 
             if connect_subflow {
                 // and connect the output to the sub-flow
-                let output_port = output_name_to_port(output.name());
+                let output_port = output_name_to_port(output.name())?;
                 let _ = writeln!(string,
                                  "\t\"{}\":{} -> \"{}\"[style=invis, headtooltip=\"{}\"];",
                                  from,
@@ -221,7 +221,7 @@ fn output_set_to_dot(output_set: &IOSet, from: &Route, connect_subflow: bool) ->
     }
     string.push_str("\t}\n");
 
-    string
+    Ok(string)
 }
 
 fn process_references_to_dot(flow: &FlowDefinition) -> Result<String> {
@@ -291,12 +291,12 @@ fn subfunction_to_dot(function: &FunctionDefinition, parent: PathBuf) -> Result<
                          name);
     }
 
-    dot_string.push_str(&input_initializers_to_dot(function, function.route().as_ref()));
+    dot_string.push_str(&input_initializers_to_dot(function, function.route().as_ref())?);
 
     Ok(dot_string)
 }
 
-pub (crate) fn input_initializers_to_dot(function: &FunctionDefinition, function_identifier: &str) -> String {
+pub (crate) fn input_initializers_to_dot(function: &FunctionDefinition, function_identifier: &str) -> Result<String> {
     let mut initializers = "\n\t// Initializers\n".to_string();
 
     // TODO add initializers for sub-flows also
@@ -320,7 +320,7 @@ pub (crate) fn input_initializers_to_dot(function: &FunctionDefinition, function
                              "\t\"initializer{function_identifier}_{input_number}\"  [style=invis];"
             );
 
-            let input_port = input_name_to_port(input.name());
+            let input_port = input_name_to_port(input.name())?;
 
             // Add connection from hidden node to the input being initialized
             let _ = writeln!(initializers,
@@ -328,10 +328,10 @@ pub (crate) fn input_initializers_to_dot(function: &FunctionDefinition, function
         }
     }
 
-    initializers
+    Ok(initializers)
 }
 
-fn connection_to_dot(connection: &Connection) -> String {
+fn connection_to_dot(connection: &Connection) -> Result<String> {
     // ensure no array index included in the source - just get the input route
     let (from_route, number, array_index) =
         connection.from_io().route().without_trailing_array_index();
@@ -341,7 +341,7 @@ fn connection_to_dot(connection: &Connection) -> String {
          "", // connect from the "tip" of the flow input pentagon, no need for name
          from_route.to_string())
     } else {
-        (output_name_to_port(connection.from_io().name()),
+        (output_name_to_port(connection.from_io().name())?,
          connection.from_io().name().as_str(),
          from_route.parent(connection.from_io().name()))
     };
@@ -352,19 +352,21 @@ fn connection_to_dot(connection: &Connection) -> String {
             connection.to_io().route().to_string()
         )
     } else {
-        (input_name_to_port(connection.to_io().name()),
+        (input_name_to_port(connection.to_io().name())?,
          connection.to_io().name().as_str(),
          connection.to_io().route().parent(connection.to_io().name())
         )
     };
 
-    if array_index {
+    let output = if array_index {
         format!(
             "\n\t\"{from_node}\":{from_port} -> \"{to_node}\":{to_port} [xlabel=\"{from_name}[{number}]\", headlabel=\"{to_name}\"];")
     } else {
         format!(
             "\n\t\"{from_node}\":{from_port} -> \"{to_node}\":{to_port} [xlabel=\"{from_name}\", headlabel=\"{to_name}\"];")
-    }
+    };
+
+    Ok(output)
 }
 
 fn digraph_start(flow: &FlowDefinition) -> String {
@@ -395,12 +397,14 @@ fn index_from_name<T: Hash>(t: &T, length: usize) -> usize {
     index as usize
 }
 
-fn input_name_to_port<T: Hash>(t: &T) -> &str {
-    INPUT_PORTS[index_from_name(t, INPUT_PORTS.len())]
+fn input_name_to_port<T: Hash>(t: &T) -> Result<&str> {
+    let index = index_from_name(t, INPUT_PORTS.len());
+    Ok(INPUT_PORTS.get(index).ok_or("Could not get input index")?)
 }
 
-pub(crate) fn output_name_to_port<T: Hash>(t: &T) -> &str {
-    OUTPUT_PORTS[index_from_name(t, OUTPUT_PORTS.len())]
+pub(crate) fn output_name_to_port<T: Hash>(t: &T) -> Result<&str> {
+    Ok(OUTPUT_PORTS.get(index_from_name(t, OUTPUT_PORTS.len()))
+        .ok_or("Could not get output port")?)
 }
 
 // figure out a relative path to get to target from source

@@ -6,11 +6,11 @@ use flowmacro::flow_function;
 
 #[flow_function]
 fn _sort(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
-    if inputs[0].is_null() {
+    if inputs.first().ok_or("Could not get first")?.is_null() {
         return Ok((Some(Value::Null), RUN_AGAIN));
     }
 
-    let array_num = inputs[0].as_array().ok_or("Could not get array")?;
+    let array_num = inputs.first().ok_or("Could not get array_num")?.as_array().ok_or("Could not get array")?;
     let mut array_of_numbers: Vec<Value> = array_num.clone();
     array_of_numbers.sort_by_key(|a| a.as_i64().unwrap_or(0));
 

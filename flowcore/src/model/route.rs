@@ -60,7 +60,7 @@ impl From<&Name> for Route {
     }
 }
 
-/// A customer Deserializer for a String into a [Route]
+/// A custom Deserializer for a String into a [Route]
 pub fn route_string<'de, T, D>(deserializer: D) -> std::result::Result<T, D::Error>
     where
         T: Deserialize<'de> + FromStr<Err = Error>,
@@ -246,13 +246,15 @@ impl Route {
     pub fn parse_subroute(&self) -> Result<RouteType> {
         let segments: Vec<&str> = self.string.split('/').collect();
 
-        match segments[0] {
-            "input" => Ok(RouteType::FlowInput(segments[1].into(),
-                                               segments[2..].join("/").into())),
-            "output" => Ok(RouteType::FlowOutput(segments[1].into())),
+        match *(segments.first().ok_or("Could not get subroute segment[0]")?) {
+            "input" => Ok(RouteType::FlowInput(segments.get(1).ok_or("Could not get segment[1]")?.to_string(),
+                                               segments.get(2..).ok_or("Could not get segments[2..]")?
+                                                   .join("/").to_string().into())),
+            "output" => Ok(RouteType::FlowOutput(segments.get(1).ok_or("Could nopt get segment[1]")?.to_string())),
             "" => bail!("Invalid Route in connection - must be an input, output or sub-process name"),
             process_name => Ok(RouteType::SubProcess(process_name.into(),
-                                                     segments[1..].join("/").into())),
+                                                     segments.get(1..).ok_or("Could not get segments[1..]")?
+                                                         .join("/").to_string().into())),
         }
     }
 

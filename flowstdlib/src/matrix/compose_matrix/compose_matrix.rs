@@ -9,11 +9,12 @@ fn _compose_matrix(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
     let mut new_matrix: Vec<Value> = vec![];
     let mut output_map = serde_json::Map::new();
 
-    let element_to_add = inputs[0].clone();
+    let element_to_add = inputs.first().ok_or("Could not get element")?.clone();
 
-    let element_indexes = inputs[1].as_array().ok_or("Could not get element index array")?;
+    let element_indexes = inputs.get(1).ok_or("Could not get element index")?
+        .as_array().ok_or("Could not get element index array")?;
 
-    let partial = inputs[2].as_array().ok_or("Could not get partial")?;
+    let partial = inputs.get(2).ok_or("Could not get partial")?.as_array().ok_or("Could not get partial")?;
     let mut unwritten_cell_count = 0;
 
     // put element into the first null value we find, and only once
@@ -21,7 +22,9 @@ fn _compose_matrix(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
         let mut new_row: Vec<Value> = vec!();
         let row_array = row.as_array().ok_or("Could not get row")?;
         for (column_index, element) in row_array.iter().enumerate() {
-            if row_index == element_indexes[0] && column_index == element_indexes[1] {
+            let first_element_index = element_indexes.first().ok_or("Could not get index")?;
+            let next_element_index = element_indexes.get(1).ok_or("Could not get index")?;
+            if &row_index == first_element_index && &column_index == next_element_index {
                 // This is the cell we want to write the element into
                 new_row.push(element_to_add.clone());
             } else {

@@ -181,8 +181,9 @@ impl RuntimeFunction {
     }
 
     /// Send a value or array of values to the specified input of this function
-    pub fn send(&mut self, io_number: usize, value: Value) -> bool {
-        self.inputs[io_number].send(value)
+    pub fn send(&mut self, io_number: usize, value: Value) -> Result<()> {
+        let _ = self.inputs.get_mut(io_number).ok_or("Could not get that input")?.send(value);
+        Ok(())
     }
 
     /// Accessor for a `RuntimeFunction` `output_connections` field
@@ -213,8 +214,8 @@ impl RuntimeFunction {
     }
 
     /// Returns the number of values available on [RuntimeFunction]'s [Input] number `input_number`
-    pub fn values_available(&self, input_number: usize) -> usize {
-        self.inputs[input_number].values_available()
+    pub fn values_available(&self, input_number: usize) -> Result<usize> {
+        Ok(self.inputs.get(input_number).ok_or("Could not get that input")?.values_available())
     }
 
     /// Returns how many jobs can be created for this function with the available inputs
@@ -338,7 +339,7 @@ mod test {
     fn can_send_simple_object() {
         let mut function = test_function(0);
         function.init();
-        function.send(0, json!(1));
+        function.send(0, json!(1)).expect("Could not send");
         assert_eq!(
             json!(1),
             function
@@ -353,7 +354,7 @@ mod test {
     fn can_send_array_object() {
         let mut function = test_function(1);
         function.init();
-        function.send(0, json!([1, 2]));
+        function.send(0, json!([1, 2])).expect("Could not send");
         assert_eq!(
             json!([1, 2]),
             function
@@ -368,7 +369,7 @@ mod test {
     fn test_array_to_non_array() {
         let mut function = test_function(0);
         function.init();
-        function.send(0, json!([1, 2]));
+        function.send(0, json!([1, 2])).expect("Could not send");
         assert_eq!(
             function
                 .take_input_set()
@@ -409,7 +410,7 @@ mod test {
     fn debugger_can_inspect_non_full_input() {
         let mut function = test_function(0);
         function.init();
-        function.send(0, json!(1));
+        function.send(0, json!(1)).expect("Could not send");
         assert_eq!(
             function.inputs().len(),
             1,
@@ -449,7 +450,7 @@ mod test {
             false,
         );
         function.init();
-        function.send(0, json!(1));
+        function.send(0, json!(1)).expect("Could not send");
         let _ = format!("{function}");
         assert_eq!(
             &vec!(output_route),
@@ -595,7 +596,7 @@ mod test {
                 test_case.destination_is_generic);
 
                 // Test
-                assert!(function.send(0, test_case.value));
+                function.send(0, test_case.value).expect("Could not send value");
 
                 // Check
                 assert_eq!(

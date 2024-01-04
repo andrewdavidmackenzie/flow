@@ -342,7 +342,8 @@ impl FunctionDefinition {
         // split into parts by '_' and Uppercase the first character of the (ASCII) Struct name
         let words: Vec<String> = original
             .split('_')
-            .map(|w| format!("{}{}", (w[..1].to_string()).to_uppercase(), &w[1..]))
+            .map(|w| format!("{}{}", (w.get(..1).unwrap_or("").to_string())
+                .to_uppercase(), &w.get(1..).unwrap_or("")))
             .collect();
         // recombine
         words.join("")
@@ -526,10 +527,10 @@ mod test {
             toml_from_str(function_str).expect("Couldn't read function from toml");
         function.validate().expect("Function did not validate");
         assert!(!function.outputs.is_empty());
-        let output = &function.outputs[0];
+        let output = &function.outputs.first().expect("Could not get first output");
         assert_eq!(*output.name(), Name::default());
         assert_eq!(output.datatypes().len(), 1);
-        assert_eq!(output.datatypes()[0], DataType::from(STRING_TYPE));
+        assert_eq!(output.datatypes().first(), Some(&DataType::from(STRING_TYPE)));
     }
 
     #[test]
@@ -547,10 +548,10 @@ mod test {
             toml_from_str(function_str).expect("Could not deserialize function from toml");
         function.validate().expect("Function does not validate");
         assert!(!function.outputs.is_empty());
-        let output = &function.outputs[0];
+        let output = &function.outputs.first().expect("Could not get first output");
         assert_eq!(*output.name(), Name::from("sub_output"));
         assert_eq!(output.datatypes().len(), 1);
-        assert_eq!(output.datatypes()[0], DataType::from(STRING_TYPE));
+        assert_eq!(output.datatypes().first(), Some(&DataType::from(STRING_TYPE)));
     }
 
     #[test]
@@ -573,14 +574,14 @@ mod test {
         assert!(!function.outputs.is_empty());
         let outputs = function.outputs;
         assert_eq!(outputs.len(), 2);
-        let output0 = &outputs[0];
+        let output0 = &outputs.first().expect("Could not get first output");
         assert_eq!(*output0.name(), Name::from("sub_output"));
         assert_eq!(output0.datatypes().len(), 1);
-        assert_eq!(output0.datatypes()[0], DataType::from(STRING_TYPE));
-        let output1 = &outputs[1];
+        assert_eq!(output0.datatypes().first(), Some(&DataType::from(STRING_TYPE)));
+        let output1 = &outputs.get(1).expect("Could nopt get output[1]");
         assert_eq!(*output1.name(), Name::from("other_output"));
         assert_eq!(output1.datatypes().len(), 1);
-        assert_eq!(output1.datatypes()[0], DataType::from(NUMBER_TYPE));
+        assert_eq!(output1.datatypes().first(), Some(&DataType::from(NUMBER_TYPE)));
     }
 
     #[test]
@@ -607,10 +608,10 @@ mod test {
 
         assert_eq!(function.route, Route::from("/flow/test_alias"));
 
-        let output0 = &function.outputs[0];
+        let output0 = &function.outputs.first().expect("Could not get first output");
         assert_eq!(*output0.route(), Route::from("/flow/test_alias/sub_output"));
 
-        let output1 = &function.outputs[1];
+        let output1 = &function.outputs.get(1).expect("Could not get output[1]");
         assert_eq!(
             *output1.route(),
             Route::from("/flow/test_alias/other_output")

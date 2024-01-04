@@ -6,9 +6,9 @@ use flowmacro::flow_function;
 
 #[flow_function]
 fn _select(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
-    let i1 = &inputs[0];
-    let i2 = &inputs[1];
-    let control = inputs[2].as_bool().ok_or("Could not get boolean")?;
+    let i1 = inputs.first().ok_or("Could not get i1")?;
+    let i2 = inputs.get(1).ok_or("Could not get i2")?;
+    let control = inputs.get(2).ok_or("Could not get control")?.as_bool().ok_or("Could not get boolean")?;
 
     let mut output_map = serde_json::Map::new();
     if control {

@@ -115,7 +115,7 @@ fn process_refs_to_dot(
                 output.push_str("}\n");
             }
             FunctionProcess(ref function) => {
-                output_compiled_function(function.route(), tables, &mut output);
+                output_compiled_function(function.route(), tables, &mut output)?;
             }
         }
     }
@@ -124,7 +124,7 @@ fn process_refs_to_dot(
 }
 
 // Given a Function as used in the code generation - generate a "dot" format string to draw it
-fn function_to_dot(function: &FunctionDefinition, functions: &[FunctionDefinition]) -> String {
+fn function_to_dot(function: &FunctionDefinition, functions: &[FunctionDefinition]) -> Result<String> {
     let mut function_string = String::new();
 
     // modify path to point to the .html page that's built from .md to document the function
@@ -141,13 +141,14 @@ fn function_to_dot(function: &FunctionDefinition, functions: &[FunctionDefinitio
                      function.get_id()
     ));
 
-    function_string.push_str(&input_initializers_to_dot(function, &format!("r{}", function.get_id())));
+    function_string.push_str(&input_initializers_to_dot(function, &format!("r{}", function.get_id()))?);
 
     // Add edges for each of the outputs of this function to other ones
     for destination in function.get_output_connections() {
-        let input_port = INPUT_PORTS[destination.destination_io_number % INPUT_PORTS.len()];
-        let destination_function = &functions[destination.destination_id];
-        let source_port = output_name_to_port(&destination.source);
+        let input_port = INPUT_PORTS.get(destination.destination_io_number % INPUT_PORTS.len())
+            .ok_or("Could no tget Input Port")?;
+        let destination_function = functions.get(destination.destination_id).ok_or("Could not get function")?;
+        let source_port = output_name_to_port(&destination.source)?;
         let destination_name = destination_function
             .get_inputs()
             .get(destination.destination_io_number)
@@ -165,17 +166,19 @@ fn function_to_dot(function: &FunctionDefinition, functions: &[FunctionDefinitio
         ));
     }
 
-    function_string
+    Ok(function_string)
 }
 
 fn output_compiled_function(
     route: &Route,
     tables: &CompilerTables,
     output: &mut String,
-) {
+) -> Result<()>{
     for function in &tables.functions {
         if function.route() == route {
-            output.push_str(&function_to_dot(function, &tables.functions));
+            output.push_str(&function_to_dot(function, &tables.functions)?);
         }
     }
+
+    Ok(())
 }

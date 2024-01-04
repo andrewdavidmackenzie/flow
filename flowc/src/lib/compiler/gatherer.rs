@@ -342,8 +342,10 @@ mod test {
         tables.connections = vec![only_connection];
         collapse_connections(&mut tables).expect("Could not collapse connections");
         assert_eq!(tables.collapsed_connections.len(), 1);
-        assert_eq!(*tables.collapsed_connections[0].from_io().route(), Route::from("/function1/out"));
-        assert_eq!(*tables.collapsed_connections[0].to_io().route(), Route::from("/function1/in"));
+        assert_eq!(*tables.collapsed_connections.first().expect("Could not get connection").from_io().route(),
+                   Route::from("/function1/out"));
+        assert_eq!(*tables.collapsed_connections.first().expect("Could not get connection").to_io().route(),
+                   Route::from("/function1/in"));
     }
 
     #[test]
@@ -363,8 +365,10 @@ mod test {
         tables.connections = vec![only_connection];
         collapse_connections(&mut tables).expect("Could not collapse connections");
         assert_eq!(tables.collapsed_connections.len(), 1);
-        assert_eq!(*tables.collapsed_connections[0].from_io().route(), Route::from("/function1/out"));
-        assert_eq!(*tables.collapsed_connections[0].to_io().route(), Route::from("/function2/in"));
+        assert_eq!(*tables.collapsed_connections.first().expect("Could not get connection").from_io().route(),
+                   Route::from("/function1/out"));
+        assert_eq!(*tables.collapsed_connections.first().expect("Could not get connection").to_io().route(),
+                   Route::from("/function2/in"));
     }
 
     #[test]
@@ -407,8 +411,10 @@ mod test {
         tables.connections = vec![left_side, extra_one, right_side];
         collapse_connections(&mut tables).expect("Could not collapse connections");
         assert_eq!(tables.collapsed_connections.len(), 1);
-        assert_eq!(*tables.collapsed_connections[0].from_io().route(), Route::from("/function1"));
-        assert_eq!(*tables.collapsed_connections[0].to_io().route(), Route::from("/flow2/function3"));
+        assert_eq!(*tables.collapsed_connections.first().expect("Could not get connection").from_io().route(),
+                   Route::from("/function1"));
+        assert_eq!(*tables.collapsed_connections.first().expect("Could not get connection").to_io().route(),
+                   Route::from("/flow2/function3"));
     }
 
     /*
@@ -454,11 +460,15 @@ mod test {
         collapse_connections(&mut tables).expect("Could not collapse connections");
         assert_eq!(2, tables.collapsed_connections.len());
 
-        assert_eq!(*tables.collapsed_connections[0].from_io().route(), Route::from("/f1"));
-        assert_eq!(*tables.collapsed_connections[0].to_io().route(), Route::from("/f2/value1"));
+        assert_eq!(*tables.collapsed_connections.first().expect("Could not get connection").from_io().route(),
+                   Route::from("/f1"));
+        assert_eq!(*tables.collapsed_connections.first().expect("Could not get connection").to_io().route(),
+                   Route::from("/f2/value1"));
 
-        assert_eq!(*tables.collapsed_connections[1].from_io().route(), Route::from("/f1"));
-        assert_eq!(*tables.collapsed_connections[1].to_io().route(), Route::from("/f2/value2"));
+        assert_eq!(*tables.collapsed_connections.get(1).expect("Could not get connection").from_io().route(),
+                   Route::from("/f1"));
+        assert_eq!(*tables.collapsed_connections.get(1).expect("Could not get connection").to_io().route(),
+                   Route::from("/f2/value2"));
     }
 
     #[test]
@@ -502,8 +512,10 @@ mod test {
         collapse_connections(&mut tables).expect("Could not collapse connections");
         assert_eq!(1, tables.collapsed_connections.len());
 
-        assert_eq!(*tables.collapsed_connections[0].from_io().route(), Route::from("/function1/out"));
-        assert_eq!(*tables.collapsed_connections[0].to_io().route(), Route::from("/flow1/flow2/func/in"));
+        assert_eq!(*tables.collapsed_connections.first().expect("Could not get connection").from_io().route(),
+                   Route::from("/function1/out"));
+        assert_eq!(*tables.collapsed_connections.first().expect("Could not get connection").to_io().route(),
+                   Route::from("/flow1/flow2/func/in"));
     }
 
     #[test]

@@ -99,10 +99,10 @@ impl CliDebugClient {
         }
 
         let parts: Vec<String> = input.split(' ').map(|s| s.to_string()).collect();
-        let command = parts[0].to_string();
+        let command = parts.first().ok_or("Could not get first part")?.to_string();
 
         if !parts.is_empty() {
-            return Ok((input, command, Some(parts[1..].to_vec())));
+            return Ok((input, command, Some(parts.get(1..).ok_or("Could not get parts")?.to_vec())));
         };
 
         Ok((input, command, None))
@@ -111,7 +111,7 @@ impl CliDebugClient {
     fn parse_optional_int(params: Option<Vec<String>>) -> Option<usize> {
         if let Some(param) = params {
             if !param.is_empty() {
-                if let Ok(integer) = param[1].parse::<usize>() {
+                if let Ok(integer) = param.get(1)?.parse::<usize>() {
                     return Some(integer);
                 }
             }
@@ -123,37 +123,38 @@ impl CliDebugClient {
     fn parse_breakpoint_spec(specs: Option<Vec<String>>) -> Option<BreakpointSpec> {
         if let Some(spec) = specs {
             if !spec.is_empty() {
-                if spec[0] == "*" {
+                if spec.first()? == "*" {
                     return Some(BreakpointSpec::All);
                 }
 
-                if let Ok(integer) = spec[0].parse::<usize>() {
+                if let Ok(integer) = spec.first()?.parse::<usize>() {
                     return Some(BreakpointSpec::Numeric(integer));
                 }
 
-                if spec[0].contains('/') {
+                if spec.first()?.contains('/') {
                     // is an output specified
-                    let sub_parts: Vec<&str> = spec[0].split('/').collect();
-                    if let Ok(source_process_id) = sub_parts[0].parse::<usize>() {
+                    let sub_parts: Vec<&str> = spec.first()?.split('/').collect();
+                    if let Ok(source_process_id) = sub_parts.first()?.parse::<usize>() {
                         return Some(BreakpointSpec::Output((
                                 source_process_id,
-                                format!("/{}", sub_parts[1]),
+                                format!("/{}", sub_parts.get(1)?),
                             )));
                     }
-                } else if spec[0].contains(':') {
+                } else if spec.first()?.contains(':') {
                     // is an input specifier
-                    let sub_parts: Vec<&str> = spec[0].split(':').collect();
-                    if let (Ok(destination_function_id), Ok(destination_input_number)) = (sub_parts[0].parse::<usize>(), sub_parts[1].parse::<usize>()) {
+                    let sub_parts: Vec<&str> = spec.first()?.split(':').collect();
+                    if let (Ok(destination_function_id), Ok(destination_input_number)) = (sub_parts.first()?.parse::<usize>(),
+                                                                                          sub_parts.get(1)?.parse::<usize>()) {
                         return Some(BreakpointSpec::Input((
                                 destination_function_id,
                                 destination_input_number,
                             )));
                     }
-                } else if spec[0].contains("->") {
+                } else if spec.first()?.contains("->") {
                     // is a block specifier
-                    let sub_parts: Vec<&str> = spec[0].split("->").collect();
-                    let source = sub_parts[0].parse::<usize>().ok();
-                    let destination = sub_parts[1].parse::<usize>().ok();
+                    let sub_parts: Vec<&str> = spec.first()?.split("->").collect();
+                    let source = sub_parts.first()?.parse::<usize>().ok();
+                    let destination = sub_parts.get(1)?.parse::<usize>().ok();
                     return Some(BreakpointSpec::Block((source, destination)));
                 }
             }

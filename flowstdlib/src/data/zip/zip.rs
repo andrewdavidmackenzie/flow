@@ -7,8 +7,8 @@ use flowmacro::flow_function;
 
 #[flow_function]
 fn _zip(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
-    let left = &inputs[0].as_array().ok_or("Could not get left array")?;
-    let right = &inputs[1].as_array().ok_or("Could not get right array")?;
+    let left = inputs.first().ok_or("Could not get left")?.as_array().ok_or("Could not get left array")?;
+    let right = inputs.get(1).ok_or("Could not get right")?.as_array().ok_or("Could not get right array")?;
     let tuples = left.iter().zip(right.iter());
     let tuples_vec: Vec<(&Value, &Value)> = tuples.collect();
     Ok((Some(json!(tuples_vec)), RUN_AGAIN))

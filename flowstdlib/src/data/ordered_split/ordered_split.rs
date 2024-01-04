@@ -6,11 +6,11 @@ use flowmacro::flow_function;
 
 #[flow_function]
 fn _ordered_split(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
-    if inputs[0].is_null() {
+    if inputs.first().ok_or("Could not get first")?.is_null() {
         Ok((Some(Value::Null), RUN_AGAIN))
     } else {
-        let string = inputs[0].as_str().ok_or("Could not get string")?;
-        let separator = inputs[1].as_str().ok_or("Could not get separator")?;
+        let string = inputs.first().ok_or("Could not get first")?.as_str().ok_or("Could not get string")?;
+        let separator = inputs.get(1).ok_or("Could not get separator")?.as_str().ok_or("Could not get separator")?;
         let parts: Vec<&str> = string.split(separator).collect::<Vec<&str>>();
         Ok((Some(json!(parts)), RUN_AGAIN))
     }

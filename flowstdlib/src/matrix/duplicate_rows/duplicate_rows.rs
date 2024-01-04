@@ -10,8 +10,8 @@ fn _duplicate_rows(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
     let mut row_indexes = vec![];
     let mut output_map = serde_json::Map::new();
 
-    let matrix = inputs[0].as_array().ok_or("Could not get matrix")?;
-    let factor = inputs[1].as_i64().ok_or("Could not get factor")?;
+    let matrix = inputs.first().ok_or("Could not get matrix")?.as_array().ok_or("Could not get matrix")?;
+    let factor = inputs.get(1).ok_or("Could not get factor")?.as_i64().ok_or("Could not get factor")?;
 
     for (row_index, row) in matrix.iter().enumerate() {
         for _i in 0..factor {
@@ -45,17 +45,17 @@ mod test {
 
         let new_matrix = output.pointer("/matrix").expect("Could not get 'matrix' output");
 
-        assert_eq!(new_matrix[0], json!([1, 2]));
-        assert_eq!(new_matrix[1], json!([1, 2]));
-        assert_eq!(new_matrix[2], json!([3, 4]));
-        assert_eq!(new_matrix[3], json!([3, 4]));
+        assert_eq!(new_matrix.get(0).expect("Could not get [0]"), &json!([1, 2]));
+        assert_eq!(new_matrix.get(1).expect("Could not get [1]"), &json!([1, 2]));
+        assert_eq!(new_matrix.get(2).expect("Could not get [2]"), &json!([3, 4]));
+        assert_eq!(new_matrix.get(3).expect("Could not get [3]"), &json!([3, 4]));
 
         let row_indexes = output.pointer("/row_indexes")
             .expect("Could not get 'row_indexes' output");
-        assert_eq!(row_indexes[0], json!(0));
-        assert_eq!(row_indexes[1], json!(0));
-        assert_eq!(row_indexes[2], json!(1));
-        assert_eq!(row_indexes[3], json!(1));
+        assert_eq!(row_indexes.get(0).expect("Could not get [0]"), &json!(0));
+        assert_eq!(row_indexes.get(1).expect("Could not get [1]"), &json!(0));
+        assert_eq!(row_indexes.get(2).expect("Could not get [2]"), &json!(1));
+        assert_eq!(row_indexes.get(3).expect("Could not get [3]"), &json!(1));
     }
 
     #[test]
@@ -71,11 +71,11 @@ mod test {
 
         let new_matrix = output.pointer("/matrix").expect("Could not get 'matrix' output");
 
-        assert_eq!(new_matrix[0], json!([1, 2]));
-        assert_eq!(new_matrix[1], json!([1, 2]));
-        assert_eq!(new_matrix[2], json!([1, 2]));
-        assert_eq!(new_matrix[3], json!([3, 4]));
-        assert_eq!(new_matrix[4], json!([3, 4]));
-        assert_eq!(new_matrix[5], json!([3, 4]));
+        assert_eq!(new_matrix.get(0).expect("Could not get [0]"), &json!([1, 2]));
+        assert_eq!(new_matrix.get(1).expect("Could not get [1]"), &json!([1, 2]));
+        assert_eq!(new_matrix.get(2).expect("Could not get [2]"), &json!([1, 2]));
+        assert_eq!(new_matrix.get(3).expect("Could not get [3]"), &json!([3, 4]));
+        assert_eq!(new_matrix.get(4).expect("Could not get [4]"), &json!([3, 4]));
+        assert_eq!(new_matrix.get(5).expect("Could not get [5]"), &json!([3, 4]));
     }
 }

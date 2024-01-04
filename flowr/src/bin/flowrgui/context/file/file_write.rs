@@ -16,8 +16,8 @@ pub struct FileWrite {
 
 impl Implementation for FileWrite {
     fn run(&self, inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
-        let filename = &inputs[0];
-        let bytes = &inputs[1];
+        let filename = inputs.first().ok_or("Could not get filename")?;
+        let bytes = inputs.get(1).ok_or("Could not get filename")?;
 
         let mut server = self.server_connection.lock()
             .map_err(|_| "Could not lock server")?;

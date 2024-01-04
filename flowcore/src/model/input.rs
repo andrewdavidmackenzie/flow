@@ -77,14 +77,18 @@ fn is_not_generic(generic: &bool) -> bool {
     !*generic
 }
 
-impl From<&IO> for Input {
-    fn from(io: &IO) -> Self {
-        Input::new(
+impl TryFrom<&IO> for Input {
+    type Error = String;
+
+    fn try_from(io: &IO) -> Result<Self, Self::Error> {
+        let data_type = io.datatypes().first().ok_or("Could not get datatype")?;
+
+        Ok(Input::new(
             #[cfg(feature = "debugger")] io.name(),
-            io.datatypes()[0].type_array_order(),
-            io.datatypes()[0].is_generic(),
+            data_type.type_array_order(),
+            data_type.is_generic(),
             io.get_initializer().clone(),
-            io.get_flow_initializer().clone())
+            io.get_flow_initializer().clone()))
     }
 }
 

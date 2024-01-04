@@ -6,11 +6,11 @@ use flowmacro::flow_function;
 
 #[flow_function]
 fn _duplicate(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
-    let value = &inputs[0];
+    let value = inputs.first().ok_or("Could not get value")?;
 
     let mut output_array = vec![];
 
-    let factor = inputs[1].as_i64().ok_or("Could not get factor")?;
+    let factor = inputs.get(1).ok_or("Could not get factor")?.as_i64().ok_or("Could not get factor")?;
     for _i in 0..factor {
         output_array.push(value.clone());
     }

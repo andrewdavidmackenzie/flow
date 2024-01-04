@@ -8,8 +8,8 @@ use flowmacro::flow_function;
 fn _divide(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
     let mut output_map = serde_json::Map::new();
 
-    let dividend = inputs[0].as_f64().ok_or("Could not get dividend")?;
-    let divisor = inputs[1].as_f64().ok_or("Could not get divisor")?;
+    let dividend = inputs.first().ok_or("Could not get dividend")?.as_f64().ok_or("Could not get dividend")?;
+    let divisor = inputs.get(1).ok_or("Could not get divisor")?.as_f64().ok_or("Could not get divisor")?;
     output_map.insert("result".into(), json!(dividend / divisor));
     output_map.insert("remainder".into(), json!(dividend % divisor));
 

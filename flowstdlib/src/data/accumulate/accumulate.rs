@@ -6,15 +6,15 @@ use flowmacro::flow_function;
 
 #[flow_function]
 fn _accumulate(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
-    let value = inputs[0].clone(); // input value to accumulate in array
+    let value = inputs.first().ok_or("Could not get value")?.clone(); // input value to accumulate in array
     let mut output_map = serde_json::Map::new();
 
     if value.is_null() {
         output_map.insert("chunk".into(), Value::Null);
     } else {
-        let mut partial_input = inputs[1].clone(); // A partial array to append the values to
+        let mut partial_input = inputs.get(1).ok_or("Could not get partial_input")?.clone(); // A partial array to append the values to
                                                    // how many elements desired in the output array
-        let chunk_size = inputs[2].as_u64().ok_or("Could not get chunk_size")?;
+        let chunk_size = inputs.get(2).ok_or("Could not get chunk_size")?.as_u64().ok_or("Could not get chunk_size")?;
 
         let partial = partial_input.as_array_mut().ok_or("Could not get partial")?;
         partial.push(value);
