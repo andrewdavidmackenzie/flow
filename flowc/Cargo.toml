@@ -49,4 +49,4 @@ toml = { version = "0.8.2" }
 flowcore = {path = "../flowcore", version = "0.142.0", features = ["context"]}
 tempdir = "~0.3.5"
 simpath = { version = "~2.5", features = ["urls"]}
-serial_test = "2.0.0"
+serial_test = "3.0.0"
