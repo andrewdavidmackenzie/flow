@@ -1320,7 +1320,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4271d37baee1b8c7e4b708028c57d816cf9d2434acb33a549475f78c181f6253"
 dependencies = [
  "fallible-iterator",
- "indexmap 2.1.0",
+ "indexmap 2.2.1",
  "stable_deref_trait",
 ]
 
@@ -1777,9 +1777,9 @@ dependencies = [
 
 [[package]]
 name = "indexmap"
-version = "2.1.0"
+version = "2.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d530e1a18b1cb4c484e6e34556a0d948706958449fca0cab753d649f2bce3d1f"
+checksum = "433de089bd45971eecf4668ee0ee8f4cec17db4f8bd8f7bc3197a6ce37aa7d9b"
 dependencies = [
  "equivalent",
  "hashbrown 0.14.3",
@@ -2487,7 +2487,7 @@ checksum = "9cf5f9dd3933bd50a9e1f149ec995f39ae2c496d31fd772c1fd45ebc27e902b0"
 dependencies = [
  "crc32fast",
  "hashbrown 0.14.3",
- "indexmap 2.1.0",
+ "indexmap 2.2.1",
  "memchr",
 ]
 
@@ -3178,11 +3178,11 @@ dependencies = [
 
 [[package]]
 name = "serde_yaml"
-version = "0.9.30"
+version = "0.9.31"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b1bf28c79a99f70ee1f1d83d10c875d2e70618417fda01ad1785e027579d9d38"
+checksum = "adf8a49373e98a4c5f0ceb5d05aa7c648d75f63774981ed95b7c7443bbd50c6e"
 dependencies = [
- "indexmap 2.1.0",
+ "indexmap 2.2.1",
  "itoa",
  "ryu",
  "serde",
@@ -3638,7 +3638,7 @@ version = "0.19.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1b5bb770da30e5cbfde35a2d7b9b8a2c4b8ef89548a7a6aeab5c9a576e3e7421"
 dependencies = [
- "indexmap 2.1.0",
+ "indexmap 2.2.1",
  "toml_datetime",
  "winnow",
 ]
@@ -3649,7 +3649,7 @@ version = "0.21.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d34d383cd00a163b4a5b85053df514d45bc330f6de7737edfe0a93311d1eaa03"
 dependencies = [
- "indexmap 2.1.0",
+ "indexmap 2.2.1",
  "serde",
  "serde_spanned",
  "toml_datetime",
@@ -3909,7 +3909,7 @@ version = "0.118.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "95ee9723b928e735d53000dec9eae7b07a60e490c85ab54abb66659fc61bfcd9"
 dependencies = [
- "indexmap 2.1.0",
+ "indexmap 2.2.1",
  "semver",
 ]
 
@@ -3923,7 +3923,7 @@ dependencies = [
  "bincode",
  "bumpalo",
  "cfg-if",
- "indexmap 2.1.0",
+ "indexmap 2.2.1",
  "libc",
  "log",
  "object",
@@ -4000,7 +4000,7 @@ dependencies = [
  "anyhow",
  "cranelift-entity",
  "gimli",
- "indexmap 2.1.0",
+ "indexmap 2.2.1",
  "log",
  "object",
  "serde",
@@ -4053,7 +4053,7 @@ dependencies = [
  "anyhow",
  "cc",
  "cfg-if",
- "indexmap 2.1.0",
+ "indexmap 2.2.1",
  "libc",
  "log",
  "mach",
