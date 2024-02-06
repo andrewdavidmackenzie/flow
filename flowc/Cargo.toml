@@ -43,7 +43,7 @@ error-chain = "0.12.2"
 serde_derive = "~1.0.27"
 serde = "~1.0.196"
 colored = "2"
-toml = { version = "0.8.9" }
+toml = { version = "0.8.10" }
 
 [dev-dependencies]
 flowcore = {path = "../flowcore", version = "0.142.0", features = ["context"]}
