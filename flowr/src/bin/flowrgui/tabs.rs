@@ -91,8 +91,6 @@ impl TabSet {
 pub trait Tab {
     type Message;
 
-    fn title(&self) -> String;
-
     fn tab_label(&self) -> TabLabel;
 
     fn view(&self) -> Element<'_, Self::Message>;
@@ -109,10 +107,6 @@ pub(crate) struct StdOutTab {
 
 impl Tab for StdOutTab {
     type Message = Message;
-
-    fn title(&self) -> String {
-        String::from(&self.name)
-    }
 
     fn tab_label(&self) -> TabLabel {
         TabLabel::Text(self.name.to_string())
@@ -167,10 +161,6 @@ impl ImageTab {
 
 impl Tab for ImageTab {
     type Message = Message;
-
-    fn title(&self) -> String {
-        String::from(&self.name)
-    }
 
     fn tab_label(&self) -> TabLabel {
         TabLabel::Text(self.name.to_string())
@@ -257,10 +247,6 @@ impl StdInTab {
 
 impl Tab for StdInTab {
     type Message = Message;
-
-    fn title(&self) -> String {
-        String::from(&self.name)
-    }
 
     fn tab_label(&self) -> TabLabel {
         TabLabel::Text(self.name.to_string())
