@@ -397,8 +397,7 @@ mod test {
     use flowcore::model::runtime_function::RuntimeFunction;
     use flowcore::model::submission::Submission;
     use flowrlib::run_state::RunState;
-
-    use super::*;
+    use crate::cli::cli_debug_client::CliDebugClient;
 
     fn test_function_b_init() -> RuntimeFunction {
         RuntimeFunction::new(
