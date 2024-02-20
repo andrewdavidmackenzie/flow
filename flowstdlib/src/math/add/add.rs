@@ -1,6 +1,5 @@
 use serde_json::{json, Value};
 use serde_json::Value::Number;
-
 use flowcore::{RUN_AGAIN, RunAgain};
 use flowcore::errors::*;
 use flowmacro::flow_function;
@@ -34,9 +33,6 @@ fn _add(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
     };
 
     if let Some(total) = sum {
-//        let mut output_map = serde_json::Map::new();
-//        output_map.insert("".into(), total);
-//        (Some(Value::Object(output_map)), RUN_AGAIN)
         Ok((Some(json!(total)), RUN_AGAIN))
     } else {
         Ok((None, RUN_AGAIN))
