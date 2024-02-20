@@ -61,8 +61,8 @@ impl WasmExecutor {
         let params = [Val::I32(offset), Val::I32(length)];
         self.implementation
             .call(store, &params, &mut results)
-            .map_err(|_| format!("Error returned by WASM implementation.call() for {:?}",
-            self.source_url))?;
+            .map_err(|e| format!("Error returned by WASM implementation.call() for {:?} => '{}'",
+            self.source_url, e))?;
 
         match results[0] {
             Val::I32(result_length) => {
@@ -119,7 +119,7 @@ pub fn load(provider: &dyn Provider, source_url: &Url) -> Result<WasmExecutor> {
     })?;
 
     let mut store: Store<()> = Store::default();
-    let module = Module::new(store.engine(), content)
+    let module = Module::from_binary(store.engine(), &content)
         .map_err(|e| format!("Could not create WASM Module: {e}"))?;
     let instance = Instance::new(&mut store, &module, &[])
         .map_err(|e| format!("Could not create WASM Instance: {e}"))?;
