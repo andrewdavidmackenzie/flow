@@ -78,6 +78,7 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update && sudo apt-get -y install libzmq3-dev binaryen lcov
+          which wasm-opt
           wasm-opt --version
 
       - name: InstallMacDependencies
