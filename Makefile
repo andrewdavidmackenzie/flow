@@ -54,6 +54,11 @@ else ifneq ($(APTGET),)
 	@sudo apt-get install perl
 	@sudo apt-get -y install libcurl4-openssl-dev libelf-dev libdw-dev libssl-dev binutils-dev || true
 	@sudo apt-get -y install libzmq3-dev graphviz binaryen lcov || true
+	@wget https://github.com/WebAssembly/binaryen/releases/download/version_116/binaryen-version_116-x86_64-linux.tar.gz
+	@tar -xvzf binaryen-version_116-x86_64-linux.tar.gz
+	@sudo cp binaryen-version_116/bin/* /bin/
+	@rm -rf binaryen-version_116
+	@rm binaryen-version_116-x86_64-linux.tar.gz
 else ifneq ($(BREW),)
 	@echo "Installing dependencies using $(BREW)"
 	@brew install --quiet zmq graphviz binaryen lcov

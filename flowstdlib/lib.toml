@@ -52,3 +52,9 @@ edition = "2021"
 flowcore = {path = "../../flowcore", version = "0"}
 flowmacro = {path = "../../flowmacro", version = "0"}
 serde_json = { version = "1.0", default-features = false }
+
+[profile.release]
+opt-level = "s"
+lto = true
+codegen-units = 1
+strip = true
