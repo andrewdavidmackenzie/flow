@@ -78,6 +78,11 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update && sudo apt-get -y install libzmq3-dev binaryen lcov
+          wget https://github.com/WebAssembly/binaryen/releases/download/version_116/binaryen-version_116-x86_64-linux.tar.gz
+          tar -xvzf binaryen-version_116-x86_64-linux.tar.gz
+          sudo cp binaryen-version_116/bin/* /bin/
+          rm -rf binaryen-version_116
+          rm binaryen-version_116-x86_64-linux.tar.gz
           which wasm-opt
           wasm-opt --version
 
