@@ -118,8 +118,7 @@ impl Tab for StdOutTab {
                 .iter()
                 .cloned()
                 .map(text)
-                .map(Element::from)
-                .collect(),
+                .map(Element::from),
         )
             .width(Length::Fill)
             .padding(1);
@@ -258,8 +257,7 @@ impl Tab for StdInTab {
                 .iter()
                 .cloned()
                 .map(text)
-                .map(Element::from)
-                .collect(),
+                .map(Element::from),
         )
             .width(Length::Fill)
             .padding(1);
