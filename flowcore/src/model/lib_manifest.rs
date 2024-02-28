@@ -345,8 +345,7 @@ mod test {
         assert_eq!(lib_manifest.locators.len(), 1);
         assert!(lib_manifest
             .locators
-            .get(&Url::parse("lib://flowrlib/test-dyn-lib/add2").expect("Create Url error"))
-            .is_some());
+            .contains_key(&Url::parse("lib://flowrlib/test-dyn-lib/add2").expect("Create Url error")));
         let locator = lib_manifest
             .locators
             .get(&Url::parse("lib://flowrlib/test-dyn-lib/add2").expect("Create Url error"))
