@@ -2,7 +2,7 @@
 use std::collections::BTreeMap;
 
 use serde_json::json;
-use tempdir::TempDir;
+use tempfile::tempdir;
 #[cfg(feature = "debugger")]
 use url::Url;
 
@@ -44,7 +44,7 @@ fn object_to_array_connection() {
     let process = parser::parse(&path, &meta_provider)
         .expect("Could not parse test flow");
     if let FlowProcess(ref flow) = process {
-        let output_dir = TempDir::new("flow-test").expect("A temp dir").into_path();
+        let output_dir = tempdir().expect("A temp dir").into_path();
 
         #[cfg(feature = "debugger")]
         let mut source_urls = BTreeMap::<String, Url>::new();
@@ -67,7 +67,7 @@ fn context_with_io() {
     let process = parser::parse(&path, &meta_provider)
         .expect("Could not parse test flow");
     if let FlowProcess(ref flow) = process {
-        let output_dir = TempDir::new("flow-test").expect("A temp dir").into_path();
+        let output_dir = tempdir().expect("A temp dir").into_path();
 
         #[cfg(feature = "debugger")]
             let mut source_urls = BTreeMap::<String, Url>::new();
@@ -93,7 +93,7 @@ fn same_name_input_and_output() {
     let process = parser::parse(&path, &meta_provider)
         .expect("Could not parse test flow");
     if let FlowProcess(ref flow) = process {
-        let output_dir = TempDir::new("flow-test").expect("A temp dir").into_path();
+        let output_dir = tempdir().expect("A temp dir").into_path();
 
         #[cfg(feature = "debugger")]
             let mut source_urls = BTreeMap::<String, Url>::new();
@@ -118,7 +118,7 @@ fn same_name_flow_ids() {
     let process = parser::parse(&path, &meta_provider)
         .expect("Could not parse test flow");
     if let FlowProcess(ref flow) = process {
-        let output_dir = TempDir::new("flow-test").expect("A temp dir").into_path();
+        let output_dir = tempdir().expect("A temp dir").into_path();
 
         #[cfg(feature = "debugger")]
             let mut source_urls = BTreeMap::<String, Url>::new();
@@ -153,7 +153,7 @@ fn connection_to_input_with_constant_initializer() {
     let process = parser::parse(&path, &meta_provider)
         .expect("Could not parse test flow");
     if let FlowProcess(ref flow) = process {
-        let output_dir = TempDir::new("flow-test").expect("A temp dir").into_path();
+        let output_dir = tempdir().expect("A temp dir").into_path();
 
         #[cfg(feature = "debugger")]
             let mut source_urls = BTreeMap::<String, Url>::new();
@@ -176,7 +176,7 @@ fn args() {
     let process = parser::parse(&path, &meta_provider)
         .expect("Could not parse test flow");
     if let FlowProcess(ref flow) = process {
-        let output_dir = TempDir::new("flow-test").expect("A temp dir").into_path();
+        let output_dir = tempdir().expect("A temp dir").into_path();
 
         #[cfg(feature = "debugger")]
             let mut source_urls = BTreeMap::<String, Url>::new();
@@ -198,7 +198,7 @@ fn no_side_effects() {
         .expect("Could not parse test flow");
     match process {
         FlowProcess(ref flow) => {
-            let output_dir = TempDir::new("flow-test").expect("A temp dir").into_path();
+            let output_dir = tempdir().expect("A temp dir").into_path();
 
             #[cfg(feature = "debugger")]
                 let mut source_urls = BTreeMap::<String, Url>::new();
@@ -222,7 +222,7 @@ fn compile_echo_ok() {
         &helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/echo/root.toml"),
         &meta_provider).expect("Could not parse test flow");
     if let FlowProcess(ref flow) = process {
-        let output_dir = TempDir::new("flow-test").expect("A temp dir").into_path();
+        let output_dir = tempdir().expect("A temp dir").into_path();
 
         #[cfg(feature = "debugger")]
             let mut source_urls = BTreeMap::<String, Url>::new();
@@ -245,7 +245,7 @@ fn compiler_detects_unused_input() {
         ),
         &meta_provider).expect("Could not parse test flow");
     if let FlowProcess(ref flow) = process {
-        let output_dir = TempDir::new("flow-test").expect("A temp dir").into_path();
+        let output_dir = tempdir().expect("A temp dir").into_path();
 
         #[cfg(feature = "debugger")]
             let mut source_urls = BTreeMap::<String, Url>::new();
@@ -276,7 +276,7 @@ fn flow_input_propagated_back_out() {
 
     match parser::parse(&url, &meta_provider) {
         Ok(FlowProcess(context)) => {
-            let output_dir = TempDir::new("flow-test").expect("A temp dir").into_path();
+            let output_dir = tempdir().expect("A temp dir").into_path();
 
             #[cfg(feature = "debugger")]
                 let mut source_urls = BTreeMap::<String, Url>::new();
@@ -308,7 +308,7 @@ fn initialized_output_propagated() {
 
     match parser::parse(&url, &meta_provider) {
         Ok(FlowProcess(context)) => {
-            let output_dir = TempDir::new("flow-test").expect("A temp dir").into_path();
+            let output_dir = tempdir().expect("A temp dir").into_path();
 
             #[cfg(feature = "debugger")]
                 let mut source_urls = BTreeMap::<String, Url>::new();
@@ -361,7 +361,7 @@ fn initialized_input_to_subflow() {
 
     match parser::parse(&url, &meta_provider) {
         Ok(FlowProcess(root)) => {
-            let output_dir = TempDir::new("flow-test").expect("A temp dir").into_path();
+            let output_dir = tempdir().expect("A temp dir").into_path();
 
             #[cfg(feature = "debugger")]
                 let mut source_urls = BTreeMap::<String, Url>::new();
@@ -410,7 +410,7 @@ fn json_indexing() {
     let process = parser::parse(&path, &meta_provider)
         .expect("Could not parse flow");
     if let FlowProcess(ref flow) = process {
-        let output_dir = TempDir::new("flow-test").expect("A temp dir").into_path();
+        let output_dir = tempdir().expect("A temp dir").into_path();
 
         #[cfg(feature = "debugger")]
             let mut source_urls = BTreeMap::<String, Url>::new();

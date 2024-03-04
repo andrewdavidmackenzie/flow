@@ -7,7 +7,7 @@ use std::process::Stdio;
 
 use log::{debug, info, warn};
 use simpath::{FileType, FoundType, Simpath};
-use tempdir::TempDir;
+use tempfile::tempdir;
 #[cfg(feature = "debugger")]
 use url::Url;
 
@@ -99,12 +99,7 @@ fn run_optional_command(wasm_path: &Path, command: &str, args: Vec<&str>) -> Res
     if let Ok(FoundType::File(command_path)) =
         Simpath::new("PATH").find_type(command, FileType::File)
     {
-        let tmp_dir = TempDir::new_in(
-            wasm_path
-                .parent()
-                .ok_or("Could not get destination directory to create TempDir in")?,
-            "wasm-opt",
-        )?;
+        let tmp_dir = tempdir()?;
         let temp_file_path = tmp_dir
             .path()
             .join(wasm_path.file_name().ok_or("Could not get wasm filename")?);

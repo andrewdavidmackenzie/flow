@@ -1,7 +1,7 @@
 use std::{env, fs};
 use std::path::{Path, PathBuf};
 
-use tempdir::TempDir;
+use tempfile::tempdir;
 use url::Url;
 
 use crate::errors::*;
@@ -48,8 +48,7 @@ fn default_flow_compile_dir(source_url: &Url) -> Result<PathBuf> {
         }
         // If not from a file, then create a dir with flow name under a temp dir
         _ => {
-            let dir =
-                TempDir::new("flow").chain_err(|| "Error creating new TempDir".to_string())?;
+            let dir = tempdir().chain_err(|| "Error creating new TempDir".to_string())?;
             output_dir = dir.into_path();
         }
     }
