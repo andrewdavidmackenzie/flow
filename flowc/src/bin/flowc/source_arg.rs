@@ -48,7 +48,7 @@ fn default_flow_compile_dir(source_url: &Url) -> Result<PathBuf> {
         }
         // If not from a file, then create a dir with flow name under a temp dir
         _ => {
-            let dir = tempdir().chain_err(|| "Error creating new TempDir".to_string())?;
+            let dir = tempdir().chain_err(|| "Error creating new tempdir".to_string())?;
             output_dir = dir.into_path();
         }
     }
@@ -88,7 +88,7 @@ mod test {
     use std::fs;
     use std::io::Write;
 
-    use tempdir::TempDir;
+    use tempfile::tempdir;
     use url::Url;
 
     use crate::source_arg::CompileType;
@@ -109,8 +109,8 @@ mod test {
     fn http_with_output_dir_arg() {
         let url = &Url::parse("http://test.com/dir/file.flow").expect("Could not parse test url");
 
-        let temp_dir = TempDir::new("flow")
-            .expect("Could not create TempDir for test")
+        let temp_dir = tempdir()
+            .expect("Could not create temporary directory for test")
             .into_path();
         let out_dir_arg = temp_dir
             .to_str()
@@ -128,8 +128,8 @@ mod test {
 
     #[test]
     fn file_url_no_output_dir_arg() {
-        let temp_dir = TempDir::new("flow")
-            .expect("Could not create TempDir for test")
+        let temp_dir =tempdir()
+            .expect("Could not create temporary directory for test")
             .into_path();
         let flow_dir = temp_dir
             .to_str()
@@ -155,8 +155,8 @@ mod test {
     #[test]
     fn file_url_output_dir_arg() {
         // FLow url
-        let temp_dir = TempDir::new("flow")
-            .expect("Could not create TempDir for test")
+        let temp_dir = tempdir()
+            .expect("Could not create temporary directory for test")
             .into_path();
         let flow_dir = temp_dir
             .to_str()
@@ -166,8 +166,8 @@ mod test {
         let url = Url::parse(&format!("file:/{flow_path}")).expect("Could not parse test Url");
 
         // Output dir arg
-        let temp_dir = TempDir::new("flow")
-            .expect("Could not create TempDir for test")
+        let temp_dir = tempdir()
+            .expect("Could not create temporary directory for test")
             .into_path();
         let out_dir_arg = temp_dir
             .to_str()

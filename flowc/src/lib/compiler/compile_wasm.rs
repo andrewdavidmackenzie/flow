@@ -175,7 +175,7 @@ mod test {
     use std::path::Path;
     use std::time::Duration;
 
-    use tempdir::TempDir;
+    use tempfile::tempdir;
     use url::Url;
 
     use flowcore::model::datatype::STRING_TYPE;
@@ -196,7 +196,7 @@ mod test {
 
     #[test]
     fn test_run_optional_exists() {
-        let temp_dir = TempDir::new("flow-tests").expect("Could not get temp dir");
+        let temp_dir = tempdir().expect("Could not get temp dir");
         let temp_file_path = temp_dir.path().join("from.test");
         File::create(&temp_file_path).expect("Could not create test file");
         let _ = run_optional_command(temp_file_path.as_path(), "cp", vec![]);
@@ -205,7 +205,7 @@ mod test {
 
     #[test]
     fn test_run_optional_exists_fail() {
-        let temp_dir = TempDir::new("flow-tests").expect("Could not get temp dir");
+        let temp_dir = tempdir().expect("Could not get temp dir");
         let temp_file_path = temp_dir.path().join("from.test");
         File::create(&temp_file_path).expect("Could not create test file");
         let _ = run_optional_command(
@@ -218,8 +218,8 @@ mod test {
 
     #[test]
     fn out_of_date_test() {
-        let output_dir = TempDir::new("flow")
-            .expect("Could not create TempDir during testing")
+        let output_dir = tempdir()
+            .expect("Could not create temporary directory during testing")
             .into_path();
 
         // make older file
@@ -241,8 +241,8 @@ mod test {
 
     #[test]
     fn not_out_of_date_test() {
-        let output_dir = TempDir::new("flow")
-            .expect("Could not create TempDir during testing")
+        let output_dir = tempdir()
+            .expect("Could not create temporary directory during testing")
             .into_path();
 
         // make older file
@@ -262,8 +262,8 @@ mod test {
 
     #[test]
     fn out_of_date_missing_test() {
-        let output_dir = TempDir::new("flow")
-            .expect("Could not create TempDir during testing")
+        let output_dir = tempdir()
+            .expect("Could not create temporary directory during testing")
             .into_path();
 
         // make older file
@@ -319,8 +319,8 @@ mod test {
     fn test_compile_implementation_skip_missing() {
         let mut function = test_function();
 
-        let wasm_output_dir = TempDir::new("flow")
-            .expect("Could not create TempDir during testing")
+        let wasm_output_dir = tempdir()
+            .expect("Could not create temporary directory during testing")
             .into_path();
         let expected_output_wasm = wasm_output_dir.join("test.wasm");
         let _ = remove_file(&expected_output_wasm);
@@ -356,8 +356,8 @@ mod test {
     fn test_compile_implementation_not_needed() {
         let mut function = test_function();
 
-        let wasm_output_dir = TempDir::new("flow")
-            .expect("Could not create TempDir during testing")
+        let wasm_output_dir = tempdir()
+            .expect("Could not create temporary directory during testing")
             .into_path();
         let expected_output_wasm = wasm_output_dir.join("test.wasm");
 
@@ -396,8 +396,8 @@ mod test {
     fn test_compile_implementation_skip() {
         let mut function = test_function();
 
-        let wasm_output_dir = TempDir::new("flow")
-            .expect("Could not create TempDir during testing")
+        let wasm_output_dir = tempdir()
+            .expect("Could not create temporary directory during testing")
             .into_path();
         let expected_output_wasm = wasm_output_dir.join("test.wasm");
 
@@ -431,8 +431,8 @@ mod test {
         let mut function = test_function();
         function.set_source("does_not_exist");
 
-        let wasm_output_dir = TempDir::new("flow")
-            .expect("Could not create TempDir during testing")
+        let wasm_output_dir = tempdir()
+            .expect("Could not create temporary directory during testing")
             .into_path();
 
         let (implementation_source_path, _wasm_destination) = compile::get_paths(&wasm_output_dir, &function)
@@ -463,8 +463,8 @@ mod test {
         let mut function = test_function();
         function.build_type = "rust".into();
 
-        let wasm_output_dir = TempDir::new("flow")
-            .expect("Could not create TempDir during testing")
+        let wasm_output_dir = tempdir()
+            .expect("Could not create temporary directory during testing")
             .into_path();
         let expected_output_wasm = wasm_output_dir.join("test.wasm");
         let _ = remove_file(&expected_output_wasm);

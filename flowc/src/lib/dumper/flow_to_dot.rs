@@ -37,7 +37,7 @@ pub(crate) static OUTPUT_PORTS: &[&str] = &["s", "se", "sw", "e"];
 /// use flowcore::meta_provider::MetaProvider;
 /// use flowcore::errors::Result;
 /// use flowcore::model::process::Process::FlowProcess;
-/// use tempdir::TempDir;
+/// use tempfile::tempdir;
 /// use std::collections::BTreeMap;
 /// use simpath::Simpath;
 /// use std::path::PathBuf;
@@ -50,7 +50,7 @@ pub(crate) static OUTPUT_PORTS: &[&str] = &["s", "se", "sw", "e"];
 ///
 /// if let Ok(FlowProcess(mut flow)) = flowrclib::compiler::parser::parse(&url, &provider) {
 ///     // strip off filename so output_dir is where the root.toml file resides
-///     let output_dir = TempDir::new("flow").unwrap().into_path();
+///     let output_dir = tempdir().unwrap().into_path();
 ///
 ///     // dump the flows compiler data and dot graph into files alongside the 'root.toml'
 ///     flowrclib::dumper::flow_to_dot::dump_flow(&flow, &output_dir, &provider).unwrap();

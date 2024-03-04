@@ -297,7 +297,7 @@ mod test {
     use std::collections::BTreeMap;
     use std::path::Path;
 
-    use tempdir::TempDir;
+    use tempfile::tempdir;
     use url::Url;
 
     use flowcore::model::datatype::STRING_TYPE;
@@ -448,7 +448,7 @@ mod test {
             ..Default::default()
         };
 
-        let output_dir = TempDir::new("flow-test").expect("A temp dir").into_path();
+        let output_dir =tempdir().expect("A temp dir").into_path();
         let mut source_urls = BTreeMap::<String, Url>::new();
         // Optimizer should remove unconnected function leaving no side-effects
         match compile(&flow,
@@ -499,8 +499,8 @@ mod test {
     fn paths_test() {
         let function = test_function();
 
-        let target_dir = TempDir::new("flow")
-            .expect("Could not create TempDir during testing")
+        let target_dir = tempdir()
+            .expect("Could not create temporary directory during testing")
             .into_path();
         let expected_output_wasm = target_dir.join("test.wasm");
 

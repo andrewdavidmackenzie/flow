@@ -25,7 +25,7 @@ use crate::errors::*;
 /// use flowcore::meta_provider::MetaProvider;
 /// use flowcore::errors::Result;
 /// use flowcore::model::process::Process::FlowProcess;
-/// use tempdir::TempDir;
+/// use tempfile::tempdir;
 /// use std::collections::BTreeMap;
 /// use simpath::Simpath;
 /// use std::path::Path;
@@ -42,7 +42,7 @@ use crate::errors::*;
 /// let mut url = Url::from_file_path(env::current_dir().unwrap()).unwrap();
 /// url = url.join("flowc/tests/test-flows/hello-world/hello-world.toml").unwrap();
 ///
-/// let output_dir = TempDir::new("flow-test").expect("A temp dir").into_path();
+/// let output_dir = tempdir().expect("A temp dir").into_path();
 ///
 /// if let Ok(FlowProcess(mut flow)) = flowrclib::compiler::parser::parse(&url,
 ///                                                    &provider) {
@@ -51,7 +51,7 @@ use crate::errors::*;
 ///                                                         &mut source_urls).unwrap();
 ///
 ///     // strip off filename so output_dir is where the root.toml file resides
-///     let output_dir = TempDir::new("flow").unwrap().into_path();
+///     let output_dir = tempdir().unwrap().into_path();
 ///
 ///     // create a .dot format directed graph of all the functions after compiling down the flow
 ///     flowrclib::dumper::functions_to_dot::dump_functions(&flow, &tables, &output_dir).unwrap();

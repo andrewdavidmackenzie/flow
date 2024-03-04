@@ -497,14 +497,14 @@ fn copy_docs(
 mod test {
     use std::io::prelude::*;
 
-    use tempdir::TempDir;
+    use tempfile::tempdir;
     use url::Url;
 
     use flowcore::model::lib_manifest::LibraryManifest;
     use flowcore::model::metadata::MetaData;
 
     fn test_manifest() -> Url {
-        let dir = TempDir::new("flow").expect("Could not create temp dir");
+        let dir = tempdir().expect("Could not create temp dir");
         let url = Url::from_directory_path(dir.into_path()).expect("Could not create Url");
         url.join("manifest.json").expect("Could not join filename to Url")
     }
