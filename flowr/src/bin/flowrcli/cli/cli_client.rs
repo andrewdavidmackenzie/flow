@@ -196,7 +196,7 @@ mod test {
     use std::io::prelude::*;
     use std::sync::{Arc, Mutex};
 
-    use tempdir::TempDir;
+    use tempfile::tempdir;
 
     #[cfg(feature = "metrics")]
     use flowcore::model::metrics::Metrics;
@@ -252,8 +252,8 @@ mod test {
     fn test_file_reading() {
         let test_contents = b"The quick brown fox jumped over the lazy dog";
 
-        let temp = TempDir::new("flow")
-            .expect("Couldn't get TempDir")
+        let temp = tempdir()
+            .expect("Couldn't get temporary directory")
             .into_path();
         let file_path = temp.join("test_read").to_string_lossy().to_string();
         {
@@ -279,8 +279,8 @@ mod test {
 
     #[test]
     fn test_file_writing() {
-        let temp = TempDir::new("flow")
-            .expect("Couldn't get TempDir")
+        let temp = tempdir()
+            .expect("Couldn't get temporary directory")
             .into_path();
         let file = temp.join("test");
 
@@ -336,8 +336,8 @@ mod test {
             false,
         );
 
-        let temp_dir = TempDir::new("flow")
-            .expect("Couldn't get TempDir")
+        let temp_dir = tempdir()
+            .expect("Couldn't get temporary directory")
             .into_path();
         let path = temp_dir.join("flow.png");
 

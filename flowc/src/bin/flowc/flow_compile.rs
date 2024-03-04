@@ -194,13 +194,13 @@ fn execute_flow(filepath: &Path, options: &Options, runner_name: String) -> Resu
 mod test {
     use std::fs;
 
-    use tempdir::TempDir;
+    use tempfile::tempdir;
 
     use crate::flow_compile::make_writeable;
 
     #[test]
     fn can_create_dir_correctly() {
-        let temp_parent = TempDir::new("flow_compile")
+        let temp_parent = tempdir()
             .expect("Could not create temp parent dir");
 
         let test_output_dir = temp_parent.path().join("output");
@@ -214,8 +214,7 @@ mod test {
 
     #[test]
     fn can_use_existing_dir() {
-        let test_output_dir = TempDir::new("flow_compile")
-            .expect("Could not create temp parent dir").into_path();
+        let test_output_dir = tempdir().expect("Could not create temp parent dir").into_path();
 
         make_writeable(&test_output_dir).expect("Could not make output dir");
 
@@ -227,8 +226,7 @@ mod test {
 
     #[test]
     fn error_if_exists_as_file() {
-        let temp_parent = TempDir::new("flow_compile")
-            .expect("Could not create temp parent dir");
+        let temp_parent =tempdir().expect("Could not create temp parent dir");
         let test_output_file = temp_parent.path().join("output");
         fs::File::create(&test_output_file).expect("Could not create file");
 

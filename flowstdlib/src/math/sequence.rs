@@ -5,7 +5,7 @@ mod test {
     use std::fs::File;
     use std::io::Write;
 
-    use tempdir::TempDir;
+    use tempfile::tempdir;
 
     use super::super::super::test::execute_flow;
 
@@ -28,7 +28,7 @@ from = \"sequence/number\"
 to = \"stdout\"
 ";
 
-        let temp_dir = TempDir::new("flow").expect("Could not create TempDir").into_path();
+        let temp_dir = tempdir().expect("Could not create temporary directory").into_path();
         let flow_filename = temp_dir.join("sequence_test.toml");
         let mut flow_file =
             File::create(&flow_filename).expect("Could not create lib manifest file");
