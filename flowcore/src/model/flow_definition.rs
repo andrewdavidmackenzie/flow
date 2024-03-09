@@ -190,9 +190,9 @@ impl FlowDefinition {
     /// Set the alias of this flow to the supplied Name
     pub fn set_alias(&mut self, alias: &Name) {
         if alias.is_empty() {
-            self.alias = self.name.clone();
+            self.alias.clone_from(&self.name);
         } else {
-            self.alias = alias.clone();
+            self.alias.clone_from(alias);
         }
     }
 
@@ -244,7 +244,7 @@ impl FlowDefinition {
     ) -> Result<()> {
         self.id = id;
         self.set_alias(alias_from_reference);
-        self.source_url = source_url.to_owned();
+        source_url.clone_into(&mut self.source_url);
         self.set_initializers(initializations)?;
         self.set_routes_from_parent(parent_route);
         self.validate()

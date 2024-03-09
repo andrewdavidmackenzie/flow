@@ -32,7 +32,7 @@ impl ProcessReference {
     /// then set the alias to be the name of the loaded process
     pub fn set_alias(&mut self, alias: &Name) {
         if self.alias.is_empty() {
-            self.alias = alias.to_owned();
+            alias.clone_into(&mut self.alias);
         }
     }
 }
