@@ -94,7 +94,7 @@ impl CliDebugClient {
     fn parse_command(&self, mut input: String) -> Result<(String, String, Option<Vec<String>>)> {
         input = input.trim().to_string();
         if input.is_empty() && !self.last_command.is_empty() {
-            input = self.last_command.clone();
+            input.clone_from(&self.last_command);
             println!("Repeating last valid command: '{input}'");
         }
 

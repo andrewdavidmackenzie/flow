@@ -106,12 +106,12 @@ impl FlowManifest {
 
     /// set the list of all library references in this manifest
     pub fn set_lib_references(&mut self, lib_references: &BTreeSet<Url>) {
-        self.lib_references = lib_references.clone();
+        self.lib_references.clone_from(lib_references);
     }
 
     /// set the list of all context references in this manifest
     pub fn set_context_references(&mut self, context_references: &BTreeSet<Url>) {
-        self.context_references = context_references.clone();
+        self.context_references.clone_from(context_references);
     }
 
     /// Add a new library reference (the name of a library) into the manifest

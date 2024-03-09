@@ -259,12 +259,12 @@ impl FunctionDefinition {
 
     /// Set the implementation location of this function
     pub fn set_implementation(&mut self, implementation: &str) {
-        self.implementation = implementation.to_owned();
+        implementation.clone_into(&mut self.implementation);
     }
 
     /// Set the source field of the function
     pub fn set_source(&mut self, source: &str) {
-        self.source = source.to_owned()
+        source.clone_into(&mut self.source)
     }
 
     /// Get the name of the source file relative to the function definition
@@ -285,9 +285,9 @@ impl FunctionDefinition {
     // Set the alias of this function
     fn set_alias(&mut self, alias: &Name) {
         if alias.is_empty() {
-            self.alias = self.name.clone();
+            self.alias.clone_from(&self.name);
         } else {
-            self.alias = alias.clone();
+            self.alias.clone_from(alias);
         }
     }
 
