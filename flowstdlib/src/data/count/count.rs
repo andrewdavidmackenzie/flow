@@ -1,4 +1,4 @@
-use flowcore::errors::*;
+use flowcore::errors::Result;
 use flowmacro::flow_function;
 use serde_json::json;
 use serde_json::Value;

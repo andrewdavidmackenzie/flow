@@ -19,6 +19,6 @@ pub mod generator;
 /// provides methods to get information about this version of the flowrclib library
 pub mod info;
 
-/// contains [errors::Error] that other modules in this crate will `use errors::*;`
+/// contains `errors::Error` that other modules in this crate will `use errors::*;`
 /// to get access to everything `error_chain` creates.
 pub mod errors;

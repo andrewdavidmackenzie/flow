@@ -1,7 +1,7 @@
 use serde_json::Value;
 
 use flowcore::{RUN_AGAIN, RunAgain};
-use flowcore::errors::*;
+use flowcore::errors::{Result, bail};
 use flowmacro::flow_function;
 
 #[flow_function]
@@ -40,13 +40,13 @@ mod test {
 
     use super::_to_json;
 
-    fn test_to_json(string: &str, expected_value: Value) {
+    fn test_to_json(string: &str, expected_value: &Value) {
         let inputs = vec![json!(string)];
         let (result, _) = _to_json(&inputs).expect("_to_json() failed");
 
         match result {
             Some(value) => {
-                assert_eq!(value, expected_value);
+                assert_eq!(&value, expected_value);
             }
             None => panic!("No Result returned"),
         }
@@ -54,28 +54,28 @@ mod test {
 
     #[test]
     fn parse_string() {
-        test_to_json("\"Hello World\"", json!("Hello World"));
+        test_to_json("\"Hello World\"", &json!("Hello World"));
     }
 
     #[test]
     fn parse_number() {
-        test_to_json("42", json!(42));
+        test_to_json("42", &json!(42));
     }
 
     #[test]
     fn parse_null() {
-        test_to_json("null", serde_json::Value::Null);
+        test_to_json("null", &serde_json::Value::Null);
     }
 
     #[test]
     fn parse_array() {
-        test_to_json("[1,2,3,4]", json!([1, 2, 3, 4]));
+        test_to_json("[1,2,3,4]", &json!([1, 2, 3, 4]));
     }
 
     // Can't be parsed directly into json so return String
     #[test]
     fn parse_invalid() {
-        test_to_json("-1.20,0.35", json!("-1.20,0.35"));
+        test_to_json("-1.20,0.35", &json!("-1.20,0.35"));
     }
 
     #[test]
@@ -83,6 +83,6 @@ mod test {
         let mut map: HashMap<&str, u32> = HashMap::new();
         map.insert("Meaning", 42);
         map.insert("Size", 9);
-        test_to_json("{\"Meaning\":42,\"Size\":9}", json!(map));
+        test_to_json("{\"Meaning\":42,\"Size\":9}", &json!(map));
     }
 }

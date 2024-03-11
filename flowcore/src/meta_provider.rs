@@ -11,7 +11,7 @@ use crate::content::file_provider::FileProvider;
 use crate::content::http_provider::HttpProvider;
 #[cfg(feature = "p2p_provider")]
 use crate::content::p2p_provider::P2pProvider;
-use crate::errors::*;
+use crate::errors::{Result, ResultExt, bail};
 use crate::provider::Provider;
 
 #[cfg(feature = "file_provider")]
@@ -31,7 +31,7 @@ pub struct MetaProvider {
     context_root: PathBuf,
 }
 
-/// Instantiate MetaProvider and then use the Provider trait methods on it to resolve and fetch
+/// Instantiate `MetaProvider` and then use the Provider trait methods on it to resolve and fetch
 /// content depending on the URL scheme.
 /// ```
 /// #[cfg(feature = "context")]
@@ -63,6 +63,7 @@ impl MetaProvider {
     /// Create a new `MetaProvider` initializing it with:
     /// - a search path where to look for libraries
     /// - the root of the context functions provided by the runtime (requires "context" feature
+    #[must_use]
     pub fn new(
                 #[cfg(feature = "file_provider")] lib_search_path: Simpath,
                 #[cfg(feature = "context")] context_root: PathBuf
@@ -73,8 +74,8 @@ impl MetaProvider {
         }
     }
 
-    // Determine which specific provider should be used based on the scheme of the Url of the content
-    fn get_provider(&self, scheme: &str) -> Result<&dyn Provider> {
+    /// Determine which specific provider should be used based on the scheme of the Url of the content
+    fn get_provider(scheme: &str) -> Result<&dyn Provider> {
         match scheme {
             #[cfg(all(not(target_arch = "wasm32"), feature = "file_provider"))]
             "file" => Ok(FILE_PROVIDER),
@@ -87,9 +88,9 @@ impl MetaProvider {
     }
 
     /// Urls for context functions will be of the form:
-    ///        "context://directory/subdirectory"
+    ///        "<context://directory/subdirectory/>"
     ///
-    /// The context function in question is found in the file system under the context_root
+    /// The context function in question is found in the file system under the `context_root`
     /// directory, which is supplied in the constructor by the host runtime using this lib
     ///
     ///   Then return:
@@ -104,13 +105,13 @@ impl MetaProvider {
         let context_function_path = self.context_root.join(dir).join(sub_dir);
         Ok((
             Url::from_file_path(context_function_path)
-                .map_err(|_| "Could not convert context function's path to a Url")?,
+                .map_err(|()| "Could not convert context function's path to a Url")?,
             Some(Url::parse(&format!("context://{dir}/{sub_dir}"))?),
         ))
     }
 
     /// Urls for library flows and functions and values will be of the form:
-    ///        "lib://flowstdlib/stdio/stdout.toml"
+    ///        "<lib://flowstdlib/stdio/stdout.toml/>"
     ///
     ///    Where 'flowstdlib' is the library name and 'stdio/stdout.toml' the path of the definition
     ///    file within the library.
@@ -134,7 +135,7 @@ impl MetaProvider {
                 let lib_path = lib_root_path.join(path_under_lib);
                 Ok((
                     Url::from_directory_path(lib_path)
-                        .map_err(|_| "Could not convert file: lib_path to Url")?,
+                        .map_err(|()| "Could not convert file: lib_path to Url")?,
                     lib_reference,
                 ))
             }
@@ -174,7 +175,7 @@ impl Provider for MetaProvider {
             _ => (url.clone(), None),
         };
 
-        let provider = self.get_provider(content_url.scheme())?;
+        let provider = Self::get_provider(content_url.scheme())?;
         let (resolved_url, _) = provider.resolve_url(&content_url, default_name, extensions)?;
 
         Ok((resolved_url, reference))
@@ -184,7 +185,7 @@ impl Provider for MetaProvider {
     /// resource at that Url.
     fn get_contents(&self, url: &Url) -> Result<Vec<u8>> {
         let scheme = url.scheme().to_string();
-        let provider = self.get_provider(&scheme)?;
+        let provider = Self::get_provider(&scheme)?;
         let content = provider.get_contents(url)?;
         Ok(content)
     }
@@ -209,50 +210,25 @@ mod test {
     #[test]
     fn get_invalid_provider() {
         #[cfg(feature = "file_provider")]
-        let search_path = Simpath::new("TEST");
-        let meta = MetaProvider::new(
-                                    #[cfg(feature = "file_provider")] search_path,
-                                        #[cfg(feature = "context")]
-                                         PathBuf::from("/")
-        );
-
-        assert!(meta.get_provider("fake://bla").is_err());
+        assert!(MetaProvider::get_provider("fake://bla").is_err());
     }
 
     #[cfg(feature = "http_provider")]
     #[test]
     fn get_http_provider() {
-        let search_path = Simpath::new("TEST");
-        let meta = MetaProvider::new(search_path,
-                                     #[cfg(feature = "context")]
-                                     PathBuf::from("/")
-        );
-
-        assert!(meta.get_provider("http").is_ok());
+        assert!(MetaProvider::get_provider("http").is_ok());
     }
 
     #[cfg(feature = "http_provider")]
     #[test]
     fn get_https_provider() {
-        let search_path = Simpath::new("TEST");
-        let meta = MetaProvider::new(search_path,
-                                     #[cfg(feature = "context")]
-                                     PathBuf::from("/")
-        );
-
-        assert!(meta.get_provider("https").is_ok());
+        assert!(MetaProvider::get_provider("https").is_ok());
     }
 
     #[cfg(feature = "file_provider")]
     #[test]
     fn get_file_provider() {
-        let search_path = Simpath::new("TEST");
-        let meta = MetaProvider::new(search_path,
-                                     #[cfg(feature = "context")]
-                                     PathBuf::from("/")
-        );
-
-        assert!(meta.get_provider("file").is_ok());
+        assert!(MetaProvider::get_provider("file").is_ok());
     }
 
     #[cfg(feature = "file_provider")]
@@ -291,7 +267,7 @@ mod test {
                 assert_eq!(lib_ref, Some(Url::parse("lib://test-flows/control/compare_switch")
                     .expect("Could not parse Url")));
             }
-            Err(_) => panic!("Error trying to resolve url"),
+            Err(e) => panic!("Error trying to resolve url: {e}"),
         }
     }
 

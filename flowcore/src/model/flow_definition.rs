@@ -7,7 +7,7 @@ use log::{debug, error, trace};
 use serde_derive::{Deserialize, Serialize};
 use url::Url;
 
-use crate::errors::*;
+use crate::errors::{Result, ResultExt};
 use crate::model::connection::Connection;
 use crate::model::connection::Direction;
 use crate::model::connection::Direction::FROM;
@@ -130,20 +130,20 @@ impl fmt::Display for FlowDefinition {
 impl Default for FlowDefinition {
     fn default() -> FlowDefinition {
         FlowDefinition {
-            name: Default::default(),
+            name: String::default(),
             inputs: vec![],
             outputs: vec![],
             process_refs: vec![],
             connections: vec![],
-            metadata: Default::default(),
-            docs: "".to_string(),
-            alias: Default::default(),
+            metadata: MetaData::default(),
+            docs: String::new(),
+            alias: String::default(),
             id: 0,
             source_url: Url::parse("file://").expect("Could not create Url"),
-            route: Default::default(),
-            subprocesses: Default::default(),
-            lib_references: Default::default(),
-            context_references: Default::default(),
+            route: Route::default(),
+            subprocesses: BTreeMap::default(),
+            lib_references: BTreeSet::default(),
+            context_references: BTreeSet::default(),
         }
     }
 }
@@ -183,6 +183,11 @@ impl SetRoute for FlowDefinition {
 
 impl FlowDefinition {
     /// Return a default value for a Url as part of a flow
+    ///
+    /// # Panics
+    ///
+    /// This function would panic if "file://" ceased to be a valid Url, so it should never occur.
+    #[must_use]
     pub fn default_url() -> Url {
         Url::parse("file://").expect("Could not create default_url")
     }
@@ -197,11 +202,13 @@ impl FlowDefinition {
     }
 
     /// Get the name of any associated docs file
+    #[must_use]
     pub fn get_docs(&self) -> &str {
         &self.docs
     }
 
     /// Get a reference to the set of inputs this flow defines
+    #[must_use]
     pub fn inputs(&self) -> &IOSet {
         &self.inputs
     }
@@ -212,11 +219,12 @@ impl FlowDefinition {
     }
 
     /// Get a reference to the set of outputs this flow defines
+    #[must_use]
     pub fn outputs(&self) -> &IOSet {
         &self.outputs
     }
 
-    /// Set the initial values on the IOs in an IOSet using a set of Input Initializers
+    /// Set the initial values on the IOs in an `IOSet` using a set of Input Initializers
     fn set_initializers(&mut self, initializer_map: &BTreeMap<String, InputInitializer>)
     -> Result<()> {
         for (input_name, initializer) in initializer_map {
@@ -234,6 +242,11 @@ impl FlowDefinition {
     }
 
     /// Configure a flow with additional information after it is deserialized from file
+    ///
+    /// # Errors
+    ///
+    /// Will return `Err` if the provided `initializations` cannot be set as initializers on
+    /// the flow
     pub fn config(
         &mut self,
         source_url: &Url,
@@ -251,6 +264,7 @@ impl FlowDefinition {
     }
 
     /// Check if the flow can be run (it could be a sub-flow not a context level runnable flow)
+    #[must_use]
     pub fn is_runnable(&self) -> bool {
         self.inputs().is_empty() && self.outputs().is_empty()
     }
@@ -258,7 +272,7 @@ impl FlowDefinition {
     fn get_subprocess_io(
         &mut self,
         subprocess_alias: &Name,
-        direction: Direction,
+        direction: &Direction,
         sub_route: &Route,
     ) -> Result<IO> {
         debug!("\tLooking for subprocess with alias = '{}'", subprocess_alias);
@@ -293,7 +307,7 @@ impl FlowDefinition {
             None => {
                     bail!("No sub-process named '{subprocess_alias}' exists in the flow '{}'\n\
                 possible sub-process names are: '{}'",
-                        self.route, self.subprocesses.keys().map(|k| k.as_str() )
+                        self.route, self.subprocesses.keys().map(std::string::String::as_str)
                             .collect::<Vec<&str>>().join(", "))
             }
         }
@@ -311,7 +325,7 @@ impl FlowDefinition {
     // TO a FlowInput
     fn get_io_by_route(
         &mut self,
-        direction: Direction,
+        direction: &Direction,
         route: &Route,
     ) -> Result<IO> {
         debug!("Looking for connection {:?} '{}'", direction, route);
@@ -347,6 +361,10 @@ impl FlowDefinition {
 
     /// Iterate over all the connections defined in the flow, and attempt to connect the source
     /// and destination (within the flow), checking the two types are compatible
+    ///
+    /// # Errors
+    ///
+    /// Will return `Err`if some connections described within the flow cannot be build
     pub fn build_connections(&mut self, level: usize) -> Result<()> {
         debug!("Building connections for flow '{}'", self.name);
 
@@ -355,7 +373,7 @@ impl FlowDefinition {
         // get connections out of self - so we can use immutable references to self inside loop
         let mut connections = take(&mut self.connections);
 
-        for connection in connections.iter_mut() {
+        for connection in&mut  connections {
             if let Err(e) = self.build_connection(connection, level) {
                 error_count += 1;
                 error!("{}", e);
@@ -385,14 +403,14 @@ impl FlowDefinition {
     //
     // Propagate any initializers on a flow output to the input (subflow or function) it is connected to
     fn build_connection(&mut self, connection: &Connection, level: usize) -> Result<()> {
-        let from_io = self.get_io_by_route(FROM, connection.from())
+        let from_io = self.get_io_by_route(&FROM, connection.from())
             .chain_err(|| format!("Did not find connection source: '{}' specified in flow '{}'\n",
                    connection.from(), self.source_url))?;
         trace!("Found connection source:\n{:#?}", from_io);
 
         // Connection can specify multiple destinations within flow - iterate over them all
         for to_route in connection.to() {
-            match self.get_io_by_route(TO, to_route) {
+            match self.get_io_by_route(&TO, to_route) {
                 Ok(to_io) => {
                     trace!("Found connection destination:\n{:#?}", to_io);
                     let mut new_connection = connection.clone();
@@ -507,11 +525,11 @@ mod test {
     fn test_non_existent_subprocess_in_connection() {
         let mut flow = test_flow();
         match flow.get_subprocess_io(&Name::from("foo"),
-                                     Direction::FROM,
+                                     &Direction::FROM,
                                      &Route::from("who-cares")) {
             Ok(_) => panic!("Should not find non-existent sub-process"),
             Err(e) => {
-                assert!(e.to_string().contains("No sub-process named"))
+                assert!(e.to_string().contains("No sub-process named"));
             },
         }
     }
@@ -520,7 +538,7 @@ mod test {
     fn test_existent_subprocess_existing_io_in_connection() {
         let mut flow = test_flow();
         flow.get_subprocess_io(&Name::from("process_1"),
-                                     Direction::FROM,
+                                     &Direction::FROM,
                                      &Route::from(""))
             .expect("Could not find sub-process called process_1");
     }
@@ -529,7 +547,7 @@ mod test {
     fn test_existent_subprocess_non_existing_input_in_connection() {
         let mut flow = test_flow();
         match flow.get_subprocess_io(&Name::from("process_1"),
-                                     Direction::TO,
+                                     &Direction::TO,
                                      &Route::from("no-such-io")) {
 
             Ok(_) => panic!("Should not find non-existent sub-process input"),
@@ -541,12 +559,12 @@ mod test {
     fn test_existent_subprocess_non_existing_io_in_connection() {
         let mut flow = test_flow();
         match flow.get_subprocess_io(&Name::from("process_1"),
-                               Direction::FROM,
+                               &Direction::FROM,
                                &Route::from("no-such-io")) {
 
             Ok(_) => panic!("Should not find non-existent sub-process IO"),
             Err(e) => {
-                assert!(e.to_string().contains("No IO"))
+                assert!(e.to_string().contains("No IO"));
             },
         }
     }

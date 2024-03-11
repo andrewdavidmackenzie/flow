@@ -14,7 +14,7 @@ use flowcore::model::route::HasRoute;
 use flowcore::model::route::Route;
 
 use crate::compiler::compile::CompilerTables;
-use crate::errors::*;
+use crate::errors::Result;
 
 /// Recursively go through the flow hierarchy, harvesting out functions and connections within
 /// each flow into the `CompilerTables` that will be used in later compilers.
@@ -68,9 +68,9 @@ fn _gather_functions_and_connections(flow: &FlowDefinition, tables: &mut Compile
 /// to the table of "collapsed" connections which will be used to configure the outputs of the
 /// functions.
 /// Valid initiation points of collapsed connections are:
-/// - FunctionIO (Output)
-/// - FlowInput with an initializer
-/// - FlowOutput with an initializer
+/// - `FunctionIO` (Output)
+/// - `FlowInput` with an initializer
+/// - `FlowOutput` with an initializer
 ///
 /// Prerequisites for this compilation phase are:
 /// - `tables.functions` is populated by `gather_functions_and_connections`
@@ -94,7 +94,7 @@ pub fn collapse_connections(tables: &mut CompilerTables) -> Result<()> {
                 } else {
                     // If the connection enters or leaves this flow, then follow it to all destinations at function inputs
                     for (source_subroute, destination_io) in find_connection_destinations(
-                        Route::from(""),
+                        &Route::from(""),
                         connection.to_io(),
                         connection.level(),
                         &tables.connections)? {
@@ -130,7 +130,7 @@ pub fn collapse_connections(tables: &mut CompilerTables) -> Result<()> {
                         vec!((Route::default(), connection.to_io().clone()))
                     } else {
                         find_connection_destinations(
-                            Route::from(""),
+                            &Route::from(""),
                             connection.to_io(),
                             connection.level(),
                             &tables.connections,
@@ -221,7 +221,7 @@ pub fn collapse_connections(tables: &mut CompilerTables) -> Result<()> {
          Output is: source_subroute: Route, final_destination: Route
 */
 fn find_connection_destinations(
-    prev_subroute: Route,
+    prev_subroute: &Route,
     from_io: &IO,
     from_level: usize,
     connections: &[Connection],
@@ -261,7 +261,7 @@ fn find_connection_destinations(
                     IOType::FlowInput => {
                         debug!("\t\tFollowing connection into sub-flow via '{}'", from_io.route());
                         let new_destinations = &mut find_connection_destinations(
-                            accumulated_source_subroute,
+                            &accumulated_source_subroute,
                             next_connection.to_io(),
                             next_connection.level(),
                             connections,
@@ -272,7 +272,7 @@ fn find_connection_destinations(
                     IOType::FlowOutput => {
                         debug!("\t\tFollowing connection out of flow via '{}'", from_io.route());
                         let new_destinations = &mut find_connection_destinations(
-                            accumulated_source_subroute,
+                            &accumulated_source_subroute,
                             next_connection.to_io(),
                             next_connection.level(),
                             connections,

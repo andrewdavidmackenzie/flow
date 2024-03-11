@@ -2,7 +2,7 @@
 
 use serde_json::Value;
 
-use crate::errors::*;
+use crate::errors::Result;
 
 /// a set of serializers to read definition files from various text formats based on file extension
 pub mod deserializers;
@@ -40,7 +40,7 @@ pub mod content;
 
 /// A function's implementation must implement this trait with a single `run()` method that takes
 /// as input an array of values and it returns a `Result` tuple with an Optional output `Value`
-/// plus a [RunAgain] indicating if it should be run again.
+/// plus a `RunAgain` indicating if it should be run again.
 /// i.e. it has not "completed", in which case it should not be called again.
 ///
 /// # Examples

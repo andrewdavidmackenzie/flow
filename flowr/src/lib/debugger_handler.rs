@@ -1,6 +1,6 @@
 use serde_json::Value;
 
-use flowcore::errors::*;
+use flowcore::errors::Result;
 use flowcore::model::input::Input;
 use flowcore::model::output_connection::OutputConnection;
 use flowcore::model::runtime_function::RuntimeFunction;

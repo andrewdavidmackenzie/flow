@@ -8,7 +8,7 @@ use multimap::MultiMap;
 use serde_derive::{Deserialize, Serialize};
 use serde_json::Value;
 
-use flowcore::errors::*;
+use flowcore::errors::Result;
 #[cfg(feature = "metrics")]
 use flowcore::model::metrics::Metrics;
 use flowcore::model::output_connection::OutputConnection;
@@ -22,7 +22,7 @@ use crate::block::Block;
 use crate::checks;
 #[cfg(feature = "debugger")]
 use crate::debugger::Debugger;
-use crate::job::{Job, JobPayload};
+use crate::job::{Job, Payload};
 
 /// `State` represents the possible states it is possible for a function to be in
 #[cfg(any(debug_assertions, feature = "debugger", test))]
@@ -37,7 +37,7 @@ pub enum State {
     /// Waiting   - Function is in Blocked state when at least one of it's inputs is not full
     Waiting,
     /// Running   - Function is in Running state when it has been picked from the Ready list for
-    /// execution using the next() function
+    /// execution using the `next` function
     Running,
     /// Completed - Function has indicated that it no longer wants to be run, so it's execution
     ///           has completed.
@@ -50,7 +50,7 @@ pub enum State {
 /// A function maybe blocking multiple others trying to send data to it.
 /// Those others maybe blocked trying to send to multiple different function.
 ///
-/// The Semantics of a Flow's RunState
+/// The Semantics of a Flow's `RunState`
 /// ==================================
 /// The semantics of the state of each function in a flow and the flow over are described here
 /// and the tests of the struct attempt to reproduce and confirm as many of them as is possible
@@ -77,7 +77,7 @@ pub enum State {
 /// Start-up
 /// ==============
 /// At start-up all functions are initialized. For each of the functions inputs their
-/// init_inputs() function will be called, meaning that some inputs may be initialized (filled):
+/// `init_inputs` function will be called, meaning that some inputs may be initialized (filled):
 ///    - Other functions that send to these initialized inputs will be blocked initially
 /// If all inputs are full then the Function maybe able to run, depending on existence of blocks on
 /// other functions it sends to.
@@ -103,7 +103,7 @@ pub enum State {
 /// it will be run (when it received inputs) and it's output discarded.
 /// That is sub-optimal execution but no errors should result. Hence the role of the optimizer at
 /// compile time.
-/// Tests: pure_function_no_destinations()
+/// Tests: `pure_function_no_destinations`
 ///
 /// Unconnected inputs
 /// ==================
@@ -139,22 +139,22 @@ pub enum State {
 ///
 /// From    To State  Event causing transition and additional conditions          Test
 /// ----    --------  --------------------------------------------------          ----
-/// Init    Ready     No inputs and no destination input full                     to_ready_1_on_init
-///                   All inputs initialized and no destination input full        to_ready_2_on_init
-///                   All inputs initialized and no destinations                  to_ready_3_on_init
-/// Init    Blocked   Some destination input is full                              to_blocked_on_init
-/// Init    Waiting   At least one input is not full                              to_waiting_on_init
+/// Init    Ready     No inputs and no destination input full                     `to_ready_1_on_init`
+///                   All inputs initialized and no destination input full        `to_ready_2_on_init`
+///                   All inputs initialized and no destinations                  `to_ready_3_on_init`
+/// Init    Blocked   Some destination input is full                              `to_blocked_on_init`
+/// Init    Waiting   At least one input is not full                              `to_waiting_on_init`
 ///
-/// Ready   Running   NextJob: called to fetch the function_id for execution      ready_to_running_on_next
+/// Ready   Running   NextJob: called to fetch the function_id for execution      `ready_to_running_on_next`
 ///
-/// Blocked Ready     Output: function that was blocking another completes        blocked_to_ready_on_done
+/// Blocked Ready     Output: function that was blocking another completes        `blocked_to_ready_on_done`
 ///
-/// Waiting Ready     Output: last empty input on a function is filled            waiting_to_ready_on_input
-/// Waiting Blocked   Output: last empty input on a function is filled, blocked   waiting_to_blocked_on_input
+/// Waiting Ready     Output: last empty input on a function is filled            `waiting_to_ready_on_input`
+/// Waiting Blocked   Output: last empty input on a function is filled, blocked   `waiting_to_blocked_on_input`
 ///
-/// Running Ready     Output: it's inputs are all full, so it can run again       running_to_ready_on_done
-/// Running Waiting   Output: it has one input or more empty, to it can't run     running_to_waiting_on_done
-/// Running Blocked   Output: a destination input is full, so can't run           running_to_blocked_on_done
+/// Running Ready     Output: it's inputs are all full, so it can run again       `running_to_ready_on_done`
+/// Running Waiting   Output: it has one input or more empty, to it can't run     `running_to_waiting_on_done`
+/// Running Blocked   Output: a destination input is full, so can't run           `running_to_blocked_on_done`
 ///
 /// Iteration and Recursion
 /// =======================
@@ -200,13 +200,14 @@ pub struct RunState {
     /// Track which flow-function combinations are considered "busy" <flow_id, function_id>
     busy_flows: MultiMap<usize, usize>,
     /// Track which functions have finished and can be unblocked when flow goes not "busy"
-    /// HashMap< <flow_id>, (function_id, vector of refilled io numbers of that function)>
+    /// HashMap< <flow_id>, (`function_id`, set of refilled io numbers of that function)>
     flow_blocks: HashMap<usize, HashSet<usize>>,
 }
 
 impl RunState {
     /// Create a new `RunState` struct from the list of functions provided and the `Submission`
     /// that was sent to be executed
+    #[must_use]
     pub fn new(submission: Submission) -> Self {
         RunState {
             submission,
@@ -232,7 +233,7 @@ impl RunState {
     fn reset(&mut self) {
         debug!("Resetting RunState");
         for function in self.submission.manifest.get_functions() {
-            function.reset()
+            function.reset();
         }
         self.blocked.clear();
         self.blocks.clear();
@@ -245,14 +246,14 @@ impl RunState {
     }
 
     /// The `ìnit()` function is responsible for initializing all functions, and it returns a boolean
-    /// to indicate that it's inputs are fulfilled - and this information is added to the RunList
+    /// to indicate that it's inputs are fulfilled - and this information is added to the `RunList`
     /// to control the readiness of the Function to be executed.
     ///
-    /// After init() Functions will either be:
+    /// After `init` Functions will either be:
     ///    - Ready:   an entry will be added to the `ready` list with this function's id
     ///    - Blocked: the function has all it's inputs ready and could run but a Function it sends to
     ///               has an input full already (due to being initialized during the init process)
-    ///               - an entry will be added to the `blocks` list with this function's id as source_id
+    ///               - an entry will be added to the `blocks` list with this function's id as `source_id`
     ///               - an entry will be added to the `blocked` list with this function's id
     ///    - Waiting: function has at least one empty input so it cannot run. It will not added to
     ///               `ready` nor `blocked` lists, so by omission it is in the `Waiting` state.
@@ -281,6 +282,7 @@ impl RunState {
 
     /// Return the states a function is in
     #[cfg(any(debug_assertions, feature = "debugger", test))]
+    #[must_use]
     pub fn get_function_states(&self, function_id: usize) -> Vec<State> {
         let mut states = vec![];
 
@@ -288,7 +290,7 @@ impl RunState {
             states.push(State::Completed);
         }
 
-        for ready_job in self.ready_jobs.iter() {
+        for ready_job in &self.ready_jobs {
             if ready_job.function_id == function_id {
                 states.push(State::Ready);
             }
@@ -307,30 +309,34 @@ impl RunState {
 
     // See if the function is in only the specified state
     #[cfg(test)]
-    pub(crate) fn function_state_is_only(&self, function_id: usize, state: State) -> bool {
+    pub(crate) fn function_state_is_only(&self, function_id: usize, state: &State) -> bool {
         let function_states = self.get_function_states(function_id);
-        function_states.len() == 1 && function_states.contains(&state)
+        function_states.len() == 1 && function_states.contains(state)
     }
 
     /// Get the list of blocked function ids
     #[cfg(feature = "debugger")]
+    #[must_use]
     pub fn get_blocked(&self) -> &HashSet<usize> {
         &self.blocked
     }
 
-    /// Get a Set (job_id) of the currently running jobs
+    /// Get a Set (`job_id`) of the currently running jobs
     #[cfg(any(feature = "debugger", debug_assertions))]
+    #[must_use]
     pub fn get_running(&self) -> &HashMap<usize, Job> {
         &self.running_jobs
     }
 
     /// Get the list of completed function ids
     #[cfg(feature = "debugger")]
+    #[must_use]
     pub fn get_completed(&self) -> &HashSet<usize> {
         &self.completed
     }
         
     /// Get a reference to the function with `id`
+    #[must_use]
     pub fn get_function(&self, id: usize) -> Option<&RuntimeFunction> {
         self.submission.manifest.functions().get(id)
     }
@@ -340,20 +346,23 @@ impl RunState {
         self.submission.manifest.get_functions().get_mut(id)
     }
 
-    /// Get the HashSet of blocked function ids
+    /// Get the `HashSet` of blocked function ids
     #[cfg(any(debug_assertions, feature = "debugger"))]
+    #[must_use]
     pub fn get_blocks(&self) -> &HashSet<Block> {
         &self.blocks
     }
 
     #[cfg(debug_assertions)]
     /// Return the list of busy flows and what functions in each flow are busy
+    #[must_use]
     pub fn get_busy_flows(&self) -> &MultiMap<usize, usize> {
         &self.busy_flows
     }
 
     #[cfg(debug_assertions)]
     /// Return the list of pending unblocks
+    #[must_use]
     pub fn get_flow_blocks(&self) -> &HashMap<usize, HashSet<usize>> {
         &self.flow_blocks
     }
@@ -373,7 +382,7 @@ impl RunState {
     // Update the run_state to reflect that the job is now running
     pub(crate) fn start_job(&mut self, job: Job) -> Result<()>{
         self.block_external_flow_senders(job.payload.job_id, job.function_id,
-                                         job.flow_id)?;
+                                         job.flow_id);
         self.running_jobs.insert(job.payload.job_id, job);
         Ok(())
     }
@@ -389,7 +398,7 @@ impl RunState {
         job_id: usize,
         blocker_function_id: usize,
         blocker_flow_id: usize,
-    ) -> Result<()> {
+    ) {
         // Add this function to the pending unblock list for later when flow goes idle and senders
         // to it from *outside* this flow can be allowed to send to it.
         // The entry key is the blocker_flow_id and the entry all blocker_function_ids in that flow
@@ -411,12 +420,11 @@ impl RunState {
             }
         }
         trace!("Job #{job_id}:\t\tAdded a flow_block -> #{blocker_function_id}({blocker_flow_id})");
-
-        Ok(())
     }
 
     /// get the number of jobs created to date in the flow's execution
     #[cfg(any(feature = "metrics", feature = "debugger"))]
+    #[must_use]
     pub fn get_number_of_jobs_created(&self) -> usize {
         self.number_of_jobs_created
     }
@@ -499,7 +507,7 @@ impl RunState {
                 }
             },
             Err(e) => {
-                error!("Error in Job #{}: {e}", job.payload.job_id)
+                error!("Error in Job #{}: {e}", job.payload.job_id);
             }
         }
 
@@ -533,7 +541,7 @@ impl RunState {
         let mut restart = false;
 
         let route_str = match &connection.source {
-            Output(route) if route.is_empty() => "".into(),
+            Output(route) if route.is_empty() => String::new(),
             Output(route) => format!(" from output route '{route}'"),
             Input(index) => format!(" from Job value at input #{index}"),
         };
@@ -599,8 +607,9 @@ impl RunState {
         Ok((display_next_output, restart))
     }
 
-    /// Get the set of blocking_function_id causing the block on function `id`
+    /// Get the set of `blocking_function_id` causing the block on function `id`
     #[cfg(any(feature = "debugger", debug_assertions))]
+    #[must_use]
     pub fn get_output_blockers(&self, id: usize) -> Vec<usize> {
         let mut blockers = vec![];
 
@@ -624,11 +633,13 @@ impl RunState {
     }
 
     /// Return how many jobs are currently running
+    #[must_use]
     pub fn number_jobs_running(&self) -> usize {
         self.running_jobs.len()
     }
 
     /// Return how many jobs are ready to be run, but not running yet
+    #[must_use]
     pub fn number_jobs_ready(&self) -> usize {
         self.ready_jobs.len()
     }
@@ -647,11 +658,11 @@ impl RunState {
                 let mut senders = Vec::<usize>::new();
 
                 // go through all functions to see if sends to the target function on this input
-                for sender_function in self.submission.manifest.functions().iter() {
+                for sender_function in self.submission.manifest.functions() {
                     // if the sender function is not ready to run
                     let mut sender_is_ready = false;
 
-                    for ready_job in self.ready_jobs.iter() {
+                    for ready_job in &self.ready_jobs {
                         if ready_job.function_id == sender_function.id() {
                             sender_is_ready = true;
                         }
@@ -712,7 +723,7 @@ impl RunState {
                     function_id,
                     flow_id,
                     connections: function.get_output_connections().clone(),
-                    payload: JobPayload {
+                    payload: Payload {
                         job_id,
                         implementation_url,
                         input_set,
@@ -736,6 +747,7 @@ impl RunState {
 
     /// Return how many functions exist in this flow being executed
     #[cfg(any(feature = "debugger", feature = "metrics"))]
+    #[must_use]
     pub fn num_functions(&self) -> usize {
         self.submission.manifest.functions().len()
     }
@@ -923,7 +935,7 @@ mod test {
     #[cfg(feature = "debugger")]
     use crate::run_state::State;
 
-    use super::{Job, JobPayload};
+    use super::{Job, Payload};
     use super::RunState;
 
     fn test_function_a_to_b_not_init() -> RuntimeFunction {
@@ -1027,7 +1039,7 @@ mod test {
             function_id: source_function_id,
             flow_id: 0,
             connections: vec![out_conn],
-            payload: JobPayload {
+            payload: Payload {
                 job_id: 1,
                 implementation_url: Url::parse("file://test").expect("Could not parse Url"),
                 input_set: vec![json!(1)],
@@ -1174,7 +1186,7 @@ mod test {
 
         use crate::run_state::test::test_function_b_not_init;
 
-        use super::super::{Job, JobPayload};
+        use super::super::{Job, Payload};
         use super::super::RunState;
         use super::super::State;
 
@@ -1188,10 +1200,10 @@ mod test {
             state.init().expect("Could not init state");
 
             // Test
-            assert!(state.function_state_is_only(0, State::Ready), "f_a should be Ready");
+            assert!(state.function_state_is_only(0, &State::Ready), "f_a should be Ready");
             assert_eq!(1, state.number_jobs_ready());
             assert!(
-                state.function_state_is_only(1, State::Waiting),
+                state.function_state_is_only(1, &State::Waiting),
                 "f_b should be waiting for input"
             );
         }
@@ -1207,18 +1219,18 @@ mod test {
 
             // Test
             assert!(
-                state.function_state_is_only(0, State::Waiting),
+                state.function_state_is_only(0, &State::Waiting),
                 "f_a should be waiting for input"
             );
             assert!(
-                state.function_state_is_only(1, State::Waiting),
+                state.function_state_is_only(1, &State::Waiting),
                 "f_b should be waiting for input"
             );
             #[cfg(feature = "debugger")]
             assert!(
                 state.get_input_blockers(1).expect("Could not get blockers").contains(&0),
                 "There should be an input blocker"
-            )
+            );
         }
 
         #[test]
@@ -1231,7 +1243,7 @@ mod test {
             state.init().expect("Could not init state");
 
             // Test
-            assert!(state.function_state_is_only(0, State::Ready), "f_a should be Ready");
+            assert!(state.function_state_is_only(0, &State::Ready), "f_a should be Ready");
         }
 
         #[test]
@@ -1243,7 +1255,7 @@ mod test {
             state.init().expect("Could not init state");
 
             // Test
-            assert!(state.function_state_is_only(0, State::Ready), "f_a should be Ready");
+            assert!(state.function_state_is_only(0, &State::Ready), "f_a should be Ready");
         }
 
         fn test_function_a_not_init() -> RuntimeFunction {
@@ -1272,7 +1284,7 @@ mod test {
             state.init().expect("Could not init state");
 
             // Test
-            assert!(state.function_state_is_only(0, State::Waiting), "f_a should be Waiting");
+            assert!(state.function_state_is_only(0, &State::Waiting), "f_a should be Waiting");
         }
 
         #[test]
@@ -1280,7 +1292,7 @@ mod test {
             let f_a = super::test_function_a_init();
             let mut state = RunState::new(super::test_submission(vec![f_a]));
             state.init().expect("Could not init state");
-            assert!(state.function_state_is_only(0, State::Ready), "f_a should be Ready");
+            assert!(state.function_state_is_only(0, &State::Ready), "f_a should be Ready");
 
             // Event
             let job = state.get_next_job().expect("Couldn't get next job");
@@ -1296,13 +1308,13 @@ mod test {
             let f_a = test_function_a_not_init();
             let mut state = RunState::new(super::test_submission(vec![f_a]));
             state.init().expect("Could not init state");
-            assert!(state.function_state_is_only(0, State::Waiting), "f_a should be Waiting");
+            assert!(state.function_state_is_only(0, &State::Waiting), "f_a should be Waiting");
 
             // Event
             assert!(state.get_next_job().is_none(), "next_job() should return None");
 
             // Test
-            assert!(state.function_state_is_only(0, State::Waiting), "f_a should be Waiting");
+            assert!(state.function_state_is_only(0, &State::Waiting), "f_a should be Waiting");
         }
 
         fn test_job() -> Job {
@@ -1310,7 +1322,7 @@ mod test {
                 function_id: 0,
                 flow_id: 0,
                 connections: vec![],
-                payload: JobPayload {
+                payload: Payload {
                     job_id: 1,
                     implementation_url: Url::parse("file://test").expect("Could not parse Url"),
                     input_set: vec![json!(1)],
@@ -1346,7 +1358,7 @@ mod test {
                 let mut debugger = super::dummy_debugger(&mut server);
 
             state.init().expect("Could not init state");
-            assert!(state.function_state_is_only(0, State::Ready), "f_a should be Ready");
+            assert!(state.function_state_is_only(0, &State::Ready), "f_a should be Ready");
             let job = state.get_next_job().expect("Couldn't get next job");
             assert_eq!(0, job.function_id, "get_next_job() should return function_id = 0");
             state.start_job(job.clone()).expect("Could not start job");
@@ -1365,7 +1377,7 @@ mod test {
 
             // Test
             assert!(
-                state.function_state_is_only(0, State::Ready),
+                state.function_state_is_only(0, &State::Ready),
                 "f_a should be Ready again"
             );
         }
@@ -1385,7 +1397,7 @@ mod test {
                 let mut debugger = super::dummy_debugger(&mut server);
 
             state.init().expect("Could not init state");
-            assert!(state.function_state_is_only(0, State::Ready), "f_a should be Ready");
+            assert!(state.function_state_is_only(0, &State::Ready), "f_a should be Ready");
             let job = state.get_next_job().expect("Couldn't get next job");
             assert_eq!(0, job.function_id, "next() should return function_id = 0");
             state.start_job(job.clone()).expect("Could not start job");
@@ -1403,7 +1415,7 @@ mod test {
             ).expect("Problem retiring job");
 
             // Test
-            assert!(state.function_state_is_only(0, State::Waiting),
+            assert!(state.function_state_is_only(0, &State::Waiting),
                     "f_a should be Waiting again"
             );
         }
@@ -1444,7 +1456,7 @@ mod test {
                 let mut debugger = super::dummy_debugger(&mut server);
 
             state.init().expect("Could not init state");
-            assert!(state.function_state_is_only(0, State::Waiting), "f_a should be Waiting");
+            assert!(state.function_state_is_only(0, &State::Waiting), "f_a should be Waiting");
 
             // Event run f_b which will send to f_a
             let job = super::test_job(1, 0);
@@ -1459,7 +1471,7 @@ mod test {
             ).expect("Problem retiring job");
 
             // Test
-            assert!(state.function_state_is_only(0, State::Ready), "f_a should be Ready");
+            assert!(state.function_state_is_only(0, &State::Ready), "f_a should be Ready");
         }
 
         /*
@@ -1503,9 +1515,9 @@ mod test {
 
             state.init().expect("Could not init state");
 
-            assert!(state.function_state_is_only(1, State::Ready), "f_b should be Ready");
+            assert!(state.function_state_is_only(1, &State::Ready), "f_b should be Ready");
             assert!(
-                state.function_state_is_only(0, State::Waiting),
+                state.function_state_is_only(0, &State::Waiting),
                 "f_a should be in Waiting"
             );
 
@@ -1522,7 +1534,7 @@ mod test {
             ).expect("Problem retiring job");
 
             // Test
-            assert!(state.function_state_is_only(0, State::Ready), "f_a should be Ready");
+            assert!(state.function_state_is_only(0, &State::Ready), "f_a should be Ready");
         }
     }
 
@@ -1629,7 +1641,7 @@ mod test {
             let state = RunState::new(super::test_submission(test_functions()));
             let got = state.get_function(1)
                 .ok_or("Could not get function by id").expect("Could not get function with that id");
-            assert_eq!(got.id(), 1)
+            assert_eq!(got.id(), 1);
         }
 
         #[test]
@@ -1720,8 +1732,7 @@ mod test {
             assert!(state.get_next_job().is_none());
 
             // now unblock 0 by 1
-            state.block_external_flow_senders(0, 1, 0)
-                .expect("Could not unblock");
+            state.block_external_flow_senders(0, 1, 0);
 
             // Now function with id 0 should still not be ready as still blocked on 2
             assert!(state.get_next_job().is_none());

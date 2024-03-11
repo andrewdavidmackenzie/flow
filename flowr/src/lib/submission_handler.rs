@@ -1,4 +1,4 @@
-use flowcore::errors::*;
+use flowcore::errors::Result;
 #[cfg(feature = "metrics")]
 use flowcore::model::metrics::Metrics;
 use flowcore::model::submission::Submission;
@@ -28,5 +28,8 @@ pub trait SubmissionHandler {
     fn wait_for_submission(&mut self) -> Result<Option<Submission>>;
 
     /// The [Coordinator][crate::coordinator::Coordinator] is about to exit
+    /// # Errors
+    ///
+    /// Will return `Err` if this cannot be communicated to the client
     fn coordinator_is_exiting(&mut self, result: Result<()>) -> Result<()>;
 }

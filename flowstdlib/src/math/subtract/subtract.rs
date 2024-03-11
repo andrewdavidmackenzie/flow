@@ -2,7 +2,7 @@ use serde_json::{json, Value};
 use serde_json::Value::Number;
 
 use flowcore::{RUN_AGAIN, RunAgain};
-use flowcore::errors::*;
+use flowcore::errors::Result;
 use flowmacro::flow_function;
 
 #[flow_function]
@@ -30,7 +30,7 @@ fn _subtract(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
             if let Some(b_f64) = b.as_f64() {
                 let result = a_f64 - b_f64;
                 if let Some(f) = serde_json::Number::from_f64(result) {
-                    value = Some(Value::Number(f))
+                    value = Some(Value::Number(f));
                 }
             }
         };

@@ -8,8 +8,8 @@ use log::{debug, info};
 use serde_derive::{Deserialize, Serialize};
 use url::Url;
 
-use crate::deserializers::deserializer::get_deserializer;
-use crate::errors::*;
+use crate::deserializers::deserializer::get;
+use crate::errors::{Result, ResultExt};
 use crate::Implementation;
 use crate::model::metadata::MetaData;
 use crate::provider::Provider;
@@ -59,7 +59,7 @@ pub struct LibraryManifest {
     /// the `locators` map a lib reference to a `ImplementationLocator` for a function or flow
     /// that can be used to load it or reference it.
     pub locators: BTreeMap<Url, ImplementationLocator>,
-    /// source_files is a map of:
+    /// `source_files` is a map of:
     /// Key: lib reference for functions or flows, as used in locators
     /// Value: Url where the source file it was derived from is located
     #[serde(default)]
@@ -68,6 +68,7 @@ pub struct LibraryManifest {
 
 impl LibraryManifest {
     /// Create a new, empty, `LibraryManifest` with the provided `Metadata`
+    #[must_use]
     pub fn new(lib_url: Url, metadata: MetaData) -> Self {
         LibraryManifest {
             lib_url,
@@ -100,7 +101,7 @@ impl LibraryManifest {
         let url = resolved_url.clone();
         let content = String::from_utf8(manifest_content)
             .chain_err(|| "Could not convert from utf8 to String")?;
-        let deserializer = get_deserializer::<LibraryManifest>(&resolved_url)?;
+        let deserializer = get::<LibraryManifest>(&resolved_url)?;
         let manifest = deserializer
             .deserialize(&content, Some(&resolved_url))
             .chain_err(|| format!("Could not create a LibraryManifest from '{resolved_url}'"))?;
@@ -139,14 +140,15 @@ impl LibraryManifest {
         self.source_urls.insert(
             implementation_path_relative.to_owned(),
             Url::from_file_path(implementation_source_path)
-                .map_err(|_| "Could not create Url from file path")?,
+                .map_err(|()| "Could not create Url from file path")?,
         );
 
         Ok(())
     }
 
-    /// Given an output directory, return a PathBuf to the json format manifest that should be
+    /// Given an output directory, return a `PathBuf` to the json format manifest that should be
     /// generated inside it
+    #[must_use]
     pub fn manifest_filename(base_dir: &Path) -> PathBuf {
         let mut filename = base_dir.to_path_buf();
         filename.push(DEFAULT_LIB_JSON_MANIFEST_FILENAME);
@@ -180,7 +182,7 @@ impl PartialEq for LibraryManifest {
             return false;
         }
 
-        for locator in self.locators.iter() {
+        for locator in &self.locators {
             // try and find locator with the same key in the other HashMap
             if let Some(other_impl_locator) = other.locators.get(locator.0) {
                 if *other_impl_locator != *locator.1 {
@@ -210,6 +212,7 @@ mod test {
     use crate::model::metadata::MetaData;
     use crate::provider::Provider;
 
+    #[allow(clippy::module_name_repetitions)]
     pub struct TestProvider {
         test_content: &'static str,
     }
@@ -290,8 +293,8 @@ mod test {
     #[test]
     fn serialize() {
         let metadata = MetaData {
-            name: "".to_string(),
-            description: "".into(),
+            name: String::new(),
+            description: String::new(),
             version: "0.1.0".into(),
             authors: vec![],
         };
@@ -352,7 +355,7 @@ mod test {
             .expect("Could not get locator for Url");
         match locator {
             RelativePath(source) => assert_eq!(source, "add2.wasm"),
-            _ => panic!("Expected type 'Wasm' but found another type"),
+            Native(_) => panic!("Expected type 'Wasm' but found another type"),
         }
     }
 

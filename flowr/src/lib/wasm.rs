@@ -8,7 +8,7 @@ use url::Url;
 use wasmtime::{Func, Instance, Memory, Module, Store, Val};
 
 use flowcore::{Implementation, RunAgain};
-use flowcore::errors::*;
+use flowcore::errors::{Result, ResultExt, bail};
 use flowcore::provider::Provider;
 
 const DEFAULT_WASM_FILENAME: &str = "module";
@@ -16,7 +16,7 @@ const DEFAULT_WASM_FILENAME: &str = "module";
 const MAX_RESULT_SIZE: i32 = 1024;
 
 #[derive(Debug)]
-pub struct WasmExecutor {
+pub struct Executor {
     store: Arc<Mutex<Store<()>>>,
     memory: Memory,
     implementation: Func,
@@ -24,7 +24,7 @@ pub struct WasmExecutor {
     source_url: Url,
 }
 
-impl WasmExecutor {
+impl Executor {
     // Serialize the inputs into JSON and then write them into the linear memory for WASM to read
     // Return the offset of the data in linear memory and the data size in bytes
     fn send_inputs(&self, store: &mut Store<()>, inputs: &[Value]) -> Result<(i32, i32)> {
@@ -99,7 +99,7 @@ impl WasmExecutor {
 }
 
 
-impl Implementation for WasmExecutor {
+impl Implementation for Executor {
     fn run(&self, inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
         let mut store = self.store.lock().map_err(|_| "Could not lock WASM store")?;
         let (offset, length) = self.send_inputs(&mut store, inputs)?;
@@ -108,8 +108,8 @@ impl Implementation for WasmExecutor {
     }
 }
 
-/// load a Wasm module from the specified Url and return it wrapped in a WasmExecutor `Implementation`
-pub fn load(provider: &dyn Provider, source_url: &Url) -> Result<WasmExecutor> {
+/// load a Wasm module from the specified Url and return it wrapped in a `WasmExecutor` `Implementation`
+pub fn load(provider: &dyn Provider, source_url: &Url) -> Result<Executor> {
     trace!("Attempting to load WASM module from '{}'", source_url);
     let (resolved_url, _) = provider
         .resolve_url(source_url, DEFAULT_WASM_FILENAME, &["wasm"])
@@ -137,7 +137,7 @@ pub fn load(provider: &dyn Provider, source_url: &Url) -> Result<WasmExecutor> {
 
     info!("Loaded wasm module from: '{source_url}'");
 
-    Ok(WasmExecutor {
+    Ok(Executor {
         store: Arc::new(Mutex::new(store)),
         memory,
         implementation,

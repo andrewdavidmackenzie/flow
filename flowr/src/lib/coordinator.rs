@@ -218,7 +218,7 @@ impl<'a> Coordinator<'a> {
                     )?;
                     #[cfg(feature = "debugger")]
                     if display_next_output {
-                        (display_next_output, restart) = self.debugger.job_done(state, &job)?;
+                        (display_next_output, restart) = self.debugger.job_done(state, &job);
                         if restart {
                             return Ok((display_next_output, restart));
                         }

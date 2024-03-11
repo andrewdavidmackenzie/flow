@@ -161,7 +161,7 @@ fn coordinator(
     let ports = get_four_ports()?;
     trace!("Announcing three job queues and a control socket on ports: {ports:?}");
     let job_queues = get_bind_addresses(ports);
-    let dispatcher = Dispatcher::new(job_queues)?;
+    let dispatcher = Dispatcher::new(&job_queues)?;
     enable_service_discovery(JOB_QUEUES_DISCOVERY_PORT, JOB_SERVICE_NAME, ports.0)?;
     enable_service_discovery(JOB_QUEUES_DISCOVERY_PORT, RESULTS_JOB_SERVICE_NAME, ports.2)?;
     enable_service_discovery(JOB_QUEUES_DISCOVERY_PORT, CONTROL_SERVICE_NAME, ports.3)?;
@@ -175,7 +175,7 @@ fn coordinator(
     // references will be resolved and those libraries (WASM implementations) will be loaded at runtime
     if coordinator_settings.native_flowstdlib {
         executor.add_lib(
-            flowstdlib::manifest::get_manifest()
+            flowstdlib::manifest::get()
                 .chain_err(|| "Could not get 'native' flowstdlib manifest")?,
             Url::parse("memory://")? // Statically linked library has no resolved Url
         )?;

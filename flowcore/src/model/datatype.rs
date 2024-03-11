@@ -8,7 +8,7 @@ use std::str::FromStr;
 
 use serde::de;
 use serde::de::Deserializer;
-use crate::errors::*;
+use crate::errors::{Error, Result};
 use crate::model::route::Route;
 
 /// Generic type is represented as an empty string
@@ -51,7 +51,12 @@ impl FromStr for DataType {
     }
 }
 
-/// A custom deserializer for a String or a Sequence of Strings for DataTypes
+/// A custom deserializer for a String or a Sequence of Strings for `DataTypes`
+///
+/// # Errors
+///
+/// Will return `Err` if deserialization fails
+#[allow(clippy::module_name_repetitions)]
 pub fn datatype_or_datatype_array<'de, D>(deserializer: D) -> std::result::Result<Vec<DataType>, D::Error>
     where
         D: Deserializer<'de>,
@@ -131,6 +136,10 @@ pub trait HasDataTypes {
 
 impl DataType {
     /// Determine if a datatype specified in a flow is a valid datatype or not
+    ///
+    /// # Errors
+    ///
+    /// Will return `Err` if `self.string` does not describe a valid `DataType`
     pub fn valid(&self) -> Result<()> {
         if self.string.is_empty() {  // generic type
             return Ok(());
@@ -148,17 +157,19 @@ impl DataType {
     }
 
     /// Return if this datatype is an array or not
+    #[must_use]
     pub fn is_array(&self) -> bool {
         self.string.starts_with(ARRAY_TYPE)
     }
 
     /// Return true if this datatype is generic (not specified at compile time and can contain
     /// any other datatype) or not
+    #[must_use]
     pub fn is_generic(&self) -> bool {
         self.string.is_empty()
     }
 
-    /// If an Array --> Return Option of the [DataType] the array holds
+    /// If an Array --> Return Option of the `DataType` the array holds
     /// If Generic  --> Return Generic
     /// If not an Array --> Return None
     pub fn array_type(&self) -> Option<DataType> {
@@ -196,11 +207,12 @@ impl DataType {
         }
     }
 
-    /// Determine how deeply nested in arrays this [DataType] is.
+    /// Determine how deeply nested in arrays this `DataType` is.
     /// If not an array, returns 0
     ///
     /// This is used at compile time by the compiler to determine the array order
     /// of an input or output
+    #[must_use]
     pub fn type_array_order(&self) -> i32 {
         // Avoid recursing into array type if Generic (see array_type above)
         if self.is_generic() {
@@ -212,11 +224,12 @@ impl DataType {
         }
     }
 
-    /// Determine how deeply nested in arrays this [serde_json::value::Value] is.
+    /// Determine how deeply nested in arrays this `serde_json::value::Value` is.
     /// If not an array, returns 0
     ///
     /// This is used at run time to determine the array order of
     /// an actual value being processed
+    #[must_use]
     pub fn value_array_order(value: &Value) -> i32 {
         match value {
             Value::Array(array) if !array.is_empty() => {
@@ -232,8 +245,13 @@ impl DataType {
     }
 
     /// For a set of output types to be compatible with a destination's set of types
-    /// ALL of the output_types must have a compatible input type, to guarantee that any
+    /// ALL of the `output_types` must have a compatible input type, to guarantee that any
     /// of the valid types produced can be handled by the destination
+    ///
+    /// # Errors
+    ///
+    /// Will return `Err` if the `from` or `to` arrays of `DataType` are empty, or if the
+    /// types of the two `IO` are incompatible
     pub fn compatible_types(from: &[DataType], to: &[DataType], from_subroute: &Route) -> Result<()> {
         if from.is_empty() || to.is_empty() {
             bail!("Either from or to IO does nopt specify any types")
@@ -434,13 +452,13 @@ mod test {
         ///
         /// ## {type} being sent
         ///   Value Type   Input Type
-        /// * {type}   --> {type} (is_array = false) - input and sent to the function as an array
-        /// * {type}   --> array (is_array = true)   - {type} will be converted to a one element array
+        /// * {type}   --> {type} (`is_array` = false) - input and sent to the function as an array
+        /// * {type}   --> array (`is_array` = true)   - {type} will be converted to a one element array
         ///
         /// ## array of {type} being sent
         ///   Value Type        Input Type
-        /// * array/{type}  --> array (is_array = true)
-        /// * array/{type}  --> object (is_array = false) - values in Array will be serialized
+        /// * array/{type}  --> array (`is_array` = true)
+        /// * array/{type}  --> object (`is_array` = false) - values in Array will be serialized
         ///                     and sent to input one by one)
 
         #[test]
@@ -574,7 +592,7 @@ mod test {
             (format!("{OBJECT_TYPE}/{STRING_TYPE}"), STRING_TYPE.into(), ""),
             ];
 
-            for test in invalid_type_conversions.iter() {
+            for test in invalid_type_conversions {
                 assert!(DataType::compatible_types(
                     &[DataType::from(&test.0 as &str)],
                     &[DataType::from(&test.1 as &str)],

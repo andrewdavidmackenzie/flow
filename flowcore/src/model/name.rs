@@ -1,11 +1,12 @@
 use error_chain::bail;
-use crate::errors::*;
+use crate::errors::Result;
 use crate::model::validation::Validate;
 
 /// `Name` is a String that names various types of objects
 pub type Name = String;
 
 /// Trait implemented by objects that have a Name
+#[allow(clippy::module_name_repetitions)]
 pub trait HasName {
     /// Return a reference to the name of the struct implementing this trait
     fn name(&self) -> &Name;
@@ -42,9 +43,7 @@ mod test {
     #[test]
     fn number_does_not_validate() {
         let name = Name::from("123");
-        if name.validate().is_ok() {
-            panic!();
-        }
+        assert!(name.validate().is_err());
     }
 
     #[test]

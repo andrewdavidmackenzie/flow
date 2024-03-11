@@ -4,7 +4,7 @@ use serde::Deserialize;
 use serde::de::DeserializeOwned;
 use url::Url;
 
-use crate::errors::*;
+use crate::errors::{Result, ResultExt};
 
 use super::deserializer::Deserializer;
 
@@ -21,7 +21,7 @@ impl<'a, T> TomlDeserializer<'a, T>
 where
     T: Deserialize<'a>,
 {
-    /// Create a new TomlDeserializer
+    /// Create a new `TomlDeserializer`
     pub fn new() -> Self {
         TomlDeserializer { t: PhantomData }
     }
@@ -35,7 +35,7 @@ where
         toml::from_str(contents).chain_err(|| {
             format!(
                 "Error deserializing Toml from: '{}'",
-                url.map_or("URL was None".to_owned(), |u| u.to_string())
+                url.map_or("URL was None".to_owned(), std::string::ToString::to_string)
             )
         })
     }
@@ -57,6 +57,7 @@ mod test {
 
     #[derive(Serialize, Deserialize, Debug, Clone)]
     #[serde(untagged)]
+    #[allow(clippy::module_name_repetitions)]
     pub enum TestStruct {
         /// The process is actually a `Flow`
         FlowProcess(String),
@@ -67,9 +68,8 @@ mod test {
     #[test]
     fn invalid_toml() {
         let toml = TomlDeserializer::<TestStruct>::new();
-        if toml.deserialize("{}}}}f fake data ", None).is_ok() {
-            panic!("Should not have parsed correctly as is invalid TOML");
-        };
+        assert!(toml.deserialize("{}}}}f fake data ", None).is_err(),
+            "Should not have parsed correctly as is invalid TOML");
     }
 
     #[test]

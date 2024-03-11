@@ -7,14 +7,14 @@ use std::thread::JoinHandle;
 use log::{debug, error, info, trace};
 use url::Url;
 
-use flowcore::errors::*;
+use flowcore::errors::{Result, ResultExt, bail};
 use flowcore::Implementation;
 use flowcore::model::lib_manifest::{
     ImplementationLocator::Native, ImplementationLocator::RelativePath, LibraryManifest,
 };
 use flowcore::provider::Provider;
 
-use crate::job::JobPayload;
+use crate::job::Payload;
 use crate::wasm;
 
 /// An `Executor` struct is used to receive jobs, execute them and return results.
@@ -84,7 +84,7 @@ impl Executor {
                 if let Err(e) = execution_loop(
                     thread_provider,
                     format!("Executor #{executor_number}"),
-                    thread_context,
+                    &thread_context,
                     thread_implementations,
                     thread_loaded_manifests,
                     job_source,
@@ -109,7 +109,7 @@ impl Executor {
 fn execution_loop(
     provider: Arc<dyn Provider>,
     name: String,
-    context: zmq::Context,
+    context: &zmq::Context,
     loaded_implementations: Arc<RwLock<HashMap<Url, Arc<dyn Implementation>>>>,
     loaded_lib_manifests: Arc<RwLock<HashMap<Url, (LibraryManifest, Url)>>>,
     job_service: String,
@@ -149,7 +149,7 @@ fn execution_loop(
                 if items.first().ok_or("Could not get poll item 0")?.is_readable() {
                     let msg = job_source.recv_msg(0).map_err(|_| "Error receiving Job for execution")?;
                     let message_string = msg.as_str().ok_or("Could not get message as str")?;
-                    let payload: JobPayload = serde_json::from_str(message_string)
+                    let payload: Payload = serde_json::from_str(message_string)
                         .map_err(|_| "Could not deserialize Message to Job")?;
 
                     debug!("Job #{}: Received by {}", payload.job_id, name);
@@ -201,7 +201,7 @@ fn set_panic_hook() {
 // Return Ok(keep_processing) flag as true or false to keep processing
 fn execute_job(
     provider: Arc<dyn Provider>,
-    payload: &JobPayload,
+    payload: &Payload,
     results_sink: &zmq::Socket,
     name: &str,
     loaded_implementations: Arc<RwLock<HashMap<Url, Arc<dyn Implementation>>>>,
@@ -217,7 +217,7 @@ fn execute_job(
                 let mut lib_root_url = payload.implementation_url.clone();
                 lib_root_url.set_path("");
                 load_referenced_implementation(provider,
-                                               lib_root_url,
+                                               &lib_root_url,
                                                loaded_lib_manifests,
                                                &payload.implementation_url)?
             },
@@ -226,7 +226,7 @@ fn execute_job(
                 let _ = lib_root_url.set_host(Some(""));
                 lib_root_url.set_path("");
                 load_referenced_implementation(provider,
-                                               lib_root_url,
+                                               &lib_root_url,
                                                loaded_lib_manifests,
                                                &payload.implementation_url)?
             },
@@ -253,11 +253,12 @@ fn execute_job(
 // Load a context or library implementation
 fn load_referenced_implementation(
     provider: Arc<dyn Provider>,
-    lib_root_url: Url,
+    lib_root_url: &Url,
     loaded_lib_manifests: Arc<RwLock<HashMap<Url, (LibraryManifest, Url)>>>,
     implementation_url: &Url
 ) -> Result<Arc<dyn Implementation>> {
-    let (lib_manifest, resolved_lib_url) = get_lib_manifest_tuple(provider.clone(), loaded_lib_manifests, &lib_root_url)?;
+    let (lib_manifest, resolved_lib_url) =
+        get_lib_manifest_tuple(provider.clone(), loaded_lib_manifests, lib_root_url)?;
 
     let locator = lib_manifest
         .locators
@@ -322,7 +323,7 @@ mod test {
     use flowcore::model::metadata::MetaData;
     use flowcore::provider::Provider;
 
-    use crate::job::{Job, JobPayload};
+    use crate::job::{Job, Payload};
 
     use super::Executor;
 
@@ -335,6 +336,7 @@ mod test {
         }
     }
 
+    #[allow(clippy::module_name_repetitions)]
     pub struct TestProvider {
         test_content: &'static str,
     }
@@ -357,7 +359,7 @@ mod test {
     #[test]
     fn test_constructor() {
         let executor = Executor::new();
-        assert!(executor.is_ok())
+        assert!(executor.is_ok());
     }
 
     #[test]
@@ -379,7 +381,7 @@ mod test {
             function_id: 1,
             flow_id: 0,
             connections: vec![],
-            payload: JobPayload {
+            payload: Payload {
                 job_id: 0,
                 input_set: vec![],
                 implementation_url: Url::parse("lib://flowstdlib/math/add").expect("Could not parse Url"),
@@ -391,7 +393,7 @@ mod test {
             function_id: 1,
             flow_id: 0,
             connections: vec![],
-            payload: JobPayload {
+            payload: Payload {
                 job_id: 0,
                 input_set: vec![],
                 implementation_url: Url::parse("context://stdio/stdout").expect("Could not parse Url"),
@@ -403,7 +405,7 @@ mod test {
             function_id: 1,
             flow_id: 0,
             connections: vec![],
-            payload: JobPayload {
+            payload: Payload {
                 job_id: 0,
                 input_set: vec![],
                 implementation_url: Url::parse("file://fake/path").expect("Could not parse Url"),

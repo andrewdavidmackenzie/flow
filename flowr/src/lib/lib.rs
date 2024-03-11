@@ -1,8 +1,8 @@
 //! `flowrlib` is the runtime library for flow execution. This can be used to produce a flow runner,
 //! such as the `flowr` command line runner.
 //!
-//! It is responsible for reading a flow's compiled [FlowManifest][flowcore::model::flow_manifest::FlowManifest],
-//! loading the required libraries using [LibraryManifests][flowcore::model::lib_manifest::LibraryManifest]
+//! It is responsible for reading a flow's compiled `FlowManifest``flowcore::model::flow_manifest::FlowManifest`,
+//! loading the required libraries using `LibraryManifests``flowcore::model::lib_manifest::LibraryManifest`
 //! files and then coordinating the execution of [functions][flowcore::model::runtime_function::RuntimeFunction]
 //! by dispatching [Jobs][job::Job] (that include a reference to the function's
 //! [Implementations][flowcore::Implementation] and the input values required to run) then
@@ -16,7 +16,7 @@ pub mod block;
 pub mod coordinator;
 
 #[cfg(feature = "debugger")]
-/// Provides the [DebugCommand][debug_command::DebugCommand] enum for commands from debug client to debug server
+/// Provides the `DebugCommand`[debug_command::DebugCommand] enum for commands from debug client to debug server
 pub mod debug_command;
 
 /// Provides [Dispatcher][dispatcher::Dispatcher] used by the [Coordinator][coordinator::Coordinator]
@@ -36,12 +36,12 @@ pub mod info;
 /// Provides [Job][job::Job] that holds jobs before and after their execution
 pub mod job;
 
-/// The [SubmissionHandler][submission_handler::SubmissionHandler] trait defines  methods a client
+/// The `SubmissionHandler`[submission_handler::SubmissionHandler] trait defines  methods a client
 /// must implement in order to handle submissions from a client
 #[cfg(feature = "submission")]
 pub mod submission_handler;
 
-/// The [DebuggerHandler][debugger_handler::DebuggerHandler] trait defines methods a a client must
+/// The `DebuggerHandler` `debugger_handler::DebuggerHandler` trait defines methods a a client must
 /// implement in order to handle the interaction between a client and the debugger (in the Coordinator)
 #[cfg(feature = "debugger")]
 pub mod debugger_handler;

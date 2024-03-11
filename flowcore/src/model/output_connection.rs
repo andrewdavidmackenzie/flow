@@ -30,7 +30,7 @@ pub struct OutputConnection {
     pub destination_id: usize,
     /// `io_number` is the IO number the connection is connected to on the destination function
     pub destination_io_number: usize,
-    /// `flow_id` is the flow_id of the target function
+    /// `flow_id` is the `flow_id` of the target function
     pub destination_flow_id: usize,
     /// `destination` is the full route to the destination input
     #[serde(default, skip_serializing_if = "String::is_empty")]
@@ -49,13 +49,14 @@ fn is_default_source(source: &Source) -> bool {
 
 impl Default for Source {
     fn default() -> Self {
-        Self::Output("".into())
+        Self::Output(String::new())
     }
 }
 
 impl OutputConnection {
     /// Create a new `OutputConnection`
     #[allow(clippy::too_many_arguments)]
+    #[must_use]
     pub fn new(
         source: Source,
         destination_id: usize,

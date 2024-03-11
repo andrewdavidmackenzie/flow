@@ -3,7 +3,7 @@ use std::fmt::Write as FormatWrite;
 use std::hash::{Hash, Hasher};
 use std::io::Write;
 use std::ops::Add;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::process::Command;
 
 use log::{debug, info};
@@ -22,7 +22,7 @@ use flowcore::model::route::{HasRoute, Route};
 use flowcore::provider::Provider;
 
 use crate::dumper::create_output_file;
-use crate::errors::*;
+use crate::errors::{Result, bail};
 
 pub(crate) static INPUT_PORTS: &[&str] = &["n", "ne", "nw", "w"];
 pub(crate) static OUTPUT_PORTS: &[&str] = &["s", "se", "sw", "e"];
@@ -89,7 +89,7 @@ pub fn generate_svgs(root_dir: &Path, delete_dots: bool) -> Result<()> {
                 debug!(".dot.svg successfully generated from {path_name}");
                 if delete_dots {
 //                    std::fs::remove_file(path)?;
-                    debug!("Source file {path_name} was removed after SVG generation")
+                    debug!("Source file {path_name} was removed after SVG generation");
                 }
             } else {
                 bail!("Error executing 'dot'");
@@ -113,7 +113,7 @@ fn _dump_flow(
     provider: &dyn Provider
 ) -> Result<()> {
     let file_path = flow.source_url.to_file_path()
-        .map_err(|_| "Could not get file_stem of flow definition filename")?;
+        .map_err(|()| "Could not get file_stem of flow definition filename")?;
     let filename = file_path
         .file_stem()
         .ok_or("Could not get file_stem of flow definition filename")?
@@ -226,42 +226,42 @@ fn output_set_to_dot(output_set: &IOSet, from: &Route, connect_subflow: bool) ->
 
 fn process_references_to_dot(flow: &FlowDefinition) -> Result<String> {
     let mut contents = "\n\t// Process References\n".to_string();
-    let file_path = flow.source_url.to_file_path().map_err(|_| "Could not convert Url to file path")?;
+    let file_path = flow.source_url.to_file_path().map_err(|()| "Could not convert Url to file path")?;
 
     for process_ref in &flow.process_refs {
         let process = flow.subprocesses.get(process_ref.alias())
             .ok_or("Could not find process named in process_ref")?;
         match process {
             FlowProcess(ref subflow) =>
-                contents.push_str(&subflow_to_dot(subflow, file_path.clone(),
+                contents.push_str(&subflow_to_dot(subflow, file_path.as_path(),
                                                   subflow.route())?),
             FunctionProcess(ref function) =>
-                contents.push_str(&subfunction_to_dot(function, file_path.clone())?),
+                contents.push_str(&subfunction_to_dot(function, file_path.as_path())?),
         }
     }
 
     Ok(contents)
 }
 
-fn subflow_to_dot(flow: &FlowDefinition, parent: PathBuf, flow_route: &Route) -> Result<String> {
+fn subflow_to_dot(flow: &FlowDefinition, parent: &Path, flow_route: &Route) -> Result<String> {
     let flow_source_path = flow.source_url.to_file_path()
-        .map_err(|_| "Could not convert flow's source_url to a File Path")?;
+        .map_err(|()| "Could not convert flow's source_url to a File Path")?;
     let relative_path = absolute_to_relative(&flow_source_path, parent)?;
     Ok(format!("\t\"{}\" [label=\"{}\", style=filled, fillcolor=aquamarine, width=2, height=2, URL=\"{relative_path}.dot.svg\"];\n",
                flow_route, flow.alias))
 }
 
-fn subfunction_to_dot(function: &FunctionDefinition, parent: PathBuf) -> Result<String> {
+fn subfunction_to_dot(function: &FunctionDefinition, parent: &Path) -> Result<String> {
     let mut dot_string = String::new();
 
     let name = if function.name() == function.alias() {
-        "".to_string()
+        String::new()
     } else {
         format!("\\n({})", function.name())
     };
 
     let function_source_path = function.get_source_url().to_file_path()
-        .map_err(|_| "Could not convert function's source_url to a File Path")?;
+        .map_err(|()| "Could not convert function's source_url to a File Path")?;
     let relative_path = absolute_to_relative(&function_source_path, parent)?;
 
     // modify path to point to the .html page that's built from .md to document the function
@@ -393,8 +393,7 @@ fn digraph_end() -> String {
 fn index_from_name<T: Hash>(t: &T, length: usize) -> usize {
     let mut s = DefaultHasher::new();
     t.hash(&mut s);
-    let index = s.finish() % length as u64;
-    index as usize
+    s.finish() as usize % length
 }
 
 fn input_name_to_port<T: Hash>(t: &T) -> Result<&str> {
@@ -408,7 +407,7 @@ pub(crate) fn output_name_to_port<T: Hash>(t: &T) -> Result<&str> {
 }
 
 // figure out a relative path to get to target from source
-fn absolute_to_relative(target: &Path, source: PathBuf) -> Result<String> {
+fn absolute_to_relative(target: &Path, source: &Path) -> Result<String> {
 //    println!("cargo:warning=source: {}", source.display());
 //    println!("cargo:warning=target: {}", target.display());
     let mut current_path = source.parent()
@@ -441,7 +440,7 @@ mod test {
         let target = Path::new("flowr/examples/mandlebrot/escapes/escapes.html");
         let parent = Path::new("flowr/examples/mandlebrot/render.dot.svg");
 
-        let relative = absolute_to_relative(target, parent.to_path_buf())
+        let relative = absolute_to_relative(target, parent)
             .expect("Could not form a relative path");
 
         assert_eq!(relative, "escapes/escapes.html");
@@ -454,7 +453,7 @@ mod test {
         let target = target_url.to_file_path().expect("Could not convert to file path");
         let parent = Path::new("/Users/andrew/workspace/flow/flowr/examples/mandlebrot/render.dot.svg");
 
-        let relative = absolute_to_relative(&target, parent.to_path_buf())
+        let relative = absolute_to_relative(&target, parent)
             .expect("Could not form a relative path");
 
         assert_eq!(relative, "escapes/escapes.html");
@@ -465,7 +464,7 @@ mod test {
         let target = Path::new("file:///Users/andrew/.flow/lib/flowstdlib/control/index_f.html");
         let parent = Path::new("file:///Users/andrew/workspace/flow/flowr/examples/mandlebrot/render.dot.svg");
 
-        let relative = absolute_to_relative(target, parent.to_path_buf())
+        let relative = absolute_to_relative(target, parent)
             .expect("Could not form a relative path");
 
         assert_eq!(relative, "../../../../../.flow/lib/flowstdlib/control/index_f.html");

@@ -56,7 +56,7 @@ fn main() {
 
             exit(1);
         }
-        Ok(_) => exit(0),
+        Ok(()) => exit(0),
     }
 }
 
@@ -91,7 +91,7 @@ fn start_executors(num_threads: usize) -> Result<()> {
 
         #[cfg(feature = "flowstdlib")]
         executor.add_lib(
-            flowstdlib::manifest::get_manifest()
+            flowstdlib::manifest::get()
                 .chain_err(|| "Could not get 'native' flowstdlib manifest")?,
             Url::parse("memory://")?
         )?;

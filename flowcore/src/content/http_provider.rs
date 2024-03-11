@@ -2,7 +2,7 @@ use curl::easy::{Easy2, Handler, WriteError};
 use log::debug;
 use url::Url;
 
-use crate::errors::*;
+use crate::errors::{Result, ResultExt, bail};
 use crate::provider::Provider;
 
 /// The `HttpProvider` implements the `Provider` trait and takes care of fetching content via http

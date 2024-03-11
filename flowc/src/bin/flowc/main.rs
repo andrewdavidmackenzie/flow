@@ -80,14 +80,14 @@ fn main() {
 
             exit(1);
         }
-        Ok(_) => exit(0),
+        Ok(()) => exit(0),
     }
 }
 
 /// For the lib provider, libraries maybe installed in multiple places in the file system.
 /// In order to find the content, a `FLOW_LIB_PATH` environment variable can be configured with a
 /// list of directories in which to look for the library in question.
-fn get_lib_search_path(search_path_additions: &[String]) -> Result<Simpath> {
+fn get_lib_search_path(search_path_additions: &[String]) -> Simpath {
     let mut lib_search_path = Simpath::new_with_separator("FLOW_LIB_PATH", ',');
 
     for addition in search_path_additions {
@@ -98,10 +98,10 @@ fn get_lib_search_path(search_path_additions: &[String]) -> Result<Simpath> {
     if lib_search_path.is_empty() {
         let home_dir = env::var("HOME")
             .unwrap_or_else(|_| "Could not get $HOME".to_string());
-        lib_search_path.add(&format!("{}/.flow/lib", home_dir))
+        lib_search_path.add(&format!("{home_dir}/.flow/lib"));
     }
 
-    Ok(lib_search_path)
+    lib_search_path
 }
 
 // Determine the type of compile to be done
@@ -113,7 +113,7 @@ fn compile_type(url: &Url) -> Result<CompileType> {
     match url.scheme() {
         "file" | "" => {
             let path = url.to_file_path()
-                .map_err(|_| "Could not get local file path for Url")?;
+                .map_err(|()| "Could not get local file path for Url")?;
 
             if path.exists() && path.is_file() {
                 let file_name = path.file_name().ok_or("Could not get file name")?;
@@ -149,8 +149,8 @@ fn compile_type(url: &Url) -> Result<CompileType> {
     a message to display to the user if all went OK
 */
 fn run() -> Result<()> {
-    let options = parse_args(get_matches())?;
-    let mut lib_search_path = get_lib_search_path(&options.lib_dirs)?;
+    let options = parse_args(&get_matches())?;
+    let mut lib_search_path = get_lib_search_path(&options.lib_dirs);
 
     let compile_type = compile_type(&options.source_url)?;
 
@@ -169,14 +169,14 @@ fn run() -> Result<()> {
             lib_search_path.add(&output_dir_parent);
             let provider = &MetaProvider::new(lib_search_path,
                                               PathBuf::default());
-            build_lib(&options, provider, output_dir).chain_err(|| "Could not build library")
+            build_lib(&options, provider, &output_dir).chain_err(|| "Could not build library")
         },
         CompileType::Runner(_) => {
             let output_dir = source_arg::get_output_dir(&options.source_url,
                                                         &options.output_dir,
                                                         compile_type)
                 .chain_err(|| "Could not get the output directory")?;
-            build_runner(&options, output_dir).chain_err(|| "Could not build runner")
+            build_runner(&options, &output_dir).chain_err(|| "Could not build runner")
         },
         CompileType::Flow => {
             let output_dir = source_arg::get_output_dir(&options.source_url,
@@ -185,14 +185,15 @@ fn run() -> Result<()> {
                 .chain_err(|| "Could not get the output directory")?;
 
             let runner_name = options.runner_name.as_ref().ok_or("Runner name was not specified")?;
-            let runner_dir = default_runner_dir(runner_name.to_string())?;
+            let runner_dir = default_runner_dir(&runner_name.to_string());
             let provider = &MetaProvider::new(lib_search_path, runner_dir);
-            compile_and_execute_flow(&options, provider, runner_name.to_string(), output_dir)
+            compile_and_execute_flow(&options, provider, runner_name, &output_dir)
         }
     }
 }
 
 // Parse the command line arguments using clap
+#[allow(clippy::too_many_lines)]
 fn get_matches() -> ArgMatches {
     let app = Command::new(env!("CARGO_PKG_NAME"))
         .version(env!("CARGO_PKG_VERSION"));
@@ -320,7 +321,7 @@ fn get_matches() -> ArgMatches {
 }
 
 // Parse the command line arguments
-fn parse_args(matches: ArgMatches) -> Result<Options> {
+fn parse_args(matches: &ArgMatches) -> Result<Options> {
     let default = String::from("error");
     let verbosity_option = matches.get_one::<String>("verbosity");
     let verbosity = verbosity_option.unwrap_or(&default);
@@ -338,25 +339,25 @@ fn parse_args(matches: ArgMatches) -> Result<Options> {
     let cwd = env::current_dir()
         .chain_err(|| "Could not get the current working directory")?;
     let cwd_url = Url::from_directory_path(cwd)
-        .map_err(|_| "Could not form a Url for the current working directory")?;
+        .map_err(|()| "Could not form a Url for the current working directory")?;
 
     let source_url = url_from_string(&cwd_url,
                                      matches.get_one::<String>("source_url")
-                                  .map(|s| s.as_str()))
+                                  .map(std::string::String::as_str))
         .chain_err(|| "Could not create a url for flow from the 'FLOW' command line parameter")?;
 
     let lib_dirs = if matches.contains_id("lib_dir") {
         matches
             .get_many::<String>("lib_dir")
             .chain_err(|| "Could not get the list of 'LIB_DIR' options specified")?
-            .map(|s| s.to_string())
+            .map(std::string::ToString::to_string)
             .collect()
     } else {
         vec![]
     };
 
     let flow_args = match matches.get_many::<String>("flow_args") {
-        Some(strings) => strings.map(|s| s.to_string()).collect(),
+        Some(strings) => strings.map(std::string::ToString::to_string).collect(),
         None => vec![]
     };
 
@@ -369,12 +370,12 @@ fn parse_args(matches: ArgMatches) -> Result<Options> {
         compile_only: matches.get_flag("compile"),
         debug_symbols: matches.get_flag("debug"),
         provided_implementations: matches.get_flag("provided"),
-        output_dir: matches.get_one::<String>("output").map(|s| s.to_string()),
-        stdin_file: matches.get_one::<String>("stdin").map(|s| s.to_string()),
+        output_dir: matches.get_one::<String>("output").map(std::string::ToString::to_string),
+        stdin_file: matches.get_one::<String>("stdin").map(std::string::ToString::to_string),
         lib_dirs,
         native_only: matches.get_flag("native"),
-        runner_name: matches.get_one::<String>("runner").map(|s| s.to_string()),
-        verbosity: verbosity_option.map(|s| s.to_string()),
+        runner_name: matches.get_one::<String>("runner").map(std::string::ToString::to_string),
+        verbosity: verbosity_option.map(std::string::ToString::to_string),
         optimize: matches.get_flag("optimize")
     })
 }

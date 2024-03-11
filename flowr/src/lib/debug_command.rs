@@ -2,7 +2,7 @@ use std::fmt;
 
 use serde_derive::{Deserialize, Serialize};
 
-/// Types of `Params` used in communications between the debugger and the debug_client
+/// Types of `Params` used in communications between the debugger and the `debug_client`
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug)]
 pub enum BreakpointSpec {
     /// All existing breakpoints
@@ -17,7 +17,7 @@ pub enum BreakpointSpec {
     Block((Option<usize>, Option<usize>)),
 }
 
-/// A Command sent by the debug_client to the debugger
+/// A Command sent by the `debug_client` to the debugger
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug)]
 pub enum DebugCommand {
     /// Acknowledge event processed correctly
@@ -40,11 +40,11 @@ pub enum DebugCommand {
     InspectFunction(usize),
     /// Inspect overall state
     Inspect,
-    /// Inspect an Input (function_id, input_number)
+    /// Inspect an Input (`function_id`, `input_number`)
     InspectInput(usize, usize),
-    /// Inspect an Output (function_id, sub-path)
+    /// Inspect an Output (`function_id`, `sub_path`)
     InspectOutput(usize, String),
-    /// Inspect a Block (optional source function_id, optional destination function_id)
+    /// Inspect a Block (optional source `function_id`, optional `destination_function_id`)
     InspectBlock(Option<usize>, Option<usize>),
     /// Invalid - used when deserialization goes wrong
     Invalid,

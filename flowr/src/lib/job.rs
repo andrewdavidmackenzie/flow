@@ -4,13 +4,13 @@ use serde_derive::{Deserialize, Serialize};
 use serde_json::Value;
 use url::Url;
 
-use flowcore::errors::*;
+use flowcore::errors::Result;
 use flowcore::model::output_connection::OutputConnection;
 use flowcore::RunAgain;
 
 /// Conatins the minimum amount of information required to execute a [Job] and return the result
 #[derive(Serialize, Deserialize, Clone)]
-pub struct JobPayload {
+pub struct Payload {
     /// Each `Job` has a unique id that increments as jobs are executed
     pub job_id: usize,
     /// The set of input values to be used by the function when executing this job
@@ -28,7 +28,7 @@ pub struct Job {
     /// The `id` of the nested flow (from root flow on down) there the function executing the job is
     pub flow_id: usize,
     /// the payload required to execute the job
-    pub payload: JobPayload,
+    pub payload: Payload,
     /// The result of the execution with the job_id, the optional output Value and if the function
     /// should be run again in the future
     pub result: Result<(Option<Value>, RunAgain)>,
@@ -45,7 +45,7 @@ impl fmt::Display for Job {
     }
 }
 
-impl fmt::Display for JobPayload {
+impl fmt::Display for Payload {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         writeln!(f, "Job #: {}", self.job_id)?;
         writeln!(f, "Implementation Url: {}", self.implementation_url)?;
@@ -62,7 +62,7 @@ mod test {
 
     use flowcore::model::datatype::ARRAY_TYPE;
 
-    use crate::job::JobPayload;
+    use crate::job::Payload;
 
     #[test]
     fn display_job_test() {
@@ -70,7 +70,7 @@ mod test {
             function_id: 1,
             flow_id: 0,
             connections: vec![],
-            payload: JobPayload {
+            payload: Payload {
                 job_id: 0,
                 input_set: vec![],
                 implementation_url: Url::parse("lib://flowstdlib/math/add").expect("Could not parse Url"),
@@ -86,7 +86,7 @@ mod test {
             function_id: 1,
             flow_id: 0,
             connections: vec![],
-            payload: JobPayload {
+            payload: Payload {
                 job_id: 0,
                 input_set: vec![],
                 implementation_url: Url::parse("lib://flowstdlib/math/add").expect("Could not parse Url"),
@@ -114,7 +114,7 @@ mod test {
             function_id: 1,
             flow_id: 0,
             connections: vec![],
-            payload: JobPayload {
+            payload: Payload {
                 job_id: 0,
                 input_set: vec![],
                 implementation_url: Url::parse("lib://flowstdlib/math/add").expect("Could not parse Url"),

@@ -158,9 +158,8 @@ fn connection_to_input_with_constant_initializer() {
         #[cfg(feature = "debugger")]
             let mut source_urls = BTreeMap::<String, Url>::new();
 
-        if compile::compile(flow, &output_dir, false, false, &mut source_urls).is_ok() {
-            panic!("Process should not have loaded due to connection to input with a constant initializer");
-        }
+        assert!(compile::compile(flow, &output_dir, false, false, &mut source_urls).is_err(),
+            "Process should not have loaded due to connection to input with a constant initializer");
     } else {
         panic!("Process loaded was not a flow");
     }
@@ -209,7 +208,7 @@ fn no_side_effects() {
                 Err(e) => assert_eq!("Flow has no side-effects", e.description()),
             }
         }
-        _ => panic!("Did not load a FlowProcess as expected")
+        FunctionProcess(_) => panic!("Did not load a FlowProcess as expected")
     }
 }
 
@@ -284,12 +283,11 @@ fn flow_input_propagated_back_out() {
             match compile::compile(&context, &output_dir, false, false,
                                    &mut source_urls) {
                 Ok(_tables) => {}
-                Err(error) => panic!("Couldn't compile the flow from test file at '{url}'\n{}",
-                                     error),
+                Err(error) => panic!("Couldn't compile the flow from test file at '{url}'\n{error}"),
             }
         },
         Ok(FunctionProcess(_)) => panic!("Unexpected compile result from test file at '{url}'"),
-        Err(error) => panic!("Couldn't parse the flow from test file at '{url}'.\n{}", error),
+        Err(error) => panic!("Couldn't parse the flow from test file at '{url}'.\n{error}"),
     }
 }
 
@@ -335,13 +333,11 @@ fn initialized_output_propagated() {
                     }
                 }
                 Err(error) => panic!(
-                    "Couldn't compile the flow from test file at '{url}'\n{}", error
-                ),
+                    "Couldn't compile the flow from test file at '{url}'\n{error}"),
             }
         }
         Ok(FunctionProcess(_)) => panic!("Unexpected compile result from test file at '{url}'"),
-        Err(error) => panic!("Couldn't parse the flow from test file at '{url}'.\n{}", error
-        ),
+        Err(error) => panic!("Couldn't parse the flow from test file at '{url}'.\n{error}"),
     }
 }
 
@@ -389,13 +385,11 @@ fn initialized_input_to_subflow() {
                     }
                 }
                 Err(error) => panic!(
-                    "Couldn't compile the flow from test file at '{url}'\n{}", error
-                ),
+                    "Couldn't compile the flow from test file at '{url}'\n{error}"),
             }
         }
         Ok(FunctionProcess(_)) => panic!("Unexpected compile result from test file at '{url}'"),
-        Err(error) => panic!("Couldn't parse the flow from test file at '{url}'.\n{}",
-                             error),
+        Err(error) => panic!("Couldn't parse the flow from test file at '{url}'.\n{error}"),
     }
 }
 

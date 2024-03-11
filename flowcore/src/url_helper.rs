@@ -1,7 +1,7 @@
 use log::info;
 use url::Url;
 
-use crate::errors::*;
+use crate::errors::{Result, ResultExt};
 
 /// Accept an optional string (URL or filename) and from it create an absolute path URL with correct
 /// scheme. This allows specifying of full URL (http, file etc) as well as file paths relative

@@ -196,9 +196,8 @@ impl DebugClient {
                                     .map_err(|_| "Could not add history line")?;
                                 self.last_command = line;
                                 return Ok(debugger_command);
-                            } else {
-                                self.last_command = "".into();
                             }
+                            self.last_command = "".into();
                         },
                         Err(e) => eprintln!("{e}")
                     }

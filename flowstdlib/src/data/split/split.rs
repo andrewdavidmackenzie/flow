@@ -1,7 +1,7 @@
 use serde_json::{json, Value};
 
 use flowcore::{RUN_AGAIN, RunAgain};
-use flowcore::errors::*;
+use flowcore::errors::Result;
 use flowmacro::flow_function;
 
 #[flow_function]
@@ -59,7 +59,7 @@ fn split(input: &str, separator: &str) -> Result<(Option<Vec<String>>, Option<St
     // try and find a separator from middle towards the end
     for point in middle..end {
         // cannot have separator at end
-        if text.get(point..point + 1).expect("Could not get text") == separator {
+        if text.get(point..=point).expect("Could not get text") == separator {
             return Ok((
                 Some(vec![
                     text.get(0..point).ok_or("Could not get points")?.to_string(),
@@ -72,7 +72,7 @@ fn split(input: &str, separator: &str) -> Result<(Option<Vec<String>>, Option<St
 
     // try and find a separator from middle backwards towards the start
     for point in (start..middle).rev() {
-        if text.get(point..point + 1).expect("Could not get text") == separator {
+        if text.get(point..=point).expect("Could not get text") == separator {
             // If we find one return the string upto that  point for further splitting, plus the string from
             // there to the end as a token
             return Ok((
@@ -196,7 +196,7 @@ mod test {
             }
 
             if let Some(split_values) = output.pointer("/partial") {
-                for value in split_values.as_array().expect("Could not get the Array from the output").iter() {
+                for value in split_values.as_array().expect("Could not get the Array from the output") {
                     input_strings.push(value.clone());
                 }
             }

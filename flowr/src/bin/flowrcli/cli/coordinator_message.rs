@@ -24,7 +24,7 @@ pub enum CoordinatorMessage {
     CoordinatorExiting(Result<()>),
 
     /// ** These messages are used to implement the context functions between the cli_runtime_server
-    /// that runs as part of the `Coordinator` and the cli_runtime_client that interacts with
+    /// that runs as part of the `Coordinator` and the `cli_runtime_client` that interacts with
     /// STDIO
     /// A String of contents was sent to stdout
     Stdout(String),
@@ -40,7 +40,7 @@ pub enum CoordinatorMessage {
     Read(String),
     /// A Request to write a series of bytes to a file
     Write(String, Vec<u8>),
-    /// A Request to write a pixel to an ImageBuffer
+    /// A Request to write a pixel to an `ImageBuffer`
     PixelWrite((u32, u32), (u8, u8, u8), (u32, u32), String),
     /// A Request to snd EOF to Stdout
     StdoutEof,
@@ -79,7 +79,7 @@ impl fmt::Display for CoordinatorMessage {
     }
 }
 
-/// A simple struct with File MetaData for passing from Client to Coordinator - std::fs::MetaData
+/// A simple struct with File `MetaData` for passing from Client to Coordinator - `std::fs::MetaData`
 /// Doesn't Serialize/Deserialize etc.
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone)]
 pub struct FileMetaData {
@@ -99,9 +99,9 @@ pub enum ClientMessage {
     /// Client requests that server enters the ddebugger at the next opportunity
     EnterDebugger,
 
-    /// ** These messages are used to implement the context functions between the cli_runtime_client
-    /// and the cli_runtime_server that runs as part of the `Coordinator`
-    /// Simple acknowledgement from Client to a ServerMessage
+    /// ** These messages are used to implement the context functions between the `cli_runtime_client`
+    /// and the `cli_runtime_server` that runs as part of the `Coordinator`
+    /// Simple acknowledgement from Client to a `ServerMessage`
     Ack,
     /// A String read from Stdin on Client, sent to the Server
     Stdin(String),
@@ -109,7 +109,7 @@ pub enum ClientMessage {
     Line(String),
     /// A Vector of Strings that are the flow's arguments from Client, sent to the Server
     Args(Vec<String>),
-    /// An Error occurred in the runtime_client
+    /// An Error occurred in the `runtime_client`
     Error(String),
     /// EOF was detected on input reading using Stdin
     GetStdinEof,

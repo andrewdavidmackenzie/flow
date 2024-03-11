@@ -52,26 +52,26 @@ impl HasRoute for Process {
 mod test {
     use url::Url;
 
-    use crate::deserializers::deserializer::get_deserializer;
+    use crate::deserializers::deserializer::get;
     use crate::errors::*;
     use crate::model::process::Process;
     use crate::model::process::Process::FlowProcess;
 
     fn toml_from_str(content: &str) -> Result<Process> {
         let url = Url::parse("file:///fake.toml").expect("Could not parse URL");
-        let deserializer = get_deserializer::<Process>(&url).expect("Could not get deserializer");
+        let deserializer = get::<Process>(&url).expect("Could not get deserializer");
         deserializer.deserialize(content, Some(&url))
     }
 
     fn yaml_from_str(content: &str) -> Result<Process> {
         let url = Url::parse("file:///fake.yaml").expect("Could not parse URL");
-        let deserializer = get_deserializer::<Process>(&url).expect("Could not get deserializer");
+        let deserializer = get::<Process>(&url).expect("Could not get deserializer");
         deserializer.deserialize(content, Some(&url))
     }
 
     fn json_from_str(content: &str) -> Result<Process> {
         let url = Url::parse("file:///fake.json").expect("Could not parse URL");
-        let deserializer = get_deserializer::<Process>(&url).expect("Could not get deserializer");
+        let deserializer = get::<Process>(&url).expect("Could not get deserializer");
         deserializer.deserialize(content, Some(&url))
     }
 
@@ -154,13 +154,10 @@ metadata:
         flow = 'test'
     ";
 
-        match toml_from_str(flow_description) {
-            Ok(FlowProcess(flow)) => {
-                assert_eq!(flow.metadata.version, String::default());
-                assert_eq!(flow.metadata.authors, Vec::<String>::default());
-            }
-            _ => panic!(),
-        }
+        if let Ok(FlowProcess(flow)) = toml_from_str(flow_description) {
+            assert_eq!(flow.metadata.version, String::default());
+            assert_eq!(flow.metadata.authors, Vec::<String>::default());
+        } else { panic!() }
     }
 
     #[test]

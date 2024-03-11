@@ -3,7 +3,7 @@ use std::fmt;
 use log::debug;
 use serde_derive::{Deserialize, Serialize};
 
-use crate::errors::*;
+use crate::errors::{Result, ResultExt};
 use crate::model::datatype::DataType;
 use crate::model::io::IO;
 use crate::model::name::Name;
@@ -96,11 +96,16 @@ impl Connection {
 
     /// Return the name
     #[cfg(feature = "debugger")]
+    #[must_use]
     pub fn name(&self) -> &Name {
         &self.name
     }
 
     /// Connect the `from_io` to the `to_io` inside a flow at level `level`, if they are compatible
+    ///
+    /// # Errors
+    ///
+    /// Will return `Err` if the source and destinations do not have any compatible types
     pub fn connect(&mut self, from_io: IO, to_io: IO, level: usize) -> Result<()> {
         // are we selecting from a sub-route of an IO, such as an array index or element of output object?
         // TODO this requires the accumulation of the subroute to be done during connection building #1192
@@ -125,36 +130,41 @@ impl Connection {
     }
 
     /// Return the `from` Route specified in this connection
+    #[must_use]
     pub fn from(&self) -> &Route {
         &self.from
     }
 
-    /// Return a reference to the from_io
+    /// Return a reference to the `from_io`
+    #[must_use]
     pub fn from_io(&self) -> &IO {
         &self.from_io
     }
 
-    /// Return a mutable reference to the from_io
+    /// Return a mutable reference to the `from_io`
     pub fn from_io_mut(&mut self) -> &mut IO {
         &mut self.from_io
     }
 
     /// Return the `to` Route specified in this connection
+    #[must_use]
     pub fn to(&self) -> &Vec<Route> {
         &self.to
     }
 
-    /// Return a reference to the to_io
+    /// Return a reference to the `to_io`
+    #[must_use]
     pub fn to_io(&self) -> &IO {
         &self.to_io
     }
 
-    /// Return a mutable reference to the to_io
+    /// Return a mutable reference to the `to_io`
     pub fn to_io_mut(&mut self) -> &mut IO {
         &mut self.to_io
     }
 
     /// Get at what level in the flow hierarchy this connection exists (source)
+    #[must_use]
     pub fn level(&self) -> usize {
         self.level
     }
@@ -165,7 +175,7 @@ impl Connection {
 mod test {
     use url::Url;
 
-    use crate::deserializers::deserializer::get_deserializer;
+    use crate::deserializers::deserializer::get;
     use crate::errors::*;
     use crate::model::validation::Validate;
 
@@ -174,7 +184,7 @@ mod test {
     fn toml_from_str(content: &str) -> Result<Connection> {
         let url = Url::parse("file:///fake.toml").expect("Could not parse URL");
         let deserializer =
-            get_deserializer::<Connection>(&url).expect("Could not get deserializer");
+            get::<Connection>(&url).expect("Could not get deserializer");
         deserializer.deserialize(content, Some(&url))
     }
 

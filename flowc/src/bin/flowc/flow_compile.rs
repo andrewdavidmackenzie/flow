@@ -9,7 +9,7 @@ use log::{debug, error, info};
 #[cfg(feature = "debugger")]
 use url::Url;
 
-use flowcore::model::process::Process::FlowProcess;
+use flowcore::model::process::Process::{FlowProcess, FunctionProcess};
 use flowcore::provider::Provider;
 use flowrclib::compiler::compile;
 use flowrclib::compiler::parser;
@@ -22,8 +22,8 @@ use crate::Options;
 /// Compile a flow, maybe run it
 pub fn compile_and_execute_flow(options: &Options,
                                 provider: &dyn Provider,
-                                runner_name: String,
-                                output_dir: PathBuf) -> Result<()> {
+                                runner_name: &str,
+                                output_dir: &PathBuf) -> Result<()> {
     info!("==== Parsing flow hierarchy from '{}'", options.source_url);
     #[cfg(feature = "debugger")]
     let mut source_urls = BTreeMap::<String, Url>::new();
@@ -43,12 +43,12 @@ pub fn compile_and_execute_flow(options: &Options,
                                                 &mut source_urls
             ).chain_err(|| format!("Could not compile the flow '{}'", options.source_url))?;
 
-            make_writeable(&output_dir)?;
+            make_writeable(output_dir)?;
 
             if options.graphs {
-                flow_to_dot::dump_flow(&flow, &output_dir, provider)?;
-                functions_to_dot::dump_functions(&flow, &tables, &output_dir)?;
-                flow_to_dot::generate_svgs(&output_dir, true)?;
+                flow_to_dot::dump_flow(&flow, output_dir, provider)?;
+                functions_to_dot::dump_functions(&flow, &tables, output_dir)?;
+                flow_to_dot::generate_svgs(output_dir, true)?;
             }
 
             if !flow.is_runnable() {
@@ -57,9 +57,9 @@ pub fn compile_and_execute_flow(options: &Options,
             }
 
             let manifest_path = generate::write_flow_manifest(
-                flow,
+                &flow,
                 options.debug_symbols,
-                &output_dir,
+                output_dir,
                 &tables,
                 #[cfg(feature = "debugger")] source_urls,
             )
@@ -72,7 +72,7 @@ pub fn compile_and_execute_flow(options: &Options,
 
             execute_flow(&manifest_path, options, runner_name)
         }
-        _ => bail!("Process parsed was not of type 'Flow' and cannot be executed"),
+        FunctionProcess(_) => bail!("Process parsed was not of type 'Flow' and cannot be executed"),
     }
 }
 
@@ -107,7 +107,7 @@ fn make_writeable(output_dir: &PathBuf) -> Result<()> {
     If the process exits correctly then just return an Ok() with message and no log
     If the process fails then return an Err() with message and log stderr in an ERROR level message
 */
-fn execute_flow(filepath: &Path, options: &Options, runner_name: String) -> Result<()> {
+fn execute_flow(filepath: &Path, options: &Options, runner_name: &str) -> Result<()> {
     info!("\n==== Executing flow from manifest at '{}'", filepath.display());
 
     let mut runner_args = vec![];
@@ -142,10 +142,10 @@ fn execute_flow(filepath: &Path, options: &Options, runner_name: String) -> Resu
     runner_args.push(filepath.display().to_string());
 
     // any arguments for the flow itself (not runner) go at the end
-    runner_args.append(&mut options.flow_args.to_vec());
+    runner_args.append(&mut options.flow_args.clone());
 
     info!("Running flow using '{} {:?}'", runner_name, &runner_args);
-    let mut runner = Command::new(&runner_name);
+    let mut runner = Command::new(runner_name);
     runner
         .args(runner_args)
         .stdin(Stdio::inherit())
@@ -157,7 +157,7 @@ fn execute_flow(filepath: &Path, options: &Options, runner_name: String) -> Resu
     }
 
     let mut runner_child = runner.spawn()
-        .chain_err(|| format!("Could not spawn '{}'", runner_name))?;
+        .chain_err(|| format!("Could not spawn '{runner_name}'"))?;
 
     if let Some(stdin_file) = &options.stdin_file {
         debug!("Reading STDIN from file: '{}'", stdin_file);
@@ -171,22 +171,21 @@ fn execute_flow(filepath: &Path, options: &Options, runner_name: String) -> Resu
                     .chain_err(|| "Could not read child process stdin")?,
             )
             .spawn()
-            .chain_err(|| format!("Could not spawn 'cat' to pipe STDIN to '{}'", runner_name));
+            .chain_err(|| format!("Could not spawn 'cat' to pipe STDIN to '{runner_name}'"));
     }
 
     let runner_output = runner_child
         .wait_with_output()
-        .chain_err(|| format!("Could not capture '{}' output", runner_name))?;
+        .chain_err(|| format!("Could not capture '{runner_name}' output"))?;
 
     match runner_output.status.code() {
-        Some(0) => Ok(()),
+        Some(0) | None => Ok(()),
         Some(code) => {
             error!("Execution of '{}' failed", runner_name);
             error!("'{}' STDOUT:\n{}", runner_name, String::from_utf8_lossy(&runner_output.stdout));
             error!("'{}' STDERR:\n{}", runner_name, String::from_utf8_lossy(&runner_output.stderr));
             bail!("Execution of '{}' failed. Exited with status code: {}", runner_name, code)
         }
-        None => Ok(()),
     }
 }
 

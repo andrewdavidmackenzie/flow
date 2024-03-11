@@ -93,12 +93,12 @@ fn main() {
 
             exit(1);
         }
-        Ok(_) => exit(0),
+        Ok(()) => exit(0),
     }
 }
 
 /// For the lib provider, libraries maybe installed in multiple places in the file system.
-/// In order to find the content, a FLOW_LIB_PATH environment variable can be configured with a
+/// In order to find the content, a `FLOW_LIB_PATH` environment variable can be configured with a
 /// list of directories in which to look for the library in question.
 fn get_lib_search_path(search_path_additions: &[String]) -> Result<Simpath> {
     let mut lib_search_path = Simpath::new_with_separator("FLOW_LIB_PATH", ',');
@@ -111,7 +111,7 @@ fn get_lib_search_path(search_path_additions: &[String]) -> Result<Simpath> {
     if lib_search_path.is_empty() {
         let home_dir = env::var("HOME")
             .unwrap_or_else(|_| "Could not get $HOME".to_string());
-        lib_search_path.add(&format!("{}/.flow/lib", home_dir))
+        lib_search_path.add(&format!("{home_dir}/.flow/lib"));
     }
 
     Ok(lib_search_path)
@@ -142,7 +142,7 @@ fn run() -> Result<()> {
         matches
             .get_many::<String>("lib_dir")
             .chain_err(|| "Could not get the list of 'LIB_DIR' options specified")?
-            .map(|s| s.to_string())
+            .map(std::string::ToString::to_string)
             .collect()
     } else {
         vec![]
@@ -155,7 +155,7 @@ fn run() -> Result<()> {
             &matches,
             lib_search_path,
             #[cfg(feature = "debugger")] debug_this_flow,
-            discovery_port,
+            *discovery_port,
         )?;
     } else if matches.get_flag("server") {
         coordinator_only(
@@ -287,7 +287,7 @@ fn coordinator(
     let ports = get_four_ports()?;
     trace!("Announcing three job queues and a control socket on ports: {ports:?}");
     let job_queues = get_bind_addresses(ports);
-    let dispatcher = Dispatcher::new(job_queues)?;
+    let dispatcher = Dispatcher::new(&job_queues)?;
     enable_service_discovery(JOB_QUEUES_DISCOVERY_PORT, JOB_SERVICE_NAME, ports.0)?;
     enable_service_discovery(JOB_QUEUES_DISCOVERY_PORT, RESULTS_JOB_SERVICE_NAME, ports.2)?;
     enable_service_discovery(JOB_QUEUES_DISCOVERY_PORT, CONTROL_SERVICE_NAME, ports.3)?;
@@ -301,7 +301,7 @@ fn coordinator(
     // references will be resolved and those libraries (WASM implementations) will be loaded at runtime
     if native_flowstdlib {
         executor.add_lib(
-            flowstdlib::manifest::get_manifest()
+            flowstdlib::manifest::get()
                 .chain_err(|| "Could not get 'native' flowstdlib manifest")?,
             Url::parse("memory://")? // Statically linked library has no resolved Url
         )?;
@@ -341,9 +341,9 @@ fn client_only(
     matches: &ArgMatches,
     lib_search_path: Simpath,
     #[cfg(feature = "debugger")] debug_this_flow: bool,
-    discovery_port: &u16,
+    discovery_port: u16,
 ) -> Result<()> {
-    let coordinator_address = discover_service(*discovery_port, COORDINATOR_SERVICE_NAME)?;
+    let coordinator_address = discover_service(discovery_port, COORDINATOR_SERVICE_NAME)?;
     let client_connection = ClientConnection::new(&coordinator_address)?;
 
     client(
@@ -351,7 +351,7 @@ fn client_only(
         lib_search_path,
         client_connection,
         #[cfg(feature = "debugger")] debug_this_flow,
-        #[cfg(feature = "debugger")] *discovery_port,
+        #[cfg(feature = "debugger")] discovery_port,
     )
 }
 
@@ -373,7 +373,7 @@ fn client(
 
     let flow_args = get_flow_args(matches, &flow_manifest_url);
     let parallel_jobs_limit = matches.get_one::<usize>("jobs")
-        .map(|i| i.to_owned());
+        .map(std::borrow::ToOwned::to_owned);
     let submission = Submission::new(
         flow_manifest,
         parallel_jobs_limit,
@@ -506,7 +506,7 @@ fn get_matches() -> ArgMatches {
 /// Parse the command line arguments passed onto the flow itself
 fn parse_flow_url(matches: &ArgMatches) -> Result<Url> {
     let cwd_url = Url::from_directory_path(env::current_dir()?)
-        .map_err(|_| "Could not form a Url for the current working directory")?;
+        .map_err(|()| "Could not form a Url for the current working directory")?;
     url_from_string(&cwd_url, matches.get_one::<String>("flow-manifest")
         .map(|s| s.as_str()))
 }
@@ -519,7 +519,7 @@ fn get_flow_args(matches: &ArgMatches, flow_manifest_url: &Url) -> Vec<String> {
 
     // append any other arguments for the flow passed from the command line
     let additional_args = match matches.get_many::<String>("flow_args") {
-        Some(strings) => strings.map(|s| s.to_string()).collect(),
+        Some(strings) => strings.map(std::string::ToString::to_string).collect(),
         None => vec![]
     };
 
