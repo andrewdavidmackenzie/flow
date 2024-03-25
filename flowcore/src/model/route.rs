@@ -266,10 +266,17 @@ impl Route {
         let segments: Vec<&str> = self.string.split('/').collect();
 
         match *(segments.first().ok_or("Could not get subroute segment[0]")?) {
-            "input" => Ok(RouteType::FlowInput(segments.get(1).ok_or("Could not get segment[1]")?.to_string(),
-                                               segments.get(2..).ok_or("Could not get segments[2..]")?
-                                                   .join("/").to_string().into())),
-            "output" => Ok(RouteType::FlowOutput(segments.get(1).ok_or("Could nopt get segment[1]")?.to_string())),
+            "input" => {
+                let name = segments.get(1).ok_or("Could not get segment[1]")?;
+                let route = segments.get(2..).ok_or("Could not get segments[2..]")?
+                    .join("/");
+                Ok(RouteType::FlowInput((*name).to_string(),
+                                        (*route).to_string().into()))
+            },
+            "output" => {
+                let name = segments.get(1).ok_or("Could not get segment[1]")?;
+                Ok(RouteType::FlowOutput((*name).to_string()))
+            },
             "" => bail!("Invalid Route in connection - must be an input, output or sub-process name"),
             process_name => Ok(RouteType::SubProcess(process_name.into(),
                                                      segments.get(1..).ok_or("Could not get segments[1..]")?

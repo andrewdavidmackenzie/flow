@@ -16,7 +16,7 @@ use crate::cli::coordinator_message::ClientMessage;
 use crate::cli::coordinator_message::CoordinatorMessage;
 use crate::CoordinatorConnection;
 
-/// A [SubmissionHandler] to allow submitting flows for execution from the CLI
+/// A [`SubmissionHandler`] to allow submitting flows for execution from the CLI
 pub(crate) struct CLISubmissionHandler {
     coordinator_connection: Arc<Mutex<CoordinatorConnection>>,
 }
@@ -91,6 +91,7 @@ impl SubmissionHandler for CLISubmissionHandler {
         loop {
             info!("Coordinator is waiting to receive a 'Submission'");
             let guard = self.coordinator_connection.lock();
+            #[allow(clippy::single_match_else)]
             match guard {
                 Ok(locked) =>  {
                     let received = locked.receive(WAIT);

@@ -72,7 +72,7 @@ mod test {
         match value {
             Some(Value::Object(map)) => {
                 assert_eq!(map.get("string").expect("Could not get file contents as string"),
-                           &json!(file_string))
+                           &json!(file_string));
             },
             _ => panic!("Did not get back FileContents")
         }

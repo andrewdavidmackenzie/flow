@@ -265,7 +265,7 @@ pub fn execute_flow_client_server(example_name: &str, manifest: PathBuf) {
 fn read_file(test_dir: &Path, file_name: &str) -> String {
     let expected_file = test_dir.join(file_name);
     if !expected_file.exists() {
-        return "".into();
+        return String::new();
     }
 
     let mut f = File::open(&expected_file).expect("Could not open file");

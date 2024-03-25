@@ -18,6 +18,16 @@ use crate::errors::{Result, ResultExt, bail};
 
 /// Compile a function's implementation to wasm and modify implementation to point to the wasm file
 /// Checks the timestamps of the source and wasm files and only recompiles if wasm file is out of date
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - The relative path of the output file relative to the output dir could not be determined
+///- The build to compile the source of the implementation to WASM failed
+///- Attempts to optimize the WASM output file size failed
+///- A valid Url for the output WASM file's location could not be formed
+///- The path to the output WASM file could not be added to the manifest
+///
 #[allow(clippy::too_many_arguments)]
 pub fn compile_implementation(
     out_dir: &Path,

@@ -14,6 +14,7 @@ pub struct ImageBuffer {
 }
 
 impl Implementation for ImageBuffer {
+    #[allow(clippy::many_single_char_names)]
     fn run(&self, inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
         let pixel = inputs.first().ok_or("Could not get pixels")?.as_array().ok_or("Could not get pixels")?;
         let value = inputs.get(1).ok_or("Could not get value")?.as_array().ok_or("Could not get value")?;
@@ -32,9 +33,14 @@ impl Implementation for ImageBuffer {
         let h = size.get(1).ok_or("Could not get h")?.as_u64().ok_or("Could not get h")?;
 
         let _: Result<ClientMessage> = server.send_and_receive_response(CoordinatorMessage::PixelWrite(
-                (x as u32, y as u32),
-                (r as u8, g as u8, b as u8),
-                (w as u32, h as u32),
+                (
+                    u32::try_from(x).map_err(|_| "Integer overflow in 'x'")?,
+                    u32::try_from(y).map_err(|_| "Integer overflow in 'y'")?),
+                (u8::try_from(r).map_err(|_| "Integer overflow in 'r'")?,
+                 u8::try_from(g).map_err(|_| "Integer overflow in 'g'")?,
+                 u8::try_from(b).map_err(|_| "Integer overflow in 'b'")?),
+                (u32::try_from(w).map_err(|_| "Integer overflow in 'w'")?,
+                 u32::try_from(h).map_err(|_| "Integer overflow in 'h'")?),
                 filename.to_string(),
             ));
 

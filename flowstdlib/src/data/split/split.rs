@@ -18,7 +18,7 @@ fn _split(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
 
         if let Some(partial) = partial {
             // but we have generated some new strings to be processed by other jobs
-            work_delta += partial.len() as i32;
+            work_delta += i32::try_from(partial.len())?;
             output_map.insert("partial".into(), json!(partial));
         }
 

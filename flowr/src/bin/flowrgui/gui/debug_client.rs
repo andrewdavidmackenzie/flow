@@ -53,7 +53,7 @@ impl DebugClient {
             connection,
             override_args,
             editor: DefaultEditor::new().expect("Could not create Editor"),
-            last_command: "".to_string(),
+            last_command: String::new(),
         }
     }
 
@@ -96,7 +96,7 @@ impl DebugClient {
             println!("Repeating last valid command: '{input}'");
         }
 
-        let parts: Vec<String> = input.split(' ').map(|s| s.to_string()).collect();
+        let parts: Vec<String> = input.split(' ').map(ToString::to_string).collect();
         let command = parts.first().ok_or("Could not get first part")?.to_string();
 
         if !parts.is_empty() {
@@ -197,7 +197,7 @@ impl DebugClient {
                                 self.last_command = line;
                                 return Ok(debugger_command);
                             }
-                            self.last_command = "".into();
+                            self.last_command = String::new();
                         },
                         Err(e) => eprintln!("{e}")
                     }
@@ -225,7 +225,7 @@ impl DebugClient {
             "b" | "breakpoint" => Some(Breakpoint(Self::parse_breakpoint_spec(params))),
             "c" | "continue" => Some(Continue),
             "d" | "delete" => Some(Delete(Self::parse_breakpoint_spec(params))),
-            "e" | "exit" => Some(ExitDebugger),
+            "e" | "exit" | "q" | "quit" => Some(ExitDebugger),
             "f" | "functions" => Some(FunctionList),
             "h" | "?" | "help" => { // only command that doesn't send a message to debugger
                 Self::help();
@@ -235,7 +235,6 @@ impl DebugClient {
             "i" | "inspect" => Self::parse_inspect_spec(params),
             "l" | "list" => Some(List),
             "m" | "modify" => Some(Modify(params)),
-            "q" | "quit" => Some(ExitDebugger),
             "r" | "run" | "reset" => {
                 if let Some(mut overrides) = params {
                     if let Ok(mut args) = self.override_args.lock() {
@@ -320,7 +319,7 @@ impl DebugClient {
                     println!("No output connections from that sub-route");
                 } else {
                     for connection in output_connections {
-                        println!("{connection}")
+                        println!("{connection}");
                     }
                 }
             }

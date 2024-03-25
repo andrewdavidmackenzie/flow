@@ -36,6 +36,7 @@ pub(crate) fn load_runner_spec(path: &Path) -> Result<RunnerSpec> {
 fn default_flow_compile_dir(source_url: &Url) -> Result<PathBuf> {
     let mut output_dir;
 
+    #[allow(clippy::single_match_else)]
     match source_url.scheme() {
         // If loading flow from a local file, then build in the same directory
         "file" => {

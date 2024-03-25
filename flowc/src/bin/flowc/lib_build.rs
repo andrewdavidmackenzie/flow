@@ -2,6 +2,7 @@ use std::ffi::OsStr;
 use std::fs;
 use std::path::Path;
 use std::path::PathBuf;
+use std::sync::Arc;
 
 use colored::*;
 use log::{debug, info};
@@ -22,6 +23,17 @@ use crate::Options;
 
 /// Build a library from source and generate a manifest for it so it can be used at runtime when
 /// a flow referencing it is loaded and ran
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - Library metadata cannot be parsed correctly
+/// - A valid Url cannot be formed from the library name (from the meta-data)
+/// - The library's source path cannot be converted to a Url
+/// - The library cannot be compiled
+/// - The library's manifest cannot be generated in the output folder
+/// - The documentation files cannot be copied to the output folder
+///
 pub fn build_lib(options: &Options, provider: &dyn Provider, output_dir: &PathBuf) -> Result<()> {
     let (metadata, _) = parser::parse_metadata(&options.source_url, provider)?;
 
@@ -81,6 +93,13 @@ pub fn build_lib(options: &Options, provider: &dyn Provider, output_dir: &PathBu
 
 
 /// Build a runner into the `output_dir`
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - the `Url` constructed form the input parameter path for the flow (or the default)
+///   cannot have "context" added to it to find the "context" dir
+/// - the docs for the runner cannot be read or copied to the specified output dir
 pub fn build_runner(options: &Options, output_dir: &Path) -> Result<()> {
     println!(
         "   {} runner ({}) with 'flowc'",
@@ -154,9 +173,8 @@ fn check_manifest_status(manifest_json_file: &PathBuf, file_count: i32,
         if file_count > 0 {
             Ok(("Library manifest file(s) exists, but files were modified", true))
         } else {
-            let provider = MetaProvider::new(Simpath::new(""),
-                                             PathBuf::from("/")
-            );
+            let provider = Arc::new(MetaProvider::new(Simpath::new(""),
+                                             PathBuf::from("/"))) as Arc<dyn Provider>;
             let json_manifest_file_as_url =
                 Url::from_file_path(manifest_json_file).map_err(|()| {
                     format!(

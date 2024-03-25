@@ -16,7 +16,7 @@ pub mod block;
 pub mod coordinator;
 
 #[cfg(feature = "debugger")]
-/// Provides the `DebugCommand`[debug_command::DebugCommand] enum for commands from debug client to debug server
+/// Provides the `DebugCommand`[`debug_command::DebugCommand`] enum for commands from debug client to debug server
 pub mod debug_command;
 
 /// Provides [Dispatcher][dispatcher::Dispatcher] used by the [Coordinator][coordinator::Coordinator]
@@ -36,7 +36,7 @@ pub mod info;
 /// Provides [Job][job::Job] that holds jobs before and after their execution
 pub mod job;
 
-/// The `SubmissionHandler`[submission_handler::SubmissionHandler] trait defines  methods a client
+/// The `SubmissionHandler`[`submission_handler::SubmissionHandler`] trait defines  methods a client
 /// must implement in order to handle submissions from a client
 #[cfg(feature = "submission")]
 pub mod submission_handler;
@@ -46,8 +46,8 @@ pub mod submission_handler;
 #[cfg(feature = "debugger")]
 pub mod debugger_handler;
 
-/// Provides [RunState][run_state::RunState] that tracks the current runtime state,
-/// used by [Coordinator][coordinator::Coordinator]
+/// Provides [`RunState`][run_state::RunState] that tracks the current runtime state,
+/// used by [`Coordinator`][coordinator::Coordinator]
 pub mod run_state;
 
 /// Provides well-known service names used across multiple binary crates

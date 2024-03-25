@@ -145,16 +145,16 @@ pub enum State {
 /// Init    Blocked   Some destination input is full                              `to_blocked_on_init`
 /// Init    Waiting   At least one input is not full                              `to_waiting_on_init`
 ///
-/// Ready   Running   NextJob: called to fetch the function_id for execution      `ready_to_running_on_next`
+/// Ready   Running   `NextJob`: called to fetch the `function_id` for execution      `ready_to_running_on_next`
 ///
-/// Blocked Ready     Output: function that was blocking another completes        `blocked_to_ready_on_done`
+/// Blocked Ready     `Output`: function that was blocking another completes        `blocked_to_ready_on_done`
 ///
-/// Waiting Ready     Output: last empty input on a function is filled            `waiting_to_ready_on_input`
-/// Waiting Blocked   Output: last empty input on a function is filled, blocked   `waiting_to_blocked_on_input`
+/// Waiting Ready     `Output`: last empty input on a function is filled            `waiting_to_ready_on_input`
+/// Waiting Blocked   `Output`: last empty input on a function is filled, blocked   `waiting_to_blocked_on_input`
 ///
-/// Running Ready     Output: it's inputs are all full, so it can run again       `running_to_ready_on_done`
-/// Running Waiting   Output: it has one input or more empty, to it can't run     `running_to_waiting_on_done`
-/// Running Blocked   Output: a destination input is full, so can't run           `running_to_blocked_on_done`
+/// Running Ready     `Output`: it's inputs are all full, so it can run again       `running_to_ready_on_done`
+/// Running Waiting   `Output`: it has one input or more empty, to it can't run     `running_to_waiting_on_done`
+/// Running Blocked   `Output`: a destination input is full, so can't run           `running_to_blocked_on_done`
 ///
 /// Iteration and Recursion
 /// =======================
@@ -177,30 +177,30 @@ pub enum State {
 /// preventing it. Example dependencies:
 ///   * a function lacks an input and needs to get it from another function that has not completed
 ///   * a function cannot run, as it's output iss connected to another function's input that is full
-/// Respecting this rule, a RunTime can dispatch as many Jobs in parallel as it desires. This one
-/// takes the parameter max_jobs on RunState::new() to specify the maximum number of jobs that are
+/// Respecting this rule, a `RunTime` can dispatch as many Jobs in parallel as it desires. This one
+/// takes the parameter `max_jobs` on `RunState::new()` to specify the maximum number of jobs that are
 /// launched in parallel. The minimum value for this is 1
 #[derive(Deserialize, Serialize, Clone)]
 pub struct RunState {
     /// The `Submission` that lead to this `RunState` object being created
     pub(crate) submission: Submission,
-    /// blocked: HashSet<function_id> - list of functions by id that are blocked on sending
+    /// blocked: `HashSet`<`function_id`> - list of functions by id that are blocked on sending
     blocked: HashSet<usize>,
     /// blocks: - a list of blocks between functions
     blocks: HashSet<Block>,
-    /// ready_jobs: A queue of [Jobs][crate::job::Job] ready to run
+    /// `ready_jobs`: A queue of [Jobs][crate::job::Job] ready to run
     ready_jobs: VecDeque<Job>,
-    /// running: set of [Jobs][crate::job::Job] that are running
+    /// `running_jobs`: set of [Jobs][crate::job::Job] that are running
     running_jobs: HashMap<usize, Job>,
-    /// completed: [RuntimeFunction][flowcore::model::runtime_function::RuntimeFunction]
+    /// `completed`: [`RuntimeFunction`][flowcore::model::runtime_function::RuntimeFunction]
     /// that have run to completion and won't run again
     completed: HashSet<usize>,
     /// number of jobs sent for execution to date
     number_of_jobs_created: usize,
-    /// Track which flow-function combinations are considered "busy" <flow_id, function_id>
+    /// Track which flow-function combinations are considered "busy" <`flow_id`, `function_id`>
     busy_flows: MultiMap<usize, usize>,
     /// Track which functions have finished and can be unblocked when flow goes not "busy"
-    /// HashMap< <flow_id>, (`function_id`, set of refilled io numbers of that function)>
+    /// `HashMap`< <`flow_id`>, (`function_id`, set of refilled io numbers of that function)>
     flow_blocks: HashMap<usize, HashSet<usize>>,
 }
 
@@ -380,11 +380,10 @@ impl RunState {
     }
 
     // Update the run_state to reflect that the job is now running
-    pub(crate) fn start_job(&mut self, job: Job) -> Result<()>{
+    pub(crate) fn start_job(&mut self, job: Job) {
         self.block_external_flow_senders(job.payload.job_id, job.function_id,
                                          job.flow_id);
         self.running_jobs.insert(job.payload.job_id, job);
-        Ok(())
     }
 
     // The function with id `blocker_function_id` in the flow with id `blocked_flow_id` has had a
@@ -647,7 +646,7 @@ impl RunState {
     /// An input blocker is another function that is the only function connected to an empty input
     /// of target function, and which is not ready to run, hence target function cannot run.
     #[cfg(feature = "debugger")]
-    pub fn get_input_blockers(&self, target_id: usize) -> Result<Vec<usize>> {
+    pub(crate) fn get_input_blockers(&self, target_id: usize) -> Result<Vec<usize>> {
         let mut input_blockers = vec![];
         let target_function = self.get_function(target_id)
             .ok_or("No such function")?;
@@ -725,8 +724,8 @@ impl RunState {
                     connections: function.get_output_connections().clone(),
                     payload: Payload {
                         job_id,
-                        implementation_url,
                         input_set,
+                        implementation_url,
                     },
                     result: Ok((None, false)),
                 };
@@ -1296,7 +1295,7 @@ mod test {
 
             // Event
             let job = state.get_next_job().expect("Couldn't get next job");
-            state.start_job(job.clone()).expect("Could not start job");
+            state.start_job(job.clone());
 
             // Test
             state.running_jobs.get(&job.payload.job_id)
@@ -1361,7 +1360,7 @@ mod test {
             assert!(state.function_state_is_only(0, &State::Ready), "f_a should be Ready");
             let job = state.get_next_job().expect("Couldn't get next job");
             assert_eq!(0, job.function_id, "get_next_job() should return function_id = 0");
-            state.start_job(job.clone()).expect("Could not start job");
+            state.start_job(job.clone());
 
             state.running_jobs.get(&job.payload.job_id).expect("Job with f_a should be Running");
 
@@ -1400,7 +1399,7 @@ mod test {
             assert!(state.function_state_is_only(0, &State::Ready), "f_a should be Ready");
             let job = state.get_next_job().expect("Couldn't get next job");
             assert_eq!(0, job.function_id, "next() should return function_id = 0");
-            state.start_job(job.clone()).expect("Could not start job");
+            state.start_job(job.clone());
 
             state.running_jobs.get(&job.payload.job_id).expect("Job with f_a should be Running");
 
@@ -1460,7 +1459,7 @@ mod test {
 
             // Event run f_b which will send to f_a
             let job = super::test_job(1, 0);
-            state.start_job(job.clone()).expect("Could not start job");
+            state.start_job(job.clone());
 
             state.retire_a_job(
                 #[cfg(feature = "metrics")]
@@ -1523,7 +1522,7 @@ mod test {
 
             // create output from f_b as if it had run - will send to f_a
             let job = super::test_job(1, 0);
-            state.start_job(job.clone()).expect("Could not start job");
+            state.start_job(job.clone());
 
             state.retire_a_job(
                 #[cfg(feature = "metrics")]
@@ -1771,7 +1770,7 @@ mod test {
             state.init().expect("Could not init state");
 
             let job = state.get_next_job().expect("Couldn't get next job");
-            state.start_job(job.clone()).expect("Could not start job");
+            state.start_job(job.clone());
 
             // Test there is no problem producing an Output when no destinations to send it to
             state.retire_a_job(

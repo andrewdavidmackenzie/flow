@@ -9,7 +9,7 @@ use flowrlib::run_state::{RunState, State};
 use serde_derive::{Deserialize, Serialize};
 use serde_json::Value;
 
-/// A Message sent from the debugger to a debug_client
+/// A Message sent from the debugger to a `debug_client`
 #[allow(clippy::large_enum_variant)]
 #[derive(Serialize, Deserialize)]
 pub enum DebugServerMessage {
@@ -22,13 +22,13 @@ pub enum DebugServerMessage {
     /// The run-time is about to send a `Job` for execution
     PriorToSendingJob(Job),
     /// A breakpoint on a `Block` between two functions was encountered
-    /// includes: blocked_id, blocking_id, blocking_io_number
+    /// includes: `blocked_id`, `blocking_id`, `blocking_io_number`
     BlockBreakpoint(Block),
     /// A breakpoint on a `Flow` that was busy going idle (and unblocking senders to it) was hit
     FlowUnblockBreakpoint(usize),
     /// A breakpoint on a `Value` being sent between two functions was encountered
-    /// includes: source_process_id, output_route, value, destination_id, function_name,
-    /// io_name, input_number));
+    /// includes: `source_process_id`, `output_route`, `value`, `destination_id`, `function_name`,
+    /// `io_name`, `input_number`));
     DataBreakpoint(String, usize, String, Value, usize, String, String, usize),
     /// A panic occurred executing a `Flows` `Job` -  includes the output of the job that panicked
     Panic(String, usize),
@@ -47,7 +47,7 @@ pub enum DebugServerMessage {
     /// The state of a function
     FunctionStates((RuntimeFunction, Vec<State>)),
     /// A value is being sent from the output of one function to the input of another
-    /// includes: source_process_id, value, destination_id, input_number
+    /// includes: `source_process_id`, `value`, `destination_id`, `input_number`
     SendingValue(usize, Value, usize, usize),
     /// The overall state
     OverallState(RunState),
@@ -57,7 +57,7 @@ pub enum DebugServerMessage {
     OutputState(Vec<OutputConnection>),
     /// One or more Blocks
     BlockState(Vec<Block>),
-    /// A message for display to the user of the debug_client
+    /// A message for display to the user of the `debug_client`
     Message(String),
     /// The run-time is resetting the status back to the initial state
     Resetting,

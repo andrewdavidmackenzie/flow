@@ -32,7 +32,7 @@ impl Implementation for Get {
                     if let Ok(json) = serde_json::from_str(arg) {
                         json_arg_vec.push(json);
                     } else {
-                        json_arg_vec.push(Value::String(arg.into()))
+                        json_arg_vec.push(Value::String(arg.into()));
                     }
                 }
                 // Add the json Array of args at the "/json" output route
@@ -86,7 +86,7 @@ mod test {
     fn gets_args() {
         let args: Vec<String> = ["flow_name", "arg1", "arg2"]
             .iter()
-            .map(|s| s.to_string())
+            .map(ToString::to_string)
             .collect();
 
         let server_connection = wait_for_then_send(GetArgs, Args(args.clone()));
@@ -111,7 +111,7 @@ mod test {
     fn gets_args_num() {
         let args: Vec<String> = ["flow_name", "10"]
             .iter()
-            .map(|s| s.to_string())
+            .map(ToString::to_string)
             .collect();
 
         let server_connection = wait_for_then_send(GetArgs, Args(args));
@@ -134,7 +134,7 @@ mod test {
     fn gets_args_array_num() {
         let args: Vec<String> = ["flow_name", "[10,20]"]
             .iter()
-            .map(|s| s.to_string())
+            .map(ToString::to_string)
             .collect();
 
         let server_connection = wait_for_then_send(GetArgs, Args(args));
@@ -157,7 +157,7 @@ mod test {
     fn gets_args_array_array_num() {
         let args: Vec<String> = ["flow_name", "[[10,20],[30,40]]"]
             .iter()
-            .map(|s| s.to_string())
+            .map(ToString::to_string)
             .collect();
 
         let server_connection = wait_for_then_send(GetArgs, Args(args));

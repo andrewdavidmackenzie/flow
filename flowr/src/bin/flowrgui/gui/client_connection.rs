@@ -44,7 +44,7 @@ impl ClientConnection {
         Ok(ClientConnection { requester })
     }
 
-    /// Receive a [CoordinatorMessage][crate::gui::coordinator_message::CoordinatorMessage] from the
+    /// Receive a [`CoordinatorMessage`][crate::gui::coordinator_message::CoordinatorMessage] from the
     /// [Coordinator][flowrlib::coordinator::Coordinator]
     pub fn receive<CM>(&self) -> Result<CM>
     where
@@ -62,7 +62,7 @@ impl ClientConnection {
         Ok(message_string.into())
     }
 
-    /// Send a [ClientMessage][crate::gui::client_message::ClientMessage] to the
+    /// Send a [`ClientMessage`][crate::gui::client_message::ClientMessage] to the
     /// [Coordinator][flowrlib::coordinator::Coordinator]
     pub fn send<CM>(&self, message: CM) -> Result<()>
     where

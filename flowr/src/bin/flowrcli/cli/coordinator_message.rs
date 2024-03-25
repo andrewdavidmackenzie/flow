@@ -7,11 +7,11 @@ use flowcore::errors::*;
 use flowcore::model::metrics::Metrics;
 use flowcore::model::submission::Submission;
 
-/// An Message sent from the runtime server to a runtime_client
+/// An Message sent from the runtime server to a `runtime_client`
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum CoordinatorMessage {
     /// ** These messages are used to implement the `SubmissionProtocol` between the coordinator
-    /// and the cli_client
+    /// and the `cli_client`
     /// A flow has started executing
     FlowStart,
     /// A flow has stopped executing
@@ -23,7 +23,7 @@ pub enum CoordinatorMessage {
     /// Coordinator is exiting, with a result (OK, or Err)
     CoordinatorExiting(Result<()>),
 
-    /// ** These messages are used to implement the context functions between the cli_runtime_server
+    /// ** These messages are used to implement the context functions between the `cli_runtime_server`
     /// that runs as part of the `Coordinator` and the `cli_runtime_client` that interacts with
     /// STDIO
     /// A String of contents was sent to stdout

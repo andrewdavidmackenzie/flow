@@ -24,6 +24,7 @@ impl Implementation for FileWrite {
 
         let byte_array = bytes.as_array().ok_or("Could not get bytes")?;
 
+        #[allow(clippy::cast_possible_truncation)]
         let bytes = byte_array
             .iter()
             .map(|byte_value| byte_value.as_u64().unwrap_or(0) as u8)

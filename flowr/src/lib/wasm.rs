@@ -29,12 +29,13 @@ impl Executor {
     // Return the offset of the data in linear memory and the data size in bytes
     fn send_inputs(&self, store: &mut Store<()>, inputs: &[Value]) -> Result<(i32, i32)> {
         let input_data = serde_json::to_vec(&inputs)?;
-        let alloc_size = max(input_data.len() as i32, MAX_RESULT_SIZE);
+        let alloc_size = max(i32::try_from(input_data.len())?, MAX_RESULT_SIZE);
         let offset = self.alloc(alloc_size, store)?;
         self.memory
-            .write(store, offset as usize, &input_data)
+            .write(store, usize::try_from(offset)?, &input_data)
             .map_err(|_| "Could not write to WASM Linear Memory")?;
-        Ok((offset, input_data.len() as i32))
+        let data_size = i32::try_from(input_data.len())?;
+        Ok((offset, data_size))
     }
 
     // Call the "alloc" wasm function
@@ -85,6 +86,8 @@ impl Executor {
         offset: usize,
         store: &mut Store<()>,
     ) -> Result<(Option<Value>, RunAgain)> {
+        assert!(result_length >= 0, "result_length was negative");
+        #[allow(clippy::cast_sign_loss)]
         let mut buffer: Vec<u8> = vec![0u8; result_length as usize];
         self
             .memory
@@ -104,12 +107,14 @@ impl Implementation for Executor {
         let mut store = self.store.lock().map_err(|_| "Could not lock WASM store")?;
         let (offset, length) = self.send_inputs(&mut store, inputs)?;
         let result_length = self.call(offset, length, &mut store)?;
+        assert!(offset >= 0, "offset was negative");
+        #[allow(clippy::cast_sign_loss)]
         self.get_result(result_length, offset as usize, &mut store)
     }
 }
 
 /// load a Wasm module from the specified Url and return it wrapped in a `WasmExecutor` `Implementation`
-pub fn load(provider: &dyn Provider, source_url: &Url) -> Result<Executor> {
+pub fn load(provider: &Arc<dyn Provider>, source_url: &Url) -> Result<Executor> {
     trace!("Attempting to load WASM module from '{}'", source_url);
     let (resolved_url, _) = provider
         .resolve_url(source_url, DEFAULT_WASM_FILENAME, &["wasm"])
@@ -149,18 +154,21 @@ pub fn load(provider: &dyn Provider, source_url: &Url) -> Result<Executor> {
 #[cfg(test)]
 mod test {
     use std::path::Path;
+    use std::sync::Arc;
 
     use serde_json::json;
     use url::Url;
 
     use flowcore::content::file_provider::FileProvider;
     use flowcore::Implementation;
+    use flowcore::provider::Provider;
 
     #[test]
     fn load_test_wasm() {
         let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/add.wasm");
         let url = Url::from_file_path(path).expect("Could not convert path to Url");
-        let adder = &super::load(&FileProvider{}, &url)
+        let provider = Arc::new(FileProvider{}) as Arc<dyn Provider>;
+        let adder = &super::load(&provider, &url)
             .expect("Could not load test_wasm.wasm") as &dyn Implementation;
 
         let inputs = vec![json!(1), json!(2)];

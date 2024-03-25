@@ -110,6 +110,16 @@ impl CompilerTables {
 
 /// Take a hierarchical flow definition in memory and compile it, generating a manifest for execution
 /// of the flow, including references to libraries required.
+///
+/// # Errors
+///
+/// Returns an error if the parsed `FlowDefinition` cannot be compiled into a valid set of
+/// `CompilerTables`. Possible causes include:
+/// - Connections between inputs, outputs, sub-flows etc cannot be established
+/// - The constructed Connections cannot be collapsed joining sources and destinations directly
+/// - All function's inputs are connected
+/// - The flow does not produce any "side effects" (output)
+/// - There is an issue compiling any of the supplied implementations to WASM
 pub fn compile(flow: &FlowDefinition,
                output_dir: &Path,
                skip_building: bool,
@@ -141,6 +151,11 @@ pub fn compile(flow: &FlowDefinition,
 /// Calculate the paths to the source file of the implementation of the function to be compiled
 /// and where to output the compiled wasm.
 /// `out_dir` optionally overrides the destination directory where the wasm should end up
+///
+/// # Errors
+///
+/// Returns an error if the functions `source_url` cannot be used to form a valid `Url`
+///
 pub fn get_paths(wasm_output_dir: &Path, function: &FunctionDefinition) -> Result<(PathBuf, PathBuf)> {
     let source_url = function.get_source_url().join(function.get_source())?;
 

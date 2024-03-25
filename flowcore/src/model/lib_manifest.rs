@@ -79,7 +79,15 @@ impl LibraryManifest {
     }
 
     /// load a `LibraryManifest` from `lib_manifest_url`, using `provider` to fetch the contents
-    pub fn load(provider: &dyn Provider, lib_manifest_url: &Url) -> Result<(LibraryManifest, Url)> {
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - The provided `lib_manifest_url` `Url` cannot be resolved
+    /// - The `provider` cannot fetch the contents from the resolved url
+    /// - The fetched contents cannot be converted to a valid Utf8 String
+    /// - The Fetched Utf8 String contents of the `Url` are not a valid `LibraryManifest`
+    pub fn load(provider: &Arc<dyn Provider>, lib_manifest_url: &Url) -> Result<(LibraryManifest, Url)> {
         let (resolved_url, _) = provider
             .resolve_url(
                 lib_manifest_url,
@@ -113,6 +121,12 @@ impl LibraryManifest {
     /// for functions or flows to where the implementation resides within the library directory
     /// structure (relative to the lib root).
     /// Also add it to the list of source files lookups in the manifest if compiling with debug info
+    ///
+    /// # Errors
+    ///
+    /// Returns error if:
+    /// - `implementation_path_relative` cannot be used to form a `Url` referencing a file
+    /// - `lib_reference_path` cannot be used to form a `Url` referencing a library
     pub fn add_locator(
         &mut self,
         implementation_path_relative: &str,
@@ -156,7 +170,14 @@ impl LibraryManifest {
         filename
     }
 
-    /// Generate a manifest for the library in JSON
+    /// Generate a manifest for the library in JSON format
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - `File` cannot be created at `Path` `json_manifest_filename`
+    /// - Contents of manifest cannot be written to file at `json_manifest_filename`
+    ///
     pub fn write_json(&self, json_manifest_filename: &Path) -> Result<()> {
         let mut manifest_file = File::create(json_manifest_filename)?;
 
@@ -341,10 +362,10 @@ mod test {
   },
   \"source_urls\": {}
 }";
-        let test_provider = &TestProvider { test_content } as &dyn Provider;
+        let test_provider = Arc::new(TestProvider { test_content }) as Arc<dyn Provider>;
         let url = Url::parse("file://test/fake.json").expect("Could not create Url");
         let (lib_manifest, _lib_manifest_url) =
-            LibraryManifest::load(test_provider, &url).expect("Could not load manifest");
+            LibraryManifest::load(&test_provider, &url).expect("Could not load manifest");
         assert_eq!(lib_manifest.locators.len(), 1);
         assert!(lib_manifest
             .locators

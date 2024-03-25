@@ -26,6 +26,7 @@ impl Provider for FileProvider {
         let md_result = fs::metadata(&path)
             .chain_err(|| format!("Error getting file metadata for path: '{}'", path.display()));
 
+        #[allow(clippy::single_match_else)]
         match md_result {
             Ok(md) => {
                 if md.is_dir() {

@@ -1,6 +1,6 @@
 //! `flowrgui` is a GUI flow runner for running `flow` programs.
 //!
-//! It reads a compiled [FlowManifest][flowcore::model::flow_manifest::FlowManifest] produced by a
+//! It reads a compiled [`FlowManifest`][flowcore::model::flow_manifest::FlowManifest] produced by a
 //! flow compiler, such as `flowc`, that describes the graph of communicating functions that
 //! constitute the flow program.
 //!
@@ -10,14 +10,14 @@
 //! that allow the flow program to interact with the environment where it is being run.
 //!
 //! Depending on the command line options supplied `flowrgui` executes the
-//! [Coordinator][flowrlib::coordinator::Coordinator] of flow execution in a background thread or
+//! [`Coordinator`][flowrlib::coordinator::Coordinator] of flow execution in a background thread or
 //! connects to an already running coordinator in another process.
 //! Application and Coordinator (thread or process) communicate via network messages using the
-//! [SubmissionHandler][flowrlib::submission_handler::SubmissionHandler] to submit flows for execution,
-//! and interchanging [ClientMessages][crate::gui::client_message::ClientMessage]
-//! and [CoordinatorMessages][crate::gui::coordinator_message::CoordinatorMessage] for execution of context
+//! [`SubmissionHandler`][flowrlib::submission_handler::SubmissionHandler] to submit flows for execution,
+//! and interchanging [`ClientMessages`][crate::gui::client_message::ClientMessage]
+//! and [`CoordinatorMessages`][crate::gui::coordinator_message::CoordinatorMessage] for execution of context
 //! interaction in the client, as requested by functions running in the coordinator's
-//! [Executors][flowrlib::executor::Executor]
+//! [`Executors`][flowrlib::executor::Executor]
 
 use core::str::FromStr;
 use std::{env, process, thread};
@@ -58,8 +58,8 @@ mod context;
 
 /// provides the `context functions` for interacting with the execution environment from a flow,
 /// plus client-[Coordinator][flowrlib::coordinator::Coordinator] implementations of
-/// [flowrlib::submission_handler] for executing them on different threads
-/// from the [Coordinator][flowrlib::coordinator::Coordinator]
+/// [`flowrlib::submission_handler`] for executing them on different threads
+/// from the [`Coordinator`][`flowrlib::coordinator::Coordinator`]
 mod gui;
 
 /// module that runs a coordinator in background
@@ -73,7 +73,7 @@ mod tabs;
 mod errors;
 
 /// [Message] enum captures all the types of messages that are sent to and processed by the
-/// [FlowrGui] Iced Application
+/// `flowrgui` Iced Application
 #[derive(Debug, Clone)]
 pub enum Message {
     /// We lost contact with the coordinator
@@ -99,6 +99,8 @@ pub enum Message {
     /// closing of the Modal was requested
     CloseModal,
 }
+
+#[allow(clippy::ignored_unit_patterns)]
 
 enum CoordinatorState {
     Disconnected(String),
@@ -136,7 +138,7 @@ pub struct ServerSettings {
     lib_search_path: Simpath,
 }
 
-/// [CoordinatorSettings] captures the parameters to be used when creating a new Coordinator
+/// [`CoordinatorSettings`] captures the parameters to be used when creating a new Coordinator
 #[derive(Clone)]
 pub enum CoordinatorSettings {
     /// Start a server coordinator using the settings supplied
@@ -174,7 +176,7 @@ impl Application for FlowrGui {
     type Theme = Theme;
     type Flags = ();
 
-    /// Create the FlowIde app and populate fields with options passed on the command line
+    /// Create the flowrgui app and populate fields with options passed on the command line
     fn new(_flags: ()) -> (Self, Command<Message>) {
         let settings = FlowrGui::initial_settings();
 
@@ -187,7 +189,7 @@ impl Application for FlowrGui {
             submitted: false,
             running: false,
             show_modal: false,
-            modal_content: ("".to_owned(), "".to_owned()),
+            modal_content: (String::new(), String::new()),
         };
 
         (flowrgui, Command::none())
@@ -202,28 +204,27 @@ impl Application for FlowrGui {
             Message::CoordinatorSent(CoordinatorMessage::Connected(sender)) => {
                 self.coordinator_state = CoordinatorState::Connected(sender);
                 if self.ui_settings.auto {
-                    return Command::perform(Self::auto_submit(), |_| Message::SubmitFlow);
+                    return Command::perform(Self::auto_submit(), |()| Message::SubmitFlow);
                 }
             },
             Message::SubmitFlow => {
                 if let CoordinatorState::Connected(sender) = &self.coordinator_state {
                     return Command::perform(Self::submit(sender.clone(),
-                                                         self.submission_settings.clone()), |_| Message::Submitted);
+                                                         self.submission_settings.clone()), |()| Message::Submitted);
                 }
             },
             Message::Submitted => {
                 self.tab_set.clear();
-                self.submitted = true
+                self.submitted = true;
             },
             Message::FlowArgsChanged(value) => self.submission_settings.flow_args = value,
             Message::UrlChanged(value) => self.submission_settings.flow_manifest_url = value,
-            Message::TabSelected(_) => return self.tab_set.update(message),
-            Message::StdioAutoScrollTogglerChanged(_, _) => return self.tab_set.update(message),
+            Message::TabSelected(_) | Message::StdioAutoScrollTogglerChanged(_, _) => return self.tab_set.update(message),
             Message::CoordinatorSent(coord_msg) =>
                 return self.process_coordinator_message(coord_msg),
             Message::CloseModal => self.show_modal = false,
             Message::CoordinatorDisconnected(reason) => {
-                self.coordinator_state = CoordinatorState::Disconnected(reason)
+                self.coordinator_state = CoordinatorState::Disconnected(reason);
             },
             Message::NewStdin(text) => self.tab_set.stdin_tab.text_entered(text),
             Message::LineOfStdin(line) => self.tab_set.stdin_tab.new_line(line),
@@ -273,6 +274,7 @@ impl Application for FlowrGui {
 }
 
 impl FlowrGui {
+    #[allow(clippy::unused_async)]
     async fn auto_submit() {
         info!("Auto submitting flow");
     }
@@ -280,7 +282,7 @@ impl FlowrGui {
     // Submit the flow to the coordinator for execution
     async fn submit(sender: tokio::sync::mpsc::Sender<ClientMessage>,
                     settings: SubmissionSettings) {
-        match Self::flow_url(settings.flow_manifest_url) {
+        match Self::flow_url(&settings.flow_manifest_url) {
             Ok(url) => {
                 let provider = &MetaProvider::new(Simpath::new(""),
                                                   PathBuf::default()) as &dyn Provider;
@@ -295,8 +297,10 @@ impl FlowrGui {
                         );
 
                         info!("Sending submission to Coordinator");
+                        #[allow(clippy::single_match_else)]
+                        #[allow(clippy::match_same_arms)]
                         match sender.send(ClientMessage::ClientSubmission(submission)).await {
-                            Ok(_) => {
+                            Ok(()) => {
                                 // TODO report info that submitted
                             }
                             Err(_) => {
@@ -316,12 +320,15 @@ impl FlowrGui {
     }
 
     // report a new error
-    fn error<S>(&mut self, _msg: S) where S: Into<String> {
-
+    #[allow(clippy::unused_self)]
+    // TODO implement some display of this info on the UI
+    fn error(&mut self, _msg: &str) {
     }
 
     // report a new info message
-    fn info(&mut self, _msg: String) {
+    // TODO implement some display of this info on the UI
+    #[allow(clippy::unused_self)]
+    fn info(&mut self, _msg: &str) {
     }
 
     fn command_row(&self) -> Row<Message> {
@@ -524,10 +531,10 @@ impl FlowrGui {
     }
 
     // Create absolute file:// Url for flow location - using the contents of UI field
-    fn flow_url(flow_url_string: String) -> flowcore::errors::Result<Url> {
+    fn flow_url(flow_url_string: &str) -> flowcore::errors::Result<Url> {
         let cwd_url = Url::from_directory_path(env::current_dir()?)
             .map_err(|()| "Could not form a Url for the current working directory")?;
-        url_from_string(&cwd_url, Some(&flow_url_string))
+        url_from_string(&cwd_url, Some(flow_url_string))
     }
 
     // Create array of strings that are the args to the flow
@@ -563,9 +570,11 @@ impl FlowrGui {
 
     // Determine the number of threads to use to execute flows
     // - default (if value is not provided on the command line) of the number of cores
+    #[allow(clippy::redundant_closure_for_method_calls)]
     fn num_threads(matches: &ArgMatches) -> usize {
         match matches.get_one::<usize>("threads") {
             Some(num_threads) => *num_threads,
+            // Could be simplified to `std::num::NonZero::get`but generic NonZero is unstable
             None => thread::available_parallelism().map(|n| n.get()).unwrap_or(1)
         }
     }
@@ -576,6 +585,7 @@ impl FlowrGui {
         }
     }
 
+    #[allow(clippy::too_many_lines)]
     fn process_coordinator_message(&mut self, message: CoordinatorMessage) -> Command<Message> {
         match message {
             CoordinatorMessage::Connected(_) => {
@@ -595,7 +605,7 @@ impl FlowrGui {
                 }
                 // NO response - so we can use next request sent to submit another flow
                 if self.ui_settings.auto {
-                    self.info("Auto exiting on flow completion".into());
+                    self.info("Auto exiting on flow completion");
                     process::exit(0);
                 }
             }
@@ -627,7 +637,7 @@ impl FlowrGui {
                 self.send(msg);
             }
             CoordinatorMessage::GetLine(prompt) => {
-                let msg = match self.tab_set.stdin_tab.get_line(prompt) {
+                let msg = match self.tab_set.stdin_tab.get_line(&prompt) {
                     Some(line) => ClientMessage::Line(line),
                     None => ClientMessage::GetLineEof,
                 };
@@ -709,7 +719,7 @@ impl FlowrGui {
                 };
                 self.send(msg);
             },
-            CoordinatorMessage::PixelWrite((x, y), (r, g, b), (width, height), ref name) => {
+            CoordinatorMessage::PixelWrite((x_coord, y_coord), (red, green, blue), (width, height), ref name) => {
                 if self.tab_set.images_tab.images.is_empty() {
                     let data = RgbaImage::new(width, height);
                     self.tab_set.images_tab.images.insert(name.clone(), ImageReference {width, height, data });
@@ -717,10 +727,10 @@ impl FlowrGui {
                 }
                 if let Some(ImageReference{width: _, height: _, ref mut data})
                     = &mut self.tab_set.images_tab.images.get_mut(name) {
-                        data.put_pixel(x, y, Rgba([r, g, b, 255]));
+                        data.put_pixel(x_coord, y_coord, Rgba([red, green, blue, 255]));
                 }
                 self.send(ClientMessage::Ack);
-            },
+            }
             _ => {},
         };
         Command::none()

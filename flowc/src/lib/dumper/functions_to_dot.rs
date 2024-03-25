@@ -17,6 +17,11 @@ use crate::errors::Result;
 /// Create a directed graph named after the flow, showing all the functions of the flow after it
 /// has been compiled down, grouped in sub-clusters
 ///
+/// # Errors
+///
+/// Returns an error if the `FlowDefinition` cannot be dumped to file(s) for one of these reasons:
+/// - The output file in `output_dir` could not be created or written to
+///
 /// # Example
 /// ```
 /// use std::env;

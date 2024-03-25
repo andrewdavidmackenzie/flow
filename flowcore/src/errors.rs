@@ -19,6 +19,7 @@ error_chain! {
         Url(url::ParseError);
         Io(std::io::Error);
         Serde(serde_json::error::Error);
+        Conversion(std::num::TryFromIntError);
     }
 }
 

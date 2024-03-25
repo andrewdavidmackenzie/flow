@@ -56,8 +56,12 @@ pub trait DebuggerHandler {
     fn debugger_error(&mut self, error: String);
     /// execution of the flow is starting
     fn execution_starting(&mut self);
-    /// Execution of the flow fn execution_ended(&mut self, state: &RunState) {
+    /// Execution of the flow fn `execution_ended`
     fn execution_ended(&mut self);
     /// Get a command for the debugger to perform
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the next command cannot be fetched, usually related to networking
     fn get_command(&mut self, state: &RunState) -> Result<DebugCommand>;
 }

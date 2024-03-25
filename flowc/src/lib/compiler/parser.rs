@@ -31,6 +31,13 @@ pub enum LibType {
 /// The return is a `Result` containing the `Process`, or a `String` describing the error
 /// found while loading.
 ///
+/// # Errors
+///
+/// Returns an error if the process cannot be parsed, caused by:
+/// - The url cannot be resolved
+/// - The contents at the url cannot be read, or are not valid Utf8 Strings
+/// - The content as Utf8 cannot be parsed as a valid `Process` (`FlowProcess` or `FunctionProcess`)
+///
 /// # Example
 /// ```
 /// use flowcore::provider::Provider;
@@ -149,6 +156,14 @@ fn parse_process(
 /// load library metadata from the given url using the provider.
 /// Currently it uses the `package` table of Cargo.toml as a source but it could
 /// easily use another file as along as it has the required fields to satisfy `MetaData` struct
+///
+/// # Errors
+///
+/// Returns an error if a library's meta-data cannot be parsed from the `lib.toml` file:
+/// - `url` cannot be resolved to find the `lib.toml` file for the library
+/// - The contents of that file cannot be read or is invalid Utf8 or cannot be parsed into a
+///   valid `MetaData` struct
+///
 pub fn parse_metadata(url: &Url, provider: &dyn Provider) -> Result<(MetaData, LibType)> {
     trace!("Loading Metadata");
     let (resolved_url, _) = provider

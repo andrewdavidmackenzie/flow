@@ -24,6 +24,12 @@ use crate::errors::{Result, ResultExt};
 /// Paths in the manifest are relative to the location of the manifest file, to make the file
 /// and associated files relocatable (and maybe packaged into a ZIP etc). So we use `manifest_url`
 /// as the location other file paths are made relative to.
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - Cannot convert a function definition to a runtime function
+///
 pub fn create_manifest(
     flow: &FlowDefinition,
     debug_symbols: bool,
@@ -53,6 +59,15 @@ pub fn create_manifest(
 }
 
 /// Generate a manifest for the flow in JSON that can be used to execute it
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - Cannot create the manifest file
+/// - Cannot create a `Url` from the `destination` `Path`
+/// - Cannot create a `FlowManifest` from the `FlowDefinition`
+/// - Cannot write the contents of the manifest to the file
+///
 // TODO this is tied to being a file:// - generalize this to write to a URL, moving the code
 // TODO into the provider and implementing for file and http
 pub fn write_flow_manifest(
@@ -70,7 +85,7 @@ pub fn write_flow_manifest(
     let mut manifest_file =
         File::create(&filename).chain_err(|| "Could not create manifest file")?;
     let manifest_url =
-        Url::from_file_path(&filename).map_err(|()| "Could not parse Url from file path")?;
+        Url::from_file_path(&filename).map_err(|()| "Could not create a Url from file path")?;
     let manifest = create_manifest(
         flow,
         debug_symbols,

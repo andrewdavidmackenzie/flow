@@ -29,6 +29,11 @@ pub(crate) static OUTPUT_PORTS: &[&str] = &["s", "se", "sw", "e"];
 
 /// Create a .dot format directed graph of a loaded flow definition
 ///
+/// # Errors
+///
+/// Returns an error if the `FlowDefinition` cannot be dumped to file(s) for one of these reasons:
+/// - The output file in `output_dir` could not be created or written to
+///
 /// # Example
 /// ```
 /// use std::env;
@@ -71,6 +76,11 @@ pub fn dump_flow(
 
 /// Generate SVG files from any .dot file found below the `root_dir` using the `dot` graphviz
 /// executable, if it is found installed on the system within the `$PATH` variable of the user
+///
+/// # Errors
+///
+/// Returns an error if the command used to render "dot" files as "svg" files fails
+///
 pub fn generate_svgs(root_dir: &Path, delete_dots: bool) -> Result<()> {
     if let Ok(FoundType::File(dot)) = Simpath::new("PATH").find_type("dot", FileType::File) {
         info!("\n=== Dumper: Generating .dot.svg files from .dot files, using 'dot' command from $PATH");
@@ -390,6 +400,7 @@ fn digraph_end() -> String {
         .to_string()
 }
 
+#[allow(clippy::cast_possible_truncation)]
 fn index_from_name<T: Hash>(t: &T, length: usize) -> usize {
     let mut s = DefaultHasher::new();
     t.hash(&mut s);

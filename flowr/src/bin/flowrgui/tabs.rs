@@ -10,6 +10,7 @@ use once_cell::sync::Lazy;
 
 use crate::{ImageReference, Message};
 
+#[allow(clippy::struct_field_names)]
 pub(crate) struct TabSet {
     pub active_tab: usize,
     pub stdout_tab: StdOutTab,
@@ -54,7 +55,7 @@ impl TabSet {
                     self.stdout_tab.auto_scroll = value;
                 }
                 else {
-                    self.stderr_tab.auto_scroll = value
+                    self.stderr_tab.auto_scroll = value;
                 }
 
                 if value {
@@ -153,7 +154,7 @@ impl ImageTab {
     pub fn new(name: &str) -> Self {
         Self {
             name: name.to_owned(),
-            images: Default::default(),
+            images: HashMap::default(),
         }
     }
 }
@@ -178,7 +179,7 @@ impl Tab for ImageTab {
     }
 
     fn clear(&mut self) {
-        self.images = Default::default();
+        self.images = HashMap::default();
     }
 }
 
@@ -197,7 +198,7 @@ impl StdInTab {
             id: Lazy::new(Id::unique).clone(),
             content: vec!(),
             cursor: 0,
-            text: "".into(),
+            text: String::new(),
         }
     }
 
@@ -209,17 +210,17 @@ impl StdInTab {
     /// A new line of text for standard input has been sent
     pub fn new_line(&mut self, line: String) {
         self.content.push(line);
-        self.text = "".to_string();
+        self.text = String::new();
     }
 
     /// return the next available line of standard input, or EOF
-    pub fn get_line(&mut self, prompt: String) -> Option<String> {
+    pub fn get_line(&mut self, prompt: &str) -> Option<String> {
         if let Some(line) = self.content.get_mut(self.cursor) {
             if !prompt.is_empty() {
-                line.insert_str(0, &prompt);
+                line.insert_str(0, prompt);
             }
             self.cursor += 1;
-            Some(line.to_string())
+            Some((*line).to_string())
         } else {
             // advanced beyond the available text!
             None

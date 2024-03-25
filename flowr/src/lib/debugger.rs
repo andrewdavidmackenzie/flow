@@ -228,6 +228,7 @@ impl<'a> Debugger<'a> {
     ///
     /// When exiting return a set of booleans for the Coordinator to determine what to do:
     /// (display next output, reset execution, `exit_debugger`)
+    #[allow(clippy::too_many_lines)]
     pub fn wait_for_command(&mut self, state: &mut RunState) -> Result<(bool, bool)> {
         loop {
             match self.debug_server.get_command(state)

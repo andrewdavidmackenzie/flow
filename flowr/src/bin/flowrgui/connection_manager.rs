@@ -62,7 +62,7 @@ pub fn subscribe(coordinator_settings: CoordinatorSettings) -> Subscription<Coor
                         CoordinatorState::Discovery(discovery_port) => {
                             let address = discover_service(discovery_port, COORDINATOR_SERVICE_NAME)
                                 .unwrap(); // TODO
-                            state = CoordinatorState::Discovered(address)
+                            state = CoordinatorState::Discovered(address);
                         }
 
                         CoordinatorState::Discovered(address) => {
@@ -81,13 +81,7 @@ pub fn subscribe(coordinator_settings: CoordinatorSettings) -> Subscription<Coor
 
                         CoordinatorState::Connected(ref mut app_receiver,
                                                     ref connection) => {
-                            if !running {
-                                // read the Submit message from the app and send it to the coordinator
-                                if let Some(client_message) = app_receiver.recv().await {
-                                    connection.lock().unwrap().send(client_message).unwrap();
-                                    running = true;
-                                }
-                            } else {
+                            if running {
                                 // read the message back from the Coordinator
                                 let coordinator_message: CoordinatorMessage = connection
                                     .lock().unwrap().receive().unwrap(); // TODO
@@ -100,6 +94,7 @@ pub fn subscribe(coordinator_settings: CoordinatorSettings) -> Subscription<Coor
                                     running = false;
                                 } else {
                                     // read the message back from the app and send it to the Coordinator
+                                    #[allow(clippy::single_match_else)]
                                     match app_receiver.recv().await {
                                         Some(client_message) => {
                                             connection.lock().unwrap().send(client_message).unwrap();
@@ -109,6 +104,12 @@ pub fn subscribe(coordinator_settings: CoordinatorSettings) -> Subscription<Coor
                                 }
 
                                 // TODO handle coordinator exit, disconnection or error
+                            } else {
+                                // read the Submit message from the app and send it to the coordinator
+                                if let Some(client_message) = app_receiver.recv().await {
+                                    connection.lock().unwrap().send(client_message).unwrap();
+                                    running = true;
+                                }
                             }
                         }
                     }
@@ -169,7 +170,7 @@ fn coordinator(
     let (job_source_name, context_job_source_name, results_sink, control_socket) =
         get_connect_addresses(ports);
 
-    let mut executor = Executor::new()?;
+    let mut executor = Executor::new();
     // if the command line options request loading native implementation of available native libs
     // if not, the native implementation is not loaded and later when a flow is loaded it's library
     // references will be resolved and those libraries (WASM implementations) will be loaded at runtime
@@ -180,18 +181,18 @@ fn coordinator(
             Url::parse("memory://")? // Statically linked library has no resolved Url
         )?;
     }
-    executor.start(provider.clone(), coordinator_settings.num_threads,
+    executor.start(&provider, coordinator_settings.num_threads,
                    &job_source_name,
                    &results_sink,
                    &control_socket,
     );
 
-    let mut context_executor = Executor::new()?;
+    let mut context_executor = Executor::new();
     context_executor.add_lib(
         context::get_manifest(connection.clone())?,
         Url::parse("memory://")? // Statically linked library has no resolved Url
     )?;
-    context_executor.start(provider, 1,
+    context_executor.start(&provider, 1,
                            &context_job_source_name,
                            &results_sink,
                            &control_socket,
@@ -203,7 +204,7 @@ fn coordinator(
         dispatcher,
         &mut submitter,
         &mut debug_server
-    )?;
+    );
 
     Ok(coordinator.submission_loop(loop_forever)?)
 }

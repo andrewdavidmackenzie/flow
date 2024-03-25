@@ -29,7 +29,7 @@ pub struct Job {
     pub flow_id: usize,
     /// the payload required to execute the job
     pub payload: Payload,
-    /// The result of the execution with the job_id, the optional output Value and if the function
+    /// The result of the execution with the `job_id`, the optional output Value and if the function
     /// should be run again in the future
     pub result: Result<(Option<Value>, RunAgain)>,
     /// The destinations (other function's inputs) where any output should be sent

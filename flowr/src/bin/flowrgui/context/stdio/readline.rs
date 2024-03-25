@@ -21,7 +21,7 @@ impl Implementation for Readline {
 
         let prompt = match inputs.first() {
             Some(Value::String(prompt)) => prompt.clone(),
-            _ => "".into()
+            _ => String::new()
         };
 
         let readline_response = server.send_and_receive_response(
@@ -64,7 +64,7 @@ mod test {
     #[serial]
     fn gets_a_line_of_text() {
         let server_connection = wait_for_then_send(
-            CoordinatorMessage::GetLine("".into()),
+            CoordinatorMessage::GetLine(String::new()),
             ClientMessage::Line("line of text".into()),
         );
         let reader = &Readline { server_connection } as &dyn Implementation;
@@ -84,7 +84,7 @@ mod test {
     #[serial]
     fn gets_json() {
         let server_connection = wait_for_then_send(
-            CoordinatorMessage::GetLine("".into()),
+            CoordinatorMessage::GetLine(String::new()),
             ClientMessage::Line("\"json text\"".into()),
         );
         let reader = &Readline { server_connection } as &dyn Implementation;
@@ -104,7 +104,7 @@ mod test {
     #[serial]
     fn get_eof() {
         let server_connection =
-            wait_for_then_send(CoordinatorMessage::GetLine("".into()),
+            wait_for_then_send(CoordinatorMessage::GetLine(String::new()),
                                ClientMessage::GetLineEof);
         let reader = &Readline { server_connection } as &dyn Implementation;
         let (value, run_again) = reader.run(&[]).expect("_readline() failed");

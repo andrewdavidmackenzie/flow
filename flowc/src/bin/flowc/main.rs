@@ -42,6 +42,7 @@ pub mod lib_build;
 mod source_arg;
 
 /// information from the parsing of the command line options, to be used to configure execution
+#[allow(clippy::struct_excessive_bools)]
 pub struct Options {
     source_url: Url,
     flow_args: Vec<String>,

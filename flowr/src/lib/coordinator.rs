@@ -4,7 +4,7 @@ use std::marker::PhantomData;
 use log::{debug, error, info, trace};
 use serde_json::Value;
 
-use flowcore::errors::*;
+use flowcore::errors::Result;
 #[cfg(feature = "metrics")]
 use flowcore::model::metrics::Metrics;
 use flowcore::model::submission::Submission;
@@ -46,8 +46,8 @@ impl<'a> Coordinator<'a> {
         dispatcher: Dispatcher,
         #[cfg(feature = "submission")] submitter: &'a mut dyn SubmissionHandler,
         #[cfg(feature = "debugger")] debug_server: &'a mut dyn DebuggerHandler
-    ) -> Result<Self> {
-        Ok(Coordinator {
+    ) -> Self {
+        Coordinator {
             #[cfg(feature = "submission")]
             submission_handler: submitter,
             dispatcher,
@@ -55,10 +55,16 @@ impl<'a> Coordinator<'a> {
             debugger: Debugger::new(debug_server),
             #[cfg(all(not(feature = "debugger"), not(feature = "submission")))]
             _data: PhantomData
-        })
+        }
     }
 
     /// Enter a loop - waiting for a submission from the client, or disconnection of the client
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if there was some issue while waiting for a submission to be sent, usually
+    /// related to some networking issue, busy ports etc.
+    ///
     #[cfg(feature = "submission")]
     pub fn submission_loop(
         &mut self,
@@ -79,6 +85,11 @@ impl<'a> Coordinator<'a> {
     /// There is an outer loop for the case when you are using the debugger, to allow entering
     /// the debugger when the flow ends and at any point resetting all the state and starting
     /// execution again from the initial state
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the execution of the flow did not complete normally.
+    /// 
     #[allow(unused_variables, unused_assignments, unused_mut)]
     pub fn execute_flow(&mut self,
                         submission: Submission,) -> Result<()> {
@@ -295,7 +306,7 @@ impl<'a> Coordinator<'a> {
 
         self.dispatcher.send_job_for_execution(&job.payload)?;
 
-        state.start_job(job)?;
+        state.start_job(job);
 
         #[cfg(feature = "metrics")]
         metrics.track_max_jobs(state.number_jobs_running());

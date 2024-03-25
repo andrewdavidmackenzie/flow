@@ -25,6 +25,7 @@ pub struct Block {
 
 impl Block {
     /// Create a new `Block`
+    #[must_use]
     pub fn new(
         blocking_flow_id: usize,
         blocking_function_id: usize,

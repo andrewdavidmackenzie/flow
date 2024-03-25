@@ -26,6 +26,12 @@ pub struct Dispatcher {
 /// `Dispatcher` struct takes care of ending jobs for execution and receiving results
 impl Dispatcher {
     /// Create a new `Dispatcher` of `Job`s using three addresses of job queues
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the zmq sockets used to send messages between client and coordinator
+    /// cannot be bound.
+    ///
     pub fn new(job_queues: &(String, String, String, String)) -> Result<Self> {
         let context = zmq::Context::new();
         let lib_job_socket = context.socket(zmq::PUSH)
@@ -59,10 +65,12 @@ impl Dispatcher {
     // Set the timeout to use when waiting for job results
     // Setting to `None` will disable timeouts and block forever
     pub(crate) fn set_results_timeout(&mut self, timeout: Option<Duration>) -> Result<()> {
+        #[allow(clippy::single_match_else)]
         match timeout {
             Some(time) => {
                 debug!("Setting results timeout to: {}ms", time.as_millis());
-                self.results_socket.set_rcvtimeo(time.as_millis() as i32)
+                //assert!(time.as_millis() < i32::MAX, "Truncation");
+                self.results_socket.set_rcvtimeo(i32::try_from(time.as_millis())?)
             },
             None => {
                 debug!("Disabling results timeout");
@@ -103,6 +111,11 @@ impl Dispatcher {
     }
 
     /// Send a "DONE"" message to subscribed executors on the `control_socket`
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the message bytes cannot be sent over the control socket
+    ///
     pub fn send_done(&mut self) -> Result<()> {
         debug!("Dispatcher announcing DONE");
         self.control_socket.send("DONE".as_bytes(), DONTWAIT)

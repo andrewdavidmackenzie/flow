@@ -82,5 +82,11 @@ pub mod content;
 /// function implementing the logic.
 pub trait Implementation: Sync + Send {
     /// The `run` method is used to execute the function's implementation
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the implementation detects an error loading the input values or
+    /// executing the function required
+    ///
     fn run(&self, inputs: &[Value]) -> Result<(Option<Value>, RunAgain)>;
 }

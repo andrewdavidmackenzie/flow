@@ -16,6 +16,10 @@ use syn::{ItemFn, parse_macro_input, ReturnType};
 use flowcore::model::function_definition::FunctionDefinition;
 
 /// The `flow_function` macro definition
+///
+/// # Panics
+///
+/// Will panic if the file path of the source file where the macro was used cannot be determined.
 #[proc_macro_attribute]
 pub fn flow_function(_attr: TokenStream, implementation: TokenStream) -> TokenStream {
     // Get the full path to the file where the macro was used, and join the relative filename from
@@ -60,13 +64,11 @@ fn input_conversion(definition: &FunctionDefinition, implementation_ast: &ItemFn
     }
 
     // perform some checks before attempting input conversion
-    if implemented_inputs.len() != definition.inputs.len() {
-        panic!("a 'flow_function' macro check failed:\n\
+    assert_eq!(implemented_inputs.len(), definition.inputs.len(), "a 'flow_function' macro check failed:\n\
             '{}' define {} inputs\n\
             '{}()' implements {} inputs",
                definition.name, definition.inputs.len(),
                implementation_name, implemented_inputs.len());
-    }
 
     // TODO If function accepts types directly (not `&[Value]`), check they match function definition
     // for input_pair in implemented_inputs.pairs() {
