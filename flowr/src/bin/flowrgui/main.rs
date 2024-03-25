@@ -20,20 +20,20 @@
 //! [`Executors`][flowrlib::executor::Executor]
 
 use core::str::FromStr;
-use std::{env, process, thread};
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::PathBuf;
+use std::{env, process, thread};
 
-use clap::{Arg, ArgMatches};
 use clap::Command as ClapCommand;
+use clap::{Arg, ArgMatches};
 use env_logger::Builder;
-use iced::{Alignment, Application, Command, Element, Length, Settings, Subscription, Theme};
 use iced::alignment::Horizontal;
 use iced::executor;
-use iced::widget::{Button, Column, Row, scrollable, Text, text_input};
 use iced::widget::scrollable::Id;
-use iced_aw::{Card, modal};
+use iced::widget::{scrollable, text_input, Button, Column, Row, Text};
+use iced::{Alignment, Application, Command, Element, Length, Settings, Subscription, Theme};
+use iced_aw::{modal, Card};
 use image::{ImageBuffer, Rgba, RgbaImage};
 use log::{info, LevelFilter};
 use simpath::Simpath;
@@ -47,7 +47,10 @@ use flowcore::url_helper::url_from_string;
 use flowrlib::info as flowrlib_info;
 use gui::coordinator_connection::CoordinatorConnection;
 use gui::debug_message::DebugServerMessage;
-use gui::debug_message::DebugServerMessage::*;
+use gui::debug_message::DebugServerMessage::{
+    BlockBreakpoint, DataBreakpoint, ExecutionEnded, ExecutionStarted, ExitingDebugger,
+    JobCompleted, JobError, Panic, PriorToSendingJob, Resetting, WaitingForCommand,
+};
 
 use crate::gui::client_message::ClientMessage;
 use crate::gui::coordinator_message::CoordinatorMessage;
@@ -206,26 +209,31 @@ impl Application for FlowrGui {
                 if self.ui_settings.auto {
                     return Command::perform(Self::auto_submit(), |()| Message::SubmitFlow);
                 }
-            },
+            }
             Message::SubmitFlow => {
                 if let CoordinatorState::Connected(sender) = &self.coordinator_state {
-                    return Command::perform(Self::submit(sender.clone(),
-                                                         self.submission_settings.clone()), |()| Message::Submitted);
+                    return Command::perform(
+                        Self::submit(sender.clone(), self.submission_settings.clone()),
+                        |()| Message::Submitted,
+                    );
                 }
-            },
+            }
             Message::Submitted => {
                 self.tab_set.clear();
                 self.submitted = true;
-            },
+            }
             Message::FlowArgsChanged(value) => self.submission_settings.flow_args = value,
             Message::UrlChanged(value) => self.submission_settings.flow_manifest_url = value,
-            Message::TabSelected(_) | Message::StdioAutoScrollTogglerChanged(_, _) => return self.tab_set.update(message),
-            Message::CoordinatorSent(coord_msg) =>
-                return self.process_coordinator_message(coord_msg),
+            Message::TabSelected(_) | Message::StdioAutoScrollTogglerChanged(_, _) => {
+                return self.tab_set.update(message)
+            }
+            Message::CoordinatorSent(coord_msg) => {
+                return self.process_coordinator_message(coord_msg)
+            }
             Message::CloseModal => self.show_modal = false,
             Message::CoordinatorDisconnected(reason) => {
                 self.coordinator_state = CoordinatorState::Disconnected(reason);
-            },
+            }
             Message::NewStdin(text) => self.tab_set.stdin_tab.text_entered(text),
             Message::LineOfStdin(line) => self.tab_set.stdin_tab.new_line(line),
         }
@@ -234,37 +242,36 @@ impl Application for FlowrGui {
     }
 
     fn view(&self) -> Element<'_, Message> {
-        let main = Column::new().spacing(10)
+        let main = Column::new()
+            .spacing(10)
             .push(self.command_row())
             .push(self.tab_set.view())
             .push(self.status_row())
             .padding(10);
 
         let overlay = if self.show_modal {
-            Some(Card::new(
-                Text::new(self.modal_content.clone().0),
-                Text::new(self.modal_content.clone().1),
-            )
-                .foot(
-                    Row::new()
-                        .spacing(10)
-                        .padding(5)
-                        .width(Length::Fill)
-                        .push(
-                            Button::new(Text::new("OK")
-                                .horizontal_alignment(Horizontal::Center))
-                                .width(Length::Fill)
-                                .on_press(Message::CloseModal)),
+            Some(
+                Card::new(
+                    Text::new(self.modal_content.clone().0),
+                    Text::new(self.modal_content.clone().1),
                 )
-                .max_width(300.0))
+                .foot(
+                    Row::new().spacing(10).padding(5).width(Length::Fill).push(
+                        Button::new(Text::new("OK").horizontal_alignment(Horizontal::Center))
+                            .width(Length::Fill)
+                            .on_press(Message::CloseModal),
+                    ),
+                )
+                .max_width(300.0),
+            )
         } else {
             None
         };
 
         modal(main, overlay)
-        .backdrop(Message::CloseModal)
-        .on_esc(Message::CloseModal)
-        .into()
+            .backdrop(Message::CloseModal)
+            .on_esc(Message::CloseModal)
+            .into()
     }
 
     fn subscription(&self) -> Subscription<Message> {
@@ -280,12 +287,14 @@ impl FlowrGui {
     }
 
     // Submit the flow to the coordinator for execution
-    async fn submit(sender: tokio::sync::mpsc::Sender<ClientMessage>,
-                    settings: SubmissionSettings) {
+    async fn submit(
+        sender: tokio::sync::mpsc::Sender<ClientMessage>,
+        settings: SubmissionSettings,
+    ) {
         match Self::flow_url(&settings.flow_manifest_url) {
             Ok(url) => {
-                let provider = &MetaProvider::new(Simpath::new(""),
-                                                  PathBuf::default()) as &dyn Provider;
+                let provider =
+                    &MetaProvider::new(Simpath::new(""), PathBuf::default()) as &dyn Provider;
 
                 match FlowManifest::load(provider, &url) {
                     Ok((flow_manifest, _)) => {
@@ -299,7 +308,10 @@ impl FlowrGui {
                         info!("Sending submission to Coordinator");
                         #[allow(clippy::single_match_else)]
                         #[allow(clippy::match_same_arms)]
-                        match sender.send(ClientMessage::ClientSubmission(submission)).await {
+                        match sender
+                            .send(ClientMessage::ClientSubmission(submission))
+                            .await
+                        {
                             Ok(()) => {
                                 // TODO report info that submitted
                             }
@@ -312,7 +324,7 @@ impl FlowrGui {
                         // TODO report manifest loading error
                     }
                 }
-            },
+            }
             Err(_e) => {
                 // TODO report Invalid Url error
             }
@@ -322,28 +334,33 @@ impl FlowrGui {
     // report a new error
     #[allow(clippy::unused_self)]
     // TODO implement some display of this info on the UI
-    fn error(&mut self, _msg: &str) {
-    }
+    fn error(&mut self, _msg: &str) {}
 
     // report a new info message
     // TODO implement some display of this info on the UI
     #[allow(clippy::unused_self)]
-    fn info(&mut self, _msg: &str) {
-    }
+    fn info(&mut self, _msg: &str) {}
 
     fn command_row(&self) -> Row<Message> {
-        let url = text_input("Flow location (relative, or absolute)",
-                             &self.submission_settings.flow_manifest_url)
-            .on_input(Message::UrlChanged);
+        let url = text_input(
+            "Flow location (relative, or absolute)",
+            &self.submission_settings.flow_manifest_url,
+        )
+        .on_input(Message::UrlChanged);
 
-        let args = text_input("Space separated flow arguments",
-                              &self.submission_settings.flow_args)
-            .on_submit(Message::SubmitFlow)
-            .on_input(Message::FlowArgsChanged)
-            .on_paste(Message::FlowArgsChanged);
+        let args = text_input(
+            "Space separated flow arguments",
+            &self.submission_settings.flow_args,
+        )
+        .on_submit(Message::SubmitFlow)
+        .on_input(Message::FlowArgsChanged)
+        .on_paste(Message::FlowArgsChanged);
 
         let mut play = Button::new("Play");
-        if  matches!(self.coordinator_state, CoordinatorState::Connected(_)) && !self.running && !self.submitted {
+        if matches!(self.coordinator_state, CoordinatorState::Connected(_))
+            && !self.running
+            && !self.submitted
+        {
             play = play.on_press(Message::SubmitFlow);
         }
 
@@ -365,11 +382,10 @@ impl FlowrGui {
                     (true, false) => "Submitted",
                 };
                 format!("Connected({msg})")
-            },
+            }
         };
 
-        Row::new()
-            .push(Text::new(format!("Coordinator: {status}")))
+        Row::new().push(Text::new(format!("Coordinator: {status}")))
     }
 
     // Create initial Settings structs for Submission and Coordinator from the CLI options
@@ -383,71 +399,82 @@ impl FlowrGui {
         let mut builder = Builder::from_default_env();
         builder.filter_level(level).init();
 
-        info!("'{}' version {}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"));
+        info!(
+            "'{}' version {}",
+            env!("CARGO_PKG_NAME"),
+            env!("CARGO_PKG_VERSION")
+        );
         info!("'flowrlib' version {}", flowrlib_info::version());
 
-        let flow_manifest_url = matches.get_one::<String>("flow-manifest")
-            .unwrap_or(&String::new()).to_string();
+        let flow_manifest_url = matches
+            .get_one::<String>("flow-manifest")
+            .unwrap_or(&String::new())
+            .to_string();
         let flow_args = match matches.get_many::<String>("flow-args") {
             Some(values) => {
                 println!("values {values:?}");
-                values.map(std::string::ToString::to_string)
-                    .collect::<Vec<String>>().join(" ")
-            },
-            None => String::new()
+                values
+                    .map(std::string::ToString::to_string)
+                    .collect::<Vec<String>>()
+                    .join(" ")
+            }
+            None => String::new(),
         };
 
         // TODO read from settings or UI
-        let parallel_jobs_limit = matches.get_one::<usize>("jobs").map(std::borrow::ToOwned::to_owned);
+        let parallel_jobs_limit = matches
+            .get_one::<usize>("jobs")
+            .map(std::borrow::ToOwned::to_owned);
 
         // TODO make a UI setting
         let debug_this_flow = matches.get_flag("debugger");
 
         let coordinator_settings = if let Some(port) = matches.get_one::<u16>("client") {
-            CoordinatorSettings::ClientOnly(*port) } else {
-                let lib_dirs = if matches.contains_id("lib_dir") {
-                    if let Some(dirs) = matches.get_many::<String>("lib_dir") {
-                            dirs.map(std::string::ToString::to_string).collect()
-                    } else {
-                        vec![]
-                    }
+            CoordinatorSettings::ClientOnly(*port)
+        } else {
+            let lib_dirs = if matches.contains_id("lib_dir") {
+                if let Some(dirs) = matches.get_many::<String>("lib_dir") {
+                    dirs.map(std::string::ToString::to_string).collect()
                 } else {
                     vec![]
-                };
+                }
+            } else {
+                vec![]
+            };
 
-                let lib_search_path = FlowrGui::lib_search_path(&lib_dirs);
+            let lib_search_path = FlowrGui::lib_search_path(&lib_dirs);
 
-                let native_flowstdlib = matches.get_flag("native");
+            let native_flowstdlib = matches.get_flag("native");
 
-                let num_threads = FlowrGui::num_threads(&matches);
+            let num_threads = FlowrGui::num_threads(&matches);
 
-                let server_settings = ServerSettings {
-                    native_flowstdlib,
-                    num_threads,
-                    lib_search_path,
-                };
+            let server_settings = ServerSettings {
+                native_flowstdlib,
+                num_threads,
+                lib_search_path,
+            };
 
-                CoordinatorSettings::Server(server_settings)
+            CoordinatorSettings::Server(server_settings)
         };
 
-        (SubmissionSettings {
-            flow_manifest_url,
-            flow_args,
-            debug_this_flow,
-            display_metrics: matches.get_flag("metrics"),
-            parallel_jobs_limit,
-        },
-        coordinator_settings,
-        UiSettings {
-            auto: matches.get_flag("auto")
-        }
+        (
+            SubmissionSettings {
+                flow_manifest_url,
+                flow_args,
+                debug_this_flow,
+                display_metrics: matches.get_flag("metrics"),
+                parallel_jobs_limit,
+            },
+            coordinator_settings,
+            UiSettings {
+                auto: matches.get_flag("auto"),
+            },
         )
     }
 
     // Parse the command line arguments using clap
     fn parse_cli_args() -> ArgMatches {
-        let app = ClapCommand::new(env!("CARGO_PKG_NAME"))
-            .version(env!("CARGO_PKG_VERSION"));
+        let app = ClapCommand::new(env!("CARGO_PKG_NAME")).version(env!("CARGO_PKG_VERSION"));
 
         let app = app.arg(
             Arg::new("debugger")
@@ -458,7 +485,7 @@ impl FlowrGui {
         );
 
         #[cfg(not(feature = "wasm"))]
-            let app = app.arg(
+        let app = app.arg(
             Arg::new("native")
                 .short('n')
                 .long("native")
@@ -468,11 +495,11 @@ impl FlowrGui {
 
         let app = app.arg(
             Arg::new("client")
-                 .short('c')
-                 .long("client")
-                 .number_of_values(1)
-                 .value_parser(clap::value_parser!(u16))
-                 .help("Launch only a client (no coordinator) to connect to a remote coordinator")
+                .short('c')
+                .long("client")
+                .number_of_values(1)
+                .value_parser(clap::value_parser!(u16))
+                .help("Launch only a client (no coordinator) to connect to a remote coordinator"),
         );
 
         let app = app.arg(
@@ -480,7 +507,7 @@ impl FlowrGui {
                 .short('m')
                 .long("metrics")
                 .action(clap::ArgAction::SetTrue)
-                .help("Calculate metrics during flow execution and print them out when done")
+                .help("Calculate metrics during flow execution and print them out when done"),
         );
 
         let app = app.arg(
@@ -488,7 +515,7 @@ impl FlowrGui {
                 .short('a')
                 .long("auto")
                 .action(clap::ArgAction::SetTrue)
-                .help("Run any flow specified automatically on start-up. Exit automatically.")
+                .help("Run any flow specified automatically on start-up. Exit automatically."),
         );
 
         let app = app
@@ -541,8 +568,12 @@ impl FlowrGui {
     fn flow_arg_vec(&self) -> Vec<String> {
         // arg #0 is the flow url
         let mut flow_args: Vec<String> = vec![self.submission_settings.flow_manifest_url.clone()];
-        let additional_args : Vec<String> = self.submission_settings.flow_args.split(' ')
-            .map(std::string::ToString::to_string).collect();
+        let additional_args: Vec<String> = self
+            .submission_settings
+            .flow_args
+            .split(' ')
+            .map(std::string::ToString::to_string)
+            .collect();
         flow_args.extend(additional_args);
         flow_args
     }
@@ -551,8 +582,7 @@ impl FlowrGui {
     // In order to find the content, a FLOW_LIB_PATH environment variable can be configured with a
     // list of directories in which to look for the library in question.
     fn lib_search_path(search_path_additions: &[String]) -> Simpath {
-        let mut lib_search_path = Simpath::new_with_separator("FLOW_LIB_PATH",
-                                                              ',');
+        let mut lib_search_path = Simpath::new_with_separator("FLOW_LIB_PATH", ',');
 
         for additions in search_path_additions {
             lib_search_path.add(additions);
@@ -560,8 +590,7 @@ impl FlowrGui {
         }
 
         if lib_search_path.is_empty() {
-            let home_dir = env::var("HOME")
-                .unwrap_or_else(|_| "Could not get $HOME".to_string());
+            let home_dir = env::var("HOME").unwrap_or_else(|_| "Could not get $HOME".to_string());
             lib_search_path.add(&format!("{home_dir}/.flow/lib"));
         }
 
@@ -575,7 +604,9 @@ impl FlowrGui {
         match matches.get_one::<usize>("threads") {
             Some(num_threads) => *num_threads,
             // Could be simplified to `std::num::NonZero::get`but generic NonZero is unstable
-            None => thread::available_parallelism().map(|n| n.get()).unwrap_or(1)
+            None => thread::available_parallelism()
+                .map(|n| n.get())
+                .unwrap_or(1),
         }
     }
 
@@ -590,18 +621,17 @@ impl FlowrGui {
         match message {
             CoordinatorMessage::Connected(_) => {
                 self.error("Coordinator is already connected");
-            },
+            }
             CoordinatorMessage::FlowStart => {
                 self.running = true;
                 self.submitted = false;
                 self.send(ClientMessage::Ack);
-            },
+            }
             CoordinatorMessage::FlowEnd(metrics) => {
                 self.running = false;
                 if self.submission_settings.display_metrics {
                     self.show_modal = true;
-                    self.modal_content = ("Flow Ended - Metrics".into(),
-                                          format!("{metrics}"));
+                    self.modal_content = ("Flow Ended - Metrics".into(), format!("{metrics}"));
                 }
                 // NO response - so we can use next request sent to submit another flow
                 if self.ui_settings.auto {
@@ -612,23 +642,27 @@ impl FlowrGui {
             CoordinatorMessage::CoordinatorExiting(_) => {
                 self.coordinator_state = CoordinatorState::Disconnected("Exited".into());
                 self.send(ClientMessage::Ack);
-            },
+            }
             CoordinatorMessage::Stdout(string) => {
                 self.tab_set.stdout_tab.content.push(string);
                 self.send(ClientMessage::Ack);
                 if self.tab_set.stdout_tab.auto_scroll {
                     return scrollable::snap_to(
-                        self.tab_set.stdout_tab.id.clone(), scrollable::RelativeOffset::END);
+                        self.tab_set.stdout_tab.id.clone(),
+                        scrollable::RelativeOffset::END,
+                    );
                 }
-            },
+            }
             CoordinatorMessage::Stderr(string) => {
                 self.tab_set.stderr_tab.content.push(string);
                 self.send(ClientMessage::Ack);
                 if self.tab_set.stderr_tab.auto_scroll {
                     return scrollable::snap_to(
-                        self.tab_set.stderr_tab.id.clone(), scrollable::RelativeOffset::END);
+                        self.tab_set.stderr_tab.id.clone(),
+                        scrollable::RelativeOffset::END,
+                    );
                 }
-            },
+            }
             CoordinatorMessage::GetStdin => {
                 let msg = match self.tab_set.stdin_tab.get_all() {
                     Some(buf) => ClientMessage::Stdin(buf),
@@ -671,16 +705,18 @@ impl FlowrGui {
                         let mut buffer = Vec::new();
                         match f.read_to_end(&mut buffer) {
                             Ok(_) => {
-                                self.tab_set.fileio_tab.content.push(
-                                    format!("READ <-- {file_path}"));
-/*
-                                if self.tab_set.stdout_tab.auto_scroll {
-                                    return scrollable::snap_to(
-                                        self.tab_set.stdout_tab.id.clone(), scrollable::RelativeOffset::END);
-                                }
- */
+                                self.tab_set
+                                    .fileio_tab
+                                    .content
+                                    .push(format!("READ <-- {file_path}"));
+                                /*
+                                                               if self.tab_set.stdout_tab.auto_scroll {
+                                                                   return scrollable::snap_to(
+                                                                       self.tab_set.stdout_tab.id.clone(), scrollable::RelativeOffset::END);
+                                                               }
+                                */
                                 ClientMessage::FileContents(file_path, buffer)
-                            },
+                            }
                             Err(_) => ClientMessage::Error(format!(
                                 "Could not read content from '{file_path:?}'"
                             )),
@@ -689,22 +725,24 @@ impl FlowrGui {
                     Err(_) => ClientMessage::Error(format!("Could not open file '{file_path:?}'")),
                 };
                 self.send(msg);
-            },
+            }
             CoordinatorMessage::Write(filename, bytes) => {
                 let msg = match File::create(&filename) {
                     Ok(mut file) => match file.write_all(bytes.as_slice()) {
                         Ok(()) => {
-                            self.tab_set.fileio_tab.content.push(
-                                format!("WRITE --> {filename}"));
+                            self.tab_set
+                                .fileio_tab
+                                .content
+                                .push(format!("WRITE --> {filename}"));
                             /*
-                                                            if self.tab_set.stdout_tab.auto_scroll {
-                                                                return scrollable::snap_to(
-                                                                    self.tab_set.stdout_tab.id.clone(), scrollable::RelativeOffset::END);
-                                                            }
-                             */
+                                                           if self.tab_set.stdout_tab.auto_scroll {
+                                                               return scrollable::snap_to(
+                                                                   self.tab_set.stdout_tab.id.clone(), scrollable::RelativeOffset::END);
+                                                           }
+                            */
 
                             ClientMessage::Ack
-                        },
+                        }
                         Err(e) => {
                             let msg = format!("Error writing to file: '{filename}': '{e}'");
                             self.error("{msg}");
@@ -718,20 +756,36 @@ impl FlowrGui {
                     }
                 };
                 self.send(msg);
-            },
-            CoordinatorMessage::PixelWrite((x_coord, y_coord), (red, green, blue), (width, height), ref name) => {
+            }
+            CoordinatorMessage::PixelWrite(
+                (x_coord, y_coord),
+                (red, green, blue),
+                (width, height),
+                ref name,
+            ) => {
                 if self.tab_set.images_tab.images.is_empty() {
                     let data = RgbaImage::new(width, height);
-                    self.tab_set.images_tab.images.insert(name.clone(), ImageReference {width, height, data });
+                    self.tab_set.images_tab.images.insert(
+                        name.clone(),
+                        ImageReference {
+                            width,
+                            height,
+                            data,
+                        },
+                    );
                     // TODO switch to the images tab when image first written to
                 }
-                if let Some(ImageReference{width: _, height: _, ref mut data})
-                    = &mut self.tab_set.images_tab.images.get_mut(name) {
-                        data.put_pixel(x_coord, y_coord, Rgba([red, green, blue, 255]));
+                if let Some(ImageReference {
+                    width: _,
+                    height: _,
+                    ref mut data,
+                }) = &mut self.tab_set.images_tab.images.get_mut(name)
+                {
+                    data.put_pixel(x_coord, y_coord, Rgba([red, green, blue, 255]));
                 }
                 self.send(ClientMessage::Ack);
             }
-            _ => {},
+            _ => {}
         };
         Command::none()
     }

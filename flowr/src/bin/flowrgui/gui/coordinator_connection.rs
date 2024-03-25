@@ -1,7 +1,8 @@
 use std::fmt::Display;
 use std::time::Duration;
 
-use flowcore::errors::*;
+use flowcore::errors::{Result, ResultExt, bail};
+
 /// This is the message-queue implementation of the Client<-->[Coordinator][flowrlib::coordinator::Coordinator]
 /// communications
 use log::{debug, info, trace};

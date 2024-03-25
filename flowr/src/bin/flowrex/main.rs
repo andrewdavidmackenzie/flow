@@ -20,7 +20,7 @@ use simpdiscoverylib::BeaconListener;
 #[cfg(feature = "flowstdlib")]
 use url::Url;
 
-use flowcore::errors::*;
+use flowcore::errors::{Result, ResultExt};
 use flowcore::meta_provider::MetaProvider;
 use flowcore::provider::Provider;
 use flowrlib::executor::Executor;

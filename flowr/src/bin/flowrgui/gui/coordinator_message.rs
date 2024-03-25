@@ -2,7 +2,7 @@ use std::fmt;
 
 use serde_derive::{Deserialize, Serialize};
 
-use flowcore::errors::*;
+use flowcore::errors::Result;
 use flowcore::model::metrics::Metrics;
 
 use crate::gui::client_message::ClientMessage;

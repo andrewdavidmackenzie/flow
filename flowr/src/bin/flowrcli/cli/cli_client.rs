@@ -12,7 +12,7 @@ use log::error;
 #[cfg(feature = "debugger")]
 use log::info;
 
-use flowcore::errors::*;
+use flowcore::errors::Result;
 
 use crate::cli::connections::ClientConnection;
 use crate::cli::coordinator_message::{ClientMessage, CoordinatorMessage};

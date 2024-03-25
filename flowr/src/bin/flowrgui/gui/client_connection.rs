@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-use flowcore::errors::*;
+use flowcore::errors::{Result, ResultExt};
 /// This is the message-queue implementation of the Client<-->[Coordinator][flowrlib::coordinator::Coordinator]
 /// communications
 use log::{info, trace};

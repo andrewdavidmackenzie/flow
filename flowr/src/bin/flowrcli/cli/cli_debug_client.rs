@@ -1,19 +1,29 @@
 use std::sync::{Arc, Mutex};
 
 use log::error;
-use rustyline::{DefaultEditor, Editor};
 use rustyline::error::ReadlineError;
 use rustyline::history::DefaultHistory;
+use rustyline::{DefaultEditor, Editor};
 
-use flowcore::errors::*;
+use flowcore::errors::Result;
 use flowcore::model::runtime_function::RuntimeFunction;
 use flowrlib::debug_command::BreakpointSpec;
 use flowrlib::debug_command::DebugCommand;
-use flowrlib::debug_command::DebugCommand::*;
+use flowrlib::debug_command::DebugCommand::{
+    Ack, Breakpoint, Continue, DebugClientStarting, Delete, ExitDebugger, FunctionList, Inspect,
+    InspectBlock, InspectFunction, InspectInput, InspectOutput, List, Modify, RunReset, Step,
+    Validate,
+};
 use flowrlib::run_state::{RunState, State};
 
 use crate::cli::connections::ClientConnection;
-use crate::cli::debug_message::{DebugServerMessage, DebugServerMessage::*};
+use crate::cli::debug_message::DebugServerMessage;
+use DebugServerMessage::{
+    BlockBreakpoint, BlockState, DataBreakpoint, Deadlock, EnteringDebugger, ExecutionEnded,
+    ExecutionStarted, ExitingDebugger, FlowUnblockBreakpoint, FunctionStates, Functions,
+    InputState, JobCompleted, JobError, Message, OutputState, OverallState, Panic,
+    PriorToSendingJob, Resetting, SendingValue, WaitingForCommand,
+};
 
 const FLOWR_HISTORY_FILENAME: &str = ".flowr_history";
 
@@ -65,9 +75,7 @@ impl CliDebugClient {
         let _ = self.editor.load_history(FLOWR_HISTORY_FILENAME);
 
         // Send an first message to initialize the connection
-        let _ = self
-            .connection
-            .send(DebugClientStarting);
+        let _ = self.connection.send(DebugClientStarting);
 
         // loop while? and avoid break?
         loop {
@@ -102,7 +110,11 @@ impl CliDebugClient {
         let command = parts.first().ok_or("Could not get first part")?.to_string();
 
         if !parts.is_empty() {
-            return Ok((input, command, Some(parts.get(1..).ok_or("Could not get parts")?.to_vec())));
+            return Ok((
+                input,
+                command,
+                Some(parts.get(1..).ok_or("Could not get parts")?.to_vec()),
+            ));
         };
 
         Ok((input, command, None))
@@ -136,19 +148,21 @@ impl CliDebugClient {
                     let sub_parts: Vec<&str> = spec.first()?.split('/').collect();
                     if let Ok(source_process_id) = sub_parts.first()?.parse::<usize>() {
                         return Some(BreakpointSpec::Output((
-                                source_process_id,
-                                format!("/{}", sub_parts.get(1)?),
-                            )));
+                            source_process_id,
+                            format!("/{}", sub_parts.get(1)?),
+                        )));
                     }
                 } else if spec.first()?.contains(':') {
                     // is an input specifier
                     let sub_parts: Vec<&str> = spec.first()?.split(':').collect();
-                    if let (Ok(destination_function_id), Ok(destination_input_number)) = (sub_parts.first()?.parse::<usize>(),
-                                                                                          sub_parts.get(1)?.parse::<usize>()) {
+                    if let (Ok(destination_function_id), Ok(destination_input_number)) = (
+                        sub_parts.first()?.parse::<usize>(),
+                        sub_parts.get(1)?.parse::<usize>(),
+                    ) {
                         return Some(BreakpointSpec::Input((
-                                destination_function_id,
-                                destination_input_number,
-                            )));
+                            destination_function_id,
+                            destination_input_number,
+                        )));
                     }
                 } else if spec.first()?.contains("->") {
                     // is a block specifier
@@ -177,7 +191,9 @@ impl CliDebugClient {
                 Some(InspectBlock(source_function_id, destination_function_id))
             }
             _ => {
-                println!("Unsupported format for 'inspect' command. Use 'h' or 'help' command for help");
+                println!(
+                    "Unsupported format for 'inspect' command. Use 'h' or 'help' command for help"
+                );
                 None
             }
         }
@@ -190,22 +206,21 @@ impl CliDebugClient {
     fn get_user_command(&mut self, job_number: usize) -> Result<DebugCommand> {
         loop {
             match self.editor.readline(&format!("Job #{job_number}> ")) {
-                Ok(line) => {
-                    match self.parse_command(line) {
-                        Ok((line, command, params)) => {
-                            if let Some(debugger_command) = self.get_server_command(&command, params) {
-                                self.editor.add_history_entry(&line)
-                                    .map_err(|_| "Could not add history line")?;
-                                self.last_command = line;
-                                return Ok(debugger_command);
-                            }
-                        },
-                        Err(e) => eprintln!("{e}")
+                Ok(line) => match self.parse_command(line) {
+                    Ok((line, command, params)) => {
+                        if let Some(debugger_command) = self.get_server_command(&command, params) {
+                            self.editor
+                                .add_history_entry(&line)
+                                .map_err(|_| "Could not add history line")?;
+                            self.last_command = line;
+                            return Ok(debugger_command);
+                        }
                     }
-                }
+                    Err(e) => eprintln!("{e}"),
+                },
                 Err(ReadlineError::Interrupted) => {
                     println!("Use 'q' or 'quit' to exit the debugger");
-                },
+                }
                 Err(_) => return Ok(ExitDebugger), // Includes CONTROL-D exits
             }
         }
@@ -228,9 +243,12 @@ impl CliDebugClient {
             "d" | "delete" => Some(Delete(Self::parse_breakpoint_spec(params))),
             "e" | "exit" | "q" | "quit" => Some(ExitDebugger),
             "f" | "functions" => Some(FunctionList),
-            "h" | "?" | "help" => { // only command that doesn't send a message to debugger
+            "h" | "?" | "help" => {
+                // only command that doesn't send a message to debugger
                 Self::help();
-                self.editor.add_history_entry(command).expect("Could not add history line");
+                self.editor
+                    .add_history_entry(command)
+                    .expect("Could not add history line");
                 None
             }
             "i" | "inspect" => Self::parse_inspect_spec(params),
@@ -244,7 +262,7 @@ impl CliDebugClient {
                     }
                 }
                 Some(RunReset)
-            },
+            }
             "s" | "step" => Some(Step(Self::parse_optional_int(params))),
             "v" | "validate" => Some(Validate),
             _ => {
@@ -343,7 +361,12 @@ impl CliDebugClient {
     fn function_list(functions: Vec<RuntimeFunction>) {
         println!("Functions List");
         for function in functions {
-            println!("\t#{} '{}' @ '{}'", function.id(), function.name(), function.route());
+            println!(
+                "\t#{} '{}' @ '{}'",
+                function.id(),
+                function.name(),
+                function.route()
+            );
         }
         println!("Use 'i n' or 'inspect n' to inspect the function number 'n'");
     }
@@ -356,7 +379,7 @@ impl CliDebugClient {
 
         for id in 0..run_state.num_functions() {
             if let Some(function) = run_state.get_function(id) {
-                print!("{function}", );
+                print!("{function}",);
                 let function_states = run_state.get_function_states(id);
                 println!("\tStates: {function_states:?}");
 
@@ -373,7 +396,9 @@ impl CliDebugClient {
                     if block.blocking_function_id == id {
                         println!(
                             "\tBlocking #{}:{} <- Blocked #{}",
-                            block.blocking_function_id, block.blocking_io_number, block.blocked_function_id
+                            block.blocking_function_id,
+                            block.blocking_io_number,
+                            block.blocked_function_id
                         );
                     }
                 }
@@ -386,6 +411,7 @@ impl CliDebugClient {
 mod test {
     use serde_json::json;
 
+    use crate::cli::cli_debug_client::CliDebugClient;
     use flowcore::model::flow_manifest::FlowManifest;
     use flowcore::model::input::Input;
     use flowcore::model::input::InputInitializer::Once;
@@ -394,7 +420,6 @@ mod test {
     use flowcore::model::runtime_function::RuntimeFunction;
     use flowcore::model::submission::Submission;
     use flowrlib::run_state::RunState;
-    use crate::cli::cli_debug_client::CliDebugClient;
 
     fn test_function_b_init() -> RuntimeFunction {
         RuntimeFunction::new(
@@ -458,7 +483,7 @@ mod test {
             None,
             None,
             #[cfg(feature = "debugger")]
-                true,
+            true,
         )
     }
 

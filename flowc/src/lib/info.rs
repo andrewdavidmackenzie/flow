@@ -14,7 +14,7 @@ pub fn version() -> &'static str {
 
 #[cfg(test)]
 mod test {
-    use super::*;
+    use super::version;
 
     #[test]
     fn can_get_version() {

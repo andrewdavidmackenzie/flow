@@ -1,6 +1,6 @@
 use std::fmt;
 
-use flowcore::errors::*;
+use flowcore::errors::Result;
 use flowcore::model::submission::Submission;
 use serde_derive::{Deserialize, Serialize};
 

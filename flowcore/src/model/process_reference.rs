@@ -68,7 +68,7 @@ mod test {
     use url::Url;
 
     use crate::deserializers::deserializer::get;
-    use crate::errors::*;
+    use crate::errors::Result;
     use crate::model::input::InputInitializer::{Always, Once};
 
     use super::ProcessReference;

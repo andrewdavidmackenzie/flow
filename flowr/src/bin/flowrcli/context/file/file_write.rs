@@ -1,7 +1,7 @@
 use std::sync::{Arc, Mutex};
 
 use flowcore::{Implementation, RUN_AGAIN, RunAgain};
-use flowcore::errors::*;
+use flowcore::errors::Result;
 use serde_json::Value;
 
 use crate::cli::connections::CoordinatorConnection;

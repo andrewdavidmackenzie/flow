@@ -16,7 +16,7 @@ use flowrlib::executor::Executor;
 use flowrlib::services::{CONTROL_SERVICE_NAME, JOB_QUEUES_DISCOVERY_PORT, JOB_SERVICE_NAME, RESULTS_JOB_SERVICE_NAME};
 
 use crate::{context, CoordinatorSettings, ServerSettings};
-use crate::errors::*;
+use crate::errors::{Result, ResultExt};
 use crate::gui::client_connection::{ClientConnection, discover_service};
 use crate::gui::client_message::ClientMessage;
 use crate::gui::coordinator_connection::{COORDINATOR_SERVICE_NAME, DEBUG_SERVICE_NAME,

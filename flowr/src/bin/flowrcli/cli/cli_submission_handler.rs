@@ -3,7 +3,7 @@ use std::sync::{Arc, Mutex};
 use error_chain::bail;
 use log::{debug, error, info, trace};
 
-use flowcore::errors::*;
+use flowcore::errors::Result;
 #[cfg(feature = "metrics")]
 use flowcore::model::metrics::Metrics;
 use flowcore::model::submission::Submission;

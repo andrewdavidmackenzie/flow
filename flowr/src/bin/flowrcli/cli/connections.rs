@@ -7,7 +7,7 @@ use log::{debug, info, trace};
 use simpdiscoverylib::{BeaconListener, BeaconSender};
 use zmq::Socket;
 
-use flowcore::errors::*;
+use flowcore::errors::{Result, ResultExt, bail};
 
 /// WAIT for a message to arrive when performing a `receive()`
 pub const WAIT:i32 = 0;

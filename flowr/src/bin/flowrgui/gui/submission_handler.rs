@@ -1,7 +1,7 @@
 use std::sync::{Arc, Mutex};
 
 use error_chain::bail;
-use flowcore::errors::*;
+use flowcore::errors::Result;
 use flowcore::model::metrics::Metrics;
 use flowcore::model::submission::Submission;
 use flowrlib::run_state::RunState;

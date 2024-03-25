@@ -2,7 +2,7 @@
 
 use std::sync::{Arc, Mutex};
 
-use flowcore::errors::*;
+use flowcore::errors::{Result, ResultExt};
 use flowcore::model::lib_manifest::ImplementationLocator::Native;
 use flowcore::model::lib_manifest::LibraryManifest;
 use flowcore::model::metadata::MetaData;

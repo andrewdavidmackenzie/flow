@@ -433,7 +433,7 @@ mod test {
     use url::Url;
 
     use crate::deserializers::deserializer::get;
-    use crate::errors::*;
+    use crate::errors::Result;
     use crate::model::datatype::{DataType, NUMBER_TYPE, STRING_TYPE};
     use crate::model::name::HasName;
     use crate::model::name::Name;

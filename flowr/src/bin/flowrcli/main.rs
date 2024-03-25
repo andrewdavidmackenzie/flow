@@ -48,7 +48,7 @@ use cli::debug_message::DebugServerMessage;
 use cli::debug_message::DebugServerMessage::{BlockBreakpoint, DataBreakpoint, ExecutionEnded, ExecutionStarted,
                                              ExitingDebugger, JobCompleted, JobError, Panic, PriorToSendingJob,
                                              Resetting, WaitingForCommand};
-use flowcore::errors::*;
+use flowcore::errors::{Result, ResultExt};
 use flowcore::meta_provider::MetaProvider;
 use flowcore::model::flow_manifest::FlowManifest;
 use flowcore::model::submission::Submission;
