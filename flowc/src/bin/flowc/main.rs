@@ -337,7 +337,7 @@ fn parse_args(matches: &ArgMatches) -> Result<Options> {
 
     let source_url = url_from_string(&cwd_url,
                                      matches.get_one::<String>("source_url")
-                                  .map(std::string::String::as_str))
+                                  .map(String::as_str))
         .chain_err(|| "Could not create a url for flow from the 'FLOW' command line parameter")?;
 
     let lib_dirs = if matches.contains_id("lib_dir") {
