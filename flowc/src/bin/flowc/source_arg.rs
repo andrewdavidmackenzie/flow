@@ -4,7 +4,7 @@ use std::path::{Path, PathBuf};
 use tempfile::tempdir;
 use url::Url;
 
-use crate::errors::*;
+use crate::errors::{Result, ResultExt};
 use crate::RunnerSpec;
 
 pub(crate) enum CompileType {

@@ -16,7 +16,7 @@ use flowrclib::compiler::parser;
 use flowrclib::dumper::{flow_to_dot, functions_to_dot};
 use flowrclib::generator::generate;
 
-use crate::errors::*;
+use crate::errors::{Result, ResultExt, bail};
 use crate::Options;
 
 /// Compile a flow, maybe run it

@@ -20,7 +20,7 @@ use serde_derive::Deserialize;
 use simpath::Simpath;
 use url::Url;
 
-use errors::*;
+use errors::{Result, ResultExt};
 use flowcore::meta_provider::MetaProvider;
 use flowcore::url_helper::url_from_string;
 use flowrclib::info;
@@ -30,20 +30,13 @@ use crate::flow_compile::compile_and_execute_flow;
 use crate::lib_build::build_runner;
 use crate::source_arg::{CompileType, default_runner_dir, load_runner_spec};
 
-/// Contains [Error] types that other modules in this crate will
-/// `use crate::errors::*;` to get access to everything `error_chain` creates.
-pub mod errors;
-
+mod errors;
 mod flow_compile;
-
-/// used to compile a flow library from source
-pub mod lib_build;
-
+mod lib_build;
 mod source_arg;
 
-/// information from the parsing of the command line options, to be used to configure execution
 #[allow(clippy::struct_excessive_bools)]
-pub struct Options {
+pub(crate) struct Options {
     source_url: Url,
     flow_args: Vec<String>,
     graphs: bool,
@@ -85,9 +78,9 @@ fn main() {
     }
 }
 
-/// For the lib provider, libraries maybe installed in multiple places in the file system.
-/// In order to find the content, a `FLOW_LIB_PATH` environment variable can be configured with a
-/// list of directories in which to look for the library in question.
+// For the lib provider, libraries maybe installed in multiple places in the file system.
+// In order to find the content, a `FLOW_LIB_PATH` environment variable can be configured with a
+// list of directories in which to look for the library in question.
 fn get_lib_search_path(search_path_additions: &[String]) -> Simpath {
     let mut lib_search_path = Simpath::new_with_separator("FLOW_LIB_PATH", ',');
 

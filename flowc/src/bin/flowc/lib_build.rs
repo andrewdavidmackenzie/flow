@@ -4,7 +4,7 @@ use std::path::Path;
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use colored::*;
+use colored::Colorize;
 use log::{debug, info};
 use simpath::Simpath;
 use url::Url;
@@ -18,7 +18,7 @@ use flowrclib::compiler::{compile, compile_wasm};
 use flowrclib::compiler::parser;
 use flowrclib::dumper::flow_to_dot;
 
-use crate::errors::*;
+use crate::errors::{Result, ResultExt, bail};
 use crate::Options;
 
 /// Build a library from source and generate a manifest for it so it can be used at runtime when
