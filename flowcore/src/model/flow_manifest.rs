@@ -7,8 +7,8 @@ use std::fmt::Display;
 use serde_derive::{Deserialize, Serialize};
 use url::Url;
 
-use crate::deserializers::deserializer::get_deserializer;
-use crate::errors::*;
+use crate::deserializers::deserializer::get;
+use crate::errors::{Result, ResultExt};
 use crate::model::flow_definition::FlowDefinition;
 use crate::model::metadata::MetaData;
 use crate::model::runtime_function::RuntimeFunction;
@@ -58,6 +58,7 @@ impl Display for FlowManifest {
 
 impl FlowManifest {
     /// Create a new manifest that can then be added to, and used in serialization
+    #[must_use]
     pub fn new(metadata: MetaData) -> Self {
         FlowManifest {
             metadata,
@@ -75,6 +76,7 @@ impl FlowManifest {
     }
 
     /// Get the list of functions in this manifest
+    #[must_use]
     pub fn functions(&self) -> &Vec<RuntimeFunction> {
         &self.functions
     }
@@ -85,21 +87,25 @@ impl FlowManifest {
     }
 
     /// Take the vector of functions out of this manifest
+    #[must_use]
     pub fn take_functions(self) -> Vec<RuntimeFunction> {
         self.functions
     }
 
     /// Get the metadata structure for this manifest
+    #[must_use]
     pub fn get_metadata(&self) -> &MetaData {
         &self.metadata
     }
 
     /// get the list of all library references in this manifest
+    #[must_use]
     pub fn get_lib_references(&self) -> &BTreeSet<Url> {
         &self.lib_references
     }
 
     /// get the list of all context references in this manifest
+    #[must_use]
     pub fn get_context_references(&self) -> &BTreeSet<Url> {
         &self.context_references
     }
@@ -132,12 +138,19 @@ impl FlowManifest {
 
     /// Get the list of source files used in the flow
     #[cfg(feature = "debugger")]
+    #[must_use]
     pub fn get_source_urls(&self) -> &BTreeMap<String, Url> {
         &self.source_urls
     }
 
     /// Load, or Deserialize, a manifest from a `source` Url using `provider`
-    /// Sets all location_url fields to be URLs, a file URL for provided implementations
+    /// Sets all `location_url` fields to be URLs, a file URL for provided implementations
+    ///
+    /// # Errors
+    ///
+    /// Returns `Err`if `manifest_url` cannot be resolved to a real url, the contents cannot be
+    /// read from the resolved url, if the contents are not valid Utf8, or if the implementation
+    /// url for the function definition is invalid
     pub fn load(provider: &dyn Provider, manifest_url: &Url) -> Result<(FlowManifest, Url)> {
         let (resolved_url, _) = provider
             .resolve_url(manifest_url, DEFAULT_MANIFEST_FILENAME, &["json"])
@@ -150,7 +163,7 @@ impl FlowManifest {
         let url = resolved_url.clone();
         let content =
             String::from_utf8(contents).chain_err(|| "Could not convert from utf8 to String")?;
-        let deserializer = get_deserializer::<FlowManifest>(&resolved_url)?;
+        let deserializer = get::<FlowManifest>(&resolved_url)?;
         let mut manifest = deserializer
             .deserialize(&content, Some(&resolved_url))
             .chain_err(|| format!("Could not create a FlowManifest from '{manifest_url}'"))?;
@@ -186,6 +199,7 @@ mod test {
         }
     }
 
+    #[allow(clippy::module_name_repetitions)]
     pub struct TestProvider {
         test_content: &'static str,
     }

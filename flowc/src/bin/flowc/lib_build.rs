@@ -2,8 +2,9 @@ use std::ffi::OsStr;
 use std::fs;
 use std::path::Path;
 use std::path::PathBuf;
+use std::sync::Arc;
 
-use colored::*;
+use colored::Colorize;
 use log::{debug, info};
 use simpath::Simpath;
 use url::Url;
@@ -17,12 +18,23 @@ use flowrclib::compiler::{compile, compile_wasm};
 use flowrclib::compiler::parser;
 use flowrclib::dumper::flow_to_dot;
 
-use crate::errors::*;
+use crate::errors::{Result, ResultExt, bail};
 use crate::Options;
 
 /// Build a library from source and generate a manifest for it so it can be used at runtime when
 /// a flow referencing it is loaded and ran
-pub fn build_lib(options: &Options, provider: &dyn Provider, output_dir: PathBuf) -> Result<()> {
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - Library metadata cannot be parsed correctly
+/// - A valid Url cannot be formed from the library name (from the meta-data)
+/// - The library's source path cannot be converted to a Url
+/// - The library cannot be compiled
+/// - The library's manifest cannot be generated in the output folder
+/// - The documentation files cannot be copied to the output folder
+///
+pub fn build_lib(options: &Options, provider: &dyn Provider, output_dir: &PathBuf) -> Result<()> {
     let (metadata, _) = parser::parse_metadata(&options.source_url, provider)?;
 
     let name = metadata.name.clone();
@@ -39,30 +51,30 @@ pub fn build_lib(options: &Options, provider: &dyn Provider, output_dir: PathBuf
     let lib_root_path = options
         .source_url
         .to_file_path()
-        .map_err(|_| "Could not convert Url to File path")?;
+        .map_err(|()| "Could not convert Url to File path")?;
 
     prepare_lib_workspace(&lib_root_path)?;
 
     // compile all functions to the output directory first, as they maybe referenced later in flows
     let mut file_count = compile_functions(
-        lib_root_path.join("src"),
+        &lib_root_path.join("src"),
         options,
         &mut lib_manifest,
         provider,
-        &output_dir,
+        output_dir,
     )?;
 
     file_count += compile_flows(
-        lib_root_path.join("src"),
+        &lib_root_path.join("src"),
         options,
         &mut lib_manifest,
         provider,
-        &output_dir,
+        output_dir,
     )?;
 
-    file_count += copy_docs(lib_root_path.join("src"), &output_dir)?;
+    file_count += copy_docs(&lib_root_path.join("src"), output_dir)?;
 
-    let manifest_json_file = LibraryManifest::manifest_filename(&output_dir);
+    let manifest_json_file = LibraryManifest::manifest_filename(output_dir);
 
     let (message, write_manifest) = check_manifest_status(&manifest_json_file, file_count,
                                                           &lib_manifest)?;
@@ -80,8 +92,15 @@ pub fn build_lib(options: &Options, provider: &dyn Provider, output_dir: PathBuf
 }
 
 
-/// Build a runner into the output_dir
-pub fn build_runner(options: &Options, output_dir: PathBuf) -> Result<()> {
+/// Build a runner into the `output_dir`
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - the `Url` constructed form the input parameter path for the flow (or the default)
+///   cannot have "context" added to it to find the "context" dir
+/// - the docs for the runner cannot be read or copied to the specified output dir
+pub fn build_runner(options: &Options, output_dir: &Path) -> Result<()> {
     println!(
         "   {} runner ({}) with 'flowc'",
         "Compiling".green(),
@@ -91,16 +110,16 @@ pub fn build_runner(options: &Options, output_dir: PathBuf) -> Result<()> {
     let runner_context_path = options
         .source_url
         .to_file_path()
-        .map_err(|_| "Could not convert Url to File path")?
+        .map_err(|()| "Could not convert Url to File path")?
         .join("context");
 
     // compile all functions to the output directory first, as they maybe referenced later in flows
     copy_definitions(
         &runner_context_path,
-        &output_dir,
+        output_dir,
     )?;
 
-    let _ = copy_docs(runner_context_path, &output_dir)?;
+    let _ = copy_docs(&runner_context_path, output_dir)?;
 
     println!("    {}", "Finished".green());
     Ok(())
@@ -154,11 +173,10 @@ fn check_manifest_status(manifest_json_file: &PathBuf, file_count: i32,
         if file_count > 0 {
             Ok(("Library manifest file(s) exists, but files were modified", true))
         } else {
-            let provider = MetaProvider::new(Simpath::new(""),
-                                             PathBuf::from("/")
-            );
+            let provider = Arc::new(MetaProvider::new(Simpath::new(""),
+                                             PathBuf::from("/"))) as Arc<dyn Provider>;
             let json_manifest_file_as_url =
-                Url::from_file_path(manifest_json_file).map_err(|_| {
+                Url::from_file_path(manifest_json_file).map_err(|()| {
                     format!(
                         "Could not parse Url from file path: {}",
                         manifest_json_file.display()
@@ -167,10 +185,10 @@ fn check_manifest_status(manifest_json_file: &PathBuf, file_count: i32,
             if let Ok((existing_json_manifest, _)) =
             LibraryManifest::load(&provider, &json_manifest_file_as_url)
             {
-                if &existing_json_manifest != lib_manifest {
-                    Ok(("Library manifest exists, but new manifest has changes, writing new manifest file(s)", true))
-                } else {
+                if &existing_json_manifest == lib_manifest {
                     Ok(("Existing manifest files are up to date", false))
+                } else {
+                    Ok(("Library manifest exists, but new manifest has changes, writing new manifest file(s)", true))
                 }
             } else {
                 Ok(("Could not load existing Library manifest to compare, writing new manifest file(s)", true))
@@ -203,7 +221,7 @@ fn copy_definition_to_output_dir(toml_path: &Path, output_dir: &Path) -> Result<
     manifest struct
 */
 fn compile_functions(
-    lib_root_path: PathBuf,
+    lib_root_path: &PathBuf,
     options: &Options,
     lib_manifest: &mut LibraryManifest,
     provider: &dyn Provider,
@@ -219,7 +237,7 @@ fn compile_functions(
     );
 
     let glob = Glob::new("**/*.toml").map_err(|_| "Globbing error")?;
-    for entry in glob.walk(&lib_root_path) {
+    for entry in glob.walk(lib_root_path) {
         match &entry {
             Ok(walk_entry) => {
                 let toml_path = walk_entry.path();
@@ -229,7 +247,7 @@ fn compile_functions(
                     continue;
                 }
 
-                let url = Url::from_file_path(toml_path).map_err(|_| {
+                let url = Url::from_file_path(toml_path).map_err(|()| {
                     format!(
                         "Could not create url from file path '{}'",
                         toml_path.display()
@@ -246,7 +264,7 @@ fn compile_functions(
                         let relative_dir = toml_path
                             .parent()
                             .ok_or("Could not get toml path parent dir")?
-                            .strip_prefix(&lib_root_path)
+                            .strip_prefix(lib_root_path)
                             .map_err(|_| "Could not calculate relative_dir")?;
                         // calculate the target directory for generating output using the relative path from the
                         // lib_root appended to the root of the output directory
@@ -360,7 +378,7 @@ fn copy_definitions(
     a library's directory structure.
 */
 fn compile_flows(
-    lib_root_path: PathBuf,
+    lib_root_path: &PathBuf,
     options: &Options,
     lib_manifest: &mut LibraryManifest,
     provider: &dyn Provider,
@@ -373,7 +391,7 @@ fn compile_flows(
     );
 
     let glob = Glob::new("**/*.toml").map_err(|_| "Globbing error")?;
-    for entry in glob.walk(&lib_root_path) {
+    for entry in glob.walk(lib_root_path) {
         match &entry {
             Ok(walk_entry) => {
                 if walk_entry.path().file_name() == Some(OsStr::new("function.toml")) ||
@@ -383,7 +401,7 @@ fn compile_flows(
 
                 let toml_path = walk_entry.path();
 
-                let url = Url::from_file_path(toml_path).map_err(|_| {
+                let url = Url::from_file_path(toml_path).map_err(|()| {
                     format!(
                         "Could not create url from file path '{}'",
                         toml_path.display()
@@ -401,7 +419,7 @@ fn compile_flows(
                         let relative_dir = toml_path
                             .parent()
                             .ok_or("Could not get toml path parent dir")?
-                            .strip_prefix(&lib_root_path)
+                            .strip_prefix(lib_root_path)
                             .map_err(|_| "Could not calculate relative_dir")?;
                         // calculate the target directory for generating output using the relative path from the
                         // lib_root appended to the root of the output directory
@@ -418,7 +436,7 @@ fn compile_flows(
                         file_count += copy_definition_to_output_dir(toml_path, &out_dir)?;
 
                         let flow_relative_path = toml_path
-                            .strip_prefix(&lib_root_path)
+                            .strip_prefix(lib_root_path)
                             .map_err(|_| "Could not calculate relative_path")?;
                         let flow_lib_reference = flow_relative_path.file_stem()
                             .ok_or("Could not remove extension from flow file path")?
@@ -452,7 +470,7 @@ fn compile_flows(
     Find all document files not already copied and copy them to the destination folder tree
 */
 fn copy_docs(
-    lib_root_path: PathBuf,
+    lib_root_path: &PathBuf,
     output_dir: &Path,
 ) -> Result<i32> {
     let mut file_count = 0;
@@ -462,14 +480,14 @@ fn copy_docs(
     );
 
     let glob = Glob::new("**/*.md").map_err(|_| "Globbing error")?;
-    for entry in glob.walk(&lib_root_path) {
+    for entry in glob.walk(lib_root_path) {
         match &entry {
             Ok(walk_entry) => {
                 let md_path = walk_entry.path();
 
                 // calculate the path of the file, relative to lib_root
                 let relative_file_path = md_path
-                    .strip_prefix(&lib_root_path)
+                    .strip_prefix(lib_root_path)
                     .map_err(|_| "Could not calculate relative path")?;
                 // calculate the target file for copying to using the relative path from the
                 // lib_root appended to the output directory

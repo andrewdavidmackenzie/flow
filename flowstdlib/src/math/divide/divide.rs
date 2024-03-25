@@ -1,7 +1,7 @@
 use serde_json::{json, Value};
 
 use flowcore::{RUN_AGAIN, RunAgain};
-use flowcore::errors::*;
+use flowcore::errors::Result;
 use flowmacro::flow_function;
 
 #[flow_function]
@@ -39,7 +39,7 @@ mod test {
         let remainder = outputs
             .pointer("/remainder")
             .expect("Could not get /remainder");
-        assert_eq!(remainder, &json!(test_data.3 as f64));
+        assert_eq!(remainder, &json!(f64::from(test_data.3)));
     }
 
     #[test]

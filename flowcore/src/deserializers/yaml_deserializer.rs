@@ -3,7 +3,7 @@ use std::marker::PhantomData;
 use serde::de::DeserializeOwned;
 use url::Url;
 
-use crate::errors::*;
+use crate::errors::{Result, ResultExt};
 
 use super::deserializer::Deserializer;
 
@@ -20,7 +20,7 @@ impl<T> YamlDeserializer<T>
 where
     T: DeserializeOwned,
 {
-    /// Create a new YamlDeserializer
+    /// Create a new `YamlDeserializer`
     pub fn new() -> Self {
         YamlDeserializer { t: PhantomData }
     }
@@ -34,7 +34,7 @@ where
         serde_yaml::from_str(contents).chain_err(|| {
             format!(
                 "Error deserializing Yaml from: '{}'",
-                url.map_or("URL was None".to_owned(), |u| u.to_string())
+                url.map_or("URL was None".to_owned(), std::string::ToString::to_string)
             )
         })
     }
@@ -55,6 +55,7 @@ mod test {
     use super::YamlDeserializer;
 
     #[derive(Serialize, Deserialize, Debug, Clone)]
+    #[allow(clippy::module_name_repetitions)]
     pub struct TestStruct {
         name: String,
     }

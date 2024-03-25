@@ -6,7 +6,7 @@ use flowcore::model::io::IO;
 use flowcore::model::route::HasRoute;
 
 use crate::compiler::compile::CompilerTables;
-use crate::errors::*;
+use crate::errors::Result;
 
 /// Check that all Functions have connections to all their inputs or return an error
 /// All inputs must be connected and receive values at run-time or a function can never run

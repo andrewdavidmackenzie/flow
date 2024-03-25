@@ -16,6 +16,10 @@ use syn::{ItemFn, parse_macro_input, ReturnType};
 use flowcore::model::function_definition::FunctionDefinition;
 
 /// The `flow_function` macro definition
+///
+/// # Panics
+///
+/// Will panic if the file path of the source file where the macro was used cannot be determined.
 #[proc_macro_attribute]
 pub fn flow_function(_attr: TokenStream, implementation: TokenStream) -> TokenStream {
     // Get the full path to the file where the macro was used, and join the relative filename from
@@ -27,7 +31,7 @@ pub fn flow_function(_attr: TokenStream, implementation: TokenStream) -> TokenSt
     let function_definition = load_function_definition(&definition_file_path);
 
     // Build the output token stream with generated code around original supplied code
-    generate_code(implementation, function_definition)
+    generate_code(implementation, &function_definition)
 }
 
 // Load a `FunctionDefinition` from the file at `path`
@@ -60,13 +64,11 @@ fn input_conversion(definition: &FunctionDefinition, implementation_ast: &ItemFn
     }
 
     // perform some checks before attempting input conversion
-    if implemented_inputs.len() != definition.inputs.len() {
-        panic!("a 'flow_function' macro check failed:\n\
+    assert_eq!(implemented_inputs.len(), definition.inputs.len(), "a 'flow_function' macro check failed:\n\
             '{}' define {} inputs\n\
             '{}()' implements {} inputs",
                definition.name, definition.inputs.len(),
                implementation_name, implemented_inputs.len());
-    }
 
     // TODO If function accepts types directly (not `&[Value]`), check they match function definition
     // for input_pair in implemented_inputs.pairs() {
@@ -103,14 +105,14 @@ fn check_return_type(return_type: &ReturnType) {
 // Generate the code for the implementation struct, including some extra functions to help
 // manage memory and pass parameters to and from a wasm compiled version of it
 fn generate_code(function_implementation: TokenStream,
-                 definition: FunctionDefinition) -> TokenStream {
+                 definition: &FunctionDefinition) -> TokenStream {
     let implementation: proc_macro2::TokenStream = function_implementation.clone().into();
     let implementation_ast = parse_macro_input!(function_implementation as syn::ItemFn);
     let implementation_name = &implementation_ast.sig.ident;
 
     check_return_type(&implementation_ast.sig.output);
 
-    let input_list = input_conversion(&definition, &implementation_ast);
+    let input_list = input_conversion(definition, &implementation_ast);
 
     let number_of_defined_inputs = definition.inputs.len();
 
@@ -124,14 +126,14 @@ fn generate_code(function_implementation: TokenStream,
     };
 
     // Generate the code that wraps the provided function, including a copy of the function itself
-    let docs_comment = if !definition.docs.is_empty() {
+    let docs_comment = if definition.docs.is_empty() {
+        quote! {
+            // No documentation was supplied
+        }
+    } else {
         let docs_file = &definition.docs;
         quote! {
             #[doc = include_str!(#docs_file)]
-        }
-    } else {
-        quote! {
-            // No documentation was supplied
         }
     };
 

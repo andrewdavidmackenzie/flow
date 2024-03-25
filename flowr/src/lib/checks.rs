@@ -82,7 +82,9 @@ fn blocked_check(state: &RunState, job_id: usize, function: &RuntimeFunction) ->
 }
 
 // Empty test for waiting state to have checks for all state
+#[allow(clippy::unnecessary_wraps)]
 fn waiting_check(_state: &RunState, _job_id: usize, _function: &RuntimeFunction) -> Result<()> {
+    // TODO
     Ok(())
 }
 
@@ -187,7 +189,7 @@ fn function_state_checks(state: &RunState, job_id: usize) -> Result<()> {
                 State::Blocked => blocked_check(state, job_id, function)?,
                 State::Waiting => waiting_check(state, job_id, function)?,
                 State::Completed => completed_check(state, job_id, function, function_states)?,
-                _ => {}
+                State::Running => {}
             }
         }
     }
@@ -310,7 +312,7 @@ mod test {
 
         // this ready_check() should pass
         ready_check(&state, 0, state.get_function(0)
-            .ok_or("No function").expect("No function")).expect("Should pass")
+            .ok_or("No function").expect("No function")).expect("Should pass");
     }
 
     #[test]

@@ -6,7 +6,7 @@ use error_chain::bail;
 use log::error;
 use serde_json::Value;
 
-use flowcore::errors::*;
+use flowcore::errors::Result;
 use flowcore::model::output_connection::Source::{Input, Output};
 
 use crate::block::Block;
@@ -190,7 +190,7 @@ impl<'a> Debugger<'a> {
 
     /// Called from the flowrlib coordinator to inform the debug client that a job has completed
     /// Return values are (display next output, reset execution)
-    pub fn job_done(&mut self, state: &mut RunState, job: &Job) -> Result<(bool, bool)> {
+    pub fn job_done(&mut self, state: &mut RunState, job: &Job) -> (bool, bool) {
         if job.result.is_err() {
             if state.submission.debug_enabled {
                 let _ = self.job_error(state, job);
@@ -198,7 +198,7 @@ impl<'a> Debugger<'a> {
         } else {
             self.debug_server.job_completed(job);
         }
-        Ok((false, false))
+        (false, false)
     }
 
     /// An error occurred while executing a flow. Let the debug client know, enter the client
@@ -216,18 +216,19 @@ impl<'a> Debugger<'a> {
     /// Return values are (display next output, reset execution)
     pub fn execution_ended(&mut self, state: &mut RunState) -> Result<(bool, bool)> {
         self.debug_server.execution_ended();
-        self.deadlock_check(state)?;
+        Self::deadlock_check(state)?;
         self.wait_for_command(state)
     }
 
     /// The execution flow has entered the debugged based on some event.
     ///
-    /// Now wait for and process commands from the DebugClient
+    /// Now wait for and process commands from the `DebugClient`
     /// - execute and respond immediately those that require it
     /// - some commands will cause the command loop to exit.
     ///
     /// When exiting return a set of booleans for the Coordinator to determine what to do:
-    /// (display next output, reset execution, exit_debugger)
+    /// (display next output, reset execution, `exit_debugger`)
+    #[allow(clippy::too_many_lines)]
     pub fn wait_for_command(&mut self, state: &mut RunState) -> Result<(bool, bool)> {
         loop {
             match self.debug_server.get_command(state)
@@ -244,7 +245,7 @@ impl<'a> Debugger<'a> {
                     self.debug_server.message(message);
                 },
                 Ok(Validate) => {
-                    let message = self.validate(state)?;
+                    let message = Self::validate(state)?;
                     self.debug_server.message(message);
                 },
                 Ok(List) => {
@@ -292,13 +293,13 @@ impl<'a> Debugger<'a> {
                             match &output_connection.source {
                                 Output(source_route) => {
                                     if *source_route == sub_route {
-                                        output_connections.push(output_connection.clone())
+                                        output_connections.push(output_connection.clone());
                                     }
                                 }
                                 // add list of connections from an input to job if path "" is specified
                                 Input(_) => {
                                     if sub_route.is_empty() {
-                                        output_connections.push(output_connection.clone())
+                                        output_connections.push(output_connection.clone());
                                     }
                                 }
                             }
@@ -312,13 +313,11 @@ impl<'a> Debugger<'a> {
                     let blocks = Self::inspect_blocks(state, from_function_id, to_function_id);
                     self.debug_server.blocks(blocks);
                 }
-                Ok(Modify(specs)) => self.modify_variables(state, specs),
-                Ok(Ack) => {}
+                Ok(Modify(specs)) => self.modify_variables(state, &specs),
                 Ok(DebugClientStarting) => { // TODO remove
-                    error!("Unexpected message 'DebugClientStarting' after started")
+                    error!("Unexpected message 'DebugClientStarting' after started");
                 }
-                Ok(Error(_)) => { /* client error */ }
-                Ok(Invalid) => {}
+                Ok(Error(_) | Ack | Invalid) => {}
                 Err(e) => error!("Error in Debug server getting command; {e}"),
 
                 // ************************** The following commands may exit the command loop
@@ -555,12 +554,12 @@ impl<'a> Debugger<'a> {
        Run checks on the current flow execution state to check if it is valid
        Currently deadlock check is the only check that exists.
     */
-    fn validate(&self, state: &RunState) -> Result<String> {
+    fn validate(state: &RunState) -> Result<String> {
         let mut response = String::new();
 
         response.push_str("Validating flow state\n");
         response.push_str("Running deadlock check...  ");
-        response.push_str(&self.deadlock_check(state)?);
+        response.push_str(&Self::deadlock_check(state)?);
 
         Ok(response)
     }
@@ -572,7 +571,7 @@ impl<'a> Debugger<'a> {
     }
 
     // Parse a series of specs to modify a state value
-    fn modify_variables(&mut self, state: &mut RunState, specs: Option<Vec<String>>) {
+    fn modify_variables(&mut self, state: &mut RunState, specs: &Option<Vec<String>>) {
         match specs.as_deref() {
             None | Some([]) => self.debug_server.message("State variables that can be modified are:\
             \n'jobs' - maximum number of parallel jobs (integer) or 0 for no limit".to_string()),
@@ -633,7 +632,7 @@ impl<'a> Debugger<'a> {
         - other process has input full and hence is blocking running of this process
         - other process is the only process that sends to an empty input of this process
     */
-    fn find_blockers(&self, state: &RunState, process_id: usize) -> Result<Vec<BlockerNode>> {
+    fn find_blockers(state: &RunState, process_id: usize) -> Result<Vec<BlockerNode>> {
         let mut blockers: Vec<BlockerNode> = state
             .get_output_blockers(process_id)
             .iter()
@@ -659,14 +658,13 @@ impl<'a> Debugger<'a> {
         Return true if a loop was detected, false if done without detecting a loop
     */
     fn traverse_blocker_tree(
-        &self,
         state: &RunState,
         visited_nodes: &mut Vec<usize>,
         root_node_id: usize,
         node: &mut BlockerNode,
     ) -> Result<Vec<BlockerNode>> {
         visited_nodes.push(node.function_id);
-        node.blockers = self.find_blockers(state, node.function_id)?;
+        node.blockers = Self::find_blockers(state, node.function_id)?;
 
         for blocker in &mut node.blockers {
             if blocker.function_id == root_node_id {
@@ -676,7 +674,7 @@ impl<'a> Debugger<'a> {
             // if we've visited this blocking node before, then we've detected a loop
             if !visited_nodes.contains(&blocker.function_id) {
                 let mut blocker_subtree =
-                    self.traverse_blocker_tree(state, visited_nodes, root_node_id, blocker)?;
+                    Self::traverse_blocker_tree(state, visited_nodes, root_node_id, blocker)?;
                 if !blocker_subtree.is_empty() {
                     // insert this node at the head of the list of blocking nodes
                     blocker_subtree.insert(0, blocker.clone());
@@ -698,7 +696,7 @@ impl<'a> Debugger<'a> {
         display_string
     }
 
-    fn deadlock_check(&self, state: &RunState) -> Result<String> {
+    fn deadlock_check(state: &RunState) -> Result<String> {
         let mut response = String::new();
 
         for blocked_process_id in state.get_blocked() {
@@ -706,7 +704,7 @@ impl<'a> Debugger<'a> {
             let mut root_node = BlockerNode::new(*blocked_process_id, BlockType::OutputBlocked);
             let mut visited_nodes = vec![];
 
-            let deadlock_set = self.traverse_blocker_tree(
+            let deadlock_set = Self::traverse_blocker_tree(
                 state,
                 &mut visited_nodes,
                 *blocked_process_id,
@@ -743,7 +741,7 @@ mod test {
     use crate::debug_command::{BreakpointSpec, DebugCommand};
     use crate::debugger::{BlockerNode, BlockType, Debugger};
     use crate::debugger_handler::DebuggerHandler;
-    use crate::job::{Job, JobPayload};
+    use crate::job::{Job, Payload};
     use crate::run_state::{RunState, State};
 
     struct DummyServer {
@@ -860,7 +858,7 @@ mod test {
             function_id: 0,
             flow_id: 0,
             connections: vec![],
-            payload: JobPayload {
+            payload: Payload {
                 job_id: 0,
                 implementation_url: Url::parse("file://test").expect("Could not parse Url"),
                 input_set: vec![json!(1)],
@@ -891,7 +889,7 @@ mod test {
         let _ = debugger.check_prior_to_job(&mut state, &job);
 
         // check the breakpoint triggered at this job_id as expected
-        assert_eq!(server.job_breakpoint, job.payload.job_id)
+        assert_eq!(server.job_breakpoint, job.payload.job_id);
     }
 
     #[test]
@@ -906,7 +904,7 @@ mod test {
         let _ = debugger.check_on_block_creation(&mut state, &block);
 
         // check the breakpoint triggered at this blocked function as expected
-        assert_eq!(server.block_breakpoint, 0)
+        assert_eq!(server.block_breakpoint, 0);
     }
 
     #[test]
@@ -916,7 +914,7 @@ mod test {
         let mut debugger = Debugger::new(&mut server);
 
         // Setup a breakpoint on the output from function #0
-        debugger.output_breakpoints.insert((0, "".into()));
+        debugger.output_breakpoints.insert((0, String::new()));
 
         let _ = debugger.check_prior_to_send(&mut state, 0, "",
                     &json!(1), 1, 0);
@@ -939,7 +937,7 @@ mod test {
                                              &json!(1), 0, 0);
 
         // check the breakpoint triggered upon sending to the function/input
-        assert_eq!(server.send_breakpoint, (1, 0))
+        assert_eq!(server.send_breakpoint, (1, 0));
     }
 
     #[test]
@@ -966,7 +964,7 @@ mod test {
         // configure the debugger to break at this job via it's ID
         debugger.break_at_job = job.payload.job_id;
         debugger.block_breakpoints.insert((0, 1));
-        debugger.output_breakpoints.insert((0, "".into()));
+        debugger.output_breakpoints.insert((0, String::new()));
         debugger.input_breakpoints.insert((0, 0));
         debugger.flow_unblock_breakpoints.insert(0);
 
@@ -1137,7 +1135,7 @@ mod test {
         let state = RunState::new(test_submission(vec![test_function(0)]));
         let mut server = DummyServer::new();
         let mut debugger = Debugger::new(&mut server);
-        assert!(debugger.add_breakpoint(&state, Some(BreakpointSpec::Output((1, "".into())))).is_err());
+        assert!(debugger.add_breakpoint(&state, Some(BreakpointSpec::Output((1, String::new())))).is_err());
     }
 
     #[test]
@@ -1145,7 +1143,7 @@ mod test {
         let state = RunState::new(test_submission(vec![test_function(0)]));
         let mut server = DummyServer::new();
         let mut debugger = Debugger::new(&mut server);
-        assert!(debugger.add_breakpoint(&state, Some(BreakpointSpec::Output((0, "".into())))).is_ok());
+        assert!(debugger.add_breakpoint(&state, Some(BreakpointSpec::Output((0, String::new())))).is_ok());
     }
 
     #[test]
@@ -1249,7 +1247,7 @@ mod test {
         let state = RunState::new(test_submission(vec![test_function(0)]));
         let mut server = DummyServer::new();
         let mut debugger = Debugger::new(&mut server);
-        assert!(debugger.delete_breakpoint(&state, Some(BreakpointSpec::Output((1, "".into())))).is_err());
+        assert!(debugger.delete_breakpoint(&state, Some(BreakpointSpec::Output((1, String::new())))).is_err());
     }
 
     #[test]
@@ -1257,8 +1255,8 @@ mod test {
         let state = RunState::new(test_submission(vec![test_function(0)]));
         let mut server = DummyServer::new();
         let mut debugger = Debugger::new(&mut server);
-        debugger.add_breakpoint(&state, Some(BreakpointSpec::Output((0, "".into()))))
+        debugger.add_breakpoint(&state, Some(BreakpointSpec::Output((0, String::new()))))
             .expect("Couldn't add breakpoint");
-        assert!(debugger.delete_breakpoint(&state, Some(BreakpointSpec::Output((0, "".into())))).is_ok());
+        assert!(debugger.delete_breakpoint(&state, Some(BreakpointSpec::Output((0, String::new())))).is_ok());
     }
 }

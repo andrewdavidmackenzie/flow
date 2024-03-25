@@ -7,13 +7,14 @@ const VERSION: &str = env!("CARGO_PKG_VERSION");
 /// - M is a one or two digit Major version number
 /// - m is a one or two digit Minor version number
 /// - p is a one or two digit Patch version number
+#[must_use]
 pub fn version() -> &'static str {
     VERSION
 }
 
 #[cfg(test)]
 mod test {
-    use super::*;
+    use super::version;
 
     #[test]
     fn can_get_version() {

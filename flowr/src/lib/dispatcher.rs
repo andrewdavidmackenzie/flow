@@ -4,10 +4,10 @@ use log::{debug, error, trace};
 use serde_json::Value;
 use zmq::DONTWAIT;
 
-use flowcore::errors::*;
+use flowcore::errors::{Result, ResultExt};
 use flowcore::RunAgain;
 
-use crate::job::JobPayload;
+use crate::job::Payload;
 
 const WAIT:i32 = 0;
 
@@ -26,7 +26,13 @@ pub struct Dispatcher {
 /// `Dispatcher` struct takes care of ending jobs for execution and receiving results
 impl Dispatcher {
     /// Create a new `Dispatcher` of `Job`s using three addresses of job queues
-    pub fn new(job_queues: (String, String, String, String)) -> Result<Self> {
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the zmq sockets used to send messages between client and coordinator
+    /// cannot be bound.
+    ///
+    pub fn new(job_queues: &(String, String, String, String)) -> Result<Self> {
         let context = zmq::Context::new();
         let lib_job_socket = context.socket(zmq::PUSH)
             .map_err(|_| "Could not create job socket")?;
@@ -59,10 +65,12 @@ impl Dispatcher {
     // Set the timeout to use when waiting for job results
     // Setting to `None` will disable timeouts and block forever
     pub(crate) fn set_results_timeout(&mut self, timeout: Option<Duration>) -> Result<()> {
+        #[allow(clippy::single_match_else)]
         match timeout {
             Some(time) => {
                 debug!("Setting results timeout to: {}ms", time.as_millis());
-                self.results_socket.set_rcvtimeo(time.as_millis() as i32)
+                //assert!(time.as_millis() < i32::MAX, "Truncation");
+                self.results_socket.set_rcvtimeo(i32::try_from(time.as_millis())?)
             },
             None => {
                 debug!("Disabling results timeout");
@@ -88,7 +96,7 @@ impl Dispatcher {
     }
 
     // Send a `Job` for execution to executors
-    pub(crate) fn send_job_for_execution(&mut self, payload: &JobPayload) -> Result<()> {
+    pub(crate) fn send_job_for_execution(&mut self, payload: &Payload) -> Result<()> {
         if payload.implementation_url.scheme() == "lib" {
             self.lib_job_socket.send(serde_json::to_string(payload)?.as_bytes(), 0)
                 .map_err(|e| format!("Could not send context Job for execution: {e}"))?;
@@ -102,7 +110,12 @@ impl Dispatcher {
         Ok(())
     }
 
-    /// Send a "DONE"" message to subscribed executors on the control_socket
+    /// Send a "DONE"" message to subscribed executors on the `control_socket`
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the message bytes cannot be sent over the control socket
+    ///
     pub fn send_done(&mut self) -> Result<()> {
         debug!("Dispatcher announcing DONE");
         self.control_socket.send("DONE".as_bytes(), DONTWAIT)
@@ -131,7 +144,7 @@ mod test {
     use flowcore::errors::*;
     use flowcore::RunAgain;
 
-    use crate::job::JobPayload;
+    use crate::job::Payload;
 
     fn get_bind_addresses(ports: (u16, u16, u16, u16)) -> (String, String, String, String) {
         (
@@ -154,7 +167,7 @@ mod test {
     #[serial]
     fn test_constructor() {
         let dispatcher = super::Dispatcher::new(
-            get_bind_addresses(get_four_ports()));
+            &get_bind_addresses(get_four_ports()));
         assert!(dispatcher.is_ok());
     }
 
@@ -162,7 +175,7 @@ mod test {
     #[serial]
     fn set_timeout_to_none() {
         let mut dispatcher = super::Dispatcher::new(
-            get_bind_addresses(get_four_ports())
+            &get_bind_addresses(get_four_ports())
         ).expect("Could not create dispatcher");
         assert!(dispatcher.set_results_timeout(None).is_ok());
     }
@@ -171,7 +184,7 @@ mod test {
     #[serial]
     fn set_timeout() {
         let mut dispatcher = super::Dispatcher::new(
-            get_bind_addresses(get_four_ports())
+            &get_bind_addresses(get_four_ports())
         ).expect("Could not create dispatcher");
         assert!(dispatcher.set_results_timeout(Some(Duration::from_millis(10))).is_ok());
     }
@@ -179,7 +192,7 @@ mod test {
     #[test]
     #[serial]
     fn send_lib_job() {
-        let payload = JobPayload {
+        let payload = Payload {
             job_id: 0,
             input_set: vec![],
             implementation_url: Url::parse("lib://flowstdlib/math/add").expect("Could not parse Url"),
@@ -187,7 +200,7 @@ mod test {
 
         let ports = get_four_ports();
         let mut dispatcher = super::Dispatcher::new(
-            get_bind_addresses(ports)
+            &get_bind_addresses(ports)
         ).expect("Could not create dispatcher");
 
         let context = zmq::Context::new();
@@ -202,7 +215,7 @@ mod test {
     #[test]
     #[serial]
     fn send_context_job() {
-        let payload = JobPayload {
+        let payload = Payload {
             job_id: 0,
             input_set: vec![],
             implementation_url: Url::parse("context://stdio/stdout").expect("Could not parse Url"),
@@ -210,7 +223,7 @@ mod test {
 
         let ports = get_four_ports();
         let mut dispatcher = super::Dispatcher::new(
-            get_bind_addresses(ports)
+            &get_bind_addresses(ports)
         ).expect("Could not create dispatcher");
 
         let context = zmq::Context::new();
@@ -227,7 +240,7 @@ mod test {
     fn get_job() {
         let ports = get_four_ports();
         let mut dispatcher = super::Dispatcher::new(
-            get_bind_addresses(ports)
+            &get_bind_addresses(ports)
         ).expect("Could not create dispatcher");
 
         let context = zmq::Context::new();

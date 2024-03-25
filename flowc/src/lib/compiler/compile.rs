@@ -14,13 +14,13 @@ use flowcore::model::output_connection::Source::{Input, Output};
 use flowcore::model::route::{HasRoute, Route};
 
 use crate::compiler::compile_wasm;
-use crate::errors::*;
+use crate::errors::{Result, ResultExt};
 
 use super::checker;
 use super::gatherer;
 use super::optimizer;
 
-/// [CompilerTables] are built from the flattened and connected flow model in memory and are
+/// `CompilerTables` are built from the flattened and connected flow model in memory and are
 /// used to generate the flow's manifest ready to be executed.
 #[derive(Serialize, Default)]
 pub struct CompilerTables {
@@ -28,9 +28,9 @@ pub struct CompilerTables {
     pub connections: Vec<Connection>,
     /// Map of sources of values and what route they are connected to
     pub sources: BTreeMap<Route, (Source, usize)>,
-    /// Map from "route of the output of a function" --> (output name, source_function_id)
+    /// Map from "route of the output of a function" --> (output name, `source_function_id`)
     pub destination_routes: BTreeMap<Route, (usize, usize, usize)>,
-    /// HashMap from "route of the input of a function" --> (destination_function_id, input number, flow_id)
+    /// `HashMap` from "route of the input of a function" --> (`destination_function_id`, `input_number`, `flow_id`)
     pub collapsed_connections: Vec<Connection>,
     /// The set of functions left in a flow after it has been flattened, connected and optimized
     pub functions: Vec<FunctionDefinition>,
@@ -44,6 +44,7 @@ pub struct CompilerTables {
 
 impl CompilerTables {
     /// Create a new set of `CompilerTables` for use in compiling a flow
+    #[must_use]
     pub fn new() -> Self {
         CompilerTables {
             connections: Vec::new(),
@@ -60,6 +61,7 @@ impl CompilerTables {
     // TODO limit lifetime to table lifetime and return a reference
     // TODO make collapsed_connections a Map and just try and get by to_io.route()
     /// Return an optional connection found to a destination input
+    #[must_use]
     pub fn connection_to(&self, input: &Route) -> Option<Connection> {
         for connection in &self.collapsed_connections {
             if connection.to_io().route() == input {
@@ -71,9 +73,8 @@ impl CompilerTables {
 
     /// consistently order the functions so each compile produces the same numbering
     pub fn sort_functions(&mut self) {
-        self.functions.sort_by_key(|f| f.get_id());
+        self.functions.sort_by_key(flowcore::model::function_definition::FunctionDefinition::get_id);
     }
-
 
     /// Construct two look-up tables that can be used to find the index of a function in the functions table,
     /// and the index of it's input - using the input route or it's output route
@@ -109,6 +110,16 @@ impl CompilerTables {
 
 /// Take a hierarchical flow definition in memory and compile it, generating a manifest for execution
 /// of the flow, including references to libraries required.
+///
+/// # Errors
+///
+/// Returns an error if the parsed `FlowDefinition` cannot be compiled into a valid set of
+/// `CompilerTables`. Possible causes include:
+/// - Connections between inputs, outputs, sub-flows etc cannot be established
+/// - The constructed Connections cannot be collapsed joining sources and destinations directly
+/// - All function's inputs are connected
+/// - The flow does not produce any "side effects" (output)
+/// - There is an issue compiling any of the supplied implementations to WASM
 pub fn compile(flow: &FlowDefinition,
                output_dir: &Path,
                skip_building: bool,
@@ -139,13 +150,18 @@ pub fn compile(flow: &FlowDefinition,
 
 /// Calculate the paths to the source file of the implementation of the function to be compiled
 /// and where to output the compiled wasm.
-/// out_dir optionally overrides the destination directory where the wasm should end up
+/// `out_dir` optionally overrides the destination directory where the wasm should end up
+///
+/// # Errors
+///
+/// Returns an error if the functions `source_url` cannot be used to form a valid `Url`
+///
 pub fn get_paths(wasm_output_dir: &Path, function: &FunctionDefinition) -> Result<(PathBuf, PathBuf)> {
     let source_url = function.get_source_url().join(function.get_source())?;
 
     let source_path = source_url
         .to_file_path()
-        .map_err(|_| "Could not convert source url to file path")?;
+        .map_err(|()| "Could not convert source url to file path")?;
 
     let mut wasm_path = wasm_output_dir.join(function.get_source());
     wasm_path.set_extension("wasm");

@@ -12,10 +12,15 @@ use flowcore::model::route::{HasRoute, Route};
 use crate::compiler::compile::CompilerTables;
 use crate::dumper::create_output_file;
 use crate::dumper::flow_to_dot::{input_initializers_to_dot, INPUT_PORTS, output_name_to_port};
-use crate::errors::*;
+use crate::errors::Result;
 
 /// Create a directed graph named after the flow, showing all the functions of the flow after it
 /// has been compiled down, grouped in sub-clusters
+///
+/// # Errors
+///
+/// Returns an error if the `FlowDefinition` cannot be dumped to file(s) for one of these reasons:
+/// - The output file in `output_dir` could not be created or written to
 ///
 /// # Example
 /// ```

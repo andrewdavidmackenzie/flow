@@ -18,4 +18,5 @@ pub mod transpose;
 
 /// A module with a function to compose a Matrix from elements
 #[path = "compose_matrix/compose_matrix.rs"]
+#[allow(clippy::module_name_repetitions)]
 pub mod compose_matrix;

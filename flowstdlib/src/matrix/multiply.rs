@@ -35,7 +35,7 @@ to = \"stdout\"
         flow_file.write_all(flow.as_bytes())
             .expect("Could not write data bytes to created flow file");
 
-        let stdout = execute_flow(flow_filename);
+        let stdout = execute_flow(&flow_filename);
         assert_eq!(stdout, "[[19,22],[43,50]]\n".to_string());
     }
 }

@@ -5,7 +5,7 @@ use error_chain::bail;
 use serde_derive::{Deserialize, Serialize};
 use url::Url;
 
-use crate::errors::*;
+use crate::errors::{Result, ResultExt};
 use crate::model::input::InputInitializer;
 use crate::model::io::IOSet;
 use crate::model::io::IOType;
@@ -75,17 +75,17 @@ pub struct FunctionDefinition {
 impl Default for FunctionDefinition {
     fn default() -> Self {
         FunctionDefinition {
-            name: Default::default(),
+            name: String::default(),
             impure: false,
-            source: "".to_string(),
-            docs: "".to_string(),
-            build_type: "".to_string(),
+            source: String::new(),
+            docs: String::new(),
+            build_type: String::new(),
             inputs: vec![],
             outputs: vec![],
-            alias: Default::default(),
+            alias: String::default(),
             source_url: FunctionDefinition::default_url(),
-            route: Default::default(),
-            implementation: "".to_string(),
+            route: Route::default(),
+            implementation: String::new(),
             lib_reference: None,
             context_reference: None,
             output_connections: vec![],
@@ -120,6 +120,7 @@ impl FunctionDefinition {
 
     /// Create a new function - used mainly for testing as Functions are usually deserialized
     #[allow(clippy::too_many_arguments)]
+    #[must_use]
     pub fn new(
         name: Name,
         impure: bool,
@@ -156,6 +157,10 @@ impl FunctionDefinition {
     }
 
     /// Configure a function with additional information after it is deserialized as part of a flow
+    ///
+    /// # Errors
+    ///
+    /// Returns `Err` if the provided `initializations` cannot be set as initializers on the function
     #[allow(clippy::too_many_arguments)]
     pub fn config(
         &mut self,
@@ -176,7 +181,7 @@ impl FunctionDefinition {
                     if !alias.is_empty() {
                         bail!("context:// functions cannot be aliased");
                     }
-                    self.set_context_reference(Some(function_reference))
+                    self.set_context_reference(Some(function_reference));
                 },
                 "lib" => self.set_lib_reference(Some(function_reference)),
                 _ => {}
@@ -194,11 +199,13 @@ impl FunctionDefinition {
     }
 
     /// Get the id of this function
+    #[must_use]
     pub fn get_id(&self) -> usize {
         self.function_id
     }
 
     /// Get the name of any associated docs file
+    #[must_use]
     pub fn get_docs(&self) -> &str {
         &self.docs
     }
@@ -209,11 +216,13 @@ impl FunctionDefinition {
     }
 
     /// Get the id of the low this function is a part of  
+    #[must_use]
     pub fn get_flow_id(&self) -> usize {
         self.flow_id
     }
 
     /// Return true if this function is impure or not
+    #[must_use]
     pub fn is_impure(&self) -> bool {
         self.impure
     }
@@ -228,6 +237,7 @@ impl FunctionDefinition {
     }
 
     /// Get a reference to the set of inputs of this function
+    #[must_use]
     pub fn get_inputs(&self) -> &IOSet {
         &self.inputs
     }
@@ -238,6 +248,7 @@ impl FunctionDefinition {
     }
 
     /// Get a reference to the set of outputs this function generates
+    #[must_use]
     pub fn get_outputs(&self) -> IOSet {
         self.outputs.clone()
     }
@@ -248,11 +259,13 @@ impl FunctionDefinition {
     }
 
     /// Get a reference to the set of output connections from this function to others
+    #[must_use]
     pub fn get_output_connections(&self) -> &Vec<OutputConnection> {
         &self.output_connections
     }
 
     /// Get a reference to the implementation of this function
+    #[must_use]
     pub fn get_implementation(&self) -> &str {
         &self.implementation
     }
@@ -264,15 +277,17 @@ impl FunctionDefinition {
 
     /// Set the source field of the function
     pub fn set_source(&mut self, source: &str) {
-        source.clone_into(&mut self.source)
+        source.clone_into(&mut self.source);
     }
 
     /// Get the name of the source file relative to the function definition
+    #[must_use]
     pub fn get_source(&self) -> &str {
         &self.source
     }
 
     /// Get the source url for the file where this function was defined
+    #[must_use]
     pub fn get_source_url(&self) -> &Url {
         &self.source_url
     }
@@ -310,6 +325,10 @@ impl FunctionDefinition {
     }
 
     /// Set a flow initializer on the specified input
+    ///
+    /// # Errors
+    ///
+    /// Will return `Err`if the input with number `io_number` does not exist
     pub fn set_flow_initializer(&mut self, io_number: usize, flow_initializer: Option<InputInitializer>) -> Result<()> {
         self.inputs.get_mut(io_number).ok_or("No such input")?
             .set_flow_initializer(flow_initializer)
@@ -317,27 +336,30 @@ impl FunctionDefinition {
 
     // Set the lib reference of this function
     fn set_lib_reference(&mut self, lib_reference: Option<Url>) {
-        self.lib_reference = lib_reference
+        self.lib_reference = lib_reference;
     }
 
     /// Get the lib reference of this function
+    #[must_use]
     pub fn get_lib_reference(&self) -> &Option<Url> {
         &self.lib_reference
     }
 
     // Set the context reference of this function
     fn set_context_reference(&mut self, context_reference: Option<Url>) {
-        self.context_reference = context_reference
+        self.context_reference = context_reference;
     }
 
     /// Get the context reference of this function
+    #[must_use]
     pub fn get_context_reference(&self) -> &Option<Url> {
         &self.context_reference
     }
 
-    /// Convert a FunctionDefinition filename into the name of the struct used to implement it
+    /// Convert a `FunctionDefinition` filename into the name of the struct used to implement it
     /// by removing underscores and camel case each word
-    /// Example ''duplicate_rows' -> 'DuplicateRows'
+    /// Example `duplicate_rows` -> `DuplicateRows`
+    #[must_use]
     pub fn camel_case(original: &str) -> String {
         // split into parts by '_' and Uppercase the first character of the (ASCII) Struct name
         let words: Vec<String> = original
@@ -358,12 +380,12 @@ impl Validate for FunctionDefinition {
 
         for i in &self.inputs {
             io_count += 1;
-            i.validate()?
+            i.validate()?;
         }
 
         for i in &self.outputs {
             io_count += 1;
-            i.validate()?
+            i.validate()?;
         }
 
         // A function must have at least one valid input or output
@@ -410,8 +432,8 @@ impl SetRoute for FunctionDefinition {
 mod test {
     use url::Url;
 
-    use crate::deserializers::deserializer::get_deserializer;
-    use crate::errors::*;
+    use crate::deserializers::deserializer::get;
+    use crate::errors::Result;
     use crate::model::datatype::{DataType, NUMBER_TYPE, STRING_TYPE};
     use crate::model::name::HasName;
     use crate::model::name::Name;
@@ -446,7 +468,7 @@ mod test {
 
     fn toml_from_str(content: &str) -> Result<FunctionDefinition> {
         let url = Url::parse("file:///fake.toml").expect("Could not parse URL");
-        let deserializer = get_deserializer::<FunctionDefinition>(&url).expect("Could not get deserializer");
+        let deserializer = get::<FunctionDefinition>(&url).expect("Could not get deserializer");
         deserializer.deserialize(content, Some(&url))
     }
 
@@ -574,14 +596,14 @@ mod test {
         assert!(!function.outputs.is_empty());
         let outputs = function.outputs;
         assert_eq!(outputs.len(), 2);
-        let output0 = &outputs.first().expect("Could not get first output");
-        assert_eq!(*output0.name(), Name::from("sub_output"));
-        assert_eq!(output0.datatypes().len(), 1);
-        assert_eq!(output0.datatypes().first(), Some(&DataType::from(STRING_TYPE)));
-        let output1 = &outputs.get(1).expect("Could nopt get output[1]");
-        assert_eq!(*output1.name(), Name::from("other_output"));
-        assert_eq!(output1.datatypes().len(), 1);
-        assert_eq!(output1.datatypes().first(), Some(&DataType::from(NUMBER_TYPE)));
+        let output_0 = &outputs.first().expect("Could not get first output");
+        assert_eq!(*output_0.name(), Name::from("sub_output"));
+        assert_eq!(output_0.datatypes().len(), 1);
+        assert_eq!(output_0.datatypes().first(), Some(&DataType::from(STRING_TYPE)));
+        let output_1 = &outputs.get(1).expect("Could nopt get output[1]");
+        assert_eq!(*output_1.name(), Name::from("other_output"));
+        assert_eq!(output_1.datatypes().len(), 1);
+        assert_eq!(output_1.datatypes().first(), Some(&DataType::from(NUMBER_TYPE)));
     }
 
     #[test]

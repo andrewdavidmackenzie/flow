@@ -20,7 +20,7 @@ use simpdiscoverylib::BeaconListener;
 #[cfg(feature = "flowstdlib")]
 use url::Url;
 
-use flowcore::errors::*;
+use flowcore::errors::{Result, ResultExt};
 use flowcore::meta_provider::MetaProvider;
 use flowcore::provider::Provider;
 use flowrlib::executor::Executor;
@@ -56,7 +56,7 @@ fn main() {
 
             exit(1);
         }
-        Ok(_) => exit(0),
+        Ok(()) => exit(0),
     }
 }
 
@@ -87,11 +87,11 @@ fn start_executors(num_threads: usize) -> Result<()> {
     // loop, re-discovering flowr announced services that change network address on each run
     loop {
         #[allow(unused_mut)]
-        let mut executor = Executor::new()?;
+        let mut executor = Executor::new();
 
         #[cfg(feature = "flowstdlib")]
         executor.add_lib(
-            flowstdlib::manifest::get_manifest()
+            flowstdlib::manifest::get()
                 .chain_err(|| "Could not get 'native' flowstdlib manifest")?,
             Url::parse("memory://")?
         )?;
@@ -112,7 +112,7 @@ fn start_executors(num_threads: usize) -> Result<()> {
                                                        CONTROL_SERVICE_NAME)?);
 
         trace!("Starting '{}' executors", env!("CARGO_PKG_NAME"));
-        executor.start(provider, num_threads, &job_service, &results_service,
+        executor.start(&provider, num_threads, &job_service, &results_service,
                        &control_service);
 
         trace!("Waiting for all executors to complete");
@@ -123,6 +123,7 @@ fn start_executors(num_threads: usize) -> Result<()> {
 
 // Determine the number of threads to use to execute flows
 // - default (if value is not provided on the command line) to the "available_parallelism()"
+#[allow(clippy::redundant_closure_for_method_calls)]
 fn num_threads(matches: &ArgMatches) -> usize {
     match matches.get_one::<usize>("threads") {
         Some(num_threads) => *num_threads,

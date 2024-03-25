@@ -2,12 +2,12 @@ use std::fmt;
 
 use serde_derive::{Deserialize, Serialize};
 
-use flowcore::errors::*;
+use flowcore::errors::Result;
 use flowcore::model::metrics::Metrics;
 
 use crate::gui::client_message::ClientMessage;
 
-/// An Message sent from the runtime server to a runtime_client
+/// An Message sent from the runtime server to a `runtime_client`
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum CoordinatorMessage {
     #[serde(skip_deserializing, skip_serializing)]
@@ -17,7 +17,7 @@ pub enum CoordinatorMessage {
     /// Connection with the Coordinator has been lost
     Disconnected(String),
     /// ** These messages are used to implement the `SubmissionProtocol` between the coordinator
-    /// and the cli_client
+    /// and the `cli_client`
     /// A flow has started executing
     FlowStart,
     /// A flow has stopped executing
@@ -25,8 +25,8 @@ pub enum CoordinatorMessage {
     /// Coordinator is exiting, with a result (OK, or Err)
     CoordinatorExiting(Result<()>),
 
-    /// ** These messages are used to implement the context functions between the cli_runtime_server
-    /// that runs as part of the `Coordinator` and the cli_runtime_client that interacts with
+    /// ** These messages are used to implement the context functions between the `cli_runtime_server`
+    /// that runs as part of the `Coordinator` and the `cli_runtime_client` that interacts with
     /// STDIO
     /// A String of contents was sent to stdout
     Stdout(String),
@@ -42,7 +42,7 @@ pub enum CoordinatorMessage {
     Read(String),
     /// A Request to write a series of bytes to a file
     Write(String, Vec<u8>),
-    /// A Request to write a pixel to an ImageBuffer
+    /// A Request to write a pixel to an `ImageBuffer`
     PixelWrite((u32, u32), (u8, u8, u8), (u32, u32), String),
     /// A Request to snd EOF to Stdout
     StdoutEof,
@@ -79,7 +79,7 @@ impl fmt::Display for CoordinatorMessage {
     }
 }
 
-/// A simple struct with File MetaData for passing from Client to Coordinator - std::fs::MetaData
+/// A simple struct with File `MetaData` for passing from Client to Coordinator - `std::fs::MetaData`
 /// Doesn't Serialize/Deserialize etc.
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone)]
 pub struct FileMetaData {

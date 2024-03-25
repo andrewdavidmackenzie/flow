@@ -8,7 +8,7 @@ use serde::{de, Deserialize, Deserializer};
 use serde_derive::Serialize;
 use crate::errors;
 
-use crate::errors::*;
+use crate::errors::{Error, Result, bail};
 use crate::model::io::IOType;
 use crate::model::name::Name;
 use crate::model::validation::Validate;
@@ -61,6 +61,11 @@ impl From<&Name> for Route {
 }
 
 /// A custom Deserializer for a String into a [Route]
+///
+/// # Errors
+///
+/// Returns `Err` if the bytes cannot be deserialized as a `Route`
+#[allow(clippy::module_name_repetitions)]
 pub fn route_string<'de, T, D>(deserializer: D) -> std::result::Result<T, D::Error>
     where
         T: Deserialize<'de> + FromStr<Err = Error>,
@@ -89,6 +94,11 @@ pub fn route_string<'de, T, D>(deserializer: D) -> std::result::Result<T, D::Err
 }
 
 /// A custom deserializer for a String or an Array (Sequence) of Strings for Routes
+///
+/// # Errors
+///
+/// Returns `Err` data cannot be deserializes as a `Route` or Array of `Route`
+#[allow(clippy::module_name_repetitions)]
 pub fn route_or_route_array<'de, D>(deserializer: D) -> std::result::Result<Vec<Route>, D::Error>
     where
         D: Deserializer<'de>,
@@ -125,6 +135,7 @@ pub fn route_or_route_array<'de, D>(deserializer: D) -> std::result::Result<Vec<
 
 /// A [Route] can refer to a number of different types of objects in the flow hierarchy
 #[derive(Debug, PartialEq)]
+#[allow(clippy::module_name_repetitions)]
 pub enum RouteType {
     /// The route refers to an Input of a Flow
     FlowInput(Name, Route),
@@ -141,9 +152,9 @@ pub enum RouteType {
 /// "/my-flow" -> The flow called "my-flow, anchored at the root of the hierarchy, i.e. the context
 /// "/my-flow/sub-flow" -> A flow called "sub-flow" that is within "my-flow"
 /// "/my-flow/sub-flow/function" -> A function called "function" within "sub-flow"
-/// "/my-flow/sub-flow/function/input_1" -> An IO called "input_1" of "function"
-/// "/my-flow/sub-flow/function/input_1/1" -> An array element at index 1 of the Array output from "input_1"
-/// "/my-flow/sub-flow/function/input_2/part_a" -> A part of the Json structure output by "input_2" called "part_a"
+/// "/my-flow/sub-flow/function/input_1" -> An IO called `input_1` of "function"
+/// "/my-flow/sub-flow/function/input_1/1" -> An array element at index 1 of the Array output from `input_1`
+/// "/my-flow/sub-flow/function/input_2/part_a" -> A part of the Json structure output by `input_2` called `part_a`
 impl Route {
     /// `sub_route_of` returns an `Option<Route`> indicating if `self` is a subroute of `other`
     /// (i.e. `self` is a longer route to an element under the `other` route)
@@ -151,9 +162,9 @@ impl Route {
     ///     None                    - `self` is not a sub-route of `other`
     ///     (e.g. ("/my-route1", "/my-route2")
     ///     (e.g. ("/my-route1", "/my-route1/something")
-    ///     Some(Route::from(""))   - `self` and `other` are equal
+    ///     `Some(Route::from(""))`   - `self` and `other` are equal
     ///     (e.g. ("/my-route1", "/my-route1")
-    ///     Some(Route::from(diff)) - `self` is a sub-route of `other` - with `diff` added
+    ///     `Some(Route::from(diff))` - `self` is a sub-route of `other` - with `diff` added
     ///     (e.g. ("/my-route1/something", "/my-route1")
     pub fn sub_route_of(&self, other: &Route) -> Option<Route> {
         if self.string == other.string {
@@ -183,12 +194,12 @@ impl Route {
 
     /// Return the [Route] that is one level up, if it exists
     /// Example: `/context/function/output/subroute -> /context/function/output`
+    #[must_use]
     pub fn pop(&self) -> (Cow<Route>, Option<Route>) {
         let mut segments: Vec<&str> = self.string.split('/').collect();
         let sub_route = segments.pop();
         match sub_route {
-            None => (Cow::Borrowed(self), None),
-            Some("") => (Cow::Borrowed(self), None),
+            None | Some("") => (Cow::Borrowed(self), None),
             Some(sr) => (
                 Cow::Owned(Route::from(segments.join("/"))),
                 Some(Route::from(sr)),
@@ -198,6 +209,7 @@ impl Route {
 
     /// Return the io [Route] without a trailing number (array index) and if it has one or not
     /// If the trailing number was present then return the route with a trailing '/'
+    #[must_use]
     pub fn without_trailing_array_index(&self) -> (Cow<Route>, usize, bool) {
         let mut parts: Vec<&str> = self.string.split('/').collect();
         if let Some(last_part) = parts.pop() {
@@ -211,6 +223,7 @@ impl Route {
     }
 
     /// Return true if the [Route] selects an element from an array
+    #[must_use]
     pub fn is_array_selector(&self) -> bool {
         if self.string.is_empty() {
             return false;
@@ -229,6 +242,7 @@ impl Route {
     /// "string" -> 0
     /// "array/string" -> 1
     /// "array/array/string" -> 2
+    #[must_use]
     pub fn depth(&self) -> usize {
         if self.string.is_empty() {
             return 0;
@@ -238,19 +252,31 @@ impl Route {
     }
 
     /// Return true if this [Route] is empty, false otherwise
+    #[must_use]
     pub fn is_empty(&self) -> bool {
         self.string.is_empty()
     }
 
     /// Parse the [Route] into the specific type of sub-route
+    ///
+    /// # Errors
+    ///
+    /// Returns `Err` if an invalid route has been set
     pub fn parse_subroute(&self) -> Result<RouteType> {
         let segments: Vec<&str> = self.string.split('/').collect();
 
         match *(segments.first().ok_or("Could not get subroute segment[0]")?) {
-            "input" => Ok(RouteType::FlowInput(segments.get(1).ok_or("Could not get segment[1]")?.to_string(),
-                                               segments.get(2..).ok_or("Could not get segments[2..]")?
-                                                   .join("/").to_string().into())),
-            "output" => Ok(RouteType::FlowOutput(segments.get(1).ok_or("Could nopt get segment[1]")?.to_string())),
+            "input" => {
+                let name = segments.get(1).ok_or("Could not get segment[1]")?;
+                let route = segments.get(2..).ok_or("Could not get segments[2..]")?
+                    .join("/");
+                Ok(RouteType::FlowInput((*name).to_string(),
+                                        (*route).to_string().into()))
+            },
+            "output" => {
+                let name = segments.get(1).ok_or("Could not get segment[1]")?;
+                Ok(RouteType::FlowOutput((*name).to_string()))
+            },
             "" => bail!("Invalid Route in connection - must be an input, output or sub-process name"),
             process_name => Ok(RouteType::SubProcess(process_name.into(),
                                                      segments.get(1..).ok_or("Could not get segments[1..]")?
@@ -259,6 +285,7 @@ impl Route {
     }
 
     /// Return the [Route] the parent of the supplied [Name]
+    #[must_use]
     pub fn parent(&self, name: &Name) -> String {
         self.string.strip_suffix(&format!("/{}", name.as_str()))
             .unwrap_or(&self.string).to_string()
@@ -286,6 +313,8 @@ impl Validate for Route {
 }
 
 /// A trait that should be implemented by structs to indicate it has Routes
+#[must_use]
+#[allow(clippy::module_name_repetitions)]
 pub trait HasRoute {
     /// Return a reference to the Route of the struct that implements this trait
     fn route(&self) -> &Route;
@@ -294,6 +323,8 @@ pub trait HasRoute {
 }
 
 /// Some structs with Routes will be able to have their route set by using parent route
+#[must_use]
+#[allow(clippy::module_name_repetitions)]
 pub trait SetRoute {
     /// Set the routes in fields of this struct based on the route of it's parent.
     fn set_routes_from_parent(&mut self, parent: &Route);
@@ -485,13 +516,13 @@ mod test {
         let route = Route::from("/root/function");
         assert!(route
             .sub_route_of(&Route::from("/root/function"))
-            .is_some())
+            .is_some());
     }
 
     #[test]
     fn subroute_distinct_route() {
         let route = Route::from("/root/function");
-        assert!(route.sub_route_of(&Route::from("/root/foo")).is_none())
+        assert!(route.sub_route_of(&Route::from("/root/foo")).is_none());
     }
 
     #[test]
@@ -499,7 +530,7 @@ mod test {
         let route = Route::from("/root/function_foo");
         assert!(route
             .sub_route_of(&Route::from("/root/function"))
-            .is_none())
+            .is_none());
     }
 
     #[test]
@@ -507,7 +538,7 @@ mod test {
         let route = Route::from("/root/function/input");
         assert!(route
             .sub_route_of(&Route::from("/root/function"))
-            .is_some())
+            .is_some());
     }
 
     #[test]
@@ -515,7 +546,7 @@ mod test {
         let route = Route::from("/root/function/input/element");
         assert!(route
             .sub_route_of(&Route::from("/root/function"))
-            .is_some())
+            .is_some());
     }
 
     #[test]
@@ -523,7 +554,7 @@ mod test {
         let route = Route::from("/root/function/1");
         assert!(route
             .sub_route_of(&Route::from("/root/function"))
-            .is_some())
+            .is_some());
     }
 
     #[test]
@@ -531,7 +562,7 @@ mod test {
         let route = Route::from("/root/function/input/1");
         assert!(route
             .sub_route_of(&Route::from("/root/function"))
-            .is_some())
+            .is_some());
     }
 
     #[test]

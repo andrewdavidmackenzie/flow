@@ -2,7 +2,12 @@ use std::fmt;
 
 use serde_derive::{Deserialize, Serialize};
 
-/// blocks: (blocking_id, blocking_io_number, blocked_id, blocked_flow_id) a blocks between functions
+/// Blocks between functions are describes using:
+/// * `blocking_flow_id`
+/// * `blocking_function_id`
+/// * `blocking_io_number`
+/// * `blocked_function_id`
+/// * `blocked_flow_id`
 #[derive(PartialEq, Clone, Hash, Eq, Serialize, Deserialize)]
 pub struct Block {
     /// The id of the flow where the blocking function reside
@@ -20,6 +25,7 @@ pub struct Block {
 
 impl Block {
     /// Create a new `Block`
+    #[must_use]
     pub fn new(
         blocking_flow_id: usize,
         blocking_function_id: usize,

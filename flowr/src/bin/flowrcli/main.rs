@@ -1,6 +1,6 @@
 //! `flowr` is a command line flow runner for running `flow` programs.
 //!
-//! It reads a compiled [FlowManifest][flowcore::model::flow_manifest::FlowManifest] produced by a
+//! It reads a compiled [`FlowManifest`][flowcore::model::flow_manifest::FlowManifest] produced by a
 //! flow compiler, such as `flowc`, that describes the graph of communicating functions that
 //! constitute the flow program.
 //!
@@ -10,14 +10,14 @@
 //! File System, that allow the flow program to interact with the environment where it is being run.
 //!
 //! Depending on the command line options supplied `flowr` executes the
-//! [Coordinator][flowrlib::coordinator::Coordinator] of flow execution in a background thread,
-//! or the [cli::cli_client] in the main thread (where the interaction with STDIO and
+//! [`Coordinator`][flowrlib::coordinator::Coordinator] of flow execution in a background thread,
+//! or the [`cli::cli_client`] in the main thread (where the interaction with STDIO and
 //! File System happens) or both. They communicate via network messages using the
-//! [SubmissionHandler][flowrlib::submission_handler::SubmissionHandler] to submit flows for execution,
-//! and interchanging [ClientMessages][crate::cli::coordinator_message::ClientMessage]
-//! and [CoordinatorMessages][crate::cli::coordinator_message::CoordinatorMessage] for execution of context
+//! [`SubmissionHandler`][flowrlib::submission_handler::SubmissionHandler] to submit flows for execution,
+//! and interchanging [`ClientMessages`][crate::cli::coordinator_message::ClientMessage]
+//! and [`CoordinatorMessages`][crate::cli::coordinator_message::CoordinatorMessage] for execution of context
 //! interaction in the client, as requested by functions running in the coordinator's
-//! [Executors][flowrlib::executor::Executor]
+//! [`Executors`][flowrlib::executor::Executor]
 
 use core::str::FromStr;
 use std::{env, thread};
@@ -48,7 +48,7 @@ use cli::debug_message::DebugServerMessage;
 use cli::debug_message::DebugServerMessage::{BlockBreakpoint, DataBreakpoint, ExecutionEnded, ExecutionStarted,
                                              ExitingDebugger, JobCompleted, JobError, Panic, PriorToSendingJob,
                                              Resetting, WaitingForCommand};
-use flowcore::errors::*;
+use flowcore::errors::{Result, ResultExt};
 use flowcore::meta_provider::MetaProvider;
 use flowcore::model::flow_manifest::FlowManifest;
 use flowcore::model::submission::Submission;
@@ -69,8 +69,8 @@ mod context;
 
 /// provides the `context functions` for interacting with the execution environment from a flow,
 /// plus client-[Coordinator][flowrlib::coordinator::Coordinator] implementations of
-/// [flowrlib::submission_handler] for executing them on different threads
-/// from the [Coordinator][flowrlib::coordinator::Coordinator]
+/// [`flowrlib::submission_handler`] for executing them on different threads
+/// from the [`Coordinator`][`flowrlib::coordinator::Coordinator`]
 mod cli;
 
 /// provides [Error][errors::Error] that other modules in this crate will `use crate::errors::*;` to get
@@ -93,14 +93,14 @@ fn main() {
 
             exit(1);
         }
-        Ok(_) => exit(0),
+        Ok(()) => exit(0),
     }
 }
 
 /// For the lib provider, libraries maybe installed in multiple places in the file system.
-/// In order to find the content, a FLOW_LIB_PATH environment variable can be configured with a
+/// In order to find the content, a `FLOW_LIB_PATH` environment variable can be configured with a
 /// list of directories in which to look for the library in question.
-fn get_lib_search_path(search_path_additions: &[String]) -> Result<Simpath> {
+fn get_lib_search_path(search_path_additions: &[String]) -> Simpath {
     let mut lib_search_path = Simpath::new_with_separator("FLOW_LIB_PATH", ',');
 
     for additions in search_path_additions {
@@ -111,10 +111,10 @@ fn get_lib_search_path(search_path_additions: &[String]) -> Result<Simpath> {
     if lib_search_path.is_empty() {
         let home_dir = env::var("HOME")
             .unwrap_or_else(|_| "Could not get $HOME".to_string());
-        lib_search_path.add(&format!("{}/.flow/lib", home_dir))
+        lib_search_path.add(&format!("{home_dir}/.flow/lib"));
     }
 
-    Ok(lib_search_path)
+    lib_search_path
 }
 
 /// Run `flowr`. After setting up logging and parsing the command line arguments invoke `flowrlib`
@@ -142,12 +142,12 @@ fn run() -> Result<()> {
         matches
             .get_many::<String>("lib_dir")
             .chain_err(|| "Could not get the list of 'LIB_DIR' options specified")?
-            .map(|s| s.to_string())
+            .map(std::string::ToString::to_string)
             .collect()
     } else {
         vec![]
     };
-    let lib_search_path = get_lib_search_path(&lib_dirs)?;
+    let lib_search_path = get_lib_search_path(&lib_dirs);
     let num_threads = num_threads(&matches);
 
     if let Some(discovery_port) = matches.get_one::<u16>("client") {
@@ -155,7 +155,7 @@ fn run() -> Result<()> {
             &matches,
             lib_search_path,
             #[cfg(feature = "debugger")] debug_this_flow,
-            discovery_port,
+            *discovery_port,
         )?;
     } else if matches.get_flag("server") {
         coordinator_only(
@@ -259,7 +259,7 @@ fn client_and_coordinator(
     client(
         matches,
         lib_search_path,
-        runtime_client_connection,
+        &runtime_client_connection,
         #[cfg(feature = "debugger")] debug_this_flow,
         #[cfg(feature = "debugger")] discovery_port,
     )
@@ -287,7 +287,7 @@ fn coordinator(
     let ports = get_four_ports()?;
     trace!("Announcing three job queues and a control socket on ports: {ports:?}");
     let job_queues = get_bind_addresses(ports);
-    let dispatcher = Dispatcher::new(job_queues)?;
+    let dispatcher = Dispatcher::new(&job_queues)?;
     enable_service_discovery(JOB_QUEUES_DISCOVERY_PORT, JOB_SERVICE_NAME, ports.0)?;
     enable_service_discovery(JOB_QUEUES_DISCOVERY_PORT, RESULTS_JOB_SERVICE_NAME, ports.2)?;
     enable_service_discovery(JOB_QUEUES_DISCOVERY_PORT, CONTROL_SERVICE_NAME, ports.3)?;
@@ -295,29 +295,29 @@ fn coordinator(
     let (job_source_name, context_job_source_name, results_sink, control_socket) =
         get_connect_addresses(ports);
 
-    let mut executor = Executor::new()?;
+    let mut executor = Executor::new();
     // if the command line options request loading native implementation of available native libs
     // if not, the native implementation is not loaded and later when a flow is loaded it's library
     // references will be resolved and those libraries (WASM implementations) will be loaded at runtime
     if native_flowstdlib {
         executor.add_lib(
-            flowstdlib::manifest::get_manifest()
+            flowstdlib::manifest::get()
                 .chain_err(|| "Could not get 'native' flowstdlib manifest")?,
             Url::parse("memory://")? // Statically linked library has no resolved Url
         )?;
     }
-    executor.start(provider.clone(), num_threads,
+    executor.start(&provider, num_threads,
                    &job_source_name,
                    &results_sink,
                    &control_socket,
     );
 
-    let mut context_executor = Executor::new()?;
+    let mut context_executor = Executor::new();
     context_executor.add_lib(
         context::get_manifest(connection.clone())?,
         Url::parse("memory://")? // Statically linked library has no resolved Url
     )?;
-    context_executor.start(provider, 1,
+    context_executor.start(&provider, 1,
                            &context_job_source_name,
                            &results_sink,
                             &control_socket,
@@ -329,7 +329,7 @@ fn coordinator(
         dispatcher,
         &mut submitter,
         #[cfg(feature = "debugger")] &mut debug_server
-    )?;
+    );
 
     coordinator.submission_loop(loop_forever)?;
 
@@ -341,17 +341,17 @@ fn client_only(
     matches: &ArgMatches,
     lib_search_path: Simpath,
     #[cfg(feature = "debugger")] debug_this_flow: bool,
-    discovery_port: &u16,
+    discovery_port: u16,
 ) -> Result<()> {
-    let coordinator_address = discover_service(*discovery_port, COORDINATOR_SERVICE_NAME)?;
+    let coordinator_address = discover_service(discovery_port, COORDINATOR_SERVICE_NAME)?;
     let client_connection = ClientConnection::new(&coordinator_address)?;
 
     client(
         matches,
         lib_search_path,
-        client_connection,
+        &client_connection,
         #[cfg(feature = "debugger")] debug_this_flow,
-        #[cfg(feature = "debugger")] *discovery_port,
+        #[cfg(feature = "debugger")] discovery_port,
     )
 }
 
@@ -360,7 +360,7 @@ fn client_only(
 fn client(
     matches: &ArgMatches,
     lib_search_path: Simpath,
-    client_connection: ClientConnection,
+    client_connection: &ClientConnection,
     #[cfg(feature = "debugger")] debug_this_flow: bool,
     #[cfg(feature = "debugger")] discovery_port: u16,
 ) -> Result<()> {
@@ -373,7 +373,7 @@ fn client(
 
     let flow_args = get_flow_args(matches, &flow_manifest_url);
     let parallel_jobs_limit = matches.get_one::<usize>("jobs")
-        .map(|i| i.to_owned());
+        .map(std::borrow::ToOwned::to_owned);
     let submission = Submission::new(
         flow_manifest,
         parallel_jobs_limit,
@@ -409,10 +409,14 @@ fn client(
 
 /// Determine the number of threads to use to execute flows
 /// - default (if value is not provided on the command line)of the number of cores
+#[allow(clippy::redundant_closure_for_method_calls)]
 fn num_threads(matches: &ArgMatches) -> usize {
     match matches.get_one::<usize>("threads") {
         Some(num_threads) => *num_threads,
-        None => thread::available_parallelism().map(|n| n.get()).unwrap_or(1)
+        None => {
+            #[allow(clippy::redundant_closure)]
+            thread::available_parallelism().map(|n| n.get()).unwrap_or(1)
+        }
     }
 }
 
@@ -506,9 +510,9 @@ fn get_matches() -> ArgMatches {
 /// Parse the command line arguments passed onto the flow itself
 fn parse_flow_url(matches: &ArgMatches) -> Result<Url> {
     let cwd_url = Url::from_directory_path(env::current_dir()?)
-        .map_err(|_| "Could not form a Url for the current working directory")?;
+        .map_err(|()| "Could not form a Url for the current working directory")?;
     url_from_string(&cwd_url, matches.get_one::<String>("flow-manifest")
-        .map(|s| s.as_str()))
+        .map(String::as_str))
 }
 
 /// Set environment variable with the args this will not be unique, but it will be used very
@@ -519,7 +523,7 @@ fn get_flow_args(matches: &ArgMatches, flow_manifest_url: &Url) -> Vec<String> {
 
     // append any other arguments for the flow passed from the command line
     let additional_args = match matches.get_many::<String>("flow_args") {
-        Some(strings) => strings.map(|s| s.to_string()).collect(),
+        Some(strings) => strings.map(std::string::ToString::to_string).collect(),
         None => vec![]
     };
 

@@ -4,7 +4,7 @@ use std::path::{Path, PathBuf};
 use tempfile::tempdir;
 use url::Url;
 
-use crate::errors::*;
+use crate::errors::{Result, ResultExt};
 use crate::RunnerSpec;
 
 pub(crate) enum CompileType {
@@ -20,11 +20,11 @@ fn default_lib_compile_dir(source_url: &Url) -> Result<PathBuf> {
 
     let home_dir = env::var("HOME").expect("Could not get $HOME");
 
-    Ok(PathBuf::from(format!("{}/.flow/lib/{}", home_dir, lib_name)))
+    Ok(PathBuf::from(format!("{home_dir}/.flow/lib/{lib_name}")))
 }
-pub(crate) fn default_runner_dir(runner_name: String) -> Result<PathBuf> {
+pub(crate) fn default_runner_dir(runner_name: &str) -> PathBuf {
     let home_dir = env::var("HOME").expect("Could not get $HOME");
-    Ok(PathBuf::from(format!("{}/.flow/runner/{}", home_dir, runner_name)))
+    PathBuf::from(format!("{home_dir}/.flow/runner/{runner_name}"))
 }
 
 // Load a `RunnerSpec` from the context at `context_root`
@@ -36,12 +36,13 @@ pub(crate) fn load_runner_spec(path: &Path) -> Result<RunnerSpec> {
 fn default_flow_compile_dir(source_url: &Url) -> Result<PathBuf> {
     let mut output_dir;
 
+    #[allow(clippy::single_match_else)]
     match source_url.scheme() {
         // If loading flow from a local file, then build in the same directory
         "file" => {
             output_dir = source_url
                 .to_file_path()
-                .map_err(|_| format!("Error converting url to file path\nurl = '{source_url}'"))?;
+                .map_err(|()| format!("Error converting url to file path\nurl = '{source_url}'"))?;
             if output_dir.is_file() {
                 output_dir.pop(); // remove trailing filename
             }
@@ -76,7 +77,7 @@ pub(crate) fn get_output_dir(source_url: &Url, option: &Option<String>, compile_
         match compile_type {
             CompileType::Library => output_dir = default_lib_compile_dir(source_url)?,
             CompileType::Flow => output_dir = default_flow_compile_dir(source_url)?,
-            CompileType::Runner(name) => output_dir = default_runner_dir(name)?,
+            CompileType::Runner(name) => output_dir = default_runner_dir(&name),
         }
     }
 

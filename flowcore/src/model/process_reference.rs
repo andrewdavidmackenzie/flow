@@ -3,7 +3,7 @@ use std::fmt;
 
 use serde_derive::{Deserialize, Serialize};
 
-use crate::errors::*;
+use crate::errors::Result;
 use crate::model::input::InputInitializer;
 use crate::model::name::HasName;
 use crate::model::name::Name;
@@ -28,7 +28,7 @@ pub struct ProcessReference {
 }
 
 impl ProcessReference {
-    /// if the ProcessRef does not specify an alias for the process to be loaded
+    /// if the `ProcessRef` does not specify an alias for the process to be loaded
     /// then set the alias to be the name of the loaded process
     pub fn set_alias(&mut self, alias: &Name) {
         if self.alias.is_empty() {
@@ -67,8 +67,8 @@ mod test {
     use serde_json::json;
     use url::Url;
 
-    use crate::deserializers::deserializer::get_deserializer;
-    use crate::errors::*;
+    use crate::deserializers::deserializer::get;
+    use crate::errors::Result;
     use crate::model::input::InputInitializer::{Always, Once};
 
     use super::ProcessReference;
@@ -76,7 +76,7 @@ mod test {
     fn toml_from_str(content: &str) -> Result<ProcessReference> {
         let url = Url::parse("file:///fake.toml").expect("Could not parse URL");
         let deserializer =
-            get_deserializer::<ProcessReference>(&url).expect("Could not get deserializer");
+            get::<ProcessReference>(&url).expect("Could not get deserializer");
         deserializer.deserialize(content, Some(&url))
     }
 
@@ -133,7 +133,7 @@ mod test {
         );
         match reference.initializations.get("input1") {
             Some(Always(value)) => {
-                assert_eq!(&json!(1), value, "input1 should be initialized to 1")
+                assert_eq!(&json!(1), value, "input1 should be initialized to 1");
             }
             _ => panic!("Should have been a Constant initializer"),
         }
@@ -156,7 +156,7 @@ mod test {
         );
         match reference.initializations.get("input1") {
             Some(Always(value)) => {
-                assert_eq!(&json!(1), value, "input1 should be initialized to 1")
+                assert_eq!(&json!(1), value, "input1 should be initialized to 1");
             }
             _ => panic!("Should have been an Always initializer"),
         }
@@ -185,7 +185,7 @@ mod test {
 
         match reference.initializations.get("input2") {
             Some(Once(value)) => {
-                assert_eq!("hello", value, "input2 should be initialized to 'hello'")
+                assert_eq!("hello", value, "input2 should be initialized to 'hello'");
             }
             _ => panic!("Should have been a Once initializer"),
         }

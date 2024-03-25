@@ -2,7 +2,7 @@ use serde::de::DeserializeOwned;
 use serde::Deserialize;
 use url::Url;
 
-use crate::errors::*;
+use crate::errors::{Result, bail};
 
 use super::json_deserializer::JsonDeserializer;
 use super::toml_deserializer::TomlDeserializer;
@@ -12,13 +12,20 @@ use super::yaml_deserializer::YamlDeserializer;
 /// to return their name to be able to inform the user of which deserializer was used
 pub trait Deserializer<'a, T: Deserialize<'a>> {
     /// Deserialize the supplied `content` that was loaded from `url` into a `P`
+    /// # Errors
+    ///
+    /// Will return `Err` if `contents` cannot be deserialized into the type `T`
     fn deserialize(&self, contents: &'a str, url: Option<&Url>) -> Result<T>;
     /// Return the name of the serializer implementing this trait
     fn name(&self) -> &str;
 }
 
 /// Return a Deserializer based on the file extension of the resource referred to from `url` input
-pub fn get_deserializer<'a, T>(url: &'a Url) -> Result<Box<dyn Deserializer<'a, T> + 'a>>
+/// # Errors
+///
+/// Will return `Err` if a deserializer cannot be found that can deserialize the content type
+/// identified by the extension of the last segment of `url`
+pub fn get<'a, T>(url: &'a Url) -> Result<Box<dyn Deserializer<'a, T> + 'a>>
 where
     T: DeserializeOwned + 'static,
 {
@@ -43,11 +50,12 @@ mod test {
     use serde_derive::{Deserialize, Serialize};
     use url::Url;
 
-    use super::get_deserializer;
+    use super::get;
     use super::get_file_extension;
 
     #[derive(Serialize, Deserialize, Debug, Clone)]
     #[serde(untagged)]
+    #[allow(clippy::module_name_repetitions)]
     pub enum TestStruct {
         /// The process is actually a `Flow`
         FlowProcess(String),
@@ -86,7 +94,7 @@ mod test {
     #[test]
     fn invalid_extension() {
         assert!(
-            get_deserializer::<TestStruct>(
+            get::<TestStruct>(
                 &Url::parse("file:///extension.wrong").expect("Could not create Url")
             )
             .is_err(),
@@ -97,7 +105,7 @@ mod test {
     #[test]
     fn toml_extension_loader() {
         assert_eq!(
-            get_deserializer::<TestStruct>(
+            get::<TestStruct>(
                 &Url::parse("file:///filename.toml").expect("Could not create Url")
             )
             .expect("Could not get a deserializer")
@@ -109,7 +117,7 @@ mod test {
     #[test]
     fn yaml_extension_loader() {
         assert_eq!(
-            get_deserializer::<TestStruct>(
+            get::<TestStruct>(
                 &Url::parse("file:///filename.yaml").expect("Could not create Url")
             )
             .expect("Could not get a deserializer")
@@ -121,7 +129,7 @@ mod test {
     #[test]
     fn yml_extension_loader() {
         assert_eq!(
-            get_deserializer::<TestStruct>(
+            get::<TestStruct>(
                 &Url::parse("file:///filename.yml").expect("Could not create Url")
             )
             .expect("Could not get a deserializer")
@@ -133,7 +141,7 @@ mod test {
     #[test]
     fn json_extension_loader() {
         assert_eq!(
-            get_deserializer::<TestStruct>(
+            get::<TestStruct>(
                 &Url::parse("file:///filename.json").expect("Could not create Url")
             )
             .expect("Could not get a deserializer")

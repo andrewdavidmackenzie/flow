@@ -1,7 +1,7 @@
 use std::sync::{Arc, Mutex};
 
 use error_chain::bail;
-use flowcore::errors::*;
+use flowcore::errors::Result;
 use flowcore::model::metrics::Metrics;
 use flowcore::model::submission::Submission;
 use flowrlib::run_state::RunState;
@@ -13,7 +13,7 @@ use crate::gui::client_message::ClientMessage;
 use crate::gui::coordinator_connection::{DONT_WAIT, WAIT};
 use crate::gui::coordinator_message::CoordinatorMessage;
 
-/// A [SubmissionHandler] to allow submitting flows for execution from the CLI
+/// A [`SubmissionHandler`] to allow submitting flows for execution from the CLI
 pub(crate) struct CLISubmissionHandler {
     coordinator_connection: Arc<Mutex<CoordinatorConnection>>,
 }
@@ -74,6 +74,7 @@ impl SubmissionHandler for CLISubmissionHandler {
         loop {
             info!("Coordinator is waiting to receive a 'Submission'");
             let guard = self.coordinator_connection.lock();
+            #[allow(clippy::single_match_else)]
             match guard {
                 Ok(locked) =>  {
                     let received = locked.receive(WAIT);

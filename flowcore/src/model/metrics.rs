@@ -14,19 +14,20 @@ pub struct Metrics {
     #[serde(skip)]
     #[serde(default = "Metrics::default_start_time")]
     start_time: Instant,
-    elapsed_time_seconds: f64,
+    elapsed_time_seconds: u64,
     max_simultaneous_jobs: usize,
 }
 
 impl Metrics {
     /// Create a new `Metrics` struct
+    #[must_use]
     pub fn new(num_functions: usize) -> Self {
         Metrics {
             num_functions,
             jobs_created: 0,
             outputs_sent: 0,
             start_time: Instant::now(),
-            elapsed_time_seconds: 0.0,
+            elapsed_time_seconds: 0,
             max_simultaneous_jobs: 0,
         }
     }
@@ -58,14 +59,14 @@ impl Metrics {
 
     /// Return the start time for flow execution - used for tracking wall-clock time for
     /// the execution
+    #[must_use]
     pub fn default_start_time() -> Instant {
         Instant::now()
     }
 
     /// Stop the timer
     pub fn stop_timer(&mut self) {
-        let elapsed = self.start_time.elapsed();
-        self.elapsed_time_seconds = elapsed.as_secs() as f64;
+        self.elapsed_time_seconds = self.start_time.elapsed().as_secs();
     }
 }
 

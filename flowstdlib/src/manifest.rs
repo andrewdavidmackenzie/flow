@@ -9,15 +9,19 @@ use flowcore::model::metadata::MetaData;
 use crate::{control, data, fmt, math, matrix};
 use crate::errors::Result;
 
-/// Return the LibraryManifest for this library
-pub fn get_manifest() -> Result<LibraryManifest> {
+/// Return the `LibraryManifest` for this library
+/// # Errors
+///
+/// Will return `Err` if the manifest cannot be created
+#[allow(clippy::too_many_lines)]
+pub fn get() -> Result<LibraryManifest> {
     let metadata = MetaData {
         name: env!("CARGO_PKG_NAME").into(),
         version: env!("CARGO_PKG_VERSION").into(),
         description: env!("CARGO_PKG_DESCRIPTION").into(),
         authors: env!("CARGO_PKG_AUTHORS")
             .split(':')
-            .map(|s| s.to_string())
+            .map(std::string::ToString::to_string)
             .collect(),
     };
     let lib_url = Url::parse(&format!("lib://{}", metadata.name))?;

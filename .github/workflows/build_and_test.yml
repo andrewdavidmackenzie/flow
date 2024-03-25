@@ -48,7 +48,7 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: clippy
-          args: --tests --no-deps --all-features --all-targets -- -D warnings
+          args: --tests --no-deps --all-features --all-targets -- --warn clippy::pedantic -D warnings
 
   build-and-test:
     runs-on: ${{ matrix.os }}

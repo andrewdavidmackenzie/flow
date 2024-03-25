@@ -1,6 +1,6 @@
 use std::fmt;
 
-use flowcore::errors::*;
+use flowcore::errors::Result;
 use flowcore::model::submission::Submission;
 use serde_derive::{Deserialize, Serialize};
 
@@ -14,9 +14,9 @@ pub enum ClientMessage {
     /// Client requests that server enters the ddebugger at the next opportunity
     EnterDebugger,
 
-    /// ** These messages are used to implement the context functions between the cli_runtime_client
-    /// and the cli_runtime_server that runs as part of the `Coordinator`
-    /// Simple acknowledgement from Client to a ServerMessage
+    /// ** These messages are used to implement the context functions between the `cli_runtime_client`
+    /// and the `cli_runtime_server` that runs as part of the `Coordinator`
+    /// Simple acknowledgement from Client to a `ServerMessage`
     Ack,
     /// A String read from Stdin on Client, sent to the Server
     Stdin(String),
@@ -24,7 +24,7 @@ pub enum ClientMessage {
     Line(String),
     /// A Vector of Strings that are the flow's arguments from Client, sent to the Server
     Args(Vec<String>),
-    /// An Error occurred in the runtime_client
+    /// An Error occurred in the `runtime_client`
     Error(String),
     /// EOF was detected on input reading using Stdin
     GetStdinEof,

@@ -4,7 +4,7 @@ use std::collections::BTreeMap;
 use log::{debug, info, trace};
 use url::Url;
 
-use flowcore::deserializers::deserializer::get_deserializer;
+use flowcore::deserializers::deserializer::get;
 use flowcore::model::flow_definition::FlowDefinition;
 use flowcore::model::flow_manifest::Cargo;
 use flowcore::model::input::InputInitializer;
@@ -17,7 +17,7 @@ use flowcore::model::process::Process::FunctionProcess;
 use flowcore::model::route::Route;
 use flowcore::provider::Provider;
 
-use crate::errors::*;
+use crate::errors::{Result, ResultExt};
 
 /// `LibType` describes what format the Flow Library is written in
 #[derive(PartialEq, Eq)]
@@ -30,6 +30,13 @@ pub enum LibType {
 ///
 /// The return is a `Result` containing the `Process`, or a `String` describing the error
 /// found while loading.
+///
+/// # Errors
+///
+/// Returns an error if the process cannot be parsed, caused by:
+/// - The url cannot be resolved
+/// - The contents at the url cannot be read, or are not valid Utf8 Strings
+/// - The content as Utf8 cannot be parsed as a valid `Process` (`FlowProcess` or `FunctionProcess`)
 ///
 /// # Example
 /// ```
@@ -104,7 +111,7 @@ fn parse_process(
     }
 
     let content = String::from_utf8(contents).chain_err(|| "Could not read UTF8 contents")?;
-    let deserializer = get_deserializer::<Process>(&resolved_url)?;
+    let deserializer = get::<Process>(&resolved_url)?;
     debug!(
         "Loading process from url = '{resolved_url}' with deserializer: '{}'", deserializer.name());
     let mut process = deserializer
@@ -149,6 +156,14 @@ fn parse_process(
 /// load library metadata from the given url using the provider.
 /// Currently it uses the `package` table of Cargo.toml as a source but it could
 /// easily use another file as along as it has the required fields to satisfy `MetaData` struct
+///
+/// # Errors
+///
+/// Returns an error if a library's meta-data cannot be parsed from the `lib.toml` file:
+/// - `url` cannot be resolved to find the `lib.toml` file for the library
+/// - The contents of that file cannot be read or is invalid Utf8 or cannot be parsed into a
+///   valid `MetaData` struct
+///
 pub fn parse_metadata(url: &Url, provider: &dyn Provider) -> Result<(MetaData, LibType)> {
     trace!("Loading Metadata");
     let (resolved_url, _) = provider
@@ -164,7 +179,7 @@ pub fn parse_metadata(url: &Url, provider: &dyn Provider) -> Result<(MetaData, L
         .chain_err(|| format!("Could not get contents of resolved url: '{resolved_url}'"))?;
     let content = String::from_utf8(contents).chain_err(|| "Could not read UTF8 contents")?;
 
-    let deserializer = get_deserializer::<Cargo>(&resolved_url)?;
+    let deserializer = get::<Cargo>(&resolved_url)?;
 
     let cargo: Cargo = deserializer.deserialize(&content, Some(&resolved_url))?;
 
@@ -220,7 +235,7 @@ fn parse_process_refs(
 mod test {
     use url::Url;
 
-    use flowcore::deserializers::deserializer::get_deserializer;
+    use flowcore::deserializers::deserializer::get;
     use flowcore::model::flow_manifest::Cargo;
     use flowcore::model::metadata::MetaData;
 
@@ -234,7 +249,7 @@ description = "The standard library for 'flow' programs compiled with the 'flowc
 
 exclude = "../..""#;
         let url = Url::parse("file:///fake.toml").expect("Could not parse URL");
-        let deserializer = get_deserializer::<Cargo>(&url).expect("Could not get deserializer");
+        let deserializer = get::<Cargo>(&url).expect("Could not get deserializer");
         let cargo: Cargo = deserializer
             .deserialize(cargo_toml, Some(&url))
             .expect("Could not deserialize");

@@ -1,7 +1,7 @@
 use serde_json::{json, Value};
 
 use flowcore::{RUN_AGAIN, RunAgain};
-use flowcore::errors::*;
+use flowcore::errors::Result;
 use flowmacro::flow_function;
 
 #[flow_function]
@@ -19,7 +19,7 @@ fn _accumulate(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
         let partial = partial_input.as_array_mut().ok_or("Could not get partial")?;
         partial.push(value);
 
-        if partial.len() >= chunk_size as usize {
+        if partial.len() >= usize::try_from(chunk_size)? {
             // TODO could pass on any extra elements beyond chunk size in 'partial'
             // and also force chunk size to be exact....
             output_map.insert("chunk".into(), Value::Array(partial.clone()));

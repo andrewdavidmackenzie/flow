@@ -1,7 +1,7 @@
 use std::sync::{Arc, Mutex};
 
 use flowcore::{DONT_RUN_AGAIN, Implementation, RUN_AGAIN, RunAgain};
-use flowcore::errors::*;
+use flowcore::errors::Result;
 use serde_json::{json, Value};
 
 use crate::cli::connections::CoordinatorConnection;
@@ -71,7 +71,7 @@ mod test {
         match value {
             Some(Value::Object(map)) => {
                 assert_eq!(map.get("string").expect("Could not get file contents as string"),
-                           &json!(file_string))
+                           &json!(file_string));
             },
             _ => panic!("Did not get back FileContents")
         }

@@ -1,4 +1,4 @@
-use flowcore::errors::*;
+use flowcore::errors::Result;
 #[cfg(feature = "metrics")]
 use flowcore::model::metrics::Metrics;
 use flowcore::model::submission::Submission;
@@ -10,23 +10,44 @@ use crate::run_state::RunState;
 /// then track it's execution (such as a CLI or a UI) should implement this trait
 pub trait SubmissionHandler {
     /// Execution of the flow is starting
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the message corresponding to the flow is starting cannot be sent
     fn flow_execution_starting(&mut self) -> Result<()>;
 
     /// The [Coordinator][crate::coordinator::Coordinator] executing the flow periodically
     /// will check if there has been a request to enter the debugger.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the request to check if debugger entry is required fails
     #[cfg(feature = "debugger")]
     fn should_enter_debugger(&mut self) -> Result<bool>;
 
     /// The [Coordinator][crate::coordinator::Coordinator] informs the submitter that the execution
     /// of the flow has ended
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the message corresponding to the flow has ended cannot be sent
     fn flow_execution_ended(&mut self, state: &RunState,
                             #[cfg(feature = "metrics")] metrics: Metrics
     ) -> Result<()>;
 
     /// The [Coordinator][crate::coordinator::Coordinator] wait for a
     /// [Submission][flowcore::model::submission::Submission] to be sent for execution
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if there is an error while waiting for a submission (usually networking9
+    ///
     fn wait_for_submission(&mut self) -> Result<Option<Submission>>;
 
     /// The [Coordinator][crate::coordinator::Coordinator] is about to exit
+    ///
+    /// # Errors
+    ///
+    /// Will return `Err` if this cannot be communicated to the client
     fn coordinator_is_exiting(&mut self, result: Result<()>) -> Result<()>;
 }

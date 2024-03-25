@@ -6,7 +6,7 @@ use serde_derive::{Deserialize, Serialize};
 use serde_json::Value;
 use url::Url;
 
-use crate::errors::*;
+use crate::errors::{Result, ResultExt};
 use crate::model::input::Input;
 use crate::model::input::InputInitializer;
 use crate::model::output_connection::OutputConnection;
@@ -141,29 +141,33 @@ impl RuntimeFunction {
 
     /// Accessor for a `RuntimeFunction` `name`
     #[cfg(feature = "debugger")]
+    #[must_use]
     pub fn name(&self) -> &str {
         &self.name
     }
 
     /// Accessor for a `RuntimeFunction` `route`
     #[cfg(feature = "debugger")]
+    #[must_use]
     pub fn route(&self) -> &str {
         &self.route
     }
 
     /// Accessor for a `RuntimeFunction` `id`
+    #[must_use]
     pub fn id(&self) -> usize {
         self.function_id
     }
 
     /// Accessor for a `RuntimeFunction` `flow_id`
+    #[must_use]
     pub fn get_flow_id(&self) -> usize {
         self.flow_id
     }
 
     /// Initialize the function to be ready to be called during flow execution
     pub fn init(&mut self) {
-        self.init_inputs(true, false)
+        self.init_inputs(true, false);
     }
 
     /// Initialize `Inputs` that have `InputInitializers` on them
@@ -176,34 +180,44 @@ impl RuntimeFunction {
     }
 
     /// Accessor for a `RuntimeFunction` `implementation_location`
+    #[must_use]
     pub fn implementation_location(&self) -> &str {
         &self.implementation_location
     }
 
     /// Send a value or array of values to the specified input of this function
+    /// # Errors
+    ///
+    /// Will return `Err` if the IO numbered `io_number` does not exist
     pub fn send(&mut self, io_number: usize, value: Value) -> Result<()> {
         let _ = self.inputs.get_mut(io_number).ok_or("Could not get that input")?.send(value);
         Ok(())
     }
 
     /// Accessor for a `RuntimeFunction` `output_connections` field
+    #[must_use]
     pub fn get_output_connections(&self) -> &Vec<OutputConnection> {
         &self.output_connections
     }
 
-    /// Get a reference to the implementation_location
+    /// Get a reference to the `implementation_location`
+    #[must_use]
     pub fn get_implementation_location(&self) -> &str {
         &self.implementation_location
     }
 
-    /// Set the implementation_location, as an absolute Url relative to the manifest_url
+    /// Set the `implementation_location`, as an absolute Url relative to the `manifest_url`
+    /// # Errors
+    ///
+    /// Will return `Err` if `manifest_url` cannot be set as `implementation_url`
     pub fn set_implementation_url(&mut self, manifest_url: &Url) -> Result<()> {
         self.implementation_url = Self::location_to_url(manifest_url,
                                                         self.implementation_location())?;
         Ok(())
     }
 
-    /// Get a reference to the implementation_url
+    /// Get a reference to the `implementation_url`
+    #[must_use]
     pub fn get_implementation_url(&self) -> &Url {
         &self.implementation_url
     }
@@ -213,7 +227,10 @@ impl RuntimeFunction {
             .chain_err(|| "Could not create Url from 'manifest_url' and 'location'")
     }
 
-    /// Returns the number of values available on [RuntimeFunction]'s [Input] number `input_number`
+    /// Returns the number of values available on `RuntimeFunction` [Input] number `input_number`
+    /// # Errors
+    ///
+    /// Will return `Err` if input `input_number` does not exist
     pub fn values_available(&self, input_number: usize) -> Result<usize> {
         Ok(self.inputs.get(input_number).ok_or("Could not get that input")?.values_available())
     }
@@ -221,6 +238,7 @@ impl RuntimeFunction {
     /// Returns how many jobs can be created for this function with the available inputs
     /// NOTE: For Impure functions without inputs (that can always run and produce a value)
     /// this will return 1 always
+    #[must_use]
     pub fn input_sets_available(&self) -> usize {
         if self.inputs.is_empty() {
             return 1;
@@ -238,19 +256,21 @@ impl RuntimeFunction {
     /// Can this function run? Either because:
     ///     - it has input sets to allow it to run
     ///     - it has no inputs and so can always run
+    #[must_use]
     pub fn can_run(&self) -> bool {
         self.input_sets_available() > 0
     }
 
     /// Inspect the values of the `inputs` of a `RuntimeFunction`
     #[cfg(any(feature = "debugger", debug_assertions))]
+    #[must_use]
     pub fn inputs(&self) -> &Vec<Input> {
         &self.inputs
     }
 
     /// Inspect the value of the `input` of a `RuntimeFunction`.
     #[cfg(feature = "debugger")]
-    pub fn input(&self, id: usize) -> Option<&Input> {
+    #[must_use]    pub fn input(&self, id: usize) -> Option<&Input> {
         self.inputs.get(id)
     }
 
@@ -262,7 +282,7 @@ impl RuntimeFunction {
 
         let mut input_set: Vec<Value> = Vec::with_capacity(self.inputs.len());
         for input in &mut self.inputs {
-            input_set.push(input.take());
+            input_set.push(input.take()?);
         }
 
         Some(input_set)
@@ -270,6 +290,7 @@ impl RuntimeFunction {
 
     /// Will this function always be able to create new jobs no matter what
     /// // TODO make this an internal bool on creation!
+    #[must_use]
     pub fn is_always_ready(&self) -> bool {
         if self.inputs.is_empty() {
             return true;

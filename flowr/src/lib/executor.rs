@@ -7,14 +7,14 @@ use std::thread::JoinHandle;
 use log::{debug, error, info, trace};
 use url::Url;
 
-use flowcore::errors::*;
+use flowcore::errors::{Result, ResultExt, bail};
 use flowcore::Implementation;
 use flowcore::model::lib_manifest::{
     ImplementationLocator::Native, ImplementationLocator::RelativePath, LibraryManifest,
 };
 use flowcore::provider::Provider;
 
-use crate::job::JobPayload;
+use crate::job::Payload;
 use crate::wasm;
 
 /// An `Executor` struct is used to receive jobs, execute them and return results.
@@ -28,18 +28,31 @@ pub struct Executor {
     executors: Vec<JoinHandle<()>>,
 }
 
+impl Default for Executor {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Executor {
     /// Create a new executor that receives jobs, executes them and returns results.
-    pub fn new() -> Result<Self> {
-        Ok(Executor{
+    #[must_use]
+    pub fn new() -> Self {
+        Executor {
             loaded_lib_manifests: Arc::new(RwLock::new(HashMap::<Url, (LibraryManifest, Url)>::new())),
             executors: vec![],
-        })
+        }
     }
 
     /// Add a library manifest so that it can be used later on to load implementations that are
     /// required to execute jobs. Also provide the Url that the library url resolves to, so that
     /// later it can be used when resolving the locations of implementations in this library.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if this `LibraryManifest` cannot be added to the set of manifests used
+    /// by the runtime to load functions.
+    ///
     pub fn add_lib(
         &mut self,
         lib_manifest: LibraryManifest,
@@ -62,7 +75,7 @@ impl Executor {
     /// - the address of the job socket to get jobs from
     /// - the address of the results socket to return results from executed jobs to
     pub fn start(&mut self,
-                 provider: Arc<dyn Provider>,
+                 provider: &Arc<dyn Provider>,
                  number_of_executors: usize,
                  job_service: &str,
                  results_service: &str,
@@ -82,11 +95,11 @@ impl Executor {
             self.executors.push(thread::spawn(move || {
                 trace!("Executor #{executor_number} entering execution loop");
                 if let Err(e) = execution_loop(
-                    thread_provider,
-                    format!("Executor #{executor_number}"),
-                    thread_context,
-                    thread_implementations,
-                    thread_loaded_manifests,
+                    &thread_provider,
+                    &format!("Executor #{executor_number}"),
+                    &thread_context,
+                    &thread_implementations,
+                    &thread_loaded_manifests,
                     job_source,
                     results_sink,
                     control_address,
@@ -106,12 +119,13 @@ impl Executor {
 }
 
 #[allow(clippy::too_many_arguments)]
+#[allow(clippy::needless_pass_by_value)]
 fn execution_loop(
-    provider: Arc<dyn Provider>,
-    name: String,
-    context: zmq::Context,
-    loaded_implementations: Arc<RwLock<HashMap<Url, Arc<dyn Implementation>>>>,
-    loaded_lib_manifests: Arc<RwLock<HashMap<Url, (LibraryManifest, Url)>>>,
+    provider: &Arc<dyn Provider>,
+    name: &str,
+    context: &zmq::Context,
+    loaded_implementations: &Arc<RwLock<HashMap<Url, Arc<dyn Implementation>>>>,
+    loaded_lib_manifests: &Arc<RwLock<HashMap<Url, (LibraryManifest, Url)>>>,
     job_service: String,
     results_service: String,
     control_address: String,
@@ -149,16 +163,16 @@ fn execution_loop(
                 if items.first().ok_or("Could not get poll item 0")?.is_readable() {
                     let msg = job_source.recv_msg(0).map_err(|_| "Error receiving Job for execution")?;
                     let message_string = msg.as_str().ok_or("Could not get message as str")?;
-                    let payload: JobPayload = serde_json::from_str(message_string)
+                    let payload: Payload = serde_json::from_str(message_string)
                         .map_err(|_| "Could not deserialize Message to Job")?;
 
                     debug!("Job #{}: Received by {}", payload.job_id, name);
-                    match execute_job(provider.clone(),
+                    match execute_job(provider,
                                       &payload,
                                       &results_sink,
-                                      &name,
-                                      loaded_implementations.clone(),
-                                      loaded_lib_manifests.clone()) {
+                                      name,
+                                      &loaded_implementations.clone(),
+                                      &loaded_lib_manifests.clone()) {
                         Ok(keep_processing) => process_jobs = keep_processing,
                         Err(e) => error!("{}", e)
                     }
@@ -200,12 +214,12 @@ fn set_panic_hook() {
 
 // Return Ok(keep_processing) flag as true or false to keep processing
 fn execute_job(
-    provider: Arc<dyn Provider>,
-    payload: &JobPayload,
+    provider: &Arc<dyn Provider>,
+    payload: &Payload,
     results_sink: &zmq::Socket,
     name: &str,
-    loaded_implementations: Arc<RwLock<HashMap<Url, Arc<dyn Implementation>>>>,
-    loaded_lib_manifests: Arc<RwLock<HashMap<Url, (LibraryManifest, Url)>>>,
+    loaded_implementations: &Arc<RwLock<HashMap<Url, Arc<dyn Implementation>>>>,
+    loaded_lib_manifests: &Arc<RwLock<HashMap<Url, (LibraryManifest, Url)>>>,
 ) -> Result<bool> {
     // TODO see if we can avoid write access until we know it's needed
     let mut implementations = loaded_implementations.write()
@@ -217,7 +231,7 @@ fn execute_job(
                 let mut lib_root_url = payload.implementation_url.clone();
                 lib_root_url.set_path("");
                 load_referenced_implementation(provider,
-                                               lib_root_url,
+                                               &lib_root_url,
                                                loaded_lib_manifests,
                                                &payload.implementation_url)?
             },
@@ -226,11 +240,11 @@ fn execute_job(
                 let _ = lib_root_url.set_host(Some(""));
                 lib_root_url.set_path("");
                 load_referenced_implementation(provider,
-                                               lib_root_url,
+                                               &lib_root_url,
                                                loaded_lib_manifests,
                                                &payload.implementation_url)?
             },
-            "file" => Arc::new(wasm::load(&*provider, &payload.implementation_url)?),
+            "file" => Arc::new(wasm::load(provider, &payload.implementation_url)?),
             _ => bail!("Unsupported scheme on implementation_url")
         };
         implementations.insert(payload.implementation_url.clone(), implementation);
@@ -252,12 +266,13 @@ fn execute_job(
 
 // Load a context or library implementation
 fn load_referenced_implementation(
-    provider: Arc<dyn Provider>,
-    lib_root_url: Url,
-    loaded_lib_manifests: Arc<RwLock<HashMap<Url, (LibraryManifest, Url)>>>,
+    provider: &Arc<dyn Provider>,
+    lib_root_url: &Url,
+    loaded_lib_manifests: &Arc<RwLock<HashMap<Url, (LibraryManifest, Url)>>>,
     implementation_url: &Url
 ) -> Result<Arc<dyn Implementation>> {
-    let (lib_manifest, resolved_lib_url) = get_lib_manifest_tuple(provider.clone(), loaded_lib_manifests, &lib_root_url)?;
+    let (lib_manifest, resolved_lib_url) =
+        get_lib_manifest_tuple(provider, loaded_lib_manifests, lib_root_url)?;
 
     let locator = lib_manifest
         .locators
@@ -275,7 +290,7 @@ fn load_referenced_implementation(
                 .map_err(|e| e.to_string())?;
             debug!("Attempting to load wasm from source file: '{}'", wasm_url);
             // Wasm implementation being added. Wrap it with the Wasm Native Implementation
-            let wasm_executor = wasm::load(&*provider as &dyn Provider, &wasm_url)?;
+            let wasm_executor = wasm::load(provider, &wasm_url)?;
             Arc::new(wasm_executor) as Arc<dyn Implementation>
         }
         Native(native_impl) => native_impl.clone(),
@@ -286,8 +301,8 @@ fn load_referenced_implementation(
 
 // Get the tuple of the lib manifest and the url from where it was loaded from
 fn get_lib_manifest_tuple(
-    provider: Arc<dyn Provider>,
-    loaded_lib_manifests: Arc<RwLock<HashMap<Url, (LibraryManifest, Url)>>>,
+    provider: &Arc<dyn Provider>,
+    loaded_lib_manifests: &Arc<RwLock<HashMap<Url, (LibraryManifest, Url)>>>,
     lib_root_url: &Url,
 ) -> Result<(LibraryManifest, Url)> {
     let mut lib_manifests = loaded_lib_manifests.write()
@@ -296,7 +311,7 @@ fn get_lib_manifest_tuple(
     if lib_manifests.get(lib_root_url).is_none() {
         info!("Attempting to load library manifest'{}'", lib_root_url);
         let manifest_tuple =
-            LibraryManifest::load(&*provider as &dyn Provider, lib_root_url)
+            LibraryManifest::load(provider, lib_root_url)
                 .chain_err(|| format!("Could not load library with root url: '{lib_root_url}'"))?;
         lib_manifests
             .insert(lib_root_url.clone(), manifest_tuple);
@@ -322,7 +337,7 @@ mod test {
     use flowcore::model::metadata::MetaData;
     use flowcore::provider::Provider;
 
-    use crate::job::{Job, JobPayload};
+    use crate::job::{Job, Payload};
 
     use super::Executor;
 
@@ -335,6 +350,7 @@ mod test {
         }
     }
 
+    #[allow(clippy::module_name_repetitions)]
     pub struct TestProvider {
         test_content: &'static str,
     }
@@ -355,19 +371,13 @@ mod test {
     }
 
     #[test]
-    fn test_constructor() {
-        let executor = Executor::new();
-        assert!(executor.is_ok())
-    }
-
-    #[test]
     fn add_a_lib() {
         let library = LibraryManifest::new(
             Url::parse("lib://testlib").expect("Could not parse lib url"),
             test_meta_data(),
         );
 
-        let mut executor = Executor::new().expect("New failed");
+        let mut executor = Executor::new();
         assert!(executor.add_lib(library,
                          Url::parse("file://fake/lib/location")
                              .expect("Could not parse Url")).is_ok());
@@ -379,7 +389,7 @@ mod test {
             function_id: 1,
             flow_id: 0,
             connections: vec![],
-            payload: JobPayload {
+            payload: Payload {
                 job_id: 0,
                 input_set: vec![],
                 implementation_url: Url::parse("lib://flowstdlib/math/add").expect("Could not parse Url"),
@@ -391,7 +401,7 @@ mod test {
             function_id: 1,
             flow_id: 0,
             connections: vec![],
-            payload: JobPayload {
+            payload: Payload {
                 job_id: 0,
                 input_set: vec![],
                 implementation_url: Url::parse("context://stdio/stdout").expect("Could not parse Url"),
@@ -403,7 +413,7 @@ mod test {
             function_id: 1,
             flow_id: 0,
             connections: vec![],
-            payload: JobPayload {
+            payload: Payload {
                 job_id: 0,
                 input_set: vec![],
                 implementation_url: Url::parse("file://fake/path").expect("Could not parse Url"),
@@ -414,19 +424,19 @@ mod test {
         for job in vec![job1, job2, job3] {
             let loaded_implementations = Arc::new(RwLock::new(HashMap::<Url, Arc<dyn Implementation>>::new()));
             let loaded_lib_manifests = Arc::new(RwLock::new(HashMap::<Url, (LibraryManifest, Url)>::new()));
-            let provider = Arc::new(TestProvider{test_content: ""});
+            let provider = Arc::new(TestProvider{test_content: ""}) as Arc<dyn Provider>;
             let context = zmq::Context::new();
             let results_sink = context.socket(zmq::PUSH)
                 .expect("Could not createPUSH end of results-sink socket");
             results_sink.connect("tcp://127.0.0.1:3458")
                 .expect("Could not connect to PULL end of results-sink socket");
 
-            assert!(super::execute_job(provider,
+            assert!(super::execute_job(&provider,
                                        &job.payload,
                                        &results_sink,
                                        "test executor",
-                                       loaded_implementations,
-                                       loaded_lib_manifests,
+                                       &loaded_implementations,
+                                       &loaded_lib_manifests,
             ).is_err());
         }
     }

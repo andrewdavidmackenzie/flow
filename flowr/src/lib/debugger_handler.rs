@@ -1,6 +1,6 @@
 use serde_json::Value;
 
-use flowcore::errors::*;
+use flowcore::errors::Result;
 use flowcore::model::input::Input;
 use flowcore::model::output_connection::OutputConnection;
 use flowcore::model::runtime_function::RuntimeFunction;
@@ -56,8 +56,12 @@ pub trait DebuggerHandler {
     fn debugger_error(&mut self, error: String);
     /// execution of the flow is starting
     fn execution_starting(&mut self);
-    /// Execution of the flow fn execution_ended(&mut self, state: &RunState) {
+    /// Execution of the flow fn `execution_ended`
     fn execution_ended(&mut self);
     /// Get a command for the debugger to perform
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the next command cannot be fetched, usually related to networking
     fn get_command(&mut self, state: &RunState) -> Result<DebugCommand>;
 }

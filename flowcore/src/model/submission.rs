@@ -10,7 +10,7 @@ use crate::model::flow_manifest::FlowManifest;
 /// all the information necessary to execute it:
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone)]
 pub struct Submission {
-    /// The FlowManifest loaded from the manifest_url
+    /// The `FlowManifest` loaded from the `manifest_url`
     pub manifest: FlowManifest,
     /// An optional maximum number of jobs you want dispatched/executing in parallel
     pub max_parallel_jobs: Option<usize>,
@@ -25,6 +25,7 @@ impl Submission {
     /// Create a new `Submission` of a flow for execution with the specified `FlowManifest`
     /// optionally setting a limit for the number of jobs running in parallel
     /// via `max_parallel_jobs`
+    #[must_use]
     pub fn new(
         manifest: FlowManifest,
         max_parallel_jobs: Option<usize>,

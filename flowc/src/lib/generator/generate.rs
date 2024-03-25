@@ -19,11 +19,17 @@ use flowcore::model::route::HasRoute;
 use flowcore::model::runtime_function::RuntimeFunction;
 
 use crate::compiler::compile::CompilerTables;
-use crate::errors::*;
+use crate::errors::{Result, ResultExt};
 
 /// Paths in the manifest are relative to the location of the manifest file, to make the file
-/// and associated files relocatable (and maybe packaged into a ZIP etc). So we use manifest_url
+/// and associated files relocatable (and maybe packaged into a ZIP etc). So we use `manifest_url`
 /// as the location other file paths are made relative to.
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - Cannot convert a function definition to a runtime function
+///
 pub fn create_manifest(
     flow: &FlowDefinition,
     debug_symbols: bool,
@@ -53,10 +59,19 @@ pub fn create_manifest(
 }
 
 /// Generate a manifest for the flow in JSON that can be used to execute it
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - Cannot create the manifest file
+/// - Cannot create a `Url` from the `destination` `Path`
+/// - Cannot create a `FlowManifest` from the `FlowDefinition`
+/// - Cannot write the contents of the manifest to the file
+///
 // TODO this is tied to being a file:// - generalize this to write to a URL, moving the code
 // TODO into the provider and implementing for file and http
 pub fn write_flow_manifest(
-    flow: FlowDefinition,
+    flow: &FlowDefinition,
     debug_symbols: bool,
     destination: &Path,
     tables: &CompilerTables,
@@ -70,9 +85,9 @@ pub fn write_flow_manifest(
     let mut manifest_file =
         File::create(&filename).chain_err(|| "Could not create manifest file")?;
     let manifest_url =
-        Url::from_file_path(&filename).map_err(|_| "Could not parse Url from file path")?;
+        Url::from_file_path(&filename).map_err(|()| "Could not create a Url from file path")?;
     let manifest = create_manifest(
-        &flow,
+        flow,
         debug_symbols,
         &manifest_url,
         tables,
@@ -104,14 +119,14 @@ fn function_to_runtimefunction(
     let name = if debug_symbols {
         function.alias().to_string()
     } else {
-        "".to_string()
+        String::new()
     };
 
     #[cfg(feature = "debugger")]
     let route = if debug_symbols {
         function.route().to_string()
     } else {
-        "".to_string()
+        String::new()
     };
 
     // make the location of implementation relative to the output directory if it is under it
@@ -148,13 +163,13 @@ fn implementation_location_relative(function: &FunctionDefinition, manifest_url:
     } else {
         let implementation_path = function.get_implementation();
         let implementation_url = Url::from_file_path(implementation_path)
-            .map_err(|_| { format!("Could not create Url from file path: {implementation_path}") })?
+            .map_err(|()| { format!("Could not create Url from file path: {implementation_path}") })?
             .to_string();
 
         let mut manifest_base_url = manifest_url.clone();
         manifest_base_url
             .path_segments_mut()
-            .map_err(|_| "cannot be base")?
+            .map_err(|()| "cannot be base")?
             .pop();
 
         info!("Manifest base = '{}'", manifest_base_url.to_string());

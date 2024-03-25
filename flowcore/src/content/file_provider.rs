@@ -6,7 +6,7 @@ use std::path::Path;
 use log::trace;
 use url::Url;
 
-use crate::errors::*;
+use crate::errors::{Result, ResultExt, bail};
 use crate::provider::Provider;
 
 /// The `FileProvider` implements the `Provider` trait and takes care of fetching content located
@@ -22,10 +22,11 @@ impl Provider for FileProvider {
     ) -> Result<(Url, Option<Url>)> {
         let path = url
             .to_file_path()
-            .map_err(|_| format!("Could not convert '{url}' to a file path"))?;
+            .map_err(|()| format!("Could not convert '{url}' to a file path"))?;
         let md_result = fs::metadata(&path)
             .chain_err(|| format!("Error getting file metadata for path: '{}'", path.display()));
 
+        #[allow(clippy::single_match_else)]
         match md_result {
             Ok(md) => {
                 if md.is_dir() {
@@ -69,7 +70,7 @@ impl Provider for FileProvider {
     fn get_contents(&self, url: &Url) -> Result<Vec<u8>> {
         let file_path = url
             .to_file_path()
-            .map_err(|_| "Could not convert Url to file path")?;
+            .map_err(|()| "Could not convert Url to file path")?;
         let mut f =
             File::open(&file_path).map_err(|_| format!("Could not open file '{file_path:?}'"))?;
         let mut buffer = Vec::new();
@@ -100,7 +101,7 @@ impl FileProvider {
             if let Ok(md) = fs::metadata(&file_with_extension) {
                 if md.is_file() {
                     let file_path_as_url =
-                        Url::from_file_path(&file_with_extension).map_err(|_| {
+                        Url::from_file_path(&file_with_extension).map_err(|()| {
                             format!(
                                 "Could not create url from file path '{}'",
                                 file_with_extension.display()

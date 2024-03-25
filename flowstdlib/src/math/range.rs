@@ -32,7 +32,7 @@ to = \"stdout\"
             File::create(&flow_filename).expect("Could not create lib manifest file");
         flow_file.write_all(flow.as_bytes()).expect("Could not write data bytes to created flow file");
 
-        let stdout = execute_flow(flow_filename);
+        let stdout = execute_flow(&flow_filename);
 
         let mut numbers: Vec<i32> = stdout.lines().map(|l| l.parse::<i32>().expect("Not a number")).collect::<Vec<i32>>();
         numbers.sort_unstable();

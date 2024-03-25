@@ -1,5 +1,5 @@
 use flowcore::meta_provider::MetaProvider;
-use flowcore::model::input::InputInitializer::Once;
+use flowcore::model::input::InputInitializer::{Always, Once};
 use flowcore::model::io::IO;
 use flowcore::model::name::HasName;
 use flowcore::model::name::Name;
@@ -37,7 +37,7 @@ fn malformed_connection() {
     match parser::parse(&path, &meta_provider) {
         Ok(_) => panic!("root.toml should not load successfully"),
         Err(e) => {
-            assert!(e.to_string().contains("connection errors found in flow"))
+            assert!(e.to_string().contains("connection errors found in flow"));
         }
     }
 }
@@ -53,7 +53,7 @@ fn aliased_context_not_allowed() {
     match parser::parse(&path, &meta_provider) {
         Ok(_) => panic!("root.toml should not load successfully"),
         Err(e) => {
-            assert!(e.to_string().contains("context:// functions cannot be aliased"))
+            assert!(e.to_string().contains("context:// functions cannot be aliased"));
         }
     }
 }
@@ -106,13 +106,13 @@ fn function_input_initialized() {
                 let initial_value = default_input.get_initializer().clone().expect("Could not get initializer");
                 match initial_value {
                     Once(one_time) => assert_eq!(one_time, "hello"),
-                    _ => panic!("Initializer should have been a Once initializer"),
+                    Always(_) => panic!("Initializer should have been a Once initializer"),
                 }
             }
             _ => panic!("Sub-process was not a Function"),
         },
         Ok(_) => panic!("Didn't load a flow"),
-        Err(_) => panic!("Error loading flow"),
+        Err(e) => panic!("Error loading flow: {e}"),
     }
 }
 

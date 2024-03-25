@@ -14,10 +14,20 @@ use url::Url;
 use flowcore::model::function_definition::FunctionDefinition;
 
 use crate::compiler::cargo_build;
-use crate::errors::*;
+use crate::errors::{Result, ResultExt, bail};
 
 /// Compile a function's implementation to wasm and modify implementation to point to the wasm file
 /// Checks the timestamps of the source and wasm files and only recompiles if wasm file is out of date
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - The relative path of the output file relative to the output dir could not be determined
+///- The build to compile the source of the implementation to WASM failed
+///- Attempts to optimize the WASM output file size failed
+///- A valid Url for the output WASM file's location could not be formed
+///- The path to the output WASM file could not be added to the manifest
+///
 #[allow(clippy::too_many_arguments)]
 pub fn compile_implementation(
     out_dir: &Path,
@@ -77,7 +87,7 @@ pub fn compile_implementation(
     }
 
     let function_source_url = Url::from_file_path(implementation_source_path)
-        .map_err(|_| "Could not create Url from source path")?;
+        .map_err(|()| "Could not create Url from source path")?;
     source_urls.insert(wasm_relative_path.to_string_lossy().to_string(),
                        function_source_url);
     function.set_implementation(
@@ -95,7 +105,7 @@ pub fn compile_implementation(
    - run the command: $command $wasm_path $args $temp_file
    - copy the resulting $temp_file to the desired output path (possibly across file systems)
 */
-fn run_optional_command(wasm_path: &Path, command: &str, args: Vec<&str>) -> Result<()> {
+fn run_optional_command(wasm_path: &Path, command: &str, args: &[&str]) -> Result<()> {
     if let Ok(FoundType::File(command_path)) =
         Simpath::new("PATH").find_type(command, FileType::File)
     {
@@ -105,7 +115,7 @@ fn run_optional_command(wasm_path: &Path, command: &str, args: Vec<&str>) -> Res
             .join(wasm_path.file_name().ok_or("Could not get wasm filename")?);
         let mut command = Command::new(&command_path);
         command.arg(wasm_path);
-        command.args(&args);
+        command.args(args);
         command.arg(&temp_file_path);
         let child = command
             .stdin(Stdio::inherit())
@@ -135,9 +145,9 @@ fn run_optional_command(wasm_path: &Path, command: &str, args: Vec<&str>) -> Res
    Optimize a wasm file's size using external tools that maybe installed on user's system
 */
 fn optimize_wasm_file_size(wasm_path: &Path) -> Result<()> {
-    run_optional_command(wasm_path, "wasm-snip", vec!["-o"])?;
-    run_optional_command(wasm_path, "wasm-strip", vec!["-o"])?;
-    run_optional_command(wasm_path, "wasm-opt", vec!["-O4", "--dce", "-o"],
+    run_optional_command(wasm_path, "wasm-snip", &["-o"])?;
+    run_optional_command(wasm_path, "wasm-strip", &["-o"])?;
+    run_optional_command(wasm_path, "wasm-opt", &["-O4", "--dce", "-o"],
     )
 }
 
@@ -191,7 +201,7 @@ mod test {
 
     #[test]
     fn test_run_optional_non_existent() {
-        let _ = run_optional_command(Path::new("/tmp"), "foo", vec!["bar"]);
+        let _ = run_optional_command(Path::new("/tmp"), "foo", &["bar"]);
     }
 
     #[test]
@@ -199,7 +209,7 @@ mod test {
         let temp_dir = tempdir().expect("Could not get temp dir");
         let temp_file_path = temp_dir.path().join("from.test");
         File::create(&temp_file_path).expect("Could not create test file");
-        let _ = run_optional_command(temp_file_path.as_path(), "cp", vec![]);
+        let _ = run_optional_command(temp_file_path.as_path(), "cp", &[]);
         assert!(temp_file_path.exists());
     }
 
@@ -211,7 +221,7 @@ mod test {
         let _ = run_optional_command(
             temp_file_path.as_path(),
             "cp",
-            vec!["--no-such-flag"],
+            &["--no-such-flag"],
         );
         assert!(temp_file_path.exists());
     }

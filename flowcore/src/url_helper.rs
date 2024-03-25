@@ -1,7 +1,7 @@
 use log::info;
 use url::Url;
 
-use crate::errors::*;
+use crate::errors::{Result, ResultExt};
 
 /// Accept an optional string (URL or filename) and from it create an absolute path URL with correct
 /// scheme. This allows specifying of full URL (http, file etc) as well as file paths relative
@@ -15,6 +15,10 @@ use crate::errors::*;
 ///
 /// Returns a full URL with appropriate scheme (depending on the original scheme passed in),
 /// and an absolute path.
+///
+/// # Errors
+///
+/// Returns an error if a new `Url` cannot be formed by joining `string` to the end of `base_url`
 ///
 pub fn url_from_string(base_url: &Url, string: Option<&str>) -> Result<Url> {
     match string {

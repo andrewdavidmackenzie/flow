@@ -16,6 +16,8 @@ use crate::model::name::Name;
 #[derive(Clone, Debug, Serialize, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "lowercase")]
 /// An `Input` can be initialized in one of two ways with an `InputInitializer`
+#[must_use]
+#[allow(clippy::module_name_repetitions)]
 pub enum InputInitializer {
     /// A `ConstantInputInitializer` initializes an input "constantly".
     /// i.e. after each time the associated function is run
@@ -27,16 +29,16 @@ pub enum InputInitializer {
 
 impl InputInitializer {
     /// Get the Value of the initializer
+    #[must_use]
     pub fn get_value(&self) -> &Value {
         match self {
-            Always(value) => value,
-            Once(value) => value
+            Once(value) | Always(value) => value
         }
     }
 }
 
 #[derive(Deserialize, Serialize, Clone, PartialEq, Eq, Debug)]
-/// An [Input] to a [RuntimeFunction]
+/// An [Input] to a `RuntimeFunction`
 pub struct Input {
     #[cfg(feature = "debugger")]
     #[serde(default, skip_serializing_if = "String::is_empty")]
@@ -49,7 +51,7 @@ pub struct Input {
     )]
     array_order: i32,
 
-    /// `generic` defines if the input accepts generic OBJECT_TYPEs
+    /// `generic` defines if the input accepts generic object types
     #[serde(default, skip_serializing_if = "is_not_generic")]
     generic: bool,
 
@@ -128,6 +130,7 @@ impl Input {
 
     /// Create a new `Input` with an optional `InputInitializer`
     #[cfg(not(feature = "debugger"))]
+    #[must_use]
     pub fn new(
         array_order: i32,
         generic: bool,
@@ -150,24 +153,27 @@ impl Input {
 
     #[cfg(feature = "debugger")]
     /// Return the name of the input
+    #[must_use]
     pub fn name(&self) -> &str {
         &self.name
     }
 
     /// Return a reference to the initializer
+    #[must_use]
     pub fn initializer(&self) -> &Option<InputInitializer> {
         &self.initializer
     }
 
     /// Return a reference to the flow initializer
+    #[must_use]
     pub fn flow_initializer(&self) -> &Option<InputInitializer> {
         &self.flow_initializer
     }
 
-    /// Initialize an input with the InputInitializer if it has one, either on the function directly
+    /// Initialize an input with the `InputInitializer` if it has one, either on the function directly
     /// or via a connection from a flow input
-    /// When called at start-up    it will initialize      if it's a OneTime or Always initializer
-    /// When called after start-up it will initialize only if it's a            Always initializer
+    /// When called at start-up    it will initialize      if it's a `Once` or `Always` initializer
+    /// When called after start-up it will initialize only if it's a            `Always` initializer
     pub fn init(&mut self, first_time: bool, flow_idle: bool) -> bool {
         match (first_time, &self.initializer) {
             (true, Some(Once(one_time))) => {
@@ -215,21 +221,21 @@ impl Input {
                 (0, _) => self.received.push(value),
                 (1, Value::Array(array)) => self.send_array_elements(array.clone()),
                 (2, Value::Array(array_2)) => {
-                    for array in array_2.iter() {
+                    for array in array_2 {
                         if let Value::Array(sub_array) = array {
-                            self.send_array_elements(sub_array.clone())
+                            self.send_array_elements(sub_array.clone());
                         }
                     }
                 }
                 (-1, _) => {
                     debug!("\t\tSending value '{value}' wrapped in an Array: '{}'",
                         json!([value]));
-                    self.received.push(json!([value]))
+                    self.received.push(json!([value]));
                 },
                 (-2, _) => {
                     debug!("\t\tSending value '{value}' wrapped in an Array of Array: '{}'",
                         json!([[value]]));
-                    self.received.push(json!([[value]]))
+                    self.received.push(json!([[value]]));
                 },
                 _ => return false,
             }
@@ -247,16 +253,23 @@ impl Input {
     }
 
     /// Take the first element from the Input and return it. Could panic!
-    pub fn take(&mut self) -> Value {
-        self.received.remove(0)
+    #[must_use]
+    pub fn take(&mut self) -> Option<Value> {
+        if self.received.is_empty() {
+            return None;
+        }
+
+        Some(self.received.remove(0))
     }
 
     /// Return the total number of values queued up in this input
+    #[must_use]
     pub fn values_available(&self) -> usize {
         self.received.len()
     }
 
     /// Return true if there are no more values available from this input
+    #[must_use]
     pub fn is_empty(&self) -> bool {
         self.values_available() == 0
     }
@@ -276,10 +289,9 @@ mod test {
     }
 
     #[test]
-    #[should_panic]
     fn take_from_empty_fails() {
         let mut input = Input::new(#[cfg(feature = "debugger")] "", 0, false,  None, None);
-        input.take();
+        assert!(input.take().is_none());
     }
 
     #[test]
@@ -301,7 +313,7 @@ mod test {
         let mut input = Input::new(#[cfg(feature = "debugger")] "", 0, false,  None, None);
         input.send(json!(10));
         assert!(!input.is_empty());
-        let _value = input.take();
+        let _value = input.take().expect("Should have got a value from the input");
         assert!(input.is_empty());
     }
 

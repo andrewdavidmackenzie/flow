@@ -7,12 +7,12 @@ use log::{debug, info, trace};
 use simpdiscoverylib::{BeaconListener, BeaconSender};
 use zmq::Socket;
 
-use flowcore::errors::*;
+use flowcore::errors::{Result, ResultExt, bail};
 
-/// WAIT for a message to arrive when performing a receive()
+/// WAIT for a message to arrive when performing a `receive()`
 pub const WAIT:i32 = 0;
 
-/// Do NOT WAIT for a message to arrive when performing a receive()
+/// Do NOT WAIT for a message to arrive when performing a `receive()`
 pub static DONT_WAIT:i32 = zmq::DONTWAIT;
 
 /// Use this to discover the coordinator service by name
@@ -75,7 +75,7 @@ impl ClientConnection {
         Ok(ClientConnection { requester })
     }
 
-    /// Receive a [CoordinatorMessage][crate::cli::coordinator_message::CoordinatorMessage] from the
+    /// Receive a [`CoordinatorMessage`][crate::cli::coordinator_message::CoordinatorMessage] from the
     /// [Coordinator][flowrlib::coordinator::Coordinator]
     pub fn receive<CM>(&self) -> Result<CM>
     where
@@ -94,7 +94,7 @@ impl ClientConnection {
         Ok(message)
     }
 
-    /// Send a [CoordinatorMessage][crate::cli::coordinator_message::CoordinatorMessage] to the
+    /// Send a [`CoordinatorMessage`][crate::cli::coordinator_message::CoordinatorMessage] to the
     /// [Coordinator][flowrlib::coordinator::Coordinator]
     pub fn send<CM>(&self, message: CM) -> Result<()>
     where
@@ -106,14 +106,14 @@ impl ClientConnection {
     }
 }
 
-/// [CoordinatorConnection] store information about the [Coordinator][flowrlib::coordinator::Coordinator]
+/// [`CoordinatorConnection`] store information about the [Coordinator][flowrlib::coordinator::Coordinator]
 /// side of the client/coordinator communications between a client and a [Coordinator][flowrlib::coordinator::Coordinator]
 /// and is used each time a message needs to be sent or received.
 pub struct CoordinatorConnection {
     responder: Socket,
 }
 
-/// Implement a [CoordinatorConnection] for sending and receiving messages between client and
+/// Implement a [`CoordinatorConnection`] for sending and receiving messages between client and
 /// a [Coordinator][flowrlib::coordinator::Coordinator]
 impl CoordinatorConnection {
     /// Create a new [Coordinator][flowrlib::coordinator::Coordinator]

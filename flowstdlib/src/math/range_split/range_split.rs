@@ -1,4 +1,4 @@
-use flowcore::errors::*;
+use flowcore::errors::{Result, bail};
 use flowmacro::flow_function;
 use serde_json::{json, Value};
 use flowcore::{RUN_AGAIN, RunAgain};
@@ -27,12 +27,12 @@ fn _range_split(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
         output_map.insert("bottom".into(), json!(bottom));
 
         let above_middle = ((max-min)/2) + min +1;
-        if above_middle != max {
-            let top: Vec<i64> = vec!(above_middle, max);
-            output_map.insert("top".into(), json!(top));
-        } else {
+        if above_middle == max {
             // if the two are the same, we are done, output as "number"
             output_map.insert("number".into(), json!(max));
+        } else {
+            let top: Vec<i64> = vec!(above_middle, max);
+            output_map.insert("top".into(), json!(top));
         }
     }
 

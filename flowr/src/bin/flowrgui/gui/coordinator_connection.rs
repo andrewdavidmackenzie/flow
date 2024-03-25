@@ -1,17 +1,18 @@
 use std::fmt::Display;
 use std::time::Duration;
 
-use flowcore::errors::*;
+use flowcore::errors::{Result, ResultExt, bail};
+
 /// This is the message-queue implementation of the Client<-->[Coordinator][flowrlib::coordinator::Coordinator]
 /// communications
 use log::{debug, info, trace};
 use simpdiscoverylib::BeaconSender;
 use zmq::Socket;
 
-/// WAIT for a message to arrive when performing a receive()
+/// WAIT for a message to arrive when performing a `receive()`
 pub const WAIT:i32 = 0;
 
-/// Do NOT WAIT for a message to arrive when performing a receive()
+/// Do NOT WAIT for a message to arrive when performing a `receive()`
 pub static DONT_WAIT:i32 = zmq::DONTWAIT;
 
 /// Use this to discover the coordinator service by name
@@ -38,14 +39,14 @@ pub fn enable_service_discovery(discovery_port: u16, name: &str, service_port: u
     Ok(())
 }
 
-/// [CoordinatorConnection] store information about the [Coordinator][flowrlib::coordinator::Coordinator]
+/// [`CoordinatorConnection`] store information about the [Coordinator][flowrlib::coordinator::Coordinator]
 /// side of the client/coordinator communications between a client and a [Coordinator][flowrlib::coordinator::Coordinator]
 /// and is used each time a message needs to be sent or received.
 pub struct CoordinatorConnection {
     responder: Socket,
 }
 
-/// Implement a [CoordinatorConnection] for sending and receiving messages between client and
+/// Implement a [`CoordinatorConnection`] for sending and receiving messages between client and
 /// a [Coordinator][flowrlib::coordinator::Coordinator]
 impl CoordinatorConnection {
     /// Create a new [Coordinator][flowrlib::coordinator::Coordinator]

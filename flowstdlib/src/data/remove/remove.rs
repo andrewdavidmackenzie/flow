@@ -1,19 +1,19 @@
 use serde_json::Value;
 
 use flowcore::{RUN_AGAIN, RunAgain};
-use flowcore::errors::*;
+use flowcore::errors::Result;
 use flowmacro::flow_function;
 
 #[flow_function]
 fn _remove(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
     // Inputs
     let value = inputs.first().ok_or("Could not get value")?;
-    let input1 = inputs.get(1).ok_or("Could not get input1")?;
-    let mut input_array = input1.clone();
+    let input_1 = inputs.get(1).ok_or("Could not get input1")?;
+    let mut input_array = input_1.clone();
 
     let output = if let Some(array) = input_array.as_array_mut() {
         array.retain(|val| val != value);
-        Value::Array(array.to_vec())
+        Value::Array(array.clone())
     } else {
         input_array
     };

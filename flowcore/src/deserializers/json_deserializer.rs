@@ -3,7 +3,7 @@ use std::marker::PhantomData;
 use serde::Deserialize;
 use url::Url;
 
-use crate::errors::*;
+use crate::errors::{Result, ResultExt};
 
 use super::deserializer::Deserializer;
 
@@ -20,7 +20,7 @@ impl<'a, T> JsonDeserializer<'a, T>
 where
     T: Deserialize<'a>,
 {
-    /// Create a new JsonDeserializer
+    /// Create a new `JsonDeserializer`
     pub fn new() -> Self {
         JsonDeserializer { t: PhantomData }
     }
@@ -34,7 +34,7 @@ where
         serde_json::from_str(contents).chain_err(|| {
             format!(
                 "Error deserializing Json from: '{}'",
-                url.map_or("URL unknown".to_owned(), |u| u.to_string())
+                url.map_or("URL unknown".to_owned(), std::string::ToString::to_string)
             )
         })
     }
@@ -53,6 +53,7 @@ mod test {
 
     #[derive(Serialize, Deserialize, Debug, Clone)]
     #[serde(untagged)]
+    #[allow(clippy::module_name_repetitions)]
     pub enum TestStruct {
         /// The process is actually a `Flow`
         FlowProcess(String),
@@ -63,9 +64,7 @@ mod test {
     #[test]
     fn invalid_json() {
         let json = JsonDeserializer::<TestStruct>::new();
-
-        if json.deserialize("=", None).is_ok() {
-            panic!("Should not have parsed correctly as is invalid JSON");
-        };
+        assert!(json.deserialize("=", None).is_err(),
+                "Should not have parsed correctly as is invalid JSON");
     }
 }

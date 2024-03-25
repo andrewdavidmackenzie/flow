@@ -12,7 +12,7 @@ use log::error;
 #[cfg(feature = "debugger")]
 use log::info;
 
-use flowcore::errors::*;
+use flowcore::errors::Result;
 
 use crate::cli::connections::ClientConnection;
 use crate::cli::coordinator_message::{ClientMessage, CoordinatorMessage};
@@ -43,7 +43,7 @@ impl CliRuntimeClient {
     /// Enter a loop where we receive events as a client and respond to them
     pub fn event_loop(
         mut self,
-        connection: ClientConnection,
+        connection: &ClientConnection,
     ) -> Result<()> {
         loop {
             let event = connection.receive()?;
@@ -65,6 +65,8 @@ impl CliRuntimeClient {
         }
     }
 
+    #[allow(clippy::too_many_lines)]
+    #[allow(clippy::many_single_char_names)]
     fn process_coordinator_message(&mut self, message: CoordinatorMessage) -> ClientMessage {
         match message {
             #[cfg(feature = "metrics")]
@@ -123,7 +125,7 @@ impl CliRuntimeClient {
             CoordinatorMessage::GetLine(prompt) => {
                 let mut input = String::new();
                 if !prompt.is_empty() {
-                    print!("{}", prompt);
+                    print!("{prompt}");
                     let _ = io::stdout().flush();
                 }
                 let line = io::stdin().lock().read_line(&mut input);
@@ -147,7 +149,7 @@ impl CliRuntimeClient {
             },
             CoordinatorMessage::Write(filename, bytes) => match File::create(&filename) {
                 Ok(mut file) => match file.write_all(bytes.as_slice()) {
-                    Ok(_) => ClientMessage::Ack,
+                    Ok(()) => ClientMessage::Ack,
                     Err(e) => {
                         let msg = format!("Error writing to file: '{filename}': '{e}'");
                         error!("{msg}");
@@ -160,7 +162,9 @@ impl CliRuntimeClient {
                     ClientMessage::Error(msg)
                 }
             },
-            CoordinatorMessage::PixelWrite((x, y), (r, g, b), (width, height), name) => {
+            #[allow(clippy::many_single_char_names)]
+            CoordinatorMessage::PixelWrite((x, y), (r, g, b), (width, height), name)
+            => {
                 let image = self
                     .image_buffers
                     .entry(name)
@@ -271,7 +275,7 @@ mod test {
         match client.process_coordinator_message(CoordinatorMessage::Read(file_path.clone())) {
             ClientMessage::FileContents(path_read, contents) => {
                 assert_eq!(path_read, file_path);
-                assert_eq!(contents, test_contents)
+                assert_eq!(contents, test_contents);
             }
             _ => panic!("Didn't get Read response as expected"),
         }

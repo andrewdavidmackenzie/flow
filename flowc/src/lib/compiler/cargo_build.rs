@@ -5,12 +5,12 @@ use std::process::{Command, Output, Stdio};
 use colored::Colorize;
 use log::debug;
 
-use crate::errors::*;
+use crate::errors::{Result, ResultExt, bail};
 
 /*
    Check the command Output for an error and print details if it failed
 */
-fn check_cargo_error(command: &str, args: Vec<&str>, output: Output) -> Result<()> {
+fn check_cargo_error(command: &str, args: &[&str], output: &Output) -> Result<()> {
     match output.status.code() {
         Some(0) | None => Ok(()),
         Some(code) => {
@@ -34,7 +34,7 @@ fn check_cargo_error(command: &str, args: Vec<&str>, output: Output) -> Result<(
     }
 }
 
-fn cargo_test(manifest_path: PathBuf) -> Result<()> {
+fn cargo_test(manifest_path: &Path) -> Result<()> {
     let command = "cargo";
 
     let manifest_arg = format!("--manifest-path={}", manifest_path.display());
@@ -56,14 +56,14 @@ fn cargo_test(manifest_path: PathBuf) -> Result<()> {
         .output()
         .chain_err(|| "Error while attempting to spawn cargo to test WASM Project")?;
 
-    check_cargo_error(command, test_args, output)
+    check_cargo_error(command, &test_args, &output)
 }
 
 /*
    Run the cargo command that builds the WASM output file
 */
 fn cargo_build(
-    manifest_path: PathBuf,
+    manifest_path: &Path,
     mut cargo_target_dir: PathBuf, // where binary is built by cargo
     release_build: bool,
     implementation_source_path: &Path,
@@ -110,7 +110,7 @@ fn cargo_build(
         .output()
         .chain_err(|| "Error while attempting to spawn cargo to compile WASM")?;
 
-    check_cargo_error(command, command_args, output)?;
+    check_cargo_error(command, &command_args, &output)?;
 
     // TODO this could be removed/reduced when cargo --out-dir option is stable
     // no error occurred, so move the built files to final destination and clean-up
@@ -153,10 +153,10 @@ pub fn run(implementation_source_path: &Path, target_dir: PathBuf, wasm_destinat
         fs::copy(function_toml, &cargo_toml)?;
     };
 
-    cargo_test(cargo_toml.clone())?;
+    cargo_test(&cargo_toml.clone())?;
 
     cargo_build(
-        cargo_toml.clone(),
+        &cargo_toml.clone(),
         target_dir,
         release_build,
         implementation_source_path,

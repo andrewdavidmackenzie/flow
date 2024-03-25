@@ -1,7 +1,7 @@
 use serde_json::{json, Value};
 
 use flowcore::{RUN_AGAIN, RunAgain};
-use flowcore::errors::*;
+use flowcore::errors::Result;
 use flowmacro::flow_function;
 
 #[flow_function]
@@ -16,7 +16,7 @@ fn _duplicate_rows(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
     for (row_index, row) in matrix.iter().enumerate() {
         for _i in 0..factor {
             output_matrix.push(row.clone());
-            row_indexes.push(row_index)
+            row_indexes.push(row_index);
         }
     }
 
