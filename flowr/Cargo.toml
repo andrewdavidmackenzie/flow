@@ -59,7 +59,7 @@ error-chain = "0.12.2"
 multimap = "~0.10"
 portpicker = "0.1.1"
 zmq = "0.10.0"
-image = "=0.25.0"
+image = "=0.25.1"
 simpdiscover = "0.7"
 
 # for flowrlib
