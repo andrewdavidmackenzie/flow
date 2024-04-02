@@ -64,7 +64,7 @@ simpdiscover = "0.7"
 
 # for flowrlib
 rand = "0.8"
-wasmtime = { version = "19.0.0", default-features = false, features = ["runtime", "cranelift"] }
+wasmtime = { version = "19.0.1", default-features = false, features = ["runtime", "cranelift"] }
 
 # for flowrgui
 iced = { version = "0.12.1", features = ["canvas", "tokio", "debug", "image"] }
