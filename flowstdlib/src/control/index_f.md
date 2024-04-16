@@ -1,4 +1,4 @@
-## index_f (//flowstdlib/control/index_f)
+## `index_f` (`//flowstdlib/control/index_f`)
 A flow that wraps the [index](index/index.md) function to simplify its use by supplying most frequently
 used initializers to some inputs. 
  

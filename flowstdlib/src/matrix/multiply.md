@@ -4,7 +4,7 @@ Multiply two matrices.
 This flow is designed to stress particular aspects of the runtime:
 
 * deserialization of an array of objects (a matrix or array/array/numbers in this case) into a lower order 
-structure (array/number in this case, which are the rows and columns of the matrices that are fed to multiply_row). 
+structure (array/number in this case, which are the rows and columns of the matrices that are fed to `multiply_row`). 
 * The send of one value (a matrix with its rows repeated) from a previous function the matrix is deserialized and 
 produces many writes of many values (rows) in one "tick", thus piling up multiple values at the destination function's
 inputs
