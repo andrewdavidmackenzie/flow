@@ -2,17 +2,13 @@ flow = "sequence"
 docs = "DESCRIPTION.md"
 
 [[process]]
-source = "context://args/get"
-
-# The arg for the sequence limit is arg #1 to the flow (arg #0 is the flow name)
-[[connection]]
-from = "get/json/1"
-to = "sequence/limit"
-
-[[process]]
 source = "lib://flowstdlib/math/sequence"
 input.start = {once =  2}
 input.step = {once =  3}
+input.limit = {once =  100}
+
+[[process]]
+source = "context://stdio/stdout"
 
 [[connection]]
 from = "sequence/number"
@@ -23,14 +19,13 @@ to = "stdout"
 source = "lib://flowstdlib/control/join"
 input.data = {once =  "Sequence done"}
 
+# Trigger the output of the "Sequence done" string when the sequence sub-flow outputs a value
+#on the "last" output
 [[connection]]
 from = "sequence/last"
 to = "join/control"
 
+# Send the string passed when the last number is output to stdout also
 [[connection]]
 from = "join"
 to = "stdout"
-
-# Output
-[[process]]
-source = "context://stdio/stdout"

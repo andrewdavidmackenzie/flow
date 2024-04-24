@@ -3,7 +3,9 @@ sequence
 
 Description
 ===
-A flow that generates a sequence of output numbers in a range between two input numbers
+A flow that generates a sequence of output numbers in a range between two input numbers.
+The sequence starts at 2, with steps of 3, and a limit of 100 - so 98 should be the last 
+number output, followed by a "Sequence done" string.
 
 Root Diagram
 ===
@@ -14,14 +16,12 @@ Click image to navigate flow hierarchy.
 Features Used
 ===
 * Root Flow
-* Initial value setting on flow inputs
-* Connections between functions
-* Library function `join` used
-* Library subflow `sequence` used
-* Detecting end of sequence and outputting a message when completed
-* `context` Functions used
-    * `stdout` to print a String to standard output
-    
+* Sub-process inclusion (`sequence` from `flowstdlib`, which happens to be implemented as a flow)
+* `context` `stdout` process to print the numbers in the sequence and a String to standard output
+* Connections between sub-processes and sub-process to context output
+* Initial value setting on sub-flow inputs
+* `flowstdlib` `join` function used to trigger the output of a string when the sequence completes
+
 Functions Diagram
 ===
 This diagram shows the exploded diagram of all functions in all flows, and their connections.

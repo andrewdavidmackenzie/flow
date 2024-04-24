@@ -1,6 +1,6 @@
-use std::collections::{HashMap, HashSet};
 use std::collections::hash_map::Entry;
 use std::collections::VecDeque;
+use std::collections::{HashMap, HashSet};
 use std::fmt;
 
 use log::{debug, error, info, trace};
@@ -263,7 +263,7 @@ impl RunState {
         #[cfg(feature = "debugger")]
         self.reset();
 
-        let mut make_ready_list = vec!();
+        let mut make_ready_list = vec![];
 
         debug!("Initializing all functions");
         for function in self.submission.manifest.get_functions().iter_mut() {
@@ -328,13 +328,6 @@ impl RunState {
         &self.running_jobs
     }
 
-    /// Get the list of completed function ids
-    #[cfg(feature = "debugger")]
-    #[must_use]
-    pub fn get_completed(&self) -> &HashSet<usize> {
-        &self.completed
-    }
-        
     /// Get a reference to the function with `id`
     #[must_use]
     pub fn get_function(&self, id: usize) -> Option<&RuntimeFunction> {
@@ -381,8 +374,7 @@ impl RunState {
 
     // Update the run_state to reflect that the job is now running
     pub(crate) fn start_job(&mut self, job: Job) {
-        self.block_external_flow_senders(job.payload.job_id, job.function_id,
-                                         job.flow_id);
+        self.block_external_flow_senders(job.payload.job_id, job.function_id, job.flow_id);
         self.running_jobs.insert(job.payload.job_id, job);
     }
 
@@ -407,7 +399,7 @@ impl RunState {
                 // Add the `blocker_function_id` to the list of function in `blocker_flow_id` that
                 // should be free to send to, once the flow eventually goes idle
                 o.get_mut().insert(blocker_function_id);
-            },
+            }
             Entry::Vacant(v) => {
                 let mut new_set = HashSet::new();
                 // Create a new list of function in `blocker_flow_id` that
@@ -442,55 +434,65 @@ impl RunState {
         #[cfg(feature = "metrics")] metrics: &mut Metrics,
         result: (usize, Result<(Option<Value>, RunAgain)>),
         #[cfg(feature = "debugger")] debugger: &mut Debugger,
-    ) -> Result<(bool, bool, Job)>{
+    ) -> Result<(bool, bool, Job)> {
         let mut display_next_output = false;
         let mut restart = false;
 
-        let mut job = self.running_jobs.remove(&result.0)
+        let mut job = self
+            .running_jobs
+            .remove(&result.0)
             .ok_or_else(|| format!("Could not find Job#{} to retire it", result.0))?;
 
         match &result.1 {
             Ok((output_value, function_can_run_again)) => {
                 #[cfg(feature = "debugger")]
-                debug!("Job #{}: Function #{} '{}' {:?} -> {:?}", job.payload.job_id, job.function_id,
-                        self.get_function(job.function_id).ok_or("No such function")?.name(),
-                    job.payload.input_set,  output_value);
+                debug!(
+                    "Job #{}: Function #{} '{}' {:?} -> {:?}",
+                    job.payload.job_id,
+                    job.function_id,
+                    self.get_function(job.function_id)
+                        .ok_or("No such function")?
+                        .name(),
+                    job.payload.input_set,
+                    output_value
+                );
                 #[cfg(not(feature = "debugger"))]
-                debug!("Job #{}: Function #{} {:?} -> {:?}", job.payload.job_id, job.function_id,
-                        job.payload.input_set,  output_value);
+                debug!(
+                    "Job #{}: Function #{} {:?} -> {:?}",
+                    job.payload.job_id, job.function_id, job.payload.input_set, output_value
+                );
 
                 for connection in &job.connections {
                     let value_to_send = match &connection.source {
-                        Output(route) => {
-                            match output_value {
-                                Some(output_v) => output_v.pointer(route),
-                                None => None
-                            }
+                        Output(route) => match output_value {
+                            Some(output_v) => output_v.pointer(route),
+                            None => None,
                         },
                         Input(index) => job.payload.input_set.get(*index),
                     };
 
                     if let Some(value) = value_to_send {
-                        (display_next_output, restart) =
-                            self.send_a_value(
-                                job.function_id,
-                                job.flow_id,
-                                connection,
-                                value.clone(),
-                                #[cfg(feature = "metrics")] metrics,
-                                #[cfg(feature = "debugger")] debugger,
+                        (display_next_output, restart) = self.send_a_value(
+                            job.function_id,
+                            job.flow_id,
+                            connection,
+                            value.clone(),
+                            #[cfg(feature = "metrics")]
+                            metrics,
+                            #[cfg(feature = "debugger")]
+                            debugger,
                         )?;
                     } else {
                         trace!(
                             "Job #{}:\t\tNo value found at '{}'",
-                            job.payload.job_id, &connection.source
+                            job.payload.job_id,
+                            &connection.source
                         );
                     }
                 }
 
                 if *function_can_run_again {
-                    let function = self.get_mut(job.function_id)
-                        .ok_or("No such function")?;
+                    let function = self.get_mut(job.function_id).ok_or("No such function")?;
 
                     // Refill any inputs with function initializers
                     function.init_inputs(false, false);
@@ -504,7 +506,7 @@ impl RunState {
                     // otherwise mark it as completed as it will never run again
                     self.mark_as_completed(job.function_id);
                 }
-            },
+            }
             Err(e) => {
                 error!("Error in Job #{}: {e}", job.payload.job_id);
             }
@@ -512,14 +514,19 @@ impl RunState {
 
         // unblock any senders from other flows that can now run due to this function completing
         // causing the flow to be idle now
-        (display_next_output, restart) = self.unblock_flows(&job,
-                               #[cfg(feature = "debugger")] debugger,
-            )?;
+        (display_next_output, restart) = self.unblock_flows(
+            &job,
+            #[cfg(feature = "debugger")]
+            debugger,
+        )?;
 
         #[cfg(debug_assertions)]
         checks::check_invariants(self, job.payload.job_id)?;
 
-        trace!("Job #{}: Completed-----------------------", job.payload.job_id);
+        trace!(
+            "Job #{}: Completed-----------------------",
+            job.payload.job_id
+        );
         job.result = result.1;
 
         Ok((display_next_output, restart, job))
@@ -542,18 +549,20 @@ impl RunState {
         let route_str = match &connection.source {
             Output(route) if route.is_empty() => String::new(),
             Output(route) => format!(" from output route '{route}'"),
-            Input(index) => format!(" from Job value at input #{index}"),
+            Input(index) => format!(" from Job input #{index}"),
         };
 
         let loopback = source_id == connection.destination_id;
         let same_flow = source_flow_id == connection.destination_flow_id;
 
         if loopback {
-            info!("\t\tFunction #{source_id} loopback of '{output_value}'{route_str} to Self:{}",
+            info!("\t\tFunction #{source_id} loopback of value '{output_value}'{route_str} to Self:{}",
                     connection.destination_io_number);
         } else {
-            info!("\t\tFunction #{source_id} sending '{output_value}'{route_str} to Function #{}:{}",
-                    connection.destination_id, connection.destination_io_number);
+            info!(
+                "\t\tFunction #{source_id} sending '{output_value}'{route_str} to Function #{}:{}",
+                connection.destination_id, connection.destination_io_number
+            );
         };
 
         #[cfg(feature = "debugger")]
@@ -568,7 +577,8 @@ impl RunState {
             )?;
         }
 
-        let function = self.get_mut(connection.destination_id)
+        let function = self
+            .get_mut(connection.destination_id)
             .ok_or("Could not get function")?;
         let job_count_before = function.input_sets_available();
         function.send(connection.destination_io_number, output_value)?;
@@ -579,7 +589,8 @@ impl RunState {
         // Avoid a function blocking on itself when sending itself a value via a loopback and avoid
         // blocking sending internally within a flow
         let block = (function.values_available(connection.destination_io_number)? > 0)
-            && !loopback && !same_flow;
+            && !loopback
+            && !same_flow;
         let new_job_available = function.input_sets_available() > job_count_before;
 
         if block {
@@ -591,7 +602,7 @@ impl RunState {
                 source_id,
                 source_flow_id,
                 #[cfg(feature = "debugger")]
-                    debugger,
+                debugger,
             )?;
         }
 
@@ -599,8 +610,7 @@ impl RunState {
         // connection that sends a value to itself, as it may also send to other functions and need
         // to be blocked. But for all other receivers of values, make them Ready or Blocked
         if new_job_available && !loopback {
-            self.create_jobs_or_block(connection.destination_id,
-                                      connection.destination_flow_id)?;
+            self.create_jobs_or_block(connection.destination_id, connection.destination_flow_id)?;
         }
 
         Ok((display_next_output, restart))
@@ -648,8 +658,7 @@ impl RunState {
     #[cfg(feature = "debugger")]
     pub(crate) fn get_input_blockers(&self, target_id: usize) -> Result<Vec<usize>> {
         let mut input_blockers = vec![];
-        let target_function = self.get_function(target_id)
-            .ok_or("No such function")?;
+        let target_function = self.get_function(target_id).ok_or("No such function")?;
 
         // for each empty input of the target function
         for (target_io, input) in target_function.inputs().iter().enumerate() {
@@ -694,10 +703,13 @@ impl RunState {
     // - it has a full set of inputs, so can be run and produce an output
     // - it has no input and is impure, so can run and produce an output
     // In which case it should transition to one of two states: Ready or Blocked
-    pub(crate) fn create_jobs_or_block(&mut self, function_id: usize, flow_id: usize)
-                                       -> Result<()> {
+    pub(crate) fn create_jobs_or_block(
+        &mut self,
+        function_id: usize,
+        flow_id: usize,
+    ) -> Result<()> {
         if self.block_exists(function_id) {
-            trace!( "\t\t\tFunction #{function_id} blocked on output. State set to 'Blocked'");
+            trace!("\t\t\tFunction #{function_id} blocked on output. State set to 'Blocked'");
             self.blocked.insert(function_id);
         } else {
             self.create_jobs(function_id, flow_id)?;
@@ -712,12 +724,14 @@ impl RunState {
             // TODO loop for the number of input sets available - which now should be correct
             self.number_of_jobs_created += 1;
             let job_id = self.number_of_jobs_created;
-            let function = self.get_mut(function_id)
-                .ok_or("Could not get function")?;
-            if let Some(input_set)  = function.take_input_set() {
+            let function = self.get_mut(function_id).ok_or("Could not get function")?;
+            if let Some(input_set) = function.take_input_set() {
                 let implementation_url = function.get_implementation_url().clone();
-                debug!("Job #{job_id} created for Function #{function_id}({flow_id}) \
-                in 'ready_jobs' with inputs: {:?}", input_set);
+                debug!(
+                    "Job #{job_id} created for Function #{function_id}({flow_id}) \
+                in 'ready_jobs' with inputs: {:?}",
+                    input_set
+                );
                 let job = Job {
                     function_id,
                     flow_id,
@@ -739,7 +753,7 @@ impl RunState {
                 }
             } else {
                 self.number_of_jobs_created -= 1;
-                return Ok(())
+                return Ok(());
             }
         }
     }
@@ -754,10 +768,11 @@ impl RunState {
     // Remove blocks on functions sending to another function inside the `blocker_flow_id` flow
     // if that has just gone idle
     #[allow(unused_variables, unused_assignments, unused_mut)]
-    fn unblock_flows(&mut self,
-                     job: &Job,
-                     #[cfg(feature = "debugger")] debugger: &mut Debugger,
-        ) -> Result<(bool, bool)> {
+    fn unblock_flows(
+        &mut self,
+        job: &Job,
+        #[cfg(feature = "debugger")] debugger: &mut Debugger,
+    ) -> Result<(bool, bool)> {
         let mut display_next_output = false;
         let mut restart = false;
 
@@ -765,13 +780,15 @@ impl RunState {
 
         // if flow is now idle, remove any blocks on sending to functions in the flow
         if self.busy_flows.get(&job.flow_id).is_none() {
-            debug!("Job #{}:\tFlow #{} is now idle, so removing blocks on external functions to it",
-                job.payload.job_id, job.flow_id);
+            debug!(
+                "Job #{}:\tFlow #{} is now idle, so removing blocks on external functions to it",
+                job.payload.job_id, job.flow_id
+            );
 
             #[cfg(feature = "debugger")]
             {
-                (display_next_output, restart) = debugger.check_prior_to_flow_unblock(self,
-                                                                                      job.flow_id)?;
+                (display_next_output, restart) =
+                    debugger.check_prior_to_flow_unblock(self, job.flow_id)?;
             }
 
             if let Some(blocker_functions) = self.flow_blocks.remove(&job.flow_id) {
@@ -803,8 +820,7 @@ impl RunState {
 
     // Remove blocks on functions blocked sending to `blocker_function_id`
     // If a sending function has no remaining blocks preventing it from sending then unblock that function
-    fn remove_blocks(&mut self, blocker_function_id: usize) -> Result<()>
-    {
+    fn remove_blocks(&mut self, blocker_function_id: usize) -> Result<()> {
         let mut blocks_to_remove = vec![];
 
         // Remove matching blocks and maintain a list of sender functions to unblock
@@ -820,11 +836,18 @@ impl RunState {
             self.blocks.remove(&block);
             trace!("\t\t\tBlock removed {:?}", block);
 
-            if self.blocked.contains(&block.blocked_function_id) && !self.block_exists(block.blocked_function_id) {
-                trace!("\t\t\t\tFunction #{} removed from 'blocked' list", block.blocked_function_id);
+            if self.blocked.contains(&block.blocked_function_id)
+                && !self.block_exists(block.blocked_function_id)
+            {
+                trace!(
+                    "\t\t\t\tFunction #{} removed from 'blocked' list",
+                    block.blocked_function_id
+                );
                 self.blocked.remove(&block.blocked_function_id);
 
-                let function = self.get_function(block.blocked_function_id).ok_or("No such function")?;
+                let function = self
+                    .get_function(block.blocked_function_id)
+                    .ok_or("No such function")?;
                 if function.can_run() {
                     self.create_jobs_or_block(block.blocked_function_id, block.blocked_flow_id)?;
                 }
@@ -838,8 +861,7 @@ impl RunState {
     fn run_flow_initializers(&mut self, flow_id: usize) -> Result<()> {
         let mut initialized_functions = Vec::<usize>::new();
         for function in &mut self.submission.manifest.get_functions().iter_mut() {
-            if function.get_flow_id() == flow_id &&
-                !self.completed.contains(&function.id()) {
+            if function.get_flow_id() == flow_id && !self.completed.contains(&function.id()) {
                 let could_run_before = function.can_run();
                 function.init_inputs(false, true);
                 let can_run_now = function.can_run();
@@ -873,7 +895,7 @@ impl RunState {
         blocked_function_id: usize,
         blocked_flow_id: usize,
         #[cfg(feature = "debugger")] debugger: &mut Debugger,
-    ) -> Result<(bool, bool)>{
+    ) -> Result<(bool, bool)> {
         let block = Block::new(
             blocking_flow_id,
             blocking_function_id,
@@ -901,8 +923,14 @@ impl fmt::Display for RunState {
         writeln!(f, "          Jobs Running: {:?}", self.running_jobs.keys())?;
         writeln!(f, "     Functions Blocked: {:?}", self.blocked)?;
         writeln!(f, "                Blocks: {:?}", self.blocks)?;
-        writeln!(f, "       Functions Ready: {:?}", self.ready_jobs.iter()
-            .map(|j| j.payload.job_id).collect::<Vec<usize>>())?;
+        writeln!(
+            f,
+            "       Functions Ready: {:?}",
+            self.ready_jobs
+                .iter()
+                .map(|j| j.payload.job_id)
+                .collect::<Vec<usize>>()
+        )?;
         writeln!(f, "   Functions Completed: {:?}", self.completed)?;
         writeln!(f, "            Flows Busy: {:?}", self.busy_flows)?;
         write!(f, "        Pending Unblocks: {:?}", self.flow_blocks)
@@ -934,8 +962,8 @@ mod test {
     #[cfg(feature = "debugger")]
     use crate::run_state::State;
 
-    use super::{Job, Payload};
     use super::RunState;
+    use super::{Job, Payload};
 
     fn test_function_a_to_b_not_init() -> RuntimeFunction {
         let connection_to_f1 = OutputConnection::new(
@@ -955,8 +983,13 @@ mod test {
             "/fA",
             "file://fake/test",
             vec![Input::new(
-                        #[cfg(feature = "debugger")] "", 0, false,
-                            None, None)],
+                #[cfg(feature = "debugger")]
+                "",
+                0,
+                false,
+                None,
+                None,
+            )],
             0,
             0,
             &[connection_to_f1],
@@ -981,8 +1014,13 @@ mod test {
             "/fA",
             "file://fake/test",
             vec![Input::new(
-                            #[cfg(feature = "debugger")] "", 0, false,
-                            Some(Once(json!(1))), None)],
+                #[cfg(feature = "debugger")]
+                "",
+                0,
+                false,
+                Some(Once(json!(1))),
+                None,
+            )],
             0,
             0,
             &[connection_to_f1],
@@ -998,8 +1036,13 @@ mod test {
             "/fA",
             "file://fake/test",
             vec![Input::new(
-                #[cfg(feature = "debugger")] "", 0, false,
-                Some(Once(json!(1))), None)],
+                #[cfg(feature = "debugger")]
+                "",
+                0,
+                false,
+                Some(Once(json!(1))),
+                None,
+            )],
             0,
             0,
             &[],
@@ -1015,8 +1058,13 @@ mod test {
             "/fB",
             "file://fake/test",
             vec![Input::new(
-                #[cfg(feature = "debugger")] "", 0, false,
-                None, None)],
+                #[cfg(feature = "debugger")]
+                "",
+                0,
+                false,
+                None,
+                None,
+            )],
             1,
             0,
             &[],
@@ -1052,11 +1100,22 @@ mod test {
     #[cfg(feature = "debugger")]
     impl DebuggerHandler for DummyServer {
         fn start(&mut self) {}
-        fn job_breakpoint(&mut self, _job: &Job, _function: &RuntimeFunction, _states: Vec<State>) {}
+        fn job_breakpoint(&mut self, _job: &Job, _function: &RuntimeFunction, _states: Vec<State>) {
+        }
         fn block_breakpoint(&mut self, _block: &Block) {}
         fn flow_unblock_breakpoint(&mut self, _flow_id: usize) {}
-        fn send_breakpoint(&mut self, _: &str, _source_process_id: usize, _output_route: &str, _value: &Value,
-                           _destination_id: usize, _destination_name:&str, _input_name: &str, _input_number: usize) {}
+        fn send_breakpoint(
+            &mut self,
+            _: &str,
+            _source_process_id: usize,
+            _output_route: &str,
+            _value: &Value,
+            _destination_id: usize,
+            _destination_name: &str,
+            _input_name: &str,
+            _input_number: usize,
+        ) {
+        }
         fn job_error(&mut self, _job: &Job) {}
         fn job_completed(&mut self, _job: &Job) {}
         fn blocks(&mut self, _blocks: Vec<Block>) {}
@@ -1105,7 +1164,7 @@ mod test {
             None,
             None,
             #[cfg(feature = "debugger")]
-                true,
+            true,
         )
     }
 
@@ -1133,7 +1192,11 @@ mod test {
         fn jobs_created_zero_at_init() {
             let mut state = RunState::new(super::test_submission(vec![]));
             state.init().expect("Could not init state");
-            assert_eq!(0, state.get_number_of_jobs_created(), "At init jobs() should be 0");
+            assert_eq!(
+                0,
+                state.get_number_of_jobs_created(),
+                "At init jobs() should be 0"
+            );
             assert_eq!(0, state.number_jobs_ready());
         }
 
@@ -1154,7 +1217,10 @@ mod test {
         fn zero_running_at_init() {
             let mut state = RunState::new(super::test_submission(vec![]));
             state.init().expect("Could not init state");
-            assert!(state.get_running().is_empty(), "At init get_running() should be empty");
+            assert!(
+                state.get_running().is_empty(),
+                "At init get_running() should be empty"
+            );
         }
 
         #[cfg(feature = "debugger")]
@@ -1185,9 +1251,9 @@ mod test {
 
         use crate::run_state::test::test_function_b_not_init;
 
-        use super::super::{Job, Payload};
         use super::super::RunState;
         use super::super::State;
+        use super::super::{Job, Payload};
 
         #[test]
         fn to_ready_1_on_init() {
@@ -1199,7 +1265,10 @@ mod test {
             state.init().expect("Could not init state");
 
             // Test
-            assert!(state.function_state_is_only(0, &State::Ready), "f_a should be Ready");
+            assert!(
+                state.function_state_is_only(0, &State::Ready),
+                "f_a should be Ready"
+            );
             assert_eq!(1, state.number_jobs_ready());
             assert!(
                 state.function_state_is_only(1, &State::Waiting),
@@ -1227,7 +1296,10 @@ mod test {
             );
             #[cfg(feature = "debugger")]
             assert!(
-                state.get_input_blockers(1).expect("Could not get blockers").contains(&0),
+                state
+                    .get_input_blockers(1)
+                    .expect("Could not get blockers")
+                    .contains(&0),
                 "There should be an input blocker"
             );
         }
@@ -1242,7 +1314,10 @@ mod test {
             state.init().expect("Could not init state");
 
             // Test
-            assert!(state.function_state_is_only(0, &State::Ready), "f_a should be Ready");
+            assert!(
+                state.function_state_is_only(0, &State::Ready),
+                "f_a should be Ready"
+            );
         }
 
         #[test]
@@ -1254,7 +1329,10 @@ mod test {
             state.init().expect("Could not init state");
 
             // Test
-            assert!(state.function_state_is_only(0, &State::Ready), "f_a should be Ready");
+            assert!(
+                state.function_state_is_only(0, &State::Ready),
+                "f_a should be Ready"
+            );
         }
 
         fn test_function_a_not_init() -> RuntimeFunction {
@@ -1265,8 +1343,13 @@ mod test {
                 "/fA",
                 "file://fake/test",
                 vec![Input::new(
-                    #[cfg(feature = "debugger")] "", 0, false,
-                    None, None)],
+                    #[cfg(feature = "debugger")]
+                    "",
+                    0,
+                    false,
+                    None,
+                    None,
+                )],
                 0,
                 0,
                 &[],
@@ -1283,7 +1366,10 @@ mod test {
             state.init().expect("Could not init state");
 
             // Test
-            assert!(state.function_state_is_only(0, &State::Waiting), "f_a should be Waiting");
+            assert!(
+                state.function_state_is_only(0, &State::Waiting),
+                "f_a should be Waiting"
+            );
         }
 
         #[test]
@@ -1291,14 +1377,19 @@ mod test {
             let f_a = super::test_function_a_init();
             let mut state = RunState::new(super::test_submission(vec![f_a]));
             state.init().expect("Could not init state");
-            assert!(state.function_state_is_only(0, &State::Ready), "f_a should be Ready");
+            assert!(
+                state.function_state_is_only(0, &State::Ready),
+                "f_a should be Ready"
+            );
 
             // Event
             let job = state.get_next_job().expect("Couldn't get next job");
             state.start_job(job.clone());
 
             // Test
-            state.running_jobs.get(&job.payload.job_id)
+            state
+                .running_jobs
+                .get(&job.payload.job_id)
                 .expect("Job should have been running");
         }
 
@@ -1307,13 +1398,22 @@ mod test {
             let f_a = test_function_a_not_init();
             let mut state = RunState::new(super::test_submission(vec![f_a]));
             state.init().expect("Could not init state");
-            assert!(state.function_state_is_only(0, &State::Waiting), "f_a should be Waiting");
+            assert!(
+                state.function_state_is_only(0, &State::Waiting),
+                "f_a should be Waiting"
+            );
 
             // Event
-            assert!(state.get_next_job().is_none(), "next_job() should return None");
+            assert!(
+                state.get_next_job().is_none(),
+                "next_job() should return None"
+            );
 
             // Test
-            assert!(state.function_state_is_only(0, &State::Waiting), "f_a should be Waiting");
+            assert!(
+                state.function_state_is_only(0, &State::Waiting),
+                "f_a should be Waiting"
+            );
         }
 
         fn test_job() -> Job {
@@ -1340,8 +1440,13 @@ mod test {
                 "/fA",
                 "file://fake/test",
                 vec![Input::new(
-                    #[cfg(feature = "debugger")] "", 0, false,
-                    Some(Always(json!(1))), None)],
+                    #[cfg(feature = "debugger")]
+                    "",
+                    0,
+                    false,
+                    Some(Always(json!(1))),
+                    None,
+                )],
                 0,
                 0,
                 &[],
@@ -1352,27 +1457,38 @@ mod test {
             #[cfg(feature = "metrics")]
             let mut metrics = Metrics::new(1);
             #[cfg(feature = "debugger")]
-                let mut server = super::DummyServer{};
+            let mut server = super::DummyServer {};
             #[cfg(feature = "debugger")]
-                let mut debugger = super::dummy_debugger(&mut server);
+            let mut debugger = super::dummy_debugger(&mut server);
 
             state.init().expect("Could not init state");
-            assert!(state.function_state_is_only(0, &State::Ready), "f_a should be Ready");
+            assert!(
+                state.function_state_is_only(0, &State::Ready),
+                "f_a should be Ready"
+            );
             let job = state.get_next_job().expect("Couldn't get next job");
-            assert_eq!(0, job.function_id, "get_next_job() should return function_id = 0");
+            assert_eq!(
+                0, job.function_id,
+                "get_next_job() should return function_id = 0"
+            );
             state.start_job(job.clone());
 
-            state.running_jobs.get(&job.payload.job_id).expect("Job with f_a should be Running");
+            state
+                .running_jobs
+                .get(&job.payload.job_id)
+                .expect("Job with f_a should be Running");
 
             // Event
             let job = test_job();
-            state.retire_a_job(
-                #[cfg(feature = "metrics")]
-                &mut metrics,
-                (job.payload.job_id, job.result),
-                #[cfg(feature = "debugger")]
-                &mut debugger,
-            ).expect("Problem retiring job");
+            state
+                .retire_a_job(
+                    #[cfg(feature = "metrics")]
+                    &mut metrics,
+                    (job.payload.job_id, job.result),
+                    #[cfg(feature = "debugger")]
+                    &mut debugger,
+                )
+                .expect("Problem retiring job");
 
             // Test
             assert!(
@@ -1391,31 +1507,40 @@ mod test {
             #[cfg(feature = "metrics")]
             let mut metrics = Metrics::new(1);
             #[cfg(feature = "debugger")]
-                let mut server = super::DummyServer{};
+            let mut server = super::DummyServer {};
             #[cfg(feature = "debugger")]
-                let mut debugger = super::dummy_debugger(&mut server);
+            let mut debugger = super::dummy_debugger(&mut server);
 
             state.init().expect("Could not init state");
-            assert!(state.function_state_is_only(0, &State::Ready), "f_a should be Ready");
+            assert!(
+                state.function_state_is_only(0, &State::Ready),
+                "f_a should be Ready"
+            );
             let job = state.get_next_job().expect("Couldn't get next job");
             assert_eq!(0, job.function_id, "next() should return function_id = 0");
             state.start_job(job.clone());
 
-            state.running_jobs.get(&job.payload.job_id).expect("Job with f_a should be Running");
+            state
+                .running_jobs
+                .get(&job.payload.job_id)
+                .expect("Job with f_a should be Running");
 
             // Event
             let job = test_job();
-            state.retire_a_job(
-                #[cfg(feature = "metrics")]
-                &mut metrics,
-                (job.payload.job_id, job.result),
-                #[cfg(feature = "debugger")]
-                &mut debugger,
-            ).expect("Problem retiring job");
+            state
+                .retire_a_job(
+                    #[cfg(feature = "metrics")]
+                    &mut metrics,
+                    (job.payload.job_id, job.result),
+                    #[cfg(feature = "debugger")]
+                    &mut debugger,
+                )
+                .expect("Problem retiring job");
 
             // Test
-            assert!(state.function_state_is_only(0, &State::Waiting),
-                    "f_a should be Waiting again"
+            assert!(
+                state.function_state_is_only(0, &State::Waiting),
+                "f_a should be Waiting again"
             );
         }
 
@@ -1439,8 +1564,13 @@ mod test {
                 "/fB",
                 "file://fake/test",
                 vec![Input::new(
-                    #[cfg(feature = "debugger")] "", 0, false,
-                    None, None)],
+                    #[cfg(feature = "debugger")]
+                    "",
+                    0,
+                    false,
+                    None,
+                    None,
+                )],
                 1,
                 0,
                 &[out_conn],
@@ -1450,27 +1580,35 @@ mod test {
             #[cfg(feature = "metrics")]
             let mut metrics = Metrics::new(1);
             #[cfg(feature = "debugger")]
-                let mut server = super::DummyServer{};
+            let mut server = super::DummyServer {};
             #[cfg(feature = "debugger")]
-                let mut debugger = super::dummy_debugger(&mut server);
+            let mut debugger = super::dummy_debugger(&mut server);
 
             state.init().expect("Could not init state");
-            assert!(state.function_state_is_only(0, &State::Waiting), "f_a should be Waiting");
+            assert!(
+                state.function_state_is_only(0, &State::Waiting),
+                "f_a should be Waiting"
+            );
 
             // Event run f_b which will send to f_a
             let job = super::test_job(1, 0);
             state.start_job(job.clone());
 
-            state.retire_a_job(
-                #[cfg(feature = "metrics")]
-                &mut metrics,
-                (job.payload.job_id, job.result),
-                #[cfg(feature = "debugger")]
-                &mut debugger,
-            ).expect("Problem retiring job");
+            state
+                .retire_a_job(
+                    #[cfg(feature = "metrics")]
+                    &mut metrics,
+                    (job.payload.job_id, job.result),
+                    #[cfg(feature = "debugger")]
+                    &mut debugger,
+                )
+                .expect("Problem retiring job");
 
             // Test
-            assert!(state.function_state_is_only(0, &State::Ready), "f_a should be Ready");
+            assert!(
+                state.function_state_is_only(0, &State::Ready),
+                "f_a should be Ready"
+            );
         }
 
         /*
@@ -1497,8 +1635,13 @@ mod test {
                 "/fB",
                 "file://fake/test",
                 vec![Input::new(
-                    #[cfg(feature = "debugger")] "", 0, false,
-                    Some(Always(json!(1))), None)],
+                    #[cfg(feature = "debugger")]
+                    "",
+                    0,
+                    false,
+                    Some(Always(json!(1))),
+                    None,
+                )],
                 1,
                 0,
                 &[connection_to_f0],
@@ -1508,13 +1651,16 @@ mod test {
             #[cfg(feature = "metrics")]
             let mut metrics = Metrics::new(1);
             #[cfg(feature = "debugger")]
-                let mut server = super::DummyServer{};
+            let mut server = super::DummyServer {};
             #[cfg(feature = "debugger")]
-                let mut debugger = super::dummy_debugger(&mut server);
+            let mut debugger = super::dummy_debugger(&mut server);
 
             state.init().expect("Could not init state");
 
-            assert!(state.function_state_is_only(1, &State::Ready), "f_b should be Ready");
+            assert!(
+                state.function_state_is_only(1, &State::Ready),
+                "f_b should be Ready"
+            );
             assert!(
                 state.function_state_is_only(0, &State::Waiting),
                 "f_a should be in Waiting"
@@ -1524,16 +1670,21 @@ mod test {
             let job = super::test_job(1, 0);
             state.start_job(job.clone());
 
-            state.retire_a_job(
-                #[cfg(feature = "metrics")]
-                &mut metrics,
-                (job.payload.job_id, job.result),
-                #[cfg(feature = "debugger")]
-                &mut debugger,
-            ).expect("Problem retiring job");
+            state
+                .retire_a_job(
+                    #[cfg(feature = "metrics")]
+                    &mut metrics,
+                    (job.payload.job_id, job.result),
+                    #[cfg(feature = "debugger")]
+                    &mut debugger,
+                )
+                .expect("Problem retiring job");
 
             // Test
-            assert!(state.function_state_is_only(0, &State::Ready), "f_a should be Ready");
+            assert!(
+                state.function_state_is_only(0, &State::Ready),
+                "f_a should be Ready"
+            );
         }
     }
 
@@ -1589,8 +1740,13 @@ mod test {
                 "/p1",
                 "file://fake/test/p1",
                 vec![Input::new(
-                    #[cfg(feature = "debugger")] "", 0, false,
-                    None, None)], // inputs array
+                    #[cfg(feature = "debugger")]
+                    "",
+                    0,
+                    false,
+                    None,
+                    None,
+                )], // inputs array
                 1,
                 0,
                 &[],
@@ -1603,8 +1759,13 @@ mod test {
                 "/p2",
                 "file://fake/test/p2",
                 vec![Input::new(
-                    #[cfg(feature = "debugger")] "", 0, false,
-                    None, None)], // inputs array
+                    #[cfg(feature = "debugger")]
+                    "",
+                    0,
+                    false,
+                    None,
+                    None,
+                )], // inputs array
                 2,
                 0,
                 &[],
@@ -1618,9 +1779,9 @@ mod test {
         fn blocked_works() {
             let mut state = RunState::new(super::test_submission(test_functions()));
             #[cfg(feature = "debugger")]
-                let mut server = super::DummyServer{};
+            let mut server = super::DummyServer {};
             #[cfg(feature = "debugger")]
-                let mut debugger = super::dummy_debugger(&mut server);
+            let mut debugger = super::dummy_debugger(&mut server);
 
             // Indicate that 0 is blocked by 1 on input 0
             let _ = state.create_block(
@@ -1638,8 +1799,10 @@ mod test {
         #[test]
         fn get_works() {
             let state = RunState::new(super::test_submission(test_functions()));
-            let got = state.get_function(1)
-                .ok_or("Could not get function by id").expect("Could not get function with that id");
+            let got = state
+                .get_function(1)
+                .ok_or("Could not get function by id")
+                .expect("Could not get function with that id");
             assert_eq!(got.id(), 1);
         }
 
@@ -1654,7 +1817,9 @@ mod test {
             let mut state = RunState::new(super::test_submission(test_functions()));
 
             // Put 0 on the blocked/ready
-            state.create_jobs_or_block(0, 0).expect("Could not make ready or blocked");
+            state
+                .create_jobs_or_block(0, 0)
+                .expect("Could not make ready or blocked");
 
             state.get_next_job().expect("Couldn't get next job");
         }
@@ -1664,7 +1829,9 @@ mod test {
             let mut state = RunState::new(super::test_submission(test_functions()));
 
             // Put 0 on the blocked/ready list depending on blocked status
-            state.create_jobs_or_block(0, 0).expect("Could not make ready or blocked");
+            state
+                .create_jobs_or_block(0, 0)
+                .expect("Could not make ready or blocked");
 
             state.get_next_job().expect("Couldn't get next job");
         }
@@ -1674,9 +1841,9 @@ mod test {
         fn blocked_is_not_ready() {
             let mut state = RunState::new(super::test_submission(test_functions()));
             #[cfg(feature = "debugger")]
-                let mut server = super::DummyServer{};
+            let mut server = super::DummyServer {};
             #[cfg(feature = "debugger")]
-                let mut debugger = super::dummy_debugger(&mut server);
+            let mut debugger = super::dummy_debugger(&mut server);
 
             // Indicate that 0 is blocked by 1 on input 0
             let _ = state.create_block(
@@ -1690,7 +1857,9 @@ mod test {
             );
 
             // Put 0 on the blocked/ready list depending on blocked status
-            state.create_jobs_or_block(0, 0).expect("Could not make ready or blocked");
+            state
+                .create_jobs_or_block(0, 0)
+                .expect("Could not make ready or blocked");
 
             assert!(state.get_next_job().is_none());
         }
@@ -1701,9 +1870,9 @@ mod test {
             let mut state = RunState::new(super::test_submission(test_functions()));
 
             #[cfg(feature = "debugger")]
-                let mut server = super::DummyServer{};
+            let mut server = super::DummyServer {};
             #[cfg(feature = "debugger")]
-                let mut debugger = super::dummy_debugger(&mut server);
+            let mut debugger = super::dummy_debugger(&mut server);
 
             // Indicate that 0 is blocked by 1 and 2
             let _ = state.create_block(
@@ -1726,7 +1895,9 @@ mod test {
             );
 
             // Put 0 on the blocked/ready list depending on blocked status
-            state.create_jobs_or_block(0, 0).expect("Could not make ready or blocked");
+            state
+                .create_jobs_or_block(0, 0)
+                .expect("Could not make ready or blocked");
 
             assert!(state.get_next_job().is_none());
 
@@ -1746,7 +1917,10 @@ mod test {
 
             let _ = state.get_next_job().expect("Couldn't get next job");
 
-            assert!(state.get_next_job().is_none(), "Did not expect a Ready job!");
+            assert!(
+                state.get_next_job().is_none(),
+                "Did not expect a Ready job!"
+            );
         }
 
         /*
@@ -1763,9 +1937,9 @@ mod test {
             #[cfg(feature = "metrics")]
             let mut metrics = Metrics::new(1);
             #[cfg(feature = "debugger")]
-                let mut server = super::DummyServer{};
+            let mut server = super::DummyServer {};
             #[cfg(feature = "debugger")]
-                let mut debugger = super::dummy_debugger(&mut server);
+            let mut debugger = super::dummy_debugger(&mut server);
 
             state.init().expect("Could not init state");
 
@@ -1773,13 +1947,15 @@ mod test {
             state.start_job(job.clone());
 
             // Test there is no problem producing an Output when no destinations to send it to
-            state.retire_a_job(
-                #[cfg(feature = "metrics")]
-                &mut metrics,
-                (job.payload.job_id, job.result),
-                #[cfg(feature = "debugger")]
-                &mut debugger,
-            ).expect("Failed to retire job correctly");
+            state
+                .retire_a_job(
+                    #[cfg(feature = "metrics")]
+                    &mut metrics,
+                    (job.payload.job_id, job.result),
+                    #[cfg(feature = "debugger")]
+                    &mut debugger,
+                )
+                .expect("Failed to retire job correctly");
         }
     }
 }
