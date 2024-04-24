@@ -41,18 +41,18 @@ from = "input/limit"
 to = "compare_switch/left"
 name = "limit"
 
-# connect the /right-lte output of compare_switch to the output of this process - the sequence of numbers being generated
+# connect the right-lte output of compare_switch to the output of this flow - the sequence of numbers being generated
 [[connection]]
 from = "compare_switch/right-lte"
 to = "output/number"
 
-# while the sequence is running - loopback the left value (limit) to compare against next time
+# while the sequence is running - loopback the limit value to compare against next time
 [[connection]]
 from = "compare_switch/left-gt"
 to = "compare_switch/left"
 name = "feedback-limit"
 
-# An add process to add one to the last output of the sequence each time, up to the penultimate one
+# An add process to add "step"" to the last output of the sequence each time, up to the penultimate one
 [[process]]
 source = "lib://flowstdlib/math/add"
 
@@ -63,72 +63,23 @@ name = "step"
 
 # Take generated number of the sequence and pass it to 'add' to add one to it for the next number in the sequence
 [[connection]]
-from = "compare_switch/right"
+from = "compare_switch/right-lte"
 to = "add/i1"
 name = "previous"
 
-# a tap process that controls the flow of the 'next' value from 'add' to 'compare_switch' at the end of sequence
-[[process]]
-alias = "next-tap"
-source = "lib://flowstdlib/control/tap"
-
-# After the first iteration, each time take the sum from the adder (i.e. possibly the next number in the sequence)
-# and pass it into the compare_switch function to pass it through) if it's less than the limit
-[[connection]]
-from = "add"
-to = "next-tap/data"
-
-[[connection]]
-from = "not-last/lt"
-to = "next-tap/control"
-
-[[connection]]
-from = "next-tap"
-to = "compare_switch/right"
-name = "next"
-
-# a tap process that controls the feedback of the 'step' value to 'add'
-[[process]]
-alias = "step-tap"
-source = "lib://flowstdlib/control/tap"
-
-# pass the 'step' value to the tap for the loopback
+# feedback the step
 [[connection]]
 from = "add/i2"
-to = "step-tap/data"
-name = "step"
-
-# feedback the step, if it's not the last iteration
-[[connection]]
-from = "step-tap"
 to = "add/i2"
 name = "feedback-step"
 
-# a comparer to see if this is the last iteration
-[[process]]
-alias = "not-last"
-source = "lib://flowstdlib/math/compare"
-
-# pass the limit to the comparer each time
+# pass the next value from 'add' to the compare_switch
 [[connection]]
-from = "compare_switch/left"
-to = "not-last/right"
-name = "limit"
+from = "add"
+to = "compare_switch/right"
 
-# pass the previous value generated to the comparer each time
-[[connection]]
-from = "compare_switch/right"
-to = "not-last/left"
-name = "previous"
-
-# pass the result of the comparison to the tap that allows the value to pass or disapear on the last iteration
-[[connection]]
-from = "not-last/lt"
-to = "step-tap/control"
-name = "not-last"
-
-# When compare_switch determines the next value is too large (greater-than-or-equal to the limit) then
-# the flow will end, output that value - whose presence indicates it's the end of the sequence
+# When compare_switch determines the next value is the last (greater-than-or-equal to the limit) then
+# output that value - whose presence indicates it's the end of the sequence
 [[connection]]
 from = "compare_switch/right-gte"
 to = "output/last"
