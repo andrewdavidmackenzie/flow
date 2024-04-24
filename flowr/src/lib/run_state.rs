@@ -328,13 +328,6 @@ impl RunState {
         &self.running_jobs
     }
 
-    /// Get the list of completed function ids
-    #[cfg(feature = "debugger")]
-    #[must_use]
-    pub fn get_completed(&self) -> &HashSet<usize> {
-        &self.completed
-    }
-
     /// Get a reference to the function with `id`
     #[must_use]
     pub fn get_function(&self, id: usize) -> Option<&RuntimeFunction> {
