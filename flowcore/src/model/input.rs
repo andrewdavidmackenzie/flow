@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 #[cfg(feature = "debugger")]
 use std::fmt;
 
@@ -41,7 +42,7 @@ impl InputInitializer {
 impl fmt::Display for InputValues {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         if !self.is_empty() {
-            write!(f, "{:?}", self.values)?;
+            write!(f, "{:?}", self.prioritized_values_map)?;
         }
         Ok(())
     }
@@ -49,40 +50,69 @@ impl fmt::Display for InputValues {
 
 #[derive(Debug, Default, Deserialize, Serialize, Clone, PartialEq, Eq)]
 struct InputValues {
-    values: Vec<Value>,
+    count: usize,
+    prioritized_values_map: HashMap<usize, Vec<Value>>,
 }
 
 impl InputValues {
     #[must_use]
     fn is_empty(&self) -> bool {
-        self.values.is_empty()
+        self.count == 0
     }
 
     fn new() -> Self {
-        Self { values: Vec::new() }
+        Self {
+            count: 0,
+            prioritized_values_map: HashMap::new(),
+        }
     }
 
-    fn push(&mut self, value: Value) {
-        self.values.push(value);
+    // `priority` will be used to take values out according to priority AND order of arrival
+    fn push(&mut self, priority: usize, value: Value) {
+        // if there is a list of values at this priority
+        if let Some(values) = self.prioritized_values_map.get_mut(&priority) {
+            values.push(value);
+        } else {
+            let values = vec![value];
+            self.prioritized_values_map.insert(priority, values);
+        }
+        self.count += 1;
     }
 
+    // Take the first value from the list of highest priority that has values
     #[must_use]
     fn take(&mut self) -> Option<Value> {
-        if self.values.is_empty() {
+        if self.count == 0 {
             return None;
         }
 
-        Some(self.values.remove(0))
+        let mut priority = 0;
+
+        loop {
+            // if there is a list of values at this priority
+            if let Some(value_vec) = self.prioritized_values_map.get_mut(&priority) {
+                // take the first value from the list
+                let next = value_vec.remove(0);
+                self.count -= 1;
+                // If the vector of values of this priority is now empty - remove the map entry
+                if value_vec.is_empty() {
+                    let _ = self.prioritized_values_map.remove(&priority);
+                }
+                return Some(next);
+            }
+            priority += 1;
+        }
     }
 
     #[must_use]
     pub fn values_available(&self) -> usize {
-        self.values.len()
+        self.count
     }
 
     #[cfg(feature = "debugger")]
     pub fn reset(&mut self) {
-        self.values.clear();
+        self.prioritized_values_map.clear();
+        self.count = 0;
     }
 }
 
@@ -226,11 +256,11 @@ impl Input {
     pub fn init(&mut self, first_time: bool, flow_idle: bool) -> bool {
         match (first_time, &self.initializer) {
             (true, Some(Once(one_time))) => {
-                self.send(one_time.clone());
+                self.send(1, one_time.clone()); // TODO
                 return true;
             }
             (_, Some(Always(constant))) => {
-                self.send(constant.clone());
+                self.send(1, constant.clone()); // TODO
                 return true;
             }
             (_, _) => {}
@@ -238,18 +268,18 @@ impl Input {
 
         match (first_time, &self.flow_initializer) {
             (true, Some(Once(one_time))) => {
-                self.send(one_time.clone());
+                self.send(1, one_time.clone()); // TODO
                 return true;
             }
             (true, Some(Always(constant))) => {
-                self.send(constant.clone());
+                self.send(1, constant.clone()); // TODO
                 return true;
             }
             (_, _) => {}
         }
 
         if let (true, Some(Always(constant))) = (flow_idle, &self.flow_initializer) {
-            self.send(constant.clone());
+            self.send(1, constant.clone()); // TODO
             return true;
         }
 
@@ -262,20 +292,20 @@ impl Input {
     }
 
     /// Send a Value or array of Values to this input
-    pub(crate) fn send(&mut self, value: Value) -> bool {
+    pub(crate) fn send(&mut self, priority: usize, value: Value) -> bool {
         if self.generic {
-            self.received.push(value);
+            self.received.push(priority, value);
         } else {
             match (
                 DataType::value_array_order(&value) - self.array_order(),
                 &value,
             ) {
-                (0, _) => self.received.push(value),
-                (1, Value::Array(array)) => self.send_array_elements(array.clone()),
+                (0, _) => self.received.push(priority, value),
+                (1, Value::Array(array)) => self.send_array_elements(priority, array.clone()),
                 (2, Value::Array(array_2)) => {
                     for array in array_2 {
                         if let Value::Array(sub_array) = array {
-                            self.send_array_elements(sub_array.clone());
+                            self.send_array_elements(priority, sub_array.clone());
                         }
                     }
                 }
@@ -284,14 +314,14 @@ impl Input {
                         "\t\tSending value '{value}' wrapped in an Array: '{}'",
                         json!([value])
                     );
-                    self.received.push(json!([value]));
+                    self.received.push(priority, json!([value]));
                 }
                 (-2, _) => {
                     debug!(
                         "\t\tSending value '{value}' wrapped in an Array of Array: '{}'",
                         json!([[value]])
                     );
-                    self.received.push(json!([[value]]));
+                    self.received.push(priority, json!([[value]]));
                 }
                 _ => return false,
             }
@@ -300,11 +330,11 @@ impl Input {
     }
 
     // Send an array of values to this `Input`, by sending them one element at a time
-    fn send_array_elements(&mut self, array: Vec<Value>) {
+    fn send_array_elements(&mut self, priority: usize, array: Vec<Value>) {
         debug!("\t\tSending Array as a series of Values");
         for value in array {
             debug!("\t\t\tSending array element as Value; '{value}'");
-            self.received.push(value);
+            self.received.push(priority, value);
         }
     }
 
@@ -320,10 +350,10 @@ impl Input {
         self.received.values_available()
     }
 
-    /// Return true if there are no more values available from this input
+    /// Return true if there are no more values available to be taken from this input
     #[must_use]
     pub fn is_empty(&self) -> bool {
-        self.values_available() == 0
+        self.received.is_empty()
     }
 }
 
@@ -370,7 +400,7 @@ mod test {
             None,
             None,
         );
-        input.send(Value::Null);
+        input.send(1, Value::Null);
         assert!(!input.is_empty());
     }
 
@@ -384,7 +414,7 @@ mod test {
             None,
             None,
         );
-        input.send_array_elements(vec![json!(5), json!(10), json!(15)]);
+        input.send_array_elements(1, vec![json!(5), json!(10), json!(15)]);
         assert!(!input.is_empty());
     }
 
@@ -398,12 +428,32 @@ mod test {
             None,
             None,
         );
-        input.send(json!(10));
+        input.send(1, json!(10));
         assert!(!input.is_empty());
         let _value = input
             .take()
             .expect("Should have got a value from the input");
         assert!(input.is_empty());
+    }
+
+    #[test]
+    fn take_by_priority() {
+        let mut input = Input::new(
+            #[cfg(feature = "debugger")]
+            "",
+            0,
+            false,
+            None,
+            None,
+        );
+        input.send(2, json!(20));
+        input.send(0, json!(5));
+        input.send(1, json!(10));
+        assert!(!input.is_empty());
+        assert_eq!(input.take(), Some(json!(5)));
+        assert_eq!(input.take(), Some(json!(10)));
+        assert_eq!(input.take(), Some(json!(20)));
+        assert_eq!(input.take(), None);
     }
 
     #[cfg(feature = "debugger")]
@@ -417,7 +467,7 @@ mod test {
             None,
             None,
         );
-        input.send(json!(10));
+        input.send(1, json!(10));
         assert!(!input.is_empty());
         input.reset();
         assert!(input.is_empty());

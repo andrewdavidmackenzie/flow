@@ -11,7 +11,7 @@ use crate::model::input::Input;
 use crate::model::input::InputInitializer;
 use crate::model::output_connection::OutputConnection;
 
-#[derive(Deserialize, Serialize, Clone, PartialEq, Eq, Debug,)]
+#[derive(Deserialize, Serialize, Clone, PartialEq, Eq, Debug)]
 /// `RuntimeFunction` contains all the information needed about a function and its implementation
 /// to be able to execute a flow using it.
 pub struct RuntimeFunction {
@@ -52,7 +52,7 @@ pub struct RuntimeFunction {
 }
 
 fn is_default_url(url: &Url) -> bool {
-   url == &default_url()
+    url == &default_url()
 }
 
 fn default_url() -> Url {
@@ -174,7 +174,10 @@ impl RuntimeFunction {
     pub fn init_inputs(&mut self, first_time: bool, flow_idle: bool) {
         for (io_number, input) in &mut self.inputs.iter_mut().enumerate() {
             if input.init(first_time, flow_idle) {
-                debug!("\tInitialized Input #{}:{io_number} in Flow #{}", self.function_id, self.flow_id);
+                debug!(
+                    "\tInitialized Input #{}:{io_number} in Flow #{}",
+                    self.function_id, self.flow_id
+                );
             }
         }
     }
@@ -185,12 +188,17 @@ impl RuntimeFunction {
         &self.implementation_location
     }
 
-    /// Send a value or array of values to the specified input of this function
+    /// Send a value to the specified input of this function.
+    /// `priority` will be used to take values out according to priority AND order of arrival
     /// # Errors
     ///
     /// Will return `Err` if the IO numbered `io_number` does not exist
-    pub fn send(&mut self, io_number: usize, value: Value) -> Result<()> {
-        let _ = self.inputs.get_mut(io_number).ok_or("Could not get that input")?.send(value);
+    pub fn send(&mut self, io_number: usize, priority: usize, value: Value) -> Result<()> {
+        let _ = self
+            .inputs
+            .get_mut(io_number)
+            .ok_or("Could not get that input")?
+            .send(priority, value);
         Ok(())
     }
 
@@ -211,8 +219,8 @@ impl RuntimeFunction {
     ///
     /// Will return `Err` if `manifest_url` cannot be set as `implementation_url`
     pub fn set_implementation_url(&mut self, manifest_url: &Url) -> Result<()> {
-        self.implementation_url = Self::location_to_url(manifest_url,
-                                                        self.implementation_location())?;
+        self.implementation_url =
+            Self::location_to_url(manifest_url, self.implementation_location())?;
         Ok(())
     }
 
@@ -223,7 +231,8 @@ impl RuntimeFunction {
     }
 
     fn location_to_url(manifest_url: &Url, location: &str) -> Result<Url> {
-        Url::parse(location).or_else(|_| manifest_url.clone().join(location))
+        Url::parse(location)
+            .or_else(|_| manifest_url.clone().join(location))
             .chain_err(|| "Could not create Url from 'manifest_url' and 'location'")
     }
 
@@ -231,8 +240,12 @@ impl RuntimeFunction {
     /// # Errors
     ///
     /// Will return `Err` if input `input_number` does not exist
-    pub fn values_available(&self, input_number: usize) -> Result<usize> {
-        Ok(self.inputs.get(input_number).ok_or("Could not get that input")?.values_available())
+    pub fn values_available(&self, input_number: usize) -> Result<bool> {
+        Ok(!self
+            .inputs
+            .get(input_number)
+            .ok_or("Could not get that input")?
+            .is_empty())
     }
 
     /// Returns how many jobs can be created for this function with the available inputs
@@ -270,7 +283,8 @@ impl RuntimeFunction {
 
     /// Inspect the value of the `input` of a `RuntimeFunction`.
     #[cfg(feature = "debugger")]
-    #[must_use]    pub fn input(&self, id: usize) -> Option<&Input> {
+    #[must_use]
+    pub fn input(&self, id: usize) -> Option<&Input> {
         self.inputs.get(id)
     }
 
@@ -297,8 +311,9 @@ impl RuntimeFunction {
         }
 
         for input in &self.inputs {
-            if !(matches!(input.initializer(), Some(InputInitializer::Always(_))) ||
-                matches!(input.flow_initializer(), Some(InputInitializer::Always(_)))) {
+            if !(matches!(input.initializer(), Some(InputInitializer::Always(_)))
+                || matches!(input.flow_initializer(), Some(InputInitializer::Always(_))))
+            {
                 return false;
             }
         }
@@ -360,7 +375,7 @@ mod test {
     fn can_send_simple_object() {
         let mut function = test_function(0);
         function.init();
-        function.send(0, json!(1)).expect("Could not send");
+        function.send(0, 1, json!(1)).expect("Could not send");
         assert_eq!(
             json!(1),
             function
@@ -375,7 +390,7 @@ mod test {
     fn can_send_array_object() {
         let mut function = test_function(1);
         function.init();
-        function.send(0, json!([1, 2])).expect("Could not send");
+        function.send(0, 1, json!([1, 2])).expect("Could not send");
         assert_eq!(
             json!([1, 2]),
             function
@@ -390,7 +405,7 @@ mod test {
     fn test_array_to_non_array() {
         let mut function = test_function(0);
         function.init();
-        function.send(0, json!([1, 2])).expect("Could not send");
+        function.send(0, 1, json!([1, 2])).expect("Could not send");
         assert_eq!(
             function
                 .take_input_set()
@@ -417,8 +432,14 @@ mod test {
             #[cfg(feature = "debugger")]
             "/test",
             "file://fake/implementation",
-            vec![Input::new(#[cfg(feature = "debugger")] "",
-                            array_order, false, None, None)],
+            vec![Input::new(
+                #[cfg(feature = "debugger")]
+                "",
+                array_order,
+                false,
+                None,
+                None,
+            )],
             1,
             0,
             &[out_conn],
@@ -431,7 +452,7 @@ mod test {
     fn debugger_can_inspect_non_full_input() {
         let mut function = test_function(0);
         function.init();
-        function.send(0, json!(1)).expect("Could not send");
+        function.send(0, 1, json!(1)).expect("Could not send");
         assert_eq!(
             function.inputs().len(),
             1,
@@ -471,7 +492,7 @@ mod test {
             false,
         );
         function.init();
-        function.send(0, json!(1)).expect("Could not send");
+        function.send(0, 1, json!(1)).expect("Could not send");
         let _ = format!("{function}");
         assert_eq!(
             &vec!(output_route),
@@ -501,13 +522,18 @@ mod test {
         fn test_function(array_order: i32, generic: bool) -> RuntimeFunction {
             RuntimeFunction::new(
                 #[cfg(feature = "debugger")]
-                    "test",
+                "test",
                 #[cfg(feature = "debugger")]
-                    "/test",
+                "/test",
                 "file://fake/test",
                 vec![Input::new(
-                    #[cfg(feature = "debugger")] "", array_order, generic,
-                    None, None)],
+                    #[cfg(feature = "debugger")]
+                    "",
+                    array_order,
+                    generic,
+                    None,
+                    None,
+                )],
                 0,
                 0,
                 &[],
@@ -613,11 +639,15 @@ mod test {
 
             for test_case in test_cases {
                 // Setup
-                let mut function = test_function(test_case.destination_array_order,
-                test_case.destination_is_generic);
+                let mut function = test_function(
+                    test_case.destination_array_order,
+                    test_case.destination_is_generic,
+                );
 
                 // Test
-                function.send(0, test_case.value).expect("Could not send value");
+                function
+                    .send(0, 1, test_case.value)
+                    .expect("Could not send value");
 
                 // Check
                 assert_eq!(
