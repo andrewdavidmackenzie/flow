@@ -42,8 +42,6 @@ pub struct RuntimeFunction {
     #[serde(skip_serializing_if = "is_default_url", default = "default_url")]
     implementation_url: Url,
 
-    // TODO skip serializing this, if the vector ONLY contains objects that can be serialized
-    // to "{}" and hence contain no info. I think the number of inputs is not needed?
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     inputs: Vec<Input>,
 
@@ -303,13 +301,14 @@ impl RuntimeFunction {
     }
 
     /// Will this function always be able to create new jobs no matter what
-    /// // TODO make this an internal bool on creation!
     #[must_use]
     pub fn is_always_ready(&self) -> bool {
+        // if a function has no inputs and just generates values - then it will always be ready
         if self.inputs.is_empty() {
             return true;
         }
 
+        // if there is any input that does not have an initializer, then it won't always be ready
         for input in &self.inputs {
             if !(matches!(input.initializer(), Some(InputInitializer::Always(_)))
                 || matches!(input.flow_initializer(), Some(InputInitializer::Always(_))))
