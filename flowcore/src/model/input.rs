@@ -32,7 +32,7 @@ impl InputInitializer {
     #[must_use]
     pub fn get_value(&self) -> &Value {
         match self {
-            Once(value) | Always(value) => value
+            Once(value) | Always(value) => value,
         }
     }
 }
@@ -45,10 +45,7 @@ pub struct Input {
     name: Name,
 
     /// `array_order` defines how many levels of arrays of non-array values does the destination accept
-    #[serde(
-    default,
-    skip_serializing_if = "is_default_array_order"
-    )]
+    #[serde(default, skip_serializing_if = "is_default_array_order")]
     array_order: i32,
 
     /// `generic` defines if the input accepts generic object types
@@ -86,11 +83,13 @@ impl TryFrom<&IO> for Input {
         let data_type = io.datatypes().first().ok_or("Could not get datatype")?;
 
         Ok(Input::new(
-            #[cfg(feature = "debugger")] io.name(),
+            #[cfg(feature = "debugger")]
+            io.name(),
             data_type.type_array_order(),
             data_type.is_generic(),
             io.get_initializer().clone(),
-            io.get_flow_initializer().clone()))
+            io.get_flow_initializer().clone(),
+        ))
     }
 }
 
@@ -117,7 +116,9 @@ impl Input {
         initializer: Option<InputInitializer>,
         flow_initializer: Option<InputInitializer>,
     ) -> Self
-    where S: Into<Name> {
+    where
+        S: Into<Name>,
+    {
         Input {
             name: name.into(),
             array_order,
@@ -135,7 +136,8 @@ impl Input {
         array_order: i32,
         generic: bool,
         initializer: Option<InputInitializer>,
-        flow_initializer: Option<InputInitializer>) -> Self {
+        flow_initializer: Option<InputInitializer>,
+    ) -> Self {
         Input {
             array_order,
             generic,
@@ -179,24 +181,24 @@ impl Input {
             (true, Some(Once(one_time))) => {
                 self.send(one_time.clone());
                 return true;
-            },
+            }
             (_, Some(Always(constant))) => {
                 self.send(constant.clone());
                 return true;
-            },
-            (_, _) => {},
+            }
+            (_, _) => {}
         }
 
         match (first_time, &self.flow_initializer) {
             (true, Some(Once(one_time))) => {
                 self.send(one_time.clone());
                 return true;
-            },
+            }
             (true, Some(Always(constant))) => {
                 self.send(constant.clone());
                 return true;
-            },
-            (_, _) => {},
+            }
+            (_, _) => {}
         }
 
         if let (true, Some(Always(constant))) = (flow_idle, &self.flow_initializer) {
@@ -217,7 +219,10 @@ impl Input {
         if self.generic {
             self.received.push(value);
         } else {
-            match (DataType::value_array_order(&value) - self.array_order(), &value) {
+            match (
+                DataType::value_array_order(&value) - self.array_order(),
+                &value,
+            ) {
                 (0, _) => self.received.push(value),
                 (1, Value::Array(array)) => self.send_array_elements(array.clone()),
                 (2, Value::Array(array_2)) => {
@@ -228,15 +233,19 @@ impl Input {
                     }
                 }
                 (-1, _) => {
-                    debug!("\t\tSending value '{value}' wrapped in an Array: '{}'",
-                        json!([value]));
+                    debug!(
+                        "\t\tSending value '{value}' wrapped in an Array: '{}'",
+                        json!([value])
+                    );
                     self.received.push(json!([value]));
-                },
+                }
                 (-2, _) => {
-                    debug!("\t\tSending value '{value}' wrapped in an Array of Array: '{}'",
-                        json!([[value]]));
+                    debug!(
+                        "\t\tSending value '{value}' wrapped in an Array of Array: '{}'",
+                        json!([[value]])
+                    );
                     self.received.push(json!([[value]]));
-                },
+                }
                 _ => return false,
             }
         }
@@ -284,43 +293,87 @@ mod test {
 
     #[test]
     fn no_inputs_initially() {
-        let input = Input::new(#[cfg(feature = "debugger")] "", 0, false, None, None);
+        let input = Input::new(
+            #[cfg(feature = "debugger")]
+            "",
+            0,
+            false,
+            None,
+            None,
+        );
         assert!(input.is_empty());
     }
 
     #[test]
     fn take_from_empty_fails() {
-        let mut input = Input::new(#[cfg(feature = "debugger")] "", 0, false,  None, None);
+        let mut input = Input::new(
+            #[cfg(feature = "debugger")]
+            "",
+            0,
+            false,
+            None,
+            None,
+        );
         assert!(input.take().is_none());
     }
 
     #[test]
     fn accepts_null() {
-        let mut input = Input::new(#[cfg(feature = "debugger")] "", 0, false,  None, None);
+        let mut input = Input::new(
+            #[cfg(feature = "debugger")]
+            "",
+            0,
+            false,
+            None,
+            None,
+        );
         input.send(Value::Null);
         assert!(!input.is_empty());
     }
 
     #[test]
     fn accepts_array() {
-        let mut input = Input::new(#[cfg(feature = "debugger")] "", 0, false,  None, None);
+        let mut input = Input::new(
+            #[cfg(feature = "debugger")]
+            "",
+            0,
+            false,
+            None,
+            None,
+        );
         input.send_array_elements(vec![json!(5), json!(10), json!(15)]);
         assert!(!input.is_empty());
     }
 
     #[test]
     fn take_empties() {
-        let mut input = Input::new(#[cfg(feature = "debugger")] "", 0, false,  None, None);
+        let mut input = Input::new(
+            #[cfg(feature = "debugger")]
+            "",
+            0,
+            false,
+            None,
+            None,
+        );
         input.send(json!(10));
         assert!(!input.is_empty());
-        let _value = input.take().expect("Should have got a value from the input");
+        let _value = input
+            .take()
+            .expect("Should have got a value from the input");
         assert!(input.is_empty());
     }
 
     #[cfg(feature = "debugger")]
     #[test]
     fn reset_empties() {
-        let mut input = Input::new(#[cfg(feature = "debugger")] "", 0,  false, None, None);
+        let mut input = Input::new(
+            #[cfg(feature = "debugger")]
+            "",
+            0,
+            false,
+            None,
+            None,
+        );
         input.send(json!(10));
         assert!(!input.is_empty());
         input.reset();

@@ -110,13 +110,22 @@ impl Connection {
         // are we selecting from a sub-route of an IO, such as an array index or element of output object?
         // TODO this requires the accumulation of the subroute to be done during connection building #1192
         let from_io_subroute = "";
-        DataType::compatible_types(from_io.datatypes(), to_io.datatypes(),
-                                   &Route::from(from_io_subroute))
-            .chain_err(|| format!("Incompatible source and destination types:\n\
+        DataType::compatible_types(
+            from_io.datatypes(),
+            to_io.datatypes(),
+            &Route::from(from_io_subroute),
+        )
+        .chain_err(|| {
+            format!(
+                "Incompatible source and destination types:\n\
             Source:      '{}/{from_io_subroute}' of types {:?}\n\
             Destination: '{}' of types {:?}",
-            from_io.route(), from_io.datatypes(),
-            to_io.route(), to_io.datatypes()))?;
+                from_io.route(),
+                from_io.datatypes(),
+                to_io.route(),
+                to_io.datatypes()
+            )
+        })?;
         debug!(
             "Connection built from '{}' to '{}'",
             from_io.route(),
@@ -168,7 +177,6 @@ impl Connection {
     pub fn level(&self) -> usize {
         self.level
     }
-
 }
 
 #[cfg(test)]
@@ -183,8 +191,7 @@ mod test {
 
     fn toml_from_str(content: &str) -> Result<Connection> {
         let url = Url::parse("file:///fake.toml").expect("Could not parse URL");
-        let deserializer =
-            get::<Connection>(&url).expect("Could not get deserializer");
+        let deserializer = get::<Connection>(&url).expect("Could not get deserializer");
         deserializer.deserialize(content, Some(&url))
     }
 

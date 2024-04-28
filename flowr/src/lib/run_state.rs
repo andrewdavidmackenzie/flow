@@ -588,9 +588,8 @@ impl RunState {
 
         // Avoid a function blocking on itself when sending itself a value via a loopback and avoid
         // blocking sending internally within a flow
-        let block = (function.values_available(connection.destination_io_number)? > 0)
-            && !loopback
-            && !same_flow;
+        let block =
+            function.values_available(connection.destination_io_number)? && !loopback && !same_flow;
         let new_job_available = function.input_sets_available() > job_count_before;
 
         if block {
@@ -721,15 +720,13 @@ impl RunState {
     // Create one or more new jobs for the function, and mark the flow containing it as busy
     fn create_jobs(&mut self, function_id: usize, flow_id: usize) -> Result<()> {
         loop {
-            // TODO loop for the number of input sets available - which now should be correct
             self.number_of_jobs_created += 1;
             let job_id = self.number_of_jobs_created;
             let function = self.get_mut(function_id).ok_or("Could not get function")?;
             if let Some(input_set) = function.take_input_set() {
                 let implementation_url = function.get_implementation_url().clone();
                 debug!(
-                    "Job #{job_id} created for Function #{function_id}({flow_id}) \
-                in 'ready_jobs' with inputs: {:?}",
+                    "Job #{job_id} created for Function #{function_id}({flow_id}) with inputs: {:?}",
                     input_set
                 );
                 let job = Job {

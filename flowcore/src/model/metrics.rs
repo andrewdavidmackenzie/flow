@@ -2,7 +2,7 @@ use std::cmp::max;
 use std::fmt;
 use std::time::Instant;
 
-use log::debug;
+use log::trace;
 use serde_derive::{Deserialize, Serialize};
 
 /// `Metrics` stacks a number of statistics on flow execution while being executed
@@ -34,7 +34,7 @@ impl Metrics {
 
     /// Reset the values of a `Metrics` struct back to their initial values
     pub fn reset(&mut self) {
-        debug!("Resetting Metrics");
+        trace!("Resetting Metrics");
         self.jobs_created = 0;
         self.outputs_sent = 0;
         self.start_time = Instant::now();
