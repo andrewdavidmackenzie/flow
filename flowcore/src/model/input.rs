@@ -448,9 +448,11 @@ mod test {
         );
         input.send(2, json!(20));
         input.send(0, json!(5));
+        input.send(0, json!(6));
         input.send(1, json!(10));
         assert!(!input.is_empty());
         assert_eq!(input.take(), Some(json!(5)));
+        assert_eq!(input.take(), Some(json!(6)));
         assert_eq!(input.take(), Some(json!(10)));
         assert_eq!(input.take(), Some(json!(20)));
         assert_eq!(input.take(), None);
