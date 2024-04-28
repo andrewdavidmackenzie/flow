@@ -7,12 +7,12 @@ use std::thread::JoinHandle;
 use log::{debug, error, info, trace};
 use url::Url;
 
-use flowcore::errors::{Result, ResultExt, bail};
-use flowcore::Implementation;
+use flowcore::errors::{bail, Result, ResultExt};
 use flowcore::model::lib_manifest::{
     ImplementationLocator::Native, ImplementationLocator::RelativePath, LibraryManifest,
 };
 use flowcore::provider::Provider;
+use flowcore::Implementation;
 
 use crate::job::Payload;
 use crate::wasm;
@@ -39,7 +39,9 @@ impl Executor {
     #[must_use]
     pub fn new() -> Self {
         Executor {
-            loaded_lib_manifests: Arc::new(RwLock::new(HashMap::<Url, (LibraryManifest, Url)>::new())),
+            loaded_lib_manifests: Arc::new(RwLock::new(
+                HashMap::<Url, (LibraryManifest, Url)>::new(),
+            )),
             executors: vec![],
         }
     }
@@ -53,16 +55,16 @@ impl Executor {
     /// Returns an error if this `LibraryManifest` cannot be added to the set of manifests used
     /// by the runtime to load functions.
     ///
-    pub fn add_lib(
-        &mut self,
-        lib_manifest: LibraryManifest,
-        resolved_url: Url
-    ) -> Result<()> {
-        let mut lib_manifests = self.loaded_lib_manifests.write()
+    pub fn add_lib(&mut self, lib_manifest: LibraryManifest, resolved_url: Url) -> Result<()> {
+        let mut lib_manifests = self
+            .loaded_lib_manifests
+            .write()
             .map_err(|_| "Could not gain write access to loaded library manifests map")?;
 
-        debug!("Manifest of library '{}' loaded from '{}' and added to Executor",
-            lib_manifest.lib_url, resolved_url);
+        debug!(
+            "Manifest of library '{}' loaded from '{}' and added to Executor",
+            lib_manifest.lib_url, resolved_url
+        );
 
         lib_manifests.insert(lib_manifest.lib_url.clone(), (lib_manifest, resolved_url));
 
@@ -74,14 +76,16 @@ impl Executor {
     /// - the number of executor threads
     /// - the address of the job socket to get jobs from
     /// - the address of the results socket to return results from executed jobs to
-    pub fn start(&mut self,
-                 provider: &Arc<dyn Provider>,
-                 number_of_executors: usize,
-                 job_service: &str,
-                 results_service: &str,
-                 control_service: &str,
+    pub fn start(
+        &mut self,
+        provider: &Arc<dyn Provider>,
+        number_of_executors: usize,
+        job_service: &str,
+        results_service: &str,
+        control_service: &str,
     ) {
-        let loaded_implementations = Arc::new(RwLock::new(HashMap::<Url, Arc<dyn Implementation>>::new()));
+        let loaded_implementations =
+            Arc::new(RwLock::new(HashMap::<Url, Arc<dyn Implementation>>::new()));
 
         info!("Starting {number_of_executors} executor threads");
         for executor_number in 0..number_of_executors {
@@ -130,61 +134,82 @@ fn execution_loop(
     results_service: String,
     control_address: String,
 ) -> Result<()> {
-    let job_source = context.socket(zmq::PULL)
-        .map_err(|e|
-            format!("Could not create PULL end of job socket: {e}"))?;
-    job_source.connect(&job_service)
-        .map_err(|e|
-            format!("Could not connect to PULL end of job socket: '{job_service}' {e}", ))?;
+    let job_source = context
+        .socket(zmq::PULL)
+        .map_err(|e| format!("Could not create PULL end of job socket: {e}"))?;
+    job_source.connect(&job_service).map_err(|e| {
+        format!("Could not connect to PULL end of job socket: '{job_service}' {e}",)
+    })?;
 
-    let results_sink = context.socket(zmq::PUSH)
+    let results_sink = context
+        .socket(zmq::PUSH)
         .map_err(|e| format!("Could not create PUSH end of results socket: {e}"))?;
-    results_sink.connect(&results_service)
+    results_sink
+        .connect(&results_service)
         .map_err(|e| format!("Could not connect to PUSH end of results socket: {e}"))?;
 
-    let control_socket = context.socket(zmq::SocketType::SUB)
+    let control_socket = context
+        .socket(zmq::SocketType::SUB)
         .map_err(|e| format!("Could not create SUB end of control socket: {e}"))?;
-    control_socket.connect(&control_address)
+    control_socket
+        .connect(&control_address)
         .map_err(|e| format!("Could not connect to SUB end of control socket: {e}"))?;
-    control_socket.set_subscribe(&[])
+    control_socket
+        .set_subscribe(&[])
         .map_err(|e| format!("Could not subscribe to SUB end of control socket: {e}"))?;
 
     let mut process_jobs = true;
 
     set_panic_hook();
 
-    let mut items : Vec<zmq::PollItem> = vec![job_source.as_poll_item(zmq::POLLIN),
-                                              control_socket.as_poll_item(zmq::POLLIN)];
+    let mut items: Vec<zmq::PollItem> = vec![
+        job_source.as_poll_item(zmq::POLLIN),
+        control_socket.as_poll_item(zmq::POLLIN),
+    ];
 
     while process_jobs {
         trace!("{name} waiting for a job to execute or a DONE signal");
         match zmq::poll(&mut items, -1).map_err(|_| "Error while polling for Jobs to execute") {
             Ok(_) => {
-                if items.first().ok_or("Could not get poll item 0")?.is_readable() {
-                    let msg = job_source.recv_msg(0).map_err(|_| "Error receiving Job for execution")?;
+                if items
+                    .first()
+                    .ok_or("Could not get poll item 0")?
+                    .is_readable()
+                {
+                    let msg = job_source
+                        .recv_msg(0)
+                        .map_err(|_| "Error receiving Job for execution")?;
                     let message_string = msg.as_str().ok_or("Could not get message as str")?;
                     let payload: Payload = serde_json::from_str(message_string)
                         .map_err(|_| "Could not deserialize Message to Job")?;
 
-                    debug!("Job #{}: Received by {}", payload.job_id, name);
-                    match execute_job(provider,
-                                      &payload,
-                                      &results_sink,
-                                      name,
-                                      &loaded_implementations.clone(),
-                                      &loaded_lib_manifests.clone()) {
+                    trace!("Job #{}: Received by {}", payload.job_id, name);
+                    match execute_job(
+                        provider,
+                        &payload,
+                        &results_sink,
+                        name,
+                        &loaded_implementations.clone(),
+                        &loaded_lib_manifests.clone(),
+                    ) {
                         Ok(keep_processing) => process_jobs = keep_processing,
-                        Err(e) => error!("{}", e)
+                        Err(e) => error!("{}", e),
                     }
                 }
 
-                if items.get(1).ok_or("Could not get poll item 1")?.is_readable() {
-                    let msg = control_socket.recv_msg(0).map_err(|_| "Error receiving Control message")?;
+                if items
+                    .get(1)
+                    .ok_or("Could not get poll item 1")?
+                    .is_readable()
+                {
+                    let msg = control_socket
+                        .recv_msg(0)
+                        .map_err(|_| "Error receiving Control message")?;
                     match msg.as_str().ok_or("Could not get message as str") {
                         Ok("DONE") => {
                             trace!("'DONE' message received in executor");
-                            return Ok(())
-                        },
+                            return Ok(());
+                        }
                         Ok(_) => error!("Unexpected Control message"),
                         _ => error!("Error parsing Control message"),
                     }
@@ -222,43 +247,59 @@ fn execute_job(
     loaded_lib_manifests: &Arc<RwLock<HashMap<Url, (LibraryManifest, Url)>>>,
 ) -> Result<bool> {
     // TODO see if we can avoid write access until we know it's needed
-    let mut implementations = loaded_implementations.write()
+    let mut implementations = loaded_implementations
+        .write()
         .map_err(|_| "Could not gain read access to loaded implementations map")?;
     if implementations.get(&payload.implementation_url).is_none() {
-        trace!("Implementation '{}' is not loaded", payload.implementation_url);
+        trace!(
+            "Implementation '{}' is not loaded",
+            payload.implementation_url
+        );
         let implementation = match payload.implementation_url.scheme() {
             "lib" => {
                 let mut lib_root_url = payload.implementation_url.clone();
                 lib_root_url.set_path("");
-                load_referenced_implementation(provider,
-                                               &lib_root_url,
-                                               loaded_lib_manifests,
-                                               &payload.implementation_url)?
-            },
+                load_referenced_implementation(
+                    provider,
+                    &lib_root_url,
+                    loaded_lib_manifests,
+                    &payload.implementation_url,
+                )?
+            }
             "context" => {
                 let mut lib_root_url = payload.implementation_url.clone();
                 let _ = lib_root_url.set_host(Some(""));
                 lib_root_url.set_path("");
-                load_referenced_implementation(provider,
-                                               &lib_root_url,
-                                               loaded_lib_manifests,
-                                               &payload.implementation_url)?
-            },
+                load_referenced_implementation(
+                    provider,
+                    &lib_root_url,
+                    loaded_lib_manifests,
+                    &payload.implementation_url,
+                )?
+            }
             "file" => Arc::new(wasm::load(provider, &payload.implementation_url)?),
-            _ => bail!("Unsupported scheme on implementation_url")
+            _ => bail!("Unsupported scheme on implementation_url"),
         };
         implementations.insert(payload.implementation_url.clone(), implementation);
-        trace!("Implementation '{}' added to executor", payload.implementation_url);
+        trace!(
+            "Implementation '{}' added to executor",
+            payload.implementation_url
+        );
     }
 
-    let implementation = implementations.get(&payload.implementation_url)
+    let implementation = implementations
+        .get(&payload.implementation_url)
         .ok_or("Could not find implementation")?;
 
     trace!("Job #{}: Started executing on '{name}'", payload.job_id);
     let result = implementation.run(&payload.input_set);
     trace!("Job #{}: Finished executing on '{name}'", payload.job_id);
 
-    results_sink.send(serde_json::to_string(&(payload.job_id, result))?.as_bytes(), 0)
+    results_sink
+        .send(
+            serde_json::to_string(&(payload.job_id, result))?.as_bytes(),
+            0,
+        )
         .map_err(|_| "Could not send result of Job")?;
 
     Ok(true)
@@ -269,7 +310,7 @@ fn load_referenced_implementation(
     provider: &Arc<dyn Provider>,
     lib_root_url: &Url,
     loaded_lib_manifests: &Arc<RwLock<HashMap<Url, (LibraryManifest, Url)>>>,
-    implementation_url: &Url
+    implementation_url: &Url,
 ) -> Result<Arc<dyn Implementation>> {
     let (lib_manifest, resolved_lib_url) =
         get_lib_manifest_tuple(provider, loaded_lib_manifests, lib_root_url)?;
@@ -305,16 +346,15 @@ fn get_lib_manifest_tuple(
     loaded_lib_manifests: &Arc<RwLock<HashMap<Url, (LibraryManifest, Url)>>>,
     lib_root_url: &Url,
 ) -> Result<(LibraryManifest, Url)> {
-    let mut lib_manifests = loaded_lib_manifests.write()
+    let mut lib_manifests = loaded_lib_manifests
+        .write()
         .map_err(|_| "Could not get write access to the loaded lib manifests")?;
 
     if lib_manifests.get(lib_root_url).is_none() {
         info!("Attempting to load library manifest'{}'", lib_root_url);
-        let manifest_tuple =
-            LibraryManifest::load(provider, lib_root_url)
-                .chain_err(|| format!("Could not load library with root url: '{lib_root_url}'"))?;
-        lib_manifests
-            .insert(lib_root_url.clone(), manifest_tuple);
+        let manifest_tuple = LibraryManifest::load(provider, lib_root_url)
+            .chain_err(|| format!("Could not load library with root url: '{lib_root_url}'"))?;
+        lib_manifests.insert(lib_root_url.clone(), manifest_tuple);
     }
 
     // TODO avoid this clone and return references
@@ -332,10 +372,10 @@ mod test {
     use url::Url;
 
     use flowcore::errors::Result;
-    use flowcore::Implementation;
     use flowcore::model::lib_manifest::LibraryManifest;
     use flowcore::model::metadata::MetaData;
     use flowcore::provider::Provider;
+    use flowcore::Implementation;
 
     use crate::job::{Job, Payload};
 
@@ -378,9 +418,12 @@ mod test {
         );
 
         let mut executor = Executor::new();
-        assert!(executor.add_lib(library,
-                         Url::parse("file://fake/lib/location")
-                             .expect("Could not parse Url")).is_ok());
+        assert!(executor
+            .add_lib(
+                library,
+                Url::parse("file://fake/lib/location").expect("Could not parse Url")
+            )
+            .is_ok());
     }
 
     #[test]
@@ -392,7 +435,8 @@ mod test {
             payload: Payload {
                 job_id: 0,
                 input_set: vec![],
-                implementation_url: Url::parse("lib://flowstdlib/math/add").expect("Could not parse Url"),
+                implementation_url: Url::parse("lib://flowstdlib/math/add")
+                    .expect("Could not parse Url"),
             },
             result: Ok((None, false)),
         };
@@ -404,7 +448,8 @@ mod test {
             payload: Payload {
                 job_id: 0,
                 input_set: vec![],
-                implementation_url: Url::parse("context://stdio/stdout").expect("Could not parse Url"),
+                implementation_url: Url::parse("context://stdio/stdout")
+                    .expect("Could not parse Url"),
             },
             result: Ok((None, false)),
         };
@@ -422,22 +467,28 @@ mod test {
         };
 
         for job in vec![job1, job2, job3] {
-            let loaded_implementations = Arc::new(RwLock::new(HashMap::<Url, Arc<dyn Implementation>>::new()));
-            let loaded_lib_manifests = Arc::new(RwLock::new(HashMap::<Url, (LibraryManifest, Url)>::new()));
-            let provider = Arc::new(TestProvider{test_content: ""}) as Arc<dyn Provider>;
+            let loaded_implementations =
+                Arc::new(RwLock::new(HashMap::<Url, Arc<dyn Implementation>>::new()));
+            let loaded_lib_manifests =
+                Arc::new(RwLock::new(HashMap::<Url, (LibraryManifest, Url)>::new()));
+            let provider = Arc::new(TestProvider { test_content: "" }) as Arc<dyn Provider>;
             let context = zmq::Context::new();
-            let results_sink = context.socket(zmq::PUSH)
+            let results_sink = context
+                .socket(zmq::PUSH)
                 .expect("Could not createPUSH end of results-sink socket");
-            results_sink.connect("tcp://127.0.0.1:3458")
+            results_sink
+                .connect("tcp://127.0.0.1:3458")
                 .expect("Could not connect to PULL end of results-sink socket");
 
-            assert!(super::execute_job(&provider,
-                                       &job.payload,
-                                       &results_sink,
-                                       "test executor",
-                                       &loaded_implementations,
-                                       &loaded_lib_manifests,
-            ).is_err());
+            assert!(super::execute_job(
+                &provider,
+                &job.payload,
+                &results_sink,
+                "test executor",
+                &loaded_implementations,
+                &loaded_lib_manifests,
+            )
+            .is_err());
         }
     }
 }
