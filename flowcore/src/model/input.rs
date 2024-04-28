@@ -38,16 +38,6 @@ impl InputInitializer {
     }
 }
 
-#[cfg(feature = "debugger")]
-impl fmt::Display for InputValues {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        if !self.is_empty() {
-            write!(f, "{:?}", self.prioritized_values_map)?;
-        }
-        Ok(())
-    }
-}
-
 #[derive(Debug, Default, Deserialize, Serialize, Clone, PartialEq, Eq)]
 struct InputValues {
     count: usize,
@@ -113,6 +103,16 @@ impl InputValues {
     pub fn reset(&mut self) {
         self.prioritized_values_map.clear();
         self.count = 0;
+    }
+}
+
+#[cfg(feature = "debugger")]
+impl fmt::Display for InputValues {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        if !self.is_empty() {
+            write!(f, "{:?}", self.prioritized_values_map)?;
+        }
+        Ok(())
     }
 }
 
