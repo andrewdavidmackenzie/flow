@@ -732,8 +732,7 @@ impl RunState {
             if let Some(input_set) = function.take_input_set() {
                 let implementation_url = function.get_implementation_url().clone();
                 debug!(
-                    "Job #{job_id} created for Function #{function_id}({flow_id}) \
-                in 'ready_jobs' with inputs: {:?}",
+                    "Job #{job_id} created for Function #{function_id}({flow_id}) with inputs: {:?}",
                     input_set
                 );
                 let job = Job {
