@@ -187,16 +187,15 @@ impl RuntimeFunction {
     }
 
     /// Send a value to the specified input of this function.
-    /// `priority` will be used to take values out according to priority AND order of arrival
     /// # Errors
     ///
     /// Will return `Err` if the IO numbered `io_number` does not exist
-    pub fn send(&mut self, io_number: usize, priority: usize, value: Value) -> Result<()> {
+    pub fn send(&mut self, io_number: usize, value: Value) -> Result<()> {
         let _ = self
             .inputs
             .get_mut(io_number)
             .ok_or("Could not get that input")?
-            .send(priority, value);
+            .send(value);
         Ok(())
     }
 
@@ -374,7 +373,7 @@ mod test {
     fn can_send_simple_object() {
         let mut function = test_function(0);
         function.init();
-        function.send(0, 1, json!(1)).expect("Could not send");
+        function.send(0, json!(1)).expect("Could not send");
         assert_eq!(
             json!(1),
             function
@@ -389,7 +388,7 @@ mod test {
     fn can_send_array_object() {
         let mut function = test_function(1);
         function.init();
-        function.send(0, 1, json!([1, 2])).expect("Could not send");
+        function.send(0, json!([1, 2])).expect("Could not send");
         assert_eq!(
             json!([1, 2]),
             function
@@ -404,7 +403,7 @@ mod test {
     fn test_array_to_non_array() {
         let mut function = test_function(0);
         function.init();
-        function.send(0, 1, json!([1, 2])).expect("Could not send");
+        function.send(0, json!([1, 2])).expect("Could not send");
         assert_eq!(
             function
                 .take_input_set()
@@ -451,7 +450,7 @@ mod test {
     fn debugger_can_inspect_non_full_input() {
         let mut function = test_function(0);
         function.init();
-        function.send(0, 1, json!(1)).expect("Could not send");
+        function.send(0, json!(1)).expect("Could not send");
         assert_eq!(
             function.inputs().len(),
             1,
@@ -491,7 +490,7 @@ mod test {
             false,
         );
         function.init();
-        function.send(0, 1, json!(1)).expect("Could not send");
+        function.send(0, json!(1)).expect("Could not send");
         let _ = format!("{function}");
         assert_eq!(
             &vec!(output_route),
@@ -645,7 +644,7 @@ mod test {
 
                 // Test
                 function
-                    .send(0, 1, test_case.value)
+                    .send(0, test_case.value)
                     .expect("Could not send value");
 
                 // Check

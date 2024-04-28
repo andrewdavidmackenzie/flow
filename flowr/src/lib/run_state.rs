@@ -581,12 +581,7 @@ impl RunState {
             .get_mut(connection.destination_id)
             .ok_or("Could not get function")?;
         let job_count_before = function.input_sets_available();
-        // TODO make more general
-        if loopback {
-            function.send(connection.destination_io_number, 0, output_value)?;
-        } else {
-            function.send(connection.destination_io_number, 1, output_value)?;
-        }
+        function.send(connection.destination_io_number, output_value)?;
 
         #[cfg(feature = "metrics")]
         metrics.increment_outputs_sent(); // not distinguishing array serialization / wrapping etc
@@ -725,7 +720,6 @@ impl RunState {
     // Create one or more new jobs for the function, and mark the flow containing it as busy
     fn create_jobs(&mut self, function_id: usize, flow_id: usize) -> Result<()> {
         loop {
-            // TODO loop for the number of input sets available - which now should be correct
             self.number_of_jobs_created += 1;
             let job_id = self.number_of_jobs_created;
             let function = self.get_mut(function_id).ok_or("Could not get function")?;
