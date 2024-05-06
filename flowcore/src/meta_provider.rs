@@ -9,17 +9,13 @@ use url::Url;
 use crate::content::file_provider::FileProvider;
 #[cfg(feature = "http_provider")]
 use crate::content::http_provider::HttpProvider;
-#[cfg(feature = "p2p_provider")]
-use crate::content::p2p_provider::P2pProvider;
-use crate::errors::{Result, ResultExt, bail};
+use crate::errors::{bail, Result, ResultExt};
 use crate::provider::Provider;
 
 #[cfg(feature = "file_provider")]
 const FILE_PROVIDER: &dyn Provider = &FileProvider as &dyn Provider;
 #[cfg(feature = "http_provider")]
 const HTTP_PROVIDER: &dyn Provider = &HttpProvider as &dyn Provider;
-#[cfg(feature = "p2p_provider")]
-const P2P_PROVIDER: &dyn Provider = &P2pProvider as &dyn Provider;
 
 /// The `MetaProvider` implements the `Provider` trait and based on the url and it's
 /// resolution to a real location for content invokes one of the child providers it has
@@ -65,12 +61,14 @@ impl MetaProvider {
     /// - the root of the context functions provided by the runtime (requires "context" feature
     #[must_use]
     pub fn new(
-                #[cfg(feature = "file_provider")] lib_search_path: Simpath,
-                #[cfg(feature = "context")] context_root: PathBuf
-                ) -> Self {
+        #[cfg(feature = "file_provider")] lib_search_path: Simpath,
+        #[cfg(feature = "context")] context_root: PathBuf,
+    ) -> Self {
         MetaProvider {
-            #[cfg(feature = "file_provider")] lib_search_path,
-            #[cfg(feature = "context")] context_root
+            #[cfg(feature = "file_provider")]
+            lib_search_path,
+            #[cfg(feature = "context")]
+            context_root,
         }
     }
 
@@ -81,8 +79,6 @@ impl MetaProvider {
             "file" => Ok(FILE_PROVIDER),
             #[cfg(all(not(target_arch = "wasm32"), feature = "http_provider"))]
             "http" | "https" => Ok(HTTP_PROVIDER),
-            #[cfg(all(not(target_arch = "wasm32"), feature = "p2p_provider"))]
-            "p2p" => Ok(P2P_PROVIDER),
             _ => bail!("Cannot determine which provider to use for url with scheme: 'scheme'"),
         }
     }
@@ -99,7 +95,8 @@ impl MetaProvider {
     ///        "context/stdio/stdout/stdout"
     #[cfg(feature = "context")]
     fn resolve_context_url(&self, url: &Url) -> Result<(Url, Option<Url>)> {
-        let dir = url.host_str()
+        let dir = url
+            .host_str()
             .chain_err(|| format!("context 'dir' could not be extracted from the url '{url}'"))?;
         let sub_dir = url.path().trim_start_matches('/');
         let context_function_path = self.context_root.join(dir).join(sub_dir);
@@ -125,7 +122,8 @@ impl MetaProvider {
     ///        "flowstdlib/math/add"
     #[cfg(feature = "file_provider")]
     fn resolve_lib_url(&self, url: &Url) -> Result<(Url, Option<Url>)> {
-        let lib_name = url.host_str()
+        let lib_name = url
+            .host_str()
             .chain_err(|| format!("'lib_name' could not be extracted from the url '{url}'"))?;
         let path_under_lib = url.path().trim_start_matches('/');
         let lib_reference = Some(Url::parse(&format!("lib://{lib_name}/{path_under_lib}"))?);
@@ -234,8 +232,7 @@ mod test {
     #[cfg(feature = "file_provider")]
     fn get_lib_search_path() -> Simpath {
         let mut lib_search_path = Simpath::new("lib_search_path");
-        let tests_str = Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join("tests");
+        let tests_str = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests");
         lib_search_path.add_directory(
             tests_str
                 .to_str()
@@ -256,16 +253,23 @@ mod test {
             root_str.display()
         ))
         .expect("Could not create expected url");
-        let provider = &MetaProvider::new(get_lib_search_path(),
-                                          #[cfg(feature = "context")]
-                                          PathBuf::from("/")
+        let provider = &MetaProvider::new(
+            get_lib_search_path(),
+            #[cfg(feature = "context")]
+            PathBuf::from("/"),
         ) as &dyn Provider;
-        let lib_url = Url::parse("lib://test-flows/control/compare_switch").expect("Couldn't form Url");
+        let lib_url =
+            Url::parse("lib://test-flows/control/compare_switch").expect("Couldn't form Url");
         match provider.resolve_url(&lib_url, "", &["toml"]) {
             Ok((url, lib_ref)) => {
                 assert_eq!(url, expected_url);
-                assert_eq!(lib_ref, Some(Url::parse("lib://test-flows/control/compare_switch")
-                    .expect("Could not parse Url")));
+                assert_eq!(
+                    lib_ref,
+                    Some(
+                        Url::parse("lib://test-flows/control/compare_switch")
+                            .expect("Could not parse Url")
+                    )
+                );
             }
             Err(e) => panic!("Error trying to resolve url: {e}"),
         }
@@ -286,9 +290,10 @@ mod test {
         let expected_url = Url::parse("https://raw.githubusercontent.com/andrewdavidmackenzie/flow/master/flowstdlib/src/control/tap/tap.toml")
             .expect("Couldn't parse expected Url");
 
-        let provider = &MetaProvider::new(search_path,
-                                          #[cfg(feature = "context")]
-                                          PathBuf::from("/")
+        let provider = &MetaProvider::new(
+            search_path,
+            #[cfg(feature = "context")]
+            PathBuf::from("/"),
         );
 
         let lib_url = Url::parse("lib://src/control/tap").expect("Couldn't create Url");
