@@ -484,7 +484,7 @@ impl FlowrGui {
                 .help("Enable the debugger when running a flow"),
         );
 
-        #[cfg(not(feature = "wasm"))]
+        #[cfg(feature = "flowstdlib")]
         let app = app.arg(
             Arg::new("native")
                 .short('n')

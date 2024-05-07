@@ -20,14 +20,14 @@
 //! [`Executors`][flowrlib::executor::Executor]
 
 use core::str::FromStr;
-use std::{env, thread};
 use std::path::PathBuf;
 use std::process::exit;
 use std::sync::{Arc, Mutex};
+use std::{env, thread};
 
 use clap::{Arg, ArgMatches, Command};
 use env_logger::Builder;
-use log::{error, info, LevelFilter, trace};
+use log::{error, info, trace, LevelFilter};
 use portpicker::pick_unused_port;
 use simpath::Simpath;
 use url::Url;
@@ -45,9 +45,10 @@ use cli::coordinator_message::ClientMessage;
 #[cfg(feature = "debugger")]
 use cli::debug_message::DebugServerMessage;
 #[cfg(feature = "debugger")]
-use cli::debug_message::DebugServerMessage::{BlockBreakpoint, DataBreakpoint, ExecutionEnded, ExecutionStarted,
-                                             ExitingDebugger, JobCompleted, JobError, Panic, PriorToSendingJob,
-                                             Resetting, WaitingForCommand};
+use cli::debug_message::DebugServerMessage::{
+    BlockBreakpoint, DataBreakpoint, ExecutionEnded, ExecutionStarted, ExitingDebugger,
+    JobCompleted, JobError, Panic, PriorToSendingJob, Resetting, WaitingForCommand,
+};
 use flowcore::errors::{Result, ResultExt};
 use flowcore::meta_provider::MetaProvider;
 use flowcore::model::flow_manifest::FlowManifest;
@@ -58,11 +59,13 @@ use flowrlib::coordinator::Coordinator;
 use flowrlib::dispatcher::Dispatcher;
 use flowrlib::executor::Executor;
 use flowrlib::info as flowrlib_info;
-use flowrlib::services::{CONTROL_SERVICE_NAME, JOB_QUEUES_DISCOVERY_PORT, JOB_SERVICE_NAME,
-                         RESULTS_JOB_SERVICE_NAME};
+use flowrlib::services::{
+    CONTROL_SERVICE_NAME, JOB_QUEUES_DISCOVERY_PORT, JOB_SERVICE_NAME, RESULTS_JOB_SERVICE_NAME,
+};
 
-use crate::cli::connections::{COORDINATOR_SERVICE_NAME, DEBUG_SERVICE_NAME,
-                              discover_service, enable_service_discovery};
+use crate::cli::connections::{
+    discover_service, enable_service_discovery, COORDINATOR_SERVICE_NAME, DEBUG_SERVICE_NAME,
+};
 
 /// Include the module that implements the context functions
 mod context;
@@ -109,8 +112,7 @@ fn get_lib_search_path(search_path_additions: &[String]) -> Simpath {
     }
 
     if lib_search_path.is_empty() {
-        let home_dir = env::var("HOME")
-            .unwrap_or_else(|_| "Could not get $HOME".to_string());
+        let home_dir = env::var("HOME").unwrap_or_else(|_| "Could not get $HOME".to_string());
         lib_search_path.add(&format!("{home_dir}/.flow/lib"));
     }
 
@@ -154,22 +156,20 @@ fn run() -> Result<()> {
         client_only(
             &matches,
             lib_search_path,
-            #[cfg(feature = "debugger")] debug_this_flow,
+            #[cfg(feature = "debugger")]
+            debug_this_flow,
             *discovery_port,
         )?;
     } else if matches.get_flag("server") {
-        coordinator_only(
-            num_threads,
-            lib_search_path,
-            native_flowstdlib,
-        )?;
+        coordinator_only(num_threads, lib_search_path, native_flowstdlib)?;
     } else {
         client_and_coordinator(
             num_threads,
             lib_search_path,
             native_flowstdlib,
             &matches,
-            #[cfg(feature = "debugger")] debug_this_flow,
+            #[cfg(feature = "debugger")]
+            debug_this_flow,
         )?;
     };
 
@@ -178,24 +178,22 @@ fn run() -> Result<()> {
 
 /// Start just a [Coordinator][flowrlib::coordinator::Coordinator] in the calling thread.
 fn coordinator_only(
-                num_threads: usize,
-                lib_search_path: Simpath,
-                native_flowstdlib: bool,
-                ) -> Result<()> {
+    num_threads: usize,
+    lib_search_path: Simpath,
+    native_flowstdlib: bool,
+) -> Result<()> {
     let coordinator_port = pick_unused_port().chain_err(|| "No ports free")?;
-    let coordinator_connection = CoordinatorConnection::new(COORDINATOR_SERVICE_NAME,
-                                                            coordinator_port)?;
+    let coordinator_connection =
+        CoordinatorConnection::new(COORDINATOR_SERVICE_NAME, coordinator_port)?;
     let discovery_port = pick_unused_port().chain_err(|| "No ports free")?;
-    enable_service_discovery(discovery_port, COORDINATOR_SERVICE_NAME,
-                             coordinator_port)?;
+    enable_service_discovery(discovery_port, COORDINATOR_SERVICE_NAME, coordinator_port)?;
 
     #[cfg(feature = "debugger")]
     let debug_port = pick_unused_port().chain_err(|| "No ports free")?;
     #[cfg(feature = "debugger")]
-    let debug_server_connection = CoordinatorConnection::new(DEBUG_SERVICE_NAME,
-                                                             debug_port)?;
+    let debug_server_connection = CoordinatorConnection::new(DEBUG_SERVICE_NAME, debug_port)?;
     #[cfg(feature = "debugger")]
-    enable_service_discovery(discovery_port, DEBUG_SERVICE_NAME,debug_port)?;
+    enable_service_discovery(discovery_port, DEBUG_SERVICE_NAME, debug_port)?;
 
     println!("{discovery_port}");
 
@@ -205,7 +203,8 @@ fn coordinator_only(
         lib_search_path,
         native_flowstdlib,
         coordinator_connection,
-        #[cfg(feature = "debugger")] debug_server_connection,
+        #[cfg(feature = "debugger")]
+        debug_server_connection,
         true,
     )?;
 
@@ -221,12 +220,11 @@ fn client_and_coordinator(
     lib_search_path: Simpath,
     native_flowstdlib: bool,
     matches: &ArgMatches,
-    #[cfg(feature = "debugger")]
-    debug_this_flow: bool,
+    #[cfg(feature = "debugger")] debug_this_flow: bool,
 ) -> Result<()> {
     let runtime_port = pick_unused_port().chain_err(|| "No ports free")?;
-    let coordinator_connection = CoordinatorConnection::new(COORDINATOR_SERVICE_NAME,
-                                                            runtime_port)?;
+    let coordinator_connection =
+        CoordinatorConnection::new(COORDINATOR_SERVICE_NAME, runtime_port)?;
 
     let discovery_port = pick_unused_port().chain_err(|| "No ports free")?;
     enable_service_discovery(discovery_port, COORDINATOR_SERVICE_NAME, runtime_port)?;
@@ -234,8 +232,7 @@ fn client_and_coordinator(
     #[cfg(feature = "debugger")]
     let debug_port = pick_unused_port().chain_err(|| "No ports free")?;
     #[cfg(feature = "debugger")]
-    let debug_connection = CoordinatorConnection::new(DEBUG_SERVICE_NAME,
-                                                      debug_port)?;
+    let debug_connection = CoordinatorConnection::new(DEBUG_SERVICE_NAME, debug_port)?;
     enable_service_discovery(discovery_port, DEBUG_SERVICE_NAME, debug_port)?;
 
     let coordinator_lib_search_path = lib_search_path.clone();
@@ -247,7 +244,8 @@ fn client_and_coordinator(
             coordinator_lib_search_path,
             native_flowstdlib,
             coordinator_connection,
-            #[cfg(feature = "debugger")] debug_connection,
+            #[cfg(feature = "debugger")]
+            debug_connection,
             false,
         );
     });
@@ -260,8 +258,10 @@ fn client_and_coordinator(
         matches,
         lib_search_path,
         &runtime_client_connection,
-        #[cfg(feature = "debugger")] debug_this_flow,
-        #[cfg(feature = "debugger")] discovery_port,
+        #[cfg(feature = "debugger")]
+        debug_this_flow,
+        #[cfg(feature = "debugger")]
+        discovery_port,
     )
 }
 
@@ -279,10 +279,12 @@ fn coordinator(
     let connection = Arc::new(Mutex::new(coordinator_connection));
 
     #[cfg(feature = "debugger")]
-    let mut debug_server = CliDebugHandler { debug_server_connection: debug_connection };
+    let mut debug_server = CliDebugHandler {
+        debug_server_connection: debug_connection,
+    };
 
-    let provider = Arc::new(MetaProvider::new(lib_search_path,
-                                         PathBuf::from("/"))) as Arc<dyn Provider>;
+    let provider =
+        Arc::new(MetaProvider::new(lib_search_path, PathBuf::from("/"))) as Arc<dyn Provider>;
 
     let ports = get_four_ports()?;
     trace!("Announcing three job queues and a control socket on ports: {ports:?}");
@@ -303,24 +305,28 @@ fn coordinator(
         executor.add_lib(
             flowstdlib::manifest::get()
                 .chain_err(|| "Could not get 'native' flowstdlib manifest")?,
-            Url::parse("memory://")? // Statically linked library has no resolved Url
+            Url::parse("memory://")?, // Statically linked library has no resolved Url
         )?;
     }
-    executor.start(&provider, num_threads,
-                   &job_source_name,
-                   &results_sink,
-                   &control_socket,
+    executor.start(
+        &provider,
+        num_threads,
+        &job_source_name,
+        &results_sink,
+        &control_socket,
     );
 
     let mut context_executor = Executor::new();
     context_executor.add_lib(
         context::get_manifest(connection.clone())?,
-        Url::parse("memory://")? // Statically linked library has no resolved Url
+        Url::parse("memory://")?, // Statically linked library has no resolved Url
     )?;
-    context_executor.start(&provider, 1,
-                           &context_job_source_name,
-                           &results_sink,
-                            &control_socket,
+    context_executor.start(
+        &provider,
+        1,
+        &context_job_source_name,
+        &results_sink,
+        &control_socket,
     );
 
     let mut submitter = CLISubmissionHandler::new(connection);
@@ -328,7 +334,8 @@ fn coordinator(
     let mut coordinator = Coordinator::new(
         dispatcher,
         &mut submitter,
-        #[cfg(feature = "debugger")] &mut debug_server
+        #[cfg(feature = "debugger")]
+        &mut debug_server,
     );
 
     coordinator.submission_loop(loop_forever)?;
@@ -350,8 +357,10 @@ fn client_only(
         matches,
         lib_search_path,
         &client_connection,
-        #[cfg(feature = "debugger")] debug_this_flow,
-        #[cfg(feature = "debugger")] discovery_port,
+        #[cfg(feature = "debugger")]
+        debug_this_flow,
+        #[cfg(feature = "debugger")]
+        discovery_port,
     )
 }
 
@@ -372,29 +381,30 @@ fn client(
     let (flow_manifest, _) = FlowManifest::load(&provider, &flow_manifest_url)?;
 
     let flow_args = get_flow_args(matches, &flow_manifest_url);
-    let parallel_jobs_limit = matches.get_one::<usize>("jobs")
+    let parallel_jobs_limit = matches
+        .get_one::<usize>("jobs")
         .map(std::borrow::ToOwned::to_owned);
     let submission = Submission::new(
         flow_manifest,
         parallel_jobs_limit,
         None, // No timeout waiting for job results
-        #[cfg(feature = "debugger")] debug_this_flow,
+        #[cfg(feature = "debugger")]
+        debug_this_flow,
     );
 
     trace!("Creating CliRuntimeClient");
     let client = CliRuntimeClient::new(
         flow_args,
         override_args.clone(),
-        #[cfg(feature = "metrics")] matches.get_flag("metrics"),
+        #[cfg(feature = "metrics")]
+        matches.get_flag("metrics"),
     );
 
     #[cfg(feature = "debugger")]
     if debug_this_flow {
-        let debug_server_address = discover_service(discovery_port,
-                                                    DEBUG_SERVICE_NAME)?;
+        let debug_server_address = discover_service(discovery_port, DEBUG_SERVICE_NAME)?;
         let debug_client_connection = ClientConnection::new(&debug_server_address)?;
-        let debug_client = CliDebugClient::new(debug_client_connection,
-            override_args);
+        let debug_client = CliDebugClient::new(debug_client_connection, override_args);
         let _ = thread::spawn(move || {
             debug_client.debug_client_loop();
         });
@@ -413,20 +423,22 @@ fn client(
 fn num_threads(matches: &ArgMatches) -> usize {
     match matches.get_one::<usize>("threads") {
         Some(num_threads) => *num_threads,
-        None => {
+        None =>
+        {
             #[allow(clippy::redundant_closure)]
-            thread::available_parallelism().map(|n| n.get()).unwrap_or(1)
+            thread::available_parallelism()
+                .map(|n| n.get())
+                .unwrap_or(1)
         }
     }
 }
 
 /// Parse the command line arguments using clap
 fn get_matches() -> ArgMatches {
-    let app = Command::new(env!("CARGO_PKG_NAME"))
-        .version(env!("CARGO_PKG_VERSION"));
+    let app = Command::new(env!("CARGO_PKG_NAME")).version(env!("CARGO_PKG_VERSION"));
 
     #[cfg(feature = "debugger")]
-        let app = app.arg(
+    let app = app.arg(
         Arg::new("debugger")
             .short('d')
             .long("debugger")
@@ -435,7 +447,7 @@ fn get_matches() -> ArgMatches {
     );
 
     #[cfg(feature = "metrics")]
-        let app = app.arg(
+    let app = app.arg(
         Arg::new("metrics")
             .short('m')
             .long("metrics")
@@ -443,8 +455,8 @@ fn get_matches() -> ArgMatches {
             .help("Calculate metrics during flow execution and print them out when done"),
     );
 
-    #[cfg(not(feature = "wasm"))]
-        let app = app.arg(
+    #[cfg(feature = "flowstdlib")]
+    let app = app.arg(
         Arg::new("native")
             .short('n')
             .long("native")
@@ -511,8 +523,12 @@ fn get_matches() -> ArgMatches {
 fn parse_flow_url(matches: &ArgMatches) -> Result<Url> {
     let cwd_url = Url::from_directory_path(env::current_dir()?)
         .map_err(|()| "Could not form a Url for the current working directory")?;
-    url_from_string(&cwd_url, matches.get_one::<String>("flow-manifest")
-        .map(String::as_str))
+    url_from_string(
+        &cwd_url,
+        matches
+            .get_one::<String>("flow-manifest")
+            .map(String::as_str),
+    )
 }
 
 /// Set environment variable with the args this will not be unique, but it will be used very
@@ -524,7 +540,7 @@ fn get_flow_args(matches: &ArgMatches, flow_manifest_url: &Url) -> Vec<String> {
     // append any other arguments for the flow passed from the command line
     let additional_args = match matches.get_many::<String>("flow_args") {
         Some(strings) => strings.map(std::string::ToString::to_string).collect(),
-        None => vec![]
+        None => vec![],
     };
 
     flow_args.extend(additional_args);
@@ -562,7 +578,8 @@ fn get_bind_addresses(ports: (u16, u16, u16, u16)) -> (String, String, String, S
 
 // Return four free ports to use for client-coordinator message queues
 fn get_four_ports() -> Result<(u16, u16, u16, u16)> {
-    Ok((pick_unused_port().chain_err(|| "No ports free")?,
+    Ok((
+        pick_unused_port().chain_err(|| "No ports free")?,
         pick_unused_port().chain_err(|| "No ports free")?,
         pick_unused_port().chain_err(|| "No ports free")?,
         pick_unused_port().chain_err(|| "No ports free")?,
