@@ -84,7 +84,7 @@ impl TryFrom<&IO> for Input {
 
         Ok(Input::new(
             #[cfg(feature = "debugger")]
-            io.name(),
+                io.name(),
             data_type.type_array_order(),
             data_type.is_generic(),
             io.get_initializer().clone(),
@@ -116,8 +116,8 @@ impl Input {
         initializer: Option<InputInitializer>,
         flow_initializer: Option<InputInitializer>,
     ) -> Self
-    where
-        S: Into<Name>,
+        where
+            S: Into<Name>,
     {
         Input {
             name: name.into(),
@@ -172,10 +172,10 @@ impl Input {
         &self.flow_initializer
     }
 
-    /// Initialize an input with the `InputInitializer` if it has one, either on the function directly
-    /// or via a connection from a flow input
+    /// Initialize an input with the `InputInitializer` if it has one, either on the function
+    /// directly or via a connection from a flow input
     /// When called at start-up    it will initialize      if it's a `Once` or `Always` initializer
-    /// When called after start-up it will initialize only if it's a            `Always` initializer
+    /// When called after start-up it will initialize only if it's a           `Always` initializer
     pub fn init(&mut self, first_time: bool, flow_idle: bool) -> bool {
         match (first_time, &self.initializer) {
             (true, Some(Once(one_time))) => {
@@ -288,6 +288,7 @@ impl Input {
 mod test {
     use serde_json::json;
     use serde_json::Value;
+    use crate::model::input::InputInitializer::{Always, Once};
 
     use super::Input;
 
@@ -295,7 +296,7 @@ mod test {
     fn no_inputs_initially() {
         let input = Input::new(
             #[cfg(feature = "debugger")]
-            "",
+                "",
             0,
             false,
             None,
@@ -308,7 +309,7 @@ mod test {
     fn take_from_empty_fails() {
         let mut input = Input::new(
             #[cfg(feature = "debugger")]
-            "",
+                "",
             0,
             false,
             None,
@@ -321,7 +322,7 @@ mod test {
     fn accepts_null() {
         let mut input = Input::new(
             #[cfg(feature = "debugger")]
-            "",
+                "",
             0,
             false,
             None,
@@ -335,7 +336,7 @@ mod test {
     fn accepts_array() {
         let mut input = Input::new(
             #[cfg(feature = "debugger")]
-            "",
+                "",
             0,
             false,
             None,
@@ -349,7 +350,7 @@ mod test {
     fn take_empties() {
         let mut input = Input::new(
             #[cfg(feature = "debugger")]
-            "",
+                "",
             0,
             false,
             None,
@@ -368,7 +369,7 @@ mod test {
     fn reset_empties() {
         let mut input = Input::new(
             #[cfg(feature = "debugger")]
-            "",
+                "",
             0,
             false,
             None,
@@ -377,6 +378,83 @@ mod test {
         input.send(json!(10));
         assert!(!input.is_empty());
         input.reset();
+        assert!(input.is_empty());
+    }
+
+    #[test]
+    fn init_first_time_once() {
+        let mut input = Input::new(
+            #[cfg(feature = "debugger")]
+                "",
+            0,
+            false,
+            Some(Once(json!(1))),
+            None,
+        );
+
+        input.init(true, false);
+
+        assert_eq!(input.take(), Some(json!(1)));
+        assert!(input.is_empty());
+    }
+
+    #[test]
+    fn init_first_time_always() {
+        let mut input = Input::new(
+            #[cfg(feature = "debugger")]
+                "",
+            0,
+            false,
+            Some(Always(json!(1))),
+            None,
+        );
+
+        input.init(true, false);
+
+        assert_eq!(input.take(), Some(json!(1)));
+        assert!(input.is_empty());
+    }
+
+    #[test]
+    fn init_later_once() {
+        let mut input = Input::new(
+            #[cfg(feature = "debugger")]
+                "",
+            0,
+            false,
+            Some(Once(json!(1))),
+            None,
+        );
+
+        input.init(true, false);
+
+        assert_eq!(input.take(), Some(json!(1)));
+        assert!(input.is_empty());
+
+        input.init(false, false);
+
+        assert!(input.is_empty());
+    }
+
+    #[test]
+    fn init_later_always() {
+        let mut input = Input::new(
+            #[cfg(feature = "debugger")]
+                "",
+            0,
+            false,
+            Some(Always(json!(1))),
+            None,
+        );
+
+        input.init(true, false);
+
+        assert_eq!(input.take(), Some(json!(1)));
+        assert!(input.is_empty());
+
+        input.init(false, false);
+
+        assert_eq!(input.take(), Some(json!(1)));
         assert!(input.is_empty());
     }
 }
