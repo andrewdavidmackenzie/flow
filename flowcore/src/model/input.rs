@@ -176,34 +176,36 @@ impl Input {
     /// directly or via a connection from a flow input
     /// When called at start-up    it will initialize      if it's a `Once` or `Always` initializer
     /// When called after start-up it will initialize only if it's a           `Always` initializer
-    pub fn init(&mut self, first_time: bool, flow_idle: bool) -> bool {
-        match (first_time, &self.initializer) {
-            (true, Some(Once(one_time))) => {
+    #[allow(clippy::match_same_arms)]
+    pub fn init(&mut self, first_time: bool, flow_gone_idle: bool) -> bool {
+        match (first_time, flow_gone_idle, &self.initializer) {
+            (true, false, Some(Once(one_time))) => {
                 self.send(one_time.clone());
                 return true;
             }
-            (_, Some(Always(constant))) => {
+            (_, false, Some(Always(constant))) => {
                 self.send(constant.clone());
                 return true;
             }
-            (_, _) => {}
+            (_, _, _) => {}
         }
 
-        match (first_time, &self.flow_initializer) {
-            (true, Some(Once(one_time))) => {
+        // Flow initializers will only be applied if a function initializer has not already been
+        // applied
+        match (first_time, flow_gone_idle, &self.flow_initializer) {
+            (true, _, Some(Once(one_time))) => {
                 self.send(one_time.clone());
                 return true;
             }
-            (true, Some(Always(constant))) => {
+            (true, _, Some(Always(constant))) => {
                 self.send(constant.clone());
                 return true;
             }
-            (_, _) => {}
-        }
-
-        if let (true, Some(Always(constant))) = (flow_idle, &self.flow_initializer) {
-            self.send(constant.clone());
-            return true;
+            (_, true, Some(Always(constant))) => {
+                self.send(constant.clone());
+                return true;
+            }
+            (_, _, _) => {}
         }
 
         false
