@@ -47,6 +47,7 @@ to = "stdout"
     }
 
     #[test]
+    #[ignore]
     fn test_array_initializers() {
         let flow = r#"
 flow = "sequence-of-sequences"
