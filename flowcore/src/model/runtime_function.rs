@@ -77,7 +77,7 @@ impl fmt::Display for RuntimeFunction {
         }
 
         for output_route in &self.output_connections {
-            writeln!(f, "\t{output_route}",)?;
+            writeln!(f, "\t{output_route}", )?;
         }
 
         Ok(())
@@ -169,9 +169,9 @@ impl RuntimeFunction {
     }
 
     /// Initialize `Inputs` that have `InputInitializers` on them
-    pub fn init_inputs(&mut self, first_time: bool, flow_idle: bool) {
+    pub fn init_inputs(&mut self, first_time: bool, flow_gone_idle: bool) {
         for (io_number, input) in &mut self.inputs.iter_mut().enumerate() {
-            if input.init(first_time, flow_idle) {
+            if input.init(first_time, flow_gone_idle) {
                 debug!(
                     "\tInitialized Input #{}:{io_number} in Flow #{}",
                     self.function_id, self.flow_id
@@ -422,17 +422,17 @@ mod test {
             0,
             String::default(),
             #[cfg(feature = "debugger")]
-            String::default(),
+                String::default(),
         );
         RuntimeFunction::new(
             #[cfg(feature = "debugger")]
-            "test",
+                "test",
             #[cfg(feature = "debugger")]
-            "/test",
+                "/test",
             "file://fake/implementation",
             vec![Input::new(
                 #[cfg(feature = "debugger")]
-                "",
+                    "",
                 array_order,
                 false,
                 None,
@@ -475,13 +475,13 @@ mod test {
             0,
             String::default(),
             #[cfg(feature = "debugger")]
-            String::default(),
+                String::default(),
         );
         let mut function = RuntimeFunction::new(
             #[cfg(feature = "debugger")]
-            "test",
+                "test",
             #[cfg(feature = "debugger")]
-            "/test",
+                "/test",
             "file://fake/test",
             vec![Input::new("", 0, false, None, None)],
             0,
@@ -520,13 +520,13 @@ mod test {
         fn test_function(array_order: i32, generic: bool) -> RuntimeFunction {
             RuntimeFunction::new(
                 #[cfg(feature = "debugger")]
-                "test",
+                    "test",
                 #[cfg(feature = "debugger")]
-                "/test",
+                    "/test",
                 "file://fake/test",
                 vec![Input::new(
                     #[cfg(feature = "debugger")]
-                    "",
+                        "",
                     array_order,
                     generic,
                     None,

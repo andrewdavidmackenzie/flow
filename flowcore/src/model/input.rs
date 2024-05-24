@@ -84,7 +84,7 @@ impl TryFrom<&IO> for Input {
 
         Ok(Input::new(
             #[cfg(feature = "debugger")]
-            io.name(),
+                io.name(),
             data_type.type_array_order(),
             data_type.is_generic(),
             io.get_initializer().clone(),
@@ -116,8 +116,8 @@ impl Input {
         initializer: Option<InputInitializer>,
         flow_initializer: Option<InputInitializer>,
     ) -> Self
-    where
-        S: Into<Name>,
+        where
+            S: Into<Name>,
     {
         Input {
             name: name.into(),
@@ -172,38 +172,40 @@ impl Input {
         &self.flow_initializer
     }
 
-    /// Initialize an input with the `InputInitializer` if it has one, either on the function directly
-    /// or via a connection from a flow input
+    /// Initialize an input with the `InputInitializer` if it has one, either on the function
+    /// directly or via a connection from a flow input
     /// When called at start-up    it will initialize      if it's a `Once` or `Always` initializer
-    /// When called after start-up it will initialize only if it's a            `Always` initializer
-    pub fn init(&mut self, first_time: bool, flow_idle: bool) -> bool {
-        match (first_time, &self.initializer) {
-            (true, Some(Once(one_time))) => {
+    /// When called after start-up it will initialize only if it's a           `Always` initializer
+    #[allow(clippy::match_same_arms)]
+    pub fn init(&mut self, first_time: bool, flow_gone_idle: bool) -> bool {
+        match (first_time, flow_gone_idle, &self.initializer) {
+            (true, false, Some(Once(one_time))) => {
                 self.send(one_time.clone());
                 return true;
             }
-            (_, Some(Always(constant))) => {
+            (_, false, Some(Always(constant))) => {
                 self.send(constant.clone());
                 return true;
             }
-            (_, _) => {}
+            (_, _, _) => {}
         }
 
-        match (first_time, &self.flow_initializer) {
-            (true, Some(Once(one_time))) => {
+        // Flow initializers will only be applied if a function initializer has not already been
+        // applied
+        match (first_time, flow_gone_idle, &self.flow_initializer) {
+            (true, _, Some(Once(one_time))) => {
                 self.send(one_time.clone());
                 return true;
             }
-            (true, Some(Always(constant))) => {
+            (true, _, Some(Always(constant))) => {
                 self.send(constant.clone());
                 return true;
             }
-            (_, _) => {}
-        }
-
-        if let (true, Some(Always(constant))) = (flow_idle, &self.flow_initializer) {
-            self.send(constant.clone());
-            return true;
+            (_, true, Some(Always(constant))) => {
+                self.send(constant.clone());
+                return true;
+            }
+            (_, _, _) => {}
         }
 
         false
@@ -288,6 +290,7 @@ impl Input {
 mod test {
     use serde_json::json;
     use serde_json::Value;
+    use crate::model::input::InputInitializer::{Always, Once};
 
     use super::Input;
 
@@ -295,7 +298,7 @@ mod test {
     fn no_inputs_initially() {
         let input = Input::new(
             #[cfg(feature = "debugger")]
-            "",
+                "",
             0,
             false,
             None,
@@ -308,7 +311,7 @@ mod test {
     fn take_from_empty_fails() {
         let mut input = Input::new(
             #[cfg(feature = "debugger")]
-            "",
+                "",
             0,
             false,
             None,
@@ -321,7 +324,7 @@ mod test {
     fn accepts_null() {
         let mut input = Input::new(
             #[cfg(feature = "debugger")]
-            "",
+                "",
             0,
             false,
             None,
@@ -335,7 +338,7 @@ mod test {
     fn accepts_array() {
         let mut input = Input::new(
             #[cfg(feature = "debugger")]
-            "",
+                "",
             0,
             false,
             None,
@@ -349,7 +352,7 @@ mod test {
     fn take_empties() {
         let mut input = Input::new(
             #[cfg(feature = "debugger")]
-            "",
+                "",
             0,
             false,
             None,
@@ -368,7 +371,7 @@ mod test {
     fn reset_empties() {
         let mut input = Input::new(
             #[cfg(feature = "debugger")]
-            "",
+                "",
             0,
             false,
             None,
@@ -377,6 +380,83 @@ mod test {
         input.send(json!(10));
         assert!(!input.is_empty());
         input.reset();
+        assert!(input.is_empty());
+    }
+
+    #[test]
+    fn init_first_time_once() {
+        let mut input = Input::new(
+            #[cfg(feature = "debugger")]
+                "",
+            0,
+            false,
+            Some(Once(json!(1))),
+            None,
+        );
+
+        input.init(true, false);
+
+        assert_eq!(input.take(), Some(json!(1)));
+        assert!(input.is_empty());
+    }
+
+    #[test]
+    fn init_first_time_always() {
+        let mut input = Input::new(
+            #[cfg(feature = "debugger")]
+                "",
+            0,
+            false,
+            Some(Always(json!(1))),
+            None,
+        );
+
+        input.init(true, false);
+
+        assert_eq!(input.take(), Some(json!(1)));
+        assert!(input.is_empty());
+    }
+
+    #[test]
+    fn init_later_once() {
+        let mut input = Input::new(
+            #[cfg(feature = "debugger")]
+                "",
+            0,
+            false,
+            Some(Once(json!(1))),
+            None,
+        );
+
+        input.init(true, false);
+
+        assert_eq!(input.take(), Some(json!(1)));
+        assert!(input.is_empty());
+
+        input.init(false, false);
+
+        assert!(input.is_empty());
+    }
+
+    #[test]
+    fn init_later_always() {
+        let mut input = Input::new(
+            #[cfg(feature = "debugger")]
+                "",
+            0,
+            false,
+            Some(Always(json!(1))),
+            None,
+        );
+
+        input.init(true, false);
+
+        assert_eq!(input.take(), Some(json!(1)));
+        assert!(input.is_empty());
+
+        input.init(false, false);
+
+        assert_eq!(input.take(), Some(json!(1)));
         assert!(input.is_empty());
     }
 }
