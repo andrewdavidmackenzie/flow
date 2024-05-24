@@ -5,16 +5,17 @@
 //!
 //! At run-time, library entries can be of two types, indicated by their
 //! `ImplementationLocator``flowcore::model::lib_manifest::ImplementationLocator`
+//!
 //! - [Native][flowcore::model::lib_manifest::ImplementationLocator::Native] - a native binary
-//! (containing) all functions is built and linked by a flow
-//! runner program (e.g. `flowr`) so that any function referenced by a flow is executed natively
-//! at native speeds. `flowr` offers the user control using this via the `-n, --native`
-//! command line option.
+//!   containing all functions is built and linked by a flow runner program (e.g. `flowr`) so that
+//!   any function referenced by a flow is executed natively at native speeds. `flowr` offers the
+//!   user control using this via the `-n, --native` command line option.
+//!
 //! - `RelativePath``flowcore::model::lib_manifest::ImplementationLocator::RelativePath` - functions
-//! are compiled to WASM files and located within the library at runtime by the flow runner using
-//! this file path relative to the lib root. If either the library if not linked natively, or the
-//! `-n, --native` command line option is not used, when the function is referenced by a flow being
-//! run, it is loaded and executed in a WASM runtime.
+//!   are compiled to WASM files and located within the library at runtime by the flow runner using
+//!   this file path relative to the lib root. If either the library if not linked natively, or the
+//!   `-n, --native` command line option is not used, when the function is referenced by a flow 
+//!   being run, it is loaded and executed in a WASM runtime.
 
 /// Functions and flows to control the flow of data in a flow based on control inputs.
 pub mod control;
@@ -73,5 +74,4 @@ pub mod test {
         assert!(result.success(), );
         output
     }
-
 }
