@@ -115,19 +115,6 @@ impl fmt::Display for DataType {
     }
 }
 
-/// A set of datatypes
-pub struct DataTypeList(Vec<DataType>);
-
-impl fmt::Display for DataTypeList {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "[")?;
-        for dt in &self.0 {
-            write!(f, "{}, ", dt.string)?;
-        }
-        write!(f, "]")
-    }
-}
-
 /// Trait that is used on multiple objects to get their data type
 pub trait HasDataTypes {
     /// Return a reference to the datatype of the object implementing this trait
@@ -193,9 +180,9 @@ impl DataType {
                     Ok(DataType::from(format!("{ARRAY_TYPE}/{GENERIC_TYPE}")))
                 } else {
                     Ok(DataType::from(format!("{ARRAY_TYPE}/{}",
-                                           Self::value_type(array.first().ok_or("Could not get input")?)?)))
+                                              Self::value_type(array.first().ok_or("Could not get input")?)?)))
                 }
-            },
+            }
             Value::Object(map) => {
                 if let Some(map_entry) = map.values().next() {
                     Ok(DataType::from(format!("{OBJECT_TYPE}/{}", Self::value_type(map_entry)?)))
@@ -238,7 +225,7 @@ impl DataType {
                 } else {
                     1
                 }
-            },
+            }
             Value::Array(array) if array.is_empty() => 1,
             _ => 0,
         }
@@ -291,7 +278,7 @@ impl DataType {
         }
 
         // drop the first 'depth' segments in order to get the sub-type referred to by the route
-        Ok(DataType::from(full_type_split.split_off(subroute.depth() -1).join("/")))
+        Ok(DataType::from(full_type_split.split_off(subroute.depth() - 1).join("/")))
     }
 
     /// Determine if a source type and a destination type are compatible, counting on
@@ -311,14 +298,14 @@ impl DataType {
 
         match from.type_array_order() - to.type_array_order() {
             0 => if from == to { // from and to types are the same - hence compatible
-                    return Ok(());
-                },
+                return Ok(());
+            },
 
             1 => return Self::two_compatible_types(&from.array_type().ok_or("From type is not an array!")?,
-                                                  to),
+                                                   to),
 
             -1 => return Self::two_compatible_types(from,
-                                                  &to.array_type().ok_or("To type is not an array!")?),
+                                                    &to.array_type().ok_or("To type is not an array!")?),
 
             2 => {
                 let from = from.array_type().ok_or("From type is not an array!")?;
@@ -351,7 +338,7 @@ mod test {
         let array_of_numbers_type = DataType::from(format!("{ARRAY_TYPE}/{NUMBER_TYPE}"));
         assert_eq!(DataType::subtype_using_subroute(&array_of_numbers_type,
                                                     &Route::from(""))
-            .expect("Could not get subtype"), array_of_numbers_type);
+                       .expect("Could not get subtype"), array_of_numbers_type);
     }
 
     #[test]
@@ -370,8 +357,8 @@ mod test {
     fn array_of_numbers_subtype() {
         let subtype = DataType::subtype_using_subroute(
             &DataType::from(format!("{ARRAY_TYPE}/{NUMBER_TYPE}")),
-                                                       &Route::from("/1"))
-                                                           .expect("Could not get subtype");
+            &Route::from("/1"))
+            .expect("Could not get subtype");
         assert_eq!(subtype, DataType::from(NUMBER_TYPE));
     }
 
@@ -379,7 +366,7 @@ mod test {
     fn array_of_array_of_strings_subtype() {
         let subtype = DataType::subtype_using_subroute(
             &DataType::from(format!("{ARRAY_TYPE}/{STRING_TYPE}/{STRING_TYPE}")),
-                                                       &Route::from("/2/1"))
+            &Route::from("/2/1"))
             .expect("Could not get subtype");
         assert_eq!(subtype, DataType::from(STRING_TYPE));
     }
@@ -460,7 +447,6 @@ mod test {
         /// * array/{type}  --> array (`is_array` = true)
         /// * array/{type}  --> object (`is_array` = false) - values in Array will be serialized
         ///                     and sent to input one by one)
-
         #[test]
         fn valid_type_conversions() {
             let valid_type_conversions: Vec<(String, String, &str)> = vec![
@@ -540,7 +526,6 @@ mod test {
 
                 // serialization of second order array of generic to first order arrays of same type
                 (format!("{ARRAY_TYPE}/{ARRAY_TYPE}/{GENERIC_TYPE}"), format!("{ARRAY_TYPE}/{NUMBER_TYPE}"), ""),
-
                 (format!("{ARRAY_TYPE}/{GENERIC_TYPE}"), format!("{ARRAY_TYPE}/{ARRAY_TYPE}/{NUMBER_TYPE}"), ""),
                 (format!("{ARRAY_TYPE}/{GENERIC_TYPE}"), format!("{ARRAY_TYPE}/{NUMBER_TYPE}"), ""),
                 (format!("{ARRAY_TYPE}/{GENERIC_TYPE}"), format!("{ARRAY_TYPE}/{NUMBER_TYPE}"), "/1"),
@@ -566,30 +551,30 @@ mod test {
         #[test]
         fn invalid_type_conversions() {
             let invalid_type_conversions: Vec<(String, String, &str)> = vec![
-            // object source is only compatible with object destination or array of
-            (OBJECT_TYPE.into(), NUMBER_TYPE.into(), ""  ), // cannot convert object to number
-            (OBJECT_TYPE.into(), NULL_TYPE.into(), ""  ), // cannot convert object to null
-            (OBJECT_TYPE.into(), ARRAY_TYPE.into(), ""  ), // cannot convert object to array
-            (OBJECT_TYPE.into(), STRING_TYPE.into(), ""  ), // cannot convert object to string
-            (OBJECT_TYPE.into(), BOOLEAN_TYPE.into(), ""  ), // cannot convert object to boolean
+                // object source is only compatible with object destination or array of
+                (OBJECT_TYPE.into(), NUMBER_TYPE.into(), ""), // cannot convert object to number
+                (OBJECT_TYPE.into(), NULL_TYPE.into(), ""), // cannot convert object to null
+                (OBJECT_TYPE.into(), ARRAY_TYPE.into(), ""), // cannot convert object to array
+                (OBJECT_TYPE.into(), STRING_TYPE.into(), ""), // cannot convert object to string
+                (OBJECT_TYPE.into(), BOOLEAN_TYPE.into(), ""), // cannot convert object to boolean
 
-            // selecting from an array not allowed on non-array types
-            (NUMBER_TYPE.into(), NUMBER_TYPE.into(), "/0"), // cannot select from a non-array
-            (OBJECT_TYPE.into(), NUMBER_TYPE.into(), "/0"), // cannot select from a non-array
-            (NULL_TYPE.into(), NUMBER_TYPE.into(), "/0"), // cannot select from a non-array
-            (STRING_TYPE.into(), NUMBER_TYPE.into(), "/0"), // cannot select from a non-array
-            (BOOLEAN_TYPE.into(), NUMBER_TYPE.into(), "/0"), // cannot select from a non-array
+                // selecting from an array not allowed on non-array types
+                (NUMBER_TYPE.into(), NUMBER_TYPE.into(), "/0"), // cannot select from a non-array
+                (OBJECT_TYPE.into(), NUMBER_TYPE.into(), "/0"), // cannot select from a non-array
+                (NULL_TYPE.into(), NUMBER_TYPE.into(), "/0"), // cannot select from a non-array
+                (STRING_TYPE.into(), NUMBER_TYPE.into(), "/0"), // cannot select from a non-array
+                (BOOLEAN_TYPE.into(), NUMBER_TYPE.into(), "/0"), // cannot select from a non-array
 
-            // selecting a type from an array to send to an incompatible input
-            (format!("{ARRAY_TYPE}/{NUMBER_TYPE}"), STRING_TYPE.into(), "/0"),
-            (format!("{ARRAY_TYPE}/{NULL_TYPE}"), STRING_TYPE.into(), "/0"),
-            (format!("{ARRAY_TYPE}/{STRING_TYPE}"), NUMBER_TYPE.into(), "/0"),
-            (format!("{ARRAY_TYPE}/{BOOLEAN_TYPE}"), OBJECT_TYPE.into(), "/0"),
-            (format!("{ARRAY_TYPE}/{OBJECT_TYPE}"), BOOLEAN_TYPE.into(), "/0"),
+                // selecting a type from an array to send to an incompatible input
+                (format!("{ARRAY_TYPE}/{NUMBER_TYPE}"), STRING_TYPE.into(), "/0"),
+                (format!("{ARRAY_TYPE}/{NULL_TYPE}"), STRING_TYPE.into(), "/0"),
+                (format!("{ARRAY_TYPE}/{STRING_TYPE}"), NUMBER_TYPE.into(), "/0"),
+                (format!("{ARRAY_TYPE}/{BOOLEAN_TYPE}"), OBJECT_TYPE.into(), "/0"),
+                (format!("{ARRAY_TYPE}/{OBJECT_TYPE}"), BOOLEAN_TYPE.into(), "/0"),
 
-            // Invalid object contents
-            (format!("{OBJECT_TYPE}/{NUMBER_TYPE}"), STRING_TYPE.into(), "/name"),
-            (format!("{OBJECT_TYPE}/{STRING_TYPE}"), STRING_TYPE.into(), ""),
+                // Invalid object contents
+                (format!("{OBJECT_TYPE}/{NUMBER_TYPE}"), STRING_TYPE.into(), "/name"),
+                (format!("{OBJECT_TYPE}/{STRING_TYPE}"), STRING_TYPE.into(), ""),
             ];
 
             for test in invalid_type_conversions {
@@ -607,7 +592,7 @@ mod test {
             assert!(DataType::compatible_types(
                 from_io.datatypes(),
                 to_io.datatypes(),
-                &Route::default()
+                &Route::default(),
             ).is_ok());
         }
 
@@ -618,7 +603,7 @@ mod test {
             assert!(DataType::compatible_types(
                 from_io.datatypes(),
                 to_io.datatypes(),
-                &Route::default()
+                &Route::default(),
             ).is_ok());
         }
 
@@ -629,7 +614,7 @@ mod test {
             assert!(DataType::compatible_types(
                 from_io.datatypes(),
                 to_io.datatypes(),
-                &Route::default()
+                &Route::default(),
             ).is_err());
         }
 
@@ -640,7 +625,7 @@ mod test {
             assert!(DataType::compatible_types(
                 from_io.datatypes(),
                 to_io.datatypes(),
-                &Route::default()
+                &Route::default(),
             ).is_ok());
         }
 
@@ -651,7 +636,7 @@ mod test {
             assert!(DataType::compatible_types(
                 from_io.datatypes(),
                 to_io.datatypes(),
-                &Route::default()
+                &Route::default(),
             ).is_ok());
         }
 
@@ -662,7 +647,7 @@ mod test {
             assert!(DataType::compatible_types(
                 from_io.datatypes(),
                 to_io.datatypes(),
-                &Route::default()
+                &Route::default(),
             ).is_err());
         }
 
@@ -673,7 +658,7 @@ mod test {
             assert!(DataType::compatible_types(
                 from_io.datatypes(),
                 to_io.datatypes(),
-                &Route::default()
+                &Route::default(),
             ).is_ok());
         }
 
@@ -684,7 +669,7 @@ mod test {
             assert!(DataType::compatible_types(
                 from_io.datatypes(),
                 to_io.datatypes(),
-                &Route::default()
+                &Route::default(),
             ).is_ok());
         }
 
@@ -695,7 +680,7 @@ mod test {
             assert!(DataType::compatible_types(
                 from_io.datatypes(),
                 to_io.datatypes(),
-                &Route::default()
+                &Route::default(),
             ).is_err());
         }
 
@@ -707,7 +692,7 @@ mod test {
             assert!(DataType::compatible_types(
                 from_io.datatypes(),
                 to_io.datatypes(),
-                &Route::default()
+                &Route::default(),
             ).is_ok());
         }
 
@@ -718,7 +703,7 @@ mod test {
             assert!(DataType::compatible_types(
                 from_io.datatypes(),
                 to_io.datatypes(),
-                &Route::default()
+                &Route::default(),
             ).is_ok());
         }
 
@@ -729,7 +714,7 @@ mod test {
             assert!(DataType::compatible_types(
                 from_io.datatypes(),
                 to_io.datatypes(),
-                &Route::default()
+                &Route::default(),
             ).is_ok());
         }
 
@@ -740,7 +725,7 @@ mod test {
             assert!(DataType::compatible_types(
                 from_io.datatypes(),
                 to_io.datatypes(),
-                &Route::default()
+                &Route::default(),
             ).is_ok());
         }
 
@@ -751,7 +736,7 @@ mod test {
             assert!(DataType::compatible_types(
                 from_io.datatypes(),
                 to_io.datatypes(),
-                &Route::default()
+                &Route::default(),
             ).is_err());
         }
 
@@ -762,7 +747,7 @@ mod test {
             assert!(DataType::compatible_types(
                 from_io.datatypes(),
                 to_io.datatypes(),
-                &Route::default()
+                &Route::default(),
             ).is_err());
         }
 
@@ -773,7 +758,7 @@ mod test {
             assert!(DataType::compatible_types(
                 from_io.datatypes(),
                 to_io.datatypes(),
-                &Route::default()
+                &Route::default(),
             ).is_ok());
         }
 
@@ -784,7 +769,7 @@ mod test {
             assert!(DataType::compatible_types(
                 from_io.datatypes(),
                 to_io.datatypes(),
-                &Route::default()
+                &Route::default(),
             ).is_ok());
         }
 
@@ -795,7 +780,7 @@ mod test {
             assert!(DataType::compatible_types(
                 from_io.datatypes(),
                 to_io.datatypes(),
-                &Route::default()
+                &Route::default(),
             ).is_err());
         }
 
@@ -806,7 +791,7 @@ mod test {
             assert!(DataType::compatible_types(
                 from_io.datatypes(),
                 to_io.datatypes(),
-                &Route::default()
+                &Route::default(),
             ).is_err());
         }
 
@@ -817,7 +802,7 @@ mod test {
             assert!(DataType::compatible_types(
                 from_io.datatypes(),
                 to_io.datatypes(),
-                &Route::default()
+                &Route::default(),
             ).is_err());
         }
     }
