@@ -62,7 +62,7 @@ impl fmt::Display for CoordinatorMessage {
                 CoordinatorMessage::Disconnected(_) => "Disconnected",
                 CoordinatorMessage::FlowEnd(_) => "FlowEnd",
                 CoordinatorMessage::FlowStart => "FlowStart",
-                CoordinatorMessage::CoordinatorExiting(_) =>"CoordinatorExiting",
+                CoordinatorMessage::CoordinatorExiting(_) => "CoordinatorExiting",
                 CoordinatorMessage::Stdout(_) => "Stdout",
                 CoordinatorMessage::Stderr(_) => "Stderr",
                 CoordinatorMessage::GetStdin => "GetStdIn",
@@ -91,10 +91,7 @@ pub struct FileMetaData {
 
 impl From<CoordinatorMessage> for String {
     fn from(msg: CoordinatorMessage) -> Self {
-        match serde_json::to_string(&msg) {
-            Ok(message_string) => message_string,
-            _ => String::new(),
-        }
+        serde_json::to_string(&msg).unwrap_or_default()
     }
 }
 

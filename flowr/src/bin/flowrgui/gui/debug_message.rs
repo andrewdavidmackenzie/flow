@@ -104,10 +104,7 @@ impl fmt::Display for DebugServerMessage {
 
 impl From<DebugServerMessage> for String {
     fn from(msg: DebugServerMessage) -> Self {
-        match serde_json::to_string(&msg) {
-            Ok(message_string) => message_string,
-            _ => String::new(),
-        }
+        serde_json::to_string(&msg).unwrap_or_default()
     }
 }
 

@@ -68,19 +68,13 @@ impl fmt::Display for DebugCommand {
 
 impl From<&DebugCommand> for String {
     fn from(command: &DebugCommand) -> Self {
-        match serde_json::to_string(command) {
-            Ok(command_string) => command_string,
-            _ => String::new(), // Should never occur
-        }
+        serde_json::to_string(command).unwrap_or_default()
     }
 }
 
 impl From<DebugCommand> for String {
     fn from(command: DebugCommand) -> Self {
-        match serde_json::to_string(&command) {
-            Ok(command_string) => command_string,
-            _ => String::new(), // Should never occur
-        }
+        serde_json::to_string(&command).unwrap_or_default()
     }
 }
 
