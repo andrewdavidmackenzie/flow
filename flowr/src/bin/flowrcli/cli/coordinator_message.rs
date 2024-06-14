@@ -151,10 +151,7 @@ impl fmt::Display for ClientMessage {
 
 impl From<CoordinatorMessage> for String {
     fn from(msg: CoordinatorMessage) -> Self {
-        match serde_json::to_string(&msg) {
-            Ok(message_string) => message_string,
-            _ => String::new(),
-        }
+        serde_json::to_string(&msg).unwrap_or_default()
     }
 }
 
@@ -169,10 +166,7 @@ impl From<String> for CoordinatorMessage {
 
 impl From<ClientMessage> for String {
     fn from(msg: ClientMessage) -> Self {
-        match serde_json::to_string(&msg) {
-            Ok(message_string) => message_string,
-            _ => String::new(),
-        }
+        serde_json::to_string(&msg).unwrap_or_default()
     }
 }
 
