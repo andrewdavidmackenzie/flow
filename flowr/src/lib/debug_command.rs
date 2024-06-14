@@ -74,7 +74,7 @@ impl From<&DebugCommand> for String {
 
 impl From<DebugCommand> for String {
     fn from(command: DebugCommand) -> Self {
-        serde_json::to_string(command).unwrap_or_default()
+        serde_json::to_string(&command).unwrap_or_default()
     }
 }
 
