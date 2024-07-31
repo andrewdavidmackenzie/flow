@@ -36,7 +36,7 @@ error-chain = {version = "0.12.2"}
 url = { version = "2.2", features = ["serde"] }
 log = {version = "0.4.22"}
 serde = { version = "~1.0.204"}
-toml = { version = "0.8.16" }
+toml = { version = "0.8.17" }
 serde_yaml = { version = "~0.9" }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
