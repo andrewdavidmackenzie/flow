@@ -97,6 +97,7 @@ pub fn run_example(source_file: &str, runner: &str, flowrex: bool, native: bool)
     if let Some(mut child) = flowrex_child {
         println!("Killing 'flowrex'");
         child.kill().expect("Failed to kill server child process");
+        child.wait();
     }
 }
 
@@ -248,6 +249,7 @@ pub fn execute_flow_client_server(example_name: &str, manifest: PathBuf) {
 
     println!("Killing 'flowr' server");
     server.kill().expect("Failed to kill server child process");
+    server.wait();
 
     if !actual_stderr.is_empty() {
         eprintln!("STDERR: {actual_stderr}");
