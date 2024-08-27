@@ -21,6 +21,8 @@ use flowcore::model::runtime_function::RuntimeFunction;
 use crate::compiler::compile::CompilerTables;
 use crate::errors::{Result, ResultExt};
 
+/// Create a compiled flow's `[FlowManifest]` from the parsed `[FlowDefinition]`
+///
 /// Paths in the manifest are relative to the location of the manifest file, to make the file
 /// and associated files relocatable (and maybe packaged into a ZIP etc). So we use `manifest_url`
 /// as the location other file paths are made relative to.
@@ -89,9 +91,9 @@ pub fn write_flow_manifest(
         &manifest_url,
         tables,
         #[cfg(feature = "debugger")]
-        source_urls,
+            source_urls,
     )
-    .chain_err(|| "Could not create manifest from parsed flow and compiler tables")?;
+        .chain_err(|| "Could not create manifest from parsed flow and compiler tables")?;
 
     manifest_file
         .write_all(
@@ -114,14 +116,14 @@ fn function_to_runtimefunction(
     debug_symbols: bool,
 ) -> Result<RuntimeFunction> {
     #[cfg(feature = "debugger")]
-    let name = if debug_symbols {
+        let name = if debug_symbols {
         function.alias().to_string()
     } else {
         String::new()
     };
 
     #[cfg(feature = "debugger")]
-    let route = if debug_symbols {
+        let route = if debug_symbols {
         function.route().to_string()
     } else {
         String::new()
@@ -138,9 +140,9 @@ fn function_to_runtimefunction(
 
     Ok(RuntimeFunction::new(
         #[cfg(feature = "debugger")]
-        name,
+            name,
         #[cfg(feature = "debugger")]
-        route,
+            route,
         implementation_location,
         runtime_inputs,
         function.get_id(),
@@ -222,7 +224,7 @@ mod test {
                     0,
                     String::default(),
                     #[cfg(feature = "debugger")]
-                    String::default(),
+                        String::default(),
                 ),
                 OutputConnection::new(
                     Output("sub_route".into()),
@@ -231,7 +233,7 @@ mod test {
                     0,
                     String::default(),
                     #[cfg(feature = "debugger")]
-                    String::default(),
+                        String::default(),
                 ),
             ],
             0,
@@ -266,7 +268,7 @@ mod test {
             &br,
             false,
         )
-        .expect("Could not convert compile time function to runtime function");
+            .expect("Could not convert compile time function to runtime function");
 
         let serialized_process = serde_json::to_string_pretty(&runtime_process)
             .expect("Could not convert function content to json");
@@ -293,7 +295,7 @@ mod test {
                 0,
                 String::default(),
                 #[cfg(feature = "debugger")]
-                String::default(),
+                    String::default(),
             )],
             0,
             0,
@@ -319,7 +321,7 @@ mod test {
             &br,
             false,
         )
-        .expect("Could not convert compile time function to runtime function");
+            .expect("Could not convert compile time function to runtime function");
 
         let serialized_process = serde_json::to_string_pretty(&process)
             .expect("Could not convert function content to json");
@@ -367,7 +369,7 @@ mod test {
             &br,
             false,
         )
-        .expect("Could not convert compile time function to runtime function");
+            .expect("Could not convert compile time function to runtime function");
 
         let serialized_process = serde_json::to_string_pretty(&process)
             .expect("Could not convert function content to json");
@@ -415,7 +417,7 @@ mod test {
             &br,
             false,
         )
-        .expect("Could not convert compile time function to runtime function");
+            .expect("Could not convert compile time function to runtime function");
 
         let serialized_process = serde_json::to_string_pretty(&process)
             .expect("Could not convert function content to json");
@@ -459,7 +461,7 @@ mod test {
             &br,
             false,
         )
-        .expect("Could not convert compile time function to runtime function");
+            .expect("Could not convert compile time function to runtime function");
 
         let serialized_process = serde_json::to_string_pretty(&process)
             .expect("Could not convert function content to json");
@@ -485,7 +487,7 @@ mod test {
                 0,
                 String::default(),
                 #[cfg(feature = "debugger")]
-                String::default(),
+                    String::default(),
             )],
             0,
             0,
@@ -497,7 +499,7 @@ mod test {
         let function = test_function();
 
         #[cfg(feature = "debugger")]
-        let expected = "{
+            let expected = "{
   'name': 'print',
   'route': '/flow0/stdout',
   'function_id': 0,
@@ -512,7 +514,7 @@ mod test {
   ]
 }";
         #[cfg(not(feature = "debugger"))]
-        let expected = "{
+            let expected = "{
   'function_id': 0,
   'flow_id': 0,
   'implementation_location': 'context://stdio/stdout',
@@ -531,7 +533,7 @@ mod test {
             &br,
             true,
         )
-        .expect("Could not convert compile time function to runtime function");
+            .expect("Could not convert compile time function to runtime function");
 
         let serialized_process = serde_json::to_string_pretty(&process)
             .expect("Could not convert function content to json");
@@ -558,7 +560,7 @@ mod test {
                 0,
                 String::default(),
                 #[cfg(feature = "debugger")]
-                String::default(),
+                    String::default(),
             )],
             0,
             0,
@@ -587,7 +589,7 @@ mod test {
             &br,
             false,
         )
-        .expect("Could not convert compile time function to runtime function");
+            .expect("Could not convert compile time function to runtime function");
 
         let serialized_process = serde_json::to_string_pretty(&process)
             .expect("Could not convert function content to json");

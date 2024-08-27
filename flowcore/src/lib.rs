@@ -4,14 +4,14 @@ use serde_json::Value;
 
 use crate::errors::Result;
 
-/// a set of serializers to read definition files from various text formats based on file extension
+/// serializers to read definition files from various text formats based on file extension
 pub mod deserializers;
 
 /// contains [Error] that other modules in this crate will `use errors::*;`
 /// to get access to everything `error_chain` creates.
 pub mod errors;
 
-/// is used to resolve library references of the type "lib://" and "context://" using lib search path
+/// `meta_provider` resolves library references of the type "lib://" and "context://"
 #[cfg(all(not(target_arch = "wasm32"), feature = "meta_provider"))]
 pub mod meta_provider;
 
@@ -38,6 +38,8 @@ pub type RunAgain = bool;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod content;
 
+/// The `Implementation` trait used by functions to provide the code that runs on inputs
+///
 /// A function's implementation must implement this trait with a single `run()` method that takes
 /// as input an array of values and it returns a `Result` tuple with an Optional output `Value`
 /// plus a `RunAgain` indicating if it should be run again.

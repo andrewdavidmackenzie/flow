@@ -3,8 +3,9 @@ use url::Url;
 
 use crate::errors::{Result, ResultExt};
 
-/// Accept an optional string (URL or filename) and from it create an absolute path URL with correct
-/// scheme. This allows specifying of full URL (http, file etc) as well as file paths relative
+/// `url_from_string` accepts an optional string (URL or filename) and creates an absolute path URL
+///
+/// This allows specifying of full URL (http, file etc) as well as file paths relative
 /// to the working directory.
 ///
 /// Depending on the parameter passed in:
