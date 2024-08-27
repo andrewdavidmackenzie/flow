@@ -10,19 +10,19 @@ use std::process::{Command, Stdio};
 const TEST_STDOUT_FILENAME: &str = "test.stdout";
 
 /// Name of file where the Stdout is defined
-const EXPECTED_STDOUT_FILENAME : &str = "expected.stdout";
+const EXPECTED_STDOUT_FILENAME: &str = "expected.stdout";
 
 /// Name of file where any Stdin will be read from while executing am example
-const TEST_STDIN_FILENAME : &str = "test.stdin";
+const TEST_STDIN_FILENAME: &str = "test.stdin";
 
 /// Name of file where any Stderr will be written from while executing an example
-const TEST_STDERR_FILENAME : &str = "test.stderr";
+const TEST_STDERR_FILENAME: &str = "test.stderr";
 
 /// Name of file used for file output of a example
 const TEST_FILE_FILENAME: &str = "test.file";
 
 /// Name of file where expected file output is defined
-const EXPECTED_FILE_FILENAME : &str = "expected.file";
+const EXPECTED_FILE_FILENAME: &str = "expected.file";
 
 /// Name of file where flow arguments for a flow example test are read from
 const TEST_ARGS_FILENAME: &str = "test.args";
@@ -66,7 +66,7 @@ pub fn run_example(source_file: &str, runner: &str, flowrex: bool, native: bool)
         None
     };
 
-    runner_args.push( "manifest.json".into());
+    runner_args.push("manifest.json".into());
     runner_args.append(&mut args(&sample_dir).expect("Could not get flow args"));
 
     let output = File::create(sample_dir.join(TEST_STDOUT_FILENAME))
@@ -97,7 +97,7 @@ pub fn run_example(source_file: &str, runner: &str, flowrex: bool, native: bool)
     if let Some(mut child) = flowrex_child {
         println!("Killing 'flowrex'");
         child.kill().expect("Failed to kill server child process");
-        child.wait();
+        child.wait().expect("Failed to wait for child to exit");
     }
 }
 
@@ -219,7 +219,7 @@ pub fn execute_flow_client_server(example_name: &str, manifest: PathBuf) {
 
     let mut client = Command::new("flowrcli");
     let manifest_str = manifest.to_string_lossy();
-    let client_args =  vec!["-c", discovery_port.trim(), &manifest_str];
+    let client_args = vec!["-c", discovery_port.trim(), &manifest_str];
     println!("Starting 'flowrcli' client with command line: 'flowr {}'", client_args.join(" "));
 
     // spawn the 'flowrcli' client process
@@ -249,7 +249,7 @@ pub fn execute_flow_client_server(example_name: &str, manifest: PathBuf) {
 
     println!("Killing 'flowr' server");
     server.kill().expect("Failed to kill server child process");
-    server.wait();
+    server.wait().expect("Failed to wait for child to exit");
 
     if !actual_stderr.is_empty() {
         eprintln!("STDERR: {actual_stderr}");
