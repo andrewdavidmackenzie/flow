@@ -1,10 +1,13 @@
 #![deny(missing_docs)]
 #![warn(clippy::unwrap_used)]
 
-//! This is the rust `flow` Compiler Library. It can be linked with other code to produce
-//! a flow compiler, such as the `flowc` command line flow compiler.
+//! The `flow` Compiler Library
+//!
+//! Used by `flowc` to produce the command line flow compiler.
 
-/// reads [flow definitions][flowcore::model::flow_definition] into memory, flattens and connects
+/// The main `compiler` module for parsing flow descriptions into memory.
+///
+/// It reads [flow definitions][flowcore::model::flow_definition] into memory, flattens and connects
 /// that into a graph of [runtime functions][flowcore::model::runtime_function::RuntimeFunction]
 pub mod compiler;
 

@@ -17,9 +17,10 @@ const FILE_PROVIDER: &dyn Provider = &FileProvider as &dyn Provider;
 #[cfg(feature = "http_provider")]
 const HTTP_PROVIDER: &dyn Provider = &HttpProvider as &dyn Provider;
 
-/// The `MetaProvider` implements the `Provider` trait and based on the url and it's
-/// resolution to a real location for content invokes one of the child providers it has
-/// to fetch the content (e.g. File or Http).
+/// The `MetaProvider` implements the `Provider` trait
+///
+/// Based on the url and it's resolution to a real location for content invokes one of the
+/// child providers it has to fetch the content (e.g. File or Http).
 pub struct MetaProvider {
     #[cfg(feature = "file_provider")]
     lib_search_path: Simpath,
@@ -252,11 +253,11 @@ mod test {
             "file://{}/flowcore/tests/test-flows/control/compare_switch/compare_switch.toml",
             root_str.display()
         ))
-        .expect("Could not create expected url");
+            .expect("Could not create expected url");
         let provider = &MetaProvider::new(
             get_lib_search_path(),
             #[cfg(feature = "context")]
-            PathBuf::from("/"),
+                PathBuf::from("/"),
         ) as &dyn Provider;
         let lib_url =
             Url::parse("lib://test-flows/control/compare_switch").expect("Couldn't form Url");
@@ -284,7 +285,7 @@ mod test {
             &Url::parse(
                 "https://raw.githubusercontent.com/andrewdavidmackenzie/flow/master/flowstdlib/src",
             )
-            .expect("Could not parse the url for Simpath"),
+                .expect("Could not parse the url for Simpath"),
         );
 
         let expected_url = Url::parse("https://raw.githubusercontent.com/andrewdavidmackenzie/flow/master/flowstdlib/src/control/tap/tap.toml")
@@ -293,7 +294,7 @@ mod test {
         let provider = &MetaProvider::new(
             search_path,
             #[cfg(feature = "context")]
-            PathBuf::from("/"),
+                PathBuf::from("/"),
         );
 
         let lib_url = Url::parse("lib://src/control/tap").expect("Couldn't create Url");

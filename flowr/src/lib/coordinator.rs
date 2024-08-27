@@ -20,8 +20,9 @@ use crate::run_state::RunState;
 #[cfg(feature = "submission")]
 use crate::submission_handler::SubmissionHandler;
 
-/// The `Coordinator` is responsible for coordinating the dispatching of jobs (consisting
-/// of a set of Input values and an Implementation of a Function) for execution,
+/// The `Coordinator` coordinates the dispatching of jobs for flow execution.
+///
+/// A Job consists of a set of Input values and an Implementation of a Function) for execution,
 /// gathering the resulting Outputs and distributing output values to other connected function's
 /// Inputs.
 ///
@@ -37,7 +38,7 @@ pub struct Coordinator<'a> {
     /// A `Debugger` to communicate with debug clients
     debugger: Debugger<'a>,
     #[cfg(all(not(feature = "debugger"), not(feature = "submission")))]
-    _data: PhantomData<&'a Dispatcher>
+    _data: PhantomData<&'a Dispatcher>,
 }
 
 impl<'a> Coordinator<'a> {
@@ -45,7 +46,7 @@ impl<'a> Coordinator<'a> {
     pub fn new(
         dispatcher: Dispatcher,
         #[cfg(feature = "submission")] submitter: &'a mut dyn SubmissionHandler,
-        #[cfg(feature = "debugger")] debug_server: &'a mut dyn DebuggerHandler
+        #[cfg(feature = "debugger")] debug_server: &'a mut dyn DebuggerHandler,
     ) -> Self {
         Coordinator {
             #[cfg(feature = "submission")]
@@ -54,7 +55,7 @@ impl<'a> Coordinator<'a> {
             #[cfg(feature = "debugger")]
             debugger: Debugger::new(debug_server),
             #[cfg(all(not(feature = "debugger"), not(feature = "submission")))]
-            _data: PhantomData
+            _data: PhantomData,
         }
     }
 
@@ -89,15 +90,15 @@ impl<'a> Coordinator<'a> {
     /// # Errors
     ///
     /// Returns an error if the execution of the flow did not complete normally.
-    /// 
+    ///
     #[allow(unused_variables, unused_assignments, unused_mut)]
     pub fn execute_flow(&mut self,
-                        submission: Submission,) -> Result<()> {
+                        submission: Submission, ) -> Result<()> {
         self.dispatcher.set_results_timeout(submission.job_timeout)?;
         let mut state = RunState::new(submission);
 
         #[cfg(feature = "metrics")]
-        let mut metrics = Metrics::new(state.num_functions());
+            let mut metrics = Metrics::new(state.num_functions());
 
         #[cfg(feature = "debugger")]
         if state.submission.debug_enabled {
@@ -136,7 +137,7 @@ impl<'a> Coordinator<'a> {
                 (display_next_output, restart) = self.dispatch_jobs(
                     &mut state,
                     #[cfg(feature = "metrics")]
-                    &mut metrics,
+                        &mut metrics,
                 )?;
 
                 if restart {
@@ -146,7 +147,7 @@ impl<'a> Coordinator<'a> {
                 (display_next_output, restart) = self.retire_jobs(
                     &mut state,
                     #[cfg(feature = "metrics")]
-                    &mut metrics,
+                        &mut metrics,
                 )?;
 
                 if restart {
@@ -234,12 +235,12 @@ impl<'a> Coordinator<'a> {
                             return Ok((display_next_output, restart));
                         }
                     }
-                },
+                }
 
                 Ok(None) => {
                     info!("No result was immediately available, but jobs are ready to be dispatched.\
                      So coordinator avoided blocking for result. Will be received next time around");
-                },
+                }
 
                 Err(err) => {
                     error!("\t{}", err.to_string());
@@ -270,7 +271,7 @@ impl<'a> Coordinator<'a> {
                 job.clone(),
                 state,
                 #[cfg(feature = "metrics")]
-                metrics,
+                    metrics,
             ) {
                 Ok((display, rest)) => {
                     display_next_output = display;
@@ -297,10 +298,10 @@ impl<'a> Coordinator<'a> {
         #[cfg(feature = "metrics")] metrics: &mut Metrics,
     ) -> Result<(bool, bool)> {
         #[cfg(not(feature = "debugger"))]
-        let debug_options = (false, false);
+            let debug_options = (false, false);
 
         #[cfg(feature = "debugger")]
-        let debug_options = self
+            let debug_options = self
             .debugger
             .check_prior_to_job(state, &job)?;
 

@@ -1,6 +1,7 @@
-//! deserializer modules provides a number of deserializers from different formats and
-//! also help methods to get a deserializer based on the file extension of a file referred to
-//!by a Url
+//! deserializer modules provides deserializers from different file formats
+//!
+//! and also helper methods to get a deserializer based on the file extension of a file referred 
+//! to by a Url
 
 // The JSON deserializer
 mod json_deserializer;

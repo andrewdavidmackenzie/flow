@@ -153,6 +153,8 @@ fn parse_process(
     Ok(process)
 }
 
+/// Parses the meta-data struct of a flow definition
+///
 /// load library metadata from the given url using the provider.
 /// Currently it uses the `package` table of Cargo.toml as a source but it could
 /// easily use another file as along as it has the required fields to satisfy `MetaData` struct

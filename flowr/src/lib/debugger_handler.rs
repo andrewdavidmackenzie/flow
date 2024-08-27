@@ -11,6 +11,8 @@ use crate::job::Job;
 use crate::run_state::RunState;
 use crate::run_state::State;
 
+/// `[DebugHandler]` trait that must be implemented by clients wishing to interface with the debugger
+///
 /// Programs that wish to offer a debugger user interface (such as a CLI or UI) should implement
 /// this trait. The [Coordinator][crate::coordinator::Coordinator] uses it to interact with the
 /// client for debugging.

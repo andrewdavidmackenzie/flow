@@ -125,8 +125,8 @@ pub fn compile(flow: &FlowDefinition,
                skip_building: bool,
                optimize: bool,
                #[cfg(feature = "debugger")]
-                source_urls: &mut BTreeMap<String, Url>
-    ) -> Result<CompilerTables> {
+               source_urls: &mut BTreeMap<String, Url>,
+) -> Result<CompilerTables> {
     let mut tables = CompilerTables::new();
 
     gatherer::gather_functions_and_connections(flow, &mut tables)?;
@@ -148,9 +148,7 @@ pub fn compile(flow: &FlowDefinition,
     Ok(tables)
 }
 
-/// Calculate the paths to the source file of the implementation of the function to be compiled
-/// and where to output the compiled wasm.
-/// `out_dir` optionally overrides the destination directory where the wasm should end up
+/// Calculate the source and output file paths of a provided function implementation to be compiled
 ///
 /// # Errors
 ///
@@ -177,7 +175,7 @@ fn compile_supplied_implementations(
     skip_building: bool,
     release_build: bool,
     #[cfg(feature = "debugger")]
-    source_urls: &mut BTreeMap<String, Url>
+    source_urls: &mut BTreeMap<String, Url>,
 ) -> Result<String> {
     for function in &mut tables.functions {
         if function.get_lib_reference().is_none() && function.get_context_reference().is_none() {
@@ -199,7 +197,7 @@ fn compile_supplied_implementations(
                 skip_building,
                 release_build,
                 #[cfg(feature = "debugger")]
-                source_urls,
+                    source_urls,
             )?;
         }
     }
@@ -284,7 +282,7 @@ fn get_source(
                         Output(format!("/{io_sub_route}{sub_route}")),
                         *function_index,
                     ))
-                }
+                };
             }
             Some((Input(io_index), function_index)) => {
                 return Some((Input(*io_index), *function_index));
@@ -442,7 +440,7 @@ mod test {
             Route::from("/print"),
             None,
             Some(Url::parse("context://stdio/stdout.toml")
-                     .expect("Could not parse Url")),
+                .expect("Could not parse Url")),
             vec![],
             0,
             0,
@@ -464,7 +462,7 @@ mod test {
             ..Default::default()
         };
 
-        let output_dir =tempdir().expect("A temp dir").into_path();
+        let output_dir = tempdir().expect("A temp dir").into_path();
         let mut source_urls = BTreeMap::<String, Url>::new();
         // Optimizer should remove unconnected function leaving no side-effects
         match compile(&flow,
@@ -472,8 +470,8 @@ mod test {
                       true,
                       false,
                       #[cfg(feature = "debugger")]
-                        &mut source_urls
-                        ) {
+                          &mut source_urls,
+        ) {
             Ok(_tables) => panic!("Flow should not compile when it has no side-effects"),
             Err(e) => assert_eq!("Flow has no side-effects", e.description()),
         }
