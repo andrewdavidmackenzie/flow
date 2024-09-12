@@ -1,3 +1,5 @@
+#![allow(missing_docs)]
+
 use std::env;
 use std::path::Path;
 use std::path::PathBuf;

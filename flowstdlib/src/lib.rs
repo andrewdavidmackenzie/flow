@@ -42,6 +42,7 @@ pub mod errors;
 
 #[cfg(test)]
 #[allow(clippy::missing_panics_doc)]
+#[allow(missing_docs)]
 pub mod test {
     use std::io::Read;
     use std::path::Path;
