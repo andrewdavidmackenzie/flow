@@ -1,3 +1,5 @@
+#![allow(missing_docs)]
+
 #[cfg(feature = "debugger")]
 use std::collections::BTreeMap;
 
@@ -36,7 +38,7 @@ mod helper;
 #[test]
 fn object_to_array_connection() {
     let meta_provider = MetaProvider::new(helper::set_lib_search_path_to_project(),
-                                          helper::get_canonical_context_root()
+                                          helper::get_canonical_context_root(),
     );
     let path = helper::absolute_file_url_from_relative_path(
         "flowc/tests/test-flows/object_to_array_connection/root.toml",
@@ -47,7 +49,7 @@ fn object_to_array_connection() {
         let output_dir = tempdir().expect("A temp dir").into_path();
 
         #[cfg(feature = "debugger")]
-        let mut source_urls = BTreeMap::<String, Url>::new();
+            let mut source_urls = BTreeMap::<String, Url>::new();
 
         let _tables = compile::compile(flow, &output_dir, false, false, &mut source_urls)
             .expect("Could not compile flow");
@@ -59,7 +61,7 @@ fn object_to_array_connection() {
 #[test]
 fn context_with_io() {
     let meta_provider = MetaProvider::new(helper::set_lib_search_path_to_project(),
-                                          helper::get_canonical_context_root()
+                                          helper::get_canonical_context_root(),
     );
     let path = helper::absolute_file_url_from_relative_path(
         "flowc/tests/test-flows/context_with_io/root.toml",
@@ -85,7 +87,7 @@ fn context_with_io() {
 #[test]
 fn same_name_input_and_output() {
     let meta_provider = MetaProvider::new(helper::set_lib_search_path_to_project(),
-                                          helper::get_canonical_context_root()
+                                          helper::get_canonical_context_root(),
     );
     let path = helper::absolute_file_url_from_relative_path(
         "flowc/tests/test-flows/same-name-parent/root.toml",
@@ -110,7 +112,7 @@ fn same_name_input_and_output() {
 #[test]
 fn same_name_flow_ids() {
     let meta_provider = MetaProvider::new(helper::set_lib_search_path_to_project(),
-                                          helper::get_canonical_context_root()
+                                          helper::get_canonical_context_root(),
     );
     let path = helper::absolute_file_url_from_relative_path(
         "flowc/tests/test-flows/same-name-parent/root.toml",
@@ -145,7 +147,7 @@ fn same_name_flow_ids() {
 #[test]
 fn connection_to_input_with_constant_initializer() {
     let meta_provider = MetaProvider::new(helper::set_lib_search_path_to_project(),
-                                          helper::get_canonical_context_root()
+                                          helper::get_canonical_context_root(),
     );
     let path = helper::absolute_file_url_from_relative_path(
         "flowc/tests/test-flows/connect_to_constant/root.toml",
@@ -159,7 +161,7 @@ fn connection_to_input_with_constant_initializer() {
             let mut source_urls = BTreeMap::<String, Url>::new();
 
         assert!(compile::compile(flow, &output_dir, false, false, &mut source_urls).is_err(),
-            "Process should not have loaded due to connection to input with a constant initializer");
+                "Process should not have loaded due to connection to input with a constant initializer");
     } else {
         panic!("Process loaded was not a flow");
     }
@@ -168,7 +170,7 @@ fn connection_to_input_with_constant_initializer() {
 #[test]
 fn args() {
     let meta_provider = MetaProvider::new(helper::set_lib_search_path_to_project(),
-                                              helper::get_canonical_context_root()
+                                          helper::get_canonical_context_root(),
     );
     let path =
         helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/args/root.toml");
@@ -190,7 +192,7 @@ fn args() {
 #[test]
 fn no_side_effects() {
     let meta_provider = MetaProvider::new(helper::set_lib_search_path_to_project(),
-                                          helper::get_canonical_context_root()
+                                          helper::get_canonical_context_root(),
     );
     let path = helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/no_side_effects/root.toml");
     let process = parser::parse(&path, &meta_provider)
@@ -215,7 +217,7 @@ fn no_side_effects() {
 #[test]
 fn compile_echo_ok() {
     let meta_provider = MetaProvider::new(helper::set_lib_search_path_to_project(),
-                                          helper::get_canonical_context_root()
+                                          helper::get_canonical_context_root(),
     );
     let process = parser::parse(
         &helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/echo/root.toml"),
@@ -236,7 +238,7 @@ fn compile_echo_ok() {
 #[test]
 fn compiler_detects_unused_input() {
     let meta_provider = MetaProvider::new(helper::set_lib_search_path_to_project(),
-                                          helper::get_canonical_context_root()
+                                          helper::get_canonical_context_root(),
     );
     let process = parser::parse(
         &helper::absolute_file_url_from_relative_path(
@@ -266,7 +268,7 @@ fn compiler_detects_unused_input() {
 #[test]
 fn flow_input_propagated_back_out() {
     let meta_provider = MetaProvider::new(helper::set_lib_search_path_to_project(),
-                                          helper::get_canonical_context_root()
+                                          helper::get_canonical_context_root(),
     );
     // Relative path from project root to the test file
     let url = helper::absolute_file_url_from_relative_path(
@@ -285,7 +287,7 @@ fn flow_input_propagated_back_out() {
                 Ok(_tables) => {}
                 Err(error) => panic!("Couldn't compile the flow from test file at '{url}'\n{error}"),
             }
-        },
+        }
         Ok(FunctionProcess(_)) => panic!("Unexpected compile result from test file at '{url}'"),
         Err(error) => panic!("Couldn't parse the flow from test file at '{url}'.\n{error}"),
     }
@@ -297,7 +299,7 @@ fn flow_input_propagated_back_out() {
 #[test]
 fn initialized_output_propagated() {
     let meta_provider = MetaProvider::new(helper::set_lib_search_path_to_project(),
-                                          helper::get_canonical_context_root()
+                                          helper::get_canonical_context_root(),
     );
     // Relative path from project root to the test file
     let url = helper::absolute_file_url_from_relative_path(
@@ -348,7 +350,7 @@ fn initialized_output_propagated() {
 #[test]
 fn initialized_input_to_subflow() {
     let meta_provider = MetaProvider::new(helper::set_lib_search_path_to_project(),
-                                          helper::get_canonical_context_root()
+                                          helper::get_canonical_context_root(),
     );
     // Relative path from project root to the test file
     let url = helper::absolute_file_url_from_relative_path(
@@ -397,7 +399,7 @@ fn initialized_input_to_subflow() {
 fn json_indexing() {
     let meta_provider = MetaProvider::new(
         helper::set_lib_search_path_to_project(),
-                                          helper::get_canonical_context_root()
+        helper::get_canonical_context_root(),
     );
     let path =
         helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/json-indexing/root.toml");

@@ -1,3 +1,5 @@
+#![allow(missing_docs)]
+
 use flowcore::meta_provider::MetaProvider;
 use flowcore::model::input::InputInitializer::{Always, Once};
 use flowcore::model::io::IO;
@@ -29,7 +31,7 @@ mod helper;
 #[test]
 fn malformed_connection() {
     let meta_provider = MetaProvider::new(helper::set_lib_search_path_to_project(),
-                                          helper::get_canonical_context_root()
+                                          helper::get_canonical_context_root(),
     );
     let path = helper::absolute_file_url_from_relative_path(
         "flowc/tests/test-flows/malformed-connection/root.toml",
@@ -45,7 +47,7 @@ fn malformed_connection() {
 #[test]
 fn aliased_context_not_allowed() {
     let meta_provider = MetaProvider::new(helper::set_lib_search_path_to_project(),
-                                          helper::get_canonical_context_root()
+                                          helper::get_canonical_context_root(),
     );
     let path = helper::absolute_file_url_from_relative_path(
         "flowc/tests/test-flows/aliased_context/root.toml",
@@ -61,7 +63,7 @@ fn aliased_context_not_allowed() {
 #[test]
 fn invalid_toml() {
     let meta_provider = MetaProvider::new(helper::set_lib_search_path_to_project(),
-                                          helper::get_canonical_context_root()
+                                          helper::get_canonical_context_root(),
     );
     let path = helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/invalid/root.toml");
     match parser::parse(&path, &meta_provider) {
@@ -73,7 +75,7 @@ fn invalid_toml() {
 #[test]
 fn no_connections() {
     let meta_provider = MetaProvider::new(helper::set_lib_search_path_to_project(),
-                                          helper::get_canonical_context_root()
+                                          helper::get_canonical_context_root(),
     );
     let path = helper::absolute_file_url_from_relative_path(
         "flowc/tests/test-flows/no-connections/root.toml",
@@ -87,7 +89,7 @@ fn no_connections() {
 #[test]
 fn function_input_initialized() {
     let meta_provider = MetaProvider::new(helper::set_lib_search_path_to_project(),
-                                          helper::get_canonical_context_root()
+                                          helper::get_canonical_context_root(),
     );
     let url = helper::absolute_file_url_from_relative_path(
         "flowc/tests/test-flows/function_input_init/root.toml",
@@ -119,7 +121,7 @@ fn function_input_initialized() {
 #[test]
 fn root_flow_takes_name_from_file() {
     let meta_provider = MetaProvider::new(helper::set_lib_search_path_to_project(),
-                                              helper::get_canonical_context_root()
+                                          helper::get_canonical_context_root(),
     );
     // Relative path from project root to the test file
     let url =
@@ -134,7 +136,7 @@ fn root_flow_takes_name_from_file() {
 #[test]
 fn load_library() {
     let meta_provider = MetaProvider::new(helper::set_lib_search_path_to_project(),
-                                              helper::get_canonical_context_root()
+                                          helper::get_canonical_context_root(),
     );
     let path = helper::absolute_file_url_from_relative_path("flowc/tests/test_libs/Cargo.toml");
     parser::parse_metadata(&path, &meta_provider).expect("Could not load metadata");
