@@ -70,7 +70,7 @@ pub fn dump_flow(
         "\n=== Dumper: Dumping flow hierarchy to '{}'",
         output_dir.display()
     );
-    _dump_flow(flow, 0, output_dir, provider)?;
+    inner_dump_flow(flow, 0, output_dir, provider)?;
     Ok(())
 }
 
@@ -98,7 +98,7 @@ pub fn generate_svgs(root_dir: &Path, delete_dots: bool) -> Result<()> {
                 .status()?.success() {
                 debug!(".dot.svg successfully generated from {path_name}");
                 if delete_dots {
-//                    std::fs::remove_file(path)?;
+                    //                    std::fs::remove_file(path)?;
                     debug!("Source file {path_name} was removed after SVG generation");
                 }
             } else {
@@ -116,11 +116,11 @@ pub fn generate_svgs(root_dir: &Path, delete_dots: bool) -> Result<()> {
     dump the flow definition recursively, tracking what level we are at as we go down
 */
 #[allow(clippy::only_used_in_recursion)]
-fn _dump_flow(
+fn inner_dump_flow(
     flow: &FlowDefinition,
     level: usize,
     target_dir: &Path,
-    provider: &dyn Provider
+    provider: &dyn Provider,
 ) -> Result<()> {
     let file_path = flow.source_url.to_file_path()
         .map_err(|()| "Could not get file_stem of flow definition filename")?;
@@ -137,11 +137,11 @@ fn _dump_flow(
     // Dump sub-flows
     for subprocess in &flow.subprocesses {
         if let FlowProcess(ref subflow) = subprocess.1 {
-            _dump_flow(
+            inner_dump_flow(
                 subflow,
                 level + 1,
                 target_dir,
-                provider
+                provider,
             )?;
         }
     }
@@ -306,7 +306,7 @@ fn subfunction_to_dot(function: &FunctionDefinition, parent: &Path) -> Result<St
     Ok(dot_string)
 }
 
-pub (crate) fn input_initializers_to_dot(function: &FunctionDefinition, function_identifier: &str) -> Result<String> {
+pub(crate) fn input_initializers_to_dot(function: &FunctionDefinition, function_identifier: &str) -> Result<String> {
     let mut initializers = "\n\t// Initializers\n".to_string();
 
     // TODO add initializers for sub-flows also
@@ -359,7 +359,7 @@ fn connection_to_dot(connection: &Connection) -> Result<String> {
     let (to_port, to_name, to_node) = if connection.to_io().flow_io() {
         ("n",
          "", // connect to the tip of the flow output pentagon, no need for name
-            connection.to_io().route().to_string()
+         connection.to_io().route().to_string()
         )
     } else {
         (input_name_to_port(connection.to_io().name())?,
@@ -384,8 +384,8 @@ fn digraph_start(flow: &FlowDefinition) -> String {
 
     // Create a directed graph named after the flow
     let _ = writeln!(wrapper,
-        "digraph {} {{",
-        str::replace(&flow.alias.to_string(), "-", "_")
+                     "digraph {} {{",
+                     str::replace(&flow.alias.to_string(), "-", "_")
     );
     let _ = writeln!(wrapper, "\tlabel=\"{}\";", flow.alias);
     let _ = writeln!(wrapper, "\tlabelloc=t;");

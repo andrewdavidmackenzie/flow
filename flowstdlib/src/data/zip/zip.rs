@@ -6,7 +6,7 @@ use flowcore::errors::Result;
 use flowmacro::flow_function;
 
 #[flow_function]
-fn _zip(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
+fn inner_zip(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
     let left = inputs.first().ok_or("Could not get left")?.as_array().ok_or("Could not get left array")?;
     let right = inputs.get(1).ok_or("Could not get right")?.as_array().ok_or("Could not get right array")?;
     let tuples = left.iter().zip(right.iter());
@@ -18,7 +18,7 @@ fn _zip(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
 mod test {
     use serde_json::{json, Value};
 
-    use super::_zip;
+    use super::inner_zip;
 
     #[test]
     fn zip_empty() {
@@ -27,7 +27,7 @@ mod test {
 
         let inputs = vec![left, right];
 
-        let (result, _) = _zip(&inputs).expect("_zip() failed");
+        let (result, _) = inner_zip(&inputs).expect("_zip() failed");
 
         let zipped_array = result.expect("Could not get the value from the output");
 
@@ -41,7 +41,7 @@ mod test {
 
         let inputs = vec![left, right];
 
-        let (result, _) = _zip(&inputs).expect("_zip() failed");
+        let (result, _) = inner_zip(&inputs).expect("_zip() failed");
 
         let zipped_array = result.expect("Could not get the value from the output");
 
@@ -55,7 +55,7 @@ mod test {
 
         let inputs = vec![left, right];
 
-        assert!(_zip(&inputs).is_err());
+        assert!(inner_zip(&inputs).is_err());
     }
 
     #[test]
@@ -65,7 +65,7 @@ mod test {
 
         let inputs = vec![left, right];
 
-        assert!(_zip(&inputs).is_err());
+        assert!(inner_zip(&inputs).is_err());
     }
 
     #[test]
@@ -75,7 +75,7 @@ mod test {
 
         let inputs = vec![left, right];
 
-        let (result, _) = _zip(&inputs).expect("_zip() failed");
+        let (result, _) = inner_zip(&inputs).expect("_zip() failed");
 
         let zipped_array = result.expect("Could not get the value from the output");
 

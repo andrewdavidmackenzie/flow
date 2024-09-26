@@ -5,7 +5,7 @@ use flowcore::errors::Result;
 use flowmacro::flow_function;
 
 #[flow_function]
-fn _sort(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
+fn inner_sort(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
     if inputs.first().ok_or("Could not get first")?.is_null() {
         return Ok((Some(Value::Null), RUN_AGAIN));
     }
@@ -21,11 +21,11 @@ fn _sort(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
 mod test {
     use serde_json::{json, Value};
 
-    use super::_sort;
+    use super::inner_sort;
 
     #[test]
     fn sort_null() {
-        let (result, _) = _sort(&[Value::Null]).expect("_sort() failed");
+        let (result, _) = inner_sort(&[Value::Null]).expect("_sort() failed");
 
         let output = result.expect("Could not get output value");
         assert_eq!(output, Value::Null);
@@ -33,12 +33,12 @@ mod test {
 
     #[test]
     fn sort_invalid() {
-        assert!(_sort(&[json!("Hello World")]).is_err());
+        assert!(inner_sort(&[json!("Hello World")]).is_err());
     }
 
     #[test]
     fn sort_one() {
-        let (result, _) = _sort(&[json!([1])]).expect("_sort() failed");
+        let (result, _) = inner_sort(&[json!([1])]).expect("_sort() failed");
 
         let output = result.expect("Could not get output value");
         assert_eq!(output, json!([1]));
@@ -46,7 +46,7 @@ mod test {
 
     #[test]
     fn sort_array() {
-        let (result, _) = _sort(&[json!([7, 1, 4, 8, 3, 9])]).expect("_sort() failed");
+        let (result, _) = inner_sort(&[json!([7, 1, 4, 8, 3, 9])]).expect("_sort() failed");
 
         let output = result.expect("Could not get output value");
         assert_eq!(output, json!([1, 3, 4, 7, 8, 9]));
@@ -54,7 +54,7 @@ mod test {
 
     #[test]
     fn sort_array_repeats() {
-        let (result, _) = _sort(&[json!([7, 1, 8, 4, 8, 3, 1, 9])]).expect("_sort() failed");
+        let (result, _) = inner_sort(&[json!([7, 1, 8, 4, 8, 3, 1, 9])]).expect("_sort() failed");
 
         let output = result.expect("Could not get output value");
         assert_eq!(output, json!([1, 1, 3, 4, 7, 8, 8, 9]));

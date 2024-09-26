@@ -5,7 +5,7 @@ use flowcore::errors::Result;
 use flowmacro::flow_function;
 
 #[flow_function]
-fn _append(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
+fn inner_append(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
     let v1 = inputs.first().ok_or("Could not get v1")?.clone();
     let v2 = inputs.get(1).ok_or("Could not get v2")?.clone();
 
@@ -18,14 +18,14 @@ fn _append(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
 mod test {
     use serde_json::json;
 
-    use super::_append;
+    use super::inner_append;
 
     #[test]
     fn append_one_empty_string() {
         let s1 = json!("");
         let s2 = json!("hello");
 
-        let (result, _) = _append(&[s1, s2]).expect("_append() failed");
+        let (result, _) = inner_append(&[s1, s2]).expect("_append() failed");
         let output = result.expect("Could not get the Value from the output");
         assert_eq!(output, json!("hello"));
     }
@@ -35,7 +35,7 @@ mod test {
         let s1 = json!("");
         let s2 = json!("");
 
-        let (result, _) = _append(&[s1, s2]).expect("_append() failed");
+        let (result, _) = inner_append(&[s1, s2]).expect("_append() failed");
         let output = result.expect("Could not get the Value from the output");
         assert_eq!(output, json!(""));
     }
@@ -45,7 +45,7 @@ mod test {
         let s1 = json!("hello");
         let s2 = json!(" world");
 
-        let (result, _) = _append(&[s1, s2]).expect("_append() failed");
+        let (result, _) = inner_append(&[s1, s2]).expect("_append() failed");
         let output = result.expect("Could not get the Value from the output");
         assert_eq!(output, json!("hello world"));
     }
@@ -55,6 +55,6 @@ mod test {
         let s1 = json!("hello");
         let s2 = json!(42);
 
-        assert!(_append(&[s1, s2]).is_err());
+        assert!(inner_append(&[s1, s2]).is_err());
     }
 }

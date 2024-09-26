@@ -237,7 +237,7 @@ impl CliDebugClient {
         command: &str,
         params: Option<Vec<String>>,
     ) -> Option<DebugCommand> {
-        return match command {
+        match command {
             "b" | "breakpoint" => Some(Breakpoint(Self::parse_breakpoint_spec(params))),
             "c" | "continue" => Some(Continue),
             "d" | "delete" => Some(Delete(Self::parse_breakpoint_spec(params))),
@@ -269,7 +269,7 @@ impl CliDebugClient {
                 println!("Unknown debugger command '{command}'\n");
                 None
             }
-        };
+        }
     }
 
     /*
@@ -296,8 +296,8 @@ impl CliDebugClient {
                 output_route,
                 value,
                 destination_id,
-            destination_name,
-            io_name,
+                destination_name,
+                io_name,
                 input_number,
             ) => println!(
                 "Data breakpoint: Function #{source_function_id} '{source_function_name}{output_route}' \
@@ -379,7 +379,7 @@ impl CliDebugClient {
 
         for id in 0..run_state.num_functions() {
             if let Some(function) = run_state.get_function(id) {
-                print!("{function}",);
+                print!("{function}", );
                 let function_states = run_state.get_function_states(id);
                 println!("\tStates: {function_states:?}");
 
@@ -424,9 +424,9 @@ mod test {
     fn test_function_b_init() -> RuntimeFunction {
         RuntimeFunction::new(
             #[cfg(feature = "debugger")]
-            "fB",
+                "fB",
             #[cfg(feature = "debugger")]
-            "/fB",
+                "/fB",
             "file://fake/test",
             vec![Input::new("", 0, false, Some(Once(json!(1))), None)],
             1,
@@ -444,13 +444,13 @@ mod test {
             0,
             "/fB".to_string(),
             #[cfg(feature = "debugger")]
-            String::default(),
+                String::default(),
         );
         RuntimeFunction::new(
             #[cfg(feature = "debugger")]
-            "fA",
+                "fA",
             #[cfg(feature = "debugger")]
-            "/fA",
+                "/fA",
             "file://fake/test",
             vec![Input::new("", 0, false, Some(Once(json!(1))), None)],
             0,
@@ -483,7 +483,7 @@ mod test {
             None,
             None,
             #[cfg(feature = "debugger")]
-            true,
+                true,
         )
     }
 

@@ -6,7 +6,7 @@ use flowcore::errors::Result;
 use flowmacro::flow_function;
 
 #[flow_function]
-fn _subtract(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
+fn inner_subtract(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
     let input_a = inputs.first().ok_or("Could not get input_a")?;
     let input_b = inputs.get(1).ok_or("Could not get input_b")?;
     let mut value: Option<Value> = None;
@@ -49,7 +49,7 @@ mod test {
     use serde_json::Value;
     use serde_json::Value::Number;
 
-    use super::_subtract;
+    use super::inner_subtract;
 
     fn get_inputs(pair: &(Value, Value, Option<Value>)) -> Vec<Value> {
         vec![pair.0.clone(), pair.1.clone()]
@@ -144,7 +144,7 @@ mod test {
         ];
 
         for test in &integer_test_set {
-            let (output, again) = _subtract(&get_inputs(test)).expect("_subtract() failed");
+            let (output, again) = inner_subtract(&get_inputs(test)).expect("_subtract() failed");
             assert!(again);
             assert_eq!(output, test.2);
         }

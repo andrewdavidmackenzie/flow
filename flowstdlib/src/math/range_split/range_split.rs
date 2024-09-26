@@ -5,7 +5,7 @@ use flowcore::{RUN_AGAIN, RunAgain};
 
 /// Generate numbers within a Range
 #[flow_function]
-fn _range_split(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
+fn inner_range_split(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
     let min_and_max = inputs.first().ok_or("Could not get min_and_max")?
         .as_array().ok_or("Could not get min and max array")?;
 
@@ -23,10 +23,10 @@ fn _range_split(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
         output_map.insert("number".into(), json!(min));
     } else {
         // split the range_split into two and output for further subdivision
-        let bottom: Vec<i64> = vec!(min, ((max-min)/2) + min);
+        let bottom: Vec<i64> = vec!(min, ((max - min) / 2) + min);
         output_map.insert("bottom".into(), json!(bottom));
 
-        let above_middle = ((max-min)/2) + min +1;
+        let above_middle = ((max - min) / 2) + min + 1;
         if above_middle == max {
             // if the two are the same, we are done, output as "number"
             output_map.insert("number".into(), json!(max));
@@ -43,20 +43,20 @@ fn _range_split(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
 mod test {
     use serde_json::{json, Value};
 
-    use super::_range_split;
+    use super::inner_range_split;
 
     #[test]
     fn test_first_split() {
         let range = vec!(1, 10);
-        let (output, again) = _range_split(&[json!(range)]).expect("_range_split() failed");
+        let (output, again) = inner_range_split(&[json!(range)]).expect("_range_split() failed");
 
         let result = output.expect("Could not get value from output");
         assert!(again);
 
         assert_eq!(result.pointer("/bottom").expect("Could not get the /bottom from the output"),
-            &json!([1, 5]));
+                   &json!([1, 5]));
         assert_eq!(result.pointer("/top").expect("Could not get the /top from the output"),
-            &json!([6, 10]));
+                   &json!([6, 10]));
     }
 
     #[test]
@@ -74,7 +74,7 @@ mod test {
 
         while let Some(next) = requires_further_splitting.pop() {
             println!("Splitting: {next:?}");
-            let (output, again) = _range_split(&[next]).expect("_range_split() failed");
+            let (output, again) = inner_range_split(&[next]).expect("_range_split() failed");
             assert!(again);
             let result = output.expect("Could not get value from output");
 

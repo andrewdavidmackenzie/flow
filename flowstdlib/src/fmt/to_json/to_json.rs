@@ -5,11 +5,11 @@ use flowcore::errors::{Result, bail};
 use flowmacro::flow_function;
 
 #[flow_function]
-fn _to_json(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
+fn inner_to_json(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
     let input = inputs.first().ok_or("Could not get input")?;
 
     if input.is_null() {
-        return Ok((Some(Value::Null), RUN_AGAIN))
+        return Ok((Some(Value::Null), RUN_AGAIN));
     }
 
     if input.is_string() {
@@ -17,13 +17,13 @@ fn _to_json(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
             Some(string) => match serde_json::from_str(string) {
                 Ok(json) => {
                     Ok((Some(json), RUN_AGAIN))
-                },
+                }
                 Err(_) => {
                     Ok((
                         Some(serde_json::Value::String(string.to_string())),
                         RUN_AGAIN,
                     ))
-                },
+                }
             },
             None => bail!("Could not get input as string")
         }
@@ -38,11 +38,11 @@ mod test {
 
     use serde_json::{json, Value};
 
-    use super::_to_json;
+    use super::inner_to_json;
 
     fn test_to_json(string: &str, expected_value: &Value) {
         let inputs = vec![json!(string)];
-        let (result, _) = _to_json(&inputs).expect("_to_json() failed");
+        let (result, _) = inner_to_json(&inputs).expect("_to_json() failed");
 
         match result {
             Some(value) => {

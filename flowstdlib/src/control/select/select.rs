@@ -5,7 +5,7 @@ use flowcore::errors::Result;
 use flowmacro::flow_function;
 
 #[flow_function]
-fn _select(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
+fn inner_select(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
     let i1 = inputs.first().ok_or("Could not get i1")?;
     let i2 = inputs.get(1).ok_or("Could not get i2")?;
     let control = inputs.get(2).ok_or("Could not get control")?.as_bool().ok_or("Could not get boolean")?;
@@ -28,12 +28,12 @@ mod test {
 
     use flowcore::RUN_AGAIN;
 
-    use super::_select;
+    use super::inner_select;
 
     #[test]
     fn test_select_first() {
         let inputs = vec![json!("A"), json!("B"), json!(true)];
-        let (output, run_again) = _select(&inputs).expect("_select() failed");
+        let (output, run_again) = inner_select(&inputs).expect("_select() failed");
         assert_eq!(run_again, RUN_AGAIN);
 
         assert!(output.is_some());
@@ -52,7 +52,7 @@ mod test {
     #[test]
     fn test_select_second() {
         let inputs = vec![json!("A"), json!("B"), json!(false)];
-        let (output, run_again) = _select(&inputs).expect("_select() failed");
+        let (output, run_again) = inner_select(&inputs).expect("_select() failed");
         assert_eq!(run_again, RUN_AGAIN);
 
         assert!(output.is_some());

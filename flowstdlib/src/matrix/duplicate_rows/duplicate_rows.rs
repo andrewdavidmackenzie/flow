@@ -5,7 +5,7 @@ use flowcore::errors::Result;
 use flowmacro::flow_function;
 
 #[flow_function]
-fn _duplicate_rows(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
+fn inner_duplicate_rows(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
     let mut output_matrix: Vec<Value> = vec![];
     let mut row_indexes = vec![];
     let mut output_map = serde_json::Map::new();
@@ -30,7 +30,7 @@ fn _duplicate_rows(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
 mod test {
     use serde_json::json;
 
-    use super::_duplicate_rows;
+    use super::inner_duplicate_rows;
 
     #[test]
     fn duplicate_2() {
@@ -39,7 +39,7 @@ mod test {
 
         let inputs = vec![matrix, duplication_factor];
 
-        let (result, _) = _duplicate_rows(&inputs).expect("_duplicate_rows() failed");
+        let (result, _) = inner_duplicate_rows(&inputs).expect("_duplicate_rows() failed");
 
         let output = result.expect("Could not get the Value from the output");
 
@@ -65,7 +65,7 @@ mod test {
 
         let inputs = vec![matrix, duplication_factor];
 
-        let (result, _) = _duplicate_rows(&inputs).expect("_duplicate_rows() failed");
+        let (result, _) = inner_duplicate_rows(&inputs).expect("_duplicate_rows() failed");
 
         let output = result.expect("Could not get the Value from the output");
 

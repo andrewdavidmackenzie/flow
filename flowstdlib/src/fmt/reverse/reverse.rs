@@ -7,7 +7,7 @@ use flowcore::errors::Result;
 use flowmacro::flow_function;
 
 #[flow_function]
-fn _reverse(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
+fn inner_reverse(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
     let mut value = None;
 
     let input = inputs.first().ok_or("Could not get input")?;
@@ -24,12 +24,12 @@ mod test {
 
     use flowcore::RUN_AGAIN;
 
-    use super::_reverse;
+    use super::inner_reverse;
 
     #[test]
     fn test_reverse() {
         let inputs = vec![json!("Hello"), json!(true)];
-        let (output, run_again) = _reverse(&inputs).expect("_reverse() failed");
+        let (output, run_again) = inner_reverse(&inputs).expect("_reverse() failed");
         assert_eq!(run_again, RUN_AGAIN);
 
         assert!(output.is_some());

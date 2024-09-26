@@ -5,7 +5,7 @@ use flowcore::errors::Result;
 use flowmacro::flow_function;
 
 #[flow_function]
-fn _add(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
+fn inner_add(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
     let input_a = inputs.first().ok_or("Could not get input_a")?;
     let input_b = inputs.get(1).ok_or("Could not get input_b")?;
 
@@ -45,7 +45,7 @@ mod test {
     use serde_json::Value;
     use serde_json::Value::Number;
 
-    use super::_add;
+    use super::inner_add;
 
     fn get_inputs(pair: &(Value, Value, Option<Value>)) -> Vec<Value> {
         vec![pair.0.clone(), pair.1.clone()]
@@ -137,11 +137,11 @@ mod test {
                 json!(1.0),
                 json!(1.0),
                 Some(json!(2.0)),
-            )
+            ),
         ];
 
         for test in &integer_test_set {
-            let (output, again) = _add(&get_inputs(test)).expect("_add() failed");
+            let (output, again) = inner_add(&get_inputs(test)).expect("_add() failed");
 
             assert!(again);
             assert_eq!(output, test.2);

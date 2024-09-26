@@ -5,7 +5,7 @@ use flowcore::errors::Result;
 use flowmacro::flow_function;
 
 #[flow_function]
-fn _multiply_row(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
+fn inner_multiply_row(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
     let mut product = 0;
     let mut output_map = serde_json::Map::new();
 
@@ -32,7 +32,7 @@ fn _multiply_row(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
 mod test {
     use serde_json::json;
 
-    use super::_multiply_row;
+    use super::inner_multiply_row;
 
     #[test]
     fn multiply_row() {
@@ -43,7 +43,7 @@ mod test {
 
         let inputs = vec![a, a_index, b, b_index];
 
-        let (result, _) = _multiply_row(&inputs).expect("_multiply_row() failed");
+        let (result, _) = inner_multiply_row(&inputs).expect("_multiply_row() failed");
 
         let output = result.expect("Could not get the Value from the output");
 

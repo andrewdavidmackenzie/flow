@@ -5,7 +5,7 @@ use flowcore::errors::Result;
 use flowmacro::flow_function;
 
 #[flow_function]
-fn _to_string(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
+fn inner_to_string(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
     let input = inputs.first().ok_or("Could not get input")?;
     Ok((Some(json!(input.to_string())), RUN_AGAIN))
 }
@@ -18,11 +18,11 @@ mod test {
 
     use flowcore::model::datatype::NULL_TYPE;
 
-    use super::_to_string;
+    use super::inner_to_string;
 
     fn test_to_string(value: Value, string: &str) {
         let inputs = vec![value];
-        let (result, _) = _to_string(&inputs).expect("_to_string() failed");
+        let (result, _) = inner_to_string(&inputs).expect("_to_string() failed");
 
         match result {
             Some(value) => {

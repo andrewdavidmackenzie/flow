@@ -104,7 +104,6 @@ pub enum Message {
 }
 
 #[allow(clippy::ignored_unit_patterns)]
-
 enum CoordinatorState {
     Disconnected(String),
     Connected(tokio::sync::mpsc::Sender<ClientMessage>),
@@ -225,10 +224,10 @@ impl Application for FlowrGui {
             Message::FlowArgsChanged(value) => self.submission_settings.flow_args = value,
             Message::UrlChanged(value) => self.submission_settings.flow_manifest_url = value,
             Message::TabSelected(_) | Message::StdioAutoScrollTogglerChanged(_, _) => {
-                return self.tab_set.update(message)
+                return self.tab_set.update(message);
             }
             Message::CoordinatorSent(coord_msg) => {
-                return self.process_coordinator_message(coord_msg)
+                return self.process_coordinator_message(coord_msg);
             }
             Message::CloseModal => self.show_modal = false,
             Message::CoordinatorDisconnected(reason) => {
@@ -255,14 +254,14 @@ impl Application for FlowrGui {
                     Text::new(self.modal_content.clone().0),
                     Text::new(self.modal_content.clone().1),
                 )
-                .foot(
-                    Row::new().spacing(10).padding(5).width(Length::Fill).push(
-                        Button::new(Text::new("OK").horizontal_alignment(Horizontal::Center))
-                            .width(Length::Fill)
-                            .on_press(Message::CloseModal),
-                    ),
-                )
-                .max_width(300.0),
+                    .foot(
+                        Row::new().spacing(10).padding(5).width(Length::Fill).push(
+                            Button::new(Text::new("OK").horizontal_alignment(Horizontal::Center))
+                                .width(Length::Fill)
+                                .on_press(Message::CloseModal),
+                        ),
+                    )
+                    .max_width(300.0),
             )
         } else {
             None
@@ -346,15 +345,15 @@ impl FlowrGui {
             "Flow location (relative, or absolute)",
             &self.submission_settings.flow_manifest_url,
         )
-        .on_input(Message::UrlChanged);
+            .on_input(Message::UrlChanged);
 
         let args = text_input(
             "Space separated flow arguments",
             &self.submission_settings.flow_args,
         )
-        .on_submit(Message::SubmitFlow)
-        .on_input(Message::FlowArgsChanged)
-        .on_paste(Message::FlowArgsChanged);
+            .on_submit(Message::SubmitFlow)
+            .on_input(Message::FlowArgsChanged)
+            .on_paste(Message::FlowArgsChanged);
 
         let mut play = Button::new("Play");
         if matches!(self.coordinator_state, CoordinatorState::Connected(_))
@@ -485,7 +484,7 @@ impl FlowrGui {
         );
 
         #[cfg(feature = "flowstdlib")]
-        let app = app.arg(
+            let app = app.arg(
             Arg::new("native")
                 .short('n')
                 .long("native")
@@ -776,10 +775,10 @@ impl FlowrGui {
                     // TODO switch to the images tab when image first written to
                 }
                 if let Some(ImageReference {
-                    width: _,
-                    height: _,
-                    ref mut data,
-                }) = &mut self.tab_set.images_tab.images.get_mut(name)
+                                width: _,
+                                height: _,
+                                ref mut data,
+                            }) = &mut self.tab_set.images_tab.images.get_mut(name)
                 {
                     data.put_pixel(x_coord, y_coord, Rgba([red, green, blue, 255]));
                 }
