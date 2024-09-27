@@ -6,7 +6,7 @@ use flowmacro::flow_function;
 
 #[flow_function]
 #[allow(clippy::needless_range_loop)]
-fn _transpose(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
+fn inner_transpose(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
     let mut output_matrix: Vec<Value> = vec![]; // vector of Value::Array - i.e. array of rows
     let mut col_indexes = vec![];
     let mut output_map = serde_json::Map::new();
@@ -42,7 +42,7 @@ mod test {
     use serde_json::json;
     use serde_json::Value;
 
-    use super::_transpose;
+    use super::inner_transpose;
 
     #[test]
     fn transpose_empty() {
@@ -50,7 +50,7 @@ mod test {
 
         let inputs = vec![matrix];
 
-        let (result, _) = _transpose(&inputs).expect("_transpose() failed");
+        let (result, _) = inner_transpose(&inputs).expect("_transpose() failed");
 
         let output = result.expect("Could not get the Value from the output");
 
@@ -65,7 +65,7 @@ mod test {
 
         let inputs = vec![matrix];
 
-        let (result, _) = _transpose(&inputs).expect("_transpose() failed");
+        let (result, _) = inner_transpose(&inputs).expect("_transpose() failed");
 
         let output = result.expect("Could not get the Value from the output");
 
@@ -85,7 +85,7 @@ mod test {
 
         let inputs = vec![matrix];
 
-        let (result, _) = _transpose(&inputs).expect("_transpose() failed");
+        let (result, _) = inner_transpose(&inputs).expect("_transpose() failed");
 
         let output = result.expect("Could not get the Value from the output");
 
@@ -106,7 +106,7 @@ mod test {
 
         let inputs = vec![matrix];
 
-        let (result, _) = _transpose(&inputs).expect("_transpose() failed");
+        let (result, _) = inner_transpose(&inputs).expect("_transpose() failed");
 
         let output = result.expect("Could not get the Value from the output");
 

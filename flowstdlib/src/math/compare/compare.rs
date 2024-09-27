@@ -6,7 +6,7 @@ use flowcore::errors::{Result, bail};
 use flowmacro::flow_function;
 
 #[flow_function]
-fn _compare(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
+fn inner_compare(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
     let left = inputs.first().ok_or("Could not get left")?;
     let right = inputs.get(1).ok_or("Could not get right")?;
 
@@ -55,7 +55,7 @@ fn _compare(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
 mod test {
     use serde_json::{json, Value};
 
-    use super::_compare;
+    use super::inner_compare;
 
     #[allow(clippy::type_complexity)]
     fn get_tests() -> Vec<(Value, Value, bool, bool, bool, bool, bool, bool)> {
@@ -141,7 +141,7 @@ mod test {
     #[test]
     fn positive_tests() {
         for test in &get_tests() {
-            let (output, again) = _compare(&get_inputs(test)).expect("_compare() failed");
+            let (output, again) = inner_compare(&get_inputs(test)).expect("_compare() failed");
 
             assert!(again);
 
@@ -170,6 +170,6 @@ mod test {
 
     #[test]
     fn not_numbers() {
-        assert!(_compare(&[json!("hello"), json!(1.0)]).is_err());
+        assert!(inner_compare(&[json!("hello"), json!(1.0)]).is_err());
     }
 }

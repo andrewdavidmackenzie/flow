@@ -5,7 +5,7 @@ use flowcore::errors::Result;
 use flowmacro::flow_function;
 
 #[flow_function]
-fn _duplicate(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
+fn inner_duplicate(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
     let value = inputs.first().ok_or("Could not get value")?;
 
     let mut output_array = vec![];
@@ -22,7 +22,7 @@ fn _duplicate(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
 mod test {
     use serde_json::json;
 
-    use super::_duplicate;
+    use super::inner_duplicate;
 
     #[test]
     fn duplicate_number() {
@@ -30,7 +30,7 @@ mod test {
         let factor = json!(2);
         let inputs: Vec<serde_json::Value> = vec![value, factor];
 
-        let (output, _) = _duplicate(&inputs).expect("_duplicate() failed");
+        let (output, _) = inner_duplicate(&inputs).expect("_duplicate() failed");
 
         assert_eq!(output.expect("Could not get the Value from the output"), json!([42, 42]));
     }
@@ -41,7 +41,7 @@ mod test {
         let factor = json!(2);
         let inputs: Vec<serde_json::Value> = vec![value, factor];
 
-        let (output, _) = _duplicate(&inputs).expect("_duplicate() failed");
+        let (output, _) = inner_duplicate(&inputs).expect("_duplicate() failed");
 
         assert_eq!(output.expect("Could not get the Value from the output"), json!([[1, 2, 3], [1, 2, 3]]));
     }
@@ -52,7 +52,7 @@ mod test {
         let factor = json!(2);
         let inputs: Vec<serde_json::Value> = vec![value, factor];
 
-        let (output, _) = _duplicate(&inputs).expect("_duplicate() failed");
+        let (output, _) = inner_duplicate(&inputs).expect("_duplicate() failed");
 
         assert_eq!(
             output.expect("Could not get the Value from the output"),

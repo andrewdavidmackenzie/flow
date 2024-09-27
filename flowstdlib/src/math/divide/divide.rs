@@ -5,7 +5,7 @@ use flowcore::errors::Result;
 use flowmacro::flow_function;
 
 #[flow_function]
-fn _divide(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
+fn inner_divide(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
     let mut output_map = serde_json::Map::new();
 
     let dividend = inputs.first().ok_or("Could not get dividend")?.as_f64().ok_or("Could not get dividend")?;
@@ -20,7 +20,7 @@ fn _divide(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
 mod test {
     use serde_json::{json, Value};
 
-    use super::_divide;
+    use super::inner_divide;
 
     fn do_divide(test_data: (u32, u32, f64, u32)) {
         // Create input vector
@@ -28,7 +28,7 @@ mod test {
         let divisor = json!(test_data.1);
         let inputs: Vec<Value> = vec![dividend, divisor];
 
-        let (output, run_again) = _divide(&inputs).expect("_divide() failed");
+        let (output, run_again) = inner_divide(&inputs).expect("_divide() failed");
         assert!(run_again);
 
         let outputs = output.expect("Could not get the output value");

@@ -6,7 +6,7 @@ use flowcore::errors::Result;
 use flowmacro::flow_function;
 
 #[flow_function]
-fn _multiply(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
+fn inner_multiply(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
     let i1 = inputs.first().ok_or("Could not get i1")?.as_u64().ok_or("Could not get i1")?;
     let i2 = inputs.get(1).ok_or("Could not get i2")?.as_u64().ok_or("Could not get i2)")?;
     let result = i1 * i2;
@@ -18,7 +18,7 @@ fn _multiply(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
 mod test {
     use serde_json::{json, Value};
 
-    use super::_multiply;
+    use super::inner_multiply;
 
     fn do_multiply(test_data: (u32, u32, u32)) {
         // Create input vector
@@ -26,7 +26,7 @@ mod test {
         let i2 = json!(test_data.1);
         let inputs: Vec<Value> = vec![i1, i2];
 
-        let (output, run_again) = _multiply(&inputs).expect("_multiply() failed");
+        let (output, run_again) = inner_multiply(&inputs).expect("_multiply() failed");
         assert!(run_again);
 
         let value = output.expect("Could not get the value from the output");

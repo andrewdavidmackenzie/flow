@@ -5,7 +5,7 @@ use flowcore::errors::Result;
 use flowmacro::flow_function;
 
 #[flow_function]
-fn _index(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
+fn inner_index(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
     let value = inputs.first().ok_or("Could not get value")?.clone();
 
     let mut output_map = serde_json::Map::new();
@@ -39,7 +39,7 @@ fn _index(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
 mod test {
     use serde_json::{json, Value};
 
-    use super::_index;
+    use super::inner_index;
 
     #[test]
     fn select_index_0() {
@@ -50,7 +50,7 @@ mod test {
 
         let inputs = vec![value, previous_value, previous_index, select_index];
 
-        let (result, _) = _index(&inputs).expect("_index() failed");
+        let (result, _) = inner_index(&inputs).expect("_index() failed");
 
         let output_map = result.expect("No output map");
 
@@ -71,7 +71,7 @@ mod test {
 
         let inputs = vec![value, previous_value, previous_index, select_index];
 
-        let (result, _) = _index(&inputs).expect("_index() failed");
+        let (result, _) = inner_index(&inputs).expect("_index() failed");
 
         let output_map = result.expect("No output map");
 
@@ -87,7 +87,7 @@ mod test {
 
         let inputs = vec![value, previous_value, previous_index, select_index];
 
-        let (result, _) = _index(&inputs).expect("_index() failed");
+        let (result, _) = inner_index(&inputs).expect("_index() failed");
 
         let output_map = result.expect("No output map");
 
@@ -108,7 +108,7 @@ mod test {
 
         let inputs = vec![value, previous_value, previous_index, select_index];
 
-        let (result, _) = _index(&inputs).expect("_index() failed");
+        let (result, _) = inner_index(&inputs).expect("_index() failed");
 
         let output_map = result.expect("No output map");
 
@@ -124,7 +124,7 @@ mod test {
 
         let inputs = vec![value, previous_value, previous_index, select_index];
 
-        let (result, _) = _index(&inputs).expect("_index() failed");
+        let (result, _) = inner_index(&inputs).expect("_index() failed");
 
         let output_map = result.expect("No output map");
 
@@ -145,7 +145,7 @@ mod test {
 
         let inputs = vec![value, previous_value, previous_index, select_index];
 
-        let (result, _) = _index(&inputs).expect("_index() failed");
+        let (result, _) = inner_index(&inputs).expect("_index() failed");
 
         let output_map = result.expect("No output map");
 

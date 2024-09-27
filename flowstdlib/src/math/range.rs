@@ -1,5 +1,4 @@
 #[doc = include_str!("range.md")]
-
 #[cfg(test)]
 mod test {
     use std::fs::File;

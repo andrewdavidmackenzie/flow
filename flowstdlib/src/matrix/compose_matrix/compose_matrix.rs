@@ -5,7 +5,7 @@ use flowcore::errors::Result;
 use flowmacro::flow_function;
 
 #[flow_function]
-fn _compose_matrix(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
+fn inner_compose_matrix(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
     let mut new_matrix: Vec<Value> = vec![];
     let mut output_map = serde_json::Map::new();
 
@@ -31,7 +31,7 @@ fn _compose_matrix(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
                 // copy original element, whatever it is
                 new_row.push(element.clone());
                 if element.as_f64() == Some(0.0) {
-                    unwritten_cell_count+= 1;
+                    unwritten_cell_count += 1;
                 }
             }
         }
@@ -51,7 +51,7 @@ fn _compose_matrix(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
 mod test {
     use serde_json::json;
 
-    use super::_compose_matrix;
+    use super::inner_compose_matrix;
 
     #[test]
     fn compose_1_element() {
@@ -60,7 +60,7 @@ mod test {
         let partial = json!([[0.0, 0.0],[0.0,0.0]]);
         let inputs = vec![element, element_indexes, partial];
 
-        let (result, _) = _compose_matrix(&inputs).expect("_compose_matrix() failed");
+        let (result, _) = inner_compose_matrix(&inputs).expect("_compose_matrix() failed");
 
         let output = result.expect("Could not get the Value from the output");
 
@@ -78,7 +78,7 @@ mod test {
         for (index, element) in [1, 2, 3, 4].iter().enumerate() {
             let element_indexes = json!([index / 2, index % 2]);
             let inputs = vec![json!(element), element_indexes, partial];
-            let (result, _) = _compose_matrix(&inputs).expect("_compose_matrix() failed");
+            let (result, _) = inner_compose_matrix(&inputs).expect("_compose_matrix() failed");
             let output = result.expect("Could not get the Value from the output");
 
             if let Some(matrix) = output.pointer("/matrix") {

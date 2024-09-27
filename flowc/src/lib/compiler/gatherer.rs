@@ -20,7 +20,7 @@ use crate::errors::Result;
 /// each flow into the `CompilerTables` that will be used in later compilers.
 pub fn gather_functions_and_connections(flow: &FlowDefinition, tables: &mut CompilerTables) -> Result<()> {
     info!("\n=== Compiler: Gathering Functions and Connections");
-    _gather_functions_and_connections(flow, tables)?;
+    inner_gather_functions_and_connections(flow, tables)?;
 
     tables.sort_functions();
 
@@ -31,7 +31,7 @@ pub fn gather_functions_and_connections(flow: &FlowDefinition, tables: &mut Comp
     Ok(())
 }
 
-fn _gather_functions_and_connections(flow: &FlowDefinition, tables: &mut CompilerTables) -> Result<()> {
+fn inner_gather_functions_and_connections(flow: &FlowDefinition, tables: &mut CompilerTables) -> Result<()> {
     // Add Connections from this flow hierarchy to the connections table
     let mut connections = flow.connections.clone();
     tables.connections.append(&mut connections);
@@ -40,7 +40,7 @@ fn _gather_functions_and_connections(flow: &FlowDefinition, tables: &mut Compile
     for subprocess in &flow.subprocesses {
         match subprocess.1 {
             FlowProcess(ref flow) => {
-                _gather_functions_and_connections(flow, tables)?; // recurse
+                inner_gather_functions_and_connections(flow, tables)?; // recurse
             }
             FunctionProcess(ref function) => {
                 // Give function a unique id and add to the table of functions
@@ -112,14 +112,14 @@ pub fn collapse_connections(tables: &mut CompilerTables) -> Result<()> {
                             .set_route(&from_route, &IOType::FunctionOutput);
                         *collapsed_connection.to_io_mut() = destination_io;
                         DataType::compatible_types(collapsed_connection.from_io().datatypes(),
-                        collapsed_connection.to_io().datatypes(), &source_subroute)
+                                                   collapsed_connection.to_io().datatypes(), &source_subroute)
                             .chain_err(|| format!("Incompatible types in collapsed connection from '{}' to '{}'",
-                            collapsed_connection.from_io().route(), collapsed_connection.to_io().route()))?;
+                                                  collapsed_connection.from_io().route(), collapsed_connection.to_io().route()))?;
                         debug!("\tIndirect connection {}", collapsed_connection);
                         collapsed_connections.push(collapsed_connection);
                     }
                 }
-            },
+            }
 
             // connection starts at a flow's input via a FlowInputInitializer - propagate to destination function
             IOType::FlowInput | IOType::FlowOutput => {
@@ -139,8 +139,8 @@ pub fn collapse_connections(tables: &mut CompilerTables) -> Result<()> {
 
                     for (_, destination_io) in destinations {
                         let (destination_function_id, destination_input_index, _) =
-                        tables.destination_routes.get(destination_io.route())
-                            .ok_or(format!("Could not find a destination route matching '{}'", destination_io.route()))?;
+                            tables.destination_routes.get(destination_io.route())
+                                .ok_or(format!("Could not find a destination route matching '{}'", destination_io.route()))?;
 
                         // get a mutable reference to the destination function and set the initializer on it
                         let destination_function = tables.functions.get_mut(*destination_function_id)
@@ -253,7 +253,7 @@ fn find_connection_destinations(
                             next_connection.to_io().route());
                         destinations
                             .push((accumulated_source_subroute, next_connection.to_io().clone()));
-                    },
+                    }
 
                     IOType::FunctionOutput => error!("Error - destination of {:?} is a functions output!",
                         next_connection),
@@ -267,7 +267,7 @@ fn find_connection_destinations(
                             connections,
                         )?;
                         destinations.append(new_destinations);
-                    },
+                    }
 
                     IOType::FlowOutput => {
                         debug!("\t\tFollowing connection out of flow via '{}'", from_io.route());
@@ -292,7 +292,7 @@ fn find_connection_destinations(
         for (sub_route, destination_io) in &destinations {
             DataType::compatible_types(from_io.datatypes(), destination_io.datatypes(), sub_route)
                 .chain_err(|| format!("Failed to connect '{}{sub_route}' to '{}' due to incompatible types",
-                from_io.route(), destination_io.route()))?;
+                                      from_io.route(), destination_io.route()))?;
         }
     }
 

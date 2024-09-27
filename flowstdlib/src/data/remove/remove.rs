@@ -5,7 +5,7 @@ use flowcore::errors::Result;
 use flowmacro::flow_function;
 
 #[flow_function]
-fn _remove(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
+fn inner_remove(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
     // Inputs
     let value = inputs.first().ok_or("Could not get value")?;
     let input_1 = inputs.get(1).ok_or("Could not get input1")?;
@@ -25,14 +25,14 @@ fn _remove(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
 mod test {
     use serde_json::{json, Value};
 
-    use super::_remove;
+    use super::inner_remove;
 
     #[test]
     fn remove_1() {
         let array: Value = json!([1, 2]);
         let value = json!(1);
 
-        let (result, _) = _remove(&[value, array]).expect("_remove() failed");
+        let (result, _) = inner_remove(&[value, array]).expect("_remove() failed");
 
         assert_eq!(result.expect("Could not get the Value from the output"), json!([2]));
     }
@@ -42,7 +42,7 @@ mod test {
         let array: Value = json!([1, 2, 2, 3, 4]);
         let value = json!(2);
 
-        let (result, _) = _remove(&[value, array]).expect("_remove() failed");
+        let (result, _) = inner_remove(&[value, array]).expect("_remove() failed");
 
         assert_eq!(result.expect("Could not get the Value from the output"), json!([1, 3, 4]));
     }
@@ -52,7 +52,7 @@ mod test {
         let array: Value = json!([1, 2]);
         let value = json!(3);
 
-        let (result, _) = _remove(&[value, array]).expect("_remove() failed");
+        let (result, _) = inner_remove(&[value, array]).expect("_remove() failed");
 
         assert_eq!(result.expect("Could not get the Value from the output"), json!([1, 2]));
     }
@@ -62,7 +62,7 @@ mod test {
         let array: Value = json!([]);
         let value = json!(3);
 
-        let (result, _) = _remove(&[value, array]).expect("_remove() failed");
+        let (result, _) = inner_remove(&[value, array]).expect("_remove() failed");
 
         assert_eq!(result.expect("Could not get the Value from the output"), json!([]));
     }
@@ -72,7 +72,7 @@ mod test {
         let array: Value = json!([1, 2, 3, 5, 7, 8, 9]);
         let value = json!(6);
 
-        let (result, _) = _remove(&[value, array]).expect("_remove() failed");
+        let (result, _) = inner_remove(&[value, array]).expect("_remove() failed");
 
         assert_eq!(result.expect("Could not get the Value from the output"), json!([1, 2, 3, 5, 7, 8, 9]));
     }

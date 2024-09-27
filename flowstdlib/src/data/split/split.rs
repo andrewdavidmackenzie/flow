@@ -5,7 +5,7 @@ use flowcore::errors::Result;
 use flowmacro::flow_function;
 
 #[flow_function]
-fn _split(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
+fn inner_split(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
     if inputs.first().ok_or("Could not get first")?.is_string() {
         let string = inputs.first().ok_or("Could not get string")?.as_str().unwrap_or("");
         let separator = inputs.get(1).ok_or("Could not get separator")?.as_str().unwrap_or("");
@@ -37,7 +37,6 @@ fn _split(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
     } else {
         Ok((None, RUN_AGAIN))
     }
-
 }
 
 // Separate an array of text at a separator string close to the center, dividing in two if possible
@@ -90,12 +89,12 @@ fn split(input: &str, separator: &str) -> Result<(Option<Vec<String>>, Option<St
 mod test {
     use serde_json::json;
 
-    use super::_split;
+    use super::inner_split;
 
     #[test]
     fn basic_tests() {
         #[allow(clippy::type_complexity)]
-        let test_cases: Vec<(&str, (Option<Vec<String>>, Option<String>))> = vec![
+            let test_cases: Vec<(&str, (Option<Vec<String>>, Option<String>))> = vec![
             // empty string case
             ("", (None, None)),
             // just separators
@@ -188,7 +187,7 @@ mod test {
             }
 
             let this_input = input_strings.pop().expect("Could not pop value");
-            let (result, _) = _split(&[this_input, separator.clone()]).expect("_split() failed");
+            let (result, _) = inner_split(&[this_input, separator.clone()]).expect("_split() failed");
 
             let output = result.expect("Could not get the Value from the output");
             if let Some(token) = output.pointer("/token") {
@@ -208,7 +207,7 @@ mod test {
         let test = (json!("  "), 1);
         let separator = json!(" ");
 
-        let (result, _) = _split(&[test.0, separator]).expect("_split() failed");
+        let (result, _) = inner_split(&[test.0, separator]).expect("_split() failed");
 
         let output = result.expect("Could not get the Value from the output");
         assert!(output.pointer("/token").is_none());
@@ -222,7 +221,7 @@ mod test {
         let test = (json!("the quick brown fox jumped over the lazy dog"), 1);
         let separator = json!(" ");
 
-        let (result, _) = _split(&[test.0, separator]).expect("_split() failed");
+        let (result, _) = inner_split(&[test.0, separator]).expect("_split() failed");
 
         let output = result.expect("Could not get the Value from the output");
         assert!(output.pointer("/token").is_none());
@@ -239,7 +238,7 @@ mod test {
         let test = (json!("the quick brown fox-jumped-over-the-lazy-dog"), 1);
         let separator = json!(" ");
 
-        let (result, _) = _split(&[test.0, separator]).expect("_split() failed");
+        let (result, _) = inner_split(&[test.0, separator]).expect("_split() failed");
 
         let output = result.expect("Could not get the Value from the output");
         assert_eq!(
@@ -259,7 +258,7 @@ mod test {
         let test = (json!("the"), -1);
         let separator = json!(" ");
 
-        let (result, _) = _split(&[test.0, separator]).expect("_split() failed");
+        let (result, _) = inner_split(&[test.0, separator]).expect("_split() failed");
 
         let output = result.expect("Could not get the Value from the output");
         assert!(output.pointer("/partial").is_none());

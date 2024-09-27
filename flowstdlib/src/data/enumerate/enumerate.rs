@@ -5,7 +5,7 @@ use flowcore::errors::Result;
 use flowmacro::flow_function;
 
 #[flow_function]
-fn _enumerate(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
+fn inner_enumerate(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
     let mut output_array: Vec<(usize, Value)> = vec![];
 
     let array = inputs.first().ok_or("Could not get array")?.as_array().ok_or("Could not get array")?;
@@ -21,13 +21,13 @@ mod test {
     use serde_json::{Number, Value};
     use serde_json::json;
 
-    use super::_enumerate;
+    use super::inner_enumerate;
 
     #[test]
     fn enumerate() {
         let array = json!(["a", "b"]);
 
-        let (result, _) = _enumerate(&[array]).expect("_enumerate() failed");
+        let (result, _) = inner_enumerate(&[array]).expect("_enumerate() failed");
 
         let output = result.expect("Could not get the Value from the output");
         let enumerated_array = output.as_array().expect("Could not get the Array from the output");
@@ -53,7 +53,7 @@ mod test {
     fn enumerate_empty_array() {
         let array = json!([]);
 
-        let (result, _) = _enumerate(&[array]).expect("_enumerate() failed");
+        let (result, _) = inner_enumerate(&[array]).expect("_enumerate() failed");
 
         let output = result.expect("Could not get the Value from the output");
         let enumerated_array = output.as_array().expect("Could not get the Value from the output");
