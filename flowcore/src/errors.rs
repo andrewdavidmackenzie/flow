@@ -37,7 +37,7 @@ impl Serialize for crate::errors::Error {
 
 struct ErrorVisitor;
 
-impl<'de> Visitor<'de> for ErrorVisitor {
+impl Visitor<'_> for ErrorVisitor {
     type Value = crate::errors::Error;
 
     fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
