@@ -22,6 +22,7 @@ fn default_lib_compile_dir(source_url: &Url) -> Result<PathBuf> {
 
     Ok(PathBuf::from(format!("{home_dir}/.flow/lib/{lib_name}")))
 }
+
 pub(crate) fn default_runner_dir(runner_name: &str) -> PathBuf {
     let home_dir = env::var("HOME").expect("Could not get $HOME");
     PathBuf::from(format!("{home_dir}/.flow/runner/{runner_name}"))
@@ -61,6 +62,7 @@ fn default_flow_compile_dir(source_url: &Url) -> Result<PathBuf> {
 /// function of the url of the source flow, and the optional argument to specify the output
 /// directory to use.
 /// The flow source location can be http url, or file url
+#[allow(clippy::ref_option)]
 pub(crate) fn get_output_dir(source_url: &Url, option: &Option<String>, compile_type: CompileType) -> Result<PathBuf> {
     let mut output_dir;
 
@@ -129,7 +131,7 @@ mod test {
 
     #[test]
     fn file_url_no_output_dir_arg() {
-        let temp_dir =tempdir()
+        let temp_dir = tempdir()
             .expect("Could not create temporary directory for test")
             .into_path();
         let flow_dir = temp_dir
