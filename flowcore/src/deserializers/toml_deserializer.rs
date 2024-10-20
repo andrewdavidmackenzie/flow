@@ -40,7 +40,7 @@ where
         })
     }
 
-    fn name(&self) -> &str {
+    fn name(&self) -> &'static str {
         "Toml"
     }
 }
@@ -69,7 +69,7 @@ mod test {
     fn invalid_toml() {
         let toml = TomlDeserializer::<TestStruct>::new();
         assert!(toml.deserialize("{}}}}f fake data ", None).is_err(),
-            "Should not have parsed correctly as is invalid TOML");
+                "Should not have parsed correctly as is invalid TOML");
     }
 
     #[test]
