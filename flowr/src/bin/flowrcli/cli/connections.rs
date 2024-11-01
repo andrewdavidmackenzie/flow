@@ -10,10 +10,10 @@ use zmq::Socket;
 use flowcore::errors::{Result, ResultExt, bail};
 
 /// WAIT for a message to arrive when performing a `receive()`
-pub const WAIT:i32 = 0;
+pub const WAIT: i32 = 0;
 
 /// Do NOT WAIT for a message to arrive when performing a `receive()`
-pub static DONT_WAIT:i32 = zmq::DONTWAIT;
+pub static DONT_WAIT: i32 = zmq::DONTWAIT;
 
 /// Use this to discover the coordinator service by name
 pub const COORDINATOR_SERVICE_NAME: &str = "runtime._flowr._tcp.local";
@@ -79,7 +79,8 @@ impl ClientConnection {
     /// [Coordinator][flowrlib::coordinator::Coordinator]
     pub fn receive<CM>(&self) -> Result<CM>
     where
-        CM: From<String> + Display {
+        CM: From<String> + Display,
+    {
         trace!("Client waiting for message from coordinator");
 
         let msg = self
@@ -98,7 +99,8 @@ impl ClientConnection {
     /// [Coordinator][flowrlib::coordinator::Coordinator]
     pub fn send<CM>(&self, message: CM) -> Result<()>
     where
-        CM: Into<String> + Display {
+        CM: Into<String> + Display,
+    {
         trace!("Client Sent     ---> {}", message);
         self.requester
             .send(&message.into(), 0)
@@ -139,7 +141,8 @@ impl CoordinatorConnection {
     /// Receive a Message sent from the client to the [Coordinator][flowrlib::coordinator::Coordinator]
     pub fn receive<CM>(&self, flags: i32) -> Result<CM>
     where
-        CM: From<String> + Display {
+        CM: From<String> + Display,
+    {
         trace!("Coordinator waiting for message from client");
 
         let msg = self
@@ -159,7 +162,8 @@ impl CoordinatorConnection {
     pub fn send_and_receive_response<SM, CM>(&mut self, message: SM) -> Result<CM>
     where
         SM: Into<String> + Display,
-        CM: From<String> + Display {
+        CM: From<String> + Display,
+    {
         self.send(message)?;
         self.receive(WAIT)
     }
@@ -168,7 +172,8 @@ impl CoordinatorConnection {
     /// to the Client but don't wait for it's response
     pub fn send<SM>(&mut self, message: SM) -> Result<()>
     where
-        SM: Into<String> + Display {
+        SM: Into<String> + Display,
+    {
         trace!("                <--- Coordinator Sent {}", message);
 
         self.responder
@@ -214,7 +219,7 @@ mod test {
 
     impl fmt::Display for ClientMessage {
         fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-            write!(f, "ClientMessage Hello",)
+            write!(f, "ClientMessage Hello", )
         }
     }
 
@@ -303,7 +308,7 @@ mod test {
             .send(ClientMessage::Hello)
             .expect("Could not send initial 'Hello' message");
 
-        std::thread::sleep(Duration::from_millis(10));
+        std::thread::sleep(Duration::from_millis(100));
 
         assert_eq!(
             coordinator_connection
