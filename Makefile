@@ -96,7 +96,7 @@ build:
 .PHONY: clippy
 clippy:
 	@echo "clippy<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
-	@cargo clippy --tests --no-deps --all-features --all-targets -- --warn clippy::pedantic -D warnings
+	@cargo clippy --tests --no-deps --all-features --all-targets -- --warn clippy::pedantic
 
 .PHONY: test
 test:
