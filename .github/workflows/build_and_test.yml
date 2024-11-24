@@ -131,7 +131,7 @@ jobs:
 
       - name: UploadCoverage
         run: |
-          grcov . --binary-path target/debug/ -s . -t lcov --branch --ignore-errors inconsistent --ignore-not-existing --ignore "/*" -o lcov.info
-          lcov --remove lcov.info 'target/debug/build/**' '**/errors.rs' '*tests/*' -o lcov.info
+          grcov . --binary-path target/debug/ -s . -t lcov --branch --ignore-not-existing --ignore "/*" -o lcov.info
+          lcov --ignore-errors inconsistent --remove lcov.info 'target/debug/build/**' '**/errors.rs' '*tests/*' -o lcov.info
           bash <(curl -s https://codecov.io/bash) -f lcov.info
           rm -f lcov.info
