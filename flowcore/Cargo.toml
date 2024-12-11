@@ -35,7 +35,7 @@ serde_derive = { version = "~1.0.27"}
 error-chain = {version = "0.12.2"}
 url = { version = "2.2", features = ["serde"] }
 log = {version = "0.4.22"}
-serde = { version = "~1.0.215"}
+serde = { version = "~1.0.216"}
 toml = { version = "0.8.19" }
 serde_yaml = { version = "~0.9" }
 
