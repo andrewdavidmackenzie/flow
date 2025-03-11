@@ -31,7 +31,7 @@ debugger = ["flowcore/debugger"] # feature to add output for the debugger
 [dependencies]
 flowcore = {path = "../flowcore", version = "0.142.0", features = ["context", "file_provider", "http_provider", "meta_provider"]}
 clap = "~4"
-env_logger = "0.11.6"
+env_logger = "0.11.7"
 log = "0.4.26"
 url = { version = "2.2", features = ["serde"] }
 tempfile = "3"
