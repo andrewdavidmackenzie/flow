@@ -1,4 +1,5 @@
 use std::io::Write;
+use std::fmt::Write as _; // import without risk of name clashing
 use std::path::Path;
 
 use log::info;
@@ -106,12 +107,11 @@ fn process_refs_to_dot(
         match process {
             FlowProcess(ref subflow) => {
                 // create cluster sub graph
-                output.push_str(&format!("\nsubgraph cluster_{} {{",
-                                 str::replace(&subflow.alias.to_string(), "-", "_"))
+                let _ = write!(output, "\nsubgraph cluster_{} {{",
+                                 str::replace(&subflow.alias.to_string(), "-", "_")
                 );
-                output.push_str(&format!("label = \"{}\";", subflow.route()));
-
-                output.push_str(&process_refs_to_dot(subflow, tables)?); // recurse
+                let _ = write!(output, "label = \"{}\";", subflow.route());
+                let _ = write!(output, "{}", &process_refs_to_dot(subflow, tables)?); // recurse
 
                 // close cluster
                 output.push_str("}\n");
@@ -135,12 +135,12 @@ fn function_to_dot(function: &FunctionDefinition, functions: &[FunctionDefinitio
         .to_string()
         .replace("toml", "html");
 
-    function_string.push_str(&format!(
+    let _ = write!(function_string,
                      "r{}[style=filled, fillcolor=coral, URL=\"{md_path}\", label=\"{} (#{})\"];",
                      function.get_id(),
                      function.alias(),
                      function.get_id()
-    ));
+    );
 
     function_string.push_str(&input_initializers_to_dot(function, &format!("r{}", function.get_id()))?);
 
@@ -156,7 +156,7 @@ fn function_to_dot(function: &FunctionDefinition, functions: &[FunctionDefinitio
             .expect("Could not get input")
             .name()
             .to_string();
-        function_string.push_str(&format!(
+        let _ = write!(function_string,
                          "r{}:{} -> r{}:{} [taillabel = \"{}\", headlabel = \"{}\"];",
                          function.get_id(),
                          source_port,
@@ -164,7 +164,7 @@ fn function_to_dot(function: &FunctionDefinition, functions: &[FunctionDefinitio
                          input_port,
                          destination.source,
                          destination_name
-        ));
+        );
     }
 
     Ok(function_string)
