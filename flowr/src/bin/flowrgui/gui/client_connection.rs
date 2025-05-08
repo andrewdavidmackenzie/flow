@@ -58,7 +58,7 @@ impl ClientConnection {
 
         let message_string = msg.as_str()
             .ok_or("Could not get Message as String")?.to_owned();
-        trace!("Client Received <--- {}", message_string);
+        trace!("Client Received <--- {message_string}");
         Ok(message_string.into())
     }
 
@@ -67,7 +67,7 @@ impl ClientConnection {
     pub fn send<CM>(&self, message: CM) -> Result<()>
     where
         CM: Into<String> + Display {
-        trace!("Client Sending     ---> {}", message);
+        trace!("Client Sending     ---> {message}");
         self.requester
             .send(&message.into(), WAIT)
             .chain_err(|| "Error sending to coordinator")

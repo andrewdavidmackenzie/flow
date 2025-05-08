@@ -79,7 +79,7 @@ pub fn build_lib(options: &Options, provider: &dyn Provider, output_dir: &PathBu
     let (message, write_manifest) = check_manifest_status(&manifest_json_file, file_count,
                                                           &lib_manifest)?;
 
-    info!("{}", message);
+    info!("{message}");
 
     if write_manifest {
         lib_manifest.write_json(&manifest_json_file)?;
@@ -254,7 +254,7 @@ fn compile_functions(
                     )
                 })?;
 
-                debug!("Trying to load library FunctionProcess from '{}'", url);
+                debug!("Trying to load library FunctionProcess from '{url}'");
                 match parser::parse(
                     &url,
                     provider,
@@ -316,8 +316,8 @@ fn compile_functions(
 
                         file_count += copy_definition_to_output_dir(toml_path, &out_dir)?;
                     }
-                    Ok(FlowProcess(_)) => debug!("Skipping file '{}'. Reason: 'It is a Flow'", url),
-                    Err(err) => debug!("Skipping file '{}'. Reason: '{}'", url, err),
+                    Ok(FlowProcess(_)) => debug!("Skipping file '{url}'. Reason: 'It is a Flow'"),
+                    Err(err) => debug!("Skipping file '{url}'. Reason: '{err}'"),
                 }
             },
             Err(e) => bail!("Error walking glob entries: {}", e.to_string())
@@ -325,7 +325,7 @@ fn compile_functions(
     }
 
     if file_count > 0 {
-        info!("Compiled {} functions to wasm", file_count);
+        info!("Compiled {file_count} functions to wasm");
     }
 
     Ok(file_count)
@@ -408,12 +408,12 @@ fn compile_flows(
                     )
                 })?;
 
-                debug!("Trying to load library FlowProcess from '{}'", url);
+                debug!("Trying to load library FlowProcess from '{url}'");
                 match parser::parse(
                     &url,
                     provider,
                 ) {
-                    Ok(FunctionProcess(_)) => debug!("Skipping file '{}'. Reason: 'It is a Function'", url),
+                    Ok(FunctionProcess(_)) => debug!("Skipping file '{url}'. Reason: 'It is a Function'"),
                     Ok(FlowProcess(ref mut flow)) => {
                         // calculate the path of the file's directory, relative to lib_root
                         let relative_dir = toml_path
@@ -459,7 +459,7 @@ fn compile_flows(
     }
 
     if file_count > 0 {
-        info!("Compiled {} flows", file_count);
+        info!("Compiled {file_count} flows");
     }
 
     Ok(file_count)
@@ -505,7 +505,7 @@ fn copy_docs(
     }
 
     if file_count > 0 {
-        info!("Copied {} doc files", file_count);
+        info!("Copied {file_count} doc files");
     }
 
     Ok(file_count)

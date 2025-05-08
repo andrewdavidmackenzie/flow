@@ -275,7 +275,7 @@ impl FlowDefinition {
         direction: &Direction,
         sub_route: &Route,
     ) -> Result<IO> {
-        debug!("\tLooking for subprocess with alias = '{}'", subprocess_alias);
+        debug!("\tLooking for subprocess with alias = '{subprocess_alias}'");
 
         // TODO create a trait HasInputs and HasOutputs and implement it for function and flow
         // and process so this below can avoid the match
@@ -328,7 +328,7 @@ impl FlowDefinition {
         direction: &Direction,
         route: &Route,
     ) -> Result<IO> {
-        debug!("Looking for connection {:?} '{}'", direction, route);
+        debug!("Looking for connection {direction:?} '{route}'");
         match (&direction, route.parse_subroute()?) {
             (&FROM, RouteType::FlowInput(input_name, sub_route)) => {
                 // make sure the sub-route of the input is added to the source of the connection
@@ -376,7 +376,7 @@ impl FlowDefinition {
         for connection in&mut  connections {
             if let Err(e) = self.build_connection(connection, level) {
                 error_count += 1;
-                error!("{}", e);
+                error!("{e}");
             }
         }
 
@@ -406,13 +406,13 @@ impl FlowDefinition {
         let from_io = self.get_io_by_route(&FROM, connection.from())
             .chain_err(|| format!("Did not find connection source: '{}' specified in flow '{}'\n",
                    connection.from(), self.source_url))?;
-        trace!("Found connection source:\n{:#?}", from_io);
+        trace!("Found connection source:\n{from_io:#?}");
 
         // Connection can specify multiple destinations within flow - iterate over them all
         for to_route in connection.to() {
             match self.get_io_by_route(&TO, to_route) {
                 Ok(to_io) => {
-                    trace!("Found connection destination:\n{:#?}", to_io);
+                    trace!("Found connection destination:\n{to_io:#?}");
                     let mut new_connection = connection.clone();
                     new_connection.connect(from_io.clone(), to_io, level)?;
                     self.connections.push(new_connection);

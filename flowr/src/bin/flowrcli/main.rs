@@ -108,7 +108,7 @@ fn get_lib_search_path(search_path_additions: &[String]) -> Simpath {
 
     for additions in search_path_additions {
         lib_search_path.add(additions);
-        info!("'{}' added to the Library Search Path", additions);
+        info!("'{additions}' added to the Library Search Path");
     }
 
     if lib_search_path.is_empty() {
@@ -171,7 +171,7 @@ fn run() -> Result<()> {
             #[cfg(feature = "debugger")]
             debug_this_flow,
         )?;
-    };
+    }
 
     Ok(())
 }

@@ -24,7 +24,7 @@ use flowcore::model::function_definition::FunctionDefinition;
 pub fn flow_function(_attr: TokenStream, implementation: TokenStream) -> TokenStream {
     // Get the full path to the file where the macro was used, and join the relative filename from
     // the macro's attributes, to find the path to the function's definition file
-    let mut definition_file_path = Span::call_site().source_file().path().canonicalize()
+    let mut definition_file_path = Span::call_site().source().source_file().path().canonicalize()
         .expect("the 'flow' macro could not get the full file path of the file where it was invoked");
     definition_file_path.set_extension("toml");
 

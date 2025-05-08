@@ -42,7 +42,7 @@ where
 
 /// Get the file extension of the resource referred to by `url`
 fn get_file_extension(url: &Url) -> Option<&str> {
-    url.path_segments()?.last()?.rsplit_once('.').map(|t| t.1)
+    url.path_segments()?.next_back()?.rsplit_once('.').map(|t| t.1)
 }
 
 #[cfg(test)]

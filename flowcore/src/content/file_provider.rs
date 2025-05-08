@@ -72,10 +72,10 @@ impl Provider for FileProvider {
             .to_file_path()
             .map_err(|()| "Could not convert Url to file path")?;
         let mut f =
-            File::open(&file_path).map_err(|_| format!("Could not open file '{file_path:?}'"))?;
+            File::open(&file_path).map_err(|_| format!("Could not open file '{}'", file_path.display()))?;
         let mut buffer = Vec::new();
         f.read_to_end(&mut buffer)
-            .chain_err(|| format!("Could not read content from '{file_path:?}'"))?;
+            .chain_err(|| format!("Could not read content from '{}'", file_path.display()))?;
         Ok(buffer)
     }
 }

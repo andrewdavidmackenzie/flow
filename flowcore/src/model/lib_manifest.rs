@@ -141,8 +141,7 @@ impl LibraryManifest {
         .chain_err(|| "Could not form library Url to add to the manifest")?;
 
         debug!(
-            "Adding implementation locator to lib manifest: \n'{}' -> '{}'",
-            lib_reference, implementation_path_relative
+            "Adding implementation locator to lib manifest: \n'{lib_reference}' -> '{implementation_path_relative}'"
         );
         self.locators.insert(
             lib_reference,

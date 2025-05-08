@@ -1,4 +1,4 @@
-/// Module of context functions for Cli Flowr Runner
+//! Module of context functions for Cli Flowr Runner
 
 use std::sync::{Arc, Mutex};
 

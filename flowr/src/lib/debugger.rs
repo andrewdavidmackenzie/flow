@@ -263,7 +263,7 @@ impl<'a> Debugger<'a> {
                                                           state.get_function_states(function_id));
                     } else {
                         self.debug_server.debugger_error(format!("No function with id = {function_id}"));
-                    };
+                    }
                 }
                 Ok(InspectInput(function_id, input_number)) => {
                     if function_id < state.num_functions() {
@@ -280,7 +280,7 @@ impl<'a> Debugger<'a> {
                         }
                     } else {
                         self.debug_server.debugger_error(format!("No function with id = {function_id}"));
-                    };
+                    }
                 }
                 Ok(InspectOutput(function_id, sub_route)) => {
                     if function_id < state.num_functions() {
@@ -307,7 +307,7 @@ impl<'a> Debugger<'a> {
                         self.debug_server.outputs(output_connections);
                     } else {
                         self.debug_server.debugger_error(format!("No function with id = {function_id}"));
-                    };
+                    }
                 }
                 Ok(InspectBlock(from_function_id, to_function_id)) => {
                     let blocks = Self::inspect_blocks(state, from_function_id, to_function_id);
@@ -344,7 +344,7 @@ impl<'a> Debugger<'a> {
                     self.debug_server.debugger_exiting();
                     bail!("Debugger Exit");
                 }
-            };
+            }
         }
     }
 

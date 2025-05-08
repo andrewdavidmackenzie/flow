@@ -446,7 +446,7 @@ mod test {
         ///   Value Type        Input Type
         /// * array/{type}  --> array (`is_array` = true)
         /// * array/{type}  --> object (`is_array` = false) - values in Array will be serialized
-        ///                     and sent to input one by one)
+        ///   `  ` and sent to input one by one
         #[test]
         fn valid_type_conversions() {
             let valid_type_conversions: Vec<(String, String, &str)> = vec![

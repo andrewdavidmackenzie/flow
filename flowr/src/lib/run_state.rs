@@ -58,25 +58,25 @@ pub enum State {
 /// Terminology
 /// ===========
 /// * function        - an entry in the manifest and the flow graph that may take inputs, will 
-///                     execute an implementation on a Job and may produce an Output
+///   `  `                execute an implementation on a Job and may produce an Output
 /// * input           - a function may have 0 or more inputs that accept values required for it's 
-///                     execution
+///   `  `                execution
 /// * implementation  - the code that is run, accepting 0 or more input values performing some 
-///                     calculations and possibly producing an output value. One implementation can
-///                     be used by multiple functions in a flow
+///   `  `                calculations and possibly producing an output value. One implementation can
+///   `  `                be used by multiple functions in a flow
 /// * destinations    - a set of other functions and their specific inputs that a function is 
-///                     connected to and hence where the output value is sent when execution is 
-///                     completed
+///   `  `                connected to and hence where the output value is sent when execution is
+///   `  `                completed
 /// * job             - a job is the bundle of information necessary to execute. It consists of the
-///                     function's id, the input values, the implementation to run, and the 
-///                     destinations to send the output value to
+///   `  `                function's id, the input values, the implementation to run, and the
+///   `  `                destinations to send the output value to
 /// * execution       - the act of running an implementation on the input values to produce an 
-///                     output
+///   `  `                output
 /// * output          - a function when ran produces an output. The output contains the id of the 
-///                     function that was ran, the input values (for debugging), the result 
-///                     (optional value plus an indicator if the function wishes to be ran again 
-///                     when ready), the destinations to send any value to and an optional error 
-///                     string.
+///   `  `                function that was ran, the input values (for debugging), the result
+///   `  `                (optional value plus an indicator if the function wishes to be ran again
+///   `  `                when ready), the destinations to send any value to and an optional error
+///   `  `                    string.
 ///
 /// Start-up
 /// ==============
@@ -258,14 +258,14 @@ impl RunState {
     /// After `init` Functions will either be:
     ///    - Ready:   an entry will be added to the `ready` list with this function's id
     ///    - Blocked: the function has all it's inputs ready and could run but a Function it sends 
-    ///               to has an input full already (due to being initialized during the init process)
-    ///               - an entry will be added to the `blocks` list with this function's id as 
-    ///                 `source_id`
-    ///               - an entry will be added to the `blocked` list with this function's id
+    ///      `     `  to has an input full already (due to being initialized during the init process)
+    ///      `     `   - an entry will be added to the `blocks` list with this function's id as
+    ///      `     `     `source_id`
+    ///      `      `      - an entry will be added to the `blocked` list with this function's id
     ///    - Waiting: function has at least one empty input so it cannot run. It will not added to
-    ///               `ready` nor `blocked` lists, so by omission it is in the `Waiting` state.
-    ///               But the `block` will be created so when later it's inputs become full the fact
-    ///               it is blocked will be detected and it can move to the `blocked` state
+    ///      `     ` `ready` nor `blocked` lists, so by omission it is in the `Waiting` state.
+    ///      `     `But the `block` will be created so when later it's inputs become full the fact
+    ///      `     `it is blocked will be detected and it can move to the `blocked` state
     pub(crate) fn init(&mut self) -> Result<()> {
         #[cfg(feature = "debugger")]
         self.reset();
@@ -570,7 +570,7 @@ impl RunState {
                 "\t\tFunction #{source_id} sending '{output_value}'{route_str} to Function #{}:{}",
                 connection.destination_id, connection.destination_io_number
             );
-        };
+        }
 
         #[cfg(feature = "debugger")]
         if let Output(route) = &connection.source {
@@ -733,8 +733,7 @@ impl RunState {
             if let Some(input_set) = function.take_input_set() {
                 let implementation_url = function.get_implementation_url().clone();
                 debug!(
-                    "Job #{job_id} created for Function #{function_id}({flow_id}) with inputs: {:?}",
-                    input_set
+                    "Job #{job_id} created for Function #{function_id}({flow_id}) with inputs: {input_set:?}"
                 );
                 let job = Job {
                     function_id,
@@ -838,7 +837,7 @@ impl RunState {
         // multiple destinations and so could still be blocked sending to other functions
         for block in blocks_to_remove {
             self.blocks.remove(&block);
-            trace!("\t\t\tBlock removed {:?}", block);
+            trace!("\t\t\tBlock removed {block:?}");
 
             if self.blocked.contains(&block.blocked_function_id)
                 && !self.block_exists(block.blocked_function_id)
@@ -908,7 +907,7 @@ impl RunState {
             blocked_flow_id,
         );
 
-        trace!("\t\t\t\t\tCreating Block {:?}", block);
+        trace!("\t\t\t\t\tCreating Block {block:?}");
         self.blocks.insert(block.clone());
         #[cfg(feature = "debugger")]
         return debugger.check_on_block_creation(self, &block);

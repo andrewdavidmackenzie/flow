@@ -84,7 +84,7 @@ impl DebugClient {
                     }
                 }
                 Err(err) => {
-                    error!("Error receiving event from debugger: {}", err);
+                    error!("Error receiving event from debugger: {err}");
                     break;
                 }
             }
@@ -113,7 +113,7 @@ impl DebugClient {
                 command,
                 Some(parts.get(1..).ok_or("Could not get parts")?.to_vec()),
             ));
-        };
+        }
 
         Ok((input, command, None))
     }

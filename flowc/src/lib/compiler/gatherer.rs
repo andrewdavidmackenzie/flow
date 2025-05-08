@@ -115,7 +115,7 @@ pub fn collapse_connections(tables: &mut CompilerTables) -> Result<()> {
                                                    collapsed_connection.to_io().datatypes(), &source_subroute)
                             .chain_err(|| format!("Incompatible types in collapsed connection from '{}' to '{}'",
                                                   collapsed_connection.from_io().route(), collapsed_connection.to_io().route()))?;
-                        debug!("\tIndirect connection {}", collapsed_connection);
+                        debug!("\tIndirect connection {collapsed_connection}");
                         collapsed_connections.push(collapsed_connection);
                     }
                 }
@@ -255,8 +255,7 @@ fn find_connection_destinations(
                             .push((accumulated_source_subroute, next_connection.to_io().clone()));
                     }
 
-                    IOType::FunctionOutput => error!("Error - destination of {:?} is a functions output!",
-                        next_connection),
+                    IOType::FunctionOutput => error!("Error - destination of {next_connection:?} is a functions output!"),
 
                     IOType::FlowInput => {
                         debug!("\t\tFollowing connection into sub-flow via '{}'", from_io.route());
