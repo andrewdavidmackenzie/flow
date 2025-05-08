@@ -118,7 +118,7 @@
     - [transpose](flowstdlib/src/matrix/transpose/transpose.md)
     - [compose_matrix](flowstdlib/src/matrix/compose_matrix/compose_matrix.md)
     
-# Examples flows
+# Example flows
 - [Examples Intro](flowr/examples/README.md)
     - [args](flowr/examples/args/DESCRIPTION.md)
     - [args-json](flowr/examples/args-json/DESCRIPTION.md)
@@ -153,18 +153,13 @@
 - [Crates](book/developing/crates.md)
     - [flowcore](flowcore/README.md)
     - [flowmacro](flowmacro/README.md)
-      - [flowc](flowc/README.md)
-        - [Flowc Compiler and Parser Test flows](flowc/tests/test-flows/README.md)
     - [flowr](flowr/README.md)
-      - [flowrlib](flowr/README.md)
-      - [flowrex](flowr/README.md)
-      - [flowstdlib](flowstdlib/README.md)
-      - [examples](flowr/examples/README.md)
+    - [flowc](flowc/README.md)
+      - [flowc Compiler and Parser Test flows](flowc/tests/test-flows/README.md)
 - [Makefile targets](book/developing/make.md)
 - [Ways to contribute](book/developing/contributing.md)
     - [Issues](book/developing/issues.md)
     - [PRs](book/developing/prs.md)
-    - [Developing an example](flowr/examples/README.md)
     - [Continuous Integration Tests](book/developing/ci.md)
         
 # Internals of the `flow` Project
