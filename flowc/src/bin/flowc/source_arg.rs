@@ -15,7 +15,7 @@ pub(crate) enum CompileType {
 
 fn default_lib_compile_dir(source_url: &Url) -> Result<PathBuf> {
     let lib_name = source_url.path_segments()
-        .ok_or("Could not get path of source_url")?.last()
+        .ok_or("Could not get path of source_url")?.next_back()
         .ok_or("Could not get last path segment of source_url")?;
 
     let home_dir = env::var("HOME").expect("Could not get $HOME");

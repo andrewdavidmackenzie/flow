@@ -1,12 +1,12 @@
 //! `flowrex` is the minimal executor of flow jobs. It loads a native version of 'flowstdlib'
 //! flow library to allow execution of jobs using functions provided by 'flowstdlib', but it does
 //! *not* load 'context' and hence will not execute any jobs interacting with the context.
-use core::str::FromStr;
-/// It attempts to be as small as possible, and only accepts jobs for execution over the network
-/// and does not load flows, accept flow submissions run a coordinator or access the file system.
-/// Any implementations are either preloaded static linked binary functions or loaded from WASM
-/// from peers.
+//! It attempts to be as small as possible, and only accepts jobs for execution over the network
+//! and does not load flows, accept flow submissions run a coordinator or access the file system.
+//! Any implementations are either preloaded static linked binary functions or loaded from WASM
+//! from peers.
 
+use core::str::FromStr;
 use std::{env, thread};
 use std::path::PathBuf;
 use std::process::exit;

@@ -46,7 +46,7 @@ fn cargo_test(manifest_path: &Path) -> Result<()> {
         manifest_path.display()
     );
 
-    debug!("\tRunning command = '{}', args = {:?}", command, test_args);
+    debug!("\tRunning command = '{command}', args = {test_args:?}");
 
     let output = Command::new(command)
         .args(&test_args)
@@ -151,7 +151,7 @@ pub fn run(implementation_source_path: &Path, target_dir: PathBuf, wasm_destinat
 
     if create_cargo {
         fs::copy(function_toml, &cargo_toml)?;
-    };
+    }
 
     cargo_test(&cargo_toml.clone())?;
 

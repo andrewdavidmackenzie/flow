@@ -10,7 +10,7 @@ use crate::run_state::{RunState, State};
 fn runtime_error(state: &RunState, job_id: usize, message: &str, file: &str, line: u32) -> Result<()> {
     let msg = format!("Job #{job_id}: Runtime error: at file: {file}, line: {line}\n
                         {message}\nJob #{job_id}: Error State -\n{state}");
-    error!("{}", msg);
+    error!("{msg}");
     bail!(msg);
 }
 

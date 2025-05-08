@@ -39,7 +39,7 @@ pub fn create_manifest(
     tables: &CompilerTables,
     #[cfg(feature = "debugger")] source_urls: BTreeMap<String, Url>,
 ) -> Result<FlowManifest> {
-    info!("Writing flow manifest to '{}'", manifest_url);
+    info!("Writing flow manifest to '{manifest_url}'");
 
     let mut manifest = FlowManifest::new(MetaData::from(flow));
 
@@ -175,11 +175,11 @@ fn implementation_location_relative(
             .map_err(|()| "cannot be base")?
             .pop();
 
-        info!("Manifest base = '{}'", manifest_base_url.to_string());
+        info!("Manifest base = '{manifest_base_url}'");
         info!("Absolute implementation path = '{implementation_path}'");
         let relative_path =
             implementation_url.replace(&format!("{}/", manifest_base_url.as_str()), "");
-        info!("Relative implementation path = '{}'", relative_path);
+        info!("Relative implementation path = '{relative_path}'");
         Ok(relative_path)
     }
 }

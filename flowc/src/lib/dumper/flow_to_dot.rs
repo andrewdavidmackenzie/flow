@@ -131,7 +131,7 @@ fn inner_dump_flow(
         .ok_or("Could not convert filename to string")?;
 
     let mut writer = create_output_file(target_dir, filename, "dot")?;
-    info!("\tGenerating {}.dot, Use \"dotty\" to view it", filename);
+    info!("\tGenerating {filename}.dot, Use \"dotty\" to view it");
     write_flow_to_dot(flow, &mut writer)?;
 
     // Dump sub-flows

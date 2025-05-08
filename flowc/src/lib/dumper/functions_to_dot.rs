@@ -83,10 +83,7 @@ pub fn dump_functions(
     dot_file.write_all(format!("labelloc=t;\nlabel = \"{}\";\n", flow.route()).as_bytes())?;
 
     let functions = process_refs_to_dot(flow, tables).map_err(|_| {
-        std::io::Error::new(
-            std::io::ErrorKind::Other,
-            "Could not create dot content for process_refs",
-        )
+            std::io::Error::other("Could not create dot content for process_refs")
     })?;
 
     dot_file.write_all(functions.as_bytes())?;
@@ -139,9 +136,8 @@ fn function_to_dot(function: &FunctionDefinition, functions: &[FunctionDefinitio
         .replace("toml", "html");
 
     function_string.push_str(&format!(
-                     "r{}[style=filled, fillcolor=coral, URL=\"{}\", label=\"{} (#{})\"];",
+                     "r{}[style=filled, fillcolor=coral, URL=\"{md_path}\", label=\"{} (#{})\"];",
                      function.get_id(),
-                     md_path,
                      function.alias(),
                      function.get_id()
     ));
