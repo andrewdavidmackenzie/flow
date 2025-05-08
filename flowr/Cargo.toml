@@ -48,8 +48,8 @@ flowcore = {path = "../flowcore", version = "0.142.0", features = ["context", "f
         "context", "meta_provider"] }
 flowstdlib = {path = "../flowstdlib", version = "0.142.0", optional = true }
 clap = "~4"
-log = "0.4.22"
-env_logger = "0.11.5"
+log = "0.4.27"
+env_logger = "0.11.7"
 simpath = { version = "~2.5", features = ["urls"]}
 url = { version = "2.2", features = ["serde"] }
 serde_derive = "~1.0"
@@ -59,18 +59,18 @@ error-chain = "0.12.2"
 multimap = "~0.10"
 portpicker = "0.1.1"
 zmq = "0.10.0"
-image = "=0.25.5"
+image = "=0.25.6"
 simpdiscover = "0.7"
 
 # for flowrlib
-rand = "0.8"
+rand = "0.9"
 wasmtime = { version = "24.0.2", default-features = false, features = ["runtime", "cranelift"] }
 
 # for flowrgui
 iced = { version = "0.12.1", features = ["canvas", "tokio", "debug", "image"] }
 iced_aw = { version = "0.9.3", default-features = false, features = ["tabs", "card", "modal",] }
 iced_native = "0.10.3"
-once_cell = "1.20.2"
+once_cell = "1.21.1"
 tokio = { version = "1", features = ["sync"] }
 
 # Optional dependencies
