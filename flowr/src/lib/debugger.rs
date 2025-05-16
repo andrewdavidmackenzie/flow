@@ -263,7 +263,7 @@ impl<'a> Debugger<'a> {
                                                           state.get_function_states(function_id));
                     } else {
                         self.debug_server.debugger_error(format!("No function with id = {function_id}"));
-                    };
+                    }
                 }
                 Ok(InspectInput(function_id, input_number)) => {
                     if function_id < state.num_functions() {
@@ -280,7 +280,7 @@ impl<'a> Debugger<'a> {
                         }
                     } else {
                         self.debug_server.debugger_error(format!("No function with id = {function_id}"));
-                    };
+                    }
                 }
                 Ok(InspectOutput(function_id, sub_route)) => {
                     if function_id < state.num_functions() {
@@ -307,7 +307,7 @@ impl<'a> Debugger<'a> {
                         self.debug_server.outputs(output_connections);
                     } else {
                         self.debug_server.debugger_error(format!("No function with id = {function_id}"));
-                    };
+                    }
                 }
                 Ok(InspectBlock(from_function_id, to_function_id)) => {
                     let blocks = Self::inspect_blocks(state, from_function_id, to_function_id);
@@ -344,7 +344,7 @@ impl<'a> Debugger<'a> {
                     self.debug_server.debugger_exiting();
                     bail!("Debugger Exit");
                 }
-            };
+            }
         }
     }
 
@@ -438,7 +438,7 @@ impl<'a> Debugger<'a> {
     }
 
     /*
-       Delete debugger breakpoints related to Jobs or Blocks, etc according to the Spec.
+       Delete debugger breakpoints related to Jobs or Blocks, etc. according to the Spec.
     */
     fn delete_breakpoint(&mut self, state: &RunState, param: Option<BreakpointSpec>) -> Result<String> {
         match param {
@@ -653,7 +653,7 @@ impl<'a> Debugger<'a> {
 
     /*
         Traverse the tree of processes blocking this process from running, either because:
-        - this process wants to send to the other, but the input it full
+        - this process wants to send to the other, but the input is full
         - this process needs an input from the other
 
         Return true if a loop was detected, false if done without detecting a loop
@@ -914,7 +914,7 @@ mod test {
         let mut server = DummyServer::new();
         let mut debugger = Debugger::new(&mut server);
 
-        // Setup a breakpoint on the output from function #0
+        // Set up a breakpoint on the output from function #0
         debugger.output_breakpoints.insert((0, String::new()));
 
         let _ = debugger.check_prior_to_send(&mut state, 0, "",
@@ -930,7 +930,7 @@ mod test {
         let mut server = DummyServer::new();
         let mut debugger = Debugger::new(&mut server);
 
-        // Setup a breakpoint on the input to function #0, input #0
+        // Set up a breakpoint on the input to function #0, input #0
         debugger.input_breakpoints.insert((0, 0));
 
         // send from an imaginary function #1 to function #0 input #0
@@ -947,7 +947,7 @@ mod test {
         let mut server = DummyServer::new();
         let mut debugger = Debugger::new(&mut server);
 
-        // Setup a breakpoint on the unblocking of flow #0
+        // Set up a breakpoint on the unblocking of flow #0
         debugger.flow_unblock_breakpoints.insert(0);
 
         let _ = debugger.check_prior_to_flow_unblock(&mut state, 0);

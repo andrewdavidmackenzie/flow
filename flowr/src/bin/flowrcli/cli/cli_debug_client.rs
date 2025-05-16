@@ -74,7 +74,7 @@ impl CliDebugClient {
         // Ignore error on first start-up due to no previous command history existing
         let _ = self.editor.load_history(FLOWR_HISTORY_FILENAME);
 
-        // Send an first message to initialize the connection
+        // Send a first message to initialize the connection
         let _ = self.connection.send(DebugClientStarting);
 
         // loop while? and avoid break?
@@ -86,7 +86,7 @@ impl CliDebugClient {
                     }
                 }
                 Err(err) => {
-                    error!("Error receiving event from debugger: {}", err);
+                    error!("Error receiving event from debugger: {err}");
                     break;
                 }
             }
@@ -115,7 +115,7 @@ impl CliDebugClient {
                 command,
                 Some(parts.get(1..).ok_or("Could not get parts")?.to_vec()),
             ));
-        };
+        }
 
         Ok((input, command, None))
     }
@@ -230,7 +230,7 @@ impl CliDebugClient {
        Determine what response should be sent to the server for the input command, or none.
        Some commands act locally at the client (such as "help") and don't generate any response
        to send to the server.
-       Likewise command parsing errors shouldn't generate a response to send to the server.
+       Likewise, command parsing errors shouldn't generate a response to send to the server.
     */
     fn get_server_command(
         &mut self,

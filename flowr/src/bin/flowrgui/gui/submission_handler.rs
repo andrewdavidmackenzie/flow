@@ -51,7 +51,7 @@ impl SubmissionHandler for CLISubmissionHandler {
                 Ok(true)
             }
             Ok(m) => {
-                debug!("Got {:?} message", m);
+                debug!("Got {m:?} message");
                 Ok(false)
             }
             _ => Ok(false),
@@ -63,7 +63,7 @@ impl SubmissionHandler for CLISubmissionHandler {
             .lock()
             .map_err(|_| "Could not lock coordinator connection")?
             .send(CoordinatorMessage::FlowEnd(metrics))?;
-        debug!("{}", state);
+        debug!("{state}");
         Ok(())
     }
 
@@ -81,11 +81,11 @@ impl SubmissionHandler for CLISubmissionHandler {
                     match received {
                         Ok(ClientMessage::ClientSubmission(submission)) => {
                             info!("Coordinator received a submission for execution");
-                            trace!("\n{}", submission);
+                            trace!("\n{submission}");
                             return Ok(Some(submission));
                         }
                         Ok(ClientMessage::ClientExiting(_)) => return Ok(None),
-                        Ok(r) => error!("Coordinator did not expect message from client: '{:?}'", r),
+                        Ok(r) => error!("Coordinator did not expect message from client: '{r:?}'"),
                         Err(e) => bail!("Coordinator error while waiting for submission: '{}'", e),
                     }
                 }

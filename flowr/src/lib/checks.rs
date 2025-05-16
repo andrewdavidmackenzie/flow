@@ -10,7 +10,7 @@ use crate::run_state::{RunState, State};
 fn runtime_error(state: &RunState, job_id: usize, message: &str, file: &str, line: u32) -> Result<()> {
     let msg = format!("Job #{job_id}: Runtime error: at file: {file}, line: {line}\n
                         {message}\nJob #{job_id}: Error State -\n{state}");
-    error!("{}", msg);
+    error!("{msg}");
     bail!(msg);
 }
 
@@ -128,7 +128,7 @@ fn self_block_check(state: &RunState, job_id: usize, block: &Block) -> Result<()
 fn destination_block_state_check(state: &RunState, job_id: usize, block: &Block,
                                  functions: &[RuntimeFunction]) -> Result<()> {
     // For each block on a destination function, then either that input should be full or
-    // the function should be running in parallel with the one that just completed
+    // the function should be running in parallel with the one that just completed,
     // or it's flow should be busy and there should be a pending unblock on it
     if let Some(function) = functions.get(block.blocking_function_id) {
         if !(function.input_count(block.blocking_io_number) > 0

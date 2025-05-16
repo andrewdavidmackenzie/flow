@@ -55,7 +55,7 @@ pub(crate) static OUTPUT_PORTS: &[&str] = &["s", "se", "sw", "e"];
 ///
 /// if let Ok(FlowProcess(mut flow)) = flowrclib::compiler::parser::parse(&url, &provider) {
 ///     // strip off filename so output_dir is where the root.toml file resides
-///     let output_dir = tempdir().unwrap().into_path();
+///     let output_dir = tempdir().unwrap().keep();
 ///
 ///     // dump the flows compiler data and dot graph into files alongside the 'root.toml'
 ///     flowrclib::dumper::flow_to_dot::dump_flow(&flow, &output_dir, &provider).unwrap();
@@ -131,7 +131,7 @@ fn inner_dump_flow(
         .ok_or("Could not convert filename to string")?;
 
     let mut writer = create_output_file(target_dir, filename, "dot")?;
-    info!("\tGenerating {}.dot, Use \"dotty\" to view it", filename);
+    info!("\tGenerating {filename}.dot, Use \"dotty\" to view it");
     write_flow_to_dot(flow, &mut writer)?;
 
     // Dump sub-flows
@@ -189,7 +189,7 @@ fn input_set_to_dot(input_set: &IOSet, to: &Route) -> String {
     for input in input_set {
         // Avoid creating extra points to connect to for default input
         if input.route() != to {
-            // Add an entry for each input using it's route
+            // Add an entry for each input using its route
             let _ = writeln!(string,
                              "\t\"{}\" [label=\"{}\", shape=house, style=filled, fillcolor=white];",
                              input.route(),
@@ -212,7 +212,7 @@ fn output_set_to_dot(output_set: &IOSet, from: &Route, connect_subflow: bool) ->
     for output in output_set {
         // Only add output if it's not got the same route as it's function i.e. it's not the default output
         if output.route() != from {
-            // Add an entry for each output using it's route
+            // Add an entry for each output using its route
             let _ = writeln!(string, "\t\"{}\" [label=\"{}\", shape=invhouse, style=filled, fillcolor=black, fontcolor=white];",
                              output.route(), output.name());
 

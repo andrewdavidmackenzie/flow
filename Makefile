@@ -88,7 +88,7 @@ clean: clean_examples
 .PHONY: build
 build:
 	@echo "build<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
-	@cargo build
+	cargo build
 	@target/debug/flowc -d -g -O flowstdlib
 	@target/debug/flowc flowr/src/bin/flowrcli
 	@target/debug/flowc flowr/src/bin/flowrgui
@@ -96,7 +96,7 @@ build:
 .PHONY: clippy
 clippy:
 	@echo "clippy<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
-	@cargo clippy --tests --no-deps --all-features --all-targets -- --warn clippy::pedantic
+	cargo clippy --tests --no-deps --all-features --all-targets -- --warn clippy::pedantic
 
 .PHONY: test
 test:
@@ -105,12 +105,12 @@ ifneq ($(CODESIGN),)
 	@echo "Code signing tool \"codesign\" detected"
 ifneq ($(SELFCERT),)
 	@echo "Self-signing certificate called \"self\" found"
-	@cargo test --no-run
+	cargo test --no-run
 	@find target -name "flow*" -perm +111 -type f | xargs codesign -s self || true
 endif
 endif
-	@cargo test
-	@cargo test --examples
+	cargo test
+	cargo test --examples
 
 .PHONY: coverage
 coverage: clean-start

@@ -67,7 +67,7 @@ impl Executor {
 
         match results[0] {
             Val::I32(result_length) => {
-                trace!("Return length from wasm function of {}", result_length);
+                trace!("Return length from wasm function of {result_length}");
                 if result_length > MAX_RESULT_SIZE {
                     bail!(
                     "Return length from wasm function of {} exceed maximum allowed",
@@ -76,7 +76,7 @@ impl Executor {
                 }
                 Ok(result_length)
             },
-            _ => bail!(format!("Unexpected value returned by WASM Func.call()()"))
+            _ => bail!("Unexpected value returned by WASM Func.call()()")
         }
     }
 
@@ -96,7 +96,7 @@ impl Executor {
 
         let result_returned = serde_json::from_slice(buffer.as_slice())
             .chain_err(|| "Could not convert returned data from wasm to json")?;
-        trace!("WASM run() function invocation Result = {:?}", result_returned);
+        trace!("WASM run() function invocation Result = {result_returned:?}");
         result_returned
     }
 }
@@ -115,7 +115,7 @@ impl Implementation for Executor {
 
 /// load a Wasm module from the specified Url and return it wrapped in a `WasmExecutor` `Implementation`
 pub fn load(provider: &Arc<dyn Provider>, source_url: &Url) -> Result<Executor> {
-    trace!("Attempting to load WASM module from '{}'", source_url);
+    trace!("Attempting to load WASM module from '{source_url}'");
     let (resolved_url, _) = provider
         .resolve_url(source_url, DEFAULT_WASM_FILENAME, &["wasm"])
         .chain_err(|| format!("Could not resolve url '{source_url}' for wasm file"))?;

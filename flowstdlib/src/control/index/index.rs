@@ -28,7 +28,7 @@ fn inner_index(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
                     let _ = output_map.insert("selected_value".into(), value);
                 }
                 _ => {}
-            };
+            }
         }
     }
 

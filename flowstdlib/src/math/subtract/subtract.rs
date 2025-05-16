@@ -33,7 +33,7 @@ fn inner_subtract(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
                     value = Some(Value::Number(f));
                 }
             }
-        };
+        }
     }
 
     if let Some(diff) = value {

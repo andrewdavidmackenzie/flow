@@ -75,7 +75,7 @@ impl Provider for HttpProvider {
 
 impl HttpProvider {
     fn resource_exists(url: &Url) -> Result<()> {
-        debug!("Looking for resource '{}'", url);
+        debug!("Looking for resource '{url}'");
         let mut easy = Easy2::new(Collector(Vec::new()));
         easy.nobody(true)
             .chain_err(|| "Could not set NO_BODY on operation")?;

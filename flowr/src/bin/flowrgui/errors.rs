@@ -1,4 +1,5 @@
 #![allow(missing_docs)]
+#![allow(unexpected_cfgs)]
 
 use error_chain::error_chain;
 

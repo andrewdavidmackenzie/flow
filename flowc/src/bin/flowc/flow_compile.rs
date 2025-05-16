@@ -160,7 +160,7 @@ fn execute_flow(filepath: &Path, options: &Options, runner_name: &str) -> Result
         .chain_err(|| format!("Could not spawn '{runner_name}'"))?;
 
     if let Some(stdin_file) = &options.stdin_file {
-        debug!("Reading STDIN from file: '{}'", stdin_file);
+        debug!("Reading STDIN from file: '{stdin_file}'");
 
         let _ = Command::new("cat")
             .args(vec![stdin_file])
@@ -181,7 +181,7 @@ fn execute_flow(filepath: &Path, options: &Options, runner_name: &str) -> Result
     match runner_output.status.code() {
         Some(0) | None => Ok(()),
         Some(code) => {
-            error!("Execution of '{}' failed", runner_name);
+            error!("Execution of '{runner_name}' failed");
             error!("'{}' STDOUT:\n{}", runner_name, String::from_utf8_lossy(&runner_output.stdout));
             error!("'{}' STDERR:\n{}", runner_name, String::from_utf8_lossy(&runner_output.stderr));
             bail!("Execution of '{}' failed. Exited with status code: {}", runner_name, code)
@@ -213,7 +213,7 @@ mod test {
 
     #[test]
     fn can_use_existing_dir() {
-        let test_output_dir = tempdir().expect("Could not create temp parent dir").into_path();
+        let test_output_dir = tempdir().expect("Could not create temp parent dir").keep();
 
         make_writeable(&test_output_dir).expect("Could not make output dir");
 

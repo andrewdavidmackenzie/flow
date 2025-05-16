@@ -1,2 +1,5 @@
 [target.'cfg(target_os = "darwin")']
 runner = "mac_test_runner.sh"
+
+[build]
+rustflags = ["--cfg", "procmacro2_semver_exempt"]
