@@ -29,7 +29,7 @@ to = "stdout"
 
         let temp_dir = tempdir()
             .expect("Could not create temporary directory")
-            .into_path();
+            .keep();
         let flow_filename = temp_dir.join("sequence_test.toml");
         let mut flow_file =
             File::create(&flow_filename).expect("Could not create lib manifest file");
@@ -47,7 +47,7 @@ to = "stdout"
     }
 
     #[test]
-    #[ignore]
+    #[ignore = "Problem with propagating array initializers into functions inside flows"]
     fn test_array_initializers() {
         let flow = r#"
 flow = "sequence-of-sequences"
@@ -67,7 +67,7 @@ to = "stdout"
 
         let temp_dir = tempdir()
             .expect("Could not create temporary directory")
-            .into_path();
+            .keep();
         let flow_filename = temp_dir.join("sequence_test.toml");
         let mut flow_file =
             File::create(&flow_filename).expect("Could not create lib manifest file");

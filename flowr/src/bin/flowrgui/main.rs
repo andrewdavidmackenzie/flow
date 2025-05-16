@@ -785,7 +785,7 @@ impl FlowrGui {
                 self.send(ClientMessage::Ack);
             }
             _ => {}
-        };
+        }
         Command::none()
     }
 }

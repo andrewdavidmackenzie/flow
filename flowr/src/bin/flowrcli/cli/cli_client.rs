@@ -258,7 +258,7 @@ mod test {
 
         let temp = tempdir()
             .expect("Couldn't get temporary directory")
-            .into_path();
+            .keep();
         let file_path = temp.join("test_read").to_string_lossy().to_string();
         {
             let mut file = File::create(&file_path).expect("Could not create test file");
@@ -285,7 +285,7 @@ mod test {
     fn test_file_writing() {
         let temp = tempdir()
             .expect("Couldn't get temporary directory")
-            .into_path();
+            .keep();
         let file = temp.join("test");
 
         let mut client = CliRuntimeClient::new(
@@ -342,7 +342,7 @@ mod test {
 
         let temp_dir = tempdir()
             .expect("Couldn't get temporary directory")
-            .into_path();
+            .keep();
         let path = temp_dir.join("flow.png");
 
         let _ = fs::remove_file(&path);

@@ -25,7 +25,7 @@ from = \"range/number\"
 to = \"stdout\"
 ";
 
-        let temp_dir = tempdir().expect("Could not create temporary directory").into_path();
+        let temp_dir = tempdir().expect("Could not create temporary directory").keep();
         let flow_filename = temp_dir.join("range_test.toml");
         let mut flow_file =
             File::create(&flow_filename).expect("Could not create lib manifest file");

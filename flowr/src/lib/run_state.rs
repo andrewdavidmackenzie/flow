@@ -570,7 +570,7 @@ impl RunState {
                 "\t\tFunction #{source_id} sending '{output_value}'{route_str} to Function #{}:{}",
                 connection.destination_id, connection.destination_io_number
             );
-        };
+        }
 
         #[cfg(feature = "debugger")]
         if let Output(route) = &connection.source {

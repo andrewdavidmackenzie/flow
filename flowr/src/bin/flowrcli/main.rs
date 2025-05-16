@@ -171,7 +171,7 @@ fn run() -> Result<()> {
             #[cfg(feature = "debugger")]
             debug_this_flow,
         )?;
-    };
+    }
 
     Ok(())
 }
