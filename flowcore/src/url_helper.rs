@@ -12,7 +12,7 @@ use crate::errors::{Result, ResultExt};
 /// - None                --> Return the Current Working Directory (CWD)
 /// - Some(absolute path) --> Return the absolute path passed in
 /// - Some(relative path) --> Join the CWD with the relative path and return the resulting
-///                           absolute path.
+///   `  `                          absolute path.
 ///
 /// Returns a full URL with appropriate scheme (depending on the original scheme passed in),
 /// and an absolute path.
@@ -24,7 +24,7 @@ use crate::errors::{Result, ResultExt};
 pub fn url_from_string(base_url: &Url, string: Option<&str>) -> Result<Url> {
     match string {
         None => {
-            info!("No url specified, so using: '{}'", base_url);
+            info!("No url specified, so using: '{base_url}'");
             Ok(base_url.clone())
         }
         Some(url_string) => base_url

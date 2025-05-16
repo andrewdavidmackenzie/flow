@@ -108,7 +108,7 @@ fn get_lib_search_path(search_path_additions: &[String]) -> Simpath {
 
     for additions in search_path_additions {
         lib_search_path.add(additions);
-        info!("'{}' added to the Library Search Path", additions);
+        info!("'{additions}' added to the Library Search Path");
     }
 
     if lib_search_path.is_empty() {
@@ -265,8 +265,8 @@ fn client_and_coordinator(
     )
 }
 
-/// Create a new `Coordinator`, pre-load any libraries in native format that we want to have before
-/// loading a flow and it's library references, then enter the `submission_loop()` accepting and
+/// Create a new `Coordinator`, preload any libraries in native format that we want to have before
+/// loading a flow, and it's library references, then enter the `submission_loop()` accepting and
 /// executing flows submitted for execution, executing each one using the `Coordinator`
 fn coordinator(
     num_threads: usize,
@@ -299,7 +299,7 @@ fn coordinator(
 
     let mut executor = Executor::new();
     // if the command line options request loading native implementation of available native libs
-    // if not, the native implementation is not loaded and later when a flow is loaded it's library
+    // if not, the native implementation is not loaded and later when a flow is loaded its library
     // references will be resolved and those libraries (WASM implementations) will be loaded at runtime
     if native_flowstdlib {
         executor.add_lib(

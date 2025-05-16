@@ -19,7 +19,7 @@ const HTTP_PROVIDER: &dyn Provider = &HttpProvider as &dyn Provider;
 
 /// The `MetaProvider` implements the `Provider` trait
 ///
-/// Based on the url and it's resolution to a real location for content invokes one of the
+/// Based on the url, and it's resolution to a real location for content invokes one of the
 /// child providers it has to fetch the content (e.g. File or Http).
 pub struct MetaProvider {
     #[cfg(feature = "file_provider")]
@@ -93,7 +93,7 @@ impl MetaProvider {
     ///   Then return:
     ///    - a string representation of the Url (file: or http: or https:) where the file can be found
     ///    - a string that is a reference to that module in the library, such as:
-    ///        "context/stdio/stdout/stdout"
+    ///      "context/stdio/stdout/stdout"
     #[cfg(feature = "context")]
     fn resolve_context_url(&self, url: &Url) -> Result<(Url, Option<Url>)> {
         let dir = url
@@ -120,7 +120,7 @@ impl MetaProvider {
     ///   Then return:
     ///    - a string representation of the Url (file: or http: or https:) where the file can be found
     ///    - a string that is a reference to that module in the library, such as:
-    ///        "flowstdlib/math/add"
+    ///      "flowstdlib/math/add"
     #[cfg(feature = "file_provider")]
     fn resolve_lib_url(&self, url: &Url) -> Result<(Url, Option<Url>)> {
         let lib_name = url

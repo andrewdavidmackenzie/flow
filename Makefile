@@ -88,7 +88,7 @@ clean: clean_examples
 .PHONY: build
 build:
 	@echo "build<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
-	@cargo build
+	@RUSTFLAGS='--cfg procmacro2_semver_exempt' cargo build
 	@target/debug/flowc -d -g -O flowstdlib
 	@target/debug/flowc flowr/src/bin/flowrcli
 	@target/debug/flowc flowr/src/bin/flowrgui
@@ -96,7 +96,7 @@ build:
 .PHONY: clippy
 clippy:
 	@echo "clippy<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
-	@cargo clippy --tests --no-deps --all-features --all-targets -- --warn clippy::pedantic
+	@RUSTFLAGS='--cfg procmacro2_semver_exempt' cargo clippy --tests --no-deps --all-features --all-targets -- --warn clippy::pedantic
 
 .PHONY: test
 test:
@@ -105,25 +105,25 @@ ifneq ($(CODESIGN),)
 	@echo "Code signing tool \"codesign\" detected"
 ifneq ($(SELFCERT),)
 	@echo "Self-signing certificate called \"self\" found"
-	@cargo test --no-run
+	@RUSTFLAGS='--cfg procmacro2_semver_exempt' cargo test --no-run
 	@find target -name "flow*" -perm +111 -type f | xargs codesign -s self || true
 endif
 endif
-	@cargo test
-	@cargo test --examples
+	@RUSTFLAGS='--cfg procmacro2_semver_exempt' cargo test
+	@RUSTFLAGS='--cfg procmacro2_semver_exempt' cargo test --examples
 
 .PHONY: coverage
 coverage: clean-start
 	@echo "coverage<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
-	@RUSTFLAGS="-C instrument-coverage" LLVM_PROFILE_FILE="flow-%p-%m.profraw" cargo build
+	@RUSTFLAGS="-C instrument-coverage --cfg procmacro2_semver_exempt" LLVM_PROFILE_FILE="flow-%p-%m.profraw" cargo build
 	@target/debug/flowc -d -g -O flowstdlib
 	@target/debug/flowc flowr/src/bin/flowrcli
 	@target/debug/flowc flowr/src/bin/flowrgui
 ifeq ($(CODESIGN),)
 	find target -perm +111 -type f | xargs codesign -fs self
 endif
-	@RUSTFLAGS="-C instrument-coverage" LLVM_PROFILE_FILE="flow-%p-%m.profraw" cargo test
-	@RUSTFLAGS="-C instrument-coverage" LLVM_PROFILE_FILE="flow-%p-%m.profraw" cargo test --examples
+	@RUSTFLAGS="-C instrument-coverage --cfg procmacro2_semver_exempt" LLVM_PROFILE_FILE="flow-%p-%m.profraw" cargo test
+	@RUSTFLAGS="-C instrument-coverage --cfg procmacro2_semver_exempt" LLVM_PROFILE_FILE="flow-%p-%m.profraw" cargo test --examples
 	@echo "Gathering coverage information"
 	@grcov . --binary-path target/debug/ -s . -t lcov --branch --ignore-not-existing --ignore "/*" -o coverage.info
 	@lcov --remove coverage.info '/Applications/*' 'target/debug/build/**' 'target/release/build/**' '/usr*' '**/errors.rs' '**/build.rs' 'flowr/examples/**' '*tests/*' -o coverage.info
@@ -190,4 +190,4 @@ trim-book:
 
 .PHONY: release
 release:
-	cargo release --workspace --execute minor
+	@RUSTFLAGS='--cfg procmacro2_semver_exempt' cargo release --workspace --execute minor

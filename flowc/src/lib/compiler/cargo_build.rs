@@ -46,7 +46,7 @@ fn cargo_test(manifest_path: &Path) -> Result<()> {
         manifest_path.display()
     );
 
-    debug!("\tRunning command = '{}', args = {:?}", command, test_args);
+    debug!("\tRunning command = '{command}', args = {test_args:?}");
 
     let output = Command::new(command)
         .args(&test_args)

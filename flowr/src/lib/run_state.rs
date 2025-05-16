@@ -28,13 +28,13 @@ use crate::job::{Job, Payload};
 #[cfg(any(debug_assertions, feature = "debugger", test))]
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum State {
-    /// Ready     - Function will be in Ready state when all of it's inputs are full and there are
-    /// no inputs it sends to that are full (unless that input is it's own)
+    /// Ready     - Function will be in Ready state when all of its inputs are full and there are
+    /// no inputs it sends to that are full (unless that input is its own)
     Ready,
     /// Blocked   - Function is in Blocked state when there is at least one input it sends to that
-    /// is full (unless that input is it's own, as then it will be emptied when the function runs)
+    /// is full (unless that input is its own, as then it will be emptied when the function runs)
     Blocked,
-    /// Waiting   - Function is in Blocked state when at least one of it's inputs is not full
+    /// Waiting   - Function is in Blocked state when at least one of its inputs is not full
     Waiting,
     /// Running   - Function is in Running state when it has been picked from the Ready list for
     /// execution using the `next` function
@@ -58,25 +58,25 @@ pub enum State {
 /// Terminology
 /// ===========
 /// * function        - an entry in the manifest and the flow graph that may take inputs, will 
-///                     execute an implementation on a Job and may produce an Output
+///   execute an implementation on a Job and may produce an Output
 /// * input           - a function may have 0 or more inputs that accept values required for it's 
-///                     execution
+///   execution
 /// * implementation  - the code that is run, accepting 0 or more input values performing some 
-///                     calculations and possibly producing an output value. One implementation can
-///                     be used by multiple functions in a flow
+///   calculations and possibly producing an output value. One implementation can
+///   be used by multiple functions in a flow
 /// * destinations    - a set of other functions and their specific inputs that a function is 
-///                     connected to and hence where the output value is sent when execution is 
-///                     completed
+///   connected to and hence where the output value is sent when execution is
+///   completed
 /// * job             - a job is the bundle of information necessary to execute. It consists of the
-///                     function's id, the input values, the implementation to run, and the 
-///                     destinations to send the output value to
+///   function's id, the input values, the implementation to run, and the
+///   destinations to send the output value to
 /// * execution       - the act of running an implementation on the input values to produce an 
-///                     output
+///   output
 /// * output          - a function when ran produces an output. The output contains the id of the 
-///                     function that was ran, the input values (for debugging), the result 
-///                     (optional value plus an indicator if the function wishes to be ran again 
-///                     when ready), the destinations to send any value to and an optional error 
-///                     string.
+///   function that was ran, the input values (for debugging), the result
+///   (optional value plus an indicator if the function wishes to be ran again
+///   when ready), the destinations to send any value to and an optional error
+///   string.
 ///
 /// Start-up
 /// ==============
@@ -258,14 +258,14 @@ impl RunState {
     /// After `init` Functions will either be:
     ///    - Ready:   an entry will be added to the `ready` list with this function's id
     ///    - Blocked: the function has all it's inputs ready and could run but a Function it sends 
-    ///               to has an input full already (due to being initialized during the init process)
-    ///               - an entry will be added to the `blocks` list with this function's id as 
-    ///                 `source_id`
-    ///               - an entry will be added to the `blocked` list with this function's id
-    ///    - Waiting: function has at least one empty input so it cannot run. It will not added to
-    ///               `ready` nor `blocked` lists, so by omission it is in the `Waiting` state.
-    ///               But the `block` will be created so when later it's inputs become full the fact
-    ///               it is blocked will be detected and it can move to the `blocked` state
+    ///      to has an input full already (due to being initialized during the init process)
+    ///      - an entry will be added to the `blocks` list with this function's id as
+    ///        `source_id`
+    ///      - an entry will be added to the `blocked` list with this function's id
+    ///    - Waiting: function has at least one empty input so it cannot run. It will not be added to
+    ///      `ready` nor `blocked` lists, so by omission it is in the `Waiting` state.
+    ///      But the `block` will be created so when later it's inputs become full the fact
+    ///      it is blocked will be detected, and it can move to the `blocked` state
     pub(crate) fn init(&mut self) -> Result<()> {
         #[cfg(feature = "debugger")]
         self.reset();
@@ -430,7 +430,7 @@ impl RunState {
     // Complete a Job by taking its output and updating the run-list accordingly.
     //
     // If other functions were blocked trying to send to this one - we can now unblock them
-    // as it has consumed it's inputs and they are free to be sent to again.
+    // as it has consumed its inputs, and they are free to be sent to again.
     //
     // Then take the output and send it to all destination IOs on different function it should be
     // sent to, marking the source function as blocked because those others must consume the output
@@ -733,8 +733,7 @@ impl RunState {
             if let Some(input_set) = function.take_input_set() {
                 let implementation_url = function.get_implementation_url().clone();
                 debug!(
-                    "Job #{job_id} created for Function #{function_id}({flow_id}) with inputs: {:?}",
-                    input_set
+                    "Job #{job_id} created for Function #{function_id}({flow_id}) with inputs: {input_set:?}"
                 );
                 let job = Job {
                     function_id,
@@ -808,7 +807,7 @@ impl RunState {
         Ok((display_next_output, restart))
     }
 
-    // Remove ONE entry of <flow_id, function_id> from the busy_flows multi-map
+    // Remove ONE entry of <flow_id, function_id> from the busy_flows multimap
     fn remove_from_busy(&mut self, blocker_function_id: usize) {
         let mut count = 0;
         self.busy_flows.retain(|&_flow_id, &function_id| {
@@ -838,7 +837,7 @@ impl RunState {
         // multiple destinations and so could still be blocked sending to other functions
         for block in blocks_to_remove {
             self.blocks.remove(&block);
-            trace!("\t\t\tBlock removed {:?}", block);
+            trace!("\t\t\tBlock removed {block:?}");
 
             if self.blocked.contains(&block.blocked_function_id)
                 && !self.block_exists(block.blocked_function_id)
@@ -888,7 +887,7 @@ impl RunState {
         self.completed.insert(function_id);
     }
 
-    // Create a 'block" indicating that function `blocked_function_id` cannot run as it has sends
+    // Create a 'block' indicating that function `blocked_function_id` cannot run as it has sends
     // to an input on function 'blocking_function_id' that is already full.
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn create_block(
@@ -908,7 +907,7 @@ impl RunState {
             blocked_flow_id,
         );
 
-        trace!("\t\t\t\t\tCreating Block {:?}", block);
+        trace!("\t\t\t\t\tCreating Block {block:?}");
         self.blocks.insert(block.clone());
         #[cfg(feature = "debugger")]
         return debugger.check_on_block_creation(self, &block);
@@ -1429,7 +1428,7 @@ mod test {
                     implementation_url: Url::parse("file://test").expect("Could not parse Url"),
                     input_set: vec![json!(1)],
                 },
-                result: (Ok((None, true))),
+                result: Ok((None, true)),
             }
         }
 

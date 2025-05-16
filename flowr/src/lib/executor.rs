@@ -193,7 +193,7 @@ fn execution_loop(
                         &loaded_lib_manifests.clone(),
                     ) {
                         Ok(keep_processing) => process_jobs = keep_processing,
-                        Err(e) => error!("{}", e),
+                        Err(e) => error!("{e}"),
                     }
                 }
 
@@ -329,7 +329,7 @@ fn load_referenced_implementation(
             let wasm_url = resolved_lib_url
                 .join(wasm_source_relative)
                 .map_err(|e| e.to_string())?;
-            debug!("Attempting to load wasm from source file: '{}'", wasm_url);
+            debug!("Attempting to load wasm from source file: '{wasm_url}'");
             // Wasm implementation being added. Wrap it with the Wasm Native Implementation
             let wasm_executor = wasm::load(provider, &wasm_url)?;
             Arc::new(wasm_executor) as Arc<dyn Implementation>
@@ -351,7 +351,7 @@ fn get_lib_manifest_tuple(
         .map_err(|_| "Could not get write access to the loaded lib manifests")?;
 
     if lib_manifests.get(lib_root_url).is_none() {
-        info!("Attempting to load library manifest'{}'", lib_root_url);
+        info!("Attempting to load library manifest'{lib_root_url}'");
         let manifest_tuple = LibraryManifest::load(provider, lib_root_url)
             .chain_err(|| format!("Could not load library with root url: '{lib_root_url}'"))?;
         lib_manifests.insert(lib_root_url.clone(), manifest_tuple);

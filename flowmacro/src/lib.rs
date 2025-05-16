@@ -1,4 +1,5 @@
 #![feature(proc_macro_span)]
+#![allow(unexpected_cfgs)]
 //! `flow_function` is a `proc_macro_attribute` macro that wraps a `fn` with a struct and a method
 //! to implement the [Implementation][flowcore::Implementation] trait, so it can be used as the
 //! implementation of a flow function.
@@ -24,8 +25,8 @@ use flowcore::model::function_definition::FunctionDefinition;
 pub fn flow_function(_attr: TokenStream, implementation: TokenStream) -> TokenStream {
     // Get the full path to the file where the macro was used, and join the relative filename from
     // the macro's attributes, to find the path to the function's definition file
-    let mut definition_file_path = Span::call_site().source_file().path().canonicalize()
-        .expect("the 'flow' macro could not get the full file path of the file where it was invoked");
+    let mut definition_file_path = Span::call_site().local_file()
+        .expect("the 'flow' macro could not get the file path where macro was invoked");
     definition_file_path.set_extension("toml");
 
     let function_definition = load_function_definition(&definition_file_path);

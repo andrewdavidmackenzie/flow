@@ -22,7 +22,7 @@ use crate::submission_handler::SubmissionHandler;
 
 /// The `Coordinator` coordinates the dispatching of jobs for flow execution.
 ///
-/// A Job consists of a set of Input values and an Implementation of a Function) for execution,
+/// A Job consists of a set of Input values and an Implementation of a Function for execution,
 /// gathering the resulting Outputs and distributing output values to other connected function's
 /// Inputs.
 ///
@@ -125,7 +125,7 @@ impl<'a> Coordinator<'a> {
             self.submission_handler.flow_execution_starting()?;
 
             'jobs: loop {
-                trace!("{}", state);
+                trace!("{state}");
                 #[cfg(feature = "debugger")]
                 if state.submission.debug_enabled && self.submission_handler.should_enter_debugger()? {
                     (display_next_output, restart) = self.debugger.wait_for_command(&mut state)?;
@@ -159,7 +159,7 @@ impl<'a> Coordinator<'a> {
                     // at the end of execution, inspect state and possibly reset and rerun
                     break 'jobs;
                 }
-            } // 'jobs loop end
+            } // jobs loop end
 
             // flow execution has ended
             #[allow(clippy::collapsible_if)]
@@ -243,7 +243,7 @@ impl<'a> Coordinator<'a> {
                 }
 
                 Err(err) => {
-                    error!("\t{}", err.to_string());
+                    error!("\t{err}");
                     #[cfg(feature = "debugger")]
                     if state.submission.debug_enabled {
                         return self.debugger.error(state, err.to_string());
@@ -278,8 +278,8 @@ impl<'a> Coordinator<'a> {
                     restart = rest;
                 }
                 Err(err) => {
-                    error!("Error sending on 'job_tx': {}", err.to_string());
-                    debug!("{}", state);
+                    error!("Error sending on 'job_tx': {err}");
+                    debug!("{state}");
 
                     #[cfg(feature = "debugger")]
                     return self.debugger.job_error(state, &job); // TODO avoid above clone() ?

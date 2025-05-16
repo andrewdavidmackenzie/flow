@@ -47,7 +47,7 @@ use crate::errors::Result;
 /// let mut url = Url::from_file_path(env::current_dir().unwrap()).unwrap();
 /// url = url.join("flowc/tests/test-flows/hello-world/hello-world.toml").unwrap();
 ///
-/// let output_dir = tempdir().expect("A temp dir").into_path();
+/// let output_dir = tempdir().expect("A temp dir").keep();
 ///
 /// if let Ok(FlowProcess(mut flow)) = flowrclib::compiler::parser::parse(&url,
 ///                                                    &provider) {
@@ -56,7 +56,7 @@ use crate::errors::Result;
 ///                                                         &mut source_urls).unwrap();
 ///
 ///     // strip off filename so output_dir is where the root.toml file resides
-///     let output_dir = tempdir().unwrap().into_path();
+///     let output_dir = tempdir().unwrap().keep();
 ///
 ///     // create a .dot format directed graph of all the functions after compiling down the flow
 ///     flowrclib::dumper::functions_to_dot::dump_functions(&flow, &tables, &output_dir).unwrap();
@@ -83,10 +83,7 @@ pub fn dump_functions(
     dot_file.write_all(format!("labelloc=t;\nlabel = \"{}\";\n", flow.route()).as_bytes())?;
 
     let functions = process_refs_to_dot(flow, tables).map_err(|_| {
-        std::io::Error::new(
-            std::io::ErrorKind::Other,
-            "Could not create dot content for process_refs",
-        )
+        std::io::Error::other("Could not create dot content for process_refs")
     })?;
 
     dot_file.write_all(functions.as_bytes())?;

@@ -15,7 +15,7 @@ pub(crate) enum CompileType {
 
 fn default_lib_compile_dir(source_url: &Url) -> Result<PathBuf> {
     let lib_name = source_url.path_segments()
-        .ok_or("Could not get path of source_url")?.last()
+        .ok_or("Could not get path of source_url")?.next_back()
         .ok_or("Could not get last path segment of source_url")?;
 
     let home_dir = env::var("HOME").expect("Could not get $HOME");
@@ -51,7 +51,7 @@ fn default_flow_compile_dir(source_url: &Url) -> Result<PathBuf> {
         // If not from a file, then create a dir with flow name under a temp dir
         _ => {
             let dir = tempdir().chain_err(|| "Error creating new tempdir".to_string())?;
-            output_dir = dir.into_path();
+            output_dir = dir.keep();
         }
     }
 
@@ -100,7 +100,7 @@ mod test {
 
     #[test]
     fn http_url_no_output_dir_arg() {
-        let url = &Url::parse("http://test.com/dir/file.flow").expect("Could not parse test url");
+        let url = &Url::parse("https://test.com/dir/file.flow").expect("Could not parse test url");
 
         let dir = super::get_output_dir(url, &None, CompileType::Flow)
             .expect("Could not get output dir");
@@ -110,11 +110,11 @@ mod test {
 
     #[test]
     fn http_with_output_dir_arg() {
-        let url = &Url::parse("http://test.com/dir/file.flow").expect("Could not parse test url");
+        let url = &Url::parse("https://test.com/dir/file.flow").expect("Could not parse test url");
 
         let temp_dir = tempdir()
             .expect("Could not create temporary directory for test")
-            .into_path();
+            .keep();
         let out_dir_arg = temp_dir
             .to_str()
             .expect("Could not convert temp dir to String");
@@ -133,7 +133,7 @@ mod test {
     fn file_url_no_output_dir_arg() {
         let temp_dir = tempdir()
             .expect("Could not create temporary directory for test")
-            .into_path();
+            .keep();
         let flow_dir = temp_dir
             .to_str()
             .expect("Could not convert temp dir name to string");
@@ -160,7 +160,7 @@ mod test {
         // FLow url
         let temp_dir = tempdir()
             .expect("Could not create temporary directory for test")
-            .into_path();
+            .keep();
         let flow_dir = temp_dir
             .to_str()
             .expect("Could not convert temp dir name to string");
@@ -171,7 +171,7 @@ mod test {
         // Output dir arg
         let temp_dir = tempdir()
             .expect("Could not create temporary directory for test")
-            .into_path();
+            .keep();
         let out_dir_arg = temp_dir
             .to_str()
             .expect("Could not convert temp dir name to string");

@@ -58,9 +58,9 @@ impl CliRuntimeClient {
 
     fn flush_image_buffers(&mut self) {
         for (filename, image_buffer) in self.image_buffers.drain() {
-            info!("Flushing ImageBuffer to file: {}", filename);
+            info!("Flushing ImageBuffer to file: {filename}");
             if let Err(e) = image_buffer.save_with_format(Path::new(&filename), ImageFormat::Png) {
-                error!("Error saving ImageBuffer '{}': '{}'", filename, e);
+                error!("Error saving ImageBuffer '{filename}': '{e}'");
             }
         }
     }

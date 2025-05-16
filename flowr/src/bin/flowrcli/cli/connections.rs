@@ -35,8 +35,7 @@ pub fn enable_service_discovery(discovery_port: u16, name: &str, service_port: u
     match BeaconSender::new(service_port, name.as_bytes(), discovery_port) {
         Ok(beacon) => {
             info!(
-                    "Discovery beacon announcing service named '{}', on port: {}",
-                    name, service_port
+                    "Discovery beacon announcing service named '{name}', on port: {service_port}"
                 );
             std::thread::spawn(move || {
                 let _ = beacon.send_loop(Duration::from_secs(1));
@@ -91,7 +90,7 @@ impl ClientConnection {
         let message_string = msg.as_str().ok_or("Could not get message as str")?
             .to_string();
         let message: CM = message_string.into();
-        trace!("Client Received <--- {}", message);
+        trace!("Client Received <--- {message}");
         Ok(message)
     }
 
@@ -101,7 +100,7 @@ impl ClientConnection {
     where
         CM: Into<String> + Display,
     {
-        trace!("Client Sent     ---> {}", message);
+        trace!("Client Sent     ---> {message}");
         self.requester
             .send(&message.into(), 0)
             .chain_err(|| "Error sending to coordinator")
@@ -131,7 +130,7 @@ impl CoordinatorConnection {
             .chain_err(||
                 format!("Coordinator Connection - could not bind on TCP Socket on: tcp://{port}"))?;
 
-        info!("Service '{}' listening on *:{}", service_name, port);
+        info!("Service '{service_name}' listening on *:{port}");
 
         Ok(CoordinatorConnection {
             responder
@@ -153,7 +152,7 @@ impl CoordinatorConnection {
         let message_string = msg.as_str().ok_or("Could not get message as str")?
             .to_string();
         let message = message_string.into();
-        trace!("                ---> Coordinator Received {}", message);
+        trace!("                ---> Coordinator Received {message}");
         Ok(message)
     }
 
@@ -174,7 +173,7 @@ impl CoordinatorConnection {
     where
         SM: Into<String> + Display,
     {
-        trace!("                <--- Coordinator Sent {}", message);
+        trace!("                <--- Coordinator Sent {message}");
 
         self.responder
             .send(&message.into(), 0)
