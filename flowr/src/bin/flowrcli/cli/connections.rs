@@ -307,7 +307,7 @@ mod test {
             .send(ClientMessage::Hello)
             .expect("Could not send initial 'Hello' message");
 
-        std::thread::sleep(Duration::from_millis(100));
+        std::thread::sleep(Duration::from_millis(200));
 
         assert_eq!(
             coordinator_connection
