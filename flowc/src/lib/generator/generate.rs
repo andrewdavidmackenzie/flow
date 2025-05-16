@@ -24,7 +24,7 @@ use crate::errors::{Result, ResultExt};
 /// Create a compiled flow's `[FlowManifest]` from the parsed `[FlowDefinition]`
 ///
 /// Paths in the manifest are relative to the location of the manifest file, to make the file
-/// and associated files relocatable (and maybe packaged into a ZIP etc). So we use `manifest_url`
+/// and associated files relocatable (and maybe packaged into a ZIP etc.). So we use `manifest_url`
 /// as the location other file paths are made relative to.
 ///
 /// # Errors
@@ -39,7 +39,7 @@ pub fn create_manifest(
     tables: &CompilerTables,
     #[cfg(feature = "debugger")] source_urls: BTreeMap<String, Url>,
 ) -> Result<FlowManifest> {
-    info!("Writing flow manifest to '{}'", manifest_url);
+    info!("Writing flow manifest to '{manifest_url}'");
 
     let mut manifest = FlowManifest::new(MetaData::from(flow));
 
@@ -175,11 +175,11 @@ fn implementation_location_relative(
             .map_err(|()| "cannot be base")?
             .pop();
 
-        info!("Manifest base = '{}'", manifest_base_url.to_string());
+        info!("Manifest base = '{manifest_base_url}'");
         info!("Absolute implementation path = '{implementation_path}'");
         let relative_path =
             implementation_url.replace(&format!("{}/", manifest_base_url.as_str()), "");
-        info!("Relative implementation path = '{}'", relative_path);
+        info!("Relative implementation path = '{relative_path}'");
         Ok(relative_path)
     }
 }
@@ -261,7 +261,7 @@ mod test {
   ]
 }";
 
-        let br = Box::new(function) as Box<FunctionDefinition>;
+        let br = Box::new(function);
 
         let runtime_process = function_to_runtimefunction(
             &Url::parse("file://test").expect("Couldn't parse test Url"),
@@ -314,7 +314,7 @@ mod test {
   ]
 }";
 
-        let br = Box::new(function) as Box<FunctionDefinition>;
+        let br = Box::new(function);
 
         let process = function_to_runtimefunction(
             &Url::parse("file://test").expect("Couldn't parse test Url"),
@@ -363,7 +363,7 @@ mod test {
   ]
 }";
 
-        let br = Box::new(function) as Box<FunctionDefinition>;
+        let br = Box::new(function);
         let process = function_to_runtimefunction(
             &Url::parse("file://test").expect("Couldn't parse test Url"),
             &br,
@@ -411,7 +411,7 @@ mod test {
   ]
 }";
 
-        let br = Box::new(function) as Box<FunctionDefinition>;
+        let br = Box::new(function);
         let process = function_to_runtimefunction(
             &Url::parse("file://test").expect("Couldn't parse test Url"),
             &br,
@@ -455,7 +455,7 @@ mod test {
   ]
 }";
 
-        let br = Box::new(function) as Box<FunctionDefinition>;
+        let br = Box::new(function);
         let process = function_to_runtimefunction(
             &Url::parse("file://test").expect("Couldn't parse test Url"),
             &br,
@@ -526,7 +526,7 @@ mod test {
     }
   ]
 }";
-        let br = Box::new(function) as Box<FunctionDefinition>;
+        let br = Box::new(function);
 
         let process = function_to_runtimefunction(
             &Url::parse("file://test").expect("Couldn't parse test Url"),
@@ -582,7 +582,7 @@ mod test {
   ]
 }";
 
-        let br = Box::new(function) as Box<FunctionDefinition>;
+        let br = Box::new(function);
 
         let process = function_to_runtimefunction(
             &Url::parse("file://test").expect("Couldn't parse test Url"),

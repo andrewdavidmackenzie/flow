@@ -49,7 +49,7 @@ fn remove_dead_functions(tables: &mut CompilerTables) -> bool {
                         .sub_route_of(removed_route)
                         .is_some()
                 {
-                    debug!("Connection for removal {}", connection);
+                    debug!("Connection for removal {connection}");
                     connections_to_remove.push(conn_index);
                 }
             }
@@ -75,14 +75,13 @@ fn remove_dead_functions(tables: &mut CompilerTables) -> bool {
         let removed = tables
             .collapsed_connections
             .remove(connection_index_to_remove);
-        debug!("Removed connection: {}", removed);
+        debug!("Removed connection: {removed}");
     }
 
     let removed_something = (function_remove_count + connection_remove_count) > 0;
     if removed_something {
         info!(
-            "Removed {} functions and {} connections",
-            function_remove_count, connection_remove_count
+            "Removed {function_remove_count} functions and {connection_remove_count} connections"
         );
     }
 

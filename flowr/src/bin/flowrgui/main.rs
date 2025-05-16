@@ -585,7 +585,7 @@ impl FlowrGui {
 
         for additions in search_path_additions {
             lib_search_path.add(additions);
-            info!("'{}' added to the Library Search Path", additions);
+            info!("'{additions}' added to the Library Search Path");
         }
 
         if lib_search_path.is_empty() {
@@ -785,7 +785,7 @@ impl FlowrGui {
                 self.send(ClientMessage::Ack);
             }
             _ => {}
-        };
+        }
         Command::none()
     }
 }

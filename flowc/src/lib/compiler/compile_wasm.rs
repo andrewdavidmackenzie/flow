@@ -163,7 +163,7 @@ fn optimize_wasm_file_size(wasm_path: &Path) -> Result<()> {
 
 /*
     Determine if one file that is derived from another source is missing and if not missing
-    if it is out of date (source is newer that derived)
+    If it is out of date (source is newer that derived)
     Returns: (out_of_date, missing)
     out_of_date
         true - source file has been modified since the derived file was last modified or is missing
@@ -181,7 +181,7 @@ fn out_of_date(source: &Path, derived: &Path) -> Result<(bool, bool)> {
         let derived_last_modified = fs::metadata(derived)
             .chain_err(|| format!("Could not get metadata for file: '{}'", derived.display()))?
             .modified()?;
-        Ok(((source_last_modified > derived_last_modified), false))
+        Ok((source_last_modified > derived_last_modified, false))
     } else {
         Ok((true, true))
     }
@@ -236,7 +236,7 @@ mod test {
     fn out_of_date_test() {
         let output_dir = tempdir()
             .expect("Could not create temporary directory during testing")
-            .into_path();
+            .keep();
 
         // make older file
         let derived = output_dir.join("older");
@@ -259,7 +259,7 @@ mod test {
     fn not_out_of_date_test() {
         let output_dir = tempdir()
             .expect("Could not create temporary directory during testing")
-            .into_path();
+            .keep();
 
         // make older file
         let source = output_dir.join("older");
@@ -280,7 +280,7 @@ mod test {
     fn out_of_date_missing_test() {
         let output_dir = tempdir()
             .expect("Could not create temporary directory during testing")
-            .into_path();
+            .keep();
 
         // make older file
         let source = output_dir.join("older");
@@ -336,7 +336,7 @@ mod test {
 
         let wasm_output_dir = tempdir()
             .expect("Could not create temporary directory during testing")
-            .into_path();
+            .keep();
         let expected_output_wasm = wasm_output_dir.join("test.wasm");
         let _ = remove_file(&expected_output_wasm);
 
@@ -376,7 +376,7 @@ mod test {
 
         let wasm_output_dir = tempdir()
             .expect("Could not create temporary directory during testing")
-            .into_path();
+            .keep();
         let expected_output_wasm = wasm_output_dir.join("test.wasm");
 
         let _ = remove_file(&expected_output_wasm);
@@ -419,7 +419,7 @@ mod test {
 
         let wasm_output_dir = tempdir()
             .expect("Could not create temporary directory during testing")
-            .into_path();
+            .keep();
         let expected_output_wasm = wasm_output_dir.join("test.wasm");
 
         let (implementation_source_path, wasm_destination) =
@@ -458,7 +458,7 @@ mod test {
 
         let wasm_output_dir = tempdir()
             .expect("Could not create temporary directory during testing")
-            .into_path();
+            .keep();
 
         let (implementation_source_path, _wasm_destination) =
             compile::get_paths(&wasm_output_dir, &function)
@@ -493,7 +493,7 @@ mod test {
 
         let wasm_output_dir = tempdir()
             .expect("Could not create temporary directory during testing")
-            .into_path();
+            .keep();
         let expected_output_wasm = wasm_output_dir.join("test.wasm");
         let _ = remove_file(&expected_output_wasm);
 

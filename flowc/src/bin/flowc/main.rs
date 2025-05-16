@@ -86,7 +86,7 @@ fn get_lib_search_path(search_path_additions: &[String]) -> Simpath {
 
     for addition in search_path_additions {
         lib_search_path.add(addition);
-        info!("'{}' added to the Library Search Path", addition);
+        info!("'{addition}' added to the Library Search Path");
     }
 
     if lib_search_path.is_empty() {

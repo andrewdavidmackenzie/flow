@@ -41,7 +41,7 @@ pub mod content;
 /// The `Implementation` trait used by functions to provide the code that runs on inputs
 ///
 /// A function's implementation must implement this trait with a single `run()` method that takes
-/// as input an array of values and it returns a `Result` tuple with an Optional output `Value`
+/// as input an array of values, and it returns a `Result` tuple with an Optional output `Value`
 /// plus a `RunAgain` indicating if it should be run again.
 /// i.e. it has not "completed", in which case it should not be called again.
 ///
@@ -80,7 +80,7 @@ pub mod content;
 /// ```
 ///
 /// **Note**: It is recommended to implement this trait by using the `flow_function` macro from the
-/// `flowmacro` crate to simplify input gathering and to hide the boiler plate code around the
+/// `flowmacro` crate to simplify input gathering and to hide the boilerplate code around the
 /// function implementing the logic.
 pub trait Implementation: Sync + Send {
     /// The `run` method is used to execute the function's implementation

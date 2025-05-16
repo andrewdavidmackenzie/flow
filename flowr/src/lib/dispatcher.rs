@@ -12,6 +12,7 @@ use crate::job::Payload;
 const WAIT:i32 = 0;
 
 /// `Dispatcher` structure holds information required to send jobs for execution and receive results back
+#[allow(clippy::struct_field_names)]
 pub struct Dispatcher {
     // A source of lib jobs to be executed
     lib_job_socket: zmq::Socket,

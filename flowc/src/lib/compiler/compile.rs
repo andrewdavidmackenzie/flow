@@ -73,11 +73,11 @@ impl CompilerTables {
 
     /// consistently order the functions so each compile produces the same numbering
     pub fn sort_functions(&mut self) {
-        self.functions.sort_by_key(flowcore::model::function_definition::FunctionDefinition::get_id);
+        self.functions.sort_by_key(FunctionDefinition::get_id);
     }
 
     /// Construct two look-up tables that can be used to find the index of a function in the functions table,
-    /// and the index of it's input - using the input route or it's output route
+    /// and the index of it's input - using the input route, or it's output route
     pub fn create_routes_table(&mut self) {
         for function in &mut self.functions {
             // Add inputs to functions to the table as a possible source of connections from a
@@ -115,7 +115,7 @@ impl CompilerTables {
 ///
 /// Returns an error if the parsed `FlowDefinition` cannot be compiled into a valid set of
 /// `CompilerTables`. Possible causes include:
-/// - Connections between inputs, outputs, sub-flows etc cannot be established
+/// - Connections between inputs, outputs, sub-flows etc. cannot be established
 /// - The constructed Connections cannot be collapsed joining sources and destinations directly
 /// - All function's inputs are connected
 /// - The flow does not produce any "side effects" (output)
@@ -234,8 +234,7 @@ fn configure_output_connections(tables: &mut CompilerTables) -> Result<()> {
             &connection.from_io().route(),
             &connection.to_io().route()
         );
-        debug!("  Source output route = '{}' --> function #{}:{}",
-               source, destination_function_id, destination_input_index);
+        debug!("  Source output route = '{source}' --> function #{destination_function_id}:{destination_input_index}");
 
         let output_conn = OutputConnection::new(
             source,
@@ -462,9 +461,9 @@ mod test {
             ..Default::default()
         };
 
-        let output_dir = tempdir().expect("A temp dir").into_path();
+        let output_dir = tempdir().expect("A temp dir").keep();
         let mut source_urls = BTreeMap::<String, Url>::new();
-        // Optimizer should remove unconnected function leaving no side-effects
+        // Optimizer should remove unconnected function leaving no side effects
         match compile(&flow,
                       &output_dir,
                       true,
@@ -515,7 +514,7 @@ mod test {
 
         let target_dir = tempdir()
             .expect("Could not create temporary directory during testing")
-            .into_path();
+            .keep();
         let expected_output_wasm = target_dir.join("test.wasm");
 
         let (impl_source_path, impl_wasm_path) =

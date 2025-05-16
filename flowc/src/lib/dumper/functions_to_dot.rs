@@ -1,3 +1,4 @@
+use std::fmt::Write as _;
 use std::io::Write;
 use std::path::Path;
 
@@ -47,7 +48,7 @@ use crate::errors::Result;
 /// let mut url = Url::from_file_path(env::current_dir().unwrap()).unwrap();
 /// url = url.join("flowc/tests/test-flows/hello-world/hello-world.toml").unwrap();
 ///
-/// let output_dir = tempdir().expect("A temp dir").into_path();
+/// let output_dir = tempdir().expect("A temp dir").keep();
 ///
 /// if let Ok(FlowProcess(mut flow)) = flowrclib::compiler::parser::parse(&url,
 ///                                                    &provider) {
@@ -56,7 +57,7 @@ use crate::errors::Result;
 ///                                                         &mut source_urls).unwrap();
 ///
 ///     // strip off filename so output_dir is where the root.toml file resides
-///     let output_dir = tempdir().unwrap().into_path();
+///     let output_dir = tempdir().unwrap().keep();
 ///
 ///     // create a .dot format directed graph of all the functions after compiling down the flow
 ///     flowrclib::dumper::functions_to_dot::dump_functions(&flow, &tables, &output_dir).unwrap();
@@ -83,10 +84,7 @@ pub fn dump_functions(
     dot_file.write_all(format!("labelloc=t;\nlabel = \"{}\";\n", flow.route()).as_bytes())?;
 
     let functions = process_refs_to_dot(flow, tables).map_err(|_| {
-        std::io::Error::new(
-            std::io::ErrorKind::Other,
-            "Could not create dot content for process_refs",
-        )
+        std::io::Error::other("Could not create dot content for process_refs")
     })?;
 
     dot_file.write_all(functions.as_bytes())?;
@@ -109,15 +107,14 @@ fn process_refs_to_dot(
         match process {
             FlowProcess(ref subflow) => {
                 // create cluster sub graph
-                output.push_str(&format!("\nsubgraph cluster_{} {{",
-                                 str::replace(&subflow.alias.to_string(), "-", "_"))
-                );
-                output.push_str(&format!("label = \"{}\";", subflow.route()));
+                let _ = write!(output, "\nsubgraph cluster_{} {{",
+                                 str::replace(&subflow.alias.to_string(), "-", "_"));
+                let _ = write!(output, "label = \"{}\";", subflow.route());
 
-                output.push_str(&process_refs_to_dot(subflow, tables)?); // recurse
+                let _ = write!(output, "{}", &process_refs_to_dot(subflow, tables)?); // recurse
 
                 // close cluster
-                output.push_str("}\n");
+                let _ = writeln!(output, "}}");
             }
             FunctionProcess(ref function) => {
                 output_compiled_function(function.route(), tables, &mut output)?;
@@ -138,13 +135,13 @@ fn function_to_dot(function: &FunctionDefinition, functions: &[FunctionDefinitio
         .to_string()
         .replace("toml", "html");
 
-    function_string.push_str(&format!(
+    let _ = write!(function_string,
                      "r{}[style=filled, fillcolor=coral, URL=\"{}\", label=\"{} (#{})\"];",
                      function.get_id(),
                      md_path,
                      function.alias(),
                      function.get_id()
-    ));
+    );
 
     function_string.push_str(&input_initializers_to_dot(function, &format!("r{}", function.get_id()))?);
 
@@ -160,7 +157,7 @@ fn function_to_dot(function: &FunctionDefinition, functions: &[FunctionDefinitio
             .expect("Could not get input")
             .name()
             .to_string();
-        function_string.push_str(&format!(
+        let _ = write!(function_string,
                          "r{}:{} -> r{}:{} [taillabel = \"{}\", headlabel = \"{}\"];",
                          function.get_id(),
                          source_port,
@@ -168,7 +165,7 @@ fn function_to_dot(function: &FunctionDefinition, functions: &[FunctionDefinitio
                          input_port,
                          destination.source,
                          destination_name
-        ));
+        );
     }
 
     Ok(function_string)
