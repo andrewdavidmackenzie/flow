@@ -33,7 +33,7 @@ jobs:
         run: make book
 
   clippy:
-    runs-on: macos-15
+    runs-on: ubuntu-latest
     steps:
       - name: Install latest stable
         uses: actions-rs/toolchain@v1
