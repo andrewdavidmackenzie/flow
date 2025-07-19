@@ -35,11 +35,11 @@ jobs:
   clippy:
     runs-on: ubuntu-latest
     steps:
-      - name: Install latest nightly
+      - name: Install latest stable
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          toolchain: nightly
+          toolchain: stable
           override: true
           components: clippy
       - name: Checkout
@@ -55,7 +55,7 @@ jobs:
     strategy:
       matrix:
         os: [ macos-14, ubuntu-latest ]
-        rust: [ nightly ]
+        rust: [ stable ]
 
     steps:
       - name: Checkout
@@ -66,11 +66,11 @@ jobs:
           echo "PATH=$GITHUB_WORKSPACE/target/debug:$PATH" >> "$GITHUB_ENV"
           echo "CARGO_REGISTRIES_CRATES_IO_PROTOCOL=sparse" >> "$GITHUB_ENV"
 
-      - name: Install latest nightly
+      - name: Install latest stable
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          toolchain: nightly
+          toolchain: stable
           override: true
           target: wasm32-unknown-unknown
 

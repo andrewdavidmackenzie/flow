@@ -23,15 +23,15 @@ use flowcore::model::function_definition::FunctionDefinition;
 /// Will panic if the file path of the source file where the macro was used cannot be determined.
 #[proc_macro_attribute]
 pub fn flow_function(_attr: TokenStream, implementation: TokenStream) -> TokenStream {
-    // Get the full path to the file where the macro was used, and join the relative filename from
-    // the macro's attributes, to find the path to the function's definition file
+    // Get the full path to the file where the macro was used and join the relative filename from
+    // the macro's attributes to find the path to the function's definition file
     let mut definition_file_path = Span::call_site().local_file()
         .expect("the 'flow' macro could not get the file path where macro was invoked");
     definition_file_path.set_extension("toml");
 
     let function_definition = load_function_definition(&definition_file_path);
 
-    // Build the output token stream with generated code around original supplied code
+    // Build the output token stream with generated code around the original supplied code
     generate_code(implementation, &function_definition)
 }
 
@@ -45,7 +45,7 @@ fn load_function_definition(path: &Path) -> FunctionDefinition {
         '{}'\n{e}", path.display()))
 }
 
-// If the function accepts inputs as &[serde_json::Value] then there is no need to extract
+// If the function accepts inputs as &[serde_json::Value], then there is no need to extract
 // and convert the inputs, otherwise form the expected list of inputs for the implementation
 // function from the vector of Values passed in.
 // Full of hacks as TokenStream2 from into_token_stream() doesn't implement PartialEq to be
@@ -92,7 +92,7 @@ fn input_conversion(definition: &FunctionDefinition, implementation_ast: &ItemFn
     unimplemented!()
 }
 
-// check that the return type of the implementation function is what we need. i.e. that it
+// check that the return type of the implementation function is what we need. i.e., that it
 // matches the Implementation trait's run() method return type
 // Hacky but works for now - find a better way to do it
 fn check_return_type(return_type: &ReturnType) {
@@ -108,7 +108,7 @@ fn check_return_type(return_type: &ReturnType) {
 fn generate_code(function_implementation: TokenStream,
                  definition: &FunctionDefinition) -> TokenStream {
     let implementation: proc_macro2::TokenStream = function_implementation.clone().into();
-    let implementation_ast = parse_macro_input!(function_implementation as syn::ItemFn);
+    let implementation_ast = parse_macro_input!(function_implementation as ItemFn);
     let implementation_name = &implementation_ast.sig.ident;
 
     check_return_type(&implementation_ast.sig.output);
@@ -120,7 +120,7 @@ fn generate_code(function_implementation: TokenStream,
     // generate code that does a runtime check on the number of values in the 'inputs' array
     // matches the number of inputs in the FunctionDefinition
     let input_number_check = quote! {
-        // check at run time that the number of values in inputs matches the inputs number expected
+        // check at run time that the number of values in inputs matches the number of inputs expected
         if inputs.len() != #number_of_defined_inputs {
             flowcore::errors::bail!("'inputs' does not have the expected number of input values");
         }
@@ -145,7 +145,7 @@ fn generate_code(function_implementation: TokenStream,
     // input structure expected by run(), and build a flat memory return from the serde_json
     // returned from run()
     let wasm_boilerplate = quote! {
-        // Allocate a chunk of memory of `size` bytes in wasm module
+        // Allocate a chunk of memory of `size` bytes in the wasm module
         #[cfg(target_arch = "wasm32")]
         #[no_mangle]
         pub extern "C" fn alloc(size: usize) -> *mut std::os::raw::c_void {
