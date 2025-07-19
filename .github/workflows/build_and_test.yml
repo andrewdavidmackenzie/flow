@@ -52,7 +52,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ macos-14, ubuntu-latest ]
+        os: [ macos-15, ubuntu-latest ]
         rust: [ stable ]
 
     steps:
