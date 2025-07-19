@@ -9,6 +9,8 @@ homepage.workspace = true
 repository.workspace = true
 readme = "README.md"
 edition.workspace = true
+# require 1.88.0 to be able to use span source file on stable
+rust-version = "1.88.0"
 
 # Files to exclude from packaging and publishing
 exclude = [".gitignore", "Cargo.lock"]
