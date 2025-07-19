@@ -44,7 +44,7 @@ pub enum CoordinatorMessage {
     PixelWrite((u32, u32), (u8, u8, u8), (u32, u32), String),
     /// A Request to snd EOF to Stdout
     StdoutEof,
-    /// A Request to snd EOF to Stderr
+    /// A Request to send EOF to Stderr
     StderrEof,
     /// Invalid - used when deserialization goes wrong
     Invalid,
@@ -79,14 +79,14 @@ impl fmt::Display for CoordinatorMessage {
     }
 }
 
-/// A Message from the a client to the Coordinator
+/// A Message from the client to the Coordinator
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum ClientMessage {
     /// ** These messages are used to implement the `SubmissionProtocol` between the Coordinator
     /// and the client
     /// A submission from the client for execution
     ClientSubmission(Submission),
-    /// Client requests that server enters the ddebugger at the next opportunity
+    /// Client requests that the server enters the debugger at the next opportunity
     EnterDebugger,
 
     /// ** These messages are used to implement the context functions between the `cli_runtime_client`
@@ -97,7 +97,7 @@ pub enum ClientMessage {
     Stdin(String),
     /// A line of text read from Stdin using readline from Stdin on Client, sent to the Server
     Line(String),
-    /// A Vector of Strings that are the flow's arguments from Client, sent to the Server
+    /// A Vector of Strings that are the flow's arguments from the Client, sent to the Server
     Args(Vec<String>),
     /// An Error occurred in the `runtime_client`
     Error(String),
