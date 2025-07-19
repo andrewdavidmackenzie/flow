@@ -53,22 +53,4 @@ mod test {
 
         assert_eq!(4, value);
     }
-
-    #[cfg(nightly)]
-    mod bench_tests {
-        extern crate test;
-
-        use test::Bencher;
-
-        use num::Complex;
-
-        use super::escapes;
-
-        #[bench]
-        fn bench_escapes(b: &mut Bencher) {
-            let upper_left = [-1.20, 0.35];
-
-            b.iter(|| escapes(upper_left, 255));
-        }
-    }
 }
