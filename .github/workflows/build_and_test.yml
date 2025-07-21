@@ -35,12 +35,10 @@ jobs:
   clippy:
     runs-on: ubuntu-latest
     steps:
-      - name: Install latest nightly
+      - name: Install latest stable
         uses: actions-rs/toolchain@v1
         with:
-          profile: minimal
-          toolchain: nightly
-          override: true
+          toolchain: stable
           components: clippy
       - name: Checkout
         uses: actions/checkout@v3
@@ -54,8 +52,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ macos-14, ubuntu-latest ]
-        rust: [ nightly ]
+        os: [ macos-15, ubuntu-latest ]
+        rust: [ stable ]
 
     steps:
       - name: Checkout
@@ -66,12 +64,11 @@ jobs:
           echo "PATH=$GITHUB_WORKSPACE/target/debug:$PATH" >> "$GITHUB_ENV"
           echo "CARGO_REGISTRIES_CRATES_IO_PROTOCOL=sparse" >> "$GITHUB_ENV"
 
-      - name: Install latest nightly
+      - name: Install latest stable
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          toolchain: nightly
-          override: true
+          toolchain: stable
           target: wasm32-unknown-unknown
 
       - name: InstallLinuxDependencies

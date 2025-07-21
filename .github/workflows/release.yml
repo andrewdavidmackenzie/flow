@@ -1,14 +1,14 @@
 # CI that:
 #
-# * checks for a Git Tag that looks like a release ("v1.2.0")
-# * creates a Github Release™️
-# * builds binaries/packages with cargo-dist
-# * uploads those packages to the Github Release™️
+# * checks for a Git Tag that looks like a release ("v1.2.0").
+# * creates a GitHub Release™️.
+# * builds binaries/packages with cargo-dist.
+# * uploads those packages to the GitHub Release™️.
 #
-# Note that the Github Release™️ will be created before the packages,
-# so there will be a few minutes where the release has no packages
+# Note that the GitHub Release™️ will be created before the packages,
+# so there will be a few minutes where the release has no packages,
 # and then they will slowly trickle in, possibly failing. To make
-# this more pleasant we mark the release as a "draft" until all
+# this more pleasant, we mark the release as a "draft" until all
 # artifacts have been successfully uploaded. This allows you to
 # choose what to do with partial successes and avoids spamming
 # anyone with notifications before the release is actually ready.
@@ -19,14 +19,14 @@ permissions:
 
 # This task will run whenever you push a git tag that looks like
 # a version number. We just look for `v` followed by at least one number
-# and then whatever. so `v1`, `v1.0.0`, and `v1.0.0-prerelease` all work.
+# and then whatever. So `v1`, `v1.0.0`, and `v1.0.0-prerelease` all work.
 #
-# If there's a prerelease-style suffix to the version then the Github Release™️
+# If there's a prerelease-style suffix to the version, then the GitHub Release™️
 # will be marked as a prerelease (handled by taiki-e/create-gh-release-action).
 #
 # Note that when generating links to uploaded artifacts, cargo-dist will currently
 # assume that your git tag is always v{VERSION} where VERSION is the version in
-# the published package's Cargo.toml (this is the default behaviour of cargo-release).
+# the published package's Cargo.toml (this is the default behavior of cargo-release).
 # In the future this may be made more robust/configurable.
 on:
   workflow_run:
@@ -40,12 +40,11 @@ on:
 
 env:
   ALL_CARGO_DIST_TARGET_ARGS: --target=x86_64-unknown-linux-gnu --target=x86_64-apple-darwin
-  ALL_CARGO_DIST_INSTALLER_ARGS: 
   CARGO_TERM_COLOR: always
   CARGO_INCREMENTAL: 0
 
 jobs:
-  # Create the Github Release™️ so the packages have something to be uploaded to
+  # Create the GitHub Release™️ so the packages have something to be uploaded to
   create-release:
     runs-on: ubuntu-latest
     outputs:
@@ -76,7 +75,7 @@ jobs:
     steps:
       - uses: actions-rs/toolchain@v1
         with:
-          toolchain: nightly
+          toolchain: stable
       - name: InstallLinuxDependencies
         if: matrix.os == 'ubuntu-latest'
         run: sudo apt-get update && sudo apt-get -y install libzmq3-dev binaryen
@@ -84,7 +83,7 @@ jobs:
         if: matrix.os == 'macos-latest'
         run: brew install zmq binaryen
       - name: AddWasmTarget
-        run: rustup +nightly target add wasm32-unknown-unknown
+        run: rustup target add wasm32-unknown-unknown
       - name: InstallWasmTools
         run: cargo install wasm-gc wasm-snip
       - uses: actions/checkout@v3
@@ -95,7 +94,7 @@ jobs:
       - name: Run cargo-dist
         run: |
           # make zips and whatnot
-          cargo +nightly dist build --allow-dirty --target=${{ matrix.target }} --output-format=json > dist-manifest.json
+          cargo dist build --allow-dirty --target=${{ matrix.target }} --output-format=json > dist-manifest.json
           cat dist-manifest.json
           # Parse out what we just built and upload it to the Github Release™️
           cat dist-manifest.json | jq --raw-output ".releases[].artifacts[].path" > uploads.txt
@@ -141,7 +140,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: Install Rust
-        run: rustup update nightly && rustup default nightly
+        run: rustup update && rustup default
       - name: Install cargo-dist
         uses: taiki-e/install-action@v2
         with:
@@ -149,7 +148,7 @@ jobs:
       - name: Run cargo-dist manifest
         run: |
           # Generate a manifest describing everything
-          cargo +nightly dist manifest --allow-dirty --no-local-paths --output-format=json $ALL_CARGO_DIST_TARGET_ARGS $ALL_CARGO_DIST_INSTALLER_ARGS > dist-manifest.json
+          cargo dist manifest --allow-dirty --no-local-paths --output-format=json $ALL_CARGO_DIST_TARGET_ARGS $ALL_CARGO_DIST_INSTALLER_ARGS > dist-manifest.json
           cat dist-manifest.json
           echo "Tag is " ${{ needs.create-release.outputs.tag }}
           gh release upload ${{ needs.create-release.outputs.tag }} dist-manifest.json
@@ -160,7 +159,7 @@ jobs:
           gh release edit ${{ needs.create-release.outputs.tag }} --notes-file=new_dist_changelog.md
           echo "updated release notes!"
 
-  # Mark the Github Release™️ as a non-draft now that everything has succeeded!
+  # Mark the GitHub Release™️ as a non-draft now that everything has succeeded!
   publish-release:
     needs: [create-release, upload-artifacts, upload-manifest]
     runs-on: ubuntu-latest

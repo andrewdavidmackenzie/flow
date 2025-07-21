@@ -1139,7 +1139,7 @@ mod test {
     }
 
     #[cfg(feature = "debugger")]
-    fn dummy_debugger(server: &mut dyn DebuggerHandler) -> Debugger {
+    fn dummy_debugger(server: &mut dyn DebuggerHandler) -> Debugger<'_> {
         Debugger::new(server)
     }
 

@@ -340,7 +340,7 @@ impl FlowrGui {
     #[allow(clippy::unused_self)]
     fn info(&mut self, _msg: &str) {}
 
-    fn command_row(&self) -> Row<Message> {
+    fn command_row(&self) -> Row<'_, Message> {
         let url = text_input(
             "Flow location (relative, or absolute)",
             &self.submission_settings.flow_manifest_url,
@@ -371,7 +371,7 @@ impl FlowrGui {
             .push(play)
     }
 
-    fn status_row(&self) -> Row<Message> {
+    fn status_row(&self) -> Row<'_, Message> {
         let status = match &self.coordinator_state {
             CoordinatorState::Disconnected(reason) => format!("Disconnected({reason})"),
             CoordinatorState::Connected(_) => {

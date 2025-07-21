@@ -38,7 +38,7 @@ fn cargo_test(manifest_path: &Path) -> Result<()> {
     let command = "cargo";
 
     let manifest_arg = format!("--manifest-path={}", manifest_path.display());
-    let test_args = vec!["+nightly", "test", &manifest_arg];
+    let test_args = vec!["test", &manifest_arg];
 
     println!(
         "   {} {} WASM Project",
@@ -64,7 +64,7 @@ fn cargo_test(manifest_path: &Path) -> Result<()> {
 */
 fn cargo_build(
     manifest_path: &Path,
-    mut cargo_target_dir: PathBuf, // where binary is built by cargo
+    mut cargo_target_dir: PathBuf, // where the binary is to be built by cargo
     release_build: bool,
     implementation_source_path: &Path,
     wasm_destination: &Path,
@@ -84,7 +84,7 @@ fn cargo_build(
         implementation_source_path.display()
     );
 
-    let mut command_args = vec!["+nightly", "build"];
+    let mut command_args = vec!["build"];
 
     if release_build {
         command_args.push("--release");
@@ -119,7 +119,7 @@ fn cargo_build(
 
     cargo_target_dir.push(wasm_filename.file_name().ok_or("Could not convert filename to str")?);
 
-    // move compiled wasm output into destination location
+    // move compiled wasm output into the destination location
     debug!(
         "\tMoving built wasm file from '{}' to '{}'",
         &cargo_target_dir.display(),
@@ -138,8 +138,8 @@ fn cargo_build(
 /// Run the cargo build to compile wasm from function source
 /// Functions must supply a Cargo.toml file named as function.toml that is used
 /// to build the function.
-/// If it has already been copied to Cargo.toml for building then skip that step
-/// otherwise copy it, and delete it when done, as these files get in the way of
+/// If it has already been copied to Cargo.toml for building, then skip that step
+/// otherwise copy it and delete it when done, as these files get in the way of
 /// publishing the library as a crate
 pub fn run(implementation_source_path: &Path, target_dir: PathBuf, wasm_destination: &Path, release_build: bool) -> Result<()> {
     let mut cargo_toml = implementation_source_path.to_path_buf();

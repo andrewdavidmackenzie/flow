@@ -113,7 +113,7 @@ impl Tab for StdOutTab {
         TabLabel::Text(self.name.to_string())
     }
 
-    fn view(&self) -> Element<Message> {
+    fn view(&self) -> Element<'_, Message> {
         let text_column = Column::with_children(
             self.content
                 .iter()

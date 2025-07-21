@@ -28,8 +28,8 @@ endif
 .PHONY: config
 config: rustup
 	@export PATH="$$PATH:~/.cargo/bin"
-	@echo "Installing nightly with rustup for clippy nightly and coverage measurement"
-	@rustup install nightly
+	@echo "Installing rust with rustup for clippy and coverage measurement"
+	@rustup install
 	@echo "Installing clippy component using rustup"
 	@rustup --quiet component add clippy
 	@echo "Installing wasm32 target using rustup"

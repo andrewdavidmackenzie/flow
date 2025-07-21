@@ -9,7 +9,7 @@ mod test {
     use std::path::PathBuf;
 
     #[test]
-    #[ignore = "Due to wasm issue needing resolving"]
+    #[ignore = "Wasm examples failing until wartime problem corrected"]
     fn test_reverse_echo_example() {
         let _ = env::set_current_dir(PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .parent().expect("Could not cd into flow directory"));

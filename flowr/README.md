@@ -1,6 +1,6 @@
 # `flowr`
 
-`flowr` includes the `flowrlib`library for running flows (see below for details)
+`flowr` includes the `flowrlib` library for running flows (see below for details)
 
 `flowr` includes a number of "runner" applications (built using the `flowrlib` library) for running flows:
 - `flowrcli`to run flows from the command line
@@ -18,11 +18,11 @@ and passing those `Outputs` to other connected `Functions` in the network of `Fu
 
 ### features
 These are the conditionally compiled features of `flowr` crate:
-- submission - include the ability to receive a submission of a flow for execution
-- context - makes this crate aware of the flow context functions or not
-- debugger - feature to add the debugger
-- metrics - feature for tracking of metrics during execution
-- flowstdlib - (is an optional dependency, which act like a feature flag) to allow native versions of flowstdlib
+- submission: include the ability to receive a submission of a flow for execution
+- context: makes this crate aware of the flow context functions or not
+- debugger: feature to add the debugger
+- metrics: feature for tracking of metrics during execution
+- flowstdlib: (is an optional dependency, which acts like a feature flag) to allow native versions of flowstdlib
 functions to be compiled and linked or not (and rely on wasm versions)
 
 By default, the following are enabled: "debugger", "metrics", "context", "submission", "flowstdlib"
