@@ -62,7 +62,7 @@ zmq = "0.10.0"
 simpdiscover = "0.7"
 
 # for flowrlib
-wasmtime = { version = "34.0.1", default-features = false, features = ["runtime", "cranelift"] }
+wasmtime = { version = "35.0.0", default-features = false, features = ["runtime", "cranelift"] }
 
 # for flowrgui
 iced = { version = "0.13.1", features = ["canvas", "tokio", "debug", "image"] }
