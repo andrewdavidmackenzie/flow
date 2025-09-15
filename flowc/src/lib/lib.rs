@@ -11,7 +11,7 @@
 /// that into a graph of [runtime functions][flowcore::model::runtime_function::RuntimeFunction]
 pub mod compiler;
 
-/// used to output a human readable version of the model and compiler tables to help debug
+/// used to output a human-readable version of the model and compiler tables to help debug
 /// compiler problems
 pub mod dumper;
 
