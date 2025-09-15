@@ -466,7 +466,7 @@ mod test {
             result: Ok((None, false)),
         };
 
-        for job in vec![job1, job2, job3] {
+        for job in [job1, job2, job3] {
             let loaded_implementations =
                 Arc::new(RwLock::new(HashMap::<Url, Arc<dyn Implementation>>::new()));
             let loaded_lib_manifests =

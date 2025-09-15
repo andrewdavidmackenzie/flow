@@ -24,7 +24,7 @@ impl Implementation for Stderr {
         let _: Result<ClientMessage> = match input {
                 Value::Null => server.send_and_receive_response(CoordinatorMessage::StderrEof),
                 Value::String(string) => server
-                    .send_and_receive_response(CoordinatorMessage::Stderr(string.to_string())),
+                    .send_and_receive_response(CoordinatorMessage::Stderr(string.clone())),
                 Value::Bool(boolean) => server
                     .send_and_receive_response(CoordinatorMessage::Stderr(boolean.to_string())),
                 Value::Number(number) => server

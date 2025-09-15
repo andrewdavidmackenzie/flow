@@ -110,10 +110,10 @@ impl Tab for StdOutTab {
     type Message = Message;
 
     fn tab_label(&self) -> TabLabel {
-        TabLabel::Text(self.name.to_string())
+        TabLabel::Text(self.name.clone())
     }
 
-    fn view(&self) -> Element<Message> {
+    fn view(&self) -> Element<'_, Message> {
         let text_column = Column::with_children(
             self.content
                 .iter()
@@ -163,7 +163,7 @@ impl Tab for ImageTab {
     type Message = Message;
 
     fn tab_label(&self) -> TabLabel {
-        TabLabel::Text(self.name.to_string())
+        TabLabel::Text(self.name.clone())
     }
 
     fn view(&self) -> Element<'_, Self::Message> {
@@ -220,7 +220,7 @@ impl StdInTab {
                 line.insert_str(0, prompt);
             }
             self.cursor += 1;
-            Some((*line).to_string())
+            Some((*line).clone())
         } else {
             // advanced beyond the available text!
             None
@@ -249,7 +249,7 @@ impl Tab for StdInTab {
     type Message = Message;
 
     fn tab_label(&self) -> TabLabel {
-        TabLabel::Text(self.name.to_string())
+        TabLabel::Text(self.name.clone())
     }
 
     fn view(&self) -> Element<'_, Self::Message> {

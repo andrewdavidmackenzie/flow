@@ -138,7 +138,7 @@ fn generate_code(function_implementation: TokenStream,
         }
     };
 
-    let struct_name = format_ident!("{}", FunctionDefinition::camel_case(&definition.name.to_string()));
+    let struct_name = format_ident!("{}", FunctionDefinition::camel_case(&definition.name.clone()));
 
     // This code will be compiled to wasm along with the Implementation's run() function
     // and it will be running on the wasm side - hence it includes code to build the serde_json

@@ -326,7 +326,7 @@ impl Find for IOSet {
 
         bail!("No IO with sub-route '{sub_route}' was found.\n\
                Possible IO names include: '{}'",
-            self.iter().map(|io| io.name.to_string()).collect::<Vec<String>>().join(", "))
+            self.iter().map(|io| io.name.clone()).collect::<Vec<String>>().join(", "))
     }
 }
 
@@ -401,7 +401,7 @@ mod test {
             Err(e) => panic!("TOML does not parse: {e}"),
         };
         assert!(output.validate().is_ok(), "IO does not validate()");
-        assert_eq!("/sub_route", output.name.to_string());
+        assert_eq!("/sub_route", output.name.clone());
     }
 
     #[test]

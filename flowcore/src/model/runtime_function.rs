@@ -486,7 +486,7 @@ mod test {
             vec![Input::new("", 0, false, None, None)],
             0,
             0,
-            &[output_route.clone()],
+            std::slice::from_ref(&output_route),
             false,
         );
         function.init();

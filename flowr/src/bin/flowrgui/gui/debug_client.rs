@@ -105,7 +105,7 @@ impl DebugClient {
         }
 
         let parts: Vec<String> = input.split(' ').map(ToString::to_string).collect();
-        let command = parts.first().ok_or("Could not get first part")?.to_string();
+        let command = parts.first().ok_or("Could not get first part")?.clone();
 
         if !parts.is_empty() {
             return Ok((

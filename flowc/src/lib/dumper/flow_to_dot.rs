@@ -385,7 +385,7 @@ fn digraph_start(flow: &FlowDefinition) -> String {
     // Create a directed graph named after the flow
     let _ = writeln!(wrapper,
                      "digraph {} {{",
-                     str::replace(&flow.alias.to_string(), "-", "_")
+                     str::replace(&flow.alias.clone(), "-", "_")
     );
     let _ = writeln!(wrapper, "\tlabel=\"{}\";", flow.alias);
     let _ = writeln!(wrapper, "\tlabelloc=t;");
