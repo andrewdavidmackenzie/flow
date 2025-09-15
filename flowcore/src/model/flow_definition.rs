@@ -334,14 +334,14 @@ impl FlowDefinition {
                 // make sure the sub-route of the input is added to the source of the connection
                 let mut from = self
                     .inputs
-                    .find_by_subroute(&Route::from(input_name.to_string()))?;
+                    .find_by_subroute(&Route::from(input_name.clone()))?;
                 // accumulate any subroute within the input
                 from.route_mut().extend(&sub_route);
                 Ok(from)
             },
 
             (&TO, RouteType::FlowOutput(output_name)) =>
-                self.outputs.find_by_subroute(&Route::from(output_name.to_string())),
+                self.outputs.find_by_subroute(&Route::from(output_name.clone())),
 
             (_, RouteType::SubProcess(process_name, sub_route)) =>
                 self.get_subprocess_io(&process_name, direction, &sub_route),

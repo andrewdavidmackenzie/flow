@@ -79,16 +79,6 @@ impl fmt::Display for CoordinatorMessage {
     }
 }
 
-/// A simple struct with File `MetaData` for passing from Client to Coordinator - `std::fs::MetaData`
-/// Doesn't Serialize/Deserialize etc.
-#[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone)]
-pub struct FileMetaData {
-    /// Was the Path inspected a file or not
-    pub is_file: bool,
-    /// Was the Path inspected a directory or not
-    pub is_dir: bool,
-}
-
 /// A Message from the a client to the Coordinator
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum ClientMessage {

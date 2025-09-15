@@ -25,7 +25,7 @@ impl Implementation for Stdout {
         let _: Result<ClientMessage> = match input {
                 Value::Null => server.send_and_receive_response(CoordinatorMessage::StdoutEof),
                 Value::String(string) => server
-                    .send_and_receive_response(CoordinatorMessage::Stdout(string.to_string())),
+                    .send_and_receive_response(CoordinatorMessage::Stdout(string.clone())),
                 Value::Bool(boolean) => server
                     .send_and_receive_response(CoordinatorMessage::Stdout(boolean.to_string())),
                 Value::Number(number) => server

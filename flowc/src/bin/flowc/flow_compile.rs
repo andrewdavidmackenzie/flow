@@ -115,7 +115,7 @@ fn execute_flow(filepath: &Path, options: &Options, runner_name: &str) -> Result
     // if a specific verbosity level was set on the Command Line to flowc, pass it on to runner
     if let Some(verbosity) = &options.verbosity {
         runner_args.push("-v".to_string());
-        runner_args.push(verbosity.to_string());
+        runner_args.push(verbosity.clone());
     }
 
     // if execution metrics requested to flowc, pass that onto runner
@@ -136,7 +136,7 @@ fn execute_flow(filepath: &Path, options: &Options, runner_name: &str) -> Result
     // pass along any specified library directories to runner
     for lib_dir in &options.lib_dirs {
         runner_args.push("-L".to_string());
-        runner_args.push(lib_dir.to_string());
+        runner_args.push(lib_dir.clone());
     }
 
     runner_args.push(filepath.display().to_string());

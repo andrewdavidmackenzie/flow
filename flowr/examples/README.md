@@ -6,7 +6,7 @@ correctly over time.
 Each subdirectory holds a self-contained flow example, with flow definition, docs etc and some of 
 them provide their own function implementations that get compiled to WASM by flowc when the flow is compiled.
 
-Flow enables higher levels of parallelization of execution of 'jobs' within flows by allowing many jobs to be
+Flow enables higher levels of parallelization of the execution of 'jobs' within flows by allowing many jobs to be
 run in parallel, which then may be executed out of order. This can lead to unpredictable ordering of the output 
 values of some operations. To embrace this, the examples typically avoid requiring a specific ordering of the output
 values.
@@ -37,10 +37,10 @@ Builds all examples
 `cargo run --example $example-name"`
 
 This can be run from the root folder or the flowr folder.
-The named example is build and run.
+The named example is built and run.
 
 The flow will be run with the arguments and standard input defined in files within each directory
-(if they are not present then those args or input is zero).
+(if they are not present, then those args or input is zero).
 
 ## Testing one example
 `cargo test --example $example-name` 

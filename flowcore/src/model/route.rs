@@ -55,7 +55,7 @@ impl From<String> for Route {
 impl From<&Name> for Route {
     fn from(name: &Name) -> Self {
         Route {
-            string: name.to_string()
+            string: name.clone()
         }
     }
 }
@@ -195,7 +195,7 @@ impl Route {
     /// Return the [Route] that is one level up, if it exists
     /// Example: `/context/function/output/subroute -> /context/function/output`
     #[must_use]
-    pub fn pop(&self) -> (Cow<Route>, Option<Route>) {
+    pub fn pop(&self) -> (Cow<'_, Route>, Option<Route>) {
         let mut segments: Vec<&str> = self.string.split('/').collect();
         let sub_route = segments.pop();
         match sub_route {
@@ -210,7 +210,7 @@ impl Route {
     /// Return the io [Route] without a trailing number (array index) and if it has one or not
     /// If the trailing number was present then return the route with a trailing '/'
     #[must_use]
-    pub fn without_trailing_array_index(&self) -> (Cow<Route>, usize, bool) {
+    pub fn without_trailing_array_index(&self) -> (Cow<'_, Route>, usize, bool) {
         let mut parts: Vec<&str> = self.string.split('/').collect();
         if let Some(last_part) = parts.pop() {
             if let Ok(index) = last_part.parse::<usize>() {
@@ -280,7 +280,7 @@ impl Route {
             "" => bail!("Invalid Route in connection - must be an input, output or sub-process name"),
             process_name => Ok(RouteType::SubProcess(process_name.into(),
                                                      segments.get(1..).ok_or("Could not get segments[1..]")?
-                                                         .join("/").to_string().into())),
+                                                         .join("/").clone().into())),
         }
     }
 

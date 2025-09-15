@@ -77,7 +77,7 @@ pub fn dump_functions(
     dot_file.write_all(
         format!(
             "digraph {} {{\nnodesep=1.0\n",
-            str::replace(&flow.alias.to_string(), "-", "_")
+            str::replace(&flow.alias.clone(), "-", "_")
         )
             .as_bytes(),
     )?;
@@ -108,7 +108,7 @@ fn process_refs_to_dot(
             FlowProcess(ref subflow) => {
                 // create cluster sub graph
                 let _ = write!(output, "\nsubgraph cluster_{} {{",
-                                 str::replace(&subflow.alias.to_string(), "-", "_"));
+                                 str::replace(&subflow.alias.clone(), "-", "_"));
                 let _ = write!(output, "label = \"{}\";", subflow.route());
 
                 let _ = write!(output, "{}", &process_refs_to_dot(subflow, tables)?); // recurse
@@ -156,7 +156,7 @@ fn function_to_dot(function: &FunctionDefinition, functions: &[FunctionDefinitio
             .get(destination.destination_io_number)
             .expect("Could not get input")
             .name()
-            .to_string();
+            .clone();
         let _ = write!(function_string,
                          "r{}:{} -> r{}:{} [taillabel = \"{}\", headlabel = \"{}\"];",
                          function.get_id(),

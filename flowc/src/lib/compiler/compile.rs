@@ -93,7 +93,7 @@ impl CompilerTables {
             for output in function.get_outputs() {
                 self.sources.insert(
                     output.route().clone(),
-                    (Output(output.name().to_string()), function.get_id()),
+                    (Output(output.name().clone()), function.get_id()),
                 );
             }
 
@@ -243,7 +243,7 @@ fn configure_output_connections(tables: &mut CompilerTables) -> Result<()> {
             *destination_flow_id,
             connection.to_io().route().to_string(),
             #[cfg(feature = "debugger")]
-                connection.name().to_string(),
+                connection.name().clone(),
         );
         source_function.add_output_connection(output_conn);
     }

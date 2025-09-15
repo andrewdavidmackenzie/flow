@@ -179,7 +179,7 @@ fn run() -> Result<()> {
                 .chain_err(|| "Could not get the output directory")?;
 
             let runner_name = options.runner_name.as_ref().ok_or("Runner name was not specified")?;
-            let runner_dir = default_runner_dir(&runner_name.to_string());
+            let runner_dir = default_runner_dir(&runner_name.clone());
             let provider = &MetaProvider::new(lib_search_path, runner_dir);
             compile_and_execute_flow(&options, provider, runner_name, &output_dir)
         }

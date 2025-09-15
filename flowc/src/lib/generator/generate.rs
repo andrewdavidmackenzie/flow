@@ -117,7 +117,7 @@ fn function_to_runtimefunction(
 ) -> Result<RuntimeFunction> {
     #[cfg(feature = "debugger")]
         let name = if debug_symbols {
-        function.alias().to_string()
+        function.alias().clone()
     } else {
         String::new()
     };
