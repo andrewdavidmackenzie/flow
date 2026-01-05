@@ -78,7 +78,7 @@ rustyline = {version = "16.0.0", optional = true } # for debugger
 
 [dev-dependencies]
 tempfile = "3"
-serial_test = "3.2.0"
+serial_test = "3.3.1"
 portpicker = "0.1.1"
 # These two are needed for examples
 flowr-utilities = { path = "utilities" }
