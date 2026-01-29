@@ -10,6 +10,7 @@ use log::{debug, info};
 use serde_json::Value;
 use simpath::{FileType, FoundType, Simpath};
 use wax::Glob;
+use wax::walk::Entry;
 
 use flowcore::model::connection::Connection;
 use flowcore::model::flow_definition::FlowDefinition;
@@ -84,10 +85,9 @@ pub fn dump_flow(
 pub fn generate_svgs(root_dir: &Path, delete_dots: bool) -> Result<()> {
     if let Ok(FoundType::File(dot)) = Simpath::new("PATH").find_type("dot", FileType::File) {
         info!("\n=== Dumper: Generating .dot.svg files from .dot files, using 'dot' command from $PATH");
-
         let glob = Glob::new("**/*.dot").map_err(|_| "Globbing error")?;
         for entry in glob.walk(root_dir) {
-            let entry = entry?;
+            let entry = entry.unwrap();
             let path = entry.path();
             let path_name = path.to_string_lossy();
             let mut output_file = path.to_path_buf();

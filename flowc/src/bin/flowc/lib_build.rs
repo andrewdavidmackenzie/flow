@@ -9,6 +9,7 @@ use log::{debug, info};
 use simpath::Simpath;
 use url::Url;
 use wax::Glob;
+use wax::walk::Entry;
 
 use flowcore::meta_provider::MetaProvider;
 use flowcore::model::lib_manifest::LibraryManifest;

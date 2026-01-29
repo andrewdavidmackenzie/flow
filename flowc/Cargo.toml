@@ -36,7 +36,7 @@ log = "0.4.29"
 url = { version = "2.2", features = ["serde"] }
 tempfile = "3"
 simpath = { version = "~2.5", features = ["urls"]}
-wax = "0.6.0"
+wax = { version = "0.7.0" , features = ["walk"]}
 serde_json = "1.0"
 error-chain = "0.12.2"
 serde_derive = "~1.0.27"
