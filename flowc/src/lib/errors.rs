@@ -14,6 +14,6 @@ error_chain! {
         Io(std::io::Error);
         Url(url::ParseError);
         Provider(flowcore::errors::Error);
-        GlobWalk(wax::WalkError);
+        GlobWalk(wax::GlobError);
     }
 }
