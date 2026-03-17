@@ -756,7 +756,7 @@ impl RunState {
                     return Ok(());
                 }
             } else {
-                self.number_of_jobs_created -= 1;
+                self.number_of_jobs_created.checked_sub(1).ok_or("Couldn't fix count")?;
                 return Ok(());
             }
         }
