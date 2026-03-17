@@ -728,7 +728,7 @@ impl RunState {
     fn create_jobs(&mut self, function_id: usize, flow_id: usize) -> Result<()> {
         loop {
             self.number_of_jobs_created.checked_add(1)
-                .ok_or_else(error!("Ran out of job IDs"))?;
+                .ok_or_else(|| "Ran out of job IDs")?;
             let job_id = self.number_of_jobs_created;
             let function = self.get_mut(function_id).ok_or("Could not get function")?;
             if let Some(input_set) = function.take_input_set() {
