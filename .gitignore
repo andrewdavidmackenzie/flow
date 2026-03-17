@@ -8,3 +8,4 @@
 coverage.info
 coverage
 flowstdlib/src/Cargo.lock
+.vscode
