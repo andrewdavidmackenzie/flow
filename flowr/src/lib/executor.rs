@@ -17,12 +17,12 @@ use flowcore::Implementation;
 use crate::job::Payload;
 use crate::wasm;
 
-/// An `Executor` struct is used to receive jobs, execute them and return results.
+/// An `Executor` struct is used to receive jobs, execute them, and return results.
 /// It can load libraries and keep track of the `Function` `Implementations` loaded for use
 /// in job execution.
 pub struct Executor {
     // HashMap of library manifests already loaded. The key is the library reference Url
-    // (e.g. lib:://flowstdlib) and the entry is a tuple of the LibraryManifest
+    // (e.g. lib:://flowstdlib), and the entry is a tuple of the LibraryManifest
     // and the resolved Url of where the manifest was read from
     loaded_lib_manifests: Arc<RwLock<HashMap<Url, (LibraryManifest, Url)>>>,
     executors: Vec<JoinHandle<()>>,
@@ -35,7 +35,7 @@ impl Default for Executor {
 }
 
 impl Executor {
-    /// Create a new executor that receives jobs, executes them and returns results.
+    /// Create a new executor that receives jobs, executes them, and returns results.
     #[must_use]
     pub fn new() -> Self {
         Executor {
