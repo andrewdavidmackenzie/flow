@@ -56,7 +56,7 @@ pub fn build_lib(options: &Options, provider: &dyn Provider, output_dir: &PathBu
 
     prepare_lib_workspace(&lib_root_path)?;
 
-    // compile all functions to the output directory first, as they maybe referenced later in flows
+    // compile all functions to the output directory first, as they maybe referenced in flows later
     let mut file_count = compile_functions(
         &lib_root_path.join("src"),
         options,
@@ -98,7 +98,7 @@ pub fn build_lib(options: &Options, provider: &dyn Provider, output_dir: &PathBu
 /// # Errors
 ///
 /// Returns an error if:
-/// - the `Url` constructed form the input parameter path for the flow (or the default)
+/// - the `Url` constructed from the input parameter path for the flow (or the default)
 ///   cannot have "context" added to it to find the "context" dir
 /// - the docs for the runner cannot be read or copied to the specified output dir
 pub fn build_runner(options: &Options, output_dir: &Path) -> Result<()> {
@@ -114,7 +114,7 @@ pub fn build_runner(options: &Options, output_dir: &Path) -> Result<()> {
         .map_err(|()| "Could not convert Url to File path")?
         .join("context");
 
-    // compile all functions to the output directory first, as they maybe referenced later in flows
+    // compile all functions to the output directory first, as they maybe referenced in flows later
     copy_definitions(
         &runner_context_path,
         output_dir,
@@ -126,11 +126,11 @@ pub fn build_runner(options: &Options, output_dir: &Path) -> Result<()> {
     Ok(())
 }
 
-// prepare the library's internal virtual workspace for building under 'src' directory,
+// prepare the library's internal virtual workspace for building under the 'src' directory,
 // as this allows all functions being built to share the same target directory and built
 // dependencies, greatly speeding builds
 fn prepare_lib_workspace(lib_root_path: &Path) -> Result<()> {
-    // ensure lib.toml exists in the root and if so copy it to src/Cargo.toml for building
+    // ensure lib.toml exists in the root, and if so, copy it to src/Cargo.toml for building
     let lib_toml_path = lib_root_path.join("lib.toml");
     if !lib_toml_path.exists() {
         bail!("Flow libraries must have a valid 'lib.toml' file in the library's root directory");
@@ -139,7 +139,7 @@ fn prepare_lib_workspace(lib_root_path: &Path) -> Result<()> {
     let cargo_toml = lib_root_path.join("src/Cargo.toml");
     fs::copy(lib_toml_path, cargo_toml)?;
 
-    // copy all function.toml files to Cargo.toml files in same directory so the
+    // copy all function.toml files to Cargo.toml files in the same directory so the
     // workspace members references from lib.toml can be found
 
     let glob = Glob::new("**/function.toml").map_err(|_| "Globbing error")?;
@@ -217,8 +217,8 @@ fn copy_definition_to_output_dir(toml_path: &Path, output_dir: &Path) -> Result<
 }
 
 /*
-    Find all function definitions under the base_dir and if they provide an implementation, check if
-    the wasm file is up-to-date with the source and if not compile it, and add them all to the
+    Find all function definitions under the base_dir, and if they provide an implementation, check if
+    the wasm file is up to date with the source and if not compile it, and add them all to the
     manifest struct
 */
 fn compile_functions(
@@ -332,7 +332,7 @@ fn compile_functions(
     Ok(file_count)
 }
 
-// Find all function definitions under the base_dir copy them to output dir
+// Find all function definitions under the base_dir copy them to the output dir
 fn copy_definitions(
     root_path: &PathBuf,
     output_dir: &Path,
@@ -356,7 +356,7 @@ fn copy_definitions(
                     .ok_or("Could not get toml path parent dir")?
                     .strip_prefix(root_path)
                     .map_err(|_| "Could not calculate relative_dir")?;
-                // calculate the output directory relative path to the root
+                // calculate the output directory path relative to the root
                 let out_dir = output_dir.join(relative_dir);
                 if !out_dir.exists() {
                     fs::create_dir_all(&out_dir)?;

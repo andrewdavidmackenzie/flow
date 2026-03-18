@@ -55,7 +55,7 @@ pub(crate) static OUTPUT_PORTS: &[&str] = &["s", "se", "sw", "e"];
 /// url = url.join("flowr/examples/hello-world/root.toml").unwrap();
 ///
 /// if let Ok(FlowProcess(mut flow)) = flowrclib::compiler::parser::parse(&url, &provider) {
-///     // strip off filename so output_dir is where the root.toml file resides
+///     // strip off the filename so output_dir is where the root.toml file resides
 ///     let output_dir = tempdir().unwrap().keep();
 ///
 ///     // dump the flows compiler data and dot graph into files alongside the 'root.toml'
@@ -210,7 +210,7 @@ fn output_set_to_dot(output_set: &IOSet, from: &Route, connect_subflow: bool) ->
 
     string.push_str("\n\t// Outputs\n\t{ rank=sink\n");
     for output in output_set {
-        // Only add output if it's not got the same route as it's function i.e. it's not the default output
+        // Only add output if it's not got the same route as it's function i.e., it's not the default output
         if output.route() != from {
             // Add an entry for each output using its route
             let _ = writeln!(string, "\t\"{}\" [label=\"{}\", shape=invhouse, style=filled, fillcolor=black, fontcolor=white];",
@@ -274,7 +274,7 @@ fn subfunction_to_dot(function: &FunctionDefinition, parent: &Path) -> Result<St
         .map_err(|()| "Could not convert function's source_url to a File Path")?;
     let relative_path = absolute_to_relative(&function_source_path, parent)?;
 
-    // modify path to point to the .html page that's built from .md to document the function
+    // modify the path to point to the .html page that's built from .md to document the function
     let md_path = relative_path.replace("toml", "html");
     if function.is_impure() {
         if function.inputs.is_empty() { // is a source
@@ -332,7 +332,7 @@ pub(crate) fn input_initializers_to_dot(function: &FunctionDefinition, function_
 
             let input_port = input_name_to_port(input.name())?;
 
-            // Add connection from hidden node to the input being initialized
+            // Add connection from the hidden node to the input being initialized
             let _ = writeln!(initializers,
                              "\t\"initializer{function_identifier}_{input_number}\" -> \"{function_identifier}\":{input_port} [style={line_style}]  [taillabel=\"{value_string}\"] [len=0.1] [color=blue];");
         }
@@ -358,7 +358,7 @@ fn connection_to_dot(connection: &Connection) -> Result<String> {
 
     let (to_port, to_name, to_node) = if connection.to_io().flow_io() {
         ("n",
-         "", // connect to the tip of the flow output pentagon, no need for name
+         "", // connect to the tip of the flow output pentagon, no need for the name
          connection.to_io().route().to_string()
         )
     } else {
@@ -417,10 +417,8 @@ pub(crate) fn output_name_to_port<T: Hash>(t: &T) -> Result<&str> {
         .ok_or("Could not get output port")?)
 }
 
-// figure out a relative path to get to target from source
+// figure out a relative path to get to the target from source
 fn absolute_to_relative(target: &Path, source: &Path) -> Result<String> {
-//    println!("cargo:warning=source: {}", source.display());
-//    println!("cargo:warning=target: {}", target.display());
     let mut current_path = source.parent()
         .ok_or("Could not get directory containing source")?.to_path_buf();
     let mut relative_path_to_root = String::new();

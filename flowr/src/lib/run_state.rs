@@ -34,7 +34,7 @@ pub enum State {
     /// Blocked   - Function is in Blocked state when there is at least one input it sends to that
     /// is full (unless that input is its own, as then it will be emptied when the function runs)
     Blocked,
-    /// Waiting   - Function is in Blocked state when at least one of its inputs is not full
+    /// Waiting   - Function is in the Blocked state when at least one of its inputs is not full
     Waiting,
     /// Running   - Function is in Running state when it has been picked from the Ready list for
     /// execution using the `next` function
@@ -190,7 +190,7 @@ pub enum State {
 pub struct RunState {
     /// The `Submission` that lead to this `RunState` object being created
     pub(crate) submission: Submission,
-    /// blocked: `HashSet`<`function_id`> - list of functions by id that are blocked on sending
+    /// blocked: `HashSet`<`function_id`> - the list of functions by id that are blocked on sending
     blocked: HashSet<usize>,
     /// blocks: - a list of blocks between functions
     blocks: HashSet<Block>,
@@ -205,7 +205,7 @@ pub struct RunState {
     number_of_jobs_created: usize,
     /// Track which flow-function combinations are considered "busy" <`flow_id`, `function_id`>
     busy_flows: MultiMap<usize, usize>,
-    /// Track which functions have finished and can be unblocked when flow goes not "busy"
+    /// Track which functions have finished and can be unblocked when the flow goes not "busy"
     /// `HashMap`< <`flow_id`>, (`function_id`, set of refilled io numbers of that function)>
     flow_blocks: HashMap<usize, HashSet<usize>>,
 }
@@ -252,7 +252,7 @@ impl RunState {
     }
 
     /// The `ìnit()` function is responsible for initializing all functions, and it returns a 
-    /// boolean to indicate that it's inputs are fulfilled - and this information is added to th
+    /// boolean to indicate that it's inputs are fulfilled - and this information is added to the
     /// `RunList` to control the readiness of the Function to be executed.
     ///
     /// After `init` Functions will either be:
@@ -262,9 +262,9 @@ impl RunState {
     ///      - an entry will be added to the `blocks` list with this function's id as
     ///        `source_id`
     ///      - an entry will be added to the `blocked` list with this function's id
-    ///    - Waiting: function has at least one empty input so it cannot run. It will not be added to
+    ///    - Waiting: function has at least one empty input, so it cannot run. It will not be added to
     ///      `ready` nor `blocked` lists, so by omission it is in the `Waiting` state.
-    ///      But the `block` will be created so when later it's inputs become full the fact
+    ///      But the `block` will be created, so when later its inputs become full, the fact
     ///      it is blocked will be detected, and it can move to the `blocked` state
     pub(crate) fn init(&mut self) -> Result<()> {
         #[cfg(feature = "debugger")]
@@ -367,7 +367,7 @@ impl RunState {
         &self.flow_blocks
     }
 
-    // Return a new job to run, if there is one and there are not too many jobs already running
+    // Return a new job to run if there is one and there are not too many jobs already running
     pub(crate) fn get_next_job(&mut self) -> Option<Job> {
         if let Some(limit) = self.submission.max_parallel_jobs {
             if self.number_jobs_running() >= limit {
@@ -389,7 +389,7 @@ impl RunState {
     // job created from it's input so is a candidate to send more Values to from other functions 
     // that previously were blocked sending to it.
     //
-    // But we don't want to unblock them to send to it, until all other functions inside the same
+    // But we don't want to unblock them to send to it until all other functions inside the same
     // flow are idle, and hence the flow becomes idle.
     fn block_external_flow_senders(
         &mut self,
@@ -397,7 +397,7 @@ impl RunState {
         blocker_function_id: usize,
         blocker_flow_id: usize,
     ) {
-        // Add this function to the pending unblock list for later when flow goes idle and senders
+        // Add this function to the list pending unblock for later when the flow goes idle and senders
         // to it from *outside* this flow can be allowed to send to it.
         // The entry key is the blocker_flow_id and the entry all blocker_function_ids in that flow
         // that are pending to have senders to them unblocked
@@ -432,9 +432,9 @@ impl RunState {
     // If other functions were blocked trying to send to this one - we can now unblock them
     // as it has consumed its inputs, and they are free to be sent to again.
     //
-    // Then take the output and send it to all destination IOs on different function it should be
+    // Then, take the output and send it to all destination IOs on different function it should be
     // sent to, marking the source function as blocked because those others must consume the output
-    // if those other function have all their inputs, then mark them accordingly.
+    // if those other functions have all their inputs, then mark them accordingly.
     #[allow(unused_variables, unused_assignments, unused_mut)]
     pub(crate) fn retire_a_job(
         &mut self,
@@ -591,7 +591,7 @@ impl RunState {
         function.send(connection.destination_io_number, output_value)?;
 
         #[cfg(feature = "metrics")]
-        metrics.increment_outputs_sent(); // not distinguishing array serialization / wrapping etc
+        metrics.increment_outputs_sent(); // not distinguishing array serialization / wrapping etc.
 
         // Avoid a function blocking on itself when sending itself a value via a loopback and avoid
         // blocking sending internally within a flow
@@ -660,7 +660,7 @@ impl RunState {
     }
 
     /// An input blocker is another function that is the only function connected to an empty input
-    /// of target function, and which is not ready to run, hence target function cannot run.
+    /// of the target function, and which is not ready to run, hence the target function cannot run.
     #[cfg(feature = "debugger")]
     pub(crate) fn get_input_blockers(&self, target_id: usize) -> Result<Vec<usize>> {
         let mut input_blockers = vec![];
@@ -683,7 +683,7 @@ impl RunState {
                     }
 
                     if !sender_is_ready {
-                        // for each output route of sending function, see if it is sending to
+                        // for each output route of the sending function, see if the target is
                         // the target function and input
                         for destination in sender_function.get_output_connections() {
                             if (destination.destination_id == target_id)
@@ -695,7 +695,7 @@ impl RunState {
                     }
                 }
 
-                // If unique sender to this Input, then target function is waiting for that value
+                // If unique sender to this Input, then the target function is waiting for that value
                 if senders.len() == 1 {
                     input_blockers.extend(senders);
                 }
@@ -724,10 +724,11 @@ impl RunState {
         Ok(())
     }
 
-    // Create one or more new jobs for the function, and mark the flow containing it as busy
+    // Create one or more new jobs for the function and mark the flow containing it as busy
     fn create_jobs(&mut self, function_id: usize, flow_id: usize) -> Result<()> {
         loop {
-            self.number_of_jobs_created += 1;
+            self.number_of_jobs_created = self.number_of_jobs_created.checked_add(1)
+                .ok_or("Ran out of job IDs")?;
             let job_id = self.number_of_jobs_created;
             let function = self.get_mut(function_id).ok_or("Could not get function")?;
             if let Some(input_set) = function.take_input_set() {
@@ -755,7 +756,8 @@ impl RunState {
                     return Ok(());
                 }
             } else {
-                self.number_of_jobs_created -= 1;
+                self.number_of_jobs_created = self.number_of_jobs_created.checked_sub(1)
+                    .ok_or("Couldn't fix count")?;
                 return Ok(());
             }
         }
@@ -781,7 +783,7 @@ impl RunState {
 
         self.remove_from_busy(job.function_id);
 
-        // if flow is now idle, remove any blocks on sending to functions in the flow
+        // if the flow is now idle, remove any blocks on sending to functions in the flow
         if self.busy_flows.get(&job.flow_id).is_none() {
             debug!(
                 "Job #{}:\tFlow #{} is now idle, so removing blocks on external functions to it",
@@ -822,7 +824,7 @@ impl RunState {
     }
 
     // Remove blocks on functions blocked sending to `blocker_function_id`
-    // If a sending function has no remaining blocks preventing it from sending then unblock that function
+    // If a sending function has no remaining blocks preventing it from sending, then unblock that function
     fn remove_blocks(&mut self, blocker_function_id: usize) -> Result<()> {
         let mut blocks_to_remove = vec![];
 
@@ -834,7 +836,7 @@ impl RunState {
         }
 
         // Remove blocks between the sender and the destination. Note that a sender can send to
-        // multiple destinations and so could still be blocked sending to other functions
+        // multiple destinations and so could still be blocked from sending to other functions
         for block in blocks_to_remove {
             self.blocks.remove(&block);
             trace!("\t\t\tBlock removed {block:?}");
@@ -887,7 +889,7 @@ impl RunState {
         self.completed.insert(function_id);
     }
 
-    // Create a 'block' indicating that function `blocked_function_id` cannot run as it has sends
+    // Create a 'block' indicating that function `blocked_function_id` cannot run as it has sent
     // to an input on function 'blocking_function_id' that is already full.
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn create_block(
@@ -1830,7 +1832,7 @@ mod test {
         fn inputs_ready_makes_ready() {
             let mut state = RunState::new(super::test_submission(test_functions()));
 
-            // Put 0 on the blocked/ready list depending on blocked status
+            // Put 0 on the blocked/ready list depending on the blocked status
             state
                 .create_jobs_or_block(0, 0)
                 .expect("Could not make ready or blocked");
@@ -1858,7 +1860,7 @@ mod test {
                     &mut debugger,
             );
 
-            // Put 0 on the blocked/ready list depending on blocked status
+            // Put 0 on the blocked/ready list depending on the blocked status
             state
                 .create_jobs_or_block(0, 0)
                 .expect("Could not make ready or blocked");
@@ -1896,7 +1898,7 @@ mod test {
                     &mut debugger,
             );
 
-            // Put 0 on the blocked/ready list depending on blocked status
+            // Put 0 on the blocked/ready list depending on the blocked status
             state
                 .create_jobs_or_block(0, 0)
                 .expect("Could not make ready or blocked");
