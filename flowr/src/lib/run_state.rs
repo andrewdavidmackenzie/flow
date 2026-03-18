@@ -727,7 +727,7 @@ impl RunState {
     // Create one or more new jobs for the function and mark the flow containing it as busy
     fn create_jobs(&mut self, function_id: usize, flow_id: usize) -> Result<()> {
         loop {
-            self.number_of_jobs_created.checked_add(1)
+            self.number_of_jobs_created = self.number_of_jobs_created.checked_add(1)
                 .ok_or("Ran out of job IDs")?;
             let job_id = self.number_of_jobs_created;
             let function = self.get_mut(function_id).ok_or("Could not get function")?;
@@ -756,7 +756,8 @@ impl RunState {
                     return Ok(());
                 }
             } else {
-                self.number_of_jobs_created.checked_sub(1).ok_or("Couldn't fix count")?;
+                self.number_of_jobs_created = self.number_of_jobs_created.checked_sub(1)
+                    .ok_or("Couldn't fix count")?;
                 return Ok(());
             }
         }
