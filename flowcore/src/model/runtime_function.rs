@@ -77,7 +77,7 @@ impl fmt::Display for RuntimeFunction {
         }
 
         for output_route in &self.output_connections {
-            writeln!(f, "\t{output_route}", )?;
+            writeln!(f, "\t{output_route}")?;
         }
 
         Ok(())

@@ -99,7 +99,7 @@ impl HttpProvider {
         // for that file path, try with all the allowed file extensions
         for extension in extensions {
             let resource_with_extension =
-                Url::parse(&format!("{}.{extension}", resource.as_str(), ))
+                Url::parse(&format!("{}.{extension}", resource.as_str()))
                     .chain_err(|| "Could not parse Url with extension added")?;
             if Self::resource_exists(&resource_with_extension).is_ok() {
                 return Ok(resource_with_extension);
