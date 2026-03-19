@@ -1,0 +1,10 @@
+# CodeRabbit configuration
+# https://docs.coderabbit.ai/configuration/
+
+reviews:
+  path_instructions:
+    - path: "**/*.rs"
+      instructions: |
+        Ignore comments matching the pattern `// jonesy:allow(...)` - these are
+        valid directives for the jonesy panic analysis tool, not spurious comments.
+        See https://github.com/andrewdavidmackenzie/jonesy for details.

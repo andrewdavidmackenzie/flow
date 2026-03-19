@@ -427,8 +427,7 @@ fn num_threads(matches: &ArgMatches) -> usize {
         {
             #[allow(clippy::redundant_closure)]
             thread::available_parallelism()
-                .map(|n| n.get())
-                .unwrap_or(1)
+                .map_or(1, |n| n.get())
         }
     }
 }

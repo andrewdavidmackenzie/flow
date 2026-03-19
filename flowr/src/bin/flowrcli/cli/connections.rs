@@ -218,7 +218,7 @@ mod test {
 
     impl fmt::Display for ClientMessage {
         fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-            write!(f, "ClientMessage Hello", )
+            write!(f, "ClientMessage Hello")
         }
     }
 

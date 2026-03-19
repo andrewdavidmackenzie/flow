@@ -127,7 +127,7 @@ fn start_executors(num_threads: usize) -> Result<()> {
 fn num_threads(matches: &ArgMatches) -> usize {
     match matches.get_one::<usize>("threads") {
         Some(num_threads) => *num_threads,
-        None => thread::available_parallelism().map(|n| n.get()).unwrap_or(1)
+        None => thread::available_parallelism().map_or(1, |n| n.get())
     }
 }
 

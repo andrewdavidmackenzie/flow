@@ -604,8 +604,7 @@ impl FlowrGui {
             Some(num_threads) => *num_threads,
             // Could be simplified to `std::num::NonZero::get`but generic NonZero is unstable
             None => thread::available_parallelism()
-                .map(|n| n.get())
-                .unwrap_or(1),
+                .map_or(1, |n| n.get())
         }
     }
 

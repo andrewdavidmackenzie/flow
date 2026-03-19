@@ -932,7 +932,7 @@ impl fmt::Display for RunState {
             f,
             "       Functions Ready: {:?}",
             self.ready_jobs
-                .iter()
+                .iter() // jonesy:allow(capacity)
                 .map(|j| j.payload.job_id)
                 .collect::<Vec<usize>>()
         )?;

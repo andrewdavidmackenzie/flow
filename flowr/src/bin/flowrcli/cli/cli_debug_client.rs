@@ -379,7 +379,7 @@ impl CliDebugClient {
 
         for id in 0..run_state.num_functions() {
             if let Some(function) = run_state.get_function(id) {
-                print!("{function}", );
+                print!("{function}");
                 let function_states = run_state.get_function_states(id);
                 println!("\tStates: {function_states:?}");
 
