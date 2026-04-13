@@ -1,7 +1,7 @@
 use serde_json::{json, Value};
 
-use flowcore::{RUN_AGAIN, RunAgain};
 use flowcore::errors::Result;
+use flowcore::{RunAgain, RUN_AGAIN};
 use flowmacro::flow_function;
 
 #[flow_function]
@@ -9,9 +9,17 @@ fn inner_multiply_row(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
     let mut product = 0;
     let mut output_map = serde_json::Map::new();
 
-    let a = inputs.first().ok_or("Could not get a")?.as_array().ok_or("Could not get a")?;
+    let a = inputs
+        .first()
+        .ok_or("Could not get a")?
+        .as_array()
+        .ok_or("Could not get a")?;
     let a_index = inputs.get(1).ok_or("Could not get a_index")?.as_u64();
-    let b = inputs.get(2).ok_or("Could not get b")?.as_array().ok_or("Could not get b")?;
+    let b = inputs
+        .get(2)
+        .ok_or("Could not get b")?
+        .as_array()
+        .ok_or("Could not get b")?;
     let b_index = inputs.get(3).ok_or("Could not get b_index")?.as_u64();
 
     for index in 0..a.len() {
@@ -36,9 +44,9 @@ mod test {
 
     #[test]
     fn multiply_row() {
-        let a = json!([1,2]);
+        let a = json!([1, 2]);
         let a_index = json!(0);
-        let b = json!([3,4]);
+        let b = json!([3, 4]);
         let b_index = json!(1);
 
         let inputs = vec![a, a_index, b, b_index];
@@ -47,9 +55,17 @@ mod test {
 
         let output = result.expect("Could not get the Value from the output");
 
-        assert_eq!(output.pointer("/product").expect("Could not get 'product' output"),
-                   &json!(11));
-        assert_eq!(output.pointer("/a_b_index").expect("Could not get 'product' output"),
-                   &json!([0,1]));
+        assert_eq!(
+            output
+                .pointer("/product")
+                .expect("Could not get 'product' output"),
+            &json!(11)
+        );
+        assert_eq!(
+            output
+                .pointer("/a_b_index")
+                .expect("Could not get 'product' output"),
+            &json!([0, 1])
+        );
     }
 }

@@ -1,14 +1,22 @@
 use serde_json::json;
 use serde_json::Value;
 
-use flowcore::{RUN_AGAIN, RunAgain};
 use flowcore::errors::Result;
+use flowcore::{RunAgain, RUN_AGAIN};
 use flowmacro::flow_function;
 
 #[flow_function]
 fn inner_multiply(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
-    let i1 = inputs.first().ok_or("Could not get i1")?.as_u64().ok_or("Could not get i1")?;
-    let i2 = inputs.get(1).ok_or("Could not get i2")?.as_u64().ok_or("Could not get i2)")?;
+    let i1 = inputs
+        .first()
+        .ok_or("Could not get i1")?
+        .as_u64()
+        .ok_or("Could not get i1")?;
+    let i2 = inputs
+        .get(1)
+        .ok_or("Could not get i2")?
+        .as_u64()
+        .ok_or("Could not get i2)")?;
     let result = i1 * i2;
 
     Ok((Some(json!(result)), RUN_AGAIN))

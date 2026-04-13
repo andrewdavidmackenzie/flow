@@ -1,13 +1,17 @@
 use flowcore::errors::Result;
+use flowcore::RunAgain;
+use flowcore::RUN_AGAIN;
 use flowmacro::flow_function;
 use serde_json::json;
 use serde_json::Value;
-use flowcore::RunAgain;
-use flowcore::RUN_AGAIN;
 
 #[flow_function]
 fn inner_count(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
-    let mut count = inputs.get(1).ok_or("Could not get count")?.as_i64().ok_or("Could not get count")?;
+    let mut count = inputs
+        .get(1)
+        .ok_or("Could not get count")?
+        .as_i64()
+        .ok_or("Could not get count")?;
     count += 1;
 
     Ok((Some(json!(count)), RUN_AGAIN))
@@ -28,7 +32,11 @@ mod test {
         let (result, _) = inner_count(&inputs).expect("_count() failed");
         let output = result.expect("Could not get the Value from the output");
 
-        assert_eq!(output.pointer("")
-                       .expect("Could not get the /count from the output"), &json!(1));
+        assert_eq!(
+            output
+                .pointer("")
+                .expect("Could not get the /count from the output"),
+            &json!(1)
+        );
     }
 }

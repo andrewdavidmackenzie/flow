@@ -1,8 +1,8 @@
-use serde_json::{json, Value};
-use serde_json::Value::Number;
-use flowcore::{RUN_AGAIN, RunAgain};
 use flowcore::errors::Result;
+use flowcore::{RunAgain, RUN_AGAIN};
 use flowmacro::flow_function;
+use serde_json::Value::Number;
+use serde_json::{json, Value};
 
 #[flow_function]
 fn inner_add(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {

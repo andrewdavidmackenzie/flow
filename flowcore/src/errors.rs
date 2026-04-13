@@ -5,8 +5,8 @@ use std::fmt;
 
 pub use error_chain::bail;
 use error_chain::error_chain;
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde::de::{self, Visitor};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 error_chain! {
     types {
@@ -29,8 +29,8 @@ error_chain! {
 /// the structs are declared from the `error_chain` macro. So we have to implement them.
 impl Serialize for Error {
     fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
-        where
-            S: Serializer,
+    where
+        S: Serializer,
     {
         serializer.serialize_str(&self.to_string())
     }
@@ -46,8 +46,8 @@ impl Visitor<'_> for ErrorVisitor {
     }
 
     fn visit_str<E>(self, value: &str) -> std::result::Result<Self::Value, E>
-        where
-            E: de::Error,
+    where
+        E: de::Error,
     {
         Ok(crate::errors::Error::from(value))
     }
@@ -55,8 +55,8 @@ impl Visitor<'_> for ErrorVisitor {
 
 impl<'de> Deserialize<'de> for Error {
     fn deserialize<D>(deserializer: D) -> std::result::Result<Error, D::Error>
-        where
-            D: Deserializer<'de>,
+    where
+        D: Deserializer<'de>,
     {
         deserializer.deserialize_str(ErrorVisitor)
     }

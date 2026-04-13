@@ -8,18 +8,18 @@ use colored::Colorize;
 use log::{debug, info};
 use simpath::Simpath;
 use url::Url;
-use wax::Glob;
 use wax::walk::Entry;
+use wax::Glob;
 
 use flowcore::meta_provider::MetaProvider;
 use flowcore::model::lib_manifest::LibraryManifest;
 use flowcore::model::process::Process::{FlowProcess, FunctionProcess};
 use flowcore::provider::Provider;
-use flowrclib::compiler::{compile, compile_wasm};
 use flowrclib::compiler::parser;
+use flowrclib::compiler::{compile, compile_wasm};
 use flowrclib::dumper::flow_to_dot;
 
-use crate::errors::{Result, ResultExt, bail};
+use crate::errors::{bail, Result, ResultExt};
 use crate::Options;
 
 /// Build a library from source and generate a manifest for it so it can be used at runtime when
@@ -77,8 +77,8 @@ pub fn build_lib(options: &Options, provider: &dyn Provider, output_dir: &PathBu
 
     let manifest_json_file = LibraryManifest::manifest_filename(output_dir);
 
-    let (message, write_manifest) = check_manifest_status(&manifest_json_file, file_count,
-                                                          &lib_manifest)?;
+    let (message, write_manifest) =
+        check_manifest_status(&manifest_json_file, file_count, &lib_manifest)?;
 
     info!("{message}");
 
@@ -91,7 +91,6 @@ pub fn build_lib(options: &Options, provider: &dyn Provider, output_dir: &PathBu
     println!("    {} {name}", "Finished".green());
     Ok(())
 }
-
 
 /// Build a runner into the `output_dir`
 ///
@@ -115,10 +114,7 @@ pub fn build_runner(options: &Options, output_dir: &Path) -> Result<()> {
         .join("context");
 
     // compile all functions to the output directory first, as they maybe referenced in flows later
-    copy_definitions(
-        &runner_context_path,
-        output_dir,
-    )?;
+    copy_definitions(&runner_context_path, output_dir)?;
 
     let _ = copy_docs(&runner_context_path, output_dir)?;
 
@@ -167,15 +163,21 @@ fn teardown_lib_workspace(lib_root_path: &PathBuf) -> Result<()> {
 /*
     Check if a new manifest needs to be generated on disk based on timestamps and changed contents
 */
-fn check_manifest_status(manifest_json_file: &PathBuf, file_count: i32,
-                         lib_manifest: &LibraryManifest) -> Result<(&'static str, bool)> {
+fn check_manifest_status(
+    manifest_json_file: &PathBuf,
+    file_count: i32,
+    lib_manifest: &LibraryManifest,
+) -> Result<(&'static str, bool)> {
     let json_manifest_exists = manifest_json_file.exists() && manifest_json_file.is_file();
     if json_manifest_exists {
         if file_count > 0 {
-            Ok(("Library manifest file(s) exists, but files were modified", true))
+            Ok((
+                "Library manifest file(s) exists, but files were modified",
+                true,
+            ))
         } else {
-            let provider = Arc::new(MetaProvider::new(Simpath::new(""),
-                                             PathBuf::from("/"))) as Arc<dyn Provider>;
+            let provider = Arc::new(MetaProvider::new(Simpath::new(""), PathBuf::from("/")))
+                as Arc<dyn Provider>;
             let json_manifest_file_as_url =
                 Url::from_file_path(manifest_json_file).map_err(|()| {
                     format!(
@@ -184,7 +186,7 @@ fn check_manifest_status(manifest_json_file: &PathBuf, file_count: i32,
                     )
                 })?;
             if let Ok((existing_json_manifest, _)) =
-            LibraryManifest::load(&provider, &json_manifest_file_as_url)
+                LibraryManifest::load(&provider, &json_manifest_file_as_url)
             {
                 if &existing_json_manifest == lib_manifest {
                     Ok(("Existing manifest files are up to date", false))
@@ -196,7 +198,10 @@ fn check_manifest_status(manifest_json_file: &PathBuf, file_count: i32,
             }
         }
     } else {
-        Ok(("Library manifest file(s) missing, writing new manifest file(s)", true))
+        Ok((
+            "Library manifest file(s) missing, writing new manifest file(s)",
+            true,
+        ))
     }
 }
 
@@ -204,12 +209,21 @@ fn check_manifest_status(manifest_json_file: &PathBuf, file_count: i32,
    Copy definition toml file for function or flow into the output dir
 */
 fn copy_definition_to_output_dir(toml_path: &Path, output_dir: &Path) -> Result<i32> {
-    let output_file = output_dir.join(toml_path.file_name()
-                                          .ok_or("Could not get Toml file filename")?);
+    let output_file = output_dir.join(
+        toml_path
+            .file_name()
+            .ok_or("Could not get Toml file filename")?,
+    );
 
-    println!("   {} {} to {}", "Copying".green(),
-        toml_path.file_name().ok_or("Could not get file name")?.to_string_lossy(),
-             output_file.display());
+    println!(
+        "   {} {} to {}",
+        "Copying".green(),
+        toml_path
+            .file_name()
+            .ok_or("Could not get file name")?
+            .to_string_lossy(),
+        output_file.display()
+    );
 
     fs::copy(toml_path, &output_file)?;
 
@@ -242,8 +256,10 @@ fn compile_functions(
         match &entry {
             Ok(walk_entry) => {
                 let toml_path = walk_entry.path();
-                let toml_filename = toml_path.file_name()
-                    .ok_or("Could not get toml file name")?.to_string_lossy();
+                let toml_filename = toml_path
+                    .file_name()
+                    .ok_or("Could not get toml file name")?
+                    .to_string_lossy();
                 if toml_filename == "function.toml" {
                     continue;
                 }
@@ -256,10 +272,7 @@ fn compile_functions(
                 })?;
 
                 debug!("Trying to load library FunctionProcess from '{url}'");
-                match parser::parse(
-                    &url,
-                    provider,
-                ) {
+                match parser::parse(&url, provider) {
                     Ok(FunctionProcess(ref mut function)) => {
                         // calculate the path of the file's directory, relative to lib_root
                         let relative_dir = toml_path
@@ -274,7 +287,8 @@ fn compile_functions(
                             fs::create_dir_all(&out_dir)?;
                         }
 
-                        let (source_path, wasm_destination) = compile::get_paths(&out_dir, function)?;
+                        let (source_path, wasm_destination) =
+                            compile::get_paths(&out_dir, function)?;
 
                         // here we assume that the library has a workspace at lib_root_path
                         let mut target_dir = lib_root_path.clone();
@@ -299,8 +313,13 @@ fn compile_functions(
                             options.optimize,
                             #[cfg(feature = "debugger")]
                             &mut lib_manifest.source_urls,
-                        ).chain_err(|| format!("Could not compile implementation '{}' to wasm",
-                                        source_path.display()))?;
+                        )
+                        .chain_err(|| {
+                            format!(
+                                "Could not compile implementation '{}' to wasm",
+                                source_path.display()
+                            )
+                        })?;
 
                         if built {
                             file_count += 1;
@@ -320,8 +339,8 @@ fn compile_functions(
                     Ok(FlowProcess(_)) => debug!("Skipping file '{url}'. Reason: 'It is a Flow'"),
                     Err(err) => debug!("Skipping file '{url}'. Reason: '{err}'"),
                 }
-            },
-            Err(e) => bail!("Error walking glob entries: {}", e.to_string())
+            }
+            Err(e) => bail!("Error walking glob entries: {}", e.to_string()),
         }
     }
 
@@ -333,10 +352,7 @@ fn compile_functions(
 }
 
 // Find all function definitions under the base_dir copy them to the output dir
-fn copy_definitions(
-    root_path: &PathBuf,
-    output_dir: &Path,
-) -> Result<()> {
+fn copy_definitions(root_path: &PathBuf, output_dir: &Path) -> Result<()> {
     // Function implementations are described in .toml format and can be at multiple levels in
 
     debug!(
@@ -363,8 +379,8 @@ fn copy_definitions(
                 }
 
                 let _ = copy_definition_to_output_dir(toml_path, &out_dir)?;
-            },
-            Err(e) => bail!("Error walking glob entries: {}", e.to_string())
+            }
+            Err(e) => bail!("Error walking glob entries: {}", e.to_string()),
         }
     }
 
@@ -383,7 +399,7 @@ fn compile_flows(
     options: &Options,
     lib_manifest: &mut LibraryManifest,
     provider: &dyn Provider,
-    output_dir: &Path
+    output_dir: &Path,
 ) -> Result<i32> {
     let mut file_count = 0;
     debug!(
@@ -395,8 +411,9 @@ fn compile_flows(
     for entry in glob.walk(lib_root_path) {
         match &entry {
             Ok(walk_entry) => {
-                if walk_entry.path().file_name() == Some(OsStr::new("function.toml")) ||
-                   walk_entry.path().file_name() == Some(OsStr::new("Cargo.toml")) {
+                if walk_entry.path().file_name() == Some(OsStr::new("function.toml"))
+                    || walk_entry.path().file_name() == Some(OsStr::new("Cargo.toml"))
+                {
                     continue;
                 }
 
@@ -410,11 +427,10 @@ fn compile_flows(
                 })?;
 
                 debug!("Trying to load library FlowProcess from '{url}'");
-                match parser::parse(
-                    &url,
-                    provider,
-                ) {
-                    Ok(FunctionProcess(_)) => debug!("Skipping file '{url}'. Reason: 'It is a Function'"),
+                match parser::parse(&url, provider) {
+                    Ok(FunctionProcess(_)) => {
+                        debug!("Skipping file '{url}'. Reason: 'It is a Function'")
+                    }
                     Ok(FlowProcess(ref mut flow)) => {
                         // calculate the path of the file's directory, relative to lib_root
                         let relative_dir = toml_path
@@ -439,7 +455,8 @@ fn compile_flows(
                         let flow_relative_path = toml_path
                             .strip_prefix(lib_root_path)
                             .map_err(|_| "Could not calculate relative_path")?;
-                        let flow_lib_reference = flow_relative_path.file_stem()
+                        let flow_lib_reference = flow_relative_path
+                            .file_stem()
                             .ok_or("Could not remove extension from flow file path")?
                             .to_string_lossy();
 
@@ -448,14 +465,14 @@ fn compile_flows(
                                 &flow_relative_path.to_string_lossy(),
                                 &flow_lib_reference,
                                 #[cfg(feature = "debugger")]
-                                &toml_path.to_string_lossy()
+                                &toml_path.to_string_lossy(),
                             )
                             .chain_err(|| "Could not add entry to library manifest")?;
                     }
                     Err(err) => bail!("Error parsing '{}'. Reason: '{}'", url, err),
                 }
-            },
-            Err(e) => bail!("Error walking glob entries: {}", e.to_string())
+            }
+            Err(e) => bail!("Error walking glob entries: {}", e.to_string()),
         }
     }
 
@@ -466,14 +483,10 @@ fn compile_flows(
     Ok(file_count)
 }
 
-
 /*
     Find all document files not already copied and copy them to the destination folder tree
 */
-fn copy_docs(
-    lib_root_path: &PathBuf,
-    output_dir: &Path,
-) -> Result<i32> {
+fn copy_docs(lib_root_path: &PathBuf, output_dir: &Path) -> Result<i32> {
     let mut file_count = 0;
     debug!(
         "Searching for additional docs files using search pattern: '{}/**/*.md'",
@@ -499,9 +512,8 @@ fn copy_docs(
                     fs::copy(md_path, target_file).map_err(|_| "Could not copy docs file")?;
                     file_count += 1;
                 }
-
-            },
-            Err(e) => bail!("Error walking glob entries: {}", e.to_string())
+            }
+            Err(e) => bail!("Error walking glob entries: {}", e.to_string()),
         }
     }
 
@@ -525,7 +537,8 @@ mod test {
     fn test_manifest() -> Url {
         let dir = tempdir().expect("Could not create temp dir");
         let url = Url::from_directory_path(dir.keep()).expect("Could not create Url");
-        url.join("manifest.json").expect("Could not join filename to Url")
+        url.join("manifest.json")
+            .expect("Could not join filename to Url")
     }
 
     #[test]
@@ -535,8 +548,13 @@ mod test {
         let lib_manifest = LibraryManifest::new(manifest_url.clone(), lib_metadata);
 
         let (_, generate) = super::check_manifest_status(
-            &manifest_url.to_file_path().expect("Could not get back to path"),
-        0, &lib_manifest).expect("Could not check manifest_status");
+            &manifest_url
+                .to_file_path()
+                .expect("Could not get back to path"),
+            0,
+            &lib_manifest,
+        )
+        .expect("Could not check manifest_status");
 
         assert!(generate);
     }
@@ -546,11 +564,12 @@ mod test {
         let lib_metadata = MetaData::default();
         let manifest_url = test_manifest();
         let lib_manifest = LibraryManifest::new(manifest_url.clone(), lib_metadata);
-        let manifest_path = manifest_url.to_file_path().expect("Could not get back to path");
+        let manifest_path = manifest_url
+            .to_file_path()
+            .expect("Could not get back to path");
         std::fs::File::create(&manifest_path).expect("Could not create file");
-        let (_, generate) = super::check_manifest_status(
-            &manifest_path,
-            1, &lib_manifest).expect("Could not check manifest_status");
+        let (_, generate) = super::check_manifest_status(&manifest_path, 1, &lib_manifest)
+            .expect("Could not check manifest_status");
 
         assert!(generate);
     }
@@ -560,11 +579,12 @@ mod test {
         let lib_metadata = MetaData::default();
         let manifest_url = test_manifest();
         let lib_manifest = LibraryManifest::new(manifest_url.clone(), lib_metadata);
-        let manifest_path = manifest_url.to_file_path().expect("Could not get back to path");
+        let manifest_path = manifest_url
+            .to_file_path()
+            .expect("Could not get back to path");
         std::fs::File::create(&manifest_path).expect("Could not create file");
-        let (_, generate) = super::check_manifest_status(
-            &manifest_path,
-            0, &lib_manifest).expect("Could not check manifest_status");
+        let (_, generate) = super::check_manifest_status(&manifest_path, 0, &lib_manifest)
+            .expect("Could not check manifest_status");
 
         assert!(generate);
     }
@@ -574,16 +594,18 @@ mod test {
         let lib_metadata = MetaData::default();
         let manifest_url = test_manifest();
         let lib_manifest = LibraryManifest::new(manifest_url.clone(), lib_metadata);
-        let manifest_path = manifest_url.to_file_path().expect("Could not get back to path");
+        let manifest_path = manifest_url
+            .to_file_path()
+            .expect("Could not get back to path");
         let mut file = std::fs::File::create(&manifest_path).expect("Could not create file");
         file.write_all(
             serde_json::to_string_pretty(&lib_manifest)
                 .expect("Could not pretty format the library manifest JSON contents")
                 .as_bytes(),
-        ).expect("Could not write to file");
-        let (_, generate) = super::check_manifest_status(
-            &manifest_path,
-            0, &lib_manifest).expect("Could not check manifest_status");
+        )
+        .expect("Could not write to file");
+        let (_, generate) = super::check_manifest_status(&manifest_path, 0, &lib_manifest)
+            .expect("Could not check manifest_status");
 
         assert!(!generate); // No need to generate the manifest again then!
     }

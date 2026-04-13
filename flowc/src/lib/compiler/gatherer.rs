@@ -7,7 +7,7 @@ use flowcore::errors::ResultExt;
 use flowcore::model::connection::Connection;
 use flowcore::model::datatype::DataType;
 use flowcore::model::flow_definition::FlowDefinition;
-use flowcore::model::io::{IO, IOType};
+use flowcore::model::io::{IOType, IO};
 use flowcore::model::process::Process::FlowProcess;
 use flowcore::model::process::Process::FunctionProcess;
 use flowcore::model::route::HasRoute;
@@ -18,7 +18,10 @@ use crate::errors::Result;
 
 /// Recursively go through the flow hierarchy, harvesting out functions and connections within
 /// each flow into the `CompilerTables` that will be used in later compilers.
-pub fn gather_functions_and_connections(flow: &FlowDefinition, tables: &mut CompilerTables) -> Result<()> {
+pub fn gather_functions_and_connections(
+    flow: &FlowDefinition,
+    tables: &mut CompilerTables,
+) -> Result<()> {
     info!("\n=== Compiler: Gathering Functions and Connections");
     inner_gather_functions_and_connections(flow, tables)?;
 
@@ -26,12 +29,19 @@ pub fn gather_functions_and_connections(flow: &FlowDefinition, tables: &mut Comp
 
     tables.create_routes_table();
 
-    info!("Gathered {} functions and {} connections", tables.functions.len(), tables.connections.len());
+    info!(
+        "Gathered {} functions and {} connections",
+        tables.functions.len(),
+        tables.connections.len()
+    );
 
     Ok(())
 }
 
-fn inner_gather_functions_and_connections(flow: &FlowDefinition, tables: &mut CompilerTables) -> Result<()> {
+fn inner_gather_functions_and_connections(
+    flow: &FlowDefinition,
+    tables: &mut CompilerTables,
+) -> Result<()> {
     // Add Connections from this flow hierarchy to the connections table
     let mut connections = flow.connections.clone();
     tables.connections.append(&mut connections);
@@ -57,7 +67,9 @@ fn inner_gather_functions_and_connections(flow: &FlowDefinition, tables: &mut Co
 
     // Add the context references of this flow into the tables list
     let context_refs = &flow.context_references;
-    tables.context_functions.extend(context_refs.iter().cloned());
+    tables
+        .context_functions
+        .extend(context_refs.iter().cloned());
 
     Ok(())
 }
@@ -78,18 +90,25 @@ fn inner_gather_functions_and_connections(flow: &FlowDefinition, tables: &mut Co
 /// - `tables.connections`is populated by `gather_functions_and_connections`
 /// - `tables.destination_routes` is populated by `create_routes_table`
 pub fn collapse_connections(tables: &mut CompilerTables) -> Result<()> {
-    info!("\n=== Compiler: Collapsing {} flow connections", tables.connections.len());
+    info!(
+        "\n=== Compiler: Collapsing {} flow connections",
+        tables.connections.len()
+    );
     let mut collapsed_connections: Vec<Connection> = Vec::new();
 
     for connection in &tables.connections {
         match connection.from_io().io_type() {
             // connection starts at a Function output, or is a connection from a value at a Function's input
             &IOType::FunctionOutput | &IOType::FunctionInput => {
-                debug!("Trying to create connection from function IO at '{}'",
-                       connection.from_io().route());
+                debug!(
+                    "Trying to create connection from function IO at '{}'",
+                    connection.from_io().route()
+                );
                 if connection.to_io().io_type() == &IOType::FunctionInput {
-                    debug!("\tFound direct connection to function input at '{}'",
-                        connection.to_io().route());
+                    debug!(
+                        "\tFound direct connection to function input at '{}'",
+                        connection.to_io().route()
+                    );
                     collapsed_connections.push(connection.clone());
                 } else {
                     // If the connection enters or leaves this flow, then follow it to all destinations at function inputs
@@ -97,7 +116,8 @@ pub fn collapse_connections(tables: &mut CompilerTables) -> Result<()> {
                         &Route::from(""),
                         connection.to_io(),
                         connection.level(),
-                        &tables.connections)? {
+                        &tables.connections,
+                    )? {
                         let mut collapsed_connection = connection.clone();
                         // append the subroute from the origin function IO - to select from with in that IO
                         // as prescribed by the connections along the way
@@ -111,10 +131,18 @@ pub fn collapse_connections(tables: &mut CompilerTables) -> Result<()> {
                             .from_io_mut()
                             .set_route(&from_route, &IOType::FunctionOutput);
                         *collapsed_connection.to_io_mut() = destination_io;
-                        DataType::compatible_types(collapsed_connection.from_io().datatypes(),
-                                                   collapsed_connection.to_io().datatypes(), &source_subroute)
-                            .chain_err(|| format!("Incompatible types in collapsed connection from '{}' to '{}'",
-                                                  collapsed_connection.from_io().route(), collapsed_connection.to_io().route()))?;
+                        DataType::compatible_types(
+                            collapsed_connection.from_io().datatypes(),
+                            collapsed_connection.to_io().datatypes(),
+                            &source_subroute,
+                        )
+                        .chain_err(|| {
+                            format!(
+                                "Incompatible types in collapsed connection from '{}' to '{}'",
+                                collapsed_connection.from_io().route(),
+                                collapsed_connection.to_io().route()
+                            )
+                        })?;
                         debug!("\tIndirect connection {collapsed_connection}");
                         collapsed_connections.push(collapsed_connection);
                     }
@@ -127,7 +155,7 @@ pub fn collapse_connections(tables: &mut CompilerTables) -> Result<()> {
                     // find the destination functions (the connection could split to multiple destinations)
                     let destinations = if connection.to_io().io_type() == &IOType::FunctionInput {
                         // Flow input (or output) (that has an initializer) connects directly to a function's Input
-                        vec!((Route::default(), connection.to_io().clone()))
+                        vec![(Route::default(), connection.to_io().clone())]
                     } else {
                         find_connection_destinations(
                             &Route::from(""),
@@ -138,27 +166,39 @@ pub fn collapse_connections(tables: &mut CompilerTables) -> Result<()> {
                     };
 
                     for (_, destination_io) in destinations {
-                        let (destination_function_id, destination_input_index, _) =
-                            tables.destination_routes.get(destination_io.route())
-                                .ok_or(format!("Could not find a destination route matching '{}'", destination_io.route()))?;
+                        let (destination_function_id, destination_input_index, _) = tables
+                            .destination_routes
+                            .get(destination_io.route())
+                            .ok_or(format!(
+                                "Could not find a destination route matching '{}'",
+                                destination_io.route()
+                            ))?;
 
                         // get a mutable reference to the destination function and set the initializer on it
-                        let destination_function = tables.functions.get_mut(*destination_function_id)
-                            .ok_or(format!("Could not find a function #{destination_function_id}"))?;
+                        let destination_function = tables
+                            .functions
+                            .get_mut(*destination_function_id)
+                            .ok_or(format!(
+                                "Could not find a function #{destination_function_id}"
+                            ))?;
 
                         let flow_initializer = connection.from_io().get_initializer().clone();
 
                         // TODO check types
 
-                        destination_function.
-                            set_flow_initializer(*destination_input_index, flow_initializer)?;
+                        destination_function
+                            .set_flow_initializer(*destination_input_index, flow_initializer)?;
                     }
                 }
             }
         }
     }
 
-    info!("{} connections collapsed down to {}", tables.connections.len(), collapsed_connections.len());
+    info!(
+        "{} connections collapsed down to {}",
+        tables.connections.len(),
+        collapsed_connections.len()
+    );
     tables.collapsed_connections = collapsed_connections;
 
     Ok(())
@@ -249,16 +289,23 @@ fn find_connection_destinations(
 
                 match *next_connection.to_io().io_type() {
                     IOType::FunctionInput => {
-                        debug!("\t\tFound destination function input at '{}'",
-                            next_connection.to_io().route());
+                        debug!(
+                            "\t\tFound destination function input at '{}'",
+                            next_connection.to_io().route()
+                        );
                         destinations
                             .push((accumulated_source_subroute, next_connection.to_io().clone()));
                     }
 
-                    IOType::FunctionOutput => error!("Error - destination of {next_connection:?} is a functions output!"),
+                    IOType::FunctionOutput => {
+                        error!("Error - destination of {next_connection:?} is a functions output!")
+                    }
 
                     IOType::FlowInput => {
-                        debug!("\t\tFollowing connection into sub-flow via '{}'", from_io.route());
+                        debug!(
+                            "\t\tFollowing connection into sub-flow via '{}'",
+                            from_io.route()
+                        );
                         let new_destinations = &mut find_connection_destinations(
                             &accumulated_source_subroute,
                             next_connection.to_io(),
@@ -269,7 +316,10 @@ fn find_connection_destinations(
                     }
 
                     IOType::FlowOutput => {
-                        debug!("\t\tFollowing connection out of flow via '{}'", from_io.route());
+                        debug!(
+                            "\t\tFollowing connection out of flow via '{}'",
+                            from_io.route()
+                        );
                         let new_destinations = &mut find_connection_destinations(
                             &accumulated_source_subroute,
                             next_connection.to_io(),
@@ -285,13 +335,21 @@ fn find_connection_destinations(
 
     // Some chains or sub-chains of connections maybe dead ends, without that being an error
     if destinations.is_empty() {
-        info!("Connection from '{}' : did not find a destination Function Input", from_io.route());
+        info!(
+            "Connection from '{}' : did not find a destination Function Input",
+            from_io.route()
+        );
     } else {
         // check that the partial connection has compatible source and destinations types
         for (sub_route, destination_io) in &destinations {
             DataType::compatible_types(from_io.datatypes(), destination_io.datatypes(), sub_route)
-                .chain_err(|| format!("Failed to connect '{}{sub_route}' to '{}' due to incompatible types",
-                                      from_io.route(), destination_io.route()))?;
+                .chain_err(|| {
+                    format!(
+                        "Failed to connect '{}{sub_route}' to '{}' due to incompatible types",
+                        from_io.route(),
+                        destination_io.route()
+                    )
+                })?;
         }
     }
 
@@ -302,7 +360,7 @@ fn find_connection_destinations(
 mod test {
     use flowcore::model::connection::Connection;
     use flowcore::model::datatype::STRING_TYPE;
-    use flowcore::model::io::{IO, IOType};
+    use flowcore::model::io::{IOType, IO};
     use flowcore::model::route::HasRoute;
     use flowcore::model::route::Route;
 
@@ -314,8 +372,11 @@ mod test {
     fn collapse_drops_a_useless_connections() {
         let mut unused = Connection::new("/f1/a", "/f2/a");
         unused
-            .connect(IO::new(vec!(STRING_TYPE.into()), "/f1/a"),
-                     IO::new(vec!(STRING_TYPE.into()), "/f2/a"), 1)
+            .connect(
+                IO::new(vec![STRING_TYPE.into()], "/f1/a"),
+                IO::new(vec![STRING_TYPE.into()], "/f2/a"),
+                1,
+            )
             .expect("Could not connect IOs");
         unused.to_io_mut().set_io_type(IOType::FlowInput);
 
@@ -330,21 +391,40 @@ mod test {
         let mut only_connection = Connection::new("/function1/out", "/function1/in");
         only_connection
             .connect(
-                IO::new(vec!(STRING_TYPE.into()), "/function1/out"),
-                IO::new(vec!(STRING_TYPE.into()), "/function1/in"),
+                IO::new(vec![STRING_TYPE.into()], "/function1/out"),
+                IO::new(vec![STRING_TYPE.into()], "/function1/in"),
                 0,
-            ).expect("Could not connect IOs");
-        only_connection.from_io_mut().set_io_type(IOType::FunctionOutput);
-        only_connection.to_io_mut().set_io_type(IOType::FunctionInput);
+            )
+            .expect("Could not connect IOs");
+        only_connection
+            .from_io_mut()
+            .set_io_type(IOType::FunctionOutput);
+        only_connection
+            .to_io_mut()
+            .set_io_type(IOType::FunctionInput);
 
         let mut tables = CompilerTables::new();
         tables.connections = vec![only_connection];
         collapse_connections(&mut tables).expect("Could not collapse connections");
         assert_eq!(tables.collapsed_connections.len(), 1);
-        assert_eq!(*tables.collapsed_connections.first().expect("Could not get connection").from_io().route(),
-                   Route::from("/function1/out"));
-        assert_eq!(*tables.collapsed_connections.first().expect("Could not get connection").to_io().route(),
-                   Route::from("/function1/in"));
+        assert_eq!(
+            *tables
+                .collapsed_connections
+                .first()
+                .expect("Could not get connection")
+                .from_io()
+                .route(),
+            Route::from("/function1/out")
+        );
+        assert_eq!(
+            *tables
+                .collapsed_connections
+                .first()
+                .expect("Could not get connection")
+                .to_io()
+                .route(),
+            Route::from("/function1/in")
+        );
     }
 
     #[test]
@@ -352,22 +432,40 @@ mod test {
         let mut only_connection = Connection::new("/function1/out", "/function2/in");
         only_connection
             .connect(
-                IO::new(vec!(STRING_TYPE.into()), "/function1/out"),
-                IO::new(vec!(STRING_TYPE.into()), "/function2/in"),
+                IO::new(vec![STRING_TYPE.into()], "/function1/out"),
+                IO::new(vec![STRING_TYPE.into()], "/function2/in"),
                 0,
             )
             .expect("Could not connect IOs");
-        only_connection.from_io_mut().set_io_type(IOType::FunctionOutput);
-        only_connection.to_io_mut().set_io_type(IOType::FunctionInput);
+        only_connection
+            .from_io_mut()
+            .set_io_type(IOType::FunctionOutput);
+        only_connection
+            .to_io_mut()
+            .set_io_type(IOType::FunctionInput);
 
         let mut tables = CompilerTables::new();
         tables.connections = vec![only_connection];
         collapse_connections(&mut tables).expect("Could not collapse connections");
         assert_eq!(tables.collapsed_connections.len(), 1);
-        assert_eq!(*tables.collapsed_connections.first().expect("Could not get connection").from_io().route(),
-                   Route::from("/function1/out"));
-        assert_eq!(*tables.collapsed_connections.first().expect("Could not get connection").to_io().route(),
-                   Route::from("/function2/in"));
+        assert_eq!(
+            *tables
+                .collapsed_connections
+                .first()
+                .expect("Could not get connection")
+                .from_io()
+                .route(),
+            Route::from("/function1/out")
+        );
+        assert_eq!(
+            *tables
+                .collapsed_connections
+                .first()
+                .expect("Could not get connection")
+                .to_io()
+                .route(),
+            Route::from("/function2/in")
+        );
     }
 
     #[test]
@@ -375,8 +473,8 @@ mod test {
         let mut left_side = Connection::new("/function1", "/flow2/a");
         left_side
             .connect(
-                IO::new(vec!(STRING_TYPE.into()), "/function1"),
-                IO::new(vec!(STRING_TYPE.into()), "/flow2/a"),
+                IO::new(vec![STRING_TYPE.into()], "/function1"),
+                IO::new(vec![STRING_TYPE.into()], "/flow2/a"),
                 0,
             )
             .expect("Could not connect IOs");
@@ -387,8 +485,8 @@ mod test {
         let mut extra_one = Connection::new("/flow2/a", "/flow2/f4/a");
         extra_one
             .connect(
-                IO::new(vec!(STRING_TYPE.into()), "/flow2/a"),
-                IO::new(vec!(STRING_TYPE.into()), "/flow2/f4/a"),
+                IO::new(vec![STRING_TYPE.into()], "/flow2/a"),
+                IO::new(vec![STRING_TYPE.into()], "/flow2/f4/a"),
                 1,
             )
             .expect("Could not connect IOs");
@@ -398,8 +496,8 @@ mod test {
         let mut right_side = Connection::new("/flow2/a", "/flow2/function3");
         right_side
             .connect(
-                IO::new(vec!(STRING_TYPE.into()), "/flow2/a"),
-                IO::new(vec!(STRING_TYPE.into()), "/flow2/function3"),
+                IO::new(vec![STRING_TYPE.into()], "/flow2/a"),
+                IO::new(vec![STRING_TYPE.into()], "/flow2/function3"),
                 1,
             )
             .expect("Could not connect IOs");
@@ -410,10 +508,24 @@ mod test {
         tables.connections = vec![left_side, extra_one, right_side];
         collapse_connections(&mut tables).expect("Could not collapse connections");
         assert_eq!(tables.collapsed_connections.len(), 1);
-        assert_eq!(*tables.collapsed_connections.first().expect("Could not get connection").from_io().route(),
-                   Route::from("/function1"));
-        assert_eq!(*tables.collapsed_connections.first().expect("Could not get connection").to_io().route(),
-                   Route::from("/flow2/function3"));
+        assert_eq!(
+            *tables
+                .collapsed_connections
+                .first()
+                .expect("Could not get connection")
+                .from_io()
+                .route(),
+            Route::from("/function1")
+        );
+        assert_eq!(
+            *tables
+                .collapsed_connections
+                .first()
+                .expect("Could not get connection")
+                .to_io()
+                .route(),
+            Route::from("/flow2/function3")
+        );
     }
 
     /*
@@ -426,8 +538,11 @@ mod test {
     fn collapse_two_connections_from_flow_boundary() {
         let mut left_side = Connection::new("/f1", "/f2/a");
         left_side
-            .connect(IO::new(vec!(STRING_TYPE.into()), "/f1"),
-                     IO::new(vec!(STRING_TYPE.into()), "/f2/a"), 0)
+            .connect(
+                IO::new(vec![STRING_TYPE.into()], "/f1"),
+                IO::new(vec![STRING_TYPE.into()], "/f2/a"),
+                0,
+            )
             .expect("Could not connect IOs");
         left_side.from_io_mut().set_io_type(IOType::FunctionOutput);
         left_side.to_io_mut().set_io_type(IOType::FlowInput);
@@ -435,39 +550,71 @@ mod test {
         let mut right_side_one = Connection::new("/f2/a", "/f2/value1");
         right_side_one
             .connect(
-                IO::new(vec!(STRING_TYPE.into()), "/f2/a"),
-                IO::new(vec!(STRING_TYPE.into()), "/f2/value1"),
+                IO::new(vec![STRING_TYPE.into()], "/f2/a"),
+                IO::new(vec![STRING_TYPE.into()], "/f2/value1"),
                 1,
             )
             .expect("Could not connect IOs");
         right_side_one.from_io_mut().set_io_type(IOType::FlowInput);
-        right_side_one.to_io_mut().set_io_type(IOType::FunctionInput);
+        right_side_one
+            .to_io_mut()
+            .set_io_type(IOType::FunctionInput);
 
         let mut right_side_two = Connection::new("/f2/a", "/f2/value2");
         right_side_two
             .connect(
-                IO::new(vec!(STRING_TYPE.into()), "/f2/a"),
-                IO::new(vec!(STRING_TYPE.into()), "/f2/value2"),
+                IO::new(vec![STRING_TYPE.into()], "/f2/a"),
+                IO::new(vec![STRING_TYPE.into()], "/f2/value2"),
                 1,
             )
             .expect("Could not connect IOs");
         right_side_two.from_io_mut().set_io_type(IOType::FlowInput);
-        right_side_two.to_io_mut().set_io_type(IOType::FunctionInput);
+        right_side_two
+            .to_io_mut()
+            .set_io_type(IOType::FunctionInput);
 
         let mut tables = CompilerTables::new();
         tables.connections = vec![left_side, right_side_one, right_side_two];
         collapse_connections(&mut tables).expect("Could not collapse connections");
         assert_eq!(2, tables.collapsed_connections.len());
 
-        assert_eq!(*tables.collapsed_connections.first().expect("Could not get connection").from_io().route(),
-                   Route::from("/f1"));
-        assert_eq!(*tables.collapsed_connections.first().expect("Could not get connection").to_io().route(),
-                   Route::from("/f2/value1"));
+        assert_eq!(
+            *tables
+                .collapsed_connections
+                .first()
+                .expect("Could not get connection")
+                .from_io()
+                .route(),
+            Route::from("/f1")
+        );
+        assert_eq!(
+            *tables
+                .collapsed_connections
+                .first()
+                .expect("Could not get connection")
+                .to_io()
+                .route(),
+            Route::from("/f2/value1")
+        );
 
-        assert_eq!(*tables.collapsed_connections.get(1).expect("Could not get connection").from_io().route(),
-                   Route::from("/f1"));
-        assert_eq!(*tables.collapsed_connections.get(1).expect("Could not get connection").to_io().route(),
-                   Route::from("/f2/value2"));
+        assert_eq!(
+            *tables
+                .collapsed_connections
+                .get(1)
+                .expect("Could not get connection")
+                .from_io()
+                .route(),
+            Route::from("/f1")
+        );
+        assert_eq!(
+            *tables
+                .collapsed_connections
+                .get(1)
+                .expect("Could not get connection")
+                .to_io()
+                .route(),
+            Route::from("/f2/value2")
+        );
     }
 
     #[test]
@@ -475,19 +622,21 @@ mod test {
         let mut first_level = Connection::new("/function1/out", "/flow1/a");
         first_level
             .connect(
-                IO::new(vec!(STRING_TYPE.into()), "/function1/out"),
-                IO::new(vec!(STRING_TYPE.into()), "/flow1/a"),
+                IO::new(vec![STRING_TYPE.into()], "/function1/out"),
+                IO::new(vec![STRING_TYPE.into()], "/flow1/a"),
                 0,
             )
             .expect("Could not connect IOs");
-        first_level.from_io_mut().set_io_type(IOType::FunctionOutput);
+        first_level
+            .from_io_mut()
+            .set_io_type(IOType::FunctionOutput);
         first_level.to_io_mut().set_io_type(IOType::FlowInput);
 
         let mut second_level = Connection::new("/flow1/a", "/flow1/flow2/a");
         second_level
             .connect(
-                IO::new(vec!(STRING_TYPE.into()), "/flow1/a"),
-                IO::new(vec!(STRING_TYPE.into()), "/flow1/flow2/a"),
+                IO::new(vec![STRING_TYPE.into()], "/flow1/a"),
+                IO::new(vec![STRING_TYPE.into()], "/flow1/flow2/a"),
                 1,
             )
             .expect("Could not connect IOs");
@@ -497,8 +646,8 @@ mod test {
         let mut third_level = Connection::new("/flow1/flow2/a", "/flow1/flow2/func/in");
         third_level
             .connect(
-                IO::new(vec!(STRING_TYPE.into()), "/flow1/flow2/a"),
-                IO::new(vec!(STRING_TYPE.into()), "/flow1/flow2/func/in"),
+                IO::new(vec![STRING_TYPE.into()], "/flow1/flow2/a"),
+                IO::new(vec![STRING_TYPE.into()], "/flow1/flow2/func/in"),
                 2,
             )
             .expect("Could not connect IOs");
@@ -511,23 +660,43 @@ mod test {
         collapse_connections(&mut tables).expect("Could not collapse connections");
         assert_eq!(1, tables.collapsed_connections.len());
 
-        assert_eq!(*tables.collapsed_connections.first().expect("Could not get connection").from_io().route(),
-                   Route::from("/function1/out"));
-        assert_eq!(*tables.collapsed_connections.first().expect("Could not get connection").to_io().route(),
-                   Route::from("/flow1/flow2/func/in"));
+        assert_eq!(
+            *tables
+                .collapsed_connections
+                .first()
+                .expect("Could not get connection")
+                .from_io()
+                .route(),
+            Route::from("/function1/out")
+        );
+        assert_eq!(
+            *tables
+                .collapsed_connections
+                .first()
+                .expect("Could not get connection")
+                .to_io()
+                .route(),
+            Route::from("/flow1/flow2/func/in")
+        );
     }
 
     #[test]
     fn does_not_collapse_a_non_connection() {
         let mut one = Connection::new("/f1/a", "/f2/a");
-        one.connect(IO::new(vec!(STRING_TYPE.into()), "/f1/a"),
-                    IO::new(vec!(STRING_TYPE.into()), "/f2/a"), 1)
-            .expect("Could not connect IOs");
+        one.connect(
+            IO::new(vec![STRING_TYPE.into()], "/f1/a"),
+            IO::new(vec![STRING_TYPE.into()], "/f2/a"),
+            1,
+        )
+        .expect("Could not connect IOs");
 
         let mut other = Connection::new("/f3/a", "/f4/a");
         other
-            .connect(IO::new(vec!(STRING_TYPE.into()), "/f3/a"),
-                     IO::new(vec!(STRING_TYPE.into()), "/f4/a"), 1)
+            .connect(
+                IO::new(vec![STRING_TYPE.into()], "/f3/a"),
+                IO::new(vec![STRING_TYPE.into()], "/f4/a"),
+                1,
+            )
             .expect("Could not connect IOs");
         let mut tables = CompilerTables::new();
         tables.connections = vec![one, other];

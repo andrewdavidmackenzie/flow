@@ -14,7 +14,7 @@
 //! - `RelativePath``flowcore::model::lib_manifest::ImplementationLocator::RelativePath` - functions
 //!   are compiled to WASM files and located within the library at runtime by the flow runner using
 //!   this file path relative to the lib root. If either the library if not linked natively, or the
-//!   `-n, --native` command line option is not used, when the function is referenced by a flow 
+//!   `-n, --native` command line option is not used, when the function is referenced by a flow
 //!   being run, it is loaded and executed in a WASM runtime.
 
 /// Functions and flows to control the flow of data in a flow based on control inputs.
@@ -52,8 +52,12 @@ pub mod test {
     pub fn execute_flow(filepath: &Path) -> String {
         let mut command = Command::new("flowc");
         let command_args = vec![
-            "-r", "flowrcli",
-            filepath.to_str().expect("Couldn't convert file path to string")];
+            "-r",
+            "flowrcli",
+            filepath
+                .to_str()
+                .expect("Couldn't convert file path to string"),
+        ];
 
         // spawn the 'flowc' child process
         let mut runner = command
@@ -69,10 +73,12 @@ pub mod test {
         // read it's stdout
         let mut output = String::new();
         if let Some(ref mut stdout) = runner.stdout {
-            stdout.read_to_string(&mut output).expect("Could not read stdout");
+            stdout
+                .read_to_string(&mut output)
+                .expect("Could not read stdout");
         }
 
-        assert!(result.success(), );
+        assert!(result.success(),);
         output
     }
 }

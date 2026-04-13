@@ -7,14 +7,14 @@
 //! from peers.
 
 use core::str::FromStr;
-use std::{env, thread};
 use std::path::PathBuf;
 use std::process::exit;
 use std::sync::Arc;
+use std::{env, thread};
 
 use clap::{Arg, ArgMatches, Command};
 use env_logger::Builder;
-use log::{error, info, LevelFilter, trace};
+use log::{error, info, trace, LevelFilter};
 use simpath::Simpath;
 use simpdiscoverylib::BeaconListener;
 #[cfg(feature = "flowstdlib")]
@@ -25,8 +25,9 @@ use flowcore::meta_provider::MetaProvider;
 use flowcore::provider::Provider;
 use flowrlib::executor::Executor;
 use flowrlib::info as flowrlib_info;
-use flowrlib::services::{CONTROL_SERVICE_NAME, JOB_QUEUES_DISCOVERY_PORT,
-                         JOB_SERVICE_NAME, RESULTS_JOB_SERVICE_NAME};
+use flowrlib::services::{
+    CONTROL_SERVICE_NAME, JOB_QUEUES_DISCOVERY_PORT, JOB_SERVICE_NAME, RESULTS_JOB_SERVICE_NAME,
+};
 
 /// We'll put our errors in an `errors` module, and other modules in this crate will
 /// `use crate::errors::*;` to get access to everything `error_chain` creates.
@@ -93,27 +94,38 @@ fn start_executors(num_threads: usize) -> Result<()> {
         executor.add_lib(
             flowstdlib::manifest::get()
                 .chain_err(|| "Could not get 'native' flowstdlib manifest")?,
-            Url::parse("memory://")?
+            Url::parse("memory://")?,
         )?;
-        trace!("'flowstdlib' loaded into '{}' executors", env!("CARGO_PKG_NAME"));
+        trace!(
+            "'flowstdlib' loaded into '{}' executors",
+            env!("CARGO_PKG_NAME")
+        );
 
-        let provider = Arc::new(MetaProvider::new(Simpath::new(""),
-            PathBuf::from("/"))) as Arc<dyn Provider>;
+        let provider =
+            Arc::new(MetaProvider::new(Simpath::new(""), PathBuf::from("/"))) as Arc<dyn Provider>;
 
-        let job_service = format!("tcp://{}",
-                                  discover_service(JOB_QUEUES_DISCOVERY_PORT,
-                                                   JOB_SERVICE_NAME)?);
-        let results_service = format!("tcp://{}",
-                                      discover_service(JOB_QUEUES_DISCOVERY_PORT,
-                                                       RESULTS_JOB_SERVICE_NAME)?);
+        let job_service = format!(
+            "tcp://{}",
+            discover_service(JOB_QUEUES_DISCOVERY_PORT, JOB_SERVICE_NAME)?
+        );
+        let results_service = format!(
+            "tcp://{}",
+            discover_service(JOB_QUEUES_DISCOVERY_PORT, RESULTS_JOB_SERVICE_NAME)?
+        );
 
-        let control_service = format!("tcp://{}",
-                                      discover_service(JOB_QUEUES_DISCOVERY_PORT,
-                                                       CONTROL_SERVICE_NAME)?);
+        let control_service = format!(
+            "tcp://{}",
+            discover_service(JOB_QUEUES_DISCOVERY_PORT, CONTROL_SERVICE_NAME)?
+        );
 
         trace!("Starting '{}' executors", env!("CARGO_PKG_NAME"));
-        executor.start(&provider, num_threads, &job_service, &results_service,
-                       &control_service);
+        executor.start(
+            &provider,
+            num_threads,
+            &job_service,
+            &results_service,
+            &control_service,
+        );
 
         trace!("Waiting for all executors to complete");
         executor.wait();
@@ -127,14 +139,13 @@ fn start_executors(num_threads: usize) -> Result<()> {
 fn num_threads(matches: &ArgMatches) -> usize {
     match matches.get_one::<usize>("threads") {
         Some(num_threads) => *num_threads,
-        None => thread::available_parallelism().map_or(1, |n| n.get())
+        None => thread::available_parallelism().map_or(1, |n| n.get()),
     }
 }
 
 // Parse the command line arguments using clap
 fn get_matches() -> ArgMatches {
-    let app = Command::new(env!("CARGO_PKG_NAME"))
-        .version(env!("CARGO_PKG_VERSION"));
+    let app = Command::new(env!("CARGO_PKG_NAME")).version(env!("CARGO_PKG_VERSION"));
 
     let app = app
         .arg(Arg::new("threads")

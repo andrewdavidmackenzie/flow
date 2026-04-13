@@ -157,7 +157,9 @@ metadata:
         if let Ok(FlowProcess(flow)) = toml_from_str(flow_description) {
             assert_eq!(flow.metadata.version, String::default());
             assert_eq!(flow.metadata.authors, Vec::<String>::default());
-        } else { panic!() }
+        } else {
+            panic!()
+        }
     }
 
     #[test]

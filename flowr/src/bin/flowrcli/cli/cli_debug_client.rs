@@ -424,9 +424,9 @@ mod test {
     fn test_function_b_init() -> RuntimeFunction {
         RuntimeFunction::new(
             #[cfg(feature = "debugger")]
-                "fB",
+            "fB",
             #[cfg(feature = "debugger")]
-                "/fB",
+            "/fB",
             "file://fake/test",
             vec![Input::new("", 0, false, Some(Once(json!(1))), None)],
             1,
@@ -444,13 +444,13 @@ mod test {
             0,
             "/fB".to_string(),
             #[cfg(feature = "debugger")]
-                String::default(),
+            String::default(),
         );
         RuntimeFunction::new(
             #[cfg(feature = "debugger")]
-                "fA",
+            "fA",
             #[cfg(feature = "debugger")]
-                "/fA",
+            "/fA",
             "file://fake/test",
             vec![Input::new("", 0, false, Some(Once(json!(1))), None)],
             0,
@@ -483,7 +483,7 @@ mod test {
             None,
             None,
             #[cfg(feature = "debugger")]
-                true,
+            true,
         )
     }
 

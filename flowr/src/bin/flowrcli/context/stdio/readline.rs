@@ -1,7 +1,7 @@
 use std::sync::{Arc, Mutex};
 
-use flowcore::{DONT_RUN_AGAIN, Implementation, RUN_AGAIN, RunAgain};
 use flowcore::errors::Result;
+use flowcore::{Implementation, RunAgain, DONT_RUN_AGAIN, RUN_AGAIN};
 use serde_json::Value;
 
 use crate::cli::connections::CoordinatorConnection;
@@ -15,16 +15,18 @@ pub struct Readline {
 
 impl Implementation for Readline {
     fn run(&self, inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
-        let mut server = self.server_connection.lock()
+        let mut server = self
+            .server_connection
+            .lock()
             .map_err(|_| "Could not lock server")?;
 
         let prompt = match inputs.first() {
             Some(Value::String(prompt)) => prompt.clone(),
-            _ => String::new()
+            _ => String::new(),
         };
 
-        let readline_response = server.send_and_receive_response(
-            CoordinatorMessage::GetLine(prompt));
+        let readline_response =
+            server.send_and_receive_response(CoordinatorMessage::GetLine(prompt));
 
         match readline_response {
             Ok(ClientMessage::Line(contents)) => {
@@ -48,7 +50,7 @@ impl Implementation for Readline {
 
 #[cfg(test)]
 mod test {
-    use flowcore::{DONT_RUN_AGAIN, Implementation, RUN_AGAIN};
+    use flowcore::{Implementation, DONT_RUN_AGAIN, RUN_AGAIN};
     use serde_json::json;
     use serde_json::Value;
     use serial_test::serial;
@@ -101,9 +103,10 @@ mod test {
     #[test]
     #[serial]
     fn get_eof() {
-        let server_connection =
-            wait_for_then_send(CoordinatorMessage::GetLine(String::new()),
-                               ClientMessage::GetLineEof);
+        let server_connection = wait_for_then_send(
+            CoordinatorMessage::GetLine(String::new()),
+            ClientMessage::GetLineEof,
+        );
         let reader = &Readline { server_connection } as &dyn Implementation;
         let (value, run_again) = reader.run(&[]).expect("_readline() failed");
 

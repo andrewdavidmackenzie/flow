@@ -4,8 +4,9 @@ pub mod test {
 
     use portpicker::pick_unused_port;
 
-    use crate::cli::connections::{ClientConnection, CoordinatorConnection, discover_service,
-                                  enable_service_discovery, WAIT};
+    use crate::cli::connections::{
+        discover_service, enable_service_discovery, ClientConnection, CoordinatorConnection, WAIT,
+    };
     use crate::cli::coordinator_message::{ClientMessage, CoordinatorMessage};
 
     pub fn wait_for_then_send(
@@ -18,16 +19,17 @@ pub mod test {
                 .expect("Could not create server connection"),
         ));
         let discovery_port = pick_unused_port().expect("No ports free");
-        enable_service_discovery(discovery_port, "foo",
-                                 test_port).expect("Could not enable service discovery");
+        enable_service_discovery(discovery_port, "foo", test_port)
+            .expect("Could not enable service discovery");
 
-        let connection = server_connection.lock()
+        let connection = server_connection
+            .lock()
             .expect("Could not get access to server connection");
 
-        let server_address = discover_service(discovery_port, "foo")
-            .expect("Could discovery service");
-        let client_connection = ClientConnection::new(&server_address)
-            .expect("Could not create ClientConnection");
+        let server_address =
+            discover_service(discovery_port, "foo").expect("Could discovery service");
+        let client_connection =
+            ClientConnection::new(&server_address).expect("Could not create ClientConnection");
 
         // First message must come from the client to open the connection
         client_connection
@@ -39,7 +41,9 @@ pub mod test {
         std::thread::spawn(move || loop {
             match client_connection.receive::<CoordinatorMessage>() {
                 Ok(received_message) => {
-                    if std::mem::discriminant(&received_message) == std::mem::discriminant(&wait_for_message) {
+                    if std::mem::discriminant(&received_message)
+                        == std::mem::discriminant(&wait_for_message)
+                    {
                         client_connection
                             .send(then_send)
                             .expect("Could not send ClientMessage");

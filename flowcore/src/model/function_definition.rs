@@ -182,7 +182,7 @@ impl FunctionDefinition {
                         bail!("context:// functions cannot be aliased");
                     }
                     self.set_context_reference(Some(function_reference));
-                },
+                }
                 "lib" => self.set_lib_reference(Some(function_reference)),
                 _ => {}
             }
@@ -307,17 +307,22 @@ impl FunctionDefinition {
     }
 
     // Set the InputInitializers on the IOs in an IOSet
-    fn set_initializers(&mut self, initializer_map: &BTreeMap<String, InputInitializer>)
-    -> Result<()> {
+    fn set_initializers(
+        &mut self,
+        initializer_map: &BTreeMap<String, InputInitializer>,
+    ) -> Result<()> {
         for (input_name, initializer) in initializer_map {
             // initializer.0 is io name, initializer.1 is the initial value to set it to
             for (index, input) in self.inputs.iter_mut().enumerate() {
-                if input.name() == input_name
-                    || (input_name.as_str() == "default" && index == 0)
-                {
-                    input.set_initializer(Some(initializer.clone()))
-                        .chain_err(|| format!("Failed to set initializers on IO#{index} on function {}",
-                                            self.route))?;
+                if input.name() == input_name || (input_name.as_str() == "default" && index == 0) {
+                    input
+                        .set_initializer(Some(initializer.clone()))
+                        .chain_err(|| {
+                            format!(
+                                "Failed to set initializers on IO#{index} on function {}",
+                                self.route
+                            )
+                        })?;
                 }
             }
         }
@@ -329,8 +334,14 @@ impl FunctionDefinition {
     /// # Errors
     ///
     /// Will return `Err`if the input with number `io_number` does not exist
-    pub fn set_flow_initializer(&mut self, io_number: usize, flow_initializer: Option<InputInitializer>) -> Result<()> {
-        self.inputs.get_mut(io_number).ok_or("No such input")?
+    pub fn set_flow_initializer(
+        &mut self,
+        io_number: usize,
+        flow_initializer: Option<InputInitializer>,
+    ) -> Result<()> {
+        self.inputs
+            .get_mut(io_number)
+            .ok_or("No such input")?
             .set_flow_initializer(flow_initializer)
     }
 
@@ -364,8 +375,13 @@ impl FunctionDefinition {
         // split into parts by '_' and Uppercase the first character of the (ASCII) Struct name
         let words: Vec<String> = original
             .split('_')
-            .map(|w| format!("{}{}", (w.get(..1).unwrap_or("").to_string())
-                .to_uppercase(), &w.get(1..).unwrap_or("")))
+            .map(|w| {
+                format!(
+                    "{}{}",
+                    (w.get(..1).unwrap_or("").to_string()).to_uppercase(),
+                    &w.get(1..).unwrap_or("")
+                )
+            })
             .collect();
         // recombine
         words.join("")
@@ -531,8 +547,7 @@ mod test {
         type = 'number'
         ";
 
-        let function = toml_from_str(function_str)
-            .expect("Couldn't load function from toml");
+        let function = toml_from_str(function_str).expect("Couldn't load function from toml");
         assert!(function.check_impurity(function.get_source_url()).is_err());
     }
 
@@ -549,10 +564,16 @@ mod test {
             toml_from_str(function_str).expect("Couldn't read function from toml");
         function.validate().expect("Function did not validate");
         assert!(!function.outputs.is_empty());
-        let output = &function.outputs.first().expect("Could not get first output");
+        let output = &function
+            .outputs
+            .first()
+            .expect("Could not get first output");
         assert_eq!(*output.name(), Name::default());
         assert_eq!(output.datatypes().len(), 1);
-        assert_eq!(output.datatypes().first(), Some(&DataType::from(STRING_TYPE)));
+        assert_eq!(
+            output.datatypes().first(),
+            Some(&DataType::from(STRING_TYPE))
+        );
     }
 
     #[test]
@@ -570,10 +591,16 @@ mod test {
             toml_from_str(function_str).expect("Could not deserialize function from toml");
         function.validate().expect("Function does not validate");
         assert!(!function.outputs.is_empty());
-        let output = &function.outputs.first().expect("Could not get first output");
+        let output = &function
+            .outputs
+            .first()
+            .expect("Could not get first output");
         assert_eq!(*output.name(), Name::from("sub_output"));
         assert_eq!(output.datatypes().len(), 1);
-        assert_eq!(output.datatypes().first(), Some(&DataType::from(STRING_TYPE)));
+        assert_eq!(
+            output.datatypes().first(),
+            Some(&DataType::from(STRING_TYPE))
+        );
     }
 
     #[test]
@@ -599,11 +626,17 @@ mod test {
         let output_0 = &outputs.first().expect("Could not get first output");
         assert_eq!(*output_0.name(), Name::from("sub_output"));
         assert_eq!(output_0.datatypes().len(), 1);
-        assert_eq!(output_0.datatypes().first(), Some(&DataType::from(STRING_TYPE)));
+        assert_eq!(
+            output_0.datatypes().first(),
+            Some(&DataType::from(STRING_TYPE))
+        );
         let output_1 = &outputs.get(1).expect("Could nopt get output[1]");
         assert_eq!(*output_1.name(), Name::from("other_output"));
         assert_eq!(output_1.datatypes().len(), 1);
-        assert_eq!(output_1.datatypes().first(), Some(&DataType::from(NUMBER_TYPE)));
+        assert_eq!(
+            output_1.datatypes().first(),
+            Some(&DataType::from(NUMBER_TYPE))
+        );
     }
 
     #[test]
@@ -630,7 +663,10 @@ mod test {
 
         assert_eq!(function.route, Route::from("/flow/test_alias"));
 
-        let output0 = &function.outputs.first().expect("Could not get first output");
+        let output0 = &function
+            .outputs
+            .first()
+            .expect("Could not get first output");
         assert_eq!(*output0.route(), Route::from("/flow/test_alias/sub_output"));
 
         let output1 = &function.outputs.get(1).expect("Could not get output[1]");

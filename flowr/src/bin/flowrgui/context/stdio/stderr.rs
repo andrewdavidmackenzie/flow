@@ -1,7 +1,7 @@
 use std::sync::{Arc, Mutex};
 
-use flowcore::{Implementation, RUN_AGAIN, RunAgain};
 use flowcore::errors::Result;
+use flowcore::{Implementation, RunAgain, RUN_AGAIN};
 use serde_json::Value;
 
 use crate::gui::client_message::ClientMessage;
@@ -18,22 +18,29 @@ impl Implementation for Stderr {
     fn run(&self, inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
         let input = inputs.first().ok_or("Could not get input")?;
 
-        let mut server = self.server_connection.lock()
+        let mut server = self
+            .server_connection
+            .lock()
             .map_err(|_| "Could not lock server")?;
 
         let _: Result<ClientMessage> = match input {
-                Value::Null => server.send_and_receive_response(CoordinatorMessage::StderrEof),
-                Value::String(string) => server
-                    .send_and_receive_response(CoordinatorMessage::Stderr(string.clone())),
-                Value::Bool(boolean) => server
-                    .send_and_receive_response(CoordinatorMessage::Stderr(boolean.to_string())),
-                Value::Number(number) => server
-                    .send_and_receive_response(CoordinatorMessage::Stderr(number.to_string())),
-                Value::Array(_array) => server
-                    .send_and_receive_response(CoordinatorMessage::Stderr(input.to_string())),
-                Value::Object(_obj) => server
-                    .send_and_receive_response(CoordinatorMessage::Stderr(input.to_string())),
-            };
+            Value::Null => server.send_and_receive_response(CoordinatorMessage::StderrEof),
+            Value::String(string) => {
+                server.send_and_receive_response(CoordinatorMessage::Stderr(string.clone()))
+            }
+            Value::Bool(boolean) => {
+                server.send_and_receive_response(CoordinatorMessage::Stderr(boolean.to_string()))
+            }
+            Value::Number(number) => {
+                server.send_and_receive_response(CoordinatorMessage::Stderr(number.to_string()))
+            }
+            Value::Array(_array) => {
+                server.send_and_receive_response(CoordinatorMessage::Stderr(input.to_string()))
+            }
+            Value::Object(_obj) => {
+                server.send_and_receive_response(CoordinatorMessage::Stderr(input.to_string()))
+            }
+        };
 
         Ok((None, RUN_AGAIN))
     }
@@ -56,7 +63,8 @@ mod test {
     #[test]
     #[serial]
     fn send_null() {
-        let server_connection = wait_for_then_send(CoordinatorMessage::StderrEof, ClientMessage::Ack);
+        let server_connection =
+            wait_for_then_send(CoordinatorMessage::StderrEof, ClientMessage::Ack);
         let stderr = &Stderr { server_connection } as &dyn Implementation;
         let (value, run_again) = stderr.run(&[Value::Null]).expect("_stderr() failed");
 
@@ -69,8 +77,10 @@ mod test {
     fn send_string() {
         let string = "string of text";
         let value = json!(string);
-        let server_connection =
-            wait_for_then_send(CoordinatorMessage::Stderr(string.into()), ClientMessage::Ack);
+        let server_connection = wait_for_then_send(
+            CoordinatorMessage::Stderr(string.into()),
+            ClientMessage::Ack,
+        );
         let stderr = &Stderr { server_connection } as &dyn Implementation;
         let (value, run_again) = stderr.run(&[value]).expect("_stderr() failed");
 
@@ -83,8 +93,10 @@ mod test {
     fn send_bool() {
         let bool = true;
         let value = json!(bool);
-        let server_connection =
-            wait_for_then_send(CoordinatorMessage::Stderr("true".into()), ClientMessage::Ack);
+        let server_connection = wait_for_then_send(
+            CoordinatorMessage::Stderr("true".into()),
+            ClientMessage::Ack,
+        );
         let stderr = &Stderr { server_connection } as &dyn Implementation;
         let (value, run_again) = stderr.run(&[value]).expect("_stderr() failed");
 
@@ -110,8 +122,10 @@ mod test {
     fn send_array() {
         let array = [1, 2, 3];
         let value = json!(array);
-        let server_connection =
-            wait_for_then_send(CoordinatorMessage::Stderr("[1,2,3]".into()), ClientMessage::Ack);
+        let server_connection = wait_for_then_send(
+            CoordinatorMessage::Stderr("[1,2,3]".into()),
+            ClientMessage::Ack,
+        );
         let stderr = &Stderr { server_connection } as &dyn Implementation;
         let (value, run_again) = stderr.run(&[value]).expect("_stderr() failed");
 

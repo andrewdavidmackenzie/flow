@@ -71,10 +71,7 @@ pub enum LibType {
 /// flowrclib::compiler::parser::parse(&Url::parse("file:///example.toml").unwrap(), &dummy_provider)
 /// .unwrap();
 /// ```
-pub fn parse(
-    url: &Url,
-    provider: &dyn Provider,
-) -> Result<Process> {
+pub fn parse(url: &Url, provider: &dyn Provider) -> Result<Process> {
     parse_process(
         &Route::default(),
         &Name::default(),
@@ -113,7 +110,9 @@ fn parse_process(
     let content = String::from_utf8(contents).chain_err(|| "Could not read UTF8 contents")?;
     let deserializer = get::<Process>(&resolved_url)?;
     debug!(
-        "Loading process from url = '{resolved_url}' with deserializer: '{}'", deserializer.name());
+        "Loading process from url = '{resolved_url}' with deserializer: '{}'",
+        deserializer.name()
+    );
     let mut process = deserializer
         .deserialize(&content, Some(&resolved_url))
         .chain_err(|| format!("Could not parse a valid flow process from '{url}'"))?;
@@ -129,12 +128,7 @@ fn parse_process(
             )?;
             *flow_count += 1;
             debug!("Deserialized the Flow, now parsing sub-processes");
-            parse_process_refs(
-                flow,
-                flow_count,
-                provider,
-                level,
-            )?;
+            parse_process_refs(flow, flow_count, provider, level)?;
             flow.build_connections(level)?;
         }
         FunctionProcess(ref mut function) => {

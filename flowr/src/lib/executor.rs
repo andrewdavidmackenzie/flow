@@ -137,9 +137,9 @@ fn execution_loop(
     let job_source = context
         .socket(zmq::PULL)
         .map_err(|e| format!("Could not create PULL end of job socket: {e}"))?;
-    job_source.connect(&job_service).map_err(|e| {
-        format!("Could not connect to PULL end of job socket: '{job_service}' {e}")
-    })?;
+    job_source
+        .connect(&job_service)
+        .map_err(|e| format!("Could not connect to PULL end of job socket: '{job_service}' {e}"))?;
 
     let results_sink = context
         .socket(zmq::PUSH)

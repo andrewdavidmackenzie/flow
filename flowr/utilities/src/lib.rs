@@ -1,10 +1,10 @@
-use std::{env, fs, io};
 use std::fmt::Write;
 use std::fs::File;
-use std::io::{BufRead, BufReader};
 use std::io::Read;
+use std::io::{BufRead, BufReader};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
+use std::{env, fs, io};
 
 /// Name of file where any Stdout will be written while executing an example
 const TEST_STDOUT_FILENAME: &str = "test.stdout";
@@ -61,7 +61,11 @@ pub fn run_example(source_file: &str, runner: &str, flowrex: bool, native: bool)
         // set 0 executor threads in flowr coordinator, so that all job execution is done in flowrex
         runner_args.push("--threads".into());
         runner_args.push("0".into());
-        Some(Command::new("flowrex").spawn().expect("Could not spawn flowrex"))
+        Some(
+            Command::new("flowrex")
+                .spawn()
+                .expect("Could not spawn flowrex"),
+        )
     } else {
         None
     };
@@ -77,11 +81,16 @@ pub fn run_example(source_file: &str, runner: &str, flowrex: bool, native: bool)
     println!("\tCommand line: '{} {}'", runner, runner_args.join(" "));
     let mut runner_child = Command::new(runner)
         .args(runner_args)
-        .current_dir(sample_dir.canonicalize().expect("Could not canonicalize path"))
+        .current_dir(
+            sample_dir
+                .canonicalize()
+                .expect("Could not canonicalize path"),
+        )
         .stdin(Stdio::piped())
         .stdout(Stdio::from(output))
         .stderr(Stdio::from(error))
-        .spawn().expect("Could not spawn runner");
+        .spawn()
+        .expect("Could not spawn runner");
 
     let stdin_file = sample_dir.join(TEST_STDIN_FILENAME);
     if stdin_file.exists() {
@@ -91,7 +100,9 @@ pub fn run_example(source_file: &str, runner: &str, flowrex: bool, native: bool)
             .spawn();
     }
 
-    runner_child.wait_with_output().expect("Could not get sub process output");
+    runner_child
+        .wait_with_output()
+        .expect("Could not get sub process output");
 
     // If flowrex was started - then kill it
     if let Some(mut child) = flowrex_child {
@@ -103,9 +114,13 @@ pub fn run_example(source_file: &str, runner: &str, flowrex: bool, native: bool)
 
 /// Run an example and check the output matches the expected
 pub fn test_example(source_file: &str, runner: &str, flowrex: bool, native: bool) {
-    let _ = env::set_current_dir(PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .parent().expect("Could not cd into flowr directory")
-        .parent().expect("Could not cd into flow directory"));
+    let _ = env::set_current_dir(
+        PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .parent()
+            .expect("Could not cd into flowr directory")
+            .parent()
+            .expect("Could not cd into flow directory"),
+    );
 
     run_example(source_file, runner, flowrex, native);
     check_test_output(source_file);
@@ -144,10 +159,14 @@ pub fn compile_example(sample_path: &Path, runner: &str) {
 
     let stat = command
         .args(&command_args)
-        .status().expect("Could not get status of 'flowc' execution");
+        .status()
+        .expect("Could not get status of 'flowc' execution");
 
     if !stat.success() {
-        panic!("Error building example, command line\n flowc {}", command_args.join(" "));
+        panic!(
+            "Error building example, command line\n flowc {}",
+            command_args.join(" ")
+        );
     }
 }
 
@@ -157,18 +176,28 @@ pub fn check_test_output(source_file: &str) {
 
     let error_output = sample_dir.join(TEST_STDERR_FILENAME);
     if error_output.exists() {
-        let contents = fs::read_to_string(&error_output).expect("Could not read from {STDERR_FILENAME} file");
+        let contents =
+            fs::read_to_string(&error_output).expect("Could not read from {STDERR_FILENAME} file");
 
         if !contents.is_empty() {
             panic!(
                 "Sample {:?} produced output to STDERR written to '{}'\n{contents}",
-                sample_dir.file_name().expect("Could not get directory file name"),
-                error_output.display());
+                sample_dir
+                    .file_name()
+                    .expect("Could not get directory file name"),
+                error_output.display()
+            );
         }
     }
 
-    compare_and_fail(sample_dir.join(EXPECTED_STDOUT_FILENAME), sample_dir.join(TEST_STDOUT_FILENAME));
-    compare_and_fail(sample_dir.join(EXPECTED_FILE_FILENAME), sample_dir.join(TEST_FILE_FILENAME));
+    compare_and_fail(
+        sample_dir.join(EXPECTED_STDOUT_FILENAME),
+        sample_dir.join(TEST_STDOUT_FILENAME),
+    );
+    compare_and_fail(
+        sample_dir.join(EXPECTED_FILE_FILENAME),
+        sample_dir.join(TEST_FILE_FILENAME),
+    );
 }
 
 fn compare_and_fail(expected_path: PathBuf, actual_path: PathBuf) {
@@ -184,15 +213,20 @@ fn compare_and_fail(expected_path: PathBuf, actual_path: PathBuf) {
         if output.status.success() {
             return;
         }
-        panic!("Contents of '{}' doesn't match the expected contents in '{}'",
-               actual_path.display(), expected_path.display());
+        panic!(
+            "Contents of '{}' doesn't match the expected contents in '{}'",
+            actual_path.display(),
+            expected_path.display()
+        );
     }
 }
 
 /// Execute a flow using separate server (coordinator) and client
 pub fn execute_flow_client_server(example_name: &str, manifest: PathBuf) {
     let crate_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    let root_dir = crate_dir.parent().expect("Could not go to parent flowr dir");
+    let root_dir = crate_dir
+        .parent()
+        .expect("Could not go to parent flowr dir");
     let samples_dir = root_dir.join("examples").join(example_name);
 
     let mut server_command = Command::new("flowrcli");
@@ -200,7 +234,10 @@ pub fn execute_flow_client_server(example_name: &str, manifest: PathBuf) {
     // separate 'flowr' server process args: -n for native libs, -s to get a server process
     let server_args = vec!["-n", "-s"];
 
-    println!("Starting 'flowrcli' as server with command line: 'flowrcli {}'", server_args.join(" "));
+    println!(
+        "Starting 'flowrcli' as server with command line: 'flowrcli {}'",
+        server_args.join(" ")
+    );
 
     // spawn the 'flowr' server process
     let mut server = server_command
@@ -212,15 +249,23 @@ pub fn execute_flow_client_server(example_name: &str, manifest: PathBuf) {
         .expect("Failed to spawn flowrcli");
 
     // capture the discovery port by reading one line of stdout
-    let stdout = server.stdout.as_mut().expect("Could not read stdout of server");
+    let stdout = server
+        .stdout
+        .as_mut()
+        .expect("Could not read stdout of server");
     let mut reader = BufReader::new(stdout);
     let mut discovery_port = String::new();
-    reader.read_line(&mut discovery_port).expect("Could not read line");
+    reader
+        .read_line(&mut discovery_port)
+        .expect("Could not read line");
 
     let mut client = Command::new("flowrcli");
     let manifest_str = manifest.to_string_lossy();
     let client_args = vec!["-c", discovery_port.trim(), &manifest_str];
-    println!("Starting 'flowrcli' client with command line: 'flowr {}'", client_args.join(" "));
+    println!(
+        "Starting 'flowrcli' client with command line: 'flowr {}'",
+        client_args.join(" ")
+    );
 
     // spawn the 'flowrcli' client process
     let mut runner = client
@@ -272,6 +317,7 @@ fn read_file(test_dir: &Path, file_name: &str) -> String {
 
     let mut f = File::open(&expected_file).expect("Could not open file");
     let mut buffer = Vec::new();
-    f.read_to_end(&mut buffer).expect("Could not read from file");
+    f.read_to_end(&mut buffer)
+        .expect("Could not read from file");
     String::from_utf8(buffer).expect("Could not convert to String")
 }

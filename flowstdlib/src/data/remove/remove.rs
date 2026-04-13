@@ -1,7 +1,7 @@
 use serde_json::Value;
 
-use flowcore::{RUN_AGAIN, RunAgain};
 use flowcore::errors::Result;
+use flowcore::{RunAgain, RUN_AGAIN};
 use flowmacro::flow_function;
 
 #[flow_function]
@@ -34,7 +34,10 @@ mod test {
 
         let (result, _) = inner_remove(&[value, array]).expect("_remove() failed");
 
-        assert_eq!(result.expect("Could not get the Value from the output"), json!([2]));
+        assert_eq!(
+            result.expect("Could not get the Value from the output"),
+            json!([2])
+        );
     }
 
     #[test]
@@ -44,7 +47,10 @@ mod test {
 
         let (result, _) = inner_remove(&[value, array]).expect("_remove() failed");
 
-        assert_eq!(result.expect("Could not get the Value from the output"), json!([1, 3, 4]));
+        assert_eq!(
+            result.expect("Could not get the Value from the output"),
+            json!([1, 3, 4])
+        );
     }
 
     #[test]
@@ -54,7 +60,10 @@ mod test {
 
         let (result, _) = inner_remove(&[value, array]).expect("_remove() failed");
 
-        assert_eq!(result.expect("Could not get the Value from the output"), json!([1, 2]));
+        assert_eq!(
+            result.expect("Could not get the Value from the output"),
+            json!([1, 2])
+        );
     }
 
     #[test]
@@ -64,7 +73,10 @@ mod test {
 
         let (result, _) = inner_remove(&[value, array]).expect("_remove() failed");
 
-        assert_eq!(result.expect("Could not get the Value from the output"), json!([]));
+        assert_eq!(
+            result.expect("Could not get the Value from the output"),
+            json!([])
+        );
     }
 
     #[test]
@@ -74,6 +86,9 @@ mod test {
 
         let (result, _) = inner_remove(&[value, array]).expect("_remove() failed");
 
-        assert_eq!(result.expect("Could not get the Value from the output"), json!([1, 2, 3, 5, 7, 8, 9]));
+        assert_eq!(
+            result.expect("Could not get the Value from the output"),
+            json!([1, 2, 3, 5, 7, 8, 9])
+        );
     }
 }

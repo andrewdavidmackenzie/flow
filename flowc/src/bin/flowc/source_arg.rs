@@ -1,5 +1,5 @@
-use std::{env, fs};
 use std::path::{Path, PathBuf};
+use std::{env, fs};
 
 use tempfile::tempdir;
 use url::Url;
@@ -14,8 +14,10 @@ pub(crate) enum CompileType {
 }
 
 fn default_lib_compile_dir(source_url: &Url) -> Result<PathBuf> {
-    let lib_name = source_url.path_segments()
-        .ok_or("Could not get path of source_url")?.next_back()
+    let lib_name = source_url
+        .path_segments()
+        .ok_or("Could not get path of source_url")?
+        .next_back()
         .ok_or("Could not get last path segment of source_url")?;
 
     let home_dir = env::var("HOME").expect("Could not get $HOME");
@@ -63,7 +65,11 @@ fn default_flow_compile_dir(source_url: &Url) -> Result<PathBuf> {
 /// directory to use.
 /// The flow source location can be http url, or file url
 #[allow(clippy::ref_option)]
-pub(crate) fn get_output_dir(source_url: &Url, option: &Option<String>, compile_type: CompileType) -> Result<PathBuf> {
+pub(crate) fn get_output_dir(
+    source_url: &Url,
+    option: &Option<String>,
+    compile_type: CompileType,
+) -> Result<PathBuf> {
     let mut output_dir;
 
     // Allow the optional command line argument to force output_dir
@@ -96,14 +102,14 @@ mod test {
 
     use crate::source_arg::CompileType;
 
-// Tests for get_output_dir, after the url for flow has been determined
+    // Tests for get_output_dir, after the url for flow has been determined
 
     #[test]
     fn http_url_no_output_dir_arg() {
         let url = &Url::parse("https://test.com/dir/file.flow").expect("Could not parse test url");
 
-        let dir = super::get_output_dir(url, &None, CompileType::Flow)
-            .expect("Could not get output dir");
+        let dir =
+            super::get_output_dir(url, &None, CompileType::Flow).expect("Could not get output dir");
 
         assert!(dir.exists());
     }
@@ -119,8 +125,7 @@ mod test {
             .to_str()
             .expect("Could not convert temp dir to String");
 
-        let dir = super::get_output_dir(url, &Some(out_dir_arg.to_string()),
-                                        CompileType::Flow)
+        let dir = super::get_output_dir(url, &Some(out_dir_arg.to_string()), CompileType::Flow)
             .expect("Could not get output dir");
 
         assert_eq!(
@@ -141,8 +146,7 @@ mod test {
         let mut file = fs::File::create(&flow_path).expect("Could not create file");
         file.write_all(b"flow = 'test'")
             .expect("Could not write to file");
-        let url = Url::parse(&format!("file://{flow_path}"))
-            .expect("Could not parse test Url");
+        let url = Url::parse(&format!("file://{flow_path}")).expect("Could not parse test Url");
 
         let dir = super::get_output_dir(&url, &None, CompileType::Flow)
             .expect("Could not get output dir");
@@ -176,9 +180,8 @@ mod test {
             .to_str()
             .expect("Could not convert temp dir name to string");
 
-        let dir =
-            super::get_output_dir(&url, &Some(out_dir_arg.to_string()), CompileType::Flow)
-                .expect("Could not get output dir");
+        let dir = super::get_output_dir(&url, &Some(out_dir_arg.to_string()), CompileType::Flow)
+            .expect("Could not get output dir");
 
         assert_eq!(
             dir.to_str().expect("Could not convert dir ot String"),

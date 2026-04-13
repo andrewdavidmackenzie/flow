@@ -1,7 +1,7 @@
 use serde_json::{json, Value};
 
-use flowcore::{RUN_AGAIN, RunAgain};
 use flowcore::errors::Result;
+use flowcore::{RunAgain, RUN_AGAIN};
 use flowmacro::flow_function;
 
 #[flow_function]
@@ -11,11 +11,19 @@ fn inner_transpose(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
     let mut col_indexes = vec![];
     let mut output_map = serde_json::Map::new();
 
-    let matrix = inputs.first().ok_or("Could not get matrix")?.as_array().ok_or("Could not get array")?;
+    let matrix = inputs
+        .first()
+        .ok_or("Could not get matrix")?
+        .as_array()
+        .ok_or("Could not get array")?;
 
     let rows = matrix.len();
 
-    let row = matrix.first().ok_or("Could not get row")?.as_array().ok_or("Could not get array")?;
+    let row = matrix
+        .first()
+        .ok_or("Could not get row")?
+        .as_array()
+        .ok_or("Could not get array")?;
 
     let cols = row.len();
     let mut new_row; // Vector of Value::Number - i.e. a row
@@ -54,8 +62,12 @@ mod test {
 
         let output = result.expect("Could not get the Value from the output");
 
-        assert_eq!(output.pointer("/matrix").expect("Could not get 'matrix' output"),
-                   &Value::Array(vec!()));
+        assert_eq!(
+            output
+                .pointer("/matrix")
+                .expect("Could not get 'matrix' output"),
+            &Value::Array(vec!())
+        );
     }
 
     #[test]
@@ -69,8 +81,11 @@ mod test {
 
         let output = result.expect("Could not get the Value from the output");
 
-        let new_matrix = output.pointer("/matrix").expect("Could not get 'matrix' output")
-            .as_array().expect("Could not get array");
+        let new_matrix = output
+            .pointer("/matrix")
+            .expect("Could not get 'matrix' output")
+            .as_array()
+            .expect("Could not get array");
 
         let new_row0 = new_matrix.first().expect("Could not get first").clone();
 
@@ -89,8 +104,11 @@ mod test {
 
         let output = result.expect("Could not get the Value from the output");
 
-        let new_matrix = output.pointer("/matrix").expect("Could not get 'matrix' output")
-            .as_array().expect("Could not get array");
+        let new_matrix = output
+            .pointer("/matrix")
+            .expect("Could not get 'matrix' output")
+            .as_array()
+            .expect("Could not get array");
         let new_row0 = new_matrix.first().expect("Could not get [0]").clone();
         let new_row1 = new_matrix.get(1).expect("Could not get [1]").clone();
 
@@ -110,8 +128,11 @@ mod test {
 
         let output = result.expect("Could not get the Value from the output");
 
-        let new_matrix = output.pointer("/matrix").expect("Could not get 'matrix' output")
-            .as_array().expect("Could not get array");
+        let new_matrix = output
+            .pointer("/matrix")
+            .expect("Could not get 'matrix' output")
+            .as_array()
+            .expect("Could not get array");
         let new_row0 = new_matrix.first().expect("Could not get [0]").clone();
         let new_row1 = new_matrix.get(1).expect("Could not get [1]").clone();
         let new_row2 = new_matrix.get(2).expect("Could not get [2]").clone();

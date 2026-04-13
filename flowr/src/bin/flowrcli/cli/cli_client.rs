@@ -17,34 +17,35 @@ use flowcore::errors::Result;
 use crate::cli::connections::ClientConnection;
 use crate::cli::coordinator_message::{ClientMessage, CoordinatorMessage};
 
-const DEFAULT_NAME : &str = "unknown";
+const DEFAULT_NAME: &str = "unknown";
 
 #[derive(Debug, Clone)]
 pub struct CliRuntimeClient {
     args: Vec<String>,
     override_args: Arc<Mutex<Vec<String>>>,
     image_buffers: HashMap<String, ImageBuffer<Rgb<u8>, Vec<u8>>>,
-    #[cfg(feature = "metrics")] display_metrics: bool,
+    #[cfg(feature = "metrics")]
+    display_metrics: bool,
 }
 
 impl CliRuntimeClient {
     /// Create a new runtime client
-    pub fn new(args: Vec<String>,
-               override_args: Arc<Mutex<Vec<String>>>,
-               #[cfg(feature = "metrics")] display_metrics: bool) -> Self {
+    pub fn new(
+        args: Vec<String>,
+        override_args: Arc<Mutex<Vec<String>>>,
+        #[cfg(feature = "metrics")] display_metrics: bool,
+    ) -> Self {
         CliRuntimeClient {
             args,
             override_args,
             image_buffers: HashMap::<String, ImageBuffer<Rgb<u8>, Vec<u8>>>::new(),
-            #[cfg(feature = "metrics")] display_metrics,
+            #[cfg(feature = "metrics")]
+            display_metrics,
         }
     }
 
     /// Enter a loop where we receive events as a client and respond to them
-    pub fn event_loop(
-        mut self,
-        connection: &ClientConnection,
-    ) -> Result<()> {
+    pub fn event_loop(mut self, connection: &ClientConnection) -> Result<()> {
         loop {
             let event = connection.receive()?;
             let response = self.process_coordinator_message(event);
@@ -163,15 +164,14 @@ impl CliRuntimeClient {
                 }
             },
             #[allow(clippy::many_single_char_names)]
-            CoordinatorMessage::PixelWrite((x, y), (r, g, b), (width, height), name)
-            => {
+            CoordinatorMessage::PixelWrite((x, y), (r, g, b), (width, height), name) => {
                 let image = self
                     .image_buffers
                     .entry(name)
                     .or_insert_with(|| RgbImage::new(width, height));
                 image.put_pixel(x, y, Rgb([r, g, b]));
                 ClientMessage::Ack
-            },
+            }
             CoordinatorMessage::GetArgs => {
                 if let Ok(override_args) = self.override_args.lock() {
                     if override_args.is_empty() {
@@ -179,15 +179,19 @@ impl CliRuntimeClient {
                     } else {
                         // we want to retain arg[0] which is the flow name and replace all others
                         // with the override args supplied
-                        let arg_zero = self.args.first().unwrap_or(&DEFAULT_NAME.to_string()).to_owned();
-                        let mut one_time_args = vec!(arg_zero);
+                        let arg_zero = self
+                            .args
+                            .first()
+                            .unwrap_or(&DEFAULT_NAME.to_string())
+                            .to_owned();
+                        let mut one_time_args = vec![arg_zero];
                         one_time_args.append(&mut override_args.to_vec());
                         ClientMessage::Args(one_time_args)
                     }
                 } else {
                     ClientMessage::Args(self.args.clone())
                 }
-            },
+            }
             CoordinatorMessage::Invalid => ClientMessage::Ack,
         }
     }
@@ -213,7 +217,7 @@ mod test {
     fn test_arg_passing() {
         let mut client = CliRuntimeClient::new(
             vec!["file:///test_flow.toml".to_string(), "1".to_string()],
-            Arc::new(Mutex::new(vec!())),
+            Arc::new(Mutex::new(vec![])),
             #[cfg(feature = "metrics")]
             false,
         );
@@ -229,17 +233,16 @@ mod test {
 
     #[test]
     fn test_arg_overriding() {
-        let override_args = Arc::new(Mutex::new(vec!()));
+        let override_args = Arc::new(Mutex::new(vec![]));
         let mut client = CliRuntimeClient::new(
             vec!["file:///test_flow.toml".to_string(), "1".to_string()],
             override_args.clone(),
             #[cfg(feature = "metrics")]
-                false,
+            false,
         );
 
         {
-            let mut overrides = override_args.lock()
-                .expect("Could not lock override args");
+            let mut overrides = override_args.lock().expect("Could not lock override args");
             overrides.push("override".into());
         }
 
@@ -256,9 +259,7 @@ mod test {
     fn test_file_reading() {
         let test_contents = b"The quick brown fox jumped over the lazy dog";
 
-        let temp = tempdir()
-            .expect("Couldn't get temporary directory")
-            .keep();
+        let temp = tempdir().expect("Couldn't get temporary directory").keep();
         let file_path = temp.join("test_read").to_string_lossy().to_string();
         {
             let mut file = File::create(&file_path).expect("Could not create test file");
@@ -267,7 +268,7 @@ mod test {
         }
         let mut client = CliRuntimeClient::new(
             vec!["file:///test_flow.toml".to_string()],
-            Arc::new(Mutex::new(vec!())),
+            Arc::new(Mutex::new(vec![])),
             #[cfg(feature = "metrics")]
             false,
         );
@@ -283,22 +284,21 @@ mod test {
 
     #[test]
     fn test_file_writing() {
-        let temp = tempdir()
-            .expect("Couldn't get temporary directory")
-            .keep();
+        let temp = tempdir().expect("Couldn't get temporary directory").keep();
         let file = temp.join("test");
 
         let mut client = CliRuntimeClient::new(
             vec!["file:///test_flow.toml".to_string()],
-            Arc::new(Mutex::new(vec!())),
+            Arc::new(Mutex::new(vec![])),
             #[cfg(feature = "metrics")]
             false,
         );
 
         match client.process_coordinator_message(CoordinatorMessage::Write(
             file.to_str().expect("Couldn't get filename").to_string(),
-            b"Hello".to_vec())) {
-            ClientMessage::Ack => {},
+            b"Hello".to_vec(),
+        )) {
+            ClientMessage::Ack => {}
             _ => panic!("Didn't get Write response as expected"),
         }
     }
@@ -307,12 +307,12 @@ mod test {
     fn test_stdout() {
         let mut client = CliRuntimeClient::new(
             vec!["file:///test_flow.toml".to_string()],
-            Arc::new(Mutex::new(vec!())),
+            Arc::new(Mutex::new(vec![])),
             #[cfg(feature = "metrics")]
             false,
         );
         match client.process_coordinator_message(CoordinatorMessage::Stdout("Hello".into())) {
-            ClientMessage::Ack => {},
+            ClientMessage::Ack => {}
             _ => panic!("Didn't get Stdout response as expected"),
         }
     }
@@ -321,12 +321,12 @@ mod test {
     fn test_stderr() {
         let mut client = CliRuntimeClient::new(
             vec!["file:///test_flow.toml".to_string()],
-            Arc::new(Mutex::new(vec!())),
+            Arc::new(Mutex::new(vec![])),
             #[cfg(feature = "metrics")]
             false,
         );
         match client.process_coordinator_message(CoordinatorMessage::Stderr("Hello".into())) {
-            ClientMessage::Ack => {},
+            ClientMessage::Ack => {}
             _ => panic!("Didn't get Stderr response as expected"),
         }
     }
@@ -335,24 +335,26 @@ mod test {
     fn test_image_writing() {
         let mut client = CliRuntimeClient::new(
             vec!["file:///test_flow.toml".to_string()],
-            Arc::new(Mutex::new(vec!())),
+            Arc::new(Mutex::new(vec![])),
             #[cfg(feature = "metrics")]
             false,
         );
 
-        let temp_dir = tempdir()
-            .expect("Couldn't get temporary directory")
-            .keep();
+        let temp_dir = tempdir().expect("Couldn't get temporary directory").keep();
         let path = temp_dir.join("flow.png");
 
         let _ = fs::remove_file(&path);
         assert!(!path.exists());
 
         client.process_coordinator_message(CoordinatorMessage::FlowStart);
-        let pixel =
-            CoordinatorMessage::PixelWrite((0, 0), (255, 200, 20), (10, 10), path.display().to_string());
+        let pixel = CoordinatorMessage::PixelWrite(
+            (0, 0),
+            (255, 200, 20),
+            (10, 10),
+            path.display().to_string(),
+        );
         match client.process_coordinator_message(pixel) {
-            ClientMessage::Ack => {},
+            ClientMessage::Ack => {}
             _ => panic!("Didn't get pixel write response as expected"),
         }
 
@@ -368,12 +370,13 @@ mod test {
     fn coordinator_exiting() {
         let mut client = CliRuntimeClient::new(
             vec!["file:///test_flow.toml".to_string()],
-            Arc::new(Mutex::new(vec!())),
-            #[cfg(feature = "metrics")] false,
+            Arc::new(Mutex::new(vec![])),
+            #[cfg(feature = "metrics")]
+            false,
         );
 
         match client.process_coordinator_message(CoordinatorMessage::CoordinatorExiting(Ok(()))) {
-            ClientMessage::ClientExiting(_) => {},
+            ClientMessage::ClientExiting(_) => {}
             _ => panic!("Didn't get ClientExiting response as expected"),
         }
     }

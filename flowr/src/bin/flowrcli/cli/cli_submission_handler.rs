@@ -32,11 +32,13 @@ impl CLISubmissionHandler {
 
 impl SubmissionHandler for CLISubmissionHandler {
     fn flow_execution_starting(&mut self) -> Result<()> {
-        let _ = self.coordinator_connection
+        let _ = self
+            .coordinator_connection
             .lock()
             .map_err(|_| "Could not lock coordinator connection")?
             .send_and_receive_response::<CoordinatorMessage, ClientMessage>(
-                CoordinatorMessage::FlowStart)?;
+                CoordinatorMessage::FlowStart,
+            )?;
 
         Ok(())
     }
@@ -93,7 +95,7 @@ impl SubmissionHandler for CLISubmissionHandler {
             let guard = self.coordinator_connection.lock();
             #[allow(clippy::single_match_else)]
             match guard {
-                Ok(locked) =>  {
+                Ok(locked) => {
                     let received = locked.receive(WAIT);
                     match received {
                         Ok(ClientMessage::ClientSubmission(submission)) => {
@@ -116,10 +118,10 @@ impl SubmissionHandler for CLISubmissionHandler {
 
     fn coordinator_is_exiting(&mut self, result: Result<()>) -> Result<()> {
         debug!("Coordinator exiting");
-        let mut connection = self.coordinator_connection
+        let mut connection = self
+            .coordinator_connection
             .lock()
-            .map_err(|e|
-                format!("Could not lock Coordinator Connection: {e}"))?;
+            .map_err(|e| format!("Could not lock Coordinator Connection: {e}"))?;
         connection.send(CoordinatorMessage::CoordinatorExiting(result))
     }
 }

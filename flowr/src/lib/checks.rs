@@ -7,9 +7,17 @@ use flowcore::model::runtime_function::RuntimeFunction;
 use crate::block::Block;
 use crate::run_state::{RunState, State};
 
-fn runtime_error(state: &RunState, job_id: usize, message: &str, file: &str, line: u32) -> Result<()> {
-    let msg = format!("Job #{job_id}: Runtime error: at file: {file}, line: {line}\n
-                        {message}\nJob #{job_id}: Error State -\n{state}");
+fn runtime_error(
+    state: &RunState,
+    job_id: usize,
+    message: &str,
+    file: &str,
+    line: u32,
+) -> Result<()> {
+    let msg = format!(
+        "Job #{job_id}: Runtime error: at file: {file}, line: {line}\n
+                        {message}\nJob #{job_id}: Error State -\n{state}"
+    );
     error!("{msg}");
     bail!(msg);
 }
@@ -29,8 +37,13 @@ fn ready_check(state: &RunState, job_id: usize, function: &RuntimeFunction) -> R
         );
     }
 
-    if !(state.get_function_states(function.id()).contains(&State::Ready) ||
-        state.get_function_states(function.id()).contains(&State::Running)) {
+    if !(state
+        .get_function_states(function.id())
+        .contains(&State::Ready)
+        || state
+            .get_function_states(function.id())
+            .contains(&State::Running))
+    {
         return runtime_error(
             state,
             job_id,
@@ -47,7 +60,9 @@ fn ready_check(state: &RunState, job_id: usize, function: &RuntimeFunction) -> R
 }
 
 fn running_check(state: &RunState, job_id: usize, function: &RuntimeFunction) -> Result<()> {
-    if state.get_running().contains_key(&job_id) && !state.get_busy_flows().contains_key(&function.get_flow_id()) {
+    if state.get_running().contains_key(&job_id)
+        && !state.get_busy_flows().contains_key(&function.get_flow_id())
+    {
         return runtime_error(
             state,
             job_id,
@@ -89,16 +104,20 @@ fn waiting_check(_state: &RunState, _job_id: usize, _function: &RuntimeFunction)
 }
 
 // If function has completed, its States should contain Completed and only Completed
-fn completed_check(state: &RunState, job_id: usize, function: &RuntimeFunction,
-                   function_states: &Vec<State>) -> Result<()> {
-    if !(function_states.contains(&State::Completed) && function_states.len() == 1)
-    {
+fn completed_check(
+    state: &RunState,
+    job_id: usize,
+    function: &RuntimeFunction,
+    function_states: &Vec<State>,
+) -> Result<()> {
+    if !(function_states.contains(&State::Completed) && function_states.len() == 1) {
         return runtime_error(
             state,
             job_id,
             &format!(
                 "Function #{} has Completed, but states are: {:?}",
-                function.id(), function_states
+                function.id(),
+                function_states
             ),
             file!(),
             line!(),
@@ -114,8 +133,7 @@ fn self_block_check(state: &RunState, job_id: usize, block: &Block) -> Result<()
         return runtime_error(
             state,
             job_id,
-            &format!(
-                "Block {block} has same Function id as blocked and blocking"),
+            &format!("Block {block} has same Function id as blocked and blocking"),
             file!(),
             line!(),
         );
@@ -169,7 +187,7 @@ fn pending_unblock_checks(state: &RunState, job_id: usize) -> Result<()> {
 
 // Check block invariants
 fn block_checks(state: &RunState, job_id: usize) -> Result<()> {
-//    let functions = state.get_functions();
+    //    let functions = state.get_functions();
     for block in state.get_blocks() {
         self_block_check(state, job_id, block)?;
         //destination_block_state_check(state, job_id, block, functions)?;
@@ -281,7 +299,7 @@ mod test {
             None,
             None,
             #[cfg(feature = "debugger")]
-                true,
+            true,
         )
     }
 
@@ -291,8 +309,10 @@ mod test {
 
     fn test_function(function_id: usize, flow_id: usize) -> RuntimeFunction {
         RuntimeFunction::new(
-            #[cfg(feature = "debugger")] "test",
-            #[cfg(feature = "debugger")] "/test",
+            #[cfg(feature = "debugger")]
+            "test",
+            #[cfg(feature = "debugger")]
+            "/test",
             "file://fake/test",
             vec![],
             function_id,
@@ -308,11 +328,20 @@ mod test {
         let mut state = test_state(vec![function]);
 
         // Mark the flow the function is in as busy via ready
-        state.create_jobs_or_block(0, 0).expect("Couldn't get next job");
+        state
+            .create_jobs_or_block(0, 0)
+            .expect("Couldn't get next job");
 
         // this ready_check() should pass
-        ready_check(&state, 0, state.get_function(0)
-            .ok_or("No function").expect("No function")).expect("Should pass");
+        ready_check(
+            &state,
+            0,
+            state
+                .get_function(0)
+                .ok_or("No function")
+                .expect("No function"),
+        )
+        .expect("Should pass");
     }
 
     #[test]
@@ -323,8 +352,15 @@ mod test {
         // Do not mark flow_id as busy - if a function is ready, the flow containing it should
         // be marked as busy, so this ready_check() should fail
 
-        assert!(ready_check(&state, 0, state.get_function(0)
-            .ok_or("No function").expect("No function")).is_err());
+        assert!(ready_check(
+            &state,
+            0,
+            state
+                .get_function(0)
+                .ok_or("No function")
+                .expect("No function")
+        )
+        .is_err());
     }
 
     #[test]
@@ -334,11 +370,20 @@ mod test {
 
         // mark flow_id as busy - to pass the running check a running function's flow_id
         // should be in the list of busy flows
-        state.create_jobs_or_block(0, 0).expect("Couldn't get next job");
+        state
+            .create_jobs_or_block(0, 0)
+            .expect("Couldn't get next job");
 
         // this running check should fail
-        running_check(&state, 0, state.get_function(0)
-            .ok_or("No function").expect("No function")).expect("Should pass");
+        running_check(
+            &state,
+            0,
+            state
+                .get_function(0)
+                .ok_or("No function")
+                .expect("No function"),
+        )
+        .expect("Should pass");
     }
 
     #[cfg(feature = "debugger")]
@@ -347,11 +392,22 @@ mod test {
     #[cfg(feature = "debugger")]
     impl DebuggerHandler for DummyServer {
         fn start(&mut self) {}
-        fn job_breakpoint(&mut self, _job: &Job, _function: &RuntimeFunction, _states: Vec<State>) {}
+        fn job_breakpoint(&mut self, _job: &Job, _function: &RuntimeFunction, _states: Vec<State>) {
+        }
         fn block_breakpoint(&mut self, _block: &Block) {}
         fn flow_unblock_breakpoint(&mut self, _flow_id: usize) {}
-        fn send_breakpoint(&mut self, _: &str, _source_process_id: usize, _output_route: &str, _value: &Value,
-                           _destination_id: usize, _destination_name:&str, _input_name: &str, _input_number: usize) {}
+        fn send_breakpoint(
+            &mut self,
+            _: &str,
+            _source_process_id: usize,
+            _output_route: &str,
+            _value: &Value,
+            _destination_id: usize,
+            _destination_name: &str,
+            _input_name: &str,
+            _input_number: usize,
+        ) {
+        }
         fn job_error(&mut self, _job: &Job) {}
         fn job_completed(&mut self, _job: &Job) {}
         fn blocks(&mut self, _blocks: Vec<Block>) {}
@@ -383,22 +439,32 @@ mod test {
         let mut state = test_state(vec![function]);
 
         #[cfg(feature = "debugger")]
-            let mut server = DummyServer{};
+        let mut server = DummyServer {};
 
         #[cfg(feature = "debugger")]
-            let mut debugger = dummy_debugger(&mut server);
+        let mut debugger = dummy_debugger(&mut server);
 
         // mark function #0 as blocked on an imaginary function #1
-        let _ = state.create_block(1,
+        let _ = state.create_block(
+            1,
             1,
             0,
             0, // <-- here
             0,
-            #[cfg(feature = "debugger")] &mut debugger);
+            #[cfg(feature = "debugger")]
+            &mut debugger,
+        );
 
         // this blocked check should pass
-        blocked_check(&state, 0, state.get_function(0)
-            .ok_or("No function").expect("No function")).expect("Should pass");
+        blocked_check(
+            &state,
+            0,
+            state
+                .get_function(0)
+                .ok_or("No function")
+                .expect("No function"),
+        )
+        .expect("Should pass");
     }
 
     #[test]
@@ -409,8 +475,15 @@ mod test {
         // Do NOT mark function #0 as blocked
 
         // this blocked check should fail
-        assert!(blocked_check(&state, 0, state.get_function(0)
-            .ok_or("No function").expect("No function")).is_err());
+        assert!(blocked_check(
+            &state,
+            0,
+            state
+                .get_function(0)
+                .ok_or("No function")
+                .expect("No function")
+        )
+        .is_err());
     }
 
     #[test]
@@ -423,9 +496,16 @@ mod test {
         let functions_states = vec![State::Completed];
 
         // this completed check should pass
-        completed_check(&state, 0, state.get_function(0)
-            .ok_or("No function").expect("No function"), &functions_states)
-            .expect("Should pass");
+        completed_check(
+            &state,
+            0,
+            state
+                .get_function(0)
+                .ok_or("No function")
+                .expect("No function"),
+            &functions_states,
+        )
+        .expect("Should pass");
     }
 
     #[test]
@@ -437,9 +517,15 @@ mod test {
         let functions_states = vec![State::Ready];
 
         // this completed check should fail
-        assert!(completed_check(&state, 0,
-                                state.get_function(0)
-                                    .ok_or("No function").expect("No function"), &functions_states)
-            .is_err());
+        assert!(completed_check(
+            &state,
+            0,
+            state
+                .get_function(0)
+                .ok_or("No function")
+                .expect("No function"),
+            &functions_states
+        )
+        .is_err());
     }
 }

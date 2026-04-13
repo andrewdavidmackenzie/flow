@@ -1,10 +1,10 @@
 use std::collections::HashMap;
 
-use iced::{Command, Element, Length};
-use iced::widget::{Column, scrollable, text, toggler};
 use iced::widget::image::{Handle, Viewer};
 use iced::widget::scrollable::{Id, Scrollable};
 use iced::widget::TextInput;
+use iced::widget::{scrollable, text, toggler, Column};
+use iced::{Command, Element, Length};
 use iced_aw::{TabBarStyles, TabLabel, Tabs};
 use once_cell::sync::Lazy;
 
@@ -27,22 +27,22 @@ impl TabSet {
             stdout_tab: StdOutTab {
                 name: "Stdout".to_owned(),
                 id: Lazy::new(Id::unique).clone(),
-                content: vec!(),
-                auto_scroll: true
+                content: vec![],
+                auto_scroll: true,
             },
             stderr_tab: StdOutTab {
                 name: "Stderr".to_owned(),
                 id: Lazy::new(Id::unique).clone(),
-                content: vec!(),
-                auto_scroll: true
+                content: vec![],
+                auto_scroll: true,
             },
             stdin_tab: StdInTab::new("Stdin"),
             images_tab: ImageTab::new("Images"),
             fileio_tab: StdOutTab {
                 name: "FileIO".to_owned(),
                 id: Lazy::new(Id::unique).clone(),
-                content: vec!(),
-                auto_scroll: true
+                content: vec![],
+                auto_scroll: true,
             },
         }
     }
@@ -53,16 +53,15 @@ impl TabSet {
             Message::StdioAutoScrollTogglerChanged(id, value) => {
                 if id == self.stdout_tab.id {
                     self.stdout_tab.auto_scroll = value;
-                }
-                else {
+                } else {
                     self.stderr_tab.auto_scroll = value;
                 }
 
                 if value {
-                    return scrollable::snap_to(id,scrollable::RelativeOffset::END);
+                    return scrollable::snap_to(id, scrollable::RelativeOffset::END);
                 }
-            },
-            _ => {},
+            }
+            _ => {}
         }
 
         Command::none()
@@ -114,15 +113,10 @@ impl Tab for StdOutTab {
     }
 
     fn view(&self) -> Element<'_, Message> {
-        let text_column = Column::with_children(
-            self.content
-                .iter()
-                .cloned()
-                .map(text)
-                .map(Element::from),
-        )
-            .width(Length::Fill)
-            .padding(1);
+        let text_column =
+            Column::with_children(self.content.iter().cloned().map(text).map(Element::from))
+                .width(Length::Fill)
+                .padding(1);
 
         let scrollable = Scrollable::new(text_column)
             .height(Length::Fill)
@@ -131,13 +125,11 @@ impl Tab for StdOutTab {
         let toggler = toggler(
             format!("Auto-scroll {}", self.name),
             self.auto_scroll,
-            |v| Message::StdioAutoScrollTogglerChanged(self.id.clone(), v))
-            .width(Length::Shrink);
+            |v| Message::StdioAutoScrollTogglerChanged(self.id.clone(), v),
+        )
+        .width(Length::Shrink);
 
-        Column::new()
-            .push(toggler)
-            .push(scrollable)
-            .into()
+        Column::new().push(toggler).push(scrollable).into()
     }
 
     fn clear(&mut self) {
@@ -170,9 +162,11 @@ impl Tab for ImageTab {
         let mut col = Column::new();
 
         for image_ref in self.images.values() {
-            col = col.push(Viewer::new(
-                Handle::from_pixels( image_ref.width, image_ref.height,
-                                     image_ref.data.as_raw().clone())));
+            col = col.push(Viewer::new(Handle::from_pixels(
+                image_ref.width,
+                image_ref.height,
+                image_ref.data.as_raw().clone(),
+            )));
         }
 
         col.into()
@@ -196,7 +190,7 @@ impl StdInTab {
         Self {
             name: name.to_owned(),
             id: Lazy::new(Id::unique).clone(),
-            content: vec!(),
+            content: vec![],
             cursor: 0,
             text: String::new(),
         }
@@ -253,18 +247,12 @@ impl Tab for StdInTab {
     }
 
     fn view(&self) -> Element<'_, Self::Message> {
-        let text_column = Column::with_children(
-            self.content
-                .iter()
-                .cloned()
-                .map(text)
-                .map(Element::from),
-        )
-            .width(Length::Fill)
-            .padding(1);
+        let text_column =
+            Column::with_children(self.content.iter().cloned().map(text).map(Element::from))
+                .width(Length::Fill)
+                .padding(1);
 
-        let text_input = TextInput::new(
-            "Enter new line of Standard input", &self.text)
+        let text_input = TextInput::new("Enter new line of Standard input", &self.text)
             .on_input(Message::NewStdin)
             .on_paste(Message::NewStdin)
             .on_submit(Message::LineOfStdin(self.text.clone()))
@@ -274,10 +262,7 @@ impl Tab for StdInTab {
             .height(Length::Fill)
             .id(self.id.clone());
 
-        Column::new()
-            .push(scrollable)
-            .push(text_input)
-            .into()
+        Column::new().push(scrollable).push(text_input).into()
     }
 
     // Avoid clearing standard input - to allow the user to type in input ahead of the

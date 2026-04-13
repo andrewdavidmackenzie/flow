@@ -30,8 +30,9 @@ mod helper;
 ///
 #[test]
 fn malformed_connection() {
-    let meta_provider = MetaProvider::new(helper::set_lib_search_path_to_project(),
-                                          helper::get_canonical_context_root(),
+    let meta_provider = MetaProvider::new(
+        helper::set_lib_search_path_to_project(),
+        helper::get_canonical_context_root(),
     );
     let path = helper::absolute_file_url_from_relative_path(
         "flowc/tests/test-flows/malformed-connection/root.toml",
@@ -46,8 +47,9 @@ fn malformed_connection() {
 
 #[test]
 fn aliased_context_not_allowed() {
-    let meta_provider = MetaProvider::new(helper::set_lib_search_path_to_project(),
-                                          helper::get_canonical_context_root(),
+    let meta_provider = MetaProvider::new(
+        helper::set_lib_search_path_to_project(),
+        helper::get_canonical_context_root(),
     );
     let path = helper::absolute_file_url_from_relative_path(
         "flowc/tests/test-flows/aliased_context/root.toml",
@@ -55,57 +57,70 @@ fn aliased_context_not_allowed() {
     match parser::parse(&path, &meta_provider) {
         Ok(_) => panic!("root.toml should not load successfully"),
         Err(e) => {
-            assert!(e.to_string().contains("context:// functions cannot be aliased"));
+            assert!(e
+                .to_string()
+                .contains("context:// functions cannot be aliased"));
         }
     }
 }
 
 #[test]
 fn invalid_toml() {
-    let meta_provider = MetaProvider::new(helper::set_lib_search_path_to_project(),
-                                          helper::get_canonical_context_root(),
+    let meta_provider = MetaProvider::new(
+        helper::set_lib_search_path_to_project(),
+        helper::get_canonical_context_root(),
     );
-    let path = helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/invalid/root.toml");
+    let path =
+        helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/invalid/root.toml");
     match parser::parse(&path, &meta_provider) {
         Ok(_) => panic!("root.toml should not load successfully"),
-        Err(e) => assert!(e.to_string().contains("Could not parse a valid flow process"))
+        Err(e) => assert!(e
+            .to_string()
+            .contains("Could not parse a valid flow process")),
     }
 }
 
 #[test]
 fn no_connections() {
-    let meta_provider = MetaProvider::new(helper::set_lib_search_path_to_project(),
-                                          helper::get_canonical_context_root(),
+    let meta_provider = MetaProvider::new(
+        helper::set_lib_search_path_to_project(),
+        helper::get_canonical_context_root(),
     );
     let path = helper::absolute_file_url_from_relative_path(
         "flowc/tests/test-flows/no-connections/root.toml",
     );
     match parser::parse(&path, &meta_provider) {
         Ok(_) => panic!("root.toml should not load successfully"),
-        Err(e) => assert!(e.to_string().contains("connection errors found in flow"))
+        Err(e) => assert!(e.to_string().contains("connection errors found in flow")),
     }
 }
 
 #[test]
 fn function_input_initialized() {
-    let meta_provider = MetaProvider::new(helper::set_lib_search_path_to_project(),
-                                          helper::get_canonical_context_root(),
+    let meta_provider = MetaProvider::new(
+        helper::set_lib_search_path_to_project(),
+        helper::get_canonical_context_root(),
     );
     let url = helper::absolute_file_url_from_relative_path(
         "flowc/tests/test-flows/function_input_init/root.toml",
     );
 
     match parser::parse(&url, &meta_provider) {
-        Ok(FlowProcess(mut flow)) => match flow.subprocesses
-            .get_mut(&Name::from("stdout")) {
+        Ok(FlowProcess(mut flow)) => match flow.subprocesses.get_mut(&Name::from("stdout")) {
             Some(FunctionProcess(print_function)) => {
                 assert_eq!(
                     *print_function.alias(),
                     Name::from("stdout"),
                     "Function alias does not match"
                 );
-                let default_input: &IO = print_function.get_inputs().first().expect("Could not get input 0");
-                let initial_value = default_input.get_initializer().clone().expect("Could not get initializer");
+                let default_input: &IO = print_function
+                    .get_inputs()
+                    .first()
+                    .expect("Could not get input 0");
+                let initial_value = default_input
+                    .get_initializer()
+                    .clone()
+                    .expect("Could not get initializer");
                 match initial_value {
                     Once(one_time) => assert_eq!(one_time, "hello"),
                     Always(_) => panic!("Initializer should have been a Once initializer"),
@@ -120,8 +135,9 @@ fn function_input_initialized() {
 
 #[test]
 fn root_flow_takes_name_from_file() {
-    let meta_provider = MetaProvider::new(helper::set_lib_search_path_to_project(),
-                                          helper::get_canonical_context_root(),
+    let meta_provider = MetaProvider::new(
+        helper::set_lib_search_path_to_project(),
+        helper::get_canonical_context_root(),
     );
     // Relative path from project root to the test file
     let url =
@@ -135,8 +151,9 @@ fn root_flow_takes_name_from_file() {
 
 #[test]
 fn load_library() {
-    let meta_provider = MetaProvider::new(helper::set_lib_search_path_to_project(),
-                                          helper::get_canonical_context_root(),
+    let meta_provider = MetaProvider::new(
+        helper::set_lib_search_path_to_project(),
+        helper::get_canonical_context_root(),
     );
     let path = helper::absolute_file_url_from_relative_path("flowc/tests/test_libs/Cargo.toml");
     parser::parse_metadata(&path, &meta_provider).expect("Could not load metadata");

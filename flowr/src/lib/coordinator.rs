@@ -67,10 +67,7 @@ impl<'a> Coordinator<'a> {
     /// related to some networking issue, busy ports etc.
     ///
     #[cfg(feature = "submission")]
-    pub fn submission_loop(
-        &mut self,
-        loop_forever: bool,
-    ) -> Result<()> {
+    pub fn submission_loop(&mut self, loop_forever: bool) -> Result<()> {
         while let Some(submission) = self.submission_handler.wait_for_submission()? {
             let _ = self.execute_flow(submission);
             if !loop_forever {
@@ -92,13 +89,13 @@ impl<'a> Coordinator<'a> {
     /// Returns an error if the execution of the flow did not complete normally.
     ///
     #[allow(unused_variables, unused_assignments, unused_mut)]
-    pub fn execute_flow(&mut self,
-                        submission: Submission, ) -> Result<()> {
-        self.dispatcher.set_results_timeout(submission.job_timeout)?;
+    pub fn execute_flow(&mut self, submission: Submission) -> Result<()> {
+        self.dispatcher
+            .set_results_timeout(submission.job_timeout)?;
         let mut state = RunState::new(submission);
 
         #[cfg(feature = "metrics")]
-            let mut metrics = Metrics::new(state.num_functions());
+        let mut metrics = Metrics::new(state.num_functions());
 
         #[cfg(feature = "debugger")]
         if state.submission.debug_enabled {
@@ -109,8 +106,7 @@ impl<'a> Coordinator<'a> {
         let mut display_next_output = false;
 
         // This outer loop is just a way of restarting execution from scratch if the debugger requests it
-        'flow_execution:
-        loop {
+        'flow_execution: loop {
             state.init()?;
             #[cfg(feature = "metrics")]
             metrics.reset();
@@ -127,7 +123,9 @@ impl<'a> Coordinator<'a> {
             'jobs: loop {
                 trace!("{state}");
                 #[cfg(feature = "debugger")]
-                if state.submission.debug_enabled && self.submission_handler.should_enter_debugger()? {
+                if state.submission.debug_enabled
+                    && self.submission_handler.should_enter_debugger()?
+                {
                     (display_next_output, restart) = self.debugger.wait_for_command(&mut state)?;
                     if restart {
                         break 'jobs;
@@ -137,7 +135,7 @@ impl<'a> Coordinator<'a> {
                 (display_next_output, restart) = self.dispatch_jobs(
                     &mut state,
                     #[cfg(feature = "metrics")]
-                        &mut metrics,
+                    &mut metrics,
                 )?;
 
                 if restart {
@@ -147,7 +145,7 @@ impl<'a> Coordinator<'a> {
                 (display_next_output, restart) = self.retire_jobs(
                     &mut state,
                     #[cfg(feature = "metrics")]
-                        &mut metrics,
+                    &mut metrics,
                 )?;
 
                 if restart {
@@ -168,7 +166,8 @@ impl<'a> Coordinator<'a> {
                 {
                     // If debugging then enter the debugger for a final time before ending flow execution
                     if state.submission.debug_enabled {
-                        (display_next_output, restart) = self.debugger.execution_ended(&mut state)?;
+                        (display_next_output, restart) =
+                            self.debugger.execution_ended(&mut state)?;
                     }
                 }
             }
@@ -185,7 +184,8 @@ impl<'a> Coordinator<'a> {
         #[cfg(feature = "metrics")]
         metrics.set_jobs_created(state.get_number_of_jobs_created());
         #[cfg(all(feature = "submission", feature = "metrics"))]
-        self.submission_handler.flow_execution_ended(&state, metrics)?;
+        self.submission_handler
+            .flow_execution_ended(&state, metrics)?;
         #[cfg(all(feature = "submission", not(feature = "metrics")))]
         self.submitter.flow_execution_ended(&state)?;
 
@@ -194,7 +194,10 @@ impl<'a> Coordinator<'a> {
 
     // Get a result back from an executor
     #[allow(clippy::type_complexity)]
-    fn get_result(&mut self, state: &RunState) -> Result<Option<(usize, Result<(Option<Value>, RunAgain)>)>> {
+    fn get_result(
+        &mut self,
+        state: &RunState,
+    ) -> Result<Option<(usize, Result<(Option<Value>, RunAgain)>)>> {
         if let Ok(result) = self.dispatcher.get_next_result(false) {
             return Ok(Some(result));
         }
@@ -205,15 +208,16 @@ impl<'a> Coordinator<'a> {
 
         match self.dispatcher.get_next_result(true) {
             Ok(result) => Ok(Some(result)),
-            Err(e) => Err(e)
+            Err(e) => Err(e),
         }
     }
 
     // Retire as many jobs as possible, based on returned results.
     // NOTE: This will block waiting for the last pending result
-    fn retire_jobs(&mut self,
-                   state: &mut RunState,
-                   #[cfg(feature = "metrics")] metrics: &mut Metrics,
+    fn retire_jobs(
+        &mut self,
+        state: &mut RunState,
+        #[cfg(feature = "metrics")] metrics: &mut Metrics,
     ) -> Result<(bool, bool)> {
         let mut display_next_output = false;
         let mut restart = false;
@@ -224,9 +228,11 @@ impl<'a> Coordinator<'a> {
                     let job;
 
                     (display_next_output, restart, job) = state.retire_a_job(
-                        #[cfg(feature = "metrics")] metrics,
+                        #[cfg(feature = "metrics")]
+                        metrics,
                         result,
-                        #[cfg(feature = "debugger")] &mut self.debugger,
+                        #[cfg(feature = "debugger")]
+                        &mut self.debugger,
                     )?;
                     #[cfg(feature = "debugger")]
                     if display_next_output {
@@ -238,8 +244,10 @@ impl<'a> Coordinator<'a> {
                 }
 
                 Ok(None) => {
-                    info!("No result was immediately available, but jobs are ready to be dispatched.\
-                     So coordinator avoided blocking for result. Will be received next time around");
+                    info!(
+                        "No result was immediately available, but jobs are ready to be dispatched.\
+                     So coordinator avoided blocking for result. Will be received next time around"
+                    );
                 }
 
                 Err(err) => {
@@ -271,7 +279,7 @@ impl<'a> Coordinator<'a> {
                 job.clone(),
                 state,
                 #[cfg(feature = "metrics")]
-                    metrics,
+                metrics,
             ) {
                 Ok((display, rest)) => {
                     display_next_output = display;
@@ -298,12 +306,10 @@ impl<'a> Coordinator<'a> {
         #[cfg(feature = "metrics")] metrics: &mut Metrics,
     ) -> Result<(bool, bool)> {
         #[cfg(not(feature = "debugger"))]
-            let debug_options = (false, false);
+        let debug_options = (false, false);
 
         #[cfg(feature = "debugger")]
-            let debug_options = self
-            .debugger
-            .check_prior_to_job(state, &job)?;
+        let debug_options = self.debugger.check_prior_to_job(state, &job)?;
 
         self.dispatcher.send_job_for_execution(&job.payload)?;
 

@@ -84,7 +84,7 @@ impl TryFrom<&IO> for Input {
 
         Ok(Input::new(
             #[cfg(feature = "debugger")]
-                io.name(),
+            io.name(),
             data_type.type_array_order(),
             data_type.is_generic(),
             io.get_initializer().clone(),
@@ -116,8 +116,8 @@ impl Input {
         initializer: Option<InputInitializer>,
         flow_initializer: Option<InputInitializer>,
     ) -> Self
-        where
-            S: Into<Name>,
+    where
+        S: Into<Name>,
     {
         Input {
             name: name.into(),
@@ -288,9 +288,9 @@ impl Input {
 
 #[cfg(test)]
 mod test {
+    use crate::model::input::InputInitializer::{Always, Once};
     use serde_json::json;
     use serde_json::Value;
-    use crate::model::input::InputInitializer::{Always, Once};
 
     use super::Input;
 
@@ -298,7 +298,7 @@ mod test {
     fn no_inputs_initially() {
         let input = Input::new(
             #[cfg(feature = "debugger")]
-                "",
+            "",
             0,
             false,
             None,
@@ -311,7 +311,7 @@ mod test {
     fn take_from_empty_fails() {
         let mut input = Input::new(
             #[cfg(feature = "debugger")]
-                "",
+            "",
             0,
             false,
             None,
@@ -324,7 +324,7 @@ mod test {
     fn accepts_null() {
         let mut input = Input::new(
             #[cfg(feature = "debugger")]
-                "",
+            "",
             0,
             false,
             None,
@@ -338,7 +338,7 @@ mod test {
     fn accepts_array() {
         let mut input = Input::new(
             #[cfg(feature = "debugger")]
-                "",
+            "",
             0,
             false,
             None,
@@ -352,7 +352,7 @@ mod test {
     fn take_empties() {
         let mut input = Input::new(
             #[cfg(feature = "debugger")]
-                "",
+            "",
             0,
             false,
             None,
@@ -371,7 +371,7 @@ mod test {
     fn reset_empties() {
         let mut input = Input::new(
             #[cfg(feature = "debugger")]
-                "",
+            "",
             0,
             false,
             None,
@@ -387,7 +387,7 @@ mod test {
     fn init_first_time_once() {
         let mut input = Input::new(
             #[cfg(feature = "debugger")]
-                "",
+            "",
             0,
             false,
             Some(Once(json!(1))),
@@ -404,7 +404,7 @@ mod test {
     fn init_first_time_always() {
         let mut input = Input::new(
             #[cfg(feature = "debugger")]
-                "",
+            "",
             0,
             false,
             Some(Always(json!(1))),
@@ -421,7 +421,7 @@ mod test {
     fn init_later_once() {
         let mut input = Input::new(
             #[cfg(feature = "debugger")]
-                "",
+            "",
             0,
             false,
             Some(Once(json!(1))),
@@ -442,7 +442,7 @@ mod test {
     fn init_later_always() {
         let mut input = Input::new(
             #[cfg(feature = "debugger")]
-                "",
+            "",
             0,
             false,
             Some(Always(json!(1))),

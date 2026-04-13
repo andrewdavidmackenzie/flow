@@ -16,15 +16,22 @@ pub fn check_function_inputs(tables: &CompilerTables) -> Result<()> {
     info!("\n=== Compiler: Checking all Function Inputs are connected");
     for function in &tables.functions {
         for input in function.get_inputs() {
-            if input.get_initializer().is_none() && input.get_flow_initializer().is_none()
-                && tables.connection_to(input.route()).is_none() {
-                bail!("Input at route '{}' is not connected to nor initialized", input.route());
+            if input.get_initializer().is_none()
+                && input.get_flow_initializer().is_none()
+                && tables.connection_to(input.route()).is_none()
+            {
+                bail!(
+                    "Input at route '{}' is not connected to nor initialized",
+                    input.route()
+                );
             }
 
             // If has a Constant initializer and a connections then flag that as an error
             if got_constant_initializer(input) && tables.connection_to(input.route()).is_some() {
-                bail!("Input at route '{}' has a 'Constant' initializer and a connection to it",
-                                       input.route());
+                bail!(
+                    "Input at route '{}' has a 'Constant' initializer and a connection to it",
+                    input.route()
+                );
             }
         }
     }

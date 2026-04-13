@@ -37,19 +37,19 @@ mod helper;
 /// An interim solution could be to have the files in the code as Strings and parse from there.
 #[test]
 fn object_to_array_connection() {
-    let meta_provider = MetaProvider::new(helper::set_lib_search_path_to_project(),
-                                          helper::get_canonical_context_root(),
+    let meta_provider = MetaProvider::new(
+        helper::set_lib_search_path_to_project(),
+        helper::get_canonical_context_root(),
     );
     let path = helper::absolute_file_url_from_relative_path(
         "flowc/tests/test-flows/object_to_array_connection/root.toml",
     );
-    let process = parser::parse(&path, &meta_provider)
-        .expect("Could not parse test flow");
+    let process = parser::parse(&path, &meta_provider).expect("Could not parse test flow");
     if let FlowProcess(ref flow) = process {
         let output_dir = tempdir().expect("A temp dir").keep();
 
         #[cfg(feature = "debugger")]
-            let mut source_urls = BTreeMap::<String, Url>::new();
+        let mut source_urls = BTreeMap::<String, Url>::new();
 
         let _tables = compile::compile(flow, &output_dir, false, false, &mut source_urls)
             .expect("Could not compile flow");
@@ -60,19 +60,19 @@ fn object_to_array_connection() {
 
 #[test]
 fn context_with_io() {
-    let meta_provider = MetaProvider::new(helper::set_lib_search_path_to_project(),
-                                          helper::get_canonical_context_root(),
+    let meta_provider = MetaProvider::new(
+        helper::set_lib_search_path_to_project(),
+        helper::get_canonical_context_root(),
     );
     let path = helper::absolute_file_url_from_relative_path(
         "flowc/tests/test-flows/context_with_io/root.toml",
     );
-    let process = parser::parse(&path, &meta_provider)
-        .expect("Could not parse test flow");
+    let process = parser::parse(&path, &meta_provider).expect("Could not parse test flow");
     if let FlowProcess(ref flow) = process {
         let output_dir = tempdir().expect("A temp dir").keep();
 
         #[cfg(feature = "debugger")]
-            let mut source_urls = BTreeMap::<String, Url>::new();
+        let mut source_urls = BTreeMap::<String, Url>::new();
 
         if compile::compile(flow, &output_dir, false, false, &mut source_urls).is_ok() {
             // flow loaded, but has ios
@@ -86,22 +86,22 @@ fn context_with_io() {
 
 #[test]
 fn same_name_input_and_output() {
-    let meta_provider = MetaProvider::new(helper::set_lib_search_path_to_project(),
-                                          helper::get_canonical_context_root(),
+    let meta_provider = MetaProvider::new(
+        helper::set_lib_search_path_to_project(),
+        helper::get_canonical_context_root(),
     );
     let path = helper::absolute_file_url_from_relative_path(
         "flowc/tests/test-flows/same-name-parent/root.toml",
     );
-    let process = parser::parse(&path, &meta_provider)
-        .expect("Could not parse test flow");
+    let process = parser::parse(&path, &meta_provider).expect("Could not parse test flow");
     if let FlowProcess(ref flow) = process {
         let output_dir = tempdir().expect("A temp dir").keep();
 
         #[cfg(feature = "debugger")]
-            let mut source_urls = BTreeMap::<String, Url>::new();
+        let mut source_urls = BTreeMap::<String, Url>::new();
 
-        let tables = compile::compile(flow, &output_dir, false, false,
-                                      &mut source_urls).expect("Could not compile flow");
+        let tables = compile::compile(flow, &output_dir, false, false, &mut source_urls)
+            .expect("Could not compile flow");
         // If done correctly there should only be two connections
         assert_eq!(2, tables.collapsed_connections.len());
     } else {
@@ -111,22 +111,22 @@ fn same_name_input_and_output() {
 
 #[test]
 fn same_name_flow_ids() {
-    let meta_provider = MetaProvider::new(helper::set_lib_search_path_to_project(),
-                                          helper::get_canonical_context_root(),
+    let meta_provider = MetaProvider::new(
+        helper::set_lib_search_path_to_project(),
+        helper::get_canonical_context_root(),
     );
     let path = helper::absolute_file_url_from_relative_path(
         "flowc/tests/test-flows/same-name-parent/root.toml",
     );
-    let process = parser::parse(&path, &meta_provider)
-        .expect("Could not parse test flow");
+    let process = parser::parse(&path, &meta_provider).expect("Could not parse test flow");
     if let FlowProcess(ref flow) = process {
         let output_dir = tempdir().expect("A temp dir").keep();
 
         #[cfg(feature = "debugger")]
-            let mut source_urls = BTreeMap::<String, Url>::new();
+        let mut source_urls = BTreeMap::<String, Url>::new();
 
-        let tables = compile::compile(flow, &output_dir, false, false,
-                                      &mut source_urls).expect("Could not compile flow");
+        let tables = compile::compile(flow, &output_dir, false, false, &mut source_urls)
+            .expect("Could not compile flow");
 
         // print function in context flow should have flow_id = 0
         let print_function = tables
@@ -146,22 +146,24 @@ fn same_name_flow_ids() {
 
 #[test]
 fn connection_to_input_with_constant_initializer() {
-    let meta_provider = MetaProvider::new(helper::set_lib_search_path_to_project(),
-                                          helper::get_canonical_context_root(),
+    let meta_provider = MetaProvider::new(
+        helper::set_lib_search_path_to_project(),
+        helper::get_canonical_context_root(),
     );
     let path = helper::absolute_file_url_from_relative_path(
         "flowc/tests/test-flows/connect_to_constant/root.toml",
     );
-    let process = parser::parse(&path, &meta_provider)
-        .expect("Could not parse test flow");
+    let process = parser::parse(&path, &meta_provider).expect("Could not parse test flow");
     if let FlowProcess(ref flow) = process {
         let output_dir = tempdir().expect("A temp dir").keep();
 
         #[cfg(feature = "debugger")]
-            let mut source_urls = BTreeMap::<String, Url>::new();
+        let mut source_urls = BTreeMap::<String, Url>::new();
 
-        assert!(compile::compile(flow, &output_dir, false, false, &mut source_urls).is_err(),
-                "Process should not have loaded due to connection to input with a constant initializer");
+        assert!(
+            compile::compile(flow, &output_dir, false, false, &mut source_urls).is_err(),
+            "Process should not have loaded due to connection to input with a constant initializer"
+        );
     } else {
         panic!("Process loaded was not a flow");
     }
@@ -169,21 +171,21 @@ fn connection_to_input_with_constant_initializer() {
 
 #[test]
 fn args() {
-    let meta_provider = MetaProvider::new(helper::set_lib_search_path_to_project(),
-                                          helper::get_canonical_context_root(),
+    let meta_provider = MetaProvider::new(
+        helper::set_lib_search_path_to_project(),
+        helper::get_canonical_context_root(),
     );
     let path =
         helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/args/root.toml");
-    let process = parser::parse(&path, &meta_provider)
-        .expect("Could not parse test flow");
+    let process = parser::parse(&path, &meta_provider).expect("Could not parse test flow");
     if let FlowProcess(ref flow) = process {
         let output_dir = tempdir().expect("A temp dir").keep();
 
         #[cfg(feature = "debugger")]
-            let mut source_urls = BTreeMap::<String, Url>::new();
+        let mut source_urls = BTreeMap::<String, Url>::new();
 
-        let _tables = compile::compile(flow, &output_dir, false, false,
-                                       &mut source_urls).expect("Could not compile flow");
+        let _tables = compile::compile(flow, &output_dir, false, false, &mut source_urls)
+            .expect("Could not compile flow");
     } else {
         panic!("Process loaded was not a flow");
     }
@@ -191,45 +193,49 @@ fn args() {
 
 #[test]
 fn no_side_effects() {
-    let meta_provider = MetaProvider::new(helper::set_lib_search_path_to_project(),
-                                          helper::get_canonical_context_root(),
+    let meta_provider = MetaProvider::new(
+        helper::set_lib_search_path_to_project(),
+        helper::get_canonical_context_root(),
     );
-    let path = helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/no_side_effects/root.toml");
-    let process = parser::parse(&path, &meta_provider)
-        .expect("Could not parse test flow");
+    let path = helper::absolute_file_url_from_relative_path(
+        "flowc/tests/test-flows/no_side_effects/root.toml",
+    );
+    let process = parser::parse(&path, &meta_provider).expect("Could not parse test flow");
     match process {
         FlowProcess(ref flow) => {
             let output_dir = tempdir().expect("A temp dir").keep();
 
             #[cfg(feature = "debugger")]
-                let mut source_urls = BTreeMap::<String, Url>::new();
+            let mut source_urls = BTreeMap::<String, Url>::new();
 
-            match compile::compile(flow, &output_dir, false, false,
-                                   &mut source_urls) {
+            match compile::compile(flow, &output_dir, false, false, &mut source_urls) {
                 Ok(_tables) => panic!("Flow should not compile when it has no side-effects"),
                 Err(e) => assert_eq!("Flow has no side-effects", e.description()),
             }
         }
-        FunctionProcess(_) => panic!("Did not load a FlowProcess as expected")
+        FunctionProcess(_) => panic!("Did not load a FlowProcess as expected"),
     }
 }
 
 #[test]
 fn compile_echo_ok() {
-    let meta_provider = MetaProvider::new(helper::set_lib_search_path_to_project(),
-                                          helper::get_canonical_context_root(),
+    let meta_provider = MetaProvider::new(
+        helper::set_lib_search_path_to_project(),
+        helper::get_canonical_context_root(),
     );
     let process = parser::parse(
         &helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/echo/root.toml"),
-        &meta_provider).expect("Could not parse test flow");
+        &meta_provider,
+    )
+    .expect("Could not parse test flow");
     if let FlowProcess(ref flow) = process {
         let output_dir = tempdir().expect("A temp dir").keep();
 
         #[cfg(feature = "debugger")]
-            let mut source_urls = BTreeMap::<String, Url>::new();
+        let mut source_urls = BTreeMap::<String, Url>::new();
 
-        let _tables = compile::compile(flow, &output_dir, false, false,
-                                       &mut source_urls).expect("Could not compile flow");
+        let _tables = compile::compile(flow, &output_dir, false, false, &mut source_urls)
+            .expect("Could not compile flow");
     } else {
         panic!("Process loaded was not a flow");
     }
@@ -237,23 +243,25 @@ fn compile_echo_ok() {
 
 #[test]
 fn compiler_detects_unused_input() {
-    let meta_provider = MetaProvider::new(helper::set_lib_search_path_to_project(),
-                                          helper::get_canonical_context_root(),
+    let meta_provider = MetaProvider::new(
+        helper::set_lib_search_path_to_project(),
+        helper::get_canonical_context_root(),
     );
     let process = parser::parse(
         &helper::absolute_file_url_from_relative_path(
             "flowc/tests/test-flows/unused_input/root.toml",
         ),
-        &meta_provider).expect("Could not parse test flow");
+        &meta_provider,
+    )
+    .expect("Could not parse test flow");
     if let FlowProcess(ref flow) = process {
         let output_dir = tempdir().expect("A temp dir").keep();
 
         #[cfg(feature = "debugger")]
-            let mut source_urls = BTreeMap::<String, Url>::new();
+        let mut source_urls = BTreeMap::<String, Url>::new();
 
         assert!(
-            compile::compile(flow, &output_dir, false, false,
-                             &mut source_urls).is_err(),
+            compile::compile(flow, &output_dir, false, false, &mut source_urls).is_err(),
             "Should not compile due to unused input"
         );
     } else {
@@ -267,8 +275,9 @@ fn compiler_detects_unused_input() {
 */
 #[test]
 fn flow_input_propagated_back_out() {
-    let meta_provider = MetaProvider::new(helper::set_lib_search_path_to_project(),
-                                          helper::get_canonical_context_root(),
+    let meta_provider = MetaProvider::new(
+        helper::set_lib_search_path_to_project(),
+        helper::get_canonical_context_root(),
     );
     // Relative path from project root to the test file
     let url = helper::absolute_file_url_from_relative_path(
@@ -280,12 +289,13 @@ fn flow_input_propagated_back_out() {
             let output_dir = tempdir().expect("A temp dir").keep();
 
             #[cfg(feature = "debugger")]
-                let mut source_urls = BTreeMap::<String, Url>::new();
+            let mut source_urls = BTreeMap::<String, Url>::new();
 
-            match compile::compile(&context, &output_dir, false, false,
-                                   &mut source_urls) {
+            match compile::compile(&context, &output_dir, false, false, &mut source_urls) {
                 Ok(_tables) => {}
-                Err(error) => panic!("Couldn't compile the flow from test file at '{url}'\n{error}"),
+                Err(error) => {
+                    panic!("Couldn't compile the flow from test file at '{url}'\n{error}")
+                }
             }
         }
         Ok(FunctionProcess(_)) => panic!("Unexpected compile result from test file at '{url}'"),
@@ -298,8 +308,9 @@ fn flow_input_propagated_back_out() {
 */
 #[test]
 fn initialized_output_propagated() {
-    let meta_provider = MetaProvider::new(helper::set_lib_search_path_to_project(),
-                                          helper::get_canonical_context_root(),
+    let meta_provider = MetaProvider::new(
+        helper::set_lib_search_path_to_project(),
+        helper::get_canonical_context_root(),
     );
     // Relative path from project root to the test file
     let url = helper::absolute_file_url_from_relative_path(
@@ -311,10 +322,9 @@ fn initialized_output_propagated() {
             let output_dir = tempdir().expect("A temp dir").keep();
 
             #[cfg(feature = "debugger")]
-                let mut source_urls = BTreeMap::<String, Url>::new();
+            let mut source_urls = BTreeMap::<String, Url>::new();
 
-            match compile::compile(&context, &output_dir, false, false,
-                                   &mut source_urls) {
+            match compile::compile(&context, &output_dir, false, false, &mut source_urls) {
                 Ok(tables) => {
                     match tables
                         .functions
@@ -322,20 +332,25 @@ fn initialized_output_propagated() {
                         .find(|&f| f.route() == &Route::from("/print_subflow_output/stdout"))
                     {
                         Some(print_function) => {
-                            let in_input = print_function.get_inputs().first()
+                            let in_input = print_function
+                                .get_inputs()
+                                .first()
                                 .expect("Could not get inputs");
                             match in_input.get_flow_initializer() {
                                 Some(Once(one_time)) => assert_eq!(one_time, &json!("Hello")), // PASS
-                                _ => panic!("Expected a InputInitializer to be present")
+                                _ => panic!("Expected a InputInitializer to be present"),
                             }
                         }
                         None => {
-                            panic!("Could not find function at route '/print_subflow_output/stdout'")
+                            panic!(
+                                "Could not find function at route '/print_subflow_output/stdout'"
+                            )
                         }
                     }
                 }
-                Err(error) => panic!(
-                    "Couldn't compile the flow from test file at '{url}'\n{error}"),
+                Err(error) => {
+                    panic!("Couldn't compile the flow from test file at '{url}'\n{error}")
+                }
             }
         }
         Ok(FunctionProcess(_)) => panic!("Unexpected compile result from test file at '{url}'"),
@@ -349,8 +364,9 @@ fn initialized_output_propagated() {
 */
 #[test]
 fn initialized_input_to_subflow() {
-    let meta_provider = MetaProvider::new(helper::set_lib_search_path_to_project(),
-                                          helper::get_canonical_context_root(),
+    let meta_provider = MetaProvider::new(
+        helper::set_lib_search_path_to_project(),
+        helper::get_canonical_context_root(),
     );
     // Relative path from project root to the test file
     let url = helper::absolute_file_url_from_relative_path(
@@ -362,23 +378,25 @@ fn initialized_input_to_subflow() {
             let output_dir = tempdir().expect("A temp dir").keep();
 
             #[cfg(feature = "debugger")]
-                let mut source_urls = BTreeMap::<String, Url>::new();
+            let mut source_urls = BTreeMap::<String, Url>::new();
 
-            match compile::compile(&root, &output_dir, false, false,
-                                   &mut source_urls) {
+            match compile::compile(&root, &output_dir, false, false, &mut source_urls) {
                 Ok(tables) => {
-                    match tables
-                        .functions
-                        .iter()
-                        .find(|&f| f.route() == &Route::from("/initialized_input_to_subflow/subflow/subsubflow/stdout"))
-                    {
+                    match tables.functions.iter().find(|&f| {
+                        f.route()
+                            == &Route::from(
+                                "/initialized_input_to_subflow/subflow/subsubflow/stdout",
+                            )
+                    }) {
                         Some(print_function) => {
-                            let in_input = print_function.get_inputs().first()
+                            let in_input = print_function
+                                .get_inputs()
+                                .first()
                                 .expect("Could not get inputs");
 
                             match in_input.get_flow_initializer() {
                                 Some(Once(one_time)) => assert_eq!(one_time, &json!("Hello")), // PASS
-                                _ => panic!("Expected a InputInitializer to be present")
+                                _ => panic!("Expected a InputInitializer to be present"),
                             }
                         }
                         None => {
@@ -386,8 +404,9 @@ fn initialized_input_to_subflow() {
                         }
                     }
                 }
-                Err(error) => panic!(
-                    "Couldn't compile the flow from test file at '{url}'\n{error}"),
+                Err(error) => {
+                    panic!("Couldn't compile the flow from test file at '{url}'\n{error}")
+                }
             }
         }
         Ok(FunctionProcess(_)) => panic!("Unexpected compile result from test file at '{url}'"),
@@ -401,18 +420,18 @@ fn json_indexing() {
         helper::set_lib_search_path_to_project(),
         helper::get_canonical_context_root(),
     );
-    let path =
-        helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/json-indexing/root.toml");
-    let process = parser::parse(&path, &meta_provider)
-        .expect("Could not parse flow");
+    let path = helper::absolute_file_url_from_relative_path(
+        "flowc/tests/test-flows/json-indexing/root.toml",
+    );
+    let process = parser::parse(&path, &meta_provider).expect("Could not parse flow");
     if let FlowProcess(ref flow) = process {
         let output_dir = tempdir().expect("A temp dir").keep();
 
         #[cfg(feature = "debugger")]
-            let mut source_urls = BTreeMap::<String, Url>::new();
+        let mut source_urls = BTreeMap::<String, Url>::new();
 
-        let _tables = compile::compile(flow, &output_dir, false, false,
-                                       &mut source_urls).expect("Could not compile flow");
+        let _tables = compile::compile(flow, &output_dir, false, false, &mut source_urls)
+            .expect("Could not compile flow");
     } else {
         panic!("Process loaded was not a flow");
     }

@@ -1,14 +1,18 @@
 use serde_json::Value;
 
-use flowcore::{RUN_AGAIN, RunAgain};
 use flowcore::errors::Result;
+use flowcore::{RunAgain, RUN_AGAIN};
 use flowmacro::flow_function;
 
 #[flow_function]
 fn inner_select(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
     let i1 = inputs.first().ok_or("Could not get i1")?;
     let i2 = inputs.get(1).ok_or("Could not get i2")?;
-    let control = inputs.get(2).ok_or("Could not get control")?.as_bool().ok_or("Could not get boolean")?;
+    let control = inputs
+        .get(2)
+        .ok_or("Could not get control")?
+        .as_bool()
+        .ok_or("Could not get boolean")?;
 
     let mut output_map = serde_json::Map::new();
     if control {
@@ -38,7 +42,9 @@ mod test {
 
         assert!(output.is_some());
         let value = output.expect("Could not get the Value from the output");
-        let map = value.as_object().expect("Could not get the object from the output");
+        let map = value
+            .as_object()
+            .expect("Could not get the object from the output");
         assert_eq!(
             map.get("select_i1").expect("No 'select_i1' value in map"),
             &json!("A")
@@ -57,7 +63,9 @@ mod test {
 
         assert!(output.is_some());
         let value = output.expect("Could not get the Value from the output");
-        let map = value.as_object().expect("Could not get the object from the output");
+        let map = value
+            .as_object()
+            .expect("Could not get the object from the output");
         assert_eq!(
             map.get("select_i1").expect("No 'select_i1' value in map"),
             &json!("B")

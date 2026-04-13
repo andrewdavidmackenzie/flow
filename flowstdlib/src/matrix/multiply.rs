@@ -26,12 +26,14 @@ from = \"multiply/product\"
 to = \"stdout\"
 ";
 
-        let temp_dir = tempdir().expect("Could not create temporary directory")
+        let temp_dir = tempdir()
+            .expect("Could not create temporary directory")
             .keep();
         let flow_filename = temp_dir.join("matrix_multiply_test.toml");
-        let mut flow_file = File::create(&flow_filename)
-            .expect("Could not create lib manifest file");
-        flow_file.write_all(flow.as_bytes())
+        let mut flow_file =
+            File::create(&flow_filename).expect("Could not create lib manifest file");
+        flow_file
+            .write_all(flow.as_bytes())
             .expect("Could not write data bytes to created flow file");
 
         let stdout = execute_flow(&flow_filename);

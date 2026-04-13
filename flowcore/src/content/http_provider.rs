@@ -2,7 +2,7 @@ use curl::easy::{Easy2, Handler, WriteError};
 use log::debug;
 use url::Url;
 
-use crate::errors::{Result, ResultExt, bail};
+use crate::errors::{bail, Result, ResultExt};
 use crate::provider::Provider;
 
 /// The `HttpProvider` implements the `Provider` trait and takes care of fetching content via http
@@ -98,9 +98,8 @@ impl HttpProvider {
     fn resource_by_extensions(resource: &Url, extensions: &[&str]) -> Result<Url> {
         // for that file path, try with all the allowed file extensions
         for extension in extensions {
-            let resource_with_extension =
-                Url::parse(&format!("{}.{extension}", resource.as_str()))
-                    .chain_err(|| "Could not parse Url with extension added")?;
+            let resource_with_extension = Url::parse(&format!("{}.{extension}", resource.as_str()))
+                .chain_err(|| "Could not parse Url with extension added")?;
             if Self::resource_exists(&resource_with_extension).is_ok() {
                 return Ok(resource_with_extension);
             }

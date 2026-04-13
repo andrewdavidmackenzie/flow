@@ -64,7 +64,9 @@ mod test {
     #[test]
     fn invalid_json() {
         let json = JsonDeserializer::<TestStruct>::new();
-        assert!(json.deserialize("=", None).is_err(),
-                "Should not have parsed correctly as is invalid JSON");
+        assert!(
+            json.deserialize("=", None).is_err(),
+            "Should not have parsed correctly as is invalid JSON"
+        );
     }
 }

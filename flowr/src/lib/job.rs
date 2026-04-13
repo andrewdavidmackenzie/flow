@@ -40,7 +40,11 @@ impl fmt::Display for Job {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         writeln!(f, "{}", self.payload)?;
         writeln!(f, "Connections: {:?}", self.connections)?;
-        writeln!(f, "Function Id: {}, Flow Id: {}", self.function_id, self.flow_id)?;
+        writeln!(
+            f,
+            "Function Id: {}, Flow Id: {}",
+            self.function_id, self.flow_id
+        )?;
         write!(f, "Result: {:?}", self.result)
     }
 }
@@ -73,9 +77,10 @@ mod test {
             payload: Payload {
                 job_id: 0,
                 input_set: vec![],
-                implementation_url: Url::parse("lib://flowstdlib/math/add").expect("Could not parse Url"),
+                implementation_url: Url::parse("lib://flowstdlib/math/add")
+                    .expect("Could not parse Url"),
             },
-            result: Ok((None, false))
+            result: Ok((None, false)),
         };
         println!("Job: {job}");
     }
@@ -89,9 +94,10 @@ mod test {
             payload: Payload {
                 job_id: 0,
                 input_set: vec![],
-                implementation_url: Url::parse("lib://flowstdlib/math/add").expect("Could not parse Url"),
+                implementation_url: Url::parse("lib://flowstdlib/math/add")
+                    .expect("Could not parse Url"),
             },
-            result: Ok((Some(json!(42u64)), false))
+            result: Ok((Some(json!(42u64)), false)),
         };
 
         assert_eq!(
@@ -117,7 +123,8 @@ mod test {
             payload: Payload {
                 job_id: 0,
                 input_set: vec![],
-                implementation_url: Url::parse("lib://flowstdlib/math/add").expect("Could not parse Url"),
+                implementation_url: Url::parse("lib://flowstdlib/math/add")
+                    .expect("Could not parse Url"),
             },
             result: Ok((Some(json!(value)), false)),
         };

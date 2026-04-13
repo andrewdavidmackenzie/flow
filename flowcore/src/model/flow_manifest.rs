@@ -30,7 +30,7 @@ pub struct Cargo {
     pub package: MetaData,
 }
 
-#[derive(Deserialize, Serialize, Clone, PartialEq, Eq, Debug,)]
+#[derive(Deserialize, Serialize, Clone, PartialEq, Eq, Debug)]
 /// A `flows` `Manifest` describes it and describes all the `Functions` it uses as well as
 /// a list of references to libraries.
 pub struct FlowManifest {
@@ -50,7 +50,11 @@ pub struct FlowManifest {
 impl Display for FlowManifest {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         for (id, function) in self.functions.iter().enumerate() {
-            writeln!(f, "         Function #{id} Implementation: {}", function.get_implementation_url())?;
+            writeln!(
+                f,
+                "         Function #{id} Implementation: {}",
+                function.get_implementation_url()
+            )?;
         }
         write!(f, "")
     }
@@ -231,7 +235,14 @@ mod test {
             #[cfg(feature = "debugger")]
             "/test",
             "file://fake/test",
-            vec![Input::new(#[cfg(feature = "debugger")] "", 0, false, None, None)],
+            vec![Input::new(
+                #[cfg(feature = "debugger")]
+                "",
+                0,
+                false,
+                None,
+                None,
+            )],
             0,
             0,
             &[],

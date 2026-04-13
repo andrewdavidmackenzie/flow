@@ -12,8 +12,11 @@ mod test {
     #[cfg(feature = "debugger")]
     #[test]
     fn test_debug_help_string_example() {
-        let _ = env::set_current_dir(PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-            .parent().expect("Could not cd into flow directory"));
+        let _ = env::set_current_dir(
+            PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+                .parent()
+                .expect("Could not cd into flow directory"),
+        );
 
         super::main();
         utilities::check_test_output(file!());

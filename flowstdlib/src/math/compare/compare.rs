@@ -1,8 +1,8 @@
-use serde_json::Value;
 use serde_json::value::Value::Number;
+use serde_json::Value;
 
-use flowcore::{RUN_AGAIN, RunAgain};
-use flowcore::errors::{Result, bail};
+use flowcore::errors::{bail, Result};
+use flowcore::{RunAgain, RUN_AGAIN};
 use flowmacro::flow_function;
 
 #[flow_function]
@@ -35,19 +35,18 @@ fn inner_compare(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
                     (Some(l), Some(r)) => {
                         output_map
                             .insert("equal".into(), Value::Bool((l - r).abs() < f64::EPSILON));
-                        output_map
-                            .insert("ne".into(), Value::Bool((l - r).abs() >= f64::EPSILON));
+                        output_map.insert("ne".into(), Value::Bool((l - r).abs() >= f64::EPSILON));
                         output_map.insert("lt".into(), Value::Bool(l < r));
                         output_map.insert("gt".into(), Value::Bool(l > r));
                         output_map.insert("lte".into(), Value::Bool(l <= r));
                         output_map.insert("gte".into(), Value::Bool(l >= r));
                         Ok((Some(Value::Object(output_map)), RUN_AGAIN))
                     }
-                    (_, _) => bail!("Not numbers")
+                    (_, _) => bail!("Not numbers"),
                 }
             }
         }
-        (_, _) => bail!("Not numbers")
+        (_, _) => bail!("Not numbers"),
     }
 }
 
@@ -64,7 +63,7 @@ mod test {
                 json!(0),
                 json!(0),
                 true,  // eq
-                false,  // ne
+                false, // ne
                 false, // lt
                 false, // gt
                 true,  //lte
@@ -74,7 +73,7 @@ mod test {
                 json!(1),
                 json!(0),
                 false, // eq
-                true, // ne
+                true,  // ne
                 false, // lt
                 true,  // gt
                 false, //lte
@@ -84,7 +83,7 @@ mod test {
                 json!(0),
                 json!(1),
                 false, // eq
-                true, // ne
+                true,  // ne
                 true,  // lt
                 false, // gt
                 true,  //lte
@@ -95,7 +94,7 @@ mod test {
                 json!(3.15),
                 json!(3.15),
                 true,  // eq
-                false,  // ne
+                false, // ne
                 false, // lt
                 false, // gt
                 true,  //lte
@@ -105,7 +104,7 @@ mod test {
                 json!(3.15),
                 json!(3.11),
                 false, // eq
-                true, // ne
+                true,  // ne
                 false, // lt
                 true,  // gt
                 false, //lte
@@ -115,7 +114,7 @@ mod test {
                 json!(3.11),
                 json!(3.15),
                 false, // eq
-                true, // ne
+                true,  // ne
                 true,  // lt
                 false, // gt
                 true,  //lte
@@ -124,12 +123,12 @@ mod test {
             (
                 json!((i64::MAX as u64 + 10)), // force a u64
                 json!((i64::MAX as u64 + 20)), // force a u64
-                false,                                // eq
-                true,                                // ne
-                true,                                 // lt
-                false,                                // gt
-                true,                                 //lte
-                false,                                // gte
+                false,                         // eq
+                true,                          // ne
+                true,                          // lt
+                false,                         // gt
+                true,                          //lte
+                false,                         // gte
             ),
         ]
     }
@@ -148,23 +147,53 @@ mod test {
             let outputs = output.expect("Could not get the value from the output");
 
             assert_eq!(
-                outputs.pointer("/equal").expect("Could not get the /equal from the output")
-                    .as_bool().expect("/equal was not a boolean value"),
+                outputs
+                    .pointer("/equal")
+                    .expect("Could not get the /equal from the output")
+                    .as_bool()
+                    .expect("/equal was not a boolean value"),
                 test.2
             );
             assert_eq!(
-                outputs.pointer("/ne").expect("Could not get the /equal from the output")
-                    .as_bool().expect("/equal was not a boolean value"),
+                outputs
+                    .pointer("/ne")
+                    .expect("Could not get the /equal from the output")
+                    .as_bool()
+                    .expect("/equal was not a boolean value"),
                 test.3
             );
-            assert_eq!(outputs.pointer("/lt").expect("Could not get the /lt from the output")
-                           .as_bool().expect("/equal was not a boolean value"), test.4);
-            assert_eq!(outputs.pointer("/gt").expect("Could not get the /gt from the output")
-                           .as_bool().expect("/equal was not a boolean value"), test.5);
-            assert_eq!(outputs.pointer("/lte").expect("Could not get the /lte from the output")
-                           .as_bool().expect("/equal was not a boolean value"), test.6);
-            assert_eq!(outputs.pointer("/gte").expect("Could not get the /gte from the output")
-                           .as_bool().expect("/equal was not a boolean value"), test.7);
+            assert_eq!(
+                outputs
+                    .pointer("/lt")
+                    .expect("Could not get the /lt from the output")
+                    .as_bool()
+                    .expect("/equal was not a boolean value"),
+                test.4
+            );
+            assert_eq!(
+                outputs
+                    .pointer("/gt")
+                    .expect("Could not get the /gt from the output")
+                    .as_bool()
+                    .expect("/equal was not a boolean value"),
+                test.5
+            );
+            assert_eq!(
+                outputs
+                    .pointer("/lte")
+                    .expect("Could not get the /lte from the output")
+                    .as_bool()
+                    .expect("/equal was not a boolean value"),
+                test.6
+            );
+            assert_eq!(
+                outputs
+                    .pointer("/gte")
+                    .expect("Could not get the /gte from the output")
+                    .as_bool()
+                    .expect("/equal was not a boolean value"),
+                test.7
+            );
         }
     }
 

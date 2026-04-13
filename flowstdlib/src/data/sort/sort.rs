@@ -1,7 +1,7 @@
 use serde_json::{json, Value};
 
-use flowcore::{RUN_AGAIN, RunAgain};
 use flowcore::errors::Result;
+use flowcore::{RunAgain, RUN_AGAIN};
 use flowmacro::flow_function;
 
 #[flow_function]
@@ -10,7 +10,11 @@ fn inner_sort(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
         return Ok((Some(Value::Null), RUN_AGAIN));
     }
 
-    let array_num = inputs.first().ok_or("Could not get array_num")?.as_array().ok_or("Could not get array")?;
+    let array_num = inputs
+        .first()
+        .ok_or("Could not get array_num")?
+        .as_array()
+        .ok_or("Could not get array")?;
     let mut array_of_numbers: Vec<Value> = array_num.clone();
     array_of_numbers.sort_by_key(|a| a.as_i64().unwrap_or(0));
 

@@ -2,8 +2,8 @@ use serde_json::json;
 use serde_json::Value;
 use serde_json::Value::String as JsonString;
 
-use flowcore::{RUN_AGAIN, RunAgain};
 use flowcore::errors::Result;
+use flowcore::{RunAgain, RUN_AGAIN};
 use flowmacro::flow_function;
 
 #[flow_function]
