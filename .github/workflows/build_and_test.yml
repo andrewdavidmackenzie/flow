@@ -79,17 +79,12 @@ jobs:
         run: |
           sudo apt-get update && sudo apt-get -y install libzmq3-dev binaryen lcov
           ARCH=$(uname -m)
-          if [ "$ARCH" = "aarch64" ]; then
-            BINARYEN_ARCH="aarch64"
-          else
-            BINARYEN_ARCH="x86_64"
-          fi
           BINARYEN_VERSION="version_129"
-          wget https://github.com/WebAssembly/binaryen/releases/download/${BINARYEN_VERSION}/binaryen-${BINARYEN_VERSION}-${BINARYEN_ARCH}-linux.tar.gz
-          tar -xvzf binaryen-${BINARYEN_VERSION}-${BINARYEN_ARCH}-linux.tar.gz
+          wget https://github.com/WebAssembly/binaryen/releases/download/${BINARYEN_VERSION}/binaryen-${BINARYEN_VERSION}-${ARCH}-linux.tar.gz
+          tar -xvzf binaryen-${BINARYEN_VERSION}-${ARCH}-linux.tar.gz
           sudo cp binaryen-${BINARYEN_VERSION}/bin/* /bin/
           rm -rf binaryen-${BINARYEN_VERSION}
-          rm binaryen-${BINARYEN_VERSION}-${BINARYEN_ARCH}-linux.tar.gz
+          rm binaryen-${BINARYEN_VERSION}-${ARCH}-linux.tar.gz
           which wasm-opt
           wasm-opt --version
 
