@@ -49,6 +49,9 @@ or the extensive docs in the ./book folder.
 - Don't assume that any test failure is independent of your change. We usually start
   a new feature branch from master where tests were working.
 - Use `make test` not `cargo test`
+- Don't modify any "expected" file in a test to make a test pass without first shwoing a comparison 
+of the two to the user, or showing both side by side, and then the user explicitly approving the
+replacement of the old one with the new one.
 
 ## Committing and Pushing
 
