@@ -119,17 +119,33 @@ jobs:
       - name: compile flowrgui
         run: target/debug/flowc flowr/src/bin/flowrgui
 
-      - name: test
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
-          args: --features "online_tests"
+      - name: test-flowcore
+        timeout-minutes: 10
+        run: cargo test -p flowcore --features "online_tests"
+
+      - name: test-flowstdlib
+        timeout-minutes: 10
+        run: cargo test -p flowstdlib
+
+      - name: test-flowc
+        timeout-minutes: 10
+        run: cargo test -p flowc
+
+      - name: test-flowr-lib
+        timeout-minutes: 10
+        run: cargo test -p flowr --lib
+
+      - name: test-flowr-integration
+        timeout-minutes: 10
+        run: cargo test -p flowr --test wasm --test client_server --test flowrex
+
+      - name: test-flowr-flowrgui-integration
+        timeout-minutes: 10
+        run: cargo test -p flowr --test flowrgui
 
       - name: test-examples
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
-          args: --examples
+        timeout-minutes: 10
+        run: cargo test --examples
 
       - name: UploadCoverage
         run: |
