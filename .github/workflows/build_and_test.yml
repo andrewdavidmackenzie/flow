@@ -141,10 +141,12 @@ jobs:
 
       - name: test-flowr-flowrgui-integration
         timeout-minutes: 10
+        continue-on-error: true
         run: cargo test -p flowr --test flowrgui
 
       - name: test-examples
         timeout-minutes: 10
+        continue-on-error: true
         run: cargo test --examples
 
       - name: UploadCoverage

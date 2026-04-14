@@ -3,6 +3,7 @@
 use std::path::PathBuf;
 
 #[test]
+#[ignore = "Hangs on macOS Sequoia+ CI runners"]
 fn hello_world_client_server() {
     let example_dir = PathBuf::from("examples/hello-world");
     utilities::compile_example(&example_dir, "flowrcli");
