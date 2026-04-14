@@ -9,6 +9,7 @@ mod test {
     use super::super::super::test::execute_flow;
 
     #[test]
+    #[ignore = "flowc hangs on macOS Sequoia+ (#2303)"]
     fn test_single_value_initializers() {
         let flow = r#"
 flow = "sequence_test"
