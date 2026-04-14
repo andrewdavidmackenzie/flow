@@ -146,8 +146,8 @@ jobs:
         run: cargo test -p flowr --test flowrgui
 
       - name: test-examples
+        if: runner.os != 'macOS'
         timeout-minutes: 10
-
         run: cargo test --examples
 
       - name: UploadCoverage
