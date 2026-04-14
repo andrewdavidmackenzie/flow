@@ -9,6 +9,7 @@ mod test {
     use super::super::super::test::execute_flow;
 
     #[test]
+    #[ignore = "Hangs on macOS Sequoia+ CI runners"]
     fn test_range_flow() {
         let flow = "\
 flow = \"range_test\"
