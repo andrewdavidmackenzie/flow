@@ -9,7 +9,6 @@ mod test {
     use super::super::super::test::execute_flow;
 
     #[test]
-    #[ignore = "Hangs on macOS Sequoia+ CI runners"]
     fn test_multiply_flow() {
         let flow = "\
 flow = \"matrix_multiply_test\"
