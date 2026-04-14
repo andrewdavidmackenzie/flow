@@ -54,7 +54,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ macos-26, ubuntu-24.04, ubuntu-24.04-arm ]
+        os: [ macos-14, ubuntu-24.04, ubuntu-24.04-arm ]
         rust: [ nightly ]
 
     steps:
@@ -146,7 +146,6 @@ jobs:
         run: cargo test -p flowr --test flowrgui
 
       - name: test-examples
-        if: runner.os != 'macOS'
         timeout-minutes: 10
         run: cargo test --examples
 

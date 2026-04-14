@@ -9,7 +9,6 @@ mod test {
     use super::super::super::test::execute_flow;
 
     #[test]
-    #[cfg_attr(target_os = "macos", ignore = "flowc hangs on macOS Sequoia+ (#2303)")]
     fn test_range_flow() {
         let flow = "\
 flow = \"range_test\"

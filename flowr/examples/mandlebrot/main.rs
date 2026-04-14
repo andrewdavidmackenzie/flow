@@ -9,7 +9,6 @@ mod test {
     use std::path::PathBuf;
 
     #[test]
-    #[cfg_attr(target_os = "macos", ignore = "flowc hangs on macOS Sequoia+ (#2303)")]
     fn test_mandlebrot_example() {
         let _ = env::set_current_dir(
             PathBuf::from(env!("CARGO_MANIFEST_DIR"))
