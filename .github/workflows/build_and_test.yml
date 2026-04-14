@@ -150,11 +150,6 @@ jobs:
         timeout-minutes: 10
         run: cargo test --examples
 
-      - name: test-examples-macos
-        if: runner.os == 'macOS'
-        timeout-minutes: 10
-        run: cargo test --example mandlebrot --example reverse-echo
-
       - name: UploadCoverage
         run: |
           grcov . --binary-path target/debug/ -s . -t lcov --branch --ignore-not-existing --ignore "/*" -o lcov.info
