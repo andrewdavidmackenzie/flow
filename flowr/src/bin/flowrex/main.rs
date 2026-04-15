@@ -14,9 +14,9 @@ use std::{env, thread};
 
 use clap::{Arg, ArgMatches, Command};
 use env_logger::Builder;
+use flowrlib::discovery::discover_service;
 use log::{error, info, trace, LevelFilter};
 use simpath::Simpath;
-use simpdiscoverylib::BeaconListener;
 #[cfg(feature = "flowstdlib")]
 use url::Url;
 
@@ -25,21 +25,11 @@ use flowcore::meta_provider::MetaProvider;
 use flowcore::provider::Provider;
 use flowrlib::executor::Executor;
 use flowrlib::info as flowrlib_info;
-use flowrlib::services::{
-    CONTROL_SERVICE_NAME, JOB_QUEUES_DISCOVERY_PORT, JOB_SERVICE_NAME, RESULTS_JOB_SERVICE_NAME,
-};
+use flowrlib::services::{CONTROL_SERVICE_NAME, JOB_SERVICE_NAME, RESULTS_JOB_SERVICE_NAME};
 
 /// We'll put our errors in an `errors` module, and other modules in this crate will
 /// `use crate::errors::*;` to get access to everything `error_chain` creates.
 pub mod errors;
-
-/// Try to discover a server offering a particular service by name
-fn discover_service(discovery_port: u16, name: &str) -> Result<String> {
-    let listener = BeaconListener::new(name.as_bytes(), discovery_port)?;
-    let beacon = listener.wait(None)?;
-    let server_address = format!("{}:{}", beacon.service_ip, beacon.service_port);
-    Ok(server_address)
-}
 
 /// Main for flowrex binary - call `run()` and print any error that results or exit silently if OK
 fn main() {
@@ -104,19 +94,10 @@ fn start_executors(num_threads: usize) -> Result<()> {
         let provider =
             Arc::new(MetaProvider::new(Simpath::new(""), PathBuf::from("/"))) as Arc<dyn Provider>;
 
-        let job_service = format!(
-            "tcp://{}",
-            discover_service(JOB_QUEUES_DISCOVERY_PORT, JOB_SERVICE_NAME)?
-        );
-        let results_service = format!(
-            "tcp://{}",
-            discover_service(JOB_QUEUES_DISCOVERY_PORT, RESULTS_JOB_SERVICE_NAME)?
-        );
+        let job_service = format!("tcp://{}", discover_service(JOB_SERVICE_NAME)?);
+        let results_service = format!("tcp://{}", discover_service(RESULTS_JOB_SERVICE_NAME)?);
 
-        let control_service = format!(
-            "tcp://{}",
-            discover_service(JOB_QUEUES_DISCOVERY_PORT, CONTROL_SERVICE_NAME)?
-        );
+        let control_service = format!("tcp://{}", discover_service(CONTROL_SERVICE_NAME)?);
 
         trace!("Starting '{}' executors", env!("CARGO_PKG_NAME"));
         executor.start(

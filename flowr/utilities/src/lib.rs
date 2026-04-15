@@ -248,20 +248,20 @@ pub fn execute_flow_client_server(example_name: &str, manifest: PathBuf) {
         .spawn()
         .expect("Failed to spawn flowrcli");
 
-    // capture the discovery port by reading one line of stdout
+    // wait for the server to signal it's ready
     let stdout = server
         .stdout
         .as_mut()
         .expect("Could not read stdout of server");
     let mut reader = BufReader::new(stdout);
-    let mut discovery_port = String::new();
+    let mut ready_line = String::new();
     reader
-        .read_line(&mut discovery_port)
-        .expect("Could not read line");
+        .read_line(&mut ready_line)
+        .expect("Could not read ready line from server");
 
     let mut client = Command::new("flowrcli");
     let manifest_str = manifest.to_string_lossy();
-    let client_args = vec!["-c", discovery_port.trim(), &manifest_str];
+    let client_args = vec!["-c", &manifest_str];
     println!(
         "Starting 'flowrcli' client with command line: 'flowr {}'",
         client_args.join(" ")

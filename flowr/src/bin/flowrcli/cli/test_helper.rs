@@ -14,20 +14,19 @@ pub mod test {
         then_send: ClientMessage,
     ) -> Arc<Mutex<CoordinatorConnection>> {
         let test_port = pick_unused_port().expect("No ports free");
+        let service_name = format!("test-{test_port}");
         let server_connection = Arc::new(Mutex::new(
-            CoordinatorConnection::new("foo", test_port)
+            CoordinatorConnection::new(&service_name, test_port)
                 .expect("Could not create server connection"),
         ));
-        let discovery_port = pick_unused_port().expect("No ports free");
-        enable_service_discovery(discovery_port, "foo", test_port)
+        let _mdns = enable_service_discovery(&service_name, test_port)
             .expect("Could not enable service discovery");
 
         let connection = server_connection
             .lock()
             .expect("Could not get access to server connection");
 
-        let server_address =
-            discover_service(discovery_port, "foo").expect("Could discovery service");
+        let server_address = discover_service(&service_name).expect("Could not discover service");
         let client_connection =
             ClientConnection::new(&server_address).expect("Could not create ClientConnection");
 

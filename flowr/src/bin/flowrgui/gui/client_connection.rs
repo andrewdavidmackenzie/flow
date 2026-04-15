@@ -1,21 +1,13 @@
 use std::fmt::Display;
 
 use flowcore::errors::{Result, ResultExt};
+pub use flowrlib::discovery::discover_service;
 /// This is the message-queue implementation of the Client<-->[Coordinator][flowrlib::coordinator::Coordinator]
 /// communications
 use log::{info, trace};
-use simpdiscoverylib::BeaconListener;
 use zmq::Socket;
 
 use crate::gui::coordinator_connection::WAIT;
-
-/// Try to discover a particular service by name
-pub fn discover_service(discovery_port: u16, name: &str) -> Result<String> {
-    let listener = BeaconListener::new(name.as_bytes(), discovery_port)?;
-    let beacon = listener.wait(None)?;
-    let address = format!("{}:{}", beacon.service_ip, beacon.service_port);
-    Ok(address)
-}
 
 /// `ClientConnection` stores information related to the connection from a client
 /// to the [Coordinator][flowrlib::coordinator::Coordinator] and is used each time a message is to
