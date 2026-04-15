@@ -48,6 +48,13 @@ Additional constants in connection modules:
 
 ## Design
 
+### Principle: discovery is optional
+
+`flowrlib` is designed to be usable by binary crates outside this workspace. The discovery
+module and service name constants are conveniences — not obligations. Other binaries that
+use `flowrlib` can implement their own discovery mechanism. Nothing in `flowrlib`'s core
+(coordinator, executor, dispatcher) should depend on or require `mdns-sd`.
+
 ### New file: `flowr/src/lib/discovery.rs`
 
 Create a single module in `flowrlib` with two public functions that replace all duplicated
