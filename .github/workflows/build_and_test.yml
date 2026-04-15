@@ -54,7 +54,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ macos-14, ubuntu-latest ]
+        os: [ macos-14, ubuntu-24.04, ubuntu-24.04-arm ]
         rust: [ nightly ]
 
     steps:
@@ -78,11 +78,13 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update && sudo apt-get -y install libzmq3-dev binaryen lcov
-          wget https://github.com/WebAssembly/binaryen/releases/download/version_116/binaryen-version_116-x86_64-linux.tar.gz
-          tar -xvzf binaryen-version_116-x86_64-linux.tar.gz
-          sudo cp binaryen-version_116/bin/* /bin/
-          rm -rf binaryen-version_116
-          rm binaryen-version_116-x86_64-linux.tar.gz
+          ARCH=$(uname -m)
+          BINARYEN_VERSION="version_129"
+          wget https://github.com/WebAssembly/binaryen/releases/download/${BINARYEN_VERSION}/binaryen-${BINARYEN_VERSION}-${ARCH}-linux.tar.gz
+          tar -xvzf binaryen-${BINARYEN_VERSION}-${ARCH}-linux.tar.gz
+          sudo cp binaryen-${BINARYEN_VERSION}/bin/* /bin/
+          rm -rf binaryen-${BINARYEN_VERSION}
+          rm binaryen-${BINARYEN_VERSION}-${ARCH}-linux.tar.gz
           which wasm-opt
           wasm-opt --version
 
@@ -117,17 +119,35 @@ jobs:
       - name: compile flowrgui
         run: target/debug/flowc flowr/src/bin/flowrgui
 
-      - name: test
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
-          args: --features "online_tests"
+      - name: test-flowcore
+        timeout-minutes: 10
+        run: cargo test -p flowcore --features "online_tests"
+
+      - name: test-flowstdlib
+        timeout-minutes: 10
+        run: cargo test -p flowstdlib
+
+      - name: test-flowc
+        timeout-minutes: 10
+        run: cargo test -p flowc
+
+      - name: test-flowr-lib
+        timeout-minutes: 10
+        run: cargo test -p flowr --lib
+
+      - name: test-flowr-integration
+        timeout-minutes: 10
+
+        run: cargo test -p flowr --test wasm --test client_server --test flowrex
+
+      - name: test-flowr-flowrgui-integration
+        timeout-minutes: 10
+
+        run: cargo test -p flowr --test flowrgui
 
       - name: test-examples
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
-          args: --examples
+        timeout-minutes: 10
+        run: cargo test --examples
 
       - name: UploadCoverage
         run: |

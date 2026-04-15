@@ -96,7 +96,7 @@ impl fmt::Display for DebugServerMessage {
                 DebugServerMessage::Resetting => "Resetting",
                 DebugServerMessage::WaitingForCommand(_) => "WaitingForCommand",
                 DebugServerMessage::Invalid => "Invalid",
-                DebugServerMessage::FlowUnblockBreakpoint(_) => "FlowUnblockBreakpoint"
+                DebugServerMessage::FlowUnblockBreakpoint(_) => "FlowUnblockBreakpoint",
             }
         )
     }

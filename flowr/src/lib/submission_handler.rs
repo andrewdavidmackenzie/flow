@@ -31,8 +31,10 @@ pub trait SubmissionHandler {
     /// # Errors
     ///
     /// Returns an error if the message corresponding to the flow has ended cannot be sent
-    fn flow_execution_ended(&mut self, state: &RunState,
-                            #[cfg(feature = "metrics")] metrics: Metrics
+    fn flow_execution_ended(
+        &mut self,
+        state: &RunState,
+        #[cfg(feature = "metrics")] metrics: Metrics,
     ) -> Result<()>;
 
     /// The [Coordinator][crate::coordinator::Coordinator] wait for a

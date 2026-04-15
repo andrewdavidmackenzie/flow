@@ -1,7 +1,7 @@
 use std::sync::{Arc, Mutex};
 
-use flowcore::{Implementation, RUN_AGAIN, RunAgain};
 use flowcore::errors::Result;
+use flowcore::{Implementation, RunAgain, RUN_AGAIN};
 use serde_json::Value;
 
 use crate::gui::client_message::ClientMessage;
@@ -19,7 +19,9 @@ impl Implementation for FileWrite {
         let filename = inputs.first().ok_or("Could not get filename")?;
         let bytes = inputs.get(1).ok_or("Could not get filename")?;
 
-        let mut server = self.server_connection.lock()
+        let mut server = self
+            .server_connection
+            .lock()
             .map_err(|_| "Could not lock server")?;
 
         let byte_array = bytes.as_array().ok_or("Could not get bytes")?;
@@ -29,10 +31,9 @@ impl Implementation for FileWrite {
             .iter()
             .map(|byte_value| byte_value.as_u64().unwrap_or(0) as u8)
             .collect();
-        let _ = server.send_and_receive_response::<CoordinatorMessage, ClientMessage>(CoordinatorMessage::Write(
-            filename.as_str().unwrap_or("").to_string(),
-            bytes,
-        ));
+        let _ = server.send_and_receive_response::<CoordinatorMessage, ClientMessage>(
+            CoordinatorMessage::Write(filename.as_str().unwrap_or("").to_string(), bytes),
+        );
 
         Ok((None, RUN_AGAIN))
     }

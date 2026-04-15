@@ -1,12 +1,12 @@
 //! functions for generic operations on data
 //! ## Data (//flowstdlib/data)
 
-/// A module that implements String concatenation
-#[path = "append/append.rs"]
-pub mod append;
 /// A module that implements accumulating an array from a number of elements
 #[path = "accumulate/accumulate.rs"]
 pub mod accumulate;
+/// A module that implements String concatenation
+#[path = "append/append.rs"]
+pub mod append;
 /// A module that counts data passed thru it
 #[path = "count/count.rs"]
 pub mod count;

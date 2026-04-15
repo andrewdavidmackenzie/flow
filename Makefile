@@ -99,7 +99,7 @@ clippy:
 	cargo clippy --tests --no-deps --all-features --all-targets -- --warn clippy::pedantic
 
 .PHONY: test
-test:
+test: build
 	@echo "test<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
 ifneq ($(CODESIGN),)
 	@echo "Code signing tool \"codesign\" detected"

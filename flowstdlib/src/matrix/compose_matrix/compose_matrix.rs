@@ -1,7 +1,7 @@
 use serde_json::{json, Value};
 
-use flowcore::{RUN_AGAIN, RunAgain};
 use flowcore::errors::Result;
+use flowcore::{RunAgain, RUN_AGAIN};
 use flowmacro::flow_function;
 
 #[flow_function]
@@ -11,15 +11,22 @@ fn inner_compose_matrix(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
 
     let element_to_add = inputs.first().ok_or("Could not get element")?.clone();
 
-    let element_indexes = inputs.get(1).ok_or("Could not get element index")?
-        .as_array().ok_or("Could not get element index array")?;
+    let element_indexes = inputs
+        .get(1)
+        .ok_or("Could not get element index")?
+        .as_array()
+        .ok_or("Could not get element index array")?;
 
-    let partial = inputs.get(2).ok_or("Could not get partial")?.as_array().ok_or("Could not get partial")?;
+    let partial = inputs
+        .get(2)
+        .ok_or("Could not get partial")?
+        .as_array()
+        .ok_or("Could not get partial")?;
     let mut unwritten_cell_count = 0;
 
     // put element into the first null value we find, and only once
     for (row_index, row) in partial.iter().enumerate() {
-        let mut new_row: Vec<Value> = vec!();
+        let mut new_row: Vec<Value> = vec![];
         let row_array = row.as_array().ok_or("Could not get row")?;
         for (column_index, element) in row_array.iter().enumerate() {
             let first_element_index = element_indexes.first().ok_or("Could not get index")?;
@@ -56,8 +63,8 @@ mod test {
     #[test]
     fn compose_1_element() {
         let element = json!(42);
-        let element_indexes = json!([0,1]);
-        let partial = json!([[0.0, 0.0],[0.0,0.0]]);
+        let element_indexes = json!([0, 1]);
+        let partial = json!([[0.0, 0.0], [0.0, 0.0]]);
         let inputs = vec![element, element_indexes, partial];
 
         let (result, _) = inner_compose_matrix(&inputs).expect("_compose_matrix() failed");
@@ -68,12 +75,12 @@ mod test {
         assert!(matrix.is_none());
 
         let partial = output.pointer("/partial");
-        assert_eq!(partial, Some(&json!([[0.0, 42],[0.0,0.0]])));
+        assert_eq!(partial, Some(&json!([[0.0, 42], [0.0, 0.0]])));
     }
 
     #[test]
     fn compose_full_matrix() {
-        let mut partial = json!([[0.0, 0.0],[0.0,0.0]]);
+        let mut partial = json!([[0.0, 0.0], [0.0, 0.0]]);
 
         for (index, element) in [1, 2, 3, 4].iter().enumerate() {
             let element_indexes = json!([index / 2, index % 2]);
@@ -82,10 +89,13 @@ mod test {
             let output = result.expect("Could not get the Value from the output");
 
             if let Some(matrix) = output.pointer("/matrix") {
-                assert_eq!(matrix, &json!([[1,2],[3,4]]));
+                assert_eq!(matrix, &json!([[1, 2], [3, 4]]));
                 return;
             }
-            partial = output.pointer("/partial").expect("Could not get partial").clone();
+            partial = output
+                .pointer("/partial")
+                .expect("Could not get partial")
+                .clone();
         }
 
         panic!("Should not get this far");

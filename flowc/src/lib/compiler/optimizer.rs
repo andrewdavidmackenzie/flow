@@ -134,9 +134,9 @@ mod test {
             "/root/pure_function".into(),
             None,
             None,
-            vec!(),
+            vec![],
             0,
-            0
+            0,
         )
     }
 
@@ -152,9 +152,9 @@ mod test {
             "/root/impure_function".into(),
             None,
             None,
-            vec!(),
+            vec![],
             1,
-            0
+            0,
         )
     }
 
@@ -170,22 +170,26 @@ mod test {
 
     #[test]
     fn detect_live_pure_function_with_connection() {
-        let mut from_connection = Connection::new("/root/pure_function/output",
-                                              "/root/other/input");
-        from_connection.from_io_mut().set_route(&"/root/pure_function/output".into(),
-                                                &IOType::FunctionOutput);
-        let connections = vec!(from_connection);
+        let mut from_connection =
+            Connection::new("/root/pure_function/output", "/root/other/input");
+        from_connection.from_io_mut().set_route(
+            &"/root/pure_function/output".into(),
+            &IOType::FunctionOutput,
+        );
+        let connections = vec![from_connection];
 
         assert!(!super::dead_function(&connections, &pure_function()));
     }
 
     #[test]
     fn detect_dead_pure_function_with_bad_connection() {
-        let mut from_connection = Connection::new("/root/no_such_function/no_such_output",
-                                                  "/root/other/input");
-        from_connection.from_io_mut().set_route(&"/root/no_such_function/no_such_output".into(),
-                                                &IOType::FunctionOutput);
-        let connections = vec!(from_connection);
+        let mut from_connection =
+            Connection::new("/root/no_such_function/no_such_output", "/root/other/input");
+        from_connection.from_io_mut().set_route(
+            &"/root/no_such_function/no_such_output".into(),
+            &IOType::FunctionOutput,
+        );
+        let connections = vec![from_connection];
 
         assert!(super::dead_function(&connections, &pure_function()));
     }
@@ -199,13 +203,15 @@ mod test {
     #[test]
     fn no_optimization_to_be_done() {
         let mut tables = CompilerTables::new();
-        tables.functions = vec!(pure_function(), impure_function());
+        tables.functions = vec![pure_function(), impure_function()];
 
-        let mut from_connection = Connection::new("/root/pure_function/output",
-                                                  "/root/other/input");
-        from_connection.from_io_mut().set_route(&"/root/pure_function/output".into(),
-                                                &IOType::FunctionOutput);
-        tables.collapsed_connections = vec!(from_connection);
+        let mut from_connection =
+            Connection::new("/root/pure_function/output", "/root/other/input");
+        from_connection.from_io_mut().set_route(
+            &"/root/pure_function/output".into(),
+            &IOType::FunctionOutput,
+        );
+        tables.collapsed_connections = vec![from_connection];
 
         assert_eq!(tables.functions.len(), 2);
         optimize(&mut tables);
@@ -215,7 +221,7 @@ mod test {
     #[test]
     fn optimization_out_a_dead_one() {
         let mut tables = CompilerTables::new();
-        tables.functions = vec!(pure_function(), impure_function());
+        tables.functions = vec![pure_function(), impure_function()];
 
         assert_eq!(tables.functions.len(), 2);
         optimize(&mut tables);

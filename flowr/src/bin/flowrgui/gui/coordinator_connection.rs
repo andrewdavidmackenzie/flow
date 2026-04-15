@@ -1,7 +1,7 @@
 use std::fmt::Display;
 use std::time::Duration;
 
-use flowcore::errors::{Result, ResultExt, bail};
+use flowcore::errors::{bail, Result, ResultExt};
 
 /// This is the message-queue implementation of the Client<-->[Coordinator][flowrlib::coordinator::Coordinator]
 /// communications
@@ -10,10 +10,10 @@ use simpdiscoverylib::BeaconSender;
 use zmq::Socket;
 
 /// WAIT for a message to arrive when performing a `receive()`
-pub const WAIT:i32 = 0;
+pub const WAIT: i32 = 0;
 
 /// Do NOT WAIT for a message to arrive when performing a `receive()`
-pub static DONT_WAIT:i32 = zmq::DONTWAIT;
+pub static DONT_WAIT: i32 = zmq::DONTWAIT;
 
 /// Use this to discover the coordinator service by name
 pub const COORDINATOR_SERVICE_NAME: &str = "runtime._flowr._tcp.local";
@@ -25,9 +25,7 @@ pub const DEBUG_SERVICE_NAME: &str = "debug._flowr._tcp.local";
 pub fn enable_service_discovery(discovery_port: u16, name: &str, service_port: u16) -> Result<()> {
     match BeaconSender::new(service_port, name.as_bytes(), discovery_port) {
         Ok(beacon) => {
-            info!(
-                    "Discovery beacon announcing service named '{name}', on port: {service_port}"
-                );
+            info!("Discovery beacon announcing service named '{name}', on port: {service_port}");
             std::thread::spawn(move || {
                 let _ = beacon.send_loop(Duration::from_secs(1));
             });
@@ -57,21 +55,20 @@ impl CoordinatorConnection {
             .chain_err(|| "Coordinator Connection - could not create Socket")?;
 
         debug!("Coordinator Connection attempting to bind to: tcp://*:{port}");
-        responder.bind(&format!("tcp://*:{port}"))
-            .chain_err(||
-                format!("Coordinator Connection - could not bind on TCP Socket on: tcp://{port}"))?;
+        responder.bind(&format!("tcp://*:{port}")).chain_err(|| {
+            format!("Coordinator Connection - could not bind on TCP Socket on: tcp://{port}")
+        })?;
 
         info!("Service '{service_name}' listening on *:{port}");
 
-        Ok(CoordinatorConnection {
-            responder
-        })
+        Ok(CoordinatorConnection { responder })
     }
 
     /// Receive a Message sent from the client to the [Coordinator][flowrlib::coordinator::Coordinator]
     pub fn receive<CM>(&self, flags: i32) -> Result<CM>
     where
-        CM: From<String> + Display {
+        CM: From<String> + Display,
+    {
         trace!("Coordinator waiting for message from client");
 
         let msg = self
@@ -79,7 +76,9 @@ impl CoordinatorConnection {
             .recv_msg(flags)
             .map_err(|e| format!("Coordinator error getting message: '{e}'"))?;
 
-        let message_string = msg.as_str().ok_or("Could not get message as str")?
+        let message_string = msg
+            .as_str()
+            .ok_or("Could not get message as str")?
             .to_string();
         let message = message_string.into();
         trace!("                ---> Coordinator Received {message}");
@@ -91,7 +90,8 @@ impl CoordinatorConnection {
     pub fn send_and_receive_response<SM, CM>(&mut self, message: SM) -> Result<CM>
     where
         SM: Into<String> + Display,
-        CM: From<String> + Display {
+        CM: From<String> + Display,
+    {
         self.send(message)?;
         self.receive(WAIT)
     }
@@ -100,7 +100,8 @@ impl CoordinatorConnection {
     /// to the Client but don't wait for it's response
     pub fn send<SM>(&mut self, message: SM) -> Result<()>
     where
-        SM: Into<String> + Display {
+        SM: Into<String> + Display,
+    {
         trace!("                <--- Coordinator Sending {message}");
         self.responder
             .send(&message.into(), 0)

@@ -1,7 +1,7 @@
 use serde_json::Value;
 
-use flowcore::{RUN_AGAIN, RunAgain};
-use flowcore::errors::{Result, bail};
+use flowcore::errors::{bail, Result};
+use flowcore::{RunAgain, RUN_AGAIN};
 use flowmacro::flow_function;
 
 #[flow_function]
@@ -15,17 +15,13 @@ fn inner_to_json(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
     if input.is_string() {
         match input.as_str() {
             Some(string) => match serde_json::from_str(string) {
-                Ok(json) => {
-                    Ok((Some(json), RUN_AGAIN))
-                }
-                Err(_) => {
-                    Ok((
-                        Some(serde_json::Value::String(string.to_string())),
-                        RUN_AGAIN,
-                    ))
-                }
+                Ok(json) => Ok((Some(json), RUN_AGAIN)),
+                Err(_) => Ok((
+                    Some(serde_json::Value::String(string.to_string())),
+                    RUN_AGAIN,
+                )),
             },
-            None => bail!("Could not get input as string")
+            None => bail!("Could not get input as string"),
         }
     } else {
         Ok((Some(input.clone()), RUN_AGAIN))

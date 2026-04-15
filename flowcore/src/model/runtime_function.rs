@@ -422,17 +422,17 @@ mod test {
             0,
             String::default(),
             #[cfg(feature = "debugger")]
-                String::default(),
+            String::default(),
         );
         RuntimeFunction::new(
             #[cfg(feature = "debugger")]
-                "test",
+            "test",
             #[cfg(feature = "debugger")]
-                "/test",
+            "/test",
             "file://fake/implementation",
             vec![Input::new(
                 #[cfg(feature = "debugger")]
-                    "",
+                "",
                 array_order,
                 false,
                 None,
@@ -475,13 +475,13 @@ mod test {
             0,
             String::default(),
             #[cfg(feature = "debugger")]
-                String::default(),
+            String::default(),
         );
         let mut function = RuntimeFunction::new(
             #[cfg(feature = "debugger")]
-                "test",
+            "test",
             #[cfg(feature = "debugger")]
-                "/test",
+            "/test",
             "file://fake/test",
             vec![Input::new("", 0, false, None, None)],
             0,
@@ -520,13 +520,13 @@ mod test {
         fn test_function(array_order: i32, generic: bool) -> RuntimeFunction {
             RuntimeFunction::new(
                 #[cfg(feature = "debugger")]
-                    "test",
+                "test",
                 #[cfg(feature = "debugger")]
-                    "/test",
+                "/test",
                 "file://fake/test",
                 vec![Input::new(
                     #[cfg(feature = "debugger")]
-                        "",
+                    "",
                     array_order,
                     generic,
                     None,

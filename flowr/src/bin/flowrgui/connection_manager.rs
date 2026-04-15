@@ -2,7 +2,7 @@ use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use std::thread;
 
-use iced::{Subscription, subscription};
+use iced::{subscription, Subscription};
 use log::{error, info, trace};
 use portpicker::pick_unused_port;
 use tokio::sync::mpsc::Receiver;
@@ -13,18 +13,21 @@ use flowcore::provider::Provider;
 use flowrlib::coordinator::Coordinator;
 use flowrlib::dispatcher::Dispatcher;
 use flowrlib::executor::Executor;
-use flowrlib::services::{CONTROL_SERVICE_NAME, JOB_QUEUES_DISCOVERY_PORT, JOB_SERVICE_NAME, RESULTS_JOB_SERVICE_NAME};
+use flowrlib::services::{
+    CONTROL_SERVICE_NAME, JOB_QUEUES_DISCOVERY_PORT, JOB_SERVICE_NAME, RESULTS_JOB_SERVICE_NAME,
+};
 
-use crate::{context, CoordinatorSettings, ServerSettings};
 use crate::errors::{Result, ResultExt};
-use crate::gui::client_connection::{ClientConnection, discover_service};
+use crate::gui::client_connection::{discover_service, ClientConnection};
 use crate::gui::client_message::ClientMessage;
-use crate::gui::coordinator_connection::{COORDINATOR_SERVICE_NAME, DEBUG_SERVICE_NAME,
-                                         enable_service_discovery};
 use crate::gui::coordinator_connection::CoordinatorConnection;
+use crate::gui::coordinator_connection::{
+    enable_service_discovery, COORDINATOR_SERVICE_NAME, DEBUG_SERVICE_NAME,
+};
 use crate::gui::coordinator_message::CoordinatorMessage;
 use crate::gui::debug_handler::CliDebugHandler;
 use crate::gui::submission_handler::CLISubmissionHandler;
+use crate::{context, CoordinatorSettings, ServerSettings};
 
 /// States in which the Connection to the Coordinator can find itself
 pub enum CoordinatorState {
@@ -54,37 +57,37 @@ pub fn subscribe(coordinator_settings: CoordinatorSettings) -> Subscription<Coor
                 loop {
                     match state {
                         CoordinatorState::Init(settings) => {
-                            let discovery_port = start_server(settings)
-                                .unwrap(); // TODO
+                            let discovery_port = start_server(settings).unwrap(); // TODO
                             state = CoordinatorState::Discovery(discovery_port);
-                        },
+                        }
 
                         CoordinatorState::Discovery(discovery_port) => {
-                            let address = discover_service(discovery_port, COORDINATOR_SERVICE_NAME)
-                                .unwrap(); // TODO
+                            let address =
+                                discover_service(discovery_port, COORDINATOR_SERVICE_NAME).unwrap(); // TODO
                             state = CoordinatorState::Discovered(address);
                         }
 
                         CoordinatorState::Discovered(address) => {
-                            let connection = ClientConnection::new(&address)
-                                .unwrap(); // TODO
+                            let connection = ClientConnection::new(&address).unwrap(); // TODO
 
                             // Create channel to get messages from the app
                             let (app_side_sender, app_receiver) = tokio::sync::mpsc::channel(100);
 
                             // Send the Sender to the App in a Message, for App to use to send us messages
-                            let _ = app_sender.try_send(CoordinatorMessage::Connected(app_side_sender));
+                            let _ =
+                                app_sender.try_send(CoordinatorMessage::Connected(app_side_sender));
 
-                            state = CoordinatorState::Connected(app_receiver,
-                                                                Arc::new(Mutex::new(connection)));
-                        },
+                            state = CoordinatorState::Connected(
+                                app_receiver,
+                                Arc::new(Mutex::new(connection)),
+                            );
+                        }
 
-                        CoordinatorState::Connected(ref mut app_receiver,
-                                                    ref connection) => {
+                        CoordinatorState::Connected(ref mut app_receiver, ref connection) => {
                             if running {
                                 // read the message back from the Coordinator
-                                let coordinator_message: CoordinatorMessage = connection
-                                    .lock().unwrap().receive().unwrap(); // TODO
+                                let coordinator_message: CoordinatorMessage =
+                                    connection.lock().unwrap().receive().unwrap(); // TODO
 
                                 // Forward the message to the app
                                 app_sender.try_send(coordinator_message.clone()).unwrap(); // TODO
@@ -97,7 +100,11 @@ pub fn subscribe(coordinator_settings: CoordinatorSettings) -> Subscription<Coor
                                     #[allow(clippy::single_match_else)]
                                     match app_receiver.recv().await {
                                         Some(client_message) => {
-                                            connection.lock().unwrap().send(client_message).unwrap();
+                                            connection
+                                                .lock()
+                                                .unwrap()
+                                                .send(client_message)
+                                                .unwrap();
                                         }
                                         None => error!("Error receiving from app"), // TODO
                                     }
@@ -115,22 +122,21 @@ pub fn subscribe(coordinator_settings: CoordinatorSettings) -> Subscription<Coor
                     }
                 }
             }
-        }
+        },
     )
 }
 
 // Start a coordinator server in a background thread, then discover it and return the address
 fn start_server(coordinator_settings: ServerSettings) -> Result<u16> {
     let runtime_port = pick_unused_port().chain_err(|| "No ports free")?;
-    let coordinator_connection = CoordinatorConnection::new(COORDINATOR_SERVICE_NAME,
-                                                            runtime_port)?;
+    let coordinator_connection =
+        CoordinatorConnection::new(COORDINATOR_SERVICE_NAME, runtime_port)?;
 
     let discovery_port = pick_unused_port().chain_err(|| "No ports free")?;
     enable_service_discovery(discovery_port, COORDINATOR_SERVICE_NAME, runtime_port)?;
 
     let debug_port = pick_unused_port().chain_err(|| "No ports free")?;
-    let debug_connection = CoordinatorConnection::new(DEBUG_SERVICE_NAME,
-                                                      debug_port)?;
+    let debug_connection = CoordinatorConnection::new(DEBUG_SERVICE_NAME, debug_port)?;
     enable_service_discovery(discovery_port, DEBUG_SERVICE_NAME, debug_port)?;
 
     info!("Starting coordinator in background thread");
@@ -154,10 +160,14 @@ fn coordinator(
 ) -> Result<()> {
     let connection = Arc::new(Mutex::new(coordinator_connection));
 
-    let mut debug_server = CliDebugHandler { debug_server_connection: debug_connection };
+    let mut debug_server = CliDebugHandler {
+        debug_server_connection: debug_connection,
+    };
 
-    let provider = Arc::new(MetaProvider::new(coordinator_settings.lib_search_path,
-                                              PathBuf::from("/"))) as Arc<dyn Provider>;
+    let provider = Arc::new(MetaProvider::new(
+        coordinator_settings.lib_search_path,
+        PathBuf::from("/"),
+    )) as Arc<dyn Provider>;
 
     let ports = get_four_ports()?;
     trace!("Announcing three job queues and a control socket on ports: {ports:?}");
@@ -178,33 +188,33 @@ fn coordinator(
         executor.add_lib(
             flowstdlib::manifest::get()
                 .chain_err(|| "Could not get 'native' flowstdlib manifest")?,
-            Url::parse("memory://")? // Statically linked library has no resolved Url
+            Url::parse("memory://")?, // Statically linked library has no resolved Url
         )?;
     }
-    executor.start(&provider, coordinator_settings.num_threads,
-                   &job_source_name,
-                   &results_sink,
-                   &control_socket,
+    executor.start(
+        &provider,
+        coordinator_settings.num_threads,
+        &job_source_name,
+        &results_sink,
+        &control_socket,
     );
 
     let mut context_executor = Executor::new();
     context_executor.add_lib(
         context::get_manifest(connection.clone())?,
-        Url::parse("memory://")? // Statically linked library has no resolved Url
+        Url::parse("memory://")?, // Statically linked library has no resolved Url
     )?;
-    context_executor.start(&provider, 1,
-                           &context_job_source_name,
-                           &results_sink,
-                           &control_socket,
+    context_executor.start(
+        &provider,
+        1,
+        &context_job_source_name,
+        &results_sink,
+        &control_socket,
     );
 
     let mut submitter = CLISubmissionHandler::new(connection);
 
-    let mut coordinator = Coordinator::new(
-        dispatcher,
-        &mut submitter,
-        &mut debug_server
-    );
+    let mut coordinator = Coordinator::new(dispatcher, &mut submitter, &mut debug_server);
 
     Ok(coordinator.submission_loop(loop_forever)?)
 }
@@ -239,7 +249,8 @@ fn get_bind_addresses(ports: (u16, u16, u16, u16)) -> (String, String, String, S
 
 // Return four free ports to use for client-coordinator message queues
 fn get_four_ports() -> Result<(u16, u16, u16, u16)> {
-    Ok((pick_unused_port().chain_err(|| "No ports free")?,
+    Ok((
+        pick_unused_port().chain_err(|| "No ports free")?,
         pick_unused_port().chain_err(|| "No ports free")?,
         pick_unused_port().chain_err(|| "No ports free")?,
         pick_unused_port().chain_err(|| "No ports free")?,

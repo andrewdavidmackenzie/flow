@@ -13,9 +13,9 @@ use crate::model::connection::Direction;
 use crate::model::connection::Direction::FROM;
 use crate::model::connection::Direction::TO;
 use crate::model::input::InputInitializer;
-use crate::model::io::{IO, IOType};
 use crate::model::io::Find;
 use crate::model::io::IOSet;
+use crate::model::io::{IOType, IO};
 use crate::model::metadata::MetaData;
 use crate::model::name::HasName;
 use crate::model::name::Name;
@@ -23,10 +23,10 @@ use crate::model::process::Process;
 use crate::model::process::Process::FlowProcess;
 use crate::model::process::Process::FunctionProcess;
 use crate::model::process_reference::ProcessReference;
-use crate::model::route::{Route, RouteType};
 use crate::model::route::HasRoute;
 use crate::model::route::SetIORoutes;
 use crate::model::route::SetRoute;
+use crate::model::route::{Route, RouteType};
 use crate::model::validation::Validate;
 
 /// `FlowDefinition` defines (at compile time) a parent or child flow in the nested flow hierarchy
@@ -225,15 +225,16 @@ impl FlowDefinition {
     }
 
     /// Set the initial values on the IOs in an `IOSet` using a set of Input Initializers
-    fn set_initializers(&mut self, initializer_map: &BTreeMap<String, InputInitializer>)
-    -> Result<()> {
+    fn set_initializers(
+        &mut self,
+        initializer_map: &BTreeMap<String, InputInitializer>,
+    ) -> Result<()> {
         for (input_name, initializer) in initializer_map {
             // Go through all inputs matching names with names used in initializers
             for (index, input) in self.inputs.iter_mut().enumerate() {
-                if input.name() == input_name
-                    || (input_name.as_str() == "default" && index == 0)
-                {
-                    input.set_initializer(Some(initializer.clone()))
+                if input.name() == input_name || (input_name.as_str() == "default" && index == 0) {
+                    input
+                        .set_initializer(Some(initializer.clone()))
                         .chain_err(|| "Failed to set initializers in flow")?;
                 }
             }
@@ -283,32 +284,33 @@ impl FlowDefinition {
             Some(FlowProcess(ref mut sub_flow)) => {
                 debug!("\tFlow sub-process with matching name found, name = '{subprocess_alias}'");
                 match direction {
-                    TO => sub_flow
-                        .inputs
-                        .find_by_subroute(sub_route),
-                    FROM => sub_flow
-                        .outputs
-                        .find_by_subroute(sub_route),
+                    TO => sub_flow.inputs.find_by_subroute(sub_route),
+                    FROM => sub_flow.outputs.find_by_subroute(sub_route),
                 }
-            },
+            }
 
             Some(FunctionProcess(ref mut function)) => {
                 debug!("\tFunction sub-process with name = '{subprocess_alias}' found");
                 match direction {
                     TO => function.inputs.find_by_subroute(sub_route),
-                    FROM => function.outputs.find_by_subroute(sub_route)
-                        .or_else(|e1| { // for connections FROM the Input value copied at the output
-                            function.inputs.find_by_subroute(sub_route)
-                                .chain_err(|| e1 )
-                        }),
+                    FROM => function.outputs.find_by_subroute(sub_route).or_else(|e1| {
+                        // for connections FROM the Input value copied at the output
+                        function.inputs.find_by_subroute(sub_route).chain_err(|| e1)
+                    }),
                 }
             }
 
             None => {
-                    bail!("No sub-process named '{subprocess_alias}' exists in the flow '{}'\n\
+                bail!(
+                    "No sub-process named '{subprocess_alias}' exists in the flow '{}'\n\
                 possible sub-process names are: '{}'",
-                        self.route, self.subprocesses.keys().map(std::string::String::as_str)
-                            .collect::<Vec<&str>>().join(", "))
+                    self.route,
+                    self.subprocesses
+                        .keys()
+                        .map(std::string::String::as_str)
+                        .collect::<Vec<&str>>()
+                        .join(", ")
+                )
             }
         }
     }
@@ -323,11 +325,7 @@ impl FlowDefinition {
     // Invalid Connections are:
     // FROM a FLowOutput
     // TO a FlowInput
-    fn get_io_by_route(
-        &mut self,
-        direction: &Direction,
-        route: &Route,
-    ) -> Result<IO> {
+    fn get_io_by_route(&mut self, direction: &Direction, route: &Route) -> Result<IO> {
         debug!("Looking for connection {direction:?} '{route}'");
         match (&direction, route.parse_subroute()?) {
             (&FROM, RouteType::FlowInput(input_name, sub_route)) => {
@@ -338,22 +336,25 @@ impl FlowDefinition {
                 // accumulate any subroute within the input
                 from.route_mut().extend(&sub_route);
                 Ok(from)
-            },
+            }
 
-            (&TO, RouteType::FlowOutput(output_name)) =>
-                self.outputs.find_by_subroute(&Route::from(output_name.clone())),
+            (&TO, RouteType::FlowOutput(output_name)) => self
+                .outputs
+                .find_by_subroute(&Route::from(output_name.clone())),
 
-            (_, RouteType::SubProcess(process_name, sub_route)) =>
-                self.get_subprocess_io(&process_name, direction, &sub_route),
+            (_, RouteType::SubProcess(process_name, sub_route)) => {
+                self.get_subprocess_io(&process_name, direction, &sub_route)
+            }
 
             (&FROM, RouteType::FlowOutput(output_name)) => {
                 bail!("Invalid connection FROM an output named: '{}'", output_name)
-            },
+            }
 
             (&TO, RouteType::FlowInput(input_name, sub_route)) => {
                 bail!(
                     "Invalid connection TO an input named: '{}' with sub_route: '{}'",
-                    input_name, sub_route
+                    input_name,
+                    sub_route
                 )
             }
         }
@@ -373,7 +374,7 @@ impl FlowDefinition {
         // get connections out of self - so we can use immutable references to self inside loop
         let mut connections = take(&mut self.connections);
 
-        for connection in&mut  connections {
+        for connection in &mut connections {
             if let Err(e) = self.build_connection(connection, level) {
                 error_count += 1;
                 error!("{e}");
@@ -403,9 +404,15 @@ impl FlowDefinition {
     //
     // Propagate any initializers on a flow output to the input (subflow or function) it is connected to
     fn build_connection(&mut self, connection: &Connection, level: usize) -> Result<()> {
-        let from_io = self.get_io_by_route(&FROM, connection.from())
-            .chain_err(|| format!("Did not find connection source: '{}' specified in flow '{}'\n",
-                   connection.from(), self.source_url))?;
+        let from_io = self
+            .get_io_by_route(&FROM, connection.from())
+            .chain_err(|| {
+                format!(
+                    "Did not find connection source: '{}' specified in flow '{}'\n",
+                    connection.from(),
+                    self.source_url
+                )
+            })?;
         trace!("Found connection source:\n{from_io:#?}");
 
         // Connection can specify multiple destinations within flow - iterate over them all
@@ -455,12 +462,12 @@ mod test {
             name: "test_flow".into(),
             alias: "test_flow".into(),
             inputs: vec![
-                IO::new_named(vec!(STRING_TYPE.into()), "string", "string"),
-                IO::new_named(vec!(NUMBER_TYPE.into()), "number", "number"),
+                IO::new_named(vec![STRING_TYPE.into()], "string", "string"),
+                IO::new_named(vec![NUMBER_TYPE.into()], "number", "number"),
             ],
             outputs: vec![
-                IO::new_named(vec!(STRING_TYPE.into()), "string", "string"),
-                IO::new_named(vec!(NUMBER_TYPE.into()), "number", "number"),
+                IO::new_named(vec![STRING_TYPE.into()], "string", "string"),
+                IO::new_named(vec![NUMBER_TYPE.into()], "number", "number"),
             ],
             source_url: FlowDefinition::default_url(),
             ..Default::default()
@@ -468,18 +475,20 @@ mod test {
 
         let process_1 = Process::FunctionProcess(FunctionDefinition {
             name: "process_1".into(),
-            inputs: vec![IO::new_named(vec!(STRING_TYPE.into()),
-                                       "", "")],
-            outputs: vec![IO::new_named(vec!(STRING_TYPE.into()),
-                                        "output_1", "output_1")],
+            inputs: vec![IO::new_named(vec![STRING_TYPE.into()], "", "")],
+            outputs: vec![IO::new_named(
+                vec![STRING_TYPE.into()],
+                "output_1",
+                "output_1",
+            )],
             ..Default::default()
         });
 
         let process_2 = Process::FunctionProcess(FunctionDefinition {
             name: "process_2".into(),
             function_id: 1,
-            inputs: vec![IO::new_named(vec!(STRING_TYPE.into()), "", "")],
-            outputs: vec![IO::new_named(vec!(NUMBER_TYPE.into()), "", "")],
+            inputs: vec![IO::new_named(vec![STRING_TYPE.into()], "", "")],
+            outputs: vec![IO::new_named(vec![NUMBER_TYPE.into()], "", "")],
             ..Default::default()
         });
 
@@ -524,48 +533,50 @@ mod test {
     #[test]
     fn test_non_existent_subprocess_in_connection() {
         let mut flow = test_flow();
-        match flow.get_subprocess_io(&Name::from("foo"),
-                                     &Direction::FROM,
-                                     &Route::from("who-cares")) {
+        match flow.get_subprocess_io(
+            &Name::from("foo"),
+            &Direction::FROM,
+            &Route::from("who-cares"),
+        ) {
             Ok(_) => panic!("Should not find non-existent sub-process"),
             Err(e) => {
                 assert!(e.to_string().contains("No sub-process named"));
-            },
+            }
         }
     }
 
     #[test]
     fn test_existent_subprocess_existing_io_in_connection() {
         let mut flow = test_flow();
-        flow.get_subprocess_io(&Name::from("process_1"),
-                                     &Direction::FROM,
-                                     &Route::from(""))
+        flow.get_subprocess_io(&Name::from("process_1"), &Direction::FROM, &Route::from(""))
             .expect("Could not find sub-process called process_1");
     }
 
     #[test]
     fn test_existent_subprocess_non_existing_input_in_connection() {
         let mut flow = test_flow();
-        match flow.get_subprocess_io(&Name::from("process_1"),
-                                     &Direction::TO,
-                                     &Route::from("no-such-io")) {
-
+        match flow.get_subprocess_io(
+            &Name::from("process_1"),
+            &Direction::TO,
+            &Route::from("no-such-io"),
+        ) {
             Ok(_) => panic!("Should not find non-existent sub-process input"),
-            Err(e) => assert!(e.to_string().contains("No IO"))
+            Err(e) => assert!(e.to_string().contains("No IO")),
         }
     }
 
     #[test]
     fn test_existent_subprocess_non_existing_io_in_connection() {
         let mut flow = test_flow();
-        match flow.get_subprocess_io(&Name::from("process_1"),
-                               &Direction::FROM,
-                               &Route::from("no-such-io")) {
-
+        match flow.get_subprocess_io(
+            &Name::from("process_1"),
+            &Direction::FROM,
+            &Route::from("no-such-io"),
+        ) {
             Ok(_) => panic!("Should not find non-existent sub-process IO"),
             Err(e) => {
                 assert!(e.to_string().contains("No IO"));
-            },
+            }
         }
     }
 
@@ -635,7 +646,8 @@ mod test {
         let mut initializers = BTreeMap::new();
         initializers.insert(STRING_TYPE.into(), Always(json!("Hello")));
         initializers.insert(NUMBER_TYPE.into(), Once(json!(42)));
-        flow.set_initializers(&initializers).expect("Could not set initializers");
+        flow.set_initializers(&initializers)
+            .expect("Could not set initializers");
 
         assert_eq!(
             flow.inputs()

@@ -8,11 +8,16 @@ use flowrlib::job::Job;
 use flowrlib::run_state::{RunState, State};
 use serde_json::Value;
 
-use crate::{BlockBreakpoint, CoordinatorConnection, DataBreakpoint, ExecutionEnded, ExecutionStarted,
-            ExitingDebugger, JobCompleted, JobError, Panic, PriorToSendingJob, Resetting,
-            WaitingForCommand};
-use crate::DebugServerMessage::{BlockState, Error, FlowUnblockBreakpoint, Functions, FunctionStates, InputState, Message, OutputState, OverallState};
 use crate::gui::coordinator_connection::WAIT;
+use crate::DebugServerMessage::{
+    BlockState, Error, FlowUnblockBreakpoint, FunctionStates, Functions, InputState, Message,
+    OutputState, OverallState,
+};
+use crate::{
+    BlockBreakpoint, CoordinatorConnection, DataBreakpoint, ExecutionEnded, ExecutionStarted,
+    ExitingDebugger, JobCompleted, JobError, Panic, PriorToSendingJob, Resetting,
+    WaitingForCommand,
+};
 
 /// A debug handler for interacting between the CLI client and the Debugger in the Coordinator
 pub(crate) struct CliDebugHandler {
@@ -53,9 +58,17 @@ impl DebuggerHandler for CliDebugHandler {
     }
 
     // A breakpoint on sending a value from a specific function or to a specific function was hit
-    fn send_breakpoint(&mut self, source_function_name: &str, source_function_id: usize,
-                       output_route: &str, value: &Value, destination_id: usize,
-                       destination_name: &str, io_name: &str, input_number: usize) {
+    fn send_breakpoint(
+        &mut self,
+        source_function_name: &str,
+        source_function_id: usize,
+        output_route: &str,
+        value: &Value,
+        destination_id: usize,
+        destination_name: &str,
+        io_name: &str,
+        input_number: usize,
+    ) {
         let _: flowcore::errors::Result<DebugCommand> = self
             .debug_server_connection
             .send_and_receive_response(DataBreakpoint(
@@ -79,16 +92,16 @@ impl DebuggerHandler for CliDebugHandler {
 
     // A specific job completed
     fn job_completed(&mut self, job: &Job) {
-        let _: flowcore::errors::Result<DebugCommand> =
-            self.debug_server_connection
-                .send_and_receive_response(JobCompleted(job.clone()));
+        let _: flowcore::errors::Result<DebugCommand> = self
+            .debug_server_connection
+            .send_and_receive_response(JobCompleted(job.clone()));
     }
 
     // returns a set of blocks
     fn blocks(&mut self, blocks: Vec<Block>) {
-        let _: flowcore::errors::Result<DebugCommand> =
-            self.debug_server_connection
-                .send_and_receive_response(BlockState(blocks));
+        let _: flowcore::errors::Result<DebugCommand> = self
+            .debug_server_connection
+            .send_and_receive_response(BlockState(blocks));
     }
 
     // returns an output's connections
@@ -112,7 +125,7 @@ impl DebuggerHandler for CliDebugHandler {
     }
 
     // returns the state of a function
-    fn function_states(&mut self,  function: RuntimeFunction, function_states: Vec<State>) {
+    fn function_states(&mut self, function: RuntimeFunction, function_states: Vec<State>) {
         let _: flowcore::errors::Result<DebugCommand> = self
             .debug_server_connection
             .send_and_receive_response(FunctionStates((function, function_states)));
@@ -156,7 +169,8 @@ impl DebuggerHandler for CliDebugHandler {
     // An error occurred in the debugger
     fn debugger_error(&mut self, error_message: String) {
         let _: flowcore::errors::Result<DebugCommand> = self
-            .debug_server_connection.send_and_receive_response(Error(error_message));
+            .debug_server_connection
+            .send_and_receive_response(Error(error_message));
     }
 
     // execution of the flow is starting
@@ -175,8 +189,7 @@ impl DebuggerHandler for CliDebugHandler {
 
     // Get a command for the debugger to perform
     fn get_command(&mut self, state: &RunState) -> flowcore::errors::Result<DebugCommand> {
-        self
-            .debug_server_connection
+        self.debug_server_connection
             .send_and_receive_response(WaitingForCommand(state.get_number_of_jobs_created()))
     }
 }

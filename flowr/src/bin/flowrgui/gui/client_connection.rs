@@ -37,7 +37,9 @@ impl ClientConnection {
 
         requester
             .connect(&format!("tcp://{coordinator_address}"))
-            .chain_err(|| format!("Client Connection - Could not connect to socket at: {coordinator_address}"))?;
+            .chain_err(|| {
+                format!("Client Connection - Could not connect to socket at: {coordinator_address}")
+            })?;
 
         info!("Client connected to coordinator at '{coordinator_address}'");
 
@@ -48,7 +50,8 @@ impl ClientConnection {
     /// [Coordinator][flowrlib::coordinator::Coordinator]
     pub fn receive<CM>(&self) -> Result<CM>
     where
-        CM: From<String> + Display {
+        CM: From<String> + Display,
+    {
         trace!("Client waiting for message from coordinator");
 
         let msg = self
@@ -56,8 +59,10 @@ impl ClientConnection {
             .recv_msg(WAIT)
             .map_err(|e| format!("Error receiving from coordinator: {e}"))?;
 
-        let message_string = msg.as_str()
-            .ok_or("Could not get Message as String")?.to_owned();
+        let message_string = msg
+            .as_str()
+            .ok_or("Could not get Message as String")?
+            .to_owned();
         trace!("Client Received <--- {message_string}");
         Ok(message_string.into())
     }
@@ -66,7 +71,8 @@ impl ClientConnection {
     /// [Coordinator][flowrlib::coordinator::Coordinator]
     pub fn send<CM>(&self, message: CM) -> Result<()>
     where
-        CM: Into<String> + Display {
+        CM: Into<String> + Display,
+    {
         trace!("Client Sending     ---> {message}");
         self.requester
             .send(&message.into(), WAIT)

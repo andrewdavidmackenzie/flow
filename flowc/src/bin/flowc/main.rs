@@ -28,7 +28,7 @@ use lib_build::build_lib;
 
 use crate::flow_compile::compile_and_execute_flow;
 use crate::lib_build::build_runner;
-use crate::source_arg::{CompileType, default_runner_dir, load_runner_spec};
+use crate::source_arg::{default_runner_dir, load_runner_spec, CompileType};
 
 mod errors;
 mod flow_compile;
@@ -56,7 +56,7 @@ pub(crate) struct Options {
 
 #[derive(Deserialize)]
 pub(crate) struct RunnerSpec {
-    pub(crate) name: String
+    pub(crate) name: String,
 }
 
 fn main() {
@@ -90,8 +90,7 @@ fn get_lib_search_path(search_path_additions: &[String]) -> Simpath {
     }
 
     if lib_search_path.is_empty() {
-        let home_dir = env::var("HOME")
-            .unwrap_or_else(|_| "Could not get $HOME".to_string());
+        let home_dir = env::var("HOME").unwrap_or_else(|_| "Could not get $HOME".to_string());
         lib_search_path.add(&format!("{home_dir}/.flow/lib"));
     }
 
@@ -106,7 +105,8 @@ fn get_lib_search_path(search_path_additions: &[String]) -> Simpath {
 fn compile_type(url: &Url) -> Result<CompileType> {
     match url.scheme() {
         "file" | "" => {
-            let path = url.to_file_path()
+            let path = url
+                .to_file_path()
                 .map_err(|()| "Could not get local file path for Url")?;
 
             if path.exists() && path.is_file() {
@@ -125,7 +125,7 @@ fn compile_type(url: &Url) -> Result<CompileType> {
                     return Ok(CompileType::Library);
                 }
                 if path.join("runner.toml").exists() {
-                    let spec_path =  path.join("runner.toml");
+                    let spec_path = path.join("runner.toml");
                     let runner_name = load_runner_spec(&spec_path)?.name;
                     return Ok(CompileType::Runner(runner_name));
                 }
@@ -150,35 +150,35 @@ fn run() -> Result<()> {
 
     match compile_type {
         CompileType::Library => {
-            let output_dir = source_arg::get_output_dir(&options.source_url,
-                                                        &options.output_dir,
-                                                        compile_type)
-                .chain_err(|| "Could not get the output directory")?;
+            let output_dir =
+                source_arg::get_output_dir(&options.source_url, &options.output_dir, compile_type)
+                    .chain_err(|| "Could not get the output directory")?;
 
             // Add the parent of the output_dir to the search path so compiler can find internal
             // references functions and flows during the lib build process
-            let output_dir_parent = output_dir.parent()
+            let output_dir_parent = output_dir
+                .parent()
                 .ok_or("Could not get parent of output dir")?
                 .to_string_lossy();
             lib_search_path.add(&output_dir_parent);
-            let provider = &MetaProvider::new(lib_search_path,
-                                              PathBuf::default());
+            let provider = &MetaProvider::new(lib_search_path, PathBuf::default());
             build_lib(&options, provider, &output_dir).chain_err(|| "Could not build library")
-        },
+        }
         CompileType::Runner(_) => {
-            let output_dir = source_arg::get_output_dir(&options.source_url,
-                                                        &options.output_dir,
-                                                        compile_type)
-                .chain_err(|| "Could not get the output directory")?;
+            let output_dir =
+                source_arg::get_output_dir(&options.source_url, &options.output_dir, compile_type)
+                    .chain_err(|| "Could not get the output directory")?;
             build_runner(&options, &output_dir).chain_err(|| "Could not build runner")
-        },
+        }
         CompileType::Flow => {
-            let output_dir = source_arg::get_output_dir(&options.source_url,
-                                                        &options.output_dir,
-                                                        compile_type)
-                .chain_err(|| "Could not get the output directory")?;
+            let output_dir =
+                source_arg::get_output_dir(&options.source_url, &options.output_dir, compile_type)
+                    .chain_err(|| "Could not get the output directory")?;
 
-            let runner_name = options.runner_name.as_ref().ok_or("Runner name was not specified")?;
+            let runner_name = options
+                .runner_name
+                .as_ref()
+                .ok_or("Runner name was not specified")?;
             let runner_dir = default_runner_dir(&runner_name.clone());
             let provider = &MetaProvider::new(lib_search_path, runner_dir);
             compile_and_execute_flow(&options, provider, runner_name, &output_dir)
@@ -189,8 +189,7 @@ fn run() -> Result<()> {
 // Parse the command line arguments using clap
 #[allow(clippy::too_many_lines)]
 fn get_matches() -> ArgMatches {
-    let app = Command::new(env!("CARGO_PKG_NAME"))
-        .version(env!("CARGO_PKG_VERSION"));
+    let app = Command::new(env!("CARGO_PKG_NAME")).version(env!("CARGO_PKG_VERSION"));
 
     #[cfg(feature = "debugger")]
     let app = app.arg(
@@ -330,15 +329,15 @@ fn parse_args(matches: &ArgMatches) -> Result<Options> {
     );
     debug!("'flowrclib' version {}", info::version());
 
-    let cwd = env::current_dir()
-        .chain_err(|| "Could not get the current working directory")?;
+    let cwd = env::current_dir().chain_err(|| "Could not get the current working directory")?;
     let cwd_url = Url::from_directory_path(cwd)
         .map_err(|()| "Could not form a Url for the current working directory")?;
 
-    let source_url = url_from_string(&cwd_url,
-                                     matches.get_one::<String>("source_url")
-                                  .map(String::as_str))
-        .chain_err(|| "Could not create a url for flow from the 'FLOW' command line parameter")?;
+    let source_url = url_from_string(
+        &cwd_url,
+        matches.get_one::<String>("source_url").map(String::as_str),
+    )
+    .chain_err(|| "Could not create a url for flow from the 'FLOW' command line parameter")?;
 
     let lib_dirs = if matches.contains_id("lib_dir") {
         matches
@@ -352,7 +351,7 @@ fn parse_args(matches: &ArgMatches) -> Result<Options> {
 
     let flow_args = match matches.get_many::<String>("flow_args") {
         Some(strings) => strings.map(std::string::ToString::to_string).collect(),
-        None => vec![]
+        None => vec![],
     };
 
     Ok(Options {
@@ -364,12 +363,18 @@ fn parse_args(matches: &ArgMatches) -> Result<Options> {
         compile_only: matches.get_flag("compile"),
         debug_symbols: matches.get_flag("debug"),
         provided_implementations: matches.get_flag("provided"),
-        output_dir: matches.get_one::<String>("output").map(std::string::ToString::to_string),
-        stdin_file: matches.get_one::<String>("stdin").map(std::string::ToString::to_string),
+        output_dir: matches
+            .get_one::<String>("output")
+            .map(std::string::ToString::to_string),
+        stdin_file: matches
+            .get_one::<String>("stdin")
+            .map(std::string::ToString::to_string),
         lib_dirs,
         native_only: matches.get_flag("native"),
-        runner_name: matches.get_one::<String>("runner").map(std::string::ToString::to_string),
+        runner_name: matches
+            .get_one::<String>("runner")
+            .map(std::string::ToString::to_string),
         verbosity: verbosity_option.map(std::string::ToString::to_string),
-        optimize: matches.get_flag("optimize")
+        optimize: matches.get_flag("optimize"),
     })
 }

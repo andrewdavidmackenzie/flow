@@ -1,15 +1,23 @@
 use serde_json::{json, Value};
 
-use flowcore::{RUN_AGAIN, RunAgain};
 use flowcore::errors::Result;
+use flowcore::{RunAgain, RUN_AGAIN};
 use flowmacro::flow_function;
 
 #[flow_function]
 fn inner_divide(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
     let mut output_map = serde_json::Map::new();
 
-    let dividend = inputs.first().ok_or("Could not get dividend")?.as_f64().ok_or("Could not get dividend")?;
-    let divisor = inputs.get(1).ok_or("Could not get divisor")?.as_f64().ok_or("Could not get divisor")?;
+    let dividend = inputs
+        .first()
+        .ok_or("Could not get dividend")?
+        .as_f64()
+        .ok_or("Could not get dividend")?;
+    let divisor = inputs
+        .get(1)
+        .ok_or("Could not get divisor")?
+        .as_f64()
+        .ok_or("Could not get divisor")?;
     output_map.insert("result".into(), json!(dividend / divisor));
     output_map.insert("remainder".into(), json!(dividend % divisor));
 
@@ -34,7 +42,7 @@ mod test {
         let outputs = output.expect("Could not get the output value");
 
         let result = outputs.pointer("/result").expect("Could not get /result");
-        assert_eq!(result, &json!(test_data.2 ));
+        assert_eq!(result, &json!(test_data.2));
 
         let remainder = outputs
             .pointer("/remainder")

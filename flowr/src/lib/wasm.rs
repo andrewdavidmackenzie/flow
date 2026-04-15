@@ -7,9 +7,9 @@ use serde_json::Value;
 use url::Url;
 use wasmtime::{Func, Instance, Memory, Module, Store, Val};
 
-use flowcore::{Implementation, RunAgain};
-use flowcore::errors::{Result, ResultExt, bail};
+use flowcore::errors::{bail, Result, ResultExt};
 use flowcore::provider::Provider;
+use flowcore::{Implementation, RunAgain};
 
 const DEFAULT_WASM_FILENAME: &str = "module";
 
@@ -42,9 +42,10 @@ impl Executor {
     // - `length` is the length of block of memory to allocate
     // - returns the offset to the allocated memory
     fn alloc(&self, length: i32, store: &mut Store<()>) -> Result<i32> {
-        let mut results: [Val;1] = [Val::I32(0)];
+        let mut results: [Val; 1] = [Val::I32(0)];
         let params = [Val::I32(length)];
-        self.alloc.call(store, &params, &mut results)
+        self.alloc
+            .call(store, &params, &mut results)
             .map_err(|_| "WASM alloc() call failed")?;
 
         match results[0] {
@@ -58,25 +59,29 @@ impl Executor {
     // - `length` is the length of the input json
     // - returns the length of the resulting json, at the same offset
     fn call(&self, offset: i32, length: i32, store: &mut Store<()>) -> Result<i32> {
-        let mut results: [Val;1] = [Val::I32(0)];
+        let mut results: [Val; 1] = [Val::I32(0)];
         let params = [Val::I32(offset), Val::I32(length)];
         self.implementation
             .call(store, &params, &mut results)
-            .map_err(|e| format!("Error returned by WASM implementation.call() for {:?} => '{}'",
-            self.source_url, e))?;
+            .map_err(|e| {
+                format!(
+                    "Error returned by WASM implementation.call() for {:?} => '{}'",
+                    self.source_url, e
+                )
+            })?;
 
         match results[0] {
             Val::I32(result_length) => {
                 trace!("Return length from wasm function of {result_length}");
                 if result_length > MAX_RESULT_SIZE {
                     bail!(
-                    "Return length from wasm function of {} exceed maximum allowed",
-                    result_length
+                        "Return length from wasm function of {} exceed maximum allowed",
+                        result_length
                     );
                 }
                 Ok(result_length)
-            },
-            _ => bail!("Unexpected value returned by WASM Func.call()()")
+            }
+            _ => bail!("Unexpected value returned by WASM Func.call()()"),
         }
     }
 
@@ -89,8 +94,7 @@ impl Executor {
         assert!(result_length >= 0, "result_length was negative");
         #[allow(clippy::cast_sign_loss)]
         let mut buffer: Vec<u8> = vec![0u8; result_length as usize];
-        self
-            .memory
+        self.memory
             .read(store, offset, &mut buffer)
             .map_err(|_| "could not read return value from WASM linear memory")?;
 
@@ -100,7 +104,6 @@ impl Executor {
         result_returned
     }
 }
-
 
 impl Implementation for Executor {
     fn run(&self, inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
@@ -160,16 +163,16 @@ mod test {
     use url::Url;
 
     use flowcore::content::file_provider::FileProvider;
-    use flowcore::Implementation;
     use flowcore::provider::Provider;
+    use flowcore::Implementation;
 
     #[test]
     fn load_test_wasm() {
         let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/add.wasm");
         let url = Url::from_file_path(path).expect("Could not convert path to Url");
-        let provider = Arc::new(FileProvider{}) as Arc<dyn Provider>;
-        let adder = &super::load(&provider, &url)
-            .expect("Could not load test_wasm.wasm") as &dyn Implementation;
+        let provider = Arc::new(FileProvider {}) as Arc<dyn Provider>;
+        let adder = &super::load(&provider, &url).expect("Could not load test_wasm.wasm")
+            as &dyn Implementation;
 
         let inputs = vec![json!(1), json!(2)];
         let (value, run_again) = adder.run(&inputs).expect("Could not call run");

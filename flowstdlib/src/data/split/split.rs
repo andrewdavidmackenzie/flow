@@ -1,14 +1,22 @@
 use serde_json::{json, Value};
 
-use flowcore::{RUN_AGAIN, RunAgain};
 use flowcore::errors::Result;
+use flowcore::{RunAgain, RUN_AGAIN};
 use flowmacro::flow_function;
 
 #[flow_function]
 fn inner_split(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
     if inputs.first().ok_or("Could not get first")?.is_string() {
-        let string = inputs.first().ok_or("Could not get string")?.as_str().unwrap_or("");
-        let separator = inputs.get(1).ok_or("Could not get separator")?.as_str().unwrap_or("");
+        let string = inputs
+            .first()
+            .ok_or("Could not get string")?
+            .as_str()
+            .unwrap_or("");
+        let separator = inputs
+            .get(1)
+            .ok_or("Could not get separator")?
+            .as_str()
+            .unwrap_or("");
 
         let (partial, token) = split(string, separator)?;
 
@@ -61,8 +69,12 @@ fn split(input: &str, separator: &str) -> Result<(Option<Vec<String>>, Option<St
         if text.get(point..=point).expect("Could not get text") == separator {
             return Ok((
                 Some(vec![
-                    text.get(0..point).ok_or("Could not get points")?.to_string(),
-                    text.get(point + 1..text.len()).ok_or("Could not get points")?.to_string(),
+                    text.get(0..point)
+                        .ok_or("Could not get points")?
+                        .to_string(),
+                    text.get(point + 1..text.len())
+                        .ok_or("Could not get points")?
+                        .to_string(),
                 ]),
                 None,
             ));
@@ -75,8 +87,15 @@ fn split(input: &str, separator: &str) -> Result<(Option<Vec<String>>, Option<St
             // If we find one return the string upto that  point for further splitting, plus the string from
             // there to the end as a token
             return Ok((
-                Some(vec![text.get(0..point).ok_or("Could not get words")?.to_string()]),
-                Some(text.get(point + 1..text.len()).ok_or("Could not get words")?.to_string()),
+                Some(vec![text
+                    .get(0..point)
+                    .ok_or("Could not get words")?
+                    .to_string()]),
+                Some(
+                    text.get(point + 1..text.len())
+                        .ok_or("Could not get words")?
+                        .to_string(),
+                ),
             ));
         }
     }
@@ -94,7 +113,7 @@ mod test {
     #[test]
     fn basic_tests() {
         #[allow(clippy::type_complexity)]
-            let test_cases: Vec<(&str, (Option<Vec<String>>, Option<String>))> = vec![
+        let test_cases: Vec<(&str, (Option<Vec<String>>, Option<String>))> = vec![
             // empty string case
             ("", (None, None)),
             // just separators
@@ -187,7 +206,8 @@ mod test {
             }
 
             let this_input = input_strings.pop().expect("Could not pop value");
-            let (result, _) = inner_split(&[this_input, separator.clone()]).expect("_split() failed");
+            let (result, _) =
+                inner_split(&[this_input, separator.clone()]).expect("_split() failed");
 
             let output = result.expect("Could not get the Value from the output");
             if let Some(token) = output.pointer("/token") {
@@ -195,7 +215,10 @@ mod test {
             }
 
             if let Some(split_values) = output.pointer("/partial") {
-                for value in split_values.as_array().expect("Could not get the Array from the output") {
+                for value in split_values
+                    .as_array()
+                    .expect("Could not get the Array from the output")
+                {
                     input_strings.push(value.clone());
                 }
             }
@@ -211,9 +234,19 @@ mod test {
 
         let output = result.expect("Could not get the Value from the output");
         assert!(output.pointer("/token").is_none());
-        assert_eq!(output.pointer("/token-count").expect("Could not get the /token-count from the output"), &json!(0));
+        assert_eq!(
+            output
+                .pointer("/token-count")
+                .expect("Could not get the /token-count from the output"),
+            &json!(0)
+        );
         assert!(output.pointer("/partial").is_none());
-        assert_eq!(output.pointer("/delta").expect("Could not get the /delta from the output"), &json!(-1));
+        assert_eq!(
+            output
+                .pointer("/delta")
+                .expect("Could not get the /delta from the output"),
+            &json!(-1)
+        );
     }
 
     #[test]
@@ -225,12 +258,24 @@ mod test {
 
         let output = result.expect("Could not get the Value from the output");
         assert!(output.pointer("/token").is_none());
-        assert_eq!(output.pointer("/token-count").expect("Could not get the /token-count from the output"), &json!(0));
         assert_eq!(
-            output.pointer("/partial").expect("Could not get the /partial from the output"),
+            output
+                .pointer("/token-count")
+                .expect("Could not get the /token-count from the output"),
+            &json!(0)
+        );
+        assert_eq!(
+            output
+                .pointer("/partial")
+                .expect("Could not get the /partial from the output"),
             &json!(["the quick brown fox jumped", "over the lazy dog"])
         );
-        assert_eq!(output.pointer("/delta").expect("Could not get the /delta from the output"), &json!(1));
+        assert_eq!(
+            output
+                .pointer("/delta")
+                .expect("Could not get the /delta from the output"),
+            &json!(1)
+        );
     }
 
     #[test]
@@ -242,15 +287,29 @@ mod test {
 
         let output = result.expect("Could not get the Value from the output");
         assert_eq!(
-            output.pointer("/token").expect("Could not get the /token from the output"),
+            output
+                .pointer("/token")
+                .expect("Could not get the /token from the output"),
             "fox-jumped-over-the-lazy-dog"
         );
-        assert_eq!(output.pointer("/token-count").expect("Could not get the /token-count from the output"), &json!(1));
         assert_eq!(
-            output.pointer("/partial").expect("Could not get the /partial from the output"),
+            output
+                .pointer("/token-count")
+                .expect("Could not get the /token-count from the output"),
+            &json!(1)
+        );
+        assert_eq!(
+            output
+                .pointer("/partial")
+                .expect("Could not get the /partial from the output"),
             &json!(["the quick brown"])
         );
-        assert_eq!(output.pointer("/delta").expect("Could not get the /delta from the output"), &json!(0));
+        assert_eq!(
+            output
+                .pointer("/delta")
+                .expect("Could not get the /delta from the output"),
+            &json!(0)
+        );
     }
 
     #[test]
@@ -262,8 +321,23 @@ mod test {
 
         let output = result.expect("Could not get the Value from the output");
         assert!(output.pointer("/partial").is_none());
-        assert_eq!(output.pointer("/token").expect("Could not get the /token from the output"), &json!("the"));
-        assert_eq!(output.pointer("/token-count").expect("Could not get the /token-count from the output"), &json!(1));
-        assert_eq!(output.pointer("/delta").expect("Could not get the /delta value from the output"), &json!(-1));
+        assert_eq!(
+            output
+                .pointer("/token")
+                .expect("Could not get the /token from the output"),
+            &json!("the")
+        );
+        assert_eq!(
+            output
+                .pointer("/token-count")
+                .expect("Could not get the /token-count from the output"),
+            &json!(1)
+        );
+        assert_eq!(
+            output
+                .pointer("/delta")
+                .expect("Could not get the /delta value from the output"),
+            &json!(-1)
+        );
     }
 }

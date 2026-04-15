@@ -6,8 +6,8 @@ use flowcore::model::lib_manifest::ImplementationLocator::Native;
 use flowcore::model::lib_manifest::LibraryManifest;
 use flowcore::model::metadata::MetaData;
 
-use crate::{control, data, fmt, math, matrix};
 use crate::errors::Result;
+use crate::{control, data, fmt, math, matrix};
 
 /// Return the `LibraryManifest` for this library
 /// # Errors
@@ -49,14 +49,14 @@ pub fn get() -> Result<LibraryManifest> {
     );
 
     manifest.locators.insert(
-            Url::parse("lib://flowstdlib/control/select")?,
-            Native(Arc::new(control::select::Select)),
-        );
+        Url::parse("lib://flowstdlib/control/select")?,
+        Native(Arc::new(control::select::Select)),
+    );
 
     manifest.locators.insert(
-            Url::parse("lib://flowstdlib/control/tap")?,
-            Native(Arc::new(control::tap::Tap)),
-        );
+        Url::parse("lib://flowstdlib/control/tap")?,
+        Native(Arc::new(control::tap::Tap)),
+    );
 
     // Data module functions
     manifest.locators.insert(
@@ -121,9 +121,9 @@ pub fn get() -> Result<LibraryManifest> {
     );
 
     manifest.locators.insert(
-            Url::parse("lib://flowstdlib/fmt/to_json")?,
-            Native(Arc::new(fmt::to_json::ToJson)),
-        );
+        Url::parse("lib://flowstdlib/fmt/to_json")?,
+        Native(Arc::new(fmt::to_json::ToJson)),
+    );
 
     manifest.locators.insert(
         Url::parse("lib://flowstdlib/fmt/to_string")?,
@@ -132,24 +132,24 @@ pub fn get() -> Result<LibraryManifest> {
 
     // Math module functions
     manifest.locators.insert(
-            Url::parse("lib://flowstdlib/math/add")?,
-            Native(Arc::new(math::add::Add)),
-        );
+        Url::parse("lib://flowstdlib/math/add")?,
+        Native(Arc::new(math::add::Add)),
+    );
 
     manifest.locators.insert(
-            Url::parse("lib://flowstdlib/math/compare")?,
-            Native(Arc::new(math::compare::Compare)),
-        );
+        Url::parse("lib://flowstdlib/math/compare")?,
+        Native(Arc::new(math::compare::Compare)),
+    );
 
     manifest.locators.insert(
-            Url::parse("lib://flowstdlib/math/divide")?,
-            Native(Arc::new(math::divide::Divide)),
-        );
+        Url::parse("lib://flowstdlib/math/divide")?,
+        Native(Arc::new(math::divide::Divide)),
+    );
 
     manifest.locators.insert(
-            Url::parse("lib://flowstdlib/math/multiply")?,
-            Native(Arc::new(math::multiply::Multiply)),
-        );
+        Url::parse("lib://flowstdlib/math/multiply")?,
+        Native(Arc::new(math::multiply::Multiply)),
+    );
 
     manifest.locators.insert(
         Url::parse("lib://flowstdlib/math/range_split")?,
@@ -157,9 +157,9 @@ pub fn get() -> Result<LibraryManifest> {
     );
 
     manifest.locators.insert(
-            Url::parse("lib://flowstdlib/math/sqrt")?,
-            Native(Arc::new(math::sqrt::Sqrt)),
-        );
+        Url::parse("lib://flowstdlib/math/sqrt")?,
+        Native(Arc::new(math::sqrt::Sqrt)),
+    );
 
     manifest.locators.insert(
         Url::parse("lib://flowstdlib/math/subtract")?,
@@ -178,9 +178,9 @@ pub fn get() -> Result<LibraryManifest> {
     );
 
     manifest.locators.insert(
-            Url::parse("lib://flowstdlib/matrix/transpose")?,
-            Native(Arc::new(matrix::transpose::Transpose)),
-        );
+        Url::parse("lib://flowstdlib/matrix/transpose")?,
+        Native(Arc::new(matrix::transpose::Transpose)),
+    );
 
     manifest.locators.insert(
         Url::parse("lib://flowstdlib/matrix/compose_matrix")?,

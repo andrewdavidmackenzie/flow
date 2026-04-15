@@ -7,7 +7,7 @@ use log::{debug, info, trace};
 use simpdiscoverylib::{BeaconListener, BeaconSender};
 use zmq::Socket;
 
-use flowcore::errors::{Result, ResultExt, bail};
+use flowcore::errors::{bail, Result, ResultExt};
 
 /// WAIT for a message to arrive when performing a `receive()`
 pub const WAIT: i32 = 0;
@@ -34,9 +34,7 @@ pub fn discover_service(discovery_port: u16, name: &str) -> Result<String> {
 pub fn enable_service_discovery(discovery_port: u16, name: &str, service_port: u16) -> Result<()> {
     match BeaconSender::new(service_port, name.as_bytes(), discovery_port) {
         Ok(beacon) => {
-            info!(
-                    "Discovery beacon announcing service named '{name}', on port: {service_port}"
-                );
+            info!("Discovery beacon announcing service named '{name}', on port: {service_port}");
             std::thread::spawn(move || {
                 let _ = beacon.send_loop(Duration::from_secs(1));
             });
@@ -67,7 +65,9 @@ impl ClientConnection {
 
         requester
             .connect(&format!("tcp://{coordinator_address}"))
-            .chain_err(|| format!("Client Connection - Could not connect to socket at: {coordinator_address}"))?;
+            .chain_err(|| {
+                format!("Client Connection - Could not connect to socket at: {coordinator_address}")
+            })?;
 
         info!("Client connected to coordinator at '{coordinator_address}'");
 
@@ -87,7 +87,9 @@ impl ClientConnection {
             .recv_msg(0)
             .map_err(|e| format!("Error receiving from coordinator: {e}"))?;
 
-        let message_string = msg.as_str().ok_or("Could not get message as str")?
+        let message_string = msg
+            .as_str()
+            .ok_or("Could not get message as str")?
             .to_string();
         let message: CM = message_string.into();
         trace!("Client Received <--- {message}");
@@ -126,15 +128,13 @@ impl CoordinatorConnection {
             .chain_err(|| "Coordinator Connection - could not create Socket")?;
 
         debug!("Coordinator Connection attempting to bind to: tcp://*:{port}");
-        responder.bind(&format!("tcp://*:{port}"))
-            .chain_err(||
-                format!("Coordinator Connection - could not bind on TCP Socket on: tcp://{port}"))?;
+        responder.bind(&format!("tcp://*:{port}")).chain_err(|| {
+            format!("Coordinator Connection - could not bind on TCP Socket on: tcp://{port}")
+        })?;
 
         info!("Service '{service_name}' listening on *:{port}");
 
-        Ok(CoordinatorConnection {
-            responder
-        })
+        Ok(CoordinatorConnection { responder })
     }
 
     /// Receive a Message sent from the client to the [Coordinator][flowrlib::coordinator::Coordinator]
@@ -149,7 +149,9 @@ impl CoordinatorConnection {
             .recv_msg(flags)
             .map_err(|e| format!("Coordinator error getting message: '{e}'"))?;
 
-        let message_string = msg.as_str().ok_or("Could not get message as str")?
+        let message_string = msg
+            .as_str()
+            .ok_or("Could not get message as str")?
             .to_string();
         let message = message_string.into();
         trace!("                ---> Coordinator Received {message}");
@@ -192,7 +194,10 @@ mod test {
     use serde_derive::{Deserialize, Serialize};
     use serial_test::serial;
 
-    use crate::cli::connections::{ClientConnection, CoordinatorConnection, discover_service, DONT_WAIT, enable_service_discovery, WAIT};
+    use crate::cli::connections::{
+        discover_service, enable_service_discovery, ClientConnection, CoordinatorConnection,
+        DONT_WAIT, WAIT,
+    };
 
     #[derive(Serialize, Deserialize, PartialEq, Eq, Debug)]
     enum CoordinatorMessage {
@@ -258,10 +263,10 @@ mod test {
         enable_service_discovery(discovery_port, "test", test_port)
             .expect("Could not enable service discovery");
 
-        let coordinator_address = discover_service(discovery_port, "test")
-            .expect("Could not discover service");
-        let client = ClientConnection::new(&coordinator_address)
-            .expect("Could not create ClientConnection");
+        let coordinator_address =
+            discover_service(discovery_port, "test").expect("Could not discover service");
+        let client =
+            ClientConnection::new(&coordinator_address).expect("Could not create ClientConnection");
 
         // Open the connection by sending the first message from the client
         client
@@ -297,10 +302,10 @@ mod test {
         enable_service_discovery(discovery_port, "test", test_port)
             .expect("Could not enable service discovery");
 
-        let coordinator_address = discover_service(discovery_port, "test")
-            .expect("Could discovery service");
-        let client = ClientConnection::new(&coordinator_address)
-            .expect("Could not create ClientConnection");
+        let coordinator_address =
+            discover_service(discovery_port, "test").expect("Could discovery service");
+        let client =
+            ClientConnection::new(&coordinator_address).expect("Could not create ClientConnection");
 
         // Open the connection by sending the first message from the client
         client

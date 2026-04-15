@@ -6,7 +6,7 @@ use std::path::Path;
 use log::trace;
 use url::Url;
 
-use crate::errors::{Result, ResultExt, bail};
+use crate::errors::{bail, Result, ResultExt};
 use crate::provider::Provider;
 
 /// The `FileProvider` implements the `Provider` trait and takes care of fetching content located
@@ -43,15 +43,22 @@ impl Provider for FileProvider {
 
                     let dir_os_name = path.file_name().ok_or("Could not get directory name")?;
                     let dir_name = dir_os_name.to_string_lossy();
-                        trace!(
-                            "'{}' is a directory, so attempting to find file named '{}' inside it",
-                            path.display(), dir_name);
-                        if let Ok(file_found_url) = Self::find_file(&path, &dir_name, extensions) {
-                            return Ok((file_found_url, None));
+                    trace!(
+                        "'{}' is a directory, so attempting to find file named '{}' inside it",
+                        path.display(),
+                        dir_name
+                    );
+                    if let Ok(file_found_url) = Self::find_file(&path, &dir_name, extensions) {
+                        return Ok((file_found_url, None));
                     }
 
-                    bail!("No file named '{}' or '{}' with extension '{}' found in directory '{}'",
-                        default_filename, dir_name, extensions.join(" or "), path.display())
+                    bail!(
+                        "No file named '{}' or '{}' with extension '{}' found in directory '{}'",
+                        default_filename,
+                        dir_name,
+                        extensions.join(" or "),
+                        path.display()
+                    )
                 } else if md.is_file() {
                     Ok((url.clone(), None))
                 } else {
@@ -71,8 +78,8 @@ impl Provider for FileProvider {
         let file_path = url
             .to_file_path()
             .map_err(|()| "Could not convert Url to file path")?;
-        let mut f =
-            File::open(&file_path).map_err(|_| format!("Could not open file '{}'", file_path.display()))?;
+        let mut f = File::open(&file_path)
+            .map_err(|_| format!("Could not open file '{}'", file_path.display()))?;
         let mut buffer = Vec::new();
         f.read_to_end(&mut buffer)
             .chain_err(|| format!("Could not read content from '{}'", file_path.display()))?;
@@ -112,8 +119,10 @@ impl FileProvider {
                 }
             }
         }
-        bail!("No file found at path '{}' with any of these extensions '{extensions:?}'",
-                            file.display());
+        bail!(
+            "No file found at path '{}' with any of these extensions '{extensions:?}'",
+            file.display()
+        );
     }
 }
 

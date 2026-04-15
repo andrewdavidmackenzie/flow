@@ -1,8 +1,10 @@
 use serde_json::{json, Value};
 
-use flowcore::{RUN_AGAIN, RunAgain};
 use flowcore::errors::Result;
-use flowcore::model::datatype::{ARRAY_TYPE, BOOLEAN_TYPE, NULL_TYPE, NUMBER_TYPE, OBJECT_TYPE, STRING_TYPE};
+use flowcore::model::datatype::{
+    ARRAY_TYPE, BOOLEAN_TYPE, NULL_TYPE, NUMBER_TYPE, OBJECT_TYPE, STRING_TYPE,
+};
+use flowcore::{RunAgain, RUN_AGAIN};
 use flowmacro::flow_function;
 
 fn type_string(value: &Value) -> Result<String> {
@@ -10,7 +12,10 @@ fn type_string(value: &Value) -> Result<String> {
         Value::String(_) => Ok(STRING_TYPE.into()),
         Value::Bool(_) => Ok(BOOLEAN_TYPE.into()),
         Value::Number(_) => Ok(NUMBER_TYPE.into()),
-        Value::Array(array) => Ok(format!("{ARRAY_TYPE}/{}", type_string(array.first().ok_or("Could not get array")?)?)),
+        Value::Array(array) => Ok(format!(
+            "{ARRAY_TYPE}/{}",
+            type_string(array.first().ok_or("Could not get array")?)?
+        )),
         Value::Object(map) => {
             if let Some(value) = &map.values().next().cloned() {
                 Ok(format!("{OBJECT_TYPE}/{}", type_string(value)?))
@@ -48,14 +53,14 @@ fn inner_info(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
 
 #[cfg(test)]
 mod test {
-    use serde_json::{Map, Value};
     use serde_json::json;
+    use serde_json::{Map, Value};
 
-    use flowcore::model::datatype::{NUMBER_TYPE, OBJECT_TYPE};
     use flowcore::model::datatype::ARRAY_TYPE;
     use flowcore::model::datatype::BOOLEAN_TYPE;
     use flowcore::model::datatype::NULL_TYPE;
     use flowcore::model::datatype::STRING_TYPE;
+    use flowcore::model::datatype::{NUMBER_TYPE, OBJECT_TYPE};
 
     use super::inner_info;
 
@@ -65,9 +70,24 @@ mod test {
         let (result, _) = inner_info(&inputs).expect("_info() failed");
         let output_map = result.expect("Could not get the Value from the output");
 
-        assert_eq!(output_map.pointer("/type").expect("Could not get the /type from the output"), &json!(NUMBER_TYPE));
-        assert_eq!(output_map.pointer("/rows").expect("Could not get the /rows from the output"), &json!(1));
-        assert_eq!(output_map.pointer("/columns").expect("Could not get the /columns from the output"), &json!(1));
+        assert_eq!(
+            output_map
+                .pointer("/type")
+                .expect("Could not get the /type from the output"),
+            &json!(NUMBER_TYPE)
+        );
+        assert_eq!(
+            output_map
+                .pointer("/rows")
+                .expect("Could not get the /rows from the output"),
+            &json!(1)
+        );
+        assert_eq!(
+            output_map
+                .pointer("/columns")
+                .expect("Could not get the /columns from the output"),
+            &json!(1)
+        );
     }
 
     #[test]
@@ -76,9 +96,24 @@ mod test {
         let (result, _) = inner_info(&inputs).expect("_info() failed");
         let output_map = result.expect("Could not get the Value from the output");
 
-        assert_eq!(output_map.pointer("/type").expect("Could not get the /type from the output"), &json!(BOOLEAN_TYPE));
-        assert_eq!(output_map.pointer("/rows").expect("Could not get the /row from the output"), &json!(1));
-        assert_eq!(output_map.pointer("/columns").expect("Could not get the /columns from the output"), &json!(1));
+        assert_eq!(
+            output_map
+                .pointer("/type")
+                .expect("Could not get the /type from the output"),
+            &json!(BOOLEAN_TYPE)
+        );
+        assert_eq!(
+            output_map
+                .pointer("/rows")
+                .expect("Could not get the /row from the output"),
+            &json!(1)
+        );
+        assert_eq!(
+            output_map
+                .pointer("/columns")
+                .expect("Could not get the /columns from the output"),
+            &json!(1)
+        );
     }
 
     #[test]
@@ -87,9 +122,24 @@ mod test {
         let (result, _) = inner_info(&[string]).expect("_info() failed");
         let output_map = result.expect("Could not get the Value from the output");
 
-        assert_eq!(output_map.pointer("/type").expect("Could not get the /type from the output"), &json!(STRING_TYPE));
-        assert_eq!(output_map.pointer("/rows").expect("Could not get the /row from the output"), &json!(1));
-        assert_eq!(output_map.pointer("/columns").expect("Could not get the /columns from the output"), &json!(5));
+        assert_eq!(
+            output_map
+                .pointer("/type")
+                .expect("Could not get the /type from the output"),
+            &json!(STRING_TYPE)
+        );
+        assert_eq!(
+            output_map
+                .pointer("/rows")
+                .expect("Could not get the /row from the output"),
+            &json!(1)
+        );
+        assert_eq!(
+            output_map
+                .pointer("/columns")
+                .expect("Could not get the /columns from the output"),
+            &json!(5)
+        );
     }
 
     #[test]
@@ -98,9 +148,24 @@ mod test {
         let (result, _) = inner_info(&inputs).expect("_info() failed");
         let output_map = result.expect("Could not get the Value from the output");
 
-        assert_eq!(output_map.pointer("/rows").expect("Could not get the /rows from the output"), &json!(0));
-        assert_eq!(output_map.pointer("/type").expect("Could not get the /type from the output"), &json!(NULL_TYPE));
-        assert_eq!(output_map.pointer("/columns").expect("Could not get the /column from the output"), &json!(0));
+        assert_eq!(
+            output_map
+                .pointer("/rows")
+                .expect("Could not get the /rows from the output"),
+            &json!(0)
+        );
+        assert_eq!(
+            output_map
+                .pointer("/type")
+                .expect("Could not get the /type from the output"),
+            &json!(NULL_TYPE)
+        );
+        assert_eq!(
+            output_map
+                .pointer("/columns")
+                .expect("Could not get the /column from the output"),
+            &json!(0)
+        );
     }
 
     #[test]
@@ -109,10 +174,24 @@ mod test {
         let (result, _) = inner_info(&inputs).expect("_info() failed");
         let output_map = result.expect("Could not get the Value from the output");
 
-        assert_eq!(output_map.pointer("/type").expect("Could not get the /type from the output"),
-                   &json!(format!("{ARRAY_TYPE}/{NUMBER_TYPE}")));
-        assert_eq!(output_map.pointer("/rows").expect("Could not get the /rows from the output"), &json!(1));
-        assert_eq!(output_map.pointer("/columns").expect("Could not get the /column from the output"), &json!(3));
+        assert_eq!(
+            output_map
+                .pointer("/type")
+                .expect("Could not get the /type from the output"),
+            &json!(format!("{ARRAY_TYPE}/{NUMBER_TYPE}"))
+        );
+        assert_eq!(
+            output_map
+                .pointer("/rows")
+                .expect("Could not get the /rows from the output"),
+            &json!(1)
+        );
+        assert_eq!(
+            output_map
+                .pointer("/columns")
+                .expect("Could not get the /column from the output"),
+            &json!(3)
+        );
     }
 
     #[test]
@@ -122,11 +201,23 @@ mod test {
         let output_map = result.expect("Could not get the Value from the output");
 
         assert_eq!(
-            output_map.pointer("/type").expect("Could not get the /type from the output"),
+            output_map
+                .pointer("/type")
+                .expect("Could not get the /type from the output"),
             &json!(format!("{ARRAY_TYPE}/{ARRAY_TYPE}/{NUMBER_TYPE}"))
         );
-        assert_eq!(output_map.pointer("/rows").expect("Could not get the /rows from the output"), &json!(2));
-        assert_eq!(output_map.pointer("/columns").expect("Could not get the /columns from the output"), &json!(3));
+        assert_eq!(
+            output_map
+                .pointer("/rows")
+                .expect("Could not get the /rows from the output"),
+            &json!(2)
+        );
+        assert_eq!(
+            output_map
+                .pointer("/columns")
+                .expect("Could not get the /columns from the output"),
+            &json!(3)
+        );
     }
 
     #[test]
@@ -138,10 +229,24 @@ mod test {
         let (result, _) = inner_info(&inputs).expect("_info() failed");
         let output_map = result.expect("Could not get the Value from the output");
 
-        assert_eq!(output_map.pointer("/type").expect("Could not get the /type from the output"),
-                   &json!(format!("{OBJECT_TYPE}/{NUMBER_TYPE}")));
-        assert_eq!(output_map.pointer("/rows").expect("Could not get the /rows from the output"), &json!(2));
-        assert_eq!(output_map.pointer("/columns").expect("Could not get the /columns from the output"), &json!(2));
+        assert_eq!(
+            output_map
+                .pointer("/type")
+                .expect("Could not get the /type from the output"),
+            &json!(format!("{OBJECT_TYPE}/{NUMBER_TYPE}"))
+        );
+        assert_eq!(
+            output_map
+                .pointer("/rows")
+                .expect("Could not get the /rows from the output"),
+            &json!(2)
+        );
+        assert_eq!(
+            output_map
+                .pointer("/columns")
+                .expect("Could not get the /columns from the output"),
+            &json!(2)
+        );
     }
 
     #[test]
@@ -154,10 +259,22 @@ mod test {
         let output_map = result.expect("Could not get the Value from the output");
 
         assert_eq!(
-            output_map.pointer("/type").expect("Could not get the /type from the output"),
+            output_map
+                .pointer("/type")
+                .expect("Could not get the /type from the output"),
             &json!(format!("{OBJECT_TYPE}/{ARRAY_TYPE}/{NUMBER_TYPE}"))
         );
-        assert_eq!(output_map.pointer("/rows").expect("Could not get the /rows from the output"), &json!(2));
-        assert_eq!(output_map.pointer("/columns").expect("Could not get the /columns from the output"), &json!(2));
+        assert_eq!(
+            output_map
+                .pointer("/rows")
+                .expect("Could not get the /rows from the output"),
+            &json!(2)
+        );
+        assert_eq!(
+            output_map
+                .pointer("/columns")
+                .expect("Could not get the /columns from the output"),
+            &json!(2)
+        );
     }
 }

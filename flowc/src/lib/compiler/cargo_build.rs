@@ -5,7 +5,7 @@ use std::process::{Command, Output, Stdio};
 use colored::Colorize;
 use log::debug;
 
-use crate::errors::{Result, ResultExt, bail};
+use crate::errors::{bail, Result, ResultExt};
 
 /*
    Check the command Output for an error and print details if it failed
@@ -94,8 +94,7 @@ fn cargo_build(
         "--lib",
         "--target=wasm32-unknown-unknown",
         &manifest,
-        ]
-    );
+    ]);
 
     debug!("\tRunning command = '{command}', command_args = {command_args:?}");
 
@@ -117,7 +116,11 @@ fn cargo_build(
     let mut wasm_filename = implementation_source_path.to_path_buf();
     wasm_filename.set_extension("wasm");
 
-    cargo_target_dir.push(wasm_filename.file_name().ok_or("Could not convert filename to str")?);
+    cargo_target_dir.push(
+        wasm_filename
+            .file_name()
+            .ok_or("Could not convert filename to str")?,
+    );
 
     // move compiled wasm output into destination location
     debug!(
@@ -126,13 +129,15 @@ fn cargo_build(
         &wasm_destination.display()
     );
     // avoid rename across possibly different file systems
-    fs::copy(&cargo_target_dir, wasm_destination)
-        .chain_err(|| format!("Could not copy WASM from '{}' to '{}'",
-                              cargo_target_dir.display(),
-                              wasm_destination.display()))?;
+    fs::copy(&cargo_target_dir, wasm_destination).chain_err(|| {
+        format!(
+            "Could not copy WASM from '{}' to '{}'",
+            cargo_target_dir.display(),
+            wasm_destination.display()
+        )
+    })?;
     fs::remove_file(&cargo_target_dir)
-        .chain_err(|| format!("Could not remove_file'{}'",
-                              cargo_target_dir.display()))
+        .chain_err(|| format!("Could not remove_file'{}'", cargo_target_dir.display()))
 }
 
 /// Run the cargo build to compile wasm from function source
@@ -141,7 +146,12 @@ fn cargo_build(
 /// If it has already been copied to Cargo.toml for building then skip that step
 /// otherwise copy it, and delete it when done, as these files get in the way of
 /// publishing the library as a crate
-pub fn run(implementation_source_path: &Path, target_dir: PathBuf, wasm_destination: &Path, release_build: bool) -> Result<()> {
+pub fn run(
+    implementation_source_path: &Path,
+    target_dir: PathBuf,
+    wasm_destination: &Path,
+    release_build: bool,
+) -> Result<()> {
     let mut cargo_toml = implementation_source_path.to_path_buf();
     cargo_toml.set_file_name("Cargo.toml");
     let mut function_toml = implementation_source_path.to_path_buf();

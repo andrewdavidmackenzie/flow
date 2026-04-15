@@ -50,9 +50,9 @@ impl fmt::Display for Submission {
         if let Some(limit) = self.max_parallel_jobs {
             writeln!(f, "Maximum Parallel Jobs: {limit}")?;
         }
-        writeln!(f,   "          Job Timeout: {:?}", self.job_timeout)?;
+        writeln!(f, "          Job Timeout: {:?}", self.job_timeout)?;
         #[cfg(feature = "debugger")]
-        writeln!(f,   "                Debug: {}", self.debug_enabled)?;
-        write!(f,     "             Manifest: \n{}", self.manifest)
+        writeln!(f, "                Debug: {}", self.debug_enabled)?;
+        write!(f, "             Manifest: \n{}", self.manifest)
     }
 }

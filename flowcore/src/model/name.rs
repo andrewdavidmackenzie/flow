@@ -1,6 +1,6 @@
-use error_chain::bail;
 use crate::errors::Result;
 use crate::model::validation::Validate;
+use error_chain::bail;
 
 /// `Name` is a String that names various types of objects
 pub type Name = String;

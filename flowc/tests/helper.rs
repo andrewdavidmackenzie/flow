@@ -17,15 +17,22 @@ pub fn set_lib_search_path_to_project() -> Simpath {
 #[allow(clippy::missing_panics_doc)]
 pub fn get_canonical_context_root() -> PathBuf {
     let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    let examples_dir = manifest_dir.parent().ok_or("Could not get parent dir")
+    let examples_dir = manifest_dir
+        .parent()
+        .ok_or("Could not get parent dir")
         .expect("Could not get parent dir");
-    examples_dir.join("flowr/src/bin/flowrcli/context").canonicalize().expect("Could not get absolute path")
+    examples_dir
+        .join("flowr/src/bin/flowrcli/context")
+        .canonicalize()
+        .expect("Could not get absolute path")
 }
 
 #[must_use]
 #[allow(clippy::missing_panics_doc)]
 pub fn absolute_file_url_from_relative_path(path: &str) -> Url {
-    let flow_root = Path::new(env!("CARGO_MANIFEST_DIR")).parent().expect("Could not get parent directory");
+    let flow_root = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .expect("Could not get parent directory");
     Url::from_directory_path(flow_root)
         .expect("Could not create Url from directory path")
         .join(path)

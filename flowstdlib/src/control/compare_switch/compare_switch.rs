@@ -1,7 +1,7 @@
 use serde_json::Value;
 
-use flowcore::{RUN_AGAIN, RunAgain};
-use flowcore::errors::{Result, bail};
+use flowcore::errors::{bail, Result};
+use flowcore::{RunAgain, RUN_AGAIN};
 use flowmacro::flow_function;
 
 #[flow_function]
@@ -71,7 +71,9 @@ mod test {
         assert_eq!(run_again, RUN_AGAIN);
         assert!(value.is_some());
         let value = value.expect("Could not get the value from the output");
-        let map = value.as_object().expect("Could not get the json object from the output");
+        let map = value
+            .as_object()
+            .expect("Could not get the json object from the output");
         assert!(map.contains_key("equal"));
     }
 
@@ -83,7 +85,9 @@ mod test {
         assert_eq!(run_again, RUN_AGAIN);
         assert!(value.is_some());
         let value = value.expect("Could not get the value from the output");
-        let map = value.as_object().expect("Could not get the object from the output");
+        let map = value
+            .as_object()
+            .expect("Could not get the object from the output");
         assert_eq!(map.get("left-lt"), Some(&json!(1)));
         assert_eq!(map.get("right-gt"), Some(&json!(2)));
     }
@@ -96,7 +100,9 @@ mod test {
         assert_eq!(run_again, RUN_AGAIN);
         assert!(value.is_some());
         let value = value.expect("Could not get the value from the output");
-        let map = value.as_object().expect("Could not get the object from the output");
+        let map = value
+            .as_object()
+            .expect("Could not get the object from the output");
         assert_eq!(map.get("left-lt"), Some(&json!(1.0)));
         assert_eq!(map.get("right-gt"), Some(&json!(2.0)));
     }
@@ -109,7 +115,9 @@ mod test {
         assert_eq!(run_again, RUN_AGAIN);
         assert!(value.is_some());
         let value = value.expect("Could not get the value from the output");
-        let map = value.as_object().expect("Could not get the object from the output");
+        let map = value
+            .as_object()
+            .expect("Could not get the object from the output");
         assert_eq!(map.get("left-gt"), Some(&json!(2)));
         assert_eq!(map.get("right-lt"), Some(&json!(1)));
     }
@@ -122,7 +130,9 @@ mod test {
         assert_eq!(run_again, RUN_AGAIN);
         assert!(value.is_some());
         let value = value.expect("Could not get the value from the output");
-        let map = value.as_object().expect("Could not get the object from the output");
+        let map = value
+            .as_object()
+            .expect("Could not get the object from the output");
         assert_eq!(map.get("left-gt"), Some(&json!(2.0)));
         assert_eq!(map.get("right-lt"), Some(&json!(1.0)));
     }

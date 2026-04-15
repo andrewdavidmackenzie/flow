@@ -1,14 +1,18 @@
 use serde_json::Value;
 
-use flowcore::{RUN_AGAIN, RunAgain};
 use flowcore::errors::Result;
+use flowcore::{RunAgain, RUN_AGAIN};
 use flowmacro::flow_function;
 
 #[flow_function]
 fn inner_tap(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
     let mut value = None;
     let data = inputs.first().ok_or("Could not get data")?;
-    let control = inputs.get(1).ok_or("Could not get control")?.as_bool().ok_or("Could not get boolean")?;
+    let control = inputs
+        .get(1)
+        .ok_or("Could not get control")?
+        .as_bool()
+        .ok_or("Could not get boolean")?;
 
     if control {
         value = Some(data.clone());

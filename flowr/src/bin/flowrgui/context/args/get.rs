@@ -2,8 +2,8 @@ use std::sync::{Arc, Mutex};
 
 use serde_json::{json, Value};
 
-use flowcore::{DONT_RUN_AGAIN, Implementation, RunAgain};
 use flowcore::errors::Result;
+use flowcore::{Implementation, RunAgain, DONT_RUN_AGAIN};
 
 use crate::gui::client_message::ClientMessage;
 use crate::gui::coordinator_connection::CoordinatorConnection;
@@ -17,7 +17,9 @@ pub struct Get {
 
 impl Implementation for Get {
     fn run(&self, mut _inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
-        let mut guard = self.server_connection.lock()
+        let mut guard = self
+            .server_connection
+            .lock()
             .map_err(|_| "Could not lock server")?;
 
         let sent = guard.send_and_receive_response(CoordinatorMessage::GetArgs);
@@ -56,7 +58,7 @@ mod test {
     use serde_json::json;
     use serial_test::serial;
 
-    use flowcore::{DONT_RUN_AGAIN, Implementation};
+    use flowcore::{Implementation, DONT_RUN_AGAIN};
 
     use crate::gui::client_message::ClientMessage::Args;
     use crate::gui::coordinator_connection::CoordinatorConnection;
@@ -124,9 +126,15 @@ mod test {
 
         let val = value.expect("Could not get value returned from implementation");
         let map = val.as_object().expect("Could not get map of output values");
-        let json = map.get("json").expect("Could not get json args")
-            .as_array().expect("Could not get json map as an array of values");
-        assert_eq!(json.get(1).expect("Could not get get element 1"), &json!(10));
+        let json = map
+            .get("json")
+            .expect("Could not get json args")
+            .as_array()
+            .expect("Could not get json map as an array of values");
+        assert_eq!(
+            json.get(1).expect("Could not get get element 1"),
+            &json!(10)
+        );
     }
 
     #[test]
@@ -147,9 +155,15 @@ mod test {
 
         let val = value.expect("Could not get value returned from implementation");
         let map = val.as_object().expect("Could not get map of output values");
-        let json = map.get("json").expect("Could not get json args")
-            .as_array().expect("Could not get json map as an array of values");
-        assert_eq!(json.get(1).expect("Could not get get element 1"), &json!([10,20]));
+        let json = map
+            .get("json")
+            .expect("Could not get json args")
+            .as_array()
+            .expect("Could not get json map as an array of values");
+        assert_eq!(
+            json.get(1).expect("Could not get get element 1"),
+            &json!([10, 20])
+        );
     }
 
     #[test]
@@ -170,8 +184,14 @@ mod test {
 
         let val = value.expect("Could not get value returned from implementation");
         let map = val.as_object().expect("Could not get map of output values");
-        let json = map.get("json").expect("Could not get json args")
-            .as_array().expect("Could not get json map as an array of values");
-        assert_eq!(json.get(1).expect("Could not get get element 1"), &json!([[10,20], [30,40]]));
+        let json = map
+            .get("json")
+            .expect("Could not get json args")
+            .as_array()
+            .expect("Could not get json map as an array of values");
+        assert_eq!(
+            json.get(1).expect("Could not get get element 1"),
+            &json!([[10, 20], [30, 40]])
+        );
     }
 }

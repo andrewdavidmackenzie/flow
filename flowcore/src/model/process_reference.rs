@@ -75,8 +75,7 @@ mod test {
 
     fn toml_from_str(content: &str) -> Result<ProcessReference> {
         let url = Url::parse("file:///fake.toml").expect("Could not parse URL");
-        let deserializer =
-            get::<ProcessReference>(&url).expect("Could not get deserializer");
+        let deserializer = get::<ProcessReference>(&url).expect("Could not get deserializer");
         deserializer.deserialize(content, Some(&url))
     }
 
@@ -106,7 +105,11 @@ mod test {
             1,
             "Incorrect number of Input initializations parsed"
         );
-        match reference.initializations.get("input1").expect("Could not get input") {
+        match reference
+            .initializations
+            .get("input1")
+            .expect("Could not get input")
+        {
             Always(_) => panic!("Should have been a Once initializer"),
             Once(value) => assert_eq!(&json!(1), value, "input1 should be initialized to 1"),
         }

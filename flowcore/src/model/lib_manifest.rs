@@ -10,9 +10,9 @@ use url::Url;
 
 use crate::deserializers::deserializer::get;
 use crate::errors::{Result, ResultExt};
-use crate::Implementation;
 use crate::model::metadata::MetaData;
 use crate::provider::Provider;
+use crate::Implementation;
 
 /// The default name used for a Library  Manifest file if none is specified
 pub const DEFAULT_LIB_JSON_MANIFEST_FILENAME: &str = "manifest";
@@ -87,7 +87,10 @@ impl LibraryManifest {
     /// - The `provider` cannot fetch the contents from the resolved url
     /// - The fetched contents cannot be converted to a valid Utf8 String
     /// - The Fetched Utf8 String contents of the `Url` are not a valid `LibraryManifest`
-    pub fn load(provider: &Arc<dyn Provider>, lib_manifest_url: &Url) -> Result<(LibraryManifest, Url)> {
+    pub fn load(
+        provider: &Arc<dyn Provider>,
+        lib_manifest_url: &Url,
+    ) -> Result<(LibraryManifest, Url)> {
         let (resolved_url, _) = provider
             .resolve_url(
                 lib_manifest_url,
@@ -95,15 +98,11 @@ impl LibraryManifest {
                 &["json"],
             )
             .chain_err(|| {
-                format!(
-                    "Could not resolve the library manifest url '{lib_manifest_url}'"
-                )
+                format!("Could not resolve the library manifest url '{lib_manifest_url}'")
             })?;
 
         let manifest_content = provider.get_contents(&resolved_url).chain_err(|| {
-            format!(
-                "Could not read contents of Library Manifest from '{resolved_url}'"
-            )
+            format!("Could not read contents of Library Manifest from '{resolved_url}'")
         })?;
 
         let url = resolved_url.clone();
@@ -131,8 +130,7 @@ impl LibraryManifest {
         &mut self,
         implementation_path_relative: &str,
         lib_reference_path: &str,
-        #[cfg(feature = "debugger")]
-        implementation_source_path: &str,
+        #[cfg(feature = "debugger")] implementation_source_path: &str,
     ) -> Result<()> {
         let lib_reference = Url::parse(&format!(
             "lib://{}/{lib_reference_path}",
@@ -186,7 +184,10 @@ impl LibraryManifest {
                 .as_bytes(),
         )?;
 
-        info!("Generated library JSON manifest at '{}'", json_manifest_filename.display());
+        info!(
+            "Generated library JSON manifest at '{}'",
+            json_manifest_filename.display()
+        );
 
         Ok(())
     }
@@ -225,12 +226,13 @@ mod test {
     use url::Url;
 
     use crate::errors::Result;
-    use crate::Implementation;
     use crate::model::lib_manifest::{
-        ImplementationLocator, ImplementationLocator::Native, ImplementationLocator::RelativePath, LibraryManifest,
+        ImplementationLocator, ImplementationLocator::Native, ImplementationLocator::RelativePath,
+        LibraryManifest,
     };
     use crate::model::metadata::MetaData;
     use crate::provider::Provider;
+    use crate::Implementation;
 
     #[allow(clippy::module_name_repetitions)]
     pub struct TestProvider {
@@ -366,9 +368,9 @@ mod test {
         let (lib_manifest, _lib_manifest_url) =
             LibraryManifest::load(&test_provider, &url).expect("Could not load manifest");
         assert_eq!(lib_manifest.locators.len(), 1);
-        assert!(lib_manifest
-            .locators
-            .contains_key(&Url::parse("lib://flowrlib/test-dyn-lib/add2").expect("Create Url error")));
+        assert!(lib_manifest.locators.contains_key(
+            &Url::parse("lib://flowrlib/test-dyn-lib/add2").expect("Create Url error")
+        ));
         let locator = lib_manifest
             .locators
             .get(&Url::parse("lib://flowrlib/test-dyn-lib/add2").expect("Create Url error"))
@@ -386,9 +388,11 @@ mod test {
             test_meta_data(),
         );
         library
-            .add_locator("/bin/my.wasm", "/bin",
-                         #[cfg(feature = "debugger")]
-                             "/users/me/myproject/bin/my.rs",
+            .add_locator(
+                "/bin/my.wasm",
+                "/bin",
+                #[cfg(feature = "debugger")]
+                "/users/me/myproject/bin/my.rs",
             )
             .expect("Could not add to manifest");
         assert_eq!(
@@ -419,9 +423,11 @@ mod test {
             test_meta_data(),
         );
         library1
-            .add_locator("/bin/my.wasm", "/bin",
-                         #[cfg(feature = "debugger")]
-                             "/users/me/myproject/bin/my.rs",
+            .add_locator(
+                "/bin/my.wasm",
+                "/bin",
+                #[cfg(feature = "debugger")]
+                "/users/me/myproject/bin/my.rs",
             )
             .expect("Could not add to manifest");
 
@@ -440,9 +446,11 @@ mod test {
             test_meta_data(),
         );
         library1
-            .add_locator("/bin/fake.wasm", "/bin",
-                         #[cfg(feature = "debugger")]
-                             "/users/me/myproject/bin/fake.rs",
+            .add_locator(
+                "/bin/fake.wasm",
+                "/bin",
+                #[cfg(feature = "debugger")]
+                "/users/me/myproject/bin/fake.rs",
             )
             .expect("Could not add to manifest");
 
@@ -451,9 +459,11 @@ mod test {
             test_meta_data(),
         );
         library2
-            .add_locator("/bin/my.wasm", "/bin",
-                         #[cfg(feature = "debugger")]
-                             "/users/me/myproject/bin/my.rs",
+            .add_locator(
+                "/bin/my.wasm",
+                "/bin",
+                #[cfg(feature = "debugger")]
+                "/users/me/myproject/bin/my.rs",
             )
             .expect("Could not add to manifest");
 
@@ -467,9 +477,11 @@ mod test {
             test_meta_data(),
         );
         library1
-            .add_locator("/bin/my.wasm", "/bin",
-                         #[cfg(feature = "debugger")]
-                             "/users/me/myproject/bin/my.rs",
+            .add_locator(
+                "/bin/my.wasm",
+                "/bin",
+                #[cfg(feature = "debugger")]
+                "/users/me/myproject/bin/my.rs",
             )
             .expect("Could not add to manifest");
 
@@ -478,9 +490,11 @@ mod test {
             test_meta_data(),
         );
         library2
-            .add_locator("/bin/my.wasm", "/bin",
-                         #[cfg(feature = "debugger")]
-                             "/users/me/myproject/bin/my.rs",
+            .add_locator(
+                "/bin/my.wasm",
+                "/bin",
+                #[cfg(feature = "debugger")]
+                "/users/me/myproject/bin/my.rs",
             )
             .expect("Could not add to manifest");
 

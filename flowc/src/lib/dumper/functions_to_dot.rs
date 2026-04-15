@@ -12,7 +12,7 @@ use flowcore::model::route::{HasRoute, Route};
 
 use crate::compiler::compile::CompilerTables;
 use crate::dumper::create_output_file;
-use crate::dumper::flow_to_dot::{input_initializers_to_dot, INPUT_PORTS, output_name_to_port};
+use crate::dumper::flow_to_dot::{input_initializers_to_dot, output_name_to_port, INPUT_PORTS};
 use crate::errors::Result;
 
 /// Create a directed graph named after the flow, showing all the functions of the flow after it
@@ -79,23 +79,19 @@ pub fn dump_functions(
             "digraph {} {{\nnodesep=1.0\n",
             str::replace(&flow.alias.clone(), "-", "_")
         )
-            .as_bytes(),
+        .as_bytes(),
     )?;
     dot_file.write_all(format!("labelloc=t;\nlabel = \"{}\";\n", flow.route()).as_bytes())?;
 
-    let functions = process_refs_to_dot(flow, tables).map_err(|_| {
-        std::io::Error::other("Could not create dot content for process_refs")
-    })?;
+    let functions = process_refs_to_dot(flow, tables)
+        .map_err(|_| std::io::Error::other("Could not create dot content for process_refs"))?;
 
     dot_file.write_all(functions.as_bytes())?;
 
     dot_file.write_all(b"}")
 }
 
-fn process_refs_to_dot(
-    flow: &FlowDefinition,
-    tables: &CompilerTables,
-) -> Result<String> {
+fn process_refs_to_dot(flow: &FlowDefinition, tables: &CompilerTables) -> Result<String> {
     let mut output = String::new();
 
     // Do the same for all subprocesses referenced from this one
@@ -107,8 +103,11 @@ fn process_refs_to_dot(
         match process {
             FlowProcess(ref subflow) => {
                 // create cluster sub graph
-                let _ = write!(output, "\nsubgraph cluster_{} {{",
-                                 str::replace(&subflow.alias.clone(), "-", "_"));
+                let _ = write!(
+                    output,
+                    "\nsubgraph cluster_{} {{",
+                    str::replace(&subflow.alias.clone(), "-", "_")
+                );
                 let _ = write!(output, "label = \"{}\";", subflow.route());
 
                 let _ = write!(output, "{}", &process_refs_to_dot(subflow, tables)?); // recurse
@@ -126,7 +125,10 @@ fn process_refs_to_dot(
 }
 
 // Given a Function as used in the code generation - generate a "dot" format string to draw it
-fn function_to_dot(function: &FunctionDefinition, functions: &[FunctionDefinition]) -> Result<String> {
+fn function_to_dot(
+    function: &FunctionDefinition,
+    functions: &[FunctionDefinition],
+) -> Result<String> {
     let mut function_string = String::new();
 
     // modify path to point to the .html page that's built from .md to document the function
@@ -135,21 +137,28 @@ fn function_to_dot(function: &FunctionDefinition, functions: &[FunctionDefinitio
         .to_string()
         .replace("toml", "html");
 
-    let _ = write!(function_string,
-                     "r{}[style=filled, fillcolor=coral, URL=\"{}\", label=\"{} (#{})\"];",
-                     function.get_id(),
-                     md_path,
-                     function.alias(),
-                     function.get_id()
+    let _ = write!(
+        function_string,
+        "r{}[style=filled, fillcolor=coral, URL=\"{}\", label=\"{} (#{})\"];",
+        function.get_id(),
+        md_path,
+        function.alias(),
+        function.get_id()
     );
 
-    function_string.push_str(&input_initializers_to_dot(function, &format!("r{}", function.get_id()))?);
+    function_string.push_str(&input_initializers_to_dot(
+        function,
+        &format!("r{}", function.get_id()),
+    )?);
 
     // Add edges for each of the outputs of this function to other ones
     for destination in function.get_output_connections() {
-        let input_port = INPUT_PORTS.get(destination.destination_io_number % INPUT_PORTS.len())
+        let input_port = INPUT_PORTS
+            .get(destination.destination_io_number % INPUT_PORTS.len())
             .ok_or("Could no tget Input Port")?;
-        let destination_function = functions.get(destination.destination_id).ok_or("Could not get function")?;
+        let destination_function = functions
+            .get(destination.destination_id)
+            .ok_or("Could not get function")?;
         let source_port = output_name_to_port(&destination.source)?;
         let destination_name = destination_function
             .get_inputs()
@@ -157,14 +166,15 @@ fn function_to_dot(function: &FunctionDefinition, functions: &[FunctionDefinitio
             .expect("Could not get input")
             .name()
             .clone();
-        let _ = write!(function_string,
-                         "r{}:{} -> r{}:{} [taillabel = \"{}\", headlabel = \"{}\"];",
-                         function.get_id(),
-                         source_port,
-                         destination.destination_id,
-                         input_port,
-                         destination.source,
-                         destination_name
+        let _ = write!(
+            function_string,
+            "r{}:{} -> r{}:{} [taillabel = \"{}\", headlabel = \"{}\"];",
+            function.get_id(),
+            source_port,
+            destination.destination_id,
+            input_port,
+            destination.source,
+            destination_name
         );
     }
 
@@ -175,7 +185,7 @@ fn output_compiled_function(
     route: &Route,
     tables: &CompilerTables,
     output: &mut String,
-) -> Result<()>{
+) -> Result<()> {
     for function in &tables.functions {
         if function.route() == route {
             output.push_str(&function_to_dot(function, &tables.functions)?);

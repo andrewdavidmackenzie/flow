@@ -16,32 +16,36 @@ use flowrclib::compiler::parser;
 use flowrclib::dumper::{flow_to_dot, functions_to_dot};
 use flowrclib::generator::generate;
 
-use crate::errors::{Result, ResultExt, bail};
+use crate::errors::{bail, Result, ResultExt};
 use crate::Options;
 
 /// Compile a flow, maybe run it
-pub fn compile_and_execute_flow(options: &Options,
-                                provider: &dyn Provider,
-                                runner_name: &str,
-                                output_dir: &PathBuf) -> Result<()> {
+pub fn compile_and_execute_flow(
+    options: &Options,
+    provider: &dyn Provider,
+    runner_name: &str,
+    output_dir: &PathBuf,
+) -> Result<()> {
     info!("==== Parsing flow hierarchy from '{}'", options.source_url);
     #[cfg(feature = "debugger")]
     let mut source_urls = BTreeMap::<String, Url>::new();
 
-    let root = parser::parse(
-        &options.source_url,
-        provider,
-    )?;
+    let root = parser::parse(&options.source_url, provider)?;
 
     match root {
         FlowProcess(flow) => {
-            info!("Finished parsing flow hierarchy starting at root flow '{}'", flow.name);
-            let tables = compile::compile(&flow,
-                                              output_dir.as_path(),
-                                              options.provided_implementations,
-                                              options.optimize,
-                                                &mut source_urls
-            ).chain_err(|| format!("Could not compile the flow '{}'", options.source_url))?;
+            info!(
+                "Finished parsing flow hierarchy starting at root flow '{}'",
+                flow.name
+            );
+            let tables = compile::compile(
+                &flow,
+                output_dir.as_path(),
+                options.provided_implementations,
+                options.optimize,
+                &mut source_urls,
+            )
+            .chain_err(|| format!("Could not compile the flow '{}'", options.source_url))?;
 
             make_writeable(output_dir)?;
 
@@ -61,7 +65,8 @@ pub fn compile_and_execute_flow(options: &Options,
                 options.debug_symbols,
                 output_dir,
                 &tables,
-                #[cfg(feature = "debugger")] source_urls,
+                #[cfg(feature = "debugger")]
+                source_urls,
             )
             .chain_err(|| "Failed to write manifest")?;
 
@@ -108,7 +113,10 @@ fn make_writeable(output_dir: &PathBuf) -> Result<()> {
     If the process fails then return an Err() with message and log stderr in an ERROR level message
 */
 fn execute_flow(filepath: &Path, options: &Options, runner_name: &str) -> Result<()> {
-    info!("\n==== Executing flow from manifest at '{}'", filepath.display());
+    info!(
+        "\n==== Executing flow from manifest at '{}'",
+        filepath.display()
+    );
 
     let mut runner_args = vec![];
 
@@ -156,7 +164,8 @@ fn execute_flow(filepath: &Path, options: &Options, runner_name: &str) -> Result
         runner.stdin(Stdio::piped());
     }
 
-    let mut runner_child = runner.spawn()
+    let mut runner_child = runner
+        .spawn()
         .chain_err(|| format!("Could not spawn '{runner_name}'"))?;
 
     if let Some(stdin_file) = &options.stdin_file {
@@ -182,9 +191,21 @@ fn execute_flow(filepath: &Path, options: &Options, runner_name: &str) -> Result
         Some(0) | None => Ok(()),
         Some(code) => {
             error!("Execution of '{runner_name}' failed");
-            error!("'{}' STDOUT:\n{}", runner_name, String::from_utf8_lossy(&runner_output.stdout));
-            error!("'{}' STDERR:\n{}", runner_name, String::from_utf8_lossy(&runner_output.stderr));
-            bail!("Execution of '{}' failed. Exited with status code: {}", runner_name, code)
+            error!(
+                "'{}' STDOUT:\n{}",
+                runner_name,
+                String::from_utf8_lossy(&runner_output.stdout)
+            );
+            error!(
+                "'{}' STDERR:\n{}",
+                runner_name,
+                String::from_utf8_lossy(&runner_output.stderr)
+            );
+            bail!(
+                "Execution of '{}' failed. Exited with status code: {}",
+                runner_name,
+                code
+            )
         }
     }
 }
@@ -199,8 +220,7 @@ mod test {
 
     #[test]
     fn can_create_dir_correctly() {
-        let temp_parent = tempdir()
-            .expect("Could not create temp parent dir");
+        let temp_parent = tempdir().expect("Could not create temp parent dir");
 
         let test_output_dir = temp_parent.path().join("output");
         make_writeable(&test_output_dir).expect("Could not make output dir");
@@ -225,7 +245,7 @@ mod test {
 
     #[test]
     fn error_if_exists_as_file() {
-        let temp_parent =tempdir().expect("Could not create temp parent dir");
+        let temp_parent = tempdir().expect("Could not create temp parent dir");
         let test_output_file = temp_parent.path().join("output");
         fs::File::create(&test_output_file).expect("Could not create file");
 

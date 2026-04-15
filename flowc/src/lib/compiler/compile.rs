@@ -9,8 +9,8 @@ use flowcore::model::connection::Connection;
 use flowcore::model::flow_definition::FlowDefinition;
 use flowcore::model::function_definition::FunctionDefinition;
 use flowcore::model::name::HasName;
-use flowcore::model::output_connection::{OutputConnection, Source};
 use flowcore::model::output_connection::Source::{Input, Output};
+use flowcore::model::output_connection::{OutputConnection, Source};
 use flowcore::model::route::{HasRoute, Route};
 
 use crate::compiler::compile_wasm;
@@ -120,12 +120,12 @@ impl CompilerTables {
 /// - All function's inputs are connected
 /// - The flow does not produce any "side effects" (output)
 /// - There is an issue compiling any of the supplied implementations to WASM
-pub fn compile(flow: &FlowDefinition,
-               output_dir: &Path,
-               skip_building: bool,
-               optimize: bool,
-               #[cfg(feature = "debugger")]
-               source_urls: &mut BTreeMap<String, Url>,
+pub fn compile(
+    flow: &FlowDefinition,
+    output_dir: &Path,
+    skip_building: bool,
+    optimize: bool,
+    #[cfg(feature = "debugger")] source_urls: &mut BTreeMap<String, Url>,
 ) -> Result<CompilerTables> {
     let mut tables = CompilerTables::new();
 
@@ -143,7 +143,8 @@ pub fn compile(flow: &FlowDefinition,
         skip_building,
         optimize,
         source_urls,
-    ).chain_err(|| "Could not compile to wasm the flow's supplied implementation(s)")?;
+    )
+    .chain_err(|| "Could not compile to wasm the flow's supplied implementation(s)")?;
 
     Ok(tables)
 }
@@ -154,7 +155,10 @@ pub fn compile(flow: &FlowDefinition,
 ///
 /// Returns an error if the functions `source_url` cannot be used to form a valid `Url`
 ///
-pub fn get_paths(wasm_output_dir: &Path, function: &FunctionDefinition) -> Result<(PathBuf, PathBuf)> {
+pub fn get_paths(
+    wasm_output_dir: &Path,
+    function: &FunctionDefinition,
+) -> Result<(PathBuf, PathBuf)> {
     let source_url = function.get_source_url().join(function.get_source())?;
 
     let source_path = source_url
@@ -174,14 +178,15 @@ fn compile_supplied_implementations(
     tables: &mut CompilerTables,
     skip_building: bool,
     release_build: bool,
-    #[cfg(feature = "debugger")]
-    source_urls: &mut BTreeMap<String, Url>,
+    #[cfg(feature = "debugger")] source_urls: &mut BTreeMap<String, Url>,
 ) -> Result<String> {
     for function in &mut tables.functions {
         if function.get_lib_reference().is_none() && function.get_context_reference().is_none() {
             let (implementation_source_path, wasm_destination) = get_paths(out_dir, function)?;
-            let mut cargo_target_dir = implementation_source_path.parent()
-                .ok_or("Could not get directory where Cargo.toml resides")?.to_path_buf();
+            let mut cargo_target_dir = implementation_source_path
+                .parent()
+                .ok_or("Could not get directory where Cargo.toml resides")?
+                .to_path_buf();
             if release_build {
                 cargo_target_dir.push("target/wasm32-unknown-unknown/release/");
             } else {
@@ -197,7 +202,7 @@ fn compile_supplied_implementations(
                 skip_building,
                 release_build,
                 #[cfg(feature = "debugger")]
-                    source_urls,
+                source_urls,
             )?;
         }
     }
@@ -215,19 +220,24 @@ fn compile_supplied_implementations(
 fn configure_output_connections(tables: &mut CompilerTables) -> Result<()> {
     info!("\n=== Compiler: Configuring Output Connections");
     for connection in &tables.collapsed_connections {
-        let (source, source_id) = get_source(&tables.sources,
-                                             connection.from_io().route())
-            .ok_or(format!("Connection source for route '{}' was not found",
-                           connection.from_io().route()))?;
+        let (source, source_id) =
+            get_source(&tables.sources, connection.from_io().route()).ok_or(format!(
+                "Connection source for route '{}' was not found",
+                connection.from_io().route()
+            ))?;
 
-        let (destination_function_id, destination_input_index, destination_flow_id) =
-            tables.destination_routes.get(connection.to_io().route())
-                .ok_or(format!("Connection destination for route '{}' was not found",
-                               connection.to_io().route()))?;
+        let (destination_function_id, destination_input_index, destination_flow_id) = tables
+            .destination_routes
+            .get(connection.to_io().route())
+            .ok_or(format!(
+                "Connection destination for route '{}' was not found",
+                connection.to_io().route()
+            ))?;
 
-        let source_function = tables.functions.get_mut(source_id)
-            .ok_or(format!("Could not find function with id: {source_id} \
-            while configuring output connection '{connection}'"))?;
+        let source_function = tables.functions.get_mut(source_id).ok_or(format!(
+            "Could not find function with id: {source_id} \
+            while configuring output connection '{connection}'"
+        ))?;
 
         debug!(
             "Connection: from '{}' to '{}'",
@@ -243,7 +253,7 @@ fn configure_output_connections(tables: &mut CompilerTables) -> Result<()> {
             *destination_flow_id,
             connection.to_io().route().to_string(),
             #[cfg(feature = "debugger")]
-                connection.name().clone(),
+            connection.name().clone(),
         );
         source_function.add_output_connection(output_conn);
     }
@@ -334,15 +344,15 @@ mod test {
         use super::super::get_source;
 
         /*
-                                                                                                    Create a HashTable of routes for use in tests.
-                                                                                                    Each entry (K, V) is:
-                                                                                                    - Key   - the route to a function's IO
-                                                                                                    - Value - a tuple of
-                                                                                                                - sub-route (or IO name) from the function to be used at runtime
-                                                                                                                - the id number of the function in the functions table, to select it at runtime
+            Create a HashTable of routes for use in tests.
+            Each entry (K, V) is:
+            - Key   - the route to a function's IO
+            - Value - a tuple of
+                        - sub-route (or IO name) from the function to be used at runtime
+                        - the id number of the function in the functions table, to select it at runtime
 
-                                                                                                    Plus a vector of test cases with the Route to search for and the expected function_id and output sub-route
-                                                                                                */
+            Plus a vector of test cases with the Route to search for and the expected function_id and output sub-route
+        */
         #[allow(clippy::type_complexity)]
         fn test_source_routes() -> (
             BTreeMap<Route, (Source, usize)>,
@@ -377,11 +387,7 @@ mod test {
                 Route::from("/root/f2/output_value"),
                 Some((Output("/output_value".into()), 1)),
             ));
-            test_cases.push((
-                "incorrectly named function",
-                Route::from("/root/f2b"),
-                None,
-            ));
+            test_cases.push(("incorrectly named function", Route::from("/root/f2b"), None));
             test_cases.push((
                 "incorrectly named IO",
                 Route::from("/root/f2/output_fake"),
@@ -433,13 +439,12 @@ mod test {
             false,
             "context://stdio/stdout.toml".to_owned(),
             Name::from("test-function"),
-            vec![IO::new(vec!(STRING_TYPE.into()), "/print")],
+            vec![IO::new(vec![STRING_TYPE.into()], "/print")],
             vec![],
             Url::parse("context://stdio/stdout.toml").expect("Could not parse Url"),
             Route::from("/print"),
             None,
-            Some(Url::parse("context://stdio/stdout.toml")
-                .expect("Could not parse Url")),
+            Some(Url::parse("context://stdio/stdout.toml").expect("Could not parse Url")),
             vec![],
             0,
             0,
@@ -464,12 +469,13 @@ mod test {
         let output_dir = tempdir().expect("A temp dir").keep();
         let mut source_urls = BTreeMap::<String, Url>::new();
         // Optimizer should remove unconnected function leaving no side effects
-        match compile(&flow,
-                      &output_dir,
-                      true,
-                      false,
-                      #[cfg(feature = "debugger")]
-                          &mut source_urls,
+        match compile(
+            &flow,
+            &output_dir,
+            true,
+            false,
+            #[cfg(feature = "debugger")]
+            &mut source_urls,
         ) {
             Ok(_tables) => panic!("Flow should not compile when it has no side-effects"),
             Err(e) => assert_eq!("Flow has no side-effects", e.description()),
@@ -482,17 +488,16 @@ mod test {
             false,
             "test.rs".to_string(),
             "print".into(),
-            vec![IO::new(vec!(STRING_TYPE.into()), Route::default())],
-            vec![IO::new(vec!(STRING_TYPE.into()), Route::default())],
+            vec![IO::new(vec![STRING_TYPE.into()], Route::default())],
+            vec![IO::new(vec![STRING_TYPE.into()], Route::default())],
             Url::parse(&format!(
                 "file://{}/{}",
                 env!("CARGO_MANIFEST_DIR"),
                 "tests/test-functions/test/test"
             ))
-                .expect("Could not create source Url"),
+            .expect("Could not create source Url"),
             Route::from("/flow0/stdout"),
-            Some(Url::parse("lib::/tests/test-functions/test/test")
-                .expect("Could not parse Url")),
+            Some(Url::parse("lib::/tests/test-functions/test/test").expect("Could not parse Url")),
             None,
             vec![OutputConnection::new(
                 Source::default(),
@@ -501,7 +506,7 @@ mod test {
                 0,
                 String::default(),
                 #[cfg(feature = "debugger")]
-                    String::default(),
+                String::default(),
             )],
             0,
             0,

@@ -1,8 +1,8 @@
-use serde_json::{json, Value};
 use serde_json::Value::Number;
+use serde_json::{json, Value};
 
-use flowcore::{RUN_AGAIN, RunAgain};
-use flowcore::errors::{Result, bail};
+use flowcore::errors::{bail, Result};
+use flowcore::{RunAgain, RUN_AGAIN};
 use flowmacro::flow_function;
 
 #[flow_function]
@@ -28,7 +28,10 @@ mod test {
         let (root, again) = inner_sqrt(&[test_81]).expect("_sqrt() failed");
 
         assert!(again);
-        assert_eq!(test_9, root.expect("Could not get the value from the output"));
+        assert_eq!(
+            test_9,
+            root.expect("Could not get the value from the output")
+        );
     }
 
     #[test]

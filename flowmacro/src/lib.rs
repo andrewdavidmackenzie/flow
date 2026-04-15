@@ -11,7 +11,7 @@ use std::path::Path;
 
 use proc_macro2::Ident;
 use quote::{format_ident, quote, ToTokens};
-use syn::{ItemFn, parse_macro_input, ReturnType};
+use syn::{parse_macro_input, ItemFn, ReturnType};
 
 use flowcore::model::function_definition::FunctionDefinition;
 
@@ -24,7 +24,8 @@ use flowcore::model::function_definition::FunctionDefinition;
 pub fn flow_function(_attr: TokenStream, implementation: TokenStream) -> TokenStream {
     // Get the full path to the file where the macro was used, and join the relative filename from
     // the macro's attributes, to find the path to the function's definition file
-    let mut definition_file_path = Span::call_site().local_file()
+    let mut definition_file_path = Span::call_site()
+        .local_file()
         .expect("the 'flow' macro could not get the file path where macro was invoked");
     definition_file_path.set_extension("toml");
 
@@ -36,12 +37,19 @@ pub fn flow_function(_attr: TokenStream, implementation: TokenStream) -> TokenSt
 
 // Load a `FunctionDefinition` from the file at `path`
 fn load_function_definition(path: &Path) -> FunctionDefinition {
-    let function = fs::read_to_string(path)
-        .unwrap_or_else(|e| panic!("'flow' macro could not read from the function definition file '{}'\n{e}",
-                                   path.display()));
-    toml::from_str(&function)
-        .unwrap_or_else(|e| panic!("'flow' macro could not deserialize the Toml function definition file
-        '{}'\n{e}", path.display()))
+    let function = fs::read_to_string(path).unwrap_or_else(|e| {
+        panic!(
+            "'flow' macro could not read from the function definition file '{}'\n{e}",
+            path.display()
+        )
+    });
+    toml::from_str(&function).unwrap_or_else(|e| {
+        panic!(
+            "'flow' macro could not deserialize the Toml function definition file
+        '{}'\n{e}",
+            path.display()
+        )
+    })
 }
 
 // If the function accepts inputs as &[serde_json::Value] then there is no need to extract
@@ -55,7 +63,8 @@ fn input_conversion(definition: &FunctionDefinition, implementation_ast: &ItemFn
 
     // if there is only one input (`inputs`) and it matches the expected standard form (`&[Value]`)
     if implemented_inputs.len() == 1 {
-        let input = implemented_inputs.first()
+        let input = implemented_inputs
+            .first()
             .expect("the 'flow' macro could not get the function's first argument type");
 
         if input.into_token_stream().to_string() == quote! { inputs : &[Value] }.to_string() {
@@ -64,11 +73,17 @@ fn input_conversion(definition: &FunctionDefinition, implementation_ast: &ItemFn
     }
 
     // perform some checks before attempting input conversion
-    assert_eq!(implemented_inputs.len(), definition.inputs.len(), "a 'flow_function' macro check failed:\n\
+    assert_eq!(
+        implemented_inputs.len(),
+        definition.inputs.len(),
+        "a 'flow_function' macro check failed:\n\
             '{}' define {} inputs\n\
             '{}()' implements {} inputs",
-               definition.name, definition.inputs.len(),
-               implementation_name, implemented_inputs.len());
+        definition.name,
+        definition.inputs.len(),
+        implementation_name,
+        implemented_inputs.len()
+    );
 
     // TODO If function accepts types directly (not `&[Value]`), check they match function definition
     // for input_pair in implemented_inputs.pairs() {
@@ -95,17 +110,21 @@ fn input_conversion(definition: &FunctionDefinition, implementation_ast: &ItemFn
 // matches the Implementation trait's run() method return type
 // Hacky but works for now - find a better way to do it
 fn check_return_type(return_type: &ReturnType) {
-    assert_eq!(return_type.into_token_stream().to_string(),
-               quote! { -> Result<(Option<Value>, RunAgain)>}.to_string(),
-                "a 'flow_function' macro check failed:\n\
+    assert_eq!(
+        return_type.into_token_stream().to_string(),
+        quote! { -> Result<(Option<Value>, RunAgain)>}.to_string(),
+        "a 'flow_function' macro check failed:\n\
                                     implementation's return type does not match the \
-                                    Implementation trait's run() method return type");
+                                    Implementation trait's run() method return type"
+    );
 }
 
 // Generate the code for the implementation struct, including some extra functions to help
 // manage memory and pass parameters to and from a wasm compiled version of it
-fn generate_code(function_implementation: TokenStream,
-                 definition: &FunctionDefinition) -> TokenStream {
+fn generate_code(
+    function_implementation: TokenStream,
+    definition: &FunctionDefinition,
+) -> TokenStream {
     let implementation: proc_macro2::TokenStream = function_implementation.clone().into();
     let implementation_ast = parse_macro_input!(function_implementation as syn::ItemFn);
     let implementation_name = &implementation_ast.sig.ident;
@@ -137,7 +156,10 @@ fn generate_code(function_implementation: TokenStream,
         }
     };
 
-    let struct_name = format_ident!("{}", FunctionDefinition::camel_case(&definition.name.clone()));
+    let struct_name = format_ident!(
+        "{}",
+        FunctionDefinition::camel_case(&definition.name.clone())
+    );
 
     // This code will be compiled to wasm along with the Implementation's run() function
     // and it will be running on the wasm side - hence it includes code to build the serde_json
@@ -178,25 +200,25 @@ fn generate_code(function_implementation: TokenStream,
     };
 
     let gen = quote! {
-        #[allow(unused_imports)]
-        #wasm_boilerplate
+            #[allow(unused_imports)]
+            #wasm_boilerplate
 
-        #implementation
+            #implementation
 
-        #docs_comment
-        #[derive(Debug)]
-        pub struct #struct_name;
-        use flowcore::Implementation;
-        impl Implementation for #struct_name {
-            fn run(&self, inputs: &[Value]) -> flowcore::errors::Result<(Option<Value>, flowcore::RunAgain)> {
-//                #input_conversion
-                #input_number_check
+            #docs_comment
+            #[derive(Debug)]
+            pub struct #struct_name;
+            use flowcore::Implementation;
+            impl Implementation for #struct_name {
+                fn run(&self, inputs: &[Value]) -> flowcore::errors::Result<(Option<Value>, flowcore::RunAgain)> {
+    //                #input_conversion
+                    #input_number_check
 
-                #implementation_name(#input_list)
+                    #implementation_name(#input_list)
+                }
             }
-        }
 
-    };
+        };
     gen.into()
 }
 

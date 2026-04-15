@@ -1,7 +1,7 @@
 use std::sync::{Arc, Mutex};
 
-use flowcore::{DONT_RUN_AGAIN, Implementation, RUN_AGAIN, RunAgain};
 use flowcore::errors::Result;
+use flowcore::{Implementation, RunAgain, DONT_RUN_AGAIN, RUN_AGAIN};
 use serde_json::Value;
 
 use crate::gui::client_message::ClientMessage;
@@ -16,7 +16,9 @@ pub struct Stdin {
 
 impl Implementation for Stdin {
     fn run(&self, _inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
-        let mut server = self.server_connection.lock()
+        let mut server = self
+            .server_connection
+            .lock()
             .map_err(|_| "Could not lock server")?;
 
         let stdin_response = server.send_and_receive_response(CoordinatorMessage::GetStdin);
@@ -43,7 +45,7 @@ impl Implementation for Stdin {
 
 #[cfg(test)]
 mod test {
-    use flowcore::{DONT_RUN_AGAIN, Implementation, RUN_AGAIN};
+    use flowcore::{Implementation, DONT_RUN_AGAIN, RUN_AGAIN};
     use serde_json::json;
     use serde_json::Value;
     use serial_test::serial;
@@ -77,7 +79,8 @@ mod test {
     #[test]
     #[serial]
     fn bad_reply_message() {
-        let server_connection = wait_for_then_send(CoordinatorMessage::GetStdin, ClientMessage::Ack);
+        let server_connection =
+            wait_for_then_send(CoordinatorMessage::GetStdin, ClientMessage::Ack);
         let stdin = &Stdin { server_connection } as &dyn Implementation;
         let (value, run_again) = stdin.run(&[]).expect("_stdin() failed");
 

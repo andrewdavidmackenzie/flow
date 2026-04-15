@@ -9,4 +9,4 @@ pub const RESULTS_JOB_SERVICE_NAME: &str = "results._flowr._tcp.local";
 pub const CONTROL_SERVICE_NAME: &str = "control._flowr._tcp.local";
 
 /// This is the port for announcing and discovering the job queues
-pub const JOB_QUEUES_DISCOVERY_PORT:u16 = 15003;
+pub const JOB_QUEUES_DISCOVERY_PORT: u16 = 15003;

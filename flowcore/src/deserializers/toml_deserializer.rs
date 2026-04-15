@@ -1,7 +1,7 @@
 use std::marker::PhantomData;
 
-use serde::Deserialize;
 use serde::de::DeserializeOwned;
+use serde::Deserialize;
 use url::Url;
 
 use crate::errors::{Result, ResultExt};
@@ -68,8 +68,10 @@ mod test {
     #[test]
     fn invalid_toml() {
         let toml = TomlDeserializer::<TestStruct>::new();
-        assert!(toml.deserialize("{}}}}f fake data ", None).is_err(),
-                "Should not have parsed correctly as is invalid TOML");
+        assert!(
+            toml.deserialize("{}}}}f fake data ", None).is_err(),
+            "Should not have parsed correctly as is invalid TOML"
+        );
     }
 
     #[test]
