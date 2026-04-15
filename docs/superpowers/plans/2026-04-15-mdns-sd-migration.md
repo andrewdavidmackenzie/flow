@@ -174,12 +174,7 @@ pub fn enable_service_discovery(name: &str, service_port: u16) -> Result<Service
     let mdns = ServiceDaemon::new()
         .map_err(|e| format!("Could not create mDNS daemon: {e}"))?;
 
-    let host_name = hostname::get()
-        .unwrap_or_else(|_| "localhost".into())
-        .to_string_lossy()
-        .to_string();
-
-    let service_hostname = format!("{host_name}.local.");
+    let service_hostname = format!("{name}.local.");
 
     let service_info = ServiceInfo::new(
         FLOW_SERVICE_TYPE,
@@ -236,14 +231,7 @@ pub fn discover_service(name: &str) -> Result<String> {
 }
 ```
 
-- [ ] **Step 2: Add `hostname` dependency to Cargo.toml**
-
-In `flowr/Cargo.toml`, add after the mdns-sd line:
-```toml
-hostname = "0.4"
-```
-
-- [ ] **Step 3: Register the module in `flowr/src/lib/lib.rs`**
+- [ ] **Step 2: Register the module in `flowr/src/lib/lib.rs`**
 
 Add after the `pub mod services;` line (around line 54):
 ```rust
@@ -251,16 +239,16 @@ Add after the `pub mod services;` line (around line 54):
 pub mod discovery;
 ```
 
-- [ ] **Step 4: Verify it compiles**
+- [ ] **Step 3: Verify it compiles**
 
 Run: `cargo check -p flowr 2>&1 | grep "error" | grep -v "unused\|dead_code" | head -5`
 
 Expected: Errors from other files that still import old constants — but `discovery.rs` itself should compile cleanly.
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 4: Commit**
 
 ```bash
-git add flowr/src/lib/discovery.rs flowr/src/lib/lib.rs flowr/Cargo.toml Cargo.lock
+git add flowr/src/lib/discovery.rs flowr/src/lib/lib.rs
 git commit -m "Add flowrlib::discovery module using mdns-sd (#2025)"
 ```
 
