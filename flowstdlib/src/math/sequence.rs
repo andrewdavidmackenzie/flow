@@ -9,6 +9,8 @@ mod test {
 
     use super::super::super::test::execute_flow;
 
+    // Serialized to avoid mDNS service name collision when multiple flowc
+    // instances run in parallel — see https://github.com/andrewdavidmackenzie/flow/issues/2563
     #[test]
     #[serial]
     fn test_single_value_initializers() {
