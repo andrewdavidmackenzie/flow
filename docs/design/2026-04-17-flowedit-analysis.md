@@ -86,6 +86,7 @@ Each process on the canvas is rendered as a rounded rectangle ("bubble"):
   - Library functions: blue
   - Context functions: green
   - Nested flows: orange
+  - Provided implementations (custom code compiled to WASM): purple
 
 ### Nested Flow Nodes
 
@@ -174,12 +175,49 @@ flowcore. The compiler (`flowc`) will parse but ignore these fields. The
 
 ## 6. Process Library Panel
 
-The left panel shows available processes in a tree structure. The library is populated by:
+The left panel shows available processes in a tree structure, organized by library.
 
-1. **Scanning flowstdlib manifest** — enumerate all functions with their names, inputs,
-   outputs, and types
-2. **Scanning runner context** — enumerate context functions (stdio, file, image, args)
-   from the runner specification
+### Library Discovery
+
+Libraries are discovered by scanning the **flow lib search path** (`FLOW_LIB_PATH` or
+`~/.flow/lib` by default). Each directory in the path that contains a `lib.json` manifest
+is a library. `flowstdlib` is not special-cased — it's just another library found via this
+path. If it's not installed, its functions simply won't appear.
+
+### Tree Structure
+
+```
+Libraries
+├── flowstdlib/
+│   ├── math/
+│   │   ├── add
+│   │   ├── subtract
+│   │   ├── multiply
+│   │   └── sequence
+│   ├── control/
+│   │   ├── select
+│   │   └── tap
+│   ├── data/
+│   │   ├── accumulate
+│   │   └── append
+│   └── ...
+├── mylib/                    (user-installed library)
+│   ├── filters/
+│   │   └── lowpass
+│   └── transforms/
+│       └── fft
+└── Context/
+    └── stdio/
+        ├── stdin
+        ├── stdout
+        └── stderr
+```
+
+Each library is loaded from its manifest, which describes its available functions/flows
+with their input/output signatures. Context functions are discovered from the runner
+specification.
+
+### Interaction
 
 The user can:
 - Browse the tree
@@ -188,7 +226,7 @@ The user can:
 - Double-click to add it at a default position
 
 When a process is added, a new `ProcessReference` is created in the flow definition with
-default layout coordinates.
+the appropriate `lib://` or `context://` source URL and default layout coordinates.
 
 ## 7. Architecture & Code Reuse
 
