@@ -2,6 +2,7 @@ use std::path::PathBuf;
 use std::sync::{Arc, Mutex, OnceLock};
 use std::thread;
 
+use iced::futures::SinkExt;
 use iced::Subscription;
 use log::{error, info, trace};
 use portpicker::pick_unused_port;
@@ -80,7 +81,9 @@ fn coordinator_stream() -> impl iced::futures::Stream<Item = CoordinatorMessage>
                         let (app_side_sender, app_receiver) = tokio::sync::mpsc::channel(100);
 
                         // Send the Sender to the App in a Message, for App to use to send us messages
-                        let _ = app_sender.try_send(CoordinatorMessage::Connected(app_side_sender));
+                        let _ = app_sender
+                            .send(CoordinatorMessage::Connected(app_side_sender))
+                            .await;
 
                         state = CoordinatorState::Connected(
                             app_receiver,
@@ -95,7 +98,7 @@ fn coordinator_stream() -> impl iced::futures::Stream<Item = CoordinatorMessage>
                                 connection.lock().unwrap().receive().unwrap(); // TODO
 
                             // Forward the message to the app
-                            app_sender.try_send(coordinator_message.clone()).unwrap(); // TODO
+                            let _ = app_sender.send(coordinator_message.clone()).await;
 
                             // If that was end of flow, there will be no response from app
                             if matches!(&coordinator_message, &CoordinatorMessage::FlowEnd(_)) {
