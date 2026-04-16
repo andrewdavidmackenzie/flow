@@ -160,9 +160,11 @@ width = 180.0
 height = 120.0
 ```
 
-This requires adding optional `x`, `y`, `width`, `height` fields to `ProcessReference` in
-flowcore. The compiler (`flowc`) will parse but ignore these fields. The
-`#[serde(default, skip_serializing_if)]` pattern ensures they're only written when present.
+This requires adding optional `x`, `y`, `width`, `height` fields (as `f32`) to
+`ProcessReference` in flowcore. The compiler (`flowc`) will parse but ignore these fields.
+The `#[serde(default, skip_serializing_if)]` pattern ensures they're only written when
+present. Note: serde/TOML auto-converts integers to f32, so users can write `x = 100`
+or `x = 100.0` — both work. This should be a test case.
 
 ## 6. Process Library Panel
 
@@ -207,6 +209,13 @@ Libraries
 Each library is loaded from its manifest, which describes its available functions/flows
 with their input/output signatures. Context functions are discovered from the runner
 specification.
+
+The tree has collapsible/expandable branches (click to toggle). The entire panel is
+in a scrollable view with both horizontal and vertical scroll bars for large library
+trees.
+
+The main canvas area is also in a scrollable view with horizontal and vertical scroll
+bars, allowing flows larger than the visible area to be panned.
 
 ### Interaction
 
