@@ -252,6 +252,7 @@ mod test {
         assert!(make_writeable(&test_output_file).is_err());
     }
 
+    #[cfg(unix)]
     #[test]
     fn error_if_dir_is_read_only() {
         use std::os::unix::fs::PermissionsExt;
