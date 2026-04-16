@@ -267,3 +267,115 @@ impl Tab for StdInTab {
     // flow being run
     fn clear(&mut self) {}
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn stdin_new() {
+        let tab = StdInTab::new("test");
+        assert_eq!(tab.name, "test");
+        assert!(tab.content.is_empty());
+        assert_eq!(tab.cursor, 0);
+        assert!(tab.text.is_empty());
+    }
+
+    #[test]
+    fn stdin_text_entered() {
+        let mut tab = StdInTab::new("test");
+        tab.text_entered("hello".into());
+        assert_eq!(tab.text, "hello");
+    }
+
+    #[test]
+    fn stdin_new_line() {
+        let mut tab = StdInTab::new("test");
+        tab.text_entered("typing".into());
+        tab.new_line("first line".into());
+        assert_eq!(tab.content, vec!["first line"]);
+        assert!(tab.text.is_empty()); // text cleared after new_line
+    }
+
+    #[test]
+    fn stdin_get_line_returns_lines_in_order() {
+        let mut tab = StdInTab::new("test");
+        tab.new_line("line1".into());
+        tab.new_line("line2".into());
+
+        assert_eq!(tab.get_line(""), Some("line1".into()));
+        assert_eq!(tab.get_line(""), Some("line2".into()));
+        assert_eq!(tab.get_line(""), None); // EOF
+    }
+
+    #[test]
+    fn stdin_get_line_with_prompt() {
+        let mut tab = StdInTab::new("test");
+        tab.new_line("world".into());
+
+        assert_eq!(tab.get_line("hello "), Some("hello world".into()));
+    }
+
+    #[test]
+    fn stdin_get_line_empty_prompt() {
+        let mut tab = StdInTab::new("test");
+        tab.new_line("line".into());
+
+        assert_eq!(tab.get_line(""), Some("line".into()));
+    }
+
+    #[test]
+    fn stdin_get_line_eof_when_empty() {
+        let mut tab = StdInTab::new("test");
+        assert_eq!(tab.get_line(""), None);
+    }
+
+    #[test]
+    fn stdin_get_all_returns_all_content() {
+        let mut tab = StdInTab::new("test");
+        tab.new_line("a".into());
+        tab.new_line("b".into());
+        tab.new_line("c".into());
+
+        assert_eq!(tab.get_all(), Some("abc".into()));
+        assert_eq!(tab.get_all(), None); // cursor advanced past end
+    }
+
+    #[test]
+    fn stdin_get_all_after_partial_get_line() {
+        let mut tab = StdInTab::new("test");
+        tab.new_line("a".into());
+        tab.new_line("b".into());
+        tab.new_line("c".into());
+
+        assert_eq!(tab.get_line(""), Some("a".into())); // cursor at 1
+        assert_eq!(tab.get_all(), Some("bc".into())); // gets remaining
+        assert_eq!(tab.get_all(), None); // EOF
+    }
+
+    #[test]
+    fn stdin_get_all_eof_when_empty() {
+        let mut tab = StdInTab::new("test");
+        assert_eq!(tab.get_all(), None);
+    }
+
+    #[test]
+    fn stdin_clear_does_not_clear() {
+        let mut tab = StdInTab::new("test");
+        tab.new_line("preserved".into());
+        Tab::clear(&mut tab);
+        assert_eq!(tab.content, vec!["preserved"]); // stdin clear is intentionally a no-op
+    }
+
+    #[test]
+    fn stdout_clear() {
+        let mut tab = StdOutTab {
+            name: "test".into(),
+            id: Id::unique(),
+            content: vec!["line1".into(), "line2".into()],
+            auto_scroll: true,
+        };
+        Tab::clear(&mut tab);
+        assert!(tab.content.is_empty());
+    }
+}

@@ -779,3 +779,22 @@ impl FlowrGui {
         Task::none()
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn flow_url_absolute_path() {
+        let url = FlowrGui::flow_url("/tmp/test.toml").expect("Could not create url");
+        assert_eq!(url.scheme(), "file");
+        assert!(url.path().ends_with("/tmp/test.toml"));
+    }
+
+    #[test]
+    fn flow_url_relative_path() {
+        let url = FlowrGui::flow_url("test.toml").expect("Could not create url");
+        assert_eq!(url.scheme(), "file");
+        assert!(url.path().ends_with("/test.toml"));
+    }
+}
