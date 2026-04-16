@@ -31,7 +31,7 @@ where
     T: DeserializeOwned,
 {
     fn deserialize(&self, contents: &'a str, url: Option<&Url>) -> Result<T> {
-        serde_yaml::from_str(contents).chain_err(|| {
+        serde_yml::from_str(contents).chain_err(|| {
             format!(
                 "Error deserializing Yaml from: '{}'",
                 url.map_or("URL was None".to_owned(), std::string::ToString::to_string)
@@ -47,7 +47,7 @@ where
 #[cfg(test)]
 mod test {
     use serde_derive::{Deserialize, Serialize};
-    use serde_yaml::Error;
+    use serde_yml::Error;
 
     use crate::model::metadata::MetaData;
 
@@ -93,7 +93,7 @@ description: \"ok\"
 authors: [\"Andrew <andrew@foo.com>\"]
     ";
 
-        let result: Result<MetaData, Error> = serde_yaml::from_str(metadata);
+        let result: Result<MetaData, Error> = serde_yml::from_str(metadata);
         match result {
             Ok(md) => {
                 assert_eq!(md.name, "me".to_string());
