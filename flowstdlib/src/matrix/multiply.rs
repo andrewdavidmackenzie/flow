@@ -4,11 +4,13 @@ mod test {
     use std::fs::File;
     use std::io::Write;
 
+    use serial_test::serial;
     use tempfile::tempdir;
 
     use super::super::super::test::execute_flow;
 
     #[test]
+    #[serial]
     fn test_multiply_flow() {
         let flow = "\
 flow = \"matrix_multiply_test\"

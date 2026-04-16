@@ -4,11 +4,13 @@ mod test {
     use std::fs::File;
     use std::io::Write;
 
+    use serial_test::serial;
     use tempfile::tempdir;
 
     use super::super::super::test::execute_flow;
 
     #[test]
+    #[serial]
     fn test_single_value_initializers() {
         let flow = r#"
 flow = "sequence_test"
