@@ -136,21 +136,9 @@ Connections are drawn as bezier curves between output and input ports:
 
 ```rust
 struct EditorFlow {
-    definition: FlowDefinition,    // from flowcore — the flow definition
-    layout: FlowLayout,            // visual layout metadata
+    definition: FlowDefinition,    // from flowcore — includes layout in ProcessReferences
     dirty: bool,                   // unsaved changes
     file_path: Option<PathBuf>,    // where this flow is saved
-}
-
-struct FlowLayout {
-    nodes: HashMap<String, NodeLayout>,  // keyed by process alias
-}
-
-struct NodeLayout {
-    x: f32,
-    y: f32,
-    width: f32,
-    height: f32,
 }
 ```
 
