@@ -28,12 +28,10 @@ use std::{env, process, thread};
 use clap::Command as ClapCommand;
 use clap::{Arg, ArgMatches};
 use env_logger::Builder;
-use iced::alignment::Horizontal;
-use iced::executor;
-use iced::widget::scrollable::Id;
-use iced::widget::{scrollable, text_input, Button, Column, Row, Text};
-use iced::{Alignment, Application, Command, Element, Length, Settings, Subscription, Theme};
-use iced_aw::{modal, Card};
+use iced::widget::operation::{self, RelativeOffset};
+use iced::widget::{center, mouse_area, opaque, stack, text_input, Button, Column, Id, Row, Text};
+use iced::{Center, Element, Fill, Subscription, Task};
+use iced_aw::Card;
 use image::{ImageBuffer, Rgba, RgbaImage};
 use log::{info, LevelFilter};
 use simpath::Simpath;
@@ -111,10 +109,11 @@ enum CoordinatorState {
 
 /// Main for flowrgui binary - call `run()` and print any error that results or exit silently if OK
 fn main() -> iced::Result {
-    FlowrGui::run(Settings {
-        antialiasing: true,
-        ..Settings::default()
-    })
+    iced::application(FlowrGui::new, FlowrGui::update, FlowrGui::view)
+        .subscription(FlowrGui::subscription)
+        .title(FlowrGui::title)
+        .antialiasing(true)
+        .run()
 }
 
 #[derive(Clone)]
@@ -171,15 +170,9 @@ struct FlowrGui {
     modal_content: (String, String),
 }
 
-// Implement the iced Application trait for FlowIde
-impl Application for FlowrGui {
-    type Executor = executor::Default;
-    type Message = Message;
-    type Theme = Theme;
-    type Flags = ();
-
+impl FlowrGui {
     /// Create the flowrgui app and populate fields with options passed on the command line
-    fn new(_flags: ()) -> (Self, Command<Message>) {
+    fn new() -> (Self, Task<Message>) {
         let settings = FlowrGui::initial_settings();
 
         let flowrgui = FlowrGui {
@@ -194,24 +187,24 @@ impl Application for FlowrGui {
             modal_content: (String::new(), String::new()),
         };
 
-        (flowrgui, Command::none())
+        (flowrgui, Task::none())
     }
 
     fn title(&self) -> String {
         String::from("flowrgui")
     }
 
-    fn update(&mut self, message: Message) -> Command<Message> {
+    fn update(&mut self, message: Message) -> Task<Message> {
         match message {
             Message::CoordinatorSent(CoordinatorMessage::Connected(sender)) => {
                 self.coordinator_state = CoordinatorState::Connected(sender);
                 if self.ui_settings.auto {
-                    return Command::perform(Self::auto_submit(), |()| Message::SubmitFlow);
+                    return Task::perform(Self::auto_submit(), |()| Message::SubmitFlow);
                 }
             }
             Message::SubmitFlow => {
                 if let CoordinatorState::Connected(sender) = &self.coordinator_state {
-                    return Command::perform(
+                    return Task::perform(
                         Self::submit(sender.clone(), self.submission_settings.clone()),
                         |()| Message::Submitted,
                     );
@@ -237,40 +230,39 @@ impl Application for FlowrGui {
             Message::LineOfStdin(line) => self.tab_set.stdin_tab.new_line(line),
         }
 
-        Command::none()
+        Task::none()
     }
 
     fn view(&self) -> Element<'_, Message> {
-        let main = Column::new()
+        let main_content = Column::new()
             .spacing(10)
             .push(self.command_row())
             .push(self.tab_set.view())
             .push(self.status_row())
             .padding(10);
 
-        let overlay = if self.show_modal {
-            Some(
-                Card::new(
-                    Text::new(self.modal_content.clone().0),
-                    Text::new(self.modal_content.clone().1),
-                )
-                .foot(
-                    Row::new().spacing(10).padding(5).width(Length::Fill).push(
-                        Button::new(Text::new("OK").horizontal_alignment(Horizontal::Center))
-                            .width(Length::Fill)
-                            .on_press(Message::CloseModal),
-                    ),
-                )
-                .max_width(300.0),
+        if self.show_modal {
+            let modal_card = Card::new(
+                Text::new(self.modal_content.clone().0),
+                Text::new(self.modal_content.clone().1),
             )
-        } else {
-            None
-        };
+            .foot(
+                Row::new().spacing(10).padding(5).width(Fill).push(
+                    Button::new(Text::new("OK").align_x(Center))
+                        .width(Fill)
+                        .on_press(Message::CloseModal),
+                ),
+            )
+            .max_width(300.0);
 
-        modal(main, overlay)
-            .backdrop(Message::CloseModal)
-            .on_esc(Message::CloseModal)
+            stack![
+                main_content,
+                opaque(mouse_area(center(opaque(modal_card))).on_press(Message::CloseModal))
+            ]
             .into()
+        } else {
+            main_content.into()
+        }
     }
 
     fn subscription(&self) -> Subscription<Message> {
@@ -365,7 +357,7 @@ impl FlowrGui {
 
         Row::new()
             .spacing(10)
-            .align_items(Alignment::End)
+            .align_y(iced::alignment::Vertical::Bottom)
             .push(url)
             .push(args)
             .push(play)
@@ -614,7 +606,7 @@ impl FlowrGui {
     }
 
     #[allow(clippy::too_many_lines)]
-    fn process_coordinator_message(&mut self, message: CoordinatorMessage) -> Command<Message> {
+    fn process_coordinator_message(&mut self, message: CoordinatorMessage) -> Task<Message> {
         match message {
             CoordinatorMessage::Connected(_) => {
                 self.error("Coordinator is already connected");
@@ -644,9 +636,9 @@ impl FlowrGui {
                 self.tab_set.stdout_tab.content.push(string);
                 self.send(ClientMessage::Ack);
                 if self.tab_set.stdout_tab.auto_scroll {
-                    return scrollable::snap_to(
+                    return operation::snap_to(
                         self.tab_set.stdout_tab.id.clone(),
-                        scrollable::RelativeOffset::END,
+                        RelativeOffset::END,
                     );
                 }
             }
@@ -654,9 +646,9 @@ impl FlowrGui {
                 self.tab_set.stderr_tab.content.push(string);
                 self.send(ClientMessage::Ack);
                 if self.tab_set.stderr_tab.auto_scroll {
-                    return scrollable::snap_to(
+                    return operation::snap_to(
                         self.tab_set.stderr_tab.id.clone(),
-                        scrollable::RelativeOffset::END,
+                        RelativeOffset::END,
                     );
                 }
             }
@@ -784,6 +776,6 @@ impl FlowrGui {
             }
             _ => {}
         }
-        Command::none()
+        Task::none()
     }
 }

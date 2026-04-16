@@ -1,8 +1,8 @@
 use std::path::PathBuf;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, OnceLock};
 use std::thread;
 
-use iced::{subscription, Subscription};
+use iced::Subscription;
 use log::{error, info, trace};
 use portpicker::pick_unused_port;
 use tokio::sync::mpsc::Receiver;
@@ -37,86 +37,86 @@ pub enum CoordinatorState {
     Connected(Receiver<ClientMessage>, Arc<Mutex<ClientConnection>>),
 }
 
+/// Global storage for coordinator settings, initialized once and read by the subscription
+static COORDINATOR_SETTINGS: OnceLock<CoordinatorSettings> = OnceLock::new();
+
 // Creates an asynchronous worker that sends messages back and forth between the App and
 // the Coordinator
 #[allow(clippy::unwrap_used)]
 pub fn subscribe(coordinator_settings: CoordinatorSettings) -> Subscription<CoordinatorMessage> {
-    struct Connect;
-    subscription::channel(
-        std::any::TypeId::of::<Connect>(),
+    COORDINATOR_SETTINGS.get_or_init(|| coordinator_settings);
+    Subscription::run(coordinator_stream)
+}
+
+#[allow(clippy::unwrap_used)]
+fn coordinator_stream() -> impl iced::futures::Stream<Item = CoordinatorMessage> {
+    let settings = COORDINATOR_SETTINGS.get().unwrap().clone();
+    iced::stream::channel(
         100,
-        move |mut app_sender| {
-            let settings = coordinator_settings.clone();
-            async move {
-                let mut state = match settings {
-                    CoordinatorSettings::Server(sett) => CoordinatorState::Init(sett.clone()),
-                    CoordinatorSettings::ClientOnly(port) => CoordinatorState::Discovery(port),
-                };
+        move |mut app_sender: iced::futures::channel::mpsc::Sender<CoordinatorMessage>| async move {
+            let mut state = match settings {
+                CoordinatorSettings::Server(sett) => CoordinatorState::Init(sett.clone()),
+                CoordinatorSettings::ClientOnly(port) => CoordinatorState::Discovery(port),
+            };
 
-                let mut running = false;
-                loop {
-                    match state {
-                        CoordinatorState::Init(settings) => {
-                            let discovery_port = start_server(settings).unwrap(); // TODO
-                            state = CoordinatorState::Discovery(discovery_port);
-                        }
+            let mut running = false;
+            loop {
+                match state {
+                    CoordinatorState::Init(settings) => {
+                        let discovery_port = start_server(settings).unwrap(); // TODO
+                        state = CoordinatorState::Discovery(discovery_port);
+                    }
 
-                        CoordinatorState::Discovery(discovery_port) => {
-                            let address =
-                                discover_service(discovery_port, COORDINATOR_SERVICE_NAME).unwrap(); // TODO
-                            state = CoordinatorState::Discovered(address);
-                        }
+                    CoordinatorState::Discovery(discovery_port) => {
+                        let address =
+                            discover_service(discovery_port, COORDINATOR_SERVICE_NAME).unwrap(); // TODO
+                        state = CoordinatorState::Discovered(address);
+                    }
 
-                        CoordinatorState::Discovered(address) => {
-                            let connection = ClientConnection::new(&address).unwrap(); // TODO
+                    CoordinatorState::Discovered(address) => {
+                        let connection = ClientConnection::new(&address).unwrap(); // TODO
 
-                            // Create channel to get messages from the app
-                            let (app_side_sender, app_receiver) = tokio::sync::mpsc::channel(100);
+                        // Create channel to get messages from the app
+                        let (app_side_sender, app_receiver) = tokio::sync::mpsc::channel(100);
 
-                            // Send the Sender to the App in a Message, for App to use to send us messages
-                            let _ =
-                                app_sender.try_send(CoordinatorMessage::Connected(app_side_sender));
+                        // Send the Sender to the App in a Message, for App to use to send us messages
+                        let _ = app_sender.try_send(CoordinatorMessage::Connected(app_side_sender));
 
-                            state = CoordinatorState::Connected(
-                                app_receiver,
-                                Arc::new(Mutex::new(connection)),
-                            );
-                        }
+                        state = CoordinatorState::Connected(
+                            app_receiver,
+                            Arc::new(Mutex::new(connection)),
+                        );
+                    }
 
-                        CoordinatorState::Connected(ref mut app_receiver, ref connection) => {
-                            if running {
-                                // read the message back from the Coordinator
-                                let coordinator_message: CoordinatorMessage =
-                                    connection.lock().unwrap().receive().unwrap(); // TODO
+                    CoordinatorState::Connected(ref mut app_receiver, ref connection) => {
+                        if running {
+                            // read the message back from the Coordinator
+                            let coordinator_message: CoordinatorMessage =
+                                connection.lock().unwrap().receive().unwrap(); // TODO
 
-                                // Forward the message to the app
-                                app_sender.try_send(coordinator_message.clone()).unwrap(); // TODO
+                            // Forward the message to the app
+                            app_sender.try_send(coordinator_message.clone()).unwrap(); // TODO
 
-                                // If that was end of flow, there will be no response from app
-                                if matches!(&coordinator_message, &CoordinatorMessage::FlowEnd(_)) {
-                                    running = false;
-                                } else {
-                                    // read the message back from the app and send it to the Coordinator
-                                    #[allow(clippy::single_match_else)]
-                                    match app_receiver.recv().await {
-                                        Some(client_message) => {
-                                            connection
-                                                .lock()
-                                                .unwrap()
-                                                .send(client_message)
-                                                .unwrap();
-                                        }
-                                        None => error!("Error receiving from app"), // TODO
-                                    }
-                                }
-
-                                // TODO handle coordinator exit, disconnection or error
+                            // If that was end of flow, there will be no response from app
+                            if matches!(&coordinator_message, &CoordinatorMessage::FlowEnd(_)) {
+                                running = false;
                             } else {
-                                // read the Submit message from the app and send it to the coordinator
-                                if let Some(client_message) = app_receiver.recv().await {
-                                    connection.lock().unwrap().send(client_message).unwrap();
-                                    running = true;
+                                // read the message back from the app and send it to the Coordinator
+                                #[allow(clippy::single_match_else)]
+                                match app_receiver.recv().await {
+                                    Some(client_message) => {
+                                        connection.lock().unwrap().send(client_message).unwrap();
+                                    }
+                                    None => error!("Error receiving from app"), // TODO
                                 }
+                            }
+
+                            // TODO handle coordinator exit, disconnection or error
+                        } else {
+                            // read the Submit message from the app and send it to the coordinator
+                            if let Some(client_message) = app_receiver.recv().await {
+                                connection.lock().unwrap().send(client_message).unwrap();
+                                running = true;
                             }
                         }
                     }

@@ -1,11 +1,12 @@
 use std::collections::HashMap;
 
 use iced::widget::image::{Handle, Viewer};
-use iced::widget::scrollable::{Id, Scrollable};
+use iced::widget::operation::{self, RelativeOffset};
+use iced::widget::scrollable::Scrollable;
 use iced::widget::TextInput;
-use iced::widget::{scrollable, text, toggler, Column};
-use iced::{Command, Element, Length};
-use iced_aw::{TabBarStyles, TabLabel, Tabs};
+use iced::widget::{text, toggler, Column, Id};
+use iced::{Element, Length, Task};
+use iced_aw::{TabLabel, Tabs};
 use once_cell::sync::Lazy;
 
 use crate::{ImageReference, Message};
@@ -47,7 +48,7 @@ impl TabSet {
         }
     }
 
-    pub(crate) fn update(&mut self, message: Message) -> Command<Message> {
+    pub(crate) fn update(&mut self, message: Message) -> Task<Message> {
         match message {
             Message::TabSelected(tab_index) => self.active_tab = tab_index,
             Message::StdioAutoScrollTogglerChanged(id, value) => {
@@ -58,13 +59,13 @@ impl TabSet {
                 }
 
                 if value {
-                    return scrollable::snap_to(id, scrollable::RelativeOffset::END);
+                    return operation::snap_to(id, RelativeOffset::END);
                 }
             }
             _ => {}
         }
 
-        Command::none()
+        Task::none()
     }
 
     pub(crate) fn view(&self) -> Element<'_, Message> {
@@ -75,7 +76,6 @@ impl TabSet {
             .push(3, self.images_tab.tab_label(), self.images_tab.view())
             .push(4, self.fileio_tab.tab_label(), self.fileio_tab.view())
             .set_active_tab(&self.active_tab)
-            .tab_bar_style(TabBarStyles::Blue)
             .into()
     }
 
@@ -122,12 +122,10 @@ impl Tab for StdOutTab {
             .height(Length::Fill)
             .id(self.id.clone());
 
-        let toggler = toggler(
-            format!("Auto-scroll {}", self.name),
-            self.auto_scroll,
-            |v| Message::StdioAutoScrollTogglerChanged(self.id.clone(), v),
-        )
-        .width(Length::Shrink);
+        let toggler = toggler(self.auto_scroll)
+            .label(format!("Auto-scroll {}", self.name))
+            .on_toggle(|v| Message::StdioAutoScrollTogglerChanged(self.id.clone(), v))
+            .width(Length::Shrink);
 
         Column::new().push(toggler).push(scrollable).into()
     }
@@ -162,7 +160,7 @@ impl Tab for ImageTab {
         let mut col = Column::new();
 
         for image_ref in self.images.values() {
-            col = col.push(Viewer::new(Handle::from_pixels(
+            col = col.push(Viewer::new(Handle::from_rgba(
                 image_ref.width,
                 image_ref.height,
                 image_ref.data.as_raw().clone(),
