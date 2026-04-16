@@ -321,3 +321,288 @@ impl<'a> Coordinator<'a> {
         Ok(debug_options)
     }
 }
+
+#[cfg(test)]
+mod test {
+    use std::time::Duration;
+
+    use portpicker::pick_unused_port;
+    use serial_test::serial;
+
+    use flowcore::model::flow_manifest::FlowManifest;
+    use flowcore::model::input::Input;
+    use flowcore::model::metadata::MetaData;
+    #[cfg(feature = "metrics")]
+    use flowcore::model::metrics::Metrics;
+    use flowcore::model::output_connection::OutputConnection;
+    use flowcore::model::runtime_function::RuntimeFunction;
+    use flowcore::model::submission::Submission;
+
+    #[cfg(feature = "submission")]
+    use crate::submission_handler::SubmissionHandler;
+
+    #[cfg(feature = "debugger")]
+    use crate::block::Block;
+    #[cfg(feature = "debugger")]
+    use crate::debug_command::DebugCommand;
+    #[cfg(feature = "debugger")]
+    use crate::debugger_handler::DebuggerHandler;
+    #[cfg(feature = "debugger")]
+    use crate::job::Job;
+    #[cfg(feature = "debugger")]
+    use crate::run_state::State;
+
+    use super::Coordinator;
+    use crate::dispatcher::Dispatcher;
+    use crate::run_state::RunState;
+
+    fn get_bind_addresses(ports: (u16, u16, u16, u16)) -> (String, String, String, String) {
+        (
+            format!("tcp://*:{}", ports.0),
+            format!("tcp://*:{}", ports.1),
+            format!("tcp://*:{}", ports.2),
+            format!("tcp://*:{}", ports.3),
+        )
+    }
+
+    fn get_four_ports() -> (u16, u16, u16, u16) {
+        (
+            pick_unused_port().expect("No ports free"),
+            pick_unused_port().expect("No ports free"),
+            pick_unused_port().expect("No ports free"),
+            pick_unused_port().expect("No ports free"),
+        )
+    }
+
+    fn test_meta_data() -> MetaData {
+        MetaData {
+            name: "test".into(),
+            version: "0.0.0".into(),
+            description: "a test".into(),
+            authors: vec!["me".into()],
+        }
+    }
+
+    fn test_manifest(functions: Vec<RuntimeFunction>) -> FlowManifest {
+        let mut manifest = FlowManifest::new(test_meta_data());
+        for function in functions {
+            manifest.add_function(function);
+        }
+        manifest
+    }
+
+    fn test_submission(functions: Vec<RuntimeFunction>) -> Submission {
+        Submission::new(
+            test_manifest(functions),
+            None,
+            Some(Duration::from_millis(100)),
+            #[cfg(feature = "debugger")]
+            false,
+        )
+    }
+
+    fn test_dispatcher() -> Dispatcher {
+        Dispatcher::new(&get_bind_addresses(get_four_ports())).expect("Could not create dispatcher")
+    }
+
+    #[cfg(feature = "debugger")]
+    struct DummyDebugServer;
+
+    #[cfg(feature = "debugger")]
+    impl DebuggerHandler for DummyDebugServer {
+        fn start(&mut self) {}
+        fn job_breakpoint(&mut self, _job: &Job, _function: &RuntimeFunction, _states: Vec<State>) {
+        }
+        fn block_breakpoint(&mut self, _block: &Block) {}
+        fn flow_unblock_breakpoint(&mut self, _flow_id: usize) {}
+        fn send_breakpoint(
+            &mut self,
+            _: &str,
+            _source_process_id: usize,
+            _output_route: &str,
+            _value: &serde_json::Value,
+            _destination_id: usize,
+            _destination_name: &str,
+            _input_name: &str,
+            _input_number: usize,
+        ) {
+        }
+        fn job_error(&mut self, _job: &Job) {}
+        fn job_completed(&mut self, _job: &Job) {}
+        fn blocks(&mut self, _blocks: Vec<Block>) {}
+        fn outputs(&mut self, _output: Vec<OutputConnection>) {}
+        fn input(&mut self, _input: Input) {}
+        fn function_list(&mut self, _functions: &[RuntimeFunction]) {}
+        fn function_states(&mut self, _function: RuntimeFunction, _function_states: Vec<State>) {}
+        fn run_state(&mut self, _run_state: &RunState) {}
+        fn message(&mut self, _message: String) {}
+        fn panic(&mut self, _state: &RunState, _error_message: String) {}
+        fn debugger_exiting(&mut self) {}
+        fn debugger_resetting(&mut self) {}
+        fn debugger_error(&mut self, _error: String) {}
+        fn execution_starting(&mut self) {}
+        fn execution_ended(&mut self) {}
+        fn get_command(&mut self, _state: &RunState) -> flowcore::errors::Result<DebugCommand> {
+            Ok(DebugCommand::Continue)
+        }
+    }
+
+    #[cfg(feature = "submission")]
+    struct DummySubmissionHandler;
+
+    #[cfg(feature = "submission")]
+    impl SubmissionHandler for DummySubmissionHandler {
+        fn flow_execution_starting(&mut self) -> flowcore::errors::Result<()> {
+            Ok(())
+        }
+
+        #[cfg(feature = "debugger")]
+        fn should_enter_debugger(&mut self) -> flowcore::errors::Result<bool> {
+            Ok(false)
+        }
+
+        fn flow_execution_ended(
+            &mut self,
+            _state: &RunState,
+            #[cfg(feature = "metrics")] _metrics: Metrics,
+        ) -> flowcore::errors::Result<()> {
+            Ok(())
+        }
+
+        fn wait_for_submission(&mut self) -> flowcore::errors::Result<Option<Submission>> {
+            Ok(None)
+        }
+
+        fn coordinator_is_exiting(
+            &mut self,
+            result: flowcore::errors::Result<()>,
+        ) -> flowcore::errors::Result<()> {
+            result
+        }
+    }
+
+    #[test]
+    #[serial]
+    fn create_coordinator() {
+        let dispatcher = test_dispatcher();
+        #[cfg(feature = "submission")]
+        let mut submission_handler = DummySubmissionHandler;
+        #[cfg(feature = "debugger")]
+        let mut debug_server = DummyDebugServer;
+
+        let _coordinator = Coordinator::new(
+            dispatcher,
+            #[cfg(feature = "submission")]
+            &mut submission_handler,
+            #[cfg(feature = "debugger")]
+            &mut debug_server,
+        );
+    }
+
+    #[test]
+    #[serial]
+    fn execute_empty_flow() {
+        let dispatcher = test_dispatcher();
+        #[cfg(feature = "submission")]
+        let mut submission_handler = DummySubmissionHandler;
+        #[cfg(feature = "debugger")]
+        let mut debug_server = DummyDebugServer;
+
+        let mut coordinator = Coordinator::new(
+            dispatcher,
+            #[cfg(feature = "submission")]
+            &mut submission_handler,
+            #[cfg(feature = "debugger")]
+            &mut debug_server,
+        );
+
+        let submission = test_submission(vec![]);
+        let result = coordinator.execute_flow(submission);
+        assert!(result.is_ok(), "Empty flow should execute successfully");
+    }
+
+    #[test]
+    #[serial]
+    fn execute_empty_flow_with_no_timeout() {
+        let dispatcher = test_dispatcher();
+        #[cfg(feature = "submission")]
+        let mut submission_handler = DummySubmissionHandler;
+        #[cfg(feature = "debugger")]
+        let mut debug_server = DummyDebugServer;
+
+        let mut coordinator = Coordinator::new(
+            dispatcher,
+            #[cfg(feature = "submission")]
+            &mut submission_handler,
+            #[cfg(feature = "debugger")]
+            &mut debug_server,
+        );
+
+        let submission = Submission::new(
+            test_manifest(vec![]),
+            None,
+            None,
+            #[cfg(feature = "debugger")]
+            false,
+        );
+        let result = coordinator.execute_flow(submission);
+        assert!(
+            result.is_ok(),
+            "Empty flow with no timeout should execute successfully"
+        );
+    }
+
+    #[test]
+    #[serial]
+    fn execute_empty_flow_with_max_parallel_jobs() {
+        let dispatcher = test_dispatcher();
+        #[cfg(feature = "submission")]
+        let mut submission_handler = DummySubmissionHandler;
+        #[cfg(feature = "debugger")]
+        let mut debug_server = DummyDebugServer;
+
+        let mut coordinator = Coordinator::new(
+            dispatcher,
+            #[cfg(feature = "submission")]
+            &mut submission_handler,
+            #[cfg(feature = "debugger")]
+            &mut debug_server,
+        );
+
+        let submission = Submission::new(
+            test_manifest(vec![]),
+            Some(4),
+            Some(Duration::from_millis(100)),
+            #[cfg(feature = "debugger")]
+            false,
+        );
+        let result = coordinator.execute_flow(submission);
+        assert!(
+            result.is_ok(),
+            "Empty flow with max_parallel_jobs should execute successfully"
+        );
+    }
+
+    #[cfg(feature = "submission")]
+    #[test]
+    #[serial]
+    fn submission_loop_no_submission() {
+        let dispatcher = test_dispatcher();
+        let mut submission_handler = DummySubmissionHandler;
+        #[cfg(feature = "debugger")]
+        let mut debug_server = DummyDebugServer;
+
+        let mut coordinator = Coordinator::new(
+            dispatcher,
+            &mut submission_handler,
+            #[cfg(feature = "debugger")]
+            &mut debug_server,
+        );
+
+        let result = coordinator.submission_loop(false);
+        assert!(
+            result.is_ok(),
+            "submission_loop should return Ok when no submission is available"
+        );
+    }
+}
