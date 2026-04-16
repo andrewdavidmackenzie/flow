@@ -51,7 +51,10 @@ to = "stdout"
     }
 
     #[test]
-    #[ignore = "Problem with propagating array initializers into functions inside flows"]
+    #[ignore = "Problem with propagating array initializers into functions inside flows, see\
+    https://github.com/andrewdavidmackenzie/flow/issues/1418, \
+    https://github.com/andrewdavidmackenzie/flow/issues/513 and \
+    https://github.com/andrewdavidmackenzie/flow/issues/743"]
     fn test_array_initializers() {
         let flow = r#"
 flow = "sequence-of-sequences"
