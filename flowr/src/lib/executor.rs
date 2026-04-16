@@ -410,6 +410,29 @@ mod test {
         }
     }
 
+    /// A test provider that resolves URLs to a `.json` file URL, allowing
+    /// `LibraryManifest::load` to find the correct JSON deserializer.
+    struct ManifestTestProvider {
+        test_content: &'static str,
+    }
+
+    impl Provider for ManifestTestProvider {
+        fn resolve_url(
+            &self,
+            _source: &Url,
+            _default_filename: &str,
+            _extensions: &[&str],
+        ) -> Result<(Url, Option<Url>)> {
+            // Return a file:// URL with .json extension so the deserializer can be found
+            let resolved = Url::parse("file:///tmp/manifest.json").map_err(|e| e.to_string())?;
+            Ok((resolved, None))
+        }
+
+        fn get_contents(&self, _url: &Url) -> Result<Vec<u8>> {
+            Ok(self.test_content.as_bytes().to_owned())
+        }
+    }
+
     #[test]
     fn add_a_lib() {
         let library = LibraryManifest::new(
@@ -424,6 +447,450 @@ mod test {
                 Url::parse("file://fake/lib/location").expect("Could not parse Url")
             )
             .is_ok());
+    }
+
+    #[test]
+    fn default_same_as_new() {
+        let default_executor = Executor::default();
+        let new_executor = Executor::new();
+
+        // Both should start with empty lib manifests
+        let default_manifests = default_executor
+            .loaded_lib_manifests
+            .read()
+            .expect("Could not read default executor manifests");
+        let new_manifests = new_executor
+            .loaded_lib_manifests
+            .read()
+            .expect("Could not read new executor manifests");
+
+        assert!(
+            default_manifests.is_empty(),
+            "default() executor should have no loaded manifests"
+        );
+        assert!(
+            new_manifests.is_empty(),
+            "new() executor should have no loaded manifests"
+        );
+
+        // Both should start with no executor threads
+        assert!(
+            default_executor.executors.is_empty(),
+            "default() executor should have no executor threads"
+        );
+        assert!(
+            new_executor.executors.is_empty(),
+            "new() executor should have no executor threads"
+        );
+    }
+
+    #[test]
+    fn add_multiple_libs() {
+        let lib1 = LibraryManifest::new(
+            Url::parse("lib://testlib1").expect("Could not parse lib url"),
+            test_meta_data(),
+        );
+        let lib2 = LibraryManifest::new(
+            Url::parse("lib://testlib2").expect("Could not parse lib url"),
+            MetaData {
+                name: "test2".into(),
+                version: "0.0.1".into(),
+                description: "another test".into(),
+                authors: vec!["someone".into()],
+            },
+        );
+
+        let mut executor = Executor::new();
+        assert!(executor
+            .add_lib(
+                lib1,
+                Url::parse("file://fake/lib1/location").expect("Could not parse Url")
+            )
+            .is_ok());
+        assert!(executor
+            .add_lib(
+                lib2,
+                Url::parse("file://fake/lib2/location").expect("Could not parse Url")
+            )
+            .is_ok());
+
+        let manifests = executor
+            .loaded_lib_manifests
+            .read()
+            .expect("Could not read manifests");
+        assert_eq!(manifests.len(), 2, "Should have two loaded manifests");
+        assert!(
+            manifests.contains_key(&Url::parse("lib://testlib1").expect("Could not parse lib url"))
+        );
+        assert!(
+            manifests.contains_key(&Url::parse("lib://testlib2").expect("Could not parse lib url"))
+        );
+    }
+
+    #[test]
+    fn add_same_lib_twice_overwrites() {
+        let lib_url = Url::parse("lib://testlib").expect("Could not parse lib url");
+
+        let lib1 = LibraryManifest::new(
+            lib_url.clone(),
+            MetaData {
+                name: "original".into(),
+                version: "0.0.0".into(),
+                description: "original lib".into(),
+                authors: vec!["me".into()],
+            },
+        );
+        let lib2 = LibraryManifest::new(
+            lib_url.clone(),
+            MetaData {
+                name: "replacement".into(),
+                version: "1.0.0".into(),
+                description: "replacement lib".into(),
+                authors: vec!["someone_else".into()],
+            },
+        );
+
+        let resolved1 = Url::parse("file://fake/lib/location1").expect("Could not parse Url");
+        let resolved2 = Url::parse("file://fake/lib/location2").expect("Could not parse Url");
+
+        let mut executor = Executor::new();
+        assert!(executor.add_lib(lib1, resolved1).is_ok());
+        assert!(executor.add_lib(lib2, resolved2.clone()).is_ok());
+
+        let manifests = executor
+            .loaded_lib_manifests
+            .read()
+            .expect("Could not read manifests");
+        assert_eq!(
+            manifests.len(),
+            1,
+            "Should have only one manifest after adding the same lib_url twice"
+        );
+
+        let (manifest, resolved_url) = manifests
+            .get(&lib_url)
+            .expect("Could not find manifest for lib url");
+        assert_eq!(
+            manifest.metadata.name, "replacement",
+            "Manifest should be the second (replacement) one"
+        );
+        assert_eq!(
+            manifest.metadata.version, "1.0.0",
+            "Version should be from the replacement manifest"
+        );
+        assert_eq!(
+            *resolved_url, resolved2,
+            "Resolved URL should be from the second add_lib call"
+        );
+    }
+
+    #[test]
+    fn execute_job_unsupported_scheme() {
+        let payload = Payload {
+            job_id: 0,
+            input_set: vec![],
+            implementation_url: Url::parse("http://example.com/some/impl")
+                .expect("Could not parse Url"),
+        };
+
+        let loaded_implementations =
+            Arc::new(RwLock::new(HashMap::<Url, Arc<dyn Implementation>>::new()));
+        let loaded_lib_manifests =
+            Arc::new(RwLock::new(HashMap::<Url, (LibraryManifest, Url)>::new()));
+        let provider = Arc::new(TestProvider { test_content: "" }) as Arc<dyn Provider>;
+        let context = zmq::Context::new();
+        let results_sink = context
+            .socket(zmq::PUSH)
+            .expect("Could not create PUSH end of results-sink socket");
+        results_sink
+            .connect("tcp://127.0.0.1:3459")
+            .expect("Could not connect to PUSH end of results-sink socket");
+
+        let result = super::execute_job(
+            &provider,
+            &payload,
+            &results_sink,
+            "test executor",
+            &loaded_implementations,
+            &loaded_lib_manifests,
+        );
+
+        assert!(result.is_err(), "Unsupported scheme should return an error");
+        let err_msg = result.expect_err("Expected an error").to_string();
+        assert!(
+            err_msg.contains("Unsupported scheme"),
+            "Error should mention unsupported scheme, got: {err_msg}"
+        );
+    }
+
+    #[test]
+    fn execute_job_lib_impl_not_in_manifest() {
+        // Create a valid manifest JSON that the ManifestTestProvider will return
+        let manifest_json = r#"{
+            "lib_url": "lib://flowstdlib",
+            "metadata": {
+                "name": "flowstdlib",
+                "version": "0.0.0",
+                "description": "test",
+                "authors": ["me"]
+            },
+            "locators": {},
+            "source_urls": {}
+        }"#;
+
+        let payload = Payload {
+            job_id: 0,
+            input_set: vec![],
+            implementation_url: Url::parse("lib://flowstdlib/math/add")
+                .expect("Could not parse Url"),
+        };
+
+        let loaded_implementations =
+            Arc::new(RwLock::new(HashMap::<Url, Arc<dyn Implementation>>::new()));
+        let loaded_lib_manifests =
+            Arc::new(RwLock::new(HashMap::<Url, (LibraryManifest, Url)>::new()));
+        let provider = Arc::new(ManifestTestProvider {
+            test_content: manifest_json,
+        }) as Arc<dyn Provider>;
+        let context = zmq::Context::new();
+        let results_sink = context
+            .socket(zmq::PUSH)
+            .expect("Could not create PUSH end of results-sink socket");
+        results_sink
+            .connect("tcp://127.0.0.1:3460")
+            .expect("Could not connect to PUSH end of results-sink socket");
+
+        let result = super::execute_job(
+            &provider,
+            &payload,
+            &results_sink,
+            "test executor",
+            &loaded_implementations,
+            &loaded_lib_manifests,
+        );
+
+        assert!(
+            result.is_err(),
+            "Should error when implementation is not in the manifest"
+        );
+        let err_msg = result.expect_err("Expected an error").to_string();
+        assert!(
+            err_msg.contains("Could not find ImplementationLocator"),
+            "Error should mention missing locator, got: {err_msg}"
+        );
+    }
+
+    #[test]
+    fn execute_job_context_impl_not_in_manifest() {
+        // Create a valid manifest for a context library
+        let manifest_json = r#"{
+            "lib_url": "context://stdio",
+            "metadata": {
+                "name": "stdio",
+                "version": "0.0.0",
+                "description": "test context",
+                "authors": ["me"]
+            },
+            "locators": {},
+            "source_urls": {}
+        }"#;
+
+        let payload = Payload {
+            job_id: 0,
+            input_set: vec![],
+            implementation_url: Url::parse("context://stdio/stdout").expect("Could not parse Url"),
+        };
+
+        let loaded_implementations =
+            Arc::new(RwLock::new(HashMap::<Url, Arc<dyn Implementation>>::new()));
+        let loaded_lib_manifests =
+            Arc::new(RwLock::new(HashMap::<Url, (LibraryManifest, Url)>::new()));
+        let provider = Arc::new(ManifestTestProvider {
+            test_content: manifest_json,
+        }) as Arc<dyn Provider>;
+        let context = zmq::Context::new();
+        let results_sink = context
+            .socket(zmq::PUSH)
+            .expect("Could not create PUSH end of results-sink socket");
+        results_sink
+            .connect("tcp://127.0.0.1:3461")
+            .expect("Could not connect to PUSH end of results-sink socket");
+
+        let result = super::execute_job(
+            &provider,
+            &payload,
+            &results_sink,
+            "test executor",
+            &loaded_implementations,
+            &loaded_lib_manifests,
+        );
+
+        assert!(
+            result.is_err(),
+            "Should error when context implementation is not in the manifest"
+        );
+    }
+
+    #[test]
+    fn execute_job_lib_preloaded_but_impl_missing() {
+        // Pre-load a manifest with no locators, then try to execute a job
+        // referencing an implementation that doesn't exist in it
+        let lib_url = Url::parse("lib://flowstdlib").expect("Could not parse lib url");
+        let manifest = LibraryManifest::new(lib_url.clone(), test_meta_data());
+        let resolved_url =
+            Url::parse("file://fake/flowstdlib/location").expect("Could not parse Url");
+
+        let loaded_implementations =
+            Arc::new(RwLock::new(HashMap::<Url, Arc<dyn Implementation>>::new()));
+        let loaded_lib_manifests =
+            Arc::new(RwLock::new(HashMap::<Url, (LibraryManifest, Url)>::new()));
+
+        // Pre-load the manifest
+        {
+            let mut manifests = loaded_lib_manifests
+                .write()
+                .expect("Could not write to manifests");
+            manifests.insert(lib_url, (manifest, resolved_url));
+        }
+
+        let payload = Payload {
+            job_id: 0,
+            input_set: vec![],
+            implementation_url: Url::parse("lib://flowstdlib/math/add")
+                .expect("Could not parse Url"),
+        };
+
+        let provider = Arc::new(TestProvider { test_content: "" }) as Arc<dyn Provider>;
+        let context = zmq::Context::new();
+        let results_sink = context
+            .socket(zmq::PUSH)
+            .expect("Could not create PUSH end of results-sink socket");
+        results_sink
+            .connect("tcp://127.0.0.1:3462")
+            .expect("Could not connect to PUSH end of results-sink socket");
+
+        let result = super::execute_job(
+            &provider,
+            &payload,
+            &results_sink,
+            "test executor",
+            &loaded_implementations,
+            &loaded_lib_manifests,
+        );
+
+        assert!(
+            result.is_err(),
+            "Should error when implementation is not in the pre-loaded manifest"
+        );
+        let err_msg = result.expect_err("Expected an error").to_string();
+        assert!(
+            err_msg.contains("Could not find ImplementationLocator"),
+            "Error should mention missing locator, got: {err_msg}"
+        );
+    }
+
+    #[test]
+    fn get_lib_manifest_tuple_loads_from_provider() {
+        // Test that get_lib_manifest_tuple can load a manifest from the provider
+        // when it's not already in the loaded manifests map
+        let manifest_json = r#"{
+            "lib_url": "lib://testlib",
+            "metadata": {
+                "name": "testlib",
+                "version": "1.0.0",
+                "description": "a test lib",
+                "authors": ["tester"]
+            },
+            "locators": {},
+            "source_urls": {}
+        }"#;
+
+        let provider = Arc::new(ManifestTestProvider {
+            test_content: manifest_json,
+        }) as Arc<dyn Provider>;
+        let loaded_lib_manifests =
+            Arc::new(RwLock::new(HashMap::<Url, (LibraryManifest, Url)>::new()));
+        let lib_root_url = Url::parse("lib://testlib").expect("Could not parse lib url");
+
+        let result = super::get_lib_manifest_tuple(&provider, &loaded_lib_manifests, &lib_root_url);
+
+        assert!(
+            result.is_ok(),
+            "Should successfully load manifest from provider"
+        );
+        let (manifest, _resolved_url) = result.expect("Could not get manifest tuple");
+        assert_eq!(manifest.metadata.name, "testlib");
+        assert_eq!(manifest.metadata.version, "1.0.0");
+    }
+
+    #[test]
+    fn get_lib_manifest_tuple_uses_cached() {
+        // Test that get_lib_manifest_tuple returns a cached manifest
+        // rather than loading from provider
+        let lib_url = Url::parse("lib://cachedlib").expect("Could not parse lib url");
+        let cached_manifest = LibraryManifest::new(
+            lib_url.clone(),
+            MetaData {
+                name: "cachedlib".into(),
+                version: "2.0.0".into(),
+                description: "cached".into(),
+                authors: vec!["cacher".into()],
+            },
+        );
+        let cached_resolved = Url::parse("file://cached/location").expect("Could not parse Url");
+
+        let loaded_lib_manifests =
+            Arc::new(RwLock::new(HashMap::<Url, (LibraryManifest, Url)>::new()));
+        {
+            let mut manifests = loaded_lib_manifests
+                .write()
+                .expect("Could not write to manifests");
+            manifests.insert(lib_url.clone(), (cached_manifest, cached_resolved.clone()));
+        }
+
+        // Provider returns different content - but should not be used since manifest is cached
+        let provider = Arc::new(TestProvider {
+            test_content: "invalid json",
+        }) as Arc<dyn Provider>;
+
+        let result = super::get_lib_manifest_tuple(&provider, &loaded_lib_manifests, &lib_url);
+
+        assert!(
+            result.is_ok(),
+            "Should return cached manifest without calling provider"
+        );
+        let (manifest, resolved_url) = result.expect("Could not get manifest tuple");
+        assert_eq!(
+            manifest.metadata.name, "cachedlib",
+            "Should return the cached manifest"
+        );
+        assert_eq!(
+            manifest.metadata.version, "2.0.0",
+            "Should return the cached manifest version"
+        );
+        assert_eq!(
+            resolved_url, cached_resolved,
+            "Should return the cached resolved URL"
+        );
+    }
+
+    #[test]
+    fn get_lib_manifest_tuple_provider_returns_invalid_json() {
+        // Test that get_lib_manifest_tuple returns an error when the provider
+        // returns invalid manifest content
+        let provider = Arc::new(ManifestTestProvider {
+            test_content: "not valid json at all",
+        }) as Arc<dyn Provider>;
+        let loaded_lib_manifests =
+            Arc::new(RwLock::new(HashMap::<Url, (LibraryManifest, Url)>::new()));
+        let lib_root_url = Url::parse("lib://badlib").expect("Could not parse lib url");
+
+        let result = super::get_lib_manifest_tuple(&provider, &loaded_lib_manifests, &lib_root_url);
+
+        assert!(
+            result.is_err(),
+            "Should error when provider returns invalid manifest content"
+        );
     }
 
     #[test]

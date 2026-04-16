@@ -4,11 +4,15 @@ mod test {
     use std::fs::File;
     use std::io::Write;
 
+    use serial_test::serial;
     use tempfile::tempdir;
 
     use super::super::super::test::execute_flow;
 
+    // Serialized to avoid mDNS service name collision when multiple flowc
+    // instances run in parallel — see https://github.com/andrewdavidmackenzie/flow/issues/2563
     #[test]
+    #[serial]
     fn test_range_flow() {
         let flow = "\
 flow = \"range_test\"

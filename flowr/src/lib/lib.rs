@@ -53,6 +53,9 @@ pub mod run_state;
 /// Provides well-known service names used across multiple binary crates
 pub mod services;
 
+/// Optional mDNS-SD service discovery helpers
+pub mod discovery;
+
 #[cfg(feature = "debugger")]
 mod debugger;
 

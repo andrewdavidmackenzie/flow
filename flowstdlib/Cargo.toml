@@ -32,6 +32,7 @@ error-chain = "0.12.2"
 
 [dev-dependencies]
 tempfile = "3"
+serial_test = "3.4.0"
 flowcore = {path = "../flowcore", version = "0.142.0" }
 flowmacro = {path = "../flowmacro", version = "0.142.0" }
 serde_json = { version = "1.0", default-features = false }

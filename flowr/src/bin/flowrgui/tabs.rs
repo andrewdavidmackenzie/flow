@@ -1,11 +1,12 @@
 use std::collections::HashMap;
 
 use iced::widget::image::{Handle, Viewer};
-use iced::widget::scrollable::{Id, Scrollable};
+use iced::widget::operation::{self, RelativeOffset};
+use iced::widget::scrollable::Scrollable;
 use iced::widget::TextInput;
-use iced::widget::{scrollable, text, toggler, Column};
-use iced::{Command, Element, Length};
-use iced_aw::{TabBarStyles, TabLabel, Tabs};
+use iced::widget::{text, toggler, Column, Id};
+use iced::{Element, Length, Task};
+use iced_aw::{TabLabel, Tabs};
 use once_cell::sync::Lazy;
 
 use crate::{ImageReference, Message};
@@ -47,7 +48,7 @@ impl TabSet {
         }
     }
 
-    pub(crate) fn update(&mut self, message: Message) -> Command<Message> {
+    pub(crate) fn update(&mut self, message: Message) -> Task<Message> {
         match message {
             Message::TabSelected(tab_index) => self.active_tab = tab_index,
             Message::StdioAutoScrollTogglerChanged(id, value) => {
@@ -58,13 +59,13 @@ impl TabSet {
                 }
 
                 if value {
-                    return scrollable::snap_to(id, scrollable::RelativeOffset::END);
+                    return operation::snap_to(id, RelativeOffset::END);
                 }
             }
             _ => {}
         }
 
-        Command::none()
+        Task::none()
     }
 
     pub(crate) fn view(&self) -> Element<'_, Message> {
@@ -75,7 +76,6 @@ impl TabSet {
             .push(3, self.images_tab.tab_label(), self.images_tab.view())
             .push(4, self.fileio_tab.tab_label(), self.fileio_tab.view())
             .set_active_tab(&self.active_tab)
-            .tab_bar_style(TabBarStyles::Blue)
             .into()
     }
 
@@ -122,12 +122,10 @@ impl Tab for StdOutTab {
             .height(Length::Fill)
             .id(self.id.clone());
 
-        let toggler = toggler(
-            format!("Auto-scroll {}", self.name),
-            self.auto_scroll,
-            |v| Message::StdioAutoScrollTogglerChanged(self.id.clone(), v),
-        )
-        .width(Length::Shrink);
+        let toggler = toggler(self.auto_scroll)
+            .label(format!("Auto-scroll {}", self.name))
+            .on_toggle(|v| Message::StdioAutoScrollTogglerChanged(self.id.clone(), v))
+            .width(Length::Shrink);
 
         Column::new().push(toggler).push(scrollable).into()
     }
@@ -162,7 +160,7 @@ impl Tab for ImageTab {
         let mut col = Column::new();
 
         for image_ref in self.images.values() {
-            col = col.push(Viewer::new(Handle::from_pixels(
+            col = col.push(Viewer::new(Handle::from_rgba(
                 image_ref.width,
                 image_ref.height,
                 image_ref.data.as_raw().clone(),
@@ -268,4 +266,116 @@ impl Tab for StdInTab {
     // Avoid clearing standard input - to allow the user to type in input ahead of the
     // flow being run
     fn clear(&mut self) {}
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn stdin_new() {
+        let tab = StdInTab::new("test");
+        assert_eq!(tab.name, "test");
+        assert!(tab.content.is_empty());
+        assert_eq!(tab.cursor, 0);
+        assert!(tab.text.is_empty());
+    }
+
+    #[test]
+    fn stdin_text_entered() {
+        let mut tab = StdInTab::new("test");
+        tab.text_entered("hello".into());
+        assert_eq!(tab.text, "hello");
+    }
+
+    #[test]
+    fn stdin_new_line() {
+        let mut tab = StdInTab::new("test");
+        tab.text_entered("typing".into());
+        tab.new_line("first line".into());
+        assert_eq!(tab.content, vec!["first line"]);
+        assert!(tab.text.is_empty()); // text cleared after new_line
+    }
+
+    #[test]
+    fn stdin_get_line_returns_lines_in_order() {
+        let mut tab = StdInTab::new("test");
+        tab.new_line("line1".into());
+        tab.new_line("line2".into());
+
+        assert_eq!(tab.get_line(""), Some("line1".into()));
+        assert_eq!(tab.get_line(""), Some("line2".into()));
+        assert_eq!(tab.get_line(""), None); // EOF
+    }
+
+    #[test]
+    fn stdin_get_line_with_prompt() {
+        let mut tab = StdInTab::new("test");
+        tab.new_line("world".into());
+
+        assert_eq!(tab.get_line("hello "), Some("hello world".into()));
+    }
+
+    #[test]
+    fn stdin_get_line_empty_prompt() {
+        let mut tab = StdInTab::new("test");
+        tab.new_line("line".into());
+
+        assert_eq!(tab.get_line(""), Some("line".into()));
+    }
+
+    #[test]
+    fn stdin_get_line_eof_when_empty() {
+        let mut tab = StdInTab::new("test");
+        assert_eq!(tab.get_line(""), None);
+    }
+
+    #[test]
+    fn stdin_get_all_returns_all_content() {
+        let mut tab = StdInTab::new("test");
+        tab.new_line("a".into());
+        tab.new_line("b".into());
+        tab.new_line("c".into());
+
+        assert_eq!(tab.get_all(), Some("abc".into()));
+        assert_eq!(tab.get_all(), None); // cursor advanced past end
+    }
+
+    #[test]
+    fn stdin_get_all_after_partial_get_line() {
+        let mut tab = StdInTab::new("test");
+        tab.new_line("a".into());
+        tab.new_line("b".into());
+        tab.new_line("c".into());
+
+        assert_eq!(tab.get_line(""), Some("a".into())); // cursor at 1
+        assert_eq!(tab.get_all(), Some("bc".into())); // gets remaining
+        assert_eq!(tab.get_all(), None); // EOF
+    }
+
+    #[test]
+    fn stdin_get_all_eof_when_empty() {
+        let mut tab = StdInTab::new("test");
+        assert_eq!(tab.get_all(), None);
+    }
+
+    #[test]
+    fn stdin_clear_does_not_clear() {
+        let mut tab = StdInTab::new("test");
+        tab.new_line("preserved".into());
+        Tab::clear(&mut tab);
+        assert_eq!(tab.content, vec!["preserved"]); // stdin clear is intentionally a no-op
+    }
+
+    #[test]
+    fn stdout_clear() {
+        let mut tab = StdOutTab {
+            name: "test".into(),
+            id: Id::unique(),
+            content: vec!["line1".into(), "line2".into()],
+            auto_scroll: true,
+        };
+        Tab::clear(&mut tab);
+        assert!(tab.content.is_empty());
+    }
 }

@@ -4,11 +4,15 @@ mod test {
     use std::fs::File;
     use std::io::Write;
 
+    use serial_test::serial;
     use tempfile::tempdir;
 
     use super::super::super::test::execute_flow;
 
+    // Serialized to avoid mDNS service name collision when multiple flowc
+    // instances run in parallel — see https://github.com/andrewdavidmackenzie/flow/issues/2563
     #[test]
+    #[serial]
     fn test_single_value_initializers() {
         let flow = r#"
 flow = "sequence_test"
@@ -47,7 +51,10 @@ to = "stdout"
     }
 
     #[test]
-    #[ignore = "Problem with propagating array initializers into functions inside flows"]
+    #[ignore = "Problem with propagating array initializers into functions inside flows, see\
+    https://github.com/andrewdavidmackenzie/flow/issues/1418, \
+    https://github.com/andrewdavidmackenzie/flow/issues/513 and \
+    https://github.com/andrewdavidmackenzie/flow/issues/743"]
     fn test_array_initializers() {
         let flow = r#"
 flow = "sequence-of-sequences"

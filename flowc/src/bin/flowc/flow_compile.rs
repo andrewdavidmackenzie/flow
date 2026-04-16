@@ -251,4 +251,66 @@ mod test {
 
         assert!(make_writeable(&test_output_file).is_err());
     }
+
+    #[cfg(unix)]
+    #[test]
+    fn error_if_dir_is_read_only() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let temp_parent = tempdir().expect("Could not create temp parent dir");
+        let read_only_dir = temp_parent.path().join("readonly");
+        fs::create_dir(&read_only_dir).expect("Could not create directory");
+
+        // Set directory to read-only (no write or execute for owner)
+        let readonly_perms = fs::Permissions::from_mode(0o444);
+        fs::set_permissions(&read_only_dir, readonly_perms)
+            .expect("Could not set read-only permissions");
+
+        let result = make_writeable(&read_only_dir);
+        assert!(result.is_err(), "Expected error for read-only directory");
+
+        // Restore write permissions so tempdir cleanup can remove it
+        let writable_perms = fs::Permissions::from_mode(0o755);
+        fs::set_permissions(&read_only_dir, writable_perms).expect("Could not restore permissions");
+    }
+
+    #[test]
+    fn can_create_nested_dirs() {
+        let temp_parent = tempdir().expect("Could not create temp parent dir");
+
+        let nested_dir = temp_parent.path().join("a").join("b").join("c");
+        make_writeable(&nested_dir).expect("Could not create nested dirs");
+
+        assert!(nested_dir.exists());
+        assert!(nested_dir.is_dir());
+        let md = fs::metadata(nested_dir).expect("Could not get metadata");
+        assert!(!md.permissions().readonly());
+    }
+
+    #[test]
+    fn error_message_mentions_file_path() {
+        let temp_parent = tempdir().expect("Could not create temp parent dir");
+        let test_output_file = temp_parent.path().join("output");
+        fs::File::create(&test_output_file).expect("Could not create file");
+
+        let result = make_writeable(&test_output_file);
+        let err = result.expect_err("Expected an error for file path");
+        let err_msg = err.to_string();
+        assert!(
+            err_msg.contains("output"),
+            "Error message should mention the path, got: {err_msg}"
+        );
+    }
+
+    #[test]
+    fn idempotent_on_existing_writable_dir() {
+        let test_output_dir = tempdir().expect("Could not create temp dir").keep();
+
+        // Call make_writeable twice on the same directory
+        make_writeable(&test_output_dir).expect("First call failed");
+        make_writeable(&test_output_dir).expect("Second call failed");
+
+        assert!(test_output_dir.exists());
+        assert!(test_output_dir.is_dir());
+    }
 }
