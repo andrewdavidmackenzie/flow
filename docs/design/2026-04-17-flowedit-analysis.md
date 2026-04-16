@@ -259,9 +259,7 @@ flowr/src/bin/flowedit/
 1. **flowcore: ProcessReference** — add optional `x`, `y`, `width`, `height` fields with
    serde defaults
 2. **flowcore: FlowDefinition** — no changes needed, processes already stored by alias
-3. **flowstdlib** — add a public API to enumerate available functions and their signatures
-   (currently the manifest is loaded at runtime, but we need it at edit time too)
-4. **flowr/Cargo.toml** — add `[[bin]] name = "flowedit"` entry
+3. **flowr/Cargo.toml** — add `[[bin]] name = "flowedit"` entry
 
 ## 8. Implementation Phases
 
