@@ -4,12 +4,16 @@
 //! using mDNS-SD. They are not required — other binaries using `flowrlib` can
 //! implement their own discovery mechanism.
 
+use std::time::{Duration, Instant};
+
 use log::info;
 use mdns_sd::{ServiceDaemon, ServiceEvent, ServiceInfo};
 
 use flowcore::errors::{bail, Result};
 
 use crate::services::FLOW_SERVICE_TYPE;
+
+const DEFAULT_DISCOVERY_TIMEOUT: Duration = Duration::from_secs(30);
 
 /// Register a service for mDNS-SD discovery.
 ///
@@ -39,7 +43,8 @@ pub fn enable_service_discovery(name: &str, service_port: u16) -> Result<Service
     Ok(mdns)
 }
 
-/// Discover a service by name using mDNS-SD. Blocks until the service is found.
+/// Discover a service by name using mDNS-SD. Blocks until the service is found
+/// or the default timeout (30 seconds) expires.
 ///
 /// Returns the service address as `"{ip}:{port}"`.
 pub fn discover_service(name: &str) -> Result<String> {
@@ -50,9 +55,18 @@ pub fn discover_service(name: &str) -> Result<String> {
         .map_err(|e| format!("Could not browse for mDNS services: {e}"))?;
 
     let full_name_suffix = format!(".{FLOW_SERVICE_TYPE}");
+    let start = Instant::now();
 
     loop {
-        match receiver.recv() {
+        if start.elapsed() > DEFAULT_DISCOVERY_TIMEOUT {
+            mdns.shutdown().ok();
+            bail!(format!(
+                "mDNS discovery timed out after {}s for '{name}'",
+                DEFAULT_DISCOVERY_TIMEOUT.as_secs()
+            ));
+        }
+
+        match receiver.recv_timeout(Duration::from_millis(500)) {
             Ok(ServiceEvent::ServiceResolved(info)) => {
                 let instance = info
                     .get_fullname()
@@ -69,8 +83,8 @@ pub fn discover_service(name: &str) -> Result<String> {
                     }
                 }
             }
-            Err(e) => bail!(format!("mDNS discovery error for '{name}': {e}")),
-            _ => {} // Ignore other events (SearchStarted, ServiceFound, etc.)
+            Err(_) => continue, // Timeout or disconnected — retry until overall timeout
+            _ => {}             // Ignore other events (SearchStarted, ServiceFound, etc.)
         }
     }
 }

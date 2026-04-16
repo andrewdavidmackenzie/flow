@@ -255,9 +255,13 @@ pub fn execute_flow_client_server(example_name: &str, manifest: PathBuf) {
         .expect("Could not read stdout of server");
     let mut reader = BufReader::new(stdout);
     let mut ready_line = String::new();
-    reader
+    let bytes_read = reader
         .read_line(&mut ready_line)
         .expect("Could not read ready line from server");
+    assert!(
+        bytes_read > 0 && ready_line.trim() == "ready",
+        "Server did not report ready. First stdout line: {ready_line:?}"
+    );
 
     let mut client = Command::new("flowrcli");
     let manifest_str = manifest.to_string_lossy();

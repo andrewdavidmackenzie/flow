@@ -1641,6 +1641,7 @@ dependencies = [
  "flowcore",
  "flowmacro",
  "serde_json",
+ "serial_test",
  "simpath",
  "tempfile",
  "url",

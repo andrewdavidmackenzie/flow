@@ -3,6 +3,7 @@ use std::fmt::Display;
 
 pub use flowrlib::discovery::enable_service_discovery;
 pub use flowrlib::services::COORDINATOR_SERVICE_NAME;
+#[cfg(feature = "debugger")]
 pub use flowrlib::services::DEBUG_SERVICE_NAME;
 /// This is the message-queue implementation of the Client<-->[Coordinator][flowrlib::coordinator::Coordinator]
 /// communications
