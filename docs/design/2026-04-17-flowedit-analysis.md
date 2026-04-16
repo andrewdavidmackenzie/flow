@@ -121,8 +121,10 @@ Connections are drawn as bezier curves between output and input ports:
 1. **Creating**: Click an output port → line follows cursor as bezier curve → release on
    compatible input port. Can also start from input port and drag to output port.
 2. **Compatibility**: When dragging, only type-compatible ports are highlighted and
-   selectable. Incompatible ports are dimmed. Type compatibility uses the same rules as
-   `flowc` compiler including implicit conversions.
+   selectable. Incompatible ports are dimmed. Type checking must reuse the existing
+   `flowc` compiler code (e.g., `DataType::compatible_types()` in flowcore, and
+   connection validation in flowrclib) — not replicate it. This may require exposing
+   additional public API functions in flowcore/flowrclib for the editor to call.
 3. **Reconnecting**: Click and drag an existing connection endpoint to move it to a different
    compatible port.
 4. **Selecting**: Click a connection line to select it (highlighted).
