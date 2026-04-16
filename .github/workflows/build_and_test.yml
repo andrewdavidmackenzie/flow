@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: install graphviz
         run: sudo apt-get update && sudo apt-get -y install graphviz
       - name: install mdbook
@@ -43,7 +43,9 @@ jobs:
           override: true
           components: clippy
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
+      - name: Cache cargo registry and build
+        uses: Swatinem/rust-cache@v2
       - name: run clippy
         uses: actions-rs/cargo@v1
         with:
@@ -59,7 +61,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: SetupEnv
         run: |
@@ -73,6 +75,17 @@ jobs:
           toolchain: nightly
           override: true
           target: wasm32-unknown-unknown
+
+      - name: Cache cargo registry and build
+        uses: Swatinem/rust-cache@v2
+        with:
+          cache-on-failure: true
+
+      - name: Cache cargo install tools
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/bin
+          key: ${{ runner.os }}-${{ runner.arch }}-cargo-tools-v1
 
       - name: InstallLinuxDependencies
         if: runner.os == 'Linux'
@@ -93,14 +106,13 @@ jobs:
         run: brew install zmq binaryen lcov
 
       - name: InstallWasmTools
-        uses: actions-rs/cargo@v1
-        with:
-          command: install
-          args: wasm-gc wasm-snip
+        run: |
+          which wasm-gc || cargo install wasm-gc
+          which wasm-snip || cargo install wasm-snip
 
       - name: ConfigureCoverage
         run: |
-          cargo install grcov
+          which grcov || cargo install grcov
           rustup component add llvm-tools-preview
           echo RUSTFLAGS="-C instrument-coverage" >> "$GITHUB_ENV"
           echo LLVM_PROFILE_FILE="flow-%p-%m.profraw" >> "$GITHUB_ENV"
@@ -119,31 +131,9 @@ jobs:
       - name: compile flowrgui
         run: target/debug/flowc flowr/src/bin/flowrgui
 
-      - name: test-flowcore
-        timeout-minutes: 10
-        run: cargo test -p flowcore --features "online_tests"
-
-      - name: test-flowstdlib
-        timeout-minutes: 10
-        run: cargo test -p flowstdlib
-
-      - name: test-flowc
-        timeout-minutes: 10
-        run: cargo test -p flowc
-
-      - name: test-flowr-lib
-        timeout-minutes: 10
-        run: cargo test -p flowr --lib
-
-      - name: test-flowr-integration
-        timeout-minutes: 10
-
-        run: cargo test -p flowr --test wasm --test client_server --test flowrex
-
-      - name: test-flowr-flowrgui-integration
-        timeout-minutes: 10
-
-        run: cargo test -p flowr --test flowrgui
+      - name: test
+        timeout-minutes: 15
+        run: cargo test --features "online_tests"
 
       - name: test-examples
         timeout-minutes: 10
