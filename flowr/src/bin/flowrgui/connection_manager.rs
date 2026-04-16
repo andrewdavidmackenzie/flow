@@ -14,9 +14,7 @@ use flowcore::provider::Provider;
 use flowrlib::coordinator::Coordinator;
 use flowrlib::dispatcher::Dispatcher;
 use flowrlib::executor::Executor;
-use flowrlib::services::{
-    CONTROL_SERVICE_NAME, JOB_QUEUES_DISCOVERY_PORT, JOB_SERVICE_NAME, RESULTS_JOB_SERVICE_NAME,
-};
+use flowrlib::services::{CONTROL_SERVICE_NAME, JOB_SERVICE_NAME, RESULTS_JOB_SERVICE_NAME};
 
 use crate::errors::{Result, ResultExt};
 use crate::gui::client_connection::{discover_service, ClientConnection};
@@ -33,7 +31,7 @@ use crate::{context, CoordinatorSettings, ServerSettings};
 /// States in which the Connection to the Coordinator can find itself
 pub enum CoordinatorState {
     Init(ServerSettings),
-    Discovery(u16),
+    Discovery,
     Discovered(String),
     Connected(Receiver<ClientMessage>, Arc<Mutex<ClientConnection>>),
 }
@@ -57,20 +55,19 @@ fn coordinator_stream() -> impl iced::futures::Stream<Item = CoordinatorMessage>
         move |mut app_sender: iced::futures::channel::mpsc::Sender<CoordinatorMessage>| async move {
             let mut state = match settings {
                 CoordinatorSettings::Server(sett) => CoordinatorState::Init(sett.clone()),
-                CoordinatorSettings::ClientOnly(port) => CoordinatorState::Discovery(port),
+                CoordinatorSettings::ClientOnly(_) => CoordinatorState::Discovery,
             };
 
             let mut running = false;
             loop {
                 match state {
                     CoordinatorState::Init(settings) => {
-                        let discovery_port = start_server(settings).unwrap(); // TODO
-                        state = CoordinatorState::Discovery(discovery_port);
+                        start_server(settings).unwrap(); // TODO
+                        state = CoordinatorState::Discovery;
                     }
 
-                    CoordinatorState::Discovery(discovery_port) => {
-                        let address =
-                            discover_service(discovery_port, COORDINATOR_SERVICE_NAME).unwrap(); // TODO
+                    CoordinatorState::Discovery => {
+                        let address = discover_service(COORDINATOR_SERVICE_NAME).unwrap(); // TODO
                         state = CoordinatorState::Discovered(address);
                     }
 
@@ -130,17 +127,16 @@ fn coordinator_stream() -> impl iced::futures::Stream<Item = CoordinatorMessage>
 }
 
 // Start a coordinator server in a background thread, then discover it and return the address
-fn start_server(coordinator_settings: ServerSettings) -> Result<u16> {
+fn start_server(coordinator_settings: ServerSettings) -> Result<()> {
     let runtime_port = pick_unused_port().chain_err(|| "No ports free")?;
     let coordinator_connection =
         CoordinatorConnection::new(COORDINATOR_SERVICE_NAME, runtime_port)?;
 
-    let discovery_port = pick_unused_port().chain_err(|| "No ports free")?;
-    enable_service_discovery(discovery_port, COORDINATOR_SERVICE_NAME, runtime_port)?;
+    let _mdns_coordinator = enable_service_discovery(COORDINATOR_SERVICE_NAME, runtime_port)?;
 
     let debug_port = pick_unused_port().chain_err(|| "No ports free")?;
     let debug_connection = CoordinatorConnection::new(DEBUG_SERVICE_NAME, debug_port)?;
-    enable_service_discovery(discovery_port, DEBUG_SERVICE_NAME, debug_port)?;
+    let _mdns_debug = enable_service_discovery(DEBUG_SERVICE_NAME, debug_port)?;
 
     info!("Starting coordinator in background thread");
     thread::spawn(move || {
@@ -152,7 +148,7 @@ fn start_server(coordinator_settings: ServerSettings) -> Result<u16> {
         );
     });
 
-    Ok(discovery_port)
+    Ok(())
 }
 
 fn coordinator(
@@ -176,9 +172,9 @@ fn coordinator(
     trace!("Announcing three job queues and a control socket on ports: {ports:?}");
     let job_queues = get_bind_addresses(ports);
     let dispatcher = Dispatcher::new(&job_queues)?;
-    enable_service_discovery(JOB_QUEUES_DISCOVERY_PORT, JOB_SERVICE_NAME, ports.0)?;
-    enable_service_discovery(JOB_QUEUES_DISCOVERY_PORT, RESULTS_JOB_SERVICE_NAME, ports.2)?;
-    enable_service_discovery(JOB_QUEUES_DISCOVERY_PORT, CONTROL_SERVICE_NAME, ports.3)?;
+    let _mdns_jobs = enable_service_discovery(JOB_SERVICE_NAME, ports.0)?;
+    let _mdns_results = enable_service_discovery(RESULTS_JOB_SERVICE_NAME, ports.2)?;
+    let _mdns_control = enable_service_discovery(CONTROL_SERVICE_NAME, ports.3)?;
 
     let (job_source_name, context_job_source_name, results_sink, control_socket) =
         get_connect_addresses(ports);

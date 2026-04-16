@@ -59,12 +59,12 @@ use flowrlib::coordinator::Coordinator;
 use flowrlib::dispatcher::Dispatcher;
 use flowrlib::executor::Executor;
 use flowrlib::info as flowrlib_info;
-use flowrlib::services::{
-    CONTROL_SERVICE_NAME, JOB_QUEUES_DISCOVERY_PORT, JOB_SERVICE_NAME, RESULTS_JOB_SERVICE_NAME,
-};
+use flowrlib::services::{CONTROL_SERVICE_NAME, JOB_SERVICE_NAME, RESULTS_JOB_SERVICE_NAME};
 
+#[cfg(feature = "debugger")]
+use crate::cli::connections::DEBUG_SERVICE_NAME;
 use crate::cli::connections::{
-    discover_service, enable_service_discovery, COORDINATOR_SERVICE_NAME, DEBUG_SERVICE_NAME,
+    discover_service, enable_service_discovery, COORDINATOR_SERVICE_NAME,
 };
 
 /// Include the module that implements the context functions
@@ -152,13 +152,12 @@ fn run() -> Result<()> {
     let lib_search_path = get_lib_search_path(&lib_dirs);
     let num_threads = num_threads(&matches);
 
-    if let Some(discovery_port) = matches.get_one::<u16>("client") {
+    if matches.get_flag("client") {
         client_only(
             &matches,
             lib_search_path,
             #[cfg(feature = "debugger")]
             debug_this_flow,
-            *discovery_port,
         )?;
     } else if matches.get_flag("server") {
         coordinator_only(num_threads, lib_search_path, native_flowstdlib)?;
@@ -185,17 +184,17 @@ fn coordinator_only(
     let coordinator_port = pick_unused_port().chain_err(|| "No ports free")?;
     let coordinator_connection =
         CoordinatorConnection::new(COORDINATOR_SERVICE_NAME, coordinator_port)?;
-    let discovery_port = pick_unused_port().chain_err(|| "No ports free")?;
-    enable_service_discovery(discovery_port, COORDINATOR_SERVICE_NAME, coordinator_port)?;
+    let _mdns_coordinator = enable_service_discovery(COORDINATOR_SERVICE_NAME, coordinator_port)?;
 
     #[cfg(feature = "debugger")]
     let debug_port = pick_unused_port().chain_err(|| "No ports free")?;
     #[cfg(feature = "debugger")]
     let debug_server_connection = CoordinatorConnection::new(DEBUG_SERVICE_NAME, debug_port)?;
     #[cfg(feature = "debugger")]
-    enable_service_discovery(discovery_port, DEBUG_SERVICE_NAME, debug_port)?;
+    let _mdns_debug = enable_service_discovery(DEBUG_SERVICE_NAME, debug_port)?;
 
-    println!("{discovery_port}");
+    // Signal to the parent process (e.g. test harness) that the server is ready
+    println!("ready");
 
     info!("Starting coordinator in main thread");
     coordinator(
@@ -226,14 +225,14 @@ fn client_and_coordinator(
     let coordinator_connection =
         CoordinatorConnection::new(COORDINATOR_SERVICE_NAME, runtime_port)?;
 
-    let discovery_port = pick_unused_port().chain_err(|| "No ports free")?;
-    enable_service_discovery(discovery_port, COORDINATOR_SERVICE_NAME, runtime_port)?;
+    let _mdns_coordinator = enable_service_discovery(COORDINATOR_SERVICE_NAME, runtime_port)?;
 
     #[cfg(feature = "debugger")]
     let debug_port = pick_unused_port().chain_err(|| "No ports free")?;
     #[cfg(feature = "debugger")]
     let debug_connection = CoordinatorConnection::new(DEBUG_SERVICE_NAME, debug_port)?;
-    enable_service_discovery(discovery_port, DEBUG_SERVICE_NAME, debug_port)?;
+    #[cfg(feature = "debugger")]
+    let _mdns_debug = enable_service_discovery(DEBUG_SERVICE_NAME, debug_port)?;
 
     let coordinator_lib_search_path = lib_search_path.clone();
 
@@ -250,7 +249,7 @@ fn client_and_coordinator(
         );
     });
 
-    let coordinator_address = discover_service(discovery_port, COORDINATOR_SERVICE_NAME)?;
+    let coordinator_address = discover_service(COORDINATOR_SERVICE_NAME)?;
 
     let runtime_client_connection = ClientConnection::new(&coordinator_address)?;
 
@@ -260,8 +259,6 @@ fn client_and_coordinator(
         &runtime_client_connection,
         #[cfg(feature = "debugger")]
         debug_this_flow,
-        #[cfg(feature = "debugger")]
-        discovery_port,
     )
 }
 
@@ -290,9 +287,9 @@ fn coordinator(
     trace!("Announcing three job queues and a control socket on ports: {ports:?}");
     let job_queues = get_bind_addresses(ports);
     let dispatcher = Dispatcher::new(&job_queues)?;
-    enable_service_discovery(JOB_QUEUES_DISCOVERY_PORT, JOB_SERVICE_NAME, ports.0)?;
-    enable_service_discovery(JOB_QUEUES_DISCOVERY_PORT, RESULTS_JOB_SERVICE_NAME, ports.2)?;
-    enable_service_discovery(JOB_QUEUES_DISCOVERY_PORT, CONTROL_SERVICE_NAME, ports.3)?;
+    let _mdns_jobs = enable_service_discovery(JOB_SERVICE_NAME, ports.0)?;
+    let _mdns_results = enable_service_discovery(RESULTS_JOB_SERVICE_NAME, ports.2)?;
+    let _mdns_control = enable_service_discovery(CONTROL_SERVICE_NAME, ports.3)?;
 
     let (job_source_name, context_job_source_name, results_sink, control_socket) =
         get_connect_addresses(ports);
@@ -348,9 +345,8 @@ fn client_only(
     matches: &ArgMatches,
     lib_search_path: Simpath,
     #[cfg(feature = "debugger")] debug_this_flow: bool,
-    discovery_port: u16,
 ) -> Result<()> {
-    let coordinator_address = discover_service(discovery_port, COORDINATOR_SERVICE_NAME)?;
+    let coordinator_address = discover_service(COORDINATOR_SERVICE_NAME)?;
     let client_connection = ClientConnection::new(&coordinator_address)?;
 
     client(
@@ -359,8 +355,6 @@ fn client_only(
         &client_connection,
         #[cfg(feature = "debugger")]
         debug_this_flow,
-        #[cfg(feature = "debugger")]
-        discovery_port,
     )
 }
 
@@ -371,7 +365,6 @@ fn client(
     lib_search_path: Simpath,
     client_connection: &ClientConnection,
     #[cfg(feature = "debugger")] debug_this_flow: bool,
-    #[cfg(feature = "debugger")] discovery_port: u16,
 ) -> Result<()> {
     // keep an Arc Mutex protected set of override args that debug client can override
     let override_args = Arc::new(Mutex::new(Vec::<String>::new()));
@@ -402,7 +395,7 @@ fn client(
 
     #[cfg(feature = "debugger")]
     if debug_this_flow {
-        let debug_server_address = discover_service(discovery_port, DEBUG_SERVICE_NAME)?;
+        let debug_server_address = discover_service(DEBUG_SERVICE_NAME)?;
         let debug_client_connection = ClientConnection::new(&debug_server_address)?;
         let debug_client = CliDebugClient::new(debug_client_connection, override_args);
         let _ = thread::spawn(move || {
@@ -474,8 +467,7 @@ fn get_matches() -> ArgMatches {
         .arg(Arg::new("client")
              .short('c')
              .long("client")
-             .number_of_values(1)
-             .value_parser(clap::value_parser!(u16))
+             .action(clap::ArgAction::SetTrue)
              .conflicts_with("server")
              .help("Launch only a client (no coordinator) to connect to a remote coordinator"),
         )
