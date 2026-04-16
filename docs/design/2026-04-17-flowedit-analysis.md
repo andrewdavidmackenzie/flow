@@ -17,19 +17,19 @@ patterns from flowrgui.
 │  Process    │              CANVAS                                   │
 │  Library    │                                                       │
 │             │    ┌──────────┐        ┌──────────┐                   │
-│  stdlib/    │    │ sequence │        │  stdout  │                   │
+│  flowstdlib/│    │ sequence │        │  stdout  │                   │
 │    math/    │    │          │        │          │                   │
 │      add    │    │ ○ start  ├───────→│ ○ default│                   │
 │      sub    │    │ ○ step   │number  │          │                   │
 │      mul    │    │ ○ limit  │        └──────────┘                   │
 │    control/ │    └──────────┘                                       │
 │      ...    │                                                       │
-│             │                                                       │
+│  mylib/     │                                                       │
+│    filters/ │                                                       │
+│      ...    │                                                       │
 │  context/   │                                                       │
 │    stdio/   │                                                       │
 │      stdin  │                                                       │
-│      stdout │                                                       │
-│      stderr │                                                       │
 │             │                                                       │
 ├─────────────┴───────────────────────────────────────────────────────┤
 │  ┌─────────┬─────────┬─────────┬─────────┐                         │
@@ -38,7 +38,7 @@ patterns from flowrgui.
 │  │ output appears here during execution   │                         │
 │  └────────────────────────────────────────┘                         │
 ├─────────────────────────────────────────────────────────────────────┤
-│  Status: Ready | Editing | Compiling | Running                      │
+│  Status: Ready | Compiling | Running                                │
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -46,14 +46,15 @@ patterns from flowrgui.
 
 - **Menu bar** — File (New, Open, Save, Save As), Edit (Undo, Redo, Delete), Flow (Compile,
   Run, Stop), Help
-- **Left panel: Process Library** — tree view of available processes grouped by source:
-  - `flowstdlib` functions (math/add, control/select, etc.)
-  - Context functions (stdio/stdout, stdio/stdin, file/read, etc.)
-  - User can drag a process from the library onto the canvas to add it
+- **Left panel: Process Library** — tree view of all available processes discovered from
+  libraries found on `FLOW_LIB_PATH` (or specified via `-L` CLI option), grouped by library.
+  Context functions are treated as a library. User can drag a process onto the canvas to add it.
 - **Center: Canvas** — the main editing area where flow nodes are drawn and connected
 - **Bottom panel: I/O Tabs** — reused from flowrgui's TabSet (stdout, stderr, stdin, fileio,
   images) for flow execution output
-- **Status bar** — current editor state
+- **Status bar** — current state: Ready (editing), Compiling, or Running
+  (Running may have future sub-states like Paused via debugger).
+  Errors are displayed as messages, not a state.
 
 ## 3. Node Rendering
 
