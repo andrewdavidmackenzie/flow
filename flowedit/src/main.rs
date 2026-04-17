@@ -13,8 +13,8 @@
 //! is displayed as a colored, rounded rectangle on the canvas, with connections
 //! drawn as bezier curves between nodes.
 
-use std::collections::HashMap;
-use std::path::PathBuf;
+use std::collections::{BTreeMap, HashMap};
+use std::path::{Path, PathBuf};
 
 use clap::{Arg, Command as ClapCommand};
 use iced::keyboard;
@@ -66,6 +66,10 @@ enum Message {
     Open,
     /// Create a new empty flow
     New,
+    /// Compile the current flow
+    Compile,
+    /// Compile and run the current flow
+    Run,
 }
 
 /// Top-level application state
@@ -92,6 +96,8 @@ struct FlowEdit {
     auto_fit_enabled: bool,
     /// Count of unsaved edits (increments on edit/redo, decrements on undo)
     unsaved_edits: i32,
+    /// Path to the last compiled manifest (None if not compiled or edited since)
+    compiled_manifest: Option<PathBuf>,
     /// Path to the currently loaded flow file, if any
     file_path: Option<PathBuf>,
     /// The original flow definition, used to preserve metadata when saving
@@ -177,6 +183,7 @@ impl FlowEdit {
             auto_fit_enabled: true, // Start in auto-fit mode
             history: EditHistory::default(),
             unsaved_edits: 0,
+            compiled_manifest: None,
             file_path,
             flow_definition,
             tooltip: None,
@@ -422,6 +429,19 @@ impl FlowEdit {
             Message::New => {
                 self.perform_new();
             }
+            Message::Compile => match self.perform_compile() {
+                Ok(path) => {
+                    self.compiled_manifest = Some(path.clone());
+                    self.status = format!("Compiled: {}", path.display());
+                }
+                Err(e) => {
+                    self.compiled_manifest = None;
+                    self.status = format!("Compile error: {e}");
+                }
+            },
+            Message::Run => {
+                self.perform_run();
+            }
         }
         Task::none()
     }
@@ -511,8 +531,33 @@ impl FlowEdit {
         } else {
             String::from("  |  saved")
         };
-        let status_bar: Row<'_, Message> =
-            Row::new().push(Text::new(format!("{}{}", self.status, edit_indicator)).size(14));
+
+        // Compile button — enabled when there are nodes
+        let mut compile_btn = button(Text::new("Compile").size(12).center())
+            .style(button::secondary)
+            .padding(4);
+        if !self.nodes.is_empty() {
+            compile_btn = compile_btn.on_press(Message::Compile);
+        }
+
+        // Run button — only enabled after successful compile with no edits since
+        let mut run_btn = button(Text::new("Run").size(12).center())
+            .style(if self.compiled_manifest.is_some() {
+                button::primary
+            } else {
+                button::secondary
+            })
+            .padding(4);
+        if self.compiled_manifest.is_some() {
+            run_btn = run_btn.on_press(Message::Run);
+        }
+
+        let status_bar: Row<'_, Message> = Row::new()
+            .spacing(8)
+            .push(Text::new(format!("{}{}", self.status, edit_indicator)).size(14))
+            .push(iced::widget::Space::new().width(Fill))
+            .push(compile_btn)
+            .push(run_btn);
 
         Column::new()
             .push(container(main_content).width(Fill).height(Fill))
@@ -521,7 +566,8 @@ impl FlowEdit {
     }
 
     /// Listen for keyboard shortcuts: Cmd+Z undo, Cmd+Shift+Z redo,
-    /// Cmd+S save, Cmd+Shift+S save-as, Cmd+O open, Cmd+N new.
+    /// Cmd+S save, Cmd+Shift+S save-as, Cmd+O open, Cmd+N new,
+    /// Cmd+B compile, Cmd+R run.
     fn subscription(&self) -> Subscription<Message> {
         keyboard::listen().filter_map(|event| match event {
             keyboard::Event::KeyPressed {
@@ -535,6 +581,8 @@ impl FlowEdit {
                 "s" => Some(Message::Save),
                 "o" => Some(Message::Open),
                 "n" => Some(Message::New),
+                "b" => Some(Message::Compile),
+                "r" => Some(Message::Run),
                 "=" | "+" => Some(Message::ZoomIn),
                 "-" => Some(Message::ZoomOut),
                 _ => None,
@@ -547,6 +595,7 @@ impl FlowEdit {
     fn record_edit(&mut self, action: EditAction) {
         self.history.record(action);
         self.unsaved_edits += 1;
+        self.compiled_manifest = None; // Invalidate compilation on any edit
     }
 
     /// Apply an undo action — reverse the last edit.
@@ -681,6 +730,111 @@ impl FlowEdit {
         self.auto_fit_enabled = true;
         self.canvas_state = FlowCanvasState::default();
         self.status = String::from("New flow");
+    }
+
+    /// Compile the current flow to a manifest.
+    ///
+    /// Saves the flow (to a temp directory if no file path is set), parses it
+    /// using the full `flowrclib` compiler pipeline, and generates a manifest
+    /// that can be executed by `flowrcli`.
+    ///
+    /// Returns the path to the generated manifest on success, or a human-readable
+    /// error message on failure.
+    fn perform_compile(&mut self) -> Result<PathBuf, String> {
+        // 1. Ensure the flow is saved to disk so the parser can read it
+        let flow_path = if let Some(ref path) = self.file_path.clone() {
+            self.perform_save(path);
+            path.clone()
+        } else {
+            let temp_dir = std::env::temp_dir().join("flowedit");
+            std::fs::create_dir_all(&temp_dir).map_err(|e| e.to_string())?;
+            let temp_path = temp_dir.join("flow.toml");
+            self.perform_save(&temp_path);
+            self.file_path = Some(temp_path.clone());
+            temp_path
+        };
+
+        // 2. Set up library search path and meta provider
+        let mut lib_search_path = Simpath::new_with_separator("FLOW_LIB_PATH", ',');
+        if let Ok(home) = std::env::var("HOME") {
+            let default_lib = PathBuf::from(&home).join(".flow").join("lib");
+            if default_lib.exists() {
+                if let Some(path_str) = default_lib.to_str() {
+                    lib_search_path.add_directory(path_str);
+                }
+            }
+        }
+        let provider = MetaProvider::new(lib_search_path, PathBuf::from("/"));
+
+        // 3. Parse
+        let url = Url::from_file_path(&flow_path)
+            .map_err(|()| format!("Invalid file path: {}", flow_path.display()))?;
+        let process = flowrclib::compiler::parser::parse(&url, &provider)
+            .map_err(|e| format!("Parse error: {e}"))?;
+        let flow = match process {
+            Process::FlowProcess(f) => f,
+            Process::FunctionProcess(_) => return Err("Not a flow definition".to_string()),
+        };
+
+        // 4. Compile
+        let output_dir = flow_path.parent().unwrap_or(Path::new(".")).to_path_buf();
+        let mut source_urls = BTreeMap::<String, Url>::new();
+        let tables = flowrclib::compiler::compile::compile(
+            &flow,
+            &output_dir,
+            false,
+            false,
+            &mut source_urls,
+        )
+        .map_err(|e| format!("Compile error: {e}"))?;
+
+        // 5. Generate manifest
+        let manifest_path = flowrclib::generator::generate::write_flow_manifest(
+            &flow,
+            false,
+            &output_dir,
+            &tables,
+            source_urls,
+        )
+        .map_err(|e| format!("Manifest error: {e}"))?;
+
+        Ok(manifest_path)
+    }
+
+    /// Compile the current flow and then execute it using `flowrcli`.
+    ///
+    /// Compilation errors are displayed in the status bar. On success the flow
+    /// is run synchronously and the runner's stdout (or stderr on failure) is
+    /// shown in the status bar.
+    fn perform_run(&mut self) {
+        match self.perform_compile() {
+            Ok(manifest_path) => {
+                self.status = String::from("Running...");
+                match std::process::Command::new("flowrcli")
+                    .arg("-n")
+                    .arg(manifest_path.display().to_string())
+                    .stdout(std::process::Stdio::piped())
+                    .stderr(std::process::Stdio::piped())
+                    .output()
+                {
+                    Ok(output) => {
+                        let stdout = String::from_utf8_lossy(&output.stdout);
+                        let stderr = String::from_utf8_lossy(&output.stderr);
+                        if output.status.success() {
+                            self.status = format!("Run complete. Output: {}", stdout.trim());
+                        } else {
+                            self.status = format!("Run failed: {}", stderr.trim());
+                        }
+                    }
+                    Err(e) => {
+                        self.status = format!("Could not run: {e}");
+                    }
+                }
+            }
+            Err(e) => {
+                self.status = format!("Compile failed: {e}");
+            }
+        }
     }
 
     /// Add a function from the library panel as a new node on the canvas.
