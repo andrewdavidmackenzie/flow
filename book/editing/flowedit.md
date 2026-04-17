@@ -96,8 +96,31 @@ Initializer types:
 ## Connections
 
 Connections between nodes are drawn as smooth bezier curves from an output port on
-one node to an input port on another node. Each connection has a small arrow head
+one node to an input port on another node. Each connection has a filled arrow head
 at the destination (input) end to indicate the direction of data flow.
+
+Self-connections (loopbacks) are routed around the outside of the node box so they
+are clearly visible.
+
+### Connection Names
+
+Connections can have optional names defined in the flow definition:
+
+```toml
+[[connection]]
+name = "next value"
+from = "add"
+to = "stdout"
+```
+
+Named connections display their name along the connection curve — above the line
+for normal connections, and below the box for loopback connections.
+
+### Port Types
+
+When the editor can resolve function definitions from installed libraries, real
+port names and data types are displayed. Port types are stored for future hover
+tooltip display.
 
 ## Interactions
 
