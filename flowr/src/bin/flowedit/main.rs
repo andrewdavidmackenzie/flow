@@ -16,7 +16,7 @@
 use std::path::PathBuf;
 
 use clap::{Arg, Command as ClapCommand};
-use iced::widget::{Column, Row, Text};
+use iced::widget::{button, container, stack, Column, Row, Text};
 use iced::{Element, Fill, Task};
 use url::Url;
 
@@ -33,6 +33,12 @@ use canvas_view::{
 enum Message {
     /// A message from the interactive canvas (select, move, delete)
     Canvas(CanvasMessage),
+    /// Zoom in by one step
+    ZoomIn,
+    /// Zoom out by one step
+    ZoomOut,
+    /// Auto-fit all nodes into the visible area
+    AutoFit,
 }
 
 /// Top-level application state
@@ -49,6 +55,8 @@ struct FlowEdit {
     status: String,
     /// Index of the currently selected node, if any
     selected_node: Option<usize>,
+    /// Whether auto-fit should be performed on the next opportunity
+    auto_fit_pending: bool,
 }
 
 /// Main entry point for the flowedit binary.
@@ -104,6 +112,7 @@ impl FlowEdit {
                 )
             };
 
+        let has_nodes = !nodes.is_empty();
         let app = FlowEdit {
             flow_name,
             nodes,
@@ -111,6 +120,7 @@ impl FlowEdit {
             canvas_state: FlowCanvasState::default(),
             status,
             selected_node: None,
+            auto_fit_pending: has_nodes,
         };
 
         (app, Task::none())
@@ -160,23 +170,67 @@ impl FlowEdit {
                         self.status = format!("Node deleted - {nc} nodes, {ec} connections");
                     }
                 }
+                CanvasMessage::AutoFitViewport(viewport) => {
+                    self.canvas_state.auto_fit(&self.nodes, viewport);
+                    self.auto_fit_pending = false;
+                }
+                CanvasMessage::Pan(dx, dy) => {
+                    self.canvas_state.scroll_offset.x += dx;
+                    self.canvas_state.scroll_offset.y += dy;
+                    self.canvas_state.request_redraw();
+                }
+                CanvasMessage::ZoomBy(factor) => {
+                    self.canvas_state.zoom = (self.canvas_state.zoom * factor).clamp(0.1, 5.0);
+                    self.canvas_state.request_redraw();
+                    let pct = (self.canvas_state.zoom * 100.0) as u32;
+                    self.status = format!("Zoom: {pct}%");
+                }
             },
+            Message::ZoomIn => {
+                self.canvas_state.zoom_in();
+                let pct = (self.canvas_state.zoom * 100.0) as u32;
+                self.status = format!("Zoom: {pct}%");
+            }
+            Message::ZoomOut => {
+                self.canvas_state.zoom_out();
+                let pct = (self.canvas_state.zoom * 100.0) as u32;
+                self.status = format!("Zoom: {pct}%");
+            }
+            Message::AutoFit => {
+                // Set the pending flag so the canvas triggers auto-fit with the actual viewport
+                self.auto_fit_pending = true;
+                self.canvas_state.request_redraw();
+                self.status = String::from("Auto-fit");
+            }
         }
         Task::none()
     }
 
-    /// Build the view: a canvas area and a status bar at the bottom.
+    /// Build the view: a canvas area with zoom controls overlaid, and a status bar at the bottom.
     fn view(&self) -> Element<'_, Message> {
         let canvas = self
             .canvas_state
-            .view(&self.nodes, &self.edges)
+            .view(&self.nodes, &self.edges, self.auto_fit_pending)
             .map(Message::Canvas);
+
+        let zoom_controls = container(
+            Column::new()
+                .spacing(4)
+                .push(button("+").on_press(Message::ZoomIn).width(30))
+                .push(button("-").on_press(Message::ZoomOut).width(30))
+                .push(button("Auto").on_press(Message::AutoFit).width(40)),
+        )
+        .align_right(Fill)
+        .align_bottom(Fill)
+        .padding(10);
+
+        let canvas_with_controls = stack![canvas, zoom_controls];
 
         let status_bar: Row<'_, Message> = Row::new().push(Text::new(self.status.clone()).size(14));
 
         Column::new()
-            .push(iced::widget::container(canvas).width(Fill).height(Fill))
-            .push(iced::widget::container(status_bar).width(Fill).padding(5))
+            .push(container(canvas_with_controls).width(Fill).height(Fill))
+            .push(container(status_bar).width(Fill).padding(5))
             .into()
     }
 }

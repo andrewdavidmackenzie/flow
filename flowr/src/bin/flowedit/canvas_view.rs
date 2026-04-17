@@ -14,6 +14,17 @@ use iced::widget::canvas::{
 };
 use iced::{Color, Element, Fill, Point, Rectangle, Renderer, Size, Theme};
 
+/// Minimum allowed zoom level
+const MIN_ZOOM: f32 = 0.1;
+/// Maximum allowed zoom level
+const MAX_ZOOM: f32 = 5.0;
+/// Zoom factor applied per step (zoom-in multiplies, zoom-out divides)
+const ZOOM_STEP: f32 = 1.2;
+/// Padding in world units used when auto-fitting nodes into the viewport
+const AUTO_FIT_PADDING: f32 = 50.0;
+/// Scroll speed multiplier for panning with the scroll wheel (line-based)
+const SCROLL_SPEED: f32 = 20.0;
+
 use flowcore::model::connection::Connection;
 use flowcore::model::process_reference::ProcessReference;
 
@@ -26,6 +37,12 @@ pub(crate) enum CanvasMessage {
     Moved(usize, f32, f32),
     /// A node should be deleted.
     Deleted(usize),
+    /// Pan the canvas by a world-space delta.
+    Pan(f32, f32),
+    /// Zoom the canvas by a multiplicative factor.
+    ZoomBy(f32),
+    /// Auto-fit with the actual viewport size (triggered on initial load).
+    AutoFitViewport(Size),
 }
 
 /// Tracks the drag-in-progress state: which node and the cursor offset from its origin.
@@ -48,6 +65,17 @@ pub(crate) struct CanvasInteractionState {
     selected_node: Option<usize>,
     /// Active drag operation, if any
     dragging: Option<DragState>,
+    /// Current keyboard modifier state (tracked via ModifiersChanged events)
+    modifiers: keyboard::Modifiers,
+    /// Active middle-mouse-button pan operation
+    panning: Option<PanState>,
+}
+
+/// Tracks a middle-mouse-button pan in progress.
+#[derive(Debug, Clone)]
+struct PanState {
+    /// Last screen-space cursor position during the pan
+    last_screen_pos: Point,
 }
 
 /// Default node width when no layout width is specified
@@ -332,7 +360,7 @@ fn compute_topological_layout(
     let mut queue: std::collections::VecDeque<String> = std::collections::VecDeque::new();
 
     for alias in &aliases {
-        if incoming.get(alias).map_or(true, std::vec::Vec::is_empty) {
+        if incoming.get(alias).is_none_or(std::vec::Vec::is_empty) {
             depth.insert(alias.clone(), 0);
             queue.push_back(alias.clone());
         }
@@ -446,12 +474,18 @@ fn split_route(route: &str) -> (String, String) {
 pub(crate) struct FlowCanvasState {
     /// The geometry cache — cleared when the flow data changes
     cache: canvas::Cache,
+    /// Current zoom level (1.0 = 100%)
+    pub zoom: f32,
+    /// Scroll offset in world coordinates
+    pub scroll_offset: Point,
 }
 
 impl Default for FlowCanvasState {
     fn default() -> Self {
         Self {
             cache: canvas::Cache::new(),
+            zoom: 1.0,
+            scroll_offset: Point::new(0.0, 0.0),
         }
     }
 }
@@ -462,11 +496,13 @@ impl FlowCanvasState {
         &'a self,
         nodes: &'a [NodeLayout],
         edges: &'a [EdgeLayout],
+        auto_fit_pending: bool,
     ) -> Element<'a, CanvasMessage> {
         Canvas::new(FlowCanvas {
             state: self,
             nodes,
             edges,
+            auto_fit_pending,
         })
         .width(Fill)
         .height(Fill)
@@ -477,13 +513,101 @@ impl FlowCanvasState {
     pub(crate) fn request_redraw(&mut self) {
         self.cache.clear();
     }
+
+    /// Zoom in by one step (multiply zoom by [`ZOOM_STEP`]).
+    pub(crate) fn zoom_in(&mut self) {
+        self.zoom = (self.zoom * ZOOM_STEP).min(MAX_ZOOM);
+        self.cache.clear();
+    }
+
+    /// Zoom out by one step (divide zoom by [`ZOOM_STEP`]).
+    pub(crate) fn zoom_out(&mut self) {
+        self.zoom = (self.zoom / ZOOM_STEP).max(MIN_ZOOM);
+        self.cache.clear();
+    }
+
+    /// Compute zoom and offset so that all nodes fit within the given viewport with padding.
+    ///
+    /// If `nodes` is empty, resets to default zoom and offset.
+    pub(crate) fn auto_fit(&mut self, nodes: &[NodeLayout], viewport: Size) {
+        if nodes.is_empty() {
+            self.zoom = 1.0;
+            self.scroll_offset = Point::new(0.0, 0.0);
+            self.cache.clear();
+            return;
+        }
+
+        // Find bounding box of all nodes in world coordinates
+        let mut min_x = f32::MAX;
+        let mut min_y = f32::MAX;
+        let mut max_x = f32::MIN;
+        let mut max_y = f32::MIN;
+        for node in nodes {
+            if node.x < min_x {
+                min_x = node.x;
+            }
+            if node.y < min_y {
+                min_y = node.y;
+            }
+            if node.x + node.width > max_x {
+                max_x = node.x + node.width;
+            }
+            if node.y + node.height > max_y {
+                max_y = node.y + node.height;
+            }
+        }
+
+        let content_width = max_x - min_x + AUTO_FIT_PADDING * 2.0;
+        let content_height = max_y - min_y + AUTO_FIT_PADDING * 2.0;
+
+        // Avoid division by zero
+        if content_width <= 0.0 || content_height <= 0.0 {
+            self.zoom = 1.0;
+            self.scroll_offset = Point::new(0.0, 0.0);
+            self.cache.clear();
+            return;
+        }
+
+        let zoom_x = viewport.width / content_width;
+        let zoom_y = viewport.height / content_height;
+        self.zoom = zoom_x.min(zoom_y).clamp(MIN_ZOOM, MAX_ZOOM);
+
+        // Set offset so that the content is centered
+        // screen_x = (world_x + offset_x) * zoom
+        // We want the center of the content to map to the center of the viewport
+        let content_center_x = (min_x + max_x) / 2.0;
+        let content_center_y = (min_y + max_y) / 2.0;
+        let viewport_center_x = viewport.width / 2.0 / self.zoom;
+        let viewport_center_y = viewport.height / 2.0 / self.zoom;
+
+        self.scroll_offset = Point::new(
+            viewport_center_x - content_center_x,
+            viewport_center_y - content_center_y,
+        );
+        self.cache.clear();
+    }
+}
+
+/// Transform a world-space point to screen-space using the given zoom and scroll offset.
+fn transform_point(p: Point, zoom: f32, offset: Point) -> Point {
+    Point::new((p.x + offset.x) * zoom, (p.y + offset.y) * zoom)
+}
+
+/// Convert a screen-space point back to world-space.
+fn screen_to_world(screen: Point, zoom: f32, offset: Point) -> Point {
+    Point::new(screen.x / zoom - offset.x, screen.y / zoom - offset.y)
 }
 
 /// The canvas program that draws flow nodes and connections.
 struct FlowCanvas<'a> {
+    /// Reference to the persistent canvas state (zoom, offset, cache)
     state: &'a FlowCanvasState,
+    /// Nodes to render
     nodes: &'a [NodeLayout],
+    /// Edges to render
     edges: &'a [EdgeLayout],
+    /// Whether an auto-fit should be triggered on the next event
+    auto_fit_pending: bool,
 }
 
 /// Find the index of the first node whose bounding rectangle contains `point`.
@@ -511,19 +635,36 @@ impl canvas::Program<CanvasMessage> for FlowCanvas<'_> {
         bounds: Rectangle,
         cursor: mouse::Cursor,
     ) -> Option<canvas::Action<CanvasMessage>> {
+        // On the first event after loading, trigger auto-fit with the actual viewport size
+        if self.auto_fit_pending {
+            return Some(
+                canvas::Action::publish(CanvasMessage::AutoFitViewport(bounds.size()))
+                    .and_capture(),
+            );
+        }
+
         let cursor_position = cursor.position_in(bounds)?;
+        let zoom = self.state.zoom;
+        let offset = self.state.scroll_offset;
+        let world_pos = screen_to_world(cursor_position, zoom, offset);
 
         match event {
+            // Track modifier key state for zoom-on-scroll
+            Event::Keyboard(keyboard::Event::ModifiersChanged(modifiers)) => {
+                state.modifiers = *modifiers;
+                None
+            }
+
             // Left mouse button pressed — select node or deselect
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => {
-                if let Some(idx) = hit_test_node(self.nodes, cursor_position) {
+                if let Some(idx) = hit_test_node(self.nodes, world_pos) {
                     // Get the node; bail if index is out of range
                     let node = self.nodes.get(idx)?;
                     state.selected_node = Some(idx);
                     state.dragging = Some(DragState {
                         node_index: idx,
-                        offset_x: cursor_position.x - node.x,
-                        offset_y: cursor_position.y - node.y,
+                        offset_x: world_pos.x - node.x,
+                        offset_y: world_pos.y - node.y,
                     });
                     Some(canvas::Action::publish(CanvasMessage::Selected(Some(idx))).and_capture())
                 } else {
@@ -534,11 +675,27 @@ impl canvas::Program<CanvasMessage> for FlowCanvas<'_> {
                 }
             }
 
-            // Mouse moved while dragging — publish new position
+            // Middle mouse button pressed — start panning
+            Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Middle)) => {
+                state.panning = Some(PanState {
+                    last_screen_pos: cursor_position,
+                });
+                Some(canvas::Action::request_redraw().and_capture())
+            }
+
+            // Mouse moved — handle drag or pan
             Event::Mouse(mouse::Event::CursorMoved { .. }) => {
-                if let Some(ref drag) = state.dragging {
-                    let new_x = cursor_position.x - drag.offset_x;
-                    let new_y = cursor_position.y - drag.offset_y;
+                if let Some(ref pan) = state.panning {
+                    // Pan: adjust scroll_offset based on screen-space delta
+                    let dx = (cursor_position.x - pan.last_screen_pos.x) / zoom;
+                    let dy = (cursor_position.y - pan.last_screen_pos.y) / zoom;
+                    state.panning = Some(PanState {
+                        last_screen_pos: cursor_position,
+                    });
+                    Some(canvas::Action::publish(CanvasMessage::Pan(dx, dy)).and_capture())
+                } else if let Some(ref drag) = state.dragging {
+                    let new_x = world_pos.x - drag.offset_x;
+                    let new_y = world_pos.y - drag.offset_y;
                     Some(
                         canvas::Action::publish(CanvasMessage::Moved(
                             drag.node_index,
@@ -552,13 +709,52 @@ impl canvas::Program<CanvasMessage> for FlowCanvas<'_> {
                 }
             }
 
-            // Mouse button released — stop dragging
+            // Left mouse button released — stop dragging
             Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left)) => {
                 if state.dragging.is_some() {
                     state.dragging = None;
                     Some(canvas::Action::request_redraw().and_capture())
                 } else {
                     None
+                }
+            }
+
+            // Middle mouse button released — stop panning
+            Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Middle)) => {
+                if state.panning.is_some() {
+                    state.panning = None;
+                    Some(canvas::Action::request_redraw().and_capture())
+                } else {
+                    None
+                }
+            }
+
+            // Scroll wheel: pan or zoom depending on modifier keys
+            Event::Mouse(mouse::Event::WheelScrolled { delta }) => {
+                let (dx, dy) = match *delta {
+                    mouse::ScrollDelta::Lines { x, y } => (x * SCROLL_SPEED, y * SCROLL_SPEED),
+                    mouse::ScrollDelta::Pixels { x, y } => (x, y),
+                };
+
+                if state.modifiers.command() {
+                    // Zoom: positive dy = zoom in, negative = zoom out
+                    if dy > 0.0 {
+                        Some(
+                            canvas::Action::publish(CanvasMessage::ZoomBy(ZOOM_STEP)).and_capture(),
+                        )
+                    } else if dy < 0.0 {
+                        Some(
+                            canvas::Action::publish(CanvasMessage::ZoomBy(1.0 / ZOOM_STEP))
+                                .and_capture(),
+                        )
+                    } else {
+                        None
+                    }
+                } else {
+                    // Pan
+                    let pan_dx = dx / zoom;
+                    let pan_dy = dy / zoom;
+                    Some(canvas::Action::publish(CanvasMessage::Pan(pan_dx, pan_dy)).and_capture())
                 }
             }
 
@@ -589,23 +785,23 @@ impl canvas::Program<CanvasMessage> for FlowCanvas<'_> {
         bounds: Rectangle,
         _cursor: mouse::Cursor,
     ) -> Vec<Geometry> {
-        // Draw the main cached content (edges and nodes)
+        let zoom = self.state.zoom;
+        let offset = self.state.scroll_offset;
+
+        // Draw the main cached content (edges and nodes) with zoom/scroll transform
         let content = self.state.cache.draw(renderer, bounds.size(), |frame| {
-            draw_edges(frame, self.edges, self.nodes);
-            draw_nodes(frame, self.nodes);
+            draw_edges(frame, self.edges, self.nodes, zoom, offset);
+            draw_nodes(frame, self.nodes, zoom, offset);
         });
 
         // Draw selection highlight as an overlay (not cached, so it updates instantly)
         if let Some(selected_idx) = state.selected_node {
             if let Some(node) = self.nodes.get(selected_idx) {
                 let mut overlay = Frame::new(renderer, bounds.size());
+                let screen_pos = transform_point(Point::new(node.x, node.y), zoom, offset);
+                let screen_size = Size::new(node.width * zoom, node.height * zoom);
                 let highlight = Path::new(|builder| {
-                    rounded_rect(
-                        builder,
-                        Point::new(node.x, node.y),
-                        Size::new(node.width, node.height),
-                        CORNER_RADIUS,
-                    );
+                    rounded_rect(builder, screen_pos, screen_size, CORNER_RADIUS * zoom);
                 });
                 overlay.stroke(
                     &highlight,
@@ -626,12 +822,17 @@ impl canvas::Program<CanvasMessage> for FlowCanvas<'_> {
         bounds: Rectangle,
         cursor: mouse::Cursor,
     ) -> mouse::Interaction {
+        if state.panning.is_some() {
+            return mouse::Interaction::Grabbing;
+        }
+
         if state.dragging.is_some() {
             return mouse::Interaction::Grabbing;
         }
 
         if let Some(pos) = cursor.position_in(bounds) {
-            if hit_test_node(self.nodes, pos).is_some() {
+            let world_pos = screen_to_world(pos, self.state.zoom, self.state.scroll_offset);
+            if hit_test_node(self.nodes, world_pos).is_some() {
                 return mouse::Interaction::Grab;
             }
         }
@@ -641,7 +842,13 @@ impl canvas::Program<CanvasMessage> for FlowCanvas<'_> {
 }
 
 /// Draw all connection edges as bezier curves.
-fn draw_edges(frame: &mut Frame, edges: &[EdgeLayout], nodes: &[NodeLayout]) {
+fn draw_edges(
+    frame: &mut Frame,
+    edges: &[EdgeLayout],
+    nodes: &[NodeLayout],
+    zoom: f32,
+    offset: Point,
+) {
     // Build a lookup from alias to node
     let node_map: HashMap<&str, &NodeLayout> =
         nodes.iter().map(|n| (n.alias.as_str(), n)).collect();
@@ -651,7 +858,7 @@ fn draw_edges(frame: &mut Frame, edges: &[EdgeLayout], nodes: &[NodeLayout]) {
         let to_node = node_map.get(edge.to_node.as_str());
 
         if let (Some(from), Some(to)) = (from_node, to_node) {
-            // Find port positions
+            // Find port positions (in world space)
             let from_point = if edge.from_port.is_empty() {
                 // Whole-node output — use first output port
                 from.output_port_position(0)
@@ -671,80 +878,88 @@ fn draw_edges(frame: &mut Frame, edges: &[EdgeLayout], nodes: &[NodeLayout]) {
                 to.input_port_position(port_idx)
             };
 
-            draw_bezier_connection(frame, from_point, to_point);
+            draw_bezier_connection(frame, from_point, to_point, zoom, offset);
         }
     }
 }
 
-/// Draw a bezier curve connection between two points
-fn draw_bezier_connection(frame: &mut Frame, from: Point, to: Point) {
-    let dx = (to.x - from.x).abs() * 0.5;
-    let control1 = Point::new(from.x + dx, from.y);
-    let control2 = Point::new(to.x - dx, to.y);
+/// Draw a bezier curve connection between two world-space points, applying zoom and offset.
+fn draw_bezier_connection(frame: &mut Frame, from: Point, to: Point, zoom: f32, offset: Point) {
+    let from_s = transform_point(from, zoom, offset);
+    let to_s = transform_point(to, zoom, offset);
+
+    let dx = (to_s.x - from_s.x).abs() * 0.5;
+    let control1 = Point::new(from_s.x + dx, from_s.y);
+    let control2 = Point::new(to_s.x - dx, to_s.y);
 
     let path = Path::new(|builder| {
-        builder.move_to(from);
-        builder.bezier_curve_to(control1, control2, to);
+        builder.move_to(from_s);
+        builder.bezier_curve_to(control1, control2, to_s);
     });
 
     frame.stroke(
         &path,
         Stroke::default()
-            .with_width(2.0)
+            .with_width(2.0 * zoom)
             .with_color(Color::from_rgb(0.5, 0.5, 0.5)),
     );
 
     // Draw a small arrow head at the destination
-    let arrow_size = 6.0;
+    let arrow_size = 6.0 * zoom;
     let arrow = Path::new(|builder| {
-        builder.move_to(Point::new(to.x - arrow_size, to.y - arrow_size));
-        builder.line_to(to);
-        builder.line_to(Point::new(to.x - arrow_size, to.y + arrow_size));
+        builder.move_to(Point::new(to_s.x - arrow_size, to_s.y - arrow_size));
+        builder.line_to(to_s);
+        builder.line_to(Point::new(to_s.x - arrow_size, to_s.y + arrow_size));
     });
     frame.stroke(
         &arrow,
         Stroke::default()
-            .with_width(2.0)
+            .with_width(2.0 * zoom)
             .with_color(Color::from_rgb(0.5, 0.5, 0.5)),
     );
 }
 
-/// Draw all nodes onto the given frame.
-fn draw_nodes(frame: &mut Frame, nodes: &[NodeLayout]) {
+/// Draw all nodes onto the given frame, applying zoom and offset.
+fn draw_nodes(frame: &mut Frame, nodes: &[NodeLayout], zoom: f32, offset: Point) {
     for node in nodes {
-        draw_node(frame, node);
+        draw_node(frame, node, zoom, offset);
     }
 }
 
 /// Draw a single node as a rounded rectangle with title, source, and ports.
-fn draw_node(frame: &mut Frame, node: &NodeLayout) {
-    let top_left = Point::new(node.x, node.y);
-    let size = Size::new(node.width, node.height);
+fn draw_node(frame: &mut Frame, node: &NodeLayout, zoom: f32, offset: Point) {
+    let top_left = transform_point(Point::new(node.x, node.y), zoom, offset);
+    let size = Size::new(node.width * zoom, node.height * zoom);
     let fill_color = node.fill_color();
 
     // Draw filled rounded rectangle
     let rect = Path::new(|builder| {
-        rounded_rect(builder, top_left, size, CORNER_RADIUS);
+        rounded_rect(builder, top_left, size, CORNER_RADIUS * zoom);
     });
     frame.fill(&rect, fill_color);
 
     // Draw border
     let border = Path::new(|builder| {
-        rounded_rect(builder, top_left, size, CORNER_RADIUS);
+        rounded_rect(builder, top_left, size, CORNER_RADIUS * zoom);
     });
     frame.stroke(
         &border,
         Stroke::default()
-            .with_width(2.0)
+            .with_width(2.0 * zoom)
             .with_color(Color::from_rgb(0.2, 0.2, 0.2)),
     );
 
     // Draw alias title centered near top of node
+    let title_pos = transform_point(
+        Point::new(node.x + node.width / 2.0, node.y + 12.0),
+        zoom,
+        offset,
+    );
     let title = CanvasText {
         content: node.alias.clone(),
-        position: Point::new(node.x + node.width / 2.0, node.y + 12.0),
+        position: title_pos,
         color: Color::WHITE,
-        size: TITLE_FONT_SIZE.into(),
+        size: (TITLE_FONT_SIZE * zoom).into(),
         align_x: iced::alignment::Horizontal::Center.into(),
         align_y: iced::alignment::Vertical::Top,
         ..CanvasText::default()
@@ -753,11 +968,16 @@ fn draw_node(frame: &mut Frame, node: &NodeLayout) {
 
     // Draw source label below title (truncated with ellipsis)
     let source_display = truncate_source(&node.source, MAX_SOURCE_CHARS);
+    let source_pos = transform_point(
+        Point::new(node.x + node.width / 2.0, node.y + 34.0),
+        zoom,
+        offset,
+    );
     let source_label = CanvasText {
         content: source_display,
-        position: Point::new(node.x + node.width / 2.0, node.y + 34.0),
+        position: source_pos,
         color: Color::from_rgba(1.0, 1.0, 1.0, 0.7),
-        size: SOURCE_FONT_SIZE.into(),
+        size: (SOURCE_FONT_SIZE * zoom).into(),
         align_x: iced::alignment::Horizontal::Center.into(),
         align_y: iced::alignment::Vertical::Top,
         ..CanvasText::default()
@@ -768,57 +988,64 @@ fn draw_node(frame: &mut Frame, node: &NodeLayout) {
     for (i, input_name) in node.inputs.iter().enumerate() {
         let port_pos = node.input_port_position(i);
         let init_label = node.initializers.get(input_name).map(String::as_str);
-        draw_port(frame, port_pos, input_name, true, init_label);
+        draw_port(frame, port_pos, input_name, true, init_label, zoom, offset);
     }
 
     // Draw output ports on the right edge
     for (i, output_name) in node.outputs.iter().enumerate() {
         let port_pos = node.output_port_position(i);
-        draw_port(frame, port_pos, output_name, false, None);
+        draw_port(frame, port_pos, output_name, false, None, zoom, offset);
     }
 }
 
-/// Draw a port circle with a label and optional initializer value
+/// Draw a port circle with a label and optional initializer value.
+///
+/// The `center` parameter is in world coordinates; zoom and offset are applied internally.
 fn draw_port(
     frame: &mut Frame,
     center: Point,
     name: &str,
     is_input: bool,
     initializer: Option<&str>,
+    zoom: f32,
+    offset: Point,
 ) {
+    let screen_center = transform_point(center, zoom, offset);
+    let scaled_radius = PORT_RADIUS * zoom;
+
     // Port circle — filled if has initializer, hollow if not
     let has_init = initializer.is_some();
-    let circle = Path::circle(center, PORT_RADIUS);
+    let circle = Path::circle(screen_center, scaled_radius);
     if has_init {
         frame.fill(&circle, Color::from_rgb(1.0, 0.9, 0.3)); // Yellow for initialized
     } else {
         frame.fill(&circle, Color::WHITE);
     }
     frame.stroke(
-        &Path::circle(center, PORT_RADIUS),
+        &Path::circle(screen_center, scaled_radius),
         Stroke::default()
-            .with_width(1.5)
+            .with_width(1.5 * zoom)
             .with_color(Color::from_rgb(0.3, 0.3, 0.3)),
     );
 
     // Port name label (inside the node)
     let (label_x, align) = if is_input {
         (
-            center.x + PORT_RADIUS + 4.0,
+            screen_center.x + scaled_radius + 4.0 * zoom,
             iced::alignment::Horizontal::Left,
         )
     } else {
         (
-            center.x - PORT_RADIUS - 4.0,
+            screen_center.x - scaled_radius - 4.0 * zoom,
             iced::alignment::Horizontal::Right,
         )
     };
 
     let label = CanvasText {
         content: name.to_string(),
-        position: Point::new(label_x, center.y - 6.0),
+        position: Point::new(label_x, screen_center.y - 6.0 * zoom),
         color: Color::WHITE,
-        size: PORT_FONT_SIZE.into(),
+        size: (PORT_FONT_SIZE * zoom).into(),
         align_x: align.into(),
         align_y: iced::alignment::Vertical::Top,
         ..CanvasText::default()
@@ -829,9 +1056,12 @@ fn draw_port(
     if let Some(init_text) = initializer {
         let init_label = CanvasText {
             content: init_text.to_string(),
-            position: Point::new(center.x - PORT_RADIUS - 4.0, center.y - 6.0),
+            position: Point::new(
+                screen_center.x - scaled_radius - 4.0 * zoom,
+                screen_center.y - 6.0 * zoom,
+            ),
             color: Color::from_rgb(0.9, 0.85, 0.2),
-            size: PORT_FONT_SIZE.into(),
+            size: (PORT_FONT_SIZE * zoom).into(),
             align_x: iced::alignment::Horizontal::Right.into(),
             align_y: iced::alignment::Vertical::Top,
             ..CanvasText::default()
