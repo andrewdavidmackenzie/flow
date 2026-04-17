@@ -829,7 +829,13 @@ impl FlowEdit {
         match self.perform_compile() {
             Ok(manifest_path) => {
                 self.status = String::from("Running...");
-                match std::process::Command::new("flowrcli")
+                // Find flowrcli: next to this executable, or in PATH
+                let runner = std::env::current_exe()
+                    .ok()
+                    .and_then(|p| p.parent().map(|d| d.join("flowrcli")))
+                    .filter(|p| p.exists())
+                    .unwrap_or_else(|| PathBuf::from("flowrcli"));
+                match std::process::Command::new(&runner)
                     .arg("-n")
                     .arg(manifest_path.display().to_string())
                     .stdout(std::process::Stdio::piped())
