@@ -1325,12 +1325,6 @@ fn draw_port(
         builder.close();
     });
     frame.fill(&semi, fill_color);
-    frame.stroke(
-        &semi,
-        Stroke::default()
-            .with_width(1.5 * zoom)
-            .with_color(Color::from_rgb(0.3, 0.3, 0.3)),
-    );
 
     // Port name label (inside the node)
     let (label_x, align) = if is_input {
