@@ -33,17 +33,21 @@ use flowcore::model::process::Process;
 use flowcore::model::process_reference::ProcessReference;
 mod canvas_view;
 mod history;
+mod library_panel;
 use canvas_view::{
     build_edge_layouts, build_node_layouts, derive_short_name, CanvasMessage, EdgeLayout,
     FlowCanvasState, NodeLayout, PortInfo,
 };
 use history::{EditAction, EditHistory};
+use library_panel::{LibraryMessage, LibraryTree};
 
 /// Messages handled by the flowedit application
 #[derive(Debug, Clone)]
 enum Message {
     /// A message from the interactive canvas (select, move, delete)
     Canvas(CanvasMessage),
+    /// A message from the library side panel
+    Library(LibraryMessage),
     /// Zoom in by one step
     ZoomIn,
     /// Zoom out by one step
@@ -94,6 +98,8 @@ struct FlowEdit {
     flow_definition: FlowDefinition,
     /// Tooltip text and screen position to display (full source path on hover)
     tooltip: Option<(String, f32, f32)>,
+    /// Library panel tree for process discovery
+    library_tree: LibraryTree,
 }
 
 /// Main entry point for the flowedit binary.
@@ -158,6 +164,7 @@ impl FlowEdit {
             };
 
         let has_nodes = !nodes.is_empty();
+        let library_tree = LibraryTree::scan();
         let app = FlowEdit {
             flow_name,
             nodes,
@@ -173,6 +180,7 @@ impl FlowEdit {
             file_path,
             flow_definition,
             tooltip: None,
+            library_tree,
         };
 
         (app, Task::none())
@@ -360,6 +368,11 @@ impl FlowEdit {
                     self.status = format!("Zoom: {pct}%");
                 }
             },
+            Message::Library(ref lib_msg) => {
+                if let Some((source, func_name)) = self.library_tree.update(lib_msg) {
+                    self.add_library_function(&source, &func_name);
+                }
+            }
             Message::ZoomIn => {
                 self.auto_fit_enabled = false;
                 self.canvas_state.zoom_in();
@@ -484,6 +497,12 @@ impl FlowEdit {
             stack![canvas, zoom_controls]
         };
 
+        let library_panel = self.library_tree.view().map(Message::Library);
+
+        let main_content = Row::new()
+            .push(library_panel)
+            .push(container(canvas_with_controls).width(Fill).height(Fill));
+
         let edit_indicator = if self.unsaved_edits > 0 {
             format!("  |  {} unsaved edit(s)", self.unsaved_edits)
         } else {
@@ -493,7 +512,7 @@ impl FlowEdit {
             Row::new().push(Text::new(format!("{}{}", self.status, edit_indicator)).size(14));
 
         Column::new()
-            .push(container(canvas_with_controls).width(Fill).height(Fill))
+            .push(container(main_content).width(Fill).height(Fill))
             .push(container(status_bar).width(Fill).padding(5))
             .into()
     }
@@ -659,6 +678,58 @@ impl FlowEdit {
         self.auto_fit_enabled = true;
         self.canvas_state = FlowCanvasState::default();
         self.status = String::from("New flow");
+    }
+
+    /// Add a function from the library panel as a new node on the canvas.
+    ///
+    /// Creates a `NodeLayout` at a default position and a `ProcessReference`
+    /// in the flow definition, and records the action in the edit history.
+    fn add_library_function(&mut self, source: &str, func_name: &str) {
+        // Generate a unique alias: if the name already exists, append a number
+        let alias = generate_unique_alias(func_name, &self.nodes);
+
+        // Place the new node at a default position offset from existing nodes
+        let (x, y) = next_node_position(&self.nodes);
+
+        let node = NodeLayout {
+            alias: alias.clone(),
+            source: source.to_string(),
+            x,
+            y,
+            width: 180.0,
+            height: 120.0,
+            inputs: Vec::new(),
+            outputs: Vec::new(),
+            initializers: HashMap::new(),
+        };
+
+        let index = self.nodes.len();
+        self.nodes.push(node.clone());
+
+        // Also add to the flow definition
+        let pref = ProcessReference {
+            alias: alias.clone(),
+            source: source.to_string(),
+            initializations: std::collections::BTreeMap::new(),
+            x: Some(x),
+            y: Some(y),
+            width: Some(180.0),
+            height: Some(120.0),
+        };
+        self.flow_definition.process_refs.push(pref);
+
+        self.record_edit(EditAction::DeleteNode {
+            index,
+            node,
+            removed_edges: Vec::new(),
+        });
+        // Note: We record a DeleteNode so that *undo* removes the added node.
+        // This is intentional: undoing an "add" means deleting what was added.
+
+        self.selected_node = Some(index);
+        self.canvas_state.request_redraw();
+        let nc = self.nodes.len();
+        self.status = format!("Added {alias} from library - {nc} nodes");
     }
 
     /// Synchronize the in-memory `FlowDefinition` with the current editor state
@@ -1078,6 +1149,31 @@ fn save_flow_toml(
     }
 
     std::fs::write(path, out).map_err(|e| format!("Could not write file: {e}"))
+}
+
+/// Generate a unique alias for a new node, appending a numeric suffix if needed.
+fn generate_unique_alias(base_name: &str, nodes: &[NodeLayout]) -> String {
+    let existing: Vec<&str> = nodes.iter().map(|n| n.alias.as_str()).collect();
+    if !existing.contains(&base_name) {
+        return base_name.to_string();
+    }
+    let mut counter = 2u32;
+    loop {
+        let candidate = format!("{base_name}_{counter}");
+        if !existing.iter().any(|a| *a == candidate) {
+            return candidate;
+        }
+        counter = counter.saturating_add(1);
+    }
+}
+
+/// Compute a default position for a new node, offset from the last node or at a default origin.
+fn next_node_position(nodes: &[NodeLayout]) -> (f32, f32) {
+    if let Some(last) = nodes.last() {
+        (last.x + 30.0, last.y + 30.0)
+    } else {
+        (100.0, 100.0)
+    }
 }
 
 /// Format a connection endpoint for display, omitting "default" or empty port names.
