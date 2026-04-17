@@ -454,9 +454,9 @@ impl FlowEdit {
         let canvas_with_controls = stack![canvas, zoom_controls];
 
         let edit_indicator = if self.unsaved_edits > 0 {
-            format!("  [{} unsaved]", self.unsaved_edits)
+            format!("  |  {} unsaved edit(s)", self.unsaved_edits)
         } else {
-            String::new()
+            String::from("  |  saved")
         };
         let status_bar: Row<'_, Message> =
             Row::new().push(Text::new(format!("{}{}", self.status, edit_indicator)).size(14));

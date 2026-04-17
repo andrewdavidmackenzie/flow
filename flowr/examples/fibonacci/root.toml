@@ -7,8 +7,19 @@ authors = ["Andrew Mackenzie <andrew@mackenzie-serres.net>"]
 
 [[process]]
 source = "lib://flowstdlib/math/add"
-input.i1 = { once =  0 }
-input.i2 = { once =  1 }
+x = 50
+y = 50
+width = 180
+height = 120
+input.i1 = { once = 0 }
+input.i2 = { once = 1 }
+
+[[process]]
+source = "context://stdio/stdout"
+x = 300.9684
+y = 101.93169
+width = 180
+height = 120
 
 [[connection]]
 from = "add"
@@ -19,11 +30,7 @@ name = "next value"
 from = "add"
 to = "stdout"
 
-# Loop back the input value #2 from this calculation, to be the input to input #1 on the next iteration
 [[connection]]
 name = "previous"
 from = "add/i2"
 to = "add/i1"
-
-[[process]]
-source = "context://stdio/stdout"
