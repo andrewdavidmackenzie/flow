@@ -37,8 +37,8 @@ enum Message {
     ZoomIn,
     /// Zoom out by one step
     ZoomOut,
-    /// Auto-fit all nodes into the visible area
-    AutoFit,
+    /// Toggle auto-fit mode
+    ToggleAutoFit,
 }
 
 /// Top-level application state
@@ -57,6 +57,8 @@ struct FlowEdit {
     selected_node: Option<usize>,
     /// Whether auto-fit should be performed on the next opportunity
     auto_fit_pending: bool,
+    /// Whether auto-fit mode is active (continuously fits to window)
+    auto_fit_enabled: bool,
 }
 
 /// Main entry point for the flowedit binary.
@@ -121,6 +123,7 @@ impl FlowEdit {
             status,
             selected_node: None,
             auto_fit_pending: has_nodes,
+            auto_fit_enabled: true, // Start in auto-fit mode
         };
 
         (app, Task::none())
@@ -171,15 +174,19 @@ impl FlowEdit {
                     }
                 }
                 CanvasMessage::AutoFitViewport(viewport) => {
-                    self.canvas_state.auto_fit(&self.nodes, viewport);
-                    self.auto_fit_pending = false;
+                    if self.auto_fit_enabled || self.auto_fit_pending {
+                        self.canvas_state.auto_fit(&self.nodes, viewport);
+                        self.auto_fit_pending = false;
+                    }
                 }
                 CanvasMessage::Pan(dx, dy) => {
+                    self.auto_fit_enabled = false; // Manual pan disables auto-fit
                     self.canvas_state.scroll_offset.x += dx;
                     self.canvas_state.scroll_offset.y += dy;
                     self.canvas_state.request_redraw();
                 }
                 CanvasMessage::ZoomBy(factor) => {
+                    self.auto_fit_enabled = false; // Manual zoom disables auto-fit
                     self.canvas_state.zoom = (self.canvas_state.zoom * factor).clamp(0.1, 5.0);
                     self.canvas_state.request_redraw();
                     let pct = (self.canvas_state.zoom * 100.0) as u32;
@@ -187,20 +194,26 @@ impl FlowEdit {
                 }
             },
             Message::ZoomIn => {
+                self.auto_fit_enabled = false;
                 self.canvas_state.zoom_in();
                 let pct = (self.canvas_state.zoom * 100.0) as u32;
                 self.status = format!("Zoom: {pct}%");
             }
             Message::ZoomOut => {
+                self.auto_fit_enabled = false;
                 self.canvas_state.zoom_out();
                 let pct = (self.canvas_state.zoom * 100.0) as u32;
                 self.status = format!("Zoom: {pct}%");
             }
-            Message::AutoFit => {
-                // Set the pending flag so the canvas triggers auto-fit with the actual viewport
-                self.auto_fit_pending = true;
-                self.canvas_state.request_redraw();
-                self.status = String::from("Auto-fit");
+            Message::ToggleAutoFit => {
+                self.auto_fit_enabled = !self.auto_fit_enabled;
+                if self.auto_fit_enabled {
+                    self.auto_fit_pending = true;
+                    self.canvas_state.request_redraw();
+                    self.status = String::from("Auto-fit enabled");
+                } else {
+                    self.status = String::from("Auto-fit disabled");
+                }
             }
         }
         Task::none()
@@ -210,7 +223,12 @@ impl FlowEdit {
     fn view(&self) -> Element<'_, Message> {
         let canvas = self
             .canvas_state
-            .view(&self.nodes, &self.edges, self.auto_fit_pending)
+            .view(
+                &self.nodes,
+                &self.edges,
+                self.auto_fit_pending,
+                self.auto_fit_enabled,
+            )
             .map(Message::Canvas);
 
         let btn_width = 40;
@@ -232,9 +250,13 @@ impl FlowEdit {
                     )
                     .push(
                         button(Text::new("Fit").center())
-                            .on_press(Message::AutoFit)
+                            .on_press(Message::ToggleAutoFit)
                             .width(btn_width)
-                            .style(button::secondary),
+                            .style(if self.auto_fit_enabled {
+                                button::primary
+                            } else {
+                                button::secondary
+                            }),
                     ),
             )
             .padding(6)

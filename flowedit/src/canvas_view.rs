@@ -69,6 +69,8 @@ pub(crate) struct CanvasInteractionState {
     modifiers: keyboard::Modifiers,
     /// Active middle-mouse-button pan operation
     panning: Option<PanState>,
+    /// Last known bounds size — used to detect window resize for auto-fit
+    last_bounds: Option<Size>,
 }
 
 /// Tracks a middle-mouse-button pan in progress.
@@ -498,12 +500,14 @@ impl FlowCanvasState {
         nodes: &'a [NodeLayout],
         edges: &'a [EdgeLayout],
         auto_fit_pending: bool,
+        auto_fit_enabled: bool,
     ) -> Element<'a, CanvasMessage> {
         Canvas::new(FlowCanvas {
             state: self,
             nodes,
             edges,
             auto_fit_pending,
+            auto_fit_enabled,
         })
         .width(Fill)
         .height(Fill)
@@ -609,6 +613,8 @@ struct FlowCanvas<'a> {
     edges: &'a [EdgeLayout],
     /// Whether an auto-fit should be triggered on the next event
     auto_fit_pending: bool,
+    /// Whether auto-fit mode is active (continuously fits to window)
+    auto_fit_enabled: bool,
 }
 
 /// Find the index of the first node whose bounding rectangle contains `point`.
@@ -636,8 +642,12 @@ impl canvas::Program<CanvasMessage> for FlowCanvas<'_> {
         bounds: Rectangle,
         cursor: mouse::Cursor,
     ) -> Option<canvas::Action<CanvasMessage>> {
-        // On the first event after loading, trigger auto-fit with the actual viewport size
-        if self.auto_fit_pending {
+        // Trigger auto-fit when pending or when auto-fit is enabled and bounds changed
+        let bounds_changed = state.last_bounds.map_or(true, |last| {
+            (last.width - bounds.width).abs() > 1.0 || (last.height - bounds.height).abs() > 1.0
+        });
+        if self.auto_fit_pending || (self.auto_fit_enabled && bounds_changed) {
+            state.last_bounds = Some(bounds.size());
             return Some(
                 canvas::Action::publish(CanvasMessage::AutoFitViewport(bounds.size()))
                     .and_capture(),
