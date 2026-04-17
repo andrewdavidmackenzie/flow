@@ -109,8 +109,8 @@ impl LibraryTree {
         }
 
         // Sort non-context libraries by name for consistent display
-        if libraries.len() > 1 {
-            libraries[1..].sort_by(|a, b| a.name.cmp(&b.name));
+        if let Some(rest) = libraries.get_mut(1..) {
+            rest.sort_by(|a, b| a.name.cmp(&b.name));
         }
         LibraryTree { libraries }
     }
