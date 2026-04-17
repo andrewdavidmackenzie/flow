@@ -1729,13 +1729,12 @@ fn draw_bezier_connection(
         frame.stroke(&path, stroke);
     }
 
-    // Arrow head at destination — tip pushed slightly into the semi-circle
+    // Arrow head at destination — tip at the port position
     let arrow_size = 6.0 * zoom;
-    let arrow_tip_x = to_s.x - line_width * zoom;
     let arrow = Path::new(|builder| {
-        builder.move_to(Point::new(arrow_tip_x - arrow_size, to_s.y - arrow_size));
-        builder.line_to(Point::new(arrow_tip_x, to_s.y));
-        builder.line_to(Point::new(arrow_tip_x - arrow_size, to_s.y + arrow_size));
+        builder.move_to(Point::new(to_s.x - arrow_size, to_s.y - arrow_size));
+        builder.line_to(to_s);
+        builder.line_to(Point::new(to_s.x - arrow_size, to_s.y + arrow_size));
     });
     frame.stroke(
         &arrow,
