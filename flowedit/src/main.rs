@@ -1169,11 +1169,12 @@ fn generate_unique_alias(base_name: &str, nodes: &[NodeLayout]) -> String {
 
 /// Compute a default position for a new node, offset from the last node or at a default origin.
 fn next_node_position(nodes: &[NodeLayout]) -> (f32, f32) {
-    if let Some(last) = nodes.last() {
-        (last.x + 30.0, last.y + 30.0)
-    } else {
-        (100.0, 100.0)
+    if nodes.is_empty() {
+        return (100.0, 100.0);
     }
+    // Find the rightmost node and place the new one to its right
+    let max_right = nodes.iter().map(|n| n.x + n.width).fold(0.0_f32, f32::max);
+    (max_right + 50.0, 100.0)
 }
 
 /// Format a connection endpoint for display, omitting "default" or empty port names.

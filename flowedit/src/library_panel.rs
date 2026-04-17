@@ -191,7 +191,7 @@ impl LibraryTree {
                                     func.source.clone(),
                                     func.name.clone(),
                                 ))
-                                .style(button::secondary)
+                                .style(button::text)
                                 .padding(iced::Padding {
                                     top: 2.0,
                                     right: 6.0,
