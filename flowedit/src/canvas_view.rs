@@ -863,6 +863,15 @@ fn hit_test_port(
     None
 }
 
+/// Evaluate a quadratic bezier curve at parameter `t` (0.0..=1.0).
+fn quadratic_bezier_pt(p0: Point, p1: Point, p2: Point, t: f32) -> Point {
+    let mt = 1.0 - t;
+    Point::new(
+        mt * mt * p0.x + 2.0 * mt * t * p1.x + t * t * p2.x,
+        mt * mt * p0.y + 2.0 * mt * t * p1.y + t * t * p2.y,
+    )
+}
+
 /// Evaluate a cubic bezier curve at parameter `t` (0.0..=1.0).
 fn cubic_bezier(p0: Point, p1: Point, p2: Point, p3: Point, t: f32) -> Point {
     let u = 1.0 - t;
@@ -923,14 +932,67 @@ fn hit_test_connection(
             let from_s = transform_point(from_point, zoom, offset);
             let to_s = transform_point(to_point, zoom, offset);
 
-            // Sample the bezier and check distance
-            let dx_ctrl = (to_s.x - from_s.x).abs().max(60.0 * zoom) * 0.5;
-            let control1 = Point::new(from_s.x + dx_ctrl, from_s.y);
-            let control2 = Point::new(to_s.x - dx_ctrl, to_s.y);
+            let is_self = edge.from_node == edge.to_node;
 
-            for i in 0..=BEZIER_SAMPLES {
-                let t = i as f32 / BEZIER_SAMPLES as f32;
-                let pt = cubic_bezier(from_s, control1, control2, to_s, t);
+            // Build sample points along the actual drawn path
+            let sample_points: Vec<Point> = if is_self {
+                // Loopback: same routing as draw_bezier_connection
+                let margin = 25.0 * zoom;
+                let box_right = (from.x + from.width + offset.x) * zoom + margin;
+                let box_bottom = (from.y + from.height + offset.y) * zoom + margin;
+                let box_left = (from.x + offset.x) * zoom - margin;
+                let mid_x = (box_right + box_left) / 2.0;
+
+                // Sample the path: from -> right -> curve down -> bottom -> curve up -> to
+                let mut pts = Vec::with_capacity(BEZIER_SAMPLES + 1);
+                let segments = BEZIER_SAMPLES / 5;
+                // Segment 1: from -> right
+                for i in 0..=segments {
+                    let t = i as f32 / segments as f32;
+                    pts.push(Point::new(from_s.x + (box_right - from_s.x) * t, from_s.y));
+                }
+                // Segment 2: curve right -> bottom
+                for i in 0..=segments {
+                    let t = i as f32 / segments as f32;
+                    let p = quadratic_bezier_pt(
+                        Point::new(box_right, from_s.y),
+                        Point::new(box_right, box_bottom),
+                        Point::new(mid_x, box_bottom),
+                        t,
+                    );
+                    pts.push(p);
+                }
+                // Segment 3: curve bottom -> left
+                for i in 0..=segments {
+                    let t = i as f32 / segments as f32;
+                    let p = quadratic_bezier_pt(
+                        Point::new(mid_x, box_bottom),
+                        Point::new(box_left, box_bottom),
+                        Point::new(box_left, to_s.y),
+                        t,
+                    );
+                    pts.push(p);
+                }
+                // Segment 4: left -> to
+                for i in 0..=segments {
+                    let t = i as f32 / segments as f32;
+                    pts.push(Point::new(box_left + (to_s.x - box_left) * t, to_s.y));
+                }
+                pts
+            } else {
+                // Normal bezier
+                let dx_ctrl = (to_s.x - from_s.x).abs().max(60.0 * zoom) * 0.5;
+                let control1 = Point::new(from_s.x + dx_ctrl, from_s.y);
+                let control2 = Point::new(to_s.x - dx_ctrl, to_s.y);
+                (0..=BEZIER_SAMPLES)
+                    .map(|i| {
+                        let t = i as f32 / BEZIER_SAMPLES as f32;
+                        cubic_bezier(from_s, control1, control2, to_s, t)
+                    })
+                    .collect()
+            };
+
+            for pt in &sample_points {
                 let dx = screen_pos.x - pt.x;
                 let dy = screen_pos.y - pt.y;
                 if dx * dx + dy * dy <= threshold_sq {
