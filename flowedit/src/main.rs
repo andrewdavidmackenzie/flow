@@ -55,6 +55,8 @@ struct FlowEdit {
     status: String,
     /// Index of the currently selected node, if any
     selected_node: Option<usize>,
+    /// Index of the currently selected connection, if any
+    selected_connection: Option<usize>,
     /// Whether auto-fit should be performed on the next opportunity
     auto_fit_pending: bool,
     /// Whether auto-fit mode is active (continuously fits to window)
@@ -122,6 +124,7 @@ impl FlowEdit {
             canvas_state: FlowCanvasState::default(),
             status,
             selected_node: None,
+            selected_connection: None,
             auto_fit_pending: has_nodes,
             auto_fit_enabled: true, // Start in auto-fit mode
         };
@@ -140,6 +143,7 @@ impl FlowEdit {
             Message::Canvas(canvas_msg) => match canvas_msg {
                 CanvasMessage::Selected(idx) => {
                     self.selected_node = idx;
+                    self.selected_connection = None;
                     if let Some(i) = idx {
                         if let Some(node) = self.nodes.get(i) {
                             self.status = format!("Selected: {}", node.alias);
@@ -176,10 +180,54 @@ impl FlowEdit {
                         // Remove edges that reference the deleted node
                         self.edges.retain(|e| !e.references_node(&alias));
                         self.selected_node = None;
+                        self.selected_connection = None;
                         self.canvas_state.request_redraw();
                         let nc = self.nodes.len();
                         let ec = self.edges.len();
                         self.status = format!("Node deleted - {nc} nodes, {ec} connections");
+                    }
+                }
+                CanvasMessage::ConnectionCreated {
+                    from_node,
+                    from_port,
+                    to_node,
+                    to_port,
+                } => {
+                    self.edges.push(EdgeLayout::new(
+                        from_node.clone(),
+                        from_port.clone(),
+                        to_node.clone(),
+                        to_port.clone(),
+                    ));
+                    self.canvas_state.request_redraw();
+                    let nc = self.nodes.len();
+                    let ec = self.edges.len();
+                    self.status = format!(
+                        "Connection created: {from_node}/{from_port} -> {to_node}/{to_port} - {nc} nodes, {ec} connections"
+                    );
+                }
+                CanvasMessage::ConnectionSelected(idx) => {
+                    self.selected_connection = idx;
+                    self.selected_node = None;
+                    if let Some(i) = idx {
+                        if let Some(edge) = self.edges.get(i) {
+                            self.status = format!(
+                                "Connection: {}/{} -> {}/{}",
+                                edge.from_node, edge.from_port, edge.to_node, edge.to_port
+                            );
+                        }
+                    } else {
+                        self.status = String::from("Ready");
+                    }
+                }
+                CanvasMessage::ConnectionDeleted(idx) => {
+                    if idx < self.edges.len() {
+                        self.edges.remove(idx);
+                        self.selected_connection = None;
+                        self.canvas_state.request_redraw();
+                        let nc = self.nodes.len();
+                        let ec = self.edges.len();
+                        self.status = format!("Connection deleted - {nc} nodes, {ec} connections");
                     }
                 }
                 CanvasMessage::AutoFitViewport(viewport) => {

@@ -32,6 +32,12 @@ const MIN_NODE_HEIGHT: f32 = 80.0;
 const RESIZE_HANDLE_HALF: f32 = 3.0;
 /// Hit test radius for resize handles in screen pixels
 const RESIZE_HANDLE_HIT: f32 = 6.0;
+/// Hit test radius for port semi-circles in screen pixels
+const PORT_HIT_RADIUS: f32 = 8.0;
+/// Hit test distance for connection bezier curves in screen pixels
+const CONNECTION_HIT_DISTANCE: f32 = 6.0;
+/// Number of sample points along a bezier curve for hit testing
+const BEZIER_SAMPLES: usize = 32;
 
 use flowcore::model::connection::Connection;
 use flowcore::model::process_reference::ProcessReference;
@@ -47,6 +53,21 @@ pub(crate) enum CanvasMessage {
     Resized(usize, f32, f32, f32, f32),
     /// A node should be deleted.
     Deleted(usize),
+    /// A new connection was created between two ports.
+    ConnectionCreated {
+        /// Source node alias
+        from_node: String,
+        /// Source port name
+        from_port: String,
+        /// Destination node alias
+        to_node: String,
+        /// Destination port name
+        to_port: String,
+    },
+    /// A connection was selected (or deselected if `None`).
+    ConnectionSelected(Option<usize>),
+    /// A connection should be deleted.
+    ConnectionDeleted(usize),
     /// Pan the canvas by a world-space delta.
     Pan(f32, f32),
     /// Zoom the canvas by a multiplicative factor.
@@ -123,6 +144,10 @@ pub(crate) struct CanvasInteractionState {
     modifiers: keyboard::Modifiers,
     /// Active middle-mouse-button pan operation
     panning: Option<PanState>,
+    /// Connection drag in progress
+    connecting: Option<ConnectingState>,
+    /// Currently selected connection index
+    selected_connection: Option<usize>,
     /// Last known bounds size — used to detect window resize for auto-fit
     last_bounds: Option<Size>,
 }
@@ -132,6 +157,21 @@ pub(crate) struct CanvasInteractionState {
 struct PanState {
     /// Last screen-space cursor position during the pan
     last_screen_pos: Point,
+}
+
+/// Tracks a connection drag in progress (started from a port).
+#[derive(Debug, Clone)]
+struct ConnectingState {
+    /// Node alias of the starting port
+    from_node: String,
+    /// Port name of the starting port
+    from_port: String,
+    /// Whether we started from an output port (true) or input port (false)
+    from_output: bool,
+    /// World-space position of the starting port
+    start_pos: Point,
+    /// Current cursor position in screen space (updated during drag)
+    current_screen_pos: Point,
 }
 
 /// Default node width when no layout width is specified
@@ -243,13 +283,13 @@ impl NodeLayout {
 #[derive(Debug, Clone)]
 pub(crate) struct EdgeLayout {
     /// Source node alias
-    from_node: String,
+    pub(crate) from_node: String,
     /// Source port name (may be empty for whole-node output)
-    from_port: String,
+    pub(crate) from_port: String,
     /// Destination node alias
-    to_node: String,
+    pub(crate) to_node: String,
     /// Destination port name
-    to_port: String,
+    pub(crate) to_port: String,
 }
 
 /// Build a list of [`NodeLayout`] from process references and connections.
@@ -374,6 +414,21 @@ pub(crate) fn build_node_layouts(
 }
 
 impl EdgeLayout {
+    /// Create a new edge layout with the given source and destination.
+    pub(crate) fn new(
+        from_node: String,
+        from_port: String,
+        to_node: String,
+        to_port: String,
+    ) -> Self {
+        Self {
+            from_node,
+            from_port,
+            to_node,
+            to_port,
+        }
+    }
+
     /// Check whether this edge references the given node alias as source or destination.
     pub(crate) fn references_node(&self, alias: &str) -> bool {
         self.from_node == alias || self.to_node == alias
@@ -724,6 +779,120 @@ fn hit_test_resize_handle(
     None
 }
 
+/// Hit test all ports across all nodes.
+///
+/// Returns `(node_index, port_name, is_output)` if the cursor is within
+/// [`PORT_HIT_RADIUS`] screen pixels of a port center.
+fn hit_test_port(
+    nodes: &[NodeLayout],
+    screen_pos: Point,
+    zoom: f32,
+    offset: Point,
+) -> Option<(usize, String, bool)> {
+    for (node_idx, node) in nodes.iter().enumerate() {
+        // Check output ports (right side)
+        for (port_idx, port_name) in node.outputs.iter().enumerate() {
+            let world_pt = node.output_port_position(port_idx);
+            let screen_pt = transform_point(world_pt, zoom, offset);
+            let dx = screen_pos.x - screen_pt.x;
+            let dy = screen_pos.y - screen_pt.y;
+            if dx * dx + dy * dy <= PORT_HIT_RADIUS * PORT_HIT_RADIUS {
+                return Some((node_idx, port_name.clone(), true));
+            }
+        }
+        // Check input ports (left side)
+        for (port_idx, port_name) in node.inputs.iter().enumerate() {
+            let world_pt = node.input_port_position(port_idx);
+            let screen_pt = transform_point(world_pt, zoom, offset);
+            let dx = screen_pos.x - screen_pt.x;
+            let dy = screen_pos.y - screen_pt.y;
+            if dx * dx + dy * dy <= PORT_HIT_RADIUS * PORT_HIT_RADIUS {
+                return Some((node_idx, port_name.clone(), false));
+            }
+        }
+    }
+    None
+}
+
+/// Evaluate a cubic bezier curve at parameter `t` (0.0..=1.0).
+fn cubic_bezier(p0: Point, p1: Point, p2: Point, p3: Point, t: f32) -> Point {
+    let u = 1.0 - t;
+    let uu = u * u;
+    let uuu = uu * u;
+    let tt = t * t;
+    let ttt = tt * t;
+    Point::new(
+        uuu * p0.x + 3.0 * uu * t * p1.x + 3.0 * u * tt * p2.x + ttt * p3.x,
+        uuu * p0.y + 3.0 * uu * t * p1.y + 3.0 * u * tt * p2.y + ttt * p3.y,
+    )
+}
+
+/// Hit test connections by sampling points along each edge's bezier curve.
+///
+/// Returns the edge index if the cursor is within [`CONNECTION_HIT_DISTANCE`]
+/// screen pixels of any sample point on the curve.
+fn hit_test_connection(
+    edges: &[EdgeLayout],
+    nodes: &[NodeLayout],
+    screen_pos: Point,
+    zoom: f32,
+    offset: Point,
+) -> Option<usize> {
+    use std::collections::HashMap;
+    let node_map: HashMap<&str, &NodeLayout> =
+        nodes.iter().map(|n| (n.alias.as_str(), n)).collect();
+
+    let threshold_sq = CONNECTION_HIT_DISTANCE * CONNECTION_HIT_DISTANCE;
+
+    for (edge_idx, edge) in edges.iter().enumerate() {
+        let from_node = node_map.get(edge.from_node.as_str());
+        let to_node = node_map.get(edge.to_node.as_str());
+
+        if let (Some(from), Some(to)) = (from_node, to_node) {
+            let from_point = if edge.from_port.is_empty() {
+                from.output_port_position(0)
+            } else {
+                let port_idx = from
+                    .outputs
+                    .iter()
+                    .position(|p| p == &edge.from_port)
+                    .unwrap_or(0);
+                from.output_port_position(port_idx)
+            };
+
+            let to_point = if edge.to_port.is_empty() {
+                to.input_port_position(0)
+            } else {
+                let port_idx = to
+                    .inputs
+                    .iter()
+                    .position(|p| p == &edge.to_port)
+                    .unwrap_or(0);
+                to.input_port_position(port_idx)
+            };
+
+            let from_s = transform_point(from_point, zoom, offset);
+            let to_s = transform_point(to_point, zoom, offset);
+
+            // Sample the bezier and check distance
+            let dx_ctrl = (to_s.x - from_s.x).abs().max(60.0 * zoom) * 0.5;
+            let control1 = Point::new(from_s.x + dx_ctrl, from_s.y);
+            let control2 = Point::new(to_s.x - dx_ctrl, to_s.y);
+
+            for i in 0..=BEZIER_SAMPLES {
+                let t = i as f32 / BEZIER_SAMPLES as f32;
+                let pt = cubic_bezier(from_s, control1, control2, to_s, t);
+                let dx = screen_pos.x - pt.x;
+                let dy = screen_pos.y - pt.y;
+                if dx * dx + dy * dy <= threshold_sq {
+                    return Some(edge_idx);
+                }
+            }
+        }
+    }
+    None
+}
+
 /// Compute the appropriate mouse cursor for a given [`ResizeHandle`].
 fn resize_cursor(handle: &ResizeHandle) -> mouse::Interaction {
     match handle {
@@ -749,7 +918,7 @@ impl canvas::Program<CanvasMessage> for FlowCanvas<'_> {
         cursor: mouse::Cursor,
     ) -> Option<canvas::Action<CanvasMessage>> {
         // Trigger auto-fit when pending or when auto-fit is enabled and bounds changed
-        let bounds_changed = state.last_bounds.map_or(true, |last| {
+        let bounds_changed = state.last_bounds.is_none_or(|last| {
             (last.width - bounds.width).abs() > 1.0 || (last.height - bounds.height).abs() > 1.0
         });
         if self.auto_fit_pending || (self.auto_fit_enabled && bounds_changed) {
@@ -772,6 +941,13 @@ impl canvas::Program<CanvasMessage> for FlowCanvas<'_> {
                     keyboard::Key::Named(keyboard::key::Named::Delete | keyboard::key::Named::Backspace),
                 ..
             }) => {
+                if let Some(sel_conn) = state.selected_connection {
+                    state.selected_connection = None;
+                    return Some(
+                        canvas::Action::publish(CanvasMessage::ConnectionDeleted(sel_conn))
+                            .and_capture(),
+                    );
+                }
                 if let Some(sel_idx) = state.selected_node {
                     state.selected_node = None;
                     return Some(
@@ -789,9 +965,9 @@ impl canvas::Program<CanvasMessage> for FlowCanvas<'_> {
         let world_pos = screen_to_world(cursor_position, zoom, offset);
 
         match event {
-            // Left mouse button pressed — check resize handles, then select/drag node, or deselect
+            // Left mouse button pressed — check resize handles, ports, connections, nodes, or deselect
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => {
-                // First, check if cursor is on a resize handle of the selected node
+                // 1. Check if cursor is on a resize handle of the selected node
                 if let Some(sel_idx) = state.selected_node {
                     if let Some(sel_node) = self.nodes.get(sel_idx) {
                         if let Some((_idx, handle)) =
@@ -812,10 +988,55 @@ impl canvas::Program<CanvasMessage> for FlowCanvas<'_> {
                     }
                 }
 
+                // 2. Check if cursor is on a port — start connection drag
+                if let Some((node_idx, port_name, is_output)) =
+                    hit_test_port(self.nodes, cursor_position, zoom, offset)
+                {
+                    if let Some(node) = self.nodes.get(node_idx) {
+                        let port_world_pos = if is_output {
+                            let port_idx = node
+                                .outputs
+                                .iter()
+                                .position(|p| p == &port_name)
+                                .unwrap_or(0);
+                            node.output_port_position(port_idx)
+                        } else {
+                            let port_idx = node
+                                .inputs
+                                .iter()
+                                .position(|p| p == &port_name)
+                                .unwrap_or(0);
+                            node.input_port_position(port_idx)
+                        };
+                        state.connecting = Some(ConnectingState {
+                            from_node: node.alias.clone(),
+                            from_port: port_name,
+                            from_output: is_output,
+                            start_pos: port_world_pos,
+                            current_screen_pos: cursor_position,
+                        });
+                        return Some(canvas::Action::request_redraw().and_capture());
+                    }
+                }
+
+                // 3. Check if cursor is near a connection line — select it
+                if let Some(edge_idx) =
+                    hit_test_connection(self.edges, self.nodes, cursor_position, zoom, offset)
+                {
+                    state.selected_connection = Some(edge_idx);
+                    state.selected_node = None;
+                    state.dragging = None;
+                    return Some(
+                        canvas::Action::publish(CanvasMessage::ConnectionSelected(Some(edge_idx)))
+                            .and_capture(),
+                    );
+                }
+
+                // 4. Check if cursor is on a node — select/drag it
                 if let Some(idx) = hit_test_node(self.nodes, world_pos) {
-                    // Get the node; bail if index is out of range
                     let node = self.nodes.get(idx)?;
                     state.selected_node = Some(idx);
+                    state.selected_connection = None;
                     state.dragging = Some(DragState {
                         node_index: idx,
                         offset_x: world_pos.x - node.x,
@@ -823,8 +1044,9 @@ impl canvas::Program<CanvasMessage> for FlowCanvas<'_> {
                     });
                     Some(canvas::Action::publish(CanvasMessage::Selected(Some(idx))).and_capture())
                 } else {
-                    // Clicked empty canvas — deselect
+                    // 5. Clicked empty canvas — deselect all
                     state.selected_node = None;
+                    state.selected_connection = None;
                     state.dragging = None;
                     Some(canvas::Action::publish(CanvasMessage::Selected(None)).and_capture())
                 }
@@ -838,8 +1060,12 @@ impl canvas::Program<CanvasMessage> for FlowCanvas<'_> {
                 Some(canvas::Action::request_redraw().and_capture())
             }
 
-            // Mouse moved — handle resize, drag, or pan
+            // Mouse moved — handle connecting, resize, drag, or pan
             Event::Mouse(mouse::Event::CursorMoved { .. }) => {
+                if let Some(ref mut connecting) = state.connecting {
+                    connecting.current_screen_pos = cursor_position;
+                    return Some(canvas::Action::request_redraw().and_capture());
+                }
                 if let Some(ref resize) = state.resizing {
                     let dx = world_pos.x - resize.start_x;
                     let dy = world_pos.y - resize.start_y;
@@ -917,8 +1143,47 @@ impl canvas::Program<CanvasMessage> for FlowCanvas<'_> {
                 }
             }
 
-            // Left mouse button released — stop dragging or resizing
+            // Left mouse button released — stop connecting, dragging, or resizing
             Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left)) => {
+                if let Some(connecting) = state.connecting.take() {
+                    // Check if cursor is on a compatible port
+                    if let Some((target_idx, target_port, target_is_output)) =
+                        hit_test_port(self.nodes, cursor_position, zoom, offset)
+                    {
+                        // Must connect output→input or input→output
+                        if connecting.from_output != target_is_output {
+                            if let Some(target_node) = self.nodes.get(target_idx) {
+                                let (from_node, from_port, to_node, to_port) =
+                                    if connecting.from_output {
+                                        (
+                                            connecting.from_node,
+                                            connecting.from_port,
+                                            target_node.alias.clone(),
+                                            target_port,
+                                        )
+                                    } else {
+                                        (
+                                            target_node.alias.clone(),
+                                            target_port,
+                                            connecting.from_node,
+                                            connecting.from_port,
+                                        )
+                                    };
+                                return Some(
+                                    canvas::Action::publish(CanvasMessage::ConnectionCreated {
+                                        from_node,
+                                        from_port,
+                                        to_node,
+                                        to_port,
+                                    })
+                                    .and_capture(),
+                                );
+                            }
+                        }
+                    }
+                    // Released on empty area or incompatible port — cancel
+                    return Some(canvas::Action::request_redraw().and_capture());
+                }
                 if state.resizing.is_some() {
                     state.resizing = None;
                     Some(canvas::Action::request_redraw().and_capture())
@@ -990,41 +1255,120 @@ impl canvas::Program<CanvasMessage> for FlowCanvas<'_> {
             draw_nodes(frame, self.nodes, zoom, offset);
         });
 
-        // Draw selection highlight and resize handles as an overlay (not cached, so it updates instantly)
-        if let Some(selected_idx) = state.selected_node {
-            if let Some(node) = self.nodes.get(selected_idx) {
-                let mut overlay = Frame::new(renderer, bounds.size());
-                let screen_pos = transform_point(Point::new(node.x, node.y), zoom, offset);
-                let screen_size = Size::new(node.width * zoom, node.height * zoom);
-                let selection_color = Color::from_rgb(1.0, 0.85, 0.0);
-                let highlight = Path::new(|builder| {
-                    rounded_rect(builder, screen_pos, screen_size, CORNER_RADIUS * zoom);
+        // Build an overlay for selection highlights, connection previews, etc.
+        let needs_overlay = state.selected_node.is_some()
+            || state.selected_connection.is_some()
+            || state.connecting.is_some();
+
+        if needs_overlay {
+            let mut overlay = Frame::new(renderer, bounds.size());
+
+            // Draw selected node highlight and resize handles
+            if let Some(selected_idx) = state.selected_node {
+                if let Some(node) = self.nodes.get(selected_idx) {
+                    let screen_pos = transform_point(Point::new(node.x, node.y), zoom, offset);
+                    let screen_size = Size::new(node.width * zoom, node.height * zoom);
+                    let selection_color = Color::from_rgb(1.0, 0.85, 0.0);
+                    let highlight = Path::new(|builder| {
+                        rounded_rect(builder, screen_pos, screen_size, CORNER_RADIUS * zoom);
+                    });
+                    overlay.stroke(
+                        &highlight,
+                        Stroke::default()
+                            .with_width(4.0)
+                            .with_color(selection_color),
+                    );
+
+                    // Draw resize handles at the 8 positions
+                    for (_handle, world_pt) in &node.resize_handle_positions() {
+                        let sp = transform_point(*world_pt, zoom, offset);
+                        let handle_rect = Path::rectangle(
+                            Point::new(sp.x - RESIZE_HANDLE_HALF, sp.y - RESIZE_HANDLE_HALF),
+                            Size::new(RESIZE_HANDLE_HALF * 2.0, RESIZE_HANDLE_HALF * 2.0),
+                        );
+                        overlay.fill(&handle_rect, selection_color);
+                        overlay.stroke(
+                            &handle_rect,
+                            Stroke::default()
+                                .with_width(1.0)
+                                .with_color(Color::from_rgb(0.3, 0.3, 0.0)),
+                        );
+                    }
+                }
+            }
+
+            // Draw selected connection highlight
+            if let Some(sel_conn_idx) = state.selected_connection {
+                if let Some(edge) = self.edges.get(sel_conn_idx) {
+                    draw_selected_edge(&mut overlay, edge, self.nodes, zoom, offset);
+                }
+            }
+
+            // Draw connection preview (bezier from start port to cursor)
+            if let Some(ref connecting) = state.connecting {
+                let start_screen = transform_point(connecting.start_pos, zoom, offset);
+                let end_screen = connecting.current_screen_pos;
+
+                let preview_color = Color::from_rgb(0.3, 0.9, 0.3);
+                let dx_ctrl = (end_screen.x - start_screen.x).abs().max(60.0 * zoom) * 0.5;
+
+                // Direction of control points depends on whether we started from output or input
+                let (ctrl1, ctrl2) = if connecting.from_output {
+                    (
+                        Point::new(start_screen.x + dx_ctrl, start_screen.y),
+                        Point::new(end_screen.x - dx_ctrl, end_screen.y),
+                    )
+                } else {
+                    (
+                        Point::new(start_screen.x - dx_ctrl, start_screen.y),
+                        Point::new(end_screen.x + dx_ctrl, end_screen.y),
+                    )
+                };
+
+                let preview_path = Path::new(|builder| {
+                    builder.move_to(start_screen);
+                    builder.bezier_curve_to(ctrl1, ctrl2, end_screen);
                 });
                 overlay.stroke(
-                    &highlight,
+                    &preview_path,
                     Stroke::default()
-                        .with_width(4.0)
-                        .with_color(selection_color),
+                        .with_width(2.0 * zoom)
+                        .with_color(preview_color),
                 );
 
-                // Draw resize handles at the 8 positions
-                for (_handle, world_pt) in &node.resize_handle_positions() {
-                    let sp = transform_point(*world_pt, zoom, offset);
-                    let handle_rect = Path::rectangle(
-                        Point::new(sp.x - RESIZE_HANDLE_HALF, sp.y - RESIZE_HANDLE_HALF),
-                        Size::new(RESIZE_HANDLE_HALF * 2.0, RESIZE_HANDLE_HALF * 2.0),
-                    );
-                    overlay.fill(&handle_rect, selection_color);
-                    overlay.stroke(
-                        &handle_rect,
-                        Stroke::default()
-                            .with_width(1.0)
-                            .with_color(Color::from_rgb(0.3, 0.3, 0.0)),
-                    );
+                // Highlight the target port if hovering over a compatible one
+                if let Some((target_idx, target_port, target_is_output)) =
+                    hit_test_port(self.nodes, end_screen, zoom, offset)
+                {
+                    if connecting.from_output != target_is_output {
+                        if let Some(target_node) = self.nodes.get(target_idx) {
+                            let port_world = if target_is_output {
+                                let pidx = target_node
+                                    .outputs
+                                    .iter()
+                                    .position(|p| p == &target_port)
+                                    .unwrap_or(0);
+                                target_node.output_port_position(pidx)
+                            } else {
+                                let pidx = target_node
+                                    .inputs
+                                    .iter()
+                                    .position(|p| p == &target_port)
+                                    .unwrap_or(0);
+                                target_node.input_port_position(pidx)
+                            };
+                            let port_screen = transform_point(port_world, zoom, offset);
+                            let highlight_circle = Path::circle(port_screen, PORT_HIT_RADIUS);
+                            overlay.stroke(
+                                &highlight_circle,
+                                Stroke::default().with_width(2.0).with_color(preview_color),
+                            );
+                        }
+                    }
                 }
-
-                return vec![content, overlay.into_geometry()];
             }
+
+            return vec![content, overlay.into_geometry()];
         }
 
         vec![content]
@@ -1042,6 +1386,10 @@ impl canvas::Program<CanvasMessage> for FlowCanvas<'_> {
 
         if let Some(ref resize) = state.resizing {
             return resize_cursor(&resize.handle);
+        }
+
+        if state.connecting.is_some() {
+            return mouse::Interaction::Crosshair;
         }
 
         if state.dragging.is_some() {
@@ -1064,6 +1412,11 @@ impl canvas::Program<CanvasMessage> for FlowCanvas<'_> {
                 }
             }
 
+            // Check if hovering over a port
+            if hit_test_port(self.nodes, pos, self.state.zoom, self.state.scroll_offset).is_some() {
+                return mouse::Interaction::Crosshair;
+            }
+
             let world_pos = screen_to_world(pos, self.state.zoom, self.state.scroll_offset);
             if hit_test_node(self.nodes, world_pos).is_some() {
                 return mouse::Interaction::Grab;
@@ -1071,6 +1424,77 @@ impl canvas::Program<CanvasMessage> for FlowCanvas<'_> {
         }
 
         mouse::Interaction::default()
+    }
+}
+
+/// Draw a single selected edge with a highlighted color and thicker stroke.
+fn draw_selected_edge(
+    frame: &mut Frame,
+    edge: &EdgeLayout,
+    nodes: &[NodeLayout],
+    zoom: f32,
+    offset: Point,
+) {
+    let node_map: HashMap<&str, &NodeLayout> =
+        nodes.iter().map(|n| (n.alias.as_str(), n)).collect();
+
+    let from_node = node_map.get(edge.from_node.as_str());
+    let to_node = node_map.get(edge.to_node.as_str());
+
+    if let (Some(from), Some(to)) = (from_node, to_node) {
+        let from_point = if edge.from_port.is_empty() {
+            from.output_port_position(0)
+        } else {
+            let port_idx = from
+                .outputs
+                .iter()
+                .position(|p| p == &edge.from_port)
+                .unwrap_or(0);
+            from.output_port_position(port_idx)
+        };
+
+        let to_point = if edge.to_port.is_empty() {
+            to.input_port_position(0)
+        } else {
+            let port_idx = to
+                .inputs
+                .iter()
+                .position(|p| p == &edge.to_port)
+                .unwrap_or(0);
+            to.input_port_position(port_idx)
+        };
+
+        let from_s = transform_point(from_point, zoom, offset);
+        let to_s = transform_point(to_point, zoom, offset);
+
+        let sel_color = Color::from_rgb(1.0, 0.85, 0.0);
+        let sel_stroke = Stroke::default()
+            .with_width(4.0 * zoom)
+            .with_color(sel_color);
+
+        let dx = (to_s.x - from_s.x).abs().max(60.0 * zoom) * 0.5;
+        let control1 = Point::new(from_s.x + dx, from_s.y);
+        let control2 = Point::new(to_s.x - dx, to_s.y);
+
+        let path = Path::new(|builder| {
+            builder.move_to(from_s);
+            builder.bezier_curve_to(control1, control2, to_s);
+        });
+        frame.stroke(&path, sel_stroke);
+
+        // Arrow head at destination
+        let arrow_size = 6.0 * zoom;
+        let arrow = Path::new(|builder| {
+            builder.move_to(Point::new(to_s.x - arrow_size, to_s.y - arrow_size));
+            builder.line_to(to_s);
+            builder.line_to(Point::new(to_s.x - arrow_size, to_s.y + arrow_size));
+        });
+        frame.stroke(
+            &arrow,
+            Stroke::default()
+                .with_width(3.0 * zoom)
+                .with_color(sel_color),
+        );
     }
 }
 
