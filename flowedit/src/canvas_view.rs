@@ -272,18 +272,18 @@ impl NodeLayout {
         }
     }
 
-    /// Get the position of an output port (right edge of node)
+    /// Get the position of an output port (slightly outside right edge so connections start from semi-circle)
     fn output_port_position(&self, port_index: usize) -> Point {
         Point::new(
-            self.x + self.width,
+            self.x + self.width + 1.0,
             self.y + PORT_START_Y + port_index as f32 * PORT_SPACING,
         )
     }
 
-    /// Get the position of an input port (left edge of node)
+    /// Get the position of an input port (slightly outside left edge so arrows overlap semi-circle)
     fn input_port_position(&self, port_index: usize) -> Point {
         Point::new(
-            self.x,
+            self.x - 1.0,
             self.y + PORT_START_Y + port_index as f32 * PORT_SPACING,
         )
     }
