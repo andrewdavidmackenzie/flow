@@ -1586,6 +1586,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "flowedit"
+version = "0.142.0"
+dependencies = [
+ "clap",
+ "flowcore",
+ "iced",
+ "serde_json",
+ "url",
+]
+
+[[package]]
 name = "flowmacro"
 version = "0.142.0"
 dependencies = [

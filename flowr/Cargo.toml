@@ -32,10 +32,6 @@ path = "src/bin/flowrgui/main.rs"
 name = "flowrex"
 path = "src/bin/flowrex/main.rs"
 
-[[bin]]
-name = "flowedit"
-path = "src/bin/flowedit/main.rs"
-
 [features]
 default = ["debugger", "metrics", "context", "submission", "flowstdlib"]
 # feature to add the debugger, requires flowcore crate to have feature enabled also, rustyline optional dependency too
