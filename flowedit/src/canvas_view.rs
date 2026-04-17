@@ -1131,9 +1131,24 @@ fn draw_bezier_connection(frame: &mut Frame, from: Point, to: Point, zoom: f32, 
     let from_s = transform_point(from, zoom, offset);
     let to_s = transform_point(to, zoom, offset);
 
-    let dx = (to_s.x - from_s.x).abs() * 0.5;
-    let control1 = Point::new(from_s.x + dx, from_s.y);
-    let control2 = Point::new(to_s.x - dx, to_s.y);
+    // Detect loopback (from and to are very close or same node) and use wider arc
+    let dist = ((to_s.x - from_s.x).powi(2) + (to_s.y - from_s.y).powi(2)).sqrt();
+    let is_loopback = dist < 50.0 * zoom;
+
+    let (control1, control2) = if is_loopback {
+        // Wide arc that goes below/right and loops back
+        let loop_radius = 80.0 * zoom;
+        (
+            Point::new(from_s.x + loop_radius, from_s.y + loop_radius),
+            Point::new(to_s.x - loop_radius, to_s.y + loop_radius),
+        )
+    } else {
+        let dx = (to_s.x - from_s.x).abs() * 0.5;
+        (
+            Point::new(from_s.x + dx, from_s.y),
+            Point::new(to_s.x - dx, to_s.y),
+        )
+    };
 
     let path = Path::new(|builder| {
         builder.move_to(from_s);
