@@ -295,6 +295,9 @@ impl FlowEdit {
                         let nc = self.nodes.len();
                         let ec = self.edges.len();
                         self.status = format!("Node deleted - {nc} nodes, {ec} connections");
+                        if self.auto_fit_enabled {
+                            self.auto_fit_pending = true;
+                        }
                     }
                 }
                 CanvasMessage::ConnectionCreated {

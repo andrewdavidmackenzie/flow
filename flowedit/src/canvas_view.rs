@@ -1537,6 +1537,8 @@ impl canvas::Program<CanvasMessage> for FlowCanvas<'_> {
                     }
                 }
             }
+
+            return vec![content, overlay.into_geometry()];
         }
 
         vec![content]
