@@ -280,7 +280,7 @@ verification by running the editor.
 
 ### Phase 2: Node interaction (2-3 days)
 
-**Goal**: Select, move, and resize nodes on the canvas.
+**Goal**: Select, move, and resize nodes on the canvas. Intelligent auto-layout.
 
 **Work**:
 - Hit testing for nodes and ports (point-in-rectangle, point-near-circle)
@@ -288,6 +288,9 @@ verification by running the editor.
 - Node dragging (click and drag to move, connections follow)
 - Node deletion (select + delete key)
 - Zoom and pan on the canvas
+- Intelligent auto-layout for flows without saved positions: arrange nodes
+  left-to-right following connection topology (sources on left, sinks on right)
+  rather than a simple grid
 
 **Tests**: Node positions update after drag. Connections redraw correctly. Delete removes
 node from flow definition.
