@@ -318,6 +318,8 @@ pub(crate) struct EdgeLayout {
     pub(crate) to_node: String,
     /// Destination port name
     pub(crate) to_port: String,
+    /// Optional connection name for display on the line
+    pub(crate) name: String,
 }
 
 /// Build a list of [`NodeLayout`] from process references and connections.
@@ -341,11 +343,7 @@ pub(crate) fn build_node_layouts(
     for conn in connections {
         let from_route = conn.from().to_string();
         let (from_node, from_port) = split_route(&from_route);
-        let port_name = if from_port.is_empty() {
-            "output".to_string()
-        } else {
-            from_port
-        };
+        let port_name = from_port; // Keep empty for unnamed ports
         let outputs = node_outputs.entry(from_node).or_default();
         if !outputs.contains(&port_name) {
             outputs.push(port_name);
@@ -354,11 +352,7 @@ pub(crate) fn build_node_layouts(
         for to_route in conn.to() {
             let to_str = to_route.to_string();
             let (to_node, to_port) = split_route(&to_str);
-            let port_name = if to_port.is_empty() {
-                "default".to_string()
-            } else {
-                to_port
-            };
+            let port_name = to_port; // Keep empty for unnamed ports
             let inputs = node_inputs.entry(to_node).or_default();
             if !inputs.contains(&port_name) {
                 inputs.push(port_name);
@@ -475,6 +469,7 @@ impl EdgeLayout {
             from_port,
             to_node,
             to_port,
+            name: String::new(),
         }
     }
 
@@ -601,6 +596,7 @@ pub(crate) fn build_edge_layouts(connections: &[Connection]) -> Vec<EdgeLayout> 
                 from_port: from_port.clone(),
                 to_node,
                 to_port,
+                name: conn.name().to_string(),
             });
         }
     }
@@ -1685,6 +1681,26 @@ fn draw_edges(
                 node_bounds,
                 false,
             );
+
+            // Draw connection name at midpoint if present
+            if !edge.name.is_empty() {
+                let from_s = transform_point(from_point, zoom, offset);
+                let to_s = transform_point(to_point, zoom, offset);
+                let mid = Point::new(
+                    (from_s.x + to_s.x) / 2.0,
+                    (from_s.y + to_s.y) / 2.0 - 8.0 * zoom,
+                );
+                let name_label = CanvasText {
+                    content: edge.name.clone(),
+                    position: mid,
+                    color: Color::from_rgb(0.7, 0.7, 0.7),
+                    size: (PORT_FONT_SIZE * zoom).into(),
+                    align_x: iced::alignment::Horizontal::Center.into(),
+                    align_y: iced::alignment::Vertical::Bottom,
+                    ..CanvasText::default()
+                };
+                frame.fill_text(name_label);
+            }
         }
     }
 }
@@ -1905,7 +1921,27 @@ fn draw_port(
     });
     frame.fill(&semi, fill_color);
 
-    // Port name label (inside the node)
+    // Port name label (inside the node) — skip if port is unnamed
+    if name.is_empty() {
+        // Still draw initializer if present
+        if let Some(init_text) = initializer {
+            let init_label = CanvasText {
+                content: init_text.to_string(),
+                position: Point::new(
+                    screen_center.x - 2.0 * zoom,
+                    screen_center.y - scaled_radius - 2.0 * zoom,
+                ),
+                color: Color::from_rgb(0.9, 0.85, 0.2),
+                size: (PORT_FONT_SIZE * zoom).into(),
+                align_x: iced::alignment::Horizontal::Right.into(),
+                align_y: iced::alignment::Vertical::Bottom,
+                ..CanvasText::default()
+            };
+            frame.fill_text(init_label);
+        }
+        return;
+    }
+
     let (label_x, align) = if is_input {
         (
             screen_center.x + scaled_radius + 4.0 * zoom,
@@ -2159,6 +2195,7 @@ mod test {
             from_port: "out".into(),
             to_node: "b".into(),
             to_port: "in".into(),
+            name: String::new(),
         };
         assert!(edge.references_node("a"));
         assert!(edge.references_node("b"));
