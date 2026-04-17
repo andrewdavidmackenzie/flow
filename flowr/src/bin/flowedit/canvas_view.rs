@@ -60,10 +60,12 @@ pub(crate) struct NodeLayout {
     pub width: f32,
     /// Height of the node rectangle
     pub height: f32,
-    /// Input port names (parsed from initializations)
+    /// Input port names
     pub inputs: Vec<String>,
-    /// Output port name (simplified — just "output" for now)
+    /// Output port names
     pub outputs: Vec<String>,
+    /// Initializer display strings keyed by port name (e.g., "start" → "1 once")
+    pub initializers: HashMap<String, String>,
 }
 
 impl NodeLayout {
@@ -193,6 +195,20 @@ pub(crate) fn build_node_layouts(
         let width = pref.width.unwrap_or(DEFAULT_WIDTH);
         let height = pref.height.unwrap_or(DEFAULT_HEIGHT.max(min_height));
 
+        // Build initializer display strings
+        let mut initializers = HashMap::new();
+        for (port_name, init) in &pref.initializations {
+            let display = match init {
+                flowcore::model::input::InputInitializer::Once(v) => {
+                    format!("{} once", format_value(v))
+                }
+                flowcore::model::input::InputInitializer::Always(v) => {
+                    format!("{} always", format_value(v))
+                }
+            };
+            initializers.insert(port_name.clone(), display);
+        }
+
         nodes.push(NodeLayout {
             alias: alias.clone(),
             source: pref.source.clone(),
@@ -202,6 +218,7 @@ pub(crate) fn build_node_layouts(
             height,
             inputs,
             outputs,
+            initializers,
         });
     }
 
@@ -229,6 +246,27 @@ pub(crate) fn build_edge_layouts(connections: &[Connection]) -> Vec<EdgeLayout> 
     }
 
     edges
+}
+
+/// Format a serde_json::Value for compact display
+fn format_value(v: &serde_json::Value) -> String {
+    match v {
+        serde_json::Value::String(s) => format!("\"{s}\""),
+        serde_json::Value::Number(n) => n.to_string(),
+        serde_json::Value::Bool(b) => b.to_string(),
+        serde_json::Value::Null => "null".to_string(),
+        serde_json::Value::Array(a) => {
+            if a.len() <= 3 {
+                format!(
+                    "[{}]",
+                    a.iter().map(format_value).collect::<Vec<_>>().join(",")
+                )
+            } else {
+                format!("[{}...]", a.len())
+            }
+        }
+        serde_json::Value::Object(_) => "{...}".to_string(),
+    }
 }
 
 /// Derive a short display name from a source URL.
@@ -444,21 +482,33 @@ fn draw_node(frame: &mut Frame, node: &NodeLayout) {
     // Draw input ports on the left edge
     for (i, input_name) in node.inputs.iter().enumerate() {
         let port_pos = node.input_port_position(i);
-        draw_port(frame, port_pos, input_name, true);
+        let init_label = node.initializers.get(input_name).map(String::as_str);
+        draw_port(frame, port_pos, input_name, true, init_label);
     }
 
     // Draw output ports on the right edge
     for (i, output_name) in node.outputs.iter().enumerate() {
         let port_pos = node.output_port_position(i);
-        draw_port(frame, port_pos, output_name, false);
+        draw_port(frame, port_pos, output_name, false, None);
     }
 }
 
-/// Draw a port circle with a label
-fn draw_port(frame: &mut Frame, center: Point, name: &str, is_input: bool) {
-    // Port circle
+/// Draw a port circle with a label and optional initializer value
+fn draw_port(
+    frame: &mut Frame,
+    center: Point,
+    name: &str,
+    is_input: bool,
+    initializer: Option<&str>,
+) {
+    // Port circle — filled if has initializer, hollow if not
+    let has_init = initializer.is_some();
     let circle = Path::circle(center, PORT_RADIUS);
-    frame.fill(&circle, Color::WHITE);
+    if has_init {
+        frame.fill(&circle, Color::from_rgb(1.0, 0.9, 0.3)); // Yellow for initialized
+    } else {
+        frame.fill(&circle, Color::WHITE);
+    }
     frame.stroke(
         &Path::circle(center, PORT_RADIUS),
         Stroke::default()
@@ -466,7 +516,7 @@ fn draw_port(frame: &mut Frame, center: Point, name: &str, is_input: bool) {
             .with_color(Color::from_rgb(0.3, 0.3, 0.3)),
     );
 
-    // Port label
+    // Port name label (inside the node)
     let (label_x, align) = if is_input {
         (
             center.x + PORT_RADIUS + 4.0,
@@ -489,6 +539,20 @@ fn draw_port(frame: &mut Frame, center: Point, name: &str, is_input: bool) {
         ..CanvasText::default()
     };
     frame.fill_text(label);
+
+    // Initializer value label (outside the node, to the left of input ports)
+    if let Some(init_text) = initializer {
+        let init_label = CanvasText {
+            content: init_text.to_string(),
+            position: Point::new(center.x - PORT_RADIUS - 4.0, center.y - 6.0),
+            color: Color::from_rgb(0.9, 0.85, 0.2),
+            size: PORT_FONT_SIZE.into(),
+            align_x: iced::alignment::Horizontal::Right.into(),
+            align_y: iced::alignment::Vertical::Top,
+            ..CanvasText::default()
+        };
+        frame.fill_text(init_label);
+    }
 }
 
 /// Build a rounded rectangle path using quadratic bezier curves at corners.

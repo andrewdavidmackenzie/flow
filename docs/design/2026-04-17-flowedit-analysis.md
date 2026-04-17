@@ -61,23 +61,26 @@ patterns from flowrgui.
 Each process on the canvas is rendered as a rounded rectangle ("bubble"):
 
 ```
-         ┌─────────────────────┐
-         │     sequence        │
-         │                     │
-    ○────│  start       number │────○
-    ○────│  step               │
-    ○────│  limit              │
-         │                     │
-         └─────────────────────┘
-         ↑                     ↑
-    Input ports            Output port
-    (left edge)           (right edge)
+         ┌─────────────────────────┐
+         │       sequence          │
+         │                         │
+  1 once ○  start          number  ○
+  1 once ○  step                   │
+ 20 once ○  limit                  │
+         │                         │
+         └─────────────────────────┘
+         ↑                         ↑
+    Input ports with             Output port
+    initializer values          (right edge)
+    (left edge)
 ```
 
 ### Node Details
 
-- **Title**: process alias (or function name if no alias) centered at top
+- **Title**: process alias (or short name derived from source if no alias) centered at top
 - **Input ports**: small circles on the left edge, labeled with port name
+- **Input initializers**: displayed next to the port as `value type` (e.g., `1 once` or
+  `0 always`). Clicking an initializer in edit mode opens a field to change the value.
 - **Output ports**: small circles on the right edge, labeled with port name
 - **Hover behavior**: hovering over a port shows a tooltip with the port's data type(s)
 - **Selection**: clicking a node selects it (highlighted border). Selected nodes can be
