@@ -70,6 +70,8 @@ enum Message {
     Compile,
     /// Compile and run the current flow
     Run,
+    /// Toggle the output panel visibility
+    ToggleOutput,
 }
 
 /// Top-level application state
@@ -104,6 +106,12 @@ struct FlowEdit {
     flow_definition: FlowDefinition,
     /// Tooltip text and screen position to display (full source path on hover)
     tooltip: Option<(String, f32, f32)>,
+    /// Stdout output from the last run
+    run_stdout: Vec<String>,
+    /// Stderr output from the last run
+    run_stderr: Vec<String>,
+    /// Whether the output panel is visible
+    output_visible: bool,
     /// Library panel tree for process discovery
     library_tree: LibraryTree,
 }
@@ -187,6 +195,9 @@ impl FlowEdit {
             file_path,
             flow_definition,
             tooltip: None,
+            run_stdout: Vec::new(),
+            run_stderr: Vec::new(),
+            output_visible: false,
             library_tree,
         };
 
@@ -442,6 +453,9 @@ impl FlowEdit {
             Message::Run => {
                 self.perform_run();
             }
+            Message::ToggleOutput => {
+                self.output_visible = !self.output_visible;
+            }
         }
         Task::none()
     }
@@ -559,10 +573,62 @@ impl FlowEdit {
             .push(compile_btn)
             .push(run_btn);
 
-        Column::new()
-            .push(container(main_content).width(Fill).height(Fill))
-            .push(container(status_bar).width(Fill).padding(5))
-            .into()
+        let mut layout = Column::new().push(container(main_content).width(Fill).height(Fill));
+
+        // Output panel — shown after a run
+        if self.output_visible && (!self.run_stdout.is_empty() || !self.run_stderr.is_empty()) {
+            let mut output_col = Column::new().spacing(2).padding(5);
+
+            // Header with close button
+            let header = Row::new()
+                .spacing(8)
+                .push(Text::new("Output").size(14))
+                .push(iced::widget::Space::new().width(Fill))
+                .push(
+                    button(Text::new("X").size(10).center())
+                        .on_press(Message::ToggleOutput)
+                        .style(button::text)
+                        .padding(2),
+                );
+            output_col = output_col.push(header);
+
+            if !self.run_stderr.is_empty() {
+                output_col = output_col.push(
+                    Text::new("stderr:")
+                        .size(11)
+                        .color(Color::from_rgb(1.0, 0.4, 0.4)),
+                );
+                for line in &self.run_stderr {
+                    output_col = output_col.push(
+                        Text::new(line.clone())
+                            .size(11)
+                            .color(Color::from_rgb(1.0, 0.6, 0.6)),
+                    );
+                }
+            }
+
+            if !self.run_stdout.is_empty() {
+                for line in &self.run_stdout {
+                    output_col = output_col.push(Text::new(line.clone()).size(11));
+                }
+            }
+
+            let output_panel = container(iced::widget::scrollable(output_col).height(200))
+                .width(Fill)
+                .style(|_theme: &Theme| container::Style {
+                    border: iced::Border {
+                        color: Color::from_rgb(0.3, 0.3, 0.3),
+                        width: 1.0,
+                        radius: 0.0.into(),
+                    },
+                    ..Default::default()
+                });
+
+            layout = layout.push(output_panel);
+        }
+
+        layout = layout.push(container(status_bar).width(Fill).padding(5));
+        layout.into()
     }
 
     /// Listen for keyboard shortcuts: Cmd+Z undo, Cmd+Shift+Z redo,
@@ -845,10 +911,15 @@ impl FlowEdit {
                     Ok(output) => {
                         let stdout = String::from_utf8_lossy(&output.stdout);
                         let stderr = String::from_utf8_lossy(&output.stderr);
+                        self.run_stdout = stdout.lines().map(String::from).collect();
+                        self.run_stderr = stderr.lines().map(String::from).collect();
+                        self.output_visible = true;
                         if output.status.success() {
-                            self.status = format!("Run complete. Output: {}", stdout.trim());
+                            self.status =
+                                format!("Run complete ({} lines output)", self.run_stdout.len());
                         } else {
-                            self.status = format!("Run failed: {}", stderr.trim());
+                            self.status =
+                                format!("Run failed ({} lines stderr)", self.run_stderr.len());
                         }
                     }
                     Err(e) => {
