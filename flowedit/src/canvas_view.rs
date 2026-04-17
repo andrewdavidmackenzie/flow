@@ -19,7 +19,7 @@ const MIN_ZOOM: f32 = 0.1;
 /// Maximum allowed zoom level
 const MAX_ZOOM: f32 = 5.0;
 /// Zoom factor applied per step (zoom-in multiplies, zoom-out divides)
-const ZOOM_STEP: f32 = 1.2;
+const ZOOM_STEP: f32 = 1.1;
 /// Padding in world units used when auto-fitting nodes into the viewport
 const AUTO_FIT_PADDING: f32 = 50.0;
 /// Scroll speed multiplier for panning with the scroll wheel (line-based)
