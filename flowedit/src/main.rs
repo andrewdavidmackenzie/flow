@@ -274,8 +274,9 @@ impl FlowEdit {
                     if let Some(i) = idx {
                         if let Some(edge) = self.edges.get(i) {
                             self.status = format!(
-                                "Connection: {}/{} -> {}/{}",
-                                edge.from_node, edge.from_port, edge.to_node, edge.to_port
+                                "Connection: {} -> {}",
+                                format_endpoint(&edge.from_node, &edge.from_port),
+                                format_endpoint(&edge.to_node, &edge.to_port),
                             );
                         }
                     } else {
@@ -418,13 +419,13 @@ impl FlowEdit {
                 key: keyboard::Key::Character(ref c),
                 modifiers,
                 ..
-            } if modifiers.command() && c.as_str() == "z" => {
-                if modifiers.shift() {
-                    Some(Message::Redo)
-                } else {
-                    Some(Message::Undo)
-                }
-            }
+            } if modifiers.command() => match c.as_str() {
+                "z" if modifiers.shift() => Some(Message::Redo),
+                "z" => Some(Message::Undo),
+                "=" | "+" => Some(Message::ZoomIn),
+                "-" => Some(Message::ZoomOut),
+                _ => None,
+            },
             _ => None,
         })
     }
@@ -596,5 +597,14 @@ fn load_flow(path: &PathBuf) -> Result<(String, Vec<NodeLayout>, Vec<EdgeLayout>
             "The specified file defines a Function, not a Flow. flowedit requires a flow definition."
                 .to_string(),
         ),
+    }
+}
+
+/// Format a connection endpoint for display, omitting "default" or empty port names.
+fn format_endpoint(node: &str, port: &str) -> String {
+    if port.is_empty() || port == "default" || port == "output" {
+        node.to_string()
+    } else {
+        format!("{node}/{port}")
     }
 }
