@@ -272,18 +272,18 @@ impl NodeLayout {
         }
     }
 
-    /// Get the position of an output port (right edge of node, inset by border width)
+    /// Get the position of an output port (right edge of node, inset by half border width)
     fn output_port_position(&self, port_index: usize) -> Point {
         Point::new(
-            self.x + self.width - BORDER_WIDTH,
+            self.x + self.width - BORDER_WIDTH / 2.0,
             self.y + PORT_START_Y + port_index as f32 * PORT_SPACING,
         )
     }
 
-    /// Get the position of an input port (left edge of node, inset by border width)
+    /// Get the position of an input port (left edge of node, inset by half border width)
     fn input_port_position(&self, port_index: usize) -> Point {
         Point::new(
-            self.x + BORDER_WIDTH,
+            self.x + BORDER_WIDTH / 2.0,
             self.y + PORT_START_Y + port_index as f32 * PORT_SPACING,
         )
     }
@@ -2237,11 +2237,11 @@ mod test {
         let ip1 = node.input_port_position(1);
         let op0 = node.output_port_position(0);
 
-        // Input ports on left edge (inset by BORDER_WIDTH)
-        assert!((ip0.x - (100.0 + BORDER_WIDTH)).abs() < 0.01);
-        assert!((ip1.x - (100.0 + BORDER_WIDTH)).abs() < 0.01);
-        // Output ports on right edge (inset by BORDER_WIDTH)
-        assert!((op0.x - (280.0 - BORDER_WIDTH)).abs() < 0.01);
+        // Input ports on left edge (inset by half border width)
+        assert!((ip0.x - (100.0 + BORDER_WIDTH / 2.0)).abs() < 0.01);
+        assert!((ip1.x - (100.0 + BORDER_WIDTH / 2.0)).abs() < 0.01);
+        // Output ports on right edge (inset by half border width)
+        assert!((op0.x - (280.0 - BORDER_WIDTH / 2.0)).abs() < 0.01);
         // Ports vertically spaced
         assert!(ip1.y > ip0.y);
     }
