@@ -1392,8 +1392,8 @@ impl canvas::Program<CanvasMessage> for FlowCanvas<'_> {
 
         // Draw the main cached content (edges and nodes) with zoom/scroll transform
         let content = self.state.cache.draw(renderer, bounds.size(), |frame| {
-            draw_edges(frame, self.edges, self.nodes, zoom, offset);
             draw_nodes(frame, self.nodes, zoom, offset);
+            draw_edges(frame, self.edges, self.nodes, zoom, offset);
         });
 
         // Build an overlay for selection highlights, connection previews, etc.
@@ -1818,16 +1818,8 @@ fn draw_node(frame: &mut Frame, node: &NodeLayout, zoom: f32, offset: Point) {
     });
     frame.fill(&rect, fill_color);
 
-    // Draw border
-    let border = Path::new(|builder| {
-        rounded_rect(builder, top_left, size, CORNER_RADIUS * zoom);
-    });
-    frame.stroke(
-        &border,
-        Stroke::default()
-            .with_width(2.0 * zoom)
-            .with_color(Color::from_rgb(0.2, 0.2, 0.2)),
-    );
+    // No border when unselected — selection overlay draws the highlight border.
+    // This avoids the border obscuring arrow heads arriving at ports.
 
     // Draw alias title centered near top of node
     let title_pos = transform_point(
