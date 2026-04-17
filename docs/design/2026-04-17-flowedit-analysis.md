@@ -365,6 +365,24 @@ changes, and process additions. Metadata saved correctly.
 
 **Deliverable**: Production-ready flow editor.
 
+### Phase 7: Polish & reliability (TBD)
+
+**Goal**: Fix known issues and improve reliability.
+
+**Work**:
+- Revisit connection hit testing — current approach of sampling points along the
+  curve is unreliable for certain curve geometries (especially loopback connections
+  from unnamed output ports). Consider alternative approaches: distance-to-curve
+  calculation, wider hit zones, or rendering connections to an off-screen buffer
+  for pixel-precise hit testing.
+- Hover tooltips for truncated source paths and port data types
+- Port inset so semi-circles sit inside the box border without breaking connection
+  endpoint alignment
+- Fix alias-vs-connection-route key mismatch: when a ProcessReference has no explicit
+  alias, the display alias is derived from the source URL, but connection routes may
+  use a different name. Need to align alias resolution with flowc's logic so port
+  lookups and connection drawing always match.
+
 ## 9. Key Design Decisions
 
 1. **New binary, not extending flowrgui** — keeps things clean, can replace flowrgui later
