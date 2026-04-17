@@ -442,12 +442,14 @@ fn compute_topological_layout(
         }
     }
 
-    // BFS to assign max depth (longest path from any source)
+    // BFS to assign max depth (longest path from any source).
+    // Cap depth to prevent infinite loops on cyclic flows (e.g., fibonacci feedback).
+    let max_depth = aliases.len().saturating_sub(1);
     while let Some(node) = queue.pop_front() {
         let node_depth = depth.get(&node).copied().unwrap_or(0);
         if let Some(neighbors) = outgoing.get(&node) {
             for neighbor in neighbors {
-                let new_depth = node_depth + 1;
+                let new_depth = (node_depth + 1).min(max_depth);
                 let current = depth.get(neighbor).copied().unwrap_or(0);
                 if new_depth > current {
                     depth.insert(neighbor.clone(), new_depth);
@@ -764,18 +766,35 @@ impl canvas::Program<CanvasMessage> for FlowCanvas<'_> {
             );
         }
 
+        // Handle keyboard events before cursor position check — keyboard events
+        // should work even when the cursor is off-canvas
+        match event {
+            Event::Keyboard(keyboard::Event::ModifiersChanged(modifiers)) => {
+                state.modifiers = *modifiers;
+                return None;
+            }
+            Event::Keyboard(keyboard::Event::KeyPressed {
+                key:
+                    keyboard::Key::Named(keyboard::key::Named::Delete | keyboard::key::Named::Backspace),
+                ..
+            }) => {
+                if let Some(sel_idx) = state.selected_node {
+                    state.selected_node = None;
+                    return Some(
+                        canvas::Action::publish(CanvasMessage::Deleted(sel_idx)).and_capture(),
+                    );
+                }
+                return None;
+            }
+            _ => {}
+        }
+
         let cursor_position = cursor.position_in(bounds)?;
         let zoom = self.state.zoom;
         let offset = self.state.scroll_offset;
         let world_pos = screen_to_world(cursor_position, zoom, offset);
 
         match event {
-            // Track modifier key state for zoom-on-scroll
-            Event::Keyboard(keyboard::Event::ModifiersChanged(modifiers)) => {
-                state.modifiers = *modifiers;
-                None
-            }
-
             // Left mouse button pressed — check resize handles, then select/drag node, or deselect
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => {
                 // First, check if cursor is on a resize handle of the selected node
@@ -953,21 +972,6 @@ impl canvas::Program<CanvasMessage> for FlowCanvas<'_> {
                     let pan_dx = dx / zoom;
                     let pan_dy = dy / zoom;
                     Some(canvas::Action::publish(CanvasMessage::Pan(pan_dx, pan_dy)).and_capture())
-                }
-            }
-
-            // Delete / Backspace — remove selected node
-            Event::Keyboard(keyboard::Event::KeyPressed {
-                key:
-                    keyboard::Key::Named(keyboard::key::Named::Delete | keyboard::key::Named::Backspace),
-                ..
-            }) => {
-                if let Some(idx) = state.selected_node {
-                    state.selected_node = None;
-                    state.dragging = None;
-                    Some(canvas::Action::publish(CanvasMessage::Deleted(idx)).and_capture())
-                } else {
-                    None
                 }
             }
 
