@@ -16,17 +16,20 @@
 use std::path::PathBuf;
 
 use clap::{Arg, Command as ClapCommand};
+use iced::keyboard;
 use iced::widget::{button, container, stack, Column, Row, Text};
-use iced::{Element, Fill, Task};
+use iced::{Element, Fill, Subscription, Task};
 use url::Url;
 
 use flowcore::deserializers::deserializer::get;
 use flowcore::model::process::Process;
 
 mod canvas_view;
+mod history;
 use canvas_view::{
     build_edge_layouts, build_node_layouts, CanvasMessage, EdgeLayout, FlowCanvasState, NodeLayout,
 };
+use history::{EditAction, EditHistory};
 
 /// Messages handled by the flowedit application
 #[derive(Debug, Clone)]
@@ -39,6 +42,10 @@ enum Message {
     ZoomOut,
     /// Toggle auto-fit mode
     ToggleAutoFit,
+    /// Undo the last edit action
+    Undo,
+    /// Redo the last undone action
+    Redo,
 }
 
 /// Top-level application state
@@ -57,6 +64,8 @@ struct FlowEdit {
     selected_node: Option<usize>,
     /// Index of the currently selected connection, if any
     selected_connection: Option<usize>,
+    /// Edit history for undo/redo
+    history: EditHistory,
     /// Whether auto-fit should be performed on the next opportunity
     auto_fit_pending: bool,
     /// Whether auto-fit mode is active (continuously fits to window)
@@ -69,6 +78,7 @@ struct FlowEdit {
 fn main() -> iced::Result {
     iced::application(FlowEdit::new, FlowEdit::update, FlowEdit::view)
         .title(FlowEdit::title)
+        .subscription(FlowEdit::subscription)
         .antialiasing(true)
         .run()
 }
@@ -127,6 +137,7 @@ impl FlowEdit {
             selected_connection: None,
             auto_fit_pending: has_nodes,
             auto_fit_enabled: true, // Start in auto-fit mode
+            history: EditHistory::default(),
         };
 
         (app, Task::none())
@@ -168,17 +179,62 @@ impl FlowEdit {
                         self.canvas_state.request_redraw();
                     }
                 }
+                CanvasMessage::MoveCompleted(idx, old_x, old_y, new_x, new_y) => {
+                    if (old_x - new_x).abs() > 0.5 || (old_y - new_y).abs() > 0.5 {
+                        self.history.record(EditAction::MoveNode {
+                            index: idx,
+                            old_x,
+                            old_y,
+                            new_x,
+                            new_y,
+                        });
+                    }
+                }
+                #[allow(clippy::similar_names)]
+                CanvasMessage::ResizeCompleted(
+                    idx,
+                    old_x,
+                    old_y,
+                    old_w,
+                    old_h,
+                    new_x,
+                    new_y,
+                    new_w,
+                    new_h,
+                ) => {
+                    self.history.record(EditAction::ResizeNode {
+                        index: idx,
+                        old_x,
+                        old_y,
+                        old_w,
+                        old_h,
+                        new_x,
+                        new_y,
+                        new_w,
+                        new_h,
+                    });
+                }
                 CanvasMessage::Deleted(idx) => {
                     if idx < self.nodes.len() {
-                        // Get the alias before removing so we can clean up edges
-                        let alias = if let Some(node) = self.nodes.get(idx) {
-                            node.alias.clone()
+                        let node = if let Some(node) = self.nodes.get(idx) {
+                            node.clone()
                         } else {
                             return Task::none();
                         };
+                        let alias = node.alias.clone();
+                        let removed_edges: Vec<EdgeLayout> = self
+                            .edges
+                            .iter()
+                            .filter(|e| e.references_node(&alias))
+                            .cloned()
+                            .collect();
                         self.nodes.remove(idx);
-                        // Remove edges that reference the deleted node
                         self.edges.retain(|e| !e.references_node(&alias));
+                        self.history.record(EditAction::DeleteNode {
+                            index: idx,
+                            node,
+                            removed_edges,
+                        });
                         self.selected_node = None;
                         self.selected_connection = None;
                         self.canvas_state.request_redraw();
@@ -193,12 +249,15 @@ impl FlowEdit {
                     to_node,
                     to_port,
                 } => {
-                    self.edges.push(EdgeLayout::new(
+                    let edge = EdgeLayout::new(
                         from_node.clone(),
                         from_port.clone(),
                         to_node.clone(),
                         to_port.clone(),
-                    ));
+                    );
+                    self.history
+                        .record(EditAction::CreateConnection { edge: edge.clone() });
+                    self.edges.push(edge);
                     self.canvas_state.request_redraw();
                     let nc = self.nodes.len();
                     let ec = self.edges.len();
@@ -222,7 +281,9 @@ impl FlowEdit {
                 }
                 CanvasMessage::ConnectionDeleted(idx) => {
                     if idx < self.edges.len() {
-                        self.edges.remove(idx);
+                        let edge = self.edges.remove(idx);
+                        self.history
+                            .record(EditAction::DeleteConnection { index: idx, edge });
                         self.selected_connection = None;
                         self.canvas_state.request_redraw();
                         let nc = self.nodes.len();
@@ -271,6 +332,12 @@ impl FlowEdit {
                 } else {
                     self.status = String::from("Auto-fit disabled");
                 }
+            }
+            Message::Undo => {
+                self.apply_undo();
+            }
+            Message::Redo => {
+                self.apply_redo();
             }
         }
         Task::none()
@@ -331,6 +398,151 @@ impl FlowEdit {
             .push(container(canvas_with_controls).width(Fill).height(Fill))
             .push(container(status_bar).width(Fill).padding(5))
             .into()
+    }
+
+    /// Listen for Cmd+Z (undo) and Cmd+Shift+Z (redo) keyboard shortcuts.
+    fn subscription(&self) -> Subscription<Message> {
+        keyboard::listen().filter_map(|event| match event {
+            keyboard::Event::KeyPressed {
+                key: keyboard::Key::Character(ref c),
+                modifiers,
+                ..
+            } if modifiers.command() && c.as_str() == "z" => {
+                if modifiers.shift() {
+                    Some(Message::Redo)
+                } else {
+                    Some(Message::Undo)
+                }
+            }
+            _ => None,
+        })
+    }
+
+    /// Apply an undo action — reverse the last edit.
+    fn apply_undo(&mut self) {
+        if let Some(action) = self.history.undo() {
+            match action {
+                EditAction::MoveNode {
+                    index,
+                    old_x,
+                    old_y,
+                    ..
+                } => {
+                    if let Some(node) = self.nodes.get_mut(index) {
+                        node.x = old_x;
+                        node.y = old_y;
+                    }
+                    self.status = String::from("Undo: move");
+                }
+                EditAction::ResizeNode {
+                    index,
+                    old_x,
+                    old_y,
+                    old_w,
+                    old_h,
+                    ..
+                } => {
+                    if let Some(node) = self.nodes.get_mut(index) {
+                        node.x = old_x;
+                        node.y = old_y;
+                        node.width = old_w;
+                        node.height = old_h;
+                    }
+                    self.status = String::from("Undo: resize");
+                }
+                EditAction::DeleteNode {
+                    index,
+                    node,
+                    removed_edges,
+                } => {
+                    self.nodes.insert(index, node);
+                    self.edges.extend(removed_edges);
+                    self.status = String::from("Undo: delete node");
+                }
+                EditAction::CreateConnection { edge } => {
+                    self.edges.retain(|e| {
+                        e.from_node != edge.from_node
+                            || e.from_port != edge.from_port
+                            || e.to_node != edge.to_node
+                            || e.to_port != edge.to_port
+                    });
+                    self.status = String::from("Undo: create connection");
+                }
+                EditAction::DeleteConnection { index, edge } => {
+                    self.edges.insert(index, edge);
+                    self.status = String::from("Undo: delete connection");
+                }
+            }
+            self.canvas_state.request_redraw();
+        }
+    }
+
+    /// Apply a redo action — re-apply the last undone edit.
+    fn apply_redo(&mut self) {
+        if let Some(action) = self.history.redo() {
+            match action {
+                EditAction::MoveNode {
+                    index,
+                    new_x,
+                    new_y,
+                    ..
+                } => {
+                    if let Some(node) = self.nodes.get_mut(index) {
+                        node.x = new_x;
+                        node.y = new_y;
+                    }
+                    self.status = String::from("Redo: move");
+                }
+                EditAction::ResizeNode {
+                    index,
+                    new_x,
+                    new_y,
+                    new_w,
+                    new_h,
+                    ..
+                } => {
+                    if let Some(node) = self.nodes.get_mut(index) {
+                        node.x = new_x;
+                        node.y = new_y;
+                        node.width = new_w;
+                        node.height = new_h;
+                    }
+                    self.status = String::from("Redo: resize");
+                }
+                EditAction::DeleteNode {
+                    index,
+                    removed_edges,
+                    node,
+                    ..
+                } => {
+                    let alias = node.alias.clone();
+                    if index <= self.nodes.len() {
+                        self.nodes.remove(index);
+                    }
+                    for edge in &removed_edges {
+                        self.edges.retain(|e| {
+                            e.from_node != edge.from_node
+                                || e.from_port != edge.from_port
+                                || e.to_node != edge.to_node
+                                || e.to_port != edge.to_port
+                        });
+                    }
+                    let _ = alias; // used for edge cleanup above
+                    self.status = String::from("Redo: delete node");
+                }
+                EditAction::CreateConnection { edge } => {
+                    self.edges.push(edge);
+                    self.status = String::from("Redo: create connection");
+                }
+                EditAction::DeleteConnection { index, .. } => {
+                    if index < self.edges.len() {
+                        self.edges.remove(index);
+                    }
+                    self.status = String::from("Redo: delete connection");
+                }
+            }
+            self.canvas_state.request_redraw();
+        }
     }
 }
 

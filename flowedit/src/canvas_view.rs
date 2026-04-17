@@ -47,10 +47,14 @@ use flowcore::model::process_reference::ProcessReference;
 pub(crate) enum CanvasMessage {
     /// A node was selected (or deselected if `None`).
     Selected(Option<usize>),
-    /// A node was moved to a new position.
+    /// A node was moved to a new position (continuous during drag).
     Moved(usize, f32, f32),
-    /// A node was resized (index, new_x, new_y, new_width, new_height).
+    /// A node move completed (old_x, old_y, new_x, new_y) — for undo history.
+    MoveCompleted(usize, f32, f32, f32, f32),
+    /// A node was resized (index, new_x, new_y, new_width, new_height) — continuous during drag.
     Resized(usize, f32, f32, f32, f32),
+    /// A node resize completed — for undo history.
+    ResizeCompleted(usize, f32, f32, f32, f32, f32, f32, f32, f32),
     /// A node should be deleted.
     Deleted(usize),
     /// A new connection was created between two ports.
@@ -85,6 +89,10 @@ struct DragState {
     offset_x: f32,
     /// Vertical offset from cursor to node origin at drag start
     offset_y: f32,
+    /// Node position at drag start (for undo history)
+    start_x: f32,
+    /// Node position at drag start (for undo history)
+    start_y: f32,
 }
 
 /// Which resize handle is being dragged.
@@ -211,7 +219,7 @@ pub(crate) struct NodeLayout {
     /// Display name (alias) for this node
     pub alias: String,
     /// Source path of the process
-    source: String,
+    pub(crate) source: String,
     /// X coordinate on the canvas
     pub x: f32,
     /// Y coordinate on the canvas
@@ -1041,6 +1049,8 @@ impl canvas::Program<CanvasMessage> for FlowCanvas<'_> {
                         node_index: idx,
                         offset_x: world_pos.x - node.x,
                         offset_y: world_pos.y - node.y,
+                        start_x: node.x,
+                        start_y: node.y,
                     });
                     Some(canvas::Action::publish(CanvasMessage::Selected(Some(idx))).and_capture())
                 } else {
@@ -1184,11 +1194,39 @@ impl canvas::Program<CanvasMessage> for FlowCanvas<'_> {
                     // Released on empty area or incompatible port — cancel
                     return Some(canvas::Action::request_redraw().and_capture());
                 }
-                if state.resizing.is_some() {
-                    state.resizing = None;
+                if let Some(resize) = state.resizing.take() {
+                    // Emit resize completed with old and new geometry
+                    if let Some(node) = self.nodes.get(resize.node_index) {
+                        return Some(
+                            canvas::Action::publish(CanvasMessage::ResizeCompleted(
+                                resize.node_index,
+                                resize.start_node_x,
+                                resize.start_node_y,
+                                resize.start_width,
+                                resize.start_height,
+                                node.x,
+                                node.y,
+                                node.width,
+                                node.height,
+                            ))
+                            .and_capture(),
+                        );
+                    }
                     Some(canvas::Action::request_redraw().and_capture())
-                } else if state.dragging.is_some() {
-                    state.dragging = None;
+                } else if let Some(drag) = state.dragging.take() {
+                    // Emit move completed with old and new position
+                    if let Some(node) = self.nodes.get(drag.node_index) {
+                        return Some(
+                            canvas::Action::publish(CanvasMessage::MoveCompleted(
+                                drag.node_index,
+                                drag.start_x,
+                                drag.start_y,
+                                node.x,
+                                node.y,
+                            ))
+                            .and_capture(),
+                        );
+                    }
                     Some(canvas::Action::request_redraw().and_capture())
                 } else {
                     None
