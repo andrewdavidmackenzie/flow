@@ -1350,18 +1350,18 @@ fn draw_port(
     };
     frame.fill_text(label);
 
-    // Initializer value label (outside the node, to the left of input ports)
+    // Initializer value label (outside the node, above-left of input port)
     if let Some(init_text) = initializer {
         let init_label = CanvasText {
             content: init_text.to_string(),
             position: Point::new(
-                screen_center.x - scaled_radius - 4.0 * zoom,
-                screen_center.y,
+                screen_center.x - 2.0 * zoom,
+                screen_center.y - scaled_radius - 2.0 * zoom,
             ),
             color: Color::from_rgb(0.9, 0.85, 0.2),
             size: (PORT_FONT_SIZE * zoom).into(),
             align_x: iced::alignment::Horizontal::Right.into(),
-            align_y: iced::alignment::Vertical::Center,
+            align_y: iced::alignment::Vertical::Bottom,
             ..CanvasText::default()
         };
         frame.fill_text(init_label);
