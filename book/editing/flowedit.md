@@ -119,6 +119,32 @@ while dragging.
 Select a node and press **Delete** or **Backspace** to remove it from the flow.
 All connections to and from the deleted node are also removed.
 
+### Creating Connections
+
+Click and drag from any port (input or output) to start creating a connection.
+A green bezier curve preview follows the cursor as you drag. Compatible target
+ports highlight when you hover over them.
+
+- **Output → Input**: drag from a right-side port to a left-side port
+- **Input → Output**: drag from a left-side port to a right-side port (the
+  connection direction is determined automatically)
+
+Release the mouse on a valid target port to complete the connection. Release on
+empty canvas or an incompatible port to cancel.
+
+The cursor changes to a crosshair when hovering over ports.
+
+### Selecting Connections
+
+Click near a connection line to select it. The selected connection is highlighted
+in yellow with a thicker stroke. Click on empty canvas to deselect.
+
+Selecting a connection deselects any selected node, and vice versa.
+
+### Deleting Connections
+
+Select a connection and press **Delete** or **Backspace** to remove it.
+
 ## Layout
 
 ### Saved Layout
