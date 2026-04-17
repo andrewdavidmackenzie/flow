@@ -128,8 +128,8 @@ mod test {
             y: 100.0,
             width: 180.0,
             height: 120.0,
-            inputs: vec![],
-            outputs: vec![],
+            inputs: Vec::new(),
+            outputs: Vec::new(),
             initializers: HashMap::new(),
         }
     }

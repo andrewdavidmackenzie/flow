@@ -13,21 +13,26 @@
 //! is displayed as a colored, rounded rectangle on the canvas, with connections
 //! drawn as bezier curves between nodes.
 
+use std::collections::HashMap;
 use std::path::PathBuf;
 
 use clap::{Arg, Command as ClapCommand};
 use iced::keyboard;
 use iced::widget::{button, container, stack, Column, Row, Text};
 use iced::{Element, Fill, Subscription, Task};
+use log::{info, warn};
+use simpath::Simpath;
 use url::Url;
 
 use flowcore::deserializers::deserializer::get;
+use flowcore::meta_provider::MetaProvider;
+use flowcore::model::name::HasName;
 use flowcore::model::process::Process;
-
 mod canvas_view;
 mod history;
 use canvas_view::{
     build_edge_layouts, build_node_layouts, CanvasMessage, EdgeLayout, FlowCanvasState, NodeLayout,
+    PortInfo,
 };
 use history::{EditAction, EditHistory};
 
@@ -78,6 +83,7 @@ struct FlowEdit {
 ///
 /// Parses CLI arguments, loads the flow definition, and launches the iced GUI.
 fn main() -> iced::Result {
+    env_logger::init();
     iced::application(FlowEdit::new, FlowEdit::update, FlowEdit::view)
         .title(FlowEdit::title)
         .subscription(FlowEdit::subscription)
@@ -564,6 +570,100 @@ impl FlowEdit {
     }
 }
 
+/// Resolve port information for subprocesses by parsing the flow with `flowrclib`.
+///
+/// Returns a map from subprocess alias to (inputs, outputs) port info.
+/// If parsing fails, returns an empty map so the caller can fall back to guessing.
+fn resolve_subprocess_ports(url: &Url) -> HashMap<String, (Vec<PortInfo>, Vec<PortInfo>)> {
+    let mut resolved = HashMap::new();
+
+    // Set up the library search path from FLOW_LIB_PATH, with ~/.flow/lib as default
+    let mut lib_search_path = Simpath::new_with_separator("FLOW_LIB_PATH", ',');
+    if let Ok(home) = std::env::var("HOME") {
+        let default_lib = PathBuf::from(home).join(".flow").join("lib");
+        if default_lib.exists() {
+            if let Some(path_str) = default_lib.to_str() {
+                lib_search_path.add_directory(path_str);
+                info!("Added default library path: {path_str}");
+            }
+        }
+    }
+
+    let provider = MetaProvider::new(lib_search_path, PathBuf::from("/"));
+
+    match flowrclib::compiler::parser::parse(url, &provider) {
+        Ok(Process::FlowProcess(flow)) => {
+            info!(
+                "Parsed flow '{}' with {} subprocesses",
+                flow.name,
+                flow.subprocesses.len()
+            );
+            for (alias, subprocess) in &flow.subprocesses {
+                match subprocess {
+                    Process::FunctionProcess(func) => {
+                        let inputs: Vec<PortInfo> = func
+                            .inputs
+                            .iter()
+                            .map(|io| PortInfo {
+                                name: io.name().to_string(),
+                                datatypes: io.datatypes().iter().map(|dt| dt.to_string()).collect(),
+                            })
+                            .collect();
+                        let outputs: Vec<PortInfo> = func
+                            .outputs
+                            .iter()
+                            .map(|io| PortInfo {
+                                name: io.name().to_string(),
+                                datatypes: io.datatypes().iter().map(|dt| dt.to_string()).collect(),
+                            })
+                            .collect();
+                        info!(
+                            "Resolved function '{}': {} inputs, {} outputs",
+                            alias,
+                            inputs.len(),
+                            outputs.len()
+                        );
+                        resolved.insert(alias.clone(), (inputs, outputs));
+                    }
+                    Process::FlowProcess(sub_flow) => {
+                        let inputs: Vec<PortInfo> = sub_flow
+                            .inputs
+                            .iter()
+                            .map(|io| PortInfo {
+                                name: io.name().to_string(),
+                                datatypes: io.datatypes().iter().map(|dt| dt.to_string()).collect(),
+                            })
+                            .collect();
+                        let outputs: Vec<PortInfo> = sub_flow
+                            .outputs
+                            .iter()
+                            .map(|io| PortInfo {
+                                name: io.name().to_string(),
+                                datatypes: io.datatypes().iter().map(|dt| dt.to_string()).collect(),
+                            })
+                            .collect();
+                        info!(
+                            "Resolved sub-flow '{}': {} inputs, {} outputs",
+                            alias,
+                            inputs.len(),
+                            outputs.len()
+                        );
+                        resolved.insert(alias.clone(), (inputs, outputs));
+                    }
+                }
+            }
+        }
+        Ok(Process::FunctionProcess(_)) => {
+            warn!("Parser returned a FunctionProcess instead of FlowProcess");
+        }
+        Err(e) => {
+            warn!("Could not fully parse flow for port resolution, falling back to guessing: {e}");
+        }
+    }
+
+    resolved
+}
+
 /// Load a flow definition file and return the flow name, node layouts, and edge layouts.
 fn load_flow(path: &PathBuf) -> Result<(String, Vec<NodeLayout>, Vec<EdgeLayout>), String> {
     let abs_path = if path.is_absolute() {
@@ -589,8 +689,17 @@ fn load_flow(path: &PathBuf) -> Result<(String, Vec<NodeLayout>, Vec<EdgeLayout>
 
     match process {
         Process::FlowProcess(flow) => {
+            // Attempt to resolve real port definitions via the full parser
+            let resolved_ports = resolve_subprocess_ports(&url);
+            info!(
+                "Resolved ports for {} of {} subprocesses",
+                resolved_ports.len(),
+                flow.process_refs.len()
+            );
+
             let edges = build_edge_layouts(&flow.connections);
-            let nodes = build_node_layouts(&flow.process_refs, &flow.connections);
+            let nodes =
+                build_node_layouts(&flow.process_refs, &flow.connections, &resolved_ports);
             Ok((flow.name, nodes, edges))
         }
         Process::FunctionProcess(_) => Err(

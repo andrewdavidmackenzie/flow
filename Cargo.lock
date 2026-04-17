@@ -1590,9 +1590,13 @@ name = "flowedit"
 version = "0.142.0"
 dependencies = [
  "clap",
+ "env_logger",
+ "flowc",
  "flowcore",
  "iced",
+ "log",
  "serde_json",
+ "simpath",
  "url",
 ]
 

@@ -213,6 +213,26 @@ const PORT_START_Y: f32 = 55.0;
 /// Maximum characters for source label before truncation
 const MAX_SOURCE_CHARS: usize = 22;
 
+/// Information about a port (input or output) on a node.
+#[derive(Debug, Clone)]
+pub(crate) struct PortInfo {
+    /// The port name
+    pub name: String,
+    /// The data types accepted or produced by this port (stored for future hover display)
+    #[allow(dead_code)]
+    pub datatypes: Vec<String>,
+}
+
+impl PortInfo {
+    /// Create a new `PortInfo` with a name and no datatype info.
+    pub(crate) fn from_name(name: String) -> Self {
+        Self {
+            name,
+            datatypes: Vec::new(),
+        }
+    }
+}
+
 /// A positioned node derived from a [`ProcessReference`], ready for rendering.
 #[derive(Debug, Clone)]
 pub(crate) struct NodeLayout {
@@ -228,10 +248,10 @@ pub(crate) struct NodeLayout {
     pub width: f32,
     /// Height of the node rectangle
     pub height: f32,
-    /// Input port names
-    pub inputs: Vec<String>,
-    /// Output port names
-    pub outputs: Vec<String>,
+    /// Input ports with names and type information
+    pub inputs: Vec<PortInfo>,
+    /// Output ports with names and type information
+    pub outputs: Vec<PortInfo>,
     /// Initializer display strings keyed by port name (e.g., "start" → "1 once")
     pub initializers: HashMap<String, String>,
 }
@@ -302,17 +322,19 @@ pub(crate) struct EdgeLayout {
 
 /// Build a list of [`NodeLayout`] from process references and connections.
 ///
-/// Ports are derived from two sources:
-/// - **Initializations** on each `ProcessReference` tell us about inputs with initial values
-/// - **Connections** tell us which additional input/output ports each node has
+/// Ports are derived from three sources (in priority order):
+/// 1. **Resolved port info** from the parsed process definitions (real names and types)
+/// 2. **Initializations** on each `ProcessReference` tell us about inputs with initial values
+/// 3. **Connections** tell us which additional input/output ports each node has
 ///
 /// Layout uses the optional `x`, `y`, `width`, `height` fields from `ProcessReference`,
 /// falling back to auto-grid positioning.
 pub(crate) fn build_node_layouts(
     process_refs: &[ProcessReference],
     connections: &[Connection],
+    resolved_ports: &HashMap<String, (Vec<PortInfo>, Vec<PortInfo>)>,
 ) -> Vec<NodeLayout> {
-    // First pass: collect ports from connections
+    // First pass: collect ports from connections (used as fallback)
     let mut node_inputs: HashMap<String, Vec<String>> = HashMap::new();
     let mut node_outputs: HashMap<String, Vec<String>> = HashMap::new();
 
@@ -359,18 +381,37 @@ pub(crate) fn build_node_layouts(
             pref.alias.to_string()
         };
 
-        // Merge inputs from initializations and connections
-        let mut inputs: Vec<String> = pref.initializations.keys().cloned().collect();
-        if let Some(conn_inputs) = node_inputs.get(&alias) {
-            for port in conn_inputs {
-                if !inputs.contains(port) {
-                    inputs.push(port.clone());
+        // Use resolved port info if available, otherwise fall back to guessing
+        let (inputs, outputs) = if let Some((resolved_inputs, resolved_outputs)) =
+            resolved_ports.get(&alias)
+        {
+            // Start with resolved ports (which have real names and types)
+            let mut inputs = resolved_inputs.clone();
+            // Ensure initializer ports are present even if not in the definition
+            for init_port in pref.initializations.keys() {
+                if !inputs.iter().any(|p| p.name == *init_port) {
+                    inputs.push(PortInfo::from_name(init_port.clone()));
                 }
             }
-        }
+            (inputs, resolved_outputs.clone())
+        } else {
+            // Fall back: merge inputs from initializations and connections
+            let mut input_names: Vec<String> = pref.initializations.keys().cloned().collect();
+            if let Some(conn_inputs) = node_inputs.get(&alias) {
+                for port in conn_inputs {
+                    if !input_names.contains(port) {
+                        input_names.push(port.clone());
+                    }
+                }
+            }
+            let inputs: Vec<PortInfo> = input_names.into_iter().map(PortInfo::from_name).collect();
 
-        // Outputs come from connections only
-        let outputs = node_outputs.get(&alias).cloned().unwrap_or_default();
+            // Outputs come from connections only
+            let output_names = node_outputs.get(&alias).cloned().unwrap_or_default();
+            let outputs: Vec<PortInfo> =
+                output_names.into_iter().map(PortInfo::from_name).collect();
+            (inputs, outputs)
+        };
 
         let min_ports = inputs.len().max(outputs.len());
         let min_height = PORT_START_Y + (min_ports as f32 + 1.0) * PORT_SPACING;
@@ -799,23 +840,23 @@ fn hit_test_port(
 ) -> Option<(usize, String, bool)> {
     for (node_idx, node) in nodes.iter().enumerate() {
         // Check output ports (right side)
-        for (port_idx, port_name) in node.outputs.iter().enumerate() {
+        for (port_idx, port_info) in node.outputs.iter().enumerate() {
             let world_pt = node.output_port_position(port_idx);
             let screen_pt = transform_point(world_pt, zoom, offset);
             let dx = screen_pos.x - screen_pt.x;
             let dy = screen_pos.y - screen_pt.y;
             if dx * dx + dy * dy <= PORT_HIT_RADIUS * PORT_HIT_RADIUS {
-                return Some((node_idx, port_name.clone(), true));
+                return Some((node_idx, port_info.name.clone(), true));
             }
         }
         // Check input ports (left side)
-        for (port_idx, port_name) in node.inputs.iter().enumerate() {
+        for (port_idx, port_info) in node.inputs.iter().enumerate() {
             let world_pt = node.input_port_position(port_idx);
             let screen_pt = transform_point(world_pt, zoom, offset);
             let dx = screen_pos.x - screen_pt.x;
             let dy = screen_pos.y - screen_pt.y;
             if dx * dx + dy * dy <= PORT_HIT_RADIUS * PORT_HIT_RADIUS {
-                return Some((node_idx, port_name.clone(), false));
+                return Some((node_idx, port_info.name.clone(), false));
             }
         }
     }
@@ -863,7 +904,7 @@ fn hit_test_connection(
                 let port_idx = from
                     .outputs
                     .iter()
-                    .position(|p| p == &edge.from_port)
+                    .position(|p| p.name == edge.from_port)
                     .unwrap_or(0);
                 from.output_port_position(port_idx)
             };
@@ -874,7 +915,7 @@ fn hit_test_connection(
                 let port_idx = to
                     .inputs
                     .iter()
-                    .position(|p| p == &edge.to_port)
+                    .position(|p| p.name == edge.to_port)
                     .unwrap_or(0);
                 to.input_port_position(port_idx)
             };
@@ -1018,14 +1059,14 @@ impl canvas::Program<CanvasMessage> for FlowCanvas<'_> {
                             let port_idx = node
                                 .outputs
                                 .iter()
-                                .position(|p| p == &port_name)
+                                .position(|p| p.name == port_name)
                                 .unwrap_or(0);
                             node.output_port_position(port_idx)
                         } else {
                             let port_idx = node
                                 .inputs
                                 .iter()
-                                .position(|p| p == &port_name)
+                                .position(|p| p.name == port_name)
                                 .unwrap_or(0);
                             node.input_port_position(port_idx)
                         };
@@ -1384,14 +1425,14 @@ impl canvas::Program<CanvasMessage> for FlowCanvas<'_> {
                                 let pidx = target_node
                                     .outputs
                                     .iter()
-                                    .position(|p| p == &target_port)
+                                    .position(|p| p.name == target_port)
                                     .unwrap_or(0);
                                 target_node.output_port_position(pidx)
                             } else {
                                 let pidx = target_node
                                     .inputs
                                     .iter()
-                                    .position(|p| p == &target_port)
+                                    .position(|p| p.name == target_port)
                                     .unwrap_or(0);
                                 target_node.input_port_position(pidx)
                             };
@@ -1486,7 +1527,7 @@ fn draw_selected_edge(
             let port_idx = from
                 .outputs
                 .iter()
-                .position(|p| p == &edge.from_port)
+                .position(|p| p.name == edge.from_port)
                 .unwrap_or(0);
             from.output_port_position(port_idx)
         };
@@ -1497,7 +1538,7 @@ fn draw_selected_edge(
             let port_idx = to
                 .inputs
                 .iter()
-                .position(|p| p == &edge.to_port)
+                .position(|p| p.name == edge.to_port)
                 .unwrap_or(0);
             to.input_port_position(port_idx)
         };
@@ -1560,7 +1601,7 @@ fn draw_edges(
                 let port_idx = from
                     .outputs
                     .iter()
-                    .position(|p| p == &edge.from_port)
+                    .position(|p| p.name == edge.from_port)
                     .unwrap_or(0);
                 from.output_port_position(port_idx)
             };
@@ -1572,7 +1613,7 @@ fn draw_edges(
                 let port_idx = to
                     .inputs
                     .iter()
-                    .position(|p| p == &edge.to_port)
+                    .position(|p| p.name == edge.to_port)
                     .unwrap_or(0);
                 to.input_port_position(port_idx)
             };
@@ -1727,16 +1768,32 @@ fn draw_node(frame: &mut Frame, node: &NodeLayout, zoom: f32, offset: Point) {
     frame.fill_text(source_label);
 
     // Draw input ports on the left edge
-    for (i, input_name) in node.inputs.iter().enumerate() {
+    for (i, input_port) in node.inputs.iter().enumerate() {
         let port_pos = node.input_port_position(i);
-        let init_label = node.initializers.get(input_name).map(String::as_str);
-        draw_port(frame, port_pos, input_name, true, init_label, zoom, offset);
+        let init_label = node.initializers.get(&input_port.name).map(String::as_str);
+        draw_port(
+            frame,
+            port_pos,
+            &input_port.name,
+            true,
+            init_label,
+            zoom,
+            offset,
+        );
     }
 
     // Draw output ports on the right edge
-    for (i, output_name) in node.outputs.iter().enumerate() {
+    for (i, output_port) in node.outputs.iter().enumerate() {
         let port_pos = node.output_port_position(i);
-        draw_port(frame, port_pos, output_name, false, None, zoom, offset);
+        draw_port(
+            frame,
+            port_pos,
+            &output_port.name,
+            false,
+            None,
+            zoom,
+            offset,
+        );
     }
 }
 
@@ -2051,8 +2108,11 @@ mod test {
             y: 100.0,
             width: 180.0,
             height: 120.0,
-            inputs: vec!["i1".into(), "i2".into()],
-            outputs: vec!["out".into()],
+            inputs: vec![
+                PortInfo::from_name("i1".into()),
+                PortInfo::from_name("i2".into()),
+            ],
+            outputs: vec![PortInfo::from_name("out".into())],
             initializers: HashMap::new(),
         };
         let ip0 = node.input_port_position(0);
