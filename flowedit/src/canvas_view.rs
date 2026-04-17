@@ -1648,10 +1648,10 @@ fn draw_edges(
                     let _ = box_left;
                     Point::new(mid_x, box_bottom + 4.0 * zoom)
                 } else {
-                    // For normal connections: midpoint of the straight line, above the curve
+                    // For normal connections: midpoint, above the line
                     Point::new(
                         (from_s.x + to_s.x) / 2.0,
-                        (from_s.y + to_s.y) / 2.0 - 8.0 * zoom,
+                        (from_s.y + to_s.y) / 2.0,
                     )
                 };
                 let name_label = CanvasText {
@@ -1660,7 +1660,7 @@ fn draw_edges(
                     color: Color::from_rgb(0.7, 0.7, 0.7),
                     size: (PORT_FONT_SIZE * zoom).into(),
                     align_x: iced::alignment::Horizontal::Center.into(),
-                    align_y: iced::alignment::Vertical::Top,
+                    align_y: iced::alignment::Vertical::Bottom,
                     ..CanvasText::default()
                 };
                 frame.fill_text(name_label);
