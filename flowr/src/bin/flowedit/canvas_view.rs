@@ -110,20 +110,76 @@ pub(crate) struct EdgeLayout {
     to_port: String,
 }
 
-/// Build a list of [`NodeLayout`] from process references, using their layout
-/// fields if available or falling back to auto-grid positioning.
-pub(crate) fn build_node_layouts(process_refs: &[ProcessReference]) -> Vec<NodeLayout> {
+/// Build a list of [`NodeLayout`] from process references and connections.
+///
+/// Ports are derived from two sources:
+/// - **Initializations** on each `ProcessReference` tell us about inputs with initial values
+/// - **Connections** tell us which additional input/output ports each node has
+///
+/// Layout uses the optional `x`, `y`, `width`, `height` fields from `ProcessReference`,
+/// falling back to auto-grid positioning.
+pub(crate) fn build_node_layouts(
+    process_refs: &[ProcessReference],
+    connections: &[Connection],
+) -> Vec<NodeLayout> {
+    // First pass: collect ports from connections
+    let mut node_inputs: HashMap<String, Vec<String>> = HashMap::new();
+    let mut node_outputs: HashMap<String, Vec<String>> = HashMap::new();
+
+    for conn in connections {
+        let from_route = conn.from().to_string();
+        let (from_node, from_port) = split_route(&from_route);
+        let port_name = if from_port.is_empty() {
+            "output".to_string()
+        } else {
+            from_port
+        };
+        let outputs = node_outputs.entry(from_node).or_default();
+        if !outputs.contains(&port_name) {
+            outputs.push(port_name);
+        }
+
+        for to_route in conn.to() {
+            let to_str = to_route.to_string();
+            let (to_node, to_port) = split_route(&to_str);
+            let port_name = if to_port.is_empty() {
+                "default".to_string()
+            } else {
+                to_port
+            };
+            let inputs = node_inputs.entry(to_node).or_default();
+            if !inputs.contains(&port_name) {
+                inputs.push(port_name);
+            }
+        }
+    }
+
+    // Second pass: build node layouts
     let mut nodes = Vec::with_capacity(process_refs.len());
 
     for (i, pref) in process_refs.iter().enumerate() {
         let col = i % GRID_COLUMNS;
         let row = i / GRID_COLUMNS;
 
-        // Collect input names from initializations
-        let inputs: Vec<String> = pref.initializations.keys().cloned().collect();
-        // For now, use a generic "output" port — we don't know output names without
-        // loading the function definition
-        let outputs = vec!["output".to_string()];
+        // Derive alias: use explicit alias, or extract short name from source URL
+        let alias = if pref.alias.is_empty() {
+            derive_short_name(&pref.source)
+        } else {
+            pref.alias.to_string()
+        };
+
+        // Merge inputs from initializations and connections
+        let mut inputs: Vec<String> = pref.initializations.keys().cloned().collect();
+        if let Some(conn_inputs) = node_inputs.get(&alias) {
+            for port in conn_inputs {
+                if !inputs.contains(port) {
+                    inputs.push(port.clone());
+                }
+            }
+        }
+
+        // Outputs come from connections only
+        let outputs = node_outputs.get(&alias).cloned().unwrap_or_default();
 
         let min_ports = inputs.len().max(outputs.len());
         let min_height = PORT_START_Y + (min_ports as f32 + 1.0) * PORT_SPACING;
@@ -138,7 +194,7 @@ pub(crate) fn build_node_layouts(process_refs: &[ProcessReference]) -> Vec<NodeL
         let height = pref.height.unwrap_or(DEFAULT_HEIGHT.max(min_height));
 
         nodes.push(NodeLayout {
-            alias: pref.alias.clone(),
+            alias: alias.clone(),
             source: pref.source.clone(),
             x,
             y,
@@ -173,6 +229,13 @@ pub(crate) fn build_edge_layouts(connections: &[Connection]) -> Vec<EdgeLayout> 
     }
 
     edges
+}
+
+/// Derive a short display name from a source URL.
+/// e.g., `"lib://flowstdlib/math/sequence"` → `"sequence"`
+/// e.g., `"context://stdio/stdout"` → `"stdout"`
+fn derive_short_name(source: &str) -> String {
+    source.rsplit('/').next().unwrap_or(source).to_string()
 }
 
 /// Split a route string like "sequence/number" into ("sequence", "number")

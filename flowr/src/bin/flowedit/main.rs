@@ -161,8 +161,8 @@ fn load_flow(path: &PathBuf) -> Result<(String, Vec<NodeLayout>, Vec<EdgeLayout>
 
     match process {
         Process::FlowProcess(flow) => {
-            let nodes = build_node_layouts(&flow.process_refs);
             let edges = build_edge_layouts(&flow.connections);
+            let nodes = build_node_layouts(&flow.process_refs, &flow.connections);
             Ok((flow.name, nodes, edges))
         }
         Process::FunctionProcess(_) => Err(
