@@ -143,6 +143,26 @@ floating-point values are accepted (e.g., `x = 100` or `x = 100.0`).
 
 ### Auto Layout
 
-When a flow is loaded without saved positions, nodes are arranged in a grid layout.
-A future enhancement will arrange nodes following the connection topology, placing
-source nodes on the left and sink nodes on the right.
+When a flow is loaded without saved positions, nodes are automatically arranged
+following the connection topology: source nodes (with no incoming connections) are
+placed on the left, and each downstream node is placed one column to the right.
+Nodes are spread vertically within each column. The view auto-fits to show all
+nodes on initial load.
+
+## Zoom and Scroll
+
+### Scrolling
+
+- **Mouse wheel** — scrolls the canvas vertically and horizontally
+- **Middle-mouse-button drag** — pans the canvas freely
+
+### Zooming
+
+- **Ctrl + mouse wheel** (Cmd on macOS) — zoom in/out centered on cursor
+- **Zoom controls** — floating buttons in the bottom-right corner:
+  - **+** — zoom in
+  - **−** — zoom out
+  - **Fit** — auto-fit all nodes in the visible area with padding
+
+The zoom range is 10% to 500%. The current zoom level is shown in the status bar
+when zooming.

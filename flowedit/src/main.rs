@@ -213,12 +213,32 @@ impl FlowEdit {
             .view(&self.nodes, &self.edges, self.auto_fit_pending)
             .map(Message::Canvas);
 
+        let btn_width = 40;
         let zoom_controls = container(
-            Column::new()
-                .spacing(4)
-                .push(button("+").on_press(Message::ZoomIn).width(30))
-                .push(button("-").on_press(Message::ZoomOut).width(30))
-                .push(button("Auto").on_press(Message::AutoFit).width(40)),
+            container(
+                Column::new()
+                    .spacing(4)
+                    .push(
+                        button(Text::new("+").center())
+                            .on_press(Message::ZoomIn)
+                            .width(btn_width)
+                            .style(button::secondary),
+                    )
+                    .push(
+                        button(Text::new("\u{2212}").center())
+                            .on_press(Message::ZoomOut)
+                            .width(btn_width)
+                            .style(button::secondary),
+                    )
+                    .push(
+                        button(Text::new("Fit").center())
+                            .on_press(Message::AutoFit)
+                            .width(btn_width)
+                            .style(button::secondary),
+                    ),
+            )
+            .padding(6)
+            .style(container::rounded_box),
         )
         .align_right(Fill)
         .align_bottom(Fill)

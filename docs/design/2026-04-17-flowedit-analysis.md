@@ -9,7 +9,7 @@ patterns from flowrgui.
 
 ## 2. UI Layout
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────────────┐
 │  File  Edit  Flow  Help                                      flowedit │
 ├─────────────┬───────────────────────────────────────────────────────┤
@@ -60,7 +60,7 @@ patterns from flowrgui.
 
 Each process on the canvas is rendered as a rounded rectangle ("bubble"):
 
-```
+```text
          ┌─────────────────────────┐
          │       sequence          │
          │                         │
@@ -103,7 +103,7 @@ Double-clicking it opens that flow in a new editor window/tab. In the nested edi
 
 Connections are drawn as bezier curves between output and input ports:
 
-```
+```text
     ┌──────────┐                    ┌──────────┐
     │ sequence │                    │  stdout  │
     │          │                    │          │
@@ -182,7 +182,7 @@ path. If it's not installed, its functions simply won't appear.
 
 ### Tree Structure
 
-```
+```text
 Libraries
 ├── flowstdlib/
 │   ├── math/

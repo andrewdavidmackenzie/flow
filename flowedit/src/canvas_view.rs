@@ -463,6 +463,7 @@ fn derive_short_name(source: &str) -> String {
 /// Split a route string like "sequence/number" into ("sequence", "number")
 /// or "add1" into ("add1", "")
 fn split_route(route: &str) -> (String, String) {
+    let route = route.trim_start_matches('/');
     if let Some(pos) = route.find('/') {
         (route[..pos].to_string(), route[pos + 1..].to_string())
     } else {
@@ -860,10 +861,14 @@ fn draw_edges(
         if let (Some(from), Some(to)) = (from_node, to_node) {
             // Find port positions (in world space)
             let from_point = if edge.from_port.is_empty() {
-                // Whole-node output — use first output port
                 from.output_port_position(0)
             } else {
-                from.output_port_position(0) // Use first output for now
+                let port_idx = from
+                    .outputs
+                    .iter()
+                    .position(|p| p == &edge.from_port)
+                    .unwrap_or(0);
+                from.output_port_position(port_idx)
             };
 
             let to_point = if edge.to_port.is_empty() {
