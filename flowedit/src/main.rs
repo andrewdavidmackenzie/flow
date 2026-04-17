@@ -70,6 +70,8 @@ struct FlowEdit {
     auto_fit_pending: bool,
     /// Whether auto-fit mode is active (continuously fits to window)
     auto_fit_enabled: bool,
+    /// Count of unsaved edits (increments on edit/redo, decrements on undo)
+    unsaved_edits: i32,
 }
 
 /// Main entry point for the flowedit binary.
@@ -138,6 +140,7 @@ impl FlowEdit {
             auto_fit_pending: has_nodes,
             auto_fit_enabled: true, // Start in auto-fit mode
             history: EditHistory::default(),
+            unsaved_edits: 0,
         };
 
         (app, Task::none())
@@ -181,7 +184,7 @@ impl FlowEdit {
                 }
                 CanvasMessage::MoveCompleted(idx, old_x, old_y, new_x, new_y) => {
                     if (old_x - new_x).abs() > 0.5 || (old_y - new_y).abs() > 0.5 {
-                        self.history.record(EditAction::MoveNode {
+                        self.record_edit(EditAction::MoveNode {
                             index: idx,
                             old_x,
                             old_y,
@@ -202,7 +205,7 @@ impl FlowEdit {
                     new_w,
                     new_h,
                 ) => {
-                    self.history.record(EditAction::ResizeNode {
+                    self.record_edit(EditAction::ResizeNode {
                         index: idx,
                         old_x,
                         old_y,
@@ -230,7 +233,7 @@ impl FlowEdit {
                             .collect();
                         self.nodes.remove(idx);
                         self.edges.retain(|e| !e.references_node(&alias));
-                        self.history.record(EditAction::DeleteNode {
+                        self.record_edit(EditAction::DeleteNode {
                             index: idx,
                             node,
                             removed_edges,
@@ -335,9 +338,11 @@ impl FlowEdit {
             }
             Message::Undo => {
                 self.apply_undo();
+                self.unsaved_edits = (self.unsaved_edits - 1).max(0);
             }
             Message::Redo => {
                 self.apply_redo();
+                self.unsaved_edits += 1;
             }
         }
         Task::none()
@@ -392,7 +397,13 @@ impl FlowEdit {
 
         let canvas_with_controls = stack![canvas, zoom_controls];
 
-        let status_bar: Row<'_, Message> = Row::new().push(Text::new(self.status.clone()).size(14));
+        let edit_indicator = if self.unsaved_edits > 0 {
+            format!("  [{} unsaved]", self.unsaved_edits)
+        } else {
+            String::new()
+        };
+        let status_bar: Row<'_, Message> =
+            Row::new().push(Text::new(format!("{}{}", self.status, edit_indicator)).size(14));
 
         Column::new()
             .push(container(canvas_with_controls).width(Fill).height(Fill))
@@ -416,6 +427,12 @@ impl FlowEdit {
             }
             _ => None,
         })
+    }
+
+    /// Record an edit action in the history and increment the unsaved edit count.
+    fn record_edit(&mut self, action: EditAction) {
+        self.history.record(action);
+        self.unsaved_edits += 1;
     }
 
     /// Apply an undo action — reverse the last edit.

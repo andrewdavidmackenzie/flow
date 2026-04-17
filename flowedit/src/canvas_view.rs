@@ -996,7 +996,20 @@ impl canvas::Program<CanvasMessage> for FlowCanvas<'_> {
                     }
                 }
 
-                // 2. Check if cursor is on a port — start connection drag
+                // 2. Check if cursor is near a connection line — select it
+                if let Some(edge_idx) =
+                    hit_test_connection(self.edges, self.nodes, cursor_position, zoom, offset)
+                {
+                    state.selected_connection = Some(edge_idx);
+                    state.selected_node = None;
+                    state.dragging = None;
+                    return Some(
+                        canvas::Action::publish(CanvasMessage::ConnectionSelected(Some(edge_idx)))
+                            .and_capture(),
+                    );
+                }
+
+                // 3. Check if cursor is on a port — start connection drag
                 if let Some((node_idx, port_name, is_output)) =
                     hit_test_port(self.nodes, cursor_position, zoom, offset)
                 {
@@ -1025,19 +1038,6 @@ impl canvas::Program<CanvasMessage> for FlowCanvas<'_> {
                         });
                         return Some(canvas::Action::request_redraw().and_capture());
                     }
-                }
-
-                // 3. Check if cursor is near a connection line — select it
-                if let Some(edge_idx) =
-                    hit_test_connection(self.edges, self.nodes, cursor_position, zoom, offset)
-                {
-                    state.selected_connection = Some(edge_idx);
-                    state.selected_node = None;
-                    state.dragging = None;
-                    return Some(
-                        canvas::Action::publish(CanvasMessage::ConnectionSelected(Some(edge_idx)))
-                            .and_capture(),
-                    );
                 }
 
                 // 4. Check if cursor is on a node — select/drag it
