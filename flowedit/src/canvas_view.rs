@@ -1580,7 +1580,18 @@ fn draw_edges(
     let node_map: HashMap<&str, &NodeLayout> =
         nodes.iter().map(|n| (n.alias.as_str(), n)).collect();
 
-    for (edge_idx, edge) in edges.iter().enumerate() {
+    // Draw selected connection last so it renders on top of crossing connections
+    let draw_order: Vec<usize> = (0..edges.len())
+        .filter(|i| selected != Some(*i))
+        .chain(selected.filter(|i| *i < edges.len()))
+        .collect();
+
+    for edge_idx in draw_order {
+        let edge = if let Some(e) = edges.get(edge_idx) {
+            e
+        } else {
+            continue;
+        };
         let from_node = node_map.get(edge.from_node.as_str());
         let to_node = node_map.get(edge.to_node.as_str());
 
@@ -1729,14 +1740,12 @@ fn draw_bezier_connection(
         frame.stroke(&path, stroke);
     }
 
-    // Arrow head at destination — tip extends past port position to touch semi-circle
+    // Arrow head at destination
     let arrow_size = 6.0 * zoom;
-    let port_radius = PORT_RADIUS * zoom;
-    let tip = Point::new(to_s.x + port_radius * 0.5, to_s.y);
     let arrow = Path::new(|builder| {
-        builder.move_to(Point::new(tip.x - arrow_size, tip.y - arrow_size));
-        builder.line_to(tip);
-        builder.line_to(Point::new(tip.x - arrow_size, tip.y + arrow_size));
+        builder.move_to(Point::new(to_s.x - arrow_size, to_s.y - arrow_size));
+        builder.line_to(to_s);
+        builder.line_to(Point::new(to_s.x - arrow_size, to_s.y + arrow_size));
     });
     frame.stroke(
         &arrow,
