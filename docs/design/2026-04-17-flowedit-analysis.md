@@ -332,31 +332,28 @@ Initializer values saved correctly.
 
 **Deliverable**: Can create flows from scratch using library functions.
 
-### Phase 5: Save/Load & compile/run (2-3 days)
+### Phase 5: Save/Load & compile/run
 
-**Goal**: Save flows to TOML files with layout, compile and run them.
+**Status**: Save/Load/Open/New completed in PR #2569. Remaining: compile and run.
 
-**Work**:
-- File menu: New, Open (file dialog to load a flow), Save, Save As (TOML format with layout fields)
-- Layout fields (x, y, width, height) added to ProcessReference in flowcore
-- Flow menu: Compile (using flowc as library), Run (using flowrlib)
-- Bottom I/O tabs for execution output (reused from flowrgui)
-- Status bar showing editor state
+**Remaining work** (for follow-up PR):
+- Flow menu: Compile (using flowc as library) — compile the current flow definition
+  and show errors in the status bar or a dialog
+- Flow menu: Run (using flowrlib) — execute the compiled flow
+- Bottom I/O tabs for execution output (reuse from flowrgui's TabSet)
+- Input initializer editing: click on a port to set once/always value via a popup
+- Type compatibility checking during connection creation: highlight only compatible
+  ports using flowcore's `DataType::compatible_types()`
 
-**Tests**: Save and reload produces identical flow. Compile succeeds for valid flow.
-Run produces expected output. Layout preserved across save/load cycles.
+**Tests**: Compile succeeds for valid flow. Run produces expected output.
 
 **Deliverable**: Fully functional flow editor that can create, save, compile, and run flows.
 
-### Phase 6: Nested flows & polish (2-3 days)
+### Phase 6: Nested flows & polish
 
-**Goal**: Support nested flow editing and UI polish.
-
-**Work**:
+**Work** (for follow-up PR):
 - Double-click flow node to open nested editor
 - Nested editor shows flow inputs on left edge, outputs on right edge
-- Undo/redo support
-- Keyboard shortcuts (Ctrl+S save, Delete, Ctrl+Z undo)
 - Error display for compilation failures
 - Flow metadata editing (name, description, authors)
 

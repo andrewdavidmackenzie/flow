@@ -215,3 +215,49 @@ nodes on initial load.
 
 The zoom range is 10% to 500%. The current zoom level is shown in the status bar
 when zooming.
+
+The **Fit** button is a toggle: when active (blue), the view continuously
+adjusts to fit all nodes as the window is resized. Manual zoom or pan
+automatically disables auto-fit.
+
+## Undo / Redo
+
+- **Cmd+Z** — undo the last edit (move, resize, delete, create/delete connection)
+- **Cmd+Shift+Z** — redo the last undone action
+
+The status bar shows the current unsaved edit count. New edits clear the
+redo history.
+
+## File Operations
+
+- **Cmd+S** — save to the current file (or prompt with Save As if new)
+- **Cmd+Shift+S** — save to a new file (always prompts)
+- **Cmd+O** — open a flow file
+- **Cmd+N** — create a new empty flow
+
+The window title shows the filename and a `*` when there are unsaved edits.
+
+## Process Library
+
+The left panel shows available processes organized in a collapsible tree:
+
+- **Context** — runtime context functions (stdio, file, image, args)
+- **flowstdlib** — the standard library (math, control, data, etc.)
+- Any other libraries installed in `FLOW_LIB_PATH` or `~/.flow/lib`
+
+Click a function name to add it as a new node on the canvas. The node is
+placed to the right of existing nodes and auto-fit adjusts the view if enabled.
+
+## Keyboard Shortcuts
+
+| Shortcut | Action |
+|----------|--------|
+| Cmd+Z | Undo |
+| Cmd+Shift+Z | Redo |
+| Cmd+S | Save |
+| Cmd+Shift+S | Save As |
+| Cmd+O | Open |
+| Cmd+N | New |
+| Cmd+= | Zoom in |
+| Cmd+- | Zoom out |
+| Delete / Backspace | Delete selected node or connection |
