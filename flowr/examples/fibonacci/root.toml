@@ -16,8 +16,8 @@ input.i2 = { once = 1 }
 
 [[process]]
 source = "context://stdio/stdout"
-x = 300.9684
-y = 101.93169
+x = 307.6262
+y = 82.72606
 width = 180
 height = 120
 
