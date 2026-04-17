@@ -92,8 +92,8 @@ struct FlowEdit {
     file_path: Option<PathBuf>,
     /// The original flow definition, used to preserve metadata when saving
     flow_definition: FlowDefinition,
-    /// Tooltip text to display (full source path on hover)
-    tooltip: Option<String>,
+    /// Tooltip text and screen position to display (full source path on hover)
+    tooltip: Option<(String, f32, f32)>,
 }
 
 /// Main entry point for the flowedit binary.
@@ -337,8 +337,8 @@ impl FlowEdit {
                         self.status = format!("Connection deleted - {nc} nodes, {ec} connections");
                     }
                 }
-                CanvasMessage::HoverChanged(text) => {
-                    self.tooltip = text;
+                CanvasMessage::HoverChanged(data) => {
+                    self.tooltip = data;
                 }
                 CanvasMessage::AutoFitViewport(viewport) => {
                     if self.auto_fit_enabled || self.auto_fit_pending {
@@ -457,26 +457,28 @@ impl FlowEdit {
         .align_bottom(Fill)
         .padding(10);
 
-        let canvas_with_controls = if let Some(ref tip_text) = self.tooltip {
+        let canvas_with_controls = if let Some((ref tip_text, tx, ty)) = self.tooltip {
             let tooltip_widget = container(
-                container(Text::new(tip_text.clone()).size(13).color(Color::WHITE))
-                    .padding(6)
+                container(Text::new(tip_text.clone()).size(20).color(Color::WHITE))
+                    .padding(8)
                     .style(|_theme: &Theme| container::Style {
                         background: Some(iced::Background::Color(Color::from_rgb(
-                            0.15, 0.15, 0.15,
+                            0.12, 0.12, 0.12,
                         ))),
                         border: iced::Border {
                             color: Color::WHITE,
                             width: 1.0,
-                            radius: 4.0.into(),
+                            radius: 6.0.into(),
                         },
                         ..Default::default()
                     }),
             )
-            .align_x(iced::alignment::Horizontal::Center)
-            .align_y(iced::alignment::Vertical::Bottom)
-            .width(Fill)
-            .padding(40);
+            .padding(iced::Padding {
+                top: ty + 20.0,
+                right: 0.0,
+                bottom: 0.0,
+                left: tx + 16.0,
+            });
             stack![canvas, zoom_controls, tooltip_widget]
         } else {
             stack![canvas, zoom_controls]

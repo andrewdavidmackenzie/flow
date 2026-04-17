@@ -78,8 +78,8 @@ pub(crate) enum CanvasMessage {
     ZoomBy(f32),
     /// Auto-fit with the actual viewport size (triggered on initial load).
     AutoFitViewport(Size),
-    /// Hover state changed — full source path for tooltip (or None to hide)
-    HoverChanged(Option<String>),
+    /// Hover state changed — full source path and screen position for tooltip (or None to hide)
+    HoverChanged(Option<(String, f32, f32)>),
 }
 
 /// Tracks the drag-in-progress state: which node and the cursor offset from its origin.
@@ -1272,12 +1272,12 @@ impl canvas::Program<CanvasMessage> for FlowCanvas<'_> {
                     let new_hover = hit_test_node(self.nodes, world_pos);
                     if new_hover != state.hover_node {
                         state.hover_node = new_hover;
-                        let tooltip_text = new_hover
+                        let tooltip_data = new_hover
                             .and_then(|idx| self.nodes.get(idx))
                             .filter(|n| n.source.len() > MAX_SOURCE_CHARS)
-                            .map(|n| n.source.clone());
+                            .map(|n| (n.source.clone(), cursor_position.x, cursor_position.y));
                         return Some(canvas::Action::publish(CanvasMessage::HoverChanged(
-                            tooltip_text,
+                            tooltip_data,
                         )));
                     }
                     None
