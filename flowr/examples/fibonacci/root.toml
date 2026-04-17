@@ -15,11 +15,13 @@ from = "add"
 to = "add/i2"
 
 [[connection]]
+name = "next value"
 from = "add"
 to = "stdout"
 
 # Loop back the input value #2 from this calculation, to be the input to input #1 on the next iteration
 [[connection]]
+name = "previous"
 from = "add/i2"
 to = "add/i1"
 

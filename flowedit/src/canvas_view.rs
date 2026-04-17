@@ -1637,21 +1637,30 @@ fn draw_edges(
                 is_selected,
             );
 
-            // Draw connection name at midpoint if present
+            // Draw connection name along the path if present
             if !edge.name.is_empty() {
                 let from_s = transform_point(from_point, zoom, offset);
                 let to_s = transform_point(to_point, zoom, offset);
-                let mid = Point::new(
-                    (from_s.x + to_s.x) / 2.0,
-                    (from_s.y + to_s.y) / 2.0 - 8.0 * zoom,
-                );
+                let mid = if is_self_connection {
+                    // For loopback: place label at the bottom of the curve, outside the box
+                    let (_, box_bottom, box_left, mid_x) =
+                        loopback_waypoints(from.x, from.y, from.width, from.height, zoom, offset);
+                    let _ = box_left;
+                    Point::new(mid_x, box_bottom + 4.0 * zoom)
+                } else {
+                    // For normal connections: midpoint of the straight line, above the curve
+                    Point::new(
+                        (from_s.x + to_s.x) / 2.0,
+                        (from_s.y + to_s.y) / 2.0 - 8.0 * zoom,
+                    )
+                };
                 let name_label = CanvasText {
                     content: edge.name.clone(),
                     position: mid,
                     color: Color::from_rgb(0.7, 0.7, 0.7),
                     size: (PORT_FONT_SIZE * zoom).into(),
                     align_x: iced::alignment::Horizontal::Center.into(),
-                    align_y: iced::alignment::Vertical::Bottom,
+                    align_y: iced::alignment::Vertical::Top,
                     ..CanvasText::default()
                 };
                 frame.fill_text(name_label);
