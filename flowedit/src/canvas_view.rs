@@ -198,6 +198,8 @@ const GRID_ORIGIN_X: f32 = 50.0;
 const GRID_ORIGIN_Y: f32 = 50.0;
 /// Corner radius for rounded rectangles
 const CORNER_RADIUS: f32 = 10.0;
+/// Border stroke width for node rectangles
+const BORDER_WIDTH: f32 = 2.0;
 /// Title font size (minimum readable)
 const TITLE_FONT_SIZE: f32 = 16.0;
 /// Source label font size (minimum readable)
@@ -270,18 +272,18 @@ impl NodeLayout {
         }
     }
 
-    /// Get the position of an output port (right edge of node)
+    /// Get the position of an output port (right edge of node, inset by border width)
     fn output_port_position(&self, port_index: usize) -> Point {
         Point::new(
-            self.x + self.width,
+            self.x + self.width - BORDER_WIDTH,
             self.y + PORT_START_Y + port_index as f32 * PORT_SPACING,
         )
     }
 
-    /// Get the position of an input port (left edge of node)
+    /// Get the position of an input port (left edge of node, inset by border width)
     fn input_port_position(&self, port_index: usize) -> Point {
         Point::new(
-            self.x,
+            self.x + BORDER_WIDTH,
             self.y + PORT_START_Y + port_index as f32 * PORT_SPACING,
         )
     }
@@ -933,11 +935,8 @@ fn hit_test_connection(
             // Build sample points along the actual drawn path
             let sample_points: Vec<Point> = if is_self {
                 // Loopback: same routing as draw_bezier_connection
-                let margin = 25.0 * zoom;
-                let box_right = (from.x + from.width + offset.x) * zoom + margin;
-                let box_bottom = (from.y + from.height + offset.y) * zoom + margin;
-                let box_left = (from.x + offset.x) * zoom - margin;
-                let mid_x = (box_right + box_left) / 2.0;
+                let (box_right, box_bottom, box_left, mid_x) =
+                    loopback_waypoints(from.x, from.y, from.width, from.height, zoom, offset);
 
                 // Sample the path: from -> right -> curve down -> bottom -> curve up -> to
                 let mut pts = Vec::with_capacity(BEZIER_SAMPLES + 1);
@@ -1705,6 +1704,26 @@ fn draw_edges(
     }
 }
 
+/// Compute the key waypoints for a loopback (self-connection) path in screen space.
+///
+/// Returns `(box_right, box_bottom, box_left, mid_x)` — the screen-space coordinates
+/// for routing around the node.
+fn loopback_waypoints(
+    nx: f32,
+    ny: f32,
+    nw: f32,
+    nh: f32,
+    zoom: f32,
+    offset: Point,
+) -> (f32, f32, f32, f32) {
+    let margin = 25.0 * zoom;
+    let box_right = (nx + nw + offset.x) * zoom + margin;
+    let box_bottom = (ny + nh + offset.y) * zoom + margin;
+    let box_left = (nx + offset.x) * zoom - margin;
+    let mid_x = (box_right + box_left) / 2.0;
+    (box_right, box_bottom, box_left, mid_x)
+}
+
 /// Draw a bezier curve connection between two world-space points, applying zoom and offset.
 /// `node_bounds` is `Some((x, y, width, height))` in world coords for self-connections,
 /// `None` for normal connections.
@@ -1731,12 +1750,8 @@ fn draw_bezier_connection(
         .with_color(conn_color);
 
     if let Some((nx, ny, nw, nh)) = node_bounds {
-        // Self-connection: route around the outside of the box
-        let margin = 25.0 * zoom;
-        // Compute box edges in screen space
-        let box_right = (nx + nw + offset.x) * zoom + margin;
-        let box_bottom = (ny + nh + offset.y) * zoom + margin;
-        let box_left = (nx + offset.x) * zoom - margin;
+        let (box_right, box_bottom, box_left, mid_x) =
+            loopback_waypoints(nx, ny, nw, nh, zoom, offset);
 
         let path = Path::new(|builder| {
             builder.move_to(from_s);
@@ -2222,11 +2237,11 @@ mod test {
         let ip1 = node.input_port_position(1);
         let op0 = node.output_port_position(0);
 
-        // Input ports on left edge
-        assert!((ip0.x - 100.0).abs() < 0.01);
-        assert!((ip1.x - 100.0).abs() < 0.01);
-        // Output ports on right edge
-        assert!((op0.x - 280.0).abs() < 0.01);
+        // Input ports on left edge (inset by BORDER_WIDTH)
+        assert!((ip0.x - (100.0 + BORDER_WIDTH)).abs() < 0.01);
+        assert!((ip1.x - (100.0 + BORDER_WIDTH)).abs() < 0.01);
+        // Output ports on right edge (inset by BORDER_WIDTH)
+        assert!((op0.x - (280.0 - BORDER_WIDTH)).abs() < 0.01);
         // Ports vertically spaced
         assert!(ip1.y > ip0.y);
     }
