@@ -272,18 +272,18 @@ impl NodeLayout {
         }
     }
 
-    /// Get the position of an output port (slightly outside right edge so connections start from semi-circle)
+    /// Get the position of an output port (right edge of node)
     fn output_port_position(&self, port_index: usize) -> Point {
         Point::new(
-            self.x + self.width + 1.0,
+            self.x + self.width,
             self.y + PORT_START_Y + port_index as f32 * PORT_SPACING,
         )
     }
 
-    /// Get the position of an input port (slightly outside left edge so arrows overlap semi-circle)
+    /// Get the position of an input port (left edge of node)
     fn input_port_position(&self, port_index: usize) -> Point {
         Point::new(
-            self.x - 1.0,
+            self.x,
             self.y + PORT_START_Y + port_index as f32 * PORT_SPACING,
         )
     }
@@ -1740,19 +1740,15 @@ fn draw_bezier_connection(
         frame.stroke(&path, stroke);
     }
 
-    // Arrow head at destination
+    // Filled arrow head at destination — triangle butts against the port semi-circle
     let arrow_size = 6.0 * zoom;
     let arrow = Path::new(|builder| {
         builder.move_to(Point::new(to_s.x - arrow_size, to_s.y - arrow_size));
         builder.line_to(to_s);
         builder.line_to(Point::new(to_s.x - arrow_size, to_s.y + arrow_size));
+        builder.close();
     });
-    frame.stroke(
-        &arrow,
-        Stroke::default()
-            .with_width(2.0 * zoom)
-            .with_color(conn_color),
-    );
+    frame.fill(&arrow, conn_color);
 }
 
 /// Draw all nodes onto the given frame, applying zoom and offset.
