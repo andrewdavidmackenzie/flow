@@ -1393,13 +1393,19 @@ impl canvas::Program<CanvasMessage> for FlowCanvas<'_> {
         // Draw the main cached content (edges and nodes) with zoom/scroll transform
         let content = self.state.cache.draw(renderer, bounds.size(), |frame| {
             draw_nodes(frame, self.nodes, zoom, offset);
-            draw_edges(frame, self.edges, self.nodes, zoom, offset);
+            draw_edges(
+                frame,
+                self.edges,
+                self.nodes,
+                zoom,
+                offset,
+                state.selected_connection,
+            );
         });
 
         // Build an overlay for selection highlights, connection previews, etc.
-        let needs_overlay = state.selected_node.is_some()
-            || state.selected_connection.is_some()
-            || state.connecting.is_some();
+        // (Selected connections are drawn inline by draw_edges, not as an overlay)
+        let needs_overlay = state.selected_node.is_some() || state.connecting.is_some();
 
         if needs_overlay {
             let mut overlay = Frame::new(renderer, bounds.size());
@@ -1435,13 +1441,6 @@ impl canvas::Program<CanvasMessage> for FlowCanvas<'_> {
                                 .with_color(Color::from_rgb(0.3, 0.3, 0.0)),
                         );
                     }
-                }
-            }
-
-            // Draw selected connection highlight
-            if let Some(sel_conn_idx) = state.selected_connection {
-                if let Some(edge) = self.edges.get(sel_conn_idx) {
-                    draw_selected_edge(&mut overlay, edge, self.nodes, zoom, offset);
                 }
             }
 
@@ -1568,62 +1567,6 @@ impl canvas::Program<CanvasMessage> for FlowCanvas<'_> {
     }
 }
 
-/// Draw a single selected edge with a highlighted color and thicker stroke.
-fn draw_selected_edge(
-    frame: &mut Frame,
-    edge: &EdgeLayout,
-    nodes: &[NodeLayout],
-    zoom: f32,
-    offset: Point,
-) {
-    let node_map: HashMap<&str, &NodeLayout> =
-        nodes.iter().map(|n| (n.alias.as_str(), n)).collect();
-
-    let from_node = node_map.get(edge.from_node.as_str());
-    let to_node = node_map.get(edge.to_node.as_str());
-
-    if let (Some(from), Some(to)) = (from_node, to_node) {
-        let from_point = if edge.from_port.is_empty() {
-            from.output_port_position(0)
-        } else {
-            let port_idx = from
-                .outputs
-                .iter()
-                .position(|p| p.name == edge.from_port)
-                .unwrap_or(0);
-            from.output_port_position(port_idx)
-        };
-
-        let to_point = if edge.to_port.is_empty() {
-            to.input_port_position(0)
-        } else {
-            let port_idx = to
-                .inputs
-                .iter()
-                .position(|p| p.name == edge.to_port)
-                .unwrap_or(0);
-            to.input_port_position(port_idx)
-        };
-
-        // Reuse the same drawing function with highlight color
-        let is_self = edge.from_node == edge.to_node;
-        let node_bounds = if is_self {
-            Some((from.x, from.y, from.width, from.height))
-        } else {
-            None
-        };
-        draw_bezier_connection(
-            frame,
-            from_point,
-            to_point,
-            zoom,
-            offset,
-            node_bounds,
-            true, // highlighted
-        );
-    }
-}
-
 /// Draw all connection edges as bezier curves.
 fn draw_edges(
     frame: &mut Frame,
@@ -1631,12 +1574,13 @@ fn draw_edges(
     nodes: &[NodeLayout],
     zoom: f32,
     offset: Point,
+    selected: Option<usize>,
 ) {
     // Build a lookup from alias to node
     let node_map: HashMap<&str, &NodeLayout> =
         nodes.iter().map(|n| (n.alias.as_str(), n)).collect();
 
-    for edge in edges {
+    for (edge_idx, edge) in edges.iter().enumerate() {
         let from_node = node_map.get(edge.from_node.as_str());
         let to_node = node_map.get(edge.to_node.as_str());
 
@@ -1671,6 +1615,7 @@ fn draw_edges(
             } else {
                 None
             };
+            let is_selected = selected == Some(edge_idx);
             draw_bezier_connection(
                 frame,
                 from_point,
@@ -1678,7 +1623,7 @@ fn draw_edges(
                 zoom,
                 offset,
                 node_bounds,
-                false,
+                is_selected,
             );
 
             // Draw connection name at midpoint if present

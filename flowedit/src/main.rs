@@ -163,7 +163,10 @@ impl FlowEdit {
             Message::Canvas(canvas_msg) => match canvas_msg {
                 CanvasMessage::Selected(idx) => {
                     self.selected_node = idx;
-                    self.selected_connection = None;
+                    if self.selected_connection.is_some() {
+                        self.selected_connection = None;
+                        self.canvas_state.request_redraw();
+                    }
                     if let Some(i) = idx {
                         if let Some(node) = self.nodes.get(i) {
                             self.status = format!("Selected: {}", node.alias);
@@ -277,6 +280,7 @@ impl FlowEdit {
                 CanvasMessage::ConnectionSelected(idx) => {
                     self.selected_connection = idx;
                     self.selected_node = None;
+                    self.canvas_state.request_redraw();
                     if let Some(i) = idx {
                         if let Some(edge) = self.edges.get(i) {
                             self.status = format!(
