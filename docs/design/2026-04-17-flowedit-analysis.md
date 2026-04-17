@@ -331,7 +331,7 @@ Initializer values saved correctly.
 **Goal**: Save flows to TOML files with layout, compile and run them.
 
 **Work**:
-- File menu: New, Open, Save, Save As (TOML format with layout fields)
+- File menu: New, Open (file dialog to load a flow), Save, Save As (TOML format with layout fields)
 - Layout fields (x, y, width, height) added to ProcessReference in flowcore
 - Flow menu: Compile (using flowc as library), Run (using flowrlib)
 - Bottom I/O tabs for execution output (reused from flowrgui)
