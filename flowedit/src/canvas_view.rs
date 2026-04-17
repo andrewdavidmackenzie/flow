@@ -1341,11 +1341,11 @@ fn draw_port(
 
     let label = CanvasText {
         content: name.to_string(),
-        position: Point::new(label_x, screen_center.y - 6.0 * zoom),
+        position: Point::new(label_x, screen_center.y),
         color: Color::WHITE,
         size: (PORT_FONT_SIZE * zoom).into(),
         align_x: align.into(),
-        align_y: iced::alignment::Vertical::Top,
+        align_y: iced::alignment::Vertical::Center,
         ..CanvasText::default()
     };
     frame.fill_text(label);
@@ -1356,12 +1356,12 @@ fn draw_port(
             content: init_text.to_string(),
             position: Point::new(
                 screen_center.x - scaled_radius - 4.0 * zoom,
-                screen_center.y - 6.0 * zoom,
+                screen_center.y,
             ),
             color: Color::from_rgb(0.9, 0.85, 0.2),
             size: (PORT_FONT_SIZE * zoom).into(),
             align_x: iced::alignment::Horizontal::Right.into(),
-            align_y: iced::alignment::Vertical::Top,
+            align_y: iced::alignment::Vertical::Center,
             ..CanvasText::default()
         };
         frame.fill_text(init_label);
