@@ -1729,12 +1729,14 @@ fn draw_bezier_connection(
         frame.stroke(&path, stroke);
     }
 
-    // Arrow head at destination — tip at the port position
+    // Arrow head at destination — tip extends past port position to touch semi-circle
     let arrow_size = 6.0 * zoom;
+    let port_radius = PORT_RADIUS * zoom;
+    let tip = Point::new(to_s.x + port_radius * 0.5, to_s.y);
     let arrow = Path::new(|builder| {
-        builder.move_to(Point::new(to_s.x - arrow_size, to_s.y - arrow_size));
-        builder.line_to(to_s);
-        builder.line_to(Point::new(to_s.x - arrow_size, to_s.y + arrow_size));
+        builder.move_to(Point::new(tip.x - arrow_size, tip.y - arrow_size));
+        builder.line_to(tip);
+        builder.line_to(Point::new(tip.x - arrow_size, tip.y + arrow_size));
     });
     frame.stroke(
         &arrow,
