@@ -296,15 +296,9 @@ pub(crate) fn build_node_layouts(
         }
     }
 
-    // Check if any process has saved layout positions
-    let has_saved_layout = process_refs.iter().any(|p| p.x.is_some() || p.y.is_some());
-
-    // If no saved layout, compute topology-based positions
-    let topo_positions = if has_saved_layout {
-        HashMap::new()
-    } else {
-        compute_topological_layout(process_refs, connections)
-    };
+    // Always compute topology-based positions as defaults.
+    // Saved positions (pref.x/y) override per-node on lines below.
+    let topo_positions = compute_topological_layout(process_refs, connections);
 
     // Second pass: build node layouts
     let mut nodes = Vec::with_capacity(process_refs.len());
@@ -1400,5 +1394,215 @@ fn truncate_source(source: &str, max_len: usize) -> String {
         let mut truncated = source.get(..end).unwrap_or(source).to_string();
         truncated.push_str("...");
         truncated
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use iced::Point;
+
+    #[test]
+    fn split_route_with_port() {
+        let (node, port) = split_route("sequence/number");
+        assert_eq!(node, "sequence");
+        assert_eq!(port, "number");
+    }
+
+    #[test]
+    fn split_route_no_port() {
+        let (node, port) = split_route("add1");
+        assert_eq!(node, "add1");
+        assert_eq!(port, "");
+    }
+
+    #[test]
+    fn split_route_leading_slash() {
+        let (node, port) = split_route("/sequence/number");
+        assert_eq!(node, "sequence");
+        assert_eq!(port, "number");
+    }
+
+    #[test]
+    fn derive_short_name_lib() {
+        assert_eq!(
+            derive_short_name("lib://flowstdlib/math/sequence"),
+            "sequence"
+        );
+    }
+
+    #[test]
+    fn derive_short_name_context() {
+        assert_eq!(derive_short_name("context://stdio/stdout"), "stdout");
+    }
+
+    #[test]
+    fn derive_short_name_simple() {
+        assert_eq!(derive_short_name("add"), "add");
+    }
+
+    #[test]
+    fn format_value_string() {
+        assert_eq!(format_value(&serde_json::json!("hello")), "\"hello\"");
+    }
+
+    #[test]
+    fn format_value_number() {
+        assert_eq!(format_value(&serde_json::json!(42)), "42");
+    }
+
+    #[test]
+    fn format_value_bool() {
+        assert_eq!(format_value(&serde_json::json!(true)), "true");
+    }
+
+    #[test]
+    fn format_value_null() {
+        assert_eq!(format_value(&serde_json::json!(null)), "null");
+    }
+
+    #[test]
+    fn format_value_small_array() {
+        assert_eq!(format_value(&serde_json::json!([1, 2, 3])), "[1,2,3]");
+    }
+
+    #[test]
+    fn format_value_large_array() {
+        assert_eq!(format_value(&serde_json::json!([1, 2, 3, 4])), "[4...]");
+    }
+
+    #[test]
+    fn format_value_object() {
+        assert_eq!(format_value(&serde_json::json!({"a": 1})), "{...}");
+    }
+
+    #[test]
+    fn truncate_source_short() {
+        assert_eq!(truncate_source("short", 10), "short");
+    }
+
+    #[test]
+    fn truncate_source_long() {
+        let result = truncate_source("this is a very long source string", 15);
+        assert!(result.ends_with("..."));
+        assert!(result.len() <= 15);
+    }
+
+    #[test]
+    fn transform_point_identity() {
+        let p = transform_point(Point::new(10.0, 20.0), 1.0, Point::new(0.0, 0.0));
+        assert!((p.x - 10.0).abs() < 0.01);
+        assert!((p.y - 20.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn transform_point_with_zoom() {
+        let p = transform_point(Point::new(10.0, 20.0), 2.0, Point::new(0.0, 0.0));
+        assert!((p.x - 20.0).abs() < 0.01);
+        assert!((p.y - 40.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn transform_point_with_offset() {
+        let p = transform_point(Point::new(10.0, 20.0), 1.0, Point::new(5.0, 10.0));
+        assert!((p.x - 15.0).abs() < 0.01);
+        assert!((p.y - 30.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn screen_to_world_roundtrip() {
+        let zoom = 1.5;
+        let offset = Point::new(10.0, 20.0);
+        let world = Point::new(100.0, 200.0);
+        let screen = transform_point(world, zoom, offset);
+        let back = screen_to_world(screen, zoom, offset);
+        assert!((back.x - world.x).abs() < 0.01);
+        assert!((back.y - world.y).abs() < 0.01);
+    }
+
+    #[test]
+    fn hit_test_node_inside() {
+        let nodes = vec![NodeLayout {
+            alias: "test".into(),
+            source: "lib://test".into(),
+            x: 100.0,
+            y: 100.0,
+            width: 180.0,
+            height: 120.0,
+            inputs: vec![],
+            outputs: vec![],
+            initializers: HashMap::new(),
+        }];
+        assert_eq!(hit_test_node(&nodes, Point::new(150.0, 150.0)), Some(0));
+    }
+
+    #[test]
+    fn hit_test_node_outside() {
+        let nodes = vec![NodeLayout {
+            alias: "test".into(),
+            source: "lib://test".into(),
+            x: 100.0,
+            y: 100.0,
+            width: 180.0,
+            height: 120.0,
+            inputs: vec![],
+            outputs: vec![],
+            initializers: HashMap::new(),
+        }];
+        assert_eq!(hit_test_node(&nodes, Point::new(50.0, 50.0)), None);
+    }
+
+    #[test]
+    fn build_edge_layouts_single() {
+        use flowcore::model::connection::Connection;
+        let conn = Connection::new("sequence/number", "add1/i1");
+        let edges = build_edge_layouts(&[conn]);
+        assert_eq!(edges.len(), 1);
+        assert_eq!(
+            edges.first().map(|e| e.from_node.as_str()),
+            Some("sequence")
+        );
+        assert_eq!(edges.first().map(|e| e.from_port.as_str()), Some("number"));
+        assert_eq!(edges.first().map(|e| e.to_node.as_str()), Some("add1"));
+        assert_eq!(edges.first().map(|e| e.to_port.as_str()), Some("i1"));
+    }
+
+    #[test]
+    fn edge_references_node() {
+        let edge = EdgeLayout {
+            from_node: "a".into(),
+            from_port: "out".into(),
+            to_node: "b".into(),
+            to_port: "in".into(),
+        };
+        assert!(edge.references_node("a"));
+        assert!(edge.references_node("b"));
+        assert!(!edge.references_node("c"));
+    }
+
+    #[test]
+    fn node_layout_port_positions() {
+        let node = NodeLayout {
+            alias: "test".into(),
+            source: "lib://test".into(),
+            x: 100.0,
+            y: 100.0,
+            width: 180.0,
+            height: 120.0,
+            inputs: vec!["i1".into(), "i2".into()],
+            outputs: vec!["out".into()],
+            initializers: HashMap::new(),
+        };
+        let ip0 = node.input_port_position(0);
+        let ip1 = node.input_port_position(1);
+        let op0 = node.output_port_position(0);
+
+        // Input ports on left edge
+        assert!((ip0.x - 100.0).abs() < 0.01);
+        assert!((ip1.x - 100.0).abs() < 0.01);
+        // Output ports on right edge
+        assert!((op0.x - 280.0).abs() < 0.01);
+        // Ports vertically spaced
+        assert!(ip1.y > ip0.y);
     }
 }

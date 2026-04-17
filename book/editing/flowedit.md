@@ -20,7 +20,7 @@ The flow definition file can be in TOML, YAML, or JSON format.
 
 The editor window has three main areas:
 
-```
+```text
 ┌──────────────────────────────────────────────┐
 │  Menu bar                                     │
 ├──────────────────────────────────────────────┤
