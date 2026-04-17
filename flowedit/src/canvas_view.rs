@@ -1037,17 +1037,22 @@ impl canvas::Program<CanvasMessage> for FlowCanvas<'_> {
                     }
                 }
 
-                // 2. Check if cursor is near a connection line — select it
-                if let Some(edge_idx) =
-                    hit_test_connection(self.edges, self.nodes, cursor_position, zoom, offset)
-                {
-                    state.selected_connection = Some(edge_idx);
-                    state.selected_node = None;
-                    state.dragging = None;
-                    return Some(
-                        canvas::Action::publish(CanvasMessage::ConnectionSelected(Some(edge_idx)))
+                // 2. Check if cursor is near a connection line (but NOT on a port) — select it
+                let on_a_port = hit_test_port(self.nodes, cursor_position, zoom, offset).is_some();
+                if !on_a_port {
+                    if let Some(edge_idx) =
+                        hit_test_connection(self.edges, self.nodes, cursor_position, zoom, offset)
+                    {
+                        state.selected_connection = Some(edge_idx);
+                        state.selected_node = None;
+                        state.dragging = None;
+                        return Some(
+                            canvas::Action::publish(CanvasMessage::ConnectionSelected(Some(
+                                edge_idx,
+                            )))
                             .and_capture(),
-                    );
+                        );
+                    }
                 }
 
                 // 3. Check if cursor is on a port — start connection drag
@@ -1543,36 +1548,21 @@ fn draw_selected_edge(
             to.input_port_position(port_idx)
         };
 
-        let from_s = transform_point(from_point, zoom, offset);
-        let to_s = transform_point(to_point, zoom, offset);
-
-        let sel_color = Color::from_rgb(1.0, 0.85, 0.0);
-        let sel_stroke = Stroke::default()
-            .with_width(4.0 * zoom)
-            .with_color(sel_color);
-
-        let dx = (to_s.x - from_s.x).abs().max(60.0 * zoom) * 0.5;
-        let control1 = Point::new(from_s.x + dx, from_s.y);
-        let control2 = Point::new(to_s.x - dx, to_s.y);
-
-        let path = Path::new(|builder| {
-            builder.move_to(from_s);
-            builder.bezier_curve_to(control1, control2, to_s);
-        });
-        frame.stroke(&path, sel_stroke);
-
-        // Arrow head at destination
-        let arrow_size = 6.0 * zoom;
-        let arrow = Path::new(|builder| {
-            builder.move_to(Point::new(to_s.x - arrow_size, to_s.y - arrow_size));
-            builder.line_to(to_s);
-            builder.line_to(Point::new(to_s.x - arrow_size, to_s.y + arrow_size));
-        });
-        frame.stroke(
-            &arrow,
-            Stroke::default()
-                .with_width(3.0 * zoom)
-                .with_color(sel_color),
+        // Reuse the same drawing function with highlight color
+        let is_self = edge.from_node == edge.to_node;
+        let node_bounds = if is_self {
+            Some((from.x, from.y, from.width, from.height))
+        } else {
+            None
+        };
+        draw_bezier_connection(
+            frame,
+            from_point,
+            to_point,
+            zoom,
+            offset,
+            node_bounds,
+            true, // highlighted
         );
     }
 }
@@ -1624,7 +1614,15 @@ fn draw_edges(
             } else {
                 None
             };
-            draw_bezier_connection(frame, from_point, to_point, zoom, offset, node_bounds);
+            draw_bezier_connection(
+                frame,
+                from_point,
+                to_point,
+                zoom,
+                offset,
+                node_bounds,
+                false,
+            );
         }
     }
 }
@@ -1639,13 +1637,19 @@ fn draw_bezier_connection(
     zoom: f32,
     offset: Point,
     node_bounds: Option<(f32, f32, f32, f32)>,
+    highlighted: bool,
 ) {
     let from_s = transform_point(from, zoom, offset);
     let to_s = transform_point(to, zoom, offset);
 
-    let conn_color = Color::from_rgb(0.5, 0.5, 0.5);
+    let conn_color = if highlighted {
+        Color::from_rgb(1.0, 0.85, 0.0)
+    } else {
+        Color::from_rgb(0.5, 0.5, 0.5)
+    };
+    let line_width = if highlighted { 4.0 } else { 2.0 };
     let stroke = Stroke::default()
-        .with_width(2.0 * zoom)
+        .with_width(line_width * zoom)
         .with_color(conn_color);
 
     if let Some((nx, ny, nw, nh)) = node_bounds {

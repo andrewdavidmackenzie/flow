@@ -189,6 +189,7 @@ impl FlowEdit {
                     }
                 }
                 CanvasMessage::MoveCompleted(idx, old_x, old_y, new_x, new_y) => {
+                    info!("MoveCompleted: idx={idx}, ({old_x},{old_y}) -> ({new_x},{new_y})");
                     if (old_x - new_x).abs() > 0.5 || (old_y - new_y).abs() > 0.5 {
                         self.record_edit(EditAction::MoveNode {
                             index: idx,
@@ -264,8 +265,7 @@ impl FlowEdit {
                         to_node.clone(),
                         to_port.clone(),
                     );
-                    self.history
-                        .record(EditAction::CreateConnection { edge: edge.clone() });
+                    self.record_edit(EditAction::CreateConnection { edge: edge.clone() });
                     self.edges.push(edge);
                     self.canvas_state.request_redraw();
                     let nc = self.nodes.len();
@@ -292,8 +292,7 @@ impl FlowEdit {
                 CanvasMessage::ConnectionDeleted(idx) => {
                     if idx < self.edges.len() {
                         let edge = self.edges.remove(idx);
-                        self.history
-                            .record(EditAction::DeleteConnection { index: idx, edge });
+                        self.record_edit(EditAction::DeleteConnection { index: idx, edge });
                         self.selected_connection = None;
                         self.canvas_state.request_redraw();
                         let nc = self.nodes.len();
