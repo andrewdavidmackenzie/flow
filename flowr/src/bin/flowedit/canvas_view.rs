@@ -192,13 +192,20 @@ pub(crate) fn build_node_layouts(
         }
     }
 
+    // Check if any process has saved layout positions
+    let has_saved_layout = process_refs.iter().any(|p| p.x.is_some() || p.y.is_some());
+
+    // If no saved layout, compute topology-based positions
+    let topo_positions = if has_saved_layout {
+        HashMap::new()
+    } else {
+        compute_topological_layout(process_refs, connections)
+    };
+
     // Second pass: build node layouts
     let mut nodes = Vec::with_capacity(process_refs.len());
 
     for (i, pref) in process_refs.iter().enumerate() {
-        let col = i % GRID_COLUMNS;
-        let row = i / GRID_COLUMNS;
-
         // Derive alias: use explicit alias, or extract short name from source URL
         let alias = if pref.alias.is_empty() {
             derive_short_name(&pref.source)
@@ -222,12 +229,19 @@ pub(crate) fn build_node_layouts(
         let min_ports = inputs.len().max(outputs.len());
         let min_height = PORT_START_Y + (min_ports as f32 + 1.0) * PORT_SPACING;
 
-        let x = pref
-            .x
-            .unwrap_or(GRID_ORIGIN_X + col as f32 * GRID_SPACING_X);
-        let y = pref
-            .y
-            .unwrap_or(GRID_ORIGIN_Y + row as f32 * GRID_SPACING_Y);
+        // Use saved position, then topology position, then grid fallback
+        let (default_x, default_y) = if let Some((tx, ty)) = topo_positions.get(&alias) {
+            (*tx, *ty)
+        } else {
+            let col = i % GRID_COLUMNS;
+            let row = i / GRID_COLUMNS;
+            (
+                GRID_ORIGIN_X + col as f32 * GRID_SPACING_X,
+                GRID_ORIGIN_Y + row as f32 * GRID_SPACING_Y,
+            )
+        };
+        let x = pref.x.unwrap_or(default_x);
+        let y = pref.y.unwrap_or(default_y);
         let width = pref.width.unwrap_or(DEFAULT_WIDTH);
         let height = pref.height.unwrap_or(DEFAULT_HEIGHT.max(min_height));
 
@@ -266,6 +280,105 @@ impl EdgeLayout {
     pub(crate) fn references_node(&self, alias: &str) -> bool {
         self.from_node == alias || self.to_node == alias
     }
+}
+
+/// Compute topology-based positions for nodes without saved layout.
+///
+/// Assigns each node a column based on its depth from source nodes (nodes with no
+/// incoming connections). Nodes are spread vertically within each column.
+fn compute_topological_layout(
+    process_refs: &[ProcessReference],
+    connections: &[Connection],
+) -> HashMap<String, (f32, f32)> {
+    // Build alias list
+    let aliases: Vec<String> = process_refs
+        .iter()
+        .map(|p| {
+            if p.alias.is_empty() {
+                derive_short_name(&p.source)
+            } else {
+                p.alias.to_string()
+            }
+        })
+        .collect();
+
+    // Build adjacency: which nodes feed which
+    let mut incoming: HashMap<String, Vec<String>> = HashMap::new();
+    let mut outgoing: HashMap<String, Vec<String>> = HashMap::new();
+    for alias in &aliases {
+        incoming.entry(alias.clone()).or_default();
+        outgoing.entry(alias.clone()).or_default();
+    }
+
+    for conn in connections {
+        let from_route = conn.from().to_string();
+        let (from_node, _) = split_route(&from_route);
+        for to_route in conn.to() {
+            let to_str = to_route.to_string();
+            let (to_node, _) = split_route(&to_str);
+            if from_node != to_node {
+                // Skip self-loops for layout purposes
+                outgoing
+                    .entry(from_node.clone())
+                    .or_default()
+                    .push(to_node.clone());
+                incoming.entry(to_node).or_default().push(from_node.clone());
+            }
+        }
+    }
+
+    // Assign column depth using BFS from source nodes (no incoming edges)
+    let mut depth: HashMap<String, usize> = HashMap::new();
+    let mut queue: std::collections::VecDeque<String> = std::collections::VecDeque::new();
+
+    for alias in &aliases {
+        if incoming.get(alias).map_or(true, std::vec::Vec::is_empty) {
+            depth.insert(alias.clone(), 0);
+            queue.push_back(alias.clone());
+        }
+    }
+
+    // BFS to assign max depth (longest path from any source)
+    while let Some(node) = queue.pop_front() {
+        let node_depth = depth.get(&node).copied().unwrap_or(0);
+        if let Some(neighbors) = outgoing.get(&node) {
+            for neighbor in neighbors {
+                let new_depth = node_depth + 1;
+                let current = depth.get(neighbor).copied().unwrap_or(0);
+                if new_depth > current {
+                    depth.insert(neighbor.clone(), new_depth);
+                    queue.push_back(neighbor.clone());
+                }
+            }
+        }
+    }
+
+    // Assign any unvisited nodes depth 0
+    for alias in &aliases {
+        depth.entry(alias.clone()).or_insert(0);
+    }
+
+    // Group nodes by column
+    let mut columns: HashMap<usize, Vec<String>> = HashMap::new();
+    for alias in &aliases {
+        let col = depth.get(alias).copied().unwrap_or(0);
+        columns.entry(col).or_default().push(alias.clone());
+    }
+
+    // Compute positions: spread columns horizontally, nodes vertically within each column
+    let mut positions = HashMap::new();
+    for (col, col_nodes) in &columns {
+        let x = GRID_ORIGIN_X + *col as f32 * GRID_SPACING_X;
+        let total_height = col_nodes.len() as f32 * GRID_SPACING_Y;
+        let start_y = GRID_ORIGIN_Y + (GRID_SPACING_Y - total_height) / 2.0;
+
+        for (row, alias) in col_nodes.iter().enumerate() {
+            let y = start_y.max(GRID_ORIGIN_Y) + row as f32 * GRID_SPACING_Y;
+            positions.insert(alias.clone(), (x, y));
+        }
+    }
+
+    positions
 }
 
 /// Build edge layouts from flow connections
