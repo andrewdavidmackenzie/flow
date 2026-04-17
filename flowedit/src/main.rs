@@ -155,6 +155,15 @@ impl FlowEdit {
                         self.canvas_state.request_redraw();
                     }
                 }
+                CanvasMessage::Resized(idx, x, y, w, h) => {
+                    if let Some(node) = self.nodes.get_mut(idx) {
+                        node.x = x;
+                        node.y = y;
+                        node.width = w;
+                        node.height = h;
+                        self.canvas_state.request_redraw();
+                    }
+                }
                 CanvasMessage::Deleted(idx) => {
                     if idx < self.nodes.len() {
                         // Get the alias before removing so we can clean up edges

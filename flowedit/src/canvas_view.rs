@@ -24,6 +24,14 @@ const ZOOM_STEP: f32 = 1.1;
 const AUTO_FIT_PADDING: f32 = 50.0;
 /// Scroll speed multiplier for panning with the scroll wheel (line-based)
 const SCROLL_SPEED: f32 = 20.0;
+/// Minimum allowed node width when resizing
+const MIN_NODE_WIDTH: f32 = 120.0;
+/// Minimum allowed node height when resizing
+const MIN_NODE_HEIGHT: f32 = 80.0;
+/// Half-size of resize handle squares in screen pixels
+const RESIZE_HANDLE_HALF: f32 = 3.0;
+/// Hit test radius for resize handles in screen pixels
+const RESIZE_HANDLE_HIT: f32 = 6.0;
 
 use flowcore::model::connection::Connection;
 use flowcore::model::process_reference::ProcessReference;
@@ -35,6 +43,8 @@ pub(crate) enum CanvasMessage {
     Selected(Option<usize>),
     /// A node was moved to a new position.
     Moved(usize, f32, f32),
+    /// A node was resized (index, new_x, new_y, new_width, new_height).
+    Resized(usize, f32, f32, f32, f32),
     /// A node should be deleted.
     Deleted(usize),
     /// Pan the canvas by a world-space delta.
@@ -56,6 +66,48 @@ struct DragState {
     offset_y: f32,
 }
 
+/// Which resize handle is being dragged.
+#[derive(Debug, Clone, Copy)]
+enum ResizeHandle {
+    /// Top-left corner
+    TopLeft,
+    /// Top edge midpoint
+    Top,
+    /// Top-right corner
+    TopRight,
+    /// Left edge midpoint
+    Left,
+    /// Right edge midpoint
+    Right,
+    /// Bottom-left corner
+    BottomLeft,
+    /// Bottom edge midpoint
+    Bottom,
+    /// Bottom-right corner
+    BottomRight,
+}
+
+/// Tracks a resize-in-progress state.
+#[derive(Debug, Clone)]
+struct ResizeState {
+    /// Index of the node being resized
+    node_index: usize,
+    /// Which handle is being dragged
+    handle: ResizeHandle,
+    /// Cursor X in world space at drag start
+    start_x: f32,
+    /// Cursor Y in world space at drag start
+    start_y: f32,
+    /// Node X at drag start
+    start_node_x: f32,
+    /// Node Y at drag start
+    start_node_y: f32,
+    /// Node width at drag start
+    start_width: f32,
+    /// Node height at drag start
+    start_height: f32,
+}
+
 /// Persistent interaction state for the canvas `Program`.
 ///
 /// This is the `Program::State` associated type, kept alive across frames by iced.
@@ -65,6 +117,8 @@ pub(crate) struct CanvasInteractionState {
     selected_node: Option<usize>,
     /// Active drag operation, if any
     dragging: Option<DragState>,
+    /// Active resize operation, if any
+    resizing: Option<ResizeState>,
     /// Current keyboard modifier state (tracked via ModifiersChanged events)
     modifiers: keyboard::Modifiers,
     /// Active middle-mouse-button pan operation
@@ -162,6 +216,26 @@ impl NodeLayout {
             self.x,
             self.y + PORT_START_Y + port_index as f32 * PORT_SPACING,
         )
+    }
+
+    /// Return the 8 resize handle positions in world coordinates.
+    ///
+    /// Order: TopLeft, Top, TopRight, Left, Right, BottomLeft, Bottom, BottomRight.
+    fn resize_handle_positions(&self) -> [(ResizeHandle, Point); 8] {
+        let mid_x = self.x + self.width / 2.0;
+        let mid_y = self.y + self.height / 2.0;
+        let right = self.x + self.width;
+        let bottom = self.y + self.height;
+        [
+            (ResizeHandle::TopLeft, Point::new(self.x, self.y)),
+            (ResizeHandle::Top, Point::new(mid_x, self.y)),
+            (ResizeHandle::TopRight, Point::new(right, self.y)),
+            (ResizeHandle::Left, Point::new(self.x, mid_y)),
+            (ResizeHandle::Right, Point::new(right, mid_y)),
+            (ResizeHandle::BottomLeft, Point::new(self.x, bottom)),
+            (ResizeHandle::Bottom, Point::new(mid_x, bottom)),
+            (ResizeHandle::BottomRight, Point::new(right, bottom)),
+        ]
     }
 }
 
@@ -632,6 +706,42 @@ fn hit_test_node(nodes: &[NodeLayout], point: Point) -> Option<usize> {
     })
 }
 
+/// Check whether `screen_pos` is within [`RESIZE_HANDLE_HIT`] pixels of any resize handle
+/// on the node at `node_index`. Returns the handle variant if hit.
+///
+/// The hit test is performed in screen space so the grab area is constant regardless of zoom.
+fn hit_test_resize_handle(
+    node: &NodeLayout,
+    node_index: usize,
+    screen_pos: Point,
+    zoom: f32,
+    offset: Point,
+) -> Option<(usize, ResizeHandle)> {
+    for (handle, world_pt) in &node.resize_handle_positions() {
+        let screen_pt = transform_point(*world_pt, zoom, offset);
+        let dx = (screen_pos.x - screen_pt.x).abs();
+        let dy = (screen_pos.y - screen_pt.y).abs();
+        if dx <= RESIZE_HANDLE_HIT && dy <= RESIZE_HANDLE_HIT {
+            return Some((node_index, *handle));
+        }
+    }
+    None
+}
+
+/// Compute the appropriate mouse cursor for a given [`ResizeHandle`].
+fn resize_cursor(handle: &ResizeHandle) -> mouse::Interaction {
+    match handle {
+        ResizeHandle::TopLeft | ResizeHandle::BottomRight => {
+            mouse::Interaction::ResizingDiagonallyDown
+        }
+        ResizeHandle::TopRight | ResizeHandle::BottomLeft => {
+            mouse::Interaction::ResizingDiagonallyUp
+        }
+        ResizeHandle::Left | ResizeHandle::Right => mouse::Interaction::ResizingHorizontally,
+        ResizeHandle::Top | ResizeHandle::Bottom => mouse::Interaction::ResizingVertically,
+    }
+}
+
 impl canvas::Program<CanvasMessage> for FlowCanvas<'_> {
     type State = CanvasInteractionState;
 
@@ -666,8 +776,29 @@ impl canvas::Program<CanvasMessage> for FlowCanvas<'_> {
                 None
             }
 
-            // Left mouse button pressed — select node or deselect
+            // Left mouse button pressed — check resize handles, then select/drag node, or deselect
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => {
+                // First, check if cursor is on a resize handle of the selected node
+                if let Some(sel_idx) = state.selected_node {
+                    if let Some(sel_node) = self.nodes.get(sel_idx) {
+                        if let Some((_idx, handle)) =
+                            hit_test_resize_handle(sel_node, sel_idx, cursor_position, zoom, offset)
+                        {
+                            state.resizing = Some(ResizeState {
+                                node_index: sel_idx,
+                                handle,
+                                start_x: world_pos.x,
+                                start_y: world_pos.y,
+                                start_node_x: sel_node.x,
+                                start_node_y: sel_node.y,
+                                start_width: sel_node.width,
+                                start_height: sel_node.height,
+                            });
+                            return Some(canvas::Action::request_redraw().and_capture());
+                        }
+                    }
+                }
+
                 if let Some(idx) = hit_test_node(self.nodes, world_pos) {
                     // Get the node; bail if index is out of range
                     let node = self.nodes.get(idx)?;
@@ -694,9 +825,62 @@ impl canvas::Program<CanvasMessage> for FlowCanvas<'_> {
                 Some(canvas::Action::request_redraw().and_capture())
             }
 
-            // Mouse moved — handle drag or pan
+            // Mouse moved — handle resize, drag, or pan
             Event::Mouse(mouse::Event::CursorMoved { .. }) => {
-                if let Some(ref pan) = state.panning {
+                if let Some(ref resize) = state.resizing {
+                    let dx = world_pos.x - resize.start_x;
+                    let dy = world_pos.y - resize.start_y;
+                    let (mut new_x, mut new_y, mut new_w, mut new_h) = (
+                        resize.start_node_x,
+                        resize.start_node_y,
+                        resize.start_width,
+                        resize.start_height,
+                    );
+                    match resize.handle {
+                        ResizeHandle::TopLeft => {
+                            new_w = (resize.start_width - dx).max(MIN_NODE_WIDTH);
+                            new_h = (resize.start_height - dy).max(MIN_NODE_HEIGHT);
+                            // Position moves by the amount size didn't change due to clamping
+                            new_x = resize.start_node_x + resize.start_width - new_w;
+                            new_y = resize.start_node_y + resize.start_height - new_h;
+                        }
+                        ResizeHandle::Top => {
+                            new_h = (resize.start_height - dy).max(MIN_NODE_HEIGHT);
+                            new_y = resize.start_node_y + resize.start_height - new_h;
+                        }
+                        ResizeHandle::TopRight => {
+                            new_w = (resize.start_width + dx).max(MIN_NODE_WIDTH);
+                            new_h = (resize.start_height - dy).max(MIN_NODE_HEIGHT);
+                            new_y = resize.start_node_y + resize.start_height - new_h;
+                        }
+                        ResizeHandle::Left => {
+                            new_w = (resize.start_width - dx).max(MIN_NODE_WIDTH);
+                            new_x = resize.start_node_x + resize.start_width - new_w;
+                        }
+                        ResizeHandle::Right => {
+                            new_w = (resize.start_width + dx).max(MIN_NODE_WIDTH);
+                        }
+                        ResizeHandle::BottomLeft => {
+                            new_w = (resize.start_width - dx).max(MIN_NODE_WIDTH);
+                            new_h = (resize.start_height + dy).max(MIN_NODE_HEIGHT);
+                            new_x = resize.start_node_x + resize.start_width - new_w;
+                        }
+                        ResizeHandle::Bottom => {
+                            new_h = (resize.start_height + dy).max(MIN_NODE_HEIGHT);
+                        }
+                        ResizeHandle::BottomRight => {
+                            new_w = (resize.start_width + dx).max(MIN_NODE_WIDTH);
+                            new_h = (resize.start_height + dy).max(MIN_NODE_HEIGHT);
+                        }
+                    }
+                    let idx = resize.node_index;
+                    Some(
+                        canvas::Action::publish(CanvasMessage::Resized(
+                            idx, new_x, new_y, new_w, new_h,
+                        ))
+                        .and_capture(),
+                    )
+                } else if let Some(ref pan) = state.panning {
                     // Pan: adjust scroll_offset based on screen-space delta
                     let dx = (cursor_position.x - pan.last_screen_pos.x) / zoom;
                     let dy = (cursor_position.y - pan.last_screen_pos.y) / zoom;
@@ -720,9 +904,12 @@ impl canvas::Program<CanvasMessage> for FlowCanvas<'_> {
                 }
             }
 
-            // Left mouse button released — stop dragging
+            // Left mouse button released — stop dragging or resizing
             Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left)) => {
-                if state.dragging.is_some() {
+                if state.resizing.is_some() {
+                    state.resizing = None;
+                    Some(canvas::Action::request_redraw().and_capture())
+                } else if state.dragging.is_some() {
                     state.dragging = None;
                     Some(canvas::Action::request_redraw().and_capture())
                 } else {
@@ -805,12 +992,13 @@ impl canvas::Program<CanvasMessage> for FlowCanvas<'_> {
             draw_nodes(frame, self.nodes, zoom, offset);
         });
 
-        // Draw selection highlight as an overlay (not cached, so it updates instantly)
+        // Draw selection highlight and resize handles as an overlay (not cached, so it updates instantly)
         if let Some(selected_idx) = state.selected_node {
             if let Some(node) = self.nodes.get(selected_idx) {
                 let mut overlay = Frame::new(renderer, bounds.size());
                 let screen_pos = transform_point(Point::new(node.x, node.y), zoom, offset);
                 let screen_size = Size::new(node.width * zoom, node.height * zoom);
+                let selection_color = Color::from_rgb(1.0, 0.85, 0.0);
                 let highlight = Path::new(|builder| {
                     rounded_rect(builder, screen_pos, screen_size, CORNER_RADIUS * zoom);
                 });
@@ -818,8 +1006,25 @@ impl canvas::Program<CanvasMessage> for FlowCanvas<'_> {
                     &highlight,
                     Stroke::default()
                         .with_width(4.0)
-                        .with_color(Color::from_rgb(1.0, 0.85, 0.0)),
+                        .with_color(selection_color),
                 );
+
+                // Draw resize handles at the 8 positions
+                for (_handle, world_pt) in &node.resize_handle_positions() {
+                    let sp = transform_point(*world_pt, zoom, offset);
+                    let handle_rect = Path::rectangle(
+                        Point::new(sp.x - RESIZE_HANDLE_HALF, sp.y - RESIZE_HANDLE_HALF),
+                        Size::new(RESIZE_HANDLE_HALF * 2.0, RESIZE_HANDLE_HALF * 2.0),
+                    );
+                    overlay.fill(&handle_rect, selection_color);
+                    overlay.stroke(
+                        &handle_rect,
+                        Stroke::default()
+                            .with_width(1.0)
+                            .with_color(Color::from_rgb(0.3, 0.3, 0.0)),
+                    );
+                }
+
                 return vec![content, overlay.into_geometry()];
             }
         }
@@ -837,11 +1042,30 @@ impl canvas::Program<CanvasMessage> for FlowCanvas<'_> {
             return mouse::Interaction::Grabbing;
         }
 
+        if let Some(ref resize) = state.resizing {
+            return resize_cursor(&resize.handle);
+        }
+
         if state.dragging.is_some() {
             return mouse::Interaction::Grabbing;
         }
 
         if let Some(pos) = cursor.position_in(bounds) {
+            // Check resize handles on the selected node first
+            if let Some(sel_idx) = state.selected_node {
+                if let Some(sel_node) = self.nodes.get(sel_idx) {
+                    if let Some((_idx, handle)) = hit_test_resize_handle(
+                        sel_node,
+                        sel_idx,
+                        pos,
+                        self.state.zoom,
+                        self.state.scroll_offset,
+                    ) {
+                        return resize_cursor(&handle);
+                    }
+                }
+            }
+
             let world_pos = screen_to_world(pos, self.state.zoom, self.state.scroll_offset);
             if hit_test_node(self.nodes, world_pos).is_some() {
                 return mouse::Interaction::Grab;
