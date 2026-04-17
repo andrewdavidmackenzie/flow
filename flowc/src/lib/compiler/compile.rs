@@ -454,6 +454,10 @@ mod test {
             alias: function.alias().to_owned(),
             source: function.get_source_url().to_string(),
             initializations: BTreeMap::new(),
+            x: None,
+            y: None,
+            width: None,
+            height: None,
         };
 
         let _test_flow = FlowDefinition::default();

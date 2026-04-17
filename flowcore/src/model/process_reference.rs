@@ -25,6 +25,19 @@ pub struct ProcessReference {
     /// of the referenced process.
     #[serde(default, rename = "input")]
     pub initializations: BTreeMap<String, InputInitializer>,
+    /// Optional X position on the editor canvas (used by flowedit, ignored by flowc).
+    /// Accepts both integer and float values in TOML (e.g., `x = 100` or `x = 100.0`).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub x: Option<f32>,
+    /// Optional Y position on the editor canvas (used by flowedit, ignored by flowc)
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub y: Option<f32>,
+    /// Optional width on the editor canvas (used by flowedit, ignored by flowc)
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub width: Option<f32>,
+    /// Optional height on the editor canvas (used by flowedit, ignored by flowc)
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub height: Option<f32>,
 }
 
 impl ProcessReference {
@@ -192,6 +205,58 @@ mod test {
             }
             _ => panic!("Should have been a Once initializer"),
         }
+    }
+
+    #[test]
+    fn deserialize_with_layout_fields() {
+        let input_str = "
+        alias = 'other'
+        source = 'other.toml'
+        x = 100.0
+        y = 200.0
+        width = 180.0
+        height = 120.0
+        ";
+
+        let reference: ProcessReference =
+            toml_from_str(input_str).expect("Could not deserialize ProcessReference from toml");
+        assert_eq!(reference.x, Some(100.0));
+        assert_eq!(reference.y, Some(200.0));
+        assert_eq!(reference.width, Some(180.0));
+        assert_eq!(reference.height, Some(120.0));
+    }
+
+    #[test]
+    fn deserialize_layout_integer_to_float() {
+        // Users can write integer values in TOML and serde auto-converts to f32
+        let input_str = "
+        alias = 'other'
+        source = 'other.toml'
+        x = 100
+        y = 200
+        ";
+
+        let reference: ProcessReference =
+            toml_from_str(input_str).expect("Could not deserialize ProcessReference from toml");
+        assert_eq!(reference.x, Some(100.0));
+        assert_eq!(reference.y, Some(200.0));
+        assert_eq!(reference.width, None);
+        assert_eq!(reference.height, None);
+    }
+
+    #[test]
+    fn deserialize_without_layout_fields() {
+        let input_str = "
+        alias = 'other'
+        source = 'other.toml'
+        ";
+
+        let reference: ProcessReference =
+            toml_from_str(input_str).expect("Could not deserialize ProcessReference from toml");
+        assert_eq!(reference.x, None);
+        assert_eq!(reference.y, None);
+        assert_eq!(reference.width, None);
+        assert_eq!(reference.height, None);
     }
 
     #[test]

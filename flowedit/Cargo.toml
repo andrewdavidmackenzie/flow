@@ -1,0 +1,30 @@
+[package]
+name = "flowedit"
+description = "Visual editor for 'flow' programs"
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+documentation.workspace = true
+homepage.workspace = true
+repository.workspace = true
+readme = "README.md"
+edition.workspace = true
+
+[lints]
+workspace = true
+
+[[bin]]
+name = "flowedit"
+path = "src/main.rs"
+
+[dependencies]
+flowcore = { path = "../flowcore", version = "0.142.0", features = ["meta_provider", "context", "file_provider"] }
+flowrclib = { package = "flowc", path = "../flowc", version = "0.142.0" }
+clap = "~4"
+iced = { version = "0.14.0", features = ["canvas", "tokio", "image"] }
+simpath = { version = "~2.5", features = ["urls"] }
+url = { version = "2.2", features = ["serde"] }
+serde_json = { version = "1.0", default-features = false }
+log = "0.4"
+env_logger = "0.11"
+rfd = "0.12"
