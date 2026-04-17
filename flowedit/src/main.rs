@@ -766,9 +766,16 @@ impl FlowEdit {
         }
         let provider = MetaProvider::new(lib_search_path, PathBuf::from("/"));
 
-        // 3. Parse
-        let url = Url::from_file_path(&flow_path)
-            .map_err(|()| format!("Invalid file path: {}", flow_path.display()))?;
+        // 3. Parse — ensure absolute path
+        let abs_flow_path = if flow_path.is_absolute() {
+            flow_path.clone()
+        } else {
+            std::env::current_dir()
+                .map_err(|e| format!("Could not get current directory: {e}"))?
+                .join(&flow_path)
+        };
+        let url = Url::from_file_path(&abs_flow_path)
+            .map_err(|()| format!("Invalid file path: {}", abs_flow_path.display()))?;
         let process = flowrclib::compiler::parser::parse(&url, &provider)
             .map_err(|e| format!("Parse error: {e}"))?;
         let flow = match process {
