@@ -7,12 +7,48 @@
 
 use std::collections::HashMap;
 
+use iced::keyboard;
 use iced::mouse;
-use iced::widget::canvas::{self, Canvas, Frame, Geometry, Path, Stroke, Text as CanvasText};
+use iced::widget::canvas::{
+    self, Canvas, Event, Frame, Geometry, Path, Stroke, Text as CanvasText,
+};
 use iced::{Color, Element, Fill, Point, Rectangle, Renderer, Size, Theme};
 
 use flowcore::model::connection::Connection;
 use flowcore::model::process_reference::ProcessReference;
+
+/// Messages produced by the canvas interaction layer.
+#[derive(Debug, Clone)]
+pub(crate) enum CanvasMessage {
+    /// A node was selected (or deselected if `None`).
+    Selected(Option<usize>),
+    /// A node was moved to a new position.
+    Moved(usize, f32, f32),
+    /// A node should be deleted.
+    Deleted(usize),
+}
+
+/// Tracks the drag-in-progress state: which node and the cursor offset from its origin.
+#[derive(Debug, Clone)]
+struct DragState {
+    /// Index of the node being dragged
+    node_index: usize,
+    /// Horizontal offset from cursor to node origin at drag start
+    offset_x: f32,
+    /// Vertical offset from cursor to node origin at drag start
+    offset_y: f32,
+}
+
+/// Persistent interaction state for the canvas `Program`.
+///
+/// This is the `Program::State` associated type, kept alive across frames by iced.
+#[derive(Debug, Clone, Default)]
+pub(crate) struct CanvasInteractionState {
+    /// Currently selected node index, if any
+    selected_node: Option<usize>,
+    /// Active drag operation, if any
+    dragging: Option<DragState>,
+}
 
 /// Default node width when no layout width is specified
 const DEFAULT_WIDTH: f32 = 180.0;
@@ -225,6 +261,13 @@ pub(crate) fn build_node_layouts(
     nodes
 }
 
+impl EdgeLayout {
+    /// Check whether this edge references the given node alias as source or destination.
+    pub(crate) fn references_node(&self, alias: &str) -> bool {
+        self.from_node == alias || self.to_node == alias
+    }
+}
+
 /// Build edge layouts from flow connections
 pub(crate) fn build_edge_layouts(connections: &[Connection]) -> Vec<EdgeLayout> {
     let mut edges = Vec::new();
@@ -306,7 +349,7 @@ impl FlowCanvasState {
         &'a self,
         nodes: &'a [NodeLayout],
         edges: &'a [EdgeLayout],
-    ) -> Element<'a, ()> {
+    ) -> Element<'a, CanvasMessage> {
         Canvas::new(FlowCanvas {
             state: self,
             nodes,
@@ -315,6 +358,11 @@ impl FlowCanvasState {
         .width(Fill)
         .height(Fill)
         .into()
+    }
+
+    /// Invalidate the cached geometry so the canvas redraws on the next frame.
+    pub(crate) fn request_redraw(&mut self) {
+        self.cache.clear();
     }
 }
 
@@ -325,32 +373,156 @@ struct FlowCanvas<'a> {
     edges: &'a [EdgeLayout],
 }
 
-impl canvas::Program<()> for FlowCanvas<'_> {
-    type State = ();
+/// Find the index of the first node whose bounding rectangle contains `point`.
+fn hit_test_node(nodes: &[NodeLayout], point: Point) -> Option<usize> {
+    nodes.iter().enumerate().find_map(|(i, node)| {
+        if point.x >= node.x
+            && point.x <= node.x + node.width
+            && point.y >= node.y
+            && point.y <= node.y + node.height
+        {
+            Some(i)
+        } else {
+            None
+        }
+    })
+}
+
+impl canvas::Program<CanvasMessage> for FlowCanvas<'_> {
+    type State = CanvasInteractionState;
+
+    fn update(
+        &self,
+        state: &mut Self::State,
+        event: &Event,
+        bounds: Rectangle,
+        cursor: mouse::Cursor,
+    ) -> Option<canvas::Action<CanvasMessage>> {
+        let cursor_position = cursor.position_in(bounds)?;
+
+        match event {
+            // Left mouse button pressed — select node or deselect
+            Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => {
+                if let Some(idx) = hit_test_node(self.nodes, cursor_position) {
+                    // Get the node; bail if index is out of range
+                    let node = self.nodes.get(idx)?;
+                    state.selected_node = Some(idx);
+                    state.dragging = Some(DragState {
+                        node_index: idx,
+                        offset_x: cursor_position.x - node.x,
+                        offset_y: cursor_position.y - node.y,
+                    });
+                    Some(canvas::Action::publish(CanvasMessage::Selected(Some(idx))).and_capture())
+                } else {
+                    // Clicked empty canvas — deselect
+                    state.selected_node = None;
+                    state.dragging = None;
+                    Some(canvas::Action::publish(CanvasMessage::Selected(None)).and_capture())
+                }
+            }
+
+            // Mouse moved while dragging — publish new position
+            Event::Mouse(mouse::Event::CursorMoved { .. }) => {
+                if let Some(ref drag) = state.dragging {
+                    let new_x = cursor_position.x - drag.offset_x;
+                    let new_y = cursor_position.y - drag.offset_y;
+                    Some(
+                        canvas::Action::publish(CanvasMessage::Moved(
+                            drag.node_index,
+                            new_x,
+                            new_y,
+                        ))
+                        .and_capture(),
+                    )
+                } else {
+                    None
+                }
+            }
+
+            // Mouse button released — stop dragging
+            Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left)) => {
+                if state.dragging.is_some() {
+                    state.dragging = None;
+                    Some(canvas::Action::request_redraw().and_capture())
+                } else {
+                    None
+                }
+            }
+
+            // Delete / Backspace — remove selected node
+            Event::Keyboard(keyboard::Event::KeyPressed {
+                key:
+                    keyboard::Key::Named(keyboard::key::Named::Delete | keyboard::key::Named::Backspace),
+                ..
+            }) => {
+                if let Some(idx) = state.selected_node {
+                    state.selected_node = None;
+                    state.dragging = None;
+                    Some(canvas::Action::publish(CanvasMessage::Deleted(idx)).and_capture())
+                } else {
+                    None
+                }
+            }
+
+            _ => None,
+        }
+    }
 
     fn draw(
         &self,
-        _state: &Self::State,
+        state: &Self::State,
         renderer: &Renderer,
         _theme: &Theme,
         bounds: Rectangle,
         _cursor: mouse::Cursor,
     ) -> Vec<Geometry> {
+        // Draw the main cached content (edges and nodes)
         let content = self.state.cache.draw(renderer, bounds.size(), |frame| {
             draw_edges(frame, self.edges, self.nodes);
             draw_nodes(frame, self.nodes);
         });
+
+        // Draw selection highlight as an overlay (not cached, so it updates instantly)
+        if let Some(selected_idx) = state.selected_node {
+            if let Some(node) = self.nodes.get(selected_idx) {
+                let mut overlay = Frame::new(renderer, bounds.size());
+                let highlight = Path::new(|builder| {
+                    rounded_rect(
+                        builder,
+                        Point::new(node.x, node.y),
+                        Size::new(node.width, node.height),
+                        CORNER_RADIUS,
+                    );
+                });
+                overlay.stroke(
+                    &highlight,
+                    Stroke::default()
+                        .with_width(4.0)
+                        .with_color(Color::from_rgb(1.0, 0.85, 0.0)),
+                );
+                return vec![content, overlay.into_geometry()];
+            }
+        }
 
         vec![content]
     }
 
     fn mouse_interaction(
         &self,
-        _state: &Self::State,
+        state: &Self::State,
         bounds: Rectangle,
         cursor: mouse::Cursor,
     ) -> mouse::Interaction {
-        let _ = (bounds, cursor);
+        if state.dragging.is_some() {
+            return mouse::Interaction::Grabbing;
+        }
+
+        if let Some(pos) = cursor.position_in(bounds) {
+            if hit_test_node(self.nodes, pos).is_some() {
+                return mouse::Interaction::Grab;
+            }
+        }
+
         mouse::Interaction::default()
     }
 }

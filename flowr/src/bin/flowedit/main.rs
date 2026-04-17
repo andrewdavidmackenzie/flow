@@ -25,12 +25,15 @@ use flowcore::model::process::Process;
 
 mod canvas_view;
 use canvas_view::{
-    build_edge_layouts, build_node_layouts, EdgeLayout, FlowCanvasState, NodeLayout,
+    build_edge_layouts, build_node_layouts, CanvasMessage, EdgeLayout, FlowCanvasState, NodeLayout,
 };
 
 /// Messages handled by the flowedit application
 #[derive(Debug, Clone)]
-enum Message {}
+enum Message {
+    /// A message from the interactive canvas (select, move, delete)
+    Canvas(CanvasMessage),
+}
 
 /// Top-level application state
 struct FlowEdit {
@@ -44,6 +47,8 @@ struct FlowEdit {
     canvas_state: FlowCanvasState,
     /// Status message displayed in the bottom bar
     status: String,
+    /// Index of the currently selected node, if any
+    selected_node: Option<usize>,
 }
 
 /// Main entry point for the flowedit binary.
@@ -105,6 +110,7 @@ impl FlowEdit {
             edges,
             canvas_state: FlowCanvasState::default(),
             status,
+            selected_node: None,
         };
 
         (app, Task::none())
@@ -115,8 +121,47 @@ impl FlowEdit {
         format!("flowedit - {}", self.flow_name)
     }
 
-    /// Handle messages (none in Phase 1).
-    fn update(&mut self, _message: Message) -> Task<Message> {
+    /// Handle messages from canvas interactions.
+    fn update(&mut self, message: Message) -> Task<Message> {
+        match message {
+            Message::Canvas(canvas_msg) => match canvas_msg {
+                CanvasMessage::Selected(idx) => {
+                    self.selected_node = idx;
+                    if let Some(i) = idx {
+                        if let Some(node) = self.nodes.get(i) {
+                            self.status = format!("Selected: {}", node.alias);
+                        }
+                    } else {
+                        self.status = String::from("Ready");
+                    }
+                }
+                CanvasMessage::Moved(idx, x, y) => {
+                    if let Some(node) = self.nodes.get_mut(idx) {
+                        node.x = x;
+                        node.y = y;
+                        self.canvas_state.request_redraw();
+                    }
+                }
+                CanvasMessage::Deleted(idx) => {
+                    if idx < self.nodes.len() {
+                        // Get the alias before removing so we can clean up edges
+                        let alias = if let Some(node) = self.nodes.get(idx) {
+                            node.alias.clone()
+                        } else {
+                            return Task::none();
+                        };
+                        self.nodes.remove(idx);
+                        // Remove edges that reference the deleted node
+                        self.edges.retain(|e| !e.references_node(&alias));
+                        self.selected_node = None;
+                        self.canvas_state.request_redraw();
+                        let nc = self.nodes.len();
+                        let ec = self.edges.len();
+                        self.status = format!("Node deleted - {nc} nodes, {ec} connections");
+                    }
+                }
+            },
+        }
         Task::none()
     }
 
@@ -125,7 +170,7 @@ impl FlowEdit {
         let canvas = self
             .canvas_state
             .view(&self.nodes, &self.edges)
-            .map(|()| unreachable!());
+            .map(Message::Canvas);
 
         let status_bar: Row<'_, Message> = Row::new().push(Text::new(self.status.clone()).size(14));
 
