@@ -1308,13 +1308,13 @@ fn draw_port(
         Color::WHITE
     };
 
-    // Draw semi-circle: for inputs the curved side faces left, for outputs it faces right
+    // Draw semi-circle: curved side faces inside the box, flat edge on the box boundary
     use std::f32::consts::PI;
     let semi = Path::new(|builder| {
         let (start_angle, end_angle) = if is_input {
-            (PI / 2.0, 3.0 * PI / 2.0) // Left-facing semi-circle
+            (-PI / 2.0, PI / 2.0) // Right-facing (inside the box)
         } else {
-            (-PI / 2.0, PI / 2.0) // Right-facing semi-circle
+            (PI / 2.0, 3.0 * PI / 2.0) // Left-facing (inside the box)
         };
         builder.arc(canvas::path::Arc {
             center: screen_center,
