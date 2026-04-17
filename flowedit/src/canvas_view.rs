@@ -78,6 +78,8 @@ pub(crate) enum CanvasMessage {
     ZoomBy(f32),
     /// Auto-fit with the actual viewport size (triggered on initial load).
     AutoFitViewport(Size),
+    /// Hover state changed — full source path for tooltip (or None to hide)
+    HoverChanged(Option<String>),
 }
 
 /// Tracks the drag-in-progress state: which node and the cursor offset from its origin.
@@ -1270,10 +1272,14 @@ impl canvas::Program<CanvasMessage> for FlowCanvas<'_> {
                     let new_hover = hit_test_node(self.nodes, world_pos);
                     if new_hover != state.hover_node {
                         state.hover_node = new_hover;
-                        state.hover_screen_pos = cursor_position;
-                        return Some(canvas::Action::request_redraw());
+                        let tooltip_text = new_hover
+                            .and_then(|idx| self.nodes.get(idx))
+                            .filter(|n| n.source.len() > MAX_SOURCE_CHARS)
+                            .map(|n| n.source.clone());
+                        return Some(canvas::Action::publish(CanvasMessage::HoverChanged(
+                            tooltip_text,
+                        )));
                     }
-                    state.hover_screen_pos = cursor_position;
                     None
                 }
             }
@@ -1531,56 +1537,6 @@ impl canvas::Program<CanvasMessage> for FlowCanvas<'_> {
                     }
                 }
             }
-
-            // Draw tooltip for hovered node (full source path)
-            if let Some(hover_idx) = state.hover_node {
-                if let Some(node) = self.nodes.get(hover_idx) {
-                    if node.source.len() > MAX_SOURCE_CHARS {
-                        let font_size = SOURCE_FONT_SIZE * zoom;
-                        let padding = 5.0;
-                        let char_width = font_size * 0.58;
-                        let text_width = node.source.len() as f32 * char_width;
-                        let box_width = text_width + padding * 2.0;
-                        let box_height = font_size + padding * 2.0;
-                        let radius = 4.0;
-
-                        // Centered below the node
-                        let node_center_x = (node.x + node.width / 2.0 + offset.x) * zoom;
-                        let node_bottom = (node.y + node.height + offset.y) * zoom + 8.0;
-                        let tip_x = node_center_x - box_width / 2.0;
-                        let tip_y = node_bottom;
-
-                        // Opaque background — plain rectangle first for full coverage,
-                        // then rounded rect on top for aesthetics
-                        let bg_pos = Point::new(tip_x, tip_y);
-                        let bg_size = Size::new(box_width, box_height);
-                        let solid_bg = Path::rectangle(bg_pos, bg_size);
-                        overlay.fill(&solid_bg, Color::BLACK);
-                        let bg = Path::new(|builder| {
-                            rounded_rect(builder, bg_pos, bg_size, radius);
-                        });
-                        overlay.fill(&bg, Color::from_rgb(0.2, 0.2, 0.2));
-                        overlay.stroke(
-                            &bg,
-                            Stroke::default().with_width(1.0).with_color(Color::WHITE),
-                        );
-
-                        // Centered text
-                        let tip = CanvasText {
-                            content: node.source.clone(),
-                            position: Point::new(node_center_x, tip_y + box_height / 2.0),
-                            color: Color::WHITE,
-                            size: font_size.into(),
-                            align_x: iced::alignment::Horizontal::Center.into(),
-                            align_y: iced::alignment::Vertical::Center,
-                            ..CanvasText::default()
-                        };
-                        overlay.fill_text(tip);
-                    }
-                }
-            }
-
-            return vec![content, overlay.into_geometry()];
         }
 
         vec![content]

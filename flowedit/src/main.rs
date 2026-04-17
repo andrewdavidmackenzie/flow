@@ -19,7 +19,7 @@ use std::path::PathBuf;
 use clap::{Arg, Command as ClapCommand};
 use iced::keyboard;
 use iced::widget::{button, container, stack, Column, Row, Text};
-use iced::{Element, Fill, Subscription, Task};
+use iced::{Color, Element, Fill, Subscription, Task, Theme};
 use log::{info, warn};
 use simpath::Simpath;
 use url::Url;
@@ -92,6 +92,8 @@ struct FlowEdit {
     file_path: Option<PathBuf>,
     /// The original flow definition, used to preserve metadata when saving
     flow_definition: FlowDefinition,
+    /// Tooltip text to display (full source path on hover)
+    tooltip: Option<String>,
 }
 
 /// Main entry point for the flowedit binary.
@@ -170,6 +172,7 @@ impl FlowEdit {
             unsaved_edits: 0,
             file_path,
             flow_definition,
+            tooltip: None,
         };
 
         (app, Task::none())
@@ -334,6 +337,9 @@ impl FlowEdit {
                         self.status = format!("Connection deleted - {nc} nodes, {ec} connections");
                     }
                 }
+                CanvasMessage::HoverChanged(text) => {
+                    self.tooltip = text;
+                }
                 CanvasMessage::AutoFitViewport(viewport) => {
                     if self.auto_fit_enabled || self.auto_fit_pending {
                         self.canvas_state.auto_fit(&self.nodes, viewport);
@@ -451,7 +457,30 @@ impl FlowEdit {
         .align_bottom(Fill)
         .padding(10);
 
-        let canvas_with_controls = stack![canvas, zoom_controls];
+        let canvas_with_controls = if let Some(ref tip_text) = self.tooltip {
+            let tooltip_widget = container(
+                container(Text::new(tip_text.clone()).size(13).color(Color::WHITE))
+                    .padding(6)
+                    .style(|_theme: &Theme| container::Style {
+                        background: Some(iced::Background::Color(Color::from_rgb(
+                            0.15, 0.15, 0.15,
+                        ))),
+                        border: iced::Border {
+                            color: Color::WHITE,
+                            width: 1.0,
+                            radius: 4.0.into(),
+                        },
+                        ..Default::default()
+                    }),
+            )
+            .align_x(iced::alignment::Horizontal::Center)
+            .align_y(iced::alignment::Vertical::Bottom)
+            .width(Fill)
+            .padding(40);
+            stack![canvas, zoom_controls, tooltip_widget]
+        } else {
+            stack![canvas, zoom_controls]
+        };
 
         let edit_indicator = if self.unsaved_edits > 0 {
             format!("  |  {} unsaved edit(s)", self.unsaved_edits)
