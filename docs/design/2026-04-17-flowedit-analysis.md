@@ -345,6 +345,11 @@ Initializer values saved correctly.
 - Type compatibility checking during connection creation: highlight only compatible
   ports using flowcore's `DataType::compatible_types()`
 
+- Extend process library panel: allow adding custom library paths via CLI (-L)
+  or a UI dialog. When opening a flow with provided implementations (custom
+  .rs/.wasm files), automatically add them to the library panel so they can
+  be reused in other flows.
+
 **Tests**: Compile succeeds for valid flow. Run produces expected output.
 
 **Deliverable**: Fully functional flow editor that can create, save, compile, and run flows.
