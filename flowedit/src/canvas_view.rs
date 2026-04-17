@@ -1537,37 +1537,38 @@ impl canvas::Program<CanvasMessage> for FlowCanvas<'_> {
                 if let Some(node) = self.nodes.get(hover_idx) {
                     if node.source.len() > MAX_SOURCE_CHARS {
                         let font_size = SOURCE_FONT_SIZE * zoom;
-                        let padding = 6.0;
-                        let text_width = node.source.len() as f32 * font_size * 0.6;
-                        let text_height = font_size + padding * 2.0;
+                        let padding = 5.0;
+                        let char_width = font_size * 0.58;
+                        let text_width = node.source.len() as f32 * char_width;
+                        let box_width = text_width + padding * 2.0;
+                        let box_height = font_size + padding * 2.0;
                         let radius = 4.0;
 
-                        // Position near cursor
-                        let tip_x = state.hover_screen_pos.x + 16.0;
-                        let tip_y = state.hover_screen_pos.y + 16.0;
+                        // Centered below the node
+                        let node_center_x = (node.x + node.width / 2.0 + offset.x) * zoom;
+                        let node_bottom = (node.y + node.height + offset.y) * zoom + 8.0;
+                        let tip_x = node_center_x - box_width / 2.0;
+                        let tip_y = node_bottom;
 
-                        // Rounded background
+                        // Opaque rounded background with white border
                         let bg_pos = Point::new(tip_x, tip_y);
-                        let bg_size = Size::new(text_width + padding * 2.0, text_height);
+                        let bg_size = Size::new(box_width, box_height);
                         let bg = Path::new(|builder| {
                             rounded_rect(builder, bg_pos, bg_size, radius);
                         });
-                        overlay.fill(&bg, Color::from_rgba(0.15, 0.15, 0.15, 0.95));
+                        overlay.fill(&bg, Color::from_rgb(0.15, 0.15, 0.15));
                         overlay.stroke(
                             &bg,
                             Stroke::default().with_width(1.0).with_color(Color::WHITE),
                         );
 
-                        // Text
+                        // Centered text
                         let tip = CanvasText {
                             content: node.source.clone(),
-                            position: Point::new(
-                                tip_x + padding,
-                                tip_y + padding + font_size * 0.5,
-                            ),
+                            position: Point::new(node_center_x, tip_y + box_height / 2.0),
                             color: Color::WHITE,
                             size: font_size.into(),
-                            align_x: iced::alignment::Horizontal::Left.into(),
+                            align_x: iced::alignment::Horizontal::Center.into(),
                             align_y: iced::alignment::Vertical::Center,
                             ..CanvasText::default()
                         };
