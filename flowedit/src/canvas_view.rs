@@ -1550,13 +1550,16 @@ impl canvas::Program<CanvasMessage> for FlowCanvas<'_> {
                         let tip_x = node_center_x - box_width / 2.0;
                         let tip_y = node_bottom;
 
-                        // Opaque rounded background with white border
+                        // Opaque background — plain rectangle first for full coverage,
+                        // then rounded rect on top for aesthetics
                         let bg_pos = Point::new(tip_x, tip_y);
                         let bg_size = Size::new(box_width, box_height);
+                        let solid_bg = Path::rectangle(bg_pos, bg_size);
+                        overlay.fill(&solid_bg, Color::BLACK);
                         let bg = Path::new(|builder| {
                             rounded_rect(builder, bg_pos, bg_size, radius);
                         });
-                        overlay.fill(&bg, Color::from_rgb(0.15, 0.15, 0.15));
+                        overlay.fill(&bg, Color::from_rgb(0.2, 0.2, 0.2));
                         overlay.stroke(
                             &bg,
                             Stroke::default().with_width(1.0).with_color(Color::WHITE),
