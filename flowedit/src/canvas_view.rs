@@ -1122,26 +1122,26 @@ fn draw_edges(
             };
 
             let is_self_connection = edge.from_node == edge.to_node;
-            draw_bezier_connection(
-                frame,
-                from_point,
-                to_point,
-                zoom,
-                offset,
-                is_self_connection,
-            );
+            let node_bounds = if is_self_connection {
+                Some((from.x, from.y, from.width, from.height))
+            } else {
+                None
+            };
+            draw_bezier_connection(frame, from_point, to_point, zoom, offset, node_bounds);
         }
     }
 }
 
 /// Draw a bezier curve connection between two world-space points, applying zoom and offset.
+/// `node_bounds` is `Some((x, y, width, height))` in world coords for self-connections,
+/// `None` for normal connections.
 fn draw_bezier_connection(
     frame: &mut Frame,
     from: Point,
     to: Point,
     zoom: f32,
     offset: Point,
-    is_self_connection: bool,
+    node_bounds: Option<(f32, f32, f32, f32)>,
 ) {
     let from_s = transform_point(from, zoom, offset);
     let to_s = transform_point(to, zoom, offset);
@@ -1151,27 +1151,27 @@ fn draw_bezier_connection(
         .with_width(2.0 * zoom)
         .with_color(conn_color);
 
-    if is_self_connection {
+    if let Some((nx, ny, nw, nh)) = node_bounds {
         // Self-connection: route around the outside of the box
-        // Go right from output, curve down, go left under the box, curve up to input
-        let margin = 40.0 * zoom;
-        let mid_y = from_s.y.max(to_s.y) + margin;
+        let margin = 25.0 * zoom;
+        // Compute box edges in screen space
+        let box_right = (nx + nw + offset.x) * zoom + margin;
+        let box_bottom = (ny + nh + offset.y) * zoom + margin;
+        let box_left = (nx + offset.x) * zoom - margin;
 
         let path = Path::new(|builder| {
             builder.move_to(from_s);
-            // Go right
-            builder.line_to(Point::new(from_s.x + margin, from_s.y));
-            // Curve down
+            // Go right past the box
+            builder.line_to(Point::new(box_right, from_s.y));
+            // Curve down to below the box
             builder.quadratic_curve_to(
-                Point::new(from_s.x + margin, mid_y),
-                Point::new(from_s.x, mid_y),
+                Point::new(box_right, box_bottom),
+                Point::new((box_right + box_left) / 2.0, box_bottom),
             );
-            // Go left under the box
-            builder.line_to(Point::new(to_s.x, mid_y));
-            // Curve up to input
+            // Curve up to left of the box
             builder.quadratic_curve_to(
-                Point::new(to_s.x - margin, mid_y),
-                Point::new(to_s.x - margin, to_s.y),
+                Point::new(box_left, box_bottom),
+                Point::new(box_left, to_s.y),
             );
             // Arrive at input
             builder.line_to(to_s);
