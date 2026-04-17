@@ -375,7 +375,8 @@ changes, and process additions. Metadata saved correctly.
   from unnamed output ports). Consider alternative approaches: distance-to-curve
   calculation, wider hit zones, or rendering connections to an off-screen buffer
   for pixel-precise hit testing.
-- Hover tooltips for truncated source paths and port data types
+- Revisit hover tooltip: improve positioning (track cursor more closely), ensure
+  text size matches the source label, and extend to show port data types on hover
 - Port inset so semi-circles sit inside the box border without breaking connection
   endpoint alignment
 - Prompt to save on window close (Cmd+Q or close button) when there are unsaved edits
