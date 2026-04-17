@@ -26,13 +26,16 @@ use url::Url;
 
 use flowcore::deserializers::deserializer::get;
 use flowcore::meta_provider::MetaProvider;
+use flowcore::model::flow_definition::FlowDefinition;
+use flowcore::model::input::InputInitializer;
 use flowcore::model::name::HasName;
 use flowcore::model::process::Process;
+use flowcore::model::process_reference::ProcessReference;
 mod canvas_view;
 mod history;
 use canvas_view::{
-    build_edge_layouts, build_node_layouts, CanvasMessage, EdgeLayout, FlowCanvasState, NodeLayout,
-    PortInfo,
+    build_edge_layouts, build_node_layouts, derive_short_name, CanvasMessage, EdgeLayout,
+    FlowCanvasState, NodeLayout, PortInfo,
 };
 use history::{EditAction, EditHistory};
 
@@ -51,6 +54,14 @@ enum Message {
     Undo,
     /// Redo the last undone action
     Redo,
+    /// Save the flow to the current file (or prompt if none)
+    Save,
+    /// Save the flow to a new file (always prompts)
+    SaveAs,
+    /// Open a flow file
+    Open,
+    /// Create a new empty flow
+    New,
 }
 
 /// Top-level application state
@@ -77,6 +88,10 @@ struct FlowEdit {
     auto_fit_enabled: bool,
     /// Count of unsaved edits (increments on edit/redo, decrements on undo)
     unsaved_edits: i32,
+    /// Path to the currently loaded flow file, if any
+    file_path: Option<PathBuf>,
+    /// The original flow definition, used to preserve metadata when saving
+    flow_definition: FlowDefinition,
 }
 
 /// Main entry point for the flowedit binary.
@@ -104,11 +119,11 @@ impl FlowEdit {
             )
             .get_matches();
 
-        let (flow_name, nodes, edges, status) =
+        let (flow_name, nodes, edges, status, file_path, flow_definition) =
             if let Some(flow_path_str) = matches.get_one::<String>("flow-file") {
                 let flow_path = PathBuf::from(flow_path_str);
                 match load_flow(&flow_path) {
-                    Ok((name, node_list, edge_list)) => {
+                    Ok((name, node_list, edge_list, flow_def)) => {
                         let nc = node_list.len();
                         let ec = edge_list.len();
                         (
@@ -116,6 +131,8 @@ impl FlowEdit {
                             node_list,
                             edge_list,
                             format!("Ready - {nc} nodes, {ec} connections"),
+                            Some(flow_path),
+                            flow_def,
                         )
                     }
                     Err(e) => (
@@ -123,6 +140,8 @@ impl FlowEdit {
                         Vec::new(),
                         Vec::new(),
                         format!("Error loading flow: {e}"),
+                        None,
+                        FlowDefinition::default(),
                     ),
                 }
             } else {
@@ -131,6 +150,8 @@ impl FlowEdit {
                     Vec::new(),
                     Vec::new(),
                     String::from("Ready"),
+                    None,
+                    FlowDefinition::default(),
                 )
             };
 
@@ -147,14 +168,23 @@ impl FlowEdit {
             auto_fit_enabled: true, // Start in auto-fit mode
             history: EditHistory::default(),
             unsaved_edits: 0,
+            file_path,
+            flow_definition,
         };
 
         (app, Task::none())
     }
 
-    /// Return the window title.
+    /// Return the window title, showing the file name and unsaved indicator.
     fn title(&self) -> String {
-        format!("flowedit - {}", self.flow_name)
+        let modified = if self.unsaved_edits > 0 { " *" } else { "" };
+        let name = self
+            .file_path
+            .as_ref()
+            .and_then(|p| p.file_name())
+            .and_then(|n| n.to_str())
+            .unwrap_or(&self.flow_name);
+        format!("flowedit - {name}{modified}")
     }
 
     /// Handle messages from canvas interactions.
@@ -354,6 +384,22 @@ impl FlowEdit {
                 self.apply_redo();
                 self.unsaved_edits += 1;
             }
+            Message::Save => {
+                if let Some(ref path) = self.file_path.clone() {
+                    self.perform_save(path);
+                } else {
+                    self.perform_save_as();
+                }
+            }
+            Message::SaveAs => {
+                self.perform_save_as();
+            }
+            Message::Open => {
+                self.perform_open();
+            }
+            Message::New => {
+                self.perform_new();
+            }
         }
         Task::none()
     }
@@ -421,7 +467,8 @@ impl FlowEdit {
             .into()
     }
 
-    /// Listen for Cmd+Z (undo) and Cmd+Shift+Z (redo) keyboard shortcuts.
+    /// Listen for keyboard shortcuts: Cmd+Z undo, Cmd+Shift+Z redo,
+    /// Cmd+S save, Cmd+Shift+S save-as, Cmd+O open, Cmd+N new.
     fn subscription(&self) -> Subscription<Message> {
         keyboard::listen().filter_map(|event| match event {
             keyboard::Event::KeyPressed {
@@ -431,6 +478,10 @@ impl FlowEdit {
             } if modifiers.command() => match c.as_str() {
                 "z" if modifiers.shift() => Some(Message::Redo),
                 "z" => Some(Message::Undo),
+                "s" if modifiers.shift() => Some(Message::SaveAs),
+                "s" => Some(Message::Save),
+                "o" => Some(Message::Open),
+                "n" => Some(Message::New),
                 "=" | "+" => Some(Message::ZoomIn),
                 "-" => Some(Message::ZoomOut),
                 _ => None,
@@ -502,6 +553,129 @@ impl FlowEdit {
             }
             self.canvas_state.request_redraw();
         }
+    }
+
+    /// Save the current flow to the given path.
+    fn perform_save(&mut self, path: &PathBuf) {
+        self.sync_flow_definition();
+        match save_flow_toml(&self.flow_definition, &self.edges, path) {
+            Ok(()) => {
+                self.unsaved_edits = 0;
+                self.file_path = Some(path.clone());
+                if let Some(name) = path.file_name().and_then(|n| n.to_str()) {
+                    self.status = format!("Saved to {name}");
+                } else {
+                    self.status = String::from("Saved");
+                }
+            }
+            Err(e) => {
+                self.status = format!("Save failed: {e}");
+            }
+        }
+    }
+
+    /// Prompt the user with a save dialog and save to the chosen path.
+    fn perform_save_as(&mut self) {
+        let dialog = rfd::FileDialog::new()
+            .add_filter("Flow", &["toml"])
+            .set_file_name(format!("{}.toml", self.flow_name));
+        if let Some(path) = dialog.save_file() {
+            self.perform_save(&path);
+        }
+    }
+
+    /// Prompt the user with an open dialog and load the selected flow file.
+    fn perform_open(&mut self) {
+        let dialog = rfd::FileDialog::new().add_filter("Flow", &["toml"]);
+        if let Some(path) = dialog.pick_file() {
+            match load_flow(&path) {
+                Ok((name, node_list, edge_list, flow_def)) => {
+                    let nc = node_list.len();
+                    let ec = edge_list.len();
+                    self.flow_name = name;
+                    self.nodes = node_list;
+                    self.edges = edge_list;
+                    self.flow_definition = flow_def;
+                    self.file_path = Some(path);
+                    self.selected_node = None;
+                    self.selected_connection = None;
+                    self.history = EditHistory::default();
+                    self.unsaved_edits = 0;
+                    self.auto_fit_pending = true;
+                    self.auto_fit_enabled = true;
+                    self.canvas_state = FlowCanvasState::default();
+                    self.status = format!("Loaded - {nc} nodes, {ec} connections");
+                }
+                Err(e) => {
+                    self.status = format!("Open failed: {e}");
+                }
+            }
+        }
+    }
+
+    /// Clear the canvas and reset to an empty flow state.
+    fn perform_new(&mut self) {
+        self.flow_name = String::from("(new flow)");
+        self.nodes = Vec::new();
+        self.edges = Vec::new();
+        self.flow_definition = FlowDefinition::default();
+        self.file_path = None;
+        self.selected_node = None;
+        self.selected_connection = None;
+        self.history = EditHistory::default();
+        self.unsaved_edits = 0;
+        self.auto_fit_pending = false;
+        self.auto_fit_enabled = true;
+        self.canvas_state = FlowCanvasState::default();
+        self.status = String::from("New flow");
+    }
+
+    /// Synchronize the in-memory `FlowDefinition` with the current editor state
+    /// so that process references and the flow name are up to date.
+    /// Connections are handled separately via `EdgeLayout` during save.
+    fn sync_flow_definition(&mut self) {
+        // Update or rebuild process_refs from current NodeLayout data
+        let mut new_refs: Vec<ProcessReference> = Vec::with_capacity(self.nodes.len());
+        for node in &self.nodes {
+            // Try to find the original ProcessReference by alias to preserve initializations
+            let original = self
+                .flow_definition
+                .process_refs
+                .iter()
+                .find(|pr| {
+                    let alias = if pr.alias.is_empty() {
+                        derive_short_name(&pr.source)
+                    } else {
+                        pr.alias.to_string()
+                    };
+                    alias == node.alias
+                })
+                .cloned();
+
+            let pref = if let Some(mut orig) = original {
+                orig.x = Some(node.x);
+                orig.y = Some(node.y);
+                orig.width = Some(node.width);
+                orig.height = Some(node.height);
+                orig
+            } else {
+                // New node without an original -- build from scratch
+                ProcessReference {
+                    alias: node.alias.clone(),
+                    source: node.source.clone(),
+                    initializations: std::collections::BTreeMap::new(),
+                    x: Some(node.x),
+                    y: Some(node.y),
+                    width: Some(node.width),
+                    height: Some(node.height),
+                }
+            };
+            new_refs.push(pref);
+        }
+        self.flow_definition.process_refs = new_refs;
+
+        // Update the flow name
+        self.flow_definition.name = self.flow_name.clone();
     }
 
     /// Apply a redo action — re-apply the last undone edit.
@@ -667,8 +841,11 @@ fn resolve_subprocess_ports(url: &Url) -> HashMap<String, (Vec<PortInfo>, Vec<Po
     resolved
 }
 
-/// Load a flow definition file and return the flow name, node layouts, and edge layouts.
-fn load_flow(path: &PathBuf) -> Result<(String, Vec<NodeLayout>, Vec<EdgeLayout>), String> {
+/// Load a flow definition file and return the flow name, node layouts, edge layouts,
+/// and the original `FlowDefinition` for use when saving.
+fn load_flow(
+    path: &PathBuf,
+) -> Result<(String, Vec<NodeLayout>, Vec<EdgeLayout>, FlowDefinition), String> {
     let abs_path = if path.is_absolute() {
         path.clone()
     } else {
@@ -703,13 +880,173 @@ fn load_flow(path: &PathBuf) -> Result<(String, Vec<NodeLayout>, Vec<EdgeLayout>
             let edges = build_edge_layouts(&flow.connections);
             let nodes =
                 build_node_layouts(&flow.process_refs, &flow.connections, &resolved_ports);
-            Ok((flow.name, nodes, edges))
+            let name = flow.name.clone();
+            Ok((name, nodes, edges, flow))
         }
         Process::FunctionProcess(_) => Err(
             "The specified file defines a Function, not a Flow. flowedit requires a flow definition."
                 .to_string(),
         ),
     }
+}
+
+/// Serialize a `serde_json::Value` into a TOML-compatible inline value string.
+fn value_to_toml(v: &serde_json::Value) -> String {
+    match v {
+        serde_json::Value::String(s) => {
+            format!("\"{}\"", s.replace('\\', "\\\\").replace('"', "\\\""))
+        }
+        serde_json::Value::Number(n) => n.to_string(),
+        serde_json::Value::Bool(b) => b.to_string(),
+        serde_json::Value::Null => "\"null\"".to_string(),
+        serde_json::Value::Array(a) => {
+            let items: Vec<String> = a.iter().map(value_to_toml).collect();
+            format!("[{}]", items.join(", "))
+        }
+        serde_json::Value::Object(m) => {
+            let items: Vec<String> = m
+                .iter()
+                .map(|(k, val)| format!("{k} = {}", value_to_toml(val)))
+                .collect();
+            format!("{{ {} }}", items.join(", "))
+        }
+    }
+}
+
+/// Format an `InputInitializer` as a TOML inline table string.
+fn initializer_to_toml(init: &InputInitializer) -> String {
+    match init {
+        InputInitializer::Once(v) => format!("{{ once = {} }}", value_to_toml(v)),
+        InputInitializer::Always(v) => format!("{{ always = {} }}", value_to_toml(v)),
+    }
+}
+
+/// Save a `FlowDefinition` to a TOML file at the given path.
+///
+/// Builds the TOML text manually to match the expected flow format
+/// (the derived `Serialize` on some flowcore types produces struct-style
+/// output that is not compatible with the flow deserializer).
+/// Connections are written from `edges` to preserve names that would be lost
+/// when roundtripping through `Connection::new`.
+fn save_flow_toml(
+    flow: &FlowDefinition,
+    edges: &[EdgeLayout],
+    path: &PathBuf,
+) -> Result<(), String> {
+    let mut out = String::new();
+
+    // Flow name
+    out.push_str(&format!("flow = \"{}\"\n", flow.name));
+
+    // Docs
+    if !flow.docs.is_empty() {
+        out.push_str(&format!("docs = \"{}\"\n", flow.docs));
+    }
+
+    // Metadata (only if any field is non-empty)
+    let md = &flow.metadata;
+    if !md.version.is_empty() || !md.description.is_empty() || !md.authors.is_empty() {
+        out.push_str("\n[metadata]\n");
+        if !md.version.is_empty() {
+            out.push_str(&format!("version = \"{}\"\n", md.version));
+        }
+        if !md.description.is_empty() {
+            out.push_str(&format!("description = \"{}\"\n", md.description));
+        }
+        if !md.authors.is_empty() {
+            let authors: Vec<String> = md.authors.iter().map(|a| format!("\"{a}\"")).collect();
+            out.push_str(&format!("authors = [{}]\n", authors.join(", ")));
+        }
+    }
+
+    // Flow-level inputs
+    for input in &flow.inputs {
+        out.push_str("\n[[input]]\n");
+        let name = input.name();
+        if !name.is_empty() {
+            out.push_str(&format!("name = \"{name}\"\n"));
+        }
+        let types = input.datatypes();
+        if types.len() == 1 {
+            if let Some(t) = types.first() {
+                out.push_str(&format!("type = \"{t}\"\n"));
+            }
+        } else if types.len() > 1 {
+            let ts: Vec<String> = types.iter().map(|t| format!("\"{t}\"")).collect();
+            out.push_str(&format!("type = [{}]\n", ts.join(", ")));
+        }
+    }
+
+    // Flow-level outputs
+    for output in &flow.outputs {
+        out.push_str("\n[[output]]\n");
+        let name = output.name();
+        if !name.is_empty() {
+            out.push_str(&format!("name = \"{name}\"\n"));
+        }
+        let types = output.datatypes();
+        if types.len() == 1 {
+            if let Some(t) = types.first() {
+                out.push_str(&format!("type = \"{t}\"\n"));
+            }
+        } else if types.len() > 1 {
+            let ts: Vec<String> = types.iter().map(|t| format!("\"{t}\"")).collect();
+            out.push_str(&format!("type = [{}]\n", ts.join(", ")));
+        }
+    }
+
+    // Processes
+    for pref in &flow.process_refs {
+        out.push_str("\n[[process]]\n");
+        if !pref.alias.is_empty() {
+            out.push_str(&format!("alias = \"{}\"\n", pref.alias));
+        }
+        out.push_str(&format!("source = \"{}\"\n", pref.source));
+
+        // Layout positions
+        if let Some(x) = pref.x {
+            out.push_str(&format!("x = {x}\n"));
+        }
+        if let Some(y) = pref.y {
+            out.push_str(&format!("y = {y}\n"));
+        }
+        if let Some(w) = pref.width {
+            out.push_str(&format!("width = {w}\n"));
+        }
+        if let Some(h) = pref.height {
+            out.push_str(&format!("height = {h}\n"));
+        }
+
+        // Initializations
+        for (port_name, init) in &pref.initializations {
+            out.push_str(&format!(
+                "input.{port_name} = {}\n",
+                initializer_to_toml(init)
+            ));
+        }
+    }
+
+    // Connections (from EdgeLayout to preserve names)
+    for edge in edges {
+        out.push_str("\n[[connection]]\n");
+        if !edge.name.is_empty() {
+            out.push_str(&format!("name = \"{}\"\n", edge.name));
+        }
+        let from = if edge.from_port.is_empty() {
+            edge.from_node.clone()
+        } else {
+            format!("{}/{}", edge.from_node, edge.from_port)
+        };
+        out.push_str(&format!("from = \"{from}\"\n"));
+        let to = if edge.to_port.is_empty() {
+            edge.to_node.clone()
+        } else {
+            format!("{}/{}", edge.to_node, edge.to_port)
+        };
+        out.push_str(&format!("to = \"{to}\"\n"));
+    }
+
+    std::fs::write(path, out).map_err(|e| format!("Could not write file: {e}"))
 }
 
 /// Format a connection endpoint for display, omitting "default" or empty port names.

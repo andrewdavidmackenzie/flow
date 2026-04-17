@@ -630,7 +630,7 @@ fn format_value(v: &serde_json::Value) -> String {
 /// Derive a short display name from a source URL.
 /// e.g., `"lib://flowstdlib/math/sequence"` → `"sequence"`
 /// e.g., `"context://stdio/stdout"` → `"stdout"`
-fn derive_short_name(source: &str) -> String {
+pub(crate) fn derive_short_name(source: &str) -> String {
     source.rsplit('/').next().unwrap_or(source).to_string()
 }
 

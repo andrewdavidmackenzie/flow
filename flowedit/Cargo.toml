@@ -27,3 +27,4 @@ url = { version = "2.2", features = ["serde"] }
 serde_json = { version = "1.0", default-features = false }
 log = "0.4"
 env_logger = "0.11"
+rfd = "0.12"
