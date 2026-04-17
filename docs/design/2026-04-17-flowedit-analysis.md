@@ -378,6 +378,7 @@ changes, and process additions. Metadata saved correctly.
 - Hover tooltips for truncated source paths and port data types
 - Port inset so semi-circles sit inside the box border without breaking connection
   endpoint alignment
+- Prompt to save on window close (Cmd+Q or close button) when there are unsaved edits
 - Fix alias-vs-connection-route key mismatch: when a ProcessReference has no explicit
   alias, the display alias is derived from the source URL, but connection routes may
   use a different name. Need to align alias resolution with flowc's logic so port

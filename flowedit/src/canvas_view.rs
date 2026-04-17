@@ -158,6 +158,10 @@ pub(crate) struct CanvasInteractionState {
     selected_connection: Option<usize>,
     /// Last known bounds size — used to detect window resize for auto-fit
     last_bounds: Option<Size>,
+    /// Index of the node currently under the cursor (for hover tooltip)
+    hover_node: Option<usize>,
+    /// Current cursor screen position (for tooltip placement)
+    hover_screen_pos: Point,
 }
 
 /// Tracks a middle-mouse-button pan in progress.
@@ -1063,7 +1067,9 @@ impl canvas::Program<CanvasMessage> for FlowCanvas<'_> {
                 return None;
             }
             // Clear stuck drag/resize/connect states when mouse released off-canvas
-            Event::Mouse(mouse::Event::ButtonReleased(_)) => {
+            Event::Mouse(mouse::Event::ButtonReleased(_))
+                if cursor.position_in(bounds).is_none() =>
+            {
                 state.connecting = None;
                 state.resizing = None;
                 state.dragging = None;
@@ -1260,6 +1266,14 @@ impl canvas::Program<CanvasMessage> for FlowCanvas<'_> {
                         .and_capture(),
                     )
                 } else {
+                    // Track hover for tooltip
+                    let new_hover = hit_test_node(self.nodes, world_pos);
+                    if new_hover != state.hover_node {
+                        state.hover_node = new_hover;
+                        state.hover_screen_pos = cursor_position;
+                        return Some(canvas::Action::request_redraw());
+                    }
+                    state.hover_screen_pos = cursor_position;
                     None
                 }
             }
@@ -1411,9 +1425,11 @@ impl canvas::Program<CanvasMessage> for FlowCanvas<'_> {
             );
         });
 
-        // Build an overlay for selection highlights, connection previews, etc.
+        // Build an overlay for selection highlights, connection previews, tooltips, etc.
         // (Selected connections are drawn inline by draw_edges, not as an overlay)
-        let needs_overlay = state.selected_node.is_some() || state.connecting.is_some();
+        let needs_overlay = state.selected_node.is_some()
+            || state.connecting.is_some()
+            || state.hover_node.is_some();
 
         if needs_overlay {
             let mut overlay = Frame::new(renderer, bounds.size());
@@ -1512,6 +1528,37 @@ impl canvas::Program<CanvasMessage> for FlowCanvas<'_> {
                                 Stroke::default().with_width(2.0).with_color(preview_color),
                             );
                         }
+                    }
+                }
+            }
+
+            // Draw tooltip for hovered node (full source path)
+            if let Some(hover_idx) = state.hover_node {
+                if let Some(node) = self.nodes.get(hover_idx) {
+                    if node.source.len() > MAX_SOURCE_CHARS {
+                        let tip_pos = Point::new(
+                            state.hover_screen_pos.x + 12.0,
+                            state.hover_screen_pos.y - 20.0,
+                        );
+                        // Background
+                        let padding = 4.0;
+                        let text_width = node.source.len() as f32 * 7.0;
+                        let bg = Path::rectangle(
+                            Point::new(tip_pos.x - padding, tip_pos.y - 14.0),
+                            Size::new(text_width + padding * 2.0, 18.0),
+                        );
+                        overlay.fill(&bg, Color::from_rgba(0.1, 0.1, 0.1, 0.9));
+                        // Text
+                        let tip = CanvasText {
+                            content: node.source.clone(),
+                            position: tip_pos,
+                            color: Color::WHITE,
+                            size: 12.0.into(),
+                            align_x: iced::alignment::Horizontal::Left.into(),
+                            align_y: iced::alignment::Vertical::Bottom,
+                            ..CanvasText::default()
+                        };
+                        overlay.fill_text(tip);
                     }
                 }
             }
