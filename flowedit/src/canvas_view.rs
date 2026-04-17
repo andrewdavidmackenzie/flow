@@ -1062,6 +1062,14 @@ impl canvas::Program<CanvasMessage> for FlowCanvas<'_> {
                 }
                 return None;
             }
+            // Clear stuck drag/resize/connect states when mouse released off-canvas
+            Event::Mouse(mouse::Event::ButtonReleased(_)) => {
+                state.connecting = None;
+                state.resizing = None;
+                state.dragging = None;
+                state.panning = None;
+                return Some(canvas::Action::request_redraw());
+            }
             _ => {}
         }
 
