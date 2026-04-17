@@ -764,7 +764,16 @@ impl FlowEdit {
                 }
             }
         }
-        let provider = MetaProvider::new(lib_search_path, PathBuf::from("/"));
+        // Context root: ~/.flow/runner/flowrcli/ (default runner)
+        let context_root = std::env::var("HOME")
+            .map(|h| {
+                PathBuf::from(h)
+                    .join(".flow")
+                    .join("runner")
+                    .join("flowrcli")
+            })
+            .unwrap_or_else(|_| PathBuf::from("/"));
+        let provider = MetaProvider::new(lib_search_path, context_root);
 
         // 3. Parse — ensure absolute path
         let abs_flow_path = if flow_path.is_absolute() {
