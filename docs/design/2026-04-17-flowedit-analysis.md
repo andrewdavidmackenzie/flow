@@ -379,6 +379,9 @@ changes, and process additions. Metadata saved correctly.
   text size matches the source label, and extend to show port data types on hover
 - Port inset so semi-circles sit inside the box border without breaking connection
   endpoint alignment
+- Save/restore editor window position and size in the flow definition (e.g., as
+  optional x, y, width, height fields on the root flow metadata) so the window
+  reopens at the same position when editing is resumed
 - Prompt to save on window close (Cmd+Q or close button) when there are unsaved edits
 - Fix alias-vs-connection-route key mismatch: when a ProcessReference has no explicit
   alias, the display alias is derived from the source URL, but connection routes may
