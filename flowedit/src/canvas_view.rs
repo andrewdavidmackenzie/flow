@@ -1646,13 +1646,10 @@ fn draw_edges(
                     let (_, box_bottom, box_left, mid_x) =
                         loopback_waypoints(from.x, from.y, from.width, from.height, zoom, offset);
                     let _ = box_left;
-                    Point::new(mid_x, box_bottom + 4.0 * zoom)
+                    Point::new(mid_x, box_bottom)
                 } else {
                     // For normal connections: midpoint, above the line
-                    Point::new(
-                        (from_s.x + to_s.x) / 2.0,
-                        (from_s.y + to_s.y) / 2.0,
-                    )
+                    Point::new((from_s.x + to_s.x) / 2.0, (from_s.y + to_s.y) / 2.0)
                 };
                 let name_label = CanvasText {
                     content: edge.name.clone(),
