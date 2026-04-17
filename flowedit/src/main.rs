@@ -728,6 +728,10 @@ impl FlowEdit {
 
         self.selected_node = Some(index);
         self.canvas_state.request_redraw();
+        // Trigger auto-fit if enabled so the new node is visible
+        if self.auto_fit_enabled {
+            self.auto_fit_pending = true;
+        }
         let nc = self.nodes.len();
         self.status = format!("Added {alias} from library - {nc} nodes");
     }

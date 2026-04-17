@@ -102,8 +102,16 @@ impl LibraryTree {
             }
         }
 
-        // Sort libraries by name for consistent display
-        libraries.sort_by(|a, b| a.name.cmp(&b.name));
+        // Add context functions from runner specifications
+        let context_entry = scan_context_functions();
+        if !context_entry.categories.is_empty() {
+            libraries.insert(0, context_entry); // Context at the top
+        }
+
+        // Sort non-context libraries by name for consistent display
+        if libraries.len() > 1 {
+            libraries[1..].sort_by(|a, b| a.name.cmp(&b.name));
+        }
         LibraryTree { libraries }
     }
 
@@ -328,6 +336,91 @@ fn scan_functions(cat_dir: &std::path::Path, lib_name: &str, cat_name: &str) -> 
 
     functions.sort_by(|a, b| a.name.cmp(&b.name));
     functions
+}
+
+/// Scan context functions from runner specifications.
+///
+/// Looks in `~/.flow/runner/` for runner directories. Each runner has context
+/// function categories (stdio, file, image, args). Returns a `LibraryEntry`
+/// with "Context" as the library name.
+fn scan_context_functions() -> LibraryEntry {
+    let mut categories = Vec::new();
+
+    let runner_base = std::env::var("HOME")
+        .map(|h| std::path::PathBuf::from(h).join(".flow").join("runner"))
+        .unwrap_or_default();
+
+    if !runner_base.is_dir() {
+        return LibraryEntry {
+            name: "Context".to_string(),
+            categories,
+            expanded: true,
+        };
+    }
+
+    // Scan each runner directory
+    if let Ok(runners) = std::fs::read_dir(&runner_base) {
+        for runner_entry in runners.flatten() {
+            let runner_path = runner_entry.path();
+            if !runner_path.is_dir() {
+                continue;
+            }
+
+            // Scan categories within this runner
+            if let Ok(cats) = std::fs::read_dir(&runner_path) {
+                for cat_entry in cats.flatten() {
+                    let cat_path = cat_entry.path();
+                    if !cat_path.is_dir() {
+                        continue;
+                    }
+
+                    let cat_name = cat_entry.file_name().to_string_lossy().to_string();
+                    let mut functions = Vec::new();
+
+                    if let Ok(funcs) = std::fs::read_dir(&cat_path) {
+                        for func_entry in funcs.flatten() {
+                            let func_path = func_entry.path();
+                            if func_path.extension().and_then(|e| e.to_str()) == Some("toml") {
+                                let func_name = func_path
+                                    .file_stem()
+                                    .map(|s| s.to_string_lossy().to_string())
+                                    .unwrap_or_default();
+                                if !func_name.is_empty() {
+                                    let source = format!("context://{cat_name}/{func_name}");
+                                    functions.push(FunctionEntry {
+                                        name: func_name,
+                                        source,
+                                    });
+                                }
+                            }
+                        }
+                    }
+
+                    if !functions.is_empty() {
+                        functions.sort_by(|a, b| a.name.cmp(&b.name));
+                        // Avoid duplicate categories from multiple runners
+                        if !categories
+                            .iter()
+                            .any(|c: &CategoryEntry| c.name == cat_name)
+                        {
+                            categories.push(CategoryEntry {
+                                name: cat_name,
+                                functions,
+                                expanded: false,
+                            });
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    categories.sort_by(|a, b| a.name.cmp(&b.name));
+    LibraryEntry {
+        name: "Context".to_string(),
+        categories,
+        expanded: true,
+    }
 }
 
 #[cfg(test)]
