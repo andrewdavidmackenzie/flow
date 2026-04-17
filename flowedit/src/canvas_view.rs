@@ -1146,34 +1146,51 @@ fn draw_bezier_connection(
     let from_s = transform_point(from, zoom, offset);
     let to_s = transform_point(to, zoom, offset);
 
-    let (control1, control2) = if is_self_connection {
-        // Self-connection: arc wide to the right and below so it's clearly visible
-        let loop_radius = 120.0 * zoom;
-        (
-            Point::new(from_s.x + loop_radius, from_s.y + loop_radius * 0.6),
-            Point::new(to_s.x - loop_radius, to_s.y + loop_radius * 0.6),
-        )
+    let conn_color = Color::from_rgb(0.5, 0.5, 0.5);
+    let stroke = Stroke::default()
+        .with_width(2.0 * zoom)
+        .with_color(conn_color);
+
+    if is_self_connection {
+        // Self-connection: route around the outside of the box
+        // Go right from output, curve down, go left under the box, curve up to input
+        let margin = 40.0 * zoom;
+        let mid_y = from_s.y.max(to_s.y) + margin;
+
+        let path = Path::new(|builder| {
+            builder.move_to(from_s);
+            // Go right
+            builder.line_to(Point::new(from_s.x + margin, from_s.y));
+            // Curve down
+            builder.quadratic_curve_to(
+                Point::new(from_s.x + margin, mid_y),
+                Point::new(from_s.x, mid_y),
+            );
+            // Go left under the box
+            builder.line_to(Point::new(to_s.x, mid_y));
+            // Curve up to input
+            builder.quadratic_curve_to(
+                Point::new(to_s.x - margin, mid_y),
+                Point::new(to_s.x - margin, to_s.y),
+            );
+            // Arrive at input
+            builder.line_to(to_s);
+        });
+        frame.stroke(&path, stroke);
     } else {
+        // Normal connection: bezier curve from right to left
         let dx = (to_s.x - from_s.x).abs().max(60.0 * zoom) * 0.5;
-        (
-            Point::new(from_s.x + dx, from_s.y),
-            Point::new(to_s.x - dx, to_s.y),
-        )
-    };
+        let control1 = Point::new(from_s.x + dx, from_s.y);
+        let control2 = Point::new(to_s.x - dx, to_s.y);
 
-    let path = Path::new(|builder| {
-        builder.move_to(from_s);
-        builder.bezier_curve_to(control1, control2, to_s);
-    });
+        let path = Path::new(|builder| {
+            builder.move_to(from_s);
+            builder.bezier_curve_to(control1, control2, to_s);
+        });
+        frame.stroke(&path, stroke);
+    }
 
-    frame.stroke(
-        &path,
-        Stroke::default()
-            .with_width(2.0 * zoom)
-            .with_color(Color::from_rgb(0.5, 0.5, 0.5)),
-    );
-
-    // Draw a small arrow head at the destination
+    // Arrow head at destination — points left into the input port
     let arrow_size = 6.0 * zoom;
     let arrow = Path::new(|builder| {
         builder.move_to(Point::new(to_s.x - arrow_size, to_s.y - arrow_size));
@@ -1184,7 +1201,7 @@ fn draw_bezier_connection(
         &arrow,
         Stroke::default()
             .with_width(2.0 * zoom)
-            .with_color(Color::from_rgb(0.5, 0.5, 0.5)),
+            .with_color(conn_color),
     );
 }
 
@@ -1267,8 +1284,10 @@ fn draw_node(frame: &mut Frame, node: &NodeLayout, zoom: f32, offset: Point) {
     }
 }
 
-/// Draw a port circle with a label and optional initializer value.
+/// Draw a port as a semi-circle on the edge of the node with a label and optional initializer.
 ///
+/// Input ports: semi-circle on the left edge, flat side against the box, curved side facing left.
+/// Output ports: semi-circle on the right edge, flat side against the box, curved side facing right.
 /// The `center` parameter is in world coordinates; zoom and offset are applied internally.
 fn draw_port(
     frame: &mut Frame,
@@ -1282,16 +1301,32 @@ fn draw_port(
     let screen_center = transform_point(center, zoom, offset);
     let scaled_radius = PORT_RADIUS * zoom;
 
-    // Port circle — filled if has initializer, hollow if not
     let has_init = initializer.is_some();
-    let circle = Path::circle(screen_center, scaled_radius);
-    if has_init {
-        frame.fill(&circle, Color::from_rgb(1.0, 0.9, 0.3)); // Yellow for initialized
+    let fill_color = if has_init {
+        Color::from_rgb(1.0, 0.9, 0.3)
     } else {
-        frame.fill(&circle, Color::WHITE);
-    }
+        Color::WHITE
+    };
+
+    // Draw semi-circle: for inputs the curved side faces left, for outputs it faces right
+    use std::f32::consts::PI;
+    let semi = Path::new(|builder| {
+        let (start_angle, end_angle) = if is_input {
+            (PI / 2.0, 3.0 * PI / 2.0) // Left-facing semi-circle
+        } else {
+            (-PI / 2.0, PI / 2.0) // Right-facing semi-circle
+        };
+        builder.arc(canvas::path::Arc {
+            center: screen_center,
+            radius: scaled_radius,
+            start_angle: start_angle.into(),
+            end_angle: end_angle.into(),
+        });
+        builder.close();
+    });
+    frame.fill(&semi, fill_color);
     frame.stroke(
-        &Path::circle(screen_center, scaled_radius),
+        &semi,
         Stroke::default()
             .with_width(1.5 * zoom)
             .with_color(Color::from_rgb(0.3, 0.3, 0.3)),
