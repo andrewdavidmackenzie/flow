@@ -436,7 +436,7 @@ impl FlowEdit {
                 }
                 Err(e) => {
                     self.compiled_manifest = None;
-                    self.status = format!("Compile error: {e}");
+                    self.status = e.to_string();
                 }
             },
             Message::Run => {
@@ -793,7 +793,10 @@ impl FlowEdit {
         };
 
         // 4. Compile
-        let output_dir = flow_path.parent().unwrap_or(Path::new(".")).to_path_buf();
+        let output_dir = abs_flow_path
+            .parent()
+            .unwrap_or(Path::new("."))
+            .to_path_buf();
         let mut source_urls = BTreeMap::<String, Url>::new();
         let tables = flowrclib::compiler::compile::compile(
             &flow,
@@ -802,7 +805,7 @@ impl FlowEdit {
             false,
             &mut source_urls,
         )
-        .map_err(|e| format!("Compile error: {e}"))?;
+        .map_err(|e| e.to_string())?;
 
         // 5. Generate manifest
         let manifest_path = flowrclib::generator::generate::write_flow_manifest(
