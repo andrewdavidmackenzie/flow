@@ -439,10 +439,10 @@ pub(crate) fn build_node_layouts(
         for (port_name, init) in &pref.initializations {
             let display = match init {
                 flowcore::model::input::InputInitializer::Once(v) => {
-                    format!("{} once", format_value(v))
+                    format!("once: {}", format_value(v))
                 }
                 flowcore::model::input::InputInitializer::Always(v) => {
-                    format!("{} always", format_value(v))
+                    format!("always: {}", format_value(v))
                 }
             };
             initializers.insert(port_name.clone(), display);
@@ -720,14 +720,27 @@ impl FlowCanvasState {
             return;
         }
 
-        // Find bounding box of all nodes in world coordinates
+        // Find bounding box of all nodes in world coordinates,
+        // accounting for initializer text drawn to the left of input ports.
         let mut min_x = f32::MAX;
         let mut min_y = f32::MAX;
         let mut max_x = f32::MIN;
         let mut max_y = f32::MIN;
         for node in nodes {
-            if node.x < min_x {
-                min_x = node.x;
+            // Estimate extra left margin for initializer text (~8px per character)
+            let init_margin = if node.initializers.is_empty() {
+                0.0
+            } else {
+                let max_len = node
+                    .initializers
+                    .values()
+                    .map(|s| s.len())
+                    .max()
+                    .unwrap_or(0);
+                max_len as f32 * 8.0
+            };
+            if node.x - init_margin < min_x {
+                min_x = node.x - init_margin;
             }
             if node.y < min_y {
                 min_y = node.y;
