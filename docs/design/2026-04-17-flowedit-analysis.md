@@ -354,15 +354,18 @@ Initializer values saved correctly.
 
 **Deliverable**: Fully functional flow editor that can create, save, compile, and run flows.
 
-### Phase 6: Nested flows & polish
+### Phase 6: Nested flows, new processes & polish
 
 **Work** (for follow-up PR):
 - Double-click flow node to open nested editor
 - Nested editor shows flow inputs on left edge, outputs on right edge
+- Create new sub-flow: user specifies name, inputs, outputs; opens nested flow editor
+- Create new provided implementation: user specifies name, inputs, outputs, source files
 - Error display for compilation failures
 - Flow metadata editing (name, description, authors)
 
-**Tests**: Nested flow can be edited and saved. Undo/redo works for node moves, connection
+**Tests**: Nested flow can be edited and saved. New sub-flows and provided implementations
+can be created with correct definitions. Undo/redo works for node moves, connection
 changes, and process additions. Metadata saved correctly.
 
 **Deliverable**: Production-ready flow editor.
