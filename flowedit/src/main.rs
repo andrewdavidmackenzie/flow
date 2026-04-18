@@ -516,8 +516,8 @@ impl FlowEdit {
                 self.unsaved_edits += 1;
             }
             Message::Save => {
-                if let Some(ref path) = self.file_path.clone() {
-                    self.perform_save(path);
+                if let Some(path) = self.file_path.clone() {
+                    self.perform_save(&path);
                 } else {
                     self.perform_save_as();
                 }
@@ -531,16 +531,20 @@ impl FlowEdit {
             Message::New => {
                 self.perform_new();
             }
-            Message::Compile => match self.perform_compile() {
-                Ok(path) => {
-                    self.compiled_manifest = Some(path.clone());
-                    self.status = format!("Compiled: {}", path.display());
+            Message::Compile => {
+                if !self.nodes.is_empty() {
+                    match self.perform_compile() {
+                        Ok(path) => {
+                            self.compiled_manifest = Some(path.clone());
+                            self.status = format!("Compiled: {}", path.display());
+                        }
+                        Err(e) => {
+                            self.compiled_manifest = None;
+                            self.status = e.to_string();
+                        }
+                    }
                 }
-                Err(e) => {
-                    self.compiled_manifest = None;
-                    self.status = e.to_string();
-                }
-            },
+            }
             Message::InitializerTypeChanged(new_type) => {
                 if let Some(ref mut editor) = self.initializer_editor {
                     editor.init_type = new_type;
@@ -736,11 +740,8 @@ impl FlowEdit {
         layout.into()
     }
 
-    /// Listen for keyboard shortcuts: Cmd+Z undo, Cmd+Shift+Z redo,
-    /// Cmd+S save, Cmd+Shift+S save-as, Cmd+O open, Cmd+N new,
-    /// Cmd+B compile, Cmd+R run.
     fn subscription(&self) -> Subscription<Message> {
-        let keyboard_sub = keyboard::listen().filter_map(|event| match event {
+        keyboard::listen().filter_map(|event| match event {
             keyboard::Event::KeyPressed {
                 key: keyboard::Key::Character(ref c),
                 modifiers,
@@ -758,9 +759,7 @@ impl FlowEdit {
                 _ => None,
             },
             _ => None,
-        });
-
-        keyboard_sub
+        })
     }
 
     /// Record an edit action in the history and increment the unsaved edit count.
@@ -939,8 +938,9 @@ impl FlowEdit {
                     .join(original)
             };
             let dir = abs_original.parent().unwrap_or(Path::new("/"));
+            let pid = std::process::id();
             let temp_name = format!(
-                ".flowedit_compile_{}.toml",
+                ".flowedit_compile_{}_{pid}.toml",
                 abs_original
                     .file_stem()
                     .and_then(|s| s.to_str())
@@ -948,35 +948,17 @@ impl FlowEdit {
             );
             dir.join(temp_name)
         } else {
+            let pid = std::process::id();
             let temp_dir = std::env::temp_dir().join("flowedit");
             std::fs::create_dir_all(&temp_dir).map_err(|e| e.to_string())?;
-            temp_dir.join("flow.toml")
+            temp_dir.join(format!("flow_{pid}.toml"))
         };
         save_flow_toml(&self.flow_definition, &self.edges, &flow_path)?;
 
         // Ensure temp compile file is cleaned up on all paths
         let _cleanup = TempFileCleanup(&flow_path);
 
-        // 2. Set up library search path and meta provider
-        let mut lib_search_path = Simpath::new_with_separator("FLOW_LIB_PATH", ',');
-        if let Ok(home) = std::env::var("HOME") {
-            let default_lib = PathBuf::from(&home).join(".flow").join("lib");
-            if default_lib.exists() {
-                if let Some(path_str) = default_lib.to_str() {
-                    lib_search_path.add_directory(path_str);
-                }
-            }
-        }
-        // Context root: ~/.flow/runner/flowrcli/ (default runner)
-        let context_root = std::env::var("HOME")
-            .map(|h| {
-                PathBuf::from(h)
-                    .join(".flow")
-                    .join("runner")
-                    .join("flowrcli")
-            })
-            .unwrap_or_else(|_| PathBuf::from("/"));
-        let provider = MetaProvider::new(lib_search_path, context_root);
+        let provider = build_meta_provider();
 
         // 3. Parse — ensure absolute path
         // flow_path is always absolute (temp dir)
@@ -1341,6 +1323,29 @@ impl FlowEdit {
     }
 }
 
+/// Build a `MetaProvider` with `FLOW_LIB_PATH` (plus `~/.flow/lib` default)
+/// and the default flowrcli context root.
+fn build_meta_provider() -> MetaProvider {
+    let mut lib_search_path = Simpath::new_with_separator("FLOW_LIB_PATH", ',');
+    if let Ok(home) = std::env::var("HOME") {
+        let default_lib = PathBuf::from(&home).join(".flow").join("lib");
+        if default_lib.exists() {
+            if let Some(path_str) = default_lib.to_str() {
+                lib_search_path.add_directory(path_str);
+            }
+        }
+    }
+    let context_root = std::env::var("HOME")
+        .map(|h| {
+            PathBuf::from(h)
+                .join(".flow")
+                .join("runner")
+                .join("flowrcli")
+        })
+        .unwrap_or_else(|_| PathBuf::from("/"));
+    MetaProvider::new(lib_search_path, context_root)
+}
+
 /// Resolve port info for a single function/flow from its source string.
 ///
 /// If `base_url` is provided, relative source paths are resolved against it.
@@ -1351,25 +1356,7 @@ fn resolve_single_function_ports(
 ) -> (Vec<PortInfo>, Vec<PortInfo>) {
     use flowcore::provider::Provider;
 
-    let mut lib_search_path = Simpath::new_with_separator("FLOW_LIB_PATH", ',');
-    if let Ok(home) = std::env::var("HOME") {
-        let default_lib = PathBuf::from(home).join(".flow").join("lib");
-        if default_lib.exists() {
-            if let Some(path_str) = default_lib.to_str() {
-                lib_search_path.add_directory(path_str);
-            }
-        }
-    }
-
-    let context_root = std::env::var("HOME")
-        .map(|h| {
-            PathBuf::from(h)
-                .join(".flow")
-                .join("runner")
-                .join("flowrcli")
-        })
-        .unwrap_or_else(|_| PathBuf::from("/"));
-    let provider = MetaProvider::new(lib_search_path, context_root);
+    let provider = build_meta_provider();
 
     // Parse the source as a URL; for relative paths, resolve against the base URL
     let source_url = match Url::parse(source) {
