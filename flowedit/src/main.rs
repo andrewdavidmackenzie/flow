@@ -750,6 +750,9 @@ impl FlowEdit {
         };
         save_flow_toml(&self.flow_definition, &self.edges, &flow_path)?;
 
+        // Ensure temp compile file is cleaned up on all paths
+        let _cleanup = TempFileCleanup(&flow_path);
+
         // 2. Set up library search path and meta provider
         let mut lib_search_path = Simpath::new_with_separator("FLOW_LIB_PATH", ',');
         if let Ok(home) = std::env::var("HOME") {
@@ -803,9 +806,6 @@ impl FlowEdit {
             source_urls,
         )
         .map_err(|e| format!("Manifest error: {e}"))?;
-
-        // Clean up the temp compile file (ignore errors)
-        let _ = std::fs::remove_file(&flow_path);
 
         Ok(manifest_path)
     }
@@ -1312,6 +1312,15 @@ fn next_node_position(nodes: &[NodeLayout]) -> (f32, f32) {
 }
 
 /// Format a connection endpoint for display, omitting "default" or empty port names.
+/// RAII guard that deletes a temporary file when dropped.
+struct TempFileCleanup<'a>(&'a Path);
+
+impl Drop for TempFileCleanup<'_> {
+    fn drop(&mut self) {
+        let _ = std::fs::remove_file(self.0);
+    }
+}
+
 fn format_endpoint(node: &str, port: &str) -> String {
     if port.is_empty() || port == "default" || port == "output" {
         node.to_string()
