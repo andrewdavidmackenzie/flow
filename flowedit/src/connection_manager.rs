@@ -200,7 +200,7 @@ fn coordinator(
     )?;
     context_executor.start(
         &provider,
-        1,
+        2,
         &context_job_source_name,
         &results_sink,
         &control_socket,
