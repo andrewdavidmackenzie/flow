@@ -246,60 +246,51 @@ fn execute_job(
     loaded_implementations: &Arc<RwLock<HashMap<Url, Arc<dyn Implementation>>>>,
     loaded_lib_manifests: &Arc<RwLock<HashMap<Url, (LibraryManifest, Url)>>>,
 ) -> Result<bool> {
-    // First try a read lock to find the implementation (allows concurrent execution)
-    let implementation = {
-        let implementations = loaded_implementations
-            .read()
-            .map_err(|_| "Could not gain read access to loaded implementations map")?;
-        implementations.get(&payload.implementation_url).cloned()
-    };
+    // TODO see if we can avoid write access until we know it's needed
+    let mut implementations = loaded_implementations
+        .write()
+        .map_err(|_| "Could not gain read access to loaded implementations map")?;
+    if implementations.get(&payload.implementation_url).is_none() {
+        trace!(
+            "Implementation '{}' is not loaded",
+            payload.implementation_url
+        );
+        let implementation = match payload.implementation_url.scheme() {
+            "lib" => {
+                let mut lib_root_url = payload.implementation_url.clone();
+                lib_root_url.set_path("");
+                load_referenced_implementation(
+                    provider,
+                    &lib_root_url,
+                    loaded_lib_manifests,
+                    &payload.implementation_url,
+                )?
+            }
+            "context" => {
+                let mut lib_root_url = payload.implementation_url.clone();
+                let _ = lib_root_url.set_host(Some(""));
+                lib_root_url.set_path("");
+                load_referenced_implementation(
+                    provider,
+                    &lib_root_url,
+                    loaded_lib_manifests,
+                    &payload.implementation_url,
+                )?
+            }
+            "file" => Arc::new(wasm::load(provider, &payload.implementation_url)?),
+            _ => bail!("Unsupported scheme on implementation_url"),
+        };
+        implementations.insert(payload.implementation_url.clone(), implementation);
+        trace!(
+            "Implementation '{}' added to executor",
+            payload.implementation_url
+        );
+    }
 
-    // If not found, take a write lock to load and insert it
-    let implementation = match implementation {
-        Some(impl_arc) => impl_arc,
-        None => {
-            trace!(
-                "Implementation '{}' is not loaded",
-                payload.implementation_url
-            );
-            let new_impl = match payload.implementation_url.scheme() {
-                "lib" => {
-                    let mut lib_root_url = payload.implementation_url.clone();
-                    lib_root_url.set_path("");
-                    load_referenced_implementation(
-                        provider,
-                        &lib_root_url,
-                        loaded_lib_manifests,
-                        &payload.implementation_url,
-                    )?
-                }
-                "context" => {
-                    let mut lib_root_url = payload.implementation_url.clone();
-                    let _ = lib_root_url.set_host(Some(""));
-                    lib_root_url.set_path("");
-                    load_referenced_implementation(
-                        provider,
-                        &lib_root_url,
-                        loaded_lib_manifests,
-                        &payload.implementation_url,
-                    )?
-                }
-                "file" => Arc::new(wasm::load(provider, &payload.implementation_url)?),
-                _ => bail!("Unsupported scheme on implementation_url"),
-            };
-            let mut implementations = loaded_implementations
-                .write()
-                .map_err(|_| "Could not gain write access to loaded implementations map")?;
-            implementations.insert(payload.implementation_url.clone(), new_impl.clone());
-            trace!(
-                "Implementation '{}' added to executor",
-                payload.implementation_url
-            );
-            new_impl
-        }
-    };
+    let implementation = implementations
+        .get(&payload.implementation_url)
+        .ok_or("Could not find implementation")?;
 
-    // Run the implementation without holding any lock
     trace!("Job #{}: Started executing on '{name}'", payload.job_id);
     let result = implementation.run(&payload.input_set);
     trace!("Job #{}: Finished executing on '{name}'", payload.job_id);

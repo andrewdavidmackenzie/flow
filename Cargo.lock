@@ -1613,24 +1613,14 @@ version = "0.142.0"
 dependencies = [
  "clap",
  "env_logger",
- "error-chain",
  "flowc",
  "flowcore",
- "flowr",
- "flowstdlib",
  "iced",
  "log",
- "mdns-sd",
- "portpicker",
  "rfd",
- "serde",
- "serde_derive",
  "serde_json",
- "serial_test",
  "simpath",
- "tokio",
  "url",
- "zmq",
 ]
 
 [[package]]

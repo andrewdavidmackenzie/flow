@@ -1,6 +1,0 @@
-function = "stderr"
-source = "stderr.rs"
-docs = "stderr.md"
-impure = true
-
-[[input]]

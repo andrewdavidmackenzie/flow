@@ -1,6 +1,0 @@
-function = "stdout"
-source = "stdout.rs"
-docs = "stdout.md"
-impure = true
-
-[[input]]

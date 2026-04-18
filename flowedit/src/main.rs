@@ -32,19 +32,14 @@ use flowcore::model::name::HasName;
 use flowcore::model::process::Process;
 use flowcore::model::process_reference::ProcessReference;
 mod canvas_view;
-mod connection_manager;
-mod context;
-mod gui;
 mod history;
 mod library_panel;
-mod output_panel;
 use canvas_view::{
     build_edge_layouts, build_node_layouts, derive_short_name, CanvasMessage, EdgeLayout,
     FlowCanvasState, NodeLayout, PortInfo,
 };
 use history::{EditAction, EditHistory};
 use library_panel::{LibraryMessage, LibraryTree};
-use output_panel::{OutputMessage, OutputPanel};
 
 /// Messages handled by the flowedit application
 #[derive(Debug, Clone)]
@@ -73,12 +68,6 @@ enum Message {
     New,
     /// Compile the current flow
     Compile,
-    /// Compile and run the current flow
-    Run,
-    /// A message from the output panel
-    Output(OutputMessage),
-    /// A message from the coordinator (stdin requests, flow lifecycle, etc.)
-    CoordinatorSent(gui::coordinator_message::CoordinatorMessage),
 }
 
 /// Top-level application state
@@ -113,12 +102,6 @@ struct FlowEdit {
     flow_definition: FlowDefinition,
     /// Tooltip text and screen position to display (full source path on hover)
     tooltip: Option<(String, f32, f32)>,
-    /// Output panel for stdout/stderr/stdin display
-    output_panel: OutputPanel,
-    /// Sender to the coordinator subscription for sending client responses
-    coordinator_sender: Option<tokio::sync::mpsc::Sender<gui::client_message::ClientMessage>>,
-    /// Whether the coordinator is blocked waiting for stdin input
-    pending_stdin: bool,
     /// Library panel tree for process discovery
     library_tree: LibraryTree,
 }
@@ -202,9 +185,6 @@ impl FlowEdit {
             file_path,
             flow_definition,
             tooltip: None,
-            output_panel: OutputPanel::default(),
-            coordinator_sender: None,
-            pending_stdin: false,
             library_tree,
         };
 
@@ -457,35 +437,6 @@ impl FlowEdit {
                     self.status = e.to_string();
                 }
             },
-            Message::Run => {
-                self.perform_run();
-            }
-            Message::Output(ref output_msg) => {
-                if matches!(output_msg, OutputMessage::StdinEof) {
-                    self.output_panel.update(output_msg);
-                    if self.pending_stdin {
-                        self.pending_stdin = false;
-                        self.send_to_coordinator(gui::client_message::ClientMessage::GetLineEof);
-                    }
-                } else if let Some(line) = self.output_panel.update(output_msg) {
-                    if self.pending_stdin {
-                        self.pending_stdin = false;
-                        self.output_panel.advance_stdin_cursor();
-                        self.send_to_coordinator(gui::client_message::ClientMessage::Line(line));
-                    }
-                }
-            }
-            Message::CoordinatorSent(ref coord_msg) => {
-                use gui::coordinator_message::CoordinatorMessage as CM;
-                if let CM::Connected(ref sender) = coord_msg {
-                    // Handle Connected here, like flowrgui does in update()
-                    self.coordinator_sender = Some(sender.clone());
-                    info!("Connected to coordinator");
-                    self.status = String::from("Coordinator ready");
-                } else {
-                    self.process_coordinator_message(coord_msg.clone());
-                }
-            }
         }
         Task::none()
     }
@@ -576,45 +527,21 @@ impl FlowEdit {
             String::from("  |  saved")
         };
 
-        // Compile button — enabled when there are nodes and not running
+        // Compile button — enabled when there are nodes
         let mut compile_btn = button(Text::new("Compile").size(12).center())
             .style(button::secondary)
             .padding(4);
-        if !self.nodes.is_empty() && !self.output_panel.running {
+        if !self.nodes.is_empty() {
             compile_btn = compile_btn.on_press(Message::Compile);
-        }
-
-        // Run button — enabled after compile with no edits, disabled while running
-        let run_label = if self.output_panel.running {
-            "Running..."
-        } else {
-            "Run"
-        };
-        let mut run_btn = button(Text::new(run_label).size(12).center())
-            .style(
-                if self.compiled_manifest.is_some() && !self.output_panel.running {
-                    button::primary
-                } else {
-                    button::secondary
-                },
-            )
-            .padding(4);
-        if self.compiled_manifest.is_some() && !self.output_panel.running {
-            run_btn = run_btn.on_press(Message::Run);
         }
 
         let status_bar: Row<'_, Message> = Row::new()
             .spacing(8)
             .push(Text::new(format!("{}{}", self.status, edit_indicator)).size(14))
             .push(iced::widget::Space::new().width(Fill))
-            .push(compile_btn)
-            .push(run_btn);
+            .push(compile_btn);
 
         let mut layout = Column::new().push(container(main_content).width(Fill).height(Fill));
-
-        // Output panel — shown after a run or while running
-        // Output panel always visible, like flowrgui's tab set
-        layout = layout.push(self.output_panel.view().map(Message::Output));
 
         layout = layout.push(container(status_bar).width(Fill).padding(5));
         layout.into()
@@ -637,7 +564,6 @@ impl FlowEdit {
                 "o" => Some(Message::Open),
                 "n" => Some(Message::New),
                 "b" => Some(Message::Compile),
-                "r" => Some(Message::Run),
                 "=" | "+" => Some(Message::ZoomIn),
                 "-" => Some(Message::ZoomOut),
                 _ => None,
@@ -645,25 +571,7 @@ impl FlowEdit {
             _ => None,
         });
 
-        // Coordinator subscription is always active, like flowrgui
-        let mut lib_search_path = Simpath::new_with_separator("FLOW_LIB_PATH", ',');
-        if let Ok(home) = std::env::var("HOME") {
-            let default_lib = PathBuf::from(&home).join(".flow").join("lib");
-            if default_lib.exists() {
-                if let Some(path_str) = default_lib.to_str() {
-                    lib_search_path.add_directory(path_str);
-                }
-            }
-        }
-
-        let coordinator_sub = connection_manager::subscribe(connection_manager::ServerSettings {
-            native_flowstdlib: true,
-            num_threads: num_cpus(),
-            lib_search_path,
-        })
-        .map(Message::CoordinatorSent);
-
-        Subscription::batch([keyboard_sub, coordinator_sub])
+        keyboard_sub
     }
 
     /// Record an edit action in the history and increment the unsaved edit count.
@@ -900,165 +808,6 @@ impl FlowEdit {
         let _ = std::fs::remove_file(&flow_path);
 
         Ok(manifest_path)
-    }
-
-    /// Compile the current flow and submit it for execution via the coordinator.
-    ///
-    /// The coordinator runs in a background thread with context functions that
-    /// communicate back to the GUI via ZMQ messages. Output appears in the
-    /// output panel in real time.
-    /// Compile the current flow and submit it for execution via the coordinator.
-    /// Matches flowrgui's submit() pattern.
-    fn perform_run(&mut self) {
-        use flowcore::model::flow_manifest::FlowManifest;
-        use flowcore::model::submission::Submission;
-        use flowcore::provider::Provider;
-
-        // Must be connected to coordinator
-        if self.coordinator_sender.is_none() {
-            self.status = String::from("Coordinator not connected yet - try again");
-            return;
-        }
-
-        // Compile first
-        let manifest_path = match self.perform_compile() {
-            Ok(path) => path,
-            Err(e) => {
-                self.status = format!("Compile failed: {e}");
-                return;
-            }
-        };
-
-        // Load manifest and submit — same as flowrgui's submit()
-        let url = match Url::from_file_path(&manifest_path) {
-            Ok(u) => u,
-            Err(()) => {
-                self.status = format!("Invalid manifest path: {}", manifest_path.display());
-                return;
-            }
-        };
-
-        let provider = &MetaProvider::new(Simpath::new(""), PathBuf::default()) as &dyn Provider;
-
-        match FlowManifest::load(provider, &url) {
-            Ok((flow_manifest, _)) => {
-                let submission = Submission::new(flow_manifest, Some(num_cpus()), None, false);
-
-                self.output_panel.clear_for_run();
-                self.output_panel.visible = true;
-
-                self.send_to_coordinator(gui::client_message::ClientMessage::ClientSubmission(
-                    submission,
-                ));
-                self.status = String::from("Submitted...");
-            }
-            Err(e) => {
-                self.status = format!("Could not load manifest: {e}");
-            }
-        }
-    }
-
-    /// Handle a message from the coordinator.
-    fn process_coordinator_message(
-        &mut self,
-        message: gui::coordinator_message::CoordinatorMessage,
-    ) {
-        use gui::coordinator_message::CoordinatorMessage as CM;
-
-        match message {
-            CM::Connected(_) => {
-                // Handled in update() before dispatch — should not reach here
-                warn!("Unexpected Connected message in process_coordinator_message");
-            }
-            CM::Disconnected(reason) => {
-                warn!("Coordinator disconnected: {reason}");
-                self.coordinator_sender = None;
-                self.output_panel.running = false;
-                self.status = format!("Coordinator disconnected: {reason}");
-            }
-            CM::FlowStart => {
-                info!("Flow execution started");
-                self.output_panel.running = true;
-                self.output_panel.visible = true;
-                self.status = String::from("Running...");
-                self.send_to_coordinator(gui::client_message::ClientMessage::Ack);
-            }
-            CM::FlowEnd(_metrics) => {
-                info!("Flow execution ended");
-                self.output_panel.running = false;
-                self.status = format!(
-                    "Run complete - {} stdout, {} stderr",
-                    self.output_panel.stdout.len(),
-                    self.output_panel.stderr.len()
-                );
-                // No response needed for FlowEnd
-            }
-            CM::Stdout(text) => {
-                self.output_panel.stdout.push(text);
-                self.send_to_coordinator(gui::client_message::ClientMessage::Ack);
-            }
-            CM::Stderr(text) => {
-                self.output_panel.stderr.push(text);
-                self.send_to_coordinator(gui::client_message::ClientMessage::Ack);
-            }
-            CM::StdoutEof | CM::StderrEof => {
-                self.send_to_coordinator(gui::client_message::ClientMessage::Ack);
-            }
-            CM::GetLine(_prompt) => {
-                if let Some(line) = self.output_panel.take_stdin_line() {
-                    self.send_to_coordinator(gui::client_message::ClientMessage::Line(line));
-                } else {
-                    // Don't send EOF — wait for user to type input
-                    self.pending_stdin = true;
-                }
-            }
-            CM::GetStdin => {
-                if let Some(text) = self.output_panel.take_all_stdin() {
-                    self.send_to_coordinator(gui::client_message::ClientMessage::Stdin(text));
-                } else {
-                    self.pending_stdin = true;
-                }
-            }
-            CM::GetArgs => {
-                self.send_to_coordinator(gui::client_message::ClientMessage::Args(Vec::new()));
-            }
-            CM::Read(file_path) => {
-                let response = match std::fs::read(&file_path) {
-                    Ok(bytes) => gui::client_message::ClientMessage::FileContents(file_path, bytes),
-                    Err(e) => gui::client_message::ClientMessage::Error(format!(
-                        "Could not read {file_path}: {e}"
-                    )),
-                };
-                self.send_to_coordinator(response);
-            }
-            CM::Write(filename, bytes) => {
-                let response = match std::fs::write(&filename, &bytes) {
-                    Ok(()) => gui::client_message::ClientMessage::Ack,
-                    Err(e) => gui::client_message::ClientMessage::Error(format!(
-                        "Could not write {filename}: {e}"
-                    )),
-                };
-                self.send_to_coordinator(response);
-            }
-            CM::PixelWrite(_, _, _, _) => {
-                // Image buffer not supported in flowedit yet
-                self.send_to_coordinator(gui::client_message::ClientMessage::Ack);
-            }
-            CM::CoordinatorExiting(_) => {
-                self.coordinator_sender = None;
-                self.output_panel.running = false;
-            }
-            CM::Invalid => {
-                warn!("Received invalid coordinator message");
-            }
-        }
-    }
-
-    /// Send a client message to the coordinator via the tokio channel.
-    fn send_to_coordinator(&self, msg: gui::client_message::ClientMessage) {
-        if let Some(ref sender) = self.coordinator_sender {
-            let _ = sender.try_send(msg);
-        }
     }
 
     /// Add a function from the library panel as a new node on the canvas.
@@ -1569,11 +1318,4 @@ fn format_endpoint(node: &str, port: &str) -> String {
     } else {
         format!("{node}/{port}")
     }
-}
-
-/// Get the number of available CPU cores.
-fn num_cpus() -> usize {
-    std::thread::available_parallelism()
-        .map(|n| n.get())
-        .unwrap_or(4)
 }
