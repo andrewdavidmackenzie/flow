@@ -235,8 +235,8 @@ pub(crate) struct PortInfo {
 }
 
 impl PortInfo {
-    /// Create a new `PortInfo` with a name and no datatype info.
-    pub(crate) fn from_name(name: String) -> Self {
+    #[cfg(test)]
+    fn from_name(name: String) -> Self {
         Self {
             name,
             datatypes: Vec::new(),
@@ -335,11 +335,7 @@ pub(crate) struct EdgeLayout {
 
 /// Build a list of [`NodeLayout`] from process references and connections.
 ///
-/// Ports are derived from three sources (in priority order):
-/// 1. **Resolved port info** from the parsed process definitions (real names and types)
-/// 2. **Initializations** on each `ProcessReference` tell us about inputs with initial values
-/// 3. **Connections** tell us which additional input/output ports each node has
-///
+/// Ports are taken from the resolved definitions loaded for each subprocess.
 /// Layout uses the optional `x`, `y`, `width`, `height` fields from `ProcessReference`,
 /// falling back to auto-grid positioning.
 pub(crate) fn build_node_layouts(
@@ -347,76 +343,18 @@ pub(crate) fn build_node_layouts(
     connections: &[Connection],
     resolved_ports: &HashMap<String, (Vec<PortInfo>, Vec<PortInfo>)>,
 ) -> Vec<NodeLayout> {
-    // First pass: collect ports from connections (used as fallback)
-    let mut node_inputs: HashMap<String, Vec<String>> = HashMap::new();
-    let mut node_outputs: HashMap<String, Vec<String>> = HashMap::new();
-
-    for conn in connections {
-        let from_route = conn.from().to_string();
-        let (from_node, from_port) = split_route(&from_route);
-        let port_name = from_port; // Keep empty for unnamed ports
-        let outputs = node_outputs.entry(from_node).or_default();
-        if !outputs.contains(&port_name) {
-            outputs.push(port_name);
-        }
-
-        for to_route in conn.to() {
-            let to_str = to_route.to_string();
-            let (to_node, to_port) = split_route(&to_str);
-            let port_name = to_port; // Keep empty for unnamed ports
-            let inputs = node_inputs.entry(to_node).or_default();
-            if !inputs.contains(&port_name) {
-                inputs.push(port_name);
-            }
-        }
-    }
-
-    // Always compute topology-based positions as defaults.
-    // Saved positions (pref.x/y) override per-node on lines below.
     let topo_positions = compute_topological_layout(process_refs, connections);
 
-    // Second pass: build node layouts
     let mut nodes = Vec::with_capacity(process_refs.len());
 
     for (i, pref) in process_refs.iter().enumerate() {
-        // Derive alias: use explicit alias, or extract short name from source URL
         let alias = if pref.alias.is_empty() {
             derive_short_name(&pref.source)
         } else {
             pref.alias.to_string()
         };
 
-        // Use resolved port info if available, otherwise fall back to guessing
-        let (inputs, outputs) = if let Some((resolved_inputs, resolved_outputs)) =
-            resolved_ports.get(&alias)
-        {
-            // Start with resolved ports (which have real names and types)
-            let mut inputs = resolved_inputs.clone();
-            // Ensure initializer ports are present even if not in the definition
-            for init_port in pref.initializations.keys() {
-                if !inputs.iter().any(|p| p.name == *init_port) {
-                    inputs.push(PortInfo::from_name(init_port.clone()));
-                }
-            }
-            (inputs, resolved_outputs.clone())
-        } else {
-            // Fall back: merge inputs from initializations and connections
-            let mut input_names: Vec<String> = pref.initializations.keys().cloned().collect();
-            if let Some(conn_inputs) = node_inputs.get(&alias) {
-                for port in conn_inputs {
-                    if !input_names.contains(port) {
-                        input_names.push(port.clone());
-                    }
-                }
-            }
-            let inputs: Vec<PortInfo> = input_names.into_iter().map(PortInfo::from_name).collect();
-
-            // Outputs come from connections only
-            let output_names = node_outputs.get(&alias).cloned().unwrap_or_default();
-            let outputs: Vec<PortInfo> =
-                output_names.into_iter().map(PortInfo::from_name).collect();
-            (inputs, outputs)
-        };
+        let (inputs, outputs) = resolved_ports.get(&alias).cloned().unwrap_or_default();
 
         let min_ports = inputs.len().max(outputs.len());
         let min_height = PORT_START_Y + (min_ports as f32 + 1.0) * PORT_SPACING;
@@ -2093,8 +2031,20 @@ fn check_port_type_compatibility(
 
     match (source_types, target_types) {
         (Some(src), Some(tgt)) => {
-            // If either has no type info, allow the connection
-            if src.datatypes.is_empty() || tgt.datatypes.is_empty() {
+            log::info!(
+                "Type check: src port '{}' types {:?} → tgt port '{}' types {:?}",
+                src.name,
+                src.datatypes,
+                tgt.name,
+                tgt.datatypes
+            );
+            // If either has no type info (empty list or only empty strings),
+            // allow the connection — untyped ports accept anything
+            let src_untyped =
+                src.datatypes.is_empty() || src.datatypes.iter().all(|t| t.is_empty());
+            let tgt_untyped =
+                tgt.datatypes.is_empty() || tgt.datatypes.iter().all(|t| t.is_empty());
+            if src_untyped || tgt_untyped {
                 return true;
             }
             // Check for at least one matching type
@@ -2103,7 +2053,14 @@ fn check_port_type_compatibility(
                 .any(|st| tgt.datatypes.iter().any(|tt| st == tt))
         }
         // Unknown port or no type info — allow
-        _ => true,
+        (src, tgt) => {
+            log::info!(
+                "Type check: src={}, tgt={} — allowing (unknown port)",
+                src.is_some(),
+                tgt.is_some()
+            );
+            true
+        }
     }
 }
 

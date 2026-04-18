@@ -397,6 +397,9 @@ changes, and process additions. Metadata saved correctly.
   alias, the display alias is derived from the source URL, but connection routes may
   use a different name. Need to align alias resolution with flowc's logic so port
   lookups and connection drawing always match.
+- Add UI dialog to add custom library search paths or specific libraries at runtime
+  (the `-L` CLI flag already supports this at startup, but there is no in-app way
+  to add paths during an editing session)
 
 ## 9. Key Design Decisions
 

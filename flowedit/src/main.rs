@@ -20,7 +20,7 @@ use clap::{Arg, Command as ClapCommand};
 use iced::keyboard;
 use iced::widget::{button, container, pick_list, stack, text_input, Column, Row, Text};
 use iced::{Color, Element, Fill, Subscription, Task, Theme};
-use log::{info, warn};
+use log::info;
 use simpath::Simpath;
 use url::Url;
 
@@ -184,12 +184,15 @@ impl FlowEdit {
             }
         }
 
-        // Set FLOW_LIB_PATH so library_panel and compiler can find libraries
-        let path_string = lib_search_path
-            .to_string()
-            .replace(std::path::MAIN_SEPARATOR, ",");
-        if !path_string.is_empty() {
-            std::env::set_var("FLOW_LIB_PATH", &path_string);
+        // Set FLOW_LIB_PATH with any -L additions so other code can find libraries
+        if !lib_dirs.is_empty() {
+            let current = std::env::var("FLOW_LIB_PATH").unwrap_or_default();
+            let additions = lib_dirs.join(",");
+            if current.is_empty() {
+                std::env::set_var("FLOW_LIB_PATH", additions);
+            } else {
+                std::env::set_var("FLOW_LIB_PATH", format!("{current},{additions}"));
+            }
         }
 
         let (flow_name, nodes, edges, status, file_path, flow_definition) =
@@ -993,6 +996,9 @@ impl FlowEdit {
         // Place the new node at a default position offset from existing nodes
         let (x, y) = next_node_position(&self.nodes);
 
+        // Resolve port info from the function definition
+        let (inputs, outputs) = resolve_single_function_ports(source, None);
+
         let node = NodeLayout {
             alias: alias.clone(),
             source: source.to_string(),
@@ -1000,8 +1006,8 @@ impl FlowEdit {
             y,
             width: 180.0,
             height: 120.0,
-            inputs: Vec::new(),
-            outputs: Vec::new(),
+            inputs,
+            outputs,
             initializers: HashMap::new(),
         };
 
@@ -1211,98 +1217,100 @@ impl FlowEdit {
     }
 }
 
-/// Resolve port information for subprocesses by parsing the flow with `flowrclib`.
+/// Resolve port info for a single function/flow from its source string.
 ///
-/// Returns a map from subprocess alias to (inputs, outputs) port info.
-/// If parsing fails, returns an empty map so the caller can fall back to guessing.
-fn resolve_subprocess_ports(url: &Url) -> HashMap<String, (Vec<PortInfo>, Vec<PortInfo>)> {
-    let mut resolved = HashMap::new();
+/// If `base_url` is provided, relative source paths are resolved against it.
+/// For `lib://` and `context://` sources, the base URL is not needed.
+fn resolve_single_function_ports(
+    source: &str,
+    base_url: Option<&Url>,
+) -> (Vec<PortInfo>, Vec<PortInfo>) {
+    use flowcore::provider::Provider;
 
-    // Set up the library search path from FLOW_LIB_PATH, with ~/.flow/lib as default
     let mut lib_search_path = Simpath::new_with_separator("FLOW_LIB_PATH", ',');
     if let Ok(home) = std::env::var("HOME") {
         let default_lib = PathBuf::from(home).join(".flow").join("lib");
         if default_lib.exists() {
             if let Some(path_str) = default_lib.to_str() {
                 lib_search_path.add_directory(path_str);
-                info!("Added default library path: {path_str}");
             }
         }
     }
 
-    let provider = MetaProvider::new(lib_search_path, PathBuf::from("/"));
+    let context_root = std::env::var("HOME")
+        .map(|h| {
+            PathBuf::from(h)
+                .join(".flow")
+                .join("runner")
+                .join("flowrcli")
+        })
+        .unwrap_or_else(|_| PathBuf::from("/"));
+    let provider = MetaProvider::new(lib_search_path, context_root);
 
-    match flowrclib::compiler::parser::parse(url, &provider) {
-        Ok(Process::FlowProcess(flow)) => {
-            info!(
-                "Parsed flow '{}' with {} subprocesses",
-                flow.name,
-                flow.subprocesses.len()
-            );
-            for (alias, subprocess) in &flow.subprocesses {
-                match subprocess {
-                    Process::FunctionProcess(func) => {
-                        let inputs: Vec<PortInfo> = func
-                            .inputs
-                            .iter()
-                            .map(|io| PortInfo {
-                                name: io.name().to_string(),
-                                datatypes: io.datatypes().iter().map(|dt| dt.to_string()).collect(),
-                            })
-                            .collect();
-                        let outputs: Vec<PortInfo> = func
-                            .outputs
-                            .iter()
-                            .map(|io| PortInfo {
-                                name: io.name().to_string(),
-                                datatypes: io.datatypes().iter().map(|dt| dt.to_string()).collect(),
-                            })
-                            .collect();
-                        info!(
-                            "Resolved function '{}': {} inputs, {} outputs",
-                            alias,
-                            inputs.len(),
-                            outputs.len()
-                        );
-                        resolved.insert(alias.clone(), (inputs, outputs));
-                    }
-                    Process::FlowProcess(sub_flow) => {
-                        let inputs: Vec<PortInfo> = sub_flow
-                            .inputs
-                            .iter()
-                            .map(|io| PortInfo {
-                                name: io.name().to_string(),
-                                datatypes: io.datatypes().iter().map(|dt| dt.to_string()).collect(),
-                            })
-                            .collect();
-                        let outputs: Vec<PortInfo> = sub_flow
-                            .outputs
-                            .iter()
-                            .map(|io| PortInfo {
-                                name: io.name().to_string(),
-                                datatypes: io.datatypes().iter().map(|dt| dt.to_string()).collect(),
-                            })
-                            .collect();
-                        info!(
-                            "Resolved sub-flow '{}': {} inputs, {} outputs",
-                            alias,
-                            inputs.len(),
-                            outputs.len()
-                        );
-                        resolved.insert(alias.clone(), (inputs, outputs));
-                    }
+    // Parse the source as a URL; for relative paths, resolve against the base URL
+    let source_url = match Url::parse(source) {
+        Ok(u) => u,
+        Err(_) => {
+            match base_url.and_then(|base| base.join(source).ok()) {
+                Some(u) => u,
+                None => {
+                    info!("resolve_single_function_ports: could not resolve relative source '{source}'");
+                    return (Vec::new(), Vec::new());
                 }
             }
         }
-        Ok(Process::FunctionProcess(_)) => {
-            warn!("Parser returned a FunctionProcess instead of FlowProcess");
-        }
-        Err(e) => {
-            warn!("Could not fully parse flow for port resolution, falling back to guessing: {e}");
-        }
-    }
+    };
 
-    resolved
+    let (resolved_url, _) = match provider.resolve_url(&source_url, "default", &["toml"]) {
+        Ok(r) => r,
+        Err(e) => {
+            info!("resolve_single_function_ports: could not resolve '{source_url}': {e}");
+            return (Vec::new(), Vec::new());
+        }
+    };
+
+    let content_bytes = match provider.get_contents(&resolved_url) {
+        Ok(bytes) => bytes,
+        Err(e) => {
+            info!(
+                "resolve_single_function_ports: could not get contents from '{resolved_url}': {e}"
+            );
+            return (Vec::new(), Vec::new());
+        }
+    };
+    let content = String::from_utf8_lossy(&content_bytes);
+
+    let deserializer = match get::<Process>(&resolved_url) {
+        Ok(d) => d,
+        Err(_) => return (Vec::new(), Vec::new()),
+    };
+
+    match deserializer.deserialize(&content, Some(&resolved_url)) {
+        Ok(Process::FunctionProcess(func)) => extract_ports(&func.inputs, &func.outputs),
+        Ok(Process::FlowProcess(flow)) => extract_ports(&flow.inputs, &flow.outputs),
+        Err(_) => (Vec::new(), Vec::new()),
+    }
+}
+
+fn extract_ports(
+    inputs: &[flowcore::model::io::IO],
+    outputs: &[flowcore::model::io::IO],
+) -> (Vec<PortInfo>, Vec<PortInfo>) {
+    let input_ports = inputs
+        .iter()
+        .map(|io| PortInfo {
+            name: io.name().to_string(),
+            datatypes: io.datatypes().iter().map(|dt| dt.to_string()).collect(),
+        })
+        .collect();
+    let output_ports = outputs
+        .iter()
+        .map(|io| PortInfo {
+            name: io.name().to_string(),
+            datatypes: io.datatypes().iter().map(|dt| dt.to_string()).collect(),
+        })
+        .collect();
+    (input_ports, output_ports)
 }
 
 /// Load a flow definition file and return the flow name, node layouts, edge layouts,
@@ -1333,13 +1341,25 @@ fn load_flow(
 
     match process {
         Process::FlowProcess(flow) => {
-            // Attempt to resolve real port definitions via the full parser
-            let resolved_ports = resolve_subprocess_ports(&url);
-            info!(
-                "Resolved ports for {} of {} subprocesses",
-                resolved_ports.len(),
-                flow.process_refs.len()
-            );
+            // Resolve port definitions for each subprocess by loading its definition
+            let mut resolved_ports = HashMap::new();
+            for pref in &flow.process_refs {
+                let alias = if pref.alias.is_empty() {
+                    derive_short_name(&pref.source)
+                } else {
+                    pref.alias.to_string()
+                };
+                let (inputs, outputs) =
+                    resolve_single_function_ports(&pref.source, Some(&url));
+                info!(
+                    "Resolved '{}' ({}): {} inputs, {} outputs",
+                    alias,
+                    pref.source,
+                    inputs.len(),
+                    outputs.len()
+                );
+                resolved_ports.insert(alias, (inputs, outputs));
+            }
 
             let edges = build_edge_layouts(&flow.connections);
             let nodes =
