@@ -38,22 +38,11 @@ impl SubmissionHandler for CLISubmissionHandler {
     }
 
     fn should_enter_debugger(&mut self) -> Result<bool> {
-        let msg = self
-            .coordinator_connection
-            .lock()
-            .map_err(|_| "Could not lock coordinator connection")?
-            .receive(DONT_WAIT);
-        match msg {
-            Ok(ClientMessage::EnterDebugger) => {
-                debug!("Got EnterDebugger message");
-                Ok(true)
-            }
-            Ok(m) => {
-                debug!("Got {m:?} message");
-                Ok(false)
-            }
-            _ => Ok(false),
-        }
+        // flowedit does not support debugging — never enter debugger.
+        // Must NOT lock the coordinator_connection here, because readline
+        // may be holding it while waiting for user input. Locking would
+        // block the coordinator's main loop.
+        Ok(false)
     }
 
     fn flow_execution_ended(&mut self, state: &RunState, metrics: Metrics) -> Result<()> {

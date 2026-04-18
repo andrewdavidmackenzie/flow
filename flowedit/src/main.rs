@@ -76,7 +76,7 @@ enum Message {
     Run,
     /// A message from the output panel
     Output(OutputMessage),
-    /// A message from the coordinator (stdout, stderr, stdin requests, etc.)
+    /// A message from the coordinator (stdin requests, flow lifecycle, etc.)
     CoordinatorSent(coordinator::coordinator_message::CoordinatorMessage),
 }
 
@@ -990,11 +990,6 @@ impl FlowEdit {
                 self.send_to_coordinator(coordinator::client_message::ClientMessage::Ack);
             }
             CM::GetLine(_prompt) => {
-                info!(
-                    "GetLine: stdin_history has {} lines, cursor at {}",
-                    self.output_panel.stdin_history.len(),
-                    self.output_panel.stdin_cursor()
-                );
                 let msg = match self.output_panel.take_stdin_line() {
                     Some(line) => coordinator::client_message::ClientMessage::Line(line),
                     None => coordinator::client_message::ClientMessage::GetLineEof,

@@ -302,15 +302,41 @@ impl OutputPanel {
 
                 col = col.push(history_area);
 
-                // Text input — always visible, like flowrgui
-                let input = text_input("Enter new line of Standard input", &self.stdin_text)
-                    .on_input(OutputMessage::StdinInput)
-                    .on_submit(OutputMessage::StdinSubmit)
-                    .size(12)
-                    .padding(8)
-                    .width(Fill);
+                // Text input — only active when flow is running
+                let mut input = text_input(
+                    if self.running {
+                        "Type input and press Enter..."
+                    } else {
+                        "Run a flow to enable stdin"
+                    },
+                    &self.stdin_text,
+                )
+                .size(12)
+                .padding(8)
+                .width(Fill);
 
-                col = col.push(input);
+                if self.running {
+                    input = input
+                        .on_input(OutputMessage::StdinInput)
+                        .on_submit(OutputMessage::StdinSubmit);
+                }
+
+                let mut input_row = Row::new().spacing(4).push(input);
+
+                if self.running {
+                    let eof_btn = button(text("Send EOF").size(11).center())
+                        .on_press(OutputMessage::StdinEof)
+                        .style(button::secondary)
+                        .padding(iced::Padding {
+                            top: 6.0,
+                            right: 10.0,
+                            bottom: 6.0,
+                            left: 10.0,
+                        });
+                    input_row = input_row.push(eof_btn);
+                }
+
+                col = col.push(input_row);
             }
         }
 

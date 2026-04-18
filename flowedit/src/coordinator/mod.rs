@@ -28,6 +28,7 @@ pub(crate) mod coordinator_connection;
 pub(crate) mod coordinator_message;
 mod debug_handler;
 mod submission_handler;
+pub(crate) mod test_helper;
 
 pub(crate) use coordinator_connection::CoordinatorConnection;
 

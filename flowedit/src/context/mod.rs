@@ -1,7 +1,4 @@
-//! Context functions for flowedit's flow runner.
-//!
-//! Adapted from flowrgui — these implementations communicate with the GUI
-//! via ZMQ messages through the coordinator connection.
+//! Module of context functions for Cli Flowr Runner
 
 use std::sync::{Arc, Mutex};
 
@@ -13,19 +10,19 @@ use url::Url;
 
 use crate::coordinator::CoordinatorConnection;
 
-pub(crate) mod args;
-pub(crate) mod file;
-pub(crate) mod image;
-pub(crate) mod stdio;
+mod args;
+mod file;
+mod image;
+mod stdio;
 
 /// Return a `LibraryManifest` for the context functions
-pub(crate) fn get_manifest(
+pub fn get_manifest(
     server_connection: Arc<Mutex<CoordinatorConnection>>,
 ) -> Result<LibraryManifest> {
     let metadata = MetaData {
         name: "context".into(),
         version: "0.1.0".into(),
-        description: "context functions for flowedit".into(),
+        description: "context functions for Flowr Cli Runner".into(),
         authors: vec!["Andrew Mackenzie".to_string()],
     };
     let lib_url = Url::parse("context://")?;
@@ -33,49 +30,49 @@ pub(crate) fn get_manifest(
 
     manifest.locators.insert(
         Url::parse("context://args/get")?,
-        Native(Arc::new(args::Get {
+        Native(Arc::new(args::get::Get {
             server_connection: server_connection.clone(),
         })),
     );
     manifest.locators.insert(
         Url::parse("context://file/file_write").chain_err(|| "Could not parse url")?,
-        Native(Arc::new(file::FileWrite {
+        Native(Arc::new(file::file_write::FileWrite {
             server_connection: server_connection.clone(),
         })),
     );
     manifest.locators.insert(
         Url::parse("context://file/file_read").chain_err(|| "Could not parse url")?,
-        Native(Arc::new(file::FileRead {
+        Native(Arc::new(file::file_read::FileRead {
             server_connection: server_connection.clone(),
         })),
     );
     manifest.locators.insert(
         Url::parse("context://image/image_buffer").chain_err(|| "Could not parse url")?,
-        Native(Arc::new(image::ImageBuffer {
+        Native(Arc::new(image::image_buffer::ImageBuffer {
             server_connection: server_connection.clone(),
         })),
     );
     manifest.locators.insert(
         Url::parse("context://stdio/readline").chain_err(|| "Could not parse url")?,
-        Native(Arc::new(stdio::Readline {
+        Native(Arc::new(stdio::readline::Readline {
             server_connection: server_connection.clone(),
         })),
     );
     manifest.locators.insert(
         Url::parse("context://stdio/stdin").chain_err(|| "Could not parse url")?,
-        Native(Arc::new(stdio::Stdin {
+        Native(Arc::new(stdio::stdin::Stdin {
             server_connection: server_connection.clone(),
         })),
     );
     manifest.locators.insert(
         Url::parse("context://stdio/stdout").chain_err(|| "Could not parse url")?,
-        Native(Arc::new(stdio::Stdout {
+        Native(Arc::new(stdio::stdout::Stdout {
             server_connection: server_connection.clone(),
         })),
     );
     manifest.locators.insert(
         Url::parse("context://stdio/stderr").chain_err(|| "Could not parse url")?,
-        Native(Arc::new(stdio::Stderr { server_connection })),
+        Native(Arc::new(stdio::stderr::Stderr { server_connection })),
     );
 
     Ok(manifest)
