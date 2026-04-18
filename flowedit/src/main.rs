@@ -16,7 +16,7 @@
 use std::collections::{BTreeMap, HashMap};
 use std::path::{Path, PathBuf};
 
-use clap::{Arg, Command as ClapCommand};
+use clap::{Arg, ArgAction, Command as ClapCommand};
 use iced::keyboard;
 use iced::widget::{button, container, pick_list, stack, text_input, Column, Row, Text};
 use iced::{Color, Element, Fill, Subscription, Task, Theme};
@@ -155,8 +155,8 @@ impl FlowEdit {
                 Arg::new("lib_dir")
                     .short('L')
                     .long("libdir")
-                    .num_args(0..)
-                    .number_of_values(1)
+                    .num_args(1)
+                    .action(ArgAction::Append)
                     .value_name("LIB_DIR")
                     .help("Add a directory to the Library Search path"),
             )
@@ -441,20 +441,34 @@ impl FlowEdit {
                     self.status = format!("Zoom: {pct}%");
                 }
                 CanvasMessage::InitializerEdit(node_idx, port_name) => {
-                    // Look up current initializer value
-                    let (init_type, value_text) = self
+                    // Look up current initializer from the model (flow definition)
+                    let alias = self
                         .nodes
                         .get(node_idx)
-                        .and_then(|n| n.initializers.get(&port_name))
-                        .map(|display| {
-                            // Parse "once: value" or "always: value"
-                            if let Some(val) = display.strip_prefix("once: ") {
-                                ("once".to_string(), val.to_string())
-                            } else if let Some(val) = display.strip_prefix("always: ") {
-                                ("always".to_string(), val.to_string())
+                        .map(|n| n.alias.clone())
+                        .unwrap_or_default();
+                    let (init_type, value_text) = self
+                        .flow_definition
+                        .process_refs
+                        .iter()
+                        .find(|pr| {
+                            let pr_alias = if pr.alias.is_empty() {
+                                derive_short_name(&pr.source)
                             } else {
-                                ("once".to_string(), display.clone())
-                            }
+                                pr.alias.to_string()
+                            };
+                            pr_alias == alias
+                        })
+                        .and_then(|pr| pr.initializations.get(&port_name))
+                        .map(|init| match init {
+                            InputInitializer::Once(v) => (
+                                "once".to_string(),
+                                serde_json::to_string(v).unwrap_or_default(),
+                            ),
+                            InputInitializer::Always(v) => (
+                                "always".to_string(),
+                                serde_json::to_string(v).unwrap_or_default(),
+                            ),
                         })
                         .unwrap_or_else(|| ("none".to_string(), String::new()));
 
@@ -810,6 +824,21 @@ impl FlowEdit {
                     self.edges.insert(index, edge);
                     self.status = String::from("Undo: delete connection");
                 }
+                EditAction::EditInitializer {
+                    node_index,
+                    ref port_name,
+                    ref old_init,
+                    ref old_display,
+                    ..
+                } => {
+                    self.apply_initializer_state(
+                        node_index,
+                        port_name,
+                        old_init.as_ref(),
+                        old_display.as_ref(),
+                    );
+                    self.status = String::from("Undo: initializer");
+                }
             }
             self.canvas_state.request_redraw();
         }
@@ -1046,13 +1075,49 @@ impl FlowEdit {
 
     /// Apply an initializer edit to the flow definition and update the node display.
     fn apply_initializer_edit(&mut self, editor: &InitializerEditor) {
-        // Find the process reference by node alias
         let alias = self
             .nodes
             .get(editor.node_index)
             .map(|n| n.alias.clone())
             .unwrap_or_default();
 
+        // Capture old state for undo
+        let old_init = self
+            .flow_definition
+            .process_refs
+            .iter()
+            .find(|pr| {
+                let pr_alias = if pr.alias.is_empty() {
+                    derive_short_name(&pr.source)
+                } else {
+                    pr.alias.to_string()
+                };
+                pr_alias == alias
+            })
+            .and_then(|pr| pr.initializations.get(&editor.port_name).cloned());
+        let old_display = self
+            .nodes
+            .get(editor.node_index)
+            .and_then(|n| n.initializers.get(&editor.port_name).cloned());
+
+        // Compute new initializer and display
+        let (new_init, new_display) = match editor.init_type.as_str() {
+            "none" => (None, None),
+            "once" | "always" => {
+                let value = serde_json::from_str(&editor.value_text)
+                    .unwrap_or_else(|_| serde_json::Value::String(editor.value_text.clone()));
+                let init = if editor.init_type == "once" {
+                    InputInitializer::Once(value)
+                } else {
+                    InputInitializer::Always(value)
+                };
+                let display = format!("{}: {}", editor.init_type, editor.value_text);
+                (Some(init), Some(display))
+            }
+            _ => return,
+        };
+
+        // Apply to model
         if let Some(pref) = self.flow_definition.process_refs.iter_mut().find(|pr| {
             let pr_alias = if pr.alias.is_empty() {
                 derive_short_name(&pr.source)
@@ -1061,39 +1126,38 @@ impl FlowEdit {
             };
             pr_alias == alias
         }) {
-            match editor.init_type.as_str() {
-                "none" => {
+            match &new_init {
+                Some(init) => {
+                    pref.initializations
+                        .insert(editor.port_name.clone(), init.clone());
+                }
+                None => {
                     pref.initializations.remove(&editor.port_name);
                 }
-                "once" | "always" => {
-                    // Parse the value as JSON, falling back to string
-                    let value = serde_json::from_str(&editor.value_text)
-                        .unwrap_or_else(|_| serde_json::Value::String(editor.value_text.clone()));
-                    let init = if editor.init_type == "once" {
-                        InputInitializer::Once(value)
-                    } else {
-                        InputInitializer::Always(value)
-                    };
-                    pref.initializations.insert(editor.port_name.clone(), init);
-                }
-                _ => {}
             }
         }
 
-        // Update the node's initializer display
+        // Apply to display
         if let Some(node) = self.nodes.get_mut(editor.node_index) {
-            match editor.init_type.as_str() {
-                "none" => {
+            match &new_display {
+                Some(display) => {
+                    node.initializers
+                        .insert(editor.port_name.clone(), display.clone());
+                }
+                None => {
                     node.initializers.remove(&editor.port_name);
                 }
-                "once" | "always" => {
-                    let display = format!("{}: {}", editor.init_type, editor.value_text);
-                    node.initializers.insert(editor.port_name.clone(), display);
-                }
-                _ => {}
             }
         }
 
+        self.history.record(EditAction::EditInitializer {
+            node_index: editor.node_index,
+            port_name: editor.port_name.clone(),
+            old_init,
+            old_display,
+            new_init,
+            new_display,
+        });
         self.unsaved_edits += 1;
         self.compiled_manifest = None;
         self.canvas_state.request_redraw();
@@ -1211,8 +1275,68 @@ impl FlowEdit {
                     }
                     self.status = String::from("Redo: delete connection");
                 }
+                EditAction::EditInitializer {
+                    node_index,
+                    ref port_name,
+                    ref new_init,
+                    ref new_display,
+                    ..
+                } => {
+                    self.apply_initializer_state(
+                        node_index,
+                        port_name,
+                        new_init.as_ref(),
+                        new_display.as_ref(),
+                    );
+                    self.status = String::from("Redo: initializer");
+                }
             }
             self.canvas_state.request_redraw();
+        }
+    }
+
+    /// Apply an initializer state to both the model and display.
+    fn apply_initializer_state(
+        &mut self,
+        node_index: usize,
+        port_name: &str,
+        init: Option<&InputInitializer>,
+        display: Option<&String>,
+    ) {
+        let alias = self
+            .nodes
+            .get(node_index)
+            .map(|n| n.alias.clone())
+            .unwrap_or_default();
+
+        if let Some(pref) = self.flow_definition.process_refs.iter_mut().find(|pr| {
+            let pr_alias = if pr.alias.is_empty() {
+                derive_short_name(&pr.source)
+            } else {
+                pr.alias.to_string()
+            };
+            pr_alias == alias
+        }) {
+            match init {
+                Some(i) => {
+                    pref.initializations
+                        .insert(port_name.to_string(), i.clone());
+                }
+                None => {
+                    pref.initializations.remove(port_name);
+                }
+            }
+        }
+
+        if let Some(node) = self.nodes.get_mut(node_index) {
+            match display {
+                Some(d) => {
+                    node.initializers.insert(port_name.to_string(), d.clone());
+                }
+                None => {
+                    node.initializers.remove(port_name);
+                }
+            }
         }
     }
 }
@@ -1559,8 +1683,6 @@ fn next_node_position(nodes: &[NodeLayout]) -> (f32, f32) {
     (max_right + 50.0, 100.0)
 }
 
-/// Format a connection endpoint for display, omitting "default" or empty port names.
-/// RAII guard that deletes a temporary file when dropped.
 struct TempFileCleanup<'a>(&'a Path);
 
 impl Drop for TempFileCleanup<'_> {
@@ -1569,6 +1691,7 @@ impl Drop for TempFileCleanup<'_> {
     }
 }
 
+/// Format a connection endpoint for display, omitting "default" or empty port names.
 fn format_endpoint(node: &str, port: &str) -> String {
     if port.is_empty() || port == "default" || port == "output" {
         node.to_string()

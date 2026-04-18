@@ -4,6 +4,8 @@
 //! information to both undo and redo the operation. The history is lost
 //! when the application exits.
 
+use flowcore::model::input::InputInitializer;
+
 use crate::canvas_view::{EdgeLayout, NodeLayout};
 
 /// An editing action that can be undone and redone.
@@ -63,6 +65,21 @@ pub(crate) enum EditAction {
         index: usize,
         /// The deleted edge
         edge: EdgeLayout,
+    },
+    /// An input initializer was changed.
+    EditInitializer {
+        /// Node index
+        node_index: usize,
+        /// Port name
+        port_name: String,
+        /// Previous initializer (None if there was none)
+        old_init: Option<InputInitializer>,
+        /// Previous display string (None if there was none)
+        old_display: Option<String>,
+        /// New initializer (None if removed)
+        new_init: Option<InputInitializer>,
+        /// New display string (None if removed)
+        new_display: Option<String>,
     },
 }
 
