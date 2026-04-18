@@ -1327,31 +1327,45 @@ impl canvas::Program<CanvasMessage> for FlowCanvas<'_> {
                         // Must connect output→input or input→output
                         if connecting.from_output != target_is_output {
                             if let Some(target_node) = self.nodes.get(target_idx) {
-                                let (from_node, from_port, to_node, to_port) =
-                                    if connecting.from_output {
-                                        (
-                                            connecting.from_node,
-                                            connecting.from_port,
-                                            target_node.alias.clone(),
-                                            target_port,
-                                        )
-                                    } else {
-                                        (
-                                            target_node.alias.clone(),
-                                            target_port,
-                                            connecting.from_node,
-                                            connecting.from_port,
-                                        )
-                                    };
-                                return Some(
-                                    canvas::Action::publish(CanvasMessage::ConnectionCreated {
-                                        from_node,
-                                        from_port,
-                                        to_node,
-                                        to_port,
-                                    })
-                                    .and_capture(),
+                                // Check type compatibility before creating connection
+                                let source_node =
+                                    self.nodes.iter().find(|n| n.alias == connecting.from_node);
+                                let types_ok = check_port_type_compatibility(
+                                    source_node,
+                                    &connecting.from_port,
+                                    connecting.from_output,
+                                    target_node,
+                                    &target_port,
+                                    target_is_output,
                                 );
+
+                                if types_ok {
+                                    let (from_node, from_port, to_node, to_port) =
+                                        if connecting.from_output {
+                                            (
+                                                connecting.from_node,
+                                                connecting.from_port,
+                                                target_node.alias.clone(),
+                                                target_port,
+                                            )
+                                        } else {
+                                            (
+                                                target_node.alias.clone(),
+                                                target_port,
+                                                connecting.from_node,
+                                                connecting.from_port,
+                                            )
+                                        };
+                                    return Some(
+                                        canvas::Action::publish(CanvasMessage::ConnectionCreated {
+                                            from_node,
+                                            from_port,
+                                            to_node,
+                                            to_port,
+                                        })
+                                        .and_capture(),
+                                    );
+                                }
                             }
                         }
                     }
@@ -2043,6 +2057,53 @@ fn truncate_source(source: &str, max_len: usize) -> String {
         let mut truncated = source.get(..end).unwrap_or(source).to_string();
         truncated.push_str("...");
         truncated
+    }
+}
+
+/// Check if the types of two ports are compatible for a connection.
+///
+/// Returns true if:
+/// - Either port has no type info (unknown types are assumed compatible)
+/// - At least one type from the source port matches a type on the destination port
+fn check_port_type_compatibility(
+    source_node: Option<&NodeLayout>,
+    source_port: &str,
+    source_is_output: bool,
+    target_node: &NodeLayout,
+    target_port: &str,
+    target_is_output: bool,
+) -> bool {
+    let source_types = source_node.and_then(|n| {
+        let ports = if source_is_output {
+            &n.outputs
+        } else {
+            &n.inputs
+        };
+        ports.iter().find(|p| p.name == source_port)
+    });
+
+    let target_types = {
+        let ports = if target_is_output {
+            &target_node.outputs
+        } else {
+            &target_node.inputs
+        };
+        ports.iter().find(|p| p.name == target_port)
+    };
+
+    match (source_types, target_types) {
+        (Some(src), Some(tgt)) => {
+            // If either has no type info, allow the connection
+            if src.datatypes.is_empty() || tgt.datatypes.is_empty() {
+                return true;
+            }
+            // Check for at least one matching type
+            src.datatypes
+                .iter()
+                .any(|st| tgt.datatypes.iter().any(|tt| st == tt))
+        }
+        // Unknown port or no type info — allow
+        _ => true,
     }
 }
 
