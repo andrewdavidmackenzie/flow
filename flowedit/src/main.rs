@@ -151,7 +151,46 @@ impl FlowEdit {
                     .required(false)
                     .help("Path to the flow definition file (.toml, .yaml, or .json)"),
             )
+            .arg(
+                Arg::new("lib_dir")
+                    .short('L')
+                    .long("libdir")
+                    .num_args(0..)
+                    .number_of_values(1)
+                    .value_name("LIB_DIR")
+                    .help("Add a directory to the Library Search path"),
+            )
             .get_matches();
+
+        // Collect -L library directories, same as flowrgui
+        let lib_dirs: Vec<String> = if matches.contains_id("lib_dir") {
+            matches
+                .get_many::<String>("lib_dir")
+                .map(|dirs| dirs.map(std::string::ToString::to_string).collect())
+                .unwrap_or_default()
+        } else {
+            vec![]
+        };
+
+        // Build the library search path from FLOW_LIB_PATH + -L args
+        let mut lib_search_path = Simpath::new_with_separator("FLOW_LIB_PATH", ',');
+        for addition in &lib_dirs {
+            lib_search_path.add(addition);
+            info!("'{addition}' added to the Library Search Path");
+        }
+        if lib_search_path.is_empty() {
+            if let Ok(home) = std::env::var("HOME") {
+                lib_search_path.add(&format!("{home}/.flow/lib"));
+            }
+        }
+
+        // Set FLOW_LIB_PATH so library_panel and compiler can find libraries
+        let path_string = lib_search_path
+            .to_string()
+            .replace(std::path::MAIN_SEPARATOR, ",");
+        if !path_string.is_empty() {
+            std::env::set_var("FLOW_LIB_PATH", &path_string);
+        }
 
         let (flow_name, nodes, edges, status, file_path, flow_definition) =
             if let Some(flow_path_str) = matches.get_one::<String>("flow-file") {
