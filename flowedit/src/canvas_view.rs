@@ -72,6 +72,9 @@ pub(crate) enum CanvasMessage {
     ConnectionSelected(Option<usize>),
     /// A connection should be deleted.
     ConnectionDeleted(usize),
+    /// Right-click on an input port to edit its initializer.
+    /// (node_index, port_name)
+    InitializerEdit(usize, String),
     /// Pan the canvas by a world-space delta.
     Pan(f32, f32),
     /// Zoom the canvas by a multiplicative factor.
@@ -1192,6 +1195,23 @@ impl canvas::Program<CanvasMessage> for FlowCanvas<'_> {
                     state.dragging = None;
                     Some(canvas::Action::publish(CanvasMessage::Selected(None)).and_capture())
                 }
+            }
+
+            // Right mouse button pressed — edit initializer on input port
+            Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Right)) => {
+                if let Some((node_idx, port_name, is_output)) =
+                    hit_test_port(self.nodes, cursor_position, zoom, offset)
+                {
+                    if !is_output {
+                        return Some(
+                            canvas::Action::publish(CanvasMessage::InitializerEdit(
+                                node_idx, port_name,
+                            ))
+                            .and_capture(),
+                        );
+                    }
+                }
+                None
             }
 
             // Middle mouse button pressed — start panning

@@ -18,7 +18,7 @@ use std::path::{Path, PathBuf};
 
 use clap::{Arg, Command as ClapCommand};
 use iced::keyboard;
-use iced::widget::{button, container, stack, Column, Row, Text};
+use iced::widget::{button, container, pick_list, stack, text_input, Column, Row, Text};
 use iced::{Color, Element, Fill, Subscription, Task, Theme};
 use log::{info, warn};
 use simpath::Simpath;
@@ -68,6 +68,26 @@ enum Message {
     New,
     /// Compile the current flow
     Compile,
+    /// Initializer type changed in the editor dialog
+    InitializerTypeChanged(String),
+    /// Initializer value changed in the editor dialog
+    InitializerValueChanged(String),
+    /// Apply the initializer edit
+    InitializerApply,
+    /// Cancel the initializer edit
+    InitializerCancel,
+}
+
+/// State for the initializer editing dialog.
+struct InitializerEditor {
+    /// Index of the node being edited
+    node_index: usize,
+    /// Name of the input port being edited
+    port_name: String,
+    /// Selected type: "none", "once", or "always"
+    init_type: String,
+    /// The value as a string (JSON)
+    value_text: String,
 }
 
 /// Top-level application state
@@ -102,6 +122,8 @@ struct FlowEdit {
     flow_definition: FlowDefinition,
     /// Tooltip text and screen position to display (full source path on hover)
     tooltip: Option<(String, f32, f32)>,
+    /// Active initializer editor dialog, if any
+    initializer_editor: Option<InitializerEditor>,
     /// Library panel tree for process discovery
     library_tree: LibraryTree,
 }
@@ -185,6 +207,7 @@ impl FlowEdit {
             file_path,
             flow_definition,
             tooltip: None,
+            initializer_editor: None,
             library_tree,
         };
 
@@ -375,6 +398,31 @@ impl FlowEdit {
                     let pct = (self.canvas_state.zoom * 100.0) as u32;
                     self.status = format!("Zoom: {pct}%");
                 }
+                CanvasMessage::InitializerEdit(node_idx, port_name) => {
+                    // Look up current initializer value
+                    let (init_type, value_text) = self
+                        .nodes
+                        .get(node_idx)
+                        .and_then(|n| n.initializers.get(&port_name))
+                        .map(|display| {
+                            // Parse "once: value" or "always: value"
+                            if let Some(val) = display.strip_prefix("once: ") {
+                                ("once".to_string(), val.to_string())
+                            } else if let Some(val) = display.strip_prefix("always: ") {
+                                ("always".to_string(), val.to_string())
+                            } else {
+                                ("once".to_string(), display.clone())
+                            }
+                        })
+                        .unwrap_or_else(|| ("none".to_string(), String::new()));
+
+                    self.initializer_editor = Some(InitializerEditor {
+                        node_index: node_idx,
+                        port_name,
+                        init_type,
+                        value_text,
+                    });
+                }
             },
             Message::Library(ref lib_msg) => {
                 if let Some((source, func_name)) = self.library_tree.update(lib_msg) {
@@ -437,6 +485,24 @@ impl FlowEdit {
                     self.status = e.to_string();
                 }
             },
+            Message::InitializerTypeChanged(new_type) => {
+                if let Some(ref mut editor) = self.initializer_editor {
+                    editor.init_type = new_type;
+                }
+            }
+            Message::InitializerValueChanged(new_value) => {
+                if let Some(ref mut editor) = self.initializer_editor {
+                    editor.value_text = new_value;
+                }
+            }
+            Message::InitializerApply => {
+                if let Some(editor) = self.initializer_editor.take() {
+                    self.apply_initializer_edit(&editor);
+                }
+            }
+            Message::InitializerCancel => {
+                self.initializer_editor = None;
+            }
         }
         Task::none()
     }
@@ -488,7 +554,9 @@ impl FlowEdit {
         .align_bottom(Fill)
         .padding(10);
 
-        let canvas_with_controls = if let Some((ref tip_text, tx, ty)) = self.tooltip {
+        let mut canvas_stack: Vec<Element<'_, Message>> = vec![canvas.into(), zoom_controls.into()];
+
+        if let Some((ref tip_text, tx, ty)) = self.tooltip {
             let tooltip_widget = container(
                 container(Text::new(tip_text.clone()).size(20).color(Color::WHITE))
                     .padding(8)
@@ -510,10 +578,75 @@ impl FlowEdit {
                 bottom: 0.0,
                 left: tx + 16.0,
             });
-            stack![canvas, zoom_controls, tooltip_widget]
-        } else {
-            stack![canvas, zoom_controls]
-        };
+            canvas_stack.push(tooltip_widget.into());
+        }
+
+        // Initializer editor dialog overlay
+        if let Some(ref editor) = self.initializer_editor {
+            let port_label = if let Some(node) = self.nodes.get(editor.node_index) {
+                format!("{}/{}", node.alias, editor.port_name)
+            } else {
+                editor.port_name.clone()
+            };
+
+            let init_types = vec!["none", "once", "always"];
+            let selected: Option<&str> =
+                init_types.iter().find(|&&t| t == editor.init_type).copied();
+
+            let mut dialog_col = Column::new()
+                .spacing(8)
+                .padding(12)
+                .push(Text::new(format!("Initializer: {port_label}")).size(14))
+                .push(
+                    pick_list(init_types, selected, |s: &str| {
+                        Message::InitializerTypeChanged(s.to_string())
+                    })
+                    .text_size(12),
+                );
+
+            if editor.init_type != "none" {
+                dialog_col = dialog_col.push(
+                    text_input("JSON value (e.g. 42, \"hello\", true)", &editor.value_text)
+                        .on_input(Message::InitializerValueChanged)
+                        .size(12)
+                        .padding(6),
+                );
+            }
+
+            dialog_col = dialog_col.push(
+                Row::new()
+                    .spacing(8)
+                    .push(
+                        button(Text::new("Apply").size(12).center())
+                            .on_press(Message::InitializerApply)
+                            .style(button::primary)
+                            .padding(6),
+                    )
+                    .push(
+                        button(Text::new("Cancel").size(12).center())
+                            .on_press(Message::InitializerCancel)
+                            .style(button::secondary)
+                            .padding(6),
+                    ),
+            );
+
+            let dialog = container(container(dialog_col).width(280).style(|_theme: &Theme| {
+                container::Style {
+                    background: Some(iced::Background::Color(Color::from_rgb(0.15, 0.15, 0.15))),
+                    border: iced::Border {
+                        color: Color::from_rgb(0.4, 0.4, 0.4),
+                        width: 1.0,
+                        radius: 8.0.into(),
+                    },
+                    ..Default::default()
+                }
+            }))
+            .center(Fill);
+
+            canvas_stack.push(dialog.into());
+        }
+
+        let canvas_with_controls = stack(canvas_stack);
 
         let library_panel = self.library_tree.view().map(Message::Library);
 
@@ -864,6 +997,62 @@ impl FlowEdit {
         }
         let nc = self.nodes.len();
         self.status = format!("Added {alias} from library - {nc} nodes");
+    }
+
+    /// Apply an initializer edit to the flow definition and update the node display.
+    fn apply_initializer_edit(&mut self, editor: &InitializerEditor) {
+        // Find the process reference by node alias
+        let alias = self
+            .nodes
+            .get(editor.node_index)
+            .map(|n| n.alias.clone())
+            .unwrap_or_default();
+
+        if let Some(pref) = self.flow_definition.process_refs.iter_mut().find(|pr| {
+            let pr_alias = if pr.alias.is_empty() {
+                derive_short_name(&pr.source)
+            } else {
+                pr.alias.to_string()
+            };
+            pr_alias == alias
+        }) {
+            match editor.init_type.as_str() {
+                "none" => {
+                    pref.initializations.remove(&editor.port_name);
+                }
+                "once" | "always" => {
+                    // Parse the value as JSON, falling back to string
+                    let value = serde_json::from_str(&editor.value_text)
+                        .unwrap_or_else(|_| serde_json::Value::String(editor.value_text.clone()));
+                    let init = if editor.init_type == "once" {
+                        InputInitializer::Once(value)
+                    } else {
+                        InputInitializer::Always(value)
+                    };
+                    pref.initializations.insert(editor.port_name.clone(), init);
+                }
+                _ => {}
+            }
+        }
+
+        // Update the node's initializer display
+        if let Some(node) = self.nodes.get_mut(editor.node_index) {
+            match editor.init_type.as_str() {
+                "none" => {
+                    node.initializers.remove(&editor.port_name);
+                }
+                "once" | "always" => {
+                    let display = format!("{}: {}", editor.init_type, editor.value_text);
+                    node.initializers.insert(editor.port_name.clone(), display);
+                }
+                _ => {}
+            }
+        }
+
+        self.unsaved_edits += 1;
+        self.compiled_manifest = None;
+        self.canvas_state.request_redraw();
+        self.status = format!("Initializer updated on {}/{}", alias, editor.port_name);
     }
 
     /// Synchronize the in-memory `FlowDefinition` with the current editor state
