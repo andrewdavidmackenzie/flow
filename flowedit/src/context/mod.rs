@@ -8,15 +8,15 @@ use flowcore::model::lib_manifest::LibraryManifest;
 use flowcore::model::metadata::MetaData;
 use url::Url;
 
-use crate::coordinator::CoordinatorConnection;
+use crate::gui::coordinator_connection::CoordinatorConnection;
 
-mod args;
-mod file;
-mod image;
-mod stdio;
+pub(crate) mod args;
+pub(crate) mod file;
+pub(crate) mod image;
+pub(crate) mod stdio;
 
 /// Return a `LibraryManifest` for the context functions
-pub fn get_manifest(
+pub(crate) fn get_manifest(
     server_connection: Arc<Mutex<CoordinatorConnection>>,
 ) -> Result<LibraryManifest> {
     let metadata = MetaData {

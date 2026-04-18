@@ -1,0 +1,12 @@
+function = "file_write"
+source = "file_write.rs"
+docs = "file_write.md"
+impure = true
+
+[[input]]
+name = "filename"
+type = "string"
+
+[[input]]
+name = "bytes"
+type = "array/number"

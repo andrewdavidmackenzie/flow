@@ -13,7 +13,7 @@ use flowrlib::job::Job;
 use flowrlib::run_state::{RunState, State};
 use serde_json::Value;
 
-use crate::coordinator::coordinator_connection::CoordinatorConnection;
+use crate::gui::coordinator_connection::CoordinatorConnection;
 
 /// A no-op debug handler — flowedit does not support debugging yet.
 pub(crate) struct NoOpDebugHandler {

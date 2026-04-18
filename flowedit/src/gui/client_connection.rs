@@ -5,7 +5,7 @@ pub use flowrlib::discovery::discover_service;
 use log::{info, trace};
 use zmq::Socket;
 
-use crate::coordinator::coordinator_connection::WAIT;
+use crate::gui::coordinator_connection::WAIT;
 
 /// Client side of the client/coordinator connection (ZMQ REQ socket)
 pub struct ClientConnection {

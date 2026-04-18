@@ -8,10 +8,10 @@ use flowrlib::run_state::RunState;
 use flowrlib::submission_handler::SubmissionHandler;
 use log::{debug, error, info, trace};
 
-use crate::coordinator::client_message::ClientMessage;
-use crate::coordinator::coordinator_connection::{DONT_WAIT, WAIT};
-use crate::coordinator::coordinator_message::CoordinatorMessage;
-use crate::coordinator::CoordinatorConnection;
+use crate::gui::client_message::ClientMessage;
+use crate::gui::coordinator_connection::CoordinatorConnection;
+use crate::gui::coordinator_connection::{DONT_WAIT, WAIT};
+use crate::gui::coordinator_message::CoordinatorMessage;
 
 /// Submission handler for flowedit
 pub(crate) struct CLISubmissionHandler {

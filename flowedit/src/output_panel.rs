@@ -78,7 +78,7 @@ impl OutputPanel {
         // Don't clear stdin_history — allow pre-typing input before running
         self.stdin_cursor = 0;
         self.stdin_text.clear();
-        self.active_tab = OutputTab::Stdout;
+        // Don't switch tabs — keep the user's current tab selection
     }
 
     /// Take the next unconsumed stdin line (for GetLine requests from coordinator).
@@ -140,6 +140,11 @@ impl OutputPanel {
                 }
                 let line = self.stdin_text.clone();
                 self.stdin_history.push(line.clone());
+                log::info!(
+                    "Stdin: added '{}' to history, now {} lines",
+                    line,
+                    self.stdin_history.len()
+                );
                 self.stdin_text.clear();
                 Some(line)
             }
@@ -302,24 +307,13 @@ impl OutputPanel {
 
                 col = col.push(history_area);
 
-                // Text input — only active when flow is running
-                let mut input = text_input(
-                    if self.running {
-                        "Type input and press Enter..."
-                    } else {
-                        "Run a flow to enable stdin"
-                    },
-                    &self.stdin_text,
-                )
-                .size(12)
-                .padding(8)
-                .width(Fill);
-
-                if self.running {
-                    input = input
-                        .on_input(OutputMessage::StdinInput)
-                        .on_submit(OutputMessage::StdinSubmit);
-                }
+                // Text input — always active, like flowrgui
+                let input = text_input("Enter new line of Standard input", &self.stdin_text)
+                    .on_input(OutputMessage::StdinInput)
+                    .on_submit(OutputMessage::StdinSubmit)
+                    .size(12)
+                    .padding(8)
+                    .width(Fill);
 
                 let mut input_row = Row::new().spacing(4).push(input);
 
@@ -395,7 +389,8 @@ mod test {
         assert_eq!(panel.stdin_history.len(), 1);
         assert_eq!(panel.stdin_cursor, 0); // cursor reset
         assert!(panel.stdin_text.is_empty());
-        assert_eq!(panel.active_tab, OutputTab::Stdout);
+        // active_tab is NOT reset — preserves user's tab selection
+        assert_eq!(panel.active_tab, OutputTab::Stderr);
     }
 
     #[test]

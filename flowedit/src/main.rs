@@ -32,8 +32,9 @@ use flowcore::model::name::HasName;
 use flowcore::model::process::Process;
 use flowcore::model::process_reference::ProcessReference;
 mod canvas_view;
+mod connection_manager;
 mod context;
-mod coordinator;
+mod gui;
 mod history;
 mod library_panel;
 mod output_panel;
@@ -77,7 +78,7 @@ enum Message {
     /// A message from the output panel
     Output(OutputMessage),
     /// A message from the coordinator (stdin requests, flow lifecycle, etc.)
-    CoordinatorSent(coordinator::coordinator_message::CoordinatorMessage),
+    CoordinatorSent(gui::coordinator_message::CoordinatorMessage),
 }
 
 /// Top-level application state
@@ -115,8 +116,9 @@ struct FlowEdit {
     /// Output panel for stdout/stderr/stdin display
     output_panel: OutputPanel,
     /// Sender to the coordinator subscription for sending client responses
-    coordinator_sender:
-        Option<tokio::sync::mpsc::Sender<coordinator::client_message::ClientMessage>>,
+    coordinator_sender: Option<tokio::sync::mpsc::Sender<gui::client_message::ClientMessage>>,
+    /// Whether the coordinator is blocked waiting for stdin input
+    pending_stdin: bool,
     /// Library panel tree for process discovery
     library_tree: LibraryTree,
 }
@@ -202,6 +204,7 @@ impl FlowEdit {
             tooltip: None,
             output_panel: OutputPanel::default(),
             coordinator_sender: None,
+            pending_stdin: false,
             library_tree,
         };
 
@@ -458,10 +461,22 @@ impl FlowEdit {
                 self.perform_run();
             }
             Message::Output(ref output_msg) => {
-                self.output_panel.update(output_msg);
+                if matches!(output_msg, OutputMessage::StdinEof) {
+                    self.output_panel.update(output_msg);
+                    if self.pending_stdin {
+                        self.pending_stdin = false;
+                        self.send_to_coordinator(gui::client_message::ClientMessage::GetLineEof);
+                    }
+                } else if let Some(line) = self.output_panel.update(output_msg) {
+                    if self.pending_stdin {
+                        self.pending_stdin = false;
+                        self.output_panel.advance_stdin_cursor();
+                        self.send_to_coordinator(gui::client_message::ClientMessage::Line(line));
+                    }
+                }
             }
             Message::CoordinatorSent(ref coord_msg) => {
-                use coordinator::coordinator_message::CoordinatorMessage as CM;
+                use gui::coordinator_message::CoordinatorMessage as CM;
                 if let CM::Connected(ref sender) = coord_msg {
                     // Handle Connected here, like flowrgui does in update()
                     self.coordinator_sender = Some(sender.clone());
@@ -641,7 +656,7 @@ impl FlowEdit {
             }
         }
 
-        let coordinator_sub = coordinator::subscribe(coordinator::ServerSettings {
+        let coordinator_sub = connection_manager::subscribe(connection_manager::ServerSettings {
             native_flowstdlib: true,
             num_threads: num_cpus(),
             lib_search_path,
@@ -932,9 +947,9 @@ impl FlowEdit {
                 self.output_panel.clear_for_run();
                 self.output_panel.visible = true;
 
-                self.send_to_coordinator(
-                    coordinator::client_message::ClientMessage::ClientSubmission(submission),
-                );
+                self.send_to_coordinator(gui::client_message::ClientMessage::ClientSubmission(
+                    submission,
+                ));
                 self.status = String::from("Submitted...");
             }
             Err(e) => {
@@ -946,9 +961,9 @@ impl FlowEdit {
     /// Handle a message from the coordinator.
     fn process_coordinator_message(
         &mut self,
-        message: coordinator::coordinator_message::CoordinatorMessage,
+        message: gui::coordinator_message::CoordinatorMessage,
     ) {
-        use coordinator::coordinator_message::CoordinatorMessage as CM;
+        use gui::coordinator_message::CoordinatorMessage as CM;
 
         match message {
             CM::Connected(_) => {
@@ -966,7 +981,7 @@ impl FlowEdit {
                 self.output_panel.running = true;
                 self.output_panel.visible = true;
                 self.status = String::from("Running...");
-                self.send_to_coordinator(coordinator::client_message::ClientMessage::Ack);
+                self.send_to_coordinator(gui::client_message::ClientMessage::Ack);
             }
             CM::FlowEnd(_metrics) => {
                 info!("Flow execution ended");
@@ -980,40 +995,37 @@ impl FlowEdit {
             }
             CM::Stdout(text) => {
                 self.output_panel.stdout.push(text);
-                self.send_to_coordinator(coordinator::client_message::ClientMessage::Ack);
+                self.send_to_coordinator(gui::client_message::ClientMessage::Ack);
             }
             CM::Stderr(text) => {
                 self.output_panel.stderr.push(text);
-                self.send_to_coordinator(coordinator::client_message::ClientMessage::Ack);
+                self.send_to_coordinator(gui::client_message::ClientMessage::Ack);
             }
             CM::StdoutEof | CM::StderrEof => {
-                self.send_to_coordinator(coordinator::client_message::ClientMessage::Ack);
+                self.send_to_coordinator(gui::client_message::ClientMessage::Ack);
             }
             CM::GetLine(_prompt) => {
-                let msg = match self.output_panel.take_stdin_line() {
-                    Some(line) => coordinator::client_message::ClientMessage::Line(line),
-                    None => coordinator::client_message::ClientMessage::GetLineEof,
-                };
-                self.send_to_coordinator(msg);
+                if let Some(line) = self.output_panel.take_stdin_line() {
+                    self.send_to_coordinator(gui::client_message::ClientMessage::Line(line));
+                } else {
+                    // Don't send EOF — wait for user to type input
+                    self.pending_stdin = true;
+                }
             }
             CM::GetStdin => {
-                let msg = match self.output_panel.take_all_stdin() {
-                    Some(text) => coordinator::client_message::ClientMessage::Stdin(text),
-                    None => coordinator::client_message::ClientMessage::GetStdinEof,
-                };
-                self.send_to_coordinator(msg);
+                if let Some(text) = self.output_panel.take_all_stdin() {
+                    self.send_to_coordinator(gui::client_message::ClientMessage::Stdin(text));
+                } else {
+                    self.pending_stdin = true;
+                }
             }
             CM::GetArgs => {
-                self.send_to_coordinator(coordinator::client_message::ClientMessage::Args(
-                    Vec::new(),
-                ));
+                self.send_to_coordinator(gui::client_message::ClientMessage::Args(Vec::new()));
             }
             CM::Read(file_path) => {
                 let response = match std::fs::read(&file_path) {
-                    Ok(bytes) => {
-                        coordinator::client_message::ClientMessage::FileContents(file_path, bytes)
-                    }
-                    Err(e) => coordinator::client_message::ClientMessage::Error(format!(
+                    Ok(bytes) => gui::client_message::ClientMessage::FileContents(file_path, bytes),
+                    Err(e) => gui::client_message::ClientMessage::Error(format!(
                         "Could not read {file_path}: {e}"
                     )),
                 };
@@ -1021,8 +1033,8 @@ impl FlowEdit {
             }
             CM::Write(filename, bytes) => {
                 let response = match std::fs::write(&filename, &bytes) {
-                    Ok(()) => coordinator::client_message::ClientMessage::Ack,
-                    Err(e) => coordinator::client_message::ClientMessage::Error(format!(
+                    Ok(()) => gui::client_message::ClientMessage::Ack,
+                    Err(e) => gui::client_message::ClientMessage::Error(format!(
                         "Could not write {filename}: {e}"
                     )),
                 };
@@ -1030,7 +1042,7 @@ impl FlowEdit {
             }
             CM::PixelWrite(_, _, _, _) => {
                 // Image buffer not supported in flowedit yet
-                self.send_to_coordinator(coordinator::client_message::ClientMessage::Ack);
+                self.send_to_coordinator(gui::client_message::ClientMessage::Ack);
             }
             CM::CoordinatorExiting(_) => {
                 self.coordinator_sender = None;
@@ -1043,7 +1055,7 @@ impl FlowEdit {
     }
 
     /// Send a client message to the coordinator via the tokio channel.
-    fn send_to_coordinator(&self, msg: coordinator::client_message::ClientMessage) {
+    fn send_to_coordinator(&self, msg: gui::client_message::ClientMessage) {
         if let Some(ref sender) = self.coordinator_sender {
             let _ = sender.try_send(msg);
         }

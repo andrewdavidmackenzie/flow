@@ -1,0 +1,20 @@
+function = "image_buffer"
+source = "image_buffer.rs"
+docs = "image_buffer.md"
+impure = true
+
+[[input]]
+name = "pixel"
+type = "array/number"
+
+[[input]]
+name = "value"
+type = "array/number"
+
+[[input]]
+name = "size"
+type = "array/number"
+
+[[input]]
+name = "filename"
+type = "string"

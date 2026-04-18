@@ -4,9 +4,9 @@ use flowcore::errors::Result;
 use flowcore::{Implementation, RunAgain, DONT_RUN_AGAIN, RUN_AGAIN};
 use serde_json::Value;
 
-use crate::coordinator::client_message::ClientMessage;
-use crate::coordinator::coordinator_connection::CoordinatorConnection;
-use crate::coordinator::coordinator_message::CoordinatorMessage;
+use crate::gui::client_message::ClientMessage;
+use crate::gui::coordinator_connection::CoordinatorConnection;
+use crate::gui::coordinator_message::CoordinatorMessage;
 
 /// `Implementation` struct for the `Stdin` function
 pub struct Stdin {
@@ -50,9 +50,9 @@ mod test {
     use serde_json::Value;
     use serial_test::serial;
 
-    use crate::coordinator::client_message::ClientMessage;
-    use crate::coordinator::coordinator_message::CoordinatorMessage;
-    use crate::coordinator::test_helper::test::wait_for_then_send;
+    use crate::gui::client_message::ClientMessage;
+    use crate::gui::coordinator_message::CoordinatorMessage;
+    use crate::gui::test_helper::test::wait_for_then_send;
 
     use super::Stdin;
 

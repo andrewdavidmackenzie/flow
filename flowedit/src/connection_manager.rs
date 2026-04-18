@@ -1,8 +1,3 @@
-//! Coordinator module for running flows in-process.
-//!
-//! Adapted from flowrgui's connection manager. Spawns a coordinator in a
-//! background thread and communicates via ZMQ sockets through an iced Subscription.
-
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex, OnceLock};
 use std::thread;
@@ -22,24 +17,15 @@ use flowrlib::dispatcher::Dispatcher;
 use flowrlib::executor::Executor;
 use flowrlib::services::{CONTROL_SERVICE_NAME, JOB_SERVICE_NAME, RESULTS_JOB_SERVICE_NAME};
 
-pub(crate) mod client_connection;
-pub(crate) mod client_message;
-pub(crate) mod coordinator_connection;
-pub(crate) mod coordinator_message;
-mod debug_handler;
-mod submission_handler;
-pub(crate) mod test_helper;
-
-pub(crate) use coordinator_connection::CoordinatorConnection;
-
-use client_connection::{discover_service, ClientConnection};
-use client_message::ClientMessage;
-use coordinator_connection::{
+use crate::gui::client_connection::{discover_service, ClientConnection};
+use crate::gui::client_message::ClientMessage;
+use crate::gui::coordinator_connection::CoordinatorConnection;
+use crate::gui::coordinator_connection::{
     enable_service_discovery, COORDINATOR_SERVICE_NAME, DEBUG_SERVICE_NAME,
 };
-use coordinator_message::CoordinatorMessage;
-use debug_handler::NoOpDebugHandler;
-use submission_handler::CLISubmissionHandler;
+use crate::gui::coordinator_message::CoordinatorMessage;
+use crate::gui::debug_handler::NoOpDebugHandler;
+use crate::gui::submission_handler::CLISubmissionHandler;
 
 /// Settings for starting the coordinator server
 #[derive(Clone)]
@@ -52,7 +38,7 @@ pub(crate) struct ServerSettings {
     pub lib_search_path: simpath::Simpath,
 }
 
-/// States of the coordinator connection
+/// States in which the Connection to the Coordinator can find itself
 enum CoordinatorState {
     Init(ServerSettings),
     Discovery,
@@ -60,16 +46,16 @@ enum CoordinatorState {
     Connected(Receiver<ClientMessage>, Arc<Mutex<ClientConnection>>),
 }
 
-/// Global storage for server settings
+/// Global storage for coordinator settings, initialized once and read by the subscription
 static SERVER_SETTINGS: OnceLock<ServerSettings> = OnceLock::new();
 
-/// Create a subscription that manages the coordinator connection
+// Creates an asynchronous worker that sends messages back and forth between the App and
+// the Coordinator
 pub(crate) fn subscribe(settings: ServerSettings) -> Subscription<CoordinatorMessage> {
     SERVER_SETTINGS.get_or_init(|| settings);
     Subscription::run(coordinator_stream)
 }
 
-// Matches flowrgui's connection_manager::coordinator_stream exactly
 #[allow(clippy::unwrap_used)]
 fn coordinator_stream() -> impl iced::futures::Stream<Item = CoordinatorMessage> {
     let settings = SERVER_SETTINGS.get().unwrap().clone();
@@ -146,6 +132,7 @@ fn coordinator_stream() -> impl iced::futures::Stream<Item = CoordinatorMessage>
     )
 }
 
+// Start a coordinator server in a background thread, then discover it and return the address
 fn start_server(settings: ServerSettings) -> Result<()> {
     let runtime_port = pick_unused_port().chain_err(|| "No ports free")?;
     let coordinator_connection =
@@ -158,13 +145,13 @@ fn start_server(settings: ServerSettings) -> Result<()> {
 
     info!("Starting coordinator in background thread");
     thread::spawn(move || {
-        let _ = run_coordinator(settings, coordinator_connection, debug_connection);
+        let _ = coordinator(settings, coordinator_connection, debug_connection);
     });
 
     Ok(())
 }
 
-fn run_coordinator(
+fn coordinator(
     settings: ServerSettings,
     coordinator_connection: CoordinatorConnection,
     debug_connection: CoordinatorConnection,

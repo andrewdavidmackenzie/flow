@@ -5,7 +5,7 @@ use serde_derive::{Deserialize, Serialize};
 use flowcore::errors::Result;
 use flowcore::model::metrics::Metrics;
 
-use crate::coordinator::client_message::ClientMessage;
+use crate::gui::client_message::ClientMessage;
 
 /// A message sent from the coordinator to the client
 #[derive(Serialize, Deserialize, Debug, Clone)]
